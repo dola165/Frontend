@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { ClubProfilePage } from './pages/ClubProfilePage';
+import { UserProfilePage } from './pages/UserProfilePage';
 import { MapPage } from './pages/MapPage';
 import { FeedPage } from './pages/FeedPage';
+import { LandingPage } from './pages/LandingPage';
 import { BrowseClubsPage } from './pages/BrowseClubsPage';
 import { MessagingPage } from './pages/MessagingPage';
 import { MiniMap } from './components/MiniMap';
@@ -12,9 +14,19 @@ import { Home, Map as MapIcon, Shield, MessageSquare, User, Search, Moon, Sun, B
 function MainLayout() {
     const location = useLocation();
 
+    const [user, setUser] = useState<{ id: number; username: string } | null>(null);
+
+    useEffect(() => {
+        apiClient.get('/users/me')
+            .then(res => setUser(res.data))
+            .catch(() => setUser(null));
+    }, []);
+
     // Page checks
     const isFullScreenPage = location.pathname === '/map' || location.pathname === '/messages';
-    const isHomePage = location.pathname === '/'; // Check if we are on the feed
+    const isLandingPage = location.pathname === '/';
+    const isFeedPage = location.pathname === '/feed';
+    const isHomePage = isFeedPage; // Feed is now /feed, AI button should show there
 
     const [darkMode, setDarkMode] = useState(() => {
         return localStorage.getItem('theme') === 'dark';
@@ -34,6 +46,9 @@ function MainLayout() {
         try {
             const res = await apiClient.post('/auth/dev-login?email=react_dev@demo.com');
             alert(`Success! ${res.data.message}`);
+            // Refresh user data after login
+            const userRes = await apiClient.get('/users/me');
+            setUser(userRes.data);
         } catch (error) {
             alert("Login failed! Is Spring Boot running?");
         }
@@ -42,45 +57,57 @@ function MainLayout() {
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 relative">
             {/* TOP HEADER */}
-            <nav className="sticky top-0 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center px-6 shadow-sm z-50 transition-colors">
-                <div className="flex items-center gap-8 w-1/3">
-                    <Link to="/" className="text-2xl font-black text-blue-600 hover:text-blue-700 tracking-tighter transition-colors">
-                        TALANTI
-                    </Link>
-                    <div className="hidden md:flex items-center bg-gray-100 dark:bg-gray-700 rounded-full px-3 py-1.5 w-64 transition-colors">
-                        <Search className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                        <input type="text" placeholder="Search clubs or players..." className="bg-transparent border-none outline-none text-sm ml-2 w-full text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400" />
+            {!isLandingPage && (
+                <nav className="sticky top-0 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center px-6 shadow-sm z-50 transition-colors">
+                    <div className="flex items-center gap-8 w-1/3">
+                        <Link to="/feed" className="text-2xl font-black text-blue-600 hover:text-blue-700 tracking-tighter transition-colors">
+                            TALANTI
+                        </Link>
+                        <div className="hidden md:flex items-center bg-gray-100 dark:bg-gray-700 rounded-full px-3 py-1.5 w-64 transition-colors">
+                            <Search className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                            <input type="text" placeholder="Search clubs or players..." className="bg-transparent border-none outline-none text-sm ml-2 w-full text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400" />
+                        </div>
                     </div>
-                </div>
 
-                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4">
 
-                    {/* NEW: Mini AI Button in Header (Only shows when the big floating button is hidden) */}
-                    {!isHomePage && (
-                        <button
-                            onClick={() => alert("Talanti AI Assistant is coming soon!")}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors text-sm font-bold shadow-sm"
-                            title="Ask Talanti AI"
-                        >
-                            <Bot className="w-4 h-4" />
-                            <span className="hidden sm:inline">Ask AI</span>
+                        {/* NEW: Mini AI Button in Header (Only shows when the big floating button is hidden) */}
+                        {!isHomePage && (
+                            <button
+                                onClick={() => alert("Talanti AI Assistant is coming soon!")}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors text-sm font-bold shadow-sm"
+                                title="Ask Talanti AI"
+                            >
+                                <Bot className="w-4 h-4" />
+                                <span className="hidden sm:inline">Ask AI</span>
+                            </button>
+                        )}
+
+                        {/* Dark Mode Toggle */}
+                        <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors" aria-label="Toggle Dark Mode">
+                            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                         </button>
-                    )}
 
-                    {/* Dark Mode Toggle */}
-                    <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors" aria-label="Toggle Dark Mode">
-                        {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                    </button>
-
-                    <button onClick={handleDevLogin} className="bg-blue-600 text-white px-4 py-1.5 rounded-full hover:bg-blue-700 transition-colors font-bold text-sm shadow-sm">
-                        Dev Login
-                    </button>
-                    <div className="w-9 h-9 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-full border-2 border-white dark:border-gray-800 cursor-pointer shadow-sm"></div>
-                </div>
-            </nav>
+                        <button onClick={handleDevLogin} className="bg-blue-600 text-white px-4 py-1.5 rounded-full hover:bg-blue-700 transition-colors font-bold text-sm shadow-sm">
+                            Dev Login
+                        </button>
+                        <Link to={user ? `/profile/${user.id}` : "#"}>
+                            <div className="w-9 h-9 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-full border-2 border-white dark:border-gray-800 cursor-pointer shadow-sm flex items-center justify-center text-[10px] text-white font-bold">
+                                {user ? user.username.substring(0, 2).toUpperCase() : <User className="w-4 h-4" />}
+                            </div>
+                        </Link>
+                    </div>
+                </nav>
+            )}
 
             {/* MAIN CONTENT AREA */}
-            {isFullScreenPage ? (
+            {isLandingPage ? (
+                <main>
+                    <Routes>
+                        <Route path="/" element={<LandingPage />} />
+                    </Routes>
+                </main>
+            ) : isFullScreenPage ? (
                 <main className="h-[calc(100vh-64px)] w-full relative">
                     <Routes>
                         <Route path="/map" element={<MapPage />} />
@@ -93,7 +120,7 @@ function MainLayout() {
                     <aside className="hidden md:block col-span-1">
                         <div className="sticky top-24 flex flex-col gap-8">
                             <div className="flex flex-col gap-2">
-                                <Link to="/" className="flex items-center gap-4 text-lg font-semibold text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 px-4 py-3 rounded-xl transition-colors">
+                                <Link to="/feed" className="flex items-center gap-4 text-lg font-semibold text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 px-4 py-3 rounded-xl transition-colors">
                                     <Home className="w-6 h-6" /> Feed
                                 </Link>
                                 <Link to="/map" className="flex items-center gap-4 text-lg font-semibold text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 px-4 py-3 rounded-xl transition-colors">
@@ -105,9 +132,13 @@ function MainLayout() {
                                 <Link to="/messages" className="flex items-center gap-4 text-lg font-semibold text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 px-4 py-3 rounded-xl transition-colors w-full text-left">
                                     <MessageSquare className="w-6 h-6" /> Messaging
                                 </Link>
-                                <button onClick={() => alert('Profile coming soon')} className="flex items-center gap-4 text-lg font-semibold text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 px-4 py-3 rounded-xl transition-colors w-full text-left">
+                                <Link
+                                    to={user ? `/profile/${user.id}` : "#"}
+                                    onClick={() => !user && alert('Please login first')}
+                                    className="flex items-center gap-4 text-lg font-semibold text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-800 px-4 py-3 rounded-xl transition-colors w-full text-left"
+                                >
                                     <User className="w-6 h-6" /> Profile
-                                </button>
+                                </Link>
                             </div>
 
                             {/* Promotional Widgets Area */}
@@ -133,9 +164,10 @@ function MainLayout() {
                     {/* CENTER FEED */}
                     <main className="col-span-1 md:col-span-2">
                         <Routes>
-                            <Route path="/" element={<FeedPage />} />
+                            <Route path="/feed" element={<FeedPage />} />
                             <Route path="/clubs" element={<BrowseClubsPage />} />
                             <Route path="/clubs/:id" element={<ClubProfilePage />} />
+                            <Route path="/profile/:id" element={<UserProfilePage />} />
                         </Routes>
                     </main>
 
@@ -154,8 +186,8 @@ function MainLayout() {
                 </div>
             )}
 
-            {/* CONDITIONAL FLOATING AI CHATBOT BUTTON (Only on Home Page) */}
-            {isHomePage && (
+            {/* CONDITIONAL FLOATING AI CHATBOT BUTTON (Only on Feed Page) */}
+            {isFeedPage && (
                 <div className="fixed bottom-8 right-8 z-[9999] group">
                     <div className="absolute bottom-full right-0 pb-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 origin-bottom-right">
                         <div className="w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden relative">

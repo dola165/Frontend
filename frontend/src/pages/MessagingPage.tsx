@@ -195,7 +195,7 @@ export const MessagingPage = () => {
                 </div>
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
+                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 scrollbar-hide">
                     {messages.map((msg, index) => {
                         const isMe = msg.user === currentUser;
                         return (
@@ -253,7 +253,7 @@ export const MessagingPage = () => {
                     </div>
 
                     {/* Drawer Content */}
-                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-6">
+                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-6 scrollbar-hide">
 
                         {/* Media Section */}
                         <section>

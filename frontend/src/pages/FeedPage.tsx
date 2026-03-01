@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
-import { Heart, MessageCircle, Share2, ShieldCheck, MoreHorizontal, Send } from 'lucide-react';
+import { Heart, MessageCircle, Share2, ShieldCheck, MoreHorizontal, Send, Plus, Search } from 'lucide-react';
 
 interface FeedPostDto {
     id: number;
@@ -111,17 +111,66 @@ export const FeedPage = () => {
 
     if (loading) return <div className="p-10 text-center text-gray-500 font-medium animate-pulse">Loading your feed...</div>;
 
+    const stories = [
+        { id: 1, name: "Your Story", isMe: true },
+        { id: 2, name: "FC Dinamo" },
+        { id: 3, name: "Luka M." },
+        { id: 4, name: "Elite Scout" },
+        { id: 5, name: "Nika K." },
+        { id: 6, name: "Saba G." },
+        { id: 7, name: "Goal Academy" },
+    ];
+
     return (
         <div className="w-full pb-24">
 
+            {/* Stories Section */}
+            <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide mb-2 -mx-1 px-1">
+                {stories.map((story) => (
+                    <div key={story.id} className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group">
+                        <div className={`w-16 h-16 rounded-full p-1 border-2 border-black ${story.isMe ? 'bg-white' : 'bg-orange-400'}`}>
+                            <div className={`w-full h-full rounded-full flex items-center justify-center relative overflow-hidden ${story.isMe ? 'bg-gray-100 dark:bg-gray-800' : 'bg-gradient-to-tr from-orange-300 to-orange-500 border border-black'}`}>
+                                {story.isMe ? (
+                                    <>
+                                        <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                                        <div className="absolute bottom-0 right-0 bg-orange-500 rounded-full p-0.5 border-2 border-black">
+                                            <Plus className="w-3 h-3 text-white" />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <span className="text-white font-black text-xs">{story.name.substring(0, 2).toUpperCase()}</span>
+                                )}
+                            </div>
+                        </div>
+                        <span className={`text-[11px] font-bold italic uppercase truncate w-16 text-center tracking-tighter ${story.isMe ? 'text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
+                            {story.name}
+                        </span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Mobile Search & Actions */}
+            <div className="md:hidden mb-6 flex gap-2">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input 
+                        type="text" 
+                        placeholder="Search Talanti..." 
+                        className="w-full bg-white dark:bg-gray-800 border-2 border-black rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all shadow-sm"
+                    />
+                </div>
+            </div>
+
             {/* Create Post Input */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6 flex gap-3 items-center transition-colors">
-                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex-shrink-0"></div>
-                <input
-                    type="text" placeholder="Start a post or announce a tryout..."
-                    className="bg-gray-100 dark:bg-gray-700 w-full rounded-full py-2.5 px-4 outline-none hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                    readOnly onClick={() => alert("Create post modal coming soon!")}
-                />
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black p-4 mb-6 flex gap-3 items-center transition-colors group">
+                <div className="w-10 h-10 bg-gradient-to-tr from-orange-400 to-orange-600 rounded-full flex-shrink-0 border-2 border-black shadow-sm"></div>
+                <div 
+                    onClick={() => alert("Create post modal coming soon!")}
+                    className="bg-gray-50 dark:bg-gray-700 w-full rounded-full py-2.5 px-5 text-gray-600 dark:text-gray-400 text-sm font-bold italic hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer flex items-center justify-between border border-gray-200"
+                >
+                    <span>Start a post or announce a tryout...</span>
+                    <Plus className="w-4 h-4 text-orange-500 group-hover:scale-125 transition-transform" />
+                </div>
             </div>
 
             {/* The Feed */}
@@ -133,24 +182,24 @@ export const FeedPage = () => {
                     const isCommentsOpen = openComments[post.id];
 
                     return (
-                        <div key={post.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
+                        <div key={post.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-2 border-black overflow-hidden transition-colors">
                             {/* Card Header */}
                             <div className="p-4 flex justify-between items-start">
                                 <div className="flex gap-3 items-center">
-                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm shadow-inner ${
-                                        isClubPost ? "bg-blue-600 text-white" : "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-200"
+                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center font-black text-sm shadow-inner border-2 border-black ${
+                                        isClubPost ? "bg-emerald-600 text-white" : "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-900 dark:text-gray-200"
                                     }`}>
                                         {initials}
                                     </div>
                                     <div>
                                         {isClubPost ? (
-                                            <Link to={`/clubs/${post.clubId}`} className="font-bold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 transition-colors">
-                                                {displayName} <ShieldCheck className="w-4 h-4 text-blue-500" />
+                                            <Link to={`/clubs/${post.clubId}`} className="font-black italic uppercase tracking-tighter text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1 transition-colors">
+                                                {displayName} <ShieldCheck className="w-4 h-4 text-orange-400" />
                                             </Link>
                                         ) : (
-                                            <div className="font-bold text-gray-900 dark:text-white">{displayName}</div>
+                                            <div className="font-black italic uppercase tracking-tighter text-gray-900 dark:text-white">{displayName}</div>
                                         )}
-                                        <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                                        <div className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase italic tracking-widest mt-0.5">
                                             {formatTime(post.createdAt)}
                                         </div>
                                     </div>
@@ -162,41 +211,41 @@ export const FeedPage = () => {
 
                             {/* Card Body */}
                             <div className="px-4 pb-3">
-                                <p className="text-gray-800 dark:text-gray-200 whitespace-pre-line leading-relaxed">
+                                <p className="text-gray-900 dark:text-gray-200 whitespace-pre-line leading-relaxed font-medium">
                                     {post.content}
                                 </p>
                             </div>
 
                             {/* Engagement Counters */}
                             {(post.likeCount > 0 || post.commentCount > 0) && (
-                                <div className="px-4 py-2 border-t border-gray-50 dark:border-gray-700/50 flex gap-4 text-xs text-gray-500 dark:text-gray-400">
-                                    {post.likeCount > 0 && <span>{post.likeCount} Likes</span>}
-                                    {post.commentCount > 0 && <span>{post.commentCount} Comments</span>}
+                                <div className="px-4 py-2 border-t-2 border-black/5 flex gap-4 text-[10px] font-bold uppercase italic text-gray-500 dark:text-gray-400">
+                                    {post.likeCount > 0 && <span className="text-orange-500">{post.likeCount} Likes</span>}
+                                    {post.commentCount > 0 && <span className="text-emerald-600">{post.commentCount} Comments</span>}
                                 </div>
                             )}
 
                             {/* Action Buttons */}
-                            <div className="px-2 py-1 border-t border-gray-100 dark:border-gray-700 flex justify-between">
+                            <div className="px-2 py-1 border-t-2 border-black flex justify-between bg-gray-50 dark:bg-gray-900/50">
                                 <button
                                     onClick={() => handleLikeToggle(post.id)}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                                        post.isLikedByMe ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-black italic uppercase text-xs transition-colors ${
+                                        post.isLikedByMe ? "text-orange-500 hover:bg-orange-50" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                                     }`}
                                 >
-                                    <Heart className="w-5 h-5" fill={post.isLikedByMe ? "currentColor" : "none"} />
+                                    <Heart className="w-4 h-4" fill={post.isLikedByMe ? "currentColor" : "none"} />
                                     Like
                                 </button>
                                 <button
                                     onClick={() => toggleComments(post.id)}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                                        isCommentsOpen ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20" : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-black italic uppercase text-xs transition-colors ${
+                                        isCommentsOpen ? "text-emerald-600 bg-white border border-black shadow-sm" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                                     }`}
                                 >
-                                    <MessageCircle className="w-5 h-5" />
+                                    <MessageCircle className="w-4 h-4" />
                                     Comment
                                 </button>
-                                <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                    <Share2 className="w-5 h-5" /> Share
+                                <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-black italic uppercase text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                    <Share2 className="w-4 h-4" /> Share
                                 </button>
                             </div>
 
@@ -205,7 +254,7 @@ export const FeedPage = () => {
                                 <div className="bg-gray-50 dark:bg-gray-900/50 p-4 border-t border-gray-100 dark:border-gray-700">
 
                                     {/* Existing Comments */}
-                                    <div className="flex flex-col gap-3 mb-4 max-h-60 overflow-y-auto pr-2">
+                                    <div className="flex flex-col gap-3 mb-4 max-h-60 overflow-y-auto pr-2 scrollbar-hide">
                                         {!commentsData[post.id] ? (
                                             <div className="text-center text-sm text-gray-500">Loading comments...</div>
                                         ) : commentsData[post.id].length === 0 ? (
@@ -236,12 +285,12 @@ export const FeedPage = () => {
                                             value={commentInputs[post.id] || ""}
                                             onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
                                             onKeyDown={(e) => e.key === 'Enter' && submitComment(post.id)}
-                                            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-full py-2.5 pl-4 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+                                            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-full py-2.5 pl-4 pr-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow"
                                         />
                                         <button
                                             onClick={() => submitComment(post.id)}
                                             disabled={!commentInputs[post.id]?.trim()}
-                                            className="absolute right-2 p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
+                                            className="absolute right-2 p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-full transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
                                         >
                                             <Send className="w-4 h-4" />
                                         </button>

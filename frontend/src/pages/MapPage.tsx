@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, Marker, Popup, TileLayer, useMapEvents, useMap } from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer, useMapEvents, useMap, Circle } from "react-leaflet";
 import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import { apiClient } from "../api/axiosConfig";
@@ -20,12 +20,10 @@ export type MapMarkerDto = {
 // 2. The Custom Marker
 const soccerBallSvg = encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-  <circle cx="24" cy="24" r="20" fill="white" stroke="black" stroke-width="2"/>
-  <polygon points="24,14 18,19 20,26 28,26 30,19" fill="black"/>
-  <path d="M18 19 L12 16 L10 24 L16 28" fill="none" stroke="black" stroke-width="2"/>
-  <path d="M30 19 L36 16 L38 24 L32 28" fill="none" stroke="black" stroke-width="2"/>
-  <path d="M20 26 L16 28 L18 36 L24 34" fill="none" stroke="black" stroke-width="2"/>
-  <path d="M28 26 L32 28 L30 36 L24 34" fill="none" stroke="black" stroke-width="2"/>
+  <circle cx="24" cy="24" r="22" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+  <path d="M24 12 L14 18 L16 30 L32 30 L34 18 Z" fill="#000000"/>
+  <path d="M24 2 L24 12 M2 16 L14 18 M8 40 L16 30 M40 40 L32 30 M46 16 L34 18" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="24" cy="24" r="22" fill="none" stroke="#000000" stroke-width="2"/>
 </svg>
 `);
 
@@ -39,38 +37,54 @@ const clubIcon = new L.Icon({
 // 3. The Map Event Listener
 function NearbyLoader({
                           radiusKm,
-                          filterType, // NEW: Added filterType prop
+                          filterType,
                           onMarkers,
+                          onLoading, // NEW: Added loading callback
                       }: {
     radiusKm: number;
-    filterType: "CLUB" | "TRYOUT"; // NEW: Type definition
+    filterType: "CLUB" | "TRYOUT";
     onMarkers: (markers: MapMarkerDto[]) => void;
+    onLoading: (isLoading: boolean) => void; // NEW
 }) {
     const map = useMap();
     const debounceTimerRef = useRef<number | null>(null);
     const abortRef = useRef<AbortController | null>(null);
 
+    // Calculate current visible radius based on map bounds
+    const getVisibleRadius = useCallback(() => {
+        const bounds = map.getBounds();
+        const center = map.getCenter();
+        const northEast = bounds.getNorthEast();
+        // Distance in KM from center to corner
+        const distance = center.distanceTo(northEast) / 1000;
+        // Add 20% buffer to avoid markers popping in/out at the very edge
+        return Math.max(radiusKm, Math.ceil(distance * 1.2));
+    }, [map, radiusKm]);
+
     const fetchNearby = useCallback(
         async (lat: number, lng: number, radius: number, type: string) => {
             try {
+                onLoading(true); // START LOADING
                 abortRef.current?.abort();
                 const controller = new AbortController();
                 abortRef.current = controller;
 
                 const response = await apiClient.get<MapMarkerDto[]>("/map/nearby", {
-                    params: { lat, lng, radius, type }, // NEW: Passing the dynamic type
+                    params: { lat, lng, radius, type },
                     signal: controller.signal,
                 });
 
                 onMarkers(response.data);
+                onLoading(false); // END LOADING
             } catch (error) {
                 if (axios.isCancel(error)) return;
                 if (error instanceof DOMException && error.name === "AbortError") return;
 
                 console.error("Failed to load nearby map pins", error);
+                onLoading(false); // END LOADING ON ERROR
             }
         },
-        [onMarkers]
+        [onMarkers, onLoading]
     );
 
     const scheduleFetch = useCallback(
@@ -78,10 +92,11 @@ function NearbyLoader({
             if (debounceTimerRef.current) window.clearTimeout(debounceTimerRef.current);
 
             debounceTimerRef.current = window.setTimeout(() => {
-                fetchNearby(lat, lng, radiusKm, filterType); // Passed filterType
+                const dynamicRadius = getVisibleRadius();
+                fetchNearby(lat, lng, dynamicRadius, filterType);
             }, 300);
         },
-        [fetchNearby, radiusKm, filterType] // Added filterType to dependencies
+        [fetchNearby, getVisibleRadius, filterType]
     );
 
     useMapEvents({
@@ -89,13 +104,18 @@ function NearbyLoader({
             const c = map.getCenter();
             scheduleFetch(c.lat, c.lng);
         },
+        zoomend: () => {
+            const c = map.getCenter();
+            scheduleFetch(c.lat, c.lng);
+        }
     });
 
     // Re-fetch when radius OR filterType changes
     useEffect(() => {
         const c = map.getCenter();
-        fetchNearby(c.lat, c.lng, radiusKm, filterType);
-    }, [fetchNearby, map, radiusKm, filterType]); // Added filterType to dependencies
+        const dynamicRadius = getVisibleRadius();
+        fetchNearby(c.lat, c.lng, dynamicRadius, filterType);
+    }, [fetchNearby, getVisibleRadius, filterType]);
 
     useEffect(() => {
         return () => {
@@ -133,7 +153,7 @@ function LocateMeControl() {
             onClick={handleLocateClick}
             disabled={locating}
             className={`absolute bottom-6 right-4 z-[1000] p-3 rounded-full shadow-lg border border-gray-100 transition-all ${
-                locating ? "bg-gray-100 text-gray-400" : "bg-white text-blue-600 hover:bg-blue-50"
+                locating ? "bg-gray-100 text-gray-400" : "bg-white text-emerald-600 hover:bg-emerald-50"
             }`}
             aria-label="Use my current location"
         >
@@ -142,11 +162,41 @@ function LocateMeControl() {
     );
 }
 
+// Radius Visualizer Circle Component
+function RadiusCircle({ radiusKm }: { radiusKm: number }) {
+    const map = useMap();
+    const [center, setCenter] = useState(map.getCenter());
+
+    useEffect(() => {
+        const updateCenter = () => setCenter(map.getCenter());
+        map.on('move', updateCenter);
+        return () => {
+            map.off('move', updateCenter);
+        };
+    }, [map]);
+
+    return (
+        <Circle
+            center={center}
+            radius={radiusKm * 1000}
+            pathOptions={{
+                fillColor: '#10b981',
+                fillOpacity: 0.1,
+                color: '#10b981',
+                weight: 2,
+                dashArray: '5, 10',
+                interactive: false
+            }}
+        />
+    );
+}
+
 // 4. The Main Component
 export function MapPage() {
     const navigate = useNavigate();
     const [markers, setMarkers] = useState<MapMarkerDto[]>([]);
     const [selectedId, setSelectedId] = useState<number | null>(null);
+    const [loadingMarkers, setLoadingMarkers] = useState(false);
 
     const [radiusKm, setRadiusKm] = useState<number>(15);
     const [displayRadius, setDisplayRadius] = useState<number>(15);
@@ -164,31 +214,41 @@ export function MapPage() {
     return (
         <div className="relative h-[calc(100vh-72px)] w-full overflow-hidden">
 
+            {/* Loading Indicator */}
+            {loadingMarkers && (
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[2000]">
+                    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-gray-100 dark:border-gray-700 flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Updating markers...</span>
+                    </div>
+                </div>
+            )}
+
             {/* The Floating Filter UI */}
-            <div className="absolute top-4 right-4 z-[1000] bg-white/95 backdrop-blur shadow-lg border border-gray-100 rounded-xl p-4 w-64 md:w-72 transition-all">
+            <div className="absolute top-4 right-4 z-[1000] bg-white/95 backdrop-blur shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] border-4 border-black rounded-xl p-5 w-64 md:w-72 transition-all">
 
                 {/* NEW: Toggle Switch */}
-                <div className="flex bg-gray-100 p-1 rounded-lg mb-4">
+                <div className="flex bg-gray-100 border-2 border-black p-1 rounded-lg mb-4">
                     <button
                         onClick={() => setFilterType("CLUB")}
-                        className={`flex-1 text-sm font-semibold py-1.5 rounded-md transition-all ${filterType === "CLUB" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500"}`}
+                        className={`flex-1 text-xs font-black uppercase italic py-1.5 rounded-md transition-all ${filterType === "CLUB" ? "bg-white text-emerald-600 shadow-sm border border-black" : "text-gray-500"}`}
                     >
                         All Clubs
                     </button>
                     <button
                         onClick={() => setFilterType("TRYOUT")}
-                        className={`flex-1 text-sm font-semibold py-1.5 rounded-md transition-all ${filterType === "TRYOUT" ? "bg-white text-red-600 shadow-sm" : "text-gray-500"}`}
+                        className={`flex-1 text-xs font-black uppercase italic py-1.5 rounded-md transition-all ${filterType === "TRYOUT" ? "bg-white text-orange-500 shadow-sm border border-black" : "text-gray-500"}`}
                     >
                         Active Tryouts
                     </button>
                 </div>
 
                 <div className="flex justify-between items-center mb-3">
-                    <span className="font-bold text-gray-800 text-sm flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4 text-blue-600" />
+                    <span className="font-black italic uppercase text-gray-900 text-xs flex items-center gap-1.5 tracking-tighter">
+                        <MapPin className="w-4 h-4 text-orange-500" />
                         Search Radius
                     </span>
-                    <span className="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md text-sm">
+                    <span className="text-white font-black bg-orange-500 border-2 border-black px-2 py-0.5 rounded-md text-xs italic">
                         {displayRadius} km
                     </span>
                 </div>
@@ -201,7 +261,7 @@ export function MapPage() {
                     value={displayRadius}
                     onChange={(e) => setDisplayRadius(Number(e.target.value))}
                     onPointerUp={() => setRadiusKm(displayRadius)}
-                    className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500 border border-black"
                     aria-label="Search radius in kilometers"
                 />
 
@@ -216,6 +276,7 @@ export function MapPage() {
                 center={defaultCenter}
                 zoom={12}
                 className="h-full w-full z-0"
+                preferCanvas={true}
             >
                 <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -223,11 +284,15 @@ export function MapPage() {
                 />
 
                 {/* NEW: Passed filterType to the Loader */}
-                <NearbyLoader radiusKm={radiusKm} filterType={filterType} onMarkers={setMarkers} />
+                <NearbyLoader radiusKm={radiusKm} filterType={filterType} onMarkers={setMarkers} onLoading={setLoadingMarkers} />
+
+                <RadiusCircle radiusKm={displayRadius} />
 
                 <LocateMeControl />
 
-                {markers.map((m) => (
+                {markers
+                    .filter(m => (m.distanceKm ?? 0) <= radiusKm)
+                    .map((m) => (
                     <Marker
                         key={`${m.entityType}:${m.entityId}`}
                         position={[m.latitude, m.longitude]}
@@ -241,7 +306,7 @@ export function MapPage() {
                                 <div className="font-bold text-gray-900">{m.title}</div>
                                 {m.subtitle && <div className="text-xs text-gray-600">{m.subtitle}</div>}
                                 {typeof m.distanceKm === "number" && (
-                                    <div className="text-xs text-blue-600 font-semibold mt-1">
+                                    <div className="text-xs text-emerald-600 font-semibold mt-1">
                                         {m.distanceKm.toFixed(1)} km away
                                     </div>
                                 )}
@@ -253,33 +318,33 @@ export function MapPage() {
 
             {/* Bottom Sheet Drawer UI */}
             {selected && (
-                <div className="absolute bottom-6 left-0 right-0 mx-auto max-w-md bg-white rounded-xl shadow-2xl border border-gray-100 p-5 z-[1000] animate-in slide-in-from-bottom-5">
+                <div className="absolute bottom-6 left-0 right-0 mx-auto max-w-md bg-white rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] border-4 border-black p-5 z-[1000] animate-in slide-in-from-bottom-5">
                     <div className="flex justify-between items-start">
                         <div>
-                            <h3 className="font-extrabold text-xl text-gray-900">{selected.title}</h3>
-                            <p className="text-sm text-gray-500 font-medium">{selected.subtitle ?? "Club"}</p>
+                            <h3 className="font-black italic uppercase text-xl text-gray-900 tracking-tighter underline decoration-orange-500 decoration-4">{selected.title}</h3>
+                            <p className="text-xs text-gray-600 font-black italic uppercase tracking-widest mt-1">{selected.subtitle ?? "Club"}</p>
                         </div>
                         <button
                             onClick={() => setSelectedId(null)}
-                            className="text-gray-400 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center font-bold"
+                            className="text-white bg-black hover:bg-gray-800 rounded-full w-8 h-8 flex items-center justify-center font-black"
                             aria-label="Close club preview"
                         >
                             ✕
                         </button>
                     </div>
 
-                    <div className="flex gap-3 mt-5">
+                    <div className="flex gap-3 mt-6">
                         <button
-                            className="flex-1 bg-gray-900 text-white font-semibold py-2.5 rounded-lg hover:bg-gray-800 transition-colors"
+                            className="flex-1 bg-black text-white font-black italic uppercase py-3 rounded-lg hover:bg-gray-800 transition-colors border-2 border-black tracking-tighter"
                             onClick={() => navigate(`/clubs/${selected.entityId}`)}
                         >
                             View Profile
                         </button>
                         <button
-                            className="flex-1 bg-blue-50 text-blue-700 font-semibold py-2.5 rounded-lg hover:bg-blue-100 border border-blue-200 transition-colors"
+                            className="flex-1 bg-orange-500 text-white font-black italic uppercase py-3 rounded-lg hover:bg-orange-600 border-2 border-black transition-colors tracking-tighter"
                             onClick={() => alert("Apply to trial feature coming soon!")}
                         >
-                            Apply
+                            Apply Now
                         </button>
                     </div>
                 </div>

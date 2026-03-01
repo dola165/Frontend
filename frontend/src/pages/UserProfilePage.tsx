@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { CreatePostModal } from '../components/CreatePostModal';
+import { PostTheaterModal } from '../components/PostTheaterModal';
 import { apiClient } from '../api/axiosConfig';
 import {
     MapPin, Trophy, PlaySquare, Edit, Camera,
@@ -31,23 +33,32 @@ interface FeedPostDto {
     likeCount: number;
     commentCount: number;
     isLikedByMe: boolean;
+    mediaUrls: string[];
 }
 
 export const UserProfilePage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'timeline' | 'about' | 'connections'>('timeline');
-
+    const [selectedPost, setSelectedPost] = useState<FeedPostDto | null>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [posts, setPosts] = useState<FeedPostDto[]>([]);
     const [loading, setLoading] = useState(true);
+    const API_BASE_URL = 'http://localhost:8080';
 
     const isMyProfile = true;
 
-    useEffect(() => {
+    // 1. WE ADDED THE loadFeed FUNCTION HERE!
+    const loadFeed = () => {
         apiClient.get(`/feed/user/${id}`)
-            .then(res => setPosts(res.data.posts))
+            .then(res => setPosts(res.data.posts || res.data))
             .catch(err => console.error("Failed to load user feed", err));
+    };
+
+    useEffect(() => {
+        // 2. USE loadFeed IN THE EFFECT INSTEAD OF WRITING IT INLINE
+        loadFeed();
 
         setProfile({
             id: Number(id),
@@ -78,7 +89,6 @@ export const UserProfilePage = () => {
     const initials = profile.fullName.substring(0, 2).toUpperCase();
 
     return (
-        // Deep neo-brutalist background
         <div className="w-full min-h-screen bg-[#111827] pb-20 font-sans">
 
             {/* === HEADER SECTION === */}
@@ -281,7 +291,7 @@ export const UserProfilePage = () => {
                                             type="text"
                                             placeholder="What's on your mind?"
                                             className="flex-1 bg-gray-800 rounded-xl py-3 px-5 text-sm font-medium text-white placeholder-gray-500 outline-none border-2 border-transparent hover:border-gray-700 transition-colors cursor-pointer"
-                                            readOnly onClick={() => alert("Post creation coming soon")}
+                                            readOnly onClick={() => setIsModalOpen(true)}
                                         />
                                     </div>
                                 )}
@@ -329,6 +339,30 @@ export const UserProfilePage = () => {
                                                 </p>
                                             </div>
 
+                                            {/* RENDERING THE UPLOADED MEDIA! */}
+                                            {post.mediaUrls && post.mediaUrls.length > 0 && (
+                                                <div
+                                                    className="w-full bg-black border-y-2 border-gray-800 cursor-pointer hover:opacity-90 transition-opacity"
+                                                    onClick={() => setSelectedPost(post)}
+                                                >
+                                                    {post.mediaUrls[0].endsWith('.mp4') || post.mediaUrls[0].endsWith('.mov') ? (
+                                                        <div onClick={(e) => e.stopPropagation()}>
+                                                            <video
+                                                                src={`${API_BASE_URL}${post.mediaUrls[0]}`}
+                                                                controls
+                                                                className="w-full max-h-[500px] object-contain"
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <img
+                                                            src={`${API_BASE_URL}${post.mediaUrls[0]}`}
+                                                            alt="Post attachment"
+                                                            className="w-full max-h-[500px] object-cover"
+                                                        />
+                                                    )}
+                                                </div>
+                                            )}
+
                                             {/* Action Buttons */}
                                             <div className="px-3 py-2 border-t-2 border-gray-800 flex justify-between bg-gray-800/30">
                                                 <button className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-colors ${post.isLikedByMe ? "text-emerald-400 bg-gray-800" : "text-gray-400 hover:text-emerald-400 hover:bg-gray-800"}`}>
@@ -362,6 +396,20 @@ export const UserProfilePage = () => {
 
                 </div>
             </div>
+
+            {/* Render the Create Post Modal */}
+            <CreatePostModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onPostCreated={loadFeed}
+            />
+
+            {/* Render the Theater View Modal */}
+            <PostTheaterModal
+                isOpen={!!selectedPost}
+                post={selectedPost}
+                onClose={() => setSelectedPost(null)}
+            />
         </div>
     );
 };

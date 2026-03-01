@@ -5,11 +5,12 @@ import L from "leaflet";
 import { apiClient } from "../api/axiosConfig";
 import { MapPin, Navigation } from "lucide-react";
 import axios from "axios";
+import 'leaflet/dist/leaflet.css';
 
 // 1. The Types
 export type MapMarkerDto = {
     entityId: number;
-    entityType: "CLUB" | "USER" | string;
+    entityType: "CLUB" | "USER" | "TRYOUT" | string;
     title: string;
     subtitle?: string | null;
     latitude: number;
@@ -17,54 +18,52 @@ export type MapMarkerDto = {
     distanceKm?: number | null;
 };
 
-// 2. The Custom Marker
-const soccerBallSvg = encodeURIComponent(`
+// 2. The Colored Soccer Ball Pins!
+const createSoccerBallIcon = (color: string) => new L.Icon({
+    iconUrl: `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-  <circle cx="24" cy="24" r="22" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+  <circle cx="24" cy="24" r="22" fill="${color}" stroke="#000000" stroke-width="2"/>
   <path d="M24 12 L14 18 L16 30 L32 30 L34 18 Z" fill="#000000"/>
   <path d="M24 2 L24 12 M2 16 L14 18 M8 40 L16 30 M40 40 L32 30 M46 16 L34 18" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
   <circle cx="24" cy="24" r="22" fill="none" stroke="#000000" stroke-width="2"/>
 </svg>
-`);
-
-const clubIcon = new L.Icon({
-    iconUrl: `data:image/svg+xml,${soccerBallSvg}`,
+    `)}`,
     iconSize: [34, 34],
-    iconAnchor: [17, 34],
-    popupAnchor: [0, -34],
+    iconAnchor: [17, 17],
+    popupAnchor: [0, -17],
 });
+
+const clubIcon = createSoccerBallIcon('#10b981'); // Emerald
+const tryoutIcon = createSoccerBallIcon('#f97316'); // Orange
 
 // 3. The Map Event Listener
 function NearbyLoader({
                           radiusKm,
                           filterType,
                           onMarkers,
-                          onLoading, // NEW: Added loading callback
+                          onLoading,
                       }: {
     radiusKm: number;
     filterType: "CLUB" | "TRYOUT";
     onMarkers: (markers: MapMarkerDto[]) => void;
-    onLoading: (isLoading: boolean) => void; // NEW
+    onLoading: (isLoading: boolean) => void;
 }) {
     const map = useMap();
     const debounceTimerRef = useRef<number | null>(null);
     const abortRef = useRef<AbortController | null>(null);
 
-    // Calculate current visible radius based on map bounds
     const getVisibleRadius = useCallback(() => {
         const bounds = map.getBounds();
         const center = map.getCenter();
         const northEast = bounds.getNorthEast();
-        // Distance in KM from center to corner
         const distance = center.distanceTo(northEast) / 1000;
-        // Add 20% buffer to avoid markers popping in/out at the very edge
         return Math.max(radiusKm, Math.ceil(distance * 1.2));
     }, [map, radiusKm]);
 
     const fetchNearby = useCallback(
         async (lat: number, lng: number, radius: number, type: string) => {
             try {
-                onLoading(true); // START LOADING
+                onLoading(true);
                 abortRef.current?.abort();
                 const controller = new AbortController();
                 abortRef.current = controller;
@@ -75,13 +74,13 @@ function NearbyLoader({
                 });
 
                 onMarkers(response.data);
-                onLoading(false); // END LOADING
+                onLoading(false);
             } catch (error) {
                 if (axios.isCancel(error)) return;
                 if (error instanceof DOMException && error.name === "AbortError") return;
 
                 console.error("Failed to load nearby map pins", error);
-                onLoading(false); // END LOADING ON ERROR
+                onLoading(false);
             }
         },
         [onMarkers, onLoading]
@@ -110,7 +109,6 @@ function NearbyLoader({
         }
     });
 
-    // Re-fetch when radius OR filterType changes
     useEffect(() => {
         const c = map.getCenter();
         const dynamicRadius = getVisibleRadius();
@@ -127,7 +125,6 @@ function NearbyLoader({
     return null;
 }
 
-// Locate Me Button Component
 function LocateMeControl() {
     const map = useMap();
     const [locating, setLocating] = useState(false);
@@ -162,7 +159,6 @@ function LocateMeControl() {
     );
 }
 
-// Radius Visualizer Circle Component
 function RadiusCircle({ radiusKm }: { radiusKm: number }) {
     const map = useMap();
     const [center, setCenter] = useState(map.getCenter());
@@ -201,7 +197,6 @@ export function MapPage() {
     const [radiusKm, setRadiusKm] = useState<number>(15);
     const [displayRadius, setDisplayRadius] = useState<number>(15);
 
-    // NEW: Map Filter State
     const [filterType, setFilterType] = useState<"CLUB" | "TRYOUT">("CLUB");
 
     const defaultCenter: [number, number] = [41.7151, 44.8271];
@@ -227,16 +222,15 @@ export function MapPage() {
             {/* The Floating Filter UI */}
             <div className="absolute top-4 right-4 z-[1000] bg-white/95 backdrop-blur shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] border-4 border-black rounded-xl p-5 w-64 md:w-72 transition-all">
 
-                {/* NEW: Toggle Switch */}
                 <div className="flex bg-gray-100 border-2 border-black p-1 rounded-lg mb-4">
                     <button
-                        onClick={() => setFilterType("CLUB")}
+                        onClick={() => { setFilterType("CLUB"); setSelectedId(null); }}
                         className={`flex-1 text-xs font-black uppercase italic py-1.5 rounded-md transition-all ${filterType === "CLUB" ? "bg-white text-emerald-600 shadow-sm border border-black" : "text-gray-500"}`}
                     >
                         All Clubs
                     </button>
                     <button
-                        onClick={() => setFilterType("TRYOUT")}
+                        onClick={() => { setFilterType("TRYOUT"); setSelectedId(null); }}
                         className={`flex-1 text-xs font-black uppercase italic py-1.5 rounded-md transition-all ${filterType === "TRYOUT" ? "bg-white text-orange-500 shadow-sm border border-black" : "text-gray-500"}`}
                     >
                         Active Tryouts
@@ -283,7 +277,6 @@ export function MapPage() {
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 />
 
-                {/* NEW: Passed filterType to the Loader */}
                 <NearbyLoader radiusKm={radiusKm} filterType={filterType} onMarkers={setMarkers} onLoading={setLoadingMarkers} />
 
                 <RadiusCircle radiusKm={displayRadius} />
@@ -293,27 +286,27 @@ export function MapPage() {
                 {markers
                     .filter(m => (m.distanceKm ?? 0) <= radiusKm)
                     .map((m) => (
-                    <Marker
-                        key={`${m.entityType}:${m.entityId}`}
-                        position={[m.latitude, m.longitude]}
-                        icon={clubIcon}
-                        eventHandlers={{
-                            click: () => setSelectedId(m.entityId),
-                        }}
-                    >
-                        <Popup>
-                            <div className="min-w-[180px]">
-                                <div className="font-bold text-gray-900">{m.title}</div>
-                                {m.subtitle && <div className="text-xs text-gray-600">{m.subtitle}</div>}
-                                {typeof m.distanceKm === "number" && (
-                                    <div className="text-xs text-emerald-600 font-semibold mt-1">
-                                        {m.distanceKm.toFixed(1)} km away
-                                    </div>
-                                )}
-                            </div>
-                        </Popup>
-                    </Marker>
-                ))}
+                        <Marker
+                            key={`${m.entityType}:${m.entityId}`}
+                            position={[m.latitude, m.longitude]}
+                            icon={m.entityType === 'TRYOUT' ? tryoutIcon : clubIcon}
+                            eventHandlers={{
+                                click: () => setSelectedId(m.entityId),
+                            }}
+                        >
+                            <Popup>
+                                <div className="min-w-[180px]">
+                                    <div className="font-bold text-gray-900">{m.title}</div>
+                                    {m.subtitle && <div className="text-xs text-gray-600">{m.subtitle}</div>}
+                                    {typeof m.distanceKm === "number" && (
+                                        <div className="text-xs text-emerald-600 font-semibold mt-1">
+                                            {m.distanceKm.toFixed(1)} km away
+                                        </div>
+                                    )}
+                                </div>
+                            </Popup>
+                        </Marker>
+                    ))}
             </MapContainer>
 
             {/* Bottom Sheet Drawer UI */}
@@ -335,16 +328,10 @@ export function MapPage() {
 
                     <div className="flex gap-3 mt-6">
                         <button
-                            className="flex-1 bg-black text-white font-black italic uppercase py-3 rounded-lg hover:bg-gray-800 transition-colors border-2 border-black tracking-tighter"
+                            className="flex-1 bg-black text-white font-black italic uppercase py-3 rounded-lg hover:bg-gray-800 transition-colors border-2 border-black tracking-tighter w-full"
                             onClick={() => navigate(`/clubs/${selected.entityId}`)}
                         >
                             View Profile
-                        </button>
-                        <button
-                            className="flex-1 bg-orange-500 text-white font-black italic uppercase py-3 rounded-lg hover:bg-orange-600 border-2 border-black transition-colors tracking-tighter"
-                            onClick={() => alert("Apply to trial feature coming soon!")}
-                        >
-                            Apply Now
                         </button>
                     </div>
                 </div>

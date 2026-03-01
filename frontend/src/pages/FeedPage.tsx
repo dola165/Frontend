@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { Heart, MessageCircle, Share2, ShieldCheck, MoreHorizontal, Send, Plus, Search } from 'lucide-react';
+import { CreatePostModal } from '../components/CreatePostModal';
+import { PostTheaterModal } from '../components/PostTheaterModal';
 
 interface FeedPostDto {
     id: number;
@@ -14,6 +16,7 @@ interface FeedPostDto {
     likeCount: number;
     commentCount: number;
     isLikedByMe: boolean;
+    mediaUrls: string[]; // Recovered Media URLs array
 }
 
 interface CommentDto {
@@ -27,16 +30,26 @@ export const FeedPage = () => {
     const [posts, setPosts] = useState<FeedPostDto[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Modals & Popups
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedPost, setSelectedPost] = useState<FeedPostDto | null>(null); // Theater Mode State
+
     // Interaction States
     const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
     const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
     const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
 
-    useEffect(() => {
+    const API_BASE_URL = 'http://localhost:8080';
+
+    const loadFeed = () => {
         apiClient.get('/feed')
-            .then(res => setPosts(res.data.posts))
+            .then(res => setPosts(res.data.posts || res.data))
             .catch(console.error)
             .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        loadFeed();
     }, []);
 
     const formatTime = (dateString: string) => {
@@ -45,7 +58,6 @@ export const FeedPage = () => {
 
     // --- 1. HANDLE LIKES (Optimistic Update) ---
     const handleLikeToggle = async (postId: number) => {
-        // Instantly update UI before server responds
         setPosts(currentPosts => currentPosts.map(post => {
             if (post.id === postId) {
                 const isCurrentlyLiked = post.isLikedByMe;
@@ -62,18 +74,14 @@ export const FeedPage = () => {
             await apiClient.post(`/feed/posts/${postId}/like`);
         } catch {
             alert("Failed to like post");
-            // In a production app, you would revert the optimistic update here on failure
         }
     };
 
     // --- 2. HANDLE COMMENTS SECTION TOGGLE ---
     const toggleComments = async (postId: number) => {
         const isCurrentlyOpen = openComments[postId];
-
-        // Toggle the UI state
         setOpenComments(prev => ({ ...prev, [postId]: !isCurrentlyOpen }));
 
-        // If we are opening it and don't have the data yet, fetch it!
         if (!isCurrentlyOpen && !commentsData[postId]) {
             try {
                 const res = await apiClient.get<CommentDto[]>(`/feed/posts/${postId}/comments`);
@@ -92,16 +100,12 @@ export const FeedPage = () => {
         try {
             const res = await apiClient.post<CommentDto>(`/feed/posts/${postId}/comments`, { content: text });
 
-            // Append the new comment directly to the state
             setCommentsData(prev => ({
                 ...prev,
                 [postId]: [...(prev[postId] || []), res.data]
             }));
 
-            // Update the post's comment counter
             setPosts(currentPosts => currentPosts.map(p => p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p));
-
-            // Clear the input
             setCommentInputs(prev => ({ ...prev, [postId]: "" }));
 
         } catch (err) {
@@ -153,9 +157,9 @@ export const FeedPage = () => {
             <div className="md:hidden mb-6 flex gap-2">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input 
-                        type="text" 
-                        placeholder="Search Talanti..." 
+                    <input
+                        type="text"
+                        placeholder="Search Talanti..."
                         className="w-full bg-white dark:bg-gray-800 border-2 border-black rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all shadow-sm"
                     />
                 </div>
@@ -164,8 +168,8 @@ export const FeedPage = () => {
             {/* Create Post Input */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black p-4 mb-6 flex gap-3 items-center transition-colors group">
                 <div className="w-10 h-10 bg-gradient-to-tr from-orange-400 to-orange-600 rounded-full flex-shrink-0 border-2 border-black shadow-sm"></div>
-                <div 
-                    onClick={() => alert("Create post modal coming soon!")}
+                <div
+                    onClick={() => setIsModalOpen(true)}
                     className="bg-gray-50 dark:bg-gray-700 w-full rounded-full py-2.5 px-5 text-gray-600 dark:text-gray-400 text-sm font-bold italic hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer flex items-center justify-between border border-gray-200"
                 >
                     <span>Start a post or announce a tryout...</span>
@@ -215,6 +219,30 @@ export const FeedPage = () => {
                                     {post.content}
                                 </p>
                             </div>
+
+                            {/* RECOVERED MEDIA RENDERER */}
+                            {post.mediaUrls && post.mediaUrls.length > 0 && (
+                                <div
+                                    className="w-full bg-black border-y-2 border-black cursor-pointer hover:opacity-90 transition-opacity"
+                                    onClick={() => setSelectedPost(post)}
+                                >
+                                    {post.mediaUrls[0].endsWith('.mp4') || post.mediaUrls[0].endsWith('.mov') ? (
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                            <video
+                                                src={`${API_BASE_URL}${post.mediaUrls[0]}`}
+                                                controls
+                                                className="w-full max-h-[500px] object-contain"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <img
+                                            src={`${API_BASE_URL}${post.mediaUrls[0]}`}
+                                            alt="Post attachment"
+                                            className="w-full max-h-[500px] object-cover"
+                                        />
+                                    )}
+                                </div>
+                            )}
 
                             {/* Engagement Counters */}
                             {(post.likeCount > 0 || post.commentCount > 0) && (
@@ -302,6 +330,19 @@ export const FeedPage = () => {
                     );
                 })}
             </div>
+
+            {/* Modals */}
+            <CreatePostModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onPostCreated={loadFeed}
+            />
+
+            <PostTheaterModal
+                isOpen={!!selectedPost}
+                post={selectedPost}
+                onClose={() => setSelectedPost(null)}
+            />
         </div>
     );
 };

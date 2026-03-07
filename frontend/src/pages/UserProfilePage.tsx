@@ -33,6 +33,14 @@ interface FeedPostDto {
     isLikedByMe: boolean;
 }
 
+const userBannerImages = [
+    "1518605368461-1ee71161d91a", // Stadium overview
+    "1574629810360-7efbb6b6923f", // Grassy pitch
+    "1522778119026-d108dc1a0a52", // Field lines
+    "1508098682722-e99c43a406b2", // Stadium lights/night
+    "1431324155629-1a610d6e60d5"  // Vintage ball
+];
+
 export const UserProfilePage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -41,7 +49,8 @@ export const UserProfilePage = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [posts, setPosts] = useState<FeedPostDto[]>([]);
     const [loading, setLoading] = useState(true);
-
+    const randomBannerId = userBannerImages[Number(id || 0) % userBannerImages.length];
+    const bannerUrl = `https://images.unsplash.com/photo-${randomBannerId}?auto=format&fit=crop&q=80&w=1000&h=300`;
     const isMyProfile = true;
 
     useEffect(() => {
@@ -82,15 +91,27 @@ export const UserProfilePage = () => {
         <div className="w-full min-h-screen bg-[#111827] pb-20 font-sans">
 
             {/* === HEADER SECTION === */}
-            <div className="bg-[#1e293b] border-b-2 border-gray-800 shadow-[0_8px_0px_0px_rgba(15,23,42,1)] mb-8">
+            <div className="bg-[#1e293b] rounded-3xl border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] overflow-hidden mb-6">
 
-                {/* Banner Image */}
-                <div className="relative h-64 md:h-80 w-full bg-slate-800 overflow-hidden border-b-2 border-gray-800">
+                {/* 🌟 DYNAMIC USER BANNER */}
+                <div className="h-48 relative bg-gray-900">
                     <img
-                        src="https://images.unsplash.com/photo-1518605368461-1ee71161d91a?auto=format&fit=crop&q=80&w=1200&h=400"
-                        alt="Cover"
-                        className="w-full h-full object-cover opacity-60 mix-blend-overlay"
+                        src={bannerUrl}
+                        alt="Profile Banner"
+                        className="w-full h-full object-cover opacity-70"
                     />
+                </div>
+
+                {/* The rest of your profile header (Avatar, Follow buttons, etc) goes here */}
+                <div className="px-6 pb-6 relative">
+                    <div className="absolute -top-16 w-32 h-32 bg-gray-800 rounded-2xl border-4 border-gray-800 shadow-lg overflow-hidden">
+                        {/* Using UI Avatars for the user profile picture too! */}
+                        <img
+                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.fullName || 'User')}&background=f97316&color=fff&bold=true&size=200`}
+                            alt={profile?.fullName}
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
 
                     {/* Back Button */}
                     <button

@@ -1,23 +1,9 @@
 import { useState } from 'react';
 import { MapContainer, TileLayer } from 'react-leaflet';
-import L from 'leaflet';
 import { useNavigate } from 'react-router-dom';
 import { Expand, Map as MapIcon, Shrink } from 'lucide-react';
 
-const soccerBallSvg = encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-  <circle cx="24" cy="24" r="22" fill="#ffffff" stroke="#000000" stroke-width="2"/>
-  <path d="M24 12 L14 18 L16 30 L32 30 L34 18 Z" fill="#000000"/>
-  <path d="M24 2 L24 12 M2 16 L14 18 M8 40 L16 30 M40 40 L32 30 M46 16 L34 18" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
-  <circle cx="24" cy="24" r="22" fill="none" stroke="#000000" stroke-width="2"/>
-</svg>
-`);
 
-const soccerIcon = new L.Icon({
-    iconUrl: `data:image/svg+xml,${soccerBallSvg}`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-});
 
 export function MiniMap() {
     const [expanded, setExpanded] = useState(false);

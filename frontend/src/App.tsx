@@ -8,6 +8,8 @@ import { LandingPage } from './pages/LandingPage';
 import { BrowseClubsPage } from './pages/BrowseClubsPage';
 import { MessagingPage } from './pages/MessagingPage';
 import { MiniMap } from './components/MiniMap';
+import { StorePage } from './pages/StorePage';
+import { CharityPage } from './pages/CharityPage';
 import { apiClient } from './api/axiosConfig';
 import { Home, Map as MapIcon, Shield, MessageSquare, User, Search, Moon, Sun, Bot, Sparkles, ShoppingCart, HeartHandshake, Bell, Menu } from 'lucide-react';
 
@@ -22,11 +24,23 @@ function MainLayout() {
             .catch(() => setUser(null));
     }, []);
 
-    // Page checks
-    const isFullScreenPage = location.pathname === '/map' || location.pathname === '/messages' || location.pathname.startsWith('/profile');
+    // --- PAGE LAYOUT CHECKS ---
     const isLandingPage = location.pathname === '/';
     const isFeedPage = location.pathname === '/feed';
-    const isHomePage = isFeedPage; // Feed is now /feed, AI button should show there
+    const isHomePage = isFeedPage;
+
+    // Regex matches exactly /clubs/ followed by numbers (e.g., /clubs/1)
+    // This ensures the main /clubs directory still gets sidebars, but the specific profile gets full screen!
+    const isClubProfilePage = /^\/clubs\/\d+$/.test(location.pathname);
+
+    // We accurately flag all pages that need the immersive full-screen view
+    const isFullScreenPage =
+        location.pathname === '/map' ||
+        location.pathname === '/messages' ||
+        location.pathname.startsWith('/profile') ||
+        location.pathname === '/store' ||
+        location.pathname === '/charity' ||
+        isClubProfilePage;
 
     const [darkMode, setDarkMode] = useState(() => {
         return localStorage.getItem('theme') === 'dark';
@@ -73,13 +87,11 @@ function MainLayout() {
                     </div>
 
                     <div className="flex items-center gap-2 md:gap-4">
-                        {/* Notifications (New) */}
                         <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-300 transition-colors relative">
                             <Bell className="w-5 h-5" />
                             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-400 rounded-full border-2 border-white dark:border-gray-800"></span>
                         </button>
 
-                        {/* NEW: Mini AI Button in Header (Only shows when the big floating button is hidden) */}
                         {!isHomePage && (
                             <button
                                 onClick={() => alert("Talanti AI Assistant is coming soon!")}
@@ -91,7 +103,6 @@ function MainLayout() {
                             </button>
                         )}
 
-                        {/* Dark Mode Toggle */}
                         <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors" aria-label="Toggle Dark Mode">
                             {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                         </button>
@@ -116,11 +127,17 @@ function MainLayout() {
                     </Routes>
                 </main>
             ) : isFullScreenPage ? (
-                <main className="h-[calc(100vh-64px)] w-full relative">
+                // Note: Changed to w-full so scrolling works correctly for the massive Club Profile!
+                <main className="w-full relative min-h-[calc(100vh-64px)]">
                     <Routes>
                         <Route path="/map" element={<MapPage />} />
                         <Route path="/messages" element={<MessagingPage />} />
                         <Route path="/profile/:id" element={<UserProfilePage />} />
+
+                        {/* Immersive Views */}
+                        <Route path="/clubs/:id" element={<ClubProfilePage />} />
+                        <Route path="/store" element={<StorePage />} />
+                        <Route path="/charity" element={<CharityPage />} />
                     </Routes>
                 </main>
             ) : (
@@ -150,22 +167,26 @@ function MainLayout() {
                                 </Link>
                             </div>
 
-                            {/* Promotional Widgets Area */}
+                            {/* Promotional Widgets */}
                             <div className="flex flex-col gap-5 pr-2">
-                                <div onClick={() => alert('Talanti Store opening soon!')} className="bg-white dark:bg-gray-800 p-5 rounded-2xl border-2 border-black dark:border-emerald-900/30 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md">
-                                    <div className="absolute -right-6 -top-6 w-24 h-24 bg-orange-400/10 dark:bg-emerald-500/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
-                                    <ShoppingCart className="w-7 h-7 text-orange-400 dark:text-emerald-400 mb-3 relative z-10" />
-                                    <h3 className="font-black text-gray-900 dark:text-white text-base relative z-10 italic">Talanti Store</h3>
-                                    <p className="text-xs text-gray-700 dark:text-gray-400 mt-1 mb-4 relative z-10 leading-relaxed font-medium">Instantly buy official gear, boots, and training equipment.</p>
-                                    <button className="text-sm font-black text-white bg-orange-400 py-1.5 px-4 rounded-lg shadow-sm border-2 border-black group-hover:bg-orange-500 transition-colors w-full relative z-10 uppercase tracking-tighter">Shop Now</button>
-                                </div>
-                                <div onClick={() => alert('Grassroots Funding Campaigns coming soon!')} className="bg-white dark:bg-gray-800 p-5 rounded-2xl border-2 border-black dark:border-emerald-900/30 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md">
-                                    <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
-                                    <HeartHandshake className="w-7 h-7 text-emerald-600 dark:text-emerald-400 mb-3 relative z-10" />
-                                    <h3 className="font-black text-gray-900 dark:text-white text-base relative z-10 italic">Support Grassroots</h3>
-                                    <p className="text-xs text-gray-700 dark:text-gray-400 mt-1 mb-4 relative z-10 leading-relaxed font-medium">Help fund local clubs and grassroots player campaigns.</p>
-                                    <button className="text-sm font-black text-white bg-emerald-600 py-1.5 px-4 rounded-lg shadow-sm border-2 border-black group-hover:bg-emerald-700 transition-colors w-full relative z-10 uppercase tracking-tighter">View Campaigns</button>
-                                </div>
+                                <Link to="/store" className="block">
+                                    <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border-2 border-black dark:border-emerald-900/30 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md">
+                                        <div className="absolute -right-6 -top-6 w-24 h-24 bg-orange-400/10 dark:bg-emerald-500/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
+                                        <ShoppingCart className="w-7 h-7 text-orange-400 dark:text-emerald-400 mb-3 relative z-10" />
+                                        <h3 className="font-black text-gray-900 dark:text-white text-base relative z-10 italic">Talanti Store</h3>
+                                        <p className="text-xs text-gray-700 dark:text-gray-400 mt-1 mb-4 relative z-10 leading-relaxed font-medium">Instantly buy official gear, boots, and training equipment.</p>
+                                        <button className="text-sm font-black text-white bg-orange-400 py-1.5 px-4 rounded-lg shadow-sm border-2 border-black group-hover:bg-orange-500 transition-colors w-full relative z-10 uppercase tracking-tighter">Shop Now</button>
+                                    </div>
+                                </Link>
+                                <Link to="/charity" className="block">
+                                    <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border-2 border-black dark:border-emerald-900/30 shadow-sm relative overflow-hidden group cursor-pointer transition-all hover:shadow-md">
+                                        <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
+                                        <HeartHandshake className="w-7 h-7 text-emerald-600 dark:text-emerald-400 mb-3 relative z-10" />
+                                        <h3 className="font-black text-gray-900 dark:text-white text-base relative z-10 italic">Support Grassroots</h3>
+                                        <p className="text-xs text-gray-700 dark:text-gray-400 mt-1 mb-4 relative z-10 leading-relaxed font-medium">Help fund local clubs and grassroots player campaigns.</p>
+                                        <button className="text-sm font-black text-white bg-emerald-600 py-1.5 px-4 rounded-lg shadow-sm border-2 border-black group-hover:bg-emerald-700 transition-colors w-full relative z-10 uppercase tracking-tighter">View Campaigns</button>
+                                    </div>
+                                </Link>
                             </div>
                         </div>
                     </aside>
@@ -175,7 +196,6 @@ function MainLayout() {
                         <Routes>
                             <Route path="/feed" element={<FeedPage />} />
                             <Route path="/clubs" element={<BrowseClubsPage />} />
-                            <Route path="/clubs/:id" element={<ClubProfilePage />} />
                         </Routes>
                     </main>
 
@@ -189,18 +209,11 @@ function MainLayout() {
                                     {[
                                         { quote: "He who does not work, neither shall he eat.", author: "Vladimir Lenin" },
                                         { quote: "Better to die on your feet than to live on your knees.", author: "Emiliano Zapata" },
-                                        { quote: "The true revolutionary is guided by a great feeling of love. It is impossible to think of a genuine revolutionary lacking this quality.", author: "Che Guevara" },
-                                        { quote: "Imperialism is a system of exploitation that occurs not only in the brutal form of those who come with guns to conquer territory, but in the subtle form of a loan, food aid, and blackmail.", author: "Thomas Sankara" },
+                                        { quote: "The true revolutionary is guided by a great feeling of love.", author: "Che Guevara" },
                                         { quote: "I am from the people, I am for the people. I'll fight against any injustice, because I have it in my heart.", author: "Diego Maradona" },
                                         { quote: "A revolutionary must be a person of action, not just a person of words. You must be on the field, in the struggle, every single day.", author: "Thomas Sankara" },
-                                        { quote: "We must become the owners of our own history. We must refuse to accept the destiny that others have written for us.", author: "Thomas Sankara" },
-                                        { quote: "The only goal worth fighting for is the liberation of the people. To achieve this, we must have discipline, courage, and a heart that beats for the oppressed.", author: "Che Guevara" },
-                                        { quote: "I am not a hero. I am a footballer, a man of the people. But if I can use my feet to show the world that we will not be broken, then I have done my duty.", author: "Diego Maradona" },
-                                        { quote: "There is no such thing as a small struggle. Every drop of sweat on the training pitch is a blow against the chains that bind us.", author: "Emiliano Zapata" },
-                                        { quote: "Organization is the weapon of the people. Without it, we are just individuals; with it, we are an unstoppable force.", author: "Vladimir Lenin" },
-                                        { quote: "If you tremble with indignation at every injustice, then you are a comrade of mine.", author: "Che Guevara" },
-                                        { quote: "When you play for the people, you don't play for money. You play for the pride of your neighborhood, for the hope of your family.", author: "Diego Maradona" },
-                                        { quote: "A people that does not know its history is a people that does not know its future. Study, learn, and then act.", author: "Thomas Sankara" }
+                                        { quote: "The only goal worth fighting for is the liberation of the people.", author: "Che Guevara" },
+                                        { quote: "When you play for the people, you don't play for money. You play for the pride of your neighborhood, for the hope of your family.", author: "Diego Maradona" }
                                     ].map((q, idx) => (
                                         <div key={idx} className="border-l-4 border-emerald-500 pl-3 py-1 bg-gray-50/50 dark:bg-gray-900/20 rounded-r-lg">
                                             <p className="text-xs text-gray-700 dark:text-gray-300 font-bold italic leading-relaxed">"{q.quote}"</p>

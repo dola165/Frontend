@@ -45,7 +45,6 @@ export const FeedPage = () => {
 
     // --- 1. HANDLE LIKES (Optimistic Update) ---
     const handleLikeToggle = async (postId: number) => {
-        // Instantly update UI before server responds
         setPosts(currentPosts => currentPosts.map(post => {
             if (post.id === postId) {
                 const isCurrentlyLiked = post.isLikedByMe;
@@ -62,18 +61,14 @@ export const FeedPage = () => {
             await apiClient.post(`/feed/posts/${postId}/like`);
         } catch {
             alert("Failed to like post");
-            // In a production app, you would revert the optimistic update here on failure
         }
     };
 
     // --- 2. HANDLE COMMENTS SECTION TOGGLE ---
     const toggleComments = async (postId: number) => {
         const isCurrentlyOpen = openComments[postId];
-
-        // Toggle the UI state
         setOpenComments(prev => ({ ...prev, [postId]: !isCurrentlyOpen }));
 
-        // If we are opening it and don't have the data yet, fetch it!
         if (!isCurrentlyOpen && !commentsData[postId]) {
             try {
                 const res = await apiClient.get<CommentDto[]>(`/feed/posts/${postId}/comments`);
@@ -91,19 +86,12 @@ export const FeedPage = () => {
 
         try {
             const res = await apiClient.post<CommentDto>(`/feed/posts/${postId}/comments`, { content: text });
-
-            // Append the new comment directly to the state
             setCommentsData(prev => ({
                 ...prev,
                 [postId]: [...(prev[postId] || []), res.data]
             }));
-
-            // Update the post's comment counter
             setPosts(currentPosts => currentPosts.map(p => p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p));
-
-            // Clear the input
             setCommentInputs(prev => ({ ...prev, [postId]: "" }));
-
         } catch (err) {
             alert("Failed to post comment.");
         }
@@ -149,13 +137,13 @@ export const FeedPage = () => {
                 ))}
             </div>
 
-            {/* Mobile Search & Actions */}
+            {/* Mobile Search */}
             <div className="md:hidden mb-6 flex gap-2">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input 
-                        type="text" 
-                        placeholder="Search Talanti..." 
+                    <input
+                        type="text"
+                        placeholder="Search Talanti..."
                         className="w-full bg-white dark:bg-gray-800 border-2 border-black rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all shadow-sm"
                     />
                 </div>
@@ -164,7 +152,7 @@ export const FeedPage = () => {
             {/* Create Post Input */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black p-4 mb-6 flex gap-3 items-center transition-colors group">
                 <div className="w-10 h-10 bg-gradient-to-tr from-orange-400 to-orange-600 rounded-full flex-shrink-0 border-2 border-black shadow-sm"></div>
-                <div 
+                <div
                     onClick={() => alert("Create post modal coming soon!")}
                     className="bg-gray-50 dark:bg-gray-700 w-full rounded-full py-2.5 px-5 text-gray-600 dark:text-gray-400 text-sm font-bold italic hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer flex items-center justify-between border border-gray-200"
                 >
@@ -173,24 +161,32 @@ export const FeedPage = () => {
                 </div>
             </div>
 
+            {/* PREMIUM EMPTY STATE */}
+            {posts.length === 0 && !loading && (
+                <div className="flex flex-col items-center justify-center p-16 bg-white dark:bg-gray-800 rounded-3xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-center shadow-sm">
+                    <div className="text-6xl mb-4 grayscale opacity-80">⚽</div>
+                    <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase">The pitch is empty</h3>
+                    <p className="text-gray-500 mt-2 font-medium">Follow clubs and players to get the ball rolling.</p>
+                </div>
+            )}
+
             {/* The Feed */}
             <div className="flex flex-col gap-5">
                 {posts.map(post => {
                     const isClubPost = post.clubId !== null;
                     const displayName = isClubPost ? post.clubName : post.authorName;
-                    const initials = displayName?.substring(0, 2).toUpperCase() || "??";
                     const isCommentsOpen = openComments[post.id];
+
+                    // Generate dynamic avatar based on name
+                    const avatarColor = isClubPost ? '059669' : 'f97316'; // Emerald for clubs, Orange for players
+                    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName || 'User')}&background=${avatarColor}&color=fff&bold=true`;
 
                     return (
                         <div key={post.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] border-2 border-black overflow-hidden transition-colors">
                             {/* Card Header */}
                             <div className="p-4 flex justify-between items-start">
                                 <div className="flex gap-3 items-center">
-                                    <div className={`w-11 h-11 rounded-full flex items-center justify-center font-black text-sm shadow-inner border-2 border-black ${
-                                        isClubPost ? "bg-emerald-600 text-white" : "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-900 dark:text-gray-200"
-                                    }`}>
-                                        {initials}
-                                    </div>
+                                    <img src={avatarUrl} alt={displayName || 'Avatar'} className="w-11 h-11 rounded-full border-2 border-black object-cover shadow-sm" />
                                     <div>
                                         {isClubPost ? (
                                             <Link to={`/clubs/${post.clubId}`} className="font-black italic uppercase tracking-tighter text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1 transition-colors">
@@ -229,7 +225,7 @@ export const FeedPage = () => {
                                 <button
                                     onClick={() => handleLikeToggle(post.id)}
                                     className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-black italic uppercase text-xs transition-colors ${
-                                        post.isLikedByMe ? "text-orange-500 hover:bg-orange-50" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        post.isLikedByMe ? "text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                                     }`}
                                 >
                                     <Heart className="w-4 h-4" fill={post.isLikedByMe ? "currentColor" : "none"} />
@@ -238,7 +234,7 @@ export const FeedPage = () => {
                                 <button
                                     onClick={() => toggleComments(post.id)}
                                     className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-black italic uppercase text-xs transition-colors ${
-                                        isCommentsOpen ? "text-emerald-600 bg-white border border-black shadow-sm" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        isCommentsOpen ? "text-emerald-600 bg-white dark:bg-gray-800 border border-black shadow-sm" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                                     }`}
                                 >
                                     <MessageCircle className="w-4 h-4" />
@@ -252,8 +248,6 @@ export const FeedPage = () => {
                             {/* --- INLINE COMMENT SECTION --- */}
                             {isCommentsOpen && (
                                 <div className="bg-gray-50 dark:bg-gray-900/50 p-4 border-t border-gray-100 dark:border-gray-700">
-
-                                    {/* Existing Comments */}
                                     <div className="flex flex-col gap-3 mb-4 max-h-60 overflow-y-auto pr-2 scrollbar-hide">
                                         {!commentsData[post.id] ? (
                                             <div className="text-center text-sm text-gray-500">Loading comments...</div>
@@ -262,9 +256,11 @@ export const FeedPage = () => {
                                         ) : (
                                             commentsData[post.id].map(comment => (
                                                 <div key={comment.id} className="flex gap-2">
-                                                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300">
-                                                        {comment.authorName.substring(0, 2).toUpperCase()}
-                                                    </div>
+                                                    <img
+                                                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(comment.authorName)}&background=e5e7eb&color=374151&bold=true`}
+                                                        alt="User"
+                                                        className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex-shrink-0 object-cover"
+                                                    />
                                                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-2xl rounded-tl-none w-full shadow-sm">
                                                         <div className="flex justify-between items-end mb-1">
                                                             <span className="font-bold text-sm text-gray-900 dark:text-white">{comment.authorName}</span>
@@ -295,7 +291,6 @@ export const FeedPage = () => {
                                             <Send className="w-4 h-4" />
                                         </button>
                                     </div>
-
                                 </div>
                             )}
                         </div>

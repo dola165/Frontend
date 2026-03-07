@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
-import { ShieldCheck, MapPin, ArrowLeft, Heart, MessageCircle, Share2, MoreHorizontal, Check, Plus } from 'lucide-react';
+import {
+    ShieldCheck,  ArrowLeft, Heart, MessageCircle, Share2,
+    MoreHorizontal, Check, Plus, ShoppingCart, HeartHandshake,
+    Users, Building2, ExternalLink
+} from 'lucide-react';
 
 interface ClubProfile {
     id: number;
@@ -14,9 +18,10 @@ interface ClubProfile {
     isFollowedByMe: boolean;
     isMember: boolean;
     addressText?: string;
+    storeUrl?: string;
+    gofundmeUrl?: string;
 }
 
-// Reusing your FeedPostDto type
 interface FeedPostDto {
     id: number;
     content: string;
@@ -29,16 +34,23 @@ interface FeedPostDto {
     isLikedByMe: boolean;
 }
 
+const bannerImages = [
+    "1518605368461-1ee71161d91a",
+    "1574629810360-7efbb6b6923f",
+    "1522778119026-d108dc1a0a52",
+    "1508098682722-e99c43a406b2",
+    "1431324155629-1a610d6e60d5"
+];
+
 export const ClubProfilePage = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [club, setClub] = useState<ClubProfile | null>(null);
     const [posts, setPosts] = useState<FeedPostDto[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'squad'>('posts');
+    const [activeTab, setActiveTab] = useState<'communications' | 'directives' | 'roster'>('communications');
 
     useEffect(() => {
-        // Fetch both the Profile details AND the Club's posts in parallel
         Promise.all([
             apiClient.get(`/clubs/${id}`),
             apiClient.get(`/feed/club/${id}`)
@@ -64,154 +76,269 @@ export const ClubProfilePage = () => {
         }
     };
 
-    if (loading) return <div className="p-10 text-center text-gray-500 animate-pulse">Loading club profile...</div>;
-    if (!club) return <div className="p-10 text-center font-bold text-xl dark:text-white">Club not found</div>;
+    const formatTime = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
 
-    const clubInitials = club.name.substring(0, 2).toUpperCase();
+    if (loading) return <div className="p-10 text-center font-bold text-gray-500 uppercase tracking-widest h-screen bg-[#111827]">Establishing connection...</div>;
+    if (!club) return <div className="p-10 text-center font-bold text-xl text-white h-screen bg-[#111827]">Organization not found</div>;
+
+    // Use a slightly sharper radius for the club's "institutional" look vs the player's squircle
+    const initials = club.name.substring(0, 2).toUpperCase();
+    const randomBannerId = bannerImages[Number(id || 0) % bannerImages.length];
+    const bannerUrl = `https://images.unsplash.com/photo-${randomBannerId}?auto=format&fit=crop&q=80&w=1200&h=400`;
 
     return (
-        <div className="max-w-4xl mx-auto pb-24">
+        <div className="w-full min-h-screen bg-[#111827] pb-20 font-sans">
 
-            {/* Back Button */}
-            <div className="py-4">
-                <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-semibold transition-colors">
-                    <ArrowLeft className="w-5 h-5" /> Back
-                </button>
-            </div>
+            {/* === HEADER SECTION === */}
+            <div className="bg-[#1e293b] rounded-b-3xl border-b-2 border-x-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] overflow-hidden mb-8">
 
-            {/* MAIN HEADER CARD (LinkedIn Style) */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6 transition-colors">
-                {/* Banner Photo */}
-                <div className="h-40 bg-slate-800 dark:bg-slate-900 relative">
-                    <img src={`https://images.unsplash.com/photo-1518605368461-1ee71161d91a?auto=format&fit=crop&q=80&w=1000&h=300`} alt="banner" className="w-full h-full object-cover opacity-60" />
+                {/* DYNAMIC BANNER */}
+                <div className="h-48 relative bg-gray-900 border-b-2 border-gray-800">
+                    <img src={bannerUrl} alt="banner" className="w-full h-full object-cover opacity-60 grayscale hover:grayscale-0 transition-all duration-700" />
                 </div>
 
-                {/* Profile Info Section */}
                 <div className="px-6 pb-6 relative">
-                    {/* Floating Avatar */}
-                    <div className="absolute -top-16 w-32 h-32 bg-white dark:bg-gray-800 rounded-xl border-4 border-white dark:border-gray-800 shadow-lg flex items-center justify-center text-4xl font-extrabold text-blue-600 dark:text-blue-400">
-                        {clubInitials}
-                    </div>
+                    {/* Back Button */}
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="absolute top-4 left-4 bg-[#1e293b] text-white px-4 py-2 rounded-xl border-2 border-gray-800 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] font-black uppercase text-xs tracking-wide flex items-center gap-2 hover:bg-gray-800 transition-all active:translate-y-1 active:shadow-none z-20"
+                    >
+                        <ArrowLeft className="w-4 h-4 text-emerald-400" /> Back
+                    </button>
 
-                    {/* Action Buttons (Right Aligned) */}
-                    <div className="flex justify-end pt-4 gap-3">
-                        <button className="px-5 py-1.5 font-bold text-blue-600 dark:text-blue-400 border-2 border-blue-600 dark:border-blue-400 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
-                            Apply
-                        </button>
-                        <button
-                            onClick={handleFollowToggle}
-                            className={`px-5 py-1.5 font-bold rounded-full border-2 transition-colors flex items-center gap-1 ${
-                                club.isFollowedByMe
-                                    ? "bg-gray-100 dark:bg-gray-700 border-transparent text-gray-700 dark:text-gray-300"
-                                    : "bg-blue-600 border-blue-600 text-white hover:bg-blue-700 hover:border-blue-700"
-                            }`}
-                        >
-                            {club.isFollowedByMe ? <><Check className="w-4 h-4"/> Following</> : <><Plus className="w-4 h-4"/> Follow</>}
-                        </button>
-                    </div>
+                    <div className="max-w-5xl mx-auto px-4 sm:px-0">
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
 
-                    {/* Club Details */}
-                    <div className="mt-2">
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            {club.name} {club.isOfficial && <ShieldCheck className="text-blue-500 w-6 h-6" />}
-                        </h1>
-                        <p className="text-gray-600 dark:text-gray-400 font-medium text-sm mt-1">{club.type} Sports Organization</p>
+                            {/* Avatar & Title */}
+                            <div className="flex flex-col md:flex-row items-center md:items-end gap-6 -mt-16 md:-mt-12 relative z-10">
+                                {/* Institutional Badge Avatar */}
+                                <div className="relative group">
+                                    <div className="w-32 h-32 md:w-40 md:h-40 rounded-2xl border-4 border-[#1e293b] bg-emerald-600 flex items-center justify-center text-5xl font-black text-slate-900 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] overflow-hidden tracking-tighter">
+                                        {initials}
+                                    </div>
+                                    {club.isOfficial && (
+                                        <div className="absolute -bottom-3 -right-3 bg-blue-500 text-white p-2.5 rounded-xl shadow-sm border-2 border-[#1e293b]">
+                                            <ShieldCheck className="w-6 h-6" />
+                                        </div>
+                                    )}
+                                </div>
 
-                        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-3">
-                            <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {club.addressText || "Georgia"}</span>
-                            <span>•</span>
-                            <span className="font-bold text-gray-900 dark:text-white">{club.followerCount} <span className="font-normal text-gray-500 dark:text-gray-400">followers</span></span>
-                            <span>•</span>
-                            <span className="font-bold text-gray-900 dark:text-white">{club.memberCount} <span className="font-normal text-gray-500 dark:text-gray-400">squad members</span></span>
+                                <div className="text-center md:text-left mb-2 md:mb-4">
+                                    <h1 className="text-3xl font-black text-white uppercase tracking-tight flex items-center justify-center md:justify-start gap-2">
+                                        {club.name}
+                                    </h1>
+                                    <p className="text-gray-400 font-bold mt-1 uppercase text-sm tracking-widest">
+                                        {club.followerCount} Followers • <span className="text-emerald-400">{club.type}</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Effortlessly Cool Actions */}
+                            <div className="flex flex-wrap gap-3 mb-2 md:mb-4 w-full md:w-auto justify-center md:justify-end">
+                                <button
+                                    onClick={handleFollowToggle}
+                                    className={`px-8 py-2.5 rounded-xl font-black uppercase text-sm tracking-wide shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] flex items-center justify-center gap-2 border-2 transition-all active:translate-y-1 active:shadow-none ${
+                                        club.isFollowedByMe
+                                            ? 'bg-[#1e293b] hover:bg-gray-800 text-white border-gray-700'
+                                            : 'bg-emerald-500 hover:bg-emerald-400 text-slate-900 border-transparent'
+                                    }`}
+                                >
+                                    {club.isFollowedByMe ? <Check className="w-5 h-5 text-emerald-400" /> : <Plus className="w-5 h-5" />}
+                                    {club.isFollowedByMe ? 'Following' : 'Follow Club'}
+                                </button>
+
+                                {club.storeUrl && (
+                                    <a
+                                        href={club.storeUrl} target="_blank" rel="noopener noreferrer"
+                                        className="bg-[#1e293b] hover:bg-gray-800 text-white px-6 py-2.5 rounded-xl font-black uppercase text-sm tracking-wide shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] border-2 border-gray-700 flex items-center justify-center gap-2 transition-all active:translate-y-1 active:shadow-none"
+                                    >
+                                        <ShoppingCart className="w-4 h-4 text-orange-400" /> Store
+                                    </a>
+                                )}
+
+                                {club.gofundmeUrl && (
+                                    <a
+                                        href={club.gofundmeUrl} target="_blank" rel="noopener noreferrer"
+                                        className="bg-[#1e293b] hover:bg-gray-800 text-white px-6 py-2.5 rounded-xl font-black uppercase text-sm tracking-wide shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] border-2 border-gray-700 flex items-center justify-center gap-2 transition-all active:translate-y-1 active:shadow-none"
+                                    >
+                                        <HeartHandshake className="w-4 h-4 text-rose-400" /> Support
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Navigation Tabs */}
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar mt-8 border-t-2 border-gray-800 pt-2">
+                            {['communications', 'directives', 'roster'].map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab as any)}
+                                    className={`px-6 py-4 font-black text-xs sm:text-sm uppercase tracking-widest transition-colors ${
+                                        activeTab === tab
+                                            ? "text-emerald-400 border-b-4 border-emerald-500 bg-gray-800/30"
+                                            : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/30"
+                                    }`}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* TABS (LinkedIn Style) */}
-            <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-6">
-                {['posts', 'about', 'squad'].map((tab) => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab as any)}
-                        className={`px-6 py-3 font-semibold capitalize transition-all border-b-2 ${
-                            activeTab === tab
-                                ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
-                                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                        } rounded-t-lg`}
-                    >
-                        {tab}
-                    </button>
-                ))}
-            </div>
+            {/* === MAIN CONTENT GRID === */}
+            <div className="max-w-5xl mx-auto px-4 sm:px-0 mt-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            {/* TAB CONTENT */}
-            <div>
-                {/* POSTS TAB */}
-                {activeTab === 'posts' && (
-                    <div className="flex flex-col gap-5">
-                        {posts.length === 0 ? (
-                            <div className="bg-white dark:bg-gray-800 p-10 text-center rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 font-medium">
-                                No posts to display yet.
+                    {/* LEFT COLUMN: Intel & Infrastructure */}
+                    <div className="lg:col-span-1 flex flex-col gap-6">
+
+                        {/* Club Directives (Bio) */}
+                        <div className="bg-[#1e293b] rounded-3xl p-6 border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)]">
+                            <h2 className="text-emerald-400 font-black italic uppercase tracking-wider mb-4 flex items-center gap-2">
+                                Official Charter
+                            </h2>
+                            <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700/50">
+                                <p className="text-gray-300 font-medium leading-relaxed text-sm">
+                                    {club.description || "No official directives have been published by this organization."}
+                                </p>
                             </div>
-                        ) : (
-                            posts.map(post => (
-                                <div key={post.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
-                                    <div className="p-4 flex justify-between items-start">
-                                        <div className="flex gap-3 items-center">
-                                            <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm bg-blue-600 text-white shadow-inner">
-                                                {clubInitials}
-                                            </div>
-                                            <div>
-                                                <div className="font-bold text-gray-900 dark:text-white text-lg">{post.clubName || post.authorName}</div>
-                                                <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
-                                                    {new Date(post.createdAt).toLocaleDateString()}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                                            <MoreHorizontal className="w-5 h-5" />
-                                        </button>
+                        </div>
+
+                        {/* Headquarters (Location & Stats) */}
+                        <div className="bg-[#1e293b] rounded-3xl p-6 border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)]">
+                            <h2 className="text-emerald-400 font-black italic uppercase tracking-wider mb-5">Infrastructure</h2>
+                            <div className="flex flex-col gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-emerald-500 shrink-0 border border-gray-700">
+                                        <Building2 className="w-5 h-5" />
                                     </div>
-                                    <div className="px-4 pb-3">
-                                        <p className="text-gray-800 dark:text-gray-200 whitespace-pre-line leading-relaxed">
-                                            {post.content}
-                                        </p>
-                                    </div>
-                                    <div className="px-2 py-1 border-t border-gray-100 dark:border-gray-700 flex justify-between">
-                                        <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                            <Heart className="w-5 h-5" /> Like
-                                        </button>
-                                        <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                            <MessageCircle className="w-5 h-5" /> Comment
-                                        </button>
-                                        <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-semibold text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                            <Share2 className="w-5 h-5" /> Share
-                                        </button>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Headquarters</p>
+                                        <p className="font-bold text-white uppercase text-sm truncate">{club.addressText || "Undisclosed"}</p>
                                     </div>
                                 </div>
-                            ))
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-blue-400 shrink-0 border border-gray-700">
+                                        <Users className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Active Roster</p>
+                                        <p className="font-bold text-white uppercase text-sm">{club.memberCount} Players</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* External Portals */}
+                        {(club.storeUrl || club.gofundmeUrl) && (
+                            <div className="bg-[#1e293b] rounded-3xl p-6 border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)]">
+                                <h2 className="text-emerald-400 font-black italic uppercase tracking-wider mb-5">External Portals</h2>
+                                <div className="flex flex-col gap-3">
+                                    {club.storeUrl && (
+                                        <a href={club.storeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-gray-800/50 hover:bg-gray-800 p-3 rounded-xl border border-gray-700 transition-colors group">
+                                            <div className="flex items-center gap-3">
+                                                <ShoppingCart className="w-4 h-4 text-orange-400" />
+                                                <span className="text-sm font-bold text-gray-300 group-hover:text-white transition-colors">Official Store</span>
+                                            </div>
+                                            <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
+                                        </a>
+                                    )}
+                                    {club.gofundmeUrl && (
+                                        <a href={club.gofundmeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-gray-800/50 hover:bg-gray-800 p-3 rounded-xl border border-gray-700 transition-colors group">
+                                            <div className="flex items-center gap-3">
+                                                <HeartHandshake className="w-4 h-4 text-rose-400" />
+                                                <span className="text-sm font-bold text-gray-300 group-hover:text-white transition-colors">Support Campaign</span>
+                                            </div>
+                                            <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
                         )}
                     </div>
-                )}
 
-                {/* ABOUT TAB */}
-                {activeTab === 'about' && (
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-colors">
-                        <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4">Overview</h3>
-                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-                            {club.description || "No description provided."}
-                        </p>
-                    </div>
-                )}
+                    {/* RIGHT COLUMN: Feed & Content */}
+                    <div className="lg:col-span-2 flex flex-col gap-6">
 
-                {/* SQUAD TAB */}
-                {activeTab === 'squad' && (
-                    <div className="bg-white dark:bg-gray-800 p-10 text-center rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-colors">
-                        <p className="font-bold text-gray-900 dark:text-white">Active Squad Roster</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Player cards coming soon!</p>
+                        {activeTab === 'communications' && (
+                            <>
+                                {posts.length === 0 ? (
+                                    <div className="bg-[#1e293b] rounded-3xl p-10 border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] text-center flex flex-col items-center justify-center">
+                                        <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-6 text-gray-600 border-2 border-gray-700">
+                                            <Building2 className="w-8 h-8" />
+                                        </div>
+                                        <h3 className="font-black text-white text-xl uppercase tracking-wide mb-2">No Communications Yet</h3>
+                                        <p className="text-gray-400 font-medium text-sm max-w-sm">
+                                            This organization has not broadcasted any updates to the network.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    posts.map(post => (
+                                        <div key={post.id} className="bg-[#1e293b] rounded-3xl border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] overflow-hidden">
+
+                                            {/* Post Header */}
+                                            <div className="p-5 flex justify-between items-start">
+                                                <div className="flex gap-4 items-center">
+                                                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm bg-emerald-600 text-slate-900 border-2 border-emerald-700">
+                                                        {initials}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-black text-white text-sm uppercase tracking-wide flex items-center gap-1.5">
+                                                            {post.clubName || post.authorName}
+                                                            {club.isOfficial && <ShieldCheck className="w-4 h-4 text-blue-500" />}
+                                                        </div>
+                                                        <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider flex items-center gap-1 mt-1">
+                                                            {formatTime(post.createdAt)} • Official Broadcast
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button className="text-gray-500 hover:text-white p-2 rounded-xl hover:bg-gray-800 transition-colors">
+                                                    <MoreHorizontal className="w-5 h-5" />
+                                                </button>
+                                            </div>
+
+                                            {/* Post Body */}
+                                            <div className="px-5 pb-4">
+                                                <p className="text-gray-300 whitespace-pre-line leading-relaxed text-sm font-medium">
+                                                    {post.content}
+                                                </p>
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="px-3 py-2 border-t-2 border-gray-800 flex justify-between bg-gray-800/30">
+                                                <button className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-colors ${post.isLikedByMe ? "text-emerald-400 bg-gray-800" : "text-gray-400 hover:text-emerald-400 hover:bg-gray-800"}`}>
+                                                    <Heart className="w-4 h-4" fill={post.isLikedByMe ? "currentColor" : "none"} /> {post.likeCount || "Acknowledge"}
+                                                </button>
+                                                <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+                                                    <MessageCircle className="w-4 h-4" /> {post.commentCount || "Intel"}
+                                                </button>
+                                                <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+                                                    <Share2 className="w-4 h-4" /> Relay
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </>
+                        )}
+
+                        {activeTab === 'directives' && (
+                            <div className="bg-[#1e293b] rounded-3xl p-10 border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] text-center text-gray-500 font-bold uppercase tracking-widest">
+                                See Official Charter.
+                            </div>
+                        )}
+
+                        {activeTab === 'roster' && (
+                            <div className="bg-[#1e293b] rounded-3xl p-10 border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] text-center text-gray-500 font-bold uppercase tracking-widest">
+                                Roster visibility restricted.
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

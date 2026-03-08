@@ -49,7 +49,7 @@ function MainLayout() {
         location.pathname === '/charity' ||
         isClubProfilePage;
 
-    // --- NEW LOGIC: Only show condensed top nav on full screen pages, EXCEPT the map ---
+    // --- NEW LOGIC: Show condensed nav on full screen pages, EXCEPT the map ---
     const showCondensedNav = isFullScreenPage && location.pathname !== '/map';
 
     useEffect(() => {
@@ -80,6 +80,8 @@ function MainLayout() {
             {/* --- SHARP TOP HEADER --- */}
             {!isLandingPage && (
                 <nav className="sticky top-0 h-14 bg-white dark:bg-[#1e293b] border-b-2 border-slate-300 dark:border-slate-800 flex justify-between items-center px-4 md:px-6 z-50 transition-colors">
+
+                    {/* LEFT: Logo & Search */}
                     <div className="flex items-center gap-4 w-1/4 md:w-1/3">
                         <button className="md:hidden text-slate-500 hover:text-slate-900 dark:hover:text-white">
                             <Menu className="w-5 h-5" />
@@ -93,29 +95,40 @@ function MainLayout() {
                         </div>
                     </div>
 
-                    {/* --- DYNAMIC CONDENSED NAVIGATION --- */}
+                    {/* CENTER: Dynamic Condensed Navigation Switchboard */}
                     <div className="flex-1 flex justify-center">
                         {showCondensedNav && (
-                            <div className="hidden md:flex items-center gap-2 bg-slate-50 dark:bg-[#0f172a] px-2 py-1 rounded-sm border border-slate-200 dark:border-slate-800 shadow-inner">
+                            <div className="hidden md:flex items-center gap-1.5 bg-slate-100 dark:bg-[#0f172a] p-1 rounded-sm border border-slate-200 dark:border-slate-800 shadow-inner">
                                 {[
                                     { path: "/feed", icon: Home, title: "Network Feed" },
                                     { path: "/map", icon: MapIcon, title: "Intel Map" },
                                     { path: "/clubs", icon: Shield, title: "Club Database" },
-                                    { path: "/messages", icon: MessageSquare, title: "Communications" }
-                                ].map((item, idx) => (
-                                    <Link key={idx} to={item.path} title={item.title}
-                                          className={`p-2 rounded-sm transition-all border ${
-                                              location.pathname === item.path
-                                                  ? "text-emerald-600 dark:text-emerald-400 bg-white dark:bg-[#1e293b] border-slate-300 dark:border-slate-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[2px_2px_0px_0px_#020617]"
-                                                  : "text-slate-400 hover:text-slate-900 dark:hover:text-white border-transparent hover:bg-slate-200 dark:hover:bg-slate-800"
-                                          }`}>
-                                        <item.icon className="w-4 h-4" />
-                                    </Link>
-                                ))}
+                                    { path: "/messages", icon: MessageSquare, title: "Communications" },
+                                    { path: user ? `/profile/${user.id}` : "#", icon: User, title: "My Profile" }
+                                ].map((item, idx) => {
+                                    const isActive = location.pathname === item.path || (item.title === "My Profile" && location.pathname.startsWith('/profile'));
+                                    return (
+                                        <Link key={idx} to={item.path} title={item.title}
+                                              onClick={(e) => {
+                                                  if (!user && item.title === "My Profile") {
+                                                      e.preventDefault();
+                                                      alert('Please login first');
+                                                  }
+                                              }}
+                                              className={`p-1.5 rounded-sm transition-all border ${
+                                                  isActive
+                                                      ? "text-emerald-600 dark:text-emerald-400 bg-white dark:bg-[#1e293b] border-slate-300 dark:border-slate-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[2px_2px_0px_0px_#020617]"
+                                                      : "text-slate-400 hover:text-slate-900 dark:hover:text-white border-transparent hover:bg-slate-200 dark:hover:bg-slate-800"
+                                              }`}>
+                                            <item.icon className="w-4 h-4" />
+                                        </Link>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
 
+                    {/* RIGHT: User Actions */}
                     <div className="flex items-center justify-end gap-3 w-1/4 md:w-1/3">
                         <button className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors relative">
                             <Bell className="w-5 h-5" />

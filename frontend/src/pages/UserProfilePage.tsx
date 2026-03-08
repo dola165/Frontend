@@ -2,23 +2,36 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import {
-    MapPin, Trophy, PlaySquare, Edit, Camera,
+    MapPin, PlaySquare, Edit, Ruler, Weight,
     Heart, MessageCircle, Share2, MoreHorizontal,
-    Briefcase, ShieldCheck, Zap, Lock, ArrowLeft, CheckCircle2
+    Briefcase, ShieldCheck, Zap, ArrowLeft, CheckCircle2, Activity
 } from 'lucide-react';
+
+interface CareerHistoryDto {
+    id: number;
+    clubName: string;
+    season: string;
+    category: string;
+    appearances: number;
+    goals: number;
+    assists: number;
+    cleanSheets: number;
+}
 
 interface UserProfile {
     id: number;
     username: string;
     fullName: string;
-    role: 'PLAYER' | 'AGENT' | 'FAN';
+    position: string;
+    preferredFoot: string;
     bio: string;
-    position?: string;
-    strongFoot?: string;
-    location?: string;
-    followers: number;
-    following: number;
-    experience: { club: string; years: string; role: string }[];
+    availabilityStatus: string;
+    heightCm: number;
+    weightKg: number;
+    followerCount: number;
+    followingCount: number;
+    isFollowedByMe: boolean;
+    careerHistory: CareerHistoryDto[];
 }
 
 interface FeedPostDto {
@@ -34,332 +47,251 @@ interface FeedPostDto {
 }
 
 const userBannerImages = [
-    "1518605368461-1ee71161d91a", // Stadium overview
-    "1574629810360-7efbb6b6923f", // Grassy pitch
-    "1522778119026-d108dc1a0a52", // Field lines
-    "1508098682722-e99c43a406b2", // Stadium lights/night
-    "1431324155629-1a610d6e60d5"  // Vintage ball
+    "1518605368461-1ee71161d91a",
+    "1574629810360-7efbb6b6923f",
+    "1522778119026-d108dc1a0a52",
+    "1508098682722-e99c43a406b2",
+    "1431324155629-1a610d6e60d5"
 ];
 
 export const UserProfilePage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'timeline' | 'about' | 'connections'>('timeline');
+    const [activeTab, setActiveTab] = useState<'timeline' | 'stats' | 'intel'>('timeline');
 
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [posts, setPosts] = useState<FeedPostDto[]>([]);
     const [loading, setLoading] = useState(true);
-    const randomBannerId = userBannerImages[Number(id || 0) % userBannerImages.length];
-    const bannerUrl = `https://images.unsplash.com/photo-${randomBannerId}?auto=format&fit=crop&q=80&w=1000&h=300`;
+
+    // In a real app, you'd check if `profile.id === currentUser.id`
     const isMyProfile = true;
 
     useEffect(() => {
-        apiClient.get(`/feed/user/${id}`)
-            .then(res => setPosts(res.data.posts))
-            .catch(err => console.error("Failed to load user feed", err));
-
-        setProfile({
-            id: Number(id),
-            username: 'react_dev',
-            fullName: 'Beqa Dolidze',
-            role: 'PLAYER',
-            bio: "Passionate center defensive mid looking for a semi-pro club in the Tbilisi area. Strong tackler, great vision.",
-            position: 'CDM / CB',
-            strongFoot: 'Right',
-            location: 'Tbilisi, Georgia',
-            followers: 239,
-            following: 45,
-            experience: [
-                { club: 'FC Rustavi Academy', years: '2020 - 2023', role: 'Youth Player' },
-                { club: 'Experimentuli', years: '2024 - Present', role: 'First Team' }
-            ]
-        });
-
-        setLoading(false);
+        // Fetch Real Data from your Backend
+        Promise.all([
+            apiClient.get(`/users/${id}`),
+            apiClient.get(`/feed/user/${id}`)
+        ])
+            .then(([profileRes, postsRes]) => {
+                setProfile(profileRes.data);
+                setPosts(postsRes.data.posts);
+            })
+            .catch(err => {
+                console.error("Failed to load user data", err);
+                // Fallback mock data if DB is empty for testing UI
+                if (!profile) {
+                    setProfile({
+                        id: Number(id), username: 'react_dev', fullName: 'Beqa Dolidze',
+                        position: 'CDM / CB', preferredFoot: 'Right',
+                        bio: "Passionate defensive mid looking for a semi-pro club in the Tbilisi area. Strong tackler, great vision.",
+                        availabilityStatus: 'FREE_AGENT', heightCm: 185, weightKg: 78,
+                        followerCount: 239, followingCount: 45, isFollowedByMe: false,
+                        careerHistory: [
+                            { id: 1, clubName: 'Experimentuli', season: '2024/25', category: 'First Team', appearances: 14, goals: 2, assists: 5, cleanSheets: 0 },
+                            { id: 2, clubName: 'FC Rustavi Academy', season: '2023/24', category: 'U18', appearances: 22, goals: 8, assists: 3, cleanSheets: 0 }
+                        ]
+                    });
+                }
+            })
+            .finally(() => setLoading(false));
     }, [id]);
 
     const formatTime = (dateString: string) => {
         return new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     };
 
-    if (loading || !profile) return <div className="p-10 text-center font-bold text-gray-500 uppercase tracking-widest">Loading profile...</div>;
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case 'FREE_AGENT': return <span className="bg-emerald-500 text-slate-900 px-2 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-widest border border-transparent">Free Agent</span>;
+            case 'OPEN_TO_OFFERS': return <span className="bg-orange-500 text-slate-900 px-2 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-widest border border-transparent">Open To Offers</span>;
+            case 'IN_CLUB': return <span className="bg-slate-700 text-white px-2 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-widest border border-slate-600">In Club</span>;
+            case 'TRIALING': return <span className="bg-blue-500 text-white px-2 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-widest border border-blue-600">On Trial</span>;
+            default: return null;
+        }
+    };
 
-    const initials = profile.fullName.substring(0, 2).toUpperCase();
+    if (loading || !profile) return <div className="p-10 text-center font-bold text-slate-500 uppercase tracking-widest animate-pulse h-screen bg-[#0f172a]">Accessing Dossier...</div>;
+    profile.fullName.substring(0, 2).toUpperCase();
+    const randomBannerId = userBannerImages[Number(id || 0) % userBannerImages.length];
+    const bannerUrl = `https://images.unsplash.com/photo-${randomBannerId}?auto=format&fit=crop&q=80&w=1200&h=400`;
 
     return (
-        // Deep neo-brutalist background
-        <div className="w-full min-h-screen bg-[#111827] pb-20 font-sans">
+        <div className="w-full min-h-screen bg-[#0f172a] pb-20 font-sans text-slate-300">
 
             {/* === HEADER SECTION === */}
-            <div className="bg-[#1e293b] rounded-3xl border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] overflow-hidden mb-6">
+            <div className="bg-white dark:bg-[#1e293b] rounded-b-sm border-b-2 border-x-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617] overflow-hidden mb-8">
 
-                {/* 🌟 DYNAMIC USER BANNER */}
-                <div className="h-48 relative bg-gray-900">
-                    <img
-                        src={bannerUrl}
-                        alt="Profile Banner"
-                        className="w-full h-full object-cover opacity-70"
-                    />
+                <div className="h-48 relative bg-slate-900 border-b-2 border-slate-800">
+                    <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover opacity-50 grayscale hover:grayscale-0 transition-all duration-700" />
                 </div>
 
-                {/* The rest of your profile header (Avatar, Follow buttons, etc) goes here */}
                 <div className="px-6 pb-6 relative">
-                    <div className="absolute -top-16 w-32 h-32 bg-gray-800 rounded-2xl border-4 border-gray-800 shadow-lg overflow-hidden">
-                        {/* Using UI Avatars for the user profile picture too! */}
-                        <img
-                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.fullName || 'User')}&background=f97316&color=fff&bold=true&size=200`}
-                            alt={profile?.fullName}
-                            className="w-full h-full object-cover"
-                        />
-                    </div>
-
-                    {/* Back Button */}
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="absolute top-4 left-4 bg-[#1e293b] text-white px-4 py-2 rounded-xl border-2 border-gray-800 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] font-black uppercase text-xs tracking-wide flex items-center gap-2 hover:bg-gray-800 transition-all active:translate-y-1 active:shadow-none"
-                    >
-                        <ArrowLeft className="w-4 h-4 text-emerald-400" /> Back
+                    <button onClick={() => navigate(-1)} className="absolute top-4 left-4 bg-white dark:bg-[#1e293b] text-slate-900 dark:text-white px-3 py-1.5 rounded-sm border-2 border-slate-300 dark:border-slate-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[2px_2px_0px_0px_#020617] font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:-translate-y-0.5 transition-all">
+                        <ArrowLeft className="w-3.5 h-3.5 text-emerald-500" /> Back
                     </button>
 
-                    {isMyProfile && (
-                        <button className="absolute bottom-4 right-4 bg-[#1e293b] text-white px-4 py-2 rounded-xl border-2 border-gray-800 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] font-black uppercase text-xs tracking-wide flex items-center gap-2 hover:bg-gray-800 transition-all active:translate-y-1 active:shadow-none">
-                            <Camera className="w-4 h-4 text-emerald-400" /> Cover Photo
-                        </button>
-                    )}
-                </div>
+                    <div className="max-w-5xl mx-auto px-4 sm:px-0">
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
 
-                <div className="max-w-5xl mx-auto px-4 sm:px-8 pb-0 relative">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-
-                        {/* Avatar & Name */}
-                        <div className="flex flex-col md:flex-row items-center md:items-end gap-6 -mt-16 md:-mt-12 relative z-10">
-
-                            {/* The Squircle Neo-Brutalist Avatar */}
-                            <div className="relative group">
-                                <div className="w-32 h-32 md:w-40 md:h-40 rounded-3xl border-4 border-[#1e293b] bg-gray-700 flex items-center justify-center text-5xl font-black text-emerald-400 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] relative overflow-hidden">
-                                    {initials}
+                            {/* Avatar & Title */}
+                            <div className="flex flex-col md:flex-row items-center md:items-end gap-6 -mt-16 md:-mt-12 relative z-10">
+                                <div className="relative group">
+                                    <div className="w-32 h-32 md:w-36 md:h-36 rounded-sm border-4 border-white dark:border-[#1e293b] bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-4xl font-black text-slate-700 dark:text-slate-300 shadow-sm overflow-hidden">
+                                        <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=f97316&color=fff&bold=true&size=200`} alt={profile.fullName} className="w-full h-full object-cover" />
+                                    </div>
+                                    <div className="absolute -bottom-3 -right-3 bg-emerald-500 text-white p-2 rounded-sm shadow-sm border-2 border-white dark:border-[#1e293b]">
+                                        <CheckCircle2 className="w-5 h-5" />
+                                    </div>
                                 </div>
-                                {/* Orange Badge */}
-                                <div className="absolute -bottom-3 -right-3 bg-orange-500 text-white p-2.5 rounded-xl shadow-sm border-2 border-[#1e293b]">
-                                    <Trophy className="w-5 h-5" />
+
+                                <div className="text-center md:text-left mb-2 md:mb-4">
+                                    <div className="flex items-center justify-center md:justify-start gap-3 mb-1">
+                                        <h1 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                            {profile.fullName}
+                                        </h1>
+                                        {getStatusBadge(profile.availabilityStatus)}
+                                    </div>
+                                    <p className="text-slate-500 font-bold uppercase text-xs tracking-widest">
+                                        {profile.followerCount} Network • <span className="text-emerald-600 dark:text-emerald-500">{profile.position}</span>
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className="text-center md:text-left mb-2 md:mb-4">
-                                <h1 className="text-3xl font-black text-white uppercase tracking-wide flex items-center justify-center md:justify-start gap-2">
-                                    {profile.fullName}
-                                    <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-                                </h1>
-                                <p className="text-gray-400 font-bold mt-1 uppercase text-sm tracking-wider">
-                                    {profile.followers} Followers • <span className="text-emerald-400">{profile.role}</span>
-                                </p>
+                            {/* Actions */}
+                            <div className="flex flex-wrap gap-2 mb-2 md:mb-4 w-full md:w-auto justify-center md:justify-end">
+                                {isMyProfile ? (
+                                    <>
+                                        <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-sm font-bold uppercase text-xs tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] dark:shadow-[2px_2px_0px_0px_#020617] flex items-center justify-center gap-2 border border-transparent active:translate-y-0.5 active:shadow-none transition-all">
+                                            <PlaySquare className="w-4 h-4" /> Highlight
+                                        </button>
+                                        <button className="bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-slate-900 text-slate-900 dark:text-white px-5 py-2 rounded-sm font-bold uppercase text-xs tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[2px_2px_0px_0px_#020617] border border-slate-300 dark:border-slate-700 flex items-center justify-center gap-2 active:translate-y-0.5 active:shadow-none transition-all">
+                                            <Edit className="w-4 h-4 text-emerald-500" /> Edit Profile
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-2 rounded-sm font-bold uppercase text-xs tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] dark:shadow-[2px_2px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none transition-all">
+                                        Contact Agent
+                                    </button>
+                                )}
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex flex-col sm:flex-row gap-3 mb-2 md:mb-4 w-full md:w-auto justify-center md:justify-end">
-                            {isMyProfile ? (
-                                <>
-                                    <button className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 px-6 py-2.5 rounded-xl font-black uppercase text-sm tracking-wide shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] flex items-center justify-center gap-2 border-2 border-transparent transition-all active:translate-y-1 active:shadow-none">
-                                        <PlaySquare className="w-5 h-5" /> Add Highlight
-                                    </button>
-                                    <button className="bg-[#1e293b] hover:bg-gray-800 text-white px-6 py-2.5 rounded-xl font-black uppercase text-sm tracking-wide shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] border-2 border-gray-700 flex items-center justify-center gap-2 transition-all active:translate-y-1 active:shadow-none">
-                                        <Edit className="w-5 h-5 text-emerald-400" /> Edit Profile
-                                    </button>
-                                </>
-                            ) : (
-                                <button className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 px-10 py-2.5 rounded-xl font-black uppercase text-sm tracking-wide shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] transition-all active:translate-y-1 active:shadow-none">
-                                    Message
+                        {/* Navigation Tabs */}
+                        <div className="flex gap-1 overflow-x-auto no-scrollbar mt-6 border-t border-slate-200 dark:border-slate-800 pt-2">
+                            {['timeline', 'stats', 'intel'].map((tab) => (
+                                <button key={tab} onClick={() => setActiveTab(tab as any)}
+                                        className={`px-6 py-3 font-bold text-xs uppercase tracking-widest transition-colors rounded-t-sm ${
+                                            activeTab === tab ? "text-emerald-600 dark:text-emerald-400 bg-slate-50 dark:bg-slate-800/50 border-b-2 border-emerald-500" : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                                        }`}>
+                                    {tab === 'timeline' ? 'Match Feed' : tab === 'stats' ? 'Career Stats' : 'Dossier'}
                                 </button>
-                            )}
+                            ))}
                         </div>
-                    </div>
-
-                    {/* Navigation Tabs */}
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar mt-6 border-t-2 border-gray-800 pt-2">
-                        {['timeline', 'about', 'connections'].map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab as any)}
-                                className={`px-6 py-4 font-black text-xs sm:text-sm uppercase tracking-widest transition-colors ${
-                                    activeTab === tab
-                                        ? "text-emerald-400 border-b-4 border-emerald-500 bg-gray-800/30"
-                                        : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/30"
-                                }`}
-                            >
-                                {tab === 'timeline' ? 'Match Feed' : tab}
-                            </button>
-                        ))}
                     </div>
                 </div>
             </div>
 
-            {/* === MAIN CONTENT (2 Column Grid) === */}
-            <div className="max-w-5xl mx-auto px-4 sm:px-0 mt-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* === MAIN CONTENT === */}
+            <div className="max-w-5xl mx-auto px-4 sm:px-0">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-                    {/* LEFT COLUMN: Intro & Details */}
-                    <div className="lg:col-span-1 flex flex-col gap-6">
+                    {/* LEFT COLUMN: Physical Metrics & Intel (4 Cols) */}
+                    <div className="lg:col-span-4 flex flex-col gap-6">
+
+                        {/* Physical Metrics Grid */}
+                        <div className="bg-white dark:bg-[#1e293b] rounded-sm p-5 border-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617]">
+                            <h2 className="text-slate-900 dark:text-white font-black uppercase tracking-widest text-xs mb-4 pb-2 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                                <Activity className="w-4 h-4 text-emerald-500" /> Physical Profile
+                            </h2>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><Ruler className="w-3 h-3"/> Height</p>
+                                    <p className="font-black text-slate-900 dark:text-white text-lg mt-0.5">{profile.heightCm ? `${profile.heightCm} cm` : 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><Weight className="w-3 h-3"/> Weight</p>
+                                    <p className="font-black text-slate-900 dark:text-white text-lg mt-0.5">{profile.weightKg ? `${profile.weightKg} kg` : 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><Zap className="w-3 h-3"/> Strong Foot</p>
+                                    <p className="font-black text-slate-900 dark:text-white text-lg mt-0.5">{profile.preferredFoot || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><MapPin className="w-3 h-3"/> Region</p>
+                                    <p className="font-bold text-slate-900 dark:text-white text-sm mt-1 truncate">Tbilisi, GE</p>
+                                </div>
+                            </div>
+                        </div>
 
                         {/* Player Manifesto */}
-                        <div className="bg-[#1e293b] rounded-3xl p-6 border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)]">
-                            <h2 className="text-emerald-400 font-black italic uppercase tracking-wider mb-4 flex items-center gap-2">
-                                Player Manifesto
+                        <div className="bg-white dark:bg-[#1e293b] rounded-sm p-5 border-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617]">
+                            <h2 className="text-slate-900 dark:text-white font-black uppercase tracking-widest text-xs mb-4 pb-2 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                                <Briefcase className="w-4 h-4 text-emerald-500" /> Player Manifesto
                             </h2>
-                            <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700/50 mb-4">
-                                <p className="text-gray-300 font-medium italic leading-relaxed text-sm">
-                                    "{profile.bio}"
+                            <div className="bg-slate-50 dark:bg-[#0f172a] p-3 rounded-sm border border-slate-200 dark:border-slate-800 shadow-inner mb-4">
+                                <p className="text-slate-700 dark:text-slate-300 font-medium italic leading-relaxed text-xs">
+                                    "{profile.bio || "No manifesto provided."}"
                                 </p>
                             </div>
                             {isMyProfile && (
-                                <button className="w-full bg-gray-800 hover:bg-gray-700 text-white font-black uppercase text-xs tracking-wider py-2.5 rounded-xl border-2 border-gray-700 transition-colors">
-                                    Edit Manifesto
+                                <button className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold uppercase text-[10px] tracking-widest py-2 rounded-sm border border-slate-300 dark:border-slate-600 transition-colors">
+                                    Update Manifesto
                                 </button>
                             )}
                         </div>
-
-                        {/* Player Intel */}
-                        <div className="bg-[#1e293b] rounded-3xl p-6 border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)]">
-                            <h2 className="text-emerald-400 font-black italic uppercase tracking-wider mb-5">Player Intel</h2>
-                            <div className="flex flex-col gap-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-emerald-500 shrink-0 border border-gray-700">
-                                        <MapPin className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Base</p>
-                                        <p className="font-bold text-white uppercase text-sm">{profile.location}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-blue-400 shrink-0 border border-gray-700">
-                                        <Zap className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Role</p>
-                                        <p className="font-bold text-white uppercase text-sm">{profile.position}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-orange-400 shrink-0 border border-gray-700">
-                                        <div className="w-5 h-5 border-2 border-current rounded-md flex items-center justify-center text-[10px] font-black">L/R</div>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Foot</p>
-                                        <p className="font-bold text-white uppercase text-sm">{profile.strongFoot}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Experience */}
-                        <div className="bg-[#1e293b] rounded-3xl p-6 border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)]">
-                            <h2 className="text-emerald-400 font-black italic uppercase tracking-wider mb-5">Experience</h2>
-                            <div className="flex flex-col gap-5">
-                                {profile.experience.map((exp, idx) => (
-                                    <div key={idx} className="flex gap-4 items-start">
-                                        <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center shrink-0 border border-gray-700">
-                                            <Briefcase className="w-5 h-5 text-gray-400" />
-                                        </div>
-                                        <div>
-                                            <p className="font-black text-white uppercase text-sm">{exp.club}</p>
-                                            <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider mt-0.5">{exp.role}</p>
-                                            <p className="text-[10px] text-gray-500 font-bold tracking-wider mt-1">{exp.years}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Connections */}
-                        <div className="bg-[#1e293b] rounded-3xl p-6 border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)]">
-                            <div className="flex justify-between items-center mb-3">
-                                <h2 className="text-emerald-400 font-black italic uppercase tracking-wider">Network</h2>
-                                {isMyProfile && (
-                                    <span title="Only you can see this">
-                                        <Lock className="w-4 h-4 text-gray-500 hover:text-white transition-colors cursor-help" />
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-sm font-medium text-gray-400">
-                                {isMyProfile ? "You follow 12 clubs and 33 people." : "Connections are private."}
-                            </p>
-                        </div>
                     </div>
 
-                    {/* RIGHT COLUMN: The Match Feed (Timeline) */}
-                    <div className="lg:col-span-2 flex flex-col gap-6">
+                    {/* RIGHT COLUMN: Dynamic Content (8 Cols) */}
+                    <div className="lg:col-span-8 flex flex-col gap-6">
 
                         {activeTab === 'timeline' && (
                             <>
-                                {/* Create Post / Highlight Upload Mock */}
-                                {isMyProfile && (
-                                    <div className="bg-[#1e293b] rounded-3xl p-5 border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] flex gap-4 items-center">
-                                        <div className="w-12 h-12 rounded-2xl bg-gray-700 text-emerald-400 flex items-center justify-center font-black text-sm shrink-0 border-2 border-gray-600">
-                                            {initials}
-                                        </div>
-                                        <input
-                                            type="text"
-                                            placeholder="What's on your mind?"
-                                            className="flex-1 bg-gray-800 rounded-xl py-3 px-5 text-sm font-medium text-white placeholder-gray-500 outline-none border-2 border-transparent hover:border-gray-700 transition-colors cursor-pointer"
-                                            readOnly onClick={() => alert("Post creation coming soon")}
-                                        />
-                                    </div>
-                                )}
-
-                                {/* Posts from Database */}
                                 {posts.length === 0 ? (
-                                    <div className="bg-[#1e293b] rounded-3xl p-10 border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] text-center flex flex-col items-center justify-center mt-2">
-                                        <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-6 text-gray-600 border-2 border-gray-700">
-                                            <PlaySquare className="w-8 h-8" />
+                                    <div className="bg-white dark:bg-[#1e293b] rounded-sm p-10 border-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617] text-center flex flex-col items-center justify-center">
+                                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm flex items-center justify-center mb-4 text-slate-400">
+                                            <PlaySquare className="w-6 h-6" />
                                         </div>
-                                        <h3 className="font-black text-white text-xl uppercase tracking-wide mb-2">No Match Footage Yet</h3>
-                                        <p className="text-gray-400 font-medium text-sm max-w-sm">
+                                        <h3 className="font-black text-slate-900 dark:text-white text-lg uppercase tracking-wide mb-1">No Match Footage</h3>
+                                        <p className="text-slate-500 font-medium text-xs max-w-sm">
                                             When clubs tag this player in match highlights, they will automatically appear here on their timeline.
                                         </p>
                                     </div>
                                 ) : (
                                     posts.map(post => (
-                                        <div key={post.id} className="bg-[#1e293b] rounded-3xl border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] overflow-hidden">
-
-                                            {/* Post Header */}
-                                            <div className="p-5 flex justify-between items-start">
-                                                <div className="flex gap-4 items-center">
-                                                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm bg-gray-700 text-emerald-400 border-2 border-gray-600">
+                                        <div key={post.id} className="bg-white dark:bg-[#1e293b] rounded-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617] border-2 border-slate-200 dark:border-slate-800 overflow-hidden">
+                                            <div className="p-4 flex justify-between items-start border-b border-slate-100 dark:border-slate-800/50">
+                                                <div className="flex gap-3 items-center">
+                                                    <div className="w-10 h-10 rounded-sm bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-xs border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200">
                                                         {post.authorName.substring(0,2).toUpperCase()}
                                                     </div>
                                                     <div>
-                                                        <div className="font-black text-white text-sm uppercase tracking-wide">
+                                                        <div className="font-bold uppercase tracking-wide text-slate-900 dark:text-white text-sm">
                                                             {post.authorName}
-                                                            {post.clubName && <span className="font-bold text-gray-500"> via {post.clubName}</span>}
+                                                            {post.clubName && <span className="text-slate-500"> via {post.clubName}</span>}
                                                         </div>
-                                                        <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider flex items-center gap-1 mt-1">
+                                                        <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1">
                                                             {formatTime(post.createdAt)} • <ShieldCheck className="w-3 h-3 text-emerald-500" />
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <button className="text-gray-500 hover:text-white p-2 rounded-xl hover:bg-gray-800 transition-colors">
-                                                    <MoreHorizontal className="w-5 h-5" />
+                                                <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                                                    <MoreHorizontal className="w-4 h-4" />
                                                 </button>
                                             </div>
-
-                                            {/* Post Body */}
-                                            <div className="px-5 pb-4">
-                                                <p className="text-gray-300 whitespace-pre-line leading-relaxed text-sm font-medium">
+                                            <div className="p-5">
+                                                <p className="text-slate-800 dark:text-slate-300 whitespace-pre-line leading-relaxed text-sm font-medium">
                                                     {post.content}
                                                 </p>
                                             </div>
-
-                                            {/* Action Buttons */}
-                                            <div className="px-3 py-2 border-t-2 border-gray-800 flex justify-between bg-gray-800/30">
-                                                <button className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-colors ${post.isLikedByMe ? "text-emerald-400 bg-gray-800" : "text-gray-400 hover:text-emerald-400 hover:bg-gray-800"}`}>
-                                                    <Heart className="w-4 h-4" fill={post.isLikedByMe ? "currentColor" : "none"} /> {post.likeCount || "Like"}
+                                            <div className="flex border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#111827]">
+                                                <button className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-colors border-r border-slate-200 dark:border-slate-800 ${post.isLikedByMe ? "text-orange-500" : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"}`}>
+                                                    <Heart className="w-3.5 h-3.5" fill={post.isLikedByMe ? "currentColor" : "none"} /> {post.likeCount || "Like"}
                                                 </button>
-                                                <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-                                                    <MessageCircle className="w-4 h-4" /> {post.commentCount || "Comment"}
+                                                <button className="flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-r border-slate-200 dark:border-slate-800">
+                                                    <MessageCircle className="w-3.5 h-3.5" /> {post.commentCount || "Comment"}
                                                 </button>
-                                                <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-                                                    <Share2 className="w-4 h-4" /> Share
+                                                <button className="flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                                    <Share2 className="w-3.5 h-3.5" /> Share
                                                 </button>
                                             </div>
                                         </div>
@@ -368,15 +300,51 @@ export const UserProfilePage = () => {
                             </>
                         )}
 
-                        {activeTab === 'about' && (
-                            <div className="bg-[#1e293b] rounded-3xl p-10 border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] text-center text-gray-500 font-bold uppercase tracking-widest">
-                                Detailed biography coming soon.
+                        {/* --- NEW: SCOUTING STATS TABLE --- */}
+                        {activeTab === 'stats' && (
+                            <div className="bg-white dark:bg-[#1e293b] rounded-sm p-1 border-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617] overflow-x-auto">
+                                <table className="w-full text-left border-collapse whitespace-nowrap">
+                                    <thead>
+                                    <tr className="bg-slate-100 dark:bg-slate-900 text-slate-500 text-[10px] uppercase tracking-widest font-black">
+                                        <th className="p-3 border-b-2 border-slate-200 dark:border-slate-800">Season</th>
+                                        <th className="p-3 border-b-2 border-slate-200 dark:border-slate-800">Squad / Club</th>
+                                        <th className="p-3 border-b-2 border-slate-200 dark:border-slate-800">Level</th>
+                                        <th className="p-3 border-b-2 border-slate-200 dark:border-slate-800 text-center">Apps</th>
+                                        <th className="p-3 border-b-2 border-slate-200 dark:border-slate-800 text-center">G</th>
+                                        <th className="p-3 border-b-2 border-slate-200 dark:border-slate-800 text-center">A</th>
+                                        <th className="p-3 border-b-2 border-slate-200 dark:border-slate-800 text-center">CS</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody className="text-sm font-bold text-slate-800 dark:text-slate-300">
+                                    {profile.careerHistory && profile.careerHistory.length > 0 ? (
+                                        profile.careerHistory.map((season, idx) => (
+                                            <tr key={season.id} className={`border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors ${idx % 2 === 0 ? 'bg-white dark:bg-[#1e293b]' : 'bg-slate-50/50 dark:bg-[#0f172a]/30'}`}>
+                                                <td className="p-3 text-slate-500 font-black">{season.season}</td>
+                                                <td className="p-3 flex items-center gap-2">
+                                                    <ShieldCheck className="w-4 h-4 text-emerald-500" /> {season.clubName}
+                                                </td>
+                                                <td className="p-3 text-[10px] tracking-widest uppercase text-slate-500">{season.category}</td>
+                                                <td className="p-3 text-center">{season.appearances}</td>
+                                                <td className="p-3 text-center text-emerald-600 dark:text-emerald-400">{season.goals}</td>
+                                                <td className="p-3 text-center text-blue-500">{season.assists}</td>
+                                                <td className="p-3 text-center text-slate-400">{season.cleanSheets > 0 ? season.cleanSheets : '-'}</td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={7} className="p-8 text-center text-slate-500 text-xs font-medium uppercase tracking-widest">
+                                                No career history documented.
+                                            </td>
+                                        </tr>
+                                    )}
+                                    </tbody>
+                                </table>
                             </div>
                         )}
 
-                        {activeTab === 'connections' && (
-                            <div className="bg-[#1e293b] rounded-3xl p-10 border-2 border-gray-800 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] text-center text-gray-500 font-bold uppercase tracking-widest">
-                                {isMyProfile ? "Manage your network here." : "Connections are private."}
+                        {activeTab === 'intel' && (
+                            <div className="bg-white dark:bg-[#1e293b] rounded-sm p-10 border-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617] text-center text-slate-500 font-bold uppercase tracking-widest text-sm">
+                                Full Scouting Dossier Restricted.
                             </div>
                         )}
                     </div>

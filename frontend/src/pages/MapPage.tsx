@@ -3,13 +3,13 @@ import { MapContainer, Marker, TileLayer, useMapEvents, useMap, Circle, ZoomCont
 import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import { apiClient } from "../api/axiosConfig";
-import { MapPin, Navigation, Phone, Mail, Users, ArrowRight, X, ShieldCheck, ShoppingCart, HeartHandshake, Loader2 } from "lucide-react";
+import { MapPin, Navigation, Phone, Mail, Users, ArrowRight, X, ShieldCheck, Loader2, Swords, Calendar } from "lucide-react";
 import axios from "axios";
 
 // --- TYPES ---
 export type MapMarkerDto = {
     entityId: number;
-    entityType: "CLUB" | "USER" | string;
+    entityType: "CLUB" | "TRYOUT" | "MATCH_REQUEST" | string;
     title: string;
     subtitle?: string | null;
     latitude: number;
@@ -33,7 +33,6 @@ interface ClubProfile {
     email?: string;
 }
 
-// --- CONSTANTS & ICONS ---
 const bannerImages = [
     "1518605368461-1ee71161d91a",
     "1574629810360-7efbb6b6923f",
@@ -42,30 +41,28 @@ const bannerImages = [
     "1431324155629-1a610d6e60d5"
 ];
 
-const soccerBallSvg = encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-  <circle cx="24" cy="24" r="22" fill="#ffffff" stroke="#000000" stroke-width="2"/>
-  <path d="M24 12 L14 18 L16 30 L32 30 L34 18 Z" fill="#000000"/>
-  <path d="M24 2 L24 12 M2 16 L14 18 M8 40 L16 30 M40 40 L32 30 M46 16 L34 18" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
-  <circle cx="24" cy="24" r="22" fill="none" stroke="#000000" stroke-width="2"/>
+// --- CUSTOM SHARP ICONS ---
+const createSvgIcon = (fillColor: string) => encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 48 48">
+  <circle cx="24" cy="24" r="22" fill="${fillColor}" stroke="#0f172a" stroke-width="3"/>
+  <path d="M24 12 L14 18 L16 30 L32 30 L34 18 Z" fill="#0f172a"/>
+  <path d="M24 2 L24 12 M2 16 L14 18 M8 40 L16 30 M40 40 L32 30 M46 16 L34 18" stroke="#0f172a" stroke-width="3" stroke-linecap="round"/>
 </svg>
 `);
 
-const clubIcon = new L.Icon({
-    iconUrl: `data:image/svg+xml,${soccerBallSvg}`,
-    iconSize: [34, 34],
-    iconAnchor: [17, 34],
-});
+const clubIcon = new L.Icon({ iconUrl: `data:image/svg+xml,${createSvgIcon('#10b981')}`, iconSize: [32, 32], iconAnchor: [16, 32] });
+const tryoutIcon = new L.Icon({ iconUrl: `data:image/svg+xml,${createSvgIcon('#f97316')}`, iconSize: [32, 32], iconAnchor: [16, 32] });
+const matchIcon = new L.Icon({ iconUrl: `data:image/svg+xml,${createSvgIcon('#3b82f6')}`, iconSize: [32, 32], iconAnchor: [16, 32] });
 
 const selectedIcon = new L.Icon({
-    iconUrl: `data:image/svg+xml,${soccerBallSvg}`,
-    iconSize: [48, 48],
-    iconAnchor: [24, 48],
-    className: 'drop-shadow-[0_0_15px_rgba(16,185,129,0.8)]'
+    iconUrl: `data:image/svg+xml,${createSvgIcon('#ffffff')}`,
+    iconSize: [44, 44],
+    iconAnchor: [22, 44],
+    className: 'drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]'
 });
 
-// --- HELPER COMPONENTS (From your original code) ---
-function NearbyLoader({ radiusKm, filterType, onMarkers, onLoading }: { radiusKm: number; filterType: "CLUB" | "TRYOUT"; onMarkers: (markers: MapMarkerDto[]) => void; onLoading: (isLoading: boolean) => void; }) {
+// --- HELPER COMPONENTS ---
+function NearbyLoader({ radiusKm, filterType, onMarkers, onLoading }: { radiusKm: number; filterType: string; onMarkers: (markers: MapMarkerDto[]) => void; onLoading: (isLoading: boolean) => void; }) {
     const map = useMap();
     const debounceTimerRef = useRef<number | null>(null);
     const abortRef = useRef<AbortController | null>(null);
@@ -108,7 +105,7 @@ function NearbyLoader({ radiusKm, filterType, onMarkers, onLoading }: { radiusKm
     useMapEvents({
         moveend: () => scheduleFetch(map.getCenter().lat, map.getCenter().lng),
         zoomend: () => scheduleFetch(map.getCenter().lat, map.getCenter().lng),
-        click: () => {} // Kept to allow map clicks to close panels via parent
+        click: () => {}
     });
 
     useEffect(() => {
@@ -141,7 +138,7 @@ function LocateMeControl() {
     };
 
     return (
-        <button onClick={handleLocateClick} disabled={locating} className={`absolute bottom-6 right-14 z-[1000] p-3 rounded-full shadow-lg border-2 border-black transition-all ${locating ? "bg-gray-100 text-gray-400" : "bg-orange-400 text-white hover:bg-orange-500"}`}>
+        <button onClick={handleLocateClick} disabled={locating} className={`absolute bottom-6 right-14 z-[1000] p-2.5 rounded-sm shadow-[2px_2px_0px_0px_#0f172a] border-2 border-slate-900 transition-all ${locating ? "bg-slate-200 text-slate-400" : "bg-white text-slate-700 hover:bg-slate-100 active:translate-y-0.5 active:shadow-none"}`}>
             <Navigation className={`w-5 h-5 ${locating ? "animate-pulse" : ""}`} />
         </button>
     );
@@ -154,11 +151,9 @@ function RadiusCircle({ radiusKm }: { radiusKm: number }) {
     useEffect(() => {
         const updateCenter = () => setCenter(map.getCenter());
         map.on('move', updateCenter);
-        return () => {
-            map.off('move', updateCenter);
-        };
+        return () => { map.off('move', updateCenter); };
     }, [map]);
-    return <Circle center={center} radius={radiusKm * 1000} pathOptions={{ fillColor: '#f97316', fillOpacity: 0.1, color: '#f97316', weight: 2, dashArray: '5, 10', interactive: false }} />;
+    return <Circle center={center} radius={radiusKm * 1000} pathOptions={{ fillColor: '#10b981', fillOpacity: 0.1, color: '#10b981', weight: 2, dashArray: '5, 10', interactive: false }} />;
 }
 
 // --- MAIN PAGE ---
@@ -167,12 +162,12 @@ export function MapPage() {
     const [markers, setMarkers] = useState<MapMarkerDto[]>([]);
     const [loadingMarkers, setLoadingMarkers] = useState(false);
 
-    // Map Filter State
     const [radiusKm, setRadiusKm] = useState<number>(15);
     const [displayRadius, setDisplayRadius] = useState<number>(15);
-    const [filterType, setFilterType] = useState<"CLUB" | "TRYOUT">("CLUB");
 
-    // Side Panel State
+    // THE NEW MATCH_REQUEST FILTER
+    const [filterType, setFilterType] = useState<"CLUB" | "TRYOUT" | "MATCH_REQUEST">("CLUB");
+
     const [selectedMarker, setSelectedMarker] = useState<MapMarkerDto | null>(null);
     const [panelData, setPanelData] = useState<ClubProfile | null>(null);
     const [isPanelLoading, setIsPanelLoading] = useState(false);
@@ -180,6 +175,8 @@ export function MapPage() {
     const handleMarkerClick = async (marker: MapMarkerDto) => {
         setSelectedMarker(marker);
 
+        // We only need to fetch deep data if it's a Club.
+        // For Matches and Tryouts, the basic MapMarkerDto has enough info!
         if (marker.entityType === 'CLUB') {
             setIsPanelLoading(true);
             try {
@@ -190,6 +187,8 @@ export function MapPage() {
             } finally {
                 setIsPanelLoading(false);
             }
+        } else {
+            setPanelData(null);
         }
     };
 
@@ -198,87 +197,135 @@ export function MapPage() {
         setTimeout(() => setPanelData(null), 300);
     };
 
-    return (
-        <div className="flex w-full h-[calc(100vh-72px)] relative overflow-hidden bg-gray-100 dark:bg-gray-900">
+    // Determine the active pin icon based on the filter
+    const getPinIcon = (type: string) => {
+        if (type === 'TRYOUT') return tryoutIcon;
+        if (type === 'MATCH_REQUEST') return matchIcon;
+        return clubIcon;
+    };
 
-            {/* --- SLIDING SIDE PANEL --- */}
-            <div className={`absolute top-0 left-0 h-full w-full md:w-[400px] bg-white dark:bg-gray-800 z-[2000] shadow-2xl transition-transform duration-300 ease-in-out flex flex-col ${selectedMarker ? 'translate-x-0' : '-translate-x-full'}`}>
+    return (
+        <div className="flex w-full h-[calc(100vh-56px)] relative overflow-hidden bg-slate-100 dark:bg-[#0f172a] font-sans">
+
+            {/* --- SHARP SLIDING SIDE PANEL --- */}
+            <div className={`absolute top-0 left-0 h-full w-full md:w-[400px] bg-white dark:bg-[#1e293b] z-[2000] border-r-2 border-slate-300 dark:border-slate-800 shadow-[4px_0px_15px_rgba(0,0,0,0.1)] dark:shadow-none transition-transform duration-300 ease-in-out flex flex-col ${selectedMarker ? 'translate-x-0' : '-translate-x-full'}`}>
 
                 {isPanelLoading ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-emerald-500">
+                    <div className="flex-1 flex flex-col items-center justify-center text-emerald-600 dark:text-emerald-500">
                         <Loader2 className="w-10 h-10 animate-spin mb-4" />
-                        <p className="font-bold tracking-widest uppercase text-sm text-gray-500">Retrieving Intel...</p>
+                        <p className="font-bold tracking-widest uppercase text-sm text-slate-500">Retrieving Intel...</p>
                     </div>
+                ) : selectedMarker?.entityType === 'MATCH_REQUEST' ? (
+
+                    /* --- MATCH REQUEST PANEL --- */
+                    <div className="flex flex-col h-full relative">
+                        <div className="h-32 bg-blue-600 border-b-2 border-slate-900 flex items-center justify-center relative shrink-0">
+                            <Swords className="w-12 h-12 text-white opacity-50" />
+                            <button onClick={closePanel} className="absolute top-4 right-4 bg-slate-900/50 hover:bg-slate-900 text-white p-1.5 rounded-sm transition-colors border border-white/20">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-6 flex-1 overflow-y-auto">
+                            <div className="w-16 h-16 bg-white dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 shadow-sm rounded-sm flex items-center justify-center -mt-12 mb-4 relative z-10 text-xl font-black text-blue-500">
+                                {selectedMarker.title.substring(0,2).toUpperCase()}
+                            </div>
+                            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{selectedMarker.title}</h2>
+                            <p className="text-blue-500 font-bold uppercase tracking-widest text-xs mt-1">Open Match Request</p>
+
+                            <div className="bg-slate-50 dark:bg-[#0f172a] p-4 rounded-sm border border-slate-200 dark:border-slate-800 mt-6 shadow-inner">
+                                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold flex items-center gap-1.5 mb-1"><MapPin className="w-3.5 h-3.5"/> Logistics</span>
+                                <p className="text-slate-900 dark:text-white font-bold text-sm uppercase">{selectedMarker.subtitle?.replace('_', ' ')}</p>
+                            </div>
+                        </div>
+                        <div className="p-6 shrink-0 bg-slate-50 dark:bg-[#0f172a] border-t border-slate-200 dark:border-slate-800">
+                            <button onClick={() => alert("Match coordination workflow coming soon!")} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-sm uppercase tracking-widest text-sm shadow-[2px_2px_0px_0px_#020617] border border-transparent active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-2">
+                                <Swords className="w-4 h-4" /> Send Challenge
+                            </button>
+                        </div>
+                    </div>
+
+                ) : selectedMarker?.entityType === 'TRYOUT' ? (
+
+                    /* --- TRYOUT PANEL --- */
+                    <div className="flex flex-col h-full relative">
+                        <div className="h-32 bg-orange-500 border-b-2 border-slate-900 flex items-center justify-center relative shrink-0">
+                            <Calendar className="w-12 h-12 text-white opacity-50" />
+                            <button onClick={closePanel} className="absolute top-4 right-4 bg-slate-900/50 hover:bg-slate-900 text-white p-1.5 rounded-sm transition-colors border border-white/20">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-6 flex-1 overflow-y-auto">
+                            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mt-2">{selectedMarker.title}</h2>
+                            <p className="text-orange-500 font-bold uppercase tracking-widest text-xs mt-1 flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5"/> Hosted By: {selectedMarker.subtitle}</p>
+
+                            <div className="bg-slate-50 dark:bg-[#0f172a] p-4 rounded-sm border border-slate-200 dark:border-slate-800 mt-6 shadow-inner">
+                                <p className="text-slate-600 dark:text-slate-400 font-medium text-sm">This club is actively scouting for players. Apply below to submit your profile and highlight reel to the coaching staff.</p>
+                            </div>
+                        </div>
+                        <div className="p-6 shrink-0 bg-slate-50 dark:bg-[#0f172a] border-t border-slate-200 dark:border-slate-800">
+                            <button onClick={() => alert("Tryout Application workflow coming soon!")} className="w-full bg-orange-500 hover:bg-orange-400 text-slate-900 font-black py-3 rounded-sm uppercase tracking-widest text-sm shadow-[2px_2px_0px_0px_#020617] border border-transparent active:translate-y-0.5 active:shadow-none transition-all">
+                                Apply for Tryout
+                            </button>
+                        </div>
+                    </div>
+
                 ) : panelData ? (
+
+                    /* --- FULL CLUB PANEL --- */
                     <>
-                        <div className="h-40 relative bg-slate-900 shrink-0">
-                            <img src={`https://images.unsplash.com/photo-${bannerImages[panelData.id % bannerImages.length]}?auto=format&fit=crop&q=80&w=600&h=300`} alt="Banner" className="w-full h-full object-cover opacity-70" />
-                            <button onClick={closePanel} className="absolute top-4 right-4 bg-black/50 hover:bg-black text-white p-2 rounded-full backdrop-blur-sm transition-colors border border-white/20">
-                                <X className="w-5 h-5" />
+                        <div className="h-32 relative bg-slate-900 shrink-0 border-b border-slate-800">
+                            <img src={`https://images.unsplash.com/photo-${bannerImages[panelData.id % bannerImages.length]}?auto=format&fit=crop&q=80&w=600&h=300`} alt="Banner" className="w-full h-full object-cover opacity-60" />
+                            <button onClick={closePanel} className="absolute top-4 right-4 bg-slate-900/50 hover:bg-slate-900 text-white p-1.5 rounded-sm backdrop-blur-sm transition-colors border border-white/20">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 relative scrollbar-hide">
-                            <div className="absolute -top-12 left-6 w-20 h-20 bg-white dark:bg-gray-800 rounded-2xl border-4 border-white dark:border-gray-800 shadow-lg overflow-hidden flex items-center justify-center">
+                            <div className="absolute -top-10 left-6 w-16 h-16 bg-white dark:bg-[#1e293b] rounded-sm border-2 border-slate-300 dark:border-slate-700 shadow-sm overflow-hidden flex items-center justify-center">
                                 <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(panelData.name)}&background=10b981&color=fff&bold=true&size=150`} alt={panelData.name} className="w-full h-full object-cover" />
                             </div>
 
-                            <div className="mt-10 mb-6">
-                                <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-2 leading-none">
-                                    {panelData.name} {panelData.isOfficial && <ShieldCheck className="w-6 h-6 text-blue-500" />}
+                            <div className="mt-8 mb-6">
+                                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2 leading-none">
+                                    {panelData.name} {panelData.isOfficial && <ShieldCheck className="w-5 h-5 text-blue-500" />}
                                 </h2>
-                                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-1.5 uppercase tracking-wider">{panelData.type}</p>
+                                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-500 mt-1 uppercase tracking-widest">{panelData.type}</p>
                             </div>
 
-                            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-2xl p-4 flex flex-col gap-4 border border-gray-200 dark:border-gray-700 mb-6 shadow-sm">
+                            <div className="bg-slate-50 dark:bg-[#0f172a] rounded-sm p-4 flex flex-col gap-3 border border-slate-200 dark:border-slate-800 mb-6 shadow-inner">
                                 <div className="flex items-start gap-3">
-                                    <MapPin className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
-                                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{panelData.addressText || "Address not provided"}</span>
+                                    <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{panelData.addressText || "Address not provided"}</span>
                                 </div>
                                 {panelData.phoneNumber && (
                                     <div className="flex items-center gap-3">
-                                        <Phone className="w-5 h-5 text-gray-400 shrink-0" />
-                                        <a href={`tel:${panelData.phoneNumber}`} className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline">{panelData.phoneNumber}</a>
+                                        <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                                        <a href={`tel:${panelData.phoneNumber}`} className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">{panelData.phoneNumber}</a>
                                     </div>
                                 )}
                                 {panelData.email && (
                                     <div className="flex items-center gap-3">
-                                        <Mail className="w-5 h-5 text-gray-400 shrink-0" />
-                                        <a href={`mailto:${panelData.email}`} className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline">{panelData.email}</a>
+                                        <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                                        <a href={`mailto:${panelData.email}`} className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">{panelData.email}</a>
                                     </div>
                                 )}
                                 <div className="flex items-center gap-3">
-                                    <Users className="w-5 h-5 text-gray-400 shrink-0" />
-                                    <span className="text-sm font-bold text-gray-900 dark:text-white">{panelData.followerCount} <span className="font-medium text-gray-500">Followers</span></span>
+                                    <Users className="w-4 h-4 text-slate-400 shrink-0" />
+                                    <span className="text-xs font-bold text-slate-900 dark:text-white">{panelData.followerCount} <span className="font-medium text-slate-500">Followers</span></span>
                                 </div>
                             </div>
 
-                            {(panelData.storeUrl || panelData.gofundmeUrl) && (
-                                <div className="flex gap-2 mb-6">
-                                    {panelData.storeUrl && (
-                                        <a href={panelData.storeUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 py-2.5 rounded-xl text-sm font-bold transition-colors hover:bg-orange-200 border border-orange-200 dark:border-orange-900">
-                                            <ShoppingCart className="w-4 h-4" /> Store
-                                        </a>
-                                    )}
-                                    {panelData.gofundmeUrl && (
-                                        <a href={panelData.gofundmeUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 py-2.5 rounded-xl text-sm font-bold transition-colors hover:bg-rose-200 border border-rose-200 dark:border-rose-900">
-                                            <HeartHandshake className="w-4 h-4" /> Support
-                                        </a>
-                                    )}
-                                </div>
-                            )}
-
                             <div className="mb-6">
-                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">About the Club</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line font-medium">
-                                    {panelData.description || "No description provided."}
+                                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pb-1 border-b border-slate-200 dark:border-slate-800">Database Intel</h3>
+                                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line font-medium">
+                                    {panelData.description || "No official directives have been published by this organization."}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="p-4 bg-white dark:bg-gray-800 border-t-2 border-black shrink-0">
-                            <button onClick={() => navigate(`/clubs/${panelData.id}`)} className="w-full flex items-center justify-center gap-2 bg-black hover:bg-gray-800 text-white py-3.5 rounded-xl font-black uppercase tracking-wider transition-colors shadow-[4px_4px_0px_0px_rgba(16,185,129,1)] hover:shadow-none hover:translate-y-1 hover:translate-x-1 border-2 border-black">
-                                Full Profile <ArrowRight className="w-5 h-5" />
+                        <div className="p-4 bg-slate-50 dark:bg-[#0f172a] border-t border-slate-200 dark:border-slate-800 shrink-0">
+                            <button onClick={() => navigate(`/clubs/${panelData.id}`)} className="w-full flex items-center justify-center gap-2 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-900 py-3 rounded-sm font-bold uppercase tracking-widest text-xs transition-colors shadow-[2px_2px_0px_0px_#10b981] active:translate-y-0.5 active:shadow-none border border-transparent">
+                                Access Full Profile <ArrowRight className="w-4 h-4" />
                             </button>
                         </div>
                     </>
@@ -288,37 +335,42 @@ export function MapPage() {
             {/* --- MAP AREA --- */}
             <div className="flex-1 h-full relative z-0">
 
-                {/* Loading Indicator */}
+                {/* Scanning Indicator */}
                 {loadingMarkers && (
                     <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[1000]">
-                        <div className="bg-black text-white px-4 py-2 rounded-full shadow-lg border-2 border-white flex items-center gap-2">
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-xs font-black uppercase tracking-widest">Scanning...</span>
+                        <div className="bg-slate-900 text-white px-4 py-2 rounded-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] border border-slate-700 flex items-center gap-2">
+                            <div className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Scanning Grid...</span>
                         </div>
                     </div>
                 )}
 
-                {/* Floating UI Widget */}
-                <div className="absolute top-4 right-4 z-[1000] bg-white/95 backdrop-blur shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] border-4 border-black rounded-xl p-5 w-64 transition-all">
-                    <div className="flex bg-gray-100 border-2 border-black p-1 rounded-lg mb-4">
-                        <button onClick={() => setFilterType("CLUB")} className={`flex-1 text-[10px] font-black uppercase py-2 rounded-md transition-all ${filterType === "CLUB" ? "bg-white text-emerald-600 shadow-sm border-2 border-black" : "text-gray-500 hover:text-black"}`}>
+                {/* Sharp Floating UI Widget */}
+                <div className="absolute top-4 right-4 z-[1000] bg-white dark:bg-[#1e293b] shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617] border border-slate-200 dark:border-slate-700 rounded-sm p-4 w-72 transition-colors">
+
+                    {/* Filter Toggles */}
+                    <div className="flex gap-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-sm mb-4">
+                        <button onClick={() => setFilterType("CLUB")} className={`flex-1 text-[10px] font-bold uppercase py-2 rounded-sm transition-all ${filterType === "CLUB" ? "bg-white dark:bg-[#1e293b] text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200 dark:border-slate-700" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}>
                             Clubs
                         </button>
-                        <button onClick={() => setFilterType("TRYOUT")} className={`flex-1 text-[10px] font-black uppercase py-2 rounded-md transition-all ${filterType === "TRYOUT" ? "bg-white text-orange-500 shadow-sm border-2 border-black" : "text-gray-500 hover:text-black"}`}>
+                        <button onClick={() => setFilterType("TRYOUT")} className={`flex-1 text-[10px] font-bold uppercase py-2 rounded-sm transition-all ${filterType === "TRYOUT" ? "bg-white dark:bg-[#1e293b] text-orange-500 shadow-sm border border-slate-200 dark:border-slate-700" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}>
                             Tryouts
+                        </button>
+                        <button onClick={() => setFilterType("MATCH_REQUEST")} className={`flex-1 text-[10px] font-bold uppercase py-2 rounded-sm transition-all ${filterType === "MATCH_REQUEST" ? "bg-white dark:bg-[#1e293b] text-blue-500 shadow-sm border border-slate-200 dark:border-slate-700" : "text-slate-500 hover:text-slate-900 dark:hover:text-white"}`}>
+                            Matches
                         </button>
                     </div>
 
                     <div className="flex justify-between items-center mb-3">
-                        <span className="font-black italic uppercase text-gray-900 text-xs flex items-center gap-1.5 tracking-tighter">
-                            <MapPin className="w-4 h-4 text-orange-500" /> Radius
+                        <span className="font-bold uppercase text-slate-700 dark:text-slate-300 text-[10px] flex items-center gap-1.5 tracking-widest">
+                            <MapPin className="w-3.5 h-3.5 text-slate-500" /> Search Radius
                         </span>
-                        <span className="text-white font-black bg-black border-2 border-black px-2 py-0.5 rounded-md text-xs italic">
+                        <span className="text-slate-900 dark:text-white font-black bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-sm text-xs">
                             {displayRadius} km
                         </span>
                     </div>
 
-                    <input type="range" min="1" max="50" step="1" value={displayRadius} onChange={(e) => setDisplayRadius(Number(e.target.value))} onPointerUp={() => setRadiusKm(displayRadius)} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black border border-black" />
+                    <input type="range" min="1" max="50" step="1" value={displayRadius} onChange={(e) => setDisplayRadius(Number(e.target.value))} onPointerUp={() => setRadiusKm(displayRadius)} className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-sm appearance-none cursor-pointer accent-emerald-500" />
                 </div>
 
                 <MapContainer center={[41.7151, 44.8271]} zoom={12} className="w-full h-full" zoomControl={false}>
@@ -331,15 +383,17 @@ export function MapPage() {
 
                     {markers.filter(m => (m.distanceKm ?? 0) <= radiusKm).map((m) => {
                         const isSelected = selectedMarker?.entityId === m.entityId && selectedMarker?.entityType === m.entityType;
+                        const icon = isSelected ? selectedIcon : getPinIcon(m.entityType);
+
                         return (
-                            <Marker key={`${m.entityType}:${m.entityId}`} position={[m.latitude, m.longitude]} icon={isSelected ? selectedIcon : clubIcon} eventHandlers={{ click: () => handleMarkerClick(m) }} />
+                            <Marker key={`${m.entityType}:${m.entityId}`} position={[m.latitude, m.longitude]} icon={icon} eventHandlers={{ click: () => handleMarkerClick(m) }} />
                         );
                     })}
                 </MapContainer>
 
-                {/* Click outside to close panel */}
+                {/* Mobile overlay to close panel */}
                 {selectedMarker && (
-                    <div className="absolute inset-0 bg-black/20 z-[1500] md:hidden backdrop-blur-sm" onClick={closePanel} />
+                    <div className="absolute inset-0 bg-slate-900/20 z-[1500] md:hidden backdrop-blur-sm" onClick={closePanel} />
                 )}
             </div>
         </div>

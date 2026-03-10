@@ -10,6 +10,8 @@ import { MessagingPage } from './pages/MessagingPage';
 import { StorePage } from './pages/StorePage';
 import { CharityPage } from './pages/CharityPage';
 import { MiniMap } from './components/MiniMap';
+import { MyClubPage } from './pages/MyClubPage';
+import { Building2 } from 'lucide-react'; // Make sure Building2 is in your lucide-react imports
 import { apiClient } from './api/axiosConfig';
 import {
     Home, Map as MapIcon, Shield, MessageSquare, User,
@@ -21,6 +23,9 @@ function MainLayout() {
     const location = useLocation();
     const [user, setUser] = useState<{ id: number; username: string } | null>(null);
     const [activeQuickChat, setActiveQuickChat] = useState<{id: number, name: string, role: string, online: boolean} | null>(null);
+
+    // --- NEW: Dev Persona Switcher State ---
+    const [showDevMenu, setShowDevMenu] = useState(false);
 
     const mockContacts = [
         { id: 101, name: 'Saba Gogichaishvili', role: 'Striker', online: true },
@@ -47,9 +52,9 @@ function MainLayout() {
         location.pathname.startsWith('/profile') ||
         location.pathname === '/store' ||
         location.pathname === '/charity' ||
+        location.pathname === '/my-club' || // <--- ADD THIS LINE
         isClubProfilePage;
 
-    // --- NEW LOGIC: Show condensed nav on full screen pages, EXCEPT the map ---
     const showCondensedNav = isFullScreenPage && location.pathname !== '/map';
 
     useEffect(() => {
@@ -63,14 +68,17 @@ function MainLayout() {
         localStorage.setItem('theme', darkMode ? 'dark' : 'light');
     }, [darkMode]);
 
-    const handleDevLogin = async () => {
+    // --- NEW: Dynamic Login Function ---
+    const handleDevLogin = async (email: string) => {
         try {
-            const res = await apiClient.post('/auth/dev-login?email=react_dev@demo.com');
-            alert(`Success! ${res.data.message}`);
+            await apiClient.post(`/auth/dev-login?email=${email}`);
             const userRes = await apiClient.get('/users/me');
             setUser(userRes.data);
+            setShowDevMenu(false);
+            // Force a hard reload so all components fetch their new role-based data
+            window.location.reload();
         } catch (error) {
-            alert("Login failed! Is Spring Boot running?");
+            alert("Login failed! Did you run the updated DataSeeder in Spring Boot?");
         }
     };
 
@@ -103,6 +111,7 @@ function MainLayout() {
                                     { path: "/feed", icon: Home, title: "Network Feed" },
                                     { path: "/map", icon: MapIcon, title: "Intel Map" },
                                     { path: "/clubs", icon: Shield, title: "Club Database" },
+                                    { path: "/my-club", icon: Building2, title: "My Club" },
                                     { path: "/messages", icon: MessageSquare, title: "Communications" },
                                     { path: user ? `/profile/${user.id}` : "#", icon: User, title: "My Profile" }
                                 ].map((item, idx) => {
@@ -128,7 +137,7 @@ function MainLayout() {
                         )}
                     </div>
 
-                    {/* RIGHT: User Actions */}
+                    {/* RIGHT: User Actions & PERSONA SWITCHER */}
                     <div className="flex items-center justify-end gap-3 w-1/4 md:w-1/3">
                         <button className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors relative">
                             <Bell className="w-5 h-5" />
@@ -145,9 +154,35 @@ function MainLayout() {
                             {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                         </button>
 
-                        <button onClick={handleDevLogin} className="bg-emerald-600 text-white px-3 py-1.5 rounded-sm hover:bg-emerald-500 transition-colors font-bold text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] dark:shadow-[2px_2px_0px_0px_#020617] border border-transparent active:translate-y-0.5 active:shadow-none">
-                            Dev Login
-                        </button>
+                        {/* PERSONA SWITCHER DROPDOWN */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowDevMenu(!showDevMenu)}
+                                className="bg-emerald-600 text-white px-3 py-1.5 rounded-sm hover:bg-emerald-500 transition-colors font-bold text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] dark:shadow-[2px_2px_0px_0px_#020617] border border-transparent active:translate-y-0.5 active:shadow-none flex items-center gap-1"
+                            >
+                                Switch Persona
+                            </button>
+
+                            {showDevMenu && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1e293b] border-2 border-slate-300 dark:border-slate-700 rounded-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617] flex flex-col overflow-hidden z-[9999]">
+                                    <div className="px-3 py-2 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                        Dev Login
+                                    </div>
+                                    <button onClick={() => handleDevLogin('player@talanti.ge')} className="px-3 py-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-800">
+                                        👤 Player
+                                    </button>
+                                    <button onClick={() => handleDevLogin('coach@talanti.ge')} className="px-3 py-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-800">
+                                        🏟️ Club Admin (Coach)
+                                    </button>
+                                    <button onClick={() => handleDevLogin('agent@talanti.ge')} className="px-3 py-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-slate-800 transition-colors border-b border-slate-100 dark:border-slate-800">
+                                        💼 Agent
+                                    </button>
+                                    <button onClick={() => handleDevLogin('fan@talanti.ge')} className="px-3 py-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-slate-800 transition-colors">
+                                        👀 Fan / Standard
+                                    </button>
+                                </div>
+                            )}
+                        </div>
 
                         <Link to={user ? `/profile/${user.id}` : "#"}>
                             <div className="w-8 h-8 bg-slate-200 dark:bg-slate-800 rounded-sm border-2 border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors flex items-center justify-center text-[10px] text-slate-900 dark:text-white font-bold">
@@ -167,6 +202,7 @@ function MainLayout() {
                         <Route path="/messages" element={<MessagingPage />} />
                         <Route path="/profile/:id" element={<UserProfilePage />} />
                         <Route path="/clubs/:id" element={<ClubProfilePage />} />
+                        <Route path="/my-club" element={<MyClubPage />} />
                         <Route path="/store" element={<StorePage />} />
                         <Route path="/charity" element={<CharityPage />} />
                     </Routes>
@@ -183,6 +219,7 @@ function MainLayout() {
                                     { path: "/feed", icon: Home, label: "Network Feed" },
                                     { path: "/map", icon: MapIcon, label: "Intel Map" },
                                     { path: "/clubs", icon: Shield, label: "Club Database" },
+                                    { path: "/my-club", icon: Building2, title: "My Club" },
                                     { path: "/messages", icon: MessageSquare, label: "Communications" },
                                     { path: user ? `/profile/${user.id}` : "#", icon: User, label: "My Profile" }
                                 ].map((item, idx) => (

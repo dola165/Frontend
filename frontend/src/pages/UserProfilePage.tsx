@@ -4,8 +4,8 @@ import { apiClient } from '../api/axiosConfig';
 import {
     MapPin, PlaySquare, Edit, Ruler, Weight,
     Heart, MessageCircle, Share2, MoreHorizontal,
-    Briefcase, ShieldCheck, Zap, ArrowLeft, CheckCircle2, Activity,
-    Users, Medal, Send
+    ShieldCheck, Zap, ArrowLeft, CheckCircle2, Activity,
+    Medal, Send, X, Save, Loader2 // <-- Added X, Save, Loader2
 } from 'lucide-react';
 
 interface CareerHistoryDto {
@@ -40,7 +40,14 @@ export const UserProfilePage = () => {
     const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
     const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
 
-    const isMyProfile = true; // Replace with auth logic
+    // --- NEW: Edit Modal State ---
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [editForm, setEditForm] = useState({
+        fullName: '', position: '', preferredFoot: '', heightCm: '', weightKg: '', bio: ''
+    });
+
+    const isMyProfile = true; // In reality, compare `id` with your currently logged-in user's ID
 
     useEffect(() => {
         Promise.all([
@@ -89,6 +96,54 @@ export const UserProfilePage = () => {
             setPosts(current => current.map(p => p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p));
             setCommentInputs(prev => ({ ...prev, [postId]: "" }));
         } catch (err) { alert("Failed to post comment."); }
+    };
+
+    // --- NEW: Save Profile Logic ---
+    const handleSaveProfile = async () => {
+        setIsSaving(true);
+        try {
+            // Re-using the endpoint from Onboarding!
+            await apiClient.put('/users/me/profile', {
+                fullName: editForm.fullName,
+                role: profile?.role, // Must send role to satisfy the DTO
+                position: editForm.position,
+                preferredFoot: editForm.preferredFoot,
+                heightCm: parseInt(editForm.heightCm) || null,
+                weightKg: parseInt(editForm.weightKg) || null,
+                bio: editForm.bio
+            });
+
+            // Update local state to immediately show changes without refreshing
+            setProfile(prev => prev ? {
+                ...prev,
+                fullName: editForm.fullName,
+                position: editForm.position,
+                preferredFoot: editForm.preferredFoot,
+                heightCm: parseInt(editForm.heightCm) || 0,
+                weightKg: parseInt(editForm.weightKg) || 0,
+                bio: editForm.bio
+            } : null);
+
+            setIsEditModalOpen(false);
+        } catch (error) {
+            console.error("Failed to update profile", error);
+            alert("Error updating profile. Please try again.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const openEditModal = () => {
+        if (!profile) return;
+        setEditForm({
+            fullName: profile.fullName || '',
+            position: profile.position || '',
+            preferredFoot: profile.preferredFoot || 'Right',
+            heightCm: profile.heightCm?.toString() || '',
+            weightKg: profile.weightKg?.toString() || '',
+            bio: profile.bio || ''
+        });
+        setIsEditModalOpen(true);
     };
 
     if (loading || !profile) return <div className="p-10 text-center font-bold text-slate-500 uppercase tracking-widest animate-pulse h-screen bg-[#0f172a]">Accessing Dossier...</div>;
@@ -167,7 +222,10 @@ export const UserProfilePage = () => {
 
                             <div className="flex flex-wrap gap-2 mt-4 md:mt-0 w-full md:w-auto justify-center md:justify-end relative z-10">
                                 {isMyProfile ? (
-                                    <button className="bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-slate-900 text-slate-900 dark:text-white px-5 py-2.5 rounded-sm font-bold uppercase text-xs tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[2px_2px_0px_0px_#020617] border border-slate-300 dark:border-slate-700 flex items-center justify-center gap-2 active:translate-y-0.5 active:shadow-none transition-all">
+                                    <button
+                                        onClick={openEditModal} // <-- LINKED OPEN MODAL
+                                        className="bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-slate-900 text-slate-900 dark:text-white px-5 py-2.5 rounded-sm font-bold uppercase text-xs tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[2px_2px_0px_0px_#020617] border border-slate-300 dark:border-slate-700 flex items-center justify-center gap-2 active:translate-y-0.5 active:shadow-none transition-all"
+                                    >
                                         <Edit className="w-4 h-4 text-emerald-500" /> Settings
                                     </button>
                                 ) : (
@@ -224,19 +282,6 @@ export const UserProfilePage = () => {
                             </div>
                         )}
 
-                        {(profile.role === 'AGENT' || profile.role === 'CLUB_ADMIN') && (
-                            <div className="bg-white dark:bg-[#1e293b] rounded-sm p-5 border-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617]">
-                                <h2 className="text-slate-900 dark:text-white font-black uppercase tracking-widest text-xs mb-4 pb-2 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                                    <Briefcase className="w-4 h-4 text-emerald-500" /> Operations Status
-                                </h2>
-                                <div className="flex flex-col gap-3">
-                                    <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-sm border border-slate-200 dark:border-slate-700">
-                                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2"><Users className="w-4 h-4"/> Active Roster</span>
-                                        <span className="font-black text-slate-900 dark:text-white">24</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                         <div className="bg-white dark:bg-[#1e293b] rounded-sm p-5 border-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617]">
                             <h2 className="text-slate-900 dark:text-white font-black uppercase tracking-widest text-xs mb-4 pb-2 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
                                 <Medal className="w-4 h-4 text-emerald-500" /> {profile.role === 'PLAYER' ? 'Player Manifesto' : 'Philosophy'}
@@ -401,6 +446,109 @@ export const UserProfilePage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* --- EDIT PROFILE MODAL --- */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-[#1e293b] w-full max-w-2xl rounded-sm border-2 border-slate-300 dark:border-slate-800 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[8px_8px_0px_0px_#020617] flex flex-col max-h-[90vh]">
+
+                        <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
+                            <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                                <Edit className="w-5 h-5 text-emerald-500" /> Modify Database Record
+                            </h2>
+                            <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-rose-500 transition-colors p-1">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-5">
+                            <div>
+                                <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500">Full Legal Name</label>
+                                <input
+                                    type="text"
+                                    value={editForm.fullName}
+                                    onChange={e => setEditForm({...editForm, fullName: e.target.value})}
+                                    className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500 text-slate-900 dark:text-white"
+                                />
+                            </div>
+
+                            {profile.role === 'PLAYER' && (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500">Position</label>
+                                            <input
+                                                type="text"
+                                                value={editForm.position}
+                                                onChange={e => setEditForm({...editForm, position: e.target.value})}
+                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500 text-slate-900 dark:text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500">Strong Foot</label>
+                                            <select
+                                                value={editForm.preferredFoot}
+                                                onChange={e => setEditForm({...editForm, preferredFoot: e.target.value})}
+                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500 text-slate-900 dark:text-white appearance-none"
+                                            >
+                                                <option value="Right">Right</option>
+                                                <option value="Left">Left</option>
+                                                <option value="Both">Both</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500">Height (cm)</label>
+                                            <input
+                                                type="number"
+                                                value={editForm.heightCm}
+                                                onChange={e => setEditForm({...editForm, heightCm: e.target.value})}
+                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500 text-slate-900 dark:text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500">Weight (kg)</label>
+                                            <input
+                                                type="number"
+                                                value={editForm.weightKg}
+                                                onChange={e => setEditForm({...editForm, weightKg: e.target.value})}
+                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500 text-slate-900 dark:text-white"
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            <div>
+                                <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500">Manifesto / Bio</label>
+                                <textarea
+                                    value={editForm.bio}
+                                    onChange={e => setEditForm({...editForm, bio: e.target.value})}
+                                    className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500 h-24 resize-none text-slate-900 dark:text-white"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="px-5 py-2.5 rounded-sm font-bold uppercase text-[10px] tracking-widest text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveProfile}
+                                disabled={isSaving}
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-sm font-black uppercase text-[10px] tracking-widest shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none transition-all border border-transparent disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4" /> Commit Changes</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -25,6 +25,7 @@ const soccerBallSvg = encodeURIComponent(`
 </svg>
 `);
 
+
 const soccerIcon = new L.Icon({
   iconUrl: `data:image/svg+xml,${soccerBallSvg}`,
   iconSize: [32, 32],
@@ -32,6 +33,7 @@ const soccerIcon = new L.Icon({
   popupAnchor: [0, -32],
 });
 
+const isLoggedIn = !!localStorage.getItem('accessToken');
 // Fix for default marker icons in Leaflet with React
 // @ts-ignore
 delete L.Icon.Default.prototype._getIconUrl;
@@ -60,18 +62,21 @@ export const LandingPage = () => {
                                 <span className="text-[#2a4d37] dark:text-emerald-500 underline decoration-[#a34e36] decoration-4 underline-offset-8">Starts Here.</span>
                             </h1>
                             <p className="text-xl text-gray-700 dark:text-gray-400 mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-serif italic">
-                                TALANTI isn't just an app. It's the heartbeat of every kid with a ball and a dream. 
+                                TALANTI isn't just an app. It's the heartbeat of every kid with a ball and a dream.
                                 We don't just find clubs; we find your future. Because every champion was once a local hero.
                             </p>
                             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
-                                <Link to="/feed" className="px-10 py-5 bg-[#1a1a1a] hover:bg-[#2d2d2d] text-white rounded-xl manga-title text-xl shadow-etched transition-all hover:-translate-y-1 flex items-center gap-2 group border-ink">
+                                <Link
+                                    to={isLoggedIn ? "/feed" : "/login"}
+                                    className="px-10 py-5 bg-[#1a1a1a] hover:bg-[#2d2d2d] text-white rounded-xl manga-title text-xl shadow-etched transition-all hover:-translate-y-1 flex items-center gap-2 group border-ink"
+                                >
                                     Start Your Journey <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                                 </Link>
                                 <button onClick={() => alert("Watch Demo coming soon!")} className="px-10 py-5 bg-white dark:bg-gray-800 border-ink rounded-xl manga-title text-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center gap-2">
                                     <PlayCircle className="w-5 h-5 text-[#a34e36]" /> The Story
                                 </button>
                             </div>
-                            
+
                             <div className="mt-12 flex items-center justify-center lg:justify-start gap-6 text-gray-500 dark:text-gray-400">
                                 <div className="flex -space-x-3">
                                     {[1, 2, 3, 4].map(i => (
@@ -86,12 +91,12 @@ export const LandingPage = () => {
                                 <p className="text-base font-serif font-bold text-[#1a1a1a] dark:text-gray-300 italic tracking-tight">Join 2,000+ warriors chasing the glory</p>
                             </div>
                         </div>
-                        
+
                         <div className="flex-1 relative">
                             {/* Decorative Elements - Subtle ink wash */}
                             <div className="absolute -top-12 -left-12 w-64 h-64 bg-[#a34e36]/5 dark:bg-orange-600/10 rounded-full blur-3xl"></div>
                             <div className="absolute -bottom-12 -right-12 w-64 h-64 bg-[#2a4d37]/5 dark:bg-emerald-600/10 rounded-full blur-3xl"></div>
-                            
+
                             <div className="relative bg-white dark:bg-gray-800 p-2 rounded-2xl shadow-etched border-ink rotate-1 hover:rotate-0 transition-transform duration-700">
                                 <div className="bg-[#fcf8f2] dark:bg-gray-900 rounded-xl overflow-hidden border-ink">
                                     <div className="p-6 border-b border-ink flex items-center justify-between">
@@ -116,7 +121,7 @@ export const LandingPage = () => {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             {/* Floating Stats - Etched card */}
                             <div className="absolute -bottom-6 -left-6 bg-white dark:bg-gray-800 p-5 rounded-xl shadow-etched border-ink animate-bounce-slow">
                                 <div className="flex items-center gap-3">
@@ -140,7 +145,7 @@ export const LandingPage = () => {
                     <div className="text-center mb-12">
                         <h2 className="text-5xl lg:text-6xl font-serif font-bold mb-4 italic tracking-tighter uppercase underline decoration-[#2a4d37] decoration-4">The World is Your Pitch.</h2>
                         <p className="text-xl text-gray-700 dark:text-gray-400 max-w-3xl mx-auto font-serif italic">
-                            Right now, thousands of scouts are looking for talent. We've mapped out every opportunity, 
+                            Right now, thousands of scouts are looking for talent. We've mapped out every opportunity,
                             from the dusty local fields to the grand stadiums. Find where you belong.
                         </p>
                     </div>
@@ -163,10 +168,10 @@ export const LandingPage = () => {
                                 </Popup>
                             </Marker>
                         </MapContainer>
-                        
+
                         {/* Map Overlay for Inspiring Feel */}
                         <div className="absolute inset-0 bg-black/5 pointer-events-none group-hover:bg-transparent transition-colors duration-700"></div>
-                        
+
                         <div className="absolute bottom-8 left-8 right-8 flex flex-col md:flex-row items-center justify-between gap-6 pointer-events-none">
                             <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm p-6 rounded-xl shadow-etched border-ink pointer-events-auto max-w-sm">
                                 <div className="flex items-center gap-3 mb-3">
@@ -198,7 +203,7 @@ export const LandingPage = () => {
                             Success isn't given, it's earned. We give you the armor and the weapons. You bring the fire.
                         </p>
                     </div>
-                    
+
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {[
                             { title: "Live Talent Map", desc: "Visualize your destiny. Find local clubs, secret tryouts, and the warriors you'll one day call teammates.", icon: MapIcon },
@@ -237,15 +242,19 @@ export const LandingPage = () => {
                     <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
                     <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
                 </div>
-                
+
                 <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
                     <h2 className="text-5xl lg:text-7xl font-serif font-bold text-white mb-8 tracking-tighter italic uppercase underline decoration-white/20 decoration-8">DON'T LET THE DREAM STAY A DREAM.</h2>
                     <p className="text-2xl text-[#fcf8f2] font-serif italic mb-12 uppercase tracking-tighter opacity-90">
-                        The pitch is waiting. The scouts are watching. The world is ready for your story. 
+                        The pitch is waiting. The scouts are watching. The world is ready for your story.
                         Join the brotherhood of TALANTI today and write your name in history.
                     </p>
+                    // Inside LandingPage.tsx, find the "CREATE YOUR LEGACY" button section
                     <div className="flex flex-wrap items-center justify-center gap-6">
-                        <Link to="/feed" className="px-12 py-6 bg-white text-black rounded-xl manga-title text-2xl shadow-etched border-ink hover:scale-105 transition-all">
+                        <Link
+                            to="/signup"
+                            className="px-12 py-6 bg-white text-black rounded-xl font-black text-2xl hover:scale-105 transition-all shadow-[8px_8px_0px_0px_#10b981]"
+                        >
                             CREATE YOUR LEGACY
                         </Link>
                     </div>

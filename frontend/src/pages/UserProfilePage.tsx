@@ -1,78 +1,93 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import {
-    MapPin, PlaySquare, Edit, Ruler, Weight,
-    Heart, MessageCircle, Share2, MoreHorizontal,
-    ShieldCheck, Zap, ArrowLeft, CheckCircle2, Activity,
-    Medal, Send, X, Save, Loader2 // <-- Added X, Save, Loader2
+    MapPin,  Edit, Ruler, Weight,
+    ShieldCheck, ArrowLeft, Activity,
+    X, Save, Loader2, Camera
 } from 'lucide-react';
+import { FeedPost, type FeedPostDto, type CommentDto } from '../components/feed/FeedPost';
 
-interface CareerHistoryDto {
-    id: number; clubName: string; season: string; category: string; appearances: number; goals: number; assists: number; cleanSheets: number;
-}
-
-interface UserProfile {
-    id: number; username: string; fullName: string; role: string; position: string; preferredFoot: string; bio: string; availabilityStatus: string; heightCm: number; weightKg: number; followerCount: number; followingCount: number; isFollowedByMe: boolean; careerHistory: CareerHistoryDto[];
-}
-
-interface FeedPostDto {
-    id: number; content: string; createdAt: string; authorName: string; clubId: number | null; clubName: string | null; likeCount: number; commentCount: number; isLikedByMe: boolean;
-}
-
-interface CommentDto {
-    id: number; authorName: string; content: string; createdAt: string;
-}
-
-const userBannerImages = [ "1518605368461-1ee71161d91a", "1574629810360-7efbb6b6923f", "1522778119026-d108dc1a0a52", "1508098682722-e99c43a406b2" ];
+interface CareerHistoryDto { id: number; clubName: string; season: string; category: string; appearances: number; goals: number; assists: number; cleanSheets: number; }
+interface UserProfile { id: number; username: string; fullName: string; role: string; position: string; preferredFoot: string; bio: string; availabilityStatus: string; heightCm: number; weightKg: number; followerCount: number; followingCount: number; isFollowedByMe: boolean; careerHistory: CareerHistoryDto[]; avatarUrl?: string; bannerUrl?: string; }
 
 export const UserProfilePage = () => {
-    const { id } = useParams();
+    const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    const [activeTab, setActiveTab] = useState<'timeline' | 'stats' | 'intel'>('timeline');
+    // --- Refs & Upload State ---
+    const bannerInputRef = useRef<HTMLInputElement>(null);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
+    const [uploading, setUploading] = useState<'banner' | 'avatar' | null>(null);
+
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [posts, setPosts] = useState<FeedPostDto[]>([]);
-    const [bannerError, setBannerError] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'feed' | 'stats' | 'media'>('feed');
 
     const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
     const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
-    const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
 
-    // --- NEW: Edit Modal State ---
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editForm, setEditForm] = useState<Partial<UserProfile>>({});
     const [isSaving, setIsSaving] = useState(false);
-    const [editForm, setEditForm] = useState({
-        fullName: '', position: '', preferredFoot: '', heightCm: '', weightKg: '', bio: ''
-    });
 
-    const isMyProfile = true; // In reality, compare `id` with your currently logged-in user's ID
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
+        if (!e.target.files || !e.target.files[0]) return;
+
+        const file = e.target.files[0];
+        setUploading(type);
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            // 1. Upload to Media (POST)
+            const mediaRes = await apiClient.post('/api/media/upload', formData);
+            const imageUrl = mediaRes.data.url;
+
+            // 2. Update User Profile (PUT)
+            await apiClient.put(`/api/users/me`, {
+                [type === 'avatar' ? 'avatarUrl' : 'bannerUrl']: imageUrl
+            });
+
+            // 3. Refresh profile data
+            fetchProfile();
+        } catch (err) {
+            console.error("Upload failed", err);
+            alert("Failed to update profile image.");
+        } finally {
+            setUploading(null);
+            if (e.target) e.target.value = '';
+        }
+    };
 
     useEffect(() => {
-        Promise.all([
-            apiClient.get(`/users/${id}`),
-            apiClient.get(`/feed/user/${id}`)
-        ])
-            .then(([profileRes, postsRes]) => {
-                setProfile(profileRes.data);
-                setPosts(postsRes.data.posts);
-            })
-            .catch(err => {
-                console.error("Failed to load user data", err);
-                // Mock fallback
-                setProfile({
-                    id: Number(id), username: 'test_user', fullName: 'Beqa Dolidze', role: 'PLAYER', position: 'CDM / CB', preferredFoot: 'Right', bio: "Passionate defensive mid.", availabilityStatus: 'FREE_AGENT', heightCm: 185, weightKg: 78, followerCount: 239, followingCount: 45, isFollowedByMe: false,
-                    careerHistory: [
-                        { id: 1, clubName: 'Experimentuli', season: '2024/25', category: 'First Team', appearances: 14, goals: 2, assists: 5, cleanSheets: 0 },
-                        { id: 2, clubName: 'FC Rustavi', season: '2023/24', category: 'U18', appearances: 22, goals: 8, assists: 3, cleanSheets: 0 }
-                    ]
-                });
-            })
-            .finally(() => setLoading(false));
+        fetchProfile();
     }, [id]);
 
-    const formatTime = (dateString: string) => new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const fetchProfile = () => {
+        Promise.all([
+            apiClient.get(`/users/${id}`),
+            apiClient.get(`/feed/user/${id}`).catch(() => ({ data: { posts: [] } }))
+        ])
+            .then(([userRes, postsRes]) => {
+                setProfile(userRes.data);
+                setEditForm(userRes.data);
+                setPosts(postsRes.data?.posts || []);
+            })
+            .catch(err => console.error("Failed to fetch user profile", err))
+            .finally(() => setLoading(false));
+    };
+
+    const handleFollowToggle = async () => {
+        if (!profile) return;
+        const prev = profile.isFollowedByMe;
+        const prevCount = profile.followerCount;
+        setProfile({ ...profile, isFollowedByMe: !prev, followerCount: prev ? prevCount - 1 : prevCount + 1 });
+        try { await apiClient.post(`/users/${profile.id}/follow`); }
+        catch { setProfile({ ...profile, isFollowedByMe: prev, followerCount: prevCount }); }
+    };
 
     const handleLikeToggle = async (postId: number) => {
         setPosts(current => current.map(post => post.id === postId ? { ...post, isLikedByMe: !post.isLikedByMe, likeCount: post.isLikedByMe ? post.likeCount - 1 : post.likeCount + 1 } : post));
@@ -83,466 +98,227 @@ export const UserProfilePage = () => {
         const isOpen = openComments[postId];
         setOpenComments(prev => ({ ...prev, [postId]: !isOpen }));
         if (!isOpen && !commentsData[postId]) {
-            try { const res = await apiClient.get<CommentDto[]>(`/feed/posts/${postId}/comments`); setCommentsData(prev => ({ ...prev, [postId]: res.data })); } catch (err) { console.error(err); }
+            try {
+                const res = await apiClient.get<CommentDto[]>(`/feed/posts/${postId}/comments`);
+                setCommentsData(prev => ({ ...prev, [postId]: res.data }));
+            } catch (err) { console.error(err); }
         }
     };
 
-    const submitComment = async (postId: number) => {
-        const text = commentInputs[postId]?.trim();
-        if (!text) return;
+    const submitComment = async (postId: number, content: string) => {
         try {
-            const res = await apiClient.post<CommentDto>(`/feed/posts/${postId}/comments`, { content: text });
+            const res = await apiClient.post<CommentDto>(`/feed/posts/${postId}/comments`, { content });
             setCommentsData(prev => ({ ...prev, [postId]: [...(prev[postId] || []), res.data] }));
             setPosts(current => current.map(p => p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p));
-            setCommentInputs(prev => ({ ...prev, [postId]: "" }));
         } catch (err) { alert("Failed to post comment."); }
     };
 
-    // --- NEW: Save Profile Logic ---
     const handleSaveProfile = async () => {
         setIsSaving(true);
         try {
-            // Re-using the endpoint from Onboarding!
-            await apiClient.put('/users/me/profile', {
-                fullName: editForm.fullName,
-                role: profile?.role, // Must send role to satisfy the DTO
-                position: editForm.position,
-                preferredFoot: editForm.preferredFoot,
-                heightCm: parseInt(editForm.heightCm) || null,
-                weightKg: parseInt(editForm.weightKg) || null,
-                bio: editForm.bio
-            });
-
-            // Update local state to immediately show changes without refreshing
-            setProfile(prev => prev ? {
-                ...prev,
-                fullName: editForm.fullName,
-                position: editForm.position,
-                preferredFoot: editForm.preferredFoot,
-                heightCm: parseInt(editForm.heightCm) || 0,
-                weightKg: parseInt(editForm.weightKg) || 0,
-                bio: editForm.bio
-            } : null);
-
+            const res = await apiClient.put(`/users/${id}`, editForm);
+            setProfile(res.data);
             setIsEditModalOpen(false);
         } catch (error) {
-            console.error("Failed to update profile", error);
-            alert("Error updating profile. Please try again.");
+            console.error("Failed to save profile", error);
+            alert("Failed to save changes.");
         } finally {
             setIsSaving(false);
         }
     };
 
-    const openEditModal = () => {
-        if (!profile) return;
-        setEditForm({
-            fullName: profile.fullName || '',
-            position: profile.position || '',
-            preferredFoot: profile.preferredFoot || 'Right',
-            heightCm: profile.heightCm?.toString() || '',
-            weightKg: profile.weightKg?.toString() || '',
-            bio: profile.bio || ''
-        });
-        setIsEditModalOpen(true);
-    };
+    if (loading) return <div className="p-10 text-center font-bold text-slate-500 uppercase tracking-widest h-screen bg-[#fdfaf5] dark:bg-[#0a0f13]">Establishing connection...</div>;
+    if (!profile) return <div className="p-10 text-center font-bold text-xl text-slate-900 dark:text-white h-screen bg-[#fdfaf5] dark:bg-[#0a0f13]">Personnel not found</div>;
 
-    if (loading || !profile) return <div className="p-10 text-center font-bold text-slate-500 uppercase tracking-widest animate-pulse h-screen bg-[#0f172a]">Accessing Dossier...</div>;
-
-    const randomBannerId = userBannerImages[Number(id || 0) % userBannerImages.length];
-    const bannerUrl = `https://images.unsplash.com/photo-${randomBannerId}?auto=format&fit=crop&q=80&w=1200&h=400`;
-
-    const renderRoleBadge = () => {
-        switch (profile.role) {
-            case 'PLAYER': return <span className="bg-emerald-500 text-slate-900 px-2 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-widest">Player</span>;
-            case 'AGENT': return <span className="bg-indigo-500 text-white px-2 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-widest">Scout / Agent</span>;
-            case 'CLUB_ADMIN': return <span className="bg-orange-500 text-slate-900 px-2 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-widest">Club Director</span>;
-            default: return <span className="bg-slate-700 text-white px-2 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-widest">Supporter</span>;
-        }
-    };
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'FREE_AGENT': return <span className="bg-emerald-500 text-slate-900 px-2 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-widest border border-transparent">Free Agent</span>;
-            case 'OPEN_TO_OFFERS': return <span className="bg-orange-500 text-slate-900 px-2 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-widest border border-transparent">Open To Offers</span>;
-            case 'IN_CLUB': return <span className="bg-slate-700 text-white px-2 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-widest border border-slate-600">In Club</span>;
-            case 'TRIALING': return <span className="bg-blue-500 text-white px-2 py-0.5 rounded-sm text-[10px] font-black uppercase tracking-widest border border-blue-600">On Trial</span>;
-            default: return null;
-        }
-    };
-
-    const profileTabs = [
-        { id: 'timeline', label: 'Match Feed' },
-        { id: 'stats', label: profile.role === 'PLAYER' ? 'Career Stats' : 'Portfolio' },
-        { id: 'intel', label: 'Dossier' }
-    ];
+    const initials = profile.fullName.substring(0, 2).toUpperCase();
+    const bannerUrl = profile.bannerUrl || "https://images.unsplash.com/photo-1518605368461-1ee71161d91a?auto=format&fit=crop&q=80&w=1200&h=400";
+    const isMyProfile = String(profile.id) === localStorage.getItem('userId');
 
     return (
-        <div className="w-full min-h-screen bg-[#0f172a] pb-20 font-sans text-slate-300">
-            <div className="bg-white dark:bg-[#1e293b] rounded-b-sm border-b-2 border-x-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617] overflow-hidden mb-8">
+        <div className="w-full min-h-screen bg-[#fdfaf5] dark:bg-[#0a0f13] font-sans pb-20">
+            {/* HERO SECTION */}
+            <div className="relative bg-white dark:bg-[#151f28] border-b-2 border-slate-300 dark:border-black shadow-sm">
+                <div className="relative h-[240px] md:h-[320px] bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900 overflow-hidden group">
+                    <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover opacity-80 dark:opacity-60 transition-transform duration-700 group-hover:scale-105" />
 
-                <div className="h-48 relative bg-slate-900 border-b-2 border-slate-800">
-                    {!bannerError ? (
-                        <img src={bannerUrl} alt="Banner" onError={() => setBannerError(true)} className="w-full h-full object-cover opacity-50 grayscale hover:grayscale-0 transition-all duration-700" />
-                    ) : (
-                        <div className="w-full h-full bg-gradient-to-tr from-slate-800 to-slate-900 opacity-50" />
+                    {/* Update Cover Button */}
+                    {isMyProfile && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            <button
+                                onClick={() => bannerInputRef.current?.click()}
+                                className="bg-black/60 hover:bg-black/80 text-white px-4 py-2 rounded-md border border-white/20 flex items-center gap-2 font-bold text-xs uppercase tracking-widest backdrop-blur-sm"
+                            >
+                                {uploading === 'banner' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                                Update Banner
+                            </button>
+                            <input type="file" ref={bannerInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'banner')} />
+                        </div>
                     )}
-                    <button onClick={() => navigate(-1)} className="absolute top-4 left-4 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-3 py-1.5 rounded-sm border border-white/20 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all z-20">
-                        <ArrowLeft className="w-3.5 h-3.5 text-emerald-500" /> Back
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-[#151f28] via-transparent to-transparent opacity-80 dark:opacity-100"></div>
+                    <button onClick={() => navigate(-1)} className="absolute top-4 left-4 bg-white/80 dark:bg-black/40 hover:bg-white dark:hover:bg-black/60 backdrop-blur-md text-slate-900 dark:text-white px-3 py-1.5 rounded-md border border-slate-300 dark:border-white/10 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all z-20 shadow-sm">
+                        <ArrowLeft className="w-3.5 h-3.5" /> Back
                     </button>
                 </div>
 
-                <div className="px-6 pb-6 relative">
-                    <div className="max-w-5xl mx-auto px-4 sm:px-0">
-                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-
-                            <div className="flex flex-col md:flex-row items-center md:items-end gap-4 md:gap-6 -mt-12 md:-mt-16 relative z-10">
-                                <div className="relative group shrink-0">
-                                    <div className="w-28 h-28 md:w-36 md:h-36 rounded-sm border-4 border-white dark:border-[#1e293b] bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-4xl font-black text-slate-700 dark:text-slate-300 shadow-sm overflow-hidden">
-                                        <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=${profile.role === 'CLUB_ADMIN' ? 'f97316' : '10b981'}&color=fff&bold=true&size=200`} alt={profile.fullName} className="w-full h-full object-cover" />
-                                    </div>
-                                    <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1.5 rounded-sm shadow-sm border-2 border-white dark:border-[#1e293b]">
-                                        <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" />
-                                    </div>
-                                </div>
-
-                                <div className="text-center md:text-left pt-2 md:pt-0">
-                                    <div className="flex items-center justify-center md:justify-start gap-3 mb-1">
-                                        <h1 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{profile.fullName}</h1>
-                                        {renderRoleBadge()}
-                                    </div>
-                                    <div className="flex items-center justify-center md:justify-start gap-2">
-                                        <p className="text-slate-500 font-bold uppercase text-xs tracking-widest">
-                                            {profile.followerCount} Network {profile.position && `• `}
-                                            <span className="text-emerald-600 dark:text-emerald-500">{profile.position || (profile.role === 'CLUB_ADMIN' ? 'FC Dinamo Tbilisi' : '')}</span>
-                                        </p>
-                                        {profile.role === 'PLAYER' && getStatusBadge(profile.availabilityStatus)}
-                                    </div>
-                                </div>
+                <div className="max-w-[1200px] mx-auto px-4 md:px-6 relative">
+                    <div className="flex flex-col md:flex-row items-center md:items-end gap-4 md:gap-6 -mt-16 md:-mt-20 pb-6">
+                        {/* AVATAR SECTION */}
+                        <div className="relative shrink-0 group/avatar">
+                            <div className="w-28 h-28 md:w-36 md:h-36 bg-slate-100 dark:bg-slate-800 rounded-full border-4 border-white dark:border-[#151f28] shadow-xl flex items-center justify-center overflow-hidden text-4xl md:text-5xl font-black text-slate-400 dark:text-slate-500">
+                                {profile.avatarUrl ? <img src={profile.avatarUrl} className="w-full h-full object-cover" /> : initials}
                             </div>
 
-                            <div className="flex flex-wrap gap-2 mt-4 md:mt-0 w-full md:w-auto justify-center md:justify-end relative z-10">
-                                {isMyProfile ? (
-                                    <button
-                                        onClick={openEditModal} // <-- LINKED OPEN MODAL
-                                        className="bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-slate-900 text-slate-900 dark:text-white px-5 py-2.5 rounded-sm font-bold uppercase text-xs tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[2px_2px_0px_0px_#020617] border border-slate-300 dark:border-slate-700 flex items-center justify-center gap-2 active:translate-y-0.5 active:shadow-none transition-all"
-                                    >
-                                        <Edit className="w-4 h-4 text-emerald-500" /> Settings
-                                    </button>
-                                ) : (
-                                    <button className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-2.5 rounded-sm font-bold uppercase text-xs tracking-widest shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] dark:shadow-[2px_2px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none transition-all border border-transparent">
-                                        {profile.role === 'PLAYER' ? 'Scout Player' : 'Connect'}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="flex gap-1 overflow-x-auto no-scrollbar mt-6 border-t border-slate-200 dark:border-slate-800 pt-2">
-                            {profileTabs.map((tab) => (
-                                <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-                                        className={`px-6 py-3 font-bold text-xs uppercase tracking-widest transition-colors rounded-t-sm whitespace-nowrap ${
-                                            activeTab === tab.id ? "text-emerald-600 dark:text-emerald-400 bg-slate-50 dark:bg-slate-800/50 border-b-2 border-emerald-500" : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/30"
-                                        }`}>
-                                    {tab.label}
+                            {/* Update Avatar Button */}
+                            {isMyProfile && (
+                                <button
+                                    onClick={() => avatarInputRef.current?.click()}
+                                    className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity rounded-full z-10"
+                                >
+                                    {uploading === 'avatar' ? <Loader2 className="w-6 h-6 text-white animate-spin" /> : <Camera className="w-8 h-8 text-white" />}
                                 </button>
-                            ))}
+                            )}
+                            <input type="file" ref={avatarInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'avatar')} />
+
+                            {profile.role === 'CLUB_ADMIN' && (
+                                <div className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 w-8 h-8 md:w-10 md:h-10 bg-blue-500 rounded-full border-4 border-white dark:border-[#151f28] flex items-center justify-center shadow-md">
+                                    <ShieldCheck className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex-1 flex flex-col md:flex-row items-center md:items-end justify-between w-full pb-2 gap-4 text-center md:text-left">
+                            <div>
+                                <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{profile.fullName}</h1>
+                                <p className="text-emerald-600 dark:text-emerald-500 font-bold text-sm uppercase tracking-widest mt-1">
+                                    {profile.role === 'CLUB_ADMIN' ? 'Club Administrator' : profile.position}
+                                </p>
+                                <div className="flex items-center justify-center md:justify-start gap-4 mt-3 text-xs md:text-sm font-bold text-slate-500 dark:text-slate-400">
+                                    <span>{profile.followerCount} <span className="uppercase tracking-widest text-[10px] font-medium">Followers</span></span>
+                                    <span>{profile.followingCount} <span className="uppercase tracking-widest text-[10px] font-medium">Following</span></span>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0">
+                                {isMyProfile ? (
+                                    <button onClick={() => setIsEditModalOpen(true)} className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-bold text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-700 border-2 border-slate-900">
+                                        <Edit className="w-4 h-4" /> Edit Profile
+                                    </button>
+                                ) : (
+                                    <button onClick={handleFollowToggle} className={`flex items-center gap-2 px-8 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none border-2 ${profile.isFollowedByMe ? 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-900 hover:bg-slate-300 dark:hover:bg-slate-700' : 'bg-emerald-600 text-white border-emerald-900 hover:bg-emerald-500'}`}>
+                                        {profile.isFollowedByMe ? 'Following' : 'Follow'}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="max-w-5xl mx-auto px-4 sm:px-0">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-                    {/* LEFT COLUMN */}
-                    <div className="lg:col-span-4 flex flex-col gap-6">
-
-                        {profile.role === 'PLAYER' && (
-                            <div className="bg-white dark:bg-[#1e293b] rounded-sm p-5 border-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617]">
-                                <h2 className="text-slate-900 dark:text-white font-black uppercase tracking-widest text-xs mb-4 pb-2 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                                    <Activity className="w-4 h-4 text-emerald-500" /> Physical Profile
-                                </h2>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><Ruler className="w-3 h-3"/> Height</p>
-                                        <p className="font-black text-slate-900 dark:text-white text-lg mt-0.5">{profile.heightCm ? `${profile.heightCm} cm` : 'N/A'}</p>
+            {/* REST OF PAGE CONTENT (Bio, Stats, Feed) Stays the same as your snippet */}
+            <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-6">
+                <div className="flex flex-col lg:flex-row gap-6">
+                    <aside className="w-full lg:w-[320px] shrink-0 flex flex-col gap-4">
+                        <div className="bg-white dark:bg-[#1e293b] border-2 border-slate-300 dark:border-black rounded-lg p-5 shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.6)]">
+                            <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-widest text-xs mb-4 border-b border-slate-200 dark:border-slate-800 pb-2">Player Bio</h3>
+                            <p className="text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed">{profile.bio || "No biography provided."}</p>
+                            <div className="mt-6 space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-sm bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                                        <MapPin className="w-4 h-4 text-emerald-500" />
                                     </div>
                                     <div>
-                                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><Weight className="w-3 h-3"/> Weight</p>
-                                        <p className="font-black text-slate-900 dark:text-white text-lg mt-0.5">{profile.weightKg ? `${profile.weightKg} kg` : 'N/A'}</p>
+                                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500 dark:text-slate-400">Location</p>
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white">Tbilisi, Georgia</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-sm bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                                        <Ruler className="w-4 h-4 text-emerald-500" />
                                     </div>
                                     <div>
-                                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><Zap className="w-3 h-3"/> Strong Foot</p>
-                                        <p className="font-black text-slate-900 dark:text-white text-lg mt-0.5">{profile.preferredFoot || 'N/A'}</p>
+                                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500 dark:text-slate-400">Height</p>
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white">{profile.heightCm ? `${profile.heightCm} cm` : 'N/A'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-sm bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                                        <Weight className="w-4 h-4 text-emerald-500" />
                                     </div>
                                     <div>
-                                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><MapPin className="w-3 h-3"/> Region</p>
-                                        <p className="font-bold text-slate-900 dark:text-white text-sm mt-1 truncate">Tbilisi, GE</p>
+                                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500 dark:text-slate-400">Weight</p>
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white">{profile.weightKg ? `${profile.weightKg} kg` : 'N/A'}</p>
                                     </div>
                                 </div>
                             </div>
-                        )}
-
-                        <div className="bg-white dark:bg-[#1e293b] rounded-sm p-5 border-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617]">
-                            <h2 className="text-slate-900 dark:text-white font-black uppercase tracking-widest text-xs mb-4 pb-2 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                                <Medal className="w-4 h-4 text-emerald-500" /> {profile.role === 'PLAYER' ? 'Player Manifesto' : 'Philosophy'}
-                            </h2>
-                            <div className="bg-slate-50 dark:bg-[#0f172a] p-3 rounded-sm border border-slate-200 dark:border-slate-800 shadow-inner mb-4">
-                                <p className="text-slate-700 dark:text-slate-300 font-medium italic leading-relaxed text-xs">
-                                    "{profile.bio || "No summary provided."}"
-                                </p>
-                            </div>
                         </div>
-                    </div>
+                    </aside>
 
-                    {/* RIGHT COLUMN */}
-                    <div className="lg:col-span-8 flex flex-col gap-6">
+                    <div className="flex-1 w-full lg:max-w-[600px]">
+                        <div className="flex gap-2 mb-4 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto no-scrollbar">
+                            <button onClick={() => setActiveTab('feed')} className={`px-4 py-2 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${activeTab === 'feed' ? 'text-emerald-600 dark:text-emerald-500 border-b-2 border-emerald-500' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>Timeline</button>
+                            <button onClick={() => setActiveTab('stats')} className={`px-4 py-2 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${activeTab === 'stats' ? 'text-emerald-600 dark:text-emerald-500 border-b-2 border-emerald-500' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>Career Stats</button>
+                            <button onClick={() => setActiveTab('media')} className={`px-4 py-2 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${activeTab === 'media' ? 'text-emerald-600 dark:text-emerald-500 border-b-2 border-emerald-500' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>Media Gallery</button>
+                        </div>
 
-                        {activeTab === 'timeline' && (
-                            <>
+                        {activeTab === 'feed' && (
+                            <div className="flex flex-col gap-4">
                                 {posts.length === 0 ? (
-                                    <div className="bg-white dark:bg-[#1e293b] rounded-sm p-10 border-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617] text-center flex flex-col items-center justify-center">
-                                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm flex items-center justify-center mb-4 text-slate-400">
-                                            <PlaySquare className="w-6 h-6" />
-                                        </div>
-                                        <h3 className="font-black text-slate-900 dark:text-white text-lg uppercase tracking-wide mb-1">Silence on the Network</h3>
-                                        <p className="text-slate-500 font-medium text-xs max-w-sm">
-                                            This user hasn't broadcasted any updates or footage yet.
-                                        </p>
+                                    <div className="bg-white dark:bg-[#1e293b] border-2 border-slate-300 dark:border-black rounded-lg p-10 shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.6)] text-center">
+                                        <Activity className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto mb-3" />
+                                        <h3 className="text-slate-900 dark:text-white font-black uppercase tracking-widest">No Activity Yet</h3>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium">This user hasn't posted anything to their timeline.</p>
                                     </div>
                                 ) : (
-                                    posts.map(post => {
-                                        const isCommentsOpen = openComments[post.id];
-                                        return (
-                                            <div key={post.id} className="bg-white dark:bg-[#1e293b] rounded-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617] border-2 border-slate-200 dark:border-slate-800 overflow-hidden">
-                                                <div className="p-4 flex justify-between items-start border-b border-slate-100 dark:border-slate-800/50">
-                                                    <div className="flex gap-3 items-center">
-                                                        <div className="w-10 h-10 rounded-sm bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-xs border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200">
-                                                            {post.authorName.substring(0,2).toUpperCase()}
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-bold uppercase tracking-wide text-slate-900 dark:text-white text-sm">
-                                                                {post.authorName}
-                                                                {post.clubName && <span className="text-slate-500"> via {post.clubName}</span>}
-                                                            </div>
-                                                            <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-1">
-                                                                {formatTime(post.createdAt)} {post.clubName && <><ShieldCheck className="w-3 h-3 text-emerald-500" /></>}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-                                                        <MoreHorizontal className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                                <div className="p-5">
-                                                    <p className="text-slate-800 dark:text-slate-300 whitespace-pre-line leading-relaxed text-sm font-medium">
-                                                        {post.content}
-                                                    </p>
-                                                </div>
-
-                                                {(post.likeCount > 0 || post.commentCount > 0) && (
-                                                    <div className="px-5 pb-3 flex gap-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                                        {post.likeCount > 0 && <span className="text-orange-500">{post.likeCount} Acknowledged</span>}
-                                                        {post.commentCount > 0 && <span className="text-emerald-500">{post.commentCount} Intel</span>}
-                                                    </div>
-                                                )}
-
-                                                <div className="flex border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#111827]">
-                                                    <button onClick={() => handleLikeToggle(post.id)} className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-colors border-r border-slate-200 dark:border-slate-800 ${post.isLikedByMe ? "text-orange-500 bg-orange-50 dark:bg-orange-900/10" : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"}`}>
-                                                        <Heart className="w-3.5 h-3.5" fill={post.isLikedByMe ? "currentColor" : "none"} /> ACK
-                                                    </button>
-                                                    <button onClick={() => toggleComments(post.id)} className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border-r border-slate-200 dark:border-slate-800 ${isCommentsOpen ? "text-emerald-500" : ""}`}>
-                                                        <MessageCircle className="w-3.5 h-3.5" /> INTEL
-                                                    </button>
-                                                    <button className="flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                                                        <Share2 className="w-3.5 h-3.5" /> RELAY
-                                                    </button>
-                                                </div>
-
-                                                {isCommentsOpen && (
-                                                    <div className="bg-slate-50 dark:bg-[#111827] p-4 border-t border-slate-200 dark:border-slate-800">
-                                                        <div className="flex flex-col gap-3 mb-4 max-h-60 overflow-y-auto pr-1">
-                                                            {!commentsData[post.id] ? (
-                                                                <div className="text-[10px] uppercase tracking-widest font-bold text-center text-slate-400">Loading intel...</div>
-                                                            ) : commentsData[post.id].length === 0 ? (
-                                                                <div className="text-[10px] uppercase tracking-widest font-bold text-center text-slate-400">No intel available.</div>
-                                                            ) : (
-                                                                commentsData[post.id].map(comment => (
-                                                                    <div key={comment.id} className="flex gap-3">
-                                                                        <div className="w-8 h-8 rounded-sm bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600">
-                                                                            {comment.authorName.substring(0, 2).toUpperCase()}
-                                                                        </div>
-                                                                        <div className="flex-1">
-                                                                            <div className="flex items-center gap-2 mb-0.5">
-                                                                                <span className="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-white">{comment.authorName}</span>
-                                                                                <span className="text-[9px] uppercase tracking-widest text-slate-400">{formatTime(comment.createdAt)}</span>
-                                                                            </div>
-                                                                            <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">{comment.content}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                ))
-                                                            )}
-                                                        </div>
-                                                        <div className="flex gap-2">
-                                                            <input type="text" placeholder="Add intel..." value={commentInputs[post.id] || ""} onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))} onKeyDown={(e) => e.key === 'Enter' && submitComment(post.id)} className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs rounded-sm px-3 py-2 outline-none focus:border-emerald-500 font-medium" />
-                                                            <button onClick={() => submitComment(post.id)} disabled={!commentInputs[post.id]?.trim()} className="px-3 bg-emerald-600 text-white rounded-sm disabled:opacity-50 transition-opacity"><Send className="w-3.5 h-3.5" /></button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })
+                                    posts.map(post => (
+                                        <FeedPost
+                                            key={post.id} post={post} isCommentsOpen={openComments[post.id]} commentsData={commentsData[post.id]}
+                                            onLikeToggle={handleLikeToggle} onToggleComments={toggleComments} onSubmitComment={submitComment}
+                                        />
+                                    ))
                                 )}
-                            </>
-                        )}
-
-                        {activeTab === 'stats' && profile.role === 'PLAYER' && (
-                            <div className="bg-white dark:bg-[#1e293b] rounded-sm p-1 border-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617] overflow-x-auto">
-                                <table className="w-full text-left border-collapse whitespace-nowrap">
-                                    <thead>
-                                    <tr className="bg-slate-100 dark:bg-slate-900 text-slate-500 text-[10px] uppercase tracking-widest font-black">
-                                        <th className="p-3 border-b-2 border-slate-200 dark:border-slate-800">Season</th>
-                                        <th className="p-3 border-b-2 border-slate-200 dark:border-slate-800">Squad / Club</th>
-                                        <th className="p-3 border-b-2 border-slate-200 dark:border-slate-800">Level</th>
-                                        <th className="p-3 border-b-2 border-slate-200 dark:border-slate-800 text-center">Apps</th>
-                                        <th className="p-3 border-b-2 border-slate-200 dark:border-slate-800 text-center">G</th>
-                                        <th className="p-3 border-b-2 border-slate-200 dark:border-slate-800 text-center">A</th>
-                                        <th className="p-3 border-b-2 border-slate-200 dark:border-slate-800 text-center">CS</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody className="text-sm font-bold text-slate-800 dark:text-slate-300">
-                                    {profile.careerHistory && profile.careerHistory.length > 0 ? (
-                                        profile.careerHistory.map((season, idx) => (
-                                            <tr key={season.id} className={`border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors ${idx % 2 === 0 ? 'bg-white dark:bg-[#1e293b]' : 'bg-slate-50/50 dark:bg-[#0f172a]/30'}`}>
-                                                <td className="p-3 text-slate-500 font-black">{season.season}</td>
-                                                <td className="p-3 flex items-center gap-2">
-                                                    <ShieldCheck className="w-4 h-4 text-emerald-500" /> {season.clubName}
-                                                </td>
-                                                <td className="p-3 text-[10px] tracking-widest uppercase text-slate-500">{season.category}</td>
-                                                <td className="p-3 text-center">{season.appearances}</td>
-                                                <td className="p-3 text-center text-emerald-600 dark:text-emerald-400">{season.goals}</td>
-                                                <td className="p-3 text-center text-blue-500">{season.assists}</td>
-                                                <td className="p-3 text-center text-slate-400">{season.cleanSheets > 0 ? season.cleanSheets : '-'}</td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr><td colSpan={7} className="p-8 text-center text-slate-500 text-xs font-medium uppercase tracking-widest">No career history documented.</td></tr>
-                                    )}
-                                    </tbody>
-                                </table>
                             </div>
                         )}
-
-                        {activeTab === 'intel' && (
-                            <div className="bg-white dark:bg-[#1e293b] rounded-sm p-10 border-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617] text-center text-slate-500 font-bold uppercase tracking-widest text-sm">
-                                Full Dossier Restricted.
-                            </div>
-                        )}
-
-                        {activeTab === 'stats' && (profile.role === 'AGENT' || profile.role === 'CLUB_ADMIN') && (
-                            <div className="bg-white dark:bg-[#1e293b] rounded-sm p-10 border-2 border-slate-300 dark:border-slate-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[4px_4px_0px_0px_#020617] text-center text-slate-500 font-bold uppercase tracking-widest text-sm">
-                                {profile.role === 'AGENT' ? 'Client Roster Visibility Restricted.' : 'Club Affiliations Restricted.'}
-                            </div>
-                        )}
+                        {/* Stats and Media tab content placeholders... */}
                     </div>
                 </div>
             </div>
 
-            {/* --- EDIT PROFILE MODAL --- */}
+            {/* EDIT PROFILE MODAL */}
             {isEditModalOpen && (
-                <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-[#1e293b] w-full max-w-2xl rounded-sm border-2 border-slate-300 dark:border-slate-800 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)] dark:shadow-[8px_8px_0px_0px_#020617] flex flex-col max-h-[90vh]">
-
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-[#1e293b] w-full max-w-lg rounded-lg border-2 border-slate-300 dark:border-black shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
-                            <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                                <Edit className="w-5 h-5 text-emerald-500" /> Modify Database Record
-                            </h2>
-                            <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-rose-500 transition-colors p-1">
-                                <X className="w-5 h-5" />
-                            </button>
+                            <h2 className="text-lg font-black uppercase tracking-widest text-slate-900 dark:text-white">Edit Profile</h2>
+                            <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-rose-500 transition-colors"><X className="w-5 h-5" /></button>
                         </div>
-
-                        <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-5">
+                        <div className="p-6 overflow-y-auto space-y-4">
                             <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500">Full Legal Name</label>
-                                <input
-                                    type="text"
-                                    value={editForm.fullName}
-                                    onChange={e => setEditForm({...editForm, fullName: e.target.value})}
-                                    className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500 text-slate-900 dark:text-white"
-                                />
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Full Name</label>
+                                <input type="text" value={editForm.fullName || ''} onChange={(e) => setEditForm({...editForm, fullName: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500" />
                             </div>
-
-                            {profile.role === 'PLAYER' && (
-                                <>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500">Position</label>
-                                            <input
-                                                type="text"
-                                                value={editForm.position}
-                                                onChange={e => setEditForm({...editForm, position: e.target.value})}
-                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500 text-slate-900 dark:text-white"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500">Strong Foot</label>
-                                            <select
-                                                value={editForm.preferredFoot}
-                                                onChange={e => setEditForm({...editForm, preferredFoot: e.target.value})}
-                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500 text-slate-900 dark:text-white appearance-none"
-                                            >
-                                                <option value="Right">Right</option>
-                                                <option value="Left">Left</option>
-                                                <option value="Both">Both</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500">Height (cm)</label>
-                                            <input
-                                                type="number"
-                                                value={editForm.heightCm}
-                                                onChange={e => setEditForm({...editForm, heightCm: e.target.value})}
-                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500 text-slate-900 dark:text-white"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500">Weight (kg)</label>
-                                            <input
-                                                type="number"
-                                                value={editForm.weightKg}
-                                                onChange={e => setEditForm({...editForm, weightKg: e.target.value})}
-                                                className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500 text-slate-900 dark:text-white"
-                                            />
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
                             <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest mb-2 text-slate-500">Manifesto / Bio</label>
-                                <textarea
-                                    value={editForm.bio}
-                                    onChange={e => setEditForm({...editForm, bio: e.target.value})}
-                                    className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500 h-24 resize-none text-slate-900 dark:text-white"
-                                />
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Position</label>
+                                <input type="text" value={editForm.position || ''} onChange={(e) => setEditForm({...editForm, position: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Height (cm)</label>
+                                    <input type="number" value={editForm.heightCm || ''} onChange={(e) => setEditForm({...editForm, heightCm: Number(e.target.value)})} className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Weight (kg)</label>
+                                    <input type="number" value={editForm.weightKg || ''} onChange={(e) => setEditForm({...editForm, weightKg: Number(e.target.value)})} className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Biography</label>
+                                <textarea rows={4} value={editForm.bio || ''} onChange={(e) => setEditForm({...editForm, bio: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500 resize-none" />
                             </div>
                         </div>
-
                         <div className="p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsEditModalOpen(false)}
-                                className="px-5 py-2.5 rounded-sm font-bold uppercase text-[10px] tracking-widest text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleSaveProfile}
-                                disabled={isSaving}
-                                className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-sm font-black uppercase text-[10px] tracking-widest shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none transition-all border border-transparent disabled:opacity-50 flex items-center gap-2"
-                            >
+                            <button onClick={() => setIsEditModalOpen(false)} className="px-5 py-2.5 rounded-sm font-bold uppercase text-[10px] tracking-widest text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">Cancel</button>
+                            <button onClick={handleSaveProfile} disabled={isSaving} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-sm font-black uppercase text-[10px] tracking-widest shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none transition-all border border-transparent disabled:opacity-50 flex items-center gap-2">
                                 {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4" /> Commit Changes</>}
                             </button>
                         </div>

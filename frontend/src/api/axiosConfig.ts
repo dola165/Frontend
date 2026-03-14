@@ -2,8 +2,8 @@ import axios from 'axios';
 
 // Create the base client
 export const apiClient = axios.create({
-    baseURL: 'http://localhost:8080', // Replace with your actual backend URL
-    withCredentials: true, // Important if your refresh token is in an HttpOnly cookie
+    baseURL: 'http://localhost:8080/api', // <-- THE FIX: Added /api here
+    withCredentials: true,
 });
 
 // 1. Request Interceptor: Attach the current token to every request

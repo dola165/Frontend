@@ -2,7 +2,20 @@ import { useState } from 'react';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Send } from 'lucide-react';
 
 export interface CommentDto { id: number; authorName: string; content: string; createdAt: string; }
-export interface FeedPostDto { id: number; content: string; createdAt: string; authorName: string; clubId?: number | null; clubName?: string | null; likeCount: number; commentCount: number; isLikedByMe: boolean; image?: string; }
+
+export interface FeedPostDto {
+    id: number;
+    content: string;
+    createdAt: string;
+    authorName: string;
+    clubId?: number | null;
+    clubName?: string | null;
+    likeCount: number;
+    commentCount: number;
+    isLikedByMe: boolean;
+    image?: string;
+    mediaUrls?: string[];
+}
 
 interface FeedPostProps {
     post: FeedPostDto;
@@ -11,13 +24,20 @@ interface FeedPostProps {
     onLikeToggle: (postId: number) => void;
     onToggleComments: (postId: number) => void;
     onSubmitComment: (postId: number, content: string) => void;
+    onImageClick: () => void; // <-- NEW PROP
 }
 
-export const FeedPost = ({ post, isCommentsOpen, commentsData, onLikeToggle, onToggleComments, onSubmitComment }: FeedPostProps) => {
+export const FeedPost = ({ post, isCommentsOpen, commentsData, onLikeToggle, onToggleComments, onSubmitComment, onImageClick }: FeedPostProps) => {
     const [commentInput, setCommentInput] = useState("");
 
     const formatTime = (dateString: string) => {
         return new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
+
+    const formatMediaUrl = (url?: string) => {
+        if (!url) return undefined;
+        if (url.startsWith('http')) return url;
+        return `http://localhost:8080${url}`;
     };
 
     const initials = (post.clubName || post.authorName).substring(0, 2).toUpperCase();
@@ -26,6 +46,75 @@ export const FeedPost = ({ post, isCommentsOpen, commentsData, onLikeToggle, onT
         if (!commentInput.trim()) return;
         onSubmitComment(post.id, commentInput);
         setCommentInput("");
+    };
+
+    // Consolidate media into a single array
+    const mediaList = post.mediaUrls && post.mediaUrls.length > 0 ? post.mediaUrls : post.image ? [post.image] : [];
+
+// --- FACEBOOK STYLE GRID GENERATOR ---
+    const renderMediaGrid = () => {
+        if (mediaList.length === 0) return null;
+
+        const count = mediaList.length;
+
+        const MediaItem = ({ url, className }: { url: string, className: string }) => {
+            const finalUrl = formatMediaUrl(url);
+            const isVideo = finalUrl?.match(/\.(mp4|mov|webm)$/i);
+            return isVideo ? (
+                <video src={finalUrl} className={`object-cover ${className}`} />
+            ) : (
+                <img src={finalUrl} alt="Post media" className={`object-cover ${className}`} />
+            );
+        };
+
+        return (
+            <div className="border-y border-slate-200 dark:border-slate-800 cursor-pointer overflow-hidden" onClick={onImageClick}>
+                {count === 1 && (
+                    <div className="relative w-full max-h-[75vh] bg-[#0a0f13] flex items-center justify-center overflow-hidden">
+                        {/* The high-saturation, high-opacity blur for seamless blending */}
+                        <div
+                            className="absolute inset-0 bg-cover bg-center opacity-80 blur-3xl scale-125 saturate-150 transition-all duration-500"
+                            style={{ backgroundImage: `url(${formatMediaUrl(mediaList[0])})` }}
+                        />
+                        {/* w-full ensures horizontal images span edge to edge.
+                            max-h-[75vh] prevents vertical panoramas from breaking the layout.
+                        */}
+                        <MediaItem
+                            url={mediaList[0]}
+                            className="relative z-10 w-full max-h-[75vh] object-contain drop-shadow-2xl"
+                        />
+                    </div>
+                )}
+                {count === 2 && (
+                    <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#1e293b]">
+                        <MediaItem url={mediaList[0]} className="w-full h-72" />
+                        <MediaItem url={mediaList[1]} className="w-full h-72" />
+                    </div>
+                )}
+                {count === 3 && (
+                    <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#1e293b]">
+                        <MediaItem url={mediaList[0]} className="w-full h-80 col-span-2" />
+                        <MediaItem url={mediaList[1]} className="w-full h-40" />
+                        <MediaItem url={mediaList[2]} className="w-full h-40" />
+                    </div>
+                )}
+                {count >= 4 && (
+                    <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#1e293b]">
+                        <MediaItem url={mediaList[0]} className="w-full h-48" />
+                        <MediaItem url={mediaList[1]} className="w-full h-48" />
+                        <MediaItem url={mediaList[2]} className="w-full h-48" />
+                        <div className="relative w-full h-48">
+                            <MediaItem url={mediaList[3]} className="w-full h-full" />
+                            {count > 4 && (
+                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-black text-3xl">
+                                    +{count - 4}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
     };
 
     return (
@@ -56,12 +145,8 @@ export const FeedPost = ({ post, isCommentsOpen, commentsData, onLikeToggle, onT
                 <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-line font-medium">{post.content}</p>
             </div>
 
-            {/* Optional Image */}
-            {post.image && (
-                <div className="border-y border-slate-200 dark:border-slate-800">
-                    <img src={post.image} alt="Post Attachment" className="w-full h-[300px] object-cover" />
-                </div>
-            )}
+            {/* Render the new dynamic grid */}
+            {renderMediaGrid()}
 
             {/* Stats Bar */}
             <div className="px-4 py-2 flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 uppercase tracking-widest">
@@ -82,7 +167,7 @@ export const FeedPost = ({ post, isCommentsOpen, commentsData, onLikeToggle, onT
                 </button>
             </div>
 
-            {/* Comment Section */}
+            {/* Inline Comment Section */}
             {isCommentsOpen && (
                 <div className="bg-slate-50 dark:bg-[#111827] p-4 border-t border-slate-200 dark:border-slate-800">
                     <div className="flex flex-col gap-3 mb-4 max-h-60 overflow-y-auto">

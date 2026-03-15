@@ -14,6 +14,9 @@ export const TopNav = ({ user, darkMode, setDarkMode, isRoofVisible, setIsRoofVi
     const location = useLocation();
     const isFeedPage = location.pathname === '/feed';
 
+    // Trigger the ultra-slim navbar on BOTH profile pages
+    const isCompactMode = /^\/clubs\/\d+$/.test(location.pathname) || /^\/profile\/\d+$/.test(location.pathname);
+
     if (!isRoofVisible) {
         return (
             <div className="sticky top-0 z-[60] w-full flex justify-center h-0">
@@ -29,24 +32,29 @@ export const TopNav = ({ user, darkMode, setDarkMode, isRoofVisible, setIsRoofVi
     }
 
     return (
-        <nav className="sticky top-0 h-24 bg-white dark:bg-[#121b22] border-b border-slate-300 dark:border-slate-800 flex flex-col justify-between z-50 transition-all duration-300 shadow-xl">
-            {/* TOP ROW */}
-            <div className="flex justify-between items-center px-4 md:px-6 h-14 w-full">
-                <div className="flex items-center gap-6 w-auto lg:w-1/3">
+        <nav className={`sticky top-0 ${isCompactMode ? 'h-16' : 'h-24'} bg-white dark:bg-[#121b22] border-b border-slate-300 dark:border-slate-800 flex flex-col z-50 transition-all duration-500 ease-in-out shadow-xl overflow-hidden relative`}>
+
+            {/* TOP ROW: Absolutely positioned to top. Container grows slightly to center elements smoothly. */}
+            <div className={`absolute top-0 left-0 w-full flex justify-between items-center px-4 md:px-6 transition-all duration-500 ease-in-out z-10 ${
+                isCompactMode ? 'h-16 pointer-events-none' : 'h-14 pointer-events-auto'
+            }`}>
+
+                {/* Left Cluster */}
+                <div className={`flex items-center gap-4 lg:gap-6 w-auto lg:w-1/3 ${isCompactMode ? 'pointer-events-auto' : ''}`}>
                     <button className="md:hidden text-slate-500 hover:text-slate-900 dark:hover:text-white">
                         <Menu className="w-5 h-5" />
                     </button>
-                    <Link to="/feed" className="text-xl font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest transition-colors shrink-0">
+                    <Link to="/feed" className="font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest transition-all shrink-0 text-xl">
                         TALANTI
                     </Link>
-                    <div className="hidden lg:flex items-center bg-slate-100 dark:bg-[#0a0f13] border border-transparent dark:border-slate-700 focus-within:border-emerald-500 dark:focus-within:border-emerald-500 rounded-sm px-4 py-2 w-72 xl:w-96 transition-colors shadow-inner">
+                    <div className="hidden lg:flex items-center bg-slate-100 dark:bg-[#0a0f13] border border-transparent dark:border-slate-700 focus-within:border-emerald-500 dark:focus-within:border-emerald-500 rounded-sm px-4 py-2 w-72 xl:w-96 transition-all shadow-inner">
                         <Search className="w-4 h-4 text-slate-400 shrink-0" />
                         <input type="text" placeholder="Query database..." className="bg-transparent border-none outline-none text-sm ml-3 w-full text-slate-900 dark:text-white placeholder-slate-500 font-medium" />
                     </div>
                 </div>
 
-                {/* RIGHT ACTIONS */}
-                <div className="flex items-center justify-end gap-3 lg:w-1/3">
+                {/* Right Cluster */}
+                <div className={`flex items-center justify-end gap-3 lg:w-1/3 ${isCompactMode ? 'pointer-events-auto' : ''}`}>
                     <button className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors relative">
                         <Bell className="w-5 h-5" />
                         <span className="absolute top-1.5 right-2 w-2 h-2 bg-orange-500 rounded-full"></span>
@@ -82,9 +90,13 @@ export const TopNav = ({ user, darkMode, setDarkMode, isRoofVisible, setIsRoofVi
                 </div>
             </div>
 
-            {/* BOTTOM ROW: Navigation Tabs */}
-            <div className="flex justify-center h-10 w-full border-t border-slate-200 dark:border-slate-800/50">
-                <div className="flex items-end h-full">
+            {/* BOTTOM ROW: Absolutely positioned to bottom. Glides upward as the navbar shrinks. */}
+            <div className={`absolute bottom-0 left-0 w-full flex justify-center transition-all duration-500 ease-in-out z-20 ${
+                isCompactMode
+                    ? 'h-16 border-transparent pointer-events-none'
+                    : 'h-10 border-t border-slate-200 dark:border-slate-800/50 pointer-events-auto'
+            }`}>
+                <div className={`flex h-full ${isCompactMode ? 'pointer-events-auto' : ''}`}>
                     {[
                         { path: "/feed", icon: Home, title: "Network Feed" },
                         { path: "/map", icon: MapIcon, title: "Intel Map" },
@@ -96,12 +108,17 @@ export const TopNav = ({ user, darkMode, setDarkMode, isRoofVisible, setIsRoofVi
                         const isActive = location.pathname === item.path;
                         return (
                             <Link key={idx} to={item.path} title={item.title}
-                                  className={`relative flex items-center justify-center px-8 sm:px-10 h-full transition-all group ${
+                                  className={`relative flex flex-col items-center justify-start h-full transition-all duration-500 ease-in-out group ${
+                                      isCompactMode ? 'pt-4 px-5 sm:px-7' : 'pt-[10px] px-8 sm:px-10'
+                                  } ${
                                       isActive
                                           ? "text-rose-600 dark:text-rose-500"
-                                          : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                                          : "text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800/50"
                                   }`}>
-                                <item.icon className={`w-5 h-5 transition-transform ${isActive ? 'stroke-[2.5px]' : 'stroke-[2px]'}`} />
+
+                                <item.icon className={`transition-all duration-500 ease-in-out ${isActive ? 'stroke-[2.5px]' : 'stroke-[2px]'} w-5 h-5 group-hover:scale-110`} />
+
+                                {/* Red active line pinned perfectly to bottom edge */}
                                 {isActive && (
                                     <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-rose-500 rounded-t-full shadow-[0_-2px_8px_rgba(244,63,94,0.3)]" />
                                 )}

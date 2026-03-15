@@ -25,6 +25,9 @@ export const UserProfilePage = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'feed' | 'stats' | 'media'>('feed');
 
+    // 🟢 FIXED: Fallback User Context fetch
+    const [currentUserId, setCurrentUserId] = useState<string | null>(localStorage.getItem('userId'));
+
     const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
     const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
 
@@ -42,16 +45,13 @@ export const UserProfilePage = () => {
         formData.append('file', file);
 
         try {
-            // 1. Upload to Media (POST)
-            const mediaRes = await apiClient.post('/api/media/upload', formData);
+            const mediaRes = await apiClient.post('/media/upload', formData);
             const imageUrl = mediaRes.data.url;
 
-            // 2. Update User Profile (PUT)
-            await apiClient.put(`/api/users/me`, {
+            await apiClient.put(`/users/me`, {
                 [type === 'avatar' ? 'avatarUrl' : 'bannerUrl']: imageUrl
             });
 
-            // 3. Refresh profile data
             fetchProfile();
         } catch (err) {
             console.error("Upload failed", err);
@@ -63,6 +63,13 @@ export const UserProfilePage = () => {
     };
 
     useEffect(() => {
+        // Guarantee we know who we are viewing as
+        apiClient.get('/users/me')
+            .then(res => {
+                setCurrentUserId(String(res.data.id));
+                localStorage.setItem('userId', String(res.data.id));
+            }).catch(() => {});
+
         fetchProfile();
     }, [id]);
 
@@ -132,7 +139,9 @@ export const UserProfilePage = () => {
 
     const initials = profile.fullName.substring(0, 2).toUpperCase();
     const bannerUrl = profile.bannerUrl || "https://images.unsplash.com/photo-1518605368461-1ee71161d91a?auto=format&fit=crop&q=80&w=1200&h=400";
-    const isMyProfile = String(profile.id) === localStorage.getItem('userId');
+
+    // 🟢 FIXED: Bulletproof check
+    const isMyProfile = String(profile.id) === currentUserId;
 
     return (
         <div className="w-full min-h-screen bg-[#fdfaf5] dark:bg-[#0a0f13] font-sans pb-20">
@@ -215,7 +224,7 @@ export const UserProfilePage = () => {
                 </div>
             </div>
 
-            {/* REST OF PAGE CONTENT (Bio, Stats, Feed) Stays the same as your snippet */}
+            {/* REST OF PAGE CONTENT */}
             <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-6">
                 <div className="flex flex-col lg:flex-row gap-6">
                     <aside className="w-full lg:w-[320px] shrink-0 flex flex-col gap-4">
@@ -272,14 +281,16 @@ export const UserProfilePage = () => {
                                 ) : (
                                     posts.map(post => (
                                         <FeedPost
-                                            key={post.id} post={post} isCommentsOpen={openComments[post.id]} commentsData={commentsData[post.id]}
-                                            onLikeToggle={handleLikeToggle} onToggleComments={toggleComments} onSubmitComment={submitComment}
-                                        />
+                                            key={post.id} post={post} isCommentsOpen={openComments[post.id]}
+                                            commentsData={commentsData[post.id]}
+                                            onLikeToggle={handleLikeToggle} onToggleComments={toggleComments}
+                                            onSubmitComment={submitComment} onImageClick={function (): void {
+                                            throw new Error("Function not implemented.");
+                                        }}                                        />
                                     ))
                                 )}
                             </div>
                         )}
-                        {/* Stats and Media tab content placeholders... */}
                     </div>
                 </div>
             </div>

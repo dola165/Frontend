@@ -51,12 +51,19 @@ function MainLayout() {
             apiClient.get('/users/me')
                 .then(res => {
                     setUser(res.data);
+
+                    // Anchor user identity in local storage for specific page evaluations
+                    localStorage.setItem('userId', String(res.data.id));
+                    localStorage.setItem('user', JSON.stringify(res.data));
+
                     const isProfileIncomplete = !res.data.fullName || res.data.fullName.trim() === '' || res.data.fullName === 'New User' || res.data.role === 'USER';
                     if (isProfileIncomplete && location.pathname !== '/onboarding') navigate('/onboarding', { replace: true });
                 })
                 .catch((error) => {
                     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
                         localStorage.removeItem('accessToken');
+                        localStorage.removeItem('userId');
+                        localStorage.removeItem('user');
                         setUser(null);
                         navigate('/login', { replace: true });
                     }
@@ -77,6 +84,8 @@ function MainLayout() {
         try { await apiClient.post('/auth/logout'); } catch (error) { console.error("Logout failed:", error); }
         finally {
             localStorage.removeItem('accessToken');
+            localStorage.removeItem('userId');
+            localStorage.removeItem('user');
             setUser(null);
             navigate('/login', { replace: true });
         }
@@ -86,6 +95,10 @@ function MainLayout() {
     const isFeedPage = location.pathname === '/feed';
     const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/oauth2/callback';
     const isFullScreenPage = ['/map', '/messages', '/store', '/charity', '/my-club', '/calendar', '/onboarding'].includes(location.pathname) || location.pathname.startsWith('/profile') || /^\/clubs\/\d+$/.test(location.pathname);
+
+    // Adjust height logic for BOTH Club Profile and User Profile
+    const isCompactMode = /^\/clubs\/\d+$/.test(location.pathname) || /^\/profile\/\d+$/.test(location.pathname);
+    const headerHeight = isCompactMode ? '64px' : '96px';
 
     useEffect(() => { if (!isFullScreenPage && !isRoofVisible) setIsRoofVisible(true); }, [location.pathname, isFullScreenPage]);
 
@@ -106,7 +119,7 @@ function MainLayout() {
                     </Routes>
                 </main>
             ) : isFullScreenPage ? (
-                <main className={`w-full relative transition-all duration-300 overflow-y-auto ${isRoofVisible ? 'h-[calc(100vh-96px)]' : 'h-screen'}`}>
+                <main className={`w-full relative transition-all duration-500 ease-in-out overflow-y-auto ${isRoofVisible ? `h-[calc(100vh-${headerHeight})]` : 'h-screen'}`}>
                     <Routes>
                         <Route path="/map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
                         <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />

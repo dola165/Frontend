@@ -28,7 +28,7 @@ export const MapFilterSidebar = ({ isVisible, onClose, onFiltersChange }: MapFil
     const [countrySearch, setCountrySearch] = useState('');
     const [citySearch, setCitySearch] = useState('');
 
-    // Expand/Collapse state for UI cards
+    // Expand/Collapse state for ui cards
     const [expanded, setExpanded] = useState<Record<string, boolean>>({
         entityType: true,
         distance: true,

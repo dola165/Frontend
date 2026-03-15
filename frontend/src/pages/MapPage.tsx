@@ -25,23 +25,29 @@ export type MapMarkerDto = {
 
 // --- CUSTOM BALL MARKER ---
 const createBallIcon = (isSelected = false, type = 'CLUB') => {
-    // We use drop shadows to create a glowing ring around the exact shape of your PNG!
-    const glowColors = {
-        CLUB: 'rgba(16, 185, 129, 0.8)', // Emerald
-        TRYOUT: 'rgba(249, 115, 22, 0.8)', // Orange
-        MATCH_REQUEST: 'rgba(59, 130, 246, 0.8)', // Blue
-        FRIENDLY: 'rgba(168, 85, 247, 0.8)' // Purple
+    // We map out the exact Tailwind classes so the JIT compiler can find them.
+    const getGlowClass = () => {
+        switch (type) {
+            case 'TRYOUT':
+                return isSelected ? 'drop-shadow-[0_8px_8px_rgba(249,115,22,0.8)]' : 'drop-shadow-[0_4px_4px_rgba(249,115,22,0.8)]';
+            case 'MATCH_REQUEST':
+                return isSelected ? 'drop-shadow-[0_8px_8px_rgba(59,130,246,0.8)]' : 'drop-shadow-[0_4px_4px_rgba(59,130,246,0.8)]';
+            case 'FRIENDLY':
+                return isSelected ? 'drop-shadow-[0_8px_8px_rgba(168,85,247,0.8)]' : 'drop-shadow-[0_4px_4px_rgba(168,85,247,0.8)]';
+            case 'CLUB':
+            default:
+                return isSelected ? 'drop-shadow-[0_8px_8px_rgba(16,185,129,0.8)]' : 'drop-shadow-[0_4px_4px_rgba(16,185,129,0.8)]';
+        }
     };
-    const glow = glowColors[type as keyof typeof glowColors] || glowColors.CLUB;
 
     return L.divIcon({
         className: 'custom-ball-marker bg-transparent border-0',
         html: `
-            <div class="relative flex flex-col items-center cursor-pointer">
+            <div class="relative flex flex-col items-center cursor-pointer transition-all duration-300 ${isSelected ? 'scale-125' : 'hover:-translate-y-1 hover:scale-110'}">
                 <img src="/markers/ball.png" 
-                     class="w-10 h-10 transition-all duration-300 ${isSelected ? '-translate-y-3 scale-125' : 'hover:-translate-y-1 hover:scale-110'}" 
-                     style="filter: drop-shadow(0 ${isSelected ? '8px 8px' : '4px 4px'} ${glow});" 
+                     class="w-10 h-10 ${isSelected ? 'animate-bounce' : ''} ${getGlowClass()}" 
                      alt="pin" />
+                ${isSelected ? `<div class="w-5 h-1 bg-black/40 blur-[2px] rounded-[100%] absolute -bottom-1"></div>` : ''}
             </div>
         `,
         iconSize: [40, 40],
@@ -58,7 +64,7 @@ function MapRecenter({ coords }: { coords: [number, number] }) {
 export const MapPage = () => {
     const navigate = useNavigate();
 
-    // UI State
+    // ui State
     const [isFilterOpen, setIsFilterOpen] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 

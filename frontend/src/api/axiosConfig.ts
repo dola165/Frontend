@@ -1,12 +1,10 @@
 import axios from 'axios';
 
-// Create the base client
 export const apiClient = axios.create({
-    baseURL: 'http://localhost:8080/api', // <-- THE FIX: Added /api here
+    baseURL: 'http://localhost:8080/api',
     withCredentials: true,
 });
 
-// 1. Request Interceptor: Attach the current token to every request
 apiClient.interceptors.request.use((config) => {
     const token = localStorage.getItem('accessToken');
     if (token) {
@@ -15,48 +13,68 @@ apiClient.interceptors.request.use((config) => {
     return config;
 }, (error) => Promise.reject(error));
 
-// 2. Response Interceptor: The "Silent Refresh" Engine
+// --- THE REFRESH LOCK ---
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
 apiClient.interceptors.response.use(
-    (response) => {
-        // If the request succeeds, just pass it through
-        return response;
-    },
+    (response) => response,
     async (error) => {
         const originalRequest = error.config;
 
-        // If the error is 401 (Unauthorized) and we haven't already tried to refresh
         if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true; // Mark this request so we don't get stuck in an infinite loop
+
+            // If another request is currently refreshing the token, put THIS request in a waiting line
+            if (isRefreshing) {
+                return new Promise(function(resolve, reject) {
+                    failedQueue.push({ resolve, reject });
+                }).then(token => {
+                    originalRequest.headers['Authorization'] = 'Bearer ' + token;
+                    return apiClient(originalRequest);
+                }).catch(err => {
+                    return Promise.reject(err);
+                });
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
 
             try {
-                // IMPORTANT: Call your Spring Boot refresh endpoint here.
-                // Assuming your refresh token is in an HttpOnly cookie, so `withCredentials: true` sends it automatically.
-                // (Adjust the URL to match your backend's refresh endpoint)
                 const refreshResponse = await axios.post('http://localhost:8080/api/auth/refresh', {}, {
                     withCredentials: true
                 });
 
-                // Get the new shiny access token from the response
                 const newAccessToken = refreshResponse.data.accessToken;
-
-                // Save it to localStorage
                 localStorage.setItem('accessToken', newAccessToken);
-
-                // Update the failed request with the new token
                 originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
-                // Retry the original request (e.g., the /users/me call or Map data call)
+                // Release the queued requests with the new token
+                processQueue(null, newAccessToken);
+
                 return apiClient(originalRequest);
 
             } catch (refreshError) {
-                // If the REFRESH token is also expired, THEN we finally log them out.
+                // If refresh fails, log them out and reject the queued items
+                processQueue(refreshError, null);
                 localStorage.removeItem('accessToken');
                 window.location.href = '/login';
                 return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
             }
         }
 
-        // For all other errors, just return the error normally
         return Promise.reject(error);
     }
 );

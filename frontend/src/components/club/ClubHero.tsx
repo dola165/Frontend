@@ -1,10 +1,13 @@
 import { useRef, useState } from 'react';
-import { ArrowLeft, ShieldCheck, MapPin, Settings, UserPlus, Swords, MessageSquare, Camera, Loader2 } from 'lucide-react';
+import { ShieldCheck, MapPin, Settings, UserPlus, Swords, MessageSquare, Camera, Loader2, CalendarDays, Check, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
+import { getCroppedImg } from '../../utils/cropImageHelper';
+import { ImageCropperModal } from "../../ui/ImageCropperModal.tsx";
+import type { ClubProfile } from '../../pages/ClubProfilePage';
 
 interface ClubHeroProps {
-    club: any;
+    club: ClubProfile | null;
     isOwnClubAdmin: boolean;
     isOtherClubAdmin: boolean;
     onFollowToggle: () => void;
@@ -19,138 +22,172 @@ export const ClubHero = ({ club, isOwnClubAdmin, isOtherClubAdmin, onFollowToggl
     const logoInputRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState<'banner' | 'logo' | null>(null);
 
-    const initials = club?.name?.substring(0, 2).toUpperCase() || 'FC';
-    const bannerUrl = club?.bannerUrl || "https://images.unsplash.com/photo-1518605368461-1ee71161d91a?auto=format&fit=crop&q=80&w=1200&h=400";
+    const [cropperModal, setCropperModal] = useState<{
+        isOpen: boolean;
+        imageUrl: string;
+        type: 'banner' | 'logo';
+    } | null>(null);
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'banner' | 'logo') => {
-        if (!e.target.files || !e.target.files[0]) return;
+    const formatImageUrl = (url?: string) => {
+        if (!url || url === 'null') return undefined;
+        if (url.startsWith('http')) return url;
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        return `${baseUrl}${url}`;
+    };
 
-        const file = e.target.files[0];
-        setUploading(type);
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'banner' | 'logo') => {
+        const file = event.target.files?.[0];
+        if (!file) return;
 
-        const formData = new FormData();
-        formData.append('file', file);
+        const imageUrl = URL.createObjectURL(file);
+        setCropperModal({ isOpen: true, imageUrl, type });
+
+        if (event.target) event.target.value = '';
+    };
+
+    const handleCropComplete = async (croppedAreaPixels: any) => {
+        if (!cropperModal || !club?.id) return;
+        setUploading(cropperModal.type);
+        const type = cropperModal.type;
+        setCropperModal(null);
 
         try {
-            // 1. Upload to Media storage (using POST to match your @PostMapping)
-            const mediaRes = await apiClient.post('/api/media/upload', formData);
-            const imageUrl = mediaRes.data.url;
+            const croppedImageBlob = await getCroppedImg(cropperModal.imageUrl, croppedAreaPixels);
+            if (!croppedImageBlob) throw new Error("Failed to crop image into a valid Blob.");
 
-            // 2. Update Club Profile with new URL
-            await apiClient.put(`/api/clubs/${club.id}`, {
-                [type === 'banner' ? 'bannerUrl' : 'logoUrl']: imageUrl
+            const formData = new FormData();
+            formData.append(type, croppedImageBlob, `${type}.jpg`);
+
+            await apiClient.post(`/clubs/${club.id}/upload-${type}`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
-
             onRefresh();
-        } catch (err) {
-            console.error("Upload failed", err);
-            alert("Failed to update image.");
+        } catch (error) {
+            console.error(`Failed to upload ${type}`, error);
         } finally {
             setUploading(null);
-            if (e.target) e.target.value = '';
         }
     };
 
     return (
-        <div className="relative">
-            {/* Banner Section */}
-            <div className="h-48 md:h-80 w-full relative group bg-slate-200 dark:bg-slate-800 overflow-hidden">
-                <img src={bannerUrl} alt="Club Banner" className="w-full h-full object-cover" />
+        <div className="relative bg-[#fdfaf5] dark:bg-[#0a0f13]">
+            {/* 1. SEAMLESS BANNER SECTION */}
+            <div className="h-48 md:h-80 w-full relative group bg-[#0a0f13] flex items-center justify-center overflow-hidden border-b border-slate-200 dark:border-slate-800">
 
-                {/* BACK BUTTON */}
-                <button onClick={() => navigate(-1)} className="absolute top-4 left-4 z-20 p-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full text-white transition-all">
-                    <ArrowLeft className="w-5 h-5" />
-                </button>
+                {formatImageUrl(club?.bannerUrl) ? (
+                    <img
+                        src={formatImageUrl(club?.bannerUrl)}
+                        alt="Club Banner"
+                        className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-700"
+                    />
+                ) : (
+                    <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+                        <Camera className="w-12 h-12 text-slate-700" />
+                    </div>
+                )}
 
                 {isOwnClubAdmin && (
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <input type="file" ref={bannerInputRef} onChange={(e) => handleImageUpload(e, 'banner')} className="hidden" accept="image/*" />
+                    <div className="absolute top-4 right-4 z-30">
+                        <input type="file" ref={bannerInputRef} className="hidden" accept="image/jpeg,image/png,image/webp" onChange={(e) => handleFileChange(e, 'banner')} />
                         <button
-                            disabled={uploading !== null}
                             onClick={() => bannerInputRef.current?.click()}
-                            className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2 rounded-md flex items-center gap-2 font-bold transition-all border border-white/30"
+                            disabled={uploading === 'banner'}
+                            className="bg-black/50 hover:bg-emerald-600 text-white p-2 rounded-full backdrop-blur-md transition-all border border-transparent hover:border-emerald-400"
                         >
-                            {uploading === 'banner' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                            Change Cover
+                            {uploading === 'banner' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
                         </button>
                     </div>
                 )}
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="relative -mt-12 sm:-mt-16 pb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-                    <div className="flex flex-col md:flex-row md:items-end gap-4 sm:gap-6">
-                        {/* Logo Section */}
-                        <div className="relative group">
-                            <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-2xl bg-slate-900 border-4 border-white dark:border-slate-950 shadow-xl overflow-hidden flex items-center justify-center">
-                                {club?.logoUrl ? (
-                                    <img src={club.logoUrl} alt={club.name} className="w-full h-full object-cover" />
+            {/* 2. HEADER CONTENT */}
+            <div className="px-4 sm:px-8 pb-6 relative z-20 -mt-12 sm:-mt-16">
+                <div className="flex flex-col md:flex-row items-center md:items-end md:justify-between gap-4">
+
+                    {/* Logo & Club Info */}
+                    <div className="flex flex-col md:flex-row items-center md:items-end gap-6 text-center md:text-left w-full md:w-auto">
+                        <div className="relative group w-32 h-32 sm:w-40 sm:h-40 shrink-0">
+                            <div className="absolute inset-0 bg-emerald-500 rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
+                            <div className="w-full h-full rounded-full border-4 border-slate-50 dark:border-[#0f172a] bg-[#1e293b] overflow-hidden relative z-10 shadow-xl">
+                                {formatImageUrl(club?.logoUrl) ? (
+                                    <img src={formatImageUrl(club?.logoUrl)} alt="Club Logo" className="w-full h-full object-cover" />
                                 ) : (
-                                    <span className="text-3xl sm:text-4xl font-black text-emerald-500">{initials}</span>
+                                    <div className="w-full h-full flex items-center justify-center"><ShieldCheck className="w-16 h-16 text-slate-600" /></div>
+                                )}
+
+                                {isOwnClubAdmin && (
+                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm cursor-pointer" onClick={() => logoInputRef.current?.click()}>
+                                        {uploading === 'logo' ? <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /> : <Camera className="w-8 h-8 text-white" />}
+                                    </div>
                                 )}
                             </div>
-                            {isOwnClubAdmin && (
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
-                                    <input type="file" ref={logoInputRef} onChange={(e) => handleImageUpload(e, 'logo')} className="hidden" accept="image/*" />
-                                    <button
-                                        disabled={uploading !== null}
-                                        onClick={() => logoInputRef.current?.click()}
-                                        className="text-white p-2 rounded-full hover:bg-white/20 transition-all"
-                                    >
-                                        {uploading === 'logo' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-6 h-6" />}
-                                    </button>
-                                </div>
-                            )}
+                            <input type="file" ref={logoInputRef} className="hidden" accept="image/jpeg,image/png,image/webp" onChange={(e) => handleFileChange(e, 'logo')} />
                         </div>
 
-                        <div className="flex-1 space-y-1">
-                            <div className="flex items-center gap-2">
-                                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{club?.name}</h1>
-                                {club?.isOfficial && <ShieldCheck className="w-6 h-6 text-emerald-500 fill-emerald-500/10" />}
-                            </div>
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-500 dark:text-slate-400 text-sm font-bold">
-                                <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {club?.addressText || 'Location TBD'}</span>
-                                <span className="flex items-center gap-1.5 uppercase tracking-wider text-emerald-500">{club?.type}</span>
+                        <div className="mb-2 w-full md:w-auto">
+                            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight uppercase flex items-center justify-center md:justify-start gap-3">
+                                {club?.name}
+                                {club?.isOfficial && <ShieldCheck className="w-7 h-7 text-emerald-500 shrink-0 drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]" />}
+                            </h1>
+                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-2 text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-500" /> {club?.addressText || 'Unknown Location'}</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                                <span className="text-emerald-600 dark:text-emerald-500">{club?.type}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
-                        {/* RESTORED ALL SCENARIO LOGIC */}
+                    {/* 3. CHUNKY, BOLD BUTTONS */}
+                    <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 mt-4 md:mt-0 w-full md:w-auto">
                         {isOwnClubAdmin ? (
                             <>
-                                <button onClick={onOpenManageOrg} className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#10b981] active:translate-y-0.5 active:shadow-none border-2 border-slate-900">
+                                <button onClick={() => navigate(`/clubs/${club?.id}/calendar`)} className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-orange-500 hover:bg-orange-600 text-white border-2 border-slate-900">
+                                    <CalendarDays className="w-4 h-4" /> Schedule
+                                </button>
+                                <button onClick={onOpenManageOrg} className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-700 border-2 border-slate-900">
                                     <Settings className="w-4 h-4" /> Manage Org
-                                </button>
-                                <button className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-700 border-2 border-slate-900">
-                                    <MessageSquare className="w-4 h-4" /> Message
-                                </button>
-                            </>
-                        ) : isOtherClubAdmin ? (
-                            <>
-                                <button onClick={onOpenChallengeModal} className="flex items-center gap-2 px-6 py-2.5 bg-rose-600 text-white rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none border-2 border-slate-900">
-                                    <Swords className="w-4 h-4" /> Challenge
-                                </button>
-                                <button onClick={onFollowToggle} className={`flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none border-2 ${club?.isFollowedByMe ? 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-900 hover:bg-slate-300 dark:hover:bg-slate-700' : 'bg-emerald-600 text-white border-slate-900 hover:bg-emerald-500'}`}>
-                                    {club?.isFollowedByMe ? 'Following' : <><UserPlus className="w-4 h-4" /> Follow</>}
-                                </button>
-                                <button className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-700 border-2 border-slate-900">
-                                    <MessageSquare className="w-4 h-4" /> Message
                                 </button>
                             </>
                         ) : (
                             <>
-                                <button onClick={onFollowToggle} className={`flex items-center gap-2 px-8 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none border-2 ${club?.isFollowedByMe ? 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-900 hover:bg-slate-300 dark:hover:bg-slate-700' : 'bg-emerald-600 text-white border-slate-900 hover:bg-emerald-500'}`}>
-                                    {club?.isFollowedByMe ? 'Following' : <><UserPlus className="w-4 h-4" /> Follow</>}
-                                </button>
-                                <button className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-700 border-2 border-slate-900">
-                                    <MessageSquare className="w-4 h-4" /> Message
+                                {isOtherClubAdmin && (
+                                    <>
+                                        <button onClick={onOpenChallengeModal} className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-rose-600 hover:bg-rose-500 text-white border-2 border-slate-900">
+                                            <Swords className="w-4 h-4" /> Challenge
+                                        </button>
+                                        <button className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-700 border-2 border-slate-900">
+                                            <MessageSquare className="w-4 h-4" /> Message
+                                        </button>
+                                    </>
+                                )}
+
+                                {!isOtherClubAdmin && !isOwnClubAdmin && (
+                                    <button className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-blue-600 hover:bg-blue-500 text-white border-2 border-slate-900">
+                                        <UserPlus className="w-4 h-4" /> Apply
+                                    </button>
+                                )}
+
+                                <button onClick={onFollowToggle} className={`flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none border-2 ${club?.isFollowedByMe ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500 hover:bg-emerald-500/30' : 'bg-emerald-600 text-white border-slate-900 hover:bg-emerald-500'}`}>
+                                    {club?.isFollowedByMe ? <><Check className="w-4 h-4"/> Following</> : <><Plus className="w-4 h-4" /> Follow</>}
                                 </button>
                             </>
                         )}
                     </div>
                 </div>
             </div>
+
+            {/* Image Cropper Modal */}
+            {cropperModal && (
+                <ImageCropperModal
+                    isOpen={cropperModal.isOpen}
+                    imageUrl={cropperModal.imageUrl}
+                    title={cropperModal.type === 'banner' ? 'Adjust Cover Photo' : 'Adjust Club Logo'}
+                    aspectRatio={cropperModal.type === 'banner' ? 3 / 1 : 1 / 1}
+                    onClose={() => setCropperModal(null)}
+                    onCropComplete={handleCropComplete}
+                    isProcessing={uploading !== null}
+                />
+            )}
         </div>
     );
 };

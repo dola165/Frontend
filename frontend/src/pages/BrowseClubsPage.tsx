@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { apiClient } from '../api/axiosConfig';
 import { ShieldCheck, MapPin, Users, Check, Plus } from 'lucide-react';
+import {apiClient} from "../api/axiosConfig.ts";
 
 interface ClubProfile {
     id: number;
@@ -29,7 +29,7 @@ export const BrowseClubsPage = () => {
     const handleFollowToggle = async (e: React.MouseEvent, clubId: number) => {
         e.preventDefault(); // Prevent navigating to the club page when clicking the follow button
 
-        // Optimistic UI update
+        // Optimistic ui update
         setClubs(currentClubs => currentClubs.map(c => {
             if (c.id === clubId) {
                 return { ...c, isFollowedByMe: !c.isFollowedByMe, followerCount: c.isFollowedByMe ? c.followerCount - 1 : c.followerCount + 1 };

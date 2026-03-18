@@ -14,7 +14,6 @@ import { StorePage } from './pages/StorePage';
 import { CharityPage } from './pages/CharityPage';
 import { MyClubPage } from './pages/MyClubPage';
 import { CalendarPage } from './pages/CalendarPage';
-import { OAuth2RedirectHandler } from './pages/OAuth2RedirectHandler';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -115,7 +114,6 @@ function MainLayout() {
                         <Route path="/" element={<LandingPage />} />
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/signup" element={<RegisterPage />} />
-                        <Route path="/oauth2/callback" element={<OAuth2RedirectHandler />} />
                     </Routes>
                 </main>
             ) : isFullScreenPage ? (

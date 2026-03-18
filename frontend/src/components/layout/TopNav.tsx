@@ -2,14 +2,13 @@ import { Link, useLocation } from 'react-router-dom';
 import { Search, Bell, Bot, Sun, Moon, User, ChevronUp, ChevronDown, Home, Map as MapIcon, Shield, Building2, CalendarDays, MessageSquare, Menu } from 'lucide-react';
 
 interface TopNavProps {
-    user: { id: number; username: string; role: string } | null;
+    user: { id?: number; username?: string; fullName?: string; role?: string } | null;
     darkMode: boolean;
     setDarkMode: (val: boolean) => void;
     isRoofVisible: boolean;
     setIsRoofVisible: (val: boolean) => void;
     handleLogout: () => void;
 }
-
 export const TopNav = ({ user, darkMode, setDarkMode, isRoofVisible, setIsRoofVisible, handleLogout }: TopNavProps) => {
     const location = useLocation();
     const isFeedPage = location.pathname === '/feed';
@@ -77,9 +76,12 @@ export const TopNav = ({ user, darkMode, setDarkMode, isRoofVisible, setIsRoofVi
                         Sign Out
                     </button>
 
-                    <Link to={user ? `/profile/${user.id}` : "#"}>
+                    <Link to={user?.id ? `/profile/${user.id}` : "#"}>
                         <div className="w-9 h-9 ml-2 bg-slate-200 dark:bg-slate-800 rounded-sm border border-slate-300 dark:border-slate-700 hover:border-rose-500 dark:hover:border-rose-500 transition-colors flex items-center justify-center text-xs text-slate-900 dark:text-white font-bold">
-                            {user ? user.username.substring(0, 2).toUpperCase() : <User className="w-4 h-4" />}
+                            {user
+                                ? (user.username || user.fullName || 'U').substring(0, 2).toUpperCase()
+                                : <User className="w-4 h-4" />
+                            }
                         </div>
                     </Link>
 

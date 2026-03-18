@@ -13,7 +13,6 @@ apiClient.interceptors.request.use((config) => {
     return config;
 }, (error) => Promise.reject(error));
 
-// --- THE REFRESH LOCK ---
 let isRefreshing = false;
 let failedQueue: any[] = [];
 
@@ -33,9 +32,14 @@ apiClient.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
+        // NEW RULE: Do NOT intercept 401s if the user is actively trying to log in.
+        // Let the error pass through so LoginPage.tsx can display "Invalid credentials".
+        if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/google')) {
+            return Promise.reject(error);
+        }
+
         if (error.response?.status === 401 && !originalRequest._retry) {
 
-            // If another request is currently refreshing the token, put THIS request in a waiting line
             if (isRefreshing) {
                 return new Promise(function(resolve, reject) {
                     failedQueue.push({ resolve, reject });
@@ -59,13 +63,11 @@ apiClient.interceptors.response.use(
                 localStorage.setItem('accessToken', newAccessToken);
                 originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
-                // Release the queued requests with the new token
                 processQueue(null, newAccessToken);
 
                 return apiClient(originalRequest);
 
             } catch (refreshError) {
-                // If refresh fails, log them out and reject the queued items
                 processQueue(refreshError, null);
                 localStorage.removeItem('accessToken');
                 window.location.href = '/login';

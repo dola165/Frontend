@@ -11,6 +11,13 @@ import { PostComposer } from '../components/feed/PostComposer';
 import {TabTeams} from "../components/club/tabs/TabTeams.tsx";
 import {TabOurClub} from "../components/club/tabs/TabOurClub.tsx";
 
+export interface ClubOpportunity {
+    id: number;
+    type: 'FUNDRAISING' | 'JOB' | 'VOLUNTEER' | 'WISHLIST';
+    title: string;
+    externalLink: string;
+}
+
 export interface ClubProfile {
     id: number;
     name: string;
@@ -21,14 +28,13 @@ export interface ClubProfile {
     memberCount: number;
     isFollowedByMe: boolean;
     isMember: boolean;
+    myRole?: string; // 'OWNER', 'CLUB_ADMIN', 'COACH'
     addressText?: string;
-    storeUrl?: string;
-    gofundmeUrl?: string;
     logoUrl?: string;
     bannerUrl?: string;
-    latitude?: number;
-    longitude?: number;
+    opportunities: ClubOpportunity[]; // STRICT BINDING: Array instead of flat URLs
 }
+
 interface ClubStaffDto { id: number; name: string; role: string; clearance: string; }
 
 export const ClubProfilePage = () => {

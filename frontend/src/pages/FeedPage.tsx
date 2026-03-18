@@ -3,7 +3,7 @@ import { apiClient } from '../api/axiosConfig';
 import { Megaphone } from 'lucide-react';
 import { FeedPost } from "../components/feed/FeedPost";
 import { PostComposer } from '../components/feed/PostComposer';
-import { PostTheaterModal } from '../components/PostTheaterModal'; // <-- Make sure this path is correct!
+import { PostTheaterModal } from '../components/PostTheaterModal';
 
 // --- INTERFACES ---
 export interface FeedPostDto {
@@ -20,30 +20,31 @@ export const FeedPage = () => {
     const [posts, setPosts] = useState<FeedPostDto[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Comment States
     const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
     const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
-
-    // Theater Modal State
     const [selectedPost, setSelectedPost] = useState<FeedPostDto | null>(null);
 
     useEffect(() => {
-        apiClient.get('/feed')
-            .then(res => setPosts(res.data.posts || []))
-            .catch(err => console.error(err))
-            .finally(() => setLoading(false));
+        apiClient.get('/posts/feed')
+            .then(res => {
+                setPosts(res.data.content || res.data.posts || res.data || []);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Failed to load feed", err);
+                setLoading(false);
+            });
     }, []);
 
     const handleLikeToggle = async (postId: number) => {
-        // Update main feed
         setPosts(current => current.map(post => post.id === postId ? { ...post, isLikedByMe: !post.isLikedByMe, likeCount: post.isLikedByMe ? post.likeCount - 1 : post.likeCount + 1 } : post));
 
-        // Update theater modal if it's currently open
         if (selectedPost?.id === postId) {
             setSelectedPost(prev => prev ? { ...prev, isLikedByMe: !prev.isLikedByMe, likeCount: prev.isLikedByMe ? prev.likeCount - 1 : prev.likeCount + 1 } : null);
         }
 
-        try { await apiClient.post(`/feed/posts/${postId}/like`); } catch { /* ignore */ }
+        // 🛡️ MIGRATION FIX: Removed /feed prefix
+        try { await apiClient.post(`/posts/${postId}/like`); } catch { /* ignore */ }
     };
 
     const toggleComments = async (postId: number) => {
@@ -51,7 +52,8 @@ export const FeedPage = () => {
         setOpenComments(prev => ({ ...prev, [postId]: !isOpen }));
         if (!isOpen && !commentsData[postId]) {
             try {
-                const res = await apiClient.get<CommentDto[]>(`/feed/posts/${postId}/comments`);
+                // 🛡️ MIGRATION FIX: Removed /feed prefix
+                const res = await apiClient.get<CommentDto[]>(`/posts/${postId}/comments`);
                 setCommentsData(prev => ({ ...prev, [postId]: res.data }));
             } catch (err) { console.error(err); }
         }
@@ -59,15 +61,12 @@ export const FeedPage = () => {
 
     const submitComment = async (postId: number, content: string) => {
         try {
-            const res = await apiClient.post<CommentDto>(`/feed/posts/${postId}/comments`, { content });
+            // 🛡️ MIGRATION FIX: Removed /feed prefix
+            const res = await apiClient.post<CommentDto>(`/posts/${postId}/comments`, { content });
 
-            // Update comments map
             setCommentsData(prev => ({ ...prev, [postId]: [...(prev[postId] || []), res.data] }));
-
-            // Update main feed comment count
             setPosts(current => current.map(p => p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p));
 
-            // Update theater modal comment count if it's open
             if (selectedPost?.id === postId) {
                 setSelectedPost(prev => prev ? { ...prev, commentCount: prev.commentCount + 1 } : null);
             }
@@ -80,7 +79,8 @@ export const FeedPage = () => {
         <div className="w-full relative">
             <PostComposer
                 onPostCreated={() => {
-                    apiClient.get('/feed').then(res => setPosts(res.data.posts || []));
+                    // 🛡️ MIGRATION FIX: Pointed to /posts/feed instead of /feed
+                    apiClient.get('/posts/feed').then(res => setPosts(res.data.content || res.data.posts || res.data || []));
                 }}
             />
 
@@ -103,7 +103,6 @@ export const FeedPage = () => {
                             onSubmitComment={submitComment}
                             onImageClick={() => {
                                 setSelectedPost(post);
-                                // Automatically fetch comments if they aren't loaded yet when opening the modal
                                 if (!commentsData[post.id]) toggleComments(post.id);
                             }}
                         />
@@ -111,7 +110,6 @@ export const FeedPage = () => {
                 </div>
             )}
 
-            {/* THE THEATER MODAL INJECTION */}
             <PostTheaterModal
                 isOpen={!!selectedPost}
                 post={selectedPost}

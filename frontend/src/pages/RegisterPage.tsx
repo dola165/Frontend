@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { Shield, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 
 export const RegisterPage = () => {
-    useNavigate();
-    const [email, setEmail] = useState('');
+    const navigate = useNavigate();    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -23,21 +23,17 @@ export const RegisterPage = () => {
         setError('');
 
         try {
-            const res = await apiClient.post('/auth/register', { email, password });
-            localStorage.setItem('accessToken', res.data.accessToken);
+            await apiClient.post('/auth/register', { email, password });
+            const loginRes = await apiClient.post('/auth/login', { email, password });
+            localStorage.setItem('accessToken', loginRes.data.accessToken);
 
-            // Send them directly into the app (or to onboarding later)
-            window.location.href = '/feed';
+            navigate('/onboarding'); // 🛡️ Replaced the hard reload
         } catch (err: any) {
             console.error(err);
             setError(err.response?.data?.error || 'Registration failed. Please try again.');
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const handleGoogleLogin = () => {
-        window.location.href = 'http://localhost:8080/oauth2/authorization/google';
     };
 
     return (
@@ -114,13 +110,40 @@ export const RegisterPage = () => {
                         <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
                     </div>
 
-                    <button
-                        onClick={handleGoogleLogin}
-                        className="w-full bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-[#1a1a1a] dark:text-white font-black uppercase tracking-widest py-4 rounded-xl border-2 border-[#1a1a1a] dark:border-gray-600 shadow-[4px_4px_0px_0px_#1a1a1a] dark:shadow-[4px_4px_0px_0px_#000] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-3"
-                    >
-                        <img src="https://www.svgrepo.com/show/355037/google.svg" className="w-5 h-5" alt="Google" />
-                        Google Sign In
-                    </button>
+                    {/* 🛡️ THE SECURE GOOGLE LOGIN COMPONENT */}
+                    <div className="flex justify-center w-full">
+                        <GoogleLogin
+                            theme="filled_black"
+                            size="large"
+                            width="100%"
+                            text="continue_with"
+                            onSuccess={async (credentialResponse) => {
+                                setIsLoading(true);
+                                try {
+                                    const res = await apiClient.post('/auth/google', {
+                                        token: credentialResponse.credential
+                                    });
+
+                                    localStorage.setItem('accessToken', res.data.accessToken);
+
+                                    const meRes = await apiClient.get('/users/me');
+                                    if (!meRes.data.profileComplete) {
+                                        navigate('/onboarding');
+                                    } else {
+                                        navigate('/feed');
+                                    }
+                                } catch (err: any) {
+                                    console.error("Google Auth Failed", err);
+                                    setError(err.response?.data?.error || 'Google login failed.');
+                                } finally {
+                                    setIsLoading(false);
+                                }
+                            }}
+                            onError={() => {
+                                setError('Google login popup was closed or failed.');
+                            }}
+                        />
+                    </div>
                 </div>
 
                 <p className="text-center mt-8 font-bold text-sm text-gray-500">

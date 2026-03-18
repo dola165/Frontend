@@ -4,7 +4,7 @@ import { apiClient } from '../api/axiosConfig';
 import { Shield, Activity, User, ChevronRight, Loader2, Target } from 'lucide-react';
 
 export const OnboardingPage = () => {
-    useNavigate();
+    const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -27,21 +27,24 @@ export const OnboardingPage = () => {
         });
     }, []);
 
+
+
     const handleComplete = async () => {
         setIsLoading(true);
         try {
-            // We will build this backend endpoint next
-            await apiClient.put('/users/me/profile', {
-                ...formData,
-                heightCm: parseInt(formData.heightCm) || null,
-                weightKg: parseInt(formData.weightKg) || null
-            });
+            // 1. Commit the profile to the DB
+            await apiClient.put('/users/me/profile', formData);
 
-            // Force reload to update global state/routes
-            window.location.href = '/feed';
-        } catch (error) {
-            console.error("Failed to save profile", error);
-            alert("Failed to save profile. Please try again.");
+            // 2. FORCE TOKEN ROTATION
+            // Your refresh endpoint must hit the DB and issue a token with the NEW 'CLUB_ADMIN' role.
+            const refreshRes = await apiClient.post('/auth/refresh');
+            localStorage.setItem('accessToken', refreshRes.data.accessToken);
+
+            // 3. Navigate to the FRONTEND route (not the API route)
+            navigate('/feed');
+        } catch (err) {
+            console.error("Onboarding sync failed", err);
+        } finally {
             setIsLoading(false);
         }
     };

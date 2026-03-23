@@ -33,7 +33,6 @@ const soccerIcon = new L.Icon({
   popupAnchor: [0, -32],
 });
 
-const isLoggedIn = !!localStorage.getItem('accessToken');
 // Fix for default marker icons in Leaflet with React
 // @ts-ignore
 delete L.Icon.Default.prototype._getIconUrl;
@@ -45,6 +44,7 @@ L.Icon.Default.mergeOptions({
 
 export const LandingPage = () => {
     const mapCenter: [number, number] = [41.7151, 44.8271]; // Tbilisi
+    const isLoggedIn = !!localStorage.getItem('accessToken');
 
     return (
         <div className="bg-[#fcf8f2] dark:bg-gray-900 text-[#1a1a1a] dark:text-gray-100 min-h-screen font-sans selection:bg-emerald-100 dark:selection:bg-emerald-900">
@@ -249,7 +249,6 @@ export const LandingPage = () => {
                         The pitch is waiting. The scouts are watching. The world is ready for your story.
                         Join the brotherhood of TALANTI today and write your name in history.
                     </p>
-                    // Inside LandingPage.tsx, find the "CREATE YOUR LEGACY" button section
                     <div className="flex flex-wrap items-center justify-center gap-6">
                         <Link
                             to="/signup"
@@ -265,7 +264,7 @@ export const LandingPage = () => {
             <footer className="py-12 bg-white dark:bg-gray-950 border-t border-ink/10">
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
                     <div className="text-3xl font-serif font-bold text-[#2a4d37] tracking-tighter italic uppercase">TALANTI</div>
-                    <div className="text-gray-400 dark:text-gray-500 text-sm font-serif italic">© 2026 TALANTI — BEYOND THE GAME.</div>
+                    <div className="text-gray-400 dark:text-gray-500 text-sm font-serif italic">© 2026 TALANTI - BEYOND THE GAME.</div>
                     <div className="flex gap-8 text-sm font-serif italic">
                         <a href="#" className="text-gray-400 hover:text-[#2a4d37] transition-colors">Privacy</a>
                         <a href="#" className="text-gray-400 hover:text-[#2a4d37] transition-colors">Terms</a>

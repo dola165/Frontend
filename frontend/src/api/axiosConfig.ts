@@ -1,8 +1,13 @@
 import axios from 'axios';
 
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+export const API_ORIGIN = API_BASE_URL.replace(/\/api$/, '');
+
 export const apiClient = axios.create({
-    baseURL: 'http://localhost:8080/api',
+    baseURL: API_BASE_URL,
     withCredentials: true,
+    xsrfCookieName: 'XSRF-TOKEN',
+    xsrfHeaderName: 'X-XSRF-TOKEN',
 });
 
 apiClient.interceptors.request.use((config) => {
@@ -55,7 +60,7 @@ apiClient.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const refreshResponse = await axios.post('http://localhost:8080/api/auth/refresh', {}, {
+                const refreshResponse = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, {
                     withCredentials: true
                 });
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Heart, MessageCircle, Send, ChevronLeft, ChevronRight } from 'lucide-react';
-import type {FeedPostDto, CommentDto} from './feed/FeedPost';
+import type { FeedPostDto, CommentDto } from './feed/FeedPost';
+import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 
 interface PostTheaterModalProps {
     isOpen: boolean;
@@ -11,7 +12,14 @@ interface PostTheaterModalProps {
     onLikeToggle: (postId: number) => void;
 }
 
-export const PostTheaterModal = ({ isOpen, post, onClose, commentsData, onSubmitComment, onLikeToggle }: PostTheaterModalProps) => {
+export const PostTheaterModal = ({
+    isOpen,
+    post,
+    onClose,
+    commentsData,
+    onSubmitComment,
+    onLikeToggle
+}: PostTheaterModalProps) => {
     const [commentInput, setCommentInput] = useState("");
     const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -21,12 +29,6 @@ export const PostTheaterModal = ({ isOpen, post, onClose, commentsData, onSubmit
 
     const formatTime = (dateString: string) => {
         return new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    };
-
-    const formatMediaUrl = (url?: string) => {
-        if (!url) return undefined;
-        if (url.startsWith('http')) return url;
-        return `http://localhost:8080${url}`;
     };
 
     const handleCommentSubmit = () => {
@@ -45,21 +47,18 @@ export const PostTheaterModal = ({ isOpen, post, onClose, commentsData, onSubmit
         setCurrentIndex((prev) => (prev - 1 + mediaList.length) % mediaList.length);
     };
 
-    const currentMediaUrl = formatMediaUrl(mediaList[currentIndex]);
+    const currentMediaUrl = resolveMediaUrl(mediaList[currentIndex]);
     const isVideo = currentMediaUrl?.match(/\.(mp4|mov|webm)$/i);
+    const authorAvatarUrl = resolveMediaUrl(post.authorAvatarUrl);
 
     return (
-        <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-200">
+        <div className="theme-overlay-strong fixed inset-0 z-[9999] backdrop-blur-sm flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-200">
             <button onClick={onClose} className="absolute top-4 left-4 z-50 p-2 bg-white/10 hover:bg-rose-500 text-white rounded-full transition-colors backdrop-blur-md">
                 <X className="w-6 h-6" />
             </button>
 
-            <div className="w-full h-full max-w-[1400px] flex flex-col lg:flex-row bg-[#1e293b] rounded-xl overflow-hidden shadow-2xl border border-slate-700">
-
-                {/* LEFT SIDE: THEATER (Media Display) */}
+            <div className="theme-surface-inset w-full h-full max-w-[1400px] flex flex-col lg:flex-row rounded-xl overflow-hidden shadow-2xl border theme-border">
                 <div className="flex-1 bg-black relative flex items-center justify-center group h-[40vh] lg:h-full overflow-hidden">
-
-                    {/* The Facebook-style blurred background */}
                     {currentMediaUrl && (
                         <div
                             className="absolute inset-0 bg-cover bg-center opacity-30 blur-2xl scale-110 transition-all duration-300"
@@ -67,7 +66,6 @@ export const PostTheaterModal = ({ isOpen, post, onClose, commentsData, onSubmit
                         />
                     )}
 
-                    {/* Main Image Layer */}
                     {currentMediaUrl && (
                         isVideo ? (
                             <video src={currentMediaUrl} controls autoPlay className="relative z-10 max-w-full max-h-full object-contain drop-shadow-2xl" />
@@ -76,7 +74,6 @@ export const PostTheaterModal = ({ isOpen, post, onClose, commentsData, onSubmit
                         )
                     )}
 
-                    {/* Carousel Controls */}
                     {mediaList.length > 1 && (
                         <>
                             <button onClick={handlePrev} className="absolute z-20 left-4 p-3 bg-black/50 hover:bg-black/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md">
@@ -92,14 +89,15 @@ export const PostTheaterModal = ({ isOpen, post, onClose, commentsData, onSubmit
                     )}
                 </div>
 
-                {/* RIGHT SIDE: CONTEXT & COMMENTS */}
-                <div className="w-full lg:w-[400px] xl:w-[450px] bg-white dark:bg-[#0f172a] flex flex-col h-[60vh] lg:h-full shrink-0 border-l border-slate-300 dark:border-slate-800">
-
-                    {/* Author & Post Text */}
-                    <div className="p-5 border-b border-slate-200 dark:border-slate-800 shrink-0">
+                <div className="theme-surface-strong w-full lg:w-[400px] xl:w-[450px] flex flex-col h-[60vh] lg:h-full shrink-0 border-l theme-border">
+                    <div className="p-5 border-b theme-border shrink-0">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-sm font-black text-white shadow-sm border border-emerald-700">
-                                {(post.clubName || post.authorName).substring(0, 2).toUpperCase()}
+                            <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-sm font-black text-white shadow-sm border border-emerald-700 overflow-hidden">
+                                {authorAvatarUrl ? (
+                                    <img src={authorAvatarUrl} alt={post.clubName || post.authorName} className="w-full h-full object-cover" />
+                                ) : (
+                                    (post.clubName || post.authorName).substring(0, 2).toUpperCase()
+                                )}
                             </div>
                             <div>
                                 <h4 className="font-bold text-slate-900 dark:text-white">{post.clubName || post.authorName}</h4>
@@ -109,7 +107,6 @@ export const PostTheaterModal = ({ isOpen, post, onClose, commentsData, onSubmit
                         <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-line font-medium leading-relaxed">{post.content}</p>
                     </div>
 
-                    {/* Stats & Actions */}
                     <div className="px-5 py-3 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 shrink-0">
                         <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{post.likeCount} ACKS • {post.commentCount} INTEL</span>
                         <div className="flex gap-2">
@@ -122,7 +119,6 @@ export const PostTheaterModal = ({ isOpen, post, onClose, commentsData, onSubmit
                         </div>
                     </div>
 
-                    {/* Comments List */}
                     <div className="flex-1 overflow-y-auto p-5 space-y-4">
                         {!commentsData ? (
                             <div className="flex justify-center py-10"><span className="text-xs font-bold uppercase tracking-widest text-slate-400">Loading intel...</span></div>
@@ -131,10 +127,18 @@ export const PostTheaterModal = ({ isOpen, post, onClose, commentsData, onSubmit
                         ) : (
                             commentsData.map(comment => (
                                 <div key={comment.id} className="flex gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400">
-                                        {comment.authorName.substring(0, 2).toUpperCase()}
+                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 overflow-hidden">
+                                        {resolveMediaUrl(comment.authorAvatarUrl) ? (
+                                            <img
+                                                src={resolveMediaUrl(comment.authorAvatarUrl)}
+                                                alt={comment.authorName}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            comment.authorName.substring(0, 2).toUpperCase()
+                                        )}
                                     </div>
-                                    <div className="flex-1 bg-slate-50 dark:bg-[#1e293b] p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                    <div className="theme-surface flex-1 p-3 rounded-xl border theme-border">
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="font-bold text-sm text-slate-900 dark:text-white">{comment.authorName}</span>
                                             <span className="text-[10px] text-slate-500 font-bold">{formatTime(comment.createdAt)}</span>
@@ -146,8 +150,7 @@ export const PostTheaterModal = ({ isOpen, post, onClose, commentsData, onSubmit
                         )}
                     </div>
 
-                    {/* Input Field */}
-                    <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0f172a] shrink-0">
+                    <div className="theme-surface-strong p-4 border-t theme-border shrink-0">
                         <div className="flex gap-2 relative">
                             <input
                                 type="text"
@@ -166,7 +169,6 @@ export const PostTheaterModal = ({ isOpen, post, onClose, commentsData, onSubmit
                             </button>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>

@@ -14,9 +14,12 @@ import { StorePage } from './pages/StorePage';
 import { CharityPage } from './pages/CharityPage';
 import { MyClubPage } from './pages/MyClubPage';
 import { CalendarPage } from './pages/CalendarPage';
+import { ClubSquadsPage } from './pages/ClubSquadsPage';
+import { NotificationsPage } from './pages/NotificationsPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { OAuth2RedirectHandler } from "./pages/OAuth2RedirectHandler";
 import { apiClient } from './api/axiosConfig';
 import { Send, ExternalLink, X, Bot } from 'lucide-react';
 
@@ -30,7 +33,7 @@ function MainLayout() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const [user, setUser] = useState<{ id: number; username: string; role: string; fullName?: string } | null>(null);
+    const [user, setUser] = useState<{ id?: number; username?: string; role?: string; fullName?: string; profileComplete?: boolean } | null>(null);
     const [activeQuickChat, setActiveQuickChat] = useState<{id: number, name: string, role: string, online: boolean} | null>(null);
     const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
     const [isRoofVisible, setIsRoofVisible] = useState(true);
@@ -47,16 +50,28 @@ function MainLayout() {
     useEffect(() => {
         const token = localStorage.getItem('accessToken');
         if (token) {
+            apiClient.get('/auth/csrf').catch(() => undefined);
+
             apiClient.get('/users/me')
                 .then(res => {
-                    setUser(res.data);
+                    const normalizedUser = {
+                        id: res.data.id,
+                        username: res.data.username,
+                        role: res.data.role,
+                        fullName: res.data.fullName ?? res.data.name,
+                        profileComplete: !!res.data.profileComplete
+                    };
 
-                    // Anchor user identity in local storage for specific page evaluations
-                    localStorage.setItem('userId', String(res.data.id));
-                    localStorage.setItem('user', JSON.stringify(res.data));
+                    setUser(normalizedUser);
 
-                    const isProfileIncomplete = !res.data.fullName || res.data.fullName.trim() === '' || res.data.fullName === 'New User' || res.data.role === 'USER';
-                    if (isProfileIncomplete && location.pathname !== '/onboarding') navigate('/onboarding', { replace: true });
+                    if (normalizedUser.id != null) {
+                        localStorage.setItem('userId', String(normalizedUser.id));
+                    }
+                    localStorage.setItem('user', JSON.stringify(normalizedUser));
+
+                    if (!normalizedUser.profileComplete && location.pathname !== '/onboarding') {
+                        navigate('/onboarding', { replace: true });
+                    }
                 })
                 .catch((error) => {
                     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
@@ -93,11 +108,14 @@ function MainLayout() {
     const isLandingPage = location.pathname === '/';
     const isFeedPage = location.pathname === '/feed';
     const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/oauth2/callback';
-    const isFullScreenPage = ['/map', '/messages', '/store', '/charity', '/my-club', '/calendar', '/onboarding'].includes(location.pathname) || location.pathname.startsWith('/profile') || /^\/clubs\/\d+$/.test(location.pathname);
+    const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads)?$/.test(location.pathname);
+    const isFullScreenPage = ['/map', '/messages', '/store', '/charity', '/my-club', '/calendar', '/notifications', '/onboarding'].includes(location.pathname) || location.pathname.startsWith('/profile') || isClubSurfaceRoute;
+    const isBoundedCanvasPage = ['/map', '/messages', '/calendar'].includes(location.pathname);
 
     // Adjust height logic for BOTH Club Profile and User Profile
-    const isCompactMode = /^\/clubs\/\d+$/.test(location.pathname) || /^\/profile\/\d+$/.test(location.pathname);
+    const isCompactMode = isClubSurfaceRoute || /^\/profile\/\d+$/.test(location.pathname);
     const headerHeight = isCompactMode ? '64px' : '96px';
+    const fullScreenShellHeight = isRoofVisible ? `calc(100dvh - ${headerHeight})` : '100dvh';
 
     useEffect(() => { if (!isFullScreenPage && !isRoofVisible) setIsRoofVisible(true); }, [location.pathname, isFullScreenPage]);
 
@@ -114,15 +132,21 @@ function MainLayout() {
                         <Route path="/" element={<LandingPage />} />
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/signup" element={<RegisterPage />} />
+                        <Route path="/oauth2/callback" element={<OAuth2RedirectHandler />} />
                     </Routes>
                 </main>
             ) : isFullScreenPage ? (
-                <main className={`w-full relative transition-all duration-500 ease-in-out overflow-y-auto ${isRoofVisible ? `h-[calc(100vh-${headerHeight})]` : 'h-screen'}`}>
+                <main
+                    className={`w-full relative min-h-0 ${isBoundedCanvasPage ? 'overflow-hidden' : 'overflow-y-auto transition-all duration-500 ease-in-out'}`}
+                    style={{ height: fullScreenShellHeight }}
+                >
                     <Routes>
                         <Route path="/map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
                         <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+                        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
                         <Route path="/messages" element={<ProtectedRoute><MessagingPage /></ProtectedRoute>} />
                         <Route path="/profile/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+                        <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
                         <Route path="/clubs/:id" element={<ProtectedRoute><ClubProfilePage /></ProtectedRoute>} />
                         <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
                         <Route path="/store" element={<ProtectedRoute><StorePage /></ProtectedRoute>} />

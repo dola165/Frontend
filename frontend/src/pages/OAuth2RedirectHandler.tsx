@@ -14,7 +14,7 @@ export const OAuth2RedirectHandler = () => {
                 try {
                     // Check if the user has completed their profile
                     const meRes = await apiClient.get('/users/me');
-                    if (meRes.data.userType === 'FAN') {
+                    if (!meRes.data.profileComplete) {
                         navigate('/onboarding');
                     } else {
                         navigate('/feed');

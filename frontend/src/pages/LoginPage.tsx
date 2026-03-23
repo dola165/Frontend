@@ -19,7 +19,10 @@ export const LoginPage = () => {
         try {
             const res = await apiClient.post('/auth/login', { email, password });
             localStorage.setItem('accessToken', res.data.accessToken);
-            navigate('/feed'); // 🛡️ Replaced the hard reload with seamless SPA routing
+            await apiClient.get('/auth/csrf').catch(() => undefined);
+
+            const meRes = await apiClient.get('/users/me');
+            navigate(meRes.data.profileComplete ? '/feed' : '/onboarding');
         } catch (err: any) {
             console.error(err);
             setError(err.response?.data?.error || 'Invalid credentials. Please try again.');
@@ -75,7 +78,7 @@ export const LoginPage = () => {
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                                 className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#2a4d37] dark:focus:border-emerald-500 font-medium transition-colors"
-                                placeholder="••••••••"
+                                placeholder="********"
                             />
                         </div>
 
@@ -94,7 +97,6 @@ export const LoginPage = () => {
                         <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
                     </div>
 
-                    {/* 🛡️ THE SECURE GOOGLE LOGIN COMPONENT */}
                     <div className="flex justify-center w-full">
                         <GoogleLogin
                             theme="filled_black"
@@ -109,6 +111,7 @@ export const LoginPage = () => {
                                     });
 
                                     localStorage.setItem('accessToken', res.data.accessToken);
+                                    await apiClient.get('/auth/csrf').catch(() => undefined);
 
                                     const meRes = await apiClient.get('/users/me');
                                     if (!meRes.data.profileComplete) {

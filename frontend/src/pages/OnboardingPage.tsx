@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
-import { Shield, Activity, User, ChevronRight, Loader2, Target } from 'lucide-react';
+import { Activity, User, ChevronRight, Loader2, Target } from 'lucide-react';
 
 export const OnboardingPage = () => {
     const navigate = useNavigate();
@@ -21,8 +21,13 @@ export const OnboardingPage = () => {
     useEffect(() => {
         // Fetch existing data (like if Google provided their real name)
         apiClient.get('/users/me').then(res => {
-            if (res.data.fullName && res.data.fullName !== 'New User') {
-                setFormData(prev => ({ ...prev, fullName: res.data.fullName }));
+            const existingName = res.data.fullName || res.data.name;
+            const existingRole = res.data.role;
+            if (existingName && existingName !== 'New User') {
+                setFormData(prev => ({ ...prev, fullName: existingName }));
+            }
+            if (existingRole === 'PLAYER' || existingRole === 'FAN') {
+                setFormData(prev => ({ ...prev, role: existingRole }));
             }
         });
     }, []);
@@ -35,8 +40,7 @@ export const OnboardingPage = () => {
             // 1. Commit the profile to the DB
             await apiClient.put('/users/me/profile', formData);
 
-            // 2. FORCE TOKEN ROTATION
-            // Your refresh endpoint must hit the DB and issue a token with the NEW 'CLUB_ADMIN' role.
+            // 2. Force token rotation so the client sees the new profile-complete state.
             const refreshRes = await apiClient.post('/auth/refresh');
             localStorage.setItem('accessToken', refreshRes.data.accessToken);
 
@@ -64,7 +68,6 @@ export const OnboardingPage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                             {[
                                 { id: 'PLAYER', icon: Activity, label: 'Player', desc: 'Seeking clubs & tryouts' },
-                                { id: 'CLUB_ADMIN', icon: Shield, label: 'Club Admin', desc: 'Managing a roster' },
                                 { id: 'FAN', icon: User, label: 'Supporter', desc: 'Following the action' }
                             ].map(role => (
                                 <button

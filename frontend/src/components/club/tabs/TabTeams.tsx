@@ -1,49 +1,107 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../../api/axiosConfig';
-import { ShieldCheck, Loader2 } from 'lucide-react';
+import { ArrowRight, Layers3, Loader2, Users } from 'lucide-react';
 
-interface ClubRosterDto { id: number; name: string; position: string; number: number; status: string; avatar: string; }
+interface ClubRosterDto {
+    id: number;
+    squadId?: number | null;
+}
 
-export const TabTeams = ({ clubId }: { clubId: number }) => {
+interface SquadDto {
+    id: number;
+    clubId: number;
+    name: string;
+    category: string;
+    gender: string;
+}
+
+export const TabTeams = ({ clubId, refreshKey = 0 }: { clubId: number; refreshKey?: number }) => {
+    const navigate = useNavigate();
     const [roster, setRoster] = useState<ClubRosterDto[]>([]);
+    const [squads, setSquads] = useState<SquadDto[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        apiClient.get(`/clubs/${clubId}/roster`)
-            .then(res => setRoster(res.data))
-            .catch(err => console.error("Failed to load roster", err))
+        Promise.all([
+            apiClient.get(`/clubs/${clubId}/roster`),
+            apiClient.get(`/clubs/${clubId}/squads`)
+        ])
+            .then(([rosterRes, squadsRes]) => {
+                setRoster(rosterRes.data || []);
+                setSquads(squadsRes.data || []);
+            })
+            .catch((error) => console.error('Failed to load squad directory', error))
             .finally(() => setLoading(false));
-    }, [clubId]);
+    }, [clubId, refreshKey]);
 
-    if (loading) return <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>;
+    const squadCounts = useMemo(() => {
+        const counts = new Map<number, number>();
+        roster.forEach((player) => {
+            if (!player.squadId) return;
+            counts.set(player.squadId, (counts.get(player.squadId) || 0) + 1);
+        });
+        return counts;
+    }, [roster]);
 
-    if (roster.length === 0) return (
-        <div className="bg-white dark:bg-[#1e293b] border-2 border-slate-300 dark:border-black rounded-lg p-10 shadow-lg text-center">
-            <h3 className="font-black text-slate-900 dark:text-white text-lg uppercase tracking-wide">No Active Personnel</h3>
-            <p className="text-slate-500 font-medium text-sm">The roster for this organization is currently empty.</p>
-        </div>
-    );
+    if (loading) {
+        return (
+            <div className="flex justify-center py-10">
+                <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+            </div>
+        );
+    }
+
+    if (squads.length === 0) {
+        return (
+            <div className="theme-surface-muted theme-border rounded-lg border px-5 py-10 text-center">
+                <h3 className="text-lg font-black uppercase tracking-wide text-slate-900 dark:text-white">No Active Squads</h3>
+                <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-400">This club has not registered any squads yet.</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {roster.map(player => (
-                <div key={player.id} className="bg-white dark:bg-[#1e293b] border-2 border-slate-300 dark:border-slate-800 rounded-lg overflow-hidden group hover:border-emerald-500 transition-colors cursor-pointer">
-                    <div className="h-40 bg-slate-200 dark:bg-slate-800 relative">
-                        <img src={player.avatar || `https://i.pravatar.cc/300?u=${player.id}`} alt={player.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white font-black text-xs px-2 py-1 rounded-md">{player.position}</div>
-                        <div className="absolute -bottom-6 left-4 w-12 h-12 bg-white dark:bg-slate-900 rounded-lg border-2 border-slate-300 dark:border-slate-700 flex items-center justify-center font-black text-lg text-slate-900 dark:text-white shadow-lg z-10">
-                            {player.number}
-                        </div>
+        <div className="flex flex-col gap-5">
+            <section className="theme-surface-muted theme-border rounded-lg border">
+                <div className="theme-border border-b px-5 py-4">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-400">
+                        <Layers3 className="h-3.5 w-3.5" />
+                        Squad Directory
                     </div>
-                    <div className="pt-8 pb-4 px-4">
-                        <h4 className="font-black text-slate-900 dark:text-white text-lg leading-tight flex items-center gap-1.5">{player.name} {player.status === 'VERIFIED' && <ShieldCheck className="w-4 h-4 text-emerald-500" />}</h4>
-                        <div className="mt-3 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                            <span className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Active</span>
-                        </div>
-                    </div>
+                    <h2 className="mt-4 text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Football Structure</h2>
+                    <p className="mt-2 max-w-2xl text-sm font-medium text-slate-600 dark:text-slate-400">
+                        Open the dedicated squads page for full roster tables, grouped positions, and squad-specific football data.
+                    </p>
                 </div>
-            ))}
+
+                <div className="divide-y theme-border">
+                    {squads.map((squad) => (
+                        <div key={squad.id} className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-base font-black uppercase tracking-wide text-slate-900 dark:text-white">{squad.name}</h3>
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-400">
+                                        <Users className="h-3 w-3" />
+                                        {squadCounts.get(squad.id) || 0}
+                                    </span>
+                                </div>
+                                <p className="mt-1 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                                    {squad.category} · {squad.gender}
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => navigate(`/clubs/${clubId}/squads?squad=${squad.id}`)}
+                                className="theme-surface-strong theme-border inline-flex items-center gap-2 self-start rounded-sm border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-700 transition-colors hover:border-emerald-500 hover:text-emerald-500 dark:text-slate-200 dark:hover:text-emerald-400 lg:self-auto"
+                            >
+                                Open Squad View
+                                <ArrowRight className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </section>
         </div>
     );
 };

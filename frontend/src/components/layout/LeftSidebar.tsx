@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
-import { Home, Map as MapIcon, Shield, Building2, MessageSquare, User, ShoppingCart, HeartHandshake } from 'lucide-react';
+import { BellRing, Home, Map as MapIcon, Shield, Building2, MessageSquare, User, ShoppingCart, HeartHandshake } from 'lucide-react';
 
 interface LeftSidebarProps {
-    user: { id: number; username: string; role: string } | null;
+    user: { id?: number; username?: string; role?: string; fullName?: string } | null;
 }
 
 export const LeftSidebar = ({ user }: LeftSidebarProps) => {
@@ -16,7 +16,8 @@ export const LeftSidebar = ({ user }: LeftSidebarProps) => {
                         { path: "/clubs", icon: Shield, label: "Club Database" },
                         { path: "/my-club", icon: Building2, label: "My Club" },
                         { path: "/messages", icon: MessageSquare, label: "Communications" },
-                        { path: user ? `/profile/${user.id}` : "#", icon: User, label: "My Profile" }
+                        { path: user ? `/profile/${user.id}` : "#", icon: User, label: "My Profile" },
+                        { path: "/notifications?scope=personal", icon: BellRing, label: "Notifications" }
                     ].map((item, idx) => (
                         <Link key={idx} to={item.path} onClick={() => !user && item.label === "My Profile" && alert('Please login')}
                               className="flex items-center gap-3 text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:bg-emerald-500 hover:text-white dark:hover:text-slate-900 px-4 py-3 rounded-sm border-2 border-transparent hover:border-slate-900 hover:shadow-[4px_4px_0px_0px_#020617] transition-all">

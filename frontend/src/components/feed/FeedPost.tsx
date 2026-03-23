@@ -1,13 +1,21 @@
 import { useState } from 'react';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Send } from 'lucide-react';
+import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 
-export interface CommentDto { id: number; authorName: string; content: string; createdAt: string; }
+export interface CommentDto {
+    id: number;
+    authorName: string;
+    authorAvatarUrl?: string | null;
+    content: string;
+    createdAt: string;
+}
 
 export interface FeedPostDto {
     id: number;
     content: string;
     createdAt: string;
     authorName: string;
+    authorAvatarUrl?: string | null;
     clubId?: number | null;
     clubName?: string | null;
     likeCount: number;
@@ -25,27 +33,51 @@ interface FeedPostProps {
     onToggleComments: (postId: number) => void;
     onSubmitComment: (postId: number, content: string) => void;
     onImageClick: () => void; // <-- NEW PROP
+    compact?: boolean;
 }
 
-export const FeedPost = ({ post, isCommentsOpen, commentsData, onLikeToggle, onToggleComments, onSubmitComment, onImageClick }: FeedPostProps) => {
+export const FeedPost = ({ post, isCommentsOpen, commentsData, onLikeToggle, onToggleComments, onSubmitComment, onImageClick, compact = false }: FeedPostProps) => {
     const [commentInput, setCommentInput] = useState("");
 
     const formatTime = (dateString: string) => {
         return new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     };
 
-    const formatMediaUrl = (url?: string) => {
-        if (!url) return undefined;
-        if (url.startsWith('http')) return url;
-        return `http://localhost:8080${url}`;
-    };
-
     const initials = (post.clubName || post.authorName).substring(0, 2).toUpperCase();
+    const authorAvatarUrl = resolveMediaUrl(post.authorAvatarUrl);
 
     const handleCommentSubmit = () => {
         if (!commentInput.trim()) return;
         onSubmitComment(post.id, commentInput);
         setCommentInput("");
+    };
+
+    const handleShare = async () => {
+        const shareTitle = post.clubName || post.authorName || 'Talanti post';
+        const shareText = `${shareTitle}\n\n${post.content}`.trim();
+        const shareUrl = window.location.href;
+
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: shareTitle,
+                    text: shareText,
+                    url: shareUrl
+                });
+                return;
+            }
+
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(`${shareText}\n\n${shareUrl}`);
+                alert('Post details copied to clipboard.');
+                return;
+            }
+        } catch (error) {
+            console.error('Share failed', error);
+            return;
+        }
+
+        alert('Sharing is not available on this device yet.');
     };
 
     // Consolidate media into a single array
@@ -58,7 +90,7 @@ export const FeedPost = ({ post, isCommentsOpen, commentsData, onLikeToggle, onT
         const count = mediaList.length;
 
         const MediaItem = ({ url, className }: { url: string, className: string }) => {
-            const finalUrl = formatMediaUrl(url);
+            const finalUrl = resolveMediaUrl(url);
             const isVideo = finalUrl?.match(/\.(mp4|mov|webm)$/i);
             return isVideo ? (
                 <video src={finalUrl} className={`object-cover ${className}`} />
@@ -70,40 +102,40 @@ export const FeedPost = ({ post, isCommentsOpen, commentsData, onLikeToggle, onT
         return (
             <div className="border-y border-slate-200 dark:border-slate-800 cursor-pointer overflow-hidden" onClick={onImageClick}>
                 {count === 1 && (
-                    <div className="relative w-full max-h-[75vh] bg-[#0a0f13] flex items-center justify-center overflow-hidden">
+                    <div className={`theme-surface-strong relative w-full flex items-center justify-center overflow-hidden ${compact ? 'max-h-[60vh]' : 'max-h-[75vh]'}`}>
                         {/* The high-saturation, high-opacity blur for seamless blending */}
                         <div
                             className="absolute inset-0 bg-cover bg-center opacity-80 blur-3xl scale-125 saturate-150 transition-all duration-500"
-                            style={{ backgroundImage: `url(${formatMediaUrl(mediaList[0])})` }}
+                            style={{ backgroundImage: `url(${resolveMediaUrl(mediaList[0])})` }}
                         />
                         {/* w-full ensures horizontal images span edge to edge.
                             max-h-[75vh] prevents vertical panoramas from breaking the layout.
                         */}
                         <MediaItem
                             url={mediaList[0]}
-                            className="relative z-10 w-full max-h-[75vh] object-contain drop-shadow-2xl"
+                            className={`relative z-10 w-full object-contain drop-shadow-2xl ${compact ? 'max-h-[60vh]' : 'max-h-[75vh]'}`}
                         />
                     </div>
                 )}
                 {count === 2 && (
-                    <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#1e293b]">
-                        <MediaItem url={mediaList[0]} className="w-full h-72" />
-                        <MediaItem url={mediaList[1]} className="w-full h-72" />
+                    <div className="theme-surface grid grid-cols-2 gap-1">
+                        <MediaItem url={mediaList[0]} className={`w-full ${compact ? 'h-56' : 'h-72'}`} />
+                        <MediaItem url={mediaList[1]} className={`w-full ${compact ? 'h-56' : 'h-72'}`} />
                     </div>
                 )}
                 {count === 3 && (
-                    <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#1e293b]">
-                        <MediaItem url={mediaList[0]} className="w-full h-80 col-span-2" />
-                        <MediaItem url={mediaList[1]} className="w-full h-40" />
-                        <MediaItem url={mediaList[2]} className="w-full h-40" />
+                    <div className="theme-surface grid grid-cols-2 gap-1">
+                        <MediaItem url={mediaList[0]} className={`w-full col-span-2 ${compact ? 'h-60' : 'h-80'}`} />
+                        <MediaItem url={mediaList[1]} className={`w-full ${compact ? 'h-32' : 'h-40'}`} />
+                        <MediaItem url={mediaList[2]} className={`w-full ${compact ? 'h-32' : 'h-40'}`} />
                     </div>
                 )}
                 {count >= 4 && (
-                    <div className="grid grid-cols-2 gap-1 bg-white dark:bg-[#1e293b]">
-                        <MediaItem url={mediaList[0]} className="w-full h-48" />
-                        <MediaItem url={mediaList[1]} className="w-full h-48" />
-                        <MediaItem url={mediaList[2]} className="w-full h-48" />
-                        <div className="relative w-full h-48">
+                    <div className="theme-surface grid grid-cols-2 gap-1">
+                        <MediaItem url={mediaList[0]} className={`w-full ${compact ? 'h-36' : 'h-48'}`} />
+                        <MediaItem url={mediaList[1]} className={`w-full ${compact ? 'h-36' : 'h-48'}`} />
+                        <MediaItem url={mediaList[2]} className={`w-full ${compact ? 'h-36' : 'h-48'}`} />
+                        <div className={`relative w-full ${compact ? 'h-36' : 'h-48'}`}>
                             <MediaItem url={mediaList[3]} className="w-full h-full" />
                             {count > 4 && (
                                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-black text-3xl">
@@ -118,21 +150,27 @@ export const FeedPost = ({ post, isCommentsOpen, commentsData, onLikeToggle, onT
     };
 
     return (
-        <div className="bg-white dark:bg-[#1e293b] border-2 border-slate-300 dark:border-black rounded-lg overflow-hidden shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.6)] hover:-translate-y-1 transition-all duration-300">
+        <div className={`theme-surface rounded-lg overflow-hidden transition-all duration-300 ${compact
+            ? 'border theme-border shadow-sm'
+            : 'border-2 theme-border-strong shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.6)] hover:-translate-y-1'}`}>
             {/* Header */}
-            <div className="p-4 flex items-start justify-between">
+            <div className={`${compact ? 'p-3' : 'p-4'} flex items-start justify-between`}>
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-sm font-black text-white shrink-0 shadow-sm border border-emerald-700">
-                        {initials}
+                    <div className={`${compact ? 'w-9 h-9 text-[11px]' : 'w-10 h-10 text-sm'} bg-emerald-600 rounded-full flex items-center justify-center font-black text-white shrink-0 shadow-sm border border-emerald-700 overflow-hidden`}>
+                        {authorAvatarUrl ? (
+                            <img src={authorAvatarUrl} alt={post.clubName || post.authorName} className="w-full h-full object-cover" />
+                        ) : (
+                            initials
+                        )}
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-slate-900 dark:text-white text-sm">{post.clubName || post.authorName}</h4>
+                            <h4 className={`font-bold text-slate-900 dark:text-white ${compact ? 'text-[13px]' : 'text-sm'}`}>{post.clubName || post.authorName}</h4>
                             {post.clubName && (
                                 <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded text-[10px] uppercase font-bold tracking-widest">Official</span>
                             )}
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{formatTime(post.createdAt)}</p>
+                        <p className={`${compact ? 'text-[11px]' : 'text-xs'} text-slate-500 dark:text-slate-400 font-medium`}>{formatTime(post.createdAt)}</p>
                     </div>
                 </div>
                 <button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white rounded-full transition-colors">
@@ -141,35 +179,35 @@ export const FeedPost = ({ post, isCommentsOpen, commentsData, onLikeToggle, onT
             </div>
 
             {/* Content */}
-            <div className="px-4 pb-3">
-                <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-line font-medium">{post.content}</p>
+            <div className={`${compact ? 'px-3 pb-2.5' : 'px-4 pb-3'}`}>
+                <p className={`${compact ? 'text-[13px] leading-5' : 'text-sm leading-relaxed'} text-slate-800 dark:text-slate-200 whitespace-pre-line font-medium`}>{post.content}</p>
             </div>
 
             {/* Render the new dynamic grid */}
             {renderMediaGrid()}
 
             {/* Stats Bar */}
-            <div className="px-4 py-2 flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 uppercase tracking-widest">
+            <div className={`${compact ? 'px-3 py-1.5 text-[11px]' : 'px-4 py-2 text-xs'} flex items-center justify-between font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 uppercase tracking-widest`}>
                 <span>{post.likeCount} acknowledgments</span>
                 <span>{post.commentCount} intel reports</span>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex bg-slate-50 dark:bg-[#111827]">
-                <button onClick={() => onLikeToggle(post.id)} className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-widest transition-all border-r border-slate-200 dark:border-slate-800 ${post.isLikedByMe ? 'text-rose-600 bg-rose-50 dark:text-rose-500 dark:bg-rose-500/5' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-rose-500'}`}>
+            <div className="theme-surface-strong flex">
+                <button onClick={() => onLikeToggle(post.id)} className={`flex-1 flex items-center justify-center gap-2 ${compact ? 'py-2.5 text-[11px]' : 'py-3 text-xs'} font-bold uppercase tracking-widest transition-all border-r border-slate-200 dark:border-slate-800 ${post.isLikedByMe ? 'text-rose-600 bg-rose-50 dark:text-rose-500 dark:bg-rose-500/5' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-rose-500'}`}>
                     <Heart className={`w-4 h-4 ${post.isLikedByMe ? 'fill-current' : ''}`} /> ACK
                 </button>
-                <button onClick={() => onToggleComments(post.id)} className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-widest transition-all border-r border-slate-200 dark:border-slate-800 ${isCommentsOpen ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-500 dark:bg-emerald-500/10' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-500'}`}>
+                <button onClick={() => onToggleComments(post.id)} className={`flex-1 flex items-center justify-center gap-2 ${compact ? 'py-2.5 text-[11px]' : 'py-3 text-xs'} font-bold uppercase tracking-widest transition-all border-r border-slate-200 dark:border-slate-800 ${isCommentsOpen ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-500 dark:bg-emerald-500/10' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-500'}`}>
                     <MessageCircle className="w-4 h-4" /> INTEL
                 </button>
-                <button className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-500 transition-all">
+                <button onClick={handleShare} className={`flex-1 flex items-center justify-center gap-2 ${compact ? 'py-2.5 text-[11px]' : 'py-3 text-xs'} font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-500 transition-all`}>
                     <Share2 className="w-4 h-4" /> RELAY
                 </button>
             </div>
 
             {/* Inline Comment Section */}
             {isCommentsOpen && (
-                <div className="bg-slate-50 dark:bg-[#111827] p-4 border-t border-slate-200 dark:border-slate-800">
+                <div className="theme-surface-strong p-4 border-t theme-border">
                     <div className="flex flex-col gap-3 mb-4 max-h-60 overflow-y-auto">
                         {!commentsData ? (
                             <div className="text-[10px] uppercase tracking-widest font-bold text-center text-slate-500">Loading intel...</div>
@@ -178,10 +216,18 @@ export const FeedPost = ({ post, isCommentsOpen, commentsData, onLikeToggle, onT
                         ) : (
                             commentsData.map(comment => (
                                 <div key={comment.id} className="flex gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400">
-                                        {comment.authorName.substring(0, 2).toUpperCase()}
+                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 overflow-hidden">
+                                        {resolveMediaUrl(comment.authorAvatarUrl) ? (
+                                            <img
+                                                src={resolveMediaUrl(comment.authorAvatarUrl)}
+                                                alt={comment.authorName}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            comment.authorName.substring(0, 2).toUpperCase()
+                                        )}
                                     </div>
-                                    <div className="flex-1 bg-white dark:bg-[#1e293b] p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+                                    <div className="theme-surface flex-1 p-3 rounded-lg border theme-border shadow-sm">
                                         <div className="flex items-center justify-between mb-1">
                                             <span className="font-bold text-xs text-slate-900 dark:text-white">{comment.authorName}</span>
                                             <span className="text-[10px] text-slate-500 font-bold uppercase">{formatTime(comment.createdAt)}</span>

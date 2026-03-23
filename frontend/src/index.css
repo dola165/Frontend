@@ -9,9 +9,27 @@
     --moss-green: #2a4d37;
     --blood-orange: #a34e36;
     --iron-gray: #4a4a4a;
+    --theme-page: #fdfaf5;
+    --theme-surface: #ffffff;
+    --theme-surface-muted: #f8fafc;
+    --theme-surface-strong: #eef3f8;
+    --theme-surface-inset: #e2e8f0;
+    --theme-border: #cbd5e1;
+    --theme-border-strong: #94a3b8;
+    --theme-overlay: rgba(15, 23, 42, 0.76);
+    --theme-overlay-strong: rgba(15, 23, 42, 0.9);
+    --theme-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    min-height: 100%;
   }
 
   body {
+    margin: 0;
     background-color: var(--parchment);
     color: var(--ink-black);
     /* Subtle paper texture effect */
@@ -22,6 +40,19 @@
     background-color: #121212;
     color: #e0e0e0;
     background-image: url("https://www.transparenttextures.com/patterns/dark-matter.png");
+  }
+
+  .dark {
+    --theme-page: #0a0f13;
+    --theme-surface: #151f28;
+    --theme-surface-muted: #121b22;
+    --theme-surface-strong: #0f172a;
+    --theme-surface-inset: #111827;
+    --theme-border: #1f2937;
+    --theme-border-strong: #0b141a;
+    --theme-overlay: rgba(2, 6, 23, 0.78);
+    --theme-overlay-strong: rgba(2, 6, 23, 0.9);
+    --theme-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
   }
 
   /* Vagabond Manga Style Titles */
@@ -93,5 +124,47 @@
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+}
+
+@layer utilities {
+  .theme-page {
+    background-color: var(--theme-page);
+  }
+
+  .theme-surface {
+    background-color: var(--theme-surface);
+  }
+
+  .theme-surface-muted {
+    background-color: var(--theme-surface-muted);
+  }
+
+  .theme-surface-strong {
+    background-color: var(--theme-surface-strong);
+  }
+
+  .theme-surface-inset {
+    background-color: var(--theme-surface-inset);
+  }
+
+  .theme-border {
+    border-color: var(--theme-border);
+  }
+
+  .theme-border-strong {
+    border-color: var(--theme-border-strong);
+  }
+
+  .theme-overlay {
+    background-color: var(--theme-overlay);
+  }
+
+  .theme-overlay-strong {
+    background-color: var(--theme-overlay-strong);
+  }
+
+  .theme-shadow {
+    box-shadow: var(--theme-shadow);
   }
 }

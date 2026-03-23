@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Bell, Bot, Sun, Moon, User, ChevronUp, ChevronDown, Home, Map as MapIcon, Shield, Building2, CalendarDays, MessageSquare, Menu } from 'lucide-react';
+import { Search, Bot, Sun, Moon, User, ChevronUp, ChevronDown, Home, Map as MapIcon, Shield, Building2, CalendarDays, MessageSquare, Menu } from 'lucide-react';
+import { NotificationBell } from '../notifications/NotificationBell';
 
 interface TopNavProps {
     user: { id?: number; username?: string; fullName?: string; role?: string } | null;
@@ -54,10 +55,7 @@ export const TopNav = ({ user, darkMode, setDarkMode, isRoofVisible, setIsRoofVi
 
                 {/* Right Cluster */}
                 <div className={`flex items-center justify-end gap-3 lg:w-1/3 ${isCompactMode ? 'pointer-events-auto' : ''}`}>
-                    <button className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors relative">
-                        <Bell className="w-5 h-5" />
-                        <span className="absolute top-1.5 right-2 w-2 h-2 bg-orange-500 rounded-full"></span>
-                    </button>
+                    <NotificationBell enabled={Boolean(user?.id)} />
 
                     {!isFeedPage && (
                         <button onClick={() => alert("AI Assistant coming soon!")} className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors text-xs font-bold rounded-sm border border-emerald-500/30">

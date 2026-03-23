@@ -2,20 +2,54 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import {
-    MapPin,  Edit, Ruler, Weight,
-    ShieldCheck, ArrowLeft, Activity,
+    MapPin, Edit, Ruler, Weight,
+    ShieldCheck, ArrowLeft, Activity, BellRing,
     X, Save, Loader2, Camera
 } from 'lucide-react';
 import { FeedPost, type FeedPostDto, type CommentDto } from '../components/feed/FeedPost';
+import { PostTheaterModal } from '../components/PostTheaterModal';
+import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 
-interface CareerHistoryDto { id: number; clubName: string; season: string; category: string; appearances: number; goals: number; assists: number; cleanSheets: number; }
-interface UserProfile { id: number; username: string; fullName: string; role: string; position: string; preferredFoot: string; bio: string; availabilityStatus: string; heightCm: number; weightKg: number; followerCount: number; followingCount: number; isFollowedByMe: boolean; careerHistory: CareerHistoryDto[]; avatarUrl?: string; bannerUrl?: string; }
+interface CareerHistoryDto {
+    id: number;
+    clubName: string;
+    season: string;
+    category: string;
+    appearances: number;
+    goals: number;
+    assists: number;
+    cleanSheets: number;
+}
+
+interface UserProfile {
+    id: number;
+    username: string;
+    fullName?: string | null;
+    role: string;
+    position?: string | null;
+    preferredFoot?: string | null;
+    bio?: string | null;
+    availabilityStatus?: string | null;
+    heightCm?: number | null;
+    weightKg?: number | null;
+    followerCount: number;
+    followingCount: number;
+    isFollowedByMe: boolean;
+    careerHistory?: CareerHistoryDto[];
+    avatarUrl?: string | null;
+    bannerUrl?: string | null;
+}
+
+const parseOptionalNumber = (value: string) => {
+    if (!value.trim()) return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+};
 
 export const UserProfilePage = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    // --- Refs & Upload State ---
     const bannerInputRef = useRef<HTMLInputElement>(null);
     const avatarInputRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState<'banner' | 'avatar' | null>(null);
@@ -24,16 +58,59 @@ export const UserProfilePage = () => {
     const [posts, setPosts] = useState<FeedPostDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'feed' | 'stats' | 'media'>('feed');
+    const [selectedPost, setSelectedPost] = useState<FeedPostDto | null>(null);
 
-    // 🟢 FIXED: Fallback User Context fetch
     const [currentUserId, setCurrentUserId] = useState<string | null>(localStorage.getItem('userId'));
-
     const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
     const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editForm, setEditForm] = useState<Partial<UserProfile>>({});
     const [isSaving, setIsSaving] = useState(false);
+
+    const loadComments = async (postId: number) => {
+        if (commentsData[postId]) return;
+        try {
+            const res = await apiClient.get<CommentDto[]>(`/posts/${postId}/comments`);
+            setCommentsData(prev => ({ ...prev, [postId]: res.data }));
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const fetchProfile = async () => {
+        if (!id) return;
+
+        setLoading(true);
+        try {
+            const [userRes, postsRes] = await Promise.all([
+                apiClient.get(`/users/${id}`),
+                apiClient.get(`/posts/user/${id}`).catch(() => ({ data: { posts: [] } }))
+            ]);
+
+            setProfile(userRes.data);
+            setEditForm(userRes.data);
+            setPosts(postsRes.data?.posts || []);
+        } catch (err) {
+            console.error("Failed to fetch user profile", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        apiClient.get('/users/me')
+            .then(res => {
+                if (res.data?.id != null) {
+                    const userId = String(res.data.id);
+                    setCurrentUserId(userId);
+                    localStorage.setItem('userId', userId);
+                }
+            })
+            .catch(() => undefined);
+
+        fetchProfile();
+    }, [id]);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
         if (!e.target.files || !e.target.files[0]) return;
@@ -45,14 +122,20 @@ export const UserProfilePage = () => {
         formData.append('file', file);
 
         try {
-            const mediaRes = await apiClient.post('/media/upload', formData);
-            const imageUrl = mediaRes.data.url;
+            const mediaRes = await apiClient.post('/media/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            const imageUrl = mediaRes.data?.url;
 
-            await apiClient.put(`/users/me`, {
+            if (!imageUrl) {
+                throw new Error('Upload did not return a media URL.');
+            }
+
+            await apiClient.put('/users/me', {
                 [type === 'avatar' ? 'avatarUrl' : 'bannerUrl']: imageUrl
             });
 
-            fetchProfile();
+            await fetchProfile();
         } catch (err) {
             console.error("Upload failed", err);
             alert("Failed to update profile image.");
@@ -62,69 +145,80 @@ export const UserProfilePage = () => {
         }
     };
 
-    useEffect(() => {
-        // Guarantee we know who we are viewing as
-        apiClient.get('/users/me')
-            .then(res => {
-                setCurrentUserId(String(res.data.id));
-                localStorage.setItem('userId', String(res.data.id));
-            }).catch(() => {});
-
-        fetchProfile();
-    }, [id]);
-
-    const fetchProfile = () => {
-        Promise.all([
-            apiClient.get(`/users/${id}`),
-            apiClient.get(`/feed/user/${id}`).catch(() => ({ data: { posts: [] } }))
-        ])
-            .then(([userRes, postsRes]) => {
-                setProfile(userRes.data);
-                setEditForm(userRes.data);
-                setPosts(postsRes.data?.posts || []);
-            })
-            .catch(err => console.error("Failed to fetch user profile", err))
-            .finally(() => setLoading(false));
-    };
-
     const handleFollowToggle = async () => {
         if (!profile) return;
         const prev = profile.isFollowedByMe;
         const prevCount = profile.followerCount;
         setProfile({ ...profile, isFollowedByMe: !prev, followerCount: prev ? prevCount - 1 : prevCount + 1 });
-        try { await apiClient.post(`/users/${profile.id}/follow`); }
-        catch { setProfile({ ...profile, isFollowedByMe: prev, followerCount: prevCount }); }
+        try {
+            await apiClient.post(`/users/${profile.id}/follow`);
+        } catch {
+            setProfile({ ...profile, isFollowedByMe: prev, followerCount: prevCount });
+        }
     };
 
     const handleLikeToggle = async (postId: number) => {
-        setPosts(current => current.map(post => post.id === postId ? { ...post, isLikedByMe: !post.isLikedByMe, likeCount: post.isLikedByMe ? post.likeCount - 1 : post.likeCount + 1 } : post));
-        try { await apiClient.post(`/feed/posts/${postId}/like`); } catch { /* ignore */ }
+        setPosts(current => current.map(post => post.id === postId ? {
+            ...post,
+            isLikedByMe: !post.isLikedByMe,
+            likeCount: post.isLikedByMe ? post.likeCount - 1 : post.likeCount + 1
+        } : post));
+
+        if (selectedPost?.id === postId) {
+            setSelectedPost(prev => prev ? {
+                ...prev,
+                isLikedByMe: !prev.isLikedByMe,
+                likeCount: prev.isLikedByMe ? prev.likeCount - 1 : prev.likeCount + 1
+            } : null);
+        }
+
+        try {
+            await apiClient.post(`/posts/${postId}/like`);
+        } catch {
+            // keep optimistic UI for now
+        }
     };
 
     const toggleComments = async (postId: number) => {
         const isOpen = openComments[postId];
         setOpenComments(prev => ({ ...prev, [postId]: !isOpen }));
-        if (!isOpen && !commentsData[postId]) {
-            try {
-                const res = await apiClient.get<CommentDto[]>(`/feed/posts/${postId}/comments`);
-                setCommentsData(prev => ({ ...prev, [postId]: res.data }));
-            } catch (err) { console.error(err); }
+        if (!isOpen) {
+            await loadComments(postId);
         }
     };
 
     const submitComment = async (postId: number, content: string) => {
         try {
-            const res = await apiClient.post<CommentDto>(`/feed/posts/${postId}/comments`, { content });
+            const res = await apiClient.post<CommentDto>(`/posts/${postId}/comments`, { content });
             setCommentsData(prev => ({ ...prev, [postId]: [...(prev[postId] || []), res.data] }));
             setPosts(current => current.map(p => p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p));
-        } catch (err) { alert("Failed to post comment."); }
+            if (selectedPost?.id === postId) {
+                setSelectedPost(prev => prev ? { ...prev, commentCount: prev.commentCount + 1 } : null);
+            }
+        } catch (err) {
+            alert("Failed to post comment.");
+        }
     };
 
     const handleSaveProfile = async () => {
+        if (!profile || String(profile.id) !== currentUserId) return;
+
         setIsSaving(true);
         try {
-            const res = await apiClient.put(`/users/${id}`, editForm);
+            const payload = {
+                fullName: editForm.fullName?.trim() || undefined,
+                position: editForm.position?.trim() || undefined,
+                preferredFoot: editForm.preferredFoot?.trim() || undefined,
+                heightCm: editForm.heightCm != null ? Number(editForm.heightCm) : undefined,
+                weightKg: editForm.weightKg != null ? Number(editForm.weightKg) : undefined,
+                bio: editForm.bio?.trim() || undefined,
+                avatarUrl: editForm.avatarUrl || undefined,
+                bannerUrl: editForm.bannerUrl || undefined
+            };
+
+            const res = await apiClient.put('/users/me', payload);
             setProfile(res.data);
+            setEditForm(res.data);
             setIsEditModalOpen(false);
         } catch (error) {
             console.error("Failed to save profile", error);
@@ -137,20 +231,18 @@ export const UserProfilePage = () => {
     if (loading) return <div className="p-10 text-center font-bold text-slate-500 uppercase tracking-widest h-screen bg-[#fdfaf5] dark:bg-[#0a0f13]">Establishing connection...</div>;
     if (!profile) return <div className="p-10 text-center font-bold text-xl text-slate-900 dark:text-white h-screen bg-[#fdfaf5] dark:bg-[#0a0f13]">Personnel not found</div>;
 
-    const initials = profile.fullName.substring(0, 2).toUpperCase();
-    const bannerUrl = profile.bannerUrl || "https://images.unsplash.com/photo-1518605368461-1ee71161d91a?auto=format&fit=crop&q=80&w=1200&h=400";
-
-    // 🟢 FIXED: Bulletproof check
+    const displayName = profile.fullName || profile.username;
+    const initials = displayName.substring(0, 2).toUpperCase();
+    const bannerUrl = resolveMediaUrl(profile.bannerUrl) || "https://images.unsplash.com/photo-1518605368461-1ee71161d91a?auto=format&fit=crop&q=80&w=1200&h=400";
+    const avatarUrl = resolveMediaUrl(profile.avatarUrl);
     const isMyProfile = String(profile.id) === currentUserId;
 
     return (
         <div className="w-full min-h-screen bg-[#fdfaf5] dark:bg-[#0a0f13] font-sans pb-20">
-            {/* HERO SECTION */}
             <div className="relative bg-white dark:bg-[#151f28] border-b-2 border-slate-300 dark:border-black shadow-sm">
                 <div className="relative h-[240px] md:h-[320px] bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900 overflow-hidden group">
                     <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover opacity-80 dark:opacity-60 transition-transform duration-700 group-hover:scale-105" />
 
-                    {/* Update Cover Button */}
                     {isMyProfile && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                             <button
@@ -172,13 +264,11 @@ export const UserProfilePage = () => {
 
                 <div className="max-w-[1200px] mx-auto px-4 md:px-6 relative">
                     <div className="flex flex-col md:flex-row items-center md:items-end gap-4 md:gap-6 -mt-16 md:-mt-20 pb-6">
-                        {/* AVATAR SECTION */}
                         <div className="relative shrink-0 group/avatar">
                             <div className="w-28 h-28 md:w-36 md:h-36 bg-slate-100 dark:bg-slate-800 rounded-full border-4 border-white dark:border-[#151f28] shadow-xl flex items-center justify-center overflow-hidden text-4xl md:text-5xl font-black text-slate-400 dark:text-slate-500">
-                                {profile.avatarUrl ? <img src={profile.avatarUrl} className="w-full h-full object-cover" /> : initials}
+                                {avatarUrl ? <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" /> : initials}
                             </div>
 
-                            {/* Update Avatar Button */}
                             {isMyProfile && (
                                 <button
                                     onClick={() => avatarInputRef.current?.click()}
@@ -198,9 +288,9 @@ export const UserProfilePage = () => {
 
                         <div className="flex-1 flex flex-col md:flex-row items-center md:items-end justify-between w-full pb-2 gap-4 text-center md:text-left">
                             <div>
-                                <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{profile.fullName}</h1>
+                                <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{displayName}</h1>
                                 <p className="text-emerald-600 dark:text-emerald-500 font-bold text-sm uppercase tracking-widest mt-1">
-                                    {profile.role === 'CLUB_ADMIN' ? 'Club Administrator' : profile.position}
+                                    {profile.role === 'CLUB_ADMIN' ? 'Club Administrator' : (profile.position || profile.role)}
                                 </p>
                                 <div className="flex items-center justify-center md:justify-start gap-4 mt-3 text-xs md:text-sm font-bold text-slate-500 dark:text-slate-400">
                                     <span>{profile.followerCount} <span className="uppercase tracking-widest text-[10px] font-medium">Followers</span></span>
@@ -210,9 +300,17 @@ export const UserProfilePage = () => {
 
                             <div className="flex items-center gap-3 shrink-0">
                                 {isMyProfile ? (
-                                    <button onClick={() => setIsEditModalOpen(true)} className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-bold text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-700 border-2 border-slate-900">
-                                        <Edit className="w-4 h-4" /> Edit Profile
-                                    </button>
+                                    <div className="flex flex-wrap items-center justify-center gap-3 md:justify-end">
+                                        <button
+                                            onClick={() => navigate('/notifications?scope=personal')}
+                                            className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-bold text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-emerald-600 text-white hover:bg-emerald-500 border-2 border-slate-900"
+                                        >
+                                            <BellRing className="w-4 h-4" /> Notifications
+                                        </button>
+                                        <button onClick={() => setIsEditModalOpen(true)} className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-bold text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-700 border-2 border-slate-900">
+                                            <Edit className="w-4 h-4" /> Edit Profile
+                                        </button>
+                                    </div>
                                 ) : (
                                     <button onClick={handleFollowToggle} className={`flex items-center gap-2 px-8 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none border-2 ${profile.isFollowedByMe ? 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-900 hover:bg-slate-300 dark:hover:bg-slate-700' : 'bg-emerald-600 text-white border-emerald-900 hover:bg-emerald-500'}`}>
                                         {profile.isFollowedByMe ? 'Following' : 'Follow'}
@@ -224,7 +322,6 @@ export const UserProfilePage = () => {
                 </div>
             </div>
 
-            {/* REST OF PAGE CONTENT */}
             <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-6">
                 <div className="flex flex-col lg:flex-row gap-6">
                     <aside className="w-full lg:w-[320px] shrink-0 flex flex-col gap-4">
@@ -237,8 +334,8 @@ export const UserProfilePage = () => {
                                         <MapPin className="w-4 h-4 text-emerald-500" />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500 dark:text-slate-400">Location</p>
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white">Tbilisi, Georgia</p>
+                                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500 dark:text-slate-400">Availability</p>
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white">{profile.availabilityStatus || 'Not specified'}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -276,26 +373,47 @@ export const UserProfilePage = () => {
                                     <div className="bg-white dark:bg-[#1e293b] border-2 border-slate-300 dark:border-black rounded-lg p-10 shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.6)] text-center">
                                         <Activity className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto mb-3" />
                                         <h3 className="text-slate-900 dark:text-white font-black uppercase tracking-widest">No Activity Yet</h3>
-                                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium">This user hasn't posted anything to their timeline.</p>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium">This user hasn&apos;t posted anything to their timeline.</p>
                                     </div>
                                 ) : (
                                     posts.map(post => (
                                         <FeedPost
-                                            key={post.id} post={post} isCommentsOpen={openComments[post.id]}
+                                            key={post.id}
+                                            post={post}
+                                            isCommentsOpen={openComments[post.id]}
                                             commentsData={commentsData[post.id]}
-                                            onLikeToggle={handleLikeToggle} onToggleComments={toggleComments}
-                                            onSubmitComment={submitComment} onImageClick={function (): void {
-                                            throw new Error("Function not implemented.");
-                                        }}                                        />
+                                            onLikeToggle={handleLikeToggle}
+                                            onToggleComments={toggleComments}
+                                            onSubmitComment={submitComment}
+                                            onImageClick={() => {
+                                                setSelectedPost(post);
+                                                loadComments(post.id);
+                                            }}
+                                        />
                                     ))
                                 )}
+                            </div>
+                        )}
+
+                        {activeTab === 'stats' && (
+                            <div className="bg-white dark:bg-[#1e293b] border-2 border-slate-300 dark:border-black rounded-lg p-10 shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.6)] text-center">
+                                <Activity className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto mb-3" />
+                                <h3 className="text-slate-900 dark:text-white font-black uppercase tracking-widest">Career Stats Pending</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium">This backend does not expose career history yet.</p>
+                            </div>
+                        )}
+
+                        {activeTab === 'media' && (
+                            <div className="bg-white dark:bg-[#1e293b] border-2 border-slate-300 dark:border-black rounded-lg p-10 shadow-lg dark:shadow-[0_10px_30px_rgba(0,0,0,0.6)] text-center">
+                                <Activity className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto mb-3" />
+                                <h3 className="text-slate-900 dark:text-white font-black uppercase tracking-widest">Media Gallery Pending</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium">Open post media from the timeline for now.</p>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* EDIT PROFILE MODAL */}
             {isEditModalOpen && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-[#1e293b] w-full max-w-lg rounded-lg border-2 border-slate-300 dark:border-black shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -306,25 +424,39 @@ export const UserProfilePage = () => {
                         <div className="p-6 overflow-y-auto space-y-4">
                             <div>
                                 <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Full Name</label>
-                                <input type="text" value={editForm.fullName || ''} onChange={(e) => setEditForm({...editForm, fullName: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500" />
+                                <input type="text" value={editForm.fullName || ''} onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })} className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500" />
                             </div>
                             <div>
                                 <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Position</label>
-                                <input type="text" value={editForm.position || ''} onChange={(e) => setEditForm({...editForm, position: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500" />
+                                <input type="text" value={editForm.position || ''} onChange={(e) => setEditForm({ ...editForm, position: e.target.value })} className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500" />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Preferred Foot</label>
+                                <input type="text" value={editForm.preferredFoot || ''} onChange={(e) => setEditForm({ ...editForm, preferredFoot: e.target.value })} className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500" />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Height (cm)</label>
-                                    <input type="number" value={editForm.heightCm || ''} onChange={(e) => setEditForm({...editForm, heightCm: Number(e.target.value)})} className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500" />
+                                    <input
+                                        type="number"
+                                        value={editForm.heightCm ?? ''}
+                                        onChange={(e) => setEditForm({ ...editForm, heightCm: parseOptionalNumber(e.target.value) })}
+                                        className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+                                    />
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Weight (kg)</label>
-                                    <input type="number" value={editForm.weightKg || ''} onChange={(e) => setEditForm({...editForm, weightKg: Number(e.target.value)})} className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500" />
+                                    <input
+                                        type="number"
+                                        value={editForm.weightKg ?? ''}
+                                        onChange={(e) => setEditForm({ ...editForm, weightKg: parseOptionalNumber(e.target.value) })}
+                                        className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+                                    />
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Biography</label>
-                                <textarea rows={4} value={editForm.bio || ''} onChange={(e) => setEditForm({...editForm, bio: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500 resize-none" />
+                                <textarea rows={4} value={editForm.bio || ''} onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })} className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-emerald-500 resize-none" />
                             </div>
                         </div>
                         <div className="p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
@@ -336,6 +468,15 @@ export const UserProfilePage = () => {
                     </div>
                 </div>
             )}
+
+            <PostTheaterModal
+                isOpen={!!selectedPost}
+                post={selectedPost}
+                onClose={() => setSelectedPost(null)}
+                commentsData={selectedPost ? commentsData[selectedPost.id] : undefined}
+                onSubmitComment={submitComment}
+                onLikeToggle={handleLikeToggle}
+            />
         </div>
     );
 };

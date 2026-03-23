@@ -5,9 +5,11 @@ import { Shield, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 
 export const RegisterPage = () => {
-    const navigate = useNavigate();    const [email, setEmail] = useState('');
+    const navigate = useNavigate();
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [role, setRole] = useState<'PLAYER' | 'FAN'>('PLAYER');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -23,11 +25,12 @@ export const RegisterPage = () => {
         setError('');
 
         try {
-            await apiClient.post('/auth/register', { email, password });
+            await apiClient.post('/auth/register', { email, password, role });
             const loginRes = await apiClient.post('/auth/login', { email, password });
             localStorage.setItem('accessToken', loginRes.data.accessToken);
+            await apiClient.get('/auth/csrf').catch(() => undefined);
 
-            navigate('/onboarding'); // 🛡️ Replaced the hard reload
+            navigate('/onboarding');
         } catch (err: any) {
             console.error(err);
             setError(err.response?.data?.error || 'Registration failed. Please try again.');
@@ -73,6 +76,29 @@ export const RegisterPage = () => {
                             />
                         </div>
                         <div>
+                            <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Starting Role</label>
+                            <div className="grid grid-cols-2 gap-3">
+                                {[
+                                    { id: 'PLAYER', label: 'Player', desc: 'Seeking clubs and tryouts' },
+                                    { id: 'FAN', label: 'Fan', desc: 'Following clubs and content' }
+                                ].map((option) => (
+                                    <button
+                                        type="button"
+                                        key={option.id}
+                                        onClick={() => setRole(option.id as 'PLAYER' | 'FAN')}
+                                        className={`rounded-xl border-2 px-4 py-4 text-left transition-all ${
+                                            role === option.id
+                                                ? 'border-[#2a4d37] bg-emerald-50 dark:bg-emerald-900/20 shadow-[4px_4px_0px_0px_#2a4d37]'
+                                                : 'border-[#1a1a1a] dark:border-gray-600 bg-[#fcf8f2] dark:bg-gray-900'
+                                        }`}
+                                    >
+                                        <p className="font-black uppercase tracking-widest text-sm">{option.label}</p>
+                                        <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">{option.desc}</p>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
                             <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Password</label>
                             <input
                                 type="password"
@@ -80,7 +106,7 @@ export const RegisterPage = () => {
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                                 className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#a34e36] font-medium transition-colors"
-                                placeholder="••••••••"
+                                placeholder="********"
                             />
                         </div>
                         <div>
@@ -91,7 +117,7 @@ export const RegisterPage = () => {
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 required
                                 className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#a34e36] font-medium transition-colors"
-                                placeholder="••••••••"
+                                placeholder="********"
                             />
                         </div>
 
@@ -110,7 +136,6 @@ export const RegisterPage = () => {
                         <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
                     </div>
 
-                    {/* 🛡️ THE SECURE GOOGLE LOGIN COMPONENT */}
                     <div className="flex justify-center w-full">
                         <GoogleLogin
                             theme="filled_black"
@@ -125,6 +150,7 @@ export const RegisterPage = () => {
                                     });
 
                                     localStorage.setItem('accessToken', res.data.accessToken);
+                                    await apiClient.get('/auth/csrf').catch(() => undefined);
 
                                     const meRes = await apiClient.get('/users/me');
                                     if (!meRes.data.profileComplete) {

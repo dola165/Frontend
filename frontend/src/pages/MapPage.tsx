@@ -7,7 +7,6 @@ import {
     Building2,
     CheckCheck,
     ChevronLeft,
-    ChevronRight,
     Filter,
     ListFilter,
     Loader2,
@@ -22,6 +21,7 @@ import {
     X
 } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
+import { MapHelpHint } from '../components/map/MapHelpHint';
 import { MapFilterSidebar, defaultMapFilters, type MapEntityType, type MapFilters } from '../components/map/MapFilterSidebar';
 import { useAuth } from '../context/AuthContext';
 import { fetchMyClubMembershipContext } from '../features/clubs/api';
@@ -414,98 +414,6 @@ function MapSizeGuard({ layoutSignature }: { layoutSignature: string }) {
     return null;
 }
 
-const DiscoveryQueue = ({
-    title,
-    records,
-    selectedKey,
-    onSelect
-}: {
-    title: string;
-    records: DiscoveryRecord[];
-    selectedKey: string | null;
-    onSelect: (record: DiscoveryRecord) => void;
-}) => (
-    <div className="map-results-panel flex h-full flex-col">
-        <div className="map-panel-header">
-            <div className="flex items-start justify-between gap-3">
-                <div>
-                    <p className="map-eyebrow">{title}</p>
-                    <h2 className="mt-2 text-xl font-bold text-primary">Results</h2>
-                    <p className="mt-2 text-sm leading-6 text-secondary">
-                        Pick a result to review the published brief, location, club context, and next action.
-                    </p>
-                </div>
-                <span className="map-count-chip">{records.length}</span>
-            </div>
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto">
-            {records.length === 0 ? (
-                <div className="map-empty-panel px-5 py-10">
-                    <p className="text-sm font-semibold text-primary">No results match the current filters.</p>
-                    <p className="mt-2 text-sm leading-6 text-secondary">Try widening the radius, clearing a few filter groups, or switching to another discovery entity.</p>
-                </div>
-            ) : (
-                <div className="space-y-3 px-4 py-4">
-                    {records.map((record) => (
-                        <button
-                            key={record.key}
-                            type="button"
-                            onClick={() => onSelect(record)}
-                            className={`map-result-row ${selectedKey === record.key ? 'map-result-row--active' : ''}`}
-                        >
-                            <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <span className="map-pill map-pill--accent">{getRecordTypeLabel(record)}</span>
-                                    <span className="map-pill">{getRecordTypeMeta(record)}</span>
-                                    {record.locationState === 'OPEN_VENUE' && <span className="map-pill">Venue open</span>}
-                                </div>
-
-                                <div className="mt-3">
-                                    <p className="text-base font-bold text-primary">{record.title}</p>
-                                    {record.subtitle && <p className="mt-1 text-sm text-secondary">{record.subtitle}</p>}
-                                </div>
-
-                                <div className="mt-4 grid gap-2 text-sm text-secondary sm:grid-cols-2">
-                                    {record.clubName && record.entityType !== 'CLUB' && (
-                                        <div className="truncate font-medium text-primary">{record.clubName}</div>
-                                    )}
-                                    {record.locationName && <div className="truncate">{record.locationName}</div>}
-                                    {record.startsAt && <div>{formatDateTime(record.startsAt)}</div>}
-                                    {!record.startsAt && record.entityType === 'CLUB' && <div>Profile discovery</div>}
-                                </div>
-
-                                {(record.ageGroups.length > 0 || record.genders.length > 0 || record.level) && (
-                                    <div className="mt-4 flex flex-wrap gap-2">
-                                        {record.ageGroups.slice(0, 2).map((ageGroup) => (
-                                            <span key={ageGroup} className="map-pill">
-                                                {ageGroup}
-                                            </span>
-                                        ))}
-                                        {record.genders.slice(0, 2).map((gender) => (
-                                            <span key={gender} className="map-pill">
-                                                {gender}
-                                            </span>
-                                        ))}
-                                        {record.level && <span className="map-pill">{record.level}</span>}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="flex shrink-0 flex-col items-end justify-between gap-4">
-                                <ChevronRight className="h-4 w-4 text-secondary" />
-                                <span className="text-xs font-semibold text-secondary">
-                                    {record.challengeState === 'OPEN' ? 'Review and respond' : 'Open details'}
-                                </span>
-                            </div>
-                        </button>
-                    ))}
-                </div>
-            )}
-        </div>
-    </div>
-);
-
 const MatchResponseModal = ({
     record,
     clubName,
@@ -528,16 +436,22 @@ const MatchResponseModal = ({
     <div className="theme-overlay-strong fixed inset-0 z-[9999] flex items-center justify-center p-4">
         <div className="map-modal-shell w-full max-w-2xl overflow-hidden">
             <div className="map-panel-header">
-                <div>
-                    <p className="map-eyebrow">Match response</p>
-                    <h2 className="mt-2 text-xl font-bold text-primary">Respond to published match need</h2>
-                    <p className="mt-2 text-sm leading-6 text-secondary">
-                        The published Schedule event stays the source. You are only confirming your club response and adding optional context, not rebuilding the request.
-                    </p>
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                        <div>
+                            <p className="map-eyebrow">Match response</p>
+                            <h2 className="mt-2 text-xl font-bold text-primary">Respond to match need</h2>
+                        </div>
+                        <MapHelpHint
+                            text="You are replying to the existing published request. This does not rewrite the original post."
+                            align="right"
+                            className="mt-5"
+                        />
+                    </div>
+                    <button type="button" onClick={onClose} className="map-icon-button">
+                        <X className="h-4 w-4" />
+                    </button>
                 </div>
-                <button type="button" onClick={onClose} className="map-icon-button">
-                    <X className="h-4 w-4" />
-                </button>
             </div>
 
             <div className="space-y-5 px-5 py-5">
@@ -561,17 +475,23 @@ const MatchResponseModal = ({
                 </section>
 
                 <section className="space-y-2">
-                    <label className="map-field-label">Supplement note</label>
+                    <div className="flex items-center gap-2">
+                        <label className="map-field-label">Note</label>
+                        <MapHelpHint
+                            text="Use this only for details not already covered in the published request."
+                            align="left"
+                        />
+                    </div>
                     <textarea
                         rows={5}
                         value={note}
                         onChange={(event) => onChangeNote(event.target.value)}
                         maxLength={500}
                         className="map-textarea"
-                        placeholder="Add only what the published request does not already cover: travel nuance, squad context, or a short confirmation note."
+                        placeholder="Optional note"
                     />
                     <div className="flex items-center justify-between text-xs text-secondary">
-                        <span>Published requirements will be reused automatically.</span>
+                        <span />
                         <span>{note.length}/500</span>
                     </div>
                 </section>
@@ -620,17 +540,8 @@ const DiscoveryDetailPanel = ({
         <div className="map-panel-header">
             <div className="flex items-start justify-between gap-4">
                 <div>
-                    <p className="map-eyebrow">
-                        {record.source === 'SCHEDULE' ? 'Selected public event' : 'Selected club'}
-                    </p>
+                    <p className="map-eyebrow">Result</p>
                     <h2 className="mt-2 text-2xl font-bold text-primary">{record.title}</h2>
-                    <p className="mt-2 text-sm leading-6 text-secondary">
-                        {record.entityType === 'MATCH'
-                            ? 'Review the published match need first, assess the fit, then respond without rewriting the original request.'
-                            : record.entityType === 'TRYOUT'
-                                ? 'Read the recruitment brief and club context before moving into broader club interaction.'
-                                : 'Club discovery still routes into the established Headquarters access flow.'}
-                    </p>
                 </div>
                 <button type="button" onClick={onClose} className="map-icon-button">
                     <X className="h-4 w-4" />
@@ -646,7 +557,7 @@ const DiscoveryDetailPanel = ({
                     {record.typeLabel && <p className="mt-1 text-sm text-secondary">{record.typeLabel}</p>}
                 </div>
                 <div className="map-section-card">
-                    <p className="map-field-label">Schedule window</p>
+                    <p className="map-field-label">When</p>
                     <p className="mt-2 text-base font-bold text-primary">{formatDateTime(record.startsAt) ?? 'Always available'}</p>
                     {record.endsAt && <p className="mt-1 text-sm text-secondary">Until {formatDateTime(record.endsAt)}</p>}
                 </div>
@@ -658,7 +569,6 @@ const DiscoveryDetailPanel = ({
                     {record.challengeState && <span className="map-pill">{record.challengeState === 'OPEN' ? 'Challengeable' : record.challengeState}</span>}
                     <span className="map-pill">{record.locationState === 'PINNED' ? 'Location set' : 'Venue open'}</span>
                 </div>
-                <p className="mt-4 text-sm font-semibold text-primary">What to review</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                     {record.matchSubtype && <span className="map-pill">{record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Competitive'}</span>}
                     {record.ageGroups.map((ageGroup) => <span key={ageGroup} className="map-pill">{ageGroup}</span>)}
@@ -675,14 +585,14 @@ const DiscoveryDetailPanel = ({
             </section>
 
             <section className="map-section-card">
-                <p className="map-field-label">Overview</p>
+                <p className="map-field-label">Public note</p>
                 <p className="mt-3 text-sm leading-7 text-secondary">
-                    {record.description || 'The event is public and challengeable, but the club has not published a fuller note yet. The review surface still keeps the club, time window, and location context together before any response is sent.'}
+                    {record.description || 'No public note yet.'}
                 </p>
             </section>
 
             <section className="map-section-card">
-                <p className="map-field-label">Club background</p>
+                <p className="map-field-label">Club snapshot</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
                     <div className="map-stat-card">
                         <div className="flex items-center gap-2 text-xs font-semibold text-secondary"><Users className="h-3.5 w-3.5 accent-primary" /> Members</div>
@@ -697,7 +607,7 @@ const DiscoveryDetailPanel = ({
                         <p className="mt-2 text-lg font-bold text-primary">{(clubProfile?.isOfficial ?? record.official) ? 'Official' : 'Open record'}</p>
                     </div>
                 </div>
-                <p className="mt-4 text-sm leading-7 text-secondary">{clubProfile?.description || record.description || 'Club background is currently light on the public surface. Open Headquarters for the fuller profile, honours, and internal modules.'}</p>
+                <p className="mt-4 text-sm leading-7 text-secondary">{clubProfile?.description || record.description || 'No club summary yet.'}</p>
                 {clubProfile?.honours && clubProfile.honours.length > 0 && (
                     <div className="mt-4 flex flex-wrap gap-2">
                         {clubProfile.honours.slice(0, 3).map((honour) => (
@@ -713,18 +623,16 @@ const DiscoveryDetailPanel = ({
 
         <div className="map-panel-footer">
             <button type="button" onClick={onOpenClub} className="map-secondary-button">
-                Access Headquarters
+                Open club
             </button>
             {record.entityType === 'MATCH' && canRespond ? (
                 <button type="button" onClick={onRespond} className="map-primary-button">
                     <CheckCheck className="h-3.5 w-3.5" />
-                    Respond to match need
+                    Respond
                 </button>
-            ) : (
-                <div className="text-xs text-secondary">
-                    {record.entityType === 'MATCH' ? 'Review first, then respond if your club is eligible.' : 'Read-first discovery surface'}
-                </div>
-            )}
+            ) : record.entityType === 'MATCH' ? (
+                <div className="text-xs text-secondary">Club response unavailable</div>
+            ) : null}
         </div>
     </div>
 );
@@ -950,7 +858,6 @@ export const MapPage = () => {
 
     const selectedRecord = useMemo(() => listRecords.find((record) => record.key === selectedKey) ?? null, [listRecords, selectedKey]);
     const activeCluster = useMemo(() => mapClusters.find((cluster) => cluster.key === activeClusterKey) ?? null, [activeClusterKey, mapClusters]);
-    const noLocationMatchesCount = useMemo(() => listRecords.filter((record) => record.locationState === 'OPEN_VENUE').length, [listRecords]);
     const layoutSignature = `${viewMode}:${Boolean(selectedRecord)}:${Boolean(activeCluster)}:${isFilterOpen}`;
 
     useEffect(() => {
@@ -982,6 +889,14 @@ export const MapPage = () => {
     }, [activeClusterKey, listRecords, mapClusters, selectedKey]);
 
     const handleFocusSettled = useCallback(() => setFocusTarget(null), []);
+
+    const handleGoBack = useCallback(() => {
+        if (window.history.length > 1) {
+            navigate(-1);
+            return;
+        }
+        navigate('/feed');
+    }, [navigate]);
 
     const selectRecord = useCallback((record: DiscoveryRecord) => {
         setSelectedKey(record.key);
@@ -1025,13 +940,8 @@ export const MapPage = () => {
     };
 
     const handleClusterClick = (cluster: MarkerCluster) => {
-        if (cluster.records.length === 1) {
-            selectRecord(cluster.records[0]);
-            return;
-        }
-        setActiveClusterKey(cluster.key);
-        setSelectedKey(null);
-        setFocusTarget([cluster.latitude, cluster.longitude]);
+        setActiveClusterKey(null);
+        selectRecord(cluster.records[0]);
     };
 
     const submitResponse = async () => {
@@ -1073,14 +983,13 @@ export const MapPage = () => {
             onOpenClub={() => openClubProfile(selectedRecord)}
             onClose={() => setSelectedKey(null)}
         />
-    ) : activeCluster ? (
-        <DiscoveryQueue title="Shared pin" records={activeCluster.records} selectedKey={selectedKey} onSelect={selectRecord} />
-    ) : (
-        <DiscoveryQueue title={viewMode === 'MAP' ? 'Results in view' : 'Browse results'} records={viewMode === 'MAP' ? mapRecords : listRecords} selectedKey={selectedKey} onSelect={selectRecord} />
-    );
+    ) : null;
+
+    const hasSelectedResult = Boolean(selectedRecord);
+    const toolbarCount = viewMode === 'MAP' ? `${mapRecords.length} visible` : `${listRecords.length} shown`;
 
     return (
-        <div className="map-workspace h-full min-h-0 w-full overflow-hidden">
+        <div className="map-page-shell club-page-shell map-workspace h-full min-h-0 w-full overflow-hidden">
             <div className="flex h-full min-h-0">
                 <MapFilterSidebar
                     isVisible={isFilterOpen}
@@ -1091,48 +1000,30 @@ export const MapPage = () => {
 
                 <div className="map-main-column flex min-w-0 flex-1 flex-col">
                     <header className="px-4 pt-4 sm:px-5 sm:pt-5">
-                        <div className="map-toolbar-surface">
-                            <div className="flex flex-col gap-4">
-                                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                                    <div className="flex items-start gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsFilterOpen((current) => !current)}
-                                            className="map-icon-button mt-1 xl:hidden"
-                                        >
-                                            {isFilterOpen ? <ChevronLeft className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
-                                        </button>
+                        <button type="button" onClick={handleGoBack} className="map-secondary-button map-back-button">
+                            {'<- Go Back'}
+                        </button>
+                    </header>
 
-                                        <div className="min-w-0">
-                                            <p className="map-eyebrow">Map discovery</p>
-                                            <h1 className="mt-1 text-2xl font-bold text-primary">Find clubs, tryouts, and match opportunities</h1>
-                                            <p className="mt-2 max-w-3xl text-sm leading-6 text-secondary">
-                                                Search a city, country, club, or published need, then scan the map or browse the result list and review the selected item on the right.
-                                            </p>
-                                        </div>
-                                    </div>
+                    <div className="flex min-h-0 flex-1 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
+                        <section className="relative min-h-0 min-w-0 flex-1">
+                            <div
+                                className={`pointer-events-none absolute top-4 z-[650] transition-[left,right] duration-200 ${
+                                    isFilterOpen ? 'xl:left-[344px]' : 'xl:left-4'
+                                } ${hasSelectedResult ? 'xl:right-[380px]' : 'xl:right-4'} left-4 right-4`}
+                            >
+                                <div className="pointer-events-auto map-toolbar-surface map-toolbar-surface--floating">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsFilterOpen((current) => !current)}
+                                        className="map-icon-button"
+                                        aria-label={isFilterOpen ? 'Close filters' : 'Open filters'}
+                                    >
+                                        {isFilterOpen ? <ChevronLeft className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
+                                    </button>
 
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <span className="map-count-chip">{viewMode === 'MAP' ? `${mapRecords.length} visible` : `${listRecords.length} results`}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setViewportCenter(DEFAULT_CENTER);
-                                                setFocusTarget(DEFAULT_CENTER);
-                                                setSelectedKey(null);
-                                                setActiveClusterKey(null);
-                                            }}
-                                            className="map-secondary-button"
-                                        >
-                                            <Navigation className="h-3.5 w-3.5" />
-                                            Reset view
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
-                                    <div className="relative min-w-0">
-                                        <div className="map-search-surface">
+                                    <div className="relative min-w-0 flex-1">
+                                        <div className="map-search-surface map-search-surface--toolbar">
                                             <Search className="h-5 w-5 text-secondary" />
                                             <input
                                                 type="text"
@@ -1143,7 +1034,7 @@ export const MapPage = () => {
                                                         handleSuggestionPick(suggestions[0]);
                                                     }
                                                 }}
-                                                placeholder="Search clubs, cities, countries, or published schedule needs"
+                                                placeholder="Search clubs or places"
                                                 className="map-search-input"
                                             />
                                             {searchInput && (
@@ -1173,39 +1064,47 @@ export const MapPage = () => {
                                         )}
                                     </div>
 
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <div className="map-mode-toggle">
-                                            <button
-                                                type="button"
-                                                onClick={() => setViewMode('MAP')}
-                                                className={`map-mode-button ${viewMode === 'MAP' ? 'map-mode-button--active' : ''}`}
-                                            >
-                                                <MapIcon className="h-3.5 w-3.5" />
-                                                Map
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setViewMode('LIST')}
-                                                className={`map-mode-button ${viewMode === 'LIST' ? 'map-mode-button--active' : ''}`}
-                                            >
-                                                <ListFilter className="h-3.5 w-3.5" />
-                                                Browse
-                                            </button>
-                                        </div>
-                                        <span className="map-helper-note">Filters update live</span>
+                                    <div className="map-mode-toggle">
+                                        <button
+                                            type="button"
+                                            onClick={() => setViewMode('MAP')}
+                                            className={`map-mode-button ${viewMode === 'MAP' ? 'map-mode-button--active' : ''}`}
+                                        >
+                                            <MapIcon className="h-3.5 w-3.5" />
+                                            Map
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setViewMode('LIST')}
+                                            className={`map-mode-button ${viewMode === 'LIST' ? 'map-mode-button--active' : ''}`}
+                                        >
+                                            <ListFilter className="h-3.5 w-3.5" />
+                                            Browse
+                                        </button>
                                     </div>
+
+                                    <span className="map-count-chip">{toolbarCount}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setViewportCenter(DEFAULT_CENTER);
+                                            setFocusTarget(DEFAULT_CENTER);
+                                            setSelectedKey(null);
+                                            setActiveClusterKey(null);
+                                        }}
+                                        className="map-secondary-button"
+                                    >
+                                        <Navigation className="h-3.5 w-3.5" />
+                                        Reset
+                                    </button>
                                 </div>
                             </div>
-                        </div>
-                    </header>
 
-                    <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
-                        <section className="relative min-h-0 min-w-0 flex-1">
                             {loading ? (
                                 <div className="map-canvas-frame flex h-full items-center justify-center">
                                     <div className="flex flex-col items-center gap-3 text-center">
                                         <Loader2 className="h-8 w-8 animate-spin accent-primary" />
-                                        <p className="text-sm font-semibold text-secondary">Loading the public discovery surface.</p>
+                                        <p className="text-sm font-semibold text-secondary">Loading map...</p>
                                     </div>
                                 </div>
                             ) : error ? (
@@ -1243,39 +1142,14 @@ export const MapPage = () => {
                                             );
                                         })}
                                     </MapContainer>
-
-                                    <div className="pointer-events-none absolute left-4 right-4 top-4 flex flex-col gap-3 sm:right-auto sm:max-w-xs">
-                                        <div className="pointer-events-auto map-floating-card">
-                                            <p className="map-field-label">In current radius</p>
-                                            <p className="mt-2 text-lg font-bold text-primary">{mapRecords.length} mapped results</p>
-                                            <p className="mt-2 text-sm leading-6 text-secondary">Pan or zoom the map, or search for a place to jump the viewport instantly.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="pointer-events-none absolute inset-x-4 bottom-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                                        <div className="pointer-events-auto map-floating-card">
-                                            <p className="map-field-label">Viewport center</p>
-                                            <p className="mt-2 text-sm font-bold text-primary">
-                                                {viewportCenter[0].toFixed(3)}, {viewportCenter[1].toFixed(3)}
-                                            </p>
-                                        </div>
-                                        {noLocationMatchesCount > 0 && filters.entityType === 'MATCH' && (
-                                            <div className="pointer-events-auto map-floating-card max-w-sm border-accent-muted bg-accent-muted-soft">
-                                                <p className="map-field-label accent-muted">Browse-only opportunities</p>
-                                                <p className="mt-2 text-sm leading-6 text-secondary">
-                                                    {noLocationMatchesCount} published match need{noLocationMatchesCount === 1 ? '' : 's'} do not have a pinned venue yet, so they stay visible in browse mode instead of on the map.
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
                                 </div>
                             ) : (
-                                <div className="map-canvas-frame h-full overflow-y-auto">
+                                <div className="map-canvas-frame h-full overflow-y-auto pt-[112px]">
                                     {listRecords.length === 0 ? (
                                         <div className="flex h-full items-center justify-center p-6">
                                             <div className="map-empty-panel max-w-md px-6 py-6 text-center">
-                                                <p className="text-base font-bold text-primary">No results in browse mode yet.</p>
-                                                <p className="mt-2 text-sm leading-6 text-secondary">Widen the radius, clear a few filters, or switch the entity type to explore another public discovery lane.</p>
+                                                <p className="text-base font-bold text-primary">No results yet.</p>
+                                                <p className="mt-2 text-sm leading-6 text-secondary">Try a wider area or fewer filters.</p>
                                             </div>
                                         </div>
                                     ) : (
@@ -1317,16 +1191,18 @@ export const MapPage = () => {
                                     )}
                                 </div>
                             )}
-                        </section>
 
-                        <aside className="map-side-panel-shell hidden min-h-0 w-[410px] shrink-0 overflow-hidden xl:block">
-                            {panelContent}
-                        </aside>
+                            {hasSelectedResult && (
+                                <aside className="map-side-panel-shell absolute bottom-4 right-4 top-4 z-[620] hidden w-[360px] overflow-hidden xl:block">
+                                    {panelContent}
+                                </aside>
+                            )}
+                        </section>
                     </div>
                 </div>
             </div>
 
-            {(selectedRecord || activeCluster) && (
+            {selectedRecord && (
                 <div className="map-mobile-panel fixed inset-x-4 bottom-4 top-auto z-[1200] max-h-[72vh] overflow-hidden xl:hidden">
                     {panelContent}
                 </div>

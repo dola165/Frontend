@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { ChevronDown, ChevronRight, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Building2, ChevronDown, ChevronRight, Filter, MapPin, Search, ShieldCheck, SlidersHorizontal, Trophy, Users, X } from 'lucide-react';
+import { MapHelpHint } from './MapHelpHint';
 
 export type MapEntityType = 'CLUB' | 'TRYOUT' | 'MATCH';
 export type MapSortMode = 'RELEVANCE' | 'SOONEST' | 'DISTANCE' | 'NAME';
@@ -132,10 +133,10 @@ const ENTITY_LABELS: Record<MapEntityType, string> = {
     MATCH: 'Matches'
 };
 
-const ENTITY_HINTS: Record<MapEntityType, string> = {
-    CLUB: 'Browse clubs and headquarters by trust, city, and proximity.',
-    TRYOUT: 'Recruitment-focused filters for public club tryouts and trials.',
-    MATCH: 'Operational match discovery for published needs from Schedule.'
+const ENTITY_ICONS: Record<MapEntityType, ReactNode> = {
+    CLUB: <Building2 className="h-4 w-4" />,
+    TRYOUT: <Users className="h-4 w-4" />,
+    MATCH: <Trophy className="h-4 w-4" />
 };
 
 const toggleValue = <T extends string>(current: T[], value: T) =>
@@ -178,26 +179,30 @@ const countActiveFilters = (filters: MapFilters) => {
 };
 
 const RailSection = ({
+    icon,
     title,
-    subtitle,
+    helpText,
     expanded,
     onToggle,
     children
 }: {
+    icon: ReactNode;
     title: string;
-    subtitle?: string;
+    helpText?: string;
     expanded: boolean;
     onToggle: () => void;
     children: ReactNode;
 }) => (
     <section className="map-filter-card">
         <button type="button" onClick={onToggle} className="map-filter-card__header">
-            <div className="min-w-0">
-                <div className="map-eyebrow">Filter group</div>
-                <h3 className="mt-1 text-sm font-bold text-primary">{title}</h3>
-                {subtitle && <p className="mt-1 text-xs leading-5 text-secondary">{subtitle}</p>}
+            <div className="flex min-w-0 items-center gap-3">
+                <span className="map-rail-icon">{icon}</span>
+                <h3 className="truncate text-sm font-bold text-primary">{title}</h3>
             </div>
-            {expanded ? <ChevronDown className="h-4 w-4 text-secondary" /> : <ChevronRight className="h-4 w-4 text-secondary" />}
+            <div className="flex shrink-0 items-center gap-2">
+                {helpText ? <MapHelpHint text={helpText} align="right" /> : null}
+                {expanded ? <ChevronDown className="h-4 w-4 text-secondary" /> : <ChevronRight className="h-4 w-4 text-secondary" />}
+            </div>
         </button>
         {expanded && <div className="map-filter-card__body">{children}</div>}
     </section>
@@ -238,19 +243,14 @@ const ToggleChip = ({ active, label, onClick }: { active: boolean; label: string
 const CheckRow = ({
     checked,
     label,
-    hint,
     onChange
 }: {
     checked: boolean;
     label: string;
-    hint?: string;
     onChange: () => void;
 }) => (
     <label className="map-option-row cursor-pointer">
-        <div className="min-w-0">
-            <p className="text-sm font-semibold text-primary">{label}</p>
-            {hint && <p className="mt-1 text-xs leading-5 text-secondary">{hint}</p>}
-        </div>
+        <span className="min-w-0 text-sm font-semibold text-primary">{label}</span>
         <input type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4 accent-[var(--accent-primary)]" />
     </label>
 );
@@ -283,8 +283,6 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
     });
 
     const activeCount = useMemo(() => countActiveFilters(filters), [filters]);
-    const entityTitle = ENTITY_LABELS[filters.entityType];
-
     const updateFilters = (updater: (current: MapFilters) => MapFilters) => {
         onFiltersChange(updater(filters));
     };
@@ -302,38 +300,36 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                 onClick={onClose}
             />
             <aside
-                className={`map-rail fixed inset-y-0 left-0 z-[1100] w-[min(92vw,370px)] transition-transform duration-200 xl:static xl:z-auto xl:w-[360px] xl:translate-x-0 ${
+                className={`map-rail fixed inset-y-0 left-0 z-[1100] w-[min(90vw,332px)] transition-transform duration-200 xl:w-[320px] ${
                     isVisible ? 'translate-x-0' : '-translate-x-full'
                 }`}
             >
                 <div className="flex h-full min-h-0 flex-col">
                     <header className="map-rail-header">
                         <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-3">
                                     <span className="map-rail-icon">
                                         <SlidersHorizontal className="h-4 w-4" />
                                     </span>
-                                    <div>
-                                        <p className="map-eyebrow">Discovery filters</p>
-                                        <h2 className="mt-1 text-lg font-bold text-primary">Refine results</h2>
+                                    <div className="flex min-w-0 items-center gap-2">
+                                        <h2 className="truncate text-lg font-bold text-primary">Filters</h2>
+                                        <MapHelpHint
+                                            text="Search moves the map. Filters narrow what stays visible or listed."
+                                            align="right"
+                                        />
                                     </div>
                                 </div>
-                                <p className="mt-3 text-sm leading-6 text-secondary">
-                                    Live filters for public discovery. Search jumps the map; this rail narrows what stays visible.
-                                </p>
                             </div>
                             <button type="button" onClick={onClose} className="map-icon-button xl:hidden">
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
 
-                        <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-subtle bg-accent-primary-soft px-4 py-3">
+                        <div className="mt-4 flex items-center justify-between gap-3 rounded-[18px] border border-subtle bg-accent-primary-soft px-4 py-3">
                             <div>
-                                <p className="text-xs font-semibold text-secondary">Active filters</p>
-                                <p className="mt-1 text-sm font-bold text-primary">
-                                    {activeCount === 0 ? 'Default discovery setup' : `${activeCount} active`}
-                                </p>
+                                <p className="text-xs font-semibold text-secondary">Active</p>
+                                <p className="mt-1 text-sm font-bold text-primary">{activeCount === 0 ? 'Default' : `${activeCount} active`}</p>
                             </div>
                             <button
                                 type="button"
@@ -347,10 +343,11 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                     </header>
 
                     <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-4">
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             <RailSection
-                                title="What are you browsing?"
-                                subtitle="Pick the public discovery lane first. The rail updates to show only the filters that matter for that entity."
+                                icon={<Filter className="h-4 w-4" />}
+                                title="Browse"
+                                helpText="Pick clubs, tryouts, or matches. The rail updates to fit that lane."
                                 expanded={expanded.entity}
                                 onToggle={() => toggleExpanded('entity')}
                             >
@@ -362,9 +359,9 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                             onClick={() => updateFilters((current) => ({ ...current, entityType }))}
                                             className={`map-entity-tile ${filters.entityType === entityType ? 'map-entity-tile--active' : ''}`}
                                         >
-                                            <div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="map-rail-icon">{ENTITY_ICONS[entityType]}</span>
                                                 <p className="text-sm font-bold text-primary">{ENTITY_LABELS[entityType]}</p>
-                                                <p className="mt-1 text-xs leading-5 text-secondary">{ENTITY_HINTS[entityType]}</p>
                                             </div>
                                         </button>
                                     ))}
@@ -372,8 +369,9 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                             </RailSection>
 
                             <RailSection
+                                icon={<SlidersHorizontal className="h-4 w-4" />}
                                 title="Browse settings"
-                                subtitle={`${entityTitle} can be sorted and scanned without changing the underlying public event logic.`}
+                                helpText="Sort changes the order. Radius changes what counts as nearby on the map."
                                 expanded={expanded.browse}
                                 onToggle={() => toggleExpanded('browse')}
                             >
@@ -419,8 +417,9 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                             </RailSection>
 
                             <RailSection
-                                title="Shared location filters"
-                                subtitle="Use these to narrow results by place. Search at the top still handles jumping the map instantly."
+                                icon={<MapPin className="h-4 w-4" />}
+                                title="Location"
+                                helpText="Use city or country to narrow the current result type."
                                 expanded={expanded.location}
                                 onToggle={() => toggleExpanded('location')}
                             >
@@ -470,15 +469,15 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
 
                             {filters.entityType === 'CLUB' && (
                                 <RailSection
+                                    icon={<ShieldCheck className="h-4 w-4" />}
                                     title="Club filters"
-                                    subtitle="Lightweight trust and location controls for directory browsing."
+                                    helpText="Show only verified public club profiles."
                                     expanded={expanded.clubs}
                                     onToggle={() => toggleExpanded('clubs')}
                                 >
                                     <CheckRow
                                         checked={filters.clubs.officialOnly}
                                         label="Official clubs only"
-                                        hint="Show only verified public club records."
                                         onChange={() =>
                                             updateFilters((current) => ({
                                                 ...current,
@@ -491,8 +490,9 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
 
                             {filters.entityType === 'TRYOUT' && (
                                 <RailSection
+                                    icon={<Users className="h-4 w-4" />}
                                     title="Tryout filters"
-                                    subtitle="Recruitment-oriented controls only. Tryouts do not inherit the match-specific workflow filters."
+                                    helpText="Use date, time, age, level, and gender to narrow public tryouts."
                                     expanded={expanded.tryouts}
                                     onToggle={() => toggleExpanded('tryouts')}
                                 >
@@ -609,8 +609,9 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                             )}
                             {filters.entityType === 'MATCH' && (
                                 <RailSection
+                                    icon={<Trophy className="h-4 w-4" />}
                                     title="Match filters"
-                                    subtitle="All published match needs still come from Schedule. This rail only controls discovery, not the data model."
+                                    helpText="Use match type, status, venue, travel, and timing to narrow match discovery."
                                     expanded={expanded.matches}
                                     onToggle={() => toggleExpanded('matches')}
                                 >

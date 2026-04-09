@@ -178,6 +178,8 @@ function MainLayout() {
     const isLandingPage = location.pathname === '/';
     const isAuthPage = authRoutePaths.has(location.pathname) || location.pathname === '/oauth2/callback';
     const isCalendarWorkspace = location.pathname === '/calendar';
+    const isMapWorkspace = location.pathname === '/map';
+    const isChromeFreeWorkspace = isCalendarWorkspace || isMapWorkspace;
     const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads)?$/.test(location.pathname);
     const isFullScreenPage =
         ['/map', '/messages', '/store', '/charity', '/clubs', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin'].includes(location.pathname) ||
@@ -187,7 +189,7 @@ function MainLayout() {
 
     return (
         <div className="min-h-screen bg-base text-primary transition-colors duration-200">
-            {!isLandingPage && !isAuthPage && !isCalendarWorkspace && (
+            {!isLandingPage && !isAuthPage && !isChromeFreeWorkspace && (
                 <TopNav
                     user={user}
                     myClubId={myClubId}
@@ -212,7 +214,7 @@ function MainLayout() {
             ) : isFullScreenPage ? (
                 <main
                     className={`relative w-full ${isBoundedCanvasPage ? 'overflow-hidden' : 'overflow-y-auto'}`}
-                    style={isCalendarWorkspace
+                    style={isChromeFreeWorkspace
                         ? { minHeight: '100dvh', height: '100dvh' }
                         : { minHeight: 'calc(100dvh - var(--app-header-height))', height: 'calc(100dvh - var(--app-header-height))' }}
                 >

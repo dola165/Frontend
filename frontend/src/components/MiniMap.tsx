@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
-import { Expand, Map as MapIcon, MousePointer2, Shrink } from 'lucide-react';
+import { Expand, Map as MapIcon, Shrink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { MapHelpHint } from './map/MapHelpHint';
 
 type MapPoint = [number, number];
 
@@ -71,14 +72,18 @@ export function MiniMap({
 
     const center = selectedPoint ?? initialCenter;
     const previewTitle = title ?? (mode === 'picker' ? 'Venue Picker' : 'Explore Nearby');
-    const previewSubtitle = mode === 'picker' ? 'Click to place venue pin' : 'Browse map context';
 
     return (
         <div className={mode === 'picker' ? `relative ${className}`.trim() : `sticky top-24 relative z-50 ${className}`.trim()}>
             <div className="mb-3 flex items-center justify-between gap-3 px-1">
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
                     <h3 className="truncate text-xs font-black uppercase tracking-[0.18em] text-primary">{previewTitle}</h3>
-                    <p className="mt-1 text-[11px] font-medium text-secondary">{previewSubtitle}</p>
+                    {mode === 'picker' ? (
+                        <MapHelpHint
+                            text={selectedPoint ? 'Click a new spot to move the venue pin.' : 'Click anywhere on the map to place the venue pin.'}
+                            align="right"
+                        />
+                    ) : null}
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
@@ -134,18 +139,6 @@ export function MiniMap({
                         />
                     ) : null}
                 </MapContainer>
-
-                {mode === 'picker' ? (
-                    <div className="pointer-events-none absolute left-3 top-3 rounded-[4px] border border-subtle bg-[color:var(--bg-surface)]/92 px-3 py-2 shadow-sm backdrop-blur">
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-primary">
-                            <MousePointer2 className="h-3.5 w-3.5 accent-primary" />
-                            Click map to set venue
-                        </div>
-                        <p className="mt-1 text-[11px] leading-5 text-secondary">
-                            {selectedPoint ? 'Pin is locked to the current venue selection.' : 'Drop a pin instead of typing coordinates manually.'}
-                        </p>
-                    </div>
-                ) : null}
             </div>
         </div>
     );

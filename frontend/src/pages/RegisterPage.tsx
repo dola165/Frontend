@@ -1,17 +1,23 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { Shield, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../context/AuthContext';
+import { extractApiErrorMessage } from '../utils/apiError';
+import { resolvePostAuthRedirect } from '../utils/authRedirect';
 
 export const RegisterPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { loginWithAccessToken } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [role, setRole] = useState<'PLAYER' | 'FAN'>('PLAYER');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '/feed');
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,15 +31,14 @@ export const RegisterPage = () => {
         setError('');
 
         try {
-            await apiClient.post('/auth/register', { email, password, role });
-            const loginRes = await apiClient.post('/auth/login', { email, password });
-            localStorage.setItem('accessToken', loginRes.data.accessToken);
-            await apiClient.get('/auth/csrf').catch(() => undefined);
-
-            navigate('/onboarding');
-        } catch (err: any) {
+            const normalizedEmail = email.trim();
+            await apiClient.post('/auth/register', { email: normalizedEmail, password, role });
+            const loginRes = await apiClient.post('/auth/login', { email: normalizedEmail, password });
+            const authenticatedUser = await loginWithAccessToken(loginRes.data.accessToken);
+            navigate(authenticatedUser.profileComplete ? nextPath : '/onboarding');
+        } catch (err) {
             console.error(err);
-            setError(err.response?.data?.error || 'Registration failed. Please try again.');
+            setError(extractApiErrorMessage(err, 'Registration failed. Please try again.'));
         } finally {
             setIsLoading(false);
         }
@@ -149,18 +154,15 @@ export const RegisterPage = () => {
                                         token: credentialResponse.credential
                                     });
 
-                                    localStorage.setItem('accessToken', res.data.accessToken);
-                                    await apiClient.get('/auth/csrf').catch(() => undefined);
-
-                                    const meRes = await apiClient.get('/users/me');
-                                    if (!meRes.data.profileComplete) {
+                                    const authenticatedUser = await loginWithAccessToken(res.data.accessToken);
+                                    if (!authenticatedUser.profileComplete) {
                                         navigate('/onboarding');
                                     } else {
-                                        navigate('/feed');
+                                        navigate(nextPath);
                                     }
-                                } catch (err: any) {
+                                } catch (err) {
                                     console.error("Google Auth Failed", err);
-                                    setError(err.response?.data?.error || 'Google login failed.');
+                                    setError(extractApiErrorMessage(err, 'Google login failed.'));
                                 } finally {
                                     setIsLoading(false);
                                 }

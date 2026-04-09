@@ -1,16 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Loader2, PlusCircle } from 'lucide-react';
-import { apiClient } from '../api/axiosConfig';
+import { ArrowRight, Building2, Loader2, PlusCircle } from 'lucide-react';
 import { CreateClubModal } from '../components/club/CreateClubModal';
-
-interface ClubMembershipContext {
-    hasClubMembership: boolean;
-    canCreateClub: boolean;
-    clubId?: number | null;
-    clubName?: string | null;
-    myRole?: string | null;
-}
+import { EntityHeaderBand, EntityPageLayout, EntitySection } from '../components/layout/EntityPageLayout';
+import { fetchMyClubMembershipContext } from '../features/clubs/api';
+import type { ClubMembershipContext } from '../features/clubs/domain';
+import { MyClubInvitationsPanel } from '../features/invites/components/MyClubInvitationsPanel';
 
 export const MyClubPage = () => {
     const navigate = useNavigate();
@@ -19,11 +14,11 @@ export const MyClubPage = () => {
     const [isCreateClubOpen, setIsCreateClubOpen] = useState(false);
 
     useEffect(() => {
-        apiClient.get<ClubMembershipContext>('/clubs/my-membership-context')
-            .then((response) => {
-                setMembershipContext(response.data);
-                if (response.data?.clubId) {
-                    navigate(`/clubs/${response.data.clubId}`, { replace: true });
+        fetchMyClubMembershipContext()
+            .then((context) => {
+                setMembershipContext(context);
+                if (context?.clubId) {
+                    navigate(`/clubs/${context.clubId}`, { replace: true });
                     return;
                 }
                 setLoading(false);
@@ -35,41 +30,118 @@ export const MyClubPage = () => {
 
     if (loading) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center text-emerald-500 h-[calc(100vh-56px)] bg-[#0f172a]">
-                <Loader2 className="w-10 h-10 animate-spin mb-4" />
-                <p className="font-bold tracking-widest uppercase text-sm text-slate-500">Verifying Clearance...</p>
+            <div className="bg-base flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-10 w-10 animate-spin accent-primary" />
+                    <p className="text-sm font-black uppercase tracking-[0.2em] text-secondary">Checking club workspace</p>
+                </div>
             </div>
         );
     }
 
+    const canCreateClub = Boolean(membershipContext?.canCreateClub);
+
     return (
-        <div className="flex flex-col items-center justify-center h-[calc(100vh-56px)] bg-[#0f172a] p-6 text-center">
-            <div className="w-24 h-24 bg-slate-800 rounded-sm flex items-center justify-center mb-6 border-2 border-slate-700 shadow-lg">
-                <Building2 className="w-10 h-10 text-slate-500" />
-            </div>
-            <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-2">Club Operations Hub</h2>
-            <p className="text-slate-400 font-medium text-sm max-w-md mb-8">
-                {membershipContext?.canCreateClub
-                    ? 'You are not attached to a club yet. Create one now and GrassKickZ will route players and partner clubs to your new profile immediately.'
-                    : 'You are not attached to a club leadership workspace from this account yet.'}
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-                {membershipContext?.canCreateClub && (
-                    <button
-                        onClick={() => setIsCreateClubOpen(true)}
-                        className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-sm font-black uppercase text-xs tracking-widest shadow-[4px_4px_0px_0px_#020617] active:translate-y-1 active:shadow-none transition-all"
-                    >
-                        <PlusCircle className="w-4 h-4" />
-                        Create Club
-                    </button>
+        <div className="bg-base min-h-full">
+            <EntityHeaderBand>
+                <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start">
+                    <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.2em] accent-primary">Club Workspace Router</p>
+                        <h1 className="mt-2 text-3xl font-black uppercase tracking-tight text-primary">My Club</h1>
+                        <p className="mt-3 max-w-3xl text-sm leading-6 text-secondary">
+                            This destination opens your managed club when one exists. When it does not, the page stays as a structured holding workspace for invitation review and club creation.
+                        </p>
+                    </div>
+
+                    <div className="border border-subtle bg-base">
+                        <div className="grid divide-y divide-[color:var(--border-subtle)] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                            <div className="px-4 py-3">
+                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-secondary">Active Club</p>
+                                <p className="mt-2 text-xl font-black uppercase tracking-tight text-primary">None</p>
+                            </div>
+                            <div className="px-4 py-3">
+                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-secondary">Create Club</p>
+                                <p className={`mt-2 text-xl font-black uppercase tracking-tight ${canCreateClub ? 'accent-primary' : 'text-primary'}`}>{canCreateClub ? 'Allowed' : 'Locked'}</p>
+                            </div>
+                            <div className="px-4 py-3">
+                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-secondary">Invites</p>
+                                <p className="mt-2 text-xl font-black uppercase tracking-tight text-primary">Review</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </EntityHeaderBand>
+
+            <EntityPageLayout
+                left={(
+                    <div className="flex flex-col gap-4 lg:sticky lg:top-[calc(var(--app-header-height)+24px)]">
+                        <EntitySection eyebrow="Workspace Context" title="Club Access" bodyClassName="divide-y divide-[color:var(--border-subtle)]">
+                            <div className="flex items-start justify-between gap-3 px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em]">
+                                <span className="text-secondary">Current State</span>
+                                <span className="text-primary">No Active Club</span>
+                            </div>
+                            <div className="flex items-start justify-between gap-3 px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em]">
+                                <span className="text-secondary">Create Club</span>
+                                <span className={canCreateClub ? 'accent-primary' : 'text-primary'}>{canCreateClub ? 'Available' : 'Unavailable'}</span>
+                            </div>
+                            <div className="flex items-start justify-between gap-3 px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em]">
+                                <span className="text-secondary">Invite Review</span>
+                                <span className="text-primary">Open Below</span>
+                            </div>
+                        </EntitySection>
+
+                        <EntitySection eyebrow="Destination Logic" title="How This Page Behaves" bodyClassName="px-4 py-4">
+                            <p className="text-sm leading-6 text-secondary">
+                                Once this account joins or owns a club, this route resolves directly into the club workspace. Until then, the left rail keeps the context stable while the center remains dedicated to invite handling.
+                            </p>
+                        </EntitySection>
+                    </div>
                 )}
-                <button
-                    onClick={() => navigate('/clubs')}
-                    className="bg-slate-100 hover:bg-white text-slate-900 px-6 py-3 rounded-sm font-black uppercase text-xs tracking-widest shadow-[4px_4px_0px_0px_#020617] active:translate-y-1 active:shadow-none transition-all"
-                >
-                    Browse Clubs
-                </button>
-            </div>
+                center={<MyClubInvitationsPanel onInvitationAccepted={(invitation) => navigate(`/clubs/${invitation.clubId}`)} />}
+                right={(
+                    <div className="flex flex-col gap-4 xl:sticky xl:top-[calc(var(--app-header-height)+24px)]">
+                        <EntitySection eyebrow="Utility Layer" title="Workspace Actions" bodyClassName="px-4 py-4">
+                            <div className="flex items-start gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center border border-subtle bg-base">
+                                    <Building2 className="h-4 w-4 accent-primary" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-black uppercase tracking-[0.16em] text-primary">
+                                        {canCreateClub ? 'Create or browse' : 'Browse existing clubs'}
+                                    </p>
+                                    <p className="mt-2 text-sm leading-6 text-secondary">
+                                        Use the right rail for club creation and directory actions while the center stays focused on invite decisions.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 flex flex-col gap-2">
+                                {canCreateClub && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCreateClubOpen(true)}
+                                        className="inline-flex items-center justify-between gap-2 border border-accent-primary bg-accent-primary-soft px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary"
+                                    >
+                                        <span className="inline-flex items-center gap-2">
+                                            <PlusCircle className="h-3.5 w-3.5" />
+                                            Create Club
+                                        </span>
+                                        <ArrowRight className="h-3.5 w-3.5" />
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/clubs')}
+                                    className="inline-flex items-center justify-between gap-2 border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary"
+                                >
+                                    <span>Browse Clubs</span>
+                                    <ArrowRight className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        </EntitySection>
+                    </div>
+                )}
+            />
 
             <CreateClubModal
                 isOpen={isCreateClubOpen}

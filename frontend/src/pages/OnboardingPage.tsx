@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiClient } from '../api/axiosConfig';
+import { apiClient, refreshAccessToken } from '../api/axiosConfig';
 import { Activity, User, ChevronRight, Loader2, Target } from 'lucide-react';
 
 export const OnboardingPage = () => {
@@ -37,14 +37,8 @@ export const OnboardingPage = () => {
     const handleComplete = async () => {
         setIsLoading(true);
         try {
-            // 1. Commit the profile to the DB
             await apiClient.put('/users/me/profile', formData);
-
-            // 2. Force token rotation so the client sees the new profile-complete state.
-            const refreshRes = await apiClient.post('/auth/refresh');
-            localStorage.setItem('accessToken', refreshRes.data.accessToken);
-
-            // 3. Navigate to the FRONTEND route (not the API route)
+            await refreshAccessToken();
             navigate('/feed');
         } catch (err) {
             console.error("Onboarding sync failed", err);

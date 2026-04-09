@@ -1,5 +1,6 @@
-import { useState, useEffect, type JSX } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect, useState, type JSX } from 'react';
+import { BrowserRouter as Router, Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Bot, ExternalLink, Send, X } from 'lucide-react';
 import { TopNav } from './components/layout/TopNav';
 import { LeftSidebar } from './components/layout/LeftSidebar';
 import { RightSidebar } from './components/layout/RightSidebar';
@@ -17,26 +18,98 @@ import { CalendarPage } from './pages/CalendarPage';
 import { ClubSquadsPage } from './pages/ClubSquadsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { OnboardingPage } from './pages/OnboardingPage';
-import { LoginPage } from "./pages/LoginPage";
-import { RegisterPage } from "./pages/RegisterPage";
-import { OAuth2RedirectHandler } from "./pages/OAuth2RedirectHandler";
-import { apiClient } from './api/axiosConfig';
-import { Send, ExternalLink, X, Bot } from 'lucide-react';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { OAuth2RedirectHandler } from './pages/OAuth2RedirectHandler';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { VerifyEmailPage } from './pages/VerifyEmailPage';
+import { AccountPage } from './pages/AccountPage';
+import { AdminPage } from './pages/AdminPage';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { buildLoginRedirectPath, resolvePostAuthRedirect } from './utils/authRedirect';
+import { fetchMyClubMembershipContext } from './features/clubs/api';
+
+const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email']);
+const boundedCanvasPages = new Set(['/map', '/messages', '/calendar']);
+
+const PageBootSpinner = ({ label }: { label: string }) => (
+    <div className="bg-base flex min-h-screen items-center justify-center text-primary">
+        <div className="flex flex-col items-center gap-4 text-center">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-accent-primary border-t-transparent"></div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-secondary">
+                {label}
+            </p>
+        </div>
+    </div>
+);
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return <Navigate to="/" replace />;
+    const location = useLocation();
+    const { isBootstrapping, isAuthenticated } = useAuth();
+
+    if (isBootstrapping) {
+        return <PageBootSpinner label="Restoring Session" />;
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to={buildLoginRedirectPath(location.pathname, location.search, location.hash)} replace />;
+    }
+
+    return children;
+};
+
+const GuestOnlyRoute = ({ children }: { children: JSX.Element }) => {
+    const location = useLocation();
+    const { isBootstrapping, isAuthenticated, user } = useAuth();
+    const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '/feed');
+
+    if (isBootstrapping) {
+        return <PageBootSpinner label="Checking Access" />;
+    }
+
+    if (isAuthenticated) {
+        return <Navigate to={user?.profileComplete ? nextPath : '/onboarding'} replace />;
+    }
+
+    return children;
+};
+
+const SystemAdminRoute = ({ children }: { children: JSX.Element }) => {
+    const location = useLocation();
+    const { isBootstrapping, isAuthenticated, user } = useAuth();
+
+    if (isBootstrapping) {
+        return <PageBootSpinner label="Checking Admin Access" />;
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to={buildLoginRedirectPath(location.pathname, location.search, location.hash)} replace />;
+    }
+
+    if (user?.role !== 'SYSTEM_ADMIN') {
+        return <Navigate to="/feed" replace />;
+    }
+
     return children;
 };
 
 function MainLayout() {
     const location = useLocation();
     const navigate = useNavigate();
-
-    const [user, setUser] = useState<{ id?: number; username?: string; role?: string; fullName?: string; profileComplete?: boolean } | null>(null);
-    const [activeQuickChat, setActiveQuickChat] = useState<{id: number, name: string, role: string, online: boolean} | null>(null);
-    const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
-    const [isRoofVisible, setIsRoofVisible] = useState(true);
+    const { status, user, logout } = useAuth();
+    const [myClubId, setMyClubId] = useState<number | null>(null);
+    const [activeQuickChat, setActiveQuickChat] = useState<{ id: number; name: string; role: string; online: boolean } | null>(null);
+    const [darkMode, setDarkMode] = useState(() => {
+        const saved = localStorage.getItem('theme');
+        if (saved === 'dark') {
+            return true;
+        }
+        if (saved === 'light') {
+            return false;
+        }
+        return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+    });
 
     const mockContacts = [
         { id: 101, name: 'Saba Gogichaishvili', role: 'Striker', online: true },
@@ -48,106 +121,112 @@ function MainLayout() {
     ];
 
     useEffect(() => {
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-            apiClient.get('/auth/csrf').catch(() => undefined);
-
-            apiClient.get('/users/me')
-                .then(res => {
-                    const normalizedUser = {
-                        id: res.data.id,
-                        username: res.data.username,
-                        role: res.data.role,
-                        fullName: res.data.fullName ?? res.data.name,
-                        profileComplete: !!res.data.profileComplete
-                    };
-
-                    setUser(normalizedUser);
-
-                    if (normalizedUser.id != null) {
-                        localStorage.setItem('userId', String(normalizedUser.id));
-                    }
-                    localStorage.setItem('user', JSON.stringify(normalizedUser));
-
-                    if (!normalizedUser.profileComplete && location.pathname !== '/onboarding') {
-                        navigate('/onboarding', { replace: true });
-                    }
-                })
-                .catch((error) => {
-                    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-                        localStorage.removeItem('accessToken');
-                        localStorage.removeItem('userId');
-                        localStorage.removeItem('user');
-                        setUser(null);
-                        navigate('/login', { replace: true });
-                    }
-                });
-        } else {
-            setUser(null);
+        if (status !== 'authenticated' || !user?.id) {
+            return;
         }
-    }, [location.pathname, navigate]);
+
+        if (!user.profileComplete && location.pathname !== '/onboarding' && location.pathname !== '/oauth2/callback') {
+            navigate('/onboarding', { replace: true });
+        }
+    }, [location.pathname, navigate, status, user]);
 
     useEffect(() => {
         document.documentElement.classList.toggle('dark', darkMode);
         localStorage.setItem('theme', darkMode ? 'dark' : 'light');
     }, [darkMode]);
 
-    useEffect(() => { if (location.pathname === '/messages') setActiveQuickChat(null); }, [location.pathname]);
+    useEffect(() => {
+        if (location.pathname === '/messages') {
+            setActiveQuickChat(null);
+        }
+    }, [location.pathname]);
+
+    useEffect(() => {
+        let active = true;
+
+        if (status !== 'authenticated') {
+            setMyClubId(null);
+            return () => {
+                active = false;
+            };
+        }
+
+        void fetchMyClubMembershipContext()
+            .then((context) => {
+                if (!active) {
+                    return;
+                }
+                setMyClubId(context?.clubId ? Number(context.clubId) : null);
+            })
+            .catch(() => {
+                if (active) {
+                    setMyClubId(null);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [location.pathname, status]);
 
     const handleLogout = async () => {
-        try { await apiClient.post('/auth/logout'); } catch (error) { console.error("Logout failed:", error); }
-        finally {
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('userId');
-            localStorage.removeItem('user');
-            setUser(null);
-            navigate('/login', { replace: true });
-        }
+        await logout();
+        setActiveQuickChat(null);
+        navigate('/login', { replace: true });
     };
 
     const isLandingPage = location.pathname === '/';
-    const isFeedPage = location.pathname === '/feed';
-    const isAuthPage = location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/oauth2/callback';
+    const isAuthPage = authRoutePaths.has(location.pathname) || location.pathname === '/oauth2/callback';
+    const isCalendarWorkspace = location.pathname === '/calendar';
     const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads)?$/.test(location.pathname);
-    const isFullScreenPage = ['/map', '/messages', '/store', '/charity', '/my-club', '/calendar', '/notifications', '/onboarding'].includes(location.pathname) || location.pathname.startsWith('/profile') || isClubSurfaceRoute;
-    const isBoundedCanvasPage = ['/map', '/messages', '/calendar'].includes(location.pathname);
-
-    // Adjust height logic for BOTH Club Profile and User Profile
-    const isCompactMode = isClubSurfaceRoute || /^\/profile\/\d+$/.test(location.pathname);
-    const headerHeight = isCompactMode ? '64px' : '96px';
-    const fullScreenShellHeight = isRoofVisible ? `calc(100dvh - ${headerHeight})` : '100dvh';
-
-    useEffect(() => { if (!isFullScreenPage && !isRoofVisible) setIsRoofVisible(true); }, [location.pathname, isFullScreenPage]);
+    const isFullScreenPage =
+        ['/map', '/messages', '/store', '/charity', '/clubs', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin'].includes(location.pathname) ||
+        location.pathname.startsWith('/profile') ||
+        isClubSurfaceRoute;
+    const isBoundedCanvasPage = boundedCanvasPages.has(location.pathname);
 
     return (
-        <div className="min-h-screen bg-[#fdfaf5] dark:bg-[#0a0f13] transition-colors duration-200 relative font-sans text-slate-300">
-
-            {!isLandingPage && !isAuthPage && (
-                <TopNav user={user} darkMode={darkMode} setDarkMode={setDarkMode} isRoofVisible={isRoofVisible} setIsRoofVisible={setIsRoofVisible} handleLogout={handleLogout} />
+        <div className="min-h-screen bg-base text-primary transition-colors duration-200">
+            {!isLandingPage && !isAuthPage && !isCalendarWorkspace && (
+                <TopNav
+                    user={user}
+                    myClubId={myClubId}
+                    darkMode={darkMode}
+                    setDarkMode={setDarkMode}
+                    handleLogout={handleLogout}
+                />
             )}
 
             {isLandingPage || isAuthPage ? (
                 <main>
                     <Routes>
                         <Route path="/" element={<LandingPage />} />
-                        <Route path="/login" element={<LoginPage />} />
-                        <Route path="/signup" element={<RegisterPage />} />
+                        <Route path="/login" element={<GuestOnlyRoute><LoginPage /></GuestOnlyRoute>} />
+                        <Route path="/signup" element={<GuestOnlyRoute><RegisterPage /></GuestOnlyRoute>} />
+                        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                        <Route path="/reset-password" element={<ResetPasswordPage />} />
+                        <Route path="/verify-email" element={<VerifyEmailPage />} />
                         <Route path="/oauth2/callback" element={<OAuth2RedirectHandler />} />
                     </Routes>
                 </main>
             ) : isFullScreenPage ? (
                 <main
-                    className={`w-full relative min-h-0 ${isBoundedCanvasPage ? 'overflow-hidden' : 'overflow-y-auto transition-all duration-500 ease-in-out'}`}
-                    style={{ height: fullScreenShellHeight }}
+                    className={`relative w-full ${isBoundedCanvasPage ? 'overflow-hidden' : 'overflow-y-auto'}`}
+                    style={isCalendarWorkspace
+                        ? { minHeight: '100dvh', height: '100dvh' }
+                        : { minHeight: 'calc(100dvh - var(--app-header-height))', height: 'calc(100dvh - var(--app-header-height))' }}
                 >
                     <Routes>
                         <Route path="/map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
-                        <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+                        <Route path="/clubs" element={<BrowseClubsPage />} />
+                        <Route path="/calendar" element={<ProtectedRoute><CalendarPage user={user} darkMode={darkMode} setDarkMode={setDarkMode} /></ProtectedRoute>} />
                         <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
                         <Route path="/messages" element={<ProtectedRoute><MessagingPage /></ProtectedRoute>} />
+                        <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+                        <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
                         <Route path="/profile/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
                         <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
-                        <Route path="/clubs/:id" element={<ProtectedRoute><ClubProfilePage /></ProtectedRoute>} />
+                        <Route path="/clubs/:id" element={<ClubProfilePage />} />
                         <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
                         <Route path="/store" element={<ProtectedRoute><StorePage /></ProtectedRoute>} />
                         <Route path="/charity" element={<ProtectedRoute><CharityPage /></ProtectedRoute>} />
@@ -155,56 +234,93 @@ function MainLayout() {
                     </Routes>
                 </main>
             ) : (
-                <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 pt-6 px-4 md:px-6 pb-12">
-                    <LeftSidebar user={user} />
+                <div className="mx-auto grid max-w-[1480px] grid-cols-1 gap-6 px-4 pb-10 pt-6 lg:grid-cols-[220px_minmax(0,1fr)_280px] lg:px-6 xl:grid-cols-[220px_minmax(0,720px)_280px] xl:justify-center">
+                    <LeftSidebar user={user} myClubId={myClubId} />
 
-                    <main className="col-span-1 lg:col-span-6 xl:col-span-6">
+                    <main className="min-w-0">
                         <Routes>
                             <Route path="/feed" element={<ProtectedRoute><FeedPage /></ProtectedRoute>} />
-                            <Route path="/clubs" element={<ProtectedRoute><BrowseClubsPage /></ProtectedRoute>} />
                         </Routes>
                     </main>
 
-                    <RightSidebar mockContacts={mockContacts} activeQuickChat={activeQuickChat} setActiveQuickChat={setActiveQuickChat} />
+                    <RightSidebar
+                        mockContacts={mockContacts}
+                        activeQuickChat={activeQuickChat}
+                        setActiveQuickChat={setActiveQuickChat}
+                    />
                 </div>
             )}
 
-            {/* QUICK CHAT OVERLAY */}
             {activeQuickChat && (
-                <div className="fixed bottom-0 right-4 md:right-8 z-[9000] w-72 bg-white dark:bg-[#151f28] rounded-t-sm border border-b-0 border-slate-300 dark:border-slate-700 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5">
-                    <div className="bg-slate-100 dark:bg-[#0a0f13] p-3 flex justify-between items-center border-b border-slate-200 dark:border-slate-800">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-sm bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">{activeQuickChat.name.substring(0,2).toUpperCase()}</div>
+                <div className="fixed bottom-0 right-4 z-[9000] flex w-80 flex-col overflow-hidden border border-subtle bg-elevated text-primary shadow-float md:right-8">
+                    <div className="flex items-center justify-between border-b border-subtle bg-surface px-3 py-3">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 items-center justify-center border border-accent-primary bg-accent-primary-soft text-xs font-black uppercase accent-primary">
+                                {activeQuickChat.name.substring(0, 2).toUpperCase()}
+                            </div>
                             <div>
-                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate w-32">{activeQuickChat.name}</p>
-                                <p className={`text-[9px] font-bold uppercase tracking-widest ${activeQuickChat.online ? 'text-emerald-500' : 'text-slate-500'}`}>{activeQuickChat.online ? 'Online' : 'Offline'}</p>
+                                <p className="w-36 truncate text-xs font-black uppercase tracking-[0.16em] text-primary">
+                                    {activeQuickChat.name}
+                                </p>
+                                <p className={`mt-1 text-[10px] font-black uppercase tracking-[0.18em] ${activeQuickChat.online ? 'accent-primary' : 'text-secondary'}`}>
+                                    {activeQuickChat.online ? 'Online' : 'Offline'}
+                                </p>
                             </div>
                         </div>
                         <div className="flex gap-1">
-                            <Link to="/messages" onClick={() => setActiveQuickChat(null)} className="p-1 text-slate-400 hover:text-emerald-500 transition-colors"><ExternalLink className="w-3.5 h-3.5" /></Link>
-                            <button onClick={() => setActiveQuickChat(null)} className="p-1 text-slate-400 hover:text-rose-500 transition-colors"><X className="w-4 h-4" /></button>
+                            <Link to="/messages" onClick={() => setActiveQuickChat(null)} className="p-1.5 text-secondary transition-colors hover:text-primary">
+                                <ExternalLink className="h-3.5 w-3.5" />
+                            </Link>
+                            <button type="button" onClick={() => setActiveQuickChat(null)} className="p-1.5 text-secondary transition-colors hover:text-primary">
+                                <X className="h-4 w-4" />
+                            </button>
                         </div>
                     </div>
-                    <div className="h-56 bg-white dark:bg-[#0f172a] p-3 overflow-y-auto flex flex-col gap-3">
-                        <div className="bg-slate-100 dark:bg-[#1e293b] p-2.5 rounded-sm self-start max-w-[85%] border border-slate-200 dark:border-slate-800"><p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium">Checking in regarding the tryouts.</p></div>
-                        <div className="bg-emerald-50 dark:bg-emerald-900/20 p-2.5 rounded-sm self-end max-w-[85%] border border-emerald-200 dark:border-emerald-800/30"><p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">Affirmative.</p></div>
+                    <div className="flex h-56 flex-col gap-3 overflow-y-auto bg-base p-3">
+                        <div className="max-w-[85%] self-start border border-subtle bg-surface px-3 py-2.5">
+                            <p className="text-xs font-medium text-primary">Checking in regarding the tryouts.</p>
+                        </div>
+                        <div className="max-w-[85%] self-end border border-accent-primary bg-accent-primary-soft px-3 py-2.5">
+                            <p className="text-xs font-medium accent-primary">Affirmative.</p>
+                        </div>
                     </div>
-                    <div className="p-2 bg-white dark:bg-[#151f28] border-t border-slate-200 dark:border-slate-800">
-                        <div className="flex gap-1">
-                            <input type="text" placeholder="Type..." className="flex-1 bg-slate-100 dark:bg-[#0a0f13] text-xs text-slate-900 dark:text-white px-2 py-1.5 outline-none rounded-sm border border-slate-200 dark:border-slate-700" />
-                            <button className="px-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-sm transition-colors"><Send className="w-3 h-3" /></button>
+                    <div className="border-t border-subtle bg-surface px-3 py-2.5">
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                placeholder="Type update"
+                                className="flex-1 border border-subtle bg-base px-3 py-2 text-xs text-primary outline-none placeholder:text-muted"
+                            />
+                            <button type="button" className="inline-flex h-9 w-9 items-center justify-center bg-accent-primary-soft accent-primary transition-colors hover:text-primary">
+                                <Send className="h-3.5 w-3.5" />
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {isFeedPage && (
+            {location.pathname === '/feed' && (
                 <div className="fixed bottom-6 right-6 z-[8000]">
-                    <button onClick={() => alert("Talanti AI coming soon!")} className="flex items-center justify-center w-12 h-12 rounded-sm bg-emerald-600 text-white shadow-lg border border-transparent dark:border-slate-800 hover:-translate-y-0.5 hover:-translate-x-0.5 transition-transform"><Bot className="w-5 h-5" /></button>
+                    <button
+                        type="button"
+                        disabled
+                        title="Talanti AI stays intentionally deferred for a later phase."
+                        className="flex h-11 w-11 cursor-not-allowed items-center justify-center border border-subtle bg-accent-primary-soft accent-primary opacity-70"
+                    >
+                        <Bot className="h-5 w-5" />
+                    </button>
                 </div>
             )}
         </div>
     );
 }
 
-export default function App() { return <Router><MainLayout /></Router>; }
+export default function App() {
+    return (
+        <Router>
+            <AuthProvider>
+                <MainLayout />
+            </AuthProvider>
+        </Router>
+    );
+}

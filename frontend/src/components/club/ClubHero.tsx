@@ -1,9 +1,24 @@
 import { useRef, useState } from 'react';
-import { ShieldCheck, MapPin, Settings, Swords, Camera, Loader2, CalendarDays, Check, Plus, MessageSquare } from 'lucide-react';
+import {
+    CalendarDays,
+    Camera,
+    Check,
+    Loader2,
+    LogOut,
+    MapPin,
+    MessageSquare,
+    Plus,
+    Settings,
+    ShieldCheck,
+    Swords,
+    Users
+} from 'lucide-react';
 import { apiClient } from '../../api/axiosConfig';
+import { PageHeroSection } from '../layout/PageHeroSection';
+import { clubRoleLabel } from '../../features/clubs/domain';
 import { getCroppedImg } from '../../utils/cropImageHelper';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
-import { ImageCropperModal } from "../../ui/ImageCropperModal.tsx";
+import { ImageCropperModal } from '../../ui/ImageCropperModal';
 import type { ClubProfile } from '../../pages/ClubProfilePage';
 
 interface ClubHeroProps {
@@ -13,11 +28,14 @@ interface ClubHeroProps {
     canOpenCalendar: boolean;
     canChallengeClub: boolean;
     canMessageClub: boolean;
+    membershipRole?: string | null;
+    showInlineLeaveAction?: boolean;
     onFollowToggle: () => void;
     onOpenManageClub: () => void;
     onOpenCalendar: () => void;
     onOpenChallengeModal: () => void;
     onOpenMessage: () => void;
+    onLeaveClub?: () => Promise<void> | void;
     onRefresh: () => void;
 }
 
@@ -28,30 +46,29 @@ export const ClubHero = ({
     canOpenCalendar,
     canChallengeClub,
     canMessageClub,
+    membershipRole,
+    showInlineLeaveAction = false,
     onFollowToggle,
     onOpenManageClub,
     onOpenCalendar,
     onOpenChallengeModal,
     onOpenMessage,
+    onLeaveClub,
     onRefresh
 }: ClubHeroProps) => {
     const bannerInputRef = useRef<HTMLInputElement>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState<'banner' | 'logo' | null>(null);
-
-    const [cropperModal, setCropperModal] = useState<{
-        isOpen: boolean;
-        imageUrl: string;
-        type: 'banner' | 'logo';
-    } | null>(null);
+    const [cropperModal, setCropperModal] = useState<{ isOpen: boolean; imageUrl: string; type: 'banner' | 'logo' } | null>(null);
+    const [isConfirmingLeave, setIsConfirmingLeave] = useState(false);
+    const [isLeavingClub, setIsLeavingClub] = useState(false);
+    const [leaveError, setLeaveError] = useState<string | null>(null);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'banner' | 'logo') => {
         const file = event.target.files?.[0];
         if (!file) return;
-
         const imageUrl = URL.createObjectURL(file);
         setCropperModal({ isOpen: true, imageUrl, type });
-
         if (event.target) event.target.value = '';
     };
 
@@ -63,7 +80,7 @@ export const ClubHero = ({
 
         try {
             const croppedImageBlob = await getCroppedImg(cropperModal.imageUrl, croppedAreaPixels);
-            if (!croppedImageBlob) throw new Error("Failed to crop image into a valid Blob.");
+            if (!croppedImageBlob) throw new Error('Failed to crop image.');
 
             const formData = new FormData();
             formData.append('file', croppedImageBlob, `${type}.jpg`);
@@ -77,9 +94,7 @@ export const ClubHero = ({
                 throw new Error('Media upload did not return a URL.');
             }
 
-            await apiClient.put(`/clubs/${club.id}`, type === 'banner'
-                ? { bannerUrl: mediaUrl }
-                : { logoUrl: mediaUrl });
+            await apiClient.put(`/clubs/${club.id}`, type === 'banner' ? { bannerUrl: mediaUrl } : { logoUrl: mediaUrl });
             onRefresh();
         } catch (error) {
             console.error(`Failed to upload ${type}`, error);
@@ -88,117 +103,186 @@ export const ClubHero = ({
         }
     };
 
-    return (
-        <div className="theme-page relative">
-            {/* 1. SEAMLESS BANNER SECTION */}
-            <div className="theme-surface-strong h-48 md:h-80 w-full relative group flex items-center justify-center overflow-hidden border-b theme-border">
+    const handleLeaveClub = async () => {
+        if (!onLeaveClub) return;
+        setIsLeavingClub(true);
+        setLeaveError(null);
 
-                {resolveMediaUrl(club?.bannerUrl) ? (
-                    <img
-                        src={resolveMediaUrl(club?.bannerUrl)}
-                        alt="Club Banner"
-                        className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-700"
-                    />
+        try {
+            await onLeaveClub();
+            setIsConfirmingLeave(false);
+        } catch (error) {
+            console.error('Failed to leave club', error);
+            setLeaveError('Failed to leave this club.');
+        } finally {
+            setIsLeavingClub(false);
+        }
+    };
+
+    const bannerUrl = resolveMediaUrl(club?.bannerUrl);
+    const logoUrl = resolveMediaUrl(club?.logoUrl);
+    const showExternalVisitorActions = Boolean(club && !club.isMember);
+    const systemActionClassName = 'inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-[color:var(--club-theme-text-primary)] transition-colors hover:bg-white/[0.07]';
+    const accentActionClassName = 'inline-flex items-center gap-2 rounded-full border border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green)] px-5 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-[#04110a] transition-all hover:brightness-105';
+    const challengeActionClassName = 'inline-flex items-center gap-2 rounded-full border border-[rgba(255,158,88,0.3)] bg-[color:var(--club-accent-orange-soft)] px-5 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-[color:var(--club-accent-orange)] transition-colors hover:bg-[rgba(255,158,88,0.18)]';
+    const destructiveActionClassName = 'inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-[color:var(--club-theme-text-primary)] transition-colors hover:bg-white/[0.07]';
+
+    return (
+        <section className="border-b border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-band)]">
+            <div className="relative h-[240px] overflow-hidden sm:h-[300px] lg:h-[360px]">
+                {bannerUrl ? (
+                    <img src={bannerUrl} alt="Club banner" className="h-full w-full object-cover" />
                 ) : (
-                    <div className="theme-surface-inset w-full h-full flex items-center justify-center">
-                        <Camera className="w-12 h-12 text-slate-700" />
-                    </div>
+                    <div className="club-banner-fallback h-full w-full" />
                 )}
 
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,12,0.08),rgba(2,6,12,0.68)_62%,rgba(4,9,15,0.96))]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(30,144,255,0.18),transparent_30%),radial-gradient(circle_at_top_left,rgba(34,197,94,0.18),transparent_26%)]" />
+
                 {canEditClubAssets && (
-                    <div className="absolute top-4 right-4 z-30">
-                        <input type="file" ref={bannerInputRef} className="hidden" accept="image/jpeg,image/png,image/webp" onChange={(e) => handleFileChange(e, 'banner')} />
+                    <div className="absolute right-5 top-5 z-10">
+                        <input type="file" ref={bannerInputRef} className="hidden" accept="image/jpeg,image/png,image/webp" onChange={(event) => handleFileChange(event, 'banner')} />
                         <button
+                            type="button"
                             onClick={() => bannerInputRef.current?.click()}
                             disabled={uploading === 'banner'}
-                            className="theme-overlay hover:bg-emerald-600 text-white p-2 rounded-full backdrop-blur-md transition-all border border-transparent hover:border-emerald-400"
+                            className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/24 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white backdrop-blur-md"
                         >
-                            {uploading === 'banner' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
+                            {uploading === 'banner' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                            Banner
                         </button>
                     </div>
                 )}
             </div>
 
-            {/* 2. HEADER CONTENT */}
-            <div className="px-4 sm:px-8 pb-6 relative z-20 -mt-12 sm:-mt-16">
-                <div className="flex flex-col md:flex-row items-center md:items-end md:justify-between gap-4">
-
-                    {/* Logo & Club Info */}
-                    <div className="flex flex-col md:flex-row items-center md:items-end gap-6 text-center md:text-left w-full md:w-auto">
-                        <div className="relative group w-32 h-32 sm:w-40 sm:h-40 shrink-0">
-                            <div className="absolute inset-0 bg-emerald-500 rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
-                            <div className="theme-surface-inset w-full h-full rounded-full border-4 border-slate-50 dark:theme-border-strong overflow-hidden relative z-10 shadow-xl">
-                                {resolveMediaUrl(club?.logoUrl) ? (
-                                    <img src={resolveMediaUrl(club?.logoUrl)} alt="Club Logo" className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center"><ShieldCheck className="w-16 h-16 text-slate-600" /></div>
-                                )}
-
-                                {canEditClubAssets && (
-                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm cursor-pointer" onClick={() => logoInputRef.current?.click()}>
-                                        {uploading === 'logo' ? <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" /> : <Camera className="w-8 h-8 text-white" />}
-                                    </div>
-                                )}
+            <PageHeroSection className="bg-[color:var(--club-band)]" frameClassName="club-page-frame relative py-8 lg:py-10">
+                <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-end">
+                        <div className="relative -mt-[76px] shrink-0 sm:-mt-[96px] lg:-mt-[112px]">
+                            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-[28px] border-[5px] border-[color:var(--club-band)] bg-[rgba(6,11,18,0.92)] text-2xl font-black uppercase text-[color:var(--club-theme-text-primary)] shadow-[0_18px_44px_rgba(2,6,12,0.35)] sm:h-28 sm:w-28 lg:h-36 lg:w-36">
+                                {logoUrl ? <img src={logoUrl} alt="Club logo" className="h-full w-full object-cover" /> : (club?.name ?? 'CL').substring(0, 2).toUpperCase()}
                             </div>
-                            <input type="file" ref={logoInputRef} className="hidden" accept="image/jpeg,image/png,image/webp" onChange={(e) => handleFileChange(e, 'logo')} />
+                            {club?.isOfficial ? (
+                                <div className="absolute -bottom-1 -right-1 inline-flex h-10 w-10 items-center justify-center rounded-full border-4 border-[color:var(--club-band)] bg-[color:var(--club-tone-green)] text-[#021108]">
+                                    <ShieldCheck className="h-4 w-4" />
+                                </div>
+                            ) : null}
+                            {canEditClubAssets && (
+                                <>
+                                    <input type="file" ref={logoInputRef} className="hidden" accept="image/jpeg,image/png,image/webp" onChange={(event) => handleFileChange(event, 'logo')} />
+                                    <button
+                                        type="button"
+                                        onClick={() => logoInputRef.current?.click()}
+                                        className="absolute -bottom-2 left-1/2 inline-flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-white/12 bg-black/34 text-white backdrop-blur"
+                                    >
+                                        {uploading === 'logo' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                                    </button>
+                                </>
+                            )}
                         </div>
 
-                        <div className="mb-2 w-full md:w-auto">
-                            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight uppercase flex items-center justify-center md:justify-start gap-3">
-                                {club?.name}
-                                {club?.isOfficial && <ShieldCheck className="w-7 h-7 text-emerald-500 shrink-0 drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]" />}
-                            </h1>
-                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-2 text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                                <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-500" /> {club?.addressText || 'Unknown Location'}</span>
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></span>
-                                <span className="text-emerald-600 dark:text-emerald-500">{club?.type}</span>
+                        <div className="min-w-0 pb-2">
+                            <div className="mt-2 flex flex-wrap items-center gap-3">
+                                <h1 className="text-3xl font-black tracking-[-0.04em] text-[color:var(--club-theme-text-primary)] sm:text-5xl">{club?.name}</h1>
+                                {club?.isOfficial && (
+                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green-soft)] px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-[color:var(--club-tone-green)]">
+                                        <ShieldCheck className="h-3.5 w-3.5" />
+                                        Verified club
+                                    </span>
+                                )}
                             </div>
+
+                            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] font-black uppercase tracking-[0.18em] text-[color:var(--club-theme-text-secondary)]">
+                                <span className="inline-flex items-center gap-1.5">
+                                    <MapPin className="h-3.5 w-3.5 text-[color:var(--club-tone-green)]" />
+                                    {club?.addressText || 'Location pending'}
+                                </span>
+                                <span className="h-1 w-1 rounded-full bg-[color:var(--club-divider-dot)]" />
+                                <span>{club?.type || 'Club profile'}</span>
+                                {membershipRole && (
+                                    <>
+                                        <span className="h-1 w-1 rounded-full bg-[color:var(--club-divider-dot)]" />
+                                        <span className="inline-flex items-center gap-1.5 text-[color:var(--club-theme-text-primary)]">
+                                            <Users className="h-3.5 w-3.5 text-[color:var(--club-tone-blue)]" />
+                                            {clubRoleLabel(membershipRole)}
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+
+                            {club?.description && (
+                                <p className="mt-4 max-w-3xl text-base leading-7 text-[color:var(--club-theme-text-secondary)]">{club.description}</p>
+                            )}
                         </div>
                     </div>
 
-                    {/* 3. CHUNKY, BOLD BUTTONS */}
-                    <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 mt-4 md:mt-0 w-full md:w-auto">
+                    <div className="flex flex-wrap items-center gap-3 xl:max-w-[420px] xl:justify-end">
                         {canManageClub ? (
                             <>
                                 {canOpenCalendar && (
-                                    <button onClick={onOpenCalendar} className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-orange-500 hover:bg-orange-600 text-white border-2 border-slate-900">
-                                        <CalendarDays className="w-4 h-4" /> Calendar
+                                    <button type="button" onClick={onOpenCalendar} className={systemActionClassName}>
+                                        <CalendarDays className="h-4 w-4 text-[color:var(--club-tone-blue)]" />
+                                        Schedule
                                     </button>
                                 )}
-                                <button onClick={onOpenManageClub} className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-700 border-2 border-slate-900">
-                                    <Settings className="w-4 h-4" /> Manage Club
+                                <button type="button" onClick={onOpenManageClub} className={systemActionClassName}>
+                                    <Settings className="h-4 w-4 text-[color:var(--club-tone-blue)]" />
+                                    Manage Club
                                 </button>
                             </>
-                        ) : (
+                        ) : showExternalVisitorActions ? (
                             <>
-                                {canChallengeClub && (
-                                    <button onClick={onOpenChallengeModal} className="flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none bg-rose-600 hover:bg-rose-500 text-white border-2 border-slate-900">
-                                        <Swords className="w-4 h-4" /> Challenge
+                                <button
+                                    type="button"
+                                    onClick={onFollowToggle}
+                                    className={club?.isFollowedByMe ? systemActionClassName : accentActionClassName}
+                                >
+                                    {club?.isFollowedByMe ? <Check className="h-4 w-4 text-[color:var(--club-tone-green)]" /> : <Plus className="h-4 w-4" />}
+                                    {club?.isFollowedByMe ? 'Following' : 'Follow'}
+                                </button>
+                                {canMessageClub && (
+                                    <button type="button" onClick={onOpenMessage} className={systemActionClassName}>
+                                        <MessageSquare className="h-4 w-4 text-[color:var(--club-tone-blue)]" />
+                                        Message
                                     </button>
                                 )}
-
-                                <button
-                                    onClick={onOpenMessage}
-                                    disabled={!canMessageClub}
-                                    className={`flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none border-2 ${
-                                        canMessageClub
-                                            ? 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-700 border-slate-900'
-                                            : 'bg-slate-200/60 dark:bg-slate-900 text-slate-500 border-slate-700 cursor-not-allowed shadow-none'
-                                    }`}
-                                >
-                                    <MessageSquare className="w-4 h-4" /> Message
-                                </button>
-
-                                <button onClick={onFollowToggle} className={`flex items-center gap-2 px-6 py-2.5 rounded-sm font-black text-[11px] uppercase tracking-widest transition-all shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none border-2 ${club?.isFollowedByMe ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500 hover:bg-emerald-500/30' : 'bg-emerald-600 text-white border-slate-900 hover:bg-emerald-500'}`}>
-                                    {club?.isFollowedByMe ? <><Check className="w-4 h-4"/> Following</> : <><Plus className="w-4 h-4" /> Follow</>}
-                                </button>
+                                {canChallengeClub && (
+                                    <button type="button" onClick={onOpenChallengeModal} className={challengeActionClassName}>
+                                        <Swords className="h-4 w-4" />
+                                        Challenge
+                                    </button>
+                                )}
                             </>
+                        ) : null}
+
+                        {showInlineLeaveAction && (
+                            isConfirmingLeave ? (
+                                <>
+                                    <button type="button" onClick={() => setIsConfirmingLeave(false)} disabled={isLeavingClub} className={systemActionClassName}>
+                                        Cancel
+                                    </button>
+                                    <button type="button" onClick={() => void handleLeaveClub()} disabled={isLeavingClub} className={destructiveActionClassName}>
+                                        {isLeavingClub ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                                        Confirm Leave
+                                    </button>
+                                </>
+                            ) : (
+                                <button type="button" onClick={() => setIsConfirmingLeave(true)} className={destructiveActionClassName}>
+                                    <LogOut className="h-4 w-4" />
+                                    Leave Club
+                                </button>
+                            )
                         )}
                     </div>
                 </div>
-            </div>
 
-            {/* Image Cropper Modal */}
+                {leaveError && (
+                    <div className="mt-6 rounded-[16px] border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
+                        {leaveError}
+                    </div>
+                )}
+            </PageHeroSection>
+
             {cropperModal && (
                 <ImageCropperModal
                     isOpen={cropperModal.isOpen}
@@ -210,6 +294,6 @@ export const ClubHero = ({
                     isProcessing={uploading !== null}
                 />
             )}
-        </div>
+        </section>
     );
 };

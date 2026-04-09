@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { Shield, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../context/AuthContext';
+import { extractApiErrorMessage } from '../utils/apiError';
+import { resolvePostAuthRedirect } from '../utils/authRedirect';
 
 export const LoginPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { loginWithAccessToken } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '/feed');
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -17,15 +23,12 @@ export const LoginPage = () => {
         setError('');
 
         try {
-            const res = await apiClient.post('/auth/login', { email, password });
-            localStorage.setItem('accessToken', res.data.accessToken);
-            await apiClient.get('/auth/csrf').catch(() => undefined);
-
-            const meRes = await apiClient.get('/users/me');
-            navigate(meRes.data.profileComplete ? '/feed' : '/onboarding');
-        } catch (err: any) {
+            const res = await apiClient.post('/auth/login', { email: email.trim(), password });
+            const authenticatedUser = await loginWithAccessToken(res.data.accessToken);
+            navigate(authenticatedUser.profileComplete ? nextPath : '/onboarding');
+        } catch (err) {
             console.error(err);
-            setError(err.response?.data?.error || 'Invalid credentials. Please try again.');
+            setError(extractApiErrorMessage(err, 'Invalid credentials. Please try again.'));
         } finally {
             setIsLoading(false);
         }
@@ -70,7 +73,7 @@ export const LoginPage = () => {
                         <div>
                             <div className="flex justify-between items-center mb-2">
                                 <label className="block text-xs font-black uppercase tracking-widest text-gray-500">Password</label>
-                                <a href="#" className="text-xs font-bold text-[#a34e36] hover:underline">Forgot?</a>
+                                <Link to="/forgot-password" className="text-xs font-bold text-[#a34e36] hover:underline">Forgot?</Link>
                             </div>
                             <input
                                 type="password"
@@ -110,18 +113,15 @@ export const LoginPage = () => {
                                         token: credentialResponse.credential
                                     });
 
-                                    localStorage.setItem('accessToken', res.data.accessToken);
-                                    await apiClient.get('/auth/csrf').catch(() => undefined);
-
-                                    const meRes = await apiClient.get('/users/me');
-                                    if (!meRes.data.profileComplete) {
+                                    const authenticatedUser = await loginWithAccessToken(res.data.accessToken);
+                                    if (!authenticatedUser.profileComplete) {
                                         navigate('/onboarding');
                                     } else {
-                                        navigate('/feed');
+                                        navigate(nextPath);
                                     }
-                                } catch (err: any) {
+                                } catch (err) {
                                     console.error("Google Auth Failed", err);
-                                    setError(err.response?.data?.error || 'Google login failed.');
+                                    setError(extractApiErrorMessage(err, 'Google login failed.'));
                                 } finally {
                                     setIsLoading(false);
                                 }

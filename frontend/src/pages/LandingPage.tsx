@@ -15,6 +15,7 @@ import {
     Heart
 } from 'lucide-react';
 import L from 'leaflet';
+import { useAuth } from '../context/AuthContext';
 
 const soccerBallSvg = encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
@@ -44,7 +45,10 @@ L.Icon.Default.mergeOptions({
 
 export const LandingPage = () => {
     const mapCenter: [number, number] = [41.7151, 44.8271]; // Tbilisi
-    const isLoggedIn = !!localStorage.getItem('accessToken');
+    const { isAuthenticated, user } = useAuth();
+    const primaryRoute = isAuthenticated
+        ? (user?.profileComplete ? '/feed' : '/onboarding')
+        : '/login';
 
     return (
         <div className="bg-[#fcf8f2] dark:bg-gray-900 text-[#1a1a1a] dark:text-gray-100 min-h-screen font-sans selection:bg-emerald-100 dark:selection:bg-emerald-900">
@@ -67,7 +71,7 @@ export const LandingPage = () => {
                             </p>
                             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
                                 <Link
-                                    to={isLoggedIn ? "/feed" : "/login"}
+                                    to={primaryRoute}
                                     className="px-10 py-5 bg-[#1a1a1a] hover:bg-[#2d2d2d] text-white rounded-xl manga-title text-xl shadow-etched transition-all hover:-translate-y-1 flex items-center gap-2 group border-ink"
                                 >
                                     Start Your Journey <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />

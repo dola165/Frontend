@@ -1,30 +1,117 @@
-import { useState } from 'react';
-import { MapContainer, TileLayer } from 'react-leaflet';
+import { useEffect, useMemo, useState } from 'react';
+import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { Expand, Map as MapIcon, MousePointer2, Shrink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Expand, Map as MapIcon, Shrink } from 'lucide-react';
 
+type MapPoint = [number, number];
 
+export interface MiniMapProps {
+    mode?: 'preview' | 'picker';
+    title?: string;
+    selectedLocation?: { lat?: number | null; lng?: number | null } | null;
+    onSelectLocation?: (coords: { lat: number; lng: number }) => void;
+    initialCenter?: MapPoint;
+    className?: string;
+}
 
-export function MiniMap() {
+const DEFAULT_CENTER: MapPoint = [41.7151, 44.8271];
+
+function MiniMapPickerEvents({
+    enabled,
+    onSelect
+}: {
+    enabled: boolean;
+    onSelect: (coords: { lat: number; lng: number }) => void;
+}) {
+    useMapEvents({
+        click(event) {
+            if (!enabled) {
+                return;
+            }
+            onSelect({
+                lat: Number(event.latlng.lat.toFixed(6)),
+                lng: Number(event.latlng.lng.toFixed(6))
+            });
+        }
+    });
+
+    return null;
+}
+
+function MiniMapFocusController({ target }: { target: MapPoint | null }) {
+    const map = useMap();
+
+    useEffect(() => {
+        if (!target) {
+            return;
+        }
+        map.flyTo(target, Math.max(map.getZoom(), 13), { animate: true, duration: 0.35 });
+    }, [map, target]);
+
+    return null;
+}
+
+export function MiniMap({
+    mode = 'preview',
+    title,
+    selectedLocation,
+    onSelectLocation,
+    initialCenter = DEFAULT_CENTER,
+    className = ''
+}: MiniMapProps) {
     const [expanded, setExpanded] = useState(false);
     const navigate = useNavigate();
-    const center: [number, number] = [41.7151, 44.8271]; // Tbilisi
+
+    const selectedPoint = useMemo<MapPoint | null>(() => {
+        if (selectedLocation?.lat == null || selectedLocation?.lng == null) {
+            return null;
+        }
+        return [selectedLocation.lat, selectedLocation.lng];
+    }, [selectedLocation?.lat, selectedLocation?.lng]);
+
+    const center = selectedPoint ?? initialCenter;
+    const previewTitle = title ?? (mode === 'picker' ? 'Venue Picker' : 'Explore Nearby');
+    const previewSubtitle = mode === 'picker' ? 'Click to place venue pin' : 'Browse map context';
 
     return (
-        <div className="sticky top-24 relative z-50">
-            <h3 className="font-bold text-slate-900 dark:text-white mb-3 px-1 uppercase tracking-widest text-xs">Explore Nearby</h3>
+        <div className={mode === 'picker' ? `relative ${className}`.trim() : `sticky top-24 relative z-50 ${className}`.trim()}>
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                <div className="min-w-0">
+                    <h3 className="truncate text-xs font-black uppercase tracking-[0.18em] text-primary">{previewTitle}</h3>
+                    <p className="mt-1 text-[11px] font-medium text-secondary">{previewSubtitle}</p>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2">
+                    {mode === 'preview' ? (
+                        <button
+                            type="button"
+                            onClick={() => navigate('/map')}
+                            className="inline-flex h-8 items-center gap-1 rounded-[4px] border border-subtle bg-surface px-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-primary transition-colors hover:bg-elevated"
+                        >
+                            <MapIcon className="h-3.5 w-3.5" />
+                            Full Map
+                        </button>
+                    ) : null}
+
+                    <button
+                        type="button"
+                        onClick={() => setExpanded((current) => !current)}
+                        className="inline-flex h-8 items-center gap-1 rounded-[4px] border border-subtle bg-surface px-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-primary transition-colors hover:bg-elevated"
+                    >
+                        {expanded ? <Shrink className="h-3.5 w-3.5" /> : <Expand className="h-3.5 w-3.5" />}
+                        {expanded ? 'Collapse' : 'Expand'}
+                    </button>
+                </div>
+            </div>
 
             <div
-                // We changed the origin to "left" and positioned it so it pushes into the right-side gutter!
-                className={`origin-top-left transition-all duration-300 ease-in-out bg-white dark:bg-[#151f28] rounded-xl overflow-hidden border-2 border-slate-900 dark:border-slate-800 ${
-                    expanded
-                        ? 'absolute top-10 -left-4 w-[400px] h-[550px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] z-[100]'
-                        : 'relative w-full h-64 shadow-sm z-0'
+                className={`theme-surface theme-border relative overflow-hidden border shadow-sm transition-[height] duration-200 ${
+                    expanded ? 'h-[320px]' : mode === 'picker' ? 'h-[220px]' : 'h-64'
                 }`}
             >
                 <MapContainer
                     center={center}
-                    zoom={11}
+                    zoom={selectedPoint ? 13 : 11}
                     className="h-full w-full"
                     zoomControl={false}
                     dragging={true}
@@ -32,26 +119,34 @@ export function MiniMap() {
                     preferCanvas={true}
                 >
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <MiniMapFocusController target={selectedPoint} />
+                    <MiniMapPickerEvents enabled={mode === 'picker' && Boolean(onSelectLocation)} onSelect={onSelectLocation ?? (() => undefined)} />
+                    {selectedPoint ? (
+                        <CircleMarker
+                            center={selectedPoint}
+                            radius={10}
+                            pathOptions={{
+                                color: 'var(--accent-primary)',
+                                fillColor: 'var(--accent-primary)',
+                                fillOpacity: 0.28,
+                                weight: 2
+                            }}
+                        />
+                    ) : null}
                 </MapContainer>
 
-                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/80 to-transparent opacity-0 hover:opacity-100 transition-opacity z-[1000] flex items-end justify-center pb-3 gap-2">
-                    <button
-                        onClick={() => navigate('/map')}
-                        className="bg-white/95 hover:bg-white text-slate-900 px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
-                    >
-                        <MapIcon className="w-3 h-3 text-emerald-600" /> Full Map
-                    </button>
-                    <button
-                        onClick={() => setExpanded(!expanded)}
-                        className="bg-white/95 hover:bg-white text-slate-900 px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1 transition-colors shadow-sm"
-                    >
-                        {expanded ? <Shrink className="w-3 h-3" /> : <Expand className="w-3 h-3" />}
-                        {expanded ? 'Collapse' : 'Expand'}
-                    </button>
-                </div>
+                {mode === 'picker' ? (
+                    <div className="pointer-events-none absolute left-3 top-3 rounded-[4px] border border-subtle bg-[color:var(--bg-surface)]/92 px-3 py-2 shadow-sm backdrop-blur">
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-primary">
+                            <MousePointer2 className="h-3.5 w-3.5 accent-primary" />
+                            Click map to set venue
+                        </div>
+                        <p className="mt-1 text-[11px] leading-5 text-secondary">
+                            {selectedPoint ? 'Pin is locked to the current venue selection.' : 'Drop a pin instead of typing coordinates manually.'}
+                        </p>
+                    </div>
+                ) : null}
             </div>
-
-            {expanded && <div className="w-full h-64" />}
         </div>
     );
 }

@@ -1,69 +1,77 @@
 import { Link } from 'react-router-dom';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Radar } from 'lucide-react';
 import { MiniMap } from '../MiniMap';
 
 interface RightSidebarProps {
     mockContacts: { id: number; name: string; role: string; online: boolean }[];
     activeQuickChat: { id: number } | null;
-    setActiveQuickChat: (contact: any) => void;
+    setActiveQuickChat: (contact: { id: number; name: string; role: string; online: boolean }) => void;
 }
 
-export const RightSidebar = ({ mockContacts, activeQuickChat, setActiveQuickChat }: RightSidebarProps) => {
-    return (
-        <aside className="hidden lg:block lg:col-span-3 xl:col-span-3 relative">
-            <div className="sticky top-32 flex flex-col gap-6">
-                <div className="rounded-sm overflow-hidden border-2 border-slate-300 dark:border-slate-800 shadow-lg bg-[#f4fbf9] dark:bg-[#151f28]">
+export const RightSidebar = ({ mockContacts, activeQuickChat, setActiveQuickChat }: RightSidebarProps) => (
+    <aside className="hidden lg:block">
+        <div className="sticky top-[calc(var(--app-header-height)+24px)] flex flex-col gap-4">
+            <section className="bg-surface border border-subtle">
+                <div className="flex items-center justify-between border-b border-subtle px-4 py-3">
+                    <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-secondary">Map Utility</p>
+                        <p className="mt-1 text-sm font-black uppercase tracking-[0.16em] text-primary">Local Scan</p>
+                    </div>
+                    <Radar className="h-4 w-4 accent-primary" />
+                </div>
+                <div className="overflow-hidden border-t border-[color:var(--accent-muted)]">
                     <MiniMap />
                 </div>
+            </section>
 
-                <div className="bg-[#f4fbf9] dark:bg-[#151f28] p-4 rounded-sm border-2 border-slate-300 dark:border-slate-800 shadow-lg">
-                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-emerald-100 dark:border-slate-800">
-                        <h3 className="font-bold text-slate-900 dark:text-white uppercase tracking-widest text-xs flex items-center gap-2">
-                            <MessageSquare className="w-3.5 h-3.5 text-emerald-500" /> Active Comms
-                        </h3>
-                        <Link to="/messages" className="text-[9px] font-bold text-slate-400 uppercase tracking-widest hover:text-emerald-500">See All</Link>
+            <section className="bg-surface border border-subtle">
+                <div className="flex items-center justify-between border-b border-subtle px-4 py-3">
+                    <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-secondary">Communication Panel</p>
+                        <p className="mt-1 text-sm font-black uppercase tracking-[0.16em] text-primary">Active Contacts</p>
                     </div>
-                    <div className="flex flex-col gap-1">
-                        {mockContacts.map(contact => (
+                    <Link to="/messages" className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary transition-colors hover:text-primary">
+                        Open
+                    </Link>
+                </div>
+
+                <div className="divide-y divide-[color:var(--border-subtle)]">
+                    {mockContacts.map((contact) => {
+                        const active = activeQuickChat?.id === contact.id;
+
+                        return (
                             <button
                                 key={contact.id}
+                                type="button"
                                 onClick={() => setActiveQuickChat(contact)}
-                                className={`flex items-center gap-3 p-2 rounded-sm transition-colors w-full text-left border-l-2 ${
-                                    activeQuickChat?.id === contact.id
-                                        ? 'bg-emerald-50 dark:bg-[#0f172a] border-emerald-500'
-                                        : 'border-transparent hover:bg-sky-50 dark:hover:bg-[#0f172a] hover:border-sky-500'
+                                className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
+                                    active ? 'bg-elevated' : 'hover:bg-base'
                                 }`}
                             >
                                 <div className="relative shrink-0">
-                                    <div className="w-8 h-8 rounded-sm bg-sky-100 dark:bg-slate-800 text-sky-700 dark:text-slate-300 flex items-center justify-center text-xs font-bold">
+                                    <div className="flex h-9 w-9 items-center justify-center border border-subtle bg-base text-xs font-black uppercase text-primary">
                                         {contact.name.substring(0, 2).toUpperCase()}
                                     </div>
-                                    {contact.online && <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-emerald-500 border border-white dark:border-[#151f28] rounded-full"></div>}
+                                    <span
+                                        className={`absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border border-[color:var(--bg-surface)] ${
+                                            contact.online ? 'bg-[color:var(--accent-primary)]' : 'bg-[color:var(--text-muted)]'
+                                        }`}
+                                    />
                                 </div>
-                                <div className="flex-1 overflow-hidden">
-                                    <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">{contact.name}</p>
-                                    <p className="text-[9px] font-medium text-slate-500 uppercase tracking-wider truncate">{contact.role}</p>
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate text-xs font-black uppercase tracking-[0.16em] text-primary">{contact.name}</p>
+                                    <div className="mt-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-secondary">
+                                        <span>{contact.role}</span>
+                                        <span className="h-1 w-1 rounded-full bg-[color:var(--accent-muted)]" />
+                                        <span className={contact.online ? 'accent-primary' : ''}>{contact.online ? 'Online' : 'Offline'}</span>
+                                    </div>
                                 </div>
+                                <MessageSquare className={`h-4 w-4 ${active ? 'accent-primary' : 'text-secondary'}`} />
                             </button>
-                        ))}
-                    </div>
+                        );
+                    })}
                 </div>
-
-                <div className="bg-[#eef8ff] dark:bg-[#151f28] p-4 rounded-sm border-2 border-slate-300 dark:border-slate-800 shadow-lg">
-                    <h3 className="font-bold text-slate-900 dark:text-white mb-4 uppercase tracking-widest text-xs pb-2 border-b border-sky-100 dark:border-slate-800">Database Wisdom</h3>
-                    <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
-                        {[
-                            { quote: "He who does not work, neither shall he eat.", author: "Vladimir Lenin" },
-                            { quote: "Better to die on your feet than to live on your knees.", author: "Emiliano Zapata" },
-                        ].map((q, idx) => (
-                            <div key={idx} className="border-l-2 border-emerald-500 pl-3">
-                                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">"{q.quote}"</p>
-                                <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1">- {q.author}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        </aside>
-    );
-};
+            </section>
+        </div>
+    </aside>
+);

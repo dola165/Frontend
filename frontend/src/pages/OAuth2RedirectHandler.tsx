@@ -1,33 +1,45 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiClient } from '../api/axiosConfig'; // Or raw axios if interceptors interfere
+import { useAuth } from '../context/AuthContext';
 
 export const OAuth2RedirectHandler = () => {
     const navigate = useNavigate();
+    const { bootstrapSession } = useAuth();
 
     useEffect(() => {
+        let active = true;
 
-        apiClient.post('/auth/refresh')
-            .then(async (res) => {
-                localStorage.setItem('accessToken', res.data.accessToken);
-
-                try {
-                    // Check if the user has completed their profile
-                    const meRes = await apiClient.get('/users/me');
-                    if (!meRes.data.profileComplete) {
-                        navigate('/onboarding');
-                    } else {
-                        navigate('/feed');
-                    }
-                } catch (e) {
-                    navigate('/feed'); // Fallback
+        const initializeSession = async () => {
+            try {
+                const authenticatedUser = await bootstrapSession();
+                if (!active) {
+                    return;
                 }
-            })
-            .catch(err => {
+
+                if (!authenticatedUser) {
+                    navigate('/login');
+                    return;
+                }
+
+                if (!authenticatedUser.profileComplete) {
+                    navigate('/onboarding');
+                } else {
+                    navigate('/feed');
+                }
+            } catch (err) {
                 console.error("OAuth2 Session initialization failed:", err);
-                navigate('/login');
-            });
-    }, [navigate]);
+                if (active) {
+                    navigate('/login');
+                }
+            }
+        };
+
+        void initializeSession();
+
+        return () => {
+            active = false;
+        };
+    }, [bootstrapSession, navigate]);
 
     return (
         <div className="h-screen flex flex-col items-center justify-center bg-slate-900">

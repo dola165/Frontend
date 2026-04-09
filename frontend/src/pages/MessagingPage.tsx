@@ -4,6 +4,8 @@ import {
      Users, CircleDot,
      Info, X,
 } from 'lucide-react';
+import { buildWebSocketUrl } from '../api/axiosConfig';
+import { getStoredAccessToken, getStoredUserId } from '../utils/authStorage';
 
 // --- CUSTOM ICON ---
 const StrikingBootIcon = ({ className }: { className?: string }) => (
@@ -32,8 +34,7 @@ export const MessagingPage = () => {
     const clientRef = useRef<Client | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // Hardcoded for MVP to match backend assumption
-    const currentUserId = 1;
+    const currentUserId = Number(getStoredUserId() || 0);
     const currentConversationId = 1; // "Global Grassroots"
 
     useEffect(() => {
@@ -41,8 +42,16 @@ export const MessagingPage = () => {
     }, [messages]);
 
     useEffect(() => {
+        const token = getStoredAccessToken();
+        if (!token) {
+            return;
+        }
+
         const client = new Client({
-            brokerURL: 'ws://localhost:8080/ws-chat',
+            brokerURL: buildWebSocketUrl('/ws-chat'),
+            connectHeaders: {
+                Authorization: `Bearer ${token}`
+            },
             reconnectDelay: 5000,
             onConnect: () => {
                 console.log("Connected to WebSocket!");
@@ -56,6 +65,9 @@ export const MessagingPage = () => {
             },
             onDisconnect: () => {
                 console.log("Disconnected from WebSocket!");
+                setConnected(false);
+            },
+            onStompError: () => {
                 setConnected(false);
             }
         });

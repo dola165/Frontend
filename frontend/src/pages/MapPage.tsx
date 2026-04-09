@@ -1,174 +1,362 @@
-import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { Circle, MapContainer, Marker, TileLayer, useMap, useMapEvents, ZoomControl } from "react-leaflet";
-import { useNavigate } from "react-router-dom";
-import L from "leaflet";
-import { apiClient } from "../api/axiosConfig";
-import { Navigation, Filter, ChevronLeft, ChevronRight, X, ShieldCheck, Swords, Calendar, Users, Trophy, ArrowLeft, ArrowRight, Search, Loader2, MapPin } from "lucide-react";
-import { MapFilterSidebar, type MapEntityType, type MapFilters } from "../components/map/MapFilterSidebar";
-import "leaflet/dist/leaflet.css";
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { Circle, MapContainer, Marker, TileLayer, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
+import { useNavigate } from 'react-router-dom';
+import L from 'leaflet';
+import {
+    ArrowRight,
+    Building2,
+    CheckCheck,
+    ChevronLeft,
+    ChevronRight,
+    Filter,
+    ListFilter,
+    Loader2,
+    LocateFixed,
+    Map as MapIcon,
+    MapPin,
+    Navigation,
+    Search,
+    ShieldCheck,
+    Trophy,
+    Users,
+    X
+} from 'lucide-react';
+import { apiClient } from '../api/axiosConfig';
+import { MapFilterSidebar, defaultMapFilters, type MapEntityType, type MapFilters } from '../components/map/MapFilterSidebar';
+import { useAuth } from '../context/AuthContext';
+import { fetchMyClubMembershipContext } from '../features/clubs/api';
+import { isLeadershipRole } from '../features/clubs/domain';
+import { createScheduleChallenge, fetchPublicScheduleEvents, type ScheduleEventOccurrence } from '../features/schedule/api';
+import 'leaflet/dist/leaflet.css';
 
-type MapMarkerDto = {
-    entityId: number;
-    entityType: MapEntityType | string;
+type ViewMode = 'MAP' | 'LIST';
+type DerivedGender = 'Boys' | 'Girls' | 'Men' | 'Women' | 'Mixed';
+type DerivedLevel = 'Youth' | 'Academy' | 'Amateur' | 'Grassroots';
+type DerivedTravelPreference = 'HOME_ONLY' | 'WILL_TRAVEL' | 'NEUTRAL' | 'FLEXIBLE';
+type DerivedLocationState = 'PINNED' | 'OPEN_VENUE';
+type DerivedMatchState = 'OPEN' | 'PENDING' | 'CONFIRMED';
+
+interface ClubDirectoryRecord {
+    id: number;
+    name: string;
+    description: string;
+    type: string;
+    isOfficial: boolean;
+    statusLabel?: string | null;
+    followerCount: number;
+    memberCount: number;
+    addressText?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    logoUrl?: string | null;
+}
+
+interface ClubProfileSummary extends ClubDirectoryRecord {
+    bannerUrl?: string | null;
+    trustedByClubs?: Array<{ clubId: number; clubName: string }>;
+    honours?: Array<{ id: number; title: string; yearWon: number; description?: string | null }>;
+}
+
+interface DiscoveryRecord {
+    key: string;
+    entityType: MapEntityType;
+    source: 'CLUB' | 'SCHEDULE';
     title: string;
-    subtitle?: string | null;
-    clubName?: string | null;
+    subtitle: string | null;
+    description: string | null;
+    clubId: number | null;
+    clubName: string | null;
+    startsAt: string | null;
+    endsAt: string | null;
+    locationName: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    official: boolean;
+    followerCount: number;
+    memberCount: number;
+    typeLabel: string | null;
+    statusLabel: string | null;
+    matchSubtype: 'FRIENDLY' | 'COMPETITIVE' | null;
+    challengeState: DerivedMatchState | null;
+    locationState: DerivedLocationState;
+    ageGroups: string[];
+    genders: DerivedGender[];
+    level: DerivedLevel | null;
+    travelPreference: DerivedTravelPreference | null;
+    city: string | null;
+    country: string | null;
+    searchText: string;
+    rawEvent?: ScheduleEventOccurrence;
+}
+
+interface SearchSuggestion {
+    id: string;
+    label: string;
+    meta: string;
+    center: [number, number] | null;
+    recordKey?: string;
+}
+
+interface MarkerCluster {
+    key: string;
     latitude: number;
     longitude: number;
-    distanceKm?: number | null;
-    members?: number;
-    followers?: number;
-    verified?: boolean;
-    date?: string | null;
-    fee?: string | null;
-    addressText?: string | null;
-    ageGroup?: string | null;
-    status?: string | null;
-};
+    records: DiscoveryRecord[];
+}
 
 const DEFAULT_CENTER: [number, number] = [41.7151, 44.8271];
-const LOCATION_GROUP_DISTANCE_METERS = 35;
-const EVENT_MARKER_TYPES = new Set(["TRYOUT", "MATCH", "FRIENDLY"]);
-const markerIconCache = new Map<string, L.DivIcon>();
+const MAP_HORIZON_DAYS = 90;
+const MARKER_ICON_CACHE = new Map<string, L.DivIcon>();
+const AGE_GROUP_REGEX = /\b(U8|U9|U10|U11|U12|U13|U14|U15|U16|U17|U18|U19|U21|Senior)\b/gi;
+const CLUB_QUERY_LIMIT = 8;
 
-type MarkerPanelState =
-    | { mode: "detail"; marker: MapMarkerDto; fromLocationGroup: boolean }
-    | { mode: "location-list"; anchor: MapMarkerDto; markers: MapMarkerDto[] };
-
-const dateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+const dateTimeFormatter = new Intl.DateTimeFormat('en-GB', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
 });
 
-const markerKey = (marker: Pick<MapMarkerDto, "entityId" | "entityType">) => `${marker.entityType}-${marker.entityId}`;
+const normalizeText = (value?: string | null) => (value ?? '').trim().toLowerCase();
 
-const isSameMarker = (left: Pick<MapMarkerDto, "entityId" | "entityType">, right: Pick<MapMarkerDto, "entityId" | "entityType">) =>
-    left.entityId === right.entityId && left.entityType === right.entityType;
-
-const isEventMarker = (marker: Pick<MapMarkerDto, "entityType">) => EVENT_MARKER_TYPES.has(marker.entityType);
-
-const formatMarkerDate = (value?: string | null) => {
-    if (!value) return null;
-
+const formatDateTime = (value?: string | null) => {
+    if (!value) {
+        return null;
+    }
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) {
         return value;
     }
-
     return dateTimeFormatter.format(parsed);
 };
 
-const getMarkerTypeTone = (entityType: string) => {
-    switch (entityType) {
-        case "TRYOUT":
-            return "bg-orange-500/15 text-orange-300 border-orange-500/30";
-        case "MATCH":
-            return "bg-blue-500/15 text-blue-300 border-blue-500/30";
-        case "FRIENDLY":
-            return "bg-violet-500/15 text-violet-300 border-violet-500/30";
-        case "CLUB":
-        default:
-            return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
-    }
+const toIsoWindow = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 };
 
-const getMarkerTypeLabel = (marker: Pick<MapMarkerDto, "entityType">) => {
-    switch (marker.entityType) {
-        case "TRYOUT":
-            return "Tryout";
-        case "MATCH":
-            return "Match";
-        case "FRIENDLY":
-            return "Friendly";
-        default:
-            return "Club";
+const haversineKm = (from: [number, number], latitude?: number | null, longitude?: number | null) => {
+    if (latitude == null || longitude == null) {
+        return Number.POSITIVE_INFINITY;
     }
-};
-
-const getDistanceMeters = (left: Pick<MapMarkerDto, "latitude" | "longitude">, right: Pick<MapMarkerDto, "latitude" | "longitude">) => {
     const toRadians = (value: number) => (value * Math.PI) / 180;
-    const earthRadiusMeters = 6371000;
-    const latDelta = toRadians(right.latitude - left.latitude);
-    const lngDelta = toRadians(right.longitude - left.longitude);
+    const latDelta = toRadians(latitude - from[0]);
+    const lngDelta = toRadians(longitude - from[1]);
     const a =
         Math.sin(latDelta / 2) ** 2 +
-        Math.cos(toRadians(left.latitude)) * Math.cos(toRadians(right.latitude)) * Math.sin(lngDelta / 2) ** 2;
-
-    return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        Math.cos(toRadians(from[0])) * Math.cos(toRadians(latitude)) * Math.sin(lngDelta / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-const isSameLocation = (anchor: MapMarkerDto, candidate: MapMarkerDto) => {
-    const sameAddress =
-        anchor.addressText &&
-        candidate.addressText &&
-        anchor.addressText.trim().toLowerCase() === candidate.addressText.trim().toLowerCase();
-
-    const distanceMeters = getDistanceMeters(anchor, candidate);
-    return distanceMeters <= LOCATION_GROUP_DISTANCE_METERS || (Boolean(sameAddress) && distanceMeters <= LOCATION_GROUP_DISTANCE_METERS * 2);
+const extractAgeGroups = (value: string) => {
+    const matches = value.match(AGE_GROUP_REGEX) ?? [];
+    return Array.from(new Set(matches.map((entry) => entry.toUpperCase().startsWith('U') ? entry.toUpperCase() : 'Senior')));
 };
 
-const compareLocationMarkers = (left: MapMarkerDto, right: MapMarkerDto) => {
-    const leftDate = left.date ? new Date(left.date).getTime() : Number.MAX_SAFE_INTEGER;
-    const rightDate = right.date ? new Date(right.date).getTime() : Number.MAX_SAFE_INTEGER;
+const extractGenders = (value: string): DerivedGender[] => {
+    const normalized = normalizeText(value);
+    const genders: DerivedGender[] = [];
+    if (normalized.includes('girls') || normalized.includes('female')) genders.push('Girls');
+    if (normalized.includes('women') || normalized.includes('ladies')) genders.push('Women');
+    if (normalized.includes('boys')) genders.push('Boys');
+    if (normalized.includes('men') || normalized.includes('male')) genders.push('Men');
+    if (normalized.includes('mixed') || normalized.includes('co-ed') || normalized.includes('coed')) genders.push('Mixed');
+    return Array.from(new Set(genders));
+};
 
-    if (leftDate !== rightDate) {
-        return leftDate - rightDate;
+const extractLevel = (value: string): DerivedLevel | null => {
+    const normalized = normalizeText(value);
+    if (normalized.includes('academy')) return 'Academy';
+    if (normalized.includes('grassroots')) return 'Grassroots';
+    if (normalized.includes('amateur')) return 'Amateur';
+    if (normalized.includes('youth')) return 'Youth';
+    return null;
+};
+
+const extractTravelPreference = (value: string): DerivedTravelPreference | null => {
+    const normalized = normalizeText(value);
+    if (normalized.includes('home only') || normalized.includes('host only')) return 'HOME_ONLY';
+    if (normalized.includes('willing to travel') || normalized.includes('can travel') || normalized.includes('away ok')) return 'WILL_TRAVEL';
+    if (normalized.includes('neutral')) return 'NEUTRAL';
+    if (normalized.includes('flexible')) return 'FLEXIBLE';
+    return null;
+};
+
+const extractCityCountry = (value?: string | null) => {
+    if (!value) {
+        return { city: null, country: null };
     }
-
-    return left.title.localeCompare(right.title);
-};
-
-const getLocationGroupForMarker = (anchor: MapMarkerDto, markers: MapMarkerDto[]) => {
-    if (!isEventMarker(anchor)) {
-        return [anchor];
-    }
-
-    return markers
-        .filter((candidate) => isEventMarker(candidate) && isSameLocation(anchor, candidate))
-        .sort(compareLocationMarkers);
-};
-
-const areMarkerListsEqual = (left: MapMarkerDto[], right: MapMarkerDto[]) =>
-    left.length === right.length && left.every((marker, index) => isSameMarker(marker, right[index]));
-
-const createBallIcon = (isSelected = false, type = "CLUB") => {
-    const cacheKey = `${type}:${isSelected}`;
-    const cachedIcon = markerIconCache.get(cacheKey);
-    if (cachedIcon) {
-        return cachedIcon;
-    }
-
-    const getGlowClass = () => {
-        switch (type) {
-            case "TRYOUT":
-                return isSelected ? "drop-shadow-[0_8px_8px_rgba(249,115,22,0.8)]" : "drop-shadow-[0_4px_4px_rgba(249,115,22,0.8)]";
-            case "MATCH":
-                return isSelected ? "drop-shadow-[0_8px_8px_rgba(59,130,246,0.8)]" : "drop-shadow-[0_4px_4px_rgba(59,130,246,0.8)]";
-            case "FRIENDLY":
-                return isSelected ? "drop-shadow-[0_8px_8px_rgba(168,85,247,0.8)]" : "drop-shadow-[0_4px_4px_rgba(168,85,247,0.8)]";
-            case "CLUB":
-            default:
-                return isSelected ? "drop-shadow-[0_8px_8px_rgba(16,185,129,0.8)]" : "drop-shadow-[0_4px_4px_rgba(16,185,129,0.8)]";
-        }
+    const parts = value.split(',').map((part) => part.trim()).filter(Boolean);
+    return {
+        city: parts[0] ?? null,
+        country: parts.length > 1 ? parts[parts.length - 1] : null
     };
+};
+
+const getTimeWindow = (value?: string | null) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    const hour = parsed.getHours();
+    if (hour < 12) return 'Morning';
+    if (hour < 18) return 'Afternoon';
+    return 'Evening';
+};
+
+const matchDateWindow = (value: string | null, window: 'NEXT_7_DAYS' | 'NEXT_30_DAYS' | 'NEXT_90_DAYS') => {
+    if (!value) {
+        return false;
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+        return false;
+    }
+    const now = new Date();
+    const diff = parsed.getTime() - now.getTime();
+    const limitDays = window === 'NEXT_7_DAYS' ? 7 : window === 'NEXT_30_DAYS' ? 30 : 90;
+    return diff >= 0 && diff <= limitDays * 24 * 60 * 60 * 1000;
+};
+
+const joinSearchText = (...parts: Array<string | null | undefined>) => normalizeText(parts.filter(Boolean).join(' '));
+
+const getMatchState = (event: ScheduleEventOccurrence): DerivedMatchState => {
+    if (event.challengeStatus === 'OPEN') return 'OPEN';
+    if (event.challengeStatus === 'PENDING') return 'PENDING';
+    return 'CONFIRMED';
+};
+
+const buildClubRecord = (club: ClubDirectoryRecord): DiscoveryRecord => {
+    const { city, country } = extractCityCountry(club.addressText);
+    return {
+        key: `club:${club.id}`,
+        entityType: 'CLUB',
+        source: 'CLUB',
+        title: club.name,
+        subtitle: club.type || null,
+        description: club.description || null,
+        clubId: club.id,
+        clubName: club.name,
+        startsAt: null,
+        endsAt: null,
+        locationName: club.addressText ?? null,
+        latitude: club.latitude ?? null,
+        longitude: club.longitude ?? null,
+        official: Boolean(club.isOfficial),
+        followerCount: club.followerCount ?? 0,
+        memberCount: club.memberCount ?? 0,
+        typeLabel: club.type || null,
+        statusLabel: club.statusLabel ?? null,
+        matchSubtype: null,
+        challengeState: null,
+        locationState: club.latitude != null && club.longitude != null ? 'PINNED' : 'OPEN_VENUE',
+        ageGroups: [],
+        genders: [],
+        level: null,
+        travelPreference: null,
+        city,
+        country,
+        searchText: joinSearchText(club.name, club.description, club.addressText, club.type)
+    };
+};
+
+const buildScheduleRecord = (event: ScheduleEventOccurrence, clubsById: Map<number, ClubDirectoryRecord>): DiscoveryRecord | null => {
+    if (event.eventType !== 'TRYOUT' && event.eventType !== 'MATCH' && event.eventType !== 'FRIENDLY') {
+        return null;
+    }
+
+    const club = event.clubId != null ? clubsById.get(event.clubId) : undefined;
+    const sourceText = [event.title, event.description, event.locationName, event.clubName, event.opponentClubName].filter(Boolean).join(' ');
+    const { city, country } = extractCityCountry(event.locationName ?? club?.addressText);
+
+    return {
+        key: `event:${event.occurrenceId}`,
+        entityType: event.eventType === 'TRYOUT' ? 'TRYOUT' : 'MATCH',
+        source: 'SCHEDULE',
+        title: event.title,
+        subtitle: event.eventType === 'TRYOUT'
+            ? (event.clubName ?? club?.name ?? 'Club schedule')
+            : [event.eventType === 'FRIENDLY' ? 'Friendly' : 'Match', event.challengeStatus === 'OPEN' ? 'Open Need' : event.opponentClubName].filter(Boolean).join(' / '),
+        description: event.description,
+        clubId: event.clubId,
+        clubName: event.clubName ?? club?.name ?? null,
+        startsAt: event.startsAt,
+        endsAt: event.endsAt,
+        locationName: event.locationName ?? club?.addressText ?? null,
+        latitude: event.locationLat ?? null,
+        longitude: event.locationLng ?? null,
+        official: Boolean(club?.isOfficial),
+        followerCount: club?.followerCount ?? 0,
+        memberCount: club?.memberCount ?? 0,
+        typeLabel: club?.type ?? null,
+        statusLabel: event.challengeStatus ?? event.status ?? null,
+        matchSubtype: event.eventType === 'TRYOUT' ? null : event.eventType === 'FRIENDLY' ? 'FRIENDLY' : 'COMPETITIVE',
+        challengeState: event.eventType === 'TRYOUT' ? null : getMatchState(event),
+        locationState: event.locationLat != null && event.locationLng != null ? 'PINNED' : 'OPEN_VENUE',
+        ageGroups: extractAgeGroups(sourceText),
+        genders: extractGenders(sourceText),
+        level: extractLevel(sourceText),
+        travelPreference: extractTravelPreference(sourceText),
+        city,
+        country,
+        searchText: joinSearchText(event.title, event.description, event.locationName, event.clubName, event.opponentClubName, club?.type),
+        rawEvent: event
+    };
+};
+
+const getRecordTypeLabel = (record: DiscoveryRecord) =>
+    record.entityType === 'CLUB' ? 'Club' : record.entityType === 'TRYOUT' ? 'Tryout' : record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Match';
+
+const getRecordTypeMeta = (record: DiscoveryRecord) => {
+    if (record.entityType === 'CLUB') {
+        return record.official ? 'Verified club' : 'Club profile';
+    }
+    if (record.entityType === 'TRYOUT') {
+        return 'Public tryout';
+    }
+    if (record.challengeState === 'OPEN') {
+        return 'Open challenge';
+    }
+    return record.matchSubtype === 'FRIENDLY' ? 'Friendly fixture' : 'Scheduled match';
+};
+
+const getTravelPreferenceLabel = (value: DerivedTravelPreference | null) => {
+    if (!value) return null;
+    return value
+        .split('_')
+        .map((part) => `${part.slice(0, 1)}${part.slice(1).toLowerCase()}`)
+        .join(' ');
+};
+
+const createMarkerIcon = (record: DiscoveryRecord, selected: boolean, count: number) => {
+    const toneKey = record.entityType === 'CLUB'
+        ? 'club'
+        : record.entityType === 'TRYOUT'
+            ? 'tryout'
+            : record.matchSubtype === 'FRIENDLY'
+                ? 'friendly'
+                : 'match';
+    const cacheKey = `${toneKey}:${selected}:${count > 1}`;
+    const cached = MARKER_ICON_CACHE.get(cacheKey);
+    if (cached) {
+        return cached;
+    }
 
     const icon = L.divIcon({
-        className: "custom-ball-marker bg-transparent border-0",
-        html: `
-            <div class="relative flex flex-col items-center cursor-pointer transition-all duration-300 ${isSelected ? "scale-125" : "hover:-translate-y-1 hover:scale-110"}">
-                <img src="/markers/ball.png"
-                     class="w-10 h-10 ${isSelected ? "animate-bounce" : ""} ${getGlowClass()}"
-                     alt="pin" />
-                ${isSelected ? `<div class="w-5 h-1 bg-black/40 blur-[2px] rounded-[100%] absolute -bottom-1"></div>` : ""}
-            </div>
-        `,
-        iconSize: [40, 40],
-        iconAnchor: [20, 20],
+        className: 'talanti-map-marker-shell',
+        html: `<span class="talanti-map-marker talanti-map-marker--${toneKey} ${selected ? 'is-selected' : ''}">
+            <img src="/markers/ball.png" alt="" class="talanti-map-marker__ball" />
+            ${count > 1 ? `<span class="talanti-map-marker__badge">${count}</span>` : ''}
+        </span>`,
+        iconSize: [50, 50],
+        iconAnchor: [25, 38]
     });
 
-    markerIconCache.set(cacheKey, icon);
+    MARKER_ICON_CACHE.set(cacheKey, icon);
     return icon;
 };
 
@@ -179,7 +367,6 @@ function MapViewportSync({ onViewportChange }: { onViewportChange: (coords: [num
             onViewportChange([Number(center.lat.toFixed(6)), Number(center.lng.toFixed(6))]);
         }
     });
-
     return null;
 }
 
@@ -188,12 +375,7 @@ function MapFocusController({ target, onSettled }: { target: [number, number] | 
 
     useEffect(() => {
         if (!target) return;
-
-        map.flyTo(target, map.getZoom(), {
-            animate: true,
-            duration: 0.35,
-        });
-
+        map.flyTo(target, map.getZoom(), { animate: true, duration: 0.35 });
         onSettled();
     }, [map, onSettled, target]);
 
@@ -205,22 +387,13 @@ function MapSizeGuard({ layoutSignature }: { layoutSignature: string }) {
 
     useLayoutEffect(() => {
         const container = map.getContainer();
-        let animationFrame = 0;
-        let followUpFrame = 0;
-
+        let frame = 0;
         const invalidate = () => {
-            cancelAnimationFrame(animationFrame);
-            cancelAnimationFrame(followUpFrame);
-            animationFrame = window.requestAnimationFrame(() => {
-                map.invalidateSize({ pan: false, debounceMoveend: true });
-                followUpFrame = window.requestAnimationFrame(() => {
-                    map.invalidateSize({ pan: false, debounceMoveend: true });
-                });
-            });
+            cancelAnimationFrame(frame);
+            frame = window.requestAnimationFrame(() => map.invalidateSize({ pan: false, debounceMoveend: true }));
         };
 
         invalidate();
-
         const resizeObserver = new ResizeObserver(() => invalidate());
         let current: HTMLElement | null = container;
         let depth = 0;
@@ -230,606 +403,951 @@ function MapSizeGuard({ layoutSignature }: { layoutSignature: string }) {
             depth += 1;
         }
 
-        window.addEventListener("resize", invalidate);
-        window.addEventListener("orientationchange", invalidate);
-
+        window.addEventListener('resize', invalidate);
         return () => {
-            cancelAnimationFrame(animationFrame);
-            cancelAnimationFrame(followUpFrame);
+            cancelAnimationFrame(frame);
             resizeObserver.disconnect();
-            window.removeEventListener("resize", invalidate);
-            window.removeEventListener("orientationchange", invalidate);
+            window.removeEventListener('resize', invalidate);
         };
     }, [layoutSignature, map]);
 
     return null;
 }
 
-function MarkerDetailsCard({
-    marker,
-    onClose,
-    onOpenClub,
-    onBackToLocationList,
+const DiscoveryQueue = ({
+    title,
+    records,
+    selectedKey,
+    onSelect
 }: {
-    marker: MapMarkerDto;
-    onClose: () => void;
-    onOpenClub: () => void;
-    onBackToLocationList?: () => void;
-}) {
-    const formattedDate = formatMarkerDate(marker.date);
-
-    return (
-        <div className="theme-surface-strong h-full border-l-2 theme-border-strong shadow-2xl flex flex-col">
-            <div className="relative h-44 bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900 shrink-0 overflow-hidden border-b-2 border-slate-300 dark:border-black">
-                <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-[color:var(--theme-surface-strong)] via-transparent to-transparent opacity-90"></div>
-                {onBackToLocationList && (
-                    <button
-                        onClick={onBackToLocationList}
-                        className="absolute top-4 left-4 p-2 bg-white/80 dark:theme-overlay hover:bg-white dark:hover:bg-slate-700 backdrop-blur-sm text-slate-900 dark:text-white rounded-lg transition-colors border border-slate-300 dark:border-transparent z-10 shadow-sm"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                    </button>
-                )}
-                <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-white/80 dark:theme-overlay hover:bg-white dark:hover:bg-rose-500 backdrop-blur-sm text-slate-900 dark:text-white rounded-lg transition-colors border border-slate-300 dark:border-transparent z-10 shadow-sm">
-                    <X className="w-4 h-4" />
-                </button>
-                <div className="absolute bottom-5 left-5 flex items-end gap-3 z-10">
-                    <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl border-4 border-white dark:border-[#0f172a] shadow-lg flex items-center justify-center overflow-hidden">
-                        <span className="text-2xl font-black text-white">{marker.title.substring(0, 2).toUpperCase()}</span>
-                    </div>
-                </div>
-                <div className="absolute top-4 left-4">
-                    <div className={`px-3 py-1.5 text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md flex items-center gap-1.5 ${
-                        marker.entityType === "CLUB" ? "bg-emerald-600" :
-                            marker.entityType === "TRYOUT" ? "bg-orange-500" :
-                                marker.entityType === "FRIENDLY" ? "bg-violet-600" : "bg-blue-600"
-                    }`}>
-                        {marker.entityType === "CLUB" ? <ShieldCheck className="w-3.5 h-3.5" /> :
-                            marker.entityType === "TRYOUT" ? <Calendar className="w-3.5 h-3.5" /> : <Swords className="w-3.5 h-3.5" />}
-                        {marker.entityType.replace("_", " ")}
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+    title: string;
+    records: DiscoveryRecord[];
+    selectedKey: string | null;
+    onSelect: (record: DiscoveryRecord) => void;
+}) => (
+    <div className="map-results-panel flex h-full flex-col">
+        <div className="map-panel-header">
+            <div className="flex items-start justify-between gap-3">
                 <div>
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-1">{marker.title}</h2>
-                    {marker.clubName && marker.entityType !== "CLUB" && (
-                        <p className="text-sm font-black text-slate-500 uppercase tracking-widest">{marker.clubName}</p>
-                    )}
-                    {marker.subtitle && <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">{marker.subtitle}</p>}
-                    {formattedDate && <p className="text-sm font-black text-emerald-600 dark:text-emerald-500 mt-2">{formattedDate}</p>}
+                    <p className="map-eyebrow">{title}</p>
+                    <h2 className="mt-2 text-xl font-bold text-primary">Results</h2>
+                    <p className="mt-2 text-sm leading-6 text-secondary">
+                        Pick a result to review the published brief, location, club context, and next action.
+                    </p>
                 </div>
-
-                {marker.entityType === "CLUB" && (
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50">
-                            <div className="flex items-center gap-1.5 mb-1"><Users className="w-3.5 h-3.5 text-emerald-500" /><p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Followers</p></div>
-                            <p className="text-xl font-black text-slate-900 dark:text-white">{marker.followers || 0}</p>
-                        </div>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50">
-                            <div className="flex items-center gap-1.5 mb-1"><Trophy className="w-3.5 h-3.5 text-emerald-500" /><p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Status</p></div>
-                            <p className="text-xl font-black text-blue-500">{marker.verified ? "Official" : "Unverified"}</p>
-                        </div>
-                    </div>
-                )}
-
-                <div className="space-y-3">
-                    {marker.addressText && (
-                        <div className="flex gap-3 text-slate-700 dark:text-slate-300 p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200 dark:border-slate-700/30">
-                            <MapPin className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-                            <div>
-                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Location</p>
-                                <span className="text-sm font-bold">{marker.addressText}</span>
-                            </div>
-                        </div>
-                    )}
-                    {(marker.ageGroup || marker.status) && (
-                        <div className="flex flex-wrap gap-2">
-                            {marker.ageGroup && (
-                                <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-orange-500">
-                                    {marker.ageGroup}
-                                </span>
-                            )}
-                            {marker.status && (
-                                <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-blue-500">
-                                    {marker.status}
-                                </span>
-                            )}
-                        </div>
-                    )}
-                    <div className="flex gap-3 text-slate-700 dark:text-slate-300 p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200 dark:border-slate-700/30">
-                        <Navigation className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-                        <div>
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Coordinates</p>
-                            <span className="text-sm font-bold">{marker.latitude.toFixed(4)}, {marker.longitude.toFixed(4)}</span>
-                        </div>
-                    </div>
-                    {marker.distanceKm != null && (
-                        <div className="flex gap-3 text-slate-700 dark:text-slate-300 p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200 dark:border-slate-700/30">
-                            <Filter className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-                            <div>
-                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Distance</p>
-                                <span className="text-sm font-bold">{marker.distanceKm.toFixed(1)} km from current map center</span>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="theme-surface-strong p-5 border-t-2 theme-border shrink-0">
-                {marker.entityType === "CLUB" ? (
-                    <button onClick={onOpenClub} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-widest text-xs py-4 rounded-lg shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-2 border-2 border-slate-900">
-                        Access Headquarters <ArrowRight className="w-4 h-4" />
-                    </button>
-                ) : (
-                    <div className="w-full rounded-lg border-2 border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/70 px-4 py-3 text-left">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Event Discovery</p>
-                        <p className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">
-                            Event markers are read-only for now. Open the related club profile for supported actions.
-                        </p>
-                    </div>
-                )}
+                <span className="map-count-chip">{records.length}</span>
             </div>
         </div>
-    );
-}
 
-function MarkerLocationListCard({
-    anchor,
-    markers,
-    onClose,
-    onSelectMarker,
-}: {
-    anchor: MapMarkerDto;
-    markers: MapMarkerDto[];
-    onClose: () => void;
-    onSelectMarker: (marker: MapMarkerDto) => void;
-}) {
-    return (
-        <div className="theme-surface-strong h-full border-l-2 theme-border-strong shadow-2xl flex flex-col">
-            <div className="theme-surface-strong shrink-0 border-b-2 theme-border px-5 py-4">
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-emerald-600 dark:text-emerald-500">
-                            Event Cluster
-                        </p>
-                        <h2 className="mt-1 text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                            Events At This Location
-                        </h2>
-                        <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                            {markers.length} result{markers.length === 1 ? "" : "s"}
-                        </p>
-                        {anchor.addressText && (
-                            <p className="mt-3 text-sm font-bold text-slate-700 dark:text-slate-200">{anchor.addressText}</p>
-                        )}
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="rounded-lg border border-slate-300 bg-white p-2 text-slate-500 shadow-sm transition-colors hover:text-rose-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
-                    >
-                        <X className="h-4 w-4" />
-                    </button>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+            {records.length === 0 ? (
+                <div className="map-empty-panel px-5 py-10">
+                    <p className="text-sm font-semibold text-primary">No results match the current filters.</p>
+                    <p className="mt-2 text-sm leading-6 text-secondary">Try widening the radius, clearing a few filter groups, or switching to another discovery entity.</p>
                 </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto">
-                <div className="divide-y divide-slate-200 dark:divide-slate-800">
-                    {markers.map((marker) => {
-                        const formattedDate = formatMarkerDate(marker.date);
-                        return (
-                            <button
-                                key={markerKey(marker)}
-                                onClick={() => onSelectMarker(marker)}
-                                className="grid w-full grid-cols-[auto,1fr,auto] gap-3 px-5 py-4 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/60"
-                            >
-                                <div className={`mt-0.5 rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-widest ${getMarkerTypeTone(marker.entityType)}`}>
-                                    {getMarkerTypeLabel(marker)}
+            ) : (
+                <div className="space-y-3 px-4 py-4">
+                    {records.map((record) => (
+                        <button
+                            key={record.key}
+                            type="button"
+                            onClick={() => onSelect(record)}
+                            className={`map-result-row ${selectedKey === record.key ? 'map-result-row--active' : ''}`}
+                        >
+                            <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="map-pill map-pill--accent">{getRecordTypeLabel(record)}</span>
+                                    <span className="map-pill">{getRecordTypeMeta(record)}</span>
+                                    {record.locationState === 'OPEN_VENUE' && <span className="map-pill">Venue open</span>}
                                 </div>
 
-                                <div className="min-w-0">
-                                    <p className="truncate text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                                        {marker.title}
-                                    </p>
-                                    <p className="mt-1 truncate text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                                        {marker.clubName || marker.subtitle || "Club event"}
-                                    </p>
-                                    {(marker.ageGroup || marker.status) && (
-                                        <div className="mt-2 flex flex-wrap gap-2">
-                                            {marker.ageGroup && (
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">
-                                                    {marker.ageGroup}
-                                                </span>
-                                            )}
-                                            {marker.status && (
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">
-                                                    {marker.status}
-                                                </span>
-                                            )}
-                                        </div>
+                                <div className="mt-3">
+                                    <p className="text-base font-bold text-primary">{record.title}</p>
+                                    {record.subtitle && <p className="mt-1 text-sm text-secondary">{record.subtitle}</p>}
+                                </div>
+
+                                <div className="mt-4 grid gap-2 text-sm text-secondary sm:grid-cols-2">
+                                    {record.clubName && record.entityType !== 'CLUB' && (
+                                        <div className="truncate font-medium text-primary">{record.clubName}</div>
                                     )}
+                                    {record.locationName && <div className="truncate">{record.locationName}</div>}
+                                    {record.startsAt && <div>{formatDateTime(record.startsAt)}</div>}
+                                    {!record.startsAt && record.entityType === 'CLUB' && <div>Profile discovery</div>}
                                 </div>
 
-                                <div className="flex min-w-[92px] flex-col items-end justify-between gap-3">
-                                    <div className="text-right">
-                                        {formattedDate && (
-                                            <p className="text-xs font-black uppercase tracking-wide text-emerald-600 dark:text-emerald-500">
-                                                {formattedDate}
-                                            </p>
-                                        )}
+                                {(record.ageGroups.length > 0 || record.genders.length > 0 || record.level) && (
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                        {record.ageGroups.slice(0, 2).map((ageGroup) => (
+                                            <span key={ageGroup} className="map-pill">
+                                                {ageGroup}
+                                            </span>
+                                        ))}
+                                        {record.genders.slice(0, 2).map((gender) => (
+                                            <span key={gender} className="map-pill">
+                                                {gender}
+                                            </span>
+                                        ))}
+                                        {record.level && <span className="map-pill">{record.level}</span>}
                                     </div>
-                                    <ChevronRight className="h-4 w-4 text-slate-400" />
-                                </div>
-                            </button>
-                        );
-                    })}
+                                )}
+                            </div>
+
+                            <div className="flex shrink-0 flex-col items-end justify-between gap-4">
+                                <ChevronRight className="h-4 w-4 text-secondary" />
+                                <span className="text-xs font-semibold text-secondary">
+                                    {record.challengeState === 'OPEN' ? 'Review and respond' : 'Open details'}
+                                </span>
+                            </div>
+                        </button>
+                    ))}
                 </div>
+            )}
+        </div>
+    </div>
+);
+
+const MatchResponseModal = ({
+    record,
+    clubName,
+    note,
+    error,
+    submitting,
+    onChangeNote,
+    onClose,
+    onSubmit
+}: {
+    record: DiscoveryRecord;
+    clubName: string | null;
+    note: string;
+    error: string | null;
+    submitting: boolean;
+    onChangeNote: (value: string) => void;
+    onClose: () => void;
+    onSubmit: () => void;
+}) => (
+    <div className="theme-overlay-strong fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div className="map-modal-shell w-full max-w-2xl overflow-hidden">
+            <div className="map-panel-header">
+                <div>
+                    <p className="map-eyebrow">Match response</p>
+                    <h2 className="mt-2 text-xl font-bold text-primary">Respond to published match need</h2>
+                    <p className="mt-2 text-sm leading-6 text-secondary">
+                        The published Schedule event stays the source. You are only confirming your club response and adding optional context, not rebuilding the request.
+                    </p>
+                </div>
+                <button type="button" onClick={onClose} className="map-icon-button">
+                    <X className="h-4 w-4" />
+                </button>
+            </div>
+
+            <div className="space-y-5 px-5 py-5">
+                <section className="map-section-card">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="map-pill map-pill--accent">Published need</span>
+                        {record.matchSubtype && <span className="map-pill">{record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Competitive'}</span>}
+                        {record.challengeState && <span className="map-pill">{record.challengeState === 'OPEN' ? 'Open challenge' : record.challengeState}</span>}
+                    </div>
+                    <p className="mt-3 text-lg font-bold text-primary">{record.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-secondary">
+                        {record.clubName} · {record.locationName ?? 'Venue still open'} · {formatDateTime(record.startsAt) ?? 'Schedule timing pending'}
+                    </p>
+                </section>
+
+                <section className="space-y-2">
+                    <label className="map-field-label">Responding club</label>
+                    <div className="map-static-field">
+                        {clubName ?? 'My club'}
+                    </div>
+                </section>
+
+                <section className="space-y-2">
+                    <label className="map-field-label">Supplement note</label>
+                    <textarea
+                        rows={5}
+                        value={note}
+                        onChange={(event) => onChangeNote(event.target.value)}
+                        maxLength={500}
+                        className="map-textarea"
+                        placeholder="Add only what the published request does not already cover: travel nuance, squad context, or a short confirmation note."
+                    />
+                    <div className="flex items-center justify-between text-xs text-secondary">
+                        <span>Published requirements will be reused automatically.</span>
+                        <span>{note.length}/500</span>
+                    </div>
+                </section>
+
+                {error && (
+                    <div className="border px-3 py-3 text-sm" style={{ borderColor: 'var(--state-danger)', backgroundColor: 'var(--state-danger-soft)', color: 'var(--state-danger)' }}>
+                        {error}
+                    </div>
+                )}
+            </div>
+
+            <div className="map-panel-footer">
+                <button type="button" onClick={onClose} className="map-secondary-button">
+                    Cancel
+                </button>
+                <button
+                    type="button"
+                    onClick={onSubmit}
+                    disabled={submitting}
+                    className="map-primary-button disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    Respond to need
+                </button>
             </div>
         </div>
-    );
-}
+    </div>
+);
+
+const DiscoveryDetailPanel = ({
+    record,
+    clubProfile,
+    canRespond,
+    onRespond,
+    onOpenClub,
+    onClose
+}: {
+    record: DiscoveryRecord;
+    clubProfile: ClubProfileSummary | null;
+    canRespond: boolean;
+    onRespond: () => void;
+    onOpenClub: () => void;
+    onClose: () => void;
+}) => (
+    <div className="map-details-panel flex h-full flex-col">
+        <div className="map-panel-header">
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <p className="map-eyebrow">
+                        {record.source === 'SCHEDULE' ? 'Selected public event' : 'Selected club'}
+                    </p>
+                    <h2 className="mt-2 text-2xl font-bold text-primary">{record.title}</h2>
+                    <p className="mt-2 text-sm leading-6 text-secondary">
+                        {record.entityType === 'MATCH'
+                            ? 'Review the published match need first, assess the fit, then respond without rewriting the original request.'
+                            : record.entityType === 'TRYOUT'
+                                ? 'Read the recruitment brief and club context before moving into broader club interaction.'
+                                : 'Club discovery still routes into the established Headquarters access flow.'}
+                    </p>
+                </div>
+                <button type="button" onClick={onClose} className="map-icon-button">
+                    <X className="h-4 w-4" />
+                </button>
+            </div>
+        </div>
+
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
+            <section className="grid gap-3 sm:grid-cols-2">
+                <div className="map-section-card">
+                    <p className="map-field-label">Club</p>
+                    <p className="mt-2 text-base font-bold text-primary">{record.clubName ?? record.title}</p>
+                    {record.typeLabel && <p className="mt-1 text-sm text-secondary">{record.typeLabel}</p>}
+                </div>
+                <div className="map-section-card">
+                    <p className="map-field-label">Schedule window</p>
+                    <p className="mt-2 text-base font-bold text-primary">{formatDateTime(record.startsAt) ?? 'Always available'}</p>
+                    {record.endsAt && <p className="mt-1 text-sm text-secondary">Until {formatDateTime(record.endsAt)}</p>}
+                </div>
+            </section>
+
+            <section className="map-section-card">
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="map-pill map-pill--accent">{getRecordTypeLabel(record)}</span>
+                    {record.challengeState && <span className="map-pill">{record.challengeState === 'OPEN' ? 'Challengeable' : record.challengeState}</span>}
+                    <span className="map-pill">{record.locationState === 'PINNED' ? 'Location set' : 'Venue open'}</span>
+                </div>
+                <p className="mt-4 text-sm font-semibold text-primary">What to review</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                    {record.matchSubtype && <span className="map-pill">{record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Competitive'}</span>}
+                    {record.ageGroups.map((ageGroup) => <span key={ageGroup} className="map-pill">{ageGroup}</span>)}
+                    {record.genders.map((gender) => <span key={gender} className="map-pill">{gender}</span>)}
+                    {record.level && <span className="map-pill">{record.level}</span>}
+                    {record.travelPreference && <span className="map-pill">{getTravelPreferenceLabel(record.travelPreference)}</span>}
+                </div>
+                {record.locationName && (
+                    <div className="mt-4 flex items-start gap-2 text-sm leading-6 text-secondary">
+                        <MapPin className="mt-1 h-4 w-4 accent-primary" />
+                        <span>{record.locationName}</span>
+                    </div>
+                )}
+            </section>
+
+            <section className="map-section-card">
+                <p className="map-field-label">Overview</p>
+                <p className="mt-3 text-sm leading-7 text-secondary">
+                    {record.description || 'The event is public and challengeable, but the club has not published a fuller note yet. The review surface still keeps the club, time window, and location context together before any response is sent.'}
+                </p>
+            </section>
+
+            <section className="map-section-card">
+                <p className="map-field-label">Club background</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                    <div className="map-stat-card">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-secondary"><Users className="h-3.5 w-3.5 accent-primary" /> Members</div>
+                        <p className="mt-2 text-lg font-bold text-primary">{clubProfile?.memberCount ?? record.memberCount}</p>
+                    </div>
+                    <div className="map-stat-card">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-secondary"><Building2 className="h-3.5 w-3.5 accent-primary" /> Followers</div>
+                        <p className="mt-2 text-lg font-bold text-primary">{clubProfile?.followerCount ?? record.followerCount}</p>
+                    </div>
+                    <div className="map-stat-card">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-secondary"><ShieldCheck className="h-3.5 w-3.5 accent-primary" /> Verification</div>
+                        <p className="mt-2 text-lg font-bold text-primary">{(clubProfile?.isOfficial ?? record.official) ? 'Official' : 'Open record'}</p>
+                    </div>
+                </div>
+                <p className="mt-4 text-sm leading-7 text-secondary">{clubProfile?.description || record.description || 'Club background is currently light on the public surface. Open Headquarters for the fuller profile, honours, and internal modules.'}</p>
+                {clubProfile?.honours && clubProfile.honours.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                        {clubProfile.honours.slice(0, 3).map((honour) => (
+                            <span key={honour.id} className="map-pill">
+                                <Trophy className="h-3.5 w-3.5 accent-primary" />
+                                {honour.title} {honour.yearWon}
+                            </span>
+                        ))}
+                    </div>
+                )}
+            </section>
+        </div>
+
+        <div className="map-panel-footer">
+            <button type="button" onClick={onOpenClub} className="map-secondary-button">
+                Access Headquarters
+            </button>
+            {record.entityType === 'MATCH' && canRespond ? (
+                <button type="button" onClick={onRespond} className="map-primary-button">
+                    <CheckCheck className="h-3.5 w-3.5" />
+                    Respond to match need
+                </button>
+            ) : (
+                <div className="text-xs text-secondary">
+                    {record.entityType === 'MATCH' ? 'Review first, then respond if your club is eligible.' : 'Read-first discovery surface'}
+                </div>
+            )}
+        </div>
+    </div>
+);
 
 export const MapPage = () => {
     const navigate = useNavigate();
+    const { status } = useAuth();
+    const [filters, setFilters] = useState<MapFilters>(defaultMapFilters);
+    const [viewMode, setViewMode] = useState<ViewMode>('MAP');
     const [isFilterOpen, setIsFilterOpen] = useState(() => window.innerWidth >= 1280);
-    const [searchQuery, setSearchQuery] = useState("");
-    const deferredSearchQuery = useDeferredValue(searchQuery.trim());
-
+    const [searchInput, setSearchInput] = useState('');
+    const deferredSearch = useDeferredValue(searchInput.trim());
     const [viewportCenter, setViewportCenter] = useState<[number, number]>(DEFAULT_CENTER);
     const [focusTarget, setFocusTarget] = useState<[number, number] | null>(null);
-    const [activeFilters, setActiveFilters] = useState<MapFilters>({
-        entityType: "CLUB",
-        distance: 15,
-        ageGroups: [],
-    });
-    const [markers, setMarkers] = useState<MapMarkerDto[]>([]);
-    const [panelState, setPanelState] = useState<MarkerPanelState | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [loadError, setLoadError] = useState<string | null>(null);
-
-    const selectedMarker = useMemo(() => {
-        if (!panelState) return null;
-        return panelState.mode === "detail" ? panelState.marker : panelState.anchor;
-    }, [panelState]);
-
-    const requestUrl = useMemo(() => {
-        const params = new URLSearchParams();
-        params.set("lat", String(viewportCenter[0]));
-        params.set("lng", String(viewportCenter[1]));
-        params.set("radius", String(activeFilters.distance));
-        params.set("type", activeFilters.entityType);
-
-        activeFilters.ageGroups.forEach((age) => params.append("ageGroups", age));
-
-        if (deferredSearchQuery) {
-            params.set("query", deferredSearchQuery);
-        }
-
-        return `/map/nearby?${params.toString()}`;
-    }, [activeFilters.ageGroups, activeFilters.distance, activeFilters.entityType, deferredSearchQuery, viewportCenter]);
-
-    const layoutSignature = `${isFilterOpen}-${Boolean(panelState)}`;
-
-    const handleViewportChange = useCallback((nextCenter: [number, number]) => {
-        setViewportCenter((current) => {
-            const isSameCenter = Math.abs(current[0] - nextCenter[0]) < 0.0001 && Math.abs(current[1] - nextCenter[1]) < 0.0001;
-            return isSameCenter ? current : nextCenter;
-        });
-    }, []);
-
-    const handleMarkerClick = useCallback((marker: MapMarkerDto) => {
-        const locationGroup = getLocationGroupForMarker(marker, markers);
-
-        if (isEventMarker(marker) && locationGroup.length > 1) {
-            setPanelState({
-                mode: "location-list",
-                anchor: marker,
-                markers: locationGroup,
-            });
-        } else {
-            setPanelState({
-                mode: "detail",
-                marker,
-                fromLocationGroup: false,
-            });
-        }
-
-        setFocusTarget([marker.latitude, marker.longitude]);
-    }, [markers]);
-
-    const handleLocationMarkerOpen = useCallback((marker: MapMarkerDto) => {
-        setPanelState({
-            mode: "detail",
-            marker,
-            fromLocationGroup: true,
-        });
-    }, []);
-
-    const clearFocusTarget = useCallback(() => {
-        setFocusTarget(null);
-    }, []);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [clubs, setClubs] = useState<ClubDirectoryRecord[]>([]);
+    const [events, setEvents] = useState<ScheduleEventOccurrence[]>([]);
+    const [membership, setMembership] = useState<{ clubId?: number | null; clubName?: string | null; myRole?: string | null } | null>(null);
+    const [selectedKey, setSelectedKey] = useState<string | null>(null);
+    const [activeClusterKey, setActiveClusterKey] = useState<string | null>(null);
+    const [clubProfiles, setClubProfiles] = useState<Record<number, ClubProfileSummary>>({});
+    const [responseModalRecord, setResponseModalRecord] = useState<DiscoveryRecord | null>(null);
+    const [responseNote, setResponseNote] = useState('');
+    const [responseError, setResponseError] = useState<string | null>(null);
+    const [responseSubmitting, setResponseSubmitting] = useState(false);
 
     useEffect(() => {
-        const controller = new AbortController();
-        const timer = window.setTimeout(async () => {
-            setIsLoading(true);
-            setLoadError(null);
+        let active = true;
+
+        const load = async () => {
+            setLoading(true);
+            setError(null);
 
             try {
-                const response = await apiClient.get<MapMarkerDto[]>(requestUrl, {
-                    signal: controller.signal,
-                });
-                setMarkers(response.data);
-            } catch (error: any) {
-                if (error?.code === "ERR_CANCELED" || error?.name === "CanceledError") {
+                const from = new Date();
+                const to = new Date();
+                to.setDate(to.getDate() + MAP_HORIZON_DAYS);
+
+                const membershipPromise =
+                    status === 'authenticated'
+                        ? fetchMyClubMembershipContext().catch(() => null)
+                        : Promise.resolve(null);
+
+                const [clubResponse, publicEvents, membershipContext] = await Promise.all([
+                    apiClient.get<ClubDirectoryRecord[]>('/clubs'),
+                    fetchPublicScheduleEvents({ from: toIsoWindow(from), to: toIsoWindow(to) }),
+                    membershipPromise
+                ]);
+
+                if (!active) {
                     return;
                 }
-                console.error("Failed to load map pins", error);
-                setLoadError("Unable to load map results right now.");
+
+                setClubs(clubResponse.data ?? []);
+                setEvents(publicEvents);
+                setMembership(membershipContext);
+            } catch (requestError) {
+                if (!active) {
+                    return;
+                }
+                console.error('Failed to load map discovery data', requestError);
+                setError('Unable to load the public discovery surface right now.');
             } finally {
-                if (!controller.signal.aborted) {
-                    setIsLoading(false);
+                if (active) {
+                    setLoading(false);
                 }
             }
-        }, 180);
-
-        return () => {
-            controller.abort();
-            window.clearTimeout(timer);
         };
-    }, [requestUrl]);
+
+        void load();
+        return () => {
+            active = false;
+        };
+    }, [status]);
+
+    const clubsById = useMemo(() => new Map(clubs.map((club) => [club.id, club])), [clubs]);
+    const clubRecords = useMemo(() => clubs.map(buildClubRecord), [clubs]);
+    const scheduleRecords = useMemo(
+        () => events.map((event) => buildScheduleRecord(event, clubsById)).filter((record): record is DiscoveryRecord => Boolean(record)),
+        [clubsById, events]
+    );
+    const allRecords = useMemo(() => [...clubRecords, ...scheduleRecords], [clubRecords, scheduleRecords]);
+
+    const suggestions = useMemo(() => {
+        const query = normalizeText(searchInput);
+        if (!query) {
+            return [] as SearchSuggestion[];
+        }
+
+        const deduped = new Map<string, SearchSuggestion>();
+        for (const record of allRecords) {
+            if (!record.searchText.includes(query)) {
+                continue;
+            }
+
+            const label = record.locationName ?? record.title;
+            const suggestion: SearchSuggestion = {
+                id: record.key,
+                label,
+                meta: record.entityType === 'CLUB' ? 'Club location' : `${record.clubName ?? 'Club'} · ${record.entityType === 'TRYOUT' ? 'Tryout' : record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Match'}`,
+                center: record.latitude != null && record.longitude != null ? [record.latitude, record.longitude] : null,
+                recordKey: record.key
+            };
+
+            if (!deduped.has(label.toLowerCase())) {
+                deduped.set(label.toLowerCase(), suggestion);
+            }
+
+            if (deduped.size >= CLUB_QUERY_LIMIT) {
+                break;
+            }
+        }
+
+        return Array.from(deduped.values()).slice(0, 6);
+    }, [allRecords, searchInput]);
+
+    const filteredRecords = useMemo(() => {
+        const query = normalizeText(deferredSearch);
+
+        return allRecords.filter((record) => {
+            if (record.entityType !== filters.entityType) {
+                return false;
+            }
+            if (query && !record.searchText.includes(query)) {
+                return false;
+            }
+
+            if (record.entityType === 'CLUB') {
+                if (filters.clubs.officialOnly && !record.official) return false;
+                if (filters.clubs.city && !normalizeText(record.city).includes(normalizeText(filters.clubs.city))) return false;
+                if (filters.clubs.country && !normalizeText(record.country).includes(normalizeText(filters.clubs.country))) return false;
+                return true;
+            }
+
+            const cityFilter = record.entityType === 'TRYOUT' ? filters.tryouts.city : filters.matches.city;
+            const countryFilter = record.entityType === 'TRYOUT' ? filters.tryouts.country : filters.matches.country;
+            if (cityFilter && !normalizeText(record.city).includes(normalizeText(cityFilter))) return false;
+            if (countryFilter && !normalizeText(record.country).includes(normalizeText(countryFilter))) return false;
+            if (!matchDateWindow(record.startsAt, record.entityType === 'TRYOUT' ? filters.tryouts.dateWindow : filters.matches.dateWindow)) return false;
+
+            const timeWindows = record.entityType === 'TRYOUT' ? filters.tryouts.timeWindows : filters.matches.timeWindows;
+            if (timeWindows.length > 0) {
+                const window = getTimeWindow(record.startsAt);
+                if (!window || !timeWindows.includes(window)) return false;
+            }
+
+            const selectedGenders = record.entityType === 'TRYOUT' ? filters.tryouts.genders : filters.matches.genders;
+            if (selectedGenders.length > 0 && !record.genders.some((gender) => selectedGenders.includes(gender))) return false;
+
+            const selectedLevels = record.entityType === 'TRYOUT' ? filters.tryouts.levels : filters.matches.levels;
+            if (selectedLevels.length > 0 && (!record.level || !selectedLevels.includes(record.level))) return false;
+
+            const selectedAges = record.entityType === 'TRYOUT' ? filters.tryouts.ageGroups : filters.matches.ageGroups;
+            if (selectedAges.length > 0 && !record.ageGroups.some((ageGroup) => selectedAges.includes(ageGroup))) return false;
+
+            if (record.entityType === 'MATCH') {
+                if (!record.matchSubtype || !filters.matches.subtypes.includes(record.matchSubtype)) return false;
+                if (!record.challengeState || !filters.matches.challengeStates.includes(record.challengeState)) return false;
+                if (!filters.matches.locationStates.includes(record.locationState)) return false;
+                if (filters.matches.travelPreferences.length > 0 && (!record.travelPreference || !filters.matches.travelPreferences.includes(record.travelPreference))) return false;
+            }
+
+            return true;
+        });
+    }, [allRecords, deferredSearch, filters]);
+
+    const sortedRecords = useMemo(() => {
+        const records = [...filteredRecords];
+        const distanceFor = (record: DiscoveryRecord) => haversineKm(viewportCenter, record.latitude, record.longitude);
+        const timestampFor = (record: DiscoveryRecord) => {
+            if (!record.startsAt) return Number.MAX_SAFE_INTEGER;
+            const parsed = new Date(record.startsAt).getTime();
+            return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+        };
+
+        const compareBySort = (left: DiscoveryRecord, right: DiscoveryRecord) => {
+            if (filters.sortBy === 'DISTANCE') {
+                return distanceFor(left) - distanceFor(right) || left.title.localeCompare(right.title);
+            }
+            if (filters.sortBy === 'SOONEST') {
+                return timestampFor(left) - timestampFor(right) || left.title.localeCompare(right.title);
+            }
+            if (filters.sortBy === 'NAME') {
+                return left.title.localeCompare(right.title);
+            }
+
+            const leftScore = Number(left.official) + Number(left.challengeState === 'OPEN');
+            const rightScore = Number(right.official) + Number(right.challengeState === 'OPEN');
+            return rightScore - leftScore || timestampFor(left) - timestampFor(right) || distanceFor(left) - distanceFor(right);
+        };
+
+        return records.sort(compareBySort);
+    }, [filteredRecords, filters.sortBy, viewportCenter]);
+
+    const mapRecords = useMemo(
+        () =>
+            sortedRecords.filter((record) => {
+                if (record.latitude == null || record.longitude == null) {
+                    return false;
+                }
+                return haversineKm(viewportCenter, record.latitude, record.longitude) <= filters.distanceKm;
+            }),
+        [filters.distanceKm, sortedRecords, viewportCenter]
+    );
+
+    const listRecords = useMemo(() => sortedRecords, [sortedRecords]);
+    const mapClusters = useMemo(() => {
+        const grouped = new Map<string, MarkerCluster>();
+        for (const record of mapRecords) {
+            const latitude = record.latitude as number;
+            const longitude = record.longitude as number;
+            const key = `${latitude.toFixed(4)}:${longitude.toFixed(4)}`;
+            const existing = grouped.get(key);
+            if (existing) {
+                existing.records.push(record);
+            } else {
+                grouped.set(key, { key, latitude, longitude, records: [record] });
+            }
+        }
+        return Array.from(grouped.values());
+    }, [mapRecords]);
+
+    const selectedRecord = useMemo(() => listRecords.find((record) => record.key === selectedKey) ?? null, [listRecords, selectedKey]);
+    const activeCluster = useMemo(() => mapClusters.find((cluster) => cluster.key === activeClusterKey) ?? null, [activeClusterKey, mapClusters]);
+    const noLocationMatchesCount = useMemo(() => listRecords.filter((record) => record.locationState === 'OPEN_VENUE').length, [listRecords]);
+    const layoutSignature = `${viewMode}:${Boolean(selectedRecord)}:${Boolean(activeCluster)}:${isFilterOpen}`;
 
     useEffect(() => {
-        if (!panelState) return;
+        if (selectedRecord?.clubId == null || clubProfiles[selectedRecord.clubId]) {
+            return;
+        }
 
-        if (panelState.mode === "detail") {
-            const refreshedMarker = markers.find((marker) => isSameMarker(marker, panelState.marker));
+        let active = true;
+        void apiClient
+            .get<ClubProfileSummary>(`/clubs/${selectedRecord.clubId}`)
+            .then((response) => {
+                if (!active) return;
+                setClubProfiles((current) => ({ ...current, [selectedRecord.clubId as number]: response.data }));
+            })
+            .catch(() => undefined);
 
-            if (!refreshedMarker) {
-                setPanelState(null);
-                return;
+        return () => {
+            active = false;
+        };
+    }, [clubProfiles, selectedRecord]);
+
+    useEffect(() => {
+        if (selectedKey && !listRecords.some((record) => record.key === selectedKey)) {
+            setSelectedKey(null);
+        }
+        if (activeClusterKey && !mapClusters.some((cluster) => cluster.key === activeClusterKey)) {
+            setActiveClusterKey(null);
+        }
+    }, [activeClusterKey, listRecords, mapClusters, selectedKey]);
+
+    const handleFocusSettled = useCallback(() => setFocusTarget(null), []);
+
+    const selectRecord = useCallback((record: DiscoveryRecord) => {
+        setSelectedKey(record.key);
+        setActiveClusterKey(null);
+        if (record.latitude != null && record.longitude != null) {
+            setFocusTarget([record.latitude, record.longitude]);
+        }
+    }, []);
+
+    const openClubProfile = useCallback(
+        (record: DiscoveryRecord | null) => {
+            if (record?.clubId) {
+                navigate(`/clubs/${record.clubId}`);
             }
+        },
+        [navigate]
+    );
 
-            if (refreshedMarker !== panelState.marker) {
-                setPanelState({
-                    mode: "detail",
-                    marker: refreshedMarker,
-                    fromLocationGroup: panelState.fromLocationGroup,
-                });
+    const canRespondToSelectedMatch = Boolean(
+        selectedRecord?.entityType === 'MATCH' &&
+        selectedRecord.rawEvent?.eventId &&
+        selectedRecord.clubId &&
+        membership?.clubId &&
+        membership.clubId !== selectedRecord.clubId &&
+        isLeadershipRole(membership?.myRole) &&
+        selectedRecord.challengeState === 'OPEN'
+    );
+
+    const handleSuggestionPick = (suggestion: SearchSuggestion) => {
+        setSearchInput(suggestion.label);
+        if (suggestion.center) {
+            setViewportCenter(suggestion.center);
+            setFocusTarget(suggestion.center);
+        }
+        if (suggestion.recordKey) {
+            const record = allRecords.find((entry) => entry.key === suggestion.recordKey);
+            if (record) {
+                selectRecord(record);
             }
+        }
+    };
+
+    const handleClusterClick = (cluster: MarkerCluster) => {
+        if (cluster.records.length === 1) {
+            selectRecord(cluster.records[0]);
+            return;
+        }
+        setActiveClusterKey(cluster.key);
+        setSelectedKey(null);
+        setFocusTarget([cluster.latitude, cluster.longitude]);
+    };
+
+    const submitResponse = async () => {
+        if (!responseModalRecord?.rawEvent?.eventId || !responseModalRecord.clubId || !membership?.clubId) {
             return;
         }
 
-        const survivingGroupMarkers = panelState.markers
-            .map((groupMarker) => markers.find((marker) => isSameMarker(marker, groupMarker)))
-            .filter((marker): marker is MapMarkerDto => Boolean(marker));
+        setResponseSubmitting(true);
+        setResponseError(null);
 
-        const refreshedAnchor = markers.find((marker) => isSameMarker(marker, panelState.anchor)) ?? survivingGroupMarkers[0];
-
-        if (!refreshedAnchor) {
-            setPanelState(null);
-            return;
-        }
-
-        const refreshedGroup = getLocationGroupForMarker(refreshedAnchor, markers);
-
-        if (refreshedGroup.length <= 1) {
-            setPanelState({
-                mode: "detail",
-                marker: refreshedAnchor,
-                fromLocationGroup: false,
+        try {
+            const updated = await createScheduleChallenge(responseModalRecord.rawEvent.eventId, {
+                challengerClubId: membership.clubId,
+                targetClubId: responseModalRecord.clubId,
+                note: responseNote.trim() || undefined
             });
-            return;
+
+            setEvents((current) => current.map((event) => (event.occurrenceId === updated.occurrenceId ? updated : event)));
+            setResponseModalRecord(null);
+            setResponseNote('');
+        } catch (requestError) {
+            console.error('Failed to respond to published match need', requestError);
+            setResponseError('The match response could not be submitted right now.');
+        } finally {
+            setResponseSubmitting(false);
         }
+    };
 
-        if (
-            refreshedAnchor !== panelState.anchor ||
-            !areMarkerListsEqual(refreshedGroup, panelState.markers)
-        ) {
-            setPanelState({
-                mode: "location-list",
-                anchor: refreshedAnchor,
-                markers: refreshedGroup,
-            });
-        }
-    }, [markers, panelState]);
-
-    const openSelectedClub = useCallback(() => {
-        if (selectedMarker?.entityType === "CLUB") {
-            navigate(`/clubs/${selectedMarker.entityId}`);
-        }
-    }, [navigate, selectedMarker]);
-
-    const handleBackToLocationList = useCallback(() => {
-        if (!panelState || panelState.mode !== "detail" || !isEventMarker(panelState.marker)) {
-            return;
-        }
-
-        const locationGroup = getLocationGroupForMarker(panelState.marker, markers);
-        if (locationGroup.length <= 1) {
-            return;
-        }
-
-        setPanelState({
-            mode: "location-list",
-            anchor: panelState.marker,
-            markers: locationGroup,
-        });
-    }, [markers, panelState]);
-
-    const showBackToLocationList =
-        panelState?.mode === "detail" &&
-        panelState.fromLocationGroup &&
-        isEventMarker(panelState.marker) &&
-        getLocationGroupForMarker(panelState.marker, markers).length > 1;
+    const panelContent = selectedRecord ? (
+        <DiscoveryDetailPanel
+            record={selectedRecord}
+            clubProfile={selectedRecord.clubId ? clubProfiles[selectedRecord.clubId] ?? null : null}
+            canRespond={canRespondToSelectedMatch}
+            onRespond={() => {
+                setResponseModalRecord(selectedRecord);
+                setResponseNote('');
+                setResponseError(null);
+            }}
+            onOpenClub={() => openClubProfile(selectedRecord)}
+            onClose={() => setSelectedKey(null)}
+        />
+    ) : activeCluster ? (
+        <DiscoveryQueue title="Shared pin" records={activeCluster.records} selectedKey={selectedKey} onSelect={selectRecord} />
+    ) : (
+        <DiscoveryQueue title={viewMode === 'MAP' ? 'Results in view' : 'Browse results'} records={viewMode === 'MAP' ? mapRecords : listRecords} selectedKey={selectedKey} onSelect={selectRecord} />
+    );
 
     return (
-        <div className="theme-surface-muted h-full min-h-0 w-full overflow-hidden">
-            <div className="flex h-full min-h-0 w-full">
+        <div className="map-workspace h-full min-h-0 w-full overflow-hidden">
+            <div className="flex h-full min-h-0">
                 <MapFilterSidebar
                     isVisible={isFilterOpen}
+                    filters={filters}
+                    onFiltersChange={setFilters}
                     onClose={() => setIsFilterOpen(false)}
-                    onFiltersChange={setActiveFilters}
                 />
 
-                <div className="flex-1 min-w-0 min-h-0 flex">
-                    <section className="relative flex-1 min-w-0 min-h-0">
-                        <div className="absolute top-4 left-4 right-4 z-[900] pointer-events-none flex flex-col gap-3">
-                            <div className="flex gap-3 pointer-events-auto max-w-3xl">
-                                <button
-                                    onClick={() => setIsFilterOpen((current) => !current)}
-                                    className={`shrink-0 p-3.5 rounded-xl border-2 border-slate-900 shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none transition-all ${
-                                        isFilterOpen ? "bg-emerald-600 text-white" : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-emerald-500"
-                                    }`}
-                                >
-                                    {isFilterOpen ? <ChevronLeft className="w-5 h-5" /> : <Filter className="w-5 h-5" />}
-                                </button>
-
-                                <div className="flex-1 bg-white dark:bg-slate-800 border-2 border-slate-900 rounded-xl shadow-[4px_4px_0px_0px_#020617] flex items-center px-4 py-1 group">
-                                    <Search className="w-5 h-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
-                                    <input
-                                        type="text"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        placeholder="Search clubs, tryouts, or saved locations..."
-                                        className="flex-1 bg-transparent border-none outline-none text-slate-900 dark:text-white placeholder:text-slate-400 font-bold text-sm ml-3 w-full"
-                                    />
-                                    {searchQuery && (
-                                        <button onClick={() => setSearchQuery("")} className="p-1 text-slate-400 hover:text-rose-500">
-                                            <X className="w-4 h-4" />
+                <div className="map-main-column flex min-w-0 flex-1 flex-col">
+                    <header className="px-4 pt-4 sm:px-5 sm:pt-5">
+                        <div className="map-toolbar-surface">
+                            <div className="flex flex-col gap-4">
+                                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                                    <div className="flex items-start gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsFilterOpen((current) => !current)}
+                                            className="map-icon-button mt-1 xl:hidden"
+                                        >
+                                            {isFilterOpen ? <ChevronLeft className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
                                         </button>
-                                    )}
+
+                                        <div className="min-w-0">
+                                            <p className="map-eyebrow">Map discovery</p>
+                                            <h1 className="mt-1 text-2xl font-bold text-primary">Find clubs, tryouts, and match opportunities</h1>
+                                            <p className="mt-2 max-w-3xl text-sm leading-6 text-secondary">
+                                                Search a city, country, club, or published need, then scan the map or browse the result list and review the selected item on the right.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="map-count-chip">{viewMode === 'MAP' ? `${mapRecords.length} visible` : `${listRecords.length} results`}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setViewportCenter(DEFAULT_CENTER);
+                                                setFocusTarget(DEFAULT_CENTER);
+                                                setSelectedKey(null);
+                                                setActiveClusterKey(null);
+                                            }}
+                                            className="map-secondary-button"
+                                        >
+                                            <Navigation className="h-3.5 w-3.5" />
+                                            Reset view
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+                                    <div className="relative min-w-0">
+                                        <div className="map-search-surface">
+                                            <Search className="h-5 w-5 text-secondary" />
+                                            <input
+                                                type="text"
+                                                value={searchInput}
+                                                onChange={(event) => setSearchInput(event.target.value)}
+                                                onKeyDown={(event) => {
+                                                    if (event.key === 'Enter' && suggestions[0]) {
+                                                        handleSuggestionPick(suggestions[0]);
+                                                    }
+                                                }}
+                                                placeholder="Search clubs, cities, countries, or published schedule needs"
+                                                className="map-search-input"
+                                            />
+                                            {searchInput && (
+                                                <button type="button" onClick={() => setSearchInput('')} className="map-icon-button">
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {suggestions.length > 0 && (
+                                            <div className="map-suggestion-list">
+                                                {suggestions.map((suggestion) => (
+                                                    <button
+                                                        key={suggestion.id}
+                                                        type="button"
+                                                        onClick={() => handleSuggestionPick(suggestion)}
+                                                        className="map-suggestion-row"
+                                                    >
+                                                        <div className="min-w-0">
+                                                            <p className="truncate text-sm font-bold text-primary">{suggestion.label}</p>
+                                                            <p className="mt-1 truncate text-xs text-secondary">{suggestion.meta}</p>
+                                                        </div>
+                                                        <LocateFixed className="h-4 w-4 accent-primary" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <div className="map-mode-toggle">
+                                            <button
+                                                type="button"
+                                                onClick={() => setViewMode('MAP')}
+                                                className={`map-mode-button ${viewMode === 'MAP' ? 'map-mode-button--active' : ''}`}
+                                            >
+                                                <MapIcon className="h-3.5 w-3.5" />
+                                                Map
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setViewMode('LIST')}
+                                                className={`map-mode-button ${viewMode === 'LIST' ? 'map-mode-button--active' : ''}`}
+                                            >
+                                                <ListFilter className="h-3.5 w-3.5" />
+                                                Browse
+                                            </button>
+                                        </div>
+                                        <span className="map-helper-note">Filters update live</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    </header>
 
-                        <MapContainer
-                            center={DEFAULT_CENTER}
-                            zoom={13}
-                            zoomControl={false}
-                            preferCanvas={true}
-                            className="h-full w-full z-0"
-                        >
-                            <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
-                            <ZoomControl position="bottomright" />
-                            <MapViewportSync onViewportChange={handleViewportChange} />
-                            <MapFocusController target={focusTarget} onSettled={clearFocusTarget} />
-                            <MapSizeGuard layoutSignature={layoutSignature} />
-
-                            <Circle
-                                center={viewportCenter}
-                                radius={activeFilters.distance * 1000}
-                                pathOptions={{ color: "#10b981", fillColor: "#10b981", fillOpacity: 0.08, weight: 2, dashArray: "10, 10" }}
-                            />
-
-                            {markers.map((marker) => (
-                                <Marker
-                                    key={`${marker.entityType}-${marker.entityId}`}
-                                    position={[marker.latitude, marker.longitude]}
-                                    icon={createBallIcon(
-                                        selectedMarker?.entityId === marker.entityId && selectedMarker?.entityType === marker.entityType,
-                                        marker.entityType
-                                    )}
-                                    eventHandlers={{ click: () => handleMarkerClick(marker) }}
-                                />
-                            ))}
-                        </MapContainer>
-
-                        <button
-                            onClick={() => {
-                                setPanelState(null);
-                                setFocusTarget(DEFAULT_CENTER);
-                            }}
-                            className="absolute bottom-6 left-6 z-[900] p-3.5 bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-500 rounded-xl border-2 border-slate-300 dark:border-slate-700 shadow-[4px_4px_0px_0px_#020617] active:translate-y-0.5 active:shadow-none transition-all group"
-                        >
-                            <Navigation className="w-5 h-5 group-hover:rotate-45 transition-transform duration-300" />
-                        </button>
-
-                        <div className="absolute bottom-6 right-6 z-[900] flex flex-col items-end gap-2">
-                                <div className="theme-surface-strong rounded-xl border border-slate-300/80 dark:border-slate-700 backdrop-blur-sm px-4 py-2 shadow-lg">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Viewport Center</p>
-                                <p className="text-sm font-bold text-slate-900 dark:text-white">
-                                    {viewportCenter[0].toFixed(3)}, {viewportCenter[1].toFixed(3)}
-                                </p>
-                            </div>
-                            <div className="theme-surface-strong rounded-xl border border-slate-300/80 dark:border-slate-700 backdrop-blur-sm px-4 py-2 shadow-lg">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Results</p>
-                                <p className="text-sm font-bold text-slate-900 dark:text-white">
-                                    {isLoading ? "Updating..." : `${markers.length} marker${markers.length === 1 ? "" : "s"}`}
-                                </p>
-                            </div>
-                        </div>
-
-                        {isLoading && (
-                            <div className="absolute inset-x-4 top-24 z-[900] flex justify-center pointer-events-none">
-                                <div className="theme-surface-strong rounded-xl border border-slate-300 dark:border-slate-700 backdrop-blur-sm px-4 py-2 shadow-lg flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
-                                    <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
-                                    Refreshing map results
+                    <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4 pt-4 sm:px-5 sm:pb-5">
+                        <section className="relative min-h-0 min-w-0 flex-1">
+                            {loading ? (
+                                <div className="map-canvas-frame flex h-full items-center justify-center">
+                                    <div className="flex flex-col items-center gap-3 text-center">
+                                        <Loader2 className="h-8 w-8 animate-spin accent-primary" />
+                                        <p className="text-sm font-semibold text-secondary">Loading the public discovery surface.</p>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-
-                        {loadError && (
-                            <div className="absolute inset-x-4 top-24 z-[900] flex justify-center">
-                                <div className="rounded-xl border border-rose-300/70 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 backdrop-blur-sm px-4 py-3 shadow-lg text-sm font-bold text-rose-600 dark:text-rose-400">
-                                    {loadError}
+                            ) : error ? (
+                                <div className="map-canvas-frame flex h-full items-center justify-center px-6">
+                                    <div className="map-empty-panel max-w-md px-6 py-6 text-center text-sm leading-6 text-secondary">{error}</div>
                                 </div>
-                            </div>
-                        )}
+                            ) : viewMode === 'MAP' ? (
+                                <div className="map-canvas-frame relative h-full overflow-hidden">
+                                    <MapContainer center={DEFAULT_CENTER} zoom={11} zoomControl={false} className="h-full w-full">
+                                        <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+                                        <ZoomControl position="bottomright" />
+                                        <MapViewportSync onViewportChange={setViewportCenter} />
+                                        <MapFocusController target={focusTarget} onSettled={handleFocusSettled} />
+                                        <MapSizeGuard layoutSignature={layoutSignature} />
+                                        <Circle
+                                            center={viewportCenter}
+                                            radius={filters.distanceKm * 1000}
+                                            pathOptions={{
+                                                color: 'var(--accent-primary)',
+                                                fillColor: 'var(--accent-primary)',
+                                                fillOpacity: 0.08,
+                                                weight: 1.5
+                                            }}
+                                        />
 
-                        {!isLoading && !loadError && markers.length === 0 && (
-                            <div className="absolute inset-x-4 top-24 z-[900] flex justify-center pointer-events-none">
-                                <div className="theme-surface-strong rounded-xl border border-slate-300 dark:border-slate-700 backdrop-blur-sm px-4 py-3 shadow-lg max-w-md text-center">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">No Results</p>
-                                    <p className="mt-1 text-sm font-bold text-slate-700 dark:text-slate-200">
-                                        No map markers match the current radius, search, and filter combination.
-                                    </p>
+                                        {mapClusters.map((cluster) => {
+                                            const primaryRecord = cluster.records[0];
+                                            return (
+                                                <Marker
+                                                    key={cluster.key}
+                                                    position={[cluster.latitude, cluster.longitude]}
+                                                    icon={createMarkerIcon(primaryRecord, cluster.records.some((record) => record.key === selectedKey), cluster.records.length)}
+                                                    eventHandlers={{ click: () => handleClusterClick(cluster) }}
+                                                />
+                                            );
+                                        })}
+                                    </MapContainer>
+
+                                    <div className="pointer-events-none absolute left-4 right-4 top-4 flex flex-col gap-3 sm:right-auto sm:max-w-xs">
+                                        <div className="pointer-events-auto map-floating-card">
+                                            <p className="map-field-label">In current radius</p>
+                                            <p className="mt-2 text-lg font-bold text-primary">{mapRecords.length} mapped results</p>
+                                            <p className="mt-2 text-sm leading-6 text-secondary">Pan or zoom the map, or search for a place to jump the viewport instantly.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="pointer-events-none absolute inset-x-4 bottom-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                                        <div className="pointer-events-auto map-floating-card">
+                                            <p className="map-field-label">Viewport center</p>
+                                            <p className="mt-2 text-sm font-bold text-primary">
+                                                {viewportCenter[0].toFixed(3)}, {viewportCenter[1].toFixed(3)}
+                                            </p>
+                                        </div>
+                                        {noLocationMatchesCount > 0 && filters.entityType === 'MATCH' && (
+                                            <div className="pointer-events-auto map-floating-card max-w-sm border-accent-muted bg-accent-muted-soft">
+                                                <p className="map-field-label accent-muted">Browse-only opportunities</p>
+                                                <p className="mt-2 text-sm leading-6 text-secondary">
+                                                    {noLocationMatchesCount} published match need{noLocationMatchesCount === 1 ? '' : 's'} do not have a pinned venue yet, so they stay visible in browse mode instead of on the map.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-
-                        {panelState && (
-                            <div className="xl:hidden absolute inset-x-4 bottom-4 top-auto max-h-[60%] z-[1000] overflow-hidden rounded-2xl shadow-2xl">
-                                {panelState.mode === "location-list" ? (
-                                    <MarkerLocationListCard
-                                        anchor={panelState.anchor}
-                                        markers={panelState.markers}
-                                        onClose={() => setPanelState(null)}
-                                        onSelectMarker={handleLocationMarkerOpen}
-                                    />
-                                ) : (
-                                    <MarkerDetailsCard
-                                        marker={panelState.marker}
-                                        onClose={() => setPanelState(null)}
-                                        onOpenClub={openSelectedClub}
-                                        onBackToLocationList={showBackToLocationList ? handleBackToLocationList : undefined}
-                                    />
-                                )}
-                            </div>
-                        )}
-                    </section>
-
-                    {panelState && (
-                        <aside className="hidden xl:block w-[380px] shrink-0 h-full">
-                            {panelState.mode === "location-list" ? (
-                                <MarkerLocationListCard
-                                    anchor={panelState.anchor}
-                                    markers={panelState.markers}
-                                    onClose={() => setPanelState(null)}
-                                    onSelectMarker={handleLocationMarkerOpen}
-                                />
                             ) : (
-                                <MarkerDetailsCard
-                                    marker={panelState.marker}
-                                    onClose={() => setPanelState(null)}
-                                    onOpenClub={openSelectedClub}
-                                    onBackToLocationList={showBackToLocationList ? handleBackToLocationList : undefined}
-                                />
+                                <div className="map-canvas-frame h-full overflow-y-auto">
+                                    {listRecords.length === 0 ? (
+                                        <div className="flex h-full items-center justify-center p-6">
+                                            <div className="map-empty-panel max-w-md px-6 py-6 text-center">
+                                                <p className="text-base font-bold text-primary">No results in browse mode yet.</p>
+                                                <p className="mt-2 text-sm leading-6 text-secondary">Widen the radius, clear a few filters, or switch the entity type to explore another public discovery lane.</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="map-list-grid p-4 sm:p-5">
+                                            {listRecords.map((record) => (
+                                                <button
+                                                    key={record.key}
+                                                    type="button"
+                                                    onClick={() => selectRecord(record)}
+                                                    className={`map-list-card ${selectedKey === record.key ? 'map-list-card--selected' : ''}`}
+                                                >
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div className="min-w-0">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className="map-pill map-pill--accent">{getRecordTypeLabel(record)}</span>
+                                                                <span className="map-pill">{getRecordTypeMeta(record)}</span>
+                                                            </div>
+                                                            <p className="mt-3 text-lg font-bold text-primary">{record.title}</p>
+                                                            {record.subtitle && <p className="mt-1 text-sm text-secondary">{record.subtitle}</p>}
+                                                        </div>
+                                                        <ArrowRight className="h-4 w-4 text-secondary" />
+                                                    </div>
+
+                                                    <div className="mt-4 grid gap-2 text-sm text-secondary sm:grid-cols-2">
+                                                        {record.clubName && record.entityType !== 'CLUB' && <div className="font-medium text-primary">{record.clubName}</div>}
+                                                        {record.locationName && <div>{record.locationName}</div>}
+                                                        {record.startsAt && <div>{formatDateTime(record.startsAt)}</div>}
+                                                        {!record.startsAt && record.entityType === 'CLUB' && <div>Profile discovery</div>}
+                                                    </div>
+
+                                                    <div className="mt-4 flex flex-wrap gap-2">
+                                                        {record.matchSubtype && <span className="map-pill">{record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Competitive'}</span>}
+                                                        {record.challengeState && <span className="map-pill">{record.challengeState === 'OPEN' ? 'Open challenge' : record.challengeState}</span>}
+                                                        <span className="map-pill">{record.locationState === 'PINNED' ? 'Mapped' : 'Venue open'}</span>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             )}
+                        </section>
+
+                        <aside className="map-side-panel-shell hidden min-h-0 w-[410px] shrink-0 overflow-hidden xl:block">
+                            {panelContent}
                         </aside>
-                    )}
+                    </div>
                 </div>
             </div>
+
+            {(selectedRecord || activeCluster) && (
+                <div className="map-mobile-panel fixed inset-x-4 bottom-4 top-auto z-[1200] max-h-[72vh] overflow-hidden xl:hidden">
+                    {panelContent}
+                </div>
+            )}
+
+            {responseModalRecord && (
+                <MatchResponseModal
+                    record={responseModalRecord}
+                    clubName={membership?.clubName ?? null}
+                    note={responseNote}
+                    error={responseError}
+                    submitting={responseSubmitting}
+                    onChangeNote={setResponseNote}
+                    onClose={() => {
+                        setResponseModalRecord(null);
+                        setResponseNote('');
+                        setResponseError(null);
+                    }}
+                    onSubmit={submitResponse}
+                />
+            )}
         </div>
     );
 };

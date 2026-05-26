@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import Map, { Marker, useMap } from 'react-map-gl/mapbox';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { Expand, Map as MapIcon, Shrink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MapHelpHint } from './map/MapHelpHint';
+
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 type MapPoint = [number, number];
 
@@ -17,36 +20,14 @@ export interface MiniMapProps {
 
 const DEFAULT_CENTER: MapPoint = [41.7151, 44.8271];
 
-function MiniMapPickerEvents({
-    enabled,
-    onSelect
-}: {
-    enabled: boolean;
-    onSelect: (coords: { lat: number; lng: number }) => void;
-}) {
-    useMapEvents({
-        click(event) {
-            if (!enabled) {
-                return;
-            }
-            onSelect({
-                lat: Number(event.latlng.lat.toFixed(6)),
-                lng: Number(event.latlng.lng.toFixed(6))
-            });
-        }
-    });
-
-    return null;
-}
-
 function MiniMapFocusController({ target }: { target: MapPoint | null }) {
-    const map = useMap();
+    const { current: map } = useMap();
 
     useEffect(() => {
-        if (!target) {
+        if (!target || !map) {
             return;
         }
-        map.flyTo(target, Math.max(map.getZoom(), 13), { animate: true, duration: 0.35 });
+        map.flyTo({ center: [target[1], target[0]], zoom: Math.max(map.getZoom(), 13), duration: 350 });
     }, [map, target]);
 
     return null;
@@ -72,6 +53,7 @@ export function MiniMap({
 
     const center = selectedPoint ?? initialCenter;
     const previewTitle = title ?? (mode === 'picker' ? 'Venue Picker' : 'Explore Nearby');
+    const pickerEnabled = mode === 'picker' && Boolean(onSelectLocation);
 
     return (
         <div className={mode === 'picker' ? `relative ${className}`.trim() : `sticky top-24 relative z-50 ${className}`.trim()}>
@@ -114,31 +96,39 @@ export function MiniMap({
                     expanded ? 'h-[320px]' : mode === 'picker' ? 'h-[220px]' : 'h-64'
                 }`}
             >
-                <MapContainer
-                    center={center}
-                    zoom={selectedPoint ? 13 : 11}
-                    className="h-full w-full"
-                    zoomControl={false}
-                    dragging={true}
-                    scrollWheelZoom={true}
-                    preferCanvas={true}
+                <Map
+                    mapboxAccessToken={MAPBOX_TOKEN}
+                    initialViewState={{
+                        latitude: center[0],
+                        longitude: center[1],
+                        zoom: selectedPoint ? 13 : 11
+                    }}
+                    style={{ width: '100%', height: '100%' }}
+                    mapStyle="mapbox://styles/mapbox/dark-v11"
+                    dragPan={true}
+                    scrollZoom={true}
+                    cursor={pickerEnabled ? 'crosshair' : undefined}
+                    onClick={(evt) => {
+                        if (!pickerEnabled) return;
+                        onSelectLocation?.({
+                            lat: Number(evt.lngLat.lat.toFixed(6)),
+                            lng: Number(evt.lngLat.lng.toFixed(6))
+                        });
+                    }}
                 >
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <MiniMapFocusController target={selectedPoint} />
-                    <MiniMapPickerEvents enabled={mode === 'picker' && Boolean(onSelectLocation)} onSelect={onSelectLocation ?? (() => undefined)} />
                     {selectedPoint ? (
-                        <CircleMarker
-                            center={selectedPoint}
-                            radius={10}
-                            pathOptions={{
-                                color: 'var(--accent-primary)',
-                                fillColor: 'var(--accent-primary)',
-                                fillOpacity: 0.28,
-                                weight: 2
-                            }}
-                        />
+                        <Marker
+                            longitude={selectedPoint[1]}
+                            latitude={selectedPoint[0]}
+                            anchor="bottom"
+                        >
+                            <div className="talanti-map-marker talanti-map-marker--club">
+                                <div className="talanti-map-marker__blip" />
+                            </div>
+                        </Marker>
                     ) : null}
-                </MapContainer>
+                </Map>
             </div>
         </div>
     );

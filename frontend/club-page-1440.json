@@ -1,0 +1,33 @@
+{
+  "title": "frontend",
+  "url": "http://localhost:5173/clubs/1",
+  "bodyWidth": 1440,
+  "candidates": [
+    {
+      "className": "mx-auto flex max-w-[1600px] flex-col px-4 sm:px-6",
+      "width": 1440,
+      "top": 0
+    },
+    {
+      "className": "hidden min-w-0 max-w-xl flex-1 items-center justify-center lg:flex",
+      "width": 576,
+      "top": 9
+    },
+    {
+      "className": "mx-auto w-full max-w-[1480px] px-4 sm:px-6 lg:px-8 py-5",
+      "width": 1440,
+      "top": 319
+    },
+    {
+      "className": "mx-auto w-full max-w-[1480px] px-4 sm:px-6 lg:px-8 pt-6",
+      "width": 1440,
+      "top": 658
+    },
+    {
+      "className": "mx-auto w-full max-w-[1480px] px-4 sm:px-6 lg:px-8 py-6",
+      "width": 1440,
+      "top": 944
+    }
+  ],
+  "text": "TALANTI\nFOOTBALL NETWORK OPS\nSIGN IN\nACCOUNT\nFEED\nMAP\nCLUBS\nMY CLUB\nCALENDAR\nMESSAGES\nNOTIFICATIONS\n\nCLUB WORKSPACE\n\nFC DINAMO TBILISI ACADEMY\nOFFICIAL\nACADEMY\nBORIS PAICHADZE DINAMO ARENA, TBILISI\nVERIFIED\n\nElite youth setup with strong U16 and U18 development tracks.\n\nMEMBERS\n\n1\n\nFOLLOWERS\n\n1\n\nSTATUS\n\nVERIFIED\n\nMESSAGE\nFOLLOW\nCLUB APPLICATION\nINTERESTED IN JOINING THIS CLUB?\n\nSend a role-specific application here, or review an existing invite if the club already reached out.\n\nSign in to apply for a role with FC Dinamo Tbilisi Academy or review any club invitations linked to your account.\n\nSIGN IN TO CONTINUE\n\nENTITY NAVIGATION\n\nFC DINAMO TBILISI ACADEMY\n\nOVERVIEW\nSQUADS\nHONOURS\n3\nCALENDAR\nOPPORTUNITIES\n4\n\nCLUB RECORD\n\nTYPE\nACADEMY\nMEMBERS\n1\nFOLLOWERS\n1\nSTATUS\nVERIFIED\n\nLOCATION\n\nBoris Paichadze Dinamo Arena, Tbilisi\n\nHONOURS SNAPSHOT\n\nACADEMY CUP CHAMPIONS\n\nWon the national academy tournament after a seven-match unbeaten run.\n\n2025\n\nTBILISI YOUTH SUPER CUP\n\nLifted the regional super cup with the U16 group.\n\n2024\n\nBEST DEVELOPMENT PROGRAMME\n\nRecognized for year-round player pathway delivery and education support.\n\n2023\nOPEN HONOURS\n\nOPPORTUNITY BOARD\n\nWISH LIST\n\nWISHLIST\n\nVOLUNTEE"
+}

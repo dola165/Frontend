@@ -1,0 +1,117 @@
+import { apiClient } from '../../api/axiosConfig';
+import type {
+    AddDraftTeamMembersPayload,
+    CompleteFixturePayload,
+    CreateDraftTeamPayload,
+    CreateOrganizationPayload,
+    CreateTournamentPayload,
+    DraftTeamDetailDto,
+    DraftTeamDto,
+    MyOrganization,
+    RequestTournamentEntryPayload,
+    TournamentDetail,
+    TournamentHostClubOption,
+    UpdateEntryStatusPayload,
+    UpdateFixtureScoresPayload,
+} from './domain';
+
+export const fetchMyOrganizations = async () => {
+    const response = await apiClient.get<MyOrganization[]>('/organizations/mine');
+    return response.data;
+};
+
+export const createOrganization = async (payload: CreateOrganizationPayload) => {
+    const response = await apiClient.post<MyOrganization>('/organizations', payload);
+    return response.data;
+};
+
+export const fetchTournamentHostClubs = async (organizationId: number) => {
+    const response = await apiClient.get<TournamentHostClubOption[]>(`/organizations/${organizationId}/tournament-host-clubs`);
+    return response.data;
+};
+
+export const createTournament = async (payload: CreateTournamentPayload) => {
+    const response = await apiClient.post<TournamentDetail>('/tournaments', payload);
+    return response.data;
+};
+
+export const fetchTournament = async (tournamentId: number) => {
+    const response = await apiClient.get<TournamentDetail>(`/tournaments/${tournamentId}`);
+    return response.data;
+};
+
+export const registerPlayer = async (tournamentId: number) => {
+    const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/register-player`, {});
+    return response.data;
+};
+
+export const fetchPlayerQueue = async (tournamentId: number, status: string = 'ACTIVE', page: number = 0, size: number = 20) => {
+    const response = await apiClient.get<TournamentDetail>(`/tournaments/${tournamentId}/player-queue`, {
+        params: { status, page, size },
+    });
+    return response.data;
+};
+
+export const requestEntry = async (tournamentId: number, payload: RequestTournamentEntryPayload) => {
+    const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/entries`, payload);
+    return response.data;
+};
+
+export const updateEntryStatus = async (tournamentId: number, entryId: number, payload: UpdateEntryStatusPayload) => {
+    const response = await apiClient.patch<TournamentDetail>(`/tournaments/${tournamentId}/entries/${entryId}/status`, payload);
+    return response.data;
+};
+
+export const createDraftTeam = async (tournamentId: number, payload: CreateDraftTeamPayload) => {
+    const response = await apiClient.post<DraftTeamDetailDto>(`/tournaments/${tournamentId}/draft-teams`, payload);
+    return response.data;
+};
+
+export const fetchDraftTeams = async (tournamentId: number) => {
+    const response = await apiClient.get<DraftTeamDto[]>(`/tournaments/${tournamentId}/draft-teams`);
+    return response.data;
+};
+
+export const fetchDraftTeam = async (tournamentId: number, teamId: number) => {
+    const response = await apiClient.get<DraftTeamDetailDto>(`/tournaments/${tournamentId}/draft-teams/${teamId}`);
+    return response.data;
+};
+
+export const addDraftTeamMembers = async (tournamentId: number, teamId: number, payload: AddDraftTeamMembersPayload) => {
+    const response = await apiClient.post<DraftTeamDetailDto>(`/tournaments/${tournamentId}/draft-teams/${teamId}/members`, payload);
+    return response.data;
+};
+
+export const removeDraftTeamMember = async (tournamentId: number, teamId: number, entryId: number) => {
+    const response = await apiClient.delete<DraftTeamDetailDto>(`/tournaments/${tournamentId}/draft-teams/${teamId}/members/${entryId}`);
+    return response.data;
+};
+
+export const promoteDraftTeam = async (tournamentId: number, teamId: number) => {
+    const response = await apiClient.post<DraftTeamDetailDto>(`/tournaments/${tournamentId}/draft-teams/${teamId}/promote`);
+    return response.data;
+};
+
+export const disbandDraftTeam = async (tournamentId: number, teamId: number) => {
+    await apiClient.delete(`/tournaments/${tournamentId}/draft-teams/${teamId}`);
+};
+
+export const completeFixture = async (tournamentId: number, fixtureId: number, payload: CompleteFixturePayload) => {
+    const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/complete`, payload);
+    return response.data;
+};
+
+export const cancelFixture = async (tournamentId: number, fixtureId: number) => {
+    const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/cancel`);
+    return response.data;
+};
+
+export const updateFixtureScores = async (tournamentId: number, fixtureId: number, payload: UpdateFixtureScoresPayload) => {
+    const response = await apiClient.patch<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/scores`, payload);
+    return response.data;
+};
+
+export const reopenFixture = async (tournamentId: number, fixtureId: number) => {
+    const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/reopen`);
+    return response.data;
+};

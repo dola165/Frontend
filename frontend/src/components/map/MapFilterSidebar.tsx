@@ -300,7 +300,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                 onClick={onClose}
             />
             <aside
-                className={`map-rail fixed inset-y-0 left-0 z-[1100] w-[min(90vw,332px)] transition-transform duration-200 xl:w-[320px] ${
+                className={`pointer-events-auto map-rail fixed inset-y-0 left-0 z-[1100] w-[min(90vw,332px)] transition-transform duration-200 xl:w-[320px] ${
                     isVisible ? 'translate-x-0' : '-translate-x-full'
                 }`}
             >

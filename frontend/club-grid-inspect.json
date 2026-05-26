@@ -1,0 +1,90 @@
+[
+  {
+    "tag": "div",
+    "className": "mx-auto w-full max-w-[1480px] px-4 sm:px-6 lg:px-8 py-6",
+    "display": "block",
+    "gridTemplateColumns": "none",
+    "top": 944,
+    "left": 0,
+    "width": 1440,
+    "height": 3747,
+    "text": "Entity NavigationFC Dinamo Tbilisi AcademyOverviewSquadsHonours3CalendarOpportun"
+  },
+  {
+    "tag": "div",
+    "className": "grid gap-5 lg:grid-cols-[228px,minmax(0,1fr)] xl:grid-cols-[228px,minmax(0,760px),308px] xl:justify-center",
+    "display": "grid",
+    "gridTemplateColumns": "1376px",
+    "top": 968,
+    "left": 32,
+    "width": 1376,
+    "height": 3699,
+    "text": "Entity NavigationFC Dinamo Tbilisi AcademyOverviewSquadsHonours3CalendarOpportun"
+  },
+  {
+    "tag": "aside",
+    "className": "min-w-0",
+    "display": "block",
+    "gridTemplateColumns": "none",
+    "top": 968,
+    "left": 32,
+    "width": 1376,
+    "height": 585,
+    "text": "Entity NavigationFC Dinamo Tbilisi AcademyOverviewSquadsHonours3CalendarOpportun"
+  },
+  {
+    "tag": "aside",
+    "className": "min-w-0",
+    "display": "block",
+    "gridTemplateColumns": "none",
+    "top": 968,
+    "left": 32,
+    "width": 1376,
+    "height": 585,
+    "text": "Entity NavigationFC Dinamo Tbilisi AcademyOverviewSquadsHonours3CalendarOpportun"
+  },
+  {
+    "tag": "div",
+    "className": "flex flex-col gap-4 lg:sticky lg:top-[calc(var(--app-header-height)+24px)]",
+    "display": "flex",
+    "gridTemplateColumns": "none",
+    "top": 968,
+    "left": 32,
+    "width": 1376,
+    "height": 585,
+    "text": "Entity NavigationFC Dinamo Tbilisi AcademyOverviewSquadsHonours3CalendarOpportun"
+  },
+  {
+    "tag": "section",
+    "className": "border border-subtle bg-surface",
+    "display": "block",
+    "gridTemplateColumns": "none",
+    "top": 968,
+    "left": 32,
+    "width": 1376,
+    "height": 287,
+    "text": "Entity NavigationFC Dinamo Tbilisi AcademyOverviewSquadsHonours3CalendarOpportun"
+  },
+  {
+    "tag": "div",
+    "className": "border-b border-subtle px-4 py-3",
+    "display": "block",
+    "gridTemplateColumns": "none",
+    "top": 969,
+    "left": 33,
+    "width": 1374,
+    "height": 70,
+    "text": "Entity NavigationFC Dinamo Tbilisi Academy"
+  },
+  {
+    "tag": "div",
+    "className": "divide-y divide-[color:var(--border-subtle)]",
+    "display": "block",
+    "gridTemplateColumns": "none",
+    "top": 1039,
+    "left": 33,
+    "width": 1374,
+    "height": 216,
+    "text": "OverviewSquadsHonours3CalendarOpportunities4"
+  }
+]

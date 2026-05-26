@@ -1,0 +1,33 @@
+{
+  "bodyWidth": 1440,
+  "frameWidth": 1360,
+  "gridWidth": 1296,
+  "gridTemplateColumns": "220px 700px 280px",
+  "childRects": [
+    {
+      "tag": "aside",
+      "className": "min-w-0",
+      "left": 100,
+      "top": 870,
+      "width": 220,
+      "height": 1684
+    },
+    {
+      "tag": "div",
+      "className": "min-w-0",
+      "left": 340,
+      "top": 870,
+      "width": 700,
+      "height": 1684
+    },
+    {
+      "tag": "aside",
+      "className": "min-w-0 lg:col-span-2 xl:col-span-1",
+      "left": 1060,
+      "top": 870,
+      "width": 280,
+      "height": 1684
+    }
+  ],
+  "text": "TALANTI\nFOOTBALL NETWORK OPS\nSIGN IN\nACCOUNT\nFEED\nMAP\nCLUBS\nMY CLUB\nCALENDAR\nMESSAGES\nNOTIFICATIONS\n\nCLUB WORKSPACE\n\nFC DINAMO TBILISI ACADEMY\nOFFICIAL\nACADEMY\nBORIS PAICHADZE DINAMO ARENA, TBILISI\nVERIFIED\n\nElite youth setup with strong U16 and U18 development tracks.\n\nMEMBERS\n\n1\n\nFOLLOWERS\n\n1\n\nSTATUS\n\nVERIFIED\n\nMESSAGE\nFOLLOW\nCLUB APPLICATION\nINTERESTED IN JOINING THIS CLUB?\n\nSend a role-specific application here, or review an existing invite if the club already reached out.\n\nSign in to apply for a role with FC Dinamo Tbilisi Academy or review any club invitations linked to your account.\n\nSIGN IN TO CONTINUE\n\nENTITY NAVIGATION\n\nFC DINAMO TBILISI ACADEMY\n\nOVERVIEW\nSQUADS\nHONOURS\n3\nCALENDAR\nOPPORTUNITIES\n4\n\nCLUB RECORD\n\nTYPE\nACADEMY\nMEMBERS\n1\nFOLLOWERS\n1\nSTATUS\nVERIFIED\n\nLOCATION\n\nBoris Paichadze Dinamo Arena, Tbilisi\n\nHONOURS SNAPSHOT\n\nACADEMY CUP CHAMPIONS\n\nWon the national academy tournament after a seven-match unbeaten run.\n\n2025\n\nTBILISI YOUTH SUPER CUP\n\nLifted the regional super "
+}

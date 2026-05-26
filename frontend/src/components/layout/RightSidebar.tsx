@@ -11,7 +11,7 @@ interface RightSidebarProps {
 export const RightSidebar = ({ mockContacts, activeQuickChat, setActiveQuickChat }: RightSidebarProps) => (
     <aside className="hidden lg:block">
         <div className="sticky top-[calc(var(--app-header-height)+24px)] flex flex-col gap-4">
-            <section className="bg-surface border border-subtle">
+            <section className="rounded-[18px] border border-subtle bg-surface shadow-panel">
                 <div className="flex items-center justify-between border-b border-subtle px-4 py-3">
                     <div>
                         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-secondary">Map Utility</p>
@@ -19,12 +19,12 @@ export const RightSidebar = ({ mockContacts, activeQuickChat, setActiveQuickChat
                     </div>
                     <Radar className="h-4 w-4 accent-primary" />
                 </div>
-                <div className="overflow-hidden border-t border-[color:var(--accent-muted)]">
+                <div className="overflow-hidden border-t border-[color:var(--text-secondary)]">
                     <MiniMap />
                 </div>
             </section>
 
-            <section className="bg-surface border border-subtle">
+            <section className="rounded-[18px] border border-subtle bg-surface shadow-panel">
                 <div className="flex items-center justify-between border-b border-subtle px-4 py-3">
                     <div>
                         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-secondary">Communication Panel</p>
@@ -54,7 +54,7 @@ export const RightSidebar = ({ mockContacts, activeQuickChat, setActiveQuickChat
                                     </div>
                                     <span
                                         className={`absolute -bottom-1 -right-1 h-2.5 w-2.5 rounded-full border border-[color:var(--bg-surface)] ${
-                                            contact.online ? 'bg-[color:var(--accent-primary)]' : 'bg-[color:var(--text-muted)]'
+                                            contact.online ? 'bg-[color:var(--accent-primary)]' : 'bg-[color:var(--text-secondary)]'
                                         }`}
                                     />
                                 </div>
@@ -62,7 +62,7 @@ export const RightSidebar = ({ mockContacts, activeQuickChat, setActiveQuickChat
                                     <p className="truncate text-xs font-black uppercase tracking-[0.16em] text-primary">{contact.name}</p>
                                     <div className="mt-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-secondary">
                                         <span>{contact.role}</span>
-                                        <span className="h-1 w-1 rounded-full bg-[color:var(--accent-muted)]" />
+                                        <span className="h-1 w-1 rounded-full bg-[color:var(--text-secondary)]" />
                                         <span className={contact.online ? 'accent-primary' : ''}>{contact.online ? 'Online' : 'Offline'}</span>
                                     </div>
                                 </div>

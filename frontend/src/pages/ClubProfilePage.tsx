@@ -21,7 +21,9 @@ import {
     canManageClubOperations,
     isLeadershipRole,
     type ClubRelationshipState,
-    type ClubMembershipRole
+    type ClubMembershipRole,
+    type PlayerAffiliationStatus,
+    type PlayerJoinPolicy
 } from '../features/clubs/domain';
 import { fetchMyClubMembershipContext, leaveClubMembership } from '../features/clubs/api';
 import { ClubApplicationPanel } from '../features/applications/components/ClubApplicationPanel';
@@ -53,8 +55,11 @@ export interface ClubProfile {
     followerCount: number;
     memberCount: number;
     isFollowedByMe: boolean;
+    isStaffMember: boolean;
     isMember: boolean;
     myRole?: ClubMembershipRole | null;
+    playerJoinPolicy?: PlayerJoinPolicy | null;
+    playerAffiliationStatus?: PlayerAffiliationStatus | null;
     relationshipState?: ClubRelationshipState | null;
     pendingApplicationId?: number | null;
     pendingApplicationRole?: ClubMembershipRole | null;
@@ -79,7 +84,7 @@ export interface ClubProfile {
 export type ClubTab = ClubNavigationTab;
 
 const normalizeManagementTab = (value: string | null): ClubManagementTab | null =>
-    value === 'personnel' || value === 'invites' || value === 'applications' || value === 'roles' || value === 'squads' || value === 'tryouts'
+    value === 'personnel' || value === 'players' || value === 'invites' || value === 'applications' || value === 'roles' || value === 'squads' || value === 'tryouts'
         ? value
         : null;
 
@@ -155,8 +160,9 @@ export const ClubProfilePage = () => {
     const canManageOwnClub = canManageClubOperations(ownClubRole);
     const canChallengeOtherClub = Boolean(myClubId && myClubId !== Number(id) && myClubRole && isLeadershipRole(myClubRole));
     const canOpenCalendar = isOwnClubAdmin;
+    const hasPlayerAffiliation = club?.playerAffiliationStatus === 'TRIALIST' || club?.playerAffiliationStatus === 'ACTIVE';
     const communicationOptions = buildClubCommunicationOptions(club?.whatsappNumber, club?.facebookMessengerUrl, club?.preferredCommunicationMethod);
-    const showVisitorActions = Boolean(club && !club.isMember);
+    const showVisitorActions = Boolean(club && !club.isStaffMember && !hasPlayerAffiliation);
     const canMessageClub = Boolean(showVisitorActions && canChallengeOtherClub && communicationOptions.length > 0);
 
     useEffect(() => {
@@ -276,7 +282,7 @@ export const ClubProfilePage = () => {
                 canChallengeClub={showVisitorActions && canChallengeOtherClub}
                 canMessageClub={canMessageClub}
                 membershipRole={ownClubRole ?? null}
-                showInlineLeaveAction={ownClubRole === 'PLAYER' || ownClubRole === 'COACH'}
+                showInlineLeaveAction={ownClubRole === 'COACH' || hasPlayerAffiliation}
                 onFollowToggle={handleFollowToggle}
                 onOpenCalendar={() => setActiveTab('schedule')}
                 onOpenManageClub={() => openManageClub()}
@@ -293,22 +299,24 @@ export const ClubProfilePage = () => {
             />
 
             <div className="mx-auto max-w-[1240px] px-4 pb-10 pt-4 sm:px-6">
-                {!club.isMember ? (
+                {!club.isStaffMember && !hasPlayerAffiliation ? (
                     <div className="mb-4">
                         <ClubApplicationPanel
                             clubId={club.id}
                             clubName={club.name}
                             isAuthenticated={status === 'authenticated'}
+                            playerJoinPolicy={club.playerJoinPolicy ?? 'APPLICATION_REQUIRED'}
+                            playerAffiliationStatus={club.playerAffiliationStatus ?? null}
                             relationshipState={club.relationshipState ?? null}
                             pendingApplicationId={club.pendingApplicationId ?? null}
                             pendingApplicationRole={club.pendingApplicationRole ?? null}
-                            activeClubId={myClubId}
                             onOpenInvites={() => navigate('/my-club')}
                             onSignIn={() => navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash))}
                             onStateChange={(nextState) => {
                                 setClub((current) => current ? {
                                     ...current,
                                     relationshipState: nextState.relationshipState,
+                                    playerAffiliationStatus: nextState.playerAffiliationStatus ?? current.playerAffiliationStatus ?? null,
                                     pendingApplicationId: nextState.pendingApplicationId ?? null,
                                     pendingApplicationRole: nextState.pendingApplicationRole ?? null
                                 } : current);

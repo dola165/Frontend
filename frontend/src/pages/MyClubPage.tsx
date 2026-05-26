@@ -137,6 +137,14 @@ export const MyClubPage = () => {
                                     <span>Browse Clubs</span>
                                     <ArrowRight className="h-3.5 w-3.5" />
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/tournaments/setup')}
+                                    className="inline-flex items-center justify-between gap-2 border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary"
+                                >
+                                    <span>Tournament Setup</span>
+                                    <ArrowRight className="h-3.5 w-3.5" />
+                                </button>
                             </div>
                         </EntitySection>
                     </div>

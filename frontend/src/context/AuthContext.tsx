@@ -21,6 +21,7 @@ export interface AuthUser {
     role?: string;
     fullName?: string;
     name?: string;
+    avatarUrl?: string;
     profileComplete: boolean;
 }
 
@@ -42,6 +43,7 @@ const normalizeAuthUser = (payload: Record<string, unknown>) => ({
     role: typeof payload.role === 'string' ? payload.role : undefined,
     fullName: typeof payload.fullName === 'string' ? payload.fullName : undefined,
     name: typeof payload.name === 'string' ? payload.name : undefined,
+    avatarUrl: typeof payload.avatarUrl === 'string' ? payload.avatarUrl : undefined,
     profileComplete: Boolean(payload.profileComplete)
 } satisfies AuthUser);
 

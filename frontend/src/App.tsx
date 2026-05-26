@@ -26,6 +26,8 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { AccountPage } from './pages/AccountPage';
 import { AdminPage } from './pages/AdminPage';
+import { TournamentSetupPage } from './pages/TournamentSetupPage';
+import { TournamentWorkspacePage } from './pages/TournamentWorkspacePage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { buildLoginRedirectPath, resolvePostAuthRedirect } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
@@ -179,11 +181,13 @@ function MainLayout() {
     const isAuthPage = authRoutePaths.has(location.pathname) || location.pathname === '/oauth2/callback';
     const isCalendarWorkspace = location.pathname === '/calendar';
     const isMapWorkspace = location.pathname === '/map';
+    const isHomeFeed = location.pathname === '/feed';
     const isChromeFreeWorkspace = isCalendarWorkspace || isMapWorkspace;
     const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads)?$/.test(location.pathname);
     const isFullScreenPage =
-        ['/map', '/messages', '/store', '/charity', '/clubs', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin'].includes(location.pathname) ||
+        ['/map', '/messages', '/store', '/charity', '/clubs', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin', '/tournaments/setup'].includes(location.pathname) ||
         location.pathname.startsWith('/profile') ||
+        /^\/tournaments\/\d+\/workspace$/.test(location.pathname) ||
         isClubSurfaceRoute;
     const isBoundedCanvasPage = boundedCanvasPages.has(location.pathname);
 
@@ -225,6 +229,8 @@ function MainLayout() {
                         <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
                         <Route path="/messages" element={<ProtectedRoute><MessagingPage /></ProtectedRoute>} />
                         <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+                        <Route path="/tournaments/setup" element={<ProtectedRoute><TournamentSetupPage /></ProtectedRoute>} />
+                        <Route path="/tournaments/:tournamentId/workspace" element={<ProtectedRoute><TournamentWorkspacePage /></ProtectedRoute>} />
                         <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
                         <Route path="/profile/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
                         <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
@@ -236,20 +242,22 @@ function MainLayout() {
                     </Routes>
                 </main>
             ) : (
-                <div className="mx-auto grid max-w-[1480px] grid-cols-1 gap-6 px-4 pb-10 pt-6 lg:grid-cols-[220px_minmax(0,1fr)_280px] lg:px-6 xl:grid-cols-[220px_minmax(0,720px)_280px] xl:justify-center">
-                    <LeftSidebar user={user} myClubId={myClubId} />
+                <div className={isHomeFeed ? 'feed-home-shell min-h-[calc(100dvh-var(--app-header-height))]' : ''}>
+                    <div className={`mx-auto grid grid-cols-1 gap-6 px-4 pb-10 pt-6 lg:px-6 ${isHomeFeed ? 'feed-home-grid max-w-[1480px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[220px_minmax(0,720px)_280px] xl:justify-center' : 'max-w-[1480px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[220px_minmax(0,720px)_280px] xl:justify-center'}`}>
+                        <LeftSidebar user={user} myClubId={myClubId} />
 
-                    <main className="min-w-0">
-                        <Routes>
-                            <Route path="/feed" element={<ProtectedRoute><FeedPage /></ProtectedRoute>} />
-                        </Routes>
-                    </main>
+                        <main className="min-w-0">
+                            <Routes>
+                                <Route path="/feed" element={<ProtectedRoute><FeedPage /></ProtectedRoute>} />
+                            </Routes>
+                        </main>
 
-                    <RightSidebar
-                        mockContacts={mockContacts}
-                        activeQuickChat={activeQuickChat}
-                        setActiveQuickChat={setActiveQuickChat}
-                    />
+                        <RightSidebar
+                            mockContacts={mockContacts}
+                            activeQuickChat={activeQuickChat}
+                            setActiveQuickChat={setActiveQuickChat}
+                        />
+                    </div>
                 </div>
             )}
 
@@ -306,6 +314,7 @@ function MainLayout() {
                     <button
                         type="button"
                         disabled
+
                         title="Talanti AI stays intentionally deferred for a later phase."
                         className="flex h-11 w-11 cursor-not-allowed items-center justify-center border border-subtle bg-accent-primary-soft accent-primary opacity-70"
                     >

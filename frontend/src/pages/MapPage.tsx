@@ -1,12 +1,14 @@
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { Circle, MapContainer, Marker, TileLayer, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
+import MapGL, { Layer, Marker, Source, GeolocateControl, NavigationControl, useMap } from 'react-map-gl/mapbox';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { useNavigate } from 'react-router-dom';
-import L from 'leaflet';
 import {
     ArrowRight,
     Building2,
     CheckCheck,
     ChevronLeft,
+    Eye,
+    EyeOff,
     Filter,
     ListFilter,
     Loader2,
@@ -16,6 +18,7 @@ import {
     Navigation,
     Search,
     ShieldCheck,
+    Sparkles,
     Trophy,
     Users,
     X
@@ -27,7 +30,8 @@ import { useAuth } from '../context/AuthContext';
 import { fetchMyClubMembershipContext } from '../features/clubs/api';
 import { isLeadershipRole } from '../features/clubs/domain';
 import { createScheduleChallenge, fetchPublicScheduleEvents, type ScheduleEventOccurrence } from '../features/schedule/api';
-import 'leaflet/dist/leaflet.css';
+
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 type ViewMode = 'MAP' | 'LIST';
 type DerivedGender = 'Boys' | 'Girls' | 'Men' | 'Women' | 'Mixed';
@@ -106,7 +110,6 @@ interface MarkerCluster {
 
 const DEFAULT_CENTER: [number, number] = [41.7151, 44.8271];
 const MAP_HORIZON_DAYS = 90;
-const MARKER_ICON_CACHE = new Map<string, L.DivIcon>();
 const AGE_GROUP_REGEX = /\b(U8|U9|U10|U11|U12|U13|U14|U15|U16|U17|U18|U19|U21|Senior)\b/gi;
 const CLUB_QUERY_LIMIT = 8;
 
@@ -332,50 +335,21 @@ const getTravelPreferenceLabel = (value: DerivedTravelPreference | null) => {
         .join(' ');
 };
 
-const createMarkerIcon = (record: DiscoveryRecord, selected: boolean, count: number) => {
-    const toneKey = record.entityType === 'CLUB'
+const getMarkerTone = (record: DiscoveryRecord) =>
+    record.entityType === 'CLUB'
         ? 'club'
         : record.entityType === 'TRYOUT'
             ? 'tryout'
             : record.matchSubtype === 'FRIENDLY'
                 ? 'friendly'
                 : 'match';
-    const cacheKey = `${toneKey}:${selected}:${count > 1}`;
-    const cached = MARKER_ICON_CACHE.get(cacheKey);
-    if (cached) {
-        return cached;
-    }
-
-    const icon = L.divIcon({
-        className: 'talanti-map-marker-shell',
-        html: `<span class="talanti-map-marker talanti-map-marker--${toneKey} ${selected ? 'is-selected' : ''}">
-            <img src="/markers/ball.png" alt="" class="talanti-map-marker__ball" />
-            ${count > 1 ? `<span class="talanti-map-marker__badge">${count}</span>` : ''}
-        </span>`,
-        iconSize: [50, 50],
-        iconAnchor: [25, 38]
-    });
-
-    MARKER_ICON_CACHE.set(cacheKey, icon);
-    return icon;
-};
-
-function MapViewportSync({ onViewportChange }: { onViewportChange: (coords: [number, number]) => void }) {
-    useMapEvents({
-        moveend(event) {
-            const center = event.target.getCenter();
-            onViewportChange([Number(center.lat.toFixed(6)), Number(center.lng.toFixed(6))]);
-        }
-    });
-    return null;
-}
 
 function MapFocusController({ target, onSettled }: { target: [number, number] | null; onSettled: () => void }) {
-    const map = useMap();
+    const { current: map } = useMap();
 
     useEffect(() => {
-        if (!target) return;
-        map.flyTo(target, map.getZoom(), { animate: true, duration: 0.35 });
+        if (!target || !map) return;
+        map.flyTo({ center: [target[1], target[0]], duration: 350 });
         onSettled();
     }, [map, onSettled, target]);
 
@@ -383,17 +357,18 @@ function MapFocusController({ target, onSettled }: { target: [number, number] | 
 }
 
 function MapSizeGuard({ layoutSignature }: { layoutSignature: string }) {
-    const map = useMap();
+    const { current: map } = useMap();
 
     useLayoutEffect(() => {
-        const container = map.getContainer();
+        if (!map) return;
         let frame = 0;
         const invalidate = () => {
             cancelAnimationFrame(frame);
-            frame = window.requestAnimationFrame(() => map.invalidateSize({ pan: false, debounceMoveend: true }));
+            frame = window.requestAnimationFrame(() => map.resize());
         };
 
         invalidate();
+        const container = map.getContainer();
         const resizeObserver = new ResizeObserver(() => invalidate());
         let current: HTMLElement | null = container;
         let depth = 0;
@@ -535,107 +510,170 @@ const DiscoveryDetailPanel = ({
     onRespond: () => void;
     onOpenClub: () => void;
     onClose: () => void;
-}) => (
+}) => {
+    const [expandedSection, setExpandedSection] = useState<'details' | 'club' | null>(null);
+
+    const toggleSection = (section: 'details' | 'club') => {
+        setExpandedSection(prev => prev === section ? null : section);
+    };
+
+    return (
     <div className="map-details-panel flex h-full flex-col">
         <div className="map-panel-header">
             <div className="flex items-start justify-between gap-4">
-                <div>
-                    <p className="map-eyebrow">Result</p>
-                    <h2 className="mt-2 text-2xl font-bold text-primary">{record.title}</h2>
+                <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="map-pill map-pill--accent">{getRecordTypeLabel(record)}</span>
+                        {record.locationState === 'PINNED' && <span className="map-pill text-xs">Mapped</span>}
+                        {record.challengeState === 'OPEN' && <span className="map-pill text-xs">Open</span>}
+                    </div>
+                    <h2 className="text-xl font-bold text-primary truncate">{record.title}</h2>
+                    {record.clubName && record.entityType !== 'CLUB' && (
+                        <p className="mt-1 text-sm font-semibold text-secondary">{record.clubName}</p>
+                    )}
                 </div>
-                <button type="button" onClick={onClose} className="map-icon-button">
+                <button type="button" onClick={onClose} className="map-icon-button shrink-0">
                     <X className="h-4 w-4" />
                 </button>
             </div>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
-            <section className="grid gap-3 sm:grid-cols-2">
-                <div className="map-section-card">
-                    <p className="map-field-label">Club</p>
-                    <p className="mt-2 text-base font-bold text-primary">{record.clubName ?? record.title}</p>
-                    {record.typeLabel && <p className="mt-1 text-sm text-secondary">{record.typeLabel}</p>}
-                </div>
-                <div className="map-section-card">
-                    <p className="map-field-label">When</p>
-                    <p className="mt-2 text-base font-bold text-primary">{formatDateTime(record.startsAt) ?? 'Always available'}</p>
-                    {record.endsAt && <p className="mt-1 text-sm text-secondary">Until {formatDateTime(record.endsAt)}</p>}
-                </div>
-            </section>
-
-            <section className="map-section-card">
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className="map-pill map-pill--accent">{getRecordTypeLabel(record)}</span>
-                    {record.challengeState && <span className="map-pill">{record.challengeState === 'OPEN' ? 'Challengeable' : record.challengeState}</span>}
-                    <span className="map-pill">{record.locationState === 'PINNED' ? 'Location set' : 'Venue open'}</span>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                    {record.matchSubtype && <span className="map-pill">{record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Competitive'}</span>}
-                    {record.ageGroups.map((ageGroup) => <span key={ageGroup} className="map-pill">{ageGroup}</span>)}
-                    {record.genders.map((gender) => <span key={gender} className="map-pill">{gender}</span>)}
-                    {record.level && <span className="map-pill">{record.level}</span>}
-                    {record.travelPreference && <span className="map-pill">{getTravelPreferenceLabel(record.travelPreference)}</span>}
-                </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 space-y-4">
+            {/* Location & time — always visible */}
+            <section className="map-section-card space-y-3">
                 {record.locationName && (
-                    <div className="mt-4 flex items-start gap-2 text-sm leading-6 text-secondary">
-                        <MapPin className="mt-1 h-4 w-4 accent-primary" />
-                        <span>{record.locationName}</span>
+                    <div className="flex items-start gap-3">
+                        <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-subtle bg-surface">
+                            <MapPin className="h-4 w-4 text-[color:var(--accent-primary)]" />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-sm font-bold text-primary">Location</p>
+                            <p className="mt-0.5 text-sm text-secondary">{record.locationName}</p>
+                        </div>
                     </div>
                 )}
+                <div className="flex items-start gap-3">
+                    <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-subtle bg-surface">
+                        <Navigation className="h-4 w-4 text-[color:var(--accent-primary)]" />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-sm font-bold text-primary">When</p>
+                        <p className="mt-0.5 text-sm text-secondary">
+                            {formatDateTime(record.startsAt) ?? 'Schedule pending'}
+                            {record.endsAt && <span className="block text-xs text-muted">Until {formatDateTime(record.endsAt)}</span>}
+                        </p>
+                    </div>
+                </div>
             </section>
 
+            {/* Description */}
             <section className="map-section-card">
-                <p className="map-field-label">Public note</p>
-                <p className="mt-3 text-sm leading-7 text-secondary">
-                    {record.description || 'No public note yet.'}
+                <p className="map-field-label mb-2">Description</p>
+                <p className="text-sm leading-6 text-secondary">
+                    {record.description || 'No description provided yet.'}
                 </p>
             </section>
 
+            {/* Attributes — expandable */}
+            {record.entityType !== 'CLUB' && (
+                <section className="map-section-card">
+                    <button
+                        type="button"
+                        onClick={() => toggleSection('details')}
+                        className="w-full flex items-center justify-between gap-3 text-left"
+                    >
+                        <p className="map-field-label">Match details</p>
+                        <ChevronLeft className={`h-4 w-4 text-secondary transition-transform duration-200 ${expandedSection === 'details' ? '-rotate-90' : ''}`} />
+                    </button>
+                    {expandedSection === 'details' && (
+                        <div className="mt-4 space-y-3 border-t border-subtle pt-4">
+                            <div className="flex flex-wrap gap-2">
+                                {record.matchSubtype && <span className="map-pill">{record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Competitive'}</span>}
+                                {record.challengeState && <span className="map-pill">{record.challengeState}</span>}
+                                <span className="map-pill">{record.locationState === 'PINNED' ? 'Venue set' : 'Venue open'}</span>
+                                {record.level && <span className="map-pill">{record.level}</span>}
+                                {record.travelPreference && <span className="map-pill">{getTravelPreferenceLabel(record.travelPreference)}</span>}
+                            </div>
+                            {record.ageGroups.length > 0 && (
+                                <div>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">Age groups</span>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {record.ageGroups.map(ag => <span key={ag} className="map-pill">{ag}</span>)}
+                                    </div>
+                                </div>
+                            )}
+                            {record.genders.length > 0 && (
+                                <div>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">Gender</span>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {record.genders.map(g => <span key={g} className="map-pill">{g}</span>)}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </section>
+            )}
+
+            {/* Club snapshot — expandable */}
             <section className="map-section-card">
-                <p className="map-field-label">Club snapshot</p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                    <div className="map-stat-card">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-secondary"><Users className="h-3.5 w-3.5 accent-primary" /> Members</div>
-                        <p className="mt-2 text-lg font-bold text-primary">{clubProfile?.memberCount ?? record.memberCount}</p>
-                    </div>
-                    <div className="map-stat-card">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-secondary"><Building2 className="h-3.5 w-3.5 accent-primary" /> Followers</div>
-                        <p className="mt-2 text-lg font-bold text-primary">{clubProfile?.followerCount ?? record.followerCount}</p>
-                    </div>
-                    <div className="map-stat-card">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-secondary"><ShieldCheck className="h-3.5 w-3.5 accent-primary" /> Verification</div>
-                        <p className="mt-2 text-lg font-bold text-primary">{(clubProfile?.isOfficial ?? record.official) ? 'Official' : 'Open record'}</p>
-                    </div>
-                </div>
-                <p className="mt-4 text-sm leading-7 text-secondary">{clubProfile?.description || record.description || 'No club summary yet.'}</p>
-                {clubProfile?.honours && clubProfile.honours.length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                        {clubProfile.honours.slice(0, 3).map((honour) => (
-                            <span key={honour.id} className="map-pill">
-                                <Trophy className="h-3.5 w-3.5 accent-primary" />
-                                {honour.title} {honour.yearWon}
-                            </span>
-                        ))}
+                <button
+                    type="button"
+                    onClick={() => toggleSection('club')}
+                    className="w-full flex items-center justify-between gap-3 text-left"
+                >
+                    <p className="map-field-label">Club snapshot</p>
+                    <ChevronLeft className={`h-4 w-4 text-secondary transition-transform duration-200 ${expandedSection === 'club' ? '-rotate-90' : ''}`} />
+                </button>
+                {expandedSection === 'club' && (
+                    <div className="mt-4 space-y-3 border-t border-subtle pt-4">
+                        <div className="grid gap-3 grid-cols-3">
+                            <div className="map-stat-card text-center">
+                                <p className="text-lg font-bold text-primary">{clubProfile?.memberCount ?? record.memberCount}</p>
+                                <p className="text-[10px] font-semibold text-secondary mt-1">Members</p>
+                            </div>
+                            <div className="map-stat-card text-center">
+                                <p className="text-lg font-bold text-primary">{clubProfile?.followerCount ?? record.followerCount}</p>
+                                <p className="text-[10px] font-semibold text-secondary mt-1">Followers</p>
+                            </div>
+                            <div className="map-stat-card text-center">
+                                <p className="text-lg font-bold text-primary">{(clubProfile?.isOfficial ?? record.official) ? 'Yes' : 'Open'}</p>
+                                <p className="text-[10px] font-semibold text-secondary mt-1">Verified</p>
+                            </div>
+                        </div>
+                        {(clubProfile?.description || record.description) && (
+                            <p className="text-sm leading-6 text-secondary">{clubProfile?.description || record.description}</p>
+                        )}
+                        {clubProfile?.honours && clubProfile.honours.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                                {clubProfile.honours.slice(0, 3).map((honour) => (
+                                    <span key={honour.id} className="map-pill">
+                                        <Trophy className="h-3.5 w-3.5 text-[color:var(--accent-primary)]" />
+                                        {honour.title} {honour.yearWon}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </section>
         </div>
 
         <div className="map-panel-footer">
-            <button type="button" onClick={onOpenClub} className="map-secondary-button">
-                Open club
+            <button type="button" onClick={onOpenClub} className="map-primary-button flex-1 justify-center">
+                <Building2 className="h-4 w-4" />
+                Open full profile
             </button>
-            {record.entityType === 'MATCH' && canRespond ? (
+            {record.entityType === 'MATCH' && canRespond && (
                 <button type="button" onClick={onRespond} className="map-primary-button">
-                    <CheckCheck className="h-3.5 w-3.5" />
+                    <CheckCheck className="h-4 w-4" />
                     Respond
                 </button>
-            ) : record.entityType === 'MATCH' ? (
-                <div className="text-xs text-secondary">Club response unavailable</div>
-            ) : null}
+            )}
         </div>
     </div>
-);
+    );
+};
 
 export const MapPage = () => {
     const navigate = useNavigate();
@@ -646,6 +684,7 @@ export const MapPage = () => {
     const [searchInput, setSearchInput] = useState('');
     const deferredSearch = useDeferredValue(searchInput.trim());
     const [viewportCenter, setViewportCenter] = useState<[number, number]>(DEFAULT_CENTER);
+    const [currentZoom, setCurrentZoom] = useState(11);
     const [focusTarget, setFocusTarget] = useState<[number, number] | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -659,6 +698,10 @@ export const MapPage = () => {
     const [responseNote, setResponseNote] = useState('');
     const [responseError, setResponseError] = useState<string | null>(null);
     const [responseSubmitting, setResponseSubmitting] = useState(false);
+    const [designMode, setDesignMode] = useState<'futuristic' | 'classic'>('futuristic');
+    const mapStyleUrl = designMode === 'futuristic'
+        ? 'mapbox://styles/mapbox/navigation-night-v1'
+        : 'mapbox://styles/mapbox/streets-v12';
 
     useEffect(() => {
         let active = true;
@@ -989,8 +1032,98 @@ export const MapPage = () => {
     const toolbarCount = viewMode === 'MAP' ? `${mapRecords.length} visible` : `${listRecords.length} shown`;
 
     return (
-        <div className="map-page-shell club-page-shell map-workspace h-full min-h-0 w-full overflow-hidden">
-            <div className="flex h-full min-h-0">
+        <div className={`map-page-shell club-page-shell map-workspace h-full min-h-0 w-full overflow-hidden map-design-${designMode} relative`}>
+            {!loading && !error && viewMode === 'MAP' && (
+                <div className="map-canvas-frame absolute inset-0 z-0 overflow-hidden border-0 rounded-none">
+                    <MapGL
+                        mapboxAccessToken={MAPBOX_TOKEN}
+                        initialViewState={{
+                            latitude: DEFAULT_CENTER[0],
+                            longitude: DEFAULT_CENTER[1],
+                            zoom: 11,
+                            pitch: 45,
+                            bearing: -17
+                        }}
+                        style={{ width: '100%', height: '100%' }}
+                        mapStyle={mapStyleUrl}
+                        renderWorldCopies={false}
+                        onMoveEnd={(evt) => {
+                            const center = evt.target.getCenter();
+                            setViewportCenter([Number(center.lat.toFixed(6)), Number(center.lng.toFixed(6))]);
+                            setCurrentZoom(evt.target.getZoom());
+                        }}
+                    >
+                        <MapFocusController target={focusTarget} onSettled={handleFocusSettled} />
+                        <MapSizeGuard layoutSignature={layoutSignature} />
+                        <Source id="buildings" type="vector" url="mapbox://mapbox.mapbox-streets-v8">
+                            <Layer
+                                id="buildings-3d"
+                                type="fill-extrusion"
+                                source-layer="building"
+                                minzoom={13.5}
+                                paint={{
+                                    'fill-extrusion-color': '#1a1a2e',
+                                    'fill-extrusion-height': ['get', 'height'],
+                                    'fill-extrusion-base': ['get', 'min_height'],
+                                    'fill-extrusion-opacity': 0.5
+                                }}
+                            />
+                        </Source>
+                        <NavigationControl position="bottom-right" />
+                        <GeolocateControl
+                            position="bottom-right"
+                            positionOptions={{ enableHighAccuracy: true }}
+                            trackUserLocation={true}
+                            showUserHeading={true}
+                        />
+                        {mapClusters.map((cluster) => {
+                            const primaryRecord = cluster.records[0];
+                            const isSelected = cluster.records.some((r) => r.key === selectedKey);
+                            const toneKey = getMarkerTone(primaryRecord);
+                            const isClub = toneKey === 'club';
+                            const beamHeight = isClub
+                                ? currentZoom <= 9 ? 200 : currentZoom <= 11 ? 160 : currentZoom <= 13 ? 120 : currentZoom <= 15 ? 70 : 45
+                                : undefined;
+                            const baseScale = isClub
+                                ? currentZoom <= 9 ? 0.5 : currentZoom <= 11 ? 0.75 : currentZoom <= 13 ? 1 : currentZoom <= 15 ? 1.6 : 2.4
+                                : undefined;
+                            return (
+                                <Marker
+                                    key={cluster.key}
+                                    longitude={cluster.longitude}
+                                    latitude={cluster.latitude}
+                                    anchor="bottom"
+                                    onClick={() => handleClusterClick(cluster)}
+                                >
+                                    <div
+                                        className={`talanti-map-marker talanti-map-marker--${toneKey} ${isSelected ? 'is-selected' : ''}`}
+                                        style={isClub ? { '--beam-height': `${beamHeight}px`, '--base-scale': String(baseScale) } as React.CSSProperties : undefined}
+                                    >
+                                        <div className="talanti-map-marker__blip" />
+                                        {cluster.records.length > 1 && (
+                                            <span className="talanti-map-marker__badge">{cluster.records.length}</span>
+                                        )}
+                                    </div>
+                                </Marker>
+                            );
+                        })}
+                    </MapGL>
+                </div>
+            )}
+            {loading && (
+                <div className="absolute inset-0 z-[5] flex items-center justify-center bg-[var(--map-workspace-bg)]">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                        <Loader2 className="h-8 w-8 animate-spin accent-primary" />
+                        <p className="text-sm font-semibold text-secondary">Loading map...</p>
+                    </div>
+                </div>
+            )}
+            {error && (
+                <div className="absolute inset-0 z-[5] flex items-center justify-center bg-[var(--map-workspace-bg)] px-6">
+                    <div className="map-empty-panel max-w-md px-6 py-6 text-center text-sm leading-6 text-secondary">{error}</div>
+                </div>
+            )}
+            <div className="pointer-events-none flex h-full min-h-0">
                 <MapFilterSidebar
                     isVisible={isFilterOpen}
                     filters={filters}
@@ -999,32 +1132,17 @@ export const MapPage = () => {
                 />
 
                 <div className="map-main-column flex min-w-0 flex-1 flex-col">
-                    <header className="px-4 pt-4 sm:px-5 sm:pt-5">
-                        <button type="button" onClick={handleGoBack} className="map-secondary-button map-back-button">
-                            {'<- Go Back'}
-                        </button>
-                    </header>
-
-                    <div className="flex min-h-0 flex-1 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
-                        <section className="relative min-h-0 min-w-0 flex-1">
+                    <div className="flex min-h-0 flex-1">
+                        <section className="pointer-events-none relative min-h-0 min-w-0 flex-1">
                             <div
                                 className={`pointer-events-none absolute top-4 z-[650] transition-[left,right] duration-200 ${
                                     isFilterOpen ? 'xl:left-[344px]' : 'xl:left-4'
                                 } ${hasSelectedResult ? 'xl:right-[380px]' : 'xl:right-4'} left-4 right-4`}
                             >
                                 <div className="pointer-events-auto map-toolbar-surface map-toolbar-surface--floating">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsFilterOpen((current) => !current)}
-                                        className="map-icon-button"
-                                        aria-label={isFilterOpen ? 'Close filters' : 'Open filters'}
-                                    >
-                                        {isFilterOpen ? <ChevronLeft className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
-                                    </button>
-
-                                    <div className="relative min-w-0 flex-1">
+                                    <div className="relative w-full">
                                         <div className="map-search-surface map-search-surface--toolbar">
-                                            <Search className="h-5 w-5 text-secondary" />
+                                            <Search className="h-5 w-5 text-secondary shrink-0" />
                                             <input
                                                 type="text"
                                                 value={searchInput}
@@ -1034,11 +1152,11 @@ export const MapPage = () => {
                                                         handleSuggestionPick(suggestions[0]);
                                                     }
                                                 }}
-                                                placeholder="Search clubs or places"
+                                                placeholder="Search clubs, tryouts, matches or places..."
                                                 className="map-search-input"
                                             />
                                             {searchInput && (
-                                                <button type="button" onClick={() => setSearchInput('')} className="map-icon-button">
+                                                <button type="button" onClick={() => setSearchInput('')} className="map-icon-button shrink-0">
                                                     <X className="h-4 w-4" />
                                                 </button>
                                             )}
@@ -1064,87 +1182,68 @@ export const MapPage = () => {
                                         )}
                                     </div>
 
-                                    <div className="map-mode-toggle">
+                                    <div className="flex items-center gap-2 w-full">
                                         <button
                                             type="button"
-                                            onClick={() => setViewMode('MAP')}
-                                            className={`map-mode-button ${viewMode === 'MAP' ? 'map-mode-button--active' : ''}`}
+                                            onClick={() => setIsFilterOpen((current) => !current)}
+                                            className="map-secondary-button shrink-0"
                                         >
-                                            <MapIcon className="h-3.5 w-3.5" />
-                                            Map
+                                            {isFilterOpen ? <ChevronLeft className="h-3.5 w-3.5" /> : <Filter className="h-3.5 w-3.5" />}
+                                            <span className="hidden sm:inline">{isFilterOpen ? 'Filters' : 'Filters'}</span>
                                         </button>
+
+                                        <div className="map-mode-toggle">
+                                            <button
+                                                type="button"
+                                                onClick={() => setViewMode('MAP')}
+                                                className={`map-mode-button ${viewMode === 'MAP' ? 'map-mode-button--active' : ''}`}
+                                            >
+                                                <MapIcon className="h-3.5 w-3.5" />
+                                                Map
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setViewMode('LIST')}
+                                                className={`map-mode-button ${viewMode === 'LIST' ? 'map-mode-button--active' : ''}`}
+                                            >
+                                                <ListFilter className="h-3.5 w-3.5" />
+                                                Browse
+                                            </button>
+                                        </div>
+
+                                        <span className="map-count-chip">{toolbarCount}</span>
+
                                         <button
                                             type="button"
-                                            onClick={() => setViewMode('LIST')}
-                                            className={`map-mode-button ${viewMode === 'LIST' ? 'map-mode-button--active' : ''}`}
+                                            onClick={() => setDesignMode(m => m === 'futuristic' ? 'classic' : 'futuristic')}
+                                            className="map-icon-button shrink-0"
+                                            title={designMode === 'futuristic' ? 'Switch to classic look' : 'Switch to futuristic look'}
                                         >
-                                            <ListFilter className="h-3.5 w-3.5" />
-                                            Browse
+                                            {designMode === 'futuristic'
+                                                ? <Sparkles className="h-4 w-4 text-[color:var(--accent-primary)]" />
+                                                : <Eye className="h-4 w-4" />
+                                            }
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setViewportCenter(DEFAULT_CENTER);
+                                                setFocusTarget(DEFAULT_CENTER);
+                                                setSelectedKey(null);
+                                                setActiveClusterKey(null);
+                                            }}
+                                            className="map-secondary-button"
+                                        >
+                                            <Navigation className="h-3.5 w-3.5" />
+                                            <span className="hidden sm:inline">Reset</span>
                                         </button>
                                     </div>
-
-                                    <span className="map-count-chip">{toolbarCount}</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setViewportCenter(DEFAULT_CENTER);
-                                            setFocusTarget(DEFAULT_CENTER);
-                                            setSelectedKey(null);
-                                            setActiveClusterKey(null);
-                                        }}
-                                        className="map-secondary-button"
-                                    >
-                                        <Navigation className="h-3.5 w-3.5" />
-                                        Reset
-                                    </button>
                                 </div>
                             </div>
 
-                            {loading ? (
-                                <div className="map-canvas-frame flex h-full items-center justify-center">
-                                    <div className="flex flex-col items-center gap-3 text-center">
-                                        <Loader2 className="h-8 w-8 animate-spin accent-primary" />
-                                        <p className="text-sm font-semibold text-secondary">Loading map...</p>
-                                    </div>
-                                </div>
-                            ) : error ? (
-                                <div className="map-canvas-frame flex h-full items-center justify-center px-6">
-                                    <div className="map-empty-panel max-w-md px-6 py-6 text-center text-sm leading-6 text-secondary">{error}</div>
-                                </div>
-                            ) : viewMode === 'MAP' ? (
-                                <div className="map-canvas-frame relative h-full overflow-hidden">
-                                    <MapContainer center={DEFAULT_CENTER} zoom={11} zoomControl={false} className="h-full w-full">
-                                        <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
-                                        <ZoomControl position="bottomright" />
-                                        <MapViewportSync onViewportChange={setViewportCenter} />
-                                        <MapFocusController target={focusTarget} onSettled={handleFocusSettled} />
-                                        <MapSizeGuard layoutSignature={layoutSignature} />
-                                        <Circle
-                                            center={viewportCenter}
-                                            radius={filters.distanceKm * 1000}
-                                            pathOptions={{
-                                                color: 'var(--accent-primary)',
-                                                fillColor: 'var(--accent-primary)',
-                                                fillOpacity: 0.08,
-                                                weight: 1.5
-                                            }}
-                                        />
-
-                                        {mapClusters.map((cluster) => {
-                                            const primaryRecord = cluster.records[0];
-                                            return (
-                                                <Marker
-                                                    key={cluster.key}
-                                                    position={[cluster.latitude, cluster.longitude]}
-                                                    icon={createMarkerIcon(primaryRecord, cluster.records.some((record) => record.key === selectedKey), cluster.records.length)}
-                                                    eventHandlers={{ click: () => handleClusterClick(cluster) }}
-                                                />
-                                            );
-                                        })}
-                                    </MapContainer>
-                                </div>
-                            ) : (
-                                <div className="map-canvas-frame h-full overflow-y-auto pt-[112px]">
+                            {viewMode === 'LIST' && (
+                                <div className="pointer-events-auto map-canvas-frame h-full overflow-y-auto pt-[112px]">
                                     {listRecords.length === 0 ? (
                                         <div className="flex h-full items-center justify-center p-6">
                                             <div className="map-empty-panel max-w-md px-6 py-6 text-center">
@@ -1193,7 +1292,7 @@ export const MapPage = () => {
                             )}
 
                             {hasSelectedResult && (
-                                <aside className="map-side-panel-shell absolute bottom-4 right-4 top-4 z-[620] hidden w-[360px] overflow-hidden xl:block">
+                                <aside className="pointer-events-auto map-side-panel-shell absolute bottom-4 right-4 top-4 z-[620] hidden w-[360px] overflow-hidden xl:block">
                                     {panelContent}
                                 </aside>
                             )}
@@ -1203,7 +1302,7 @@ export const MapPage = () => {
             </div>
 
             {selectedRecord && (
-                <div className="map-mobile-panel fixed inset-x-4 bottom-4 top-auto z-[1200] max-h-[72vh] overflow-hidden xl:hidden">
+                <div className="pointer-events-auto map-mobile-panel fixed inset-x-4 bottom-4 top-auto z-[1200] max-h-[72vh] overflow-hidden xl:hidden">
                     {panelContent}
                 </div>
             )}

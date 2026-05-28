@@ -233,7 +233,7 @@ export const AccountPage = () => {
         body.append('file', file);
         setUploading(type);
         try {
-            const response = await apiClient.post<{ url?: string }>('/media/upload', body, { headers: { 'Content-Type': 'multipart/form-data' } });
+            const response = await apiClient.post<{ url?: string }>('/media/upload', body, { headers: { 'Content-Type': 'multipart/form-data' }, params: { context: type } });
             if (!response.data?.url) throw new Error('Upload did not return a media URL.');
             updateForm(type === 'avatar' ? 'avatarUrl' : 'bannerUrl', response.data.url);
             setMessage(type === 'avatar' ? 'Avatar updated in the draft form.' : 'Banner updated in the draft form.');

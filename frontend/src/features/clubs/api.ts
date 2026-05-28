@@ -7,6 +7,7 @@ import type {
     ClubMembershipRole,
     ClubPlayerAffiliation,
     MyClubInvitation,
+    MyClubMembership,
     PageResult
 } from './domain';
 
@@ -104,4 +105,9 @@ export const acceptClubApplication = async (clubId: number, applicationId: numbe
 
 export const declineClubApplication = async (clubId: number, applicationId: number) => {
     await apiClient.post(`/clubs/${clubId}/management/applications/${applicationId}/decline`);
+};
+
+export const fetchMyClubMemberships = async () => {
+    const response = await apiClient.get<MyClubMembership[]>('/club-memberships/me');
+    return response.data;
 };

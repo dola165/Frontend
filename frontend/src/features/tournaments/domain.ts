@@ -136,6 +136,7 @@ export interface TournamentDetail {
     hostClubId?: number | null;
     participantScope: TournamentParticipantScope;
     visibility: TournamentVisibility;
+    registrationPolicy?: 'OPEN' | 'INVITE_ONLY' | null;
     startDate?: string | null;
     endDate?: string | null;
     registrationOpensAt?: string | null;
@@ -174,6 +175,79 @@ export interface CompleteFixturePayload {
 export interface UpdateFixtureScoresPayload {
     homeScore?: number | null;
     awayScore?: number | null;
+}
+
+export interface TournamentSummary {
+    id: number;
+    name: string;
+    description?: string | null;
+    status: TournamentStatus;
+    organizerOrganizationId: number;
+    organizerName?: string | null;
+    hostClubId?: number | null;
+    hostClubName?: string | null;
+    participantScope: TournamentParticipantScope;
+    visibility: TournamentVisibility;
+    startDate?: string | null;
+    endDate?: string | null;
+    registrationOpensAt?: string | null;
+    registrationClosesAt?: string | null;
+    entryCount: number;
+}
+
+export type TournamentInvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
+
+export interface TournamentInvitationDto {
+    id: number;
+    clubId: number | null;
+    clubName: string | null;
+    squadId: number | null;
+    squadName: string | null;
+    status: TournamentInvitationStatus;
+    createdAt: string;
+}
+
+export interface CreateTournamentInvitationPayload {
+    clubId?: number | null;
+    squadId?: number | null;
+    userId?: number | null;
+    role?: 'PLAYER' | 'COACH' | 'STAFF' | null;
+}
+
+export interface ClubSearchResult {
+    id: number;
+    name: string;
+    logoUrl?: string | null;
+    memberCount?: number | null;
+    city?: string | null;
+}
+
+export interface UserSearchResult {
+    id: number;
+    fullName?: string | null;
+    username: string;
+    avatarUrl?: string | null;
+    position?: string | null;
+}
+
+export interface UpdateTournamentPayload {
+    name?: string | null;
+    description?: string | null;
+    rules?: string | null;
+    visibility?: TournamentVisibility | null;
+    registrationPolicy?: 'OPEN' | 'INVITE_ONLY' | null;
+    startDate?: string | null;
+    endDate?: string | null;
+    registrationOpensAt?: string | null;
+    registrationClosesAt?: string | null;
+}
+
+export interface PageResult<T> {
+    content: T[];
+    pageNumber: number;
+    pageSize: number;
+    totalElements: number;
+    totalPages: number;
 }
 
 const fallbackLabel = (value: string) => value
@@ -229,6 +303,13 @@ export const fixtureStatusTone = (status: string) => {
         case 'CANCELLED': return 'danger';
         default: return 'neutral';
     }
+};
+
+export const entryTypeLabel = (entry: TournamentEntryDto): string => {
+    if (entry.squadId != null) return 'Squad';
+    if (entry.clubId != null) return 'Club';
+    if (entry.userId != null) return 'Player';
+    return 'Unknown';
 };
 
 export const draftTeamStatusLabel = (status: string) => {

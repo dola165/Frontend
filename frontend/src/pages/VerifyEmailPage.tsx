@@ -63,19 +63,19 @@ export const VerifyEmailPage = () => {
     const statusBlock = useMemo(() => {
         if (verifyState === 'loading') {
             return {
-                icon: <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />,
+                icon: <Loader2 className="h-6 w-6 animate-spin text-[#00c853]" />,
                 title: 'Verifying',
                 copy: message,
-                className: 'border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
+                className: 'border-[#00c853]/30 bg-[#00c853]/10 text-[#00c853] dark:bg-[#00c853]/10 dark:text-[#00c853]'
             };
         }
 
         if (verifyState === 'success') {
             return {
-                icon: <BadgeCheck className="h-6 w-6 text-emerald-500" />,
+                icon: <BadgeCheck className="h-6 w-6 text-[#00c853]" />,
                 title: 'Verified',
                 copy: message,
-                className: 'border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300'
+                className: 'border-[#00c853]/30 bg-[#00c853]/10 text-[#00c853] dark:bg-[#00c853]/10 dark:text-[#00c853]'
             };
         }
 
@@ -104,15 +104,15 @@ export const VerifyEmailPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#fcf8f2] p-6 font-sans text-[#1a1a1a] dark:bg-gray-900 dark:text-gray-100">
+        <div className="min-h-screen bg-[#fcf8f2] p-6 font-sans text-[#1a1a1a] dark:bg-[#09090b] dark:text-gray-100">
             <Link to={canResendFromHere ? '/account?tab=security' : '/login'} className="absolute left-8 top-8 flex items-center gap-2 text-sm font-bold uppercase tracking-widest transition-transform hover:-translate-x-1">
                 <ArrowLeft className="h-5 w-5" /> {canResendFromHere ? 'Back to Account' : 'Back to Login'}
             </Link>
 
             <div className="mx-auto flex min-h-screen max-w-md items-center justify-center">
-                <div className="w-full rounded-2xl border-2 border-[#1a1a1a] bg-white p-8 shadow-[8px_8px_0px_0px_#1a1a1a] dark:border-gray-700 dark:bg-gray-800 dark:shadow-[8px_8px_0px_0px_#000]">
+                <div className="w-full rounded-2xl border-2 border-[#1a1a1a] bg-white p-8 shadow-[8px_8px_0px_0px_#1a1a1a] dark:border-gray-700 dark:bg-[#18181b] dark:shadow-[8px_8px_0px_0px_#000]">
                     <div className="mb-8 text-center">
-                        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-xl border-2 border-[#1a1a1a] bg-[#1a1a1a] text-white shadow-[4px_4px_0px_0px_#a34e36] dark:border-white dark:bg-white dark:text-[#1a1a1a]">
+                        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-xl border-2 border-[#1a1a1a] bg-[#1a1a1a] text-white shadow-[4px_4px_0px_0px_#00c853] dark:border-white dark:bg-white dark:text-[#1a1a1a]">
                             <BadgeCheck className="h-8 w-8" />
                         </div>
                         <h1 className="mb-2 text-4xl font-serif font-bold uppercase italic tracking-tighter">Email Verification</h1>
@@ -132,7 +132,7 @@ export const VerifyEmailPage = () => {
                     {canResendFromHere && verifyState === 'error' && (
                         <div className="mt-6">
                             {resendMessage && (
-                                <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+                                <div className="mb-4 rounded-lg border border-[#00c853]/30 bg-[#00c853]/10 px-4 py-3 text-sm font-bold text-[#00c853] dark:bg-[#00c853]/10 dark:text-[#00c853]">
                                     {resendMessage}
                                 </div>
                             )}
@@ -145,7 +145,7 @@ export const VerifyEmailPage = () => {
                             <button
                                 onClick={() => void handleResend()}
                                 disabled={isSendingVerification}
-                                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1a1a1a] bg-[#2a4d37] py-4 font-black uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_#1a1a1a] transition-all hover:bg-[#1f3a29] active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-emerald-600 dark:shadow-[4px_4px_0px_0px_#000] dark:hover:bg-emerald-500"
+                                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1a1a1a] bg-[#00c853] py-4 font-black uppercase tracking-widest text-black shadow-[4px_4px_0px_0px_#1a1a1a] transition-all hover:bg-[#00e676] active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#00c853] dark:shadow-[4px_4px_0px_0px_#000] dark:hover:bg-[#00e676]"
                             >
                                 {isSendingVerification ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
                                 Resend Verification Email

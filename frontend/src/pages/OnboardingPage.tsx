@@ -48,8 +48,8 @@ export const OnboardingPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#fcf8f2] dark:bg-gray-900 flex flex-col justify-center items-center p-6 selection:bg-emerald-100 dark:selection:bg-emerald-900 font-sans text-[#1a1a1a] dark:text-gray-100">
-            <div className="w-full max-w-2xl bg-white dark:bg-gray-800 p-8 md:p-12 rounded-2xl border-2 border-[#1a1a1a] dark:border-gray-700 shadow-[8px_8px_0px_0px_#1a1a1a] dark:shadow-[8px_8px_0px_0px_#000]">
+        <div className="min-h-screen bg-[#fcf8f2] dark:bg-[#09090b] flex flex-col justify-center items-center p-6 selection:bg-[#00c853]/20 dark:selection:bg-[#00c853]/30 font-sans text-[#1a1a1a] dark:text-gray-100">
+            <div className="w-full max-w-2xl bg-white dark:bg-[#18181b] p-8 md:p-12 rounded-2xl border-2 border-[#1a1a1a] dark:border-gray-700 shadow-[8px_8px_0px_0px_#1a1a1a] dark:shadow-[8px_8px_0px_0px_#000]">
 
                 <div className="mb-8 border-b-2 border-gray-200 dark:border-gray-700 pb-6">
                     <h1 className="text-4xl font-serif font-bold tracking-tighter italic uppercase mb-2">Establish Your Identity</h1>
@@ -67,9 +67,9 @@ export const OnboardingPage = () => {
                                 <button
                                     key={role.id}
                                     onClick={() => setFormData({...formData, role: role.id})}
-                                    className={`p-4 rounded-xl border-2 text-left transition-all ${formData.role === role.id ? 'border-[#2a4d37] bg-emerald-50 dark:bg-emerald-900/20 shadow-[4px_4px_0px_0px_#2a4d37]' : 'border-gray-200 dark:border-gray-700 hover:border-gray-400'}`}
+                                    className={`p-4 rounded-xl border-2 text-left transition-all ${formData.role === role.id ? 'border-[#00c853] bg-[#00c853]/10 dark:bg-[#00c853]/10 shadow-[4px_4px_0px_0px_#00c853]' : 'border-gray-200 dark:border-gray-700 hover:border-gray-400'}`}
                                 >
-                                    <role.icon className={`w-8 h-8 mb-3 ${formData.role === role.id ? 'text-[#2a4d37] dark:text-emerald-500' : 'text-gray-400'}`} />
+                                    <role.icon className={`w-8 h-8 mb-3 ${formData.role === role.id ? 'text-[#00c853]' : 'text-gray-400'}`} />
                                     <h3 className="font-black uppercase tracking-widest text-sm mb-1">{role.label}</h3>
                                     <p className="text-[10px] text-gray-500 font-bold uppercase">{role.desc}</p>
                                 </button>
@@ -82,7 +82,7 @@ export const OnboardingPage = () => {
                                 type="text"
                                 value={formData.fullName}
                                 onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#2a4d37] dark:focus:border-emerald-500 font-bold transition-colors"
+                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#00c853] font-bold transition-colors"
                                 placeholder="E.g. Khvicha Kvaratskhelia"
                             />
                         </div>
@@ -90,7 +90,7 @@ export const OnboardingPage = () => {
                         <button
                             onClick={() => setStep(2)}
                             disabled={!formData.fullName.trim()}
-                            className="w-full bg-[#1a1a1a] dark:bg-white text-white dark:text-[#1a1a1a] hover:bg-gray-800 dark:hover:bg-gray-200 font-black uppercase tracking-widest py-4 rounded-xl border-2 border-[#1a1a1a] dark:border-transparent shadow-[4px_4px_0px_0px_#a34e36] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            className="w-full bg-[#1a1a1a] dark:bg-white text-white dark:text-[#1a1a1a] hover:bg-gray-800 dark:hover:bg-gray-200 font-black uppercase tracking-widest py-4 rounded-xl border-2 border-[#1a1a1a] dark:border-transparent shadow-[4px_4px_0px_0px_#00c853] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                             Next Phase <ChevronRight className="w-5 h-5" />
                         </button>
@@ -138,7 +138,7 @@ export const OnboardingPage = () => {
                             <textarea
                                 value={formData.bio}
                                 onChange={(e) => setFormData({...formData, bio: e.target.value})}
-                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#2a4d37] font-bold h-24 resize-none"
+                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#00c853] font-bold h-24 resize-none"
                                 placeholder="Brief summary of your football philosophy..."
                             />
                         </div>
@@ -150,7 +150,7 @@ export const OnboardingPage = () => {
                             <button
                                 onClick={handleComplete}
                                 disabled={isLoading}
-                                className="flex-1 bg-[#2a4d37] dark:bg-emerald-600 text-white font-black uppercase tracking-widest py-4 rounded-xl border-2 border-[#1a1a1a] dark:border-transparent shadow-[4px_4px_0px_0px_#1a1a1a] dark:shadow-[4px_4px_0px_0px_#000] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2"
+                                className="flex-1 bg-[#00c853] hover:bg-[#00e676] text-black font-black uppercase tracking-widest py-4 rounded-xl border-2 border-[#1a1a1a] dark:border-transparent shadow-[4px_4px_0px_0px_#1a1a1a] dark:shadow-[4px_4px_0px_0px_#000] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2"
                             >
                                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Commit to Database'}
                             </button>

@@ -52,120 +52,116 @@ export const PostTheaterModal = ({
     const authorAvatarUrl = resolveMediaUrl(post.authorAvatarUrl);
 
     return (
-        <div className="theme-overlay-strong fixed inset-0 z-[9999] backdrop-blur-sm flex items-center justify-center p-2 sm:p-6 animate-in fade-in duration-200">
-            <button onClick={onClose} className="absolute top-4 left-4 z-50 p-2 bg-white/10 hover:bg-rose-500 text-white rounded-full transition-colors backdrop-blur-md">
-                <X className="w-6 h-6" />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 p-2 backdrop-blur-sm sm:p-6">
+            <button onClick={onClose} className="absolute top-4 left-4 z-50 rounded-full bg-white/10 p-2 text-white backdrop-blur-md transition-colors hover:bg-red-500">
+                <X className="h-6 w-6" />
             </button>
 
-            <div className="theme-surface-inset w-full h-full max-w-[1400px] flex flex-col lg:flex-row rounded-xl overflow-hidden shadow-2xl border theme-border">
-                <div className="flex-1 bg-black relative flex items-center justify-center group h-[40vh] lg:h-full overflow-hidden">
+            <div className="flex h-full w-full max-w-[1400px] flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0d1117] shadow-2xl lg:flex-row">
+                <div className="group relative flex h-[40vh] flex-1 items-center justify-center overflow-hidden bg-black lg:h-full">
                     {currentMediaUrl && (
                         <div
-                            className="absolute inset-0 bg-cover bg-center opacity-30 blur-2xl scale-110 transition-all duration-300"
+                            className="absolute inset-0 scale-110 bg-cover bg-center opacity-30 blur-2xl transition-all duration-300"
                             style={{ backgroundImage: `url(${currentMediaUrl})` }}
                         />
                     )}
 
                     {currentMediaUrl && (
                         isVideo ? (
-                            <video src={currentMediaUrl} controls autoPlay className="relative z-10 max-w-full max-h-full object-contain drop-shadow-2xl" />
+                            <video src={currentMediaUrl} controls autoPlay className="relative z-10 max-h-full max-w-full object-contain drop-shadow-2xl" />
                         ) : (
-                            <img src={currentMediaUrl} alt="Theater mode media" className="relative z-10 max-w-full max-h-full object-contain drop-shadow-2xl" />
+                            <img src={currentMediaUrl} alt="Theater mode media" className="relative z-10 max-h-full max-w-full object-contain drop-shadow-2xl" />
                         )
                     )}
 
                     {mediaList.length > 1 && (
                         <>
-                            <button onClick={handlePrev} className="absolute z-20 left-4 p-3 bg-black/50 hover:bg-black/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md">
-                                <ChevronLeft className="w-6 h-6" />
+                            <button onClick={handlePrev} className="absolute left-4 z-20 rounded-full bg-black/50 p-3 text-white opacity-0 backdrop-blur-md transition-opacity hover:bg-black/80 group-hover:opacity-100">
+                                <ChevronLeft className="h-6 w-6" />
                             </button>
-                            <button onClick={handleNext} className="absolute z-20 right-4 p-3 bg-black/50 hover:bg-black/80 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md">
-                                <ChevronRight className="w-6 h-6" />
+                            <button onClick={handleNext} className="absolute right-4 z-20 rounded-full bg-black/50 p-3 text-white opacity-0 backdrop-blur-md transition-opacity hover:bg-black/80 group-hover:opacity-100">
+                                <ChevronRight className="h-6 w-6" />
                             </button>
-                            <div className="absolute z-20 bottom-4 left-1/2 -translate-x-1/2 bg-black/60 px-4 py-1.5 rounded-full text-white text-xs font-bold tracking-widest backdrop-blur-md">
+                            <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-md">
                                 {currentIndex + 1} / {mediaList.length}
                             </div>
                         </>
                     )}
                 </div>
 
-                <div className="theme-surface-strong w-full lg:w-[400px] xl:w-[450px] flex flex-col h-[60vh] lg:h-full shrink-0 border-l theme-border">
-                    <div className="p-5 border-b theme-border shrink-0">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-sm font-black text-white shadow-sm border border-emerald-700 overflow-hidden">
+                <div className="flex h-[60vh] w-full shrink-0 flex-col border-l border-white/[0.06] bg-[#0d1117] lg:h-full lg:w-[400px] xl:w-[450px]">
+                    <div className="shrink-0 border-b border-white/[0.06] p-5">
+                        <div className="mb-4 flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#00c853] text-sm font-semibold text-black shadow-sm">
                                 {authorAvatarUrl ? (
-                                    <img src={authorAvatarUrl} alt={post.clubName || post.authorName} className="w-full h-full object-cover" />
+                                    <img src={authorAvatarUrl} alt={post.clubName || post.authorName} className="h-full w-full object-cover" />
                                 ) : (
                                     (post.clubName || post.authorName).substring(0, 2).toUpperCase()
                                 )}
                             </div>
                             <div>
-                                <h4 className="font-bold text-slate-900 dark:text-white">{post.clubName || post.authorName}</h4>
-                                <p className="text-xs text-slate-500 font-medium">{formatTime(post.createdAt)}</p>
+                                <h4 className="font-semibold text-[#f1f5f9]">{post.clubName || post.authorName}</h4>
+                                <p className="text-xs text-[#64748b]">{formatTime(post.createdAt)}</p>
                             </div>
                         </div>
-                        <p className="text-sm text-slate-800 dark:text-slate-200 whitespace-pre-line font-medium leading-relaxed">{post.content}</p>
+                        <p className="whitespace-pre-line text-sm leading-relaxed text-[#cbd5e1]">{post.content}</p>
                     </div>
 
-                    <div className="px-5 py-3 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 shrink-0">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{post.likeCount} ACKS • {post.commentCount} INTEL</span>
+                    <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] px-5 py-3">
+                        <span className="text-xs font-medium text-[#64748b]">{post.likeCount} likes &middot; {post.commentCount} comments</span>
                         <div className="flex gap-2">
-                            <button onClick={() => onLikeToggle(post.id)} className={`p-2 rounded-full transition-colors ${post.isLikedByMe ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-rose-500'}`}>
-                                <Heart className={`w-5 h-5 ${post.isLikedByMe ? 'fill-current' : ''}`} />
+                            <button onClick={() => onLikeToggle(post.id)} className={`rounded-full p-2 transition-colors ${post.isLikedByMe ? 'bg-[#00c853]/15 text-[#00c853]' : 'bg-[#1a2030] text-[#64748b] hover:text-[#00c853]'}`}>
+                                <Heart className={`h-5 w-5 ${post.isLikedByMe ? 'fill-current' : ''}`} />
                             </button>
-                            <button className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-emerald-500 rounded-full transition-colors">
-                                <MessageCircle className="w-5 h-5" />
+                            <button className="rounded-full bg-[#1a2030] p-2 text-[#64748b] transition-colors hover:text-[#00c853]">
+                                <MessageCircle className="h-5 w-5" />
                             </button>
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                    <div className="flex-1 space-y-4 overflow-y-auto p-5">
                         {!commentsData ? (
-                            <div className="flex justify-center py-10"><span className="text-xs font-bold uppercase tracking-widest text-slate-400">Loading intel...</span></div>
+                            <div className="flex justify-center py-10"><span className="text-xs font-medium text-[#64748b]">Loading comments...</span></div>
                         ) : commentsData.length === 0 ? (
-                            <div className="flex justify-center py-10"><span className="text-xs font-bold uppercase tracking-widest text-slate-400">No intel recorded yet.</span></div>
+                            <div className="flex justify-center py-10"><span className="text-xs font-medium text-[#64748b]">No comments yet.</span></div>
                         ) : (
                             commentsData.map(comment => (
                                 <div key={comment.id} className="flex gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 overflow-hidden">
+                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#1a2030] text-xs font-semibold text-[#94a3b8]">
                                         {resolveMediaUrl(comment.authorAvatarUrl) ? (
-                                            <img
-                                                src={resolveMediaUrl(comment.authorAvatarUrl)}
-                                                alt={comment.authorName}
-                                                className="w-full h-full object-cover"
-                                            />
+                                            <img src={resolveMediaUrl(comment.authorAvatarUrl)} alt={comment.authorName} className="h-full w-full object-cover" />
                                         ) : (
                                             comment.authorName.substring(0, 2).toUpperCase()
                                         )}
                                     </div>
-                                    <div className="theme-surface flex-1 p-3 rounded-xl border theme-border">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="font-bold text-sm text-slate-900 dark:text-white">{comment.authorName}</span>
-                                            <span className="text-[10px] text-slate-500 font-bold">{formatTime(comment.createdAt)}</span>
+                                    <div className="flex-1 rounded-xl bg-[#161c28] p-3">
+                                        <div className="mb-1 flex items-center gap-2">
+                                            <span className="text-sm font-semibold text-[#f1f5f9]">{comment.authorName}</span>
+                                            <span className="text-xs text-[#475569]">{formatTime(comment.createdAt)}</span>
                                         </div>
-                                        <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">{comment.content}</p>
+                                        <p className="text-sm text-[#cbd5e1]">{comment.content}</p>
                                     </div>
                                 </div>
                             ))
                         )}
                     </div>
 
-                    <div className="theme-surface-strong p-4 border-t theme-border shrink-0">
-                        <div className="flex gap-2 relative">
+                    <div className="shrink-0 border-t border-white/[0.06] bg-[#0d1117] p-4">
+                        <div className="relative flex gap-2">
                             <input
                                 type="text"
-                                placeholder="Add intel..."
+                                placeholder="Write a comment..."
                                 value={commentInput}
                                 onChange={(e) => setCommentInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleCommentSubmit()}
-                                className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-full py-3 pl-5 pr-12 outline-none focus:border-emerald-500 transition-colors"
+                                className="w-full rounded-full border border-white/[0.06] bg-[#161c28] py-3 pl-5 pr-12 text-sm text-[#f1f5f9] outline-none transition-colors focus:border-[#00c853]"
                             />
                             <button
                                 onClick={handleCommentSubmit}
                                 disabled={!commentInput.trim()}
-                                className="absolute right-1.5 top-1.5 bottom-1.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold transition-colors disabled:opacity-50"
+                                className="absolute right-1.5 top-1.5 bottom-1.5 rounded-full bg-[#00c853] px-3 text-black transition-colors hover:bg-[#00e676] disabled:opacity-40"
                             >
-                                <Send className="w-4 h-4" />
+                                <Send className="h-4 w-4" />
                             </button>
                         </div>
                     </div>

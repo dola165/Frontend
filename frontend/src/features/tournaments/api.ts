@@ -1,18 +1,25 @@
 import { apiClient } from '../../api/axiosConfig';
 import type {
     AddDraftTeamMembersPayload,
+    ClubSearchResult,
     CompleteFixturePayload,
     CreateDraftTeamPayload,
     CreateOrganizationPayload,
+    CreateTournamentInvitationPayload,
     CreateTournamentPayload,
     DraftTeamDetailDto,
     DraftTeamDto,
     MyOrganization,
+    PageResult,
     RequestTournamentEntryPayload,
     TournamentDetail,
     TournamentHostClubOption,
+    TournamentInvitationDto,
+    TournamentSummary,
     UpdateEntryStatusPayload,
     UpdateFixtureScoresPayload,
+    UpdateTournamentPayload,
+    UserSearchResult,
 } from './domain';
 
 export const fetchMyOrganizations = async () => {
@@ -114,4 +121,44 @@ export const updateFixtureScores = async (tournamentId: number, fixtureId: numbe
 export const reopenFixture = async (tournamentId: number, fixtureId: number) => {
     const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/reopen`);
     return response.data;
+};
+
+export const fetchTournaments = async (params?: { page?: number; size?: number; scope?: string; visibility?: string; status?: string }) => {
+    const response = await apiClient.get<PageResult<TournamentSummary>>('/tournaments', { params });
+    return response.data;
+};
+
+export const fetchTournamentInvitations = async (tournamentId: number) => {
+    const response = await apiClient.get<TournamentInvitationDto[]>(`/tournaments/${tournamentId}/invitations`);
+    return response.data;
+};
+
+export const createTournamentInvitation = async (tournamentId: number, payload: CreateTournamentInvitationPayload) => {
+    const response = await apiClient.post<TournamentInvitationDto>(`/tournaments/${tournamentId}/invitations`, payload);
+    return response.data;
+};
+
+export const cancelTournamentInvitation = async (tournamentId: number, invitationId: number) => {
+    await apiClient.delete(`/tournaments/${tournamentId}/invitations/${invitationId}`);
+};
+
+export const searchClubsForInvite = async (query: string) => {
+    if (!query.trim()) return [] as ClubSearchResult[];
+    const response = await apiClient.get<ClubSearchResult[]>('/clubs/search', { params: { query: query.trim(), size: 10 } });
+    return response.data;
+};
+
+export const searchPlayersForInvite = async (query: string) => {
+    if (!query.trim()) return [] as UserSearchResult[];
+    const response = await apiClient.get<UserSearchResult[]>('/users/search', { params: { query: query.trim(), size: 10 } });
+    return response.data;
+};
+
+export const updateTournament = async (tournamentId: number, payload: UpdateTournamentPayload) => {
+    const response = await apiClient.patch<TournamentDetail>(`/tournaments/${tournamentId}`, payload);
+    return response.data;
+};
+
+export const removeEntry = async (tournamentId: number, entryId: number) => {
+    await apiClient.delete(`/tournaments/${tournamentId}/entries/${entryId}`);
 };

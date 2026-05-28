@@ -28,6 +28,8 @@ import { AccountPage } from './pages/AccountPage';
 import { AdminPage } from './pages/AdminPage';
 import { TournamentSetupPage } from './pages/TournamentSetupPage';
 import { TournamentWorkspacePage } from './pages/TournamentWorkspacePage';
+import { BrowseTournamentsPage } from './pages/BrowseTournamentsPage';
+import { CreateOrganizationPage } from './pages/CreateOrganizationPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { buildLoginRedirectPath, resolvePostAuthRedirect } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
@@ -36,10 +38,10 @@ const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset
 const boundedCanvasPages = new Set(['/map', '/messages', '/calendar']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
-    <div className="bg-base flex min-h-screen items-center justify-center text-primary">
+    <div className="flex min-h-screen items-center justify-center bg-[#f2f4f7] dark:bg-slate-950">
         <div className="flex flex-col items-center gap-4 text-center">
-            <div className="h-12 w-12 animate-spin rounded-full border-4 border-accent-primary border-t-transparent"></div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-secondary">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#1f6feb] border-t-transparent"></div>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 {label}
             </p>
         </div>
@@ -185,8 +187,9 @@ function MainLayout() {
     const isChromeFreeWorkspace = isCalendarWorkspace || isMapWorkspace;
     const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads)?$/.test(location.pathname);
     const isFullScreenPage =
-        ['/map', '/messages', '/store', '/charity', '/clubs', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin', '/tournaments/setup'].includes(location.pathname) ||
+        ['/map', '/messages', '/store', '/charity', '/clubs', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin', '/tournaments', '/tournaments/setup'].includes(location.pathname) ||
         location.pathname.startsWith('/profile') ||
+        location.pathname.startsWith('/organizations') ||
         /^\/tournaments\/\d+\/workspace$/.test(location.pathname) ||
         isClubSurfaceRoute;
     const isBoundedCanvasPage = boundedCanvasPages.has(location.pathname);
@@ -229,8 +232,10 @@ function MainLayout() {
                         <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
                         <Route path="/messages" element={<ProtectedRoute><MessagingPage /></ProtectedRoute>} />
                         <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+                        <Route path="/tournaments" element={<BrowseTournamentsPage />} />
                         <Route path="/tournaments/setup" element={<ProtectedRoute><TournamentSetupPage /></ProtectedRoute>} />
                         <Route path="/tournaments/:tournamentId/workspace" element={<ProtectedRoute><TournamentWorkspacePage /></ProtectedRoute>} />
+                        <Route path="/organizations/create" element={<ProtectedRoute><CreateOrganizationPage /></ProtectedRoute>} />
                         <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
                         <Route path="/profile/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
                         <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
@@ -243,7 +248,7 @@ function MainLayout() {
                 </main>
             ) : (
                 <div className={isHomeFeed ? 'feed-home-shell min-h-[calc(100dvh-var(--app-header-height))]' : ''}>
-                    <div className={`mx-auto grid grid-cols-1 gap-6 px-4 pb-10 pt-6 lg:px-6 ${isHomeFeed ? 'feed-home-grid max-w-[1480px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[220px_minmax(0,720px)_280px] xl:justify-center' : 'max-w-[1480px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[220px_minmax(0,720px)_280px] xl:justify-center'}`}>
+                    <div className={`grid grid-cols-1 gap-6 px-6 pb-10 pt-6 ${isHomeFeed ? 'feed-home-grid w-full lg:grid-cols-[280px_1fr_320px]' : 'mx-auto max-w-[1480px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[220px_minmax(0,720px)_280px]'}`}>
                         <LeftSidebar user={user} myClubId={myClubId} />
 
                         <main className="min-w-0">
@@ -262,46 +267,46 @@ function MainLayout() {
             )}
 
             {activeQuickChat && (
-                <div className="fixed bottom-0 right-4 z-[9000] flex w-80 flex-col overflow-hidden border border-subtle bg-elevated text-primary shadow-float md:right-8">
-                    <div className="flex items-center justify-between border-b border-subtle bg-surface px-3 py-3">
+                <div className="fixed bottom-0 right-4 z-[9000] flex w-80 flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 md:right-8">
+                    <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
                         <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 items-center justify-center border border-accent-primary bg-accent-primary-soft text-xs font-black uppercase accent-primary">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f2f4f7] text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                                 {activeQuickChat.name.substring(0, 2).toUpperCase()}
                             </div>
                             <div>
-                                <p className="w-36 truncate text-xs font-black uppercase tracking-[0.16em] text-primary">
+                                <p className="w-36 truncate text-sm font-semibold text-slate-800 dark:text-slate-200">
                                     {activeQuickChat.name}
                                 </p>
-                                <p className={`mt-1 text-[10px] font-black uppercase tracking-[0.18em] ${activeQuickChat.online ? 'accent-primary' : 'text-secondary'}`}>
+                                <p className={`mt-0.5 text-xs font-medium ${activeQuickChat.online ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
                                     {activeQuickChat.online ? 'Online' : 'Offline'}
                                 </p>
                             </div>
                         </div>
                         <div className="flex gap-1">
-                            <Link to="/messages" onClick={() => setActiveQuickChat(null)} className="p-1.5 text-secondary transition-colors hover:text-primary">
+                            <Link to="/messages" onClick={() => setActiveQuickChat(null)} className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300">
                                 <ExternalLink className="h-3.5 w-3.5" />
                             </Link>
-                            <button type="button" onClick={() => setActiveQuickChat(null)} className="p-1.5 text-secondary transition-colors hover:text-primary">
+                            <button type="button" onClick={() => setActiveQuickChat(null)} className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300">
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
                     </div>
-                    <div className="flex h-56 flex-col gap-3 overflow-y-auto bg-base p-3">
-                        <div className="max-w-[85%] self-start border border-subtle bg-surface px-3 py-2.5">
-                            <p className="text-xs font-medium text-primary">Checking in regarding the tryouts.</p>
+                    <div className="flex h-56 flex-col gap-3 overflow-y-auto bg-[#f2f4f7] p-3 dark:bg-slate-950">
+                        <div className="max-w-[85%] self-start rounded-2xl bg-white px-3 py-2.5 shadow-sm dark:bg-slate-800">
+                            <p className="text-sm text-slate-700 dark:text-slate-300">Checking in regarding the tryouts.</p>
                         </div>
-                        <div className="max-w-[85%] self-end border border-accent-primary bg-accent-primary-soft px-3 py-2.5">
-                            <p className="text-xs font-medium accent-primary">Affirmative.</p>
+                        <div className="max-w-[85%] self-end rounded-2xl bg-[#1f6feb] px-3 py-2.5 dark:bg-[#4c8dff]">
+                            <p className="text-sm text-white">Affirmative.</p>
                         </div>
                     </div>
-                    <div className="border-t border-subtle bg-surface px-3 py-2.5">
+                    <div className="border-t border-slate-100 bg-white px-3 py-2.5 dark:border-slate-800 dark:bg-slate-900">
                         <div className="flex gap-2">
                             <input
                                 type="text"
                                 placeholder="Type update"
-                                className="flex-1 border border-subtle bg-base px-3 py-2 text-xs text-primary outline-none placeholder:text-muted"
+                                className="flex-1 rounded-full border border-slate-200 bg-[#f2f4f7] px-4 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
                             />
-                            <button type="button" className="inline-flex h-9 w-9 items-center justify-center bg-accent-primary-soft accent-primary transition-colors hover:text-primary">
+                            <button type="button" className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#1f6feb] text-white transition-colors hover:bg-[#1957bb] dark:bg-[#4c8dff] dark:hover:bg-[#3a7be0]">
                                 <Send className="h-3.5 w-3.5" />
                             </button>
                         </div>
@@ -314,11 +319,10 @@ function MainLayout() {
                     <button
                         type="button"
                         disabled
-
                         title="Talanti AI stays intentionally deferred for a later phase."
-                        className="flex h-11 w-11 cursor-not-allowed items-center justify-center border border-subtle bg-accent-primary-soft accent-primary opacity-70"
+                        className="flex h-11 w-11 cursor-not-allowed items-center justify-center rounded-full border border-slate-200 bg-white opacity-60 shadow-sm dark:border-slate-700 dark:bg-slate-900"
                     >
-                        <Bot className="h-5 w-5" />
+                        <Bot className="h-5 w-5 text-slate-400" />
                     </button>
                 </div>
             )}

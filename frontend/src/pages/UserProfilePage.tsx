@@ -194,7 +194,8 @@ export const UserProfilePage = () => {
 
         try {
             const mediaRes = await apiClient.post('/media/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+                headers: { 'Content-Type': 'multipart/form-data' },
+                params: { context: type }
             });
             const imageUrl = mediaRes.data?.url;
 

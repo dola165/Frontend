@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { Camera, Loader2, Send, Video, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Camera, Loader2, Send, Video, CalendarPlus } from 'lucide-react';
 import { apiClient } from '../../api/axiosConfig';
 
 interface PostComposerProps {
@@ -25,12 +25,33 @@ export const PostComposer = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isExpanded, setIsExpanded] = useState(!compact);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const containerRef = useRef<HTMLElement>(null);
 
     const expandComposer = () => {
         if (!compact || isExpanded) return;
         setIsExpanded(true);
         onExpand?.();
     };
+
+    const collapseComposer = () => {
+        if (!compact) return;
+        if (content.trim() || selectedFile) return;
+        setIsExpanded(false);
+        setPreviewUrl(null);
+        setSelectedFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    useEffect(() => {
+        if (!compact || !isExpanded) return;
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                collapseComposer();
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [compact, isExpanded, content, selectedFile]);
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
@@ -82,60 +103,64 @@ export const PostComposer = ({
         }
     };
 
-    const wrapperClassName = compact
-        ? 'rounded-[18px] border border-[color:var(--feed-card-border)] bg-[color:var(--feed-card)] px-3.5 py-3.5 shadow-panel backdrop-blur-[18px]'
-        : 'rounded-[22px] border border-[color:var(--feed-card-border)] bg-[color:var(--feed-card)] px-4 py-4 shadow-panel backdrop-blur-[18px]';
-
     return (
-        <section className={wrapperClassName}>
+        <section
+            ref={containerRef}
+            className="rounded-none border border-[var(--feed-card-border)] bg-[var(--feed-card)] p-3 transition-shadow"
+        >
             <div className={`flex items-start gap-3 ${isExpanded || previewUrl ? 'mb-3' : ''}`}>
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center border border-[color:var(--feed-layer-border)] bg-[color:var(--feed-visual-bg)] text-sm font-black uppercase text-primary ${compact ? 'rounded-[10px] text-[10px]' : 'rounded-full'}`}>
-                    {authorName.substring(0, 2).toUpperCase()}
-                </div>
+                {isExpanded && (
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--feed-layer-bg)] text-sm font-semibold text-[var(--feed-text-secondary)]">
+                        {authorName.substring(0, 2).toUpperCase()}
+                    </div>
+                )}
                 <textarea
                     value={content}
                     onChange={(event) => setContent(event.target.value)}
                     onFocus={expandComposer}
                     onClick={expandComposer}
-                    placeholder={clubId ? 'Publish a club update...' : 'Share an operational update...'}
-                    className={`flex-1 resize-none rounded-[16px] border border-[color:var(--feed-layer-border)] bg-[color:var(--feed-layer-bg)] px-3.5 py-2.5 text-[13px] text-primary outline-none placeholder:text-muted focus:border-[color:var(--accent-primary)] ${isExpanded ? 'min-h-[82px]' : 'min-h-[42px]'}`}
-                    rows={compact ? (isExpanded ? 3 : 1) : (content.split('\n').length > 2 ? 3 : 1)}
+                    placeholder={clubId ? 'Publish a club update...' : "What's on your mind?"}
+                    className={`flex-1 resize-none rounded-none border border-[var(--feed-card-border)] bg-[var(--feed-input-bg)] px-4 py-2.5 text-sm text-[var(--feed-text-primary)] outline-none placeholder:text-[var(--feed-text-placeholder)] focus:border-[var(--feed-accent)] transition-colors ${
+                        isExpanded ? 'min-h-[88px]' : 'min-h-[40px]'
+                    }`}
+                    rows={isExpanded ? 3 : 1}
                 />
-                <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={isSubmitting || (!content.trim() && !selectedFile)}
-                    className={`inline-flex items-center justify-center gap-2 rounded-full border border-[color:var(--accent-highlight)] bg-[color:var(--accent-highlight)] text-[color:var(--feed-accent-contrast)] disabled:opacity-50 ${compact ? 'h-10 w-10' : 'px-4 py-2.5'}`}
-                >
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    {!compact && 'Post'}
-                </button>
+                {isExpanded && (
+                    <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={isSubmitting || (!content.trim() && !selectedFile)}
+                        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--feed-accent)] text-[var(--feed-accent-contrast)] transition-colors hover:bg-[var(--feed-accent-hover)] disabled:opacity-40"
+                    >
+                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    </button>
+                )}
             </div>
 
             {previewUrl && (
-                <div className="relative mb-3 ml-[44px] w-fit overflow-hidden rounded-[16px] border border-[color:var(--feed-layer-border)]">
-                    <img src={previewUrl} alt="Upload preview" className={`${compact ? 'max-h-36' : 'max-h-48'} object-cover`} />
-                    <button type="button" onClick={removeFile} className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--theme-overlay-strong)] text-[color:var(--feed-accent-contrast)]">
-                        <X className="h-4 w-4" />
+                <div className="relative mb-3 ml-[52px] w-fit overflow-hidden rounded-none border border-[var(--feed-card-border)]">
+                    <img src={previewUrl} alt="Upload preview" className="max-h-48 object-cover" />
+                    <button type="button" onClick={removeFile} className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80">
+                        <span className="font-semibold">&times;</span>
                     </button>
                 </div>
             )}
 
             {isExpanded && (
-                <div className="ml-[44px] flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--feed-divider)] pt-3">
-                    <div className="flex gap-2">
-                        <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*" />
-                        <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-[color:var(--feed-layer-border)] bg-[color:var(--feed-layer-bg)] px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary transition-colors hover:border-[color:var(--accent-primary)] hover:text-[color:var(--accent-primary)]">
-                            <Camera className="h-4 w-4 text-[color:var(--accent-primary)]" />
-                            Photo
-                        </button>
-                        <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-[color:var(--feed-layer-border)] bg-[color:var(--feed-layer-bg)] px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary transition-colors hover:border-[color:var(--accent-primary)] hover:text-[color:var(--accent-primary)]">
-                            <Video className="h-4 w-4 text-[color:var(--accent-primary)]" />
-                            Video
-                        </button>
-                    </div>
-
-                    {compact && <p className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary">Composer Expanded</p>}
+                <div className="ml-[52px] flex flex-wrap items-center gap-2 border-t border-[var(--feed-card-border)] pt-3">
+                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*" />
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-[var(--feed-card-border)] bg-[var(--feed-layer-bg)] px-3 py-2 text-xs font-medium text-[var(--feed-text-secondary)] transition-colors hover:border-[var(--feed-accent)] hover:text-[var(--feed-accent)]">
+                        <Camera className="h-4 w-4" />
+                        Photo
+                    </button>
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-full border border-[var(--feed-card-border)] bg-[var(--feed-layer-bg)] px-3 py-2 text-xs font-medium text-[var(--feed-text-secondary)] transition-colors hover:border-[var(--feed-accent)] hover:text-[var(--feed-accent)]">
+                        <Video className="h-4 w-4" />
+                        Video
+                    </button>
+                    <button type="button" className="inline-flex items-center gap-2 rounded-full border border-[var(--feed-card-border)] bg-[var(--feed-layer-bg)] px-3 py-2 text-xs font-medium text-[var(--feed-text-secondary)] transition-colors hover:border-[var(--feed-accent)] hover:text-[var(--feed-accent)]">
+                        <CalendarPlus className="h-4 w-4" />
+                        Event
+                    </button>
                 </div>
             )}
         </section>

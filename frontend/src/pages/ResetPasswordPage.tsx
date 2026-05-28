@@ -59,15 +59,15 @@ export const ResetPasswordPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#fcf8f2] p-6 font-sans text-[#1a1a1a] dark:bg-gray-900 dark:text-gray-100">
+        <div className="min-h-screen bg-[#fcf8f2] p-6 font-sans text-[#1a1a1a] dark:bg-[#09090b] dark:text-gray-100">
             <Link to="/login" className="absolute left-8 top-8 flex items-center gap-2 text-sm font-bold uppercase tracking-widest transition-transform hover:-translate-x-1">
                 <ArrowLeft className="h-5 w-5" /> Back to Login
             </Link>
 
             <div className="mx-auto flex min-h-screen max-w-md items-center justify-center">
-                <div className="w-full rounded-2xl border-2 border-[#1a1a1a] bg-white p-8 shadow-[8px_8px_0px_0px_#1a1a1a] dark:border-gray-700 dark:bg-gray-800 dark:shadow-[8px_8px_0px_0px_#000]">
+                <div className="w-full rounded-2xl border-2 border-[#1a1a1a] bg-white p-8 shadow-[8px_8px_0px_0px_#1a1a1a] dark:border-gray-700 dark:bg-[#18181b] dark:shadow-[8px_8px_0px_0px_#000]">
                     <div className="mb-8 text-center">
-                        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-xl border-2 border-[#1a1a1a] bg-[#2a4d37] text-white shadow-[4px_4px_0px_0px_#1a1a1a]">
+                        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-xl border-2 border-[#1a1a1a] bg-[#00c853] text-black shadow-[4px_4px_0px_0px_#1a1a1a]">
                             <KeyRound className="h-8 w-8" />
                         </div>
                         <h1 className="mb-2 text-4xl font-serif font-bold uppercase italic tracking-tighter">Set New Access</h1>
@@ -103,7 +103,7 @@ export const ResetPasswordPage = () => {
                                 value={password}
                                 onChange={(event) => setPassword(event.target.value)}
                                 disabled={Boolean(tokenError) || Boolean(successMessage)}
-                                className="w-full rounded-xl border-2 border-[#1a1a1a] bg-[#fcf8f2] px-4 py-3 font-medium outline-none transition-colors focus:border-[#2a4d37] disabled:opacity-60 dark:border-gray-600 dark:bg-gray-900 dark:focus:border-emerald-500"
+                                className="w-full rounded-xl border-2 border-[#1a1a1a] bg-[#fcf8f2] px-4 py-3 font-medium outline-none transition-colors focus:border-[#00c853] disabled:opacity-60 dark:border-gray-600 dark:bg-gray-900 dark:focus:border-[#00c853]"
                                 placeholder="********"
                             />
                         </div>
@@ -115,7 +115,7 @@ export const ResetPasswordPage = () => {
                                 value={confirmPassword}
                                 onChange={(event) => setConfirmPassword(event.target.value)}
                                 disabled={Boolean(tokenError) || Boolean(successMessage)}
-                                className="w-full rounded-xl border-2 border-[#1a1a1a] bg-[#fcf8f2] px-4 py-3 font-medium outline-none transition-colors focus:border-[#2a4d37] disabled:opacity-60 dark:border-gray-600 dark:bg-gray-900 dark:focus:border-emerald-500"
+                                className="w-full rounded-xl border-2 border-[#1a1a1a] bg-[#fcf8f2] px-4 py-3 font-medium outline-none transition-colors focus:border-[#00c853] disabled:opacity-60 dark:border-gray-600 dark:bg-gray-900 dark:focus:border-[#00c853]"
                                 placeholder="********"
                             />
                         </div>
@@ -123,7 +123,7 @@ export const ResetPasswordPage = () => {
                         <button
                             type="submit"
                             disabled={Boolean(tokenError) || Boolean(successMessage) || isSubmitting}
-                            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1a1a1a] bg-[#2a4d37] py-4 font-black uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_#1a1a1a] transition-all hover:bg-[#1f3a29] active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-emerald-600 dark:shadow-[4px_4px_0px_0px_#000] dark:hover:bg-emerald-500"
+                            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1a1a1a] bg-[#00c853] py-4 font-black uppercase tracking-widest text-black shadow-[4px_4px_0px_0px_#1a1a1a] transition-all hover:bg-[#00e676] active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-60 dark:border-transparent dark:bg-[#00c853] dark:shadow-[4px_4px_0px_0px_#000] dark:hover:bg-[#00e676]"
                         >
                             {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Reset Password'}
                         </button>

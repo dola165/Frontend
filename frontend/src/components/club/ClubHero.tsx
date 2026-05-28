@@ -86,7 +86,8 @@ export const ClubHero = ({
             formData.append('file', croppedImageBlob, `${type}.jpg`);
 
             const uploadResponse = await apiClient.post('/media/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+                headers: { 'Content-Type': 'multipart/form-data' },
+                params: { context: type }
             });
 
             const mediaUrl = uploadResponse.data?.url;

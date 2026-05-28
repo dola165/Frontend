@@ -136,7 +136,7 @@ export const AdminPage = () => {
                     </div>
 
                     <div className="mt-5">
-                        <label className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 shadow-sm focus-within:border-emerald-500 dark:border-slate-700 dark:bg-[#151f28]">
+                        <label className="flex items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 shadow-sm focus-within:border-[#00c853] dark:border-slate-700 dark:bg-[#151f28]">
                             <Search className="h-4 w-4 text-slate-400" />
                             <input
                                 value={query}

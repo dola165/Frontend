@@ -45,7 +45,7 @@ export const RegisterPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#fcf8f2] dark:bg-gray-900 flex flex-col justify-center items-center p-6 selection:bg-emerald-100 dark:selection:bg-emerald-900 font-sans text-[#1a1a1a] dark:text-gray-100">
+        <div className="min-h-screen bg-[#fcf8f2] dark:bg-[#09090b] flex flex-col justify-center items-center p-6 selection:bg-[#00c853]/20 dark:selection:bg-[#00c853]/30 font-sans text-[#1a1a1a] dark:text-gray-100">
 
             <Link to="/" className="absolute top-8 left-8 flex items-center gap-2 font-bold uppercase tracking-widest text-sm hover:-translate-x-1 transition-transform">
                 <ArrowLeft className="w-5 h-5" /> Back to Base
@@ -53,14 +53,14 @@ export const RegisterPage = () => {
 
             <div className="w-full max-w-md">
                 <div className="text-center mb-10">
-                    <div className="w-16 h-16 bg-[#a34e36] text-white flex items-center justify-center rounded-xl mx-auto mb-6 shadow-[4px_4px_0px_0px_#1a1a1a] border-2 border-[#1a1a1a]">
+                    <div className="w-16 h-16 bg-[#00c853] text-black flex items-center justify-center rounded-xl mx-auto mb-6 shadow-[4px_4px_0px_0px_#1a1a1a] border-2 border-[#1a1a1a]">
                         <Shield className="w-8 h-8" />
                     </div>
                     <h1 className="text-4xl font-serif font-bold tracking-tighter italic uppercase mb-2">Draft Day</h1>
                     <p className="text-gray-500 font-serif italic">Register your profile and enter the global arena.</p>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl border-2 border-[#1a1a1a] dark:border-gray-700 shadow-[8px_8px_0px_0px_#1a1a1a] dark:shadow-[8px_8px_0px_0px_#000]">
+                <div className="bg-white dark:bg-[#18181b] p-8 rounded-2xl border-2 border-[#1a1a1a] dark:border-gray-700 shadow-[8px_8px_0px_0px_#1a1a1a] dark:shadow-[8px_8px_0px_0px_#000]">
 
                     {error && (
                         <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-500 text-red-700 dark:text-red-400 font-bold text-sm rounded-lg flex items-center gap-2">
@@ -76,7 +76,7 @@ export const RegisterPage = () => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#a34e36] font-medium transition-colors"
+                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#00c853] font-medium transition-colors"
                                 placeholder="champion@talanti.ge"
                             />
                         </div>
@@ -93,7 +93,7 @@ export const RegisterPage = () => {
                                         onClick={() => setRole(option.id as 'PLAYER' | 'FAN')}
                                         className={`rounded-xl border-2 px-4 py-4 text-left transition-all ${
                                             role === option.id
-                                                ? 'border-[#2a4d37] bg-emerald-50 dark:bg-emerald-900/20 shadow-[4px_4px_0px_0px_#2a4d37]'
+                                                ? 'border-[#00c853] bg-[#00c853]/10 dark:bg-[#00c853]/10 shadow-[4px_4px_0px_0px_#00c853]'
                                                 : 'border-[#1a1a1a] dark:border-gray-600 bg-[#fcf8f2] dark:bg-gray-900'
                                         }`}
                                     >
@@ -110,7 +110,7 @@ export const RegisterPage = () => {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
-                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#a34e36] font-medium transition-colors"
+                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#00c853] font-medium transition-colors"
                                 placeholder="********"
                             />
                         </div>
@@ -121,7 +121,7 @@ export const RegisterPage = () => {
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 required
-                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#a34e36] font-medium transition-colors"
+                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#00c853] font-medium transition-colors"
                                 placeholder="********"
                             />
                         </div>
@@ -129,7 +129,7 @@ export const RegisterPage = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full mt-2 bg-[#1a1a1a] dark:bg-white text-white dark:text-[#1a1a1a] hover:bg-gray-800 dark:hover:bg-gray-200 font-black uppercase tracking-widest py-4 rounded-xl border-2 border-[#1a1a1a] dark:border-transparent shadow-[4px_4px_0px_0px_#a34e36] dark:shadow-[4px_4px_0px_0px_#a34e36] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="w-full mt-2 bg-[#1a1a1a] dark:bg-white text-white dark:text-[#1a1a1a] hover:bg-gray-800 dark:hover:bg-gray-200 font-black uppercase tracking-widest py-4 rounded-xl border-2 border-[#1a1a1a] dark:border-transparent shadow-[4px_4px_0px_0px_#00c853] dark:shadow-[4px_4px_0px_0px_#00c853] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Legacy'}
                         </button>
@@ -175,7 +175,7 @@ export const RegisterPage = () => {
                 </div>
 
                 <p className="text-center mt-8 font-bold text-sm text-gray-500">
-                    Already drafted? <Link to="/login" className="text-[#2a4d37] hover:underline uppercase tracking-wider ml-1">Access Database</Link>
+                    Already drafted? <Link to="/login" className="text-[#00c853] hover:underline uppercase tracking-wider ml-1">Access Database</Link>
                 </p>
             </div>
         </div>

@@ -1,42 +1,36 @@
-import type { CSSProperties } from 'react';
 import { Plus } from 'lucide-react';
 
 interface StoryItem {
     id: number;
     name: string;
-    subtitle: string;
+    avatar: string;
     own?: boolean;
 }
 
-const storyStyle: CSSProperties = {
-    ['--story-primary' as string]: 'var(--bg-surface)',
-    ['--story-secondary' as string]: 'var(--bg-surface)'
-};
-
 const stories: StoryItem[] = [
-    { id: 1, name: 'Your Story', subtitle: 'Add update', own: true },
-    { id: 2, name: 'Dinamo Tbilisi', subtitle: 'New trial' },
-    { id: 3, name: 'Saburtalo', subtitle: 'Match day' },
-    { id: 4, name: 'Rustavi', subtitle: 'Behind scenes' },
-    { id: 5, name: 'Scout Watch', subtitle: 'Top clips' },
-    { id: 6, name: 'League Hub', subtitle: 'Live notes' }
+    { id: 1, name: 'Your Story', avatar: '', own: true },
+    { id: 2, name: 'Dinamo Tbilisi', avatar: 'DT' },
+    { id: 3, name: 'Saburtalo', avatar: 'SB' },
+    { id: 4, name: 'Rustavi', avatar: 'RU' },
+    { id: 5, name: 'Scout Watch', avatar: 'SW' },
+    { id: 6, name: 'League Hub', avatar: 'LH' },
+    { id: 7, name: 'U21 Trials', avatar: 'U2' },
+    { id: 8, name: 'FC Analytics', avatar: 'FA' }
 ];
 
 export const StoriesRail = () => (
-    <section className="feed-story-shell px-4 py-4">
-        <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-1">
+    <section className="feed-story-shell px-3 py-3">
+        <div className="scrollbar-hide flex gap-3 overflow-x-auto pb-0.5">
             {stories.map((story) => (
-                <button key={story.id} type="button" className="feed-story-card shrink-0" style={storyStyle}>
-                    <div className="relative flex h-full flex-col justify-between p-3">
-                        <div className="feed-story-avatar">
-                            {story.own ? <Plus className="h-5 w-5" /> : story.name.substring(0, 2)}
-                        </div>
-
-                        <div className="relative z-10">
-                            <p className="feed-story-title">{story.name}</p>
-                            <p className="feed-story-subtitle">{story.subtitle}</p>
-                        </div>
+                <button key={story.id} type="button" className="feed-story-card">
+                    <div className={`feed-story-thumb ${story.own ? 'feed-story-thumb--own' : ''}`}>
+                        {story.own ? (
+                            <Plus className="h-4 w-4 text-[var(--feed-text-muted)]" />
+                        ) : (
+                            story.avatar
+                        )}
                     </div>
+                    <span className="feed-story-title">{story.name}</span>
                 </button>
             ))}
         </div>

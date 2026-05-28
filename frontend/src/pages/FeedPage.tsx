@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Compass, Megaphone, Users } from 'lucide-react';
+import { Megaphone } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { FeedList } from '../components/feed/FeedList';
@@ -21,21 +21,17 @@ export const FeedPage = () => {
     const [selectedPost, setSelectedPost] = useState<FeedPostDto | null>(null);
     const feedView = resolveFeedView(searchParams.get('view'));
     const isFollowingView = feedView === 'following';
-    const FeedViewIcon = isFollowingView ? Users : Compass;
+
     const feedMeta = isFollowingView
         ? {
             endpoint: '/posts/feed/following',
-            loadingLabel: 'Loading following feed',
-            title: 'Following Feed',
-            description: 'Recent updates from the clubs, teams, and people you already chose to follow.',
+            loadingLabel: 'Loading following feed...',
             emptyTitle: 'No Following Activity Yet',
-            emptyText: 'Follow clubs and creators to build a predictable feed here.'
+            emptyText: 'Follow clubs and creators to build your feed here.'
         }
         : {
             endpoint: '/posts/feed/for-you',
-            loadingLabel: 'Loading for you feed',
-            title: 'For You',
-            description: 'Discovery posts from outside your network, selected to help you find new clubs, teams, and creators.',
+            loadingLabel: 'Loading feed...',
             emptyTitle: 'No Discovery Posts Yet',
             emptyText: 'Fresh discovery posts will appear here as the network grows.'
         };
@@ -111,30 +107,16 @@ export const FeedPage = () => {
     if (loading) {
         return (
             <div className="flex justify-center py-10">
-                <p className="text-sm font-black uppercase tracking-[0.2em] text-secondary">{feedMeta.loadingLabel}</p>
+                <p className="text-sm text-[var(--feed-text-secondary)]">{feedMeta.loadingLabel}</p>
             </div>
         );
     }
 
     return (
-        <div className="mx-auto flex w-full max-w-[780px] flex-col gap-4">
-            <section className="rounded-[20px] border border-subtle bg-surface shadow-panel">
-                <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-secondary">Feed Workspace</p>
-                        <h1 className="mt-2 text-xl font-black uppercase tracking-[0.12em] text-primary">{feedMeta.title}</h1>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-secondary">{feedMeta.description}</p>
-                    </div>
-
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-accent-primary bg-accent-primary-soft accent-primary">
-                        <FeedViewIcon className="h-5 w-5" />
-                    </div>
-                </div>
-            </section>
+        <div className="mx-auto flex w-full max-w-[680px] flex-col gap-3">
+            <PostComposer compact onPostCreated={loadFeed} />
 
             <StoriesRail />
-
-            <PostComposer onPostCreated={loadFeed} />
 
             <FeedList
                 posts={posts}
@@ -150,10 +132,10 @@ export const FeedPage = () => {
                     }
                 }}
                 emptyState={(
-                    <div className="rounded-[20px] border border-subtle bg-surface px-5 py-12 text-center shadow-panel">
-                    <Megaphone className="mx-auto h-10 w-10 text-secondary" />
-                    <h3 className="mt-4 text-lg font-black uppercase tracking-[0.14em] text-primary">{feedMeta.emptyTitle}</h3>
-                    <p className="mt-2 text-sm text-secondary">{feedMeta.emptyText}</p>
+                    <div className="rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] px-5 py-12 text-center">
+                        <Megaphone className="mx-auto h-10 w-10 text-[var(--feed-icon-muted)]" />
+                        <h3 className="mt-4 text-lg font-semibold text-[var(--feed-text-primary)]">{feedMeta.emptyTitle}</h3>
+                        <p className="mt-2 text-sm text-[var(--feed-text-secondary)]">{feedMeta.emptyText}</p>
                     </div>
                 )}
                 className="gap-3"

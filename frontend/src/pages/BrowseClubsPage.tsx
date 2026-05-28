@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Building2, Check, MapPin, Plus, ShieldCheck, Users } from 'lucide-react';
+import { ArrowRight, Building2, Check, Clock, Loader2, MapPin, Plus, Send, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
-import { fetchMyClubMembershipContext } from '../features/clubs/api';
+import { createClubApplication, fetchMyClubMembershipContext, selfRegisterClubPlayer } from '../features/clubs/api';
 import type { ClubMembershipContext } from '../features/clubs/domain';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { CreateClubModal } from '../components/club/CreateClubModal';
@@ -21,6 +21,8 @@ interface ClubProfile {
     isFollowedByMe: boolean;
     addressText?: string;
     logoUrl?: string;
+    joinPolicy?: 'OPEN_TRIAL' | 'APPLICATION_REQUIRED' | 'INVITE_ONLY';
+    relationshipState?: 'NONE' | 'INVITED' | 'APPLIED' | 'TRIALIST' | 'ACTIVE' | 'LEFT' | 'REMOVED';
 }
 
 export const BrowseClubsPage = () => {
@@ -32,6 +34,10 @@ export const BrowseClubsPage = () => {
     const [membershipContext, setMembershipContext] = useState<ClubMembershipContext | null>(null);
     const [isCreateClubOpen, setIsCreateClubOpen] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [applyingClubId, setApplyingClubId] = useState<number | null>(null);
+    const [joiningClubId, setJoiningClubId] = useState<number | null>(null);
+    const [actionMessage, setActionMessage] = useState<string | null>(null);
+    const [actionMessageType, setActionMessageType] = useState<'success' | 'error'>('success');
 
     useEffect(() => {
         let active = true;
@@ -77,6 +83,50 @@ export const BrowseClubsPage = () => {
             active = false;
         };
     }, [status]);
+
+    const showActionMessage = (text: string, type: 'success' | 'error') => {
+        setActionMessage(text);
+        setActionMessageType(type);
+        setTimeout(() => setActionMessage(null), 4000);
+    };
+
+    const handleJoinClub = async (clubId: number) => {
+        if (status !== 'authenticated') {
+            navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash));
+            return;
+        }
+        setJoiningClubId(clubId);
+        try {
+            await selfRegisterClubPlayer(clubId);
+            showActionMessage('Joined club as trialist.', 'success');
+            setClubs((current) =>
+                current.map((c) => (c.id === clubId ? { ...c, relationshipState: 'TRIALIST' as const } : c))
+            );
+        } catch (err) {
+            showActionMessage(extractApiErrorMessage(err, 'Failed to join club.'), 'error');
+        } finally {
+            setJoiningClubId(null);
+        }
+    };
+
+    const handleApplyClub = async (clubId: number) => {
+        if (status !== 'authenticated') {
+            navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash));
+            return;
+        }
+        setApplyingClubId(clubId);
+        try {
+            await createClubApplication(clubId, 'PLAYER', null);
+            showActionMessage('Application submitted.', 'success');
+            setClubs((current) =>
+                current.map((c) => (c.id === clubId ? { ...c, relationshipState: 'APPLIED' as const } : c))
+            );
+        } catch (err) {
+            showActionMessage(extractApiErrorMessage(err, 'Failed to submit application.'), 'error');
+        } finally {
+            setApplyingClubId(null);
+        }
+    };
 
     const handleFollowToggle = async (event: React.MouseEvent, clubId: number) => {
         event.preventDefault();
@@ -200,6 +250,16 @@ export const BrowseClubsPage = () => {
                     </div>
                 )}
 
+                {actionMessage && (
+                    <div className={`border px-4 py-3 text-sm font-semibold ${
+                        actionMessageType === 'success'
+                            ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
+                            : 'border-rose-300/50 bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300'
+                    }`}>
+                        {actionMessage}
+                    </div>
+                )}
+
                 <section className="bg-surface border border-subtle">
                         <div className="hidden border-b border-subtle px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-secondary lg:grid lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1.6fr)_150px_170px_180px] lg:gap-4">
                         <span>Club</span>
@@ -268,6 +328,52 @@ export const BrowseClubsPage = () => {
                                         </div>
 
                                         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                                            {/* Join / Apply */}
+                                            {status === 'authenticated' && club.relationshipState === 'NONE' && club.joinPolicy === 'OPEN_TRIAL' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleJoinClub(club.id)}
+                                                    disabled={joiningClubId === club.id}
+                                                    className="inline-flex items-center gap-1.5 border border-accent-primary bg-accent-primary-soft px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] accent-primary disabled:opacity-60"
+                                                >
+                                                    {joiningClubId === club.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
+                                                    Join
+                                                </button>
+                                            )}
+                                            {status === 'authenticated' && club.relationshipState === 'NONE' && club.joinPolicy === 'APPLICATION_REQUIRED' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleApplyClub(club.id)}
+                                                    disabled={applyingClubId === club.id}
+                                                    className="inline-flex items-center gap-1.5 border border-accent-primary bg-accent-primary-soft px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] accent-primary disabled:opacity-60"
+                                                >
+                                                    {applyingClubId === club.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                                                    Apply
+                                                </button>
+                                            )}
+                                            {status === 'authenticated' && club.relationshipState === 'ACTIVE' && (
+                                                <span className="inline-flex items-center gap-1 border border-emerald-600 bg-emerald-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                                    <Check className="h-3 w-3" />
+                                                    Member
+                                                </span>
+                                            )}
+                                            {status === 'authenticated' && club.relationshipState === 'APPLIED' && (
+                                                <span className="inline-flex items-center gap-1 border border-amber-600 bg-amber-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+                                                    <Clock className="h-3 w-3" />
+                                                    Pending
+                                                </span>
+                                            )}
+                                            {status === 'authenticated' && club.relationshipState === 'INVITED' && (
+                                                <span className="inline-flex items-center gap-1 border border-sky-600 bg-sky-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
+                                                    Invited
+                                                </span>
+                                            )}
+                                            {status === 'authenticated' && club.relationshipState === 'TRIALIST' && (
+                                                <span className="inline-flex items-center gap-1 border border-purple-600 bg-purple-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-purple-700 dark:bg-purple-500/10 dark:text-purple-300">
+                                                    Trialist
+                                                </span>
+                                            )}
+
                                             <button
                                                 type="button"
                                                 onClick={(event) => handleFollowToggle(event, club.id)}

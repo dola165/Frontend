@@ -158,3 +158,12 @@ export const canReviewTryouts = (role?: string | null): role is ClubMembershipRo
     canManageClubOperations(role);
 
 export const isLegacyAgentMembershipRole = (role?: string | null) => role === 'AGENT';
+
+export interface MyClubMembership {
+    clubId: number;
+    clubName: string;
+    role: ClubMembershipRole;
+    status: PlayerAffiliationStatus;
+    primary: boolean;
+    logoUrl?: string | null;
+}

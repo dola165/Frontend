@@ -31,7 +31,7 @@ export const CharityPage = () => {
                                 </div>
                             </div>
 
-                            <button onClick={() => alert("Redirecting to official Talanti GoFundMe...")} className="w-full flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white py-4 rounded-xl font-black uppercase tracking-wider transition-colors">
+                            <button type="button" className="w-full flex items-center justify-center gap-2 bg-rose-500/60 cursor-not-allowed text-white py-4 rounded-xl font-black uppercase tracking-wider transition-colors" title="Donation portal coming soon">
                                 Donate Now <ArrowUpRight className="w-5 h-5" />
                             </button>
                         </div>

@@ -24,6 +24,7 @@ export const PostComposer = ({
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isExpanded, setIsExpanded] = useState(!compact);
+    const [submitError, setSubmitError] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLElement>(null);
 
@@ -93,11 +94,12 @@ export const PostComposer = ({
 
             setContent('');
             removeFile();
+            setSubmitError(false);
             onPostCreated();
             if (compact) setIsExpanded(false);
         } catch (error) {
             console.error('Failed to create post', error);
-            alert('Failed to publish update.');
+            setSubmitError(true);
         } finally {
             setIsSubmitting(false);
         }
@@ -161,6 +163,12 @@ export const PostComposer = ({
                         <CalendarPlus className="h-4 w-4" />
                         Event
                     </button>
+                </div>
+            )}
+
+            {submitError && (
+                <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 dark:border-rose-400/30 dark:bg-rose-500/10 dark:text-rose-300">
+                    Failed to publish update. Please try again.
                 </div>
             )}
         </section>

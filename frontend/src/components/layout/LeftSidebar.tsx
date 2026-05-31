@@ -1,17 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-    BellDot,
-    BellRing,
     Building2,
     CalendarDays,
-    ClipboardList,
     Compass,
-    Home,
     Map as MapIcon,
-    MessageSquare,
-    Shield,
-    Trophy,
     Users
 } from 'lucide-react';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
@@ -29,18 +22,12 @@ interface SidebarNavItem {
     id: string;
     path: string;
     label: string;
-    icon: typeof Home;
-    badge?: number;
-    badgeLabel?: string;
+    icon: typeof MapIcon;
 }
 
 const mainNavItems: SidebarNavItem[] = [
-    { id: 'feed', path: '/feed', label: 'Feed', icon: Home, badge: 0 },
     { id: 'map', path: '/map', label: 'Maps', icon: MapIcon },
-    { id: 'clubs', path: '/clubs', label: 'Clubs', icon: Shield, badge: 3 },
-    { id: 'calendar', path: '/calendar', label: 'Schedule', icon: CalendarDays },
-    { id: 'messages', path: '/messages', label: 'Messages', icon: MessageSquare, badge: 0 },
-    { id: 'notifications', path: '/notifications', label: 'Notifications', icon: BellRing, badge: 0 }
+    { id: 'calendar', path: '/calendar', label: 'Schedule', icon: CalendarDays }
 ];
 
 const initialsFrom = (value: string) =>
@@ -73,24 +60,11 @@ export const LeftSidebar = ({ user, myClubId }: LeftSidebarProps) => {
     return (
         <aside className="hidden lg:block">
             <div className="sticky top-[calc(var(--app-header-height)+12px)] flex flex-col gap-0.5">
-                {/* Sidebar header — dark surface, green used as accent only */}
-                <div className="mb-3 flex items-center justify-between rounded-xl bg-[var(--feed-sidebar-header-bg)] px-4 py-3">
-                    <div className="flex items-center gap-2">
-                        <BellDot className="h-5 w-5 text-[var(--feed-accent)]" />
-                        <span className="text-sm font-bold text-[var(--feed-text-primary)]">Notifications</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--feed-accent)] text-xs font-bold text-[var(--feed-accent-contrast)]">5</span>
-                        <span className="text-xs font-semibold text-[var(--feed-accent)]">New</span>
-                    </div>
-                </div>
-
-                {/* Main navigation */}
+                {/* Essential navigation — Map & Schedule (exceptions kept out of TopNav duplication rule) */}
                 <div className="flex flex-col gap-0.5">
                     {mainNavItems.map((item) => {
                         const active = activeKey === item.id;
                         const Icon = item.icon;
-                        const showBadge = item.badge != null && item.badge > 0;
 
                         return (
                             <Link
@@ -104,9 +78,6 @@ export const LeftSidebar = ({ user, myClubId }: LeftSidebarProps) => {
                                     </span>
                                     <span className="feed-side-link__title">{item.label}</span>
                                 </span>
-                                {showBadge && (
-                                    <span className="feed-side-link__badge">{item.badge}</span>
-                                )}
                             </Link>
                         );
                     })}
@@ -143,7 +114,7 @@ export const LeftSidebar = ({ user, myClubId }: LeftSidebarProps) => {
                     </>
                 )}
 
-                {/* Profile & Quick Links */}
+                {/* Profile */}
                 <div className="my-2 h-px bg-[var(--feed-divider)]" />
                 <div className="flex flex-col gap-0.5">
                     <Link
@@ -159,17 +130,6 @@ export const LeftSidebar = ({ user, myClubId }: LeftSidebarProps) => {
                                 )}
                             </span>
                             <span className="feed-side-link__title">{user?.fullName || user?.username || 'Your Profile'}</span>
-                        </span>
-                    </Link>
-                    <Link
-                        to="/tournaments/setup"
-                        className={`feed-side-link ${activeKey === 'tournament-setup' ? 'feed-side-link--active' : ''}`}
-                    >
-                        <span className="flex min-w-0 items-center gap-3">
-                            <span className="feed-side-link__visual">
-                                <Trophy className="h-4 w-4" />
-                            </span>
-                            <span className="feed-side-link__title">Event Setup</span>
                         </span>
                     </Link>
                 </div>
@@ -199,27 +159,6 @@ export const LeftSidebar = ({ user, myClubId }: LeftSidebarProps) => {
                         </div>
                     </>
                 )}
-
-                {/* Placeholder items */}
-                <div className="my-2 h-px bg-[var(--feed-divider)]" />
-                <div className="flex flex-col gap-0.5 opacity-50">
-                    <div className="feed-side-link cursor-not-allowed">
-                        <span className="flex min-w-0 items-center gap-3">
-                            <span className="feed-side-link__visual">
-                                <BellDot className="h-4 w-4" />
-                            </span>
-                            <span className="feed-side-link__title">Announcements</span>
-                        </span>
-                    </div>
-                    <div className="feed-side-link cursor-not-allowed">
-                        <span className="flex min-w-0 items-center gap-3">
-                            <span className="feed-side-link__visual">
-                                <ClipboardList className="h-4 w-4" />
-                            </span>
-                            <span className="feed-side-link__title">Surveys</span>
-                        </span>
-                    </div>
-                </div>
             </div>
         </aside>
     );

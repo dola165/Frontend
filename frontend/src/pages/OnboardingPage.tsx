@@ -1,28 +1,48 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient, refreshAccessToken } from '../api/axiosConfig';
-import { Activity, User, ChevronRight, Loader2, Target } from 'lucide-react';
+import { Activity, Building2, Camera, ChevronRight, Loader2, User } from 'lucide-react';
+
+const POSITION_OPTIONS = [
+    'Goalkeeper',
+    'Centre-Back',
+    'Left-Back',
+    'Right-Back',
+    'Defensive Midfield',
+    'Central Midfield',
+    'Attacking Midfield',
+    'Left Winger',
+    'Right Winger',
+    'Striker'
+] as const;
 
 export const OnboardingPage = () => {
     const navigate = useNavigate();
+    const avatarInputRef = useRef<HTMLInputElement>(null);
     const [step, setStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
     const [formData, setFormData] = useState({
         fullName: '',
-        role: 'PLAYER', // Default
+        role: 'PLAYER',
         position: '',
         preferredFoot: 'Right',
         heightCm: '',
         weightKg: '',
-        bio: ''
+        bio: '',
+        avatarUrl: ''
     });
+
+    const [fetchedUsername, setFetchedUsername] = useState('');
 
     useEffect(() => {
         // Fetch existing data (like if Google provided their real name)
         apiClient.get('/users/me').then(res => {
             const existingName = res.data.fullName || res.data.name;
             const existingRole = res.data.role;
+            const existingUsername = res.data.username;
+            if (existingUsername) setFetchedUsername(existingUsername);
             if (existingName && existingName !== 'New User') {
                 setFormData(prev => ({ ...prev, fullName: existingName }));
             }
@@ -34,16 +54,64 @@ export const OnboardingPage = () => {
 
 
 
-    const handleComplete = async () => {
+    const submitProfile = async () => {
         setIsLoading(true);
         try {
-            await apiClient.put('/users/me/profile', formData);
+            await apiClient.put('/users/me/profile', {
+                fullName: formData.fullName,
+                role: formData.role,
+                position: formData.position || undefined,
+                preferredFoot: formData.preferredFoot,
+                heightCm: formData.heightCm ? Number(formData.heightCm) : undefined,
+                weightKg: formData.weightKg ? Number(formData.weightKg) : undefined,
+                bio: formData.bio || undefined,
+                avatarUrl: formData.avatarUrl || undefined
+            });
             await refreshAccessToken();
+            const destination = formData.role === 'ORGANIZER' ? '/my-club' : '/feed';
+            navigate(destination);
+        } catch {
             navigate('/feed');
-        } catch (err) {
-            console.error("Onboarding sync failed", err);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleSkip = async () => {
+        setIsLoading(true);
+        try {
+            if (formData.fullName.trim()) {
+                await apiClient.put('/users/me/profile', {
+                    fullName: formData.fullName,
+                    role: formData.role
+                });
+                await refreshAccessToken();
+            }
+            const destination = formData.role === 'ORGANIZER' ? '/my-club' : '/feed';
+            navigate(destination);
+        } catch {
+            navigate('/feed');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const uploadAvatar = async (file: File) => {
+        const body = new FormData();
+        body.append('file', file);
+        setUploadingAvatar(true);
+        try {
+            const response = await apiClient.post<{ url?: string }>('/media/upload', body, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                params: { context: 'avatar' }
+            });
+            if (response.data?.url) {
+                setFormData(prev => ({ ...prev, avatarUrl: response.data.url! }));
+            }
+        } catch {
+            // Ignore upload failure, user can add later
+        } finally {
+            setUploadingAvatar(false);
         }
     };
 
@@ -53,6 +121,9 @@ export const OnboardingPage = () => {
 
                 <div className="mb-8 border-b-2 border-gray-200 dark:border-gray-700 pb-6">
                     <h1 className="text-4xl font-serif font-bold tracking-tighter italic uppercase mb-2">Establish Your Identity</h1>
+                    {fetchedUsername && (
+                        <p className="text-sm text-[#00c853] font-bold uppercase tracking-wide mb-1">Your handle: @{fetchedUsername}</p>
+                    )}
                     <p className="text-gray-500 font-serif italic text-sm">The database needs your credentials before granting network access.</p>
                 </div>
 
@@ -62,6 +133,7 @@ export const OnboardingPage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                             {[
                                 { id: 'PLAYER', icon: Activity, label: 'Player', desc: 'Seeking clubs & tryouts' },
+                                { id: 'ORGANIZER', icon: Building2, label: 'Organizer', desc: 'Building a club or squad' },
                                 { id: 'FAN', icon: User, label: 'Supporter', desc: 'Following the action' }
                             ].map(role => (
                                 <button
@@ -87,24 +159,37 @@ export const OnboardingPage = () => {
                             />
                         </div>
 
-                        <button
-                            onClick={() => setStep(2)}
-                            disabled={!formData.fullName.trim()}
-                            className="w-full bg-[#1a1a1a] dark:bg-white text-white dark:text-[#1a1a1a] hover:bg-gray-800 dark:hover:bg-gray-200 font-black uppercase tracking-widest py-4 rounded-xl border-2 border-[#1a1a1a] dark:border-transparent shadow-[4px_4px_0px_0px_#00c853] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                        >
-                            Next Phase <ChevronRight className="w-5 h-5" />
-                        </button>
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => setStep(2)}
+                                disabled={!formData.fullName.trim()}
+                                className="w-full bg-[#1a1a1a] dark:bg-white text-white dark:text-[#1a1a1a] hover:bg-gray-800 dark:hover:bg-gray-200 font-black uppercase tracking-widest py-4 rounded-xl border-2 border-[#1a1a1a] dark:border-transparent shadow-[4px_4px_0px_0px_#00c853] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                Next Phase <ChevronRight className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={handleSkip}
+                                className="w-full py-3 rounded-xl font-bold uppercase tracking-widest text-sm text-gray-500 hover:text-[#1a1a1a] dark:hover:text-white transition-colors"
+                            >
+                                Skip for Now
+                            </button>
+                        </div>
                     </div>
                 )}
 
                 {step === 2 && (
                     <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                        {formData.role === 'PLAYER' ? (
+                        {formData.role === 'PLAYER' && (
                             <>
                                 <div className="grid grid-cols-2 gap-4 mb-4">
                                     <div>
                                         <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Primary Position</label>
-                                        <input type="text" value={formData.position} onChange={(e) => setFormData({...formData, position: e.target.value})} className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none font-bold" placeholder="E.g. CAM, CB, ST" />
+                                        <select value={formData.position} onChange={(e) => setFormData({...formData, position: e.target.value})} className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none font-bold appearance-none">
+                                            <option value="">Select position</option>
+                                            {POSITION_OPTIONS.map(p => (
+                                                <option key={p} value={p}>{p}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Strong Foot</label>
@@ -118,20 +203,61 @@ export const OnboardingPage = () => {
                                 <div className="grid grid-cols-2 gap-4 mb-6">
                                     <div>
                                         <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Height (cm)</label>
-                                        <input type="number" value={formData.heightCm} onChange={(e) => setFormData({...formData, heightCm: e.target.value})} className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none font-bold" placeholder="185" />
+                                        <input type="number" value={formData.heightCm} onChange={(e) => setFormData({...formData, heightCm: e.target.value})} min={100} max={250} className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none font-bold" placeholder="185" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Weight (kg)</label>
-                                        <input type="number" value={formData.weightKg} onChange={(e) => setFormData({...formData, weightKg: e.target.value})} className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none font-bold" placeholder="78" />
+                                        <input type="number" value={formData.weightKg} onChange={(e) => setFormData({...formData, weightKg: e.target.value})} min={30} max={250} className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none font-bold" placeholder="78" />
                                     </div>
                                 </div>
                             </>
-                        ) : (
-                            <div className="mb-6 p-6 bg-slate-50 dark:bg-slate-900 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 flex flex-col items-center justify-center text-center">
-                                <Target className="w-8 h-8 text-gray-400 mb-2" />
-                                <p className="text-sm font-bold text-gray-500">Additional specific parameters will be unlocked in the Command Center after initialization.</p>
+                        )}
+                        {formData.role === 'ORGANIZER' && (
+                            <div className="mb-6 p-6 bg-[#00c853]/5 dark:bg-[#00c853]/10 rounded-xl border-2 border-dashed border-[#00c853] flex flex-col items-center justify-center text-center">
+                                <Building2 className="w-10 h-10 text-[#00c853] mb-3" />
+                                <p className="text-sm font-bold text-gray-800 dark:text-gray-200">Ready to build your club?</p>
+                                <p className="mt-2 text-xs text-gray-500 max-w-md">After setup you'll be taken to your <strong>My Club</strong> workspace, where you can create your squad, manage rosters, schedule matches, and invite players.</p>
                             </div>
                         )}
+                        {formData.role === 'FAN' && (
+                            <div className="mb-6 p-6 bg-slate-50 dark:bg-slate-900 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 flex flex-col items-center justify-center text-center">
+                                <p className="text-sm font-bold text-gray-600 dark:text-gray-300">Fan Profile</p>
+                                <p className="mt-2 text-xs text-gray-500">You can customize your experience and follow clubs from your Account page after setup.</p>
+                            </div>
+                        )}
+
+                        <div className="mb-6 flex flex-col items-center gap-3">
+                            <input
+                                ref={avatarInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) uploadAvatar(file);
+                                    e.target.value = '';
+                                }}
+                            />
+                            <div
+                                onClick={() => avatarInputRef.current?.click()}
+                                className={`flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed transition-colors ${
+                                    formData.avatarUrl
+                                        ? 'border-[#00c853]'
+                                        : 'border-gray-300 dark:border-gray-600 hover:border-[#00c853]'
+                                }`}
+                            >
+                                {uploadingAvatar ? (
+                                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                                ) : formData.avatarUrl ? (
+                                    <img src={formData.avatarUrl} alt="Avatar preview" className="h-full w-full object-cover" />
+                                ) : (
+                                    <Camera className="h-6 w-6 text-gray-400" />
+                                )}
+                            </div>
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                                {formData.avatarUrl ? 'Tap to change profile picture' : 'Tap to add profile picture'}
+                            </p>
+                        </div>
 
                         <div className="mb-8">
                             <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Personal Manifesto / Bio</label>
@@ -143,16 +269,25 @@ export const OnboardingPage = () => {
                             />
                         </div>
 
-                        <div className="flex gap-4">
-                            <button onClick={() => setStep(1)} className="px-6 py-4 rounded-xl border-2 border-gray-300 dark:border-gray-600 font-black uppercase tracking-widest text-gray-500 hover:text-[#1a1a1a] dark:hover:text-white transition-colors">
-                                Back
-                            </button>
+                        <div className="flex flex-col gap-3">
+                            <div className="flex gap-4">
+                                <button onClick={() => setStep(1)} className="px-6 py-4 rounded-xl border-2 border-gray-300 dark:border-gray-600 font-black uppercase tracking-widest text-gray-500 hover:text-[#1a1a1a] dark:hover:text-white transition-colors">
+                                    Back
+                                </button>
+                                <button
+                                    onClick={submitProfile}
+                                    disabled={isLoading}
+                                    className="flex-1 bg-[#00c853] hover:bg-[#00e676] text-black font-black uppercase tracking-widest py-4 rounded-xl border-2 border-[#1a1a1a] dark:border-transparent shadow-[4px_4px_0px_0px_#1a1a1a] dark:shadow-[4px_4px_0px_0px_#000] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2"
+                                >
+                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Commit to Database'}
+                                </button>
+                            </div>
                             <button
-                                onClick={handleComplete}
+                                onClick={handleSkip}
                                 disabled={isLoading}
-                                className="flex-1 bg-[#00c853] hover:bg-[#00e676] text-black font-black uppercase tracking-widest py-4 rounded-xl border-2 border-[#1a1a1a] dark:border-transparent shadow-[4px_4px_0px_0px_#1a1a1a] dark:shadow-[4px_4px_0px_0px_#000] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2"
+                                className="w-full py-3 rounded-xl font-bold uppercase tracking-widest text-sm text-gray-500 hover:text-[#1a1a1a] dark:hover:text-white transition-colors"
                             >
-                                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Commit to Database'}
+                                Skip for Now
                             </button>
                         </div>
                     </div>

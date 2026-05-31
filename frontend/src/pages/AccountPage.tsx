@@ -457,7 +457,12 @@ export const AccountPage = () => {
                             {account.role === 'PLAYER' && (
                                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                                     <Field label="Primary Position">
-                                        <input value={form.position} onChange={(event) => updateForm('position', event.target.value)} className={inputClass} />
+                                        <select value={form.position} onChange={(event) => updateForm('position', event.target.value)} className={inputClass}>
+                                            <option value="">Select position</option>
+                                            {['Goalkeeper','Centre-Back','Left-Back','Right-Back','Defensive Midfield','Central Midfield','Attacking Midfield','Left Winger','Right Winger','Striker'].map(p => (
+                                                <option key={p} value={p}>{p}</option>
+                                            ))}
+                                        </select>
                                     </Field>
                                     <Field label="Secondary Position">
                                         <input value={form.secondaryPosition} onChange={(event) => updateForm('secondaryPosition', event.target.value)} className={inputClass} />

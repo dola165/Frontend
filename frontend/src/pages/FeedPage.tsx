@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Megaphone } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { Compass, Megaphone, Search } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { FeedList } from '../components/feed/FeedList';
 import { type CommentDto, type FeedPostDto } from '../components/feed/FeedPost';
@@ -19,6 +19,9 @@ export const FeedPage = () => {
     const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
     const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
     const [selectedPost, setSelectedPost] = useState<FeedPostDto | null>(null);
+    const [showWelcomeBanner, setShowWelcomeBanner] = useState(
+        () => !localStorage.getItem('hasSeenWelcomeBanner')
+    );
     const feedView = resolveFeedView(searchParams.get('view'));
     const isFollowingView = feedView === 'following';
 
@@ -99,8 +102,8 @@ export const FeedPage = () => {
             if (selectedPost?.id === postId) {
                 setSelectedPost((prev) => (prev ? { ...prev, commentCount: prev.commentCount + 1 } : null));
             }
-        } catch {
-            alert('Failed to post comment.');
+        } catch (error) {
+            console.error('Failed to post comment', error);
         }
     };
 
@@ -114,6 +117,28 @@ export const FeedPage = () => {
 
     return (
         <div className="mx-auto flex w-full max-w-[680px] flex-col gap-3">
+            {showWelcomeBanner && (
+                <div className="rounded-xl border border-[var(--feed-accent)] bg-[var(--feed-accent)]/5 px-5 py-4">
+                    <div className="flex items-start justify-between gap-3">
+                        <div>
+                            <p className="text-sm font-semibold text-[var(--feed-text-primary)]">Welcome to your feed</p>
+                            <p className="mt-1 text-xs text-[var(--feed-text-secondary)]">
+                                Use the sidebar to explore clubs, browse the map, and find people to follow. Your feed fills up as you connect with the network.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                localStorage.setItem('hasSeenWelcomeBanner', '1');
+                                setShowWelcomeBanner(false);
+                            }}
+                            className="shrink-0 text-xs font-semibold text-[var(--feed-accent)] hover:underline"
+                        >
+                            Got it
+                        </button>
+                    </div>
+                </div>
+            )}
             <PostComposer compact onPostCreated={loadFeed} />
 
             <StoriesRail />
@@ -136,6 +161,22 @@ export const FeedPage = () => {
                         <Megaphone className="mx-auto h-10 w-10 text-[var(--feed-icon-muted)]" />
                         <h3 className="mt-4 text-lg font-semibold text-[var(--feed-text-primary)]">{feedMeta.emptyTitle}</h3>
                         <p className="mt-2 text-sm text-[var(--feed-text-secondary)]">{feedMeta.emptyText}</p>
+                        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                            <Link
+                                to="/clubs"
+                                className="inline-flex items-center gap-2 rounded-full bg-[var(--feed-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--feed-accent-contrast)] transition-colors hover:bg-[var(--feed-accent-hover)]"
+                            >
+                                <Search className="h-4 w-4" />
+                                Find Clubs
+                            </Link>
+                            <Link
+                                to="/map"
+                                className="inline-flex items-center gap-2 rounded-full border border-[var(--feed-card-border)] bg-[var(--feed-layer-bg)] px-5 py-2.5 text-sm font-semibold text-[var(--feed-text-primary)] transition-colors hover:border-[var(--feed-accent)]"
+                            >
+                                <Compass className="h-4 w-4" />
+                                Browse Map
+                            </Link>
+                        </div>
                     </div>
                 )}
                 className="gap-3"

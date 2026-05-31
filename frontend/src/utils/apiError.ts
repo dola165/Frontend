@@ -1,9 +1,15 @@
 export const extractApiErrorMessage = (error: unknown, fallback = 'Something went wrong.') => {
     const maybeError = error as {
         response?: {
+            status?: number;
             data?: unknown;
+            headers?: Record<string, string>;
         };
     };
+
+    if (maybeError.response?.status === 429) {
+        return 'Too many attempts. Please wait a moment and try again.';
+    }
 
     const payload = maybeError.response?.data;
     if (typeof payload === 'string' && payload.trim()) {

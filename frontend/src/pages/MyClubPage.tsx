@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Building2, Loader2, PlusCircle } from 'lucide-react';
-import { CreateClubModal } from '../components/club/CreateClubModal';
+import { ArrowRight, Building2, Loader2, PlusCircle, Search, Users } from 'lucide-react';
 import { EntityHeaderBand, EntityPageLayout, EntitySection } from '../components/layout/EntityPageLayout';
 import { fetchMyClubMembershipContext } from '../features/clubs/api';
 import type { ClubMembershipContext } from '../features/clubs/domain';
 import { MyClubInvitationsPanel } from '../features/invites/components/MyClubInvitationsPanel';
+import { useAuth } from '../context/AuthContext';
 
 export const MyClubPage = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const userRole = user?.role;
     const [loading, setLoading] = useState(true);
     const [membershipContext, setMembershipContext] = useState<ClubMembershipContext | null>(null);
-    const [isCreateClubOpen, setIsCreateClubOpen] = useState(false);
 
     useEffect(() => {
         fetchMyClubMembershipContext()
@@ -40,6 +41,7 @@ export const MyClubPage = () => {
     }
 
     const canCreateClub = Boolean(membershipContext?.canCreateClub);
+    const hasNoClub = !membershipContext?.clubId;
 
     return (
         <div className="bg-base min-h-full">
@@ -49,7 +51,11 @@ export const MyClubPage = () => {
                         <p className="text-[11px] font-black uppercase tracking-[0.2em] accent-primary">Club Workspace Router</p>
                         <h1 className="mt-2 text-3xl font-black uppercase tracking-tight text-primary">My Club</h1>
                         <p className="mt-3 max-w-3xl text-sm leading-6 text-secondary">
-                            This destination opens your managed club when one exists. When it does not, the page stays as a structured holding workspace for invitation review and club creation.
+                            {userRole === 'ORGANIZER'
+                                ? 'This is your club command center. Create and manage your organization, review invitations, and build your squad.'
+                                : userRole === 'PLAYER'
+                                ? 'Find clubs to join, browse your invitations, and connect with teams looking for players like you.'
+                                : 'Discover fan clubs, follow your favorite teams, and connect with fellow supporters.'}
                         </p>
                     </div>
 
@@ -97,38 +103,72 @@ export const MyClubPage = () => {
                         </EntitySection>
                     </div>
                 )}
-                center={<MyClubInvitationsPanel onInvitationAccepted={(invitation) => navigate(`/clubs/${invitation.clubId}`)} />}
+                center={
+                    <div className="flex flex-col gap-6">
+                        {hasNoClub && userRole === 'ORGANIZER' && canCreateClub && (
+                            <EntitySection bodyClassName="px-8 py-10 flex flex-col items-center text-center">
+                                <div className="flex h-16 w-16 items-center justify-center border-2 border-accent-primary bg-accent-primary-soft mb-5">
+                                    <Building2 className="h-8 w-8 accent-primary" />
+                                </div>
+                                <h2 className="text-xl font-black uppercase tracking-tight text-primary">Create Your Club</h2>
+                                <p className="mt-3 max-w-lg text-sm leading-6 text-secondary">
+                                    Set up your squad, manage rosters, schedule matches, and invite players — all from your club workspace.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/clubs/create')}
+                                    className="mt-6 inline-flex items-center gap-2 border border-accent-primary bg-accent-primary-soft px-6 py-3 text-sm font-black uppercase tracking-[0.16em] accent-primary hover:brightness-110 transition-all"
+                                >
+                                    <PlusCircle className="h-4 w-4" />
+                                    Create Club
+                                </button>
+                            </EntitySection>
+                        )}
+                        {hasNoClub && userRole === 'PLAYER' && (
+                            <EntitySection bodyClassName="px-8 py-10 flex flex-col items-center text-center">
+                                <div className="flex h-16 w-16 items-center justify-center border-2 border-accent-primary bg-accent-primary-soft mb-5">
+                                    <Search className="h-8 w-8 accent-primary" />
+                                </div>
+                                <h2 className="text-xl font-black uppercase tracking-tight text-primary">Find Your Club</h2>
+                                <p className="mt-3 max-w-lg text-sm leading-6 text-secondary">
+                                    Browse clubs looking for players, respond to tryout invitations, and find the right team for your position and ambitions.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/clubs')}
+                                    className="mt-6 inline-flex items-center gap-2 border border-accent-primary bg-accent-primary-soft px-6 py-3 text-sm font-black uppercase tracking-[0.16em] accent-primary hover:brightness-110 transition-all"
+                                >
+                                    <Search className="h-4 w-4" />
+                                    Browse Clubs
+                                </button>
+                            </EntitySection>
+                        )}
+                        {hasNoClub && userRole === 'FAN' && (
+                            <EntitySection bodyClassName="px-8 py-10 flex flex-col items-center text-center">
+                                <div className="flex h-16 w-16 items-center justify-center border-2 border-accent-primary bg-accent-primary-soft mb-5">
+                                    <Users className="h-8 w-8 accent-primary" />
+                                </div>
+                                <h2 className="text-xl font-black uppercase tracking-tight text-primary">Fan Clubs</h2>
+                                <p className="mt-3 max-w-lg text-sm leading-6 text-secondary">
+                                    Join fanmade supporter groups, follow your favorite clubs, and connect with fellow fans. Fan club creation is coming soon.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/clubs')}
+                                    className="mt-6 inline-flex items-center gap-2 border border-accent-primary bg-accent-primary-soft px-6 py-3 text-sm font-black uppercase tracking-[0.16em] accent-primary hover:brightness-110 transition-all"
+                                >
+                                    <Search className="h-4 w-4" />
+                                    Discover Clubs
+                                </button>
+                            </EntitySection>
+                        )}
+                        <MyClubInvitationsPanel onInvitationAccepted={(invitation) => navigate(`/clubs/${invitation.clubId}`)} />
+                    </div>
+                }
                 right={(
                     <div className="flex flex-col gap-4 xl:sticky xl:top-[calc(var(--app-header-height)+24px)]">
                         <EntitySection eyebrow="Utility Layer" title="Workspace Actions" bodyClassName="px-4 py-4">
-                            <div className="flex items-start gap-3">
-                                <div className="flex h-10 w-10 items-center justify-center border border-subtle bg-base">
-                                    <Building2 className="h-4 w-4 accent-primary" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-black uppercase tracking-[0.16em] text-primary">
-                                        {canCreateClub ? 'Create or browse' : 'Browse existing clubs'}
-                                    </p>
-                                    <p className="mt-2 text-sm leading-6 text-secondary">
-                                        Use the right rail for club creation and directory actions while the center stays focused on invite decisions.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="mt-4 flex flex-col gap-2">
-                                {canCreateClub && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsCreateClubOpen(true)}
-                                        className="inline-flex items-center justify-between gap-2 border border-accent-primary bg-accent-primary-soft px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary"
-                                    >
-                                        <span className="inline-flex items-center gap-2">
-                                            <PlusCircle className="h-3.5 w-3.5" />
-                                            Create Club
-                                        </span>
-                                        <ArrowRight className="h-3.5 w-3.5" />
-                                    </button>
-                                )}
+                            <div className="flex flex-col gap-2">
                                 <button
                                     type="button"
                                     onClick={() => navigate('/clubs')}
@@ -137,24 +177,10 @@ export const MyClubPage = () => {
                                     <span>Browse Clubs</span>
                                     <ArrowRight className="h-3.5 w-3.5" />
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={() => navigate('/tournaments/setup')}
-                                    className="inline-flex items-center justify-between gap-2 border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary"
-                                >
-                                    <span>Tournament Setup</span>
-                                    <ArrowRight className="h-3.5 w-3.5" />
-                                </button>
                             </div>
                         </EntitySection>
                     </div>
                 )}
-            />
-
-            <CreateClubModal
-                isOpen={isCreateClubOpen}
-                onClose={() => setIsCreateClubOpen(false)}
-                onCreated={(clubId) => navigate(`/clubs/${clubId}`)}
             />
         </div>
     );

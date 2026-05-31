@@ -14,7 +14,7 @@ export const RegisterPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [role, setRole] = useState<'PLAYER' | 'FAN'>('PLAYER');
+    const [role, setRole] = useState<'PLAYER' | 'FAN' | 'ORGANIZER'>('PLAYER');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '/feed');
@@ -82,15 +82,16 @@ export const RegisterPage = () => {
                         </div>
                         <div>
                             <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Starting Role</label>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-3 gap-2">
                                 {[
-                                    { id: 'PLAYER', label: 'Player', desc: 'Seeking clubs and tryouts' },
-                                    { id: 'FAN', label: 'Fan', desc: 'Following clubs and content' }
+                                    { id: 'PLAYER', label: 'Player', desc: 'Seeking clubs & tryouts' },
+                                    { id: 'ORGANIZER', label: 'Organizer', desc: 'Building a club or squad' },
+                                    { id: 'FAN', label: 'Fan', desc: 'Following the action' }
                                 ].map((option) => (
                                     <button
                                         type="button"
                                         key={option.id}
-                                        onClick={() => setRole(option.id as 'PLAYER' | 'FAN')}
+                                        onClick={() => setRole(option.id as 'PLAYER' | 'FAN' | 'ORGANIZER')}
                                         className={`rounded-xl border-2 px-4 py-4 text-left transition-all ${
                                             role === option.id
                                                 ? 'border-[#00c853] bg-[#00c853]/10 dark:bg-[#00c853]/10 shadow-[4px_4px_0px_0px_#00c853]'
@@ -110,9 +111,11 @@ export const RegisterPage = () => {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
+                                minLength={6}
                                 className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#00c853] font-medium transition-colors"
                                 placeholder="********"
                             />
+                            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">At least 6 characters</p>
                         </div>
                         <div>
                             <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Confirm Password</label>
@@ -151,7 +154,8 @@ export const RegisterPage = () => {
                                 setIsLoading(true);
                                 try {
                                     const res = await apiClient.post('/auth/google', {
-                                        token: credentialResponse.credential
+                                        token: credentialResponse.credential,
+                                        role
                                     });
 
                                     const authenticatedUser = await loginWithAccessToken(res.data.accessToken);

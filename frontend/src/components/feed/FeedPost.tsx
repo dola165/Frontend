@@ -47,6 +47,7 @@ export const FeedPost = ({
     compact = false
 }: FeedPostProps) => {
     const [commentInput, setCommentInput] = useState('');
+    const [shareFeedback, setShareFeedback] = useState('');
 
     const formatTime = (dateString: string) =>
         new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -72,14 +73,15 @@ export const FeedPost = ({
             }
             if (navigator.clipboard?.writeText) {
                 await navigator.clipboard.writeText(`${shareText}\n\n${shareUrl}`);
-                alert('Post details copied to clipboard.');
+                setShareFeedback('Copied to clipboard.');
+                setTimeout(() => setShareFeedback(''), 2000);
                 return;
             }
         } catch (error) {
             console.error('Share failed', error);
             return;
         }
-        alert('Sharing is not available on this device yet.');
+        console.warn('Share API and clipboard unavailable on this device.');
     };
 
     const mediaList = post.mediaUrls && post.mediaUrls.length > 0 ? post.mediaUrls : post.image ? [post.image] : [];
@@ -182,6 +184,10 @@ export const FeedPost = ({
                     onClick={handleShare}
                 />
             </div>
+
+            {shareFeedback && (
+                <div className="px-4 pb-1 text-xs font-medium text-[var(--feed-accent)]">{shareFeedback}</div>
+            )}
 
             {isCommentsOpen && (
                 <div className="border-t border-[var(--feed-card-border)] bg-[var(--feed-surface)] px-4 py-3">

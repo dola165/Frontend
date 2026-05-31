@@ -257,14 +257,7 @@ export const TournamentSetupPage = () => {
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">No organizer selected. Choose one from existing organizations or create a new one.</p>
-                                        <Link
-                                            to="/organizations/create"
-                                            className="inline-flex items-center gap-2 rounded-full bg-[#00c853] px-4 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[#00e676]"
-                                        >
-                                            <Plus className="h-4 w-4" />
-                                            Create Organization
-                                        </Link>
+                                        <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">No organizer selected. Choose one from your existing organizations to set up an event.</p>
                                     </div>
                                 )}
                             </div>
@@ -289,24 +282,14 @@ export const TournamentSetupPage = () => {
                             ) : (
                                 <div className="p-6">
                                     <form onSubmit={handleSubmit} className="space-y-0">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="text-sm font-semibold text-[#1f6feb]">Event Details</p>
-                                                <p className="text-sm text-slate-500 dark:text-slate-400">Organizer, optional host club, and core event configuration.</p>
-                                            </div>
-                                            <Link
-                                                to="/organizations/create"
-                                                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-                                            >
-                                                <Plus className="h-3.5 w-3.5" />
-                                                New Org
-                                            </Link>
+                                        <div>
+                                            <p className="text-sm font-semibold text-[#1f6feb]">Event Details</p>
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Organizer, optional host club, and core event configuration.</p>
                                         </div>
 
                                         {eventReadyOrganizations.length === 0 ? (
                                             <div className="mt-6 rounded-2xl border border-slate-200 bg-[#f2f4f7] p-5 text-sm leading-6 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                                                No organization with event-creation access is available yet.
-                                                <Link to="/organizations/create" className="ml-1 font-semibold text-[#1f6feb] hover:underline">Create one first</Link>.
+                                                No organization with event-creation access is available yet. Organizations are managed through your club workspace.
                                             </div>
                                         ) : (
                                             <div className="mt-6 grid gap-5 md:grid-cols-2">

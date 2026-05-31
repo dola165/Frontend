@@ -298,7 +298,7 @@ export const ClubProfilePage = () => {
                 club={club}
             />
 
-            <div className="mx-auto max-w-[1240px] px-4 pb-10 pt-4 sm:px-6">
+            <div className="mx-auto w-full px-6 pb-10 pt-4 sm:px-8">
                 {!club.isStaffMember && !hasPlayerAffiliation ? (
                     <div className="mb-4">
                         <ClubApplicationPanel
@@ -325,7 +325,7 @@ export const ClubProfilePage = () => {
                     </div>
                 ) : null}
 
-                <div className="mt-6 grid gap-5 lg:grid-cols-[272px_minmax(0,1fr)] xl:grid-cols-[272px_minmax(0,700px)_272px] xl:items-start xl:justify-center">
+                <div className="mt-6 grid gap-5 lg:grid-cols-[272px_minmax(0,720px)] lg:justify-center xl:grid-cols-[272px_minmax(0,700px)_272px] xl:items-start xl:justify-center">
                     <div className="hidden lg:block">
                         <ClubProfileInfoPanel club={club} />
                     </div>
@@ -335,7 +335,7 @@ export const ClubProfilePage = () => {
                             <ClubProfileInfoPanel club={club} />
                         </div>
 
-                        {activeTab === 'overview' && <TabOverview club={club} isOwnClubAdmin={isOwnClubAdmin} />}
+                        {activeTab === 'overview' && <TabOverview club={club} isOwnClubAdmin={isOwnClubAdmin} onOpenManageClub={(tab) => openManageClub(tab)} />}
                         {activeTab === 'honours' && <TabHonours club={club} />}
                         {activeTab === 'teams' && <TabTeams clubId={club.id} refreshKey={squadsRefreshKey} />}
                         {activeTab === 'schedule' && <TabCalendar clubId={club.id} isOwnClubAdmin={isOwnClubAdmin} />}

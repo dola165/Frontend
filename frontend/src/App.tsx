@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react';
 import { BrowserRouter as Router, Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { Bot, ExternalLink, Send, X } from 'lucide-react';
+import { ExternalLink, Send, X } from 'lucide-react';
 import { TopNav } from './components/layout/TopNav';
 import { LeftSidebar } from './components/layout/LeftSidebar';
 import { RightSidebar } from './components/layout/RightSidebar';
@@ -30,6 +30,7 @@ import { TournamentSetupPage } from './pages/TournamentSetupPage';
 import { TournamentWorkspacePage } from './pages/TournamentWorkspacePage';
 import { BrowseTournamentsPage } from './pages/BrowseTournamentsPage';
 import { CreateOrganizationPage } from './pages/CreateOrganizationPage';
+import { CreateClubPage } from './pages/CreateClubPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { buildLoginRedirectPath, resolvePostAuthRedirect } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
@@ -187,7 +188,7 @@ function MainLayout() {
     const isChromeFreeWorkspace = isCalendarWorkspace || isMapWorkspace;
     const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads)?$/.test(location.pathname);
     const isFullScreenPage =
-        ['/map', '/messages', '/store', '/charity', '/clubs', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin', '/tournaments', '/tournaments/setup'].includes(location.pathname) ||
+        ['/map', '/messages', '/store', '/charity', '/clubs', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin', '/tournaments', '/tournaments/setup'].includes(location.pathname) ||
         location.pathname.startsWith('/profile') ||
         location.pathname.startsWith('/organizations') ||
         /^\/tournaments\/\d+\/workspace$/.test(location.pathname) ||
@@ -240,6 +241,7 @@ function MainLayout() {
                         <Route path="/profile/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
                         <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
                         <Route path="/clubs/:id" element={<ClubProfilePage />} />
+                        <Route path="/clubs/create" element={<ProtectedRoute><CreateClubPage /></ProtectedRoute>} />
                         <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
                         <Route path="/store" element={<ProtectedRoute><StorePage /></ProtectedRoute>} />
                         <Route path="/charity" element={<ProtectedRoute><CharityPage /></ProtectedRoute>} />
@@ -314,18 +316,6 @@ function MainLayout() {
                 </div>
             )}
 
-            {location.pathname === '/feed' && (
-                <div className="fixed bottom-6 right-6 z-[8000]">
-                    <button
-                        type="button"
-                        disabled
-                        title="Talanti AI stays intentionally deferred for a later phase."
-                        className="flex h-11 w-11 cursor-not-allowed items-center justify-center rounded-full border border-slate-200 bg-white opacity-60 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-                    >
-                        <Bot className="h-5 w-5 text-slate-400" />
-                    </button>
-                </div>
-            )}
         </div>
     );
 }

@@ -5,7 +5,6 @@ import { apiClient } from '../api/axiosConfig';
 import { createClubApplication, fetchMyClubMembershipContext, selfRegisterClubPlayer } from '../features/clubs/api';
 import type { ClubMembershipContext } from '../features/clubs/domain';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
-import { CreateClubModal } from '../components/club/CreateClubModal';
 import { useAuth } from '../context/AuthContext';
 import { buildLoginRedirectPath } from '../utils/authRedirect';
 import { extractApiErrorMessage } from '../utils/apiError';
@@ -32,7 +31,6 @@ export const BrowseClubsPage = () => {
     const [clubs, setClubs] = useState<ClubProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [membershipContext, setMembershipContext] = useState<ClubMembershipContext | null>(null);
-    const [isCreateClubOpen, setIsCreateClubOpen] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [applyingClubId, setApplyingClubId] = useState<number | null>(null);
     const [joiningClubId, setJoiningClubId] = useState<number | null>(null);
@@ -177,7 +175,7 @@ export const BrowseClubsPage = () => {
 
     return (
         <div className="bg-base min-h-full">
-            <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+            <div className="mx-auto flex w-full flex-col gap-6 px-6 py-6 sm:px-8">
                 <header className="border-b border-subtle pb-5">
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                         <div>
@@ -222,7 +220,7 @@ export const BrowseClubsPage = () => {
                                 ) : membershipContext?.canCreateClub ? (
                                     <button
                                         type="button"
-                                        onClick={() => setIsCreateClubOpen(true)}
+                                        onClick={() => navigate('/clubs/create')}
                                         className="inline-flex items-center gap-2 border border-accent-primary bg-accent-primary-soft px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary"
                                     >
                                         <Plus className="h-3.5 w-3.5" />
@@ -402,12 +400,6 @@ export const BrowseClubsPage = () => {
                     )}
                 </section>
             </div>
-
-            <CreateClubModal
-                isOpen={isCreateClubOpen}
-                onClose={() => setIsCreateClubOpen(false)}
-                onCreated={(clubId) => navigate(`/clubs/${clubId}`)}
-            />
         </div>
     );
 };

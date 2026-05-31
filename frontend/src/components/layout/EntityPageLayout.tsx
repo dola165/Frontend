@@ -31,7 +31,7 @@ interface EntitySectionProps {
     bodyClassName?: string;
 }
 
-const entityFrameBaseClassName = 'mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-8';
+const entityFrameBaseClassName = 'mx-auto w-full px-6 sm:px-8';
 
 export const EntityFrame = ({ children, className = '' }: EntityFrameProps) => (
     <div className={`${entityFrameBaseClassName} ${className}`.trim()}>{children}</div>

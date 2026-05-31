@@ -113,6 +113,7 @@ export const UserProfilePage = () => {
     const bannerInputRef = useRef<HTMLInputElement>(null);
     const avatarInputRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState<'banner' | 'avatar' | null>(null);
+    const [profileError, setProfileError] = useState('');
 
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [posts, setPosts] = useState<FeedPostDto[]>([]);
@@ -210,7 +211,8 @@ export const UserProfilePage = () => {
             await fetchProfile(false);
         } catch (err) {
             console.error('Upload failed', err);
-            alert('Failed to update profile image.');
+            setProfileError('Failed to update profile image.');
+            setTimeout(() => setProfileError(''), 4000);
         } finally {
             setUploading(null);
             if (event.target) {
@@ -288,7 +290,7 @@ export const UserProfilePage = () => {
                 setSelectedPost((prev) => (prev ? { ...prev, commentCount: prev.commentCount + 1 } : null));
             }
         } catch (err) {
-            alert('Failed to post comment.');
+            console.error('Failed to post comment', err);
         }
     };
 
@@ -641,6 +643,11 @@ export const UserProfilePage = () => {
 
     return (
         <>
+            {profileError && (
+                <div className="mx-auto mt-4 flex w-full max-w-[1320px] items-center gap-3 border border-rose-300/50 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                    {profileError}
+                </div>
+            )}
             <EntityBannerBand>
                 <div className="relative h-40 overflow-hidden sm:h-48 lg:h-56">
                     {bannerUrl ? (

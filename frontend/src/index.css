@@ -2209,15 +2209,15 @@
   }
 
   .talanti-map-marker--club {
-    --blip-glow: rgba(185, 12, 12, 0.55);
+    --blip-glow: rgba(0, 0, 0, 0.85);
   }
 
   .talanti-map-marker--club .talanti-map-marker__blip {
     width: 3px;
     height: var(--beam-height, 120px);
     border: none;
-    background: linear-gradient(to bottom, transparent 0%, rgba(185, 12, 12, 0.06) 40%, rgba(185, 12, 12, 0.25) 65%, rgba(185, 12, 12, 0.6) 85%, #b90c0c 100%);
-    box-shadow: 0 0 36px rgba(185, 12, 12, 0.32), 0 0 16px rgba(185, 12, 12, 0.15);
+    background: linear-gradient(to bottom, transparent 0%, rgba(30,30,30,0.5) 25%, rgba(60,60,60,0.7) 55%, rgba(120,30,30,0.85) 78%, #8b0000 92%, #4a0000 100%);
+    box-shadow: 0 0 14px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.5);
   }
 
   .talanti-map-marker--club .talanti-map-marker__blip::after {
@@ -2228,18 +2228,20 @@
     transform: translateX(-50%) scale(var(--base-scale, 1));
     width: 28px;
     height: 14px;
-    background: radial-gradient(ellipse at center, rgba(139, 0, 0, 0.5) 0%, rgba(139, 0, 0, 0.15) 50%, transparent 70%);
+    background: radial-gradient(ellipse at center, rgba(139,0,0,0.85) 0%, rgba(0,0,0,0.5) 55%, transparent 72%);
     border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.45);
   }
 
   .talanti-map-marker--club.is-selected .talanti-map-marker__blip {
-    box-shadow: 0 0 52px rgba(185, 12, 12, 0.65), 0 0 22px rgba(185, 12, 12, 0.4);
+    box-shadow: 0 0 22px rgba(0,0,0,0.95), 0 0 56px rgba(0,0,0,0.6);
   }
 
   .talanti-map-marker--club.is-selected .talanti-map-marker__blip::after {
     width: 40px;
     height: 20px;
-    background: radial-gradient(ellipse at center, rgba(160, 0, 0, 0.6) 0%, rgba(139, 0, 0, 0.22) 50%, transparent 70%);
+    background: radial-gradient(ellipse at center, rgba(139,0,0,0.9) 0%, rgba(0,0,0,0.6) 55%, transparent 72%);
+    border-width: 2px;
   }
 
   .talanti-map-marker--tryout {

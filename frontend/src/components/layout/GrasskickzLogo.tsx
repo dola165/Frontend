@@ -12,7 +12,7 @@ export const GrasskickzLogo = ({ compact = false, className = '', ...props }: Gr
         <div className={`flex items-center ${className}`.trim()} {...props}>
             {!imageFailed ? (
                 <img
-                    src="/logo/logo.png"
+                    src="/logo/logo.jpg"
                     alt="Grasskickz"
                     className="block w-auto object-contain"
                     style={{ height: `${logoHeight}px` }}

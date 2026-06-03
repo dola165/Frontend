@@ -108,6 +108,7 @@ export const ClubProfilePage = () => {
     const [isManageClubOpen, setIsManageClubOpen] = useState(false);
     const [isChallengeModalOpen, setIsChallengeModalOpen] = useState(false);
     const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+    const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
 
     const activeTab = normalizeTab(searchParams.get('tab'));
     const requestedManagementTab = useMemo(() => normalizeManagementTab(searchParams.get('managementTab')), [searchParams]);
@@ -281,6 +282,7 @@ export const ClubProfilePage = () => {
                 canOpenCalendar={canOpenCalendar}
                 canChallengeClub={showVisitorActions && canChallengeOtherClub}
                 canMessageClub={canMessageClub}
+                showApplyButton={showVisitorActions && club.playerJoinPolicy !== 'INVITE_ONLY'}
                 membershipRole={ownClubRole ?? null}
                 showInlineLeaveAction={ownClubRole === 'COACH' || hasPlayerAffiliation}
                 onFollowToggle={handleFollowToggle}
@@ -288,6 +290,7 @@ export const ClubProfilePage = () => {
                 onOpenManageClub={() => openManageClub()}
                 onOpenChallengeModal={() => setIsChallengeModalOpen(true)}
                 onOpenMessage={handleOpenMessage}
+                onOpenApply={() => setIsApplyModalOpen(true)}
                 onLeaveClub={handleLeaveOwnClub}
                 onRefresh={fetchClubData}
             />
@@ -299,32 +302,6 @@ export const ClubProfilePage = () => {
             />
 
             <div className="mx-auto w-full px-6 pb-10 pt-4 sm:px-8">
-                {!club.isStaffMember && !hasPlayerAffiliation ? (
-                    <div className="mb-4">
-                        <ClubApplicationPanel
-                            clubId={club.id}
-                            clubName={club.name}
-                            isAuthenticated={status === 'authenticated'}
-                            playerJoinPolicy={club.playerJoinPolicy ?? 'APPLICATION_REQUIRED'}
-                            playerAffiliationStatus={club.playerAffiliationStatus ?? null}
-                            relationshipState={club.relationshipState ?? null}
-                            pendingApplicationId={club.pendingApplicationId ?? null}
-                            pendingApplicationRole={club.pendingApplicationRole ?? null}
-                            onOpenInvites={() => navigate('/my-club')}
-                            onSignIn={() => navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash))}
-                            onStateChange={(nextState) => {
-                                setClub((current) => current ? {
-                                    ...current,
-                                    relationshipState: nextState.relationshipState,
-                                    playerAffiliationStatus: nextState.playerAffiliationStatus ?? current.playerAffiliationStatus ?? null,
-                                    pendingApplicationId: nextState.pendingApplicationId ?? null,
-                                    pendingApplicationRole: nextState.pendingApplicationRole ?? null
-                                } : current);
-                            }}
-                        />
-                    </div>
-                ) : null}
-
                 <div className="mt-6 grid gap-5 lg:grid-cols-[272px_minmax(0,720px)] lg:justify-center xl:grid-cols-[272px_minmax(0,700px)_272px] xl:items-start xl:justify-center">
                     <div className="hidden lg:block">
                         <ClubProfileInfoPanel club={club} />
@@ -396,6 +373,35 @@ export const ClubProfilePage = () => {
 
             {isMessageModalOpen && (
                 <ClubMessageModal clubName={club.name} options={communicationOptions} onClose={() => setIsMessageModalOpen(false)} />
+            )}
+
+            {isApplyModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsApplyModalOpen(false)} />
+                    <div className="relative z-10 w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl">
+                        <ClubApplicationPanel
+                            clubId={club.id}
+                            clubName={club.name}
+                            isAuthenticated={status === 'authenticated'}
+                            playerJoinPolicy={club.playerJoinPolicy ?? 'APPLICATION_REQUIRED'}
+                            playerAffiliationStatus={club.playerAffiliationStatus ?? null}
+                            relationshipState={club.relationshipState ?? null}
+                            pendingApplicationId={club.pendingApplicationId ?? null}
+                            pendingApplicationRole={club.pendingApplicationRole ?? null}
+                            onOpenInvites={() => navigate('/my-club')}
+                            onSignIn={() => navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash))}
+                            onStateChange={(nextState) => {
+                                setClub((current) => current ? {
+                                    ...current,
+                                    relationshipState: nextState.relationshipState,
+                                    playerAffiliationStatus: nextState.playerAffiliationStatus ?? current.playerAffiliationStatus ?? null,
+                                    pendingApplicationId: nextState.pendingApplicationId ?? null,
+                                    pendingApplicationRole: nextState.pendingApplicationRole ?? null
+                                } : current);
+                            }}
+                        />
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -97,7 +97,7 @@ const TRAVEL_PREFERENCE_OPTIONS: Array<{ value: MapTravelPreference; label: stri
 export const defaultMapFilters: MapFilters = {
     entityType: 'CLUB',
     sortBy: 'RELEVANCE',
-    distanceKm: 25,
+    distanceKm: 200,
     clubs: {
         officialOnly: false,
         city: '',

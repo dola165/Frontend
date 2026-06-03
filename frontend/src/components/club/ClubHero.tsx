@@ -8,6 +8,7 @@ import {
     MapPin,
     MessageSquare,
     Plus,
+    Send,
     Settings,
     ShieldCheck,
     Swords,
@@ -28,6 +29,7 @@ interface ClubHeroProps {
     canOpenCalendar: boolean;
     canChallengeClub: boolean;
     canMessageClub: boolean;
+    showApplyButton?: boolean;
     membershipRole?: string | null;
     showInlineLeaveAction?: boolean;
     onFollowToggle: () => void;
@@ -35,6 +37,7 @@ interface ClubHeroProps {
     onOpenCalendar: () => void;
     onOpenChallengeModal: () => void;
     onOpenMessage: () => void;
+    onOpenApply?: () => void;
     onLeaveClub?: () => Promise<void> | void;
     onRefresh: () => void;
 }
@@ -46,6 +49,7 @@ export const ClubHero = ({
     canOpenCalendar,
     canChallengeClub,
     canMessageClub,
+    showApplyButton = false,
     membershipRole,
     showInlineLeaveAction = false,
     onFollowToggle,
@@ -53,6 +57,7 @@ export const ClubHero = ({
     onOpenCalendar,
     onOpenChallengeModal,
     onOpenMessage,
+    onOpenApply,
     onLeaveClub,
     onRefresh
 }: ClubHeroProps) => {
@@ -241,6 +246,16 @@ export const ClubHero = ({
                                     {club?.isFollowedByMe ? <Check className="h-4 w-4 text-[color:var(--club-tone-green)]" /> : <Plus className="h-4 w-4" />}
                                     {club?.isFollowedByMe ? 'Following' : 'Follow'}
                                 </button>
+                                {showApplyButton && onOpenApply && (
+                                    <button
+                                        type="button"
+                                        onClick={onOpenApply}
+                                        className={accentActionClassName}
+                                    >
+                                        <Send className="h-4 w-4" />
+                                        Apply to Join
+                                    </button>
+                                )}
                                 {canMessageClub && (
                                     <button type="button" onClick={onOpenMessage} className={systemActionClassName}>
                                         <MessageSquare className="h-4 w-4 text-[color:var(--club-tone-blue)]" />

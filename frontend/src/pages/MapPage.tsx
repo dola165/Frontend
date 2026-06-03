@@ -106,7 +106,7 @@ interface MarkerCluster {
     records: DiscoveryRecord[];
 }
 
-const DEFAULT_CENTER: [number, number] = [41.7151, 44.8271];
+const DEFAULT_CENTER: [number, number] = [52.5, -1.5];
 const MAP_HORIZON_DAYS = 90;
 const AGE_GROUP_REGEX = /\b(U8|U9|U10|U11|U12|U13|U14|U15|U16|U17|U18|U19|U21|Senior)\b/gi;
 const CLUB_QUERY_LIMIT = 8;
@@ -1038,9 +1038,9 @@ export const MapPage = () => {
                         initialViewState={{
                             latitude: DEFAULT_CENTER[0],
                             longitude: DEFAULT_CENTER[1],
-                            zoom: 11,
-                            pitch: 45,
-                            bearing: -17
+                            zoom: 8,
+                            pitch: 0,
+                            bearing: 0
                         }}
                         style={{ width: '100%', height: '100%' }}
                         mapStyle={mapStyleUrl}

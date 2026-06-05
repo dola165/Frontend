@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { chatApi } from '../api/chat';
 import { ShieldCheck } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { ClubHero } from '../components/club/ClubHero';
@@ -164,7 +165,7 @@ export const ClubProfilePage = () => {
     const hasPlayerAffiliation = club?.playerAffiliationStatus === 'TRIALIST' || club?.playerAffiliationStatus === 'ACTIVE';
     const communicationOptions = buildClubCommunicationOptions(club?.whatsappNumber, club?.facebookMessengerUrl, club?.preferredCommunicationMethod);
     const showVisitorActions = Boolean(club && !club.isStaffMember && !hasPlayerAffiliation);
-    const canMessageClub = Boolean(showVisitorActions && canChallengeOtherClub && communicationOptions.length > 0);
+    const canMessageClub = Boolean(showVisitorActions);
 
     useEffect(() => {
         if (searchParams.get('manageClub') !== '1' || !canManageOwnClub) {
@@ -230,13 +231,20 @@ export const ClubProfilePage = () => {
     };
 
     const handleOpenMessage = () => {
+        if (communicationOptions.length === 0) {
+            navigate('/messages');
+            return;
+        }
         if (communicationOptions.length === 1) {
             openClubCommunication(communicationOptions[0]);
             return;
         }
-        if (communicationOptions.length > 1) {
-            setIsMessageModalOpen(true);
-        }
+        setIsMessageModalOpen(true);
+    };
+
+    const handleOpenGrassKickZChat = () => {
+        setIsMessageModalOpen(false);
+        navigate('/messages');
     };
 
     const handleMembershipLeft = async () => {
@@ -372,7 +380,12 @@ export const ClubProfilePage = () => {
             )}
 
             {isMessageModalOpen && (
-                <ClubMessageModal clubName={club.name} options={communicationOptions} onClose={() => setIsMessageModalOpen(false)} />
+                <ClubMessageModal
+                    clubName={club.name}
+                    options={communicationOptions}
+                    onClose={() => setIsMessageModalOpen(false)}
+                    onOpenGrassKickZChat={handleOpenGrassKickZChat}
+                />
             )}
 
             {isApplyModalOpen && (

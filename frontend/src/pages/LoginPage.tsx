@@ -1,11 +1,21 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
-import { Shield, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import { Shield, ArrowLeft, Loader2, AlertCircle, FlaskConical } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { resolvePostAuthRedirect } from '../utils/authRedirect';
+
+const IS_MOCK_MODE = import.meta.env.VITE_ENABLE_MOCKS === 'true';
+
+const MOCK_USERS = [
+    { email: 'player@test.dev', password: 'mock', label: 'Marcus Rivera', role: 'PLAYER' },
+    { email: 'organizer@test.dev', password: 'mock', label: 'Sarah Chen', role: 'ORGANIZER' },
+    { email: 'coach@test.dev', password: 'mock', label: 'James Wilson', role: 'COACH' },
+    { email: 'fan@test.dev', password: 'mock', label: 'Emma Thompson', role: 'FAN' },
+    { email: 'admin@test.dev', password: 'mock', label: 'Alex Kim', role: 'ADMIN' },
+];
 
 export const LoginPage = () => {
     const navigate = useNavigate();
@@ -131,6 +141,51 @@ export const LoginPage = () => {
                             }}
                         />
                     </div>
+
+                    {IS_MOCK_MODE && (
+                        <>
+                            <div className="my-8 flex items-center gap-4">
+                                <div className="h-px bg-purple-200 dark:bg-purple-700 flex-1"></div>
+                                <span className="text-xs font-black uppercase tracking-widest text-purple-500 flex items-center gap-1.5">
+                                    <FlaskConical className="w-3.5 h-3.5" />
+                                    Mock Quick Login
+                                </span>
+                                <div className="h-px bg-purple-200 dark:bg-purple-700 flex-1"></div>
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                {MOCK_USERS.map((u) => (
+                                    <button
+                                        key={u.email}
+                                        type="button"
+                                        disabled={isLoading}
+                                        onClick={async () => {
+                                            setIsLoading(true);
+                                            setError('');
+                                            try {
+                                                const res = await apiClient.post('/auth/login', { email: u.email, password: u.password });
+                                                const authenticatedUser = await loginWithAccessToken(res.data.accessToken);
+                                                navigate(authenticatedUser.profileComplete ? nextPath : '/onboarding');
+                                            } catch (err) {
+                                                setError(extractApiErrorMessage(err, 'Mock login failed.'));
+                                            } finally {
+                                                setIsLoading(false);
+                                            }
+                                        }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-left transition-colors disabled:opacity-50"
+                                    >
+                                        <div className="w-8 h-8 rounded-full bg-purple-200 dark:bg-purple-800 flex items-center justify-center text-xs font-black text-purple-700 dark:text-purple-300 shrink-0">
+                                            {u.label.charAt(0)}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-bold text-[#1a1a1a] dark:text-gray-200">{u.label}</p>
+                                            <p className="text-[10px] font-semibold uppercase tracking-wider text-purple-500">{u.role}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 <p className="text-center mt-8 font-bold text-sm text-gray-500">

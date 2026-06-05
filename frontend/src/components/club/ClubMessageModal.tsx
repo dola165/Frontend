@@ -1,4 +1,5 @@
 import { ExternalLink, MessageSquare, PhoneCall, Shield, X } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 export interface ClubCommunicationOption {
     id: 'WHATSAPP' | 'FACEBOOK_MESSENGER';
@@ -12,6 +13,7 @@ interface ClubMessageModalProps {
     clubName: string;
     options: ClubCommunicationOption[];
     onClose: () => void;
+    onOpenGrassKickZChat?: () => void;
 }
 
 export const buildClubCommunicationOptions = (
@@ -52,7 +54,7 @@ export const openClubCommunication = (option: ClubCommunicationOption) => {
     window.open(option.url, '_blank', 'noopener,noreferrer');
 };
 
-export const ClubMessageModal = ({ clubName, options, onClose }: ClubMessageModalProps) => {
+export const ClubMessageModal = ({ clubName, options, onClose, onOpenGrassKickZChat }: ClubMessageModalProps) => {
     return (
         <div className="theme-overlay-strong fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="theme-surface theme-border w-full max-w-lg overflow-hidden rounded-2xl border shadow-2xl">
@@ -66,7 +68,7 @@ export const ClubMessageModal = ({ clubName, options, onClose }: ClubMessageModa
                             Contact {clubName}
                         </h2>
                         <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">
-                            GrassKickZ will hand you off to the club's saved external channel until in-app messenger is ready.
+                            Choose how you'd like to reach {clubName}. In-app chat is now available in beta.
                         </p>
                     </div>
 
@@ -108,24 +110,28 @@ export const ClubMessageModal = ({ clubName, options, onClose }: ClubMessageModa
                         </button>
                     ))}
 
-                    <div className="flex items-start gap-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 opacity-70 dark:border-slate-700 dark:bg-slate-900/60">
-                        <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
-                            <Shield className="h-4 w-4" />
+                    <button
+                        type="button"
+                        onClick={onOpenGrassKickZChat}
+                        className="flex w-full items-start gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left transition-colors hover:border-emerald-400 hover:bg-emerald-50/60 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-emerald-500/60 dark:hover:bg-emerald-500/10"
+                    >
+                        <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                            <MessageCircle className="h-4 w-4" />
                         </div>
                         <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-black uppercase tracking-wide text-slate-700 dark:text-slate-200">
+                                <p className="text-sm font-black uppercase tracking-wide text-slate-900 dark:text-white">
                                     GrassKickZ Messenger
                                 </p>
-                                <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
-                                    Coming soon
+                                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-amber-700 dark:text-amber-400">
+                                    Beta
                                 </span>
                             </div>
-                            <p className="mt-2 text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-                                Visible for future compatibility, but intentionally disabled until the internal messenger is real.
+                            <p className="mt-2 text-sm font-medium leading-relaxed text-slate-600 dark:text-slate-300">
+                                Chat directly with {clubName} using the built-in GrassKickZ messenger.
                             </p>
                         </div>
-                    </div>
+                    </button>
                 </div>
             </div>
         </div>

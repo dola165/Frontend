@@ -11,6 +11,7 @@ import { adminHandlers } from './admin';
 import { organizationHandlers } from './organizations';
 import { tryoutHandlers, tryoutAdminHandlers } from './tryouts';
 import { mapHandlers } from './map';
+import { chatHandlers } from './chat';
 
 export const handlers: HttpHandler[] = [
   ...authHandlers,
@@ -26,4 +27,5 @@ export const handlers: HttpHandler[] = [
   ...tryoutHandlers,
   ...tryoutAdminHandlers,
   ...mapHandlers,
+  ...chatHandlers,
 ];

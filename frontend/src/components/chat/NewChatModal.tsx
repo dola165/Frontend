@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { Search, X, Loader2, Users, Check, ArrowRight, ArrowLeft, Camera, MessageCircle } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Search, X, Loader2, Users, Check, ArrowLeft, UserPlus, MessageCircle, Paperclip } from 'lucide-react';
 import { chatApi, type UserSearchResult } from '../../api/chat';
 import { getStoredUserId } from '../../utils/authStorage';
 
@@ -7,12 +7,13 @@ interface NewChatModalProps {
     open: boolean;
     onClose: () => void;
     onConversationCreated: (conversationId: number) => void;
+    recentContacts: UserSearchResult[];
 }
 
 type ChatMode = 'DIRECT' | 'GROUP';
 type GroupStep = 'select' | 'name';
 
-export function NewChatModal({ open, onClose, onConversationCreated }: NewChatModalProps) {
+export function NewChatModal({ open, onClose, onConversationCreated, recentContacts }: NewChatModalProps) {
     const [mode, setMode] = useState<ChatMode>('DIRECT');
     const [groupStep, setGroupStep] = useState<GroupStep>('select');
     const [groupName, setGroupName] = useState('');
@@ -27,6 +28,14 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
     const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
     const currentUserId = Number(getStoredUserId() || 0);
+
+    // Deduplicate recent contacts against selected users
+    const visibleRecents = useMemo(
+        () => recentContacts.filter(
+            (c) => c.id !== currentUserId && !selectedUsers.some((s) => s.id === c.id),
+        ).slice(0, 8),
+        [recentContacts, currentUserId, selectedUsers],
+    );
 
     useEffect(() => {
         if (open) {
@@ -148,6 +157,8 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
 
     const isGroup = mode === 'GROUP';
     const isNameStep = isGroup && groupStep === 'name';
+    const showSearchResults = query.trim().length >= 2;
+    const showRecentContacts = !showSearchResults && visibleRecents.length > 0 && !isNameStep;
 
     return (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh]">
@@ -159,7 +170,7 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
             <div className="relative w-full max-w-[420px] rounded-2xl overflow-hidden shadow-2xl"
                 style={{ backgroundColor: 'var(--chat-card, #ffffff)' }}>
 
-                {/* ── Header bar (WhatsApp-style green) ─────────────── */}
+                {/* ── Header ──────────────────────────────────────── */}
                 <div className="flex items-center gap-3 px-5 h-14"
                     style={{ backgroundColor: 'var(--chat-header-bg, #075e54)' }}>
                     {isNameStep ? (
@@ -179,61 +190,31 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
                     )}
 
                     <h2 className="font-semibold text-white text-base flex-1">
-                        {isNameStep ? 'New group' : 'New chat'}
+                        {isNameStep ? 'New Group' : 'New Chat'}
                     </h2>
 
-                    {/* Next / Create in header */}
+                    {/* Next button (group mode with selections) */}
                     {isGroup && !isNameStep && selectedUsers.length > 0 && (
                         <button
                             onClick={goToNameStep}
                             className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors"
                         >
-                            <ArrowRight className="w-4 h-4" />
+                            Next
+                            <ArrowLeft className="w-4 h-4 rotate-180" />
                         </button>
                     )}
                 </div>
 
-                {/* ── Mode tabs ─────────────────────────────────────── */}
-                {!isNameStep && (
-                    <div className="flex border-b"
-                        style={{ borderColor: 'var(--chat-card-border, rgba(0,0,0,0.08))' }}>
-                        {([
-                            { key: 'DIRECT' as ChatMode, label: 'Message', icon: MessageCircle },
-                            { key: 'GROUP' as ChatMode, label: 'Group', icon: Users },
-                        ]).map(({ key, label, icon: Icon }) => (
-                            <button
-                                key={key}
-                                onClick={() => switchMode(key)}
-                                className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all relative"
-                                style={{
-                                    color: mode === key
-                                        ? 'var(--chat-header-bg, #075e54)'
-                                        : 'var(--chat-text-muted, #9ca3af)',
-                                }}
-                            >
-                                <Icon className="w-4 h-4" />
-                                {label}
-                                {mode === key && (
-                                    <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 rounded-full"
-                                        style={{ backgroundColor: 'var(--chat-header-bg, #075e54)' }} />
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                )}
-
-                {/* ── Name step (GROUP mode) ────────────────────────── */}
+                {/* ── Name step (GROUP mode) ──────────────────────── */}
                 {isNameStep && (
                     <div className="px-5 py-6">
-                        {/* Group icon placeholder */}
                         <div className="flex justify-center mb-6">
                             <div className="w-24 h-24 rounded-full flex items-center justify-center"
                                 style={{ backgroundColor: 'var(--chat-surface, #f0ede7)' }}>
-                                <Camera className="w-8 h-8" style={{ color: 'var(--chat-text-muted, #9ca93f)' }} />
+                                <Users className="w-8 h-8" style={{ color: 'var(--chat-text-muted, #9ca93f)' }} />
                             </div>
                         </div>
 
-                        {/* Group name input */}
                         <input
                             ref={nameInputRef}
                             type="text"
@@ -252,7 +233,6 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
                             }}
                         />
 
-                        {/* Selected users chips */}
                         {selectedUsers.length > 0 && (
                             <div className="flex flex-wrap gap-2 mt-5">
                                 {selectedUsers.map((user) => (
@@ -280,7 +260,6 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
                             <p className="text-sm text-red-500 text-center mt-4">{error}</p>
                         )}
 
-                        {/* Create button */}
                         <button
                             onClick={handleCreateGroup}
                             disabled={creating || !groupName.trim() || selectedUsers.length === 0}
@@ -299,10 +278,38 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
                     </div>
                 )}
 
-                {/* ── Select participants step ──────────────────────── */}
+                {/* ── Select participants step ────────────────────── */}
                 {!isNameStep && (
                     <>
-                        {/* Selected chips */}
+                        {/* Mode action buttons */}
+                        <div className="flex gap-3 px-5 pt-4 pb-2">
+                            <button
+                                onClick={() => switchMode('DIRECT')}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                                    mode === 'DIRECT'
+                                        ? 'text-white shadow-sm'
+                                        : 'text-[var(--chat-text-secondary)] hover:bg-[var(--chat-card-hover)] border border-[var(--chat-card-border)]'
+                                }`}
+                                style={mode === 'DIRECT' ? { backgroundColor: 'var(--chat-accent, #00c853)' } : undefined}
+                            >
+                                <UserPlus className="w-4 h-4" />
+                                New Contact
+                            </button>
+                            <button
+                                onClick={() => switchMode('GROUP')}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                                    mode === 'GROUP'
+                                        ? 'text-white shadow-sm'
+                                        : 'text-[var(--chat-text-secondary)] hover:bg-[var(--chat-card-hover)] border border-[var(--chat-card-border)]'
+                                }`}
+                                style={mode === 'GROUP' ? { backgroundColor: 'var(--chat-accent, #00c853)' } : undefined}
+                            >
+                                <Users className="w-4 h-4" />
+                                New Group
+                            </button>
+                        </div>
+
+                        {/* Selected chips (GROUP mode) */}
                         {isGroup && selectedUsers.length > 0 && (
                             <div className="flex flex-wrap gap-2 px-5 pt-3 pb-1">
                                 {selectedUsers.map((user) => (
@@ -310,8 +317,8 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
                                         key={user.id}
                                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium"
                                         style={{
-                                            backgroundColor: 'rgba(7,94,84,0.08)',
-                                            color: 'var(--chat-header-bg, #075e54)',
+                                            backgroundColor: 'rgba(0,200,83,0.1)',
+                                            color: 'var(--chat-accent, #00c853)',
                                         }}
                                     >
                                         {(user.fullName || user.username)}
@@ -326,7 +333,7 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
                             </div>
                         )}
 
-                        {/* Search */}
+                        {/* Search bar */}
                         <div className="px-5 py-3">
                             <div className="relative">
                                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--chat-text-muted)]" />
@@ -336,7 +343,9 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
                                     placeholder={
-                                        isGroup ? 'Type a name to add people...' : 'Search name or username...'
+                                        isGroup
+                                            ? 'Search people to add...'
+                                            : 'Search name or username...'
                                     }
                                     className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none transition-colors"
                                     style={{
@@ -347,9 +356,10 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
                             </div>
                         </div>
 
-                        {/* Results */}
+                        {/* Content area */}
                         <div className="max-h-72 overflow-y-auto border-t"
                             style={{ borderColor: 'var(--chat-card-border, rgba(0,0,0,0.06))' }}>
+
                             {error && (
                                 <p className="px-5 py-6 text-sm text-red-500 text-center">{error}</p>
                             )}
@@ -361,15 +371,10 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
                                 </div>
                             )}
 
-                            {!loading && query.trim().length >= 2 && results.length === 0 && !error && (
+                            {/* Search results */}
+                            {showSearchResults && !loading && results.length === 0 && !error && (
                                 <p className="px-5 py-10 text-sm text-[var(--chat-text-muted)] text-center">
                                     No users found.
-                                </p>
-                            )}
-
-                            {!loading && query.trim().length < 2 && results.length === 0 && (
-                                <p className="px-5 py-10 text-sm text-[var(--chat-text-muted)] text-center">
-                                    Type a name to find users.
                                 </p>
                             )}
 
@@ -382,11 +387,10 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
                                         disabled={creating && mode === 'DIRECT'}
                                         className="w-full flex items-center gap-3 px-5 py-3 transition-colors disabled:opacity-50 text-left hover:bg-[var(--chat-card-hover)]"
                                     >
-                                        {/* Avatar */}
                                         <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
                                             style={{
-                                                backgroundColor: 'rgba(7,94,84,0.12)',
-                                                color: 'var(--chat-header-bg, #075e54)',
+                                                backgroundColor: 'var(--chat-accent-soft, rgba(0,200,83,0.12))',
+                                                color: 'var(--chat-accent, #00c853)',
                                             }}>
                                             {user.avatarUrl ? (
                                                 <img
@@ -399,7 +403,6 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
                                             )}
                                         </div>
 
-                                        {/* Info */}
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold truncate"
                                                 style={{ color: 'var(--chat-text-primary)' }}>
@@ -411,22 +414,77 @@ export function NewChatModal({ open, onClose, onConversationCreated }: NewChatMo
                                             </p>
                                         </div>
 
-                                        {/* Checkbox (GROUP mode) */}
                                         {isGroup && (
-                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                                                isSelected ? '' : ''
-                                            }`}
-                                            style={
-                                                isSelected
-                                                    ? { backgroundColor: 'var(--chat-header-bg, #075e54)', borderColor: 'var(--chat-header-bg, #075e54)' }
-                                                    : { borderColor: 'var(--chat-card-border, rgba(0,0,0,0.15))' }
-                                            }>
+                                            <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all"
+                                                style={
+                                                    isSelected
+                                                        ? { backgroundColor: 'var(--chat-accent, #00c853)', borderColor: 'var(--chat-accent, #00c853)' }
+                                                        : { borderColor: 'var(--chat-card-border, rgba(0,0,0,0.15))' }
+                                                }>
                                                 {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                                             </div>
                                         )}
                                     </button>
                                 );
                             })}
+
+                            {/* Recent / frequent contacts (when not searching) */}
+                            {showRecentContacts && (
+                                <div className="pb-1">
+                                    <p className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--chat-text-muted)]">
+                                        Recent Contacts
+                                    </p>
+                                    {visibleRecents.map((user) => (
+                                        <button
+                                            key={user.id}
+                                            onClick={() => handleSelectUser(user)}
+                                            disabled={creating && mode === 'DIRECT'}
+                                            className="w-full flex items-center gap-3 px-5 py-2.5 transition-colors disabled:opacity-50 text-left hover:bg-[var(--chat-card-hover)]"
+                                        >
+                                            <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
+                                                style={{
+                                                    backgroundColor: 'var(--chat-accent-soft, rgba(0,200,83,0.12))',
+                                                    color: 'var(--chat-accent, #00c853)',
+                                                }}>
+                                                {user.avatarUrl ? (
+                                                    <img
+                                                        src={user.avatarUrl}
+                                                        alt=""
+                                                        className="w-full h-full rounded-full object-cover"
+                                                    />
+                                                ) : (
+                                                    (user.fullName || user.username).charAt(0).toUpperCase()
+                                                )}
+                                            </div>
+
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold truncate"
+                                                    style={{ color: 'var(--chat-text-primary)' }}>
+                                                    {user.fullName || user.username}
+                                                </p>
+                                                <p className="text-xs text-[var(--chat-text-muted)]">
+                                                    @{user.username}
+                                                </p>
+                                            </div>
+
+                                            {isGroup ? (
+                                                <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
+                                                    style={{ borderColor: 'var(--chat-card-border, rgba(0,0,0,0.15))' }}>
+                                                </div>
+                                            ) : (
+                                                <MessageCircle className="w-4 h-4 text-[var(--chat-text-muted)]" />
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Empty state — no recents, no search */}
+                            {!showSearchResults && !showRecentContacts && !loading && (
+                                <p className="px-5 py-10 text-sm text-[var(--chat-text-muted)] text-center">
+                                    Search for people to start a conversation.
+                                </p>
+                            )}
                         </div>
                     </>
                 )}

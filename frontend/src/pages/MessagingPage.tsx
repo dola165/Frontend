@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Client } from '@stomp/stompjs';
-import { MessageSquare, Plus, Users, Info, X, Send, Circle, Search, Loader2, Crown, Ban, UserMinus, UserPlus, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageSquare, Plus, Users, Info, X, Send, Circle, Search, Loader2, Crown, Ban, UserMinus, UserPlus, ChevronDown, ChevronUp, Paperclip, Smile, CheckCheck, Check } from 'lucide-react';
 import { buildWebSocketUrl } from '../api/axiosConfig';
 import { getStoredAccessToken, getStoredUserId } from '../utils/authStorage';
 import { chatApi, type ConversationDto, type ChatMessageResponse, type InviteSuggestion, type UserSearchResult } from '../api/chat';
@@ -140,6 +140,7 @@ export const MessagingPage = () => {
                                 ? {
                                       ...c,
                                       lastMessage: parsed.content,
+                                      lastMessageSenderId: parsed.senderId,
                                       lastMessageSenderName: parsed.senderName,
                                       lastMessageAt: parsed.createdAt,
                                       unreadCount:
@@ -222,7 +223,7 @@ export const MessagingPage = () => {
             setConversations((prev) => {
                 const updated = prev.map((c) =>
                     c.id === activeConvId
-                        ? { ...c, lastMessage: msg.content, lastMessageSenderName: msg.senderName, lastMessageAt: msg.createdAt }
+                        ? { ...c, lastMessage: msg.content, lastMessageSenderId: msg.senderId, lastMessageSenderName: msg.senderName, lastMessageAt: msg.createdAt }
                         : c,
                 );
                 updated.sort((a, b) => {
@@ -260,6 +261,33 @@ export const MessagingPage = () => {
 
     const activeConv = conversations.find((c) => c.id === activeConvId) || null;
     const activeMessages = activeConvId ? messages[activeConvId] || [] : [];
+
+    // Derive recent contacts from existing conversations (other participants, deduplicated)
+    const recentContacts = useMemo(() => {
+        const seen = new Set<number>();
+        const contacts: UserSearchResult[] = [];
+        for (const conv of conversations) {
+            for (const p of conv.participants) {
+                if (p.userId !== currentUserId && !seen.has(p.userId)) {
+                    seen.add(p.userId);
+                    contacts.push({
+                        id: p.userId,
+                        fullName: p.displayName,
+                        username: '',
+                        position: null,
+                        userType: '',
+                        avatarUrl: p.profilePictureUrl,
+                    });
+                }
+            }
+        }
+        return contacts;
+    }, [conversations, currentUserId]);
+
+    // Check if the last message in a conversation was sent by the current user
+    const isLastMessageFromMe = (conv: ConversationDto): boolean => {
+        return conv.lastMessageSenderId === currentUserId;
+    };
 
     // ── Group management ──────────────────────────────────────────────
 
@@ -448,6 +476,9 @@ export const MessagingPage = () => {
                     ) : (
                         conversations.map((conv) => {
                             const isActive = conv.id === activeConvId;
+                            const fromMe = isLastMessageFromMe(conv);
+                            const showSenderPreview = conv.contextType === 'GROUP' && conv.lastMessage && conv.lastMessageSenderName;
+
                             return (
                                 <button
                                     key={conv.id}
@@ -459,7 +490,7 @@ export const MessagingPage = () => {
                                     }`}
                                 >
                                     {/* Avatar */}
-                                    <div className="w-11 h-11 rounded-full bg-[var(--chat-accent)]/15 flex items-center justify-center text-[var(--chat-accent)] font-bold text-sm shrink-0">
+                                    <div className="w-11 h-11 rounded-full bg-[var(--chat-accent)]/15 flex items-center justify-center text-[var(--chat-accent)] font-bold text-sm shrink-0 relative">
                                         {conv.contextType === 'GROUP' ? (
                                             <Users className="w-5 h-5" />
                                         ) : conv.participants[0]?.profilePictureUrl ? (
@@ -470,6 +501,10 @@ export const MessagingPage = () => {
                                             />
                                         ) : (
                                             getAvatarLetter(conv, currentUserId)
+                                        )}
+                                        {/* Online dot — show for DIRECT conversations */}
+                                        {conv.contextType === 'DIRECT' && (
+                                            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--chat-sidebar-bg)] bg-emerald-500" />
                                         )}
                                     </div>
 
@@ -483,12 +518,33 @@ export const MessagingPage = () => {
                                                 {formatTime(conv.lastMessageAt)}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-2 mt-0.5">
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            {/* Delivery status tick */}
+                                            {fromMe && conv.lastMessage && (
+                                                <span className="shrink-0">
+                                                    {conv.unreadCount === 0 ? (
+                                                        <CheckCheck className="w-3.5 h-3.5 text-[var(--chat-accent)]" />
+                                                    ) : (
+                                                        <Check className="w-3.5 h-3.5 text-[var(--chat-text-muted)]" />
+                                                    )}
+                                                </span>
+                                            )}
+
                                             <p className="text-xs text-[var(--chat-text-muted)] truncate flex-1">
-                                                {conv.lastMessage || 'No messages yet'}
+                                                {showSenderPreview ? (
+                                                    <>
+                                                        <span className="font-medium text-[var(--chat-text-secondary)]">
+                                                            {conv.lastMessageSenderName}:{' '}
+                                                        </span>
+                                                        {conv.lastMessage}
+                                                    </>
+                                                ) : (
+                                                    conv.lastMessage || 'No messages yet'
+                                                )}
                                             </p>
+
                                             {conv.unreadCount > 0 && (
-                                                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[var(--chat-accent)] text-[var(--chat-accent-contrast)] text-[10px] font-bold leading-none">
+                                                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold leading-none shadow-sm shadow-emerald-500/25">
                                                     {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
                                                 </span>
                                             )}
@@ -505,9 +561,12 @@ export const MessagingPage = () => {
             <section className="flex-1 flex flex-col bg-[var(--chat-surface)] min-w-0">
                 {activeConv ? (
                     <>
-                        {/* Header */}
+                        {/* Header — clickable to toggle info panel */}
                         <div className="h-14 px-5 bg-[var(--chat-card)] border-b border-[var(--chat-card-border)] flex items-center justify-between shrink-0">
-                            <div className="flex items-center gap-3 min-w-0">
+                            <button
+                                onClick={() => setShowInfo(!showInfo)}
+                                className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-80 transition-opacity"
+                            >
                                 <div className="w-9 h-9 rounded-full bg-[var(--chat-accent)]/15 flex items-center justify-center text-[var(--chat-accent)] font-bold text-sm shrink-0">
                                     {activeConv.contextType === 'GROUP' ? (
                                         <Users className="w-4 h-4" />
@@ -525,14 +584,15 @@ export const MessagingPage = () => {
                                             : activeConv.participants[0]?.displayName || ''}
                                     </p>
                                 </div>
-                            </div>
+                            </button>
                             <button
                                 onClick={() => setShowInfo(!showInfo)}
-                                className={`p-2 rounded-full transition-colors ${
+                                className={`p-2 rounded-full transition-colors shrink-0 ${
                                     showInfo
                                         ? 'bg-[var(--chat-accent-soft)] text-[var(--chat-accent)]'
                                         : 'text-[var(--chat-text-muted)] hover:bg-[var(--chat-card-hover)]'
                                 }`}
+                                title="Conversation info"
                             >
                                 <Info className="w-5 h-5" />
                             </button>
@@ -586,6 +646,15 @@ export const MessagingPage = () => {
                         {/* Input */}
                         <div className="px-4 py-3 bg-[var(--chat-card)] border-t border-[var(--chat-card-border)] shrink-0">
                             <form onSubmit={sendMessage} className="flex items-center gap-2">
+                                {/* Attachment button */}
+                                <button
+                                    type="button"
+                                    className="w-10 h-10 rounded-full text-[var(--chat-text-muted)] hover:bg-[var(--chat-card-hover)] hover:text-[var(--chat-accent)] flex items-center justify-center transition-colors shrink-0"
+                                    title="Attach file"
+                                >
+                                    <Paperclip className="w-5 h-5" />
+                                </button>
+
                                 <input
                                     type="text"
                                     value={input}
@@ -596,6 +665,16 @@ export const MessagingPage = () => {
                                     }
                                     className="flex-1 bg-[var(--chat-input-bg)] border border-[var(--chat-card-border)] text-[var(--chat-text-primary)] rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--chat-accent)]/40 transition-all disabled:opacity-50 placeholder:text-[var(--chat-text-placeholder)]"
                                 />
+
+                                {/* Emoji button */}
+                                <button
+                                    type="button"
+                                    className="w-10 h-10 rounded-full text-[var(--chat-text-muted)] hover:bg-[var(--chat-card-hover)] hover:text-[var(--chat-accent)] flex items-center justify-center transition-colors shrink-0"
+                                    title="Add emoji"
+                                >
+                                    <Smile className="w-5 h-5" />
+                                </button>
+
                                 <button
                                     type="submit"
                                     disabled={!input.trim() || !connected}
@@ -634,8 +713,10 @@ export const MessagingPage = () => {
             </section>
 
             {/* ── INFO / MANAGEMENT DRAWER ──────────────────────── */}
-            {showInfo && activeConv && (
-                <aside className="w-[300px] shrink-0 bg-[var(--chat-card)] border-l border-[var(--chat-card-border)] flex flex-col">
+            {activeConv && (
+                <aside className={`shrink-0 bg-[var(--chat-card)] border-l border-[var(--chat-card-border)] flex flex-col transition-all duration-300 ease-in-out overflow-hidden ${
+                    showInfo ? 'w-[300px] opacity-100' : 'w-0 opacity-0 border-l-0'
+                }`}>
                     {/* Header */}
                     <div className="h-14 px-4 border-b border-[var(--chat-card-border)] flex items-center gap-3 shrink-0">
                         <button
@@ -959,11 +1040,12 @@ export const MessagingPage = () => {
                 </aside>
             )}
 
-            {/* ── NEW CHAT MODAL ────────────────────────────────── */}
+            {/* ── NEW CHAT OVERLAY ──────────────────────────────── */}
             <NewChatModal
                 open={showNewChat}
                 onClose={() => setShowNewChat(false)}
                 onConversationCreated={handleConversationCreated}
+                recentContacts={recentContacts}
             />
         </div>
     );

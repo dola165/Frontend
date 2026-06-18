@@ -15,6 +15,7 @@ export interface ConversationDto {
     contextType: 'DIRECT' | 'GROUP';
     contextId: number | null;
     lastMessage: string | null;
+    lastMessageSenderId: number | null;
     lastMessageSenderName: string | null;
     lastMessageAt: string | null;
     unreadCount: number;

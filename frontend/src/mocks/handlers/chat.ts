@@ -128,6 +128,7 @@ export const chatHandlers: HttpHandler[] = [
             contextType: body.contextType,
             contextId: body.contextId ?? null,
             lastMessage: null,
+            lastMessageSenderId: null,
             lastMessageSenderName: null,
             lastMessageAt: new Date().toISOString(),
             unreadCount: 0,

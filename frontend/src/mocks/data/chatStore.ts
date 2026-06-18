@@ -58,6 +58,7 @@ export function mockSendMessage(
     const conv = _conversations?.get(conversationId);
     if (conv) {
         conv.lastMessage = content;
+        conv.lastMessageSenderId = senderId;
         conv.lastMessageSenderName = senderName;
         conv.lastMessageAt = msg.createdAt;
     }

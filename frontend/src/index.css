@@ -2816,3 +2816,76 @@
 .chat-messenger-shell .chat-inline-search-result:hover {
   background: var(--chat-card-hover);
 }
+
+/* ── Chat Info Panel Slide ─────────────────────────────────────── */
+
+.chat-messenger-shell .chat-info-panel {
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              border-left-width 0.3s ease;
+}
+
+.chat-messenger-shell .chat-info-panel--open {
+  width: 300px;
+  opacity: 1;
+}
+
+.chat-messenger-shell .chat-info-panel--closed {
+  width: 0;
+  opacity: 0;
+  border-left-width: 0;
+  overflow: hidden;
+}
+
+/* ── Chat Message Status Ticks ─────────────────────────────────── */
+
+.chat-messenger-shell .chat-msg-tick {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.chat-messenger-shell .chat-msg-tick--sent {
+  color: var(--chat-text-muted);
+}
+
+.chat-messenger-shell .chat-msg-tick--read {
+  color: var(--chat-accent);
+}
+
+/* ── Chat Unread Badge ─────────────────────────────────────────── */
+
+.chat-messenger-shell .chat-unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background-color: #10b981;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.25);
+}
+
+/* ── Chat Input Actions ────────────────────────────────────────── */
+
+.chat-messenger-shell .chat-input-action {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--chat-text-muted);
+  transition: color 0.15s ease, background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.chat-messenger-shell .chat-input-action:hover {
+  color: var(--chat-accent);
+  background: var(--chat-card-hover);
+}

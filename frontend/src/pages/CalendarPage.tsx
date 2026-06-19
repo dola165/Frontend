@@ -589,6 +589,10 @@ export const CalendarPage = ({ user, darkMode, setDarkMode }: CalendarPageProps)
                     return;
                 }
                 setLoadNotice(extractApiErrorMessage(error, 'Schedule data could not be loaded.'));
+                if (active) {
+                    setClubEvents([]);
+                    setPersonalEventsRaw([]);
+                }
             } finally {
                 if (active) {
                     setScheduleBusy(false);

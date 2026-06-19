@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera, Loader2, Send, Video, CalendarPlus } from 'lucide-react';
+import { toast } from 'sonner';
 import { apiClient } from '../../api/axiosConfig';
 
 interface PostComposerProps {
@@ -96,10 +97,12 @@ export const PostComposer = ({
             removeFile();
             setSubmitError(false);
             onPostCreated();
+            toast.success('Post published');
             if (compact) setIsExpanded(false);
         } catch (error) {
             console.error('Failed to create post', error);
             setSubmitError(true);
+            toast.error('Failed to publish post. Please try again.');
         } finally {
             setIsSubmitting(false);
         }

@@ -144,14 +144,14 @@ export const cancelTournamentInvitation = async (tournamentId: number, invitatio
 
 export const searchClubsForInvite = async (query: string) => {
     if (!query.trim()) return [] as ClubSearchResult[];
-    const response = await apiClient.get<ClubSearchResult[]>('/clubs/search', { params: { query: query.trim(), size: 10 } });
+    const response = await apiClient.get<ClubSearchResult[]>('/clubs/search', { params: { q: query.trim(), limit: 10 } });
     return response.data;
 };
 
 export const searchPlayersForInvite = async (query: string) => {
     if (!query.trim()) return [] as UserSearchResult[];
-    const response = await apiClient.get<UserSearchResult[]>('/users/search', { params: { query: query.trim(), size: 10 } });
-    return response.data;
+    const response = await apiClient.get<{ content: UserSearchResult[] }>('/users/search', { params: { query: query.trim(), size: 10 } });
+    return response.data.content ?? (Array.isArray(response.data) ? response.data : []);
 };
 
 export const updateTournament = async (tournamentId: number, payload: UpdateTournamentPayload) => {

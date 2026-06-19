@@ -8,12 +8,12 @@ import {
     Menu,
     MessageSquare,
     Moon,
-    Search,
     Shield,
     ShieldCheck,
     Sun,
     User
 } from 'lucide-react';
+import { GlobalSearchBar } from '../search/GlobalSearchBar';
 import { NotificationBell } from '../notifications/NotificationBell';
 import { resolveNavigationKey } from './navigation';
 import { GrasskickzLogo } from './GrasskickzLogo';
@@ -58,16 +58,7 @@ export const TopNav = ({ user, myClubId, darkMode, setDarkMode, handleLogout }: 
                         </Link>
                     </div>
 
-                    <div className="hidden min-w-0 max-w-xl flex-1 items-center justify-center lg:flex">
-                        <label className="flex w-full max-w-xl items-center gap-3 rounded-full border px-4 py-2.5 text-sm transition-colors border-slate-200 bg-[#f2f4f7] text-slate-400 focus-within:border-[#00c853] focus-within:bg-white dark:border-white/[0.06] dark:bg-[#27272a] dark:text-[#52525b] dark:focus-within:bg-[#1e293b]">
-                            <Search className="h-4 w-4 shrink-0" />
-                            <input
-                                type="text"
-                                placeholder="Search clubs, players, locations"
-                                className="w-full bg-transparent text-sm font-medium outline-none placeholder:text-current text-slate-900 dark:text-[#f4f4f5]"
-                            />
-                        </label>
-                    </div>
+                    <GlobalSearchBar />
 
                     <div className="flex shrink-0 items-center gap-1.5">
                         <NotificationBell enabled={Boolean(user?.id)} />

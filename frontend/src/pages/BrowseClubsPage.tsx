@@ -298,6 +298,17 @@ export const BrowseClubsPage = () => {
                                                                 Official
                                                             </span>
                                                         )}
+                                                        {club.joinPolicy && (
+                                                            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${
+                                                                club.joinPolicy === 'OPEN_TRIAL'
+                                                                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
+                                                                    : club.joinPolicy === 'APPLICATION_REQUIRED'
+                                                                    ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
+                                                                    : 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-300'
+                                                            }`}>
+                                                                {club.joinPolicy.replace('_', ' ')}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <p className="mt-1 text-[11px] font-black uppercase tracking-[0.18em] text-secondary">
                                                         {club.type}

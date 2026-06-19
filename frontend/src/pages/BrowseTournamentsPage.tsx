@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Calendar, Loader2, Search, Trophy, UserPlus, Users } from 'lucide-react';
+import { ArrowRight, Calendar, Check, Loader2, Search, Trophy, UserPlus, Users } from 'lucide-react';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { fetchTournaments, registerPlayer } from '../features/tournaments/api';
 import type { TournamentSummary } from '../features/tournaments/domain';
@@ -30,6 +30,7 @@ export const BrowseTournamentsPage = () => {
     const [statusFilter, setStatusFilter] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [registeringId, setRegisteringId] = useState<number | null>(null);
+    const [registeredIds, setRegisteredIds] = useState<Set<number>>(new Set());
     const [message, setMessage] = useState<string | null>(null);
     const [messageType, setMessageType] = useState<'success' | 'error'>('success');
 
@@ -69,8 +70,8 @@ export const BrowseTournamentsPage = () => {
         setRegisteringId(tournamentId);
         try {
             await registerPlayer(tournamentId);
+            setRegisteredIds((prev) => new Set(prev).add(tournamentId));
             showMessage('Successfully registered for the event.', 'success');
-            void loadTournaments();
         } catch (err) {
             showMessage(extractApiErrorMessage(err, 'Failed to register.'), 'error');
         } finally {
@@ -171,7 +172,7 @@ export const BrowseTournamentsPage = () => {
                             {displayTournaments.map((t) => (
                                 <Link
                                     key={t.id}
-                                    to={`/tournaments/${t.id}/workspace`}
+                                    to={`/tournaments/${t.id}`}
                                     className="group flex flex-col rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-[#1f6feb] hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-[#4c8dff]"
                                 >
                                     <div className="flex items-start justify-between gap-3">
@@ -230,23 +231,30 @@ export const BrowseTournamentsPage = () => {
                                             <ArrowRight className="ml-1.5 inline-block h-4 w-4" />
                                         </span>
                                         {t.participantScope === 'PLAYER' && t.status === 'PLANNING' && (
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    handleRegister(t.id);
-                                                }}
-                                                disabled={registeringId === t.id}
-                                                className="inline-flex items-center gap-1.5 rounded-full bg-[#00c853] px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-[#00e676] disabled:opacity-60"
-                                            >
-                                                {registeringId === t.id ? (
-                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                ) : (
-                                                    <UserPlus className="h-3.5 w-3.5" />
-                                                )}
-                                                Register
-                                            </button>
+                                            registeredIds.has(t.id) ? (
+                                                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                                    <Check className="h-3.5 w-3.5" />
+                                                    Registered
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        handleRegister(t.id);
+                                                    }}
+                                                    disabled={registeringId === t.id}
+                                                    className="inline-flex items-center gap-1.5 rounded-full bg-[#00c853] px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-[#00e676] disabled:opacity-60"
+                                                >
+                                                    {registeringId === t.id ? (
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                    ) : (
+                                                        <UserPlus className="h-3.5 w-3.5" />
+                                                    )}
+                                                    Register
+                                                </button>
+                                            )
                                         )}
                                     </div>
                                 </Link>

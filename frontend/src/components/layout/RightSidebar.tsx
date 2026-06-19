@@ -2,12 +2,6 @@ import { Link } from 'react-router-dom';
 import { MessageSquare, Radar, Trophy } from 'lucide-react';
 import { MiniMap } from '../MiniMap';
 
-interface RightSidebarProps {
-    mockContacts: { id: number; name: string; role: string; online: boolean }[];
-    activeQuickChat: { id: number } | null;
-    setActiveQuickChat: (contact: { id: number; name: string; role: string; online: boolean }) => void;
-}
-
 const trendingItems = [
     { label: '#ChampionsLeague Final', mentions: '12.4K posts' },
     { label: 'Kvaratskhelia transfer', mentions: '8.2K posts' },
@@ -22,7 +16,7 @@ const liveScores = [
     { home: 'Dila Gori', away: 'Samgurali', homeScore: 1, awayScore: 2, minute: "FT", live: false }
 ];
 
-export const RightSidebar = ({ mockContacts, activeQuickChat, setActiveQuickChat }: RightSidebarProps) => (
+export const RightSidebar = () => (
     <aside className="hidden lg:block">
         <div className="sticky top-[calc(var(--app-header-height)+12px)] flex flex-col gap-3">
             {/* Trending in Football */}
@@ -90,50 +84,27 @@ export const RightSidebar = ({ mockContacts, activeQuickChat, setActiveQuickChat
                 </div>
             </section>
 
-            {/* Contacts */}
+            {/* Messages shortcut */}
             <section className="overflow-hidden rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)]">
                 <div className="flex items-center justify-between px-4 py-3">
-                    <p className="text-sm font-semibold text-[var(--feed-text-primary)]">Contacts</p>
+                    <p className="text-sm font-semibold text-[var(--feed-text-primary)]">Messages</p>
                     <Link to="/messages" className="text-xs font-medium text-[var(--feed-accent)] transition-colors hover:text-[var(--feed-accent-hover)]">
-                        Open
+                        Open Inbox
                     </Link>
                 </div>
-                <div className="divide-y divide-[var(--feed-divider)]">
-                    {mockContacts.map((contact) => {
-                        const active = activeQuickChat?.id === contact.id;
-                        return (
-                            <button
-                                key={contact.id}
-                                type="button"
-                                onClick={() => setActiveQuickChat(contact)}
-                                className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                                    active ? 'bg-[var(--feed-hover-bg)]' : 'hover:bg-[var(--feed-hover-bg)]'
-                                }`}
-                            >
-                                <div className="relative shrink-0">
-                                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--feed-layer-bg)] text-xs font-semibold text-[var(--feed-text-primary)]">
-                                        {contact.name.substring(0, 2).toUpperCase()}
-                                    </div>
-                                    <span
-                                        className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--feed-card)] ${
-                                            contact.online ? 'bg-[var(--feed-online)]' : 'bg-[var(--feed-offline)]'
-                                        }`}
-                                    />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-medium text-[var(--feed-text-primary)]">{contact.name}</p>
-                                    <div className="mt-0.5 flex items-center gap-2 text-xs text-[var(--feed-text-muted)]">
-                                        <span>{contact.role}</span>
-                                        <span className="h-1 w-1 rounded-full bg-[var(--feed-text-placeholder)]" />
-                                        <span className={contact.online ? 'font-medium text-[var(--feed-accent)]' : ''}>
-                                            {contact.online ? 'Online' : 'Offline'}
-                                        </span>
-                                    </div>
-                                </div>
-                                <MessageSquare className={`h-4 w-4 ${active ? 'text-[var(--feed-accent)]' : 'text-[var(--feed-icon-muted)]'}`} />
-                            </button>
-                        );
-                    })}
+                <div className="px-4 pb-4">
+                    <Link
+                        to="/messages"
+                        className="flex w-full items-center gap-3 rounded-lg border border-[var(--feed-card-border)] bg-[var(--feed-layer-bg)] px-4 py-3 text-left transition-colors hover:border-[var(--feed-accent)]"
+                    >
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--feed-accent)]/10">
+                            <MessageSquare className="h-4 w-4 text-[var(--feed-accent)]" />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-sm font-medium text-[var(--feed-text-primary)]">View all conversations</p>
+                            <p className="mt-0.5 text-xs text-[var(--feed-text-muted)]">Open your message inbox</p>
+                        </div>
+                    </Link>
                 </div>
             </section>
         </div>

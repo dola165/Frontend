@@ -1,5 +1,6 @@
 .env
 .idea
+.claude/
 node_modules
 dist
 dist-ssr

@@ -179,6 +179,8 @@ export const AccountPage = () => {
     const [changingPassword, setChangingPassword] = useState(false);
     const [revokingSessions, setRevokingSessions] = useState(false);
     const [uploading, setUploading] = useState<'avatar' | 'banner' | null>(null);
+    const [tryoutApps, setTryoutApps] = useState<Array<{ id: number; tryoutId: number; tryoutTitle: string; status: string; appliedAt: string }>>([]);
+    const [showTryoutApps, setShowTryoutApps] = useState(false);
 
     const activeTab = normalizeTab(searchParams.get('tab'));
 
@@ -210,10 +212,26 @@ export const AccountPage = () => {
         }
     };
 
+    const loadTryoutApplications = async () => {
+        try {
+            const { fetchMyTryoutApplications } = await import('../api/tryouts');
+            const apps = await fetchMyTryoutApplications();
+            setTryoutApps(apps);
+        } catch {
+            // Silently ignore — tryout applications are supplementary
+        }
+    };
+
     useEffect(() => {
         void loadAccount();
         void loadSessions();
     }, []);
+
+    useEffect(() => {
+        if (account && account.role === 'PLAYER') {
+            void loadTryoutApplications();
+        }
+    }, [account?.role]);
 
     const bannerPreview = useMemo(
         () =>
@@ -399,6 +417,20 @@ export const AccountPage = () => {
                                 <Link to="/tournaments/setup" className="border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary">
                                     Tournament Setup
                                 </Link>
+                                {account.role === 'PLAYER' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { void loadTryoutApplications(); setShowTryoutApps((v) => !v); }}
+                                        className="border border-subtle bg-base px-3 py-2 text-left text-[11px] font-black uppercase tracking-[0.16em] text-primary hover:border-accent-primary"
+                                    >
+                                        {showTryoutApps ? 'Hide' : 'View'} My Tryout Applications
+                                        {tryoutApps.length > 0 && (
+                                            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center border border-accent-primary bg-accent-primary-soft px-1.5 text-[10px] accent-primary">
+                                                {tryoutApps.length}
+                                            </span>
+                                        )}
+                                    </button>
+                                )}
                                 {account.role === 'SYSTEM_ADMIN' && (
                                     <Link to="/admin" className="border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary">
                                         Admin Panel
@@ -420,6 +452,48 @@ export const AccountPage = () => {
                     <div className="border border-rose-300/50 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
                         {error}
                     </div>
+                )}
+
+                {showTryoutApps && (
+                    <section className="border border-subtle bg-surface px-5 py-5">
+                        <div className="flex items-center justify-between gap-3">
+                            <div>
+                                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary">Tryout Applications</p>
+                                <h3 className="mt-1 text-lg font-bold text-primary">My Submitted Applications</h3>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowTryoutApps(false)}
+                                className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary"
+                            >
+                                Hide
+                            </button>
+                        </div>
+                        {tryoutApps.length === 0 ? (
+                            <p className="mt-4 text-sm text-secondary">You haven't applied to any tryouts yet.</p>
+                        ) : (
+                            <div className="mt-4 grid gap-2">
+                                {tryoutApps.map((app) => (
+                                    <div key={app.id} className="flex items-center justify-between gap-4 border border-subtle bg-base px-4 py-3">
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-bold text-primary">{app.tryoutTitle}</p>
+                                            <p className="text-xs text-secondary">
+                                                Applied {new Date(app.appliedAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                            </p>
+                                        </div>
+                                        <span className={`shrink-0 border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${
+                                            app.status === 'ACCEPTED' ? 'border-accent-primary bg-accent-primary-soft accent-primary' :
+                                            app.status === 'REJECTED' ? 'border-rose-300/50 bg-rose-50 text-rose-700' :
+                                            app.status === 'SHORTLISTED' ? 'border-amber-400/50 bg-amber-50 text-amber-700' :
+                                            'border-subtle bg-surface text-secondary'
+                                        }`}>
+                                            {app.status}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
                 )}
 
                 {activeTab === 'profile' && (

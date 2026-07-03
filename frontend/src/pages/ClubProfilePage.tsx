@@ -70,6 +70,8 @@ export interface ClubProfile {
     whatsappNumber?: string | null;
     facebookMessengerUrl?: string | null;
     preferredCommunicationMethod?: string | null;
+    cityName?: string | null;
+    countryName?: string | null;
     email?: string | null;
     websiteUrl?: string | null;
     instagramUrl?: string | null;

@@ -32,6 +32,7 @@ import { CollapsiblePanel } from '../components/ui/CollapsiblePanel';
 import { fetchMyClubMembershipContext } from '../features/clubs/api';
 import { isLeadershipRole, type ClubMembershipContext } from '../features/clubs/domain';
 import {
+    completeClubEvent,
     createClubEvent,
     createMyEvent,
     deleteScheduleEvent,
@@ -255,6 +256,7 @@ const buildCreateFormValues = (
         visibility: 'PRIVATE',
         publishAt: '',
         opponentClubId: '',
+        hostSquadId: '',
         isRecurring,
         recurrenceDays: [getDayOfWeek(start)],
         recurrenceStartDate: toInputDate(start),
@@ -281,6 +283,7 @@ const buildEditFormValues = (event: ScheduleWorkspaceEvent): ScheduleEventFormVa
         visibility: event.visibility === 'CLUB_ONLY' ? 'PRIVATE' : event.visibility,
         publishAt: event.publishAt ? toInputDateTime(parseDate(event.publishAt)) : '',
         opponentClubId: event.opponentClubId != null ? String(event.opponentClubId) : '',
+        hostSquadId: '',
         isRecurring: Boolean(recurrence),
         recurrenceDays: recurrence ? recurrenceDayOrder.filter((day) => recurrence.daysOfWeek.includes(day)) : [getDayOfWeek(start)],
         recurrenceStartDate: recurrence?.startDate ?? toInputDate(start),
@@ -450,6 +453,7 @@ export const CalendarPage = ({ user, darkMode, setDarkMode }: CalendarPageProps)
     const [activeRibbonTab, setActiveRibbonTab] = useState<ScheduleRibbonTab>('edit');
     const [pendingSelection, setPendingSelection] = useState<{ eventId: number; startsAt?: string | null } | null>(null);
     const [deletingEventId, setDeletingEventId] = useState<number | null>(null);
+    const [completingEventId, setCompletingEventId] = useState<number | null>(null);
     const [railWidths, setRailWidths] = useState(() => ({
         left: Number(localStorage.getItem('talanti:schedule-left-rail')) || DEFAULT_LEFT_RAIL_WIDTH,
         right: Number(localStorage.getItem('talanti:schedule-right-rail')) || DEFAULT_RIGHT_RAIL_WIDTH
@@ -683,6 +687,7 @@ export const CalendarPage = ({ user, darkMode, setDarkMode }: CalendarPageProps)
     const canEditSelectedEvent = Boolean(selectedEvent && canCreateEvent);
     const canDeleteSelectedEvent = Boolean(selectedEvent && canCreateEvent);
     const canAdjustVisibility = Boolean(selectedEvent && workspaceSurface === 'CLUB_SCHEDULE' && canManageClubSchedule);
+    const canCompleteSelectedEvent = Boolean(selectedEvent && workspaceSurface === 'CLUB_SCHEDULE' && canManageClubSchedule && selectedEvent.status === 'SCHEDULED');
 
     const includeType = (type: ScheduleEventType) => {
         setEnabledTypes((current) => (current.includes(type) ? current : [...current, type]));
@@ -774,6 +779,27 @@ export const CalendarPage = ({ user, darkMode, setDarkMode }: CalendarPageProps)
             setActionNotice({ tone: 'error', message: extractApiErrorMessage(error, 'Could not delete the event.') });
         } finally {
             setDeletingEventId(null);
+        }
+    };
+
+    const handleCompleteSelected = async () => {
+        if (!selectedEvent || !canCompleteSelectedEvent || !membershipContext?.clubId) {
+            return;
+        }
+        if (!window.confirm(`Mark "${selectedEvent.title}" as completed?`)) {
+            return;
+        }
+
+        setCompletingEventId(selectedEvent.eventId);
+        try {
+            await completeClubEvent(membershipContext.clubId, selectedEvent.eventId);
+            setActionNotice({ tone: 'success', message: 'Event marked as completed.' });
+            setSelectedEventId(null);
+            setRefreshKey((current) => current + 1);
+        } catch (error) {
+            setActionNotice({ tone: 'error', message: extractApiErrorMessage(error, 'Could not mark event as completed.') });
+        } finally {
+            setCompletingEventId(null);
         }
     };
 
@@ -1194,12 +1220,15 @@ export const CalendarPage = ({ user, darkMode, setDarkMode }: CalendarPageProps)
                             canEditSelectedEvent={canEditSelectedEvent}
                             canDeleteSelectedEvent={canDeleteSelectedEvent}
                             canAdjustVisibility={canAdjustVisibility}
+                            canCompleteSelectedEvent={canCompleteSelectedEvent}
+                            completingEventId={completingEventId}
                             deletingEventId={deletingEventId}
                             onEdit={openEditDrawer}
                             onDelete={handleDeleteSelected}
                             onReleaseNow={() => void mutateSelectedClubVisibility('PUBLIC', null, 'Club event is public now.')}
                             onQueueRelease={() => void mutateSelectedClubVisibility('SCHEDULED_PUBLICATION', buildQueuedPublishAt(selectedEvent?.startsAt ?? new Date().toISOString()), 'Club event queued for publication.')}
                             onKeepPrivate={() => void mutateSelectedClubVisibility('PRIVATE', null, 'Club event moved back to private.')}
+                            onComplete={handleCompleteSelected}
                             onOpenConflictSource={handleOpenConflictSource}
                         />
                     </aside>
@@ -1213,6 +1242,7 @@ export const CalendarPage = ({ user, darkMode, setDarkMode }: CalendarPageProps)
                     surface={drawerState.surface}
                     initialValues={drawerState.initialValues}
                     subjectLabel={drawerState.surface === 'CLUB_SCHEDULE' ? clubLabel : 'Visible only to you'}
+                    clubId={membershipContext?.clubId ?? null}
                     onClose={() => setDrawerState(null)}
                     onSubmit={handleDrawerSubmit}
                 />

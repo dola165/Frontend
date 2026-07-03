@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import MapGL, { Layer, Marker, Popup, Source, GeolocateControl, NavigationControl, useMap } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useNavigate } from 'react-router-dom';
@@ -6,7 +6,9 @@ import {
     Building2,
     CheckCheck,
     ChevronLeft,
+    Clock,
     Eye,
+    ExternalLink,
     ListFilter,
     Loader2,
     LocateFixed,
@@ -14,6 +16,7 @@ import {
     MapPin,
     Menu,
     Navigation,
+    RefreshCw,
     Search,
     ShieldCheck,
     Sparkles,
@@ -21,7 +24,8 @@ import {
     Users,
     X
 } from 'lucide-react';
-import { apiClient } from '../api/axiosConfig';
+import { apiClient, API_ORIGIN } from '../api/axiosConfig';
+import { fetchNearbyMap, type MapMarkerDto } from '../api/map';
 import { MapHelpHint } from '../components/map/MapHelpHint';
 import { MapFilterSidebar, defaultMapFilters, type MapEntityType, type MapFilters } from '../components/map/MapFilterSidebar';
 import { useAuth } from '../context/AuthContext';
@@ -48,6 +52,8 @@ interface ClubDirectoryRecord {
     followerCount: number;
     memberCount: number;
     addressText?: string | null;
+    cityName?: string | null;
+    countryName?: string | null;
     latitude?: number | null;
     longitude?: number | null;
     logoUrl?: string | null;
@@ -55,8 +61,12 @@ interface ClubDirectoryRecord {
 
 interface ClubProfileSummary extends ClubDirectoryRecord {
     bannerUrl?: string | null;
+    whatsappNumber?: string | null;
+    facebookMessengerUrl?: string | null;
+    preferredCommunicationMethod?: string | null;
     trustedByClubs?: Array<{ clubId: number; clubName: string }>;
     honours?: Array<{ id: number; title: string; yearWon: number; description?: string | null }>;
+    opportunities?: Array<{ id: number; type: string; title: string; externalLink?: string | null }>;
 }
 
 interface DiscoveryRecord {
@@ -89,6 +99,7 @@ interface DiscoveryRecord {
     country: string | null;
     searchText: string;
     rawEvent?: ScheduleEventOccurrence;
+    rawMapMarker?: MapMarkerDto;
 }
 
 interface SearchSuggestion {
@@ -106,7 +117,7 @@ interface MarkerCluster {
     records: DiscoveryRecord[];
 }
 
-const DEFAULT_CENTER: [number, number] = [52.5, -1.5];
+const DEFAULT_CENTER: [number, number] = [42.3154, 43.3569]; // Caucasus — most seed clubs are here
 const MAP_HORIZON_DAYS = 90;
 const AGE_GROUP_REGEX = /\b(U8|U9|U10|U11|U12|U13|U14|U15|U16|U17|U18|U19|U21|Senior)\b/gi;
 const CLUB_QUERY_LIMIT = 8;
@@ -232,7 +243,8 @@ const getMatchState = (event: ScheduleEventOccurrence): DerivedMatchState => {
 };
 
 const buildClubRecord = (club: ClubDirectoryRecord): DiscoveryRecord => {
-    const { city, country } = extractCityCountry(club.addressText);
+    const city = club.cityName ?? extractCityCountry(club.addressText).city;
+    const country = club.countryName ?? extractCityCountry(club.addressText).country;
     return {
         key: `club:${club.id}`,
         entityType: 'CLUB',
@@ -309,8 +321,57 @@ const buildScheduleRecord = (event: ScheduleEventOccurrence, clubsById: Map<numb
     };
 };
 
-const getRecordTypeLabel = (record: DiscoveryRecord) =>
-    record.entityType === 'CLUB' ? 'Club' : record.entityType === 'TRYOUT' ? 'Tryout' : record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Match';
+const buildMapMarkerRecord = (marker: MapMarkerDto): DiscoveryRecord => {
+    const entityType = marker.entityType as DiscoveryRecord['entityType'];
+    const matchSubtype = marker.eventSubtype === 'FRIENDLY' ? 'FRIENDLY' as const :
+        marker.eventSubtype === 'COMPETITIVE' ? 'COMPETITIVE' as const : null;
+    const challengeState = marker.status === 'OPEN' ? 'OPEN' as const :
+        marker.status === 'PENDING' ? 'PENDING' as const : null;
+    const city = marker.cityName || null;
+    const country = marker.countryName || null;
+
+    return {
+        key: `${marker.entityType.toLowerCase()}:${marker.entityId}`,
+        entityType,
+        source: marker.entityType === 'CLUB' ? 'CLUB' : 'SCHEDULE',
+        title: marker.title,
+        subtitle: marker.subtitle || null,
+        description: marker.addressText || null,
+        clubId: marker.clubId ?? null,
+        clubName: marker.clubName || null,
+        startsAt: marker.date || null,
+        endsAt: null,
+        locationName: marker.addressText || null,
+        latitude: marker.latitude,
+        longitude: marker.longitude,
+        official: marker.verified,
+        followerCount: marker.followers ?? 0,
+        memberCount: marker.members ?? 0,
+        typeLabel: marker.entityType === 'CLUB' ? marker.subtitle : marker.entityType,
+        statusLabel: marker.status || null,
+        matchSubtype,
+        challengeState,
+        locationState: marker.latitude != null && marker.longitude != null ? 'PINNED' : 'OPEN_VENUE',
+        ageGroups: marker.ageGroup ? [marker.ageGroup] : [],
+        genders: [],
+        level: null,
+        travelPreference: null,
+        city: city || null,
+        country: country || null,
+        searchText: [marker.title, marker.subtitle, marker.clubName, marker.addressText, marker.ageGroup].filter(Boolean).join(' ').toLowerCase(),
+        rawMapMarker: marker
+    };
+};
+
+const getRecordTypeLabel = (record: DiscoveryRecord) => {
+    switch (record.entityType) {
+        case 'CLUB': return 'Club';
+        case 'TRYOUT': return 'Tryout';
+        case 'MATCH': return record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Match';
+        case 'TOURNAMENT': return 'Tournament';
+        default: return 'Match';
+    }
+};
 
 const getRecordTypeMeta = (record: DiscoveryRecord) => {
     if (record.entityType === 'CLUB') {
@@ -318,6 +379,9 @@ const getRecordTypeMeta = (record: DiscoveryRecord) => {
     }
     if (record.entityType === 'TRYOUT') {
         return 'Public tryout';
+    }
+    if (record.entityType === 'TOURNAMENT') {
+        return record.statusLabel === 'ACTIVE' ? 'Active tournament' : 'Upcoming tournament';
     }
     if (record.challengeState === 'OPEN') {
         return 'Open challenge';
@@ -333,14 +397,15 @@ const getTravelPreferenceLabel = (value: DerivedTravelPreference | null) => {
         .join(' ');
 };
 
-const getMarkerTone = (record: DiscoveryRecord) =>
-    record.entityType === 'CLUB'
-        ? 'club'
-        : record.entityType === 'TRYOUT'
-            ? 'tryout'
-            : record.matchSubtype === 'FRIENDLY'
-                ? 'friendly'
-                : 'match';
+const getMarkerTone = (record: DiscoveryRecord) => {
+    switch (record.entityType) {
+        case 'CLUB': return 'club';
+        case 'TRYOUT': return 'tryout';
+        case 'MATCH': return 'match';
+        case 'TOURNAMENT': return 'tournament';
+        default: return 'match';
+    }
+};
 
 function MapFocusController({ target, onSettled }: { target: [number, number] | null; onSettled: () => void }) {
     const { current: map } = useMap();
@@ -494,6 +559,51 @@ const MatchResponseModal = ({
     </div>
 );
 
+const resolveMediaUrl = (path?: string | null) => {
+    if (!path) return undefined;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return `${API_ORIGIN}${path}`;
+};
+
+const buildGoogleMapsDirectionsUrl = (lat?: number | null, lng?: number | null) => {
+    if (lat == null || lng == null) return undefined;
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+};
+
+const buildWhatsAppUrl = (number?: string | null) => {
+    if (!number) return undefined;
+    const cleaned = number.replace(/[^+\d]/g, '');
+    return `https://wa.me/${cleaned}`;
+};
+
+// ── Collapsible info section ─────────────────────────────────────────
+
+const InfoSection = ({
+    title,
+    expanded,
+    onToggle,
+    children,
+}: {
+    title: string;
+    expanded: boolean;
+    onToggle: () => void;
+    children: React.ReactNode;
+}) => (
+    <div className="border-t border-[var(--map-panel-border)]">
+        <button
+            type="button"
+            onClick={onToggle}
+            className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-surface/50 transition-colors"
+        >
+            <span className="text-sm font-semibold text-primary">{title}</span>
+            <ChevronLeft className={`h-4 w-4 text-muted transition-transform duration-200 ${expanded ? '-rotate-90' : 'rotate-90'}`} />
+        </button>
+        {expanded && <div className="px-5 pb-4 space-y-3 border-t border-[var(--map-panel-border)] pt-3 mx-5">{children}</div>}
+    </div>
+);
+
+// ── Main detail panel ────────────────────────────────────────────────
+
 const DiscoveryDetailPanel = ({
     record,
     clubProfile,
@@ -509,162 +619,255 @@ const DiscoveryDetailPanel = ({
     onOpenClub: () => void;
     onClose: () => void;
 }) => {
-    const [expandedSection, setExpandedSection] = useState<'details' | 'club' | null>(null);
+    const [detailsOpen, setDetailsOpen] = useState(false);
 
-    const toggleSection = (section: 'details' | 'club') => {
-        setExpandedSection(prev => prev === section ? null : section);
+    const directionsUrl = buildGoogleMapsDirectionsUrl(record.latitude, record.longitude);
+    const bannerUrl = resolveMediaUrl(clubProfile?.bannerUrl);
+    const logoUrl = resolveMediaUrl(clubProfile?.logoUrl);
+
+    const contactUrl = buildWhatsAppUrl(clubProfile?.whatsappNumber)
+        || clubProfile?.facebookMessengerUrl
+        || clubProfile?.opportunities?.find(o => o.externalLink)?.externalLink
+        || undefined;
+
+    const contactLabel = clubProfile?.whatsappNumber ? 'WhatsApp'
+        : clubProfile?.facebookMessengerUrl ? 'Messenger'
+        : contactUrl ? 'Website'
+        : undefined;
+
+    const handleShare = () => {
+        const url = window.location.href;
+        navigator.share?.({ title: record.title, url })
+            .catch(() => { /* user cancelled */ });
     };
 
+    const addressLine = record.locationName
+        || clubProfile?.addressText
+        || [clubProfile?.cityName, clubProfile?.countryName].filter(Boolean).join(', ')
+        || undefined;
+
+    const typeSubtitle = record.entityType === 'CLUB'
+        ? clubProfile?.type || 'Club'
+        : getRecordTypeLabel(record);
+
+    const description = clubProfile?.description || record.description || undefined;
+
+    const hasNonClubDetails = record.entityType !== 'CLUB' && (
+        record.matchSubtype || record.challengeState || record.level
+        || record.travelPreference || record.ageGroups.length > 0
+        || record.genders.length > 0
+    );
+
+    const secondaryActions = [
+        directionsUrl && { icon: <Navigation className="h-4 w-4" />, label: 'Directions', href: directionsUrl },
+        contactUrl && contactLabel && { icon: <ExternalLink className="h-4 w-4" />, label: contactLabel, href: contactUrl },
+        ('share' in navigator) && { icon: (
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+            </svg>
+        ), label: 'Share', onClick: handleShare },
+    ].filter(Boolean) as Array<{ icon: React.ReactNode; label: string; href?: string; onClick?: () => void }>;
+
     return (
-    <div className="map-details-panel flex h-full flex-col">
-        <div className="map-panel-header">
-            <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="map-pill map-pill--accent">{getRecordTypeLabel(record)}</span>
-                        {record.locationState === 'PINNED' && <span className="map-pill text-xs">Mapped</span>}
-                        {record.challengeState === 'OPEN' && <span className="map-pill text-xs">Open</span>}
-                    </div>
-                    <h2 className="text-xl font-bold text-primary truncate">{record.title}</h2>
-                    {record.clubName && record.entityType !== 'CLUB' && (
-                        <p className="mt-1 text-sm font-semibold text-secondary">{record.clubName}</p>
-                    )}
+    <div className="map-details-panel flex h-full flex-col" style={{ backgroundColor: 'var(--map-panel-bg)' }}>
+        {/* ── Banner with translucent overlay + overlapping logo ── */}
+        <div className="relative shrink-0">
+            {bannerUrl ? (
+                <div className="relative h-40 w-full overflow-hidden bg-surface-inset">
+                    <img src={bannerUrl} alt="" className="h-full w-full object-cover opacity-70" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-base/60" />
                 </div>
-                <button type="button" onClick={onClose} className="map-icon-button shrink-0">
-                    <X className="h-4 w-4" />
-                </button>
-            </div>
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 space-y-4">
-            {/* Location & time — always visible */}
-            <section className="map-section-card space-y-3">
-                {record.locationName && (
-                    <div className="flex items-start gap-3">
-                        <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-subtle bg-surface">
-                            <MapPin className="h-4 w-4 text-[color:var(--accent-primary)]" />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-sm font-bold text-primary">Location</p>
-                            <p className="mt-0.5 text-sm text-secondary">{record.locationName}</p>
-                        </div>
-                    </div>
-                )}
-                <div className="flex items-start gap-3">
-                    <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-subtle bg-surface">
-                        <Navigation className="h-4 w-4 text-[color:var(--accent-primary)]" />
-                    </div>
-                    <div className="min-w-0">
-                        <p className="text-sm font-bold text-primary">When</p>
-                        <p className="mt-0.5 text-sm text-secondary">
-                            {formatDateTime(record.startsAt) ?? 'Schedule pending'}
-                            {record.endsAt && <span className="block text-xs text-muted">Until {formatDateTime(record.endsAt)}</span>}
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            {/* Description */}
-            <section className="map-section-card">
-                <p className="map-field-label mb-2">Description</p>
-                <p className="text-sm leading-6 text-secondary">
-                    {record.description || 'No description provided yet.'}
-                </p>
-            </section>
-
-            {/* Attributes — expandable */}
-            {record.entityType !== 'CLUB' && (
-                <section className="map-section-card">
-                    <button
-                        type="button"
-                        onClick={() => toggleSection('details')}
-                        className="w-full flex items-center justify-between gap-3 text-left"
-                    >
-                        <p className="map-field-label">Match details</p>
-                        <ChevronLeft className={`h-4 w-4 text-secondary transition-transform duration-200 ${expandedSection === 'details' ? '-rotate-90' : ''}`} />
-                    </button>
-                    {expandedSection === 'details' && (
-                        <div className="mt-4 space-y-3 border-t border-subtle pt-4">
-                            <div className="flex flex-wrap gap-2">
-                                {record.matchSubtype && <span className="map-pill">{record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Competitive'}</span>}
-                                {record.challengeState && <span className="map-pill">{record.challengeState}</span>}
-                                <span className="map-pill">{record.locationState === 'PINNED' ? 'Venue set' : 'Venue open'}</span>
-                                {record.level && <span className="map-pill">{record.level}</span>}
-                                {record.travelPreference && <span className="map-pill">{getTravelPreferenceLabel(record.travelPreference)}</span>}
-                            </div>
-                            {record.ageGroups.length > 0 && (
-                                <div>
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">Age groups</span>
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                        {record.ageGroups.map(ag => <span key={ag} className="map-pill">{ag}</span>)}
-                                    </div>
-                                </div>
-                            )}
-                            {record.genders.length > 0 && (
-                                <div>
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">Gender</span>
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                        {record.genders.map(g => <span key={g} className="map-pill">{g}</span>)}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </section>
+            ) : (
+                <div className="h-12 w-full bg-base" />
             )}
 
-            {/* Club snapshot — expandable */}
-            <section className="map-section-card">
-                <button
-                    type="button"
-                    onClick={() => toggleSection('club')}
-                    className="w-full flex items-center justify-between gap-3 text-left"
-                >
-                    <p className="map-field-label">Club snapshot</p>
-                    <ChevronLeft className={`h-4 w-4 text-secondary transition-transform duration-200 ${expandedSection === 'club' ? '-rotate-90' : ''}`} />
-                </button>
-                {expandedSection === 'club' && (
-                    <div className="mt-4 space-y-3 border-t border-subtle pt-4">
-                        <div className="grid gap-3 grid-cols-3">
-                            <div className="map-stat-card text-center">
-                                <p className="text-lg font-bold text-primary">{clubProfile?.memberCount ?? record.memberCount}</p>
-                                <p className="text-[10px] font-semibold text-secondary mt-1">Members</p>
-                            </div>
-                            <div className="map-stat-card text-center">
-                                <p className="text-lg font-bold text-primary">{clubProfile?.followerCount ?? record.followerCount}</p>
-                                <p className="text-[10px] font-semibold text-secondary mt-1">Followers</p>
-                            </div>
-                            <div className="map-stat-card text-center">
-                                <p className="text-lg font-bold text-primary">{(clubProfile?.isOfficial ?? record.official) ? 'Yes' : 'Open'}</p>
-                                <p className="text-[10px] font-semibold text-secondary mt-1">Verified</p>
-                            </div>
-                        </div>
-                        {(clubProfile?.description || record.description) && (
-                            <p className="text-sm leading-6 text-secondary">{clubProfile?.description || record.description}</p>
-                        )}
-                        {clubProfile?.honours && clubProfile.honours.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                                {clubProfile.honours.slice(0, 3).map((honour) => (
-                                    <span key={honour.id} className="map-pill">
-                                        <Trophy className="h-3.5 w-3.5 text-[color:var(--accent-primary)]" />
-                                        {honour.title} {honour.yearWon}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
+            {/* Logo — upper half sits inside the banner zone, lower half below */}
+            {logoUrl && (
+                <div className="absolute left-5 bottom-0 translate-y-1/2">
+                    <div className="h-[84px] w-[84px] overflow-hidden rounded-2xl bg-surface">
+                        <img src={logoUrl} alt="" className="h-full w-full object-cover" />
                     </div>
-                )}
-            </section>
+                </div>
+            )}
         </div>
 
-        <div className="map-panel-footer">
-            <button type="button" onClick={onOpenClub} className="map-primary-button flex-1 justify-center">
-                <Building2 className="h-4 w-4" />
-                Open full profile
+        {/* ── Header: name + type (left-padded to make room for overlapping logo) ── */}
+        <div className={`shrink-0 px-5 pt-4 pb-3 ${logoUrl ? 'pl-[120px]' : ''}`}>
+            <h2 className="text-[18px] font-bold text-primary leading-tight line-clamp-2">
+                {record.title}
+            </h2>
+            <p className="mt-0.5 text-[13px] text-secondary">{typeSubtitle}</p>
+            {record.clubName && record.entityType !== 'CLUB' && (
+                <p className="mt-0.5 text-[13px] font-medium text-secondary truncate">{record.clubName}</p>
+            )}
+            <button type="button" onClick={onClose} className="absolute top-3 right-3 map-icon-button">
+                <X className="h-5 w-5" />
             </button>
+        </div>
+
+        {/* ── Info rows ───────────────────────────── */}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+            {/* Quick stats strip */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3 text-[13px] text-secondary">
+                {(clubProfile?.memberCount != null || clubProfile?.followerCount != null) && (
+                    <>
+                        <Users className="h-3.5 w-3.5 text-muted" />
+                        <span className="font-semibold text-primary">{clubProfile?.memberCount ?? record.memberCount}</span>
+                        <span>members</span>
+                        <span className="text-muted">·</span>
+                        <span className="font-semibold text-primary">{clubProfile?.followerCount ?? record.followerCount}</span>
+                        <span>followers</span>
+                    </>
+                )}
+                {(clubProfile?.isOfficial ?? record.official) && (
+                    <>
+                        <span className="text-muted">·</span>
+                        <ShieldCheck className="h-3.5 w-3.5 text-[color:var(--accent-primary)]" />
+                        <span>Official</span>
+                    </>
+                )}
+            </div>
+
+            {addressLine && (
+                <div className="flex items-start gap-3 px-5 py-2.5 border-t border-[var(--map-panel-border)]">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
+                    <p className="text-[14px] leading-5 text-secondary">{addressLine}</p>
+                </div>
+            )}
+
+            {record.startsAt && (
+                <div className={`flex items-center gap-3 px-5 py-2 ${!addressLine ? 'border-t border-[var(--map-panel-border)]' : ''}`}>
+                    <Clock className="h-4 w-4 shrink-0 text-muted" />
+                    <p className="text-[14px] text-secondary">
+                        {formatDateTime(record.startsAt)}
+                        {record.endsAt && <span className="text-muted"> — {formatDateTime(record.endsAt)}</span>}
+                    </p>
+                </div>
+            )}
+
+            {record.distanceKm != null && (
+                <div className={`flex items-center gap-3 px-5 py-2 ${!addressLine && !record.startsAt ? 'border-t border-[var(--map-panel-border)]' : ''}`}>
+                    <Navigation className="h-4 w-4 shrink-0 text-muted" />
+                    <p className="text-[14px] text-secondary">
+                        {record.distanceKm < 1
+                            ? `${Math.round(record.distanceKm * 1000)} m away`
+                            : `${record.distanceKm.toFixed(1)} km away`}
+                    </p>
+                </div>
+            )}
+
+            {/* ── Description — always visible ──────── */}
+            {description && (
+                <div className="px-5 pt-3 mt-1 border-t border-[var(--map-panel-border)]">
+                    <p className="text-[14px] leading-6 text-secondary line-clamp-3">
+                        {description}
+                    </p>
+                </div>
+            )}
+
+            {/* ── Trusted by ────────────────────────── */}
+            {clubProfile?.trustedByClubs && clubProfile.trustedByClubs.length > 0 && (
+                <div className="px-5 pt-3 mt-1 border-t border-[var(--map-panel-border)]">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted mb-2">Trusted by</p>
+                    <div className="flex flex-wrap gap-1.5">
+                        {clubProfile.trustedByClubs.map(tc => (
+                            <span key={tc.clubId} className="map-pill text-[12px]">{tc.clubName}</span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* ── Match/Tryout details (collapsible) ── */}
+            {hasNonClubDetails && (
+                <div className="mt-3">
+                    <InfoSection
+                        title={record.entityType === 'TRYOUT' ? 'Tryout details' : 'Match details'}
+                        expanded={detailsOpen}
+                        onToggle={() => setDetailsOpen(v => !v)}
+                    >
+                        <div className="flex flex-wrap gap-1.5">
+                            {record.matchSubtype && (
+                                <span className="map-pill text-[12px]">{record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Competitive'}</span>
+                            )}
+                            {record.challengeState && (
+                                <span className="map-pill text-[12px]">{record.challengeState}</span>
+                            )}
+                            <span className="map-pill text-[12px]">{record.locationState === 'PINNED' ? 'Venue set' : 'Venue open'}</span>
+                            {record.level && <span className="map-pill text-[12px]">{record.level}</span>}
+                            {record.travelPreference && <span className="map-pill text-[12px]">{getTravelPreferenceLabel(record.travelPreference)}</span>}
+                        </div>
+                        {record.ageGroups.length > 0 && (
+                            <div>
+                                <p className="text-xs font-semibold text-muted mb-1.5">Age groups</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {record.ageGroups.map(ag => <span key={ag} className="map-pill text-[12px]">{ag}</span>)}
+                                </div>
+                            </div>
+                        )}
+                        {record.genders.length > 0 && (
+                            <div>
+                                <p className="text-xs font-semibold text-muted mb-1.5">Gender</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {record.genders.map(g => <span key={g} className="map-pill text-[12px]">{g}</span>)}
+                                </div>
+                            </div>
+                        )}
+                    </InfoSection>
+                </div>
+            )}
+
+            <div className="h-3" />
+        </div>
+
+        {/* ── Footer: secondary then primary ───────── */}
+        <div className="shrink-0 border-t border-[var(--map-panel-border)] px-4 py-3.5 space-y-2.5">
+            {/* Secondary action chips */}
+            {secondaryActions.length > 0 && (
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                    {secondaryActions.map(action =>
+                        action.href ? (
+                            <a
+                                key={action.label}
+                                href={action.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--map-panel-border)] px-4 py-1.5 text-[13px] font-medium text-secondary hover:border-[color:var(--accent-primary)] hover:text-[color:var(--accent-primary)] transition-colors"
+                            >
+                                {action.icon}
+                                {action.label}
+                            </a>
+                        ) : (
+                            <button
+                                key={action.label}
+                                type="button"
+                                onClick={action.onClick}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--map-panel-border)] px-4 py-1.5 text-[13px] font-medium text-secondary hover:border-[color:var(--accent-primary)] hover:text-[color:var(--accent-primary)] transition-colors"
+                            >
+                                {action.icon}
+                                {action.label}
+                            </button>
+                        )
+                    )}
+                </div>
+            )}
+
+            {/* Primary button */}
+            <button
+                type="button"
+                onClick={onOpenClub}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--map-panel-border)] px-4 py-2.5 text-[14px] font-semibold text-primary hover:bg-surface transition-colors"
+            >
+                <Building2 className="h-4 w-4" />
+                View full profile
+            </button>
+
             {record.entityType === 'MATCH' && canRespond && (
-                <button type="button" onClick={onRespond} className="map-primary-button">
-                    <CheckCheck className="h-4 w-4" />
+                <button
+                    type="button"
+                    onClick={onRespond}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--accent-primary)] py-2.5 text-[14px] font-bold text-white hover:opacity-90 transition-opacity"
+                >
                     Respond
                 </button>
             )}
@@ -677,6 +880,8 @@ export const MapPage = () => {
     const navigate = useNavigate();
     const { status } = useAuth();
     const [filters, setFilters] = useState<MapFilters>(defaultMapFilters);
+    const [fetchVersion, setFetchVersion] = useState(0);
+    const triggerFetch = useCallback(() => setFetchVersion((v) => v + 1), []);
     const [viewMode, setViewMode] = useState<ViewMode>('MAP');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [searchInput, setSearchInput] = useState('');
@@ -685,9 +890,13 @@ export const MapPage = () => {
     const [currentZoom, setCurrentZoom] = useState(11);
     const [focusTarget, setFocusTarget] = useState<[number, number] | null>(null);
     const [loading, setLoading] = useState(true);
+    const [initialLoad, setInitialLoad] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [clubs, setClubs] = useState<ClubDirectoryRecord[]>([]);
-    const [events, setEvents] = useState<ScheduleEventOccurrence[]>([]);
+    const [mapMarkers, setMapMarkers] = useState<MapMarkerDto[]>([]);
+    const [clubRecords, setClubRecords] = useState<DiscoveryRecord[]>([]);
+    const [totalMapElements, setTotalMapElements] = useState(0);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [hasMorePages, setHasMorePages] = useState(false);
     const [membership, setMembership] = useState<{ clubId?: number | null; clubName?: string | null; myRole?: string | null } | null>(null);
     const [selectedKey, setSelectedKey] = useState<string | null>(null);
     const [activeClusterKey, setActiveClusterKey] = useState<string | null>(null);
@@ -709,38 +918,98 @@ export const MapPage = () => {
             setError(null);
 
             try {
-                const from = new Date();
-                const to = new Date();
-                to.setDate(to.getDate() + MAP_HORIZON_DAYS);
-
                 const membershipPromise =
                     status === 'authenticated'
                         ? fetchMyClubMembershipContext().catch(() => null)
                         : Promise.resolve(null);
 
-                const [clubResponse, publicEvents, membershipContext] = await Promise.all([
-                    apiClient.get<ClubDirectoryRecord[]>('/clubs'),
-                    fetchPublicScheduleEvents({ from: toIsoWindow(from), to: toIsoWindow(to) }),
-                    membershipPromise
+                const wantsClubs = filters.entityType.includes('CLUB');
+                const nonClubTypes = filters.entityType.filter((t) => t !== 'CLUB');
+
+                // --- Fetch clubs globally from /api/clubs (no spatial filter) ---
+                const clubPromise: Promise<ClubDirectoryRecord[]> = wantsClubs
+                    ? (async () => {
+                        const params = new URLSearchParams();
+                        params.set('size', '100');
+                        params.set('sort', 'NAME');
+                        if (filters.clubs.city) params.set('city', filters.clubs.city);
+                        if (filters.clubs.country) params.set('country', filters.clubs.country);
+                        if (deferredSearch) params.set('search', deferredSearch);
+                        if (filters.clubs.officialOnly) {
+                            // No server-side officialOnly — filter client-side
+                        }
+                        const res = await apiClient.get<ClubDirectoryRecord[] | { content: ClubDirectoryRecord[] }>(
+                            `/clubs?${params.toString()}`
+                        );
+                        const data = res.data;
+                        return Array.isArray(data) ? data : data?.content ? data.content : [];
+                    })()
+                    : Promise.resolve([] as ClubDirectoryRecord[]);
+
+                // --- Fetch non-club entities from spatial endpoint ---
+                const isTryoutSelected = nonClubTypes.includes('TRYOUT');
+                const isMatchSelected = nonClubTypes.includes('MATCH');
+                const activeDateWindow = isTryoutSelected ? filters.tryouts.dateWindow :
+                    isMatchSelected ? filters.matches.dateWindow : null;
+                let dateFrom: string | undefined;
+                let dateTo: string | undefined;
+                if (activeDateWindow && activeDateWindow !== 'ANY' && nonClubTypes.length > 0) {
+                    const now = new Date();
+                    dateFrom = toIsoWindow(now);
+                    const days = activeDateWindow === 'NEXT_7_DAYS' ? 7 : activeDateWindow === 'NEXT_30_DAYS' ? 30 : 90;
+                    dateTo = toIsoWindow(new Date(now.getTime() + days * 24 * 60 * 60 * 1000));
+                }
+
+                const serverAgeGroups = (isTryoutSelected && filters.tryouts.ageGroups.length > 0) ? filters.tryouts.ageGroups
+                    : (isMatchSelected && filters.matches.ageGroups.length > 0) ? filters.matches.ageGroups : undefined;
+                const serverGender = (isTryoutSelected && filters.tryouts.genders.length > 0) ? filters.tryouts.genders
+                    : (isMatchSelected && filters.matches.genders.length > 0) ? filters.matches.genders : undefined;
+                const serverLevel = isMatchSelected && filters.matches.levels.length > 0 ? filters.matches.levels : undefined;
+
+                const spatialCity = filters.tryouts.city || filters.matches.city || undefined;
+                const spatialCountry = filters.tryouts.country || filters.matches.country || undefined;
+
+                const spatialPromise: Promise<{ content: MapMarkerDto[]; totalElements: number }> =
+                    nonClubTypes.length > 0
+                        ? fetchNearbyMap({
+                            lat: viewportCenter[0],
+                            lng: viewportCenter[1],
+                            radius: 250, // max radius — client-side distanceKm slider still filters visually
+                            type: nonClubTypes as MapEntityType[],
+                            cities: spatialCity ? [spatialCity] : undefined,
+                            countries: spatialCountry ? [spatialCountry] : undefined,
+                            query: deferredSearch || undefined,
+                            dateFrom,
+                            dateTo,
+                            ageGroups: serverAgeGroups,
+                            gender: serverGender,
+                            level: serverLevel,
+                            page: currentPage,
+                            size: 50
+                        })
+                        : Promise.resolve({ content: [], totalElements: 0 });
+
+                const [membershipContext, clubs, mapData] = await Promise.all([
+                    membershipPromise,
+                    clubPromise,
+                    spatialPromise
                 ]);
 
-                if (!active) {
-                    return;
-                }
+                if (!active) return;
 
-                setClubs(clubResponse.data ?? []);
-                setEvents(publicEvents);
+                const clubRecs = clubs.map(buildClubRecord);
+                setClubRecords(clubRecs);
+                setMapMarkers(mapData.content);
+                setTotalMapElements(clubRecs.length + mapData.totalElements);
+                setHasMorePages((currentPage + 1) * 50 < mapData.totalElements);
                 setMembership(membershipContext);
+                setInitialLoad(false);
             } catch (requestError) {
-                if (!active) {
-                    return;
-                }
+                if (!active) return;
                 console.error('Failed to load map discovery data', requestError);
-                setError('Unable to load the public discovery surface right now.');
+                setError('Unable to load map discovery data.');
             } finally {
-                if (active) {
-                    setLoading(false);
-                }
+                if (active) setLoading(false);
             }
         };
 
@@ -748,15 +1017,18 @@ export const MapPage = () => {
         return () => {
             active = false;
         };
-    }, [status]);
+    }, [status, fetchVersion]);
 
-    const clubsById = useMemo(() => new Map(clubs.map((club) => [club.id, club])), [clubs]);
-    const clubRecords = useMemo(() => clubs.map(buildClubRecord), [clubs]);
-    const scheduleRecords = useMemo(
-        () => events.map((event) => buildScheduleRecord(event, clubsById)).filter((record): record is DiscoveryRecord => Boolean(record)),
-        [clubsById, events]
+    // Re-fetch when filters change (skip initial mount)
+    const initialFiltersRef = useRef(filters);
+    useEffect(() => {
+        if (filters !== initialFiltersRef.current) triggerFetch();
+    }, [filters]);
+
+    const allRecords = useMemo(
+        () => [...clubRecords, ...mapMarkers.map(buildMapMarkerRecord)],
+        [mapMarkers, clubRecords]
     );
-    const allRecords = useMemo(() => [...clubRecords, ...scheduleRecords], [clubRecords, scheduleRecords]);
 
     const suggestions = useMemo(() => {
         const query = normalizeText(searchInput);
@@ -795,48 +1067,37 @@ export const MapPage = () => {
         const query = normalizeText(deferredSearch);
 
         return allRecords.filter((record) => {
-            if (record.entityType !== filters.entityType) {
-                return false;
-            }
-            if (query && !record.searchText.includes(query)) {
-                return false;
-            }
+            // Type filtering handled server-side; client only filters what server can't
+            if (query && !record.searchText.includes(query)) return false;
 
             if (record.entityType === 'CLUB') {
                 if (filters.clubs.officialOnly && !record.official) return false;
-                if (filters.clubs.city && !normalizeText(record.city).includes(normalizeText(filters.clubs.city))) return false;
-                if (filters.clubs.country && !normalizeText(record.country).includes(normalizeText(filters.clubs.country))) return false;
                 return true;
             }
 
-            const cityFilter = record.entityType === 'TRYOUT' ? filters.tryouts.city : filters.matches.city;
-            const countryFilter = record.entityType === 'TRYOUT' ? filters.tryouts.country : filters.matches.country;
-            if (cityFilter && !normalizeText(record.city).includes(normalizeText(cityFilter))) return false;
-            if (countryFilter && !normalizeText(record.country).includes(normalizeText(countryFilter))) return false;
-            if (!matchDateWindow(record.startsAt, record.entityType === 'TRYOUT' ? filters.tryouts.dateWindow : filters.matches.dateWindow)) return false;
-
+            // Time-of-day filter (server doesn't handle this)
             const timeWindows = record.entityType === 'TRYOUT' ? filters.tryouts.timeWindows : filters.matches.timeWindows;
             if (timeWindows.length > 0) {
                 const window = getTimeWindow(record.startsAt);
                 if (!window || !timeWindows.includes(window)) return false;
             }
 
+            // Age/level/gender from extracted text (server doesn't extract these)
             const selectedGenders = record.entityType === 'TRYOUT' ? filters.tryouts.genders : filters.matches.genders;
             if (selectedGenders.length > 0 && !record.genders.some((gender) => selectedGenders.includes(gender))) return false;
 
-            const selectedLevels = record.entityType === 'TRYOUT' ? filters.tryouts.levels : filters.matches.levels;
-            if (selectedLevels.length > 0 && (!record.level || !selectedLevels.includes(record.level))) return false;
+            // Level filter only applies to matches (tryouts don't have a level dimension)
+            if (record.entityType === 'MATCH' && filters.matches.levels.length > 0
+                && (!record.level || !filters.matches.levels.includes(record.level))) return false;
 
             const selectedAges = record.entityType === 'TRYOUT' ? filters.tryouts.ageGroups : filters.matches.ageGroups;
             if (selectedAges.length > 0 && !record.ageGroups.some((ageGroup) => selectedAges.includes(ageGroup))) return false;
 
             if (record.entityType === 'MATCH') {
-                if (!record.matchSubtype || !filters.matches.subtypes.includes(record.matchSubtype)) return false;
-                if (!record.challengeState || !filters.matches.challengeStates.includes(record.challengeState)) return false;
-                if (!filters.matches.locationStates.includes(record.locationState)) return false;
-                if (filters.matches.travelPreferences.length > 0 && (!record.travelPreference || !filters.matches.travelPreferences.includes(record.travelPreference))) return false;
+                if (record.matchSubtype && filters.matches.subtypes.length > 0 && !filters.matches.subtypes.includes(record.matchSubtype)) return false;
             }
 
+            // Server already filtered by gender/age/level/date for MATCH and TRYOUT
             return true;
         });
     }, [allRecords, deferredSearch, filters]);
@@ -896,6 +1157,54 @@ export const MapPage = () => {
         }
         return Array.from(grouped.values());
     }, [mapRecords]);
+
+    const radiusVignette = useMemo(() => {
+        const maxRadius = 150;
+        if (filters.distanceKm >= maxRadius) return null;
+
+        const center = viewportCenter;
+        const distanceKm = filters.distanceKm;
+        const numPoints = 72;
+        const R = 6371;
+
+        const lat1 = (center[0] * Math.PI) / 180;
+        const lon1 = (center[1] * Math.PI) / 180;
+        const angularDist = distanceKm / R;
+
+        const holeCoords: [number, number][] = [];
+        for (let i = 0; i <= numPoints; i++) {
+            const bearing = ((i * 360) / numPoints) * (Math.PI / 180);
+            const lat2 = Math.asin(
+                Math.sin(lat1) * Math.cos(angularDist) +
+                    Math.cos(lat1) * Math.sin(angularDist) * Math.cos(bearing)
+            );
+            const lon2 =
+                lon1 +
+                Math.atan2(
+                    Math.sin(bearing) * Math.sin(angularDist) * Math.cos(lat1),
+                    Math.cos(angularDist) - Math.sin(lat1) * Math.sin(lat2)
+                );
+            holeCoords.push([lon2 * (180 / Math.PI), lat2 * (180 / Math.PI)]);
+        }
+
+        return {
+            type: 'Feature' as const,
+            properties: {},
+            geometry: {
+                type: 'Polygon' as const,
+                coordinates: [
+                    [
+                        [-360, -180],
+                        [360, -180],
+                        [360, 180],
+                        [-360, 180],
+                        [-360, -180],
+                    ],
+                    holeCoords,
+                ],
+            },
+        };
+    }, [filters.distanceKm, viewportCenter]);
 
     const selectedRecord = useMemo(() => listRecords.find((record) => record.key === selectedKey) ?? null, [listRecords, selectedKey]);
     const activeCluster = useMemo(() => mapClusters.find((cluster) => cluster.key === activeClusterKey) ?? null, [activeClusterKey, mapClusters]);
@@ -958,7 +1267,7 @@ export const MapPage = () => {
 
     const canRespondToSelectedMatch = Boolean(
         selectedRecord?.entityType === 'MATCH' &&
-        selectedRecord.rawEvent?.eventId &&
+        selectedRecord.rawMapMarker?.scheduleEventId &&
         selectedRecord.clubId &&
         membership?.clubId &&
         membership.clubId !== selectedRecord.clubId &&
@@ -986,7 +1295,8 @@ export const MapPage = () => {
     };
 
     const submitResponse = async () => {
-        if (!responseModalRecord?.rawEvent?.eventId || !responseModalRecord.clubId || !membership?.clubId) {
+        const scheduleEventId = responseModalRecord?.rawMapMarker?.scheduleEventId;
+        if (!scheduleEventId || !responseModalRecord.clubId || !membership?.clubId) {
             return;
         }
 
@@ -994,13 +1304,13 @@ export const MapPage = () => {
         setResponseError(null);
 
         try {
-            const updated = await createScheduleChallenge(responseModalRecord.rawEvent.eventId, {
+            const updated = await createScheduleChallenge(scheduleEventId, {
                 challengerClubId: membership.clubId,
                 targetClubId: responseModalRecord.clubId,
                 note: responseNote.trim() || undefined
             });
 
-            setEvents((current) => current.map((event) => (event.occurrenceId === updated.occurrenceId ? updated : event)));
+            // Map data will refresh on next viewport change — the challenge response is persisted server-side
             setResponseModalRecord(null);
             setResponseNote('');
         } catch (requestError) {
@@ -1031,7 +1341,7 @@ export const MapPage = () => {
 
     return (
         <div className={`map-page-shell club-page-shell map-workspace h-full min-h-0 w-full overflow-hidden map-design-${designMode} relative`}>
-            {!loading && !error && (
+            {!initialLoad && !error && (
                 <div className="map-canvas-frame absolute inset-0 z-0 overflow-hidden border-0 rounded-none">
                     <MapGL
                         mapboxAccessToken={MAPBOX_TOKEN}
@@ -1039,11 +1349,12 @@ export const MapPage = () => {
                             latitude: DEFAULT_CENTER[0],
                             longitude: DEFAULT_CENTER[1],
                             zoom: 8,
-                            pitch: 0,
-                            bearing: 0
+                            pitch: 45,
+                            bearing: -17
                         }}
                         style={{ width: '100%', height: '100%' }}
                         mapStyle={mapStyleUrl}
+                        projection="globe"
                         renderWorldCopies={false}
                         onMoveEnd={(evt) => {
                             const center = evt.target.getCenter();
@@ -1067,6 +1378,20 @@ export const MapPage = () => {
                                 }}
                             />
                         </Source>
+                        {viewMode === 'MAP' && radiusVignette && (
+                            <Source id="radius-vignette" type="geojson" data={radiusVignette}>
+                                <Layer
+                                    id="radius-vignette-fill"
+                                    type="fill"
+                                    paint={{
+                                        'fill-color': '#080c14',
+                                        'fill-opacity': 0.22,
+                                        'fill-opacity-transition': { duration: 400 },
+                                        'fill-antialias': true,
+                                    }}
+                                />
+                            </Source>
+                        )}
                         <NavigationControl position="bottom-right" />
                         <GeolocateControl
                             position="bottom-right"
@@ -1078,13 +1403,8 @@ export const MapPage = () => {
                             const primaryRecord = cluster.records[0];
                             const isSelected = cluster.records.some((r) => r.key === selectedKey);
                             const toneKey = getMarkerTone(primaryRecord);
-                            const isClub = toneKey === 'club';
-                            const beamHeight = isClub
-                                ? currentZoom <= 9 ? 200 : currentZoom <= 11 ? 160 : currentZoom <= 13 ? 120 : currentZoom <= 15 ? 70 : 45
-                                : undefined;
-                            const baseScale = isClub
-                                ? currentZoom <= 9 ? 0.5 : currentZoom <= 11 ? 0.75 : currentZoom <= 13 ? 1 : currentZoom <= 15 ? 1.6 : 2.4
-                                : undefined;
+                            const beamHeight = currentZoom <= 9 ? 200 : currentZoom <= 11 ? 160 : currentZoom <= 13 ? 120 : currentZoom <= 15 ? 70 : 45;
+                            const baseScale = currentZoom <= 9 ? 0.5 : currentZoom <= 11 ? 0.75 : currentZoom <= 13 ? 1 : currentZoom <= 15 ? 1.6 : 2.4;
                             return (
                                 <Marker
                                     key={cluster.key}
@@ -1095,7 +1415,7 @@ export const MapPage = () => {
                                 >
                                     <div
                                         className={`talanti-map-marker talanti-map-marker--${toneKey} ${isSelected ? 'is-selected' : ''}`}
-                                        style={isClub ? { '--beam-height': `${beamHeight}px`, '--base-scale': String(baseScale) } as React.CSSProperties : undefined}
+                                        style={{ '--beam-height': `${beamHeight}px`, '--base-scale': String(baseScale) } as React.CSSProperties}
                                     >
                                         <div className="talanti-map-marker__blip" />
                                         {cluster.records.length > 1 && (
@@ -1141,11 +1461,19 @@ export const MapPage = () => {
                     </MapGL>
                 </div>
             )}
-            {loading && (
+            {initialLoad && (
                 <div className="absolute inset-0 z-[5] flex items-center justify-center bg-[var(--map-workspace-bg)]">
                     <div className="flex flex-col items-center gap-3 text-center">
                         <Loader2 className="h-8 w-8 animate-spin accent-primary" />
                         <p className="text-sm font-semibold text-secondary">Loading map...</p>
+                    </div>
+                </div>
+            )}
+            {loading && !initialLoad && (
+                <div className="absolute top-4 right-4 z-[700] pointer-events-none">
+                    <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-subtle bg-surface px-3 py-1.5 shadow-sm">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-secondary" />
+                        <span className="text-xs text-secondary">Updating...</span>
                     </div>
                 </div>
             )}
@@ -1242,6 +1570,17 @@ export const MapPage = () => {
                                     </div>
 
                                     <span className="map-count-chip">{toolbarCount}</span>
+
+                                    {filters.entityType.some(t => t !== 'CLUB') && (
+                                        <button
+                                            type="button"
+                                            onClick={triggerFetch}
+                                            className="map-icon-button shrink-0"
+                                            title="Search this area"
+                                        >
+                                            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                                        </button>
+                                    )}
 
                                     <button
                                         type="button"

@@ -71,11 +71,13 @@ export const LandingPage = () => {
             setMapError(null);
 
             try {
-                const response = await apiClient.get<LandingClub[]>('/clubs');
+                const response = await apiClient.get<LandingClub[]>('/clubs?size=100&sort=NAME');
                 if (!active) {
                     return;
                 }
-                setClubs(Array.isArray(response.data) ? response.data : []);
+                // Handle both PageResult and legacy List response formats
+                const data = response.data;
+                setClubs(Array.isArray(data) ? data : data?.content ? data.content : []);
             } catch (error) {
                 if (!active) {
                     return;

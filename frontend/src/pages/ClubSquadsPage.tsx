@@ -1,9 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Loader2, MapPin, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, Loader2, MapPin, Pencil, ShieldCheck, Trash2, X } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { EntityHeaderBand, EntityPageLayout, EntitySection } from '../components/layout/EntityPageLayout';
 import { SquadRosterTable, type SquadRosterGroup } from '../components/squads/SquadRosterTable';
+import { AddPlayerToSquadModal } from '../components/squads/AddPlayerToSquadModal';
+import { deleteSquad, updateSquad, removePlayerFromSquad, updateSquadPlayer, type UpdateSquadPayload } from '../features/clubs/api';
+import { fetchMyClubMembershipContext } from '../features/clubs/api';
+import { isLeadershipRole } from '../features/clubs/domain';
 
 interface ClubSquadHeader {
     id: number;
@@ -29,6 +33,13 @@ export const ClubSquadsPage = () => {
     const [groups, setGroups] = useState<SquadRosterGroup[]>([]);
     const [loadingClub, setLoadingClub] = useState(true);
     const [loadingRoster, setLoadingRoster] = useState(true);
+    const [isClubAdmin, setIsClubAdmin] = useState(false);
+    const [editingSquadId, setEditingSquadId] = useState<number | null>(null);
+    const [editForm, setEditForm] = useState<UpdateSquadPayload>({});
+    const [savingSquad, setSavingSquad] = useState(false);
+    const [deletingSquadId, setDeletingSquadId] = useState<number | null>(null);
+    const [showAddPlayers, setShowAddPlayers] = useState(false);
+    const [removingPlayerId, setRemovingPlayerId] = useState<number | null>(null);
 
     const selectedSquadId = Number(searchParams.get('squad'));
     const selectedSquad = useMemo(() => squads.find((squad) => squad.id === selectedSquadId) ?? squads[0] ?? null, [selectedSquadId, squads]);
@@ -48,6 +59,86 @@ export const ClubSquadsPage = () => {
             })
             .finally(() => setLoadingClub(false));
     }, [id]);
+
+    useEffect(() => {
+        if (!id) return;
+        fetchMyClubMembershipContext()
+            .then((ctx) => setIsClubAdmin(isLeadershipRole(ctx?.myRole) && ctx?.clubId === Number(id)))
+            .catch(() => setIsClubAdmin(false));
+    }, [id]);
+
+    const handleUpdateSquad = useCallback(async (squadId: number) => {
+        if (!id || !editForm.name?.trim()) return;
+        setSavingSquad(true);
+        try {
+            await updateSquad(Number(id), squadId, editForm);
+            setSquads((prev) =>
+                prev.map((s) => (s.id === squadId ? { ...s, ...editForm } : s))
+            );
+            setEditingSquadId(null);
+            setEditForm({});
+        } catch (error) {
+            console.error('Failed to update squad', error);
+        } finally {
+            setSavingSquad(false);
+        }
+    }, [id, editForm]);
+
+    const handleDeleteSquad = useCallback(async (squadId: number, squadName: string) => {
+        if (!id || !window.confirm(`Delete squad "${squadName}"? All players must be removed first.`)) return;
+        setDeletingSquadId(squadId);
+        try {
+            await deleteSquad(Number(id), squadId);
+            setSquads((prev) => prev.filter((s) => s.id !== squadId));
+            if (selectedSquadId === squadId) {
+                setSearchParams({}, { replace: true });
+            }
+        } catch (error) {
+            console.error('Failed to delete squad', error);
+        } finally {
+            setDeletingSquadId(null);
+        }
+    }, [id, selectedSquadId, setSearchParams]);
+
+    const handleRemovePlayer = useCallback(async (userId: number, playerName: string) => {
+        if (!id || !selectedSquad || !window.confirm(`Remove "${playerName}" from squad "${selectedSquad.name}"?`)) return;
+        setRemovingPlayerId(userId);
+        try {
+            await removePlayerFromSquad(Number(id), selectedSquad.id, userId);
+            // Refresh roster
+            const response = await apiClient.get(`/clubs/${id}/squads/${selectedSquad.id}/roster`);
+            setGroups(response.data || []);
+        } catch (error) {
+            console.error('Failed to remove player from squad', error);
+        } finally {
+            setRemovingPlayerId(null);
+        }
+    }, [id, selectedSquad]);
+
+    const handleUpdatePlayer = useCallback(async (userId: number, jerseyNumber: number | null, squadRole: string | null) => {
+        if (!id || !selectedSquad) return;
+        try {
+            await updateSquadPlayer(Number(id), selectedSquad.id, userId, {
+                jerseyNumber,
+                squadRole,
+            });
+            // Refresh roster
+            const response = await apiClient.get(`/clubs/${id}/squads/${selectedSquad.id}/roster`);
+            setGroups(response.data || []);
+        } catch (error) {
+            console.error('Failed to update squad player', error);
+        }
+    }, [id, selectedSquad]);
+
+    const handlePlayersAdded = useCallback(async () => {
+        if (!id || !selectedSquad) return;
+        try {
+            const response = await apiClient.get(`/clubs/${id}/squads/${selectedSquad.id}/roster`);
+            setGroups(response.data || []);
+        } catch (error) {
+            console.error('Failed to refresh roster', error);
+        }
+    }, [id, selectedSquad]);
 
     useEffect(() => {
         if (!selectedSquad) {
@@ -149,21 +240,89 @@ export const ClubSquadsPage = () => {
                             ) : (
                                 squads.map((squad) => {
                                     const isActive = selectedSquad?.id === squad.id;
+                                    const isEditing = editingSquadId === squad.id;
                                     return (
-                                        <button
-                                            key={squad.id}
-                                            type="button"
-                                            onClick={() => setSearchParams({ squad: String(squad.id) })}
-                                            className={`flex w-full items-center justify-between gap-3 border-l-2 px-4 py-3 text-left transition-colors ${
-                                                isActive ? 'border-accent-muted bg-elevated text-primary' : 'border-transparent text-secondary hover:bg-base hover:text-primary'
-                                            }`}
-                                        >
-                                            <span>
-                                                <span className="block text-[11px] font-black uppercase tracking-[0.16em]">{squad.name}</span>
-                                                <span className="mt-1 block text-[11px] font-medium normal-case tracking-normal text-secondary">{squad.category} / {squad.gender}</span>
-                                            </span>
-                                            {isActive && <span className="h-px w-5 bg-[color:var(--accent-muted)]" aria-hidden="true" />}
-                                        </button>
+                                        <div key={squad.id}>
+                                            {isEditing ? (
+                                                <div className="space-y-2 px-4 py-3 border-l-2 border-accent-muted bg-elevated">
+                                                    <input
+                                                        value={editForm.name ?? squad.name}
+                                                        onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                                                        placeholder="Squad name"
+                                                        className="w-full border border-subtle bg-base px-2 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-primary"
+                                                    />
+                                                    <input
+                                                        value={editForm.category ?? squad.category}
+                                                        onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
+                                                        placeholder="Category"
+                                                        className="w-full border border-subtle bg-base px-2 py-1 text-[11px] font-medium normal-case tracking-normal text-primary"
+                                                    />
+                                                    <select
+                                                        value={editForm.gender ?? squad.gender}
+                                                        onChange={(e) => setEditForm((f) => ({ ...f, gender: e.target.value }))}
+                                                        className="w-full border border-subtle bg-base px-2 py-1 text-[11px] font-medium normal-case tracking-normal text-primary"
+                                                    >
+                                                        <option value="MALE">MALE</option>
+                                                        <option value="FEMALE">FEMALE</option>
+                                                        <option value="MIXED">MIXED</option>
+                                                    </select>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => void handleUpdateSquad(squad.id)}
+                                                            disabled={savingSquad}
+                                                            className="border border-accent-primary bg-accent-primary-soft px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] accent-primary disabled:opacity-50"
+                                                        >
+                                                            {savingSquad ? 'Saving...' : 'Save'}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => { setEditingSquadId(null); setEditForm({}); }}
+                                                            className="border border-subtle bg-base px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-secondary"
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSearchParams({ squad: String(squad.id) })}
+                                                        className={`flex flex-1 items-center justify-between gap-3 border-l-2 px-4 py-3 text-left transition-colors ${
+                                                            isActive ? 'border-accent-muted bg-elevated text-primary' : 'border-transparent text-secondary hover:bg-base hover:text-primary'
+                                                        }`}
+                                                    >
+                                                        <span>
+                                                            <span className="block text-[11px] font-black uppercase tracking-[0.16em]">{squad.name}</span>
+                                                            <span className="mt-1 block text-[11px] font-medium normal-case tracking-normal text-secondary">{squad.category} / {squad.gender}</span>
+                                                        </span>
+                                                        {isActive && <span className="h-px w-5 bg-[color:var(--accent-muted)]" aria-hidden="true" />}
+                                                    </button>
+                                                    {isClubAdmin && (
+                                                        <div className="flex shrink-0 items-center gap-1 pr-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => { e.stopPropagation(); setEditingSquadId(squad.id); setEditForm({ name: squad.name, category: squad.category, gender: squad.gender }); }}
+                                                                className="p-1 text-secondary hover:text-primary"
+                                                                title="Edit squad"
+                                                            >
+                                                                <Pencil className="h-3 w-3" />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => { e.stopPropagation(); void handleDeleteSquad(squad.id, squad.name); }}
+                                                                disabled={deletingSquadId === squad.id}
+                                                                className="p-1 text-secondary hover:text-[color:var(--state-danger)] disabled:opacity-50"
+                                                                title="Delete squad"
+                                                            >
+                                                                {deletingSquadId === squad.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     );
                                 })
                             )}
@@ -197,11 +356,11 @@ export const ClubSquadsPage = () => {
                     ) : (
                         <div className="flex flex-col gap-4">
                             <EntitySection
-                                eyebrow="Roster Surface"
-                                title={selectedSquad?.name ?? 'Squad Roster'}
-                                description="Structured by football unit for fast scanning instead of card-heavy tiles."
-                                bodyClassName="grid divide-y divide-[color:var(--border-subtle)] sm:grid-cols-3 sm:divide-x sm:divide-y-0"
-                            >
+                                    eyebrow="Roster Surface"
+                                    title={selectedSquad?.name ?? 'Squad Roster'}
+                                    description="Structured by football unit for fast scanning instead of card-heavy tiles."
+                                    bodyClassName="grid divide-y divide-[color:var(--border-subtle)] sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+                                >
                                 <div className="px-4 py-3">
                                     <p className="text-[11px] font-black uppercase tracking-[0.18em] text-secondary">Category</p>
                                     <p className="mt-2 text-xl font-black uppercase tracking-tight text-primary">{selectedSquad?.category || 'Unspecified'}</p>
@@ -216,7 +375,25 @@ export const ClubSquadsPage = () => {
                                 </div>
                             </EntitySection>
 
-                            <SquadRosterTable groups={groups} />
+                            {isClubAdmin && selectedSquad && (
+                                <div className="flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAddPlayers(true)}
+                                        className="inline-flex items-center gap-2 border border-accent-primary bg-accent-primary px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-[color:var(--accent-on-primary)] hover:bg-accent-primary-hover"
+                                    >
+                                        + Add Players
+                                    </button>
+                                </div>
+                            )}
+
+                            <SquadRosterTable
+                                groups={groups}
+                                editable={isClubAdmin}
+                                onRemovePlayer={handleRemovePlayer}
+                                onUpdatePlayer={handleUpdatePlayer}
+                                removingPlayerId={removingPlayerId}
+                            />
                         </div>
                     )
                 )}
@@ -251,6 +428,16 @@ export const ClubSquadsPage = () => {
                     </div>
                 )}
             />
+
+            {selectedSquad && (
+                <AddPlayerToSquadModal
+                    clubId={Number(id)}
+                    squadId={selectedSquad.id}
+                    isOpen={showAddPlayers}
+                    onClose={() => setShowAddPlayers(false)}
+                    onPlayersAdded={handlePlayersAdded}
+                />
+            )}
         </div>
     );
 };

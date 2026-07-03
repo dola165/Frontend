@@ -111,3 +111,51 @@ export const fetchMyClubMemberships = async () => {
     const response = await apiClient.get<MyClubMembership[]>('/club-memberships/me');
     return response.data;
 };
+
+// ── Squad management ──
+
+export interface UpdateSquadPayload {
+    name?: string | null;
+    category?: string | null;
+    gender?: string | null;
+    headCoachId?: number | null;
+}
+
+export interface UpdateSquadPlayerPayload {
+    jerseyNumber?: number | null;
+    squadRole?: string | null;
+}
+
+export interface AddSquadPlayerPayload {
+    userId: number;
+    jerseyNumber?: number | null;
+    squadRole?: string | null;
+}
+
+export interface BatchAddSquadPlayersPayload {
+    players: AddSquadPlayerPayload[];
+}
+
+export const updateSquad = async (clubId: number, squadId: number, payload: UpdateSquadPayload) => {
+    await apiClient.patch(`/clubs/${clubId}/squads/${squadId}`, payload);
+};
+
+export const deleteSquad = async (clubId: number, squadId: number) => {
+    await apiClient.delete(`/clubs/${clubId}/squads/${squadId}`);
+};
+
+export const updateSquadPlayer = async (clubId: number, squadId: number, userId: number, payload: UpdateSquadPlayerPayload) => {
+    await apiClient.patch(`/clubs/${clubId}/squads/${squadId}/players/${userId}`, payload);
+};
+
+export const addPlayerToSquad = async (clubId: number, squadId: number, payload: AddSquadPlayerPayload) => {
+    await apiClient.post(`/clubs/${clubId}/squads/${squadId}/players`, payload);
+};
+
+export const removePlayerFromSquad = async (clubId: number, squadId: number, userId: number) => {
+    await apiClient.delete(`/clubs/${clubId}/squads/${squadId}/players/${userId}`);
+};
+
+export const batchAddPlayersToSquad = async (clubId: number, squadId: number, payload: BatchAddSquadPlayersPayload) => {
+    await apiClient.post(`/clubs/${clubId}/squads/${squadId}/players/batch`, payload);
+};

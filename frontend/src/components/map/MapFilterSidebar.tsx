@@ -2,10 +2,10 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Building2, ChevronDown, ChevronRight, Filter, MapPin, Search, ShieldCheck, SlidersHorizontal, Trophy, Users, X } from 'lucide-react';
 import { MapHelpHint } from './MapHelpHint';
 
-export type MapEntityType = 'CLUB' | 'TRYOUT' | 'MATCH';
+export type MapEntityType = 'CLUB' | 'TRYOUT' | 'MATCH' | 'TOURNAMENT';
 export type MapSortMode = 'RELEVANCE' | 'SOONEST' | 'DISTANCE' | 'NAME';
 export type MapTimeWindow = 'Morning' | 'Afternoon' | 'Evening';
-export type MapDateWindow = 'NEXT_7_DAYS' | 'NEXT_30_DAYS' | 'NEXT_90_DAYS';
+export type MapDateWindow = 'NEXT_7_DAYS' | 'NEXT_30_DAYS' | 'NEXT_90_DAYS' | 'ANY';
 export type MapGender = 'Boys' | 'Girls' | 'Men' | 'Women' | 'Mixed';
 export type MapLevel = 'Youth' | 'Academy' | 'Amateur' | 'Grassroots';
 export type MapMatchSubtype = 'FRIENDLY' | 'COMPETITIVE';
@@ -25,7 +25,6 @@ interface TryoutFilters {
     dateWindow: MapDateWindow;
     timeWindows: MapTimeWindow[];
     genders: MapGender[];
-    levels: MapLevel[];
     ageGroups: string[];
 }
 
@@ -38,13 +37,10 @@ interface MatchFilters {
     levels: MapLevel[];
     ageGroups: string[];
     subtypes: MapMatchSubtype[];
-    challengeStates: MapChallengeState[];
-    locationStates: MapLocationState[];
-    travelPreferences: MapTravelPreference[];
 }
 
 export interface MapFilters {
-    entityType: MapEntityType;
+    entityType: MapEntityType[];
     sortBy: MapSortMode;
     distanceKm: number;
     clubs: ClubFilters;
@@ -66,7 +62,8 @@ const TIME_WINDOWS: MapTimeWindow[] = ['Morning', 'Afternoon', 'Evening'];
 const DATE_WINDOWS: Array<{ value: MapDateWindow; label: string }> = [
     { value: 'NEXT_7_DAYS', label: 'Next 7 days' },
     { value: 'NEXT_30_DAYS', label: 'Next 30 days' },
-    { value: 'NEXT_90_DAYS', label: 'Next 90 days' }
+    { value: 'NEXT_90_DAYS', label: 'Next 90 days' },
+    { value: 'ANY', label: 'Any time' }
 ];
 const SORT_OPTIONS: Array<{ value: MapSortMode; label: string }> = [
     { value: 'RELEVANCE', label: 'Best fit' },
@@ -95,7 +92,7 @@ const TRAVEL_PREFERENCE_OPTIONS: Array<{ value: MapTravelPreference; label: stri
 ];
 
 export const defaultMapFilters: MapFilters = {
-    entityType: 'CLUB',
+    entityType: ['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT'],
     sortBy: 'RELEVANCE',
     distanceKm: 200,
     clubs: {
@@ -106,37 +103,35 @@ export const defaultMapFilters: MapFilters = {
     tryouts: {
         city: '',
         country: '',
-        dateWindow: 'NEXT_30_DAYS',
+        dateWindow: 'ANY',
         timeWindows: [],
         genders: [],
-        levels: [],
         ageGroups: []
     },
     matches: {
         city: '',
         country: '',
-        dateWindow: 'NEXT_30_DAYS',
+        dateWindow: 'ANY',
         timeWindows: [],
         genders: [],
         levels: [],
         ageGroups: [],
-        subtypes: ['FRIENDLY', 'COMPETITIVE'],
-        challengeStates: ['OPEN', 'PENDING', 'CONFIRMED'],
-        locationStates: ['PINNED', 'OPEN_VENUE'],
-        travelPreferences: []
+        subtypes: ['FRIENDLY', 'COMPETITIVE']
     }
 };
 
 const ENTITY_LABELS: Record<MapEntityType, string> = {
-    CLUB: 'Clubs / HQs',
+    CLUB: 'Clubs',
     TRYOUT: 'Tryouts',
-    MATCH: 'Matches'
+    MATCH: 'Matches',
+    TOURNAMENT: 'Tournaments'
 };
 
 const ENTITY_ICONS: Record<MapEntityType, ReactNode> = {
     CLUB: <Building2 className="h-4 w-4" />,
     TRYOUT: <Users className="h-4 w-4" />,
-    MATCH: <Trophy className="h-4 w-4" />
+    MATCH: <Trophy className="h-4 w-4" />,
+    TOURNAMENT: <Trophy className="h-4 w-4" />
 };
 
 const toggleValue = <T extends string>(current: T[], value: T) =>
@@ -161,7 +156,6 @@ const countActiveFilters = (filters: MapFilters) => {
     if (filters.tryouts.dateWindow !== defaultMapFilters.tryouts.dateWindow) count += 1;
     count += countArrayDelta(filters.tryouts.timeWindows, defaultMapFilters.tryouts.timeWindows);
     count += countArrayDelta(filters.tryouts.genders, defaultMapFilters.tryouts.genders);
-    count += countArrayDelta(filters.tryouts.levels, defaultMapFilters.tryouts.levels);
     count += countArrayDelta(filters.tryouts.ageGroups, defaultMapFilters.tryouts.ageGroups);
     if (filters.matches.city) count += 1;
     if (filters.matches.country) count += 1;
@@ -171,9 +165,6 @@ const countActiveFilters = (filters: MapFilters) => {
     count += countArrayDelta(filters.matches.levels, defaultMapFilters.matches.levels);
     count += countArrayDelta(filters.matches.ageGroups, defaultMapFilters.matches.ageGroups);
     count += countArrayDelta(filters.matches.subtypes, defaultMapFilters.matches.subtypes);
-    count += countArrayDelta(filters.matches.challengeStates, defaultMapFilters.matches.challengeStates);
-    count += countArrayDelta(filters.matches.locationStates, defaultMapFilters.matches.locationStates);
-    count += countArrayDelta(filters.matches.travelPreferences, defaultMapFilters.matches.travelPreferences);
 
     return count;
 };
@@ -291,6 +282,13 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
         setExpanded((current) => ({ ...current, [key]: !current[key] }));
     };
 
+    // Clubs don't have dates, so "Soonest" and "Best fit" are meaningless for club-only browsing.
+    const clubsOnly = filters.entityType.length === 1 && filters.entityType[0] === 'CLUB';
+    const visibleSortOptions = useMemo(
+        () => (clubsOnly ? SORT_OPTIONS.filter((o) => o.value === 'DISTANCE' || o.value === 'NAME') : SORT_OPTIONS),
+        [clubsOnly]
+    );
+
     return (
         <>
             <div
@@ -352,19 +350,31 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                 onToggle={() => toggleExpanded('entity')}
                             >
                                 <div className="grid gap-2">
-                                    {(['CLUB', 'TRYOUT', 'MATCH'] as MapEntityType[]).map((entityType) => (
-                                        <button
-                                            key={entityType}
-                                            type="button"
-                                            onClick={() => updateFilters((current) => ({ ...current, entityType }))}
-                                            className={`map-entity-tile ${filters.entityType === entityType ? 'map-entity-tile--active' : ''}`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <span className="map-rail-icon">{ENTITY_ICONS[entityType]}</span>
-                                                <p className="text-sm font-bold text-primary">{ENTITY_LABELS[entityType]}</p>
-                                            </div>
-                                        </button>
-                                    ))}
+                                    {(['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT'] as MapEntityType[]).map((entityType) => {
+                                        const isActive = filters.entityType.includes(entityType);
+                                        return (
+                                            <button
+                                                key={entityType}
+                                                type="button"
+                                                onClick={() =>
+                                                    updateFilters((current) => {
+                                                        const next = isActive
+                                                            ? current.entityType.filter((t) => t !== entityType)
+                                                            : [...current.entityType, entityType];
+                                                        // Keep at least one type selected
+                                                        if (next.length === 0) return current;
+                                                        return { ...current, entityType: next };
+                                                    })
+                                                }
+                                                className={`map-entity-tile ${isActive ? 'map-entity-tile--active' : ''}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className="map-rail-icon">{ENTITY_ICONS[entityType]}</span>
+                                                    <p className="text-sm font-bold text-primary">{ENTITY_LABELS[entityType]}</p>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </RailSection>
 
@@ -379,7 +389,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                     <div>
                                         <span className="map-field-label">Sort results</span>
                                         <div className="mt-2 grid grid-cols-2 gap-2">
-                                            {SORT_OPTIONS.map((option) => (
+                                            {visibleSortOptions.map((option) => (
                                                 <ToggleChip
                                                     key={option.value}
                                                     active={filters.sortBy === option.value}
@@ -428,46 +438,58 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                         label="City"
                                         placeholder="Filter by city"
                                         value={
-                                            filters.entityType === 'CLUB'
+                                            filters.entityType.includes('CLUB')
                                                 ? filters.clubs.city
-                                                : filters.entityType === 'TRYOUT'
+                                                : filters.entityType.includes('TRYOUT')
                                                     ? filters.tryouts.city
                                                     : filters.matches.city
                                         }
                                         onChange={(value) =>
-                                            updateFilters((current) =>
-                                                current.entityType === 'CLUB'
-                                                    ? { ...current, clubs: { ...current.clubs, city: value } }
-                                                    : current.entityType === 'TRYOUT'
-                                                        ? { ...current, tryouts: { ...current.tryouts, city: value } }
-                                                        : { ...current, matches: { ...current.matches, city: value } }
-                                            )
+                                            updateFilters((current) => {
+                                                let next = current;
+                                                if (current.entityType.includes('CLUB')) {
+                                                    next = { ...next, clubs: { ...next.clubs, city: value } };
+                                                }
+                                                if (current.entityType.includes('TRYOUT')) {
+                                                    next = { ...next, tryouts: { ...next.tryouts, city: value } };
+                                                }
+                                                if (current.entityType.includes('MATCH')) {
+                                                    next = { ...next, matches: { ...next.matches, city: value } };
+                                                }
+                                                return next;
+                                            })
                                         }
                                     />
                                     <TextField
                                         label="Country"
                                         placeholder="Filter by country"
                                         value={
-                                            filters.entityType === 'CLUB'
+                                            filters.entityType.includes('CLUB')
                                                 ? filters.clubs.country
-                                                : filters.entityType === 'TRYOUT'
+                                                : filters.entityType.includes('TRYOUT')
                                                     ? filters.tryouts.country
                                                     : filters.matches.country
                                         }
                                         onChange={(value) =>
-                                            updateFilters((current) =>
-                                                current.entityType === 'CLUB'
-                                                    ? { ...current, clubs: { ...current.clubs, country: value } }
-                                                    : current.entityType === 'TRYOUT'
-                                                        ? { ...current, tryouts: { ...current.tryouts, country: value } }
-                                                        : { ...current, matches: { ...current.matches, country: value } }
-                                            )
+                                            updateFilters((current) => {
+                                                let next = current;
+                                                if (current.entityType.includes('CLUB')) {
+                                                    next = { ...next, clubs: { ...next.clubs, country: value } };
+                                                }
+                                                if (current.entityType.includes('TRYOUT')) {
+                                                    next = { ...next, tryouts: { ...next.tryouts, country: value } };
+                                                }
+                                                if (current.entityType.includes('MATCH')) {
+                                                    next = { ...next, matches: { ...next.matches, country: value } };
+                                                }
+                                                return next;
+                                            })
                                         }
                                     />
                                 </div>
                             </RailSection>
 
-                            {filters.entityType === 'CLUB' && (
+                            {filters.entityType.includes('CLUB') && (
                                 <RailSection
                                     icon={<ShieldCheck className="h-4 w-4" />}
                                     title="Club filters"
@@ -488,11 +510,11 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                 </RailSection>
                             )}
 
-                            {filters.entityType === 'TRYOUT' && (
+                            {filters.entityType.includes('TRYOUT') && (
                                 <RailSection
                                     icon={<Users className="h-4 w-4" />}
                                     title="Tryout filters"
-                                    helpText="Use date, time, age, level, and gender to narrow public tryouts."
+                                    helpText="Use date, time, age group, and gender to narrow public tryouts."
                                     expanded={expanded.tryouts}
                                     onToggle={() => toggleExpanded('tryouts')}
                                 >
@@ -562,28 +584,6 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                         </div>
 
                                         <div>
-                                            <span className="map-field-label">Level</span>
-                                            <div className="mt-2 flex flex-wrap gap-2">
-                                                {LEVEL_OPTIONS.map((level) => (
-                                                    <ToggleChip
-                                                        key={level}
-                                                        active={filters.tryouts.levels.includes(level)}
-                                                        label={level}
-                                                        onClick={() =>
-                                                            updateFilters((current) => ({
-                                                                ...current,
-                                                                tryouts: {
-                                                                    ...current.tryouts,
-                                                                    levels: toggleValue(current.tryouts.levels, level)
-                                                                }
-                                                            }))
-                                                        }
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div>
                                             <span className="map-field-label">Age group</span>
                                             <div className="mt-2 grid grid-cols-2 gap-2">
                                                 {AGE_GROUPS.map((ageGroup) => (
@@ -607,11 +607,11 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                     </div>
                                 </RailSection>
                             )}
-                            {filters.entityType === 'MATCH' && (
+                            {filters.entityType.includes('MATCH') && (
                                 <RailSection
                                     icon={<Trophy className="h-4 w-4" />}
                                     title="Match filters"
-                                    helpText="Use match type, status, venue, travel, and timing to narrow match discovery."
+                                    helpText="Use match type, level, age group, gender, and timing to narrow match discovery."
                                     expanded={expanded.matches}
                                     onToggle={() => toggleExpanded('matches')}
                                 >
@@ -630,72 +630,6 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                                                 matches: {
                                                                     ...current.matches,
                                                                     subtypes: toggleValue(current.matches.subtypes, option.value)
-                                                                }
-                                                            }))
-                                                        }
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <span className="map-field-label">Challenge state</span>
-                                            <div className="mt-2 grid gap-2">
-                                                {MATCH_STATE_OPTIONS.map((option) => (
-                                                    <CheckRow
-                                                        key={option.value}
-                                                        checked={filters.matches.challengeStates.includes(option.value)}
-                                                        label={option.label}
-                                                        onChange={() =>
-                                                            updateFilters((current) => ({
-                                                                ...current,
-                                                                matches: {
-                                                                    ...current.matches,
-                                                                    challengeStates: toggleValue(current.matches.challengeStates, option.value)
-                                                                }
-                                                            }))
-                                                        }
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <span className="map-field-label">Location status</span>
-                                            <div className="mt-2 grid gap-2">
-                                                {LOCATION_STATE_OPTIONS.map((option) => (
-                                                    <CheckRow
-                                                        key={option.value}
-                                                        checked={filters.matches.locationStates.includes(option.value)}
-                                                        label={option.label}
-                                                        onChange={() =>
-                                                            updateFilters((current) => ({
-                                                                ...current,
-                                                                matches: {
-                                                                    ...current.matches,
-                                                                    locationStates: toggleValue(current.matches.locationStates, option.value)
-                                                                }
-                                                            }))
-                                                        }
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <span className="map-field-label">Travel preference</span>
-                                            <div className="mt-2 grid gap-2">
-                                                {TRAVEL_PREFERENCE_OPTIONS.map((option) => (
-                                                    <CheckRow
-                                                        key={option.value}
-                                                        checked={filters.matches.travelPreferences.includes(option.value)}
-                                                        label={option.label}
-                                                        onChange={() =>
-                                                            updateFilters((current) => ({
-                                                                ...current,
-                                                                matches: {
-                                                                    ...current.matches,
-                                                                    travelPreferences: toggleValue(current.matches.travelPreferences, option.value)
                                                                 }
                                                             }))
                                                         }

@@ -37,6 +37,7 @@ export interface ScheduleEventUpsertInput {
     locationLat?: number | null;
     locationLng?: number | null;
     opponentClubId?: number | null;
+    hostSquadId?: number | null;
     recurrence?: ScheduleRecurrenceRuleInput | null;
 }
 
@@ -71,6 +72,10 @@ export interface ScheduleEventOccurrence {
     status: string;
     conflict: boolean;
     conflictingEventIds: number[];
+    challengerSquadId?: number | null;
+    challengerSquadName?: string | null;
+    targetSquadId?: number | null;
+    targetSquadName?: string | null;
 }
 
 interface ScheduleWindowResponse {
@@ -89,6 +94,9 @@ export interface PublicScheduleEventsOptions {
 export interface ScheduleChallengeRequest {
     challengerClubId?: number;
     targetClubId: number;
+    challengingSquadId?: number | null;
+    targetSquadId?: number | null;
+    venuePreference?: 'HOME' | 'AWAY' | null;
     note?: string | null;
 }
 
@@ -156,4 +164,8 @@ export const createScheduleChallenge = async (eventId: number, payload: Schedule
 export const respondToScheduleChallenge = async (eventId: number, payload: ScheduleChallengeResponse) => {
     const response = await apiClient.post<ScheduleEventOccurrence>(`/schedule/challenges/${eventId}/response`, payload);
     return response.data;
+};
+
+export const completeClubEvent = async (clubId: number, eventId: number) => {
+    await apiClient.post(`/schedule/clubs/${clubId}/events/${eventId}/complete`);
 };

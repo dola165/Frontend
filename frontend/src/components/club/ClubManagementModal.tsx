@@ -70,10 +70,14 @@ interface UserSearchDto {
 
 interface TryoutApplicantDto {
     id: number;
+    userId: number;
     name: string;
     position?: string | null;
     ageGroup?: string | null;
     status: string;
+    profilePictureUrl?: string | null;
+    matchScore: number;
+    attributes: Record<string, number>;
 }
 
 interface TabItem {
@@ -357,7 +361,15 @@ export const ClubManagementModal = ({
         });
     };
 
-    const handlePlayerStatusChange = async (userId: number, status: PlayerAffiliationStatus) => {
+    const handlePlayerStatusChange = async (userId: number, status: PlayerAffiliationStatus, playerName?: string) => {
+        // Confirm destructive actions that remove player from all squads
+        if ((status === 'PAST' || status === 'REMOVED')) {
+            const actionLabel = status === 'PAST' ? 'mark as past' : 'remove';
+            const warning = status === 'PAST'
+                ? `Mark "${playerName || 'this player'}" as a past player? They will be removed from ALL squads.`
+                : `Remove "${playerName || 'this player'}" from the club? They will be removed from ALL squads.`;
+            if (!window.confirm(warning)) return;
+        }
         await runAction(`player-${userId}-${status}`, async () => {
             await updateClubPlayerStatus(clubId, userId, status);
             await Promise.all([loadOverview(), loadPlayers()]);
@@ -772,7 +784,7 @@ export const ClubManagementModal = ({
                                                                             disabled={pendingKey === `player-${player.userId}-ACTIVE`}
                                                                             className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700 transition-colors hover:bg-emerald-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-70 dark:text-emerald-300"
                                                                         >
-                                                                            {pendingKey === `player-${player.userId}-ACTIVE` ? '...' : 'Promote To Active'}
+                                                                            {pendingKey === `player-${player.userId}-ACTIVE` ? '...' : 'Promote to Active Player'}
                                                                         </button>
                                                                         <button
                                                                             type="button"
@@ -780,7 +792,7 @@ export const ClubManagementModal = ({
                                                                             disabled={pendingKey === `player-${player.userId}-REMOVED`}
                                                                             className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-rose-700 transition-colors hover:bg-rose-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-70 dark:text-rose-300"
                                                                         >
-                                                                            {pendingKey === `player-${player.userId}-REMOVED` ? '...' : 'Remove'}
+                                                                            {pendingKey === `player-${player.userId}-REMOVED` ? '...' : 'Remove from Club'}
                                                                         </button>
                                                                     </>
                                                                 )}
@@ -793,7 +805,7 @@ export const ClubManagementModal = ({
                                                                             disabled={pendingKey === `player-${player.userId}-TRIALIST`}
                                                                             className="rounded-xl border border-slate-300 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-slate-700 transition-colors hover:border-slate-400 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:text-white"
                                                                         >
-                                                                            {pendingKey === `player-${player.userId}-TRIALIST` ? '...' : 'Move To Trialist'}
+                                                                            {pendingKey === `player-${player.userId}-TRIALIST` ? '...' : 'Demote to Trialist'}
                                                                         </button>
                                                                         <button
                                                                             type="button"
@@ -801,7 +813,7 @@ export const ClubManagementModal = ({
                                                                             disabled={pendingKey === `player-${player.userId}-PAST`}
                                                                             className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700 transition-colors hover:bg-amber-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60 dark:text-amber-300"
                                                                         >
-                                                                            {pendingKey === `player-${player.userId}-PAST` ? '...' : 'Mark Past'}
+                                                                            {pendingKey === `player-${player.userId}-PAST` ? '...' : 'Mark as Past Player'}
                                                                         </button>
                                                                         <button
                                                                             type="button"
@@ -809,7 +821,7 @@ export const ClubManagementModal = ({
                                                                             disabled={pendingKey === `player-${player.userId}-REMOVED`}
                                                                             className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-rose-700 transition-colors hover:bg-rose-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60 dark:text-rose-300"
                                                                         >
-                                                                            {pendingKey === `player-${player.userId}-REMOVED` ? '...' : 'Remove'}
+                                                                            {pendingKey === `player-${player.userId}-REMOVED` ? '...' : 'Remove from Club'}
                                                                         </button>
                                                                     </>
                                                                 )}

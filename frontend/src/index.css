@@ -2201,11 +2201,15 @@
   }
 
   .talanti-map-marker__blip {
+    box-shadow: 0 0 16px var(--blip-glow, transparent), 0 4px 12px rgba(0, 0, 0, 0.5);
+    transition: box-shadow 180ms ease, transform 180ms ease;
+  }
+
+  /* Fallback for unknown marker types — small colored square */
+  .talanti-map-marker--default .talanti-map-marker__blip {
     width: 16px;
     height: 16px;
     border: 3px solid rgba(255, 255, 255, 0.95);
-    box-shadow: 0 0 16px var(--blip-glow, transparent), 0 4px 12px rgba(0, 0, 0, 0.5);
-    transition: box-shadow 180ms ease, transform 180ms ease;
   }
 
   /* === BEAM MARKERS — all entity types use the club-style beam === */

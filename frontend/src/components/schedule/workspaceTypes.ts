@@ -14,8 +14,6 @@ import type { ScheduleEventType, ScheduleRecurrenceRule } from '../../features/s
 
 export type WorkspaceSurface = 'MY_SCHEDULE' | 'CLUB_SCHEDULE';
 export type WorkspaceView = 'month' | 'week' | 'day';
-export type ScheduleEntryMode = 'single' | 'series';
-export type ScheduleRibbonTab = 'schedule' | 'edit' | 'insert' | 'layout' | 'reference';
 export type WorkspaceVisibility = 'PRIVATE' | 'CLUB_ONLY' | 'SCHEDULED_PUBLICATION' | 'PUBLIC';
 export type PublicationState = 'PRIVATE' | 'QUEUED' | 'LIVE';
 export type NoticeTone = 'success' | 'warning' | 'error';

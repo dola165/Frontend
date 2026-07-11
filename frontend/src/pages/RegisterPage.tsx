@@ -44,44 +44,46 @@ export const RegisterPage = () => {
         }
     };
 
-    return (
-        <div className="min-h-screen bg-[#fcf8f2] dark:bg-[#09090b] flex flex-col justify-center items-center p-6 selection:bg-[#00c853]/20 dark:selection:bg-[#00c853]/30 font-sans text-[#1a1a1a] dark:text-gray-100">
+    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-primary outline-none transition-colors focus:border-accent-primary placeholder:text-secondary';
 
-            <Link to="/" className="absolute top-8 left-8 flex items-center gap-2 font-bold uppercase tracking-widest text-sm hover:-translate-x-1 transition-transform">
+    return (
+        <div className="bg-base flex min-h-screen flex-col items-center justify-center p-6">
+
+            <Link to="/" className="absolute top-8 left-8 inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary transition-colors">
                 <ArrowLeft className="w-5 h-5" /> Back to Base
             </Link>
 
             <div className="w-full max-w-md">
                 <div className="text-center mb-10">
-                    <div className="w-16 h-16 bg-[#00c853] text-black flex items-center justify-center rounded-xl mx-auto mb-6 shadow-[4px_4px_0px_0px_#1a1a1a] border-2 border-[#1a1a1a]">
+                    <div className="w-16 h-16 bg-accent-primary text-white flex items-center justify-center mx-auto mb-6 border border-accent-primary">
                         <Shield className="w-8 h-8" />
                     </div>
-                    <h1 className="text-4xl font-serif font-bold tracking-tighter italic uppercase mb-2">Draft Day</h1>
-                    <p className="text-gray-500 font-serif italic">Register your profile and enter the global arena.</p>
+                    <h1 className="text-3xl font-black uppercase tracking-tight text-primary mb-2">Draft Day</h1>
+                    <p className="text-sm text-secondary">Register your profile and enter the global arena.</p>
                 </div>
 
-                <div className="bg-white dark:bg-[#18181b] p-8 rounded-2xl border-2 border-[#1a1a1a] dark:border-gray-700 shadow-[8px_8px_0px_0px_#1a1a1a] dark:shadow-[8px_8px_0px_0px_#000]">
+                <div className="theme-surface theme-border border shadow-2xl p-8 rounded-2xl">
 
                     {error && (
-                        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border-2 border-red-500 text-red-700 dark:text-red-400 font-bold text-sm rounded-lg flex items-center gap-2">
+                        <div className="mb-6 border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)] flex items-center gap-2">
                             <AlertCircle className="w-5 h-5 shrink-0" /> {error}
                         </div>
                     )}
 
                     <form onSubmit={handleRegister} className="flex flex-col gap-5">
-                        <div>
-                            <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Email Address</label>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Email Address</label>
                             <input
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#00c853] font-medium transition-colors"
+                                className={inputClass}
                                 placeholder="champion@talanti.ge"
                             />
                         </div>
-                        <div>
-                            <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Starting Role</label>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Starting Role</label>
                             <div className="grid grid-cols-3 gap-2">
                                 {[
                                     { id: 'PLAYER', label: 'Player', desc: 'Seeking clubs & tryouts' },
@@ -92,39 +94,39 @@ export const RegisterPage = () => {
                                         type="button"
                                         key={option.id}
                                         onClick={() => setRole(option.id as 'PLAYER' | 'FAN' | 'ORGANIZER')}
-                                        className={`rounded-xl border-2 px-4 py-4 text-left transition-all ${
+                                        className={`rounded-xl border px-4 py-4 text-left transition-colors ${
                                             role === option.id
-                                                ? 'border-[#00c853] bg-[#00c853]/10 dark:bg-[#00c853]/10 shadow-[4px_4px_0px_0px_#00c853]'
-                                                : 'border-[#1a1a1a] dark:border-gray-600 bg-[#fcf8f2] dark:bg-gray-900'
+                                                ? 'border-accent-primary bg-accent-primary-soft'
+                                                : 'border-subtle hover:border-strong'
                                         }`}
                                     >
-                                        <p className="font-black uppercase tracking-widest text-sm">{option.label}</p>
-                                        <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-gray-500">{option.desc}</p>
+                                        <p className="font-black uppercase tracking-[0.14em] text-sm text-primary">{option.label}</p>
+                                        <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-secondary">{option.desc}</p>
                                     </button>
                                 ))}
                             </div>
                         </div>
-                        <div>
-                            <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Password</label>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Password</label>
                             <input
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                                 minLength={6}
-                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#00c853] font-medium transition-colors"
+                                className={inputClass}
                                 placeholder="********"
                             />
-                            <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">At least 6 characters</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">At least 6 characters</p>
                         </div>
-                        <div>
-                            <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Confirm Password</label>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Confirm Password</label>
                             <input
                                 type="password"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 required
-                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#00c853] font-medium transition-colors"
+                                className={inputClass}
                                 placeholder="********"
                             />
                         </div>
@@ -132,16 +134,16 @@ export const RegisterPage = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full mt-2 bg-[#1a1a1a] dark:bg-white text-white dark:text-[#1a1a1a] hover:bg-gray-800 dark:hover:bg-gray-200 font-black uppercase tracking-widest py-4 rounded-xl border-2 border-[#1a1a1a] dark:border-transparent shadow-[4px_4px_0px_0px_#00c853] dark:shadow-[4px_4px_0px_0px_#00c853] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="w-full mt-2 inline-flex items-center justify-center gap-2 border border-accent-primary bg-accent-primary text-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] transition-colors disabled:opacity-50"
                         >
                             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Legacy'}
                         </button>
                     </form>
 
                     <div className="my-8 flex items-center gap-4">
-                        <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
-                        <span className="text-xs font-black uppercase tracking-widest text-gray-400">Or draft via</span>
-                        <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
+                        <div className="h-px bg-[color:var(--border-subtle)] flex-1"></div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-muted">Or draft via</span>
+                        <div className="h-px bg-[color:var(--border-subtle)] flex-1"></div>
                     </div>
 
                     <div className="flex justify-center w-full">
@@ -178,8 +180,8 @@ export const RegisterPage = () => {
                     </div>
                 </div>
 
-                <p className="text-center mt-8 font-bold text-sm text-gray-500">
-                    Already drafted? <Link to="/login" className="text-[#00c853] hover:underline uppercase tracking-wider ml-1">Access Database</Link>
+                <p className="text-center mt-8 text-[11px] font-black uppercase tracking-[0.14em] text-secondary">
+                    Already drafted? <Link to="/login" className="accent-primary hover:underline ml-1">Access Database</Link>
                 </p>
             </div>
         </div>

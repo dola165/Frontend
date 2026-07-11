@@ -78,6 +78,8 @@ export interface ClubPlayerAffiliation {
     source?: string | null;
     joinedAt?: string | null;
     endedAt?: string | null;
+    position?: string | null;
+    jerseyNumber?: number | null;
 }
 
 export interface ClubInviteCandidate {

@@ -1,59 +1,41 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
+    ArrowLeft,
     CalendarDays,
     Loader2,
-    Plus,
     TriangleAlert,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { ScheduleEventDrawer, type ScheduleEventFormValues } from '../components/schedule/ScheduleEventDrawer';
+import { EventCreationModal, type EventCreationFormValues, type ModalSurface } from '../components/schedule/EventCreationModal';
 import { ScheduleGrid } from '../components/schedule/ScheduleGrid';
-import { SelectedEventPanel } from '../components/schedule/SelectedEventPanel';
 import { ScheduleToolbar } from '../components/schedule/ScheduleToolbar';
 import { ScheduleWorkspaceHeader } from '../components/schedule/ScheduleWorkspaceHeader';
+import { StandingSchedule } from '../components/schedule/StandingSchedule';
+import { CalendarTutorial, isTutorialCompleted } from '../components/schedule/CalendarTutorial';
 import {
-    type ChallengeInfo,
-    type ChallengeState,
-    type ConflictInfo,
     EVENT_TYPES,
     eventTypeCopy,
-    type ScheduleEntryMode,
-    type ScheduleRibbonTab,
-    surfaceCopy,
     type Notice,
     type NoticeTone,
     type PublicationState,
     type ScheduleWorkspaceEvent,
     type WorkspaceSurface,
-    type WorkspaceVisibility,
     type WorkspaceView
 } from '../components/schedule/workspaceTypes';
-import { CollapsiblePanel } from '../components/ui/CollapsiblePanel';
 import { fetchMyClubMembershipContext } from '../features/clubs/api';
-import { isLeadershipRole, type ClubMembershipContext } from '../features/clubs/domain';
+import { isLeadershipRole, canManageClubOperations, type ClubMembershipContext } from '../features/clubs/domain';
 import {
-    completeClubEvent,
     createClubEvent,
     createMyEvent,
-    deleteScheduleEvent,
     fetchClubSchedule,
     fetchMySchedule,
     updateScheduleEvent,
     type DayOfWeek,
     type ScheduleEventOccurrence,
-    type ScheduleRecurrenceRule,
     type ScheduleEventType,
     type ScheduleEventUpsertInput,
-    type ScheduleVisibility
 } from '../features/schedule/api';
 import { extractApiErrorMessage } from '../utils/apiError';
-
-interface DrawerState {
-    mode: 'create' | 'edit';
-    surface: WorkspaceSurface;
-    initialValues: ScheduleEventFormValues;
-    targetEventId?: number;
-}
 
 interface CalendarPageProps {
     user: { id?: number; username?: string; fullName?: string; role?: string } | null;
@@ -61,1252 +43,401 @@ interface CalendarPageProps {
     setDarkMode: (value: boolean) => void;
 }
 
+type SEvent = ScheduleWorkspaceEvent;
+
 const durationByType: Record<ScheduleEventType, number> = {
-    TRAINING: 90,
-    TRYOUT: 120,
-    MATCH: 120,
-    FRIENDLY: 120,
-    ACTIVITY: 75
+    TRAINING: 90, TRYOUT: 120, MATCH: 120, FRIENDLY: 120, ACTIVITY: 75
 };
-
-const DEFAULT_LEFT_RAIL_WIDTH = 208;
-const DEFAULT_RIGHT_RAIL_WIDTH = 276;
-const MIN_LEFT_RAIL_WIDTH = 176;
-const MAX_LEFT_RAIL_WIDTH = 320;
-const MIN_RIGHT_RAIL_WIDTH = 228;
-const MAX_RIGHT_RAIL_WIDTH = 380;
-const MIN_CENTER_WIDTH = 780;
-const RESIZER_WIDTH = 12;
-
-const dayOfWeekValues: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-const recurrenceDayOrder: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
-const recurrenceDayLabel: Record<DayOfWeek, string> = {
-    MONDAY: 'Mon',
-    TUESDAY: 'Tue',
-    WEDNESDAY: 'Wed',
-    THURSDAY: 'Thu',
-    FRIDAY: 'Fri',
-    SATURDAY: 'Sat',
-    SUNDAY: 'Sun'
+const DEFAULT_LEFT = 220, MIN_LEFT = 176, MAX_LEFT = 360, MIN_CTR = 480, RESIZER = 12;
+const dayVals: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+const recOrder: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+const p2 = (v: number) => String(v).padStart(2, '0');
+const cDate = (v: Date) => new Date(v.getTime());
+const dk = (v: Date) => `${v.getFullYear()}-${p2(v.getMonth() + 1)}-${p2(v.getDate())}`;
+const inpDate = (v: Date) => dk(v);
+const inpTime = (v: Date) => `${p2(v.getHours())}:${p2(v.getMinutes())}`;
+const inpDt = (v: Date) => `${inpDate(v)}T${inpTime(v)}`;
+const apiDt = (v: Date) => `${inpDate(v)}T${inpTime(v)}:00`;
+const normTime = (v: string) => (v.length >= 5 ? v.slice(0, 5) : v);
+const parseD = (v: string) => { const d = new Date(v); return Number.isNaN(d.getTime()) ? new Date() : d; };
+const fmtEnum = (v: string) => v.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase());
+const sod = (v: Date) => { const d = cDate(v); d.setHours(0, 0, 0, 0); return d; };
+const sow = (v: Date) => { const d = sod(v); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; };
+const som = (v: Date) => { const d = sod(v); d.setDate(1); return d; };
+const eom = (v: Date) => { const d = som(v); d.setMonth(d.getMonth() + 1); d.setMilliseconds(-1); return d; };
+const addD = (v: Date, n: number) => { const d = cDate(v); d.setDate(d.getDate() + n); return d; };
+const addM = (v: Date, n: number) => { const d = cDate(v); d.setMinutes(d.getMinutes() + n); return d; };
+const vrng = (vm: WorkspaceView, cd: Date) => {
+    if (vm === 'month') return { s: som(cd), e: eom(cd) };
+    if (vm === 'day') return { s: sod(cd), e: addM(addD(sod(cd), 1), -1) };
+    const s = sow(cd); return { s, e: addM(addD(s, 7), -1) };
 };
-const pad = (value: number) => String(value).padStart(2, '0');
-const cloneDate = (value: Date) => new Date(value.getTime());
-const toDateKey = (value: Date) => `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
-const toInputDate = (value: Date) => toDateKey(value);
-const toInputTime = (value: Date) => `${pad(value.getHours())}:${pad(value.getMinutes())}`;
-const toInputDateTime = (value: Date) => `${toInputDate(value)}T${toInputTime(value)}`;
-const toApiLocalDateTime = (value: Date) => `${toInputDate(value)}T${toInputTime(value)}:00`;
-const normalizeApiTime = (value: string) => (value.length >= 5 ? value.slice(0, 5) : value);
-const ensureApiTimeSeconds = (value: string) => (value.length === 5 ? `${value}:00` : value);
-const buildApiDateTime = (date: string, time: string) => `${date}T${ensureApiTimeSeconds(time)}`;
-
-const parseDate = (value: string) => {
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+const ix = (ev: SEvent, rs: Date, re: Date) => {
+    const es = parseD(ev.startsAt), ee = parseD(ev.endsAt);
+    return es <= re && ee >= rs;
 };
-
-const formatEnumLabel = (value: string) => value.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
-
-const startOfDay = (value: Date) => {
-    const next = cloneDate(value);
-    next.setHours(0, 0, 0, 0);
-    return next;
+const fmtRange = (vm: WorkspaceView, cd: Date) => {
+    if (vm === 'month') return cd.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    if (vm === 'day') return cd.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    const ws = sow(cd), we = addD(ws, 6);
+    if (ws.getMonth() === we.getMonth()) return `${ws.toLocaleDateString(undefined, { month: 'long' })} ${ws.getDate()} – ${we.getDate()}, ${we.getFullYear()}`;
+    return `${ws.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${we.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
 };
-
-const startOfWeek = (value: Date) => {
-    const next = startOfDay(value);
-    const dayOffset = (next.getDay() + 6) % 7;
-    next.setDate(next.getDate() - dayOffset);
-    return next;
+const step = (vm: WorkspaceView, cd: Date, delta: number) => {
+    const d = cDate(cd);
+    if (vm === 'month') { d.setMonth(d.getMonth() + delta); return d; }
+    if (vm === 'week') { d.setDate(d.getDate() + delta * 7); return d; }
+    d.setDate(d.getDate() + delta); return d;
 };
-
-const startOfMonth = (value: Date) => {
-    const next = startOfDay(value);
-    next.setDate(1);
-    return next;
+const isPub = (e: SEvent) => e.visibility === 'PUBLIC' || e.visibility === 'SCHEDULED_PUBLICATION';
+const gDow = (v: Date) => dayVals[v.getDay()];
+const normAnchor = (sf: WorkspaceSurface, a: Date) => {
+    const d = cDate(a);
+    if (d.getHours() === 0 && d.getMinutes() === 0) d.setHours(sf === 'CLUB_SCHEDULE' ? 18 : 9, 0, 0, 0);
+    else d.setSeconds(0, 0);
+    return d;
 };
-
-const endOfMonth = (value: Date) => {
-    const next = startOfMonth(value);
-    next.setMonth(next.getMonth() + 1);
-    next.setMilliseconds(-1);
-    return next;
-};
-
-const addDays = (value: Date, amount: number) => {
-    const next = cloneDate(value);
-    next.setDate(next.getDate() + amount);
-    return next;
-};
-
-const addMinutes = (value: Date, amount: number) => {
-    const next = cloneDate(value);
-    next.setMinutes(next.getMinutes() + amount);
-    return next;
-};
-
-const sameDay = (left: Date, right: Date) => toDateKey(left) === toDateKey(right);
-const getVisibleRange = (view: WorkspaceView, cursorDate: Date) => {
-    if (view === 'month') return { start: startOfMonth(cursorDate), end: endOfMonth(cursorDate) };
-    if (view === 'day') return { start: startOfDay(cursorDate), end: addMinutes(addDays(startOfDay(cursorDate), 1), -1) };
-    const start = startOfWeek(cursorDate);
-    return { start, end: addMinutes(addDays(start, 7), -1) };
-};
-
-const intersectsRange = (event: ScheduleWorkspaceEvent, rangeStart: Date, rangeEnd: Date) => {
-    const eventStart = parseDate(event.startsAt);
-    const eventEnd = parseDate(event.endsAt);
-    return eventStart <= rangeEnd && eventEnd >= rangeStart;
-};
-
-const formatRangeLabel = (view: WorkspaceView, cursorDate: Date) => {
-    if (view === 'month') {
-        return cursorDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-    }
-    if (view === 'day') {
-        return cursorDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-    }
-    const weekStart = startOfWeek(cursorDate);
-    const weekEnd = addDays(weekStart, 6);
-    if (weekStart.getMonth() === weekEnd.getMonth()) {
-        return `${weekStart.toLocaleDateString(undefined, { month: 'long' })} ${weekStart.getDate()} - ${weekEnd.getDate()}, ${weekEnd.getFullYear()}`;
-    }
-    return `${weekStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-    })}`;
-};
-
-const monthGrid = (cursorDate: Date) => {
-    const start = startOfMonth(cursorDate);
-    const gridStart = addDays(start, -((start.getDay() + 6) % 7));
-    return Array.from({ length: 42 }, (_, index) => {
-        const date = addDays(gridStart, index);
-        return { date, inMonth: date.getMonth() === cursorDate.getMonth() };
-    });
-};
-
-const addViewStep = (view: WorkspaceView, cursorDate: Date, delta: number) => {
-    const next = cloneDate(cursorDate);
-    if (view === 'month') {
-        next.setMonth(next.getMonth() + delta);
-        return next;
-    }
-    if (view === 'week') {
-        next.setDate(next.getDate() + delta * 7);
-        return next;
-    }
-    next.setDate(next.getDate() + delta);
-    return next;
-};
-
-const isPublicFacing = (event: ScheduleWorkspaceEvent) => event.visibility === 'PUBLIC' || event.visibility === 'SCHEDULED_PUBLICATION';
-const getDefaultHour = (surface: WorkspaceSurface) => (surface === 'CLUB_SCHEDULE' ? 18 : 9);
-const getDayOfWeek = (value: Date) => dayOfWeekValues[value.getDay()];
-const isWeekdaySeries = (days: DayOfWeek[]) => ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'].every((day) => days.includes(day as DayOfWeek)) && days.length === 5;
-const formatRecurrenceLabel = (recurrence?: ScheduleRecurrenceRule | null) => {
-    if (!recurrence) {
-        return 'Single event';
-    }
-
-    const orderedDays = recurrenceDayOrder.filter((day) => recurrence.daysOfWeek.includes(day));
-    const daysLabel = isWeekdaySeries(orderedDays)
-        ? 'Mon-Fri'
-        : orderedDays.map((day) => recurrenceDayLabel[day]).join(' / ');
-
-    return `${daysLabel} · ${normalizeApiTime(recurrence.startTime)}-${normalizeApiTime(recurrence.endTime)}`;
-};
-
-const buildQueuedPublishAt = (startsAt: string) => {
-    const start = parseDate(startsAt);
-    const suggested = addDays(start, -5);
-    const earliest = addMinutes(new Date(), 15);
-    return toApiLocalDateTime(suggested > earliest ? suggested : earliest);
-};
-
-const normalizeAnchor = (surface: WorkspaceSurface, anchor: Date) => {
-    const next = cloneDate(anchor);
-    if (next.getHours() === 0 && next.getMinutes() === 0) {
-        next.setHours(getDefaultHour(surface), 0, 0, 0);
-    } else {
-        next.setSeconds(0, 0);
-    }
-    return next;
-};
-
-const buildCreateFormValues = (
-    surface: WorkspaceSurface,
-    anchor: Date,
-    eventType: ScheduleEventType,
-    isRecurring = false
-): ScheduleEventFormValues => {
-    const start = normalizeAnchor(surface, anchor);
-    const end = addMinutes(start, durationByType[eventType]);
+const toDVis = (ev: ScheduleEventOccurrence) =>
+    ev.clubId != null && ev.visibility === 'PRIVATE' ? 'CLUB_ONLY' : ev.visibility;
+const toWE = (ev: ScheduleEventOccurrence, owner: string): SEvent => {
+    const vis = toDVis(ev) as SEvent['visibility'];
+    const ps: PublicationState = ev.publicNow ? 'LIVE' : ev.visibility === 'SCHEDULED_PUBLICATION' ? 'QUEUED' : 'PRIVATE';
+    const me = ev.clubId != null && (ev.eventType === 'TRYOUT' || ev.eventType === 'MATCH' || ev.eventType === 'FRIENDLY');
     return {
-        title: '',
-        description: '',
-        eventType,
-        date: toInputDate(start),
-        startTime: toInputTime(start),
-        endTime: toInputTime(end),
-        locationName: '',
-        locationLat: '',
-        locationLng: '',
-        visibility: 'PRIVATE',
-        publishAt: '',
-        opponentClubId: '',
-        hostSquadId: '',
-        isRecurring,
-        recurrenceDays: [getDayOfWeek(start)],
-        recurrenceStartDate: toInputDate(start),
-        recurrenceEndDate: '',
-        recurrenceStartTime: toInputTime(start),
-        recurrenceEndTime: toInputTime(end)
+        id: ev.occurrenceId, eventId: ev.eventId, title: ev.title,
+        subtitle: ev.opponentClubName ? `vs ${ev.opponentClubName}` : null,
+        description: ev.description, eventType: ev.eventType,
+        startsAt: ev.startsAt, endsAt: ev.endsAt,
+        locationText: ev.locationName, locationLat: ev.locationLat, locationLng: ev.locationLng,
+        status: fmtEnum(ev.status), visibility: vis, publicationState: ps,
+        publishAt: ev.publishAt, recurring: ev.recurring, recurrence: ev.recurrence,
+        recurrenceLabel: null, ownerLabel: owner,
+        mapEligible: me, appearsOnMap: Boolean(ev.publicNow && me),
+        opponentClubId: ev.opponentClubId, conflictingEventIds: ev.conflictingEventIds ?? [],
+        conflict: null, challenge: null
     };
 };
-
-const buildEditFormValues = (event: ScheduleWorkspaceEvent): ScheduleEventFormValues => {
-    const start = parseDate(event.startsAt);
-    const end = parseDate(event.endsAt);
-    const recurrence = event.recurrence;
-    return {
-        title: event.title,
-        description: event.description ?? '',
-        eventType: event.eventType,
-        date: toInputDate(start),
-        startTime: toInputTime(start),
-        endTime: toInputTime(end),
-        locationName: event.locationText ?? '',
-        locationLat: event.locationLat != null ? String(event.locationLat) : '',
-        locationLng: event.locationLng != null ? String(event.locationLng) : '',
-        visibility: event.visibility === 'CLUB_ONLY' ? 'PRIVATE' : event.visibility,
-        publishAt: event.publishAt ? toInputDateTime(parseDate(event.publishAt)) : '',
-        opponentClubId: event.opponentClubId != null ? String(event.opponentClubId) : '',
-        hostSquadId: '',
-        isRecurring: Boolean(recurrence),
-        recurrenceDays: recurrence ? recurrenceDayOrder.filter((day) => recurrence.daysOfWeek.includes(day)) : [getDayOfWeek(start)],
-        recurrenceStartDate: recurrence?.startDate ?? toInputDate(start),
-        recurrenceEndDate: recurrence?.endDate ?? '',
-        recurrenceStartTime: recurrence ? normalizeApiTime(recurrence.startTime) : toInputTime(start),
-        recurrenceEndTime: recurrence ? normalizeApiTime(recurrence.endTime) : toInputTime(end)
-    };
-};
-
-const toDisplayVisibility = (event: ScheduleEventOccurrence): WorkspaceVisibility =>
-    event.clubId != null && event.visibility === 'PRIVATE' ? 'CLUB_ONLY' : event.visibility;
-
-const toChallengeInfo = (event: ScheduleEventOccurrence): ChallengeInfo | null => {
-    if (event.eventType !== 'MATCH' && event.eventType !== 'FRIENDLY') {
-        return null;
-    }
-
-    if (event.challengeStatus === 'OPEN' && !event.opponentClubId) {
-        return { pathway: 'OPEN_OPPORTUNITY', state: 'OPPONENT_PENDING' };
-    }
-
-    if (!event.challengeStatus) {
-        return null;
-    }
-
-    const state: ChallengeState =
-        event.challengeStatus === 'PENDING'
-            ? 'PENDING_ACCEPTANCE'
-            : event.challengeStatus === 'ACCEPTED'
-                ? 'ACCEPTED'
-                : event.challengeStatus === 'REJECTED'
-                    ? 'REJECTED'
-                    : 'OPPONENT_PENDING';
-
-    return {
-        pathway: event.opponentClubId ? 'OUTGOING_CHALLENGE' : 'OPEN_OPPORTUNITY',
-        state,
-        opponentName: event.opponentClubName
-    };
-};
-
-const toWorkspaceEvent = (event: ScheduleEventOccurrence, ownerLabel: string): ScheduleWorkspaceEvent => {
-    const visibility = toDisplayVisibility(event);
-    const publicationState: PublicationState = event.publicNow ? 'LIVE' : event.visibility === 'SCHEDULED_PUBLICATION' ? 'QUEUED' : 'PRIVATE';
-    const challenge = toChallengeInfo(event);
-    const mapEligible = event.clubId != null && (event.eventType === 'TRYOUT' || event.eventType === 'MATCH' || event.eventType === 'FRIENDLY');
-    const recurrenceLabel = formatRecurrenceLabel(event.recurrence);
-
-    return {
-        id: event.occurrenceId,
-        eventId: event.eventId,
-        title: event.title,
-        subtitle: event.opponentClubName ? `vs ${event.opponentClubName}` : event.recurring ? recurrenceLabel : null,
-        description: event.description,
-        eventType: event.eventType,
-        startsAt: event.startsAt,
-        endsAt: event.endsAt,
-        locationText: event.locationName,
-        locationLat: event.locationLat,
-        locationLng: event.locationLng,
-        status: challenge ? formatEnumLabel(challenge.state) : formatEnumLabel(event.status),
-        visibility,
-        publicationState,
-        publishAt: event.publishAt,
-        recurring: event.recurring,
-        recurrence: event.recurrence,
-        recurrenceLabel,
-        ownerLabel,
-        mapEligible,
-        appearsOnMap: Boolean(event.publicNow && mapEligible),
-        opponentClubId: event.opponentClubId,
-        conflictingEventIds: event.conflictingEventIds ?? [],
-        conflict: null,
-        challenge
-    };
-};
-
-const decoratePersonalConflicts = (personalEvents: ScheduleWorkspaceEvent[], clubEvents: ScheduleWorkspaceEvent[]) =>
-    personalEvents.map<ScheduleWorkspaceEvent>((event) => {
-        if (!event.conflictingEventIds.length) {
-            return { ...event, conflict: null };
-        }
-
-        const sourceEvent =
-            clubEvents.find((clubEvent) => event.conflictingEventIds.includes(clubEvent.eventId) && parseDate(event.startsAt) < parseDate(clubEvent.endsAt) && parseDate(event.endsAt) > parseDate(clubEvent.startsAt))
-            ?? clubEvents.find((clubEvent) => event.conflictingEventIds.includes(clubEvent.eventId))
-            ?? null;
-
-        if (!sourceEvent) {
-            return {
-                ...event,
-                conflict: {
-                    sourceEventId: '',
-                    sourceTitle: 'Club schedule',
-                    overlapMinutes: 0,
-                    severity: 'warning',
-                    explanation: 'This private item overlaps with club schedule time.'
-                }
-            };
-        }
-
-        const overlapStart = Math.max(parseDate(event.startsAt).getTime(), parseDate(sourceEvent.startsAt).getTime());
-        const overlapEnd = Math.min(parseDate(event.endsAt).getTime(), parseDate(sourceEvent.endsAt).getTime());
-        const overlapMinutes = Math.max(0, Math.round((overlapEnd - overlapStart) / 60000));
-        const severity: ConflictInfo['severity'] = overlapMinutes >= 45 ? 'critical' : 'warning';
-
-        return {
-            ...event,
-            conflict: {
-                sourceEventId: sourceEvent.id,
-                sourceTitle: sourceEvent.title,
-                overlapMinutes,
-                severity,
-                explanation: `Overlaps with ${sourceEvent.title} for ${overlapMinutes} minutes.`
-            }
-        };
+const decoConflict = (per: SEvent[], club: SEvent[]) =>
+    per.map<SEvent>((ev) => {
+        if (!ev.conflictingEventIds.length) return { ...ev, conflict: null };
+        const src = club.find((c) => ev.conflictingEventIds.includes(c.eventId) && parseD(ev.startsAt) < parseD(c.endsAt) && parseD(ev.endsAt) > parseD(c.startsAt))
+            ?? club.find((c) => ev.conflictingEventIds.includes(c.eventId)) ?? null;
+        if (!src) return { ...ev, conflict: { sourceEventId: '', sourceTitle: 'Club schedule', overlapMinutes: 0, severity: 'warning', explanation: 'Overlaps with club schedule.' } };
+        const os = Math.max(parseD(ev.startsAt).getTime(), parseD(src.startsAt).getTime());
+        const oe = Math.min(parseD(ev.endsAt).getTime(), parseD(src.endsAt).getTime());
+        const om = Math.max(0, Math.round((oe - os) / 60000));
+        const sev = om >= 45 ? 'critical' as const : 'warning' as const;
+        return { ...ev, conflict: { sourceEventId: src.id, sourceTitle: src.title, overlapMinutes: om, severity: sev, explanation: `Overlaps with ${src.title} for ${om} minutes.` } };
     });
 
-const buildEventUpdatePayload = (
-    event: ScheduleWorkspaceEvent,
-    overrides?: Partial<Pick<ScheduleEventUpsertInput, 'visibility' | 'publishAt'>>
-): ScheduleEventUpsertInput => ({
-    title: event.title,
-    description: event.description ?? null,
-    eventType: event.eventType,
-    startsAt: event.recurrence ? buildApiDateTime(event.recurrence.startDate, event.recurrence.startTime) : event.startsAt,
-    endsAt: event.recurrence ? buildApiDateTime(event.recurrence.startDate, event.recurrence.endTime) : event.endsAt,
-    visibility: overrides?.visibility ?? (event.visibility === 'CLUB_ONLY' ? 'PRIVATE' : event.visibility),
-    publishAt: overrides?.publishAt ?? (event.publishAt ?? null),
-    locationName: event.locationText ?? null,
-    locationLat: event.locationLat ?? null,
-    locationLng: event.locationLng ?? null,
-    opponentClubId: event.opponentClubId ?? null,
-    recurrence: event.recurrence
-        ? {
-            ...event.recurrence,
-            startTime: ensureApiTimeSeconds(event.recurrence.startTime),
-            endTime: ensureApiTimeSeconds(event.recurrence.endTime),
-            endDate: event.recurrence.endDate ?? null,
-            timezone: event.recurrence.timezone ?? null
-        }
-        : null
-});
-
-export const CalendarPage = ({ user, darkMode, setDarkMode }: CalendarPageProps) => {
+export const CalendarPage = ({ user }: CalendarPageProps) => {
     const navigate = useNavigate();
-    const columnsRef = useRef<HTMLDivElement | null>(null);
-    const [membershipContext, setMembershipContext] = useState<ClubMembershipContext | null>(null);
-    const [membershipResolved, setMembershipResolved] = useState(false);
-    const [bootstrapped, setBootstrapped] = useState(false);
-    const [scheduleBusy, setScheduleBusy] = useState(false);
-    const [loadNotice, setLoadNotice] = useState<string | null>(null);
-    const [actionNotice, setActionNotice] = useState<Notice | null>(null);
-    const [workspaceSurface, setWorkspaceSurface] = useState<WorkspaceSurface>('MY_SCHEDULE');
-    const [viewMode, setViewMode] = useState<WorkspaceView>('week');
-    const [cursorDate, setCursorDate] = useState(() => new Date());
-    const [enabledTypes, setEnabledTypes] = useState<ScheduleEventType[]>(EVENT_TYPES);
-    const [showConflictOnly, setShowConflictOnly] = useState(false);
-    const [showPublicOnly, setShowPublicOnly] = useState(false);
-    const [clubEvents, setClubEvents] = useState<ScheduleWorkspaceEvent[]>([]);
-    const [personalEventsRaw, setPersonalEventsRaw] = useState<ScheduleWorkspaceEvent[]>([]);
-    const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-    const [drawerState, setDrawerState] = useState<DrawerState | null>(null);
-    const [refreshKey, setRefreshKey] = useState(0);
-    const [activeInsertType, setActiveInsertType] = useState<ScheduleEventType>('TRAINING');
-    const [entryMode, setEntryMode] = useState<ScheduleEntryMode>('single');
-    const [activeRibbonTab, setActiveRibbonTab] = useState<ScheduleRibbonTab>('edit');
-    const [pendingSelection, setPendingSelection] = useState<{ eventId: number; startsAt?: string | null } | null>(null);
-    const [deletingEventId, setDeletingEventId] = useState<number | null>(null);
-    const [completingEventId, setCompletingEventId] = useState<number | null>(null);
-    const [railWidths, setRailWidths] = useState(() => ({
-        left: Number(localStorage.getItem('talanti:schedule-left-rail')) || DEFAULT_LEFT_RAIL_WIDTH,
-        right: Number(localStorage.getItem('talanti:schedule-right-rail')) || DEFAULT_RIGHT_RAIL_WIDTH
-    }));
-    const [resizeState, setResizeState] = useState<{
-        side: 'left' | 'right';
-        startX: number;
-        startLeft: number;
-        startRight: number;
-    } | null>(null);
+    const colRef = useRef<HTMLDivElement | null>(null);
+    const [ctx, setCtx] = useState<ClubMembershipContext | null>(null);
+    const [ctxOk, setCtxOk] = useState(false);
+    const [booted, setBooted] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [loadN, setLoadN] = useState<string | null>(null);
+    const [actN, setActN] = useState<Notice | null>(null);
+    const [surface, setSurface] = useState<WorkspaceSurface>('MY_SCHEDULE');
+    const [vm, setVm] = useState<WorkspaceView>('week');
+    const [cursor, setCursor] = useState(() => new Date());
+    const [etypes, setEtypes] = useState<ScheduleEventType[]>(EVENT_TYPES);
+    const [pubOnly, setPubOnly] = useState(false);
+    const [clubEv, setClubEv] = useState<SEvent[]>([]);
+    const [perRaw, setPerRaw] = useState<SEvent[]>([]);
+    const [rk, setRk] = useState(0);
+
+    const [modal, setModal] = useState(false);
+    const [mmode, setMmode] = useState<'create' | 'edit'>('create');
+    const [mvals, setMvals] = useState<EventCreationFormValues>(emptyForm());
+    const [eid, setEid] = useState<number | null>(null);
+
+    const [railW, setRailW] = useState(() => Number(localStorage.getItem('talanti:schedule-left-rail')) || DEFAULT_LEFT);
+    const [resizing, setResizing] = useState<{ sx: number; sw: number } | null>(null);
+
+    const [showTutorial, setShowTutorial] = useState(false);
+    useEffect(() => {
+        if (!ctxOk) return;
+        if (!isTutorialCompleted()) setShowTutorial(true);
+    }, [ctxOk]);
 
     useEffect(() => {
-        let active = true;
-        const loadMembership = async () => {
+        let a = true;
+        (async () => {
             try {
-                const context = await fetchMyClubMembershipContext();
-                if (!active) {
-                    return;
-                }
-                setMembershipContext(context);
-                setWorkspaceSurface(context?.clubId && isLeadershipRole(context?.myRole) ? 'CLUB_SCHEDULE' : 'MY_SCHEDULE');
-                setLoadNotice(null);
-            } catch (error) {
-                if (!active) {
-                    return;
-                }
-                setMembershipContext(null);
-                setWorkspaceSurface('MY_SCHEDULE');
-                setLoadNotice(extractApiErrorMessage(error, 'Membership context could not be loaded. My Schedule remains available.'));
-            } finally {
-                if (active) {
-                    setMembershipResolved(true);
-                }
-            }
-        };
-
-        void loadMembership();
-        return () => {
-            active = false;
-        };
+                const c = await fetchMyClubMembershipContext();
+                if (!a) return;
+                setCtx(c);
+                setSurface(c?.clubId && canManageClubOperations(c?.myRole) ? 'CLUB_SCHEDULE' : 'MY_SCHEDULE');
+            } catch (e) { if (a) { setCtx(null); setSurface('MY_SCHEDULE'); setLoadN(extractApiErrorMessage(e, 'Membership unavailable.')); } }
+            finally { if (a) setCtxOk(true); }
+        })();
+        return () => { a = false; };
     }, []);
 
-    useEffect(() => {
-        localStorage.setItem('talanti:schedule-left-rail', String(Math.round(railWidths.left)));
-        localStorage.setItem('talanti:schedule-right-rail', String(Math.round(railWidths.right)));
-    }, [railWidths.left, railWidths.right]);
+    useEffect(() => { localStorage.setItem('talanti:schedule-left-rail', String(Math.round(railW))); }, [railW]);
 
     useEffect(() => {
-        if (!resizeState) {
-            return;
-        }
-
-        const handlePointerMove = (event: PointerEvent) => {
-            const containerWidth = columnsRef.current?.getBoundingClientRect().width ?? window.innerWidth;
-
-            setRailWidths((current) => {
-                if (resizeState.side === 'left') {
-                    const maxLeft = Math.min(
-                        MAX_LEFT_RAIL_WIDTH,
-                        containerWidth - resizeState.startRight - (RESIZER_WIDTH * 2) - MIN_CENTER_WIDTH
-                    );
-                    return {
-                        ...current,
-                        left: Math.round(Math.max(MIN_LEFT_RAIL_WIDTH, Math.min(maxLeft, resizeState.startLeft + (event.clientX - resizeState.startX))))
-                    };
-                }
-
-                const maxRight = Math.min(
-                    MAX_RIGHT_RAIL_WIDTH,
-                    containerWidth - resizeState.startLeft - (RESIZER_WIDTH * 2) - MIN_CENTER_WIDTH
-                );
-                return {
-                    ...current,
-                    right: Math.round(Math.max(MIN_RIGHT_RAIL_WIDTH, Math.min(maxRight, resizeState.startRight - (event.clientX - resizeState.startX))))
-                };
-            });
+        if (!resizing) return;
+        const mv = (e: PointerEvent) => {
+            const cw = colRef.current?.getBoundingClientRect().width ?? window.innerWidth;
+            setRailW(Math.round(Math.max(MIN_LEFT, Math.min(MAX_LEFT, Math.min(resizing.sw + (e.clientX - resizing.sx), cw - RESIZER - MIN_CTR)))));
         };
+        const up = () => { setResizing(null); document.body.style.cursor = ''; document.body.style.userSelect = ''; };
+        document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+        window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+        return () => { document.body.style.cursor = ''; document.body.style.userSelect = ''; window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+    }, [resizing]);
 
-        const handlePointerUp = () => {
-            setResizeState(null);
-            document.body.style.cursor = '';
-            document.body.style.userSelect = '';
-        };
-
-        document.body.style.cursor = 'col-resize';
-        document.body.style.userSelect = 'none';
-        window.addEventListener('pointermove', handlePointerMove);
-        window.addEventListener('pointerup', handlePointerUp);
-
-        return () => {
-            document.body.style.cursor = '';
-            document.body.style.userSelect = '';
-            window.removeEventListener('pointermove', handlePointerMove);
-            window.removeEventListener('pointerup', handlePointerUp);
-        };
-    }, [resizeState]);
-
-    const canOpenClubSchedule = Boolean(membershipContext?.clubId);
-    const canManageClubSchedule = isLeadershipRole(membershipContext?.myRole);
-    const clubLabel = membershipContext?.clubName ?? 'Club Schedule';
-    const visibleRange = useMemo(() => getVisibleRange(viewMode, cursorDate), [cursorDate, viewMode]);
-
-    const requestWindow = useMemo(() => {
-        const paddingDays = viewMode === 'month' ? 14 : viewMode === 'week' ? 7 : 2;
-        return {
-            from: addDays(visibleRange.start, -paddingDays),
-            to: addDays(visibleRange.end, paddingDays)
-        };
-    }, [viewMode, visibleRange.end, visibleRange.start]);
+    const canClub = Boolean(ctx?.clubId);
+    const canMgmt = canManageClubOperations(ctx?.myRole);
+    const clubLbl = ctx?.clubName ?? 'Club Schedule';
+    const vr = useMemo(() => vrng(vm, cursor), [cursor, vm]);
+    const rw = useMemo(() => {
+        const pd = vm === 'month' ? 14 : vm === 'week' ? 7 : 2;
+        return { from: addD(vr.s, -pd), to: addD(vr.e, pd) };
+    }, [vm, vr]);
 
     useEffect(() => {
-        if (!membershipResolved) {
-            return;
-        }
-
-        let active = true;
-
-        const loadSchedules = async () => {
-            setScheduleBusy(true);
+        if (!ctxOk) return;
+        let a = true;
+        (async () => {
+            setBusy(true);
             try {
-                const from = toApiLocalDateTime(requestWindow.from);
-                const to = toApiLocalDateTime(requestWindow.to);
-                const [nextPersonal, nextClub] = await Promise.all([
+                const from = apiDt(rw.from), to = apiDt(rw.to);
+                const [per, clb] = await Promise.all([
                     fetchMySchedule(from, to),
-                    membershipContext?.clubId ? fetchClubSchedule(membershipContext.clubId, from, to) : Promise.resolve([])
+                    ctx?.clubId ? fetchClubSchedule(ctx.clubId, from, to) : Promise.resolve([])
                 ]);
+                if (!a) return;
+                setClubEv(clb.map((e) => toWE(e, clubLbl)));
+                setPerRaw(per.map((e) => toWE(e, 'Visible only to you')));
+                setLoadN(null);
+            } catch (e) { if (a) { setLoadN(extractApiErrorMessage(e, 'Schedule load failed.')); setClubEv([]); setPerRaw([]); } }
+            finally { if (a) { setBusy(false); setBooted(true); } }
+        })();
+        return () => { a = false; };
+    }, [clubLbl, ctx?.clubId, ctxOk, rk, rw.from, rw.to]);
 
-                if (!active) {
-                    return;
-                }
+    const personal = useMemo(() => decoConflict(perRaw, clubEv), [clubEv, perRaw]);
+    const active = surface === 'CLUB_SCHEDULE' ? clubEv : personal;
 
-                setClubEvents(nextClub.map((event) => toWorkspaceEvent(event, clubLabel)));
-                setPersonalEventsRaw(nextPersonal.map((event) => toWorkspaceEvent(event, 'Visible only to you')));
-                setLoadNotice(null);
-            } catch (error) {
-                if (!active) {
-                    return;
-                }
-                setLoadNotice(extractApiErrorMessage(error, 'Schedule data could not be loaded.'));
-                if (active) {
-                    setClubEvents([]);
-                    setPersonalEventsRaw([]);
-                }
-            } finally {
-                if (active) {
-                    setScheduleBusy(false);
-                    setBootstrapped(true);
-                }
+    const filtered = useMemo(() =>
+        active.filter((e) => etypes.includes(e.eventType))
+            .filter((e) => ix(e, vr.s, vr.e))
+            .filter((e) => surface === 'CLUB_SCHEDULE' ? (!pubOnly || isPub(e)) : true)
+            .sort((a, b) => parseD(a.startsAt).getTime() - parseD(b.startsAt).getTime()),
+        [active, etypes, pubOnly, vr, surface]);
+
+    const monthE = useMemo(() => filtered.reduce<Record<string, SEvent[]>>((acc, e) => {
+        const k = dk(parseD(e.startsAt));
+        acc[k] = [...(acc[k] ?? []), e];
+        return acc;
+    }, {}), [filtered]);
+
+    const weekDays = useMemo(() => vm === 'day' ? [cursor] : Array.from({ length: 7 }, (_, i) => addD(sow(cursor), i)), [cursor, vm]);
+    const canCreate = surface === 'MY_SCHEDULE' || canMgmt;
+
+    const openCreate = (anchor?: Date, ptype?: ScheduleEventType) => {
+        const s = normAnchor(surface, anchor ?? cursor);
+        const et = ptype ?? (surface === 'CLUB_SCHEDULE' ? 'TRAINING' : 'ACTIVITY');
+        const end = addM(s, durationByType[et]);
+        setMmode('create'); setEid(null);
+        setMvals({ eventType: et, title: '', date: inpDate(s), startTime: inpTime(s), endTime: inpTime(end), isRecurring: false, locationName: '', locationLat: '', locationLng: '', visibility: 'PRIVATE', publishAt: '' });
+        setModal(true);
+    };
+
+    const openEdit = (event: SEvent) => {
+        const s = parseD(event.startsAt), e = parseD(event.endsAt);
+        const rc = event.recurrence;
+        setMmode('edit'); setEid(event.eventId);
+        setMvals({
+            eventType: event.eventType, title: event.title,
+            date: inpDate(s), startTime: inpTime(s), endTime: inpTime(e),
+            isRecurring: Boolean(rc), locationName: event.locationText ?? '',
+            locationLat: event.locationLat != null ? String(event.locationLat) : '',
+            locationLng: event.locationLng != null ? String(event.locationLng) : '',
+            visibility: event.visibility === 'CLUB_ONLY' ? 'PRIVATE' : event.visibility,
+            publishAt: event.publishAt ? inpDt(parseD(event.publishAt)) : '',
+            description: event.description ?? '',
+            recurrenceDays: rc ? recOrder.filter((d) => rc.daysOfWeek.includes(d)) : [gDow(s)],
+            recurrenceStartDate: rc?.startDate ?? inpDate(s),
+            recurrenceEndDate: rc?.endDate ?? '',
+            recurrenceStartTime: rc ? normTime(rc.startTime) : inpTime(s),
+            recurrenceEndTime: rc ? normTime(rc.endTime) : inpTime(e),
+        });
+        setModal(true);
+    };
+
+    const handleSubmit = async (payload: ScheduleEventUpsertInput, meta: { eventType: ScheduleEventType; recurring: boolean }) => {
+        if (!etypes.includes(meta.eventType)) setEtypes((p) => [...p, meta.eventType]);
+        if (mmode === 'create') {
+            if (surface === 'CLUB_SCHEDULE') {
+                if (!ctx?.clubId) throw new Error('No club context.');
+                await createClubEvent(ctx.clubId, payload);
+                setActN({ tone: 'success', message: meta.recurring ? 'Club event with recurrence saved.' : 'Club event saved.' });
+            } else {
+                const r = await createMyEvent(payload);
+                setActN({ tone: r.conflict ? 'warning' : 'success', message: r.conflict ? 'Personal event saved with conflict warning.' : 'Personal event saved.' });
             }
-        };
-
-        void loadSchedules();
-        return () => {
-            active = false;
-        };
-    }, [clubLabel, membershipContext?.clubId, membershipResolved, refreshKey, requestWindow.from, requestWindow.to]);
-
-    const personalEvents = useMemo(
-        () => decoratePersonalConflicts(personalEventsRaw, clubEvents),
-        [clubEvents, personalEventsRaw]
-    );
-
-    const activeEvents = workspaceSurface === 'CLUB_SCHEDULE' ? clubEvents : personalEvents;
-
-    const filteredEvents = useMemo(
-        () =>
-            activeEvents
-                .filter((event) => enabledTypes.includes(event.eventType))
-                .filter((event) => intersectsRange(event, visibleRange.start, visibleRange.end))
-                .filter((event) => (workspaceSurface === 'MY_SCHEDULE' ? (!showConflictOnly || Boolean(event.conflict)) : (!showPublicOnly || isPublicFacing(event))))
-                .sort((left, right) => parseDate(left.startsAt).getTime() - parseDate(right.startsAt).getTime()),
-        [activeEvents, enabledTypes, showConflictOnly, showPublicOnly, visibleRange.end, visibleRange.start, workspaceSurface]
-    );
-
-    const selectedEvent = useMemo(
-        () => filteredEvents.find((event) => event.id === selectedEventId) ?? filteredEvents[0] ?? null,
-        [filteredEvents, selectedEventId]
-    );
-
-    useEffect(() => {
-        if (!filteredEvents.length) {
-            setSelectedEventId(null);
-            return;
-        }
-        if (!selectedEventId || !filteredEvents.some((event) => event.id === selectedEventId)) {
-            setSelectedEventId(filteredEvents[0].id);
-        }
-    }, [filteredEvents, selectedEventId]);
-
-    useEffect(() => {
-        if (!pendingSelection) {
-            return;
-        }
-
-        const availableEvents = [...clubEvents, ...personalEvents];
-        const exactMatch = availableEvents.find(
-            (event) => event.eventId === pendingSelection.eventId && (!pendingSelection.startsAt || event.startsAt === pendingSelection.startsAt)
-        );
-        const fallbackMatch = availableEvents.find((event) => event.eventId === pendingSelection.eventId);
-        const match = exactMatch ?? fallbackMatch;
-
-        if (match) {
-            setSelectedEventId(match.id);
-            setCursorDate(parseDate(match.startsAt));
-            setPendingSelection(null);
-        }
-    }, [clubEvents, pendingSelection, personalEvents]);
-
-    const visibleConflicts = useMemo(
-        () => personalEvents.filter((event) => Boolean(event.conflict)).length,
-        [personalEvents]
-    );
-
-    const clubPublicationQueue = useMemo(
-        () => clubEvents.filter((event) => event.publicationState === 'QUEUED').length,
-        [clubEvents]
-    );
-
-    const monthEvents = useMemo(
-        () =>
-            filteredEvents.reduce<Record<string, ScheduleWorkspaceEvent[]>>((accumulator, event) => {
-                const key = toDateKey(parseDate(event.startsAt));
-                accumulator[key] = [...(accumulator[key] ?? []), event];
-                return accumulator;
-            }, {}),
-        [filteredEvents]
-    );
-
-    const weekColumns = useMemo(() => (viewMode === 'day' ? [cursorDate] : Array.from({ length: 7 }, (_, index) => addDays(startOfWeek(cursorDate), index))), [cursorDate, viewMode]);
-    const canCreateEvent = workspaceSurface === 'MY_SCHEDULE' || canManageClubSchedule;
-    const canEditSelectedEvent = Boolean(selectedEvent && canCreateEvent);
-    const canDeleteSelectedEvent = Boolean(selectedEvent && canCreateEvent);
-    const canAdjustVisibility = Boolean(selectedEvent && workspaceSurface === 'CLUB_SCHEDULE' && canManageClubSchedule);
-    const canCompleteSelectedEvent = Boolean(selectedEvent && workspaceSurface === 'CLUB_SCHEDULE' && canManageClubSchedule && selectedEvent.status === 'SCHEDULED');
-
-    const includeType = (type: ScheduleEventType) => {
-        setEnabledTypes((current) => (current.includes(type) ? current : [...current, type]));
-    };
-
-    const handleSelectInsertType = (type: ScheduleEventType) => {
-        setActiveInsertType(type);
-        if (type !== 'TRAINING' && entryMode === 'series') {
-            setEntryMode('single');
-        }
-        setActiveRibbonTab('insert');
-    };
-
-    const handleSelectEntryMode = (mode: ScheduleEntryMode) => {
-        if (mode === 'series') {
-            setActiveInsertType('TRAINING');
-        }
-        setEntryMode(mode);
-        setActiveRibbonTab('insert');
-    };
-
-    const openCreateDrawer = (
-        eventType = activeInsertType,
-        anchor = cursorDate,
-        options?: { recurring?: boolean }
-    ) => {
-        if (!canCreateEvent) {
-            return;
-        }
-        const nextType = eventType ?? (workspaceSurface === 'CLUB_SCHEDULE' ? 'TRAINING' : 'ACTIVITY');
-        const recurring = Boolean(options?.recurring ?? (entryMode === 'series' && nextType === 'TRAINING'));
-        includeType(nextType);
-        setActiveInsertType(nextType);
-        setShowConflictOnly(false);
-        setShowPublicOnly(false);
-        setActiveRibbonTab('edit');
-        setDrawerState({
-            mode: 'create',
-            surface: workspaceSurface,
-            initialValues: buildCreateFormValues(workspaceSurface, anchor, nextType, recurring)
-        });
-    };
-
-    const openEditDrawer = () => {
-        if (!selectedEvent || !canEditSelectedEvent) {
-            return;
-        }
-        includeType(selectedEvent.eventType);
-        setActiveInsertType(selectedEvent.eventType);
-        setEntryMode(selectedEvent.recurring ? 'series' : 'single');
-        setActiveRibbonTab('edit');
-        setDrawerState({
-            mode: 'edit',
-            surface: workspaceSurface,
-            initialValues: buildEditFormValues(selectedEvent),
-            targetEventId: selectedEvent.eventId
-        });
-    };
-
-    const mutateSelectedClubVisibility = async (visibility: ScheduleVisibility, publishAt?: string | null, successMessage?: string) => {
-        if (!selectedEvent || !canAdjustVisibility) {
-            return;
-        }
-        try {
-            await updateScheduleEvent(selectedEvent.eventId, buildEventUpdatePayload(selectedEvent, { visibility, publishAt: publishAt ?? null }));
-            setActionNotice({ tone: 'success', message: successMessage ?? 'Club event updated.' });
-            setPendingSelection({ eventId: selectedEvent.eventId, startsAt: selectedEvent.startsAt });
-            setRefreshKey((current) => current + 1);
-        } catch (error) {
-            setActionNotice({ tone: 'error', message: extractApiErrorMessage(error, 'Could not update visibility.') });
-        }
-    };
-
-    const handleDeleteSelected = async () => {
-        if (!selectedEvent || !canDeleteSelectedEvent) {
-            return;
-        }
-        if (!window.confirm(`Delete "${selectedEvent.title}"?`)) {
-            return;
-        }
-
-        setDeletingEventId(selectedEvent.eventId);
-        try {
-            await deleteScheduleEvent(selectedEvent.eventId);
-            setActionNotice({ tone: 'success', message: selectedEvent.recurring ? 'Recurring series deleted.' : 'Event deleted.' });
-            setSelectedEventId(null);
-            setRefreshKey((current) => current + 1);
-        } catch (error) {
-            setActionNotice({ tone: 'error', message: extractApiErrorMessage(error, 'Could not delete the event.') });
-        } finally {
-            setDeletingEventId(null);
-        }
-    };
-
-    const handleCompleteSelected = async () => {
-        if (!selectedEvent || !canCompleteSelectedEvent || !membershipContext?.clubId) {
-            return;
-        }
-        if (!window.confirm(`Mark "${selectedEvent.title}" as completed?`)) {
-            return;
-        }
-
-        setCompletingEventId(selectedEvent.eventId);
-        try {
-            await completeClubEvent(membershipContext.clubId, selectedEvent.eventId);
-            setActionNotice({ tone: 'success', message: 'Event marked as completed.' });
-            setSelectedEventId(null);
-            setRefreshKey((current) => current + 1);
-        } catch (error) {
-            setActionNotice({ tone: 'error', message: extractApiErrorMessage(error, 'Could not mark event as completed.') });
-        } finally {
-            setCompletingEventId(null);
-        }
-    };
-
-    const handleOpenConflictSource = () => {
-        if (!selectedEvent?.conflict?.sourceEventId || !canOpenClubSchedule) {
-            return;
-        }
-        const source = clubEvents.find((event) => event.id === selectedEvent.conflict?.sourceEventId);
-        setWorkspaceSurface('CLUB_SCHEDULE');
-        setShowConflictOnly(false);
-        if (source) {
-            setCursorDate(parseDate(source.startsAt));
-            setSelectedEventId(source.id);
-        }
-    };
-
-    const confirmLeaveScheduler = () => window.confirm('Are you sure you want to leave scheduler?');
-
-    const handleGoBack = () => {
-        if (!confirmLeaveScheduler()) {
-            return;
-        }
-        if (window.history.length > 1) {
-            navigate(-1);
-            return;
-        }
-        navigate('/feed');
-    };
-
-    const handleOpenAccount = () => {
-        if (!confirmLeaveScheduler()) {
-            return;
-        }
-        navigate('/account');
-    };
-
-    const beginResize = (side: 'left' | 'right', clientX: number) => {
-        setResizeState({
-            side,
-            startX: clientX,
-            startLeft: railWidths.left,
-            startRight: railWidths.right
-        });
-    };
-
-    const resetRailLayout = () =>
-        setRailWidths({
-            left: DEFAULT_LEFT_RAIL_WIDTH,
-            right: DEFAULT_RIGHT_RAIL_WIDTH
-        });
-
-    const handleDrawerSubmit = async (payload: ScheduleEventUpsertInput, meta: { eventType: ScheduleEventType; recurring: boolean }) => {
-        includeType(meta.eventType);
-        setActiveInsertType(meta.eventType);
-        setEntryMode(meta.recurring ? 'series' : 'single');
-        setShowConflictOnly(false);
-        setShowPublicOnly(false);
-
-        if (drawerState?.surface === 'CLUB_SCHEDULE') {
-            if (!membershipContext?.clubId) {
-                throw new Error('Club schedule context is unavailable.');
-            }
-
-            const result =
-                drawerState.mode === 'create'
-                    ? await createClubEvent(membershipContext.clubId, payload)
-                    : await updateScheduleEvent(drawerState.targetEventId ?? selectedEvent?.eventId ?? 0, payload);
-
-            setActionNotice({
-                tone: 'success',
-                message: meta.recurring ? 'Club event saved with a recurrence rule.' : 'Club event saved.'
-            });
-            setPendingSelection({
-                eventId: result.eventId,
-                startsAt: drawerState.mode === 'edit' ? selectedEvent?.startsAt ?? payload.startsAt : payload.startsAt
-            });
         } else {
-            const result =
-                drawerState?.mode === 'create'
-                    ? await createMyEvent(payload)
-                    : await updateScheduleEvent(drawerState?.targetEventId ?? selectedEvent?.eventId ?? 0, payload);
-
-            setActionNotice({
-                tone: result.conflict ? 'warning' : 'success',
-                message: result.conflict
-                    ? 'Personal event saved with a club schedule overlap warning. The event remains private.'
-                    : 'Personal event saved.'
-            });
-            setPendingSelection({
-                eventId: result.eventId,
-                startsAt: drawerState?.mode === 'edit' ? selectedEvent?.startsAt ?? payload.startsAt : payload.startsAt
-            });
+            await updateScheduleEvent(eid ?? 0, payload);
+            setActN({ tone: 'success', message: 'Event updated.' });
         }
-
-        setDrawerState(null);
-        setRefreshKey((current) => current + 1);
+        setModal(false); setRk((k) => k + 1);
     };
 
-    const enabledTypeLabels = EVENT_TYPES.filter((type) => enabledTypes.includes(type)).map((type) => eventTypeCopy[type].label);
-    const filterSummary = enabledTypeLabels.length === EVENT_TYPES.length
-        ? 'All types visible.'
-        : `${enabledTypeLabels.length}/${EVENT_TYPES.length} types visible.`;
-    const filterChips = [
-        ...(enabledTypeLabels.length === EVENT_TYPES.length ? [] : enabledTypeLabels),
-        ...(workspaceSurface === 'MY_SCHEDULE'
-            ? (showConflictOnly ? ['Conflicts only'] : [])
-            : (showPublicOnly ? ['Public only'] : []))
-    ];
-    const toolbarStats: Array<{ label: string; value: string; tone: 'green' | 'blue' | 'purple' | 'pink' }> = [
-        {
-            label: workspaceSurface === 'CLUB_SCHEDULE' ? 'Queue' : 'Conflicts',
-            value: workspaceSurface === 'CLUB_SCHEDULE' ? String(clubPublicationQueue) : String(visibleConflicts),
-            tone: workspaceSurface === 'CLUB_SCHEDULE' ? 'green' : 'pink'
-        },
-        {
-            label: 'Visible',
-            value: String(filteredEvents.length),
-            tone: 'blue'
-        },
-        {
-            label: 'Access',
-            value: workspaceSurface === 'CLUB_SCHEDULE' ? (canManageClubSchedule ? 'Admin' : 'Read only') : 'Private',
-            tone: 'purple'
-        }
-    ];
-    const headerOverflowActions = [
-        ...(selectedEvent && canAdjustVisibility
-            ? [
-                {
-                    id: 'release-now',
-                    label: 'Release now',
-                    description: 'Make the selected club event public immediately.',
-                    tone: 'positive' as const,
-                    onSelect: () => void mutateSelectedClubVisibility('PUBLIC', null, 'Club event is public now.')
-                },
-                {
-                    id: 'queue-release',
-                    label: 'Queue release',
-                    description: 'Keep the event private for now and publish it later.',
-                    onSelect: () => void mutateSelectedClubVisibility(
-                        'SCHEDULED_PUBLICATION',
-                        buildQueuedPublishAt(selectedEvent.startsAt),
-                        'Club event queued for publication.'
-                    )
-                },
-                {
-                    id: 'keep-private',
-                    label: 'Keep private',
-                    description: 'Return the event to members-only visibility.',
-                    onSelect: () => void mutateSelectedClubVisibility('PRIVATE', null, 'Club event moved back to private.')
-                }
-            ]
-            : []),
-        ...(selectedEvent?.conflict && canOpenClubSchedule
-            ? [{
-                id: 'open-overlap',
-                label: 'Open overlap',
-                description: 'Jump to the overlapping club item in the same workspace.',
-                onSelect: handleOpenConflictSource
-            }]
-            : [])
+    const stats: Array<{ label: string; value: string; tone: 'green' | 'blue' | 'purple' | 'pink' | 'neutral' }> = [
+        { label: 'Events', value: String(filtered.length), tone: 'blue' },
+        { label: 'Access', value: surface === 'CLUB_SCHEDULE' ? (canMgmt ? 'Admin' : 'Read') : 'Private', tone: 'purple' }
     ];
 
-    if (!bootstrapped && (scheduleBusy || !membershipResolved)) {
+    if (!booted && (busy || !ctxOk)) {
         return (
-            <div className="schedule-page-shell theme-page flex h-full min-h-0 items-center justify-center">
+            <div className="flex h-full min-h-0 items-center justify-center" style={{ backgroundColor: 'var(--fc-page-bg)' }}>
                 <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-10 w-10 animate-spin accent-primary" />
-                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-secondary">Loading Schedule Workspace</p>
+                    <Loader2 className="h-10 w-10 animate-spin text-[var(--fc-accent)]" />
+                    <p className="text-xs font-semibold text-[var(--fc-text-secondary)]">Loading Schedule</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="schedule-page-shell theme-page flex h-full min-h-0 flex-col overflow-hidden text-primary">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden" style={{ backgroundColor: 'var(--fc-page-bg)', color: 'var(--fc-text-primary)' }}>
             <ScheduleWorkspaceHeader
-                user={user}
-                darkMode={darkMode}
-                setDarkMode={setDarkMode}
-                workspaceLabel={surfaceCopy[workspaceSurface].label}
-                rangeLabel={formatRangeLabel(viewMode, cursorDate)}
-                selectedEvent={selectedEvent}
-                scheduleBusy={scheduleBusy}
-                workspaceSurface={workspaceSurface}
-                canOpenClubSchedule={canOpenClubSchedule}
-                activeInsertType={activeInsertType}
-                activeRibbonTab={activeRibbonTab}
-                entryMode={entryMode}
-                viewMode={viewMode}
-                canCreateEvent={canCreateEvent}
-                canEditSelectedEvent={canEditSelectedEvent}
-                canDeleteSelectedEvent={canDeleteSelectedEvent}
-                canOpenConflictSource={Boolean(selectedEvent?.conflict && canOpenClubSchedule)}
-                onBack={handleGoBack}
-                onOpenAccount={handleOpenAccount}
-                onSelectRibbonTab={setActiveRibbonTab}
-                onSelectSurface={(surface) => setWorkspaceSurface(surface)}
-                onSelectInsertType={handleSelectInsertType}
-                onSelectEntryMode={handleSelectEntryMode}
-                onSelectViewMode={(view) => {
-                    setActiveRibbonTab('layout');
-                    setViewMode(view);
+                workspaceSurface={surface} canOpenClubSchedule={canClub}
+                rangeLabel={fmtRange(vm, cursor)} scheduleBusy={busy}
+                onSelectSurface={setSurface}
+                onPrevious={() => setCursor((d) => step(vm, d, -1))}
+                onToday={() => setCursor(new Date())}
+                onNext={() => setCursor((d) => step(vm, d, 1))}
+                onCreateEvent={() => openCreate()}
+                onReplayTutorial={() => {
+                    localStorage.removeItem('tutorial.calendar.completed');
+                    setShowTutorial(true);
                 }}
-                onResetLayout={resetRailLayout}
-                onCreate={canCreateEvent ? () => openCreateDrawer(activeInsertType, cursorDate, { recurring: entryMode === 'series' }) : undefined}
-                onEdit={canEditSelectedEvent ? openEditDrawer : undefined}
-                onDelete={canDeleteSelectedEvent ? () => void handleDeleteSelected() : undefined}
-                onFocusSelected={selectedEvent ? () => {
-                    setActiveRibbonTab('reference');
-                    setCursorDate(parseDate(selectedEvent.startsAt));
-                } : undefined}
-                onOpenConflictSource={selectedEvent?.conflict ? () => {
-                    setActiveRibbonTab('reference');
-                    handleOpenConflictSource();
-                } : undefined}
-                overflowActions={headerOverflowActions}
             />
 
-            <div className="schedule-page-frame flex min-h-0 flex-1 flex-col pt-2">
-                <div
-                    ref={columnsRef}
-                    className="schedule-page-columns-band schedule-workspace-grid min-h-0 flex-1"
-                    style={{ gridTemplateColumns: `${railWidths.left}px ${RESIZER_WIDTH}px minmax(${MIN_CENTER_WIDTH}px, 1fr) ${RESIZER_WIDTH}px ${railWidths.right}px` }}
-                >
-                    <aside className="schedule-page-left-zone schedule-scroll-surface min-h-0 overflow-y-auto rounded-[4px] px-2.5 py-3">
-                        <div className="flex flex-col gap-3">
-                            <CollapsiblePanel
-                                eyebrow="Filters"
-                                title="Advanced Filters"
-                                helpText={`${filterSummary} ${workspaceSurface === 'MY_SCHEDULE' ? 'Use conflict-only when you want to focus on overlaps.' : 'Use public-only when you want the public-facing club view only.'}`}
-                                defaultOpen
-                                bodyClassName="px-3 py-3"
-                            >
-                                <div className="flex flex-col gap-2">
+            <div className="flex min-h-0 flex-1">
+                <div ref={colRef} className="flex min-h-0 flex-1">
+                    <aside className="min-h-0 overflow-y-auto border-r border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] px-2.5 py-3" style={{ width: railW, flexShrink: 0 }}>
+                        <div className="flex flex-col gap-4">
+                            {/* Back navigation */}
+                            <button type="button"
+                                data-tutorial="calendar-back-nav"
+                                onClick={() => navigate(canClub && ctx?.clubId ? `/clubs/${ctx.clubId}` : '/feed')}
+                                className="flex items-center gap-1.5 rounded-[var(--fc-radius)] px-2 py-1.5 text-xs font-medium text-[var(--fc-text-muted)] transition-colors hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)]">
+                                <ArrowLeft className="h-3.5 w-3.5" />
+                                {canClub && ctx?.clubId ? `Back to ${clubLbl}` : 'Back to Feed'}
+                            </button>
+
+                            <div data-tutorial="calendar-event-filters" className="border-t border-[var(--fc-border)] pt-4 space-y-3">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--fc-text-muted)]">Event Types</p>
+                                <div className="space-y-1">
                                     {EVENT_TYPES.map((type) => {
                                         const meta = eventTypeCopy[type];
-                                        const enabled = enabledTypes.includes(type);
-                                        const toneClass = type === 'TRAINING'
-                                            ? 'schedule-tone-green'
-                                            : type === 'TRYOUT'
-                                                ? 'schedule-tone-blue'
-                                                : type === 'FRIENDLY'
-                                                    ? 'schedule-tone-pink'
-                                                    : 'schedule-tone-purple';
-
+                                        const on = etypes.includes(type);
                                         return (
-                                            <button
-                                                key={type}
-                                                type="button"
-                                                onClick={() => setEnabledTypes((current) => (current.includes(type) ? current.filter((entry) => entry !== type) : [...current, type]))}
-                                                className={`schedule-interactive ${toneClass} flex items-center justify-between gap-3 rounded-[4px] px-3 py-2 text-left ${
-                                                    enabled ? 'bg-elevated text-primary' : 'bg-transparent opacity-80'
-                                                }`}
-                                                data-active={enabled}
-                                            >
-                                                <span className="flex items-center gap-3">
-                                                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: meta.accent }} />
-                                                    <span className={`text-[11px] font-black uppercase tracking-[0.16em] ${enabled ? 'text-current' : 'text-primary'}`}>{meta.label}</span>
+                                            <button key={type} type="button"
+                                                onClick={() => setEtypes((p) => p.includes(type) ? p.filter((t) => t !== type) : [...p, type])}
+                                                className="flex w-full items-center justify-between rounded-[var(--fc-radius)] px-2.5 py-2 text-left transition-colors hover:bg-[var(--fc-surface-hover)]">
+                                                <div className="flex items-center gap-2.5">
+                                                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: meta.accent }} />
+                                                    <span className="text-xs font-medium text-[var(--fc-text-primary)]">{meta.label}</span>
+                                                </div>
+                                                <span className={`inline-flex h-5 w-9 items-center rounded-full border transition-colors ${on ? 'border-[var(--fc-accent)] bg-[var(--fc-accent-soft)] justify-end' : 'border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] justify-start'}`}>
+                                                    <span className="mx-1 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: on ? 'var(--fc-accent)' : 'var(--fc-text-muted)' }} />
                                                 </span>
-                                                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">{enabled ? 'Shown' : 'Hidden'}</span>
                                             </button>
                                         );
                                     })}
                                 </div>
-
-                                <div className="mt-3 border-t border-subtle pt-3">
-                                    {workspaceSurface === 'MY_SCHEDULE' ? (
-                                        <ToggleRow
-                                            label="Conflict only"
-                                            description="Only overlapping personal items."
-                                            checked={showConflictOnly}
-                                            onToggle={() => setShowConflictOnly((current) => !current)}
-                                        />
-                                    ) : (
-                                        <ToggleRow
-                                            label="Public only"
-                                            description="Only public-facing club items."
-                                            checked={showPublicOnly}
-                                            onToggle={() => setShowPublicOnly((current) => !current)}
-                                        />
-                                    )}
-                                </div>
-                            </CollapsiblePanel>
-
-                            <CollapsiblePanel
-                                eyebrow="Calendar"
-                                title={cursorDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-                                helpText="Jump to a date without giving the planner more permanent chrome."
-                                defaultOpen
-                                bodyClassName="px-3 py-3"
-                            >
-                                <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black uppercase tracking-[0.16em] text-secondary">
-                                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((label) => (
-                                        <span key={label} className="py-1">{label}</span>
-                                    ))}
-                                    {monthGrid(cursorDate).map(({ date, inMonth }) => {
-                                        const active = sameDay(date, cursorDate);
-                                        const today = sameDay(date, new Date());
-
-                                        return (
-                                            <button
-                                                key={toDateKey(date)}
-                                                type="button"
-                                                onClick={() => setCursorDate(date)}
-                                                className={`schedule-interactive schedule-tone-blue h-8 rounded-[4px] text-[11px] font-black ${
-                                                    active ? 'bg-elevated text-current' : 'bg-transparent text-secondary'
-                                                } ${!inMonth ? 'opacity-45' : ''}`}
-                                                data-active={active}
-                                                style={today && !active ? { borderColor: 'var(--accent-primary)' } : undefined}
-                                            >
-                                                {date.getDate()}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </CollapsiblePanel>
-
-                            <CollapsiblePanel
-                                eyebrow="Help"
-                                title="Legend"
-                                helpText="Green = primary positive action. Pink = emphasis or destructive intent. Red = conflict or failure."
-                            >
-                                <div className="space-y-3 text-sm leading-6 text-secondary">
-                                    <LegendRow title="Green" body="Primary actions, recurring work, and positive operational highlights." />
-                                    <LegendRow title="Pink" body="Precision separators and quiet emphasis inside the schedule workspace." />
-                                    <LegendRow title="Red" body="Reserved for real conflict or failure states only." />
-                                </div>
-                            </CollapsiblePanel>
-                        </div>
-                    </aside>
-
-                    <div
-                        role="separator"
-                        aria-orientation="vertical"
-                        aria-label="Resize left rail"
-                        tabIndex={0}
-                        onPointerDown={(event) => beginResize('left', event.clientX)}
-                        onDoubleClick={() => setRailWidths((current) => ({ ...current, left: DEFAULT_LEFT_RAIL_WIDTH }))}
-                        className={`schedule-rail-resizer ${resizeState?.side === 'left' ? 'schedule-rail-resizer--active' : ''}`}
-                    />
-
-                    <section className="schedule-page-center-zone flex min-h-0 flex-col overflow-hidden rounded-[4px]">
-                        <div className="precision-rule flex min-h-0 flex-1 flex-col">
-                            <ScheduleToolbar
-                                workspaceLabel={surfaceCopy[workspaceSurface].label}
-                                rangeLabel={formatRangeLabel(viewMode, cursorDate)}
-                                filterSummary={filterSummary}
-                                filterChips={filterChips}
-                                stats={toolbarStats}
-                                scheduleBusy={scheduleBusy}
-                                onPrevious={() => setCursorDate((current) => addViewStep(viewMode, current, -1))}
-                                onToday={() => setCursorDate(new Date())}
-                                onNext={() => setCursorDate((current) => addViewStep(viewMode, current, 1))}
-                            />
-
-                            {actionNotice && <NoticeBanner notice={actionNotice} />}
-                            {loadNotice && <NoticeBanner notice={{ tone: 'warning', message: loadNotice }} />}
-
-                            <div className="min-h-0 flex-1 overflow-hidden">
-                                {filteredEvents.length === 0 ? (
-                                    <div className="flex h-full items-center justify-center px-6 text-center">
-                                        <div className="max-w-md">
-                                            <CalendarDays className="mx-auto h-10 w-10 text-secondary" />
-                                            <h2 className="mt-4 text-lg font-black uppercase tracking-[0.16em] text-primary">No Schedule Items In View</h2>
-                                            <p className="mt-3 text-sm leading-6 text-secondary">
-                                                {workspaceSurface === 'CLUB_SCHEDULE' && !canOpenClubSchedule
-                                                    ? 'Join a club to access the club-owned schedule workspace.'
-                                                    : 'Adjust the current filters, date window, or view mode to reveal schedule items.'}
-                                            </p>
-                                            {canCreateEvent && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openCreateDrawer()}
-                                                    className="schedule-toolbar-action schedule-tone-green mt-5 inline-flex items-center gap-2 rounded-[4px] px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary"
-                                                >
-                                                    <Plus className="h-3.5 w-3.5" />
-                                                    {workspaceSurface === 'CLUB_SCHEDULE' ? 'Create Club Event' : 'Create Personal Event'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <ScheduleGrid
-                                        viewMode={viewMode}
-                                        cursorDate={cursorDate}
-                                        monthEvents={monthEvents}
-                                        days={weekColumns}
-                                        events={filteredEvents}
-                                        selectedEventId={selectedEvent?.id ?? null}
-                                        onSelectDate={setCursorDate}
-                                        onSelectEvent={setSelectedEventId}
-                                        canCreate={canCreateEvent}
-                                        onCreateAt={(date) => openCreateDrawer(undefined, date)}
-                                    />
+                                {surface === 'CLUB_SCHEDULE' && (
+                                    <button type="button" onClick={() => setPubOnly((p) => !p)}
+                                        className="flex w-full items-center justify-between rounded-[var(--fc-radius)] border-t border-[var(--fc-border)] px-2.5 pt-3 text-left transition-colors hover:bg-[var(--fc-surface-hover)]">
+                                        <span className="text-xs font-medium text-[var(--fc-text-secondary)]">Public only</span>
+                                        <span className={`inline-flex h-5 w-9 items-center rounded-full border transition-colors ${pubOnly ? 'border-[var(--fc-accent)] bg-[var(--fc-accent-soft)] justify-end' : 'border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] justify-start'}`}>
+                                            <span className="mx-1 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: pubOnly ? 'var(--fc-accent)' : 'var(--fc-text-muted)' }} />
+                                        </span>
+                                    </button>
                                 )}
                             </div>
+                            <div data-tutorial="calendar-standing-schedule">
+                                <StandingSchedule events={clubEv} />
+                            </div>
+                        </div>
+                    </aside>
+
+                    <div role="separator" aria-orientation="vertical" aria-label="Resize sidebar" tabIndex={0}
+                        onPointerDown={(e) => setResizing({ sx: e.clientX, sw: railW })}
+                        onDoubleClick={() => setRailW(DEFAULT_LEFT)}
+                        className="w-[12px] shrink-0 cursor-col-resize transition-colors hover:bg-[var(--fc-border)]"
+                        style={{ backgroundColor: resizing ? 'var(--fc-accent-border)' : undefined }} />
+
+                    <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                        <ScheduleToolbar
+                            workspaceLabel={surface === 'CLUB_SCHEDULE' ? clubLbl : 'My Schedule'}
+                            rangeLabel={fmtRange(vm, cursor)}
+                            viewMode={vm}
+                            stats={stats}
+                            scheduleBusy={busy}
+                            onViewModeChange={setVm}
+                        />
+                        {actN && <NoticeBanner notice={actN} />}
+                        {loadN && <NoticeBanner notice={{ tone: 'warning', message: loadN }} />}
+                        <div className="min-h-0 flex-1 overflow-hidden">
+                            {filtered.length === 0 ? (
+                                <div className="flex h-full items-center justify-center px-6 text-center">
+                                    <div className="max-w-md">
+                                        <CalendarDays className="mx-auto h-10 w-10 text-[var(--fc-text-muted)]" />
+                                        <h2 className="mt-4 text-base font-semibold text-[var(--fc-text-primary)]">No Schedule Items In View</h2>
+                                        <p className="mt-2 text-sm text-[var(--fc-text-secondary)]">
+                                            {surface === 'CLUB_SCHEDULE' && !canClub ? 'Join a club to access the club schedule.' : 'Adjust filters or create a new event.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <ScheduleGrid
+                                    viewMode={vm} cursorDate={cursor}
+                                    monthEvents={monthE} days={weekDays} events={filtered}
+                                    onSelectDate={setCursor} onEditEvent={openEdit}
+                                    canCreate={canCreate} onCreateAt={(d) => openCreate(d)}
+                                />
+                            )}
                         </div>
                     </section>
-
-                    <div
-                        role="separator"
-                        aria-orientation="vertical"
-                        aria-label="Resize right rail"
-                        tabIndex={0}
-                        onPointerDown={(event) => beginResize('right', event.clientX)}
-                        onDoubleClick={() => setRailWidths((current) => ({ ...current, right: DEFAULT_RIGHT_RAIL_WIDTH }))}
-                        className={`schedule-rail-resizer ${resizeState?.side === 'right' ? 'schedule-rail-resizer--active' : ''}`}
-                    />
-
-                    <aside className="schedule-page-right-zone schedule-scroll-surface min-h-0 overflow-y-auto rounded-[4px] px-2.5 py-3">
-                        <SelectedEventPanel
-                            selectedEvent={selectedEvent}
-                            workspaceLabel={surfaceCopy[workspaceSurface].label}
-                            workspaceSurface={workspaceSurface}
-                            canManageClubSchedule={canManageClubSchedule}
-                            canOpenClubSchedule={canOpenClubSchedule}
-                            canEditSelectedEvent={canEditSelectedEvent}
-                            canDeleteSelectedEvent={canDeleteSelectedEvent}
-                            canAdjustVisibility={canAdjustVisibility}
-                            canCompleteSelectedEvent={canCompleteSelectedEvent}
-                            completingEventId={completingEventId}
-                            deletingEventId={deletingEventId}
-                            onEdit={openEditDrawer}
-                            onDelete={handleDeleteSelected}
-                            onReleaseNow={() => void mutateSelectedClubVisibility('PUBLIC', null, 'Club event is public now.')}
-                            onQueueRelease={() => void mutateSelectedClubVisibility('SCHEDULED_PUBLICATION', buildQueuedPublishAt(selectedEvent?.startsAt ?? new Date().toISOString()), 'Club event queued for publication.')}
-                            onKeepPrivate={() => void mutateSelectedClubVisibility('PRIVATE', null, 'Club event moved back to private.')}
-                            onComplete={handleCompleteSelected}
-                            onOpenConflictSource={handleOpenConflictSource}
-                        />
-                    </aside>
                 </div>
             </div>
 
-            {drawerState && (
-                <ScheduleEventDrawer
-                    isOpen
-                    mode={drawerState.mode}
-                    surface={drawerState.surface}
-                    initialValues={drawerState.initialValues}
-                    subjectLabel={drawerState.surface === 'CLUB_SCHEDULE' ? clubLabel : 'Visible only to you'}
-                    clubId={membershipContext?.clubId ?? null}
-                    onClose={() => setDrawerState(null)}
-                    onSubmit={handleDrawerSubmit}
-                />
+            {modal && (
+                <EventCreationModal isOpen mode={mmode} surface={surface as ModalSurface}
+                    initialValues={mvals} clubId={ctx?.clubId ?? null} targetEventId={eid ?? undefined}
+                    subjectLabel={surface === 'CLUB_SCHEDULE' ? clubLbl : 'Visible only to you'}
+                    onClose={() => setModal(false)} onSubmit={handleSubmit} />
             )}
+
+            {showTutorial && <CalendarTutorial onComplete={() => setShowTutorial(false)} />}
         </div>
     );
 };
 
-const noticeToneStyles: Record<NoticeTone, CSSProperties> = {
-    success: {
-        borderColor: 'var(--accent-primary)',
-        backgroundColor: 'var(--accent-primary-soft)',
-        color: 'var(--accent-primary)'
-    },
-    warning: {
-        borderColor: 'var(--state-warning)',
-        backgroundColor: 'var(--state-warning-soft)',
-        color: 'var(--state-warning)'
-    },
-    error: {
-        borderColor: 'var(--state-danger)',
-        backgroundColor: 'var(--state-danger-soft)',
-        color: 'var(--state-danger)'
-    }
+function emptyForm(): EventCreationFormValues {
+    return { eventType: null, title: '', date: '', startTime: '', endTime: '', isRecurring: false, locationName: '', locationLat: '', locationLng: '', visibility: 'PRIVATE', publishAt: '' };
+}
+
+const ns: Record<NoticeTone, CSSProperties> = {
+    success: { borderColor: 'var(--fc-accent)', backgroundColor: 'var(--fc-accent-soft)', color: 'var(--fc-accent)' },
+    warning: { borderColor: 'var(--fc-state-warning)', backgroundColor: 'rgba(217,119,6,0.1)', color: 'var(--fc-state-warning)' },
+    error: { borderColor: 'var(--fc-state-danger)', backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--fc-state-danger)' }
 };
 
 const NoticeBanner = ({ notice }: { notice: Notice }) => (
-    <div className="border-b border-subtle px-4 py-3 lg:px-5">
-        <div className="flex items-start gap-3 border px-3 py-3 text-sm" style={noticeToneStyles[notice.tone]}>
+    <div className="border-b border-[var(--fc-border)] px-4 py-2.5">
+        <div className="flex items-start gap-2.5 rounded-[var(--fc-radius)] border px-3 py-2.5 text-sm" style={ns[notice.tone]}>
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{notice.message}</span>
         </div>
-    </div>
-);
-
-const ToggleRow = ({
-    label,
-    description,
-    checked,
-    onToggle
-}: {
-    label: string;
-    description: string;
-    checked: boolean;
-    onToggle: () => void;
-}) => (
-    <button type="button" onClick={onToggle} className="schedule-toggle-row schedule-interactive schedule-tone-blue flex items-start justify-between gap-3 rounded-[4px] px-3 py-3 text-left">
-        <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-primary">{label}</p>
-            <p className="mt-1 text-sm leading-5 text-secondary">{description}</p>
-        </div>
-        <span
-            className={`schedule-toggle-track mt-1 inline-flex h-5 w-9 items-center border transition-colors ${
-                checked ? 'schedule-toggle-track--active border-accent-primary justify-end' : 'border-subtle justify-start'
-            }`}
-        >
-            <span className="mx-1 h-2.5 w-2.5 rounded-full bg-[color:var(--accent-primary)]" />
-        </span>
-    </button>
-);
-
-const LegendRow = ({ title, body }: { title: string; body: string }) => (
-    <div>
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-primary">{title}</p>
-        <p className="mt-1 text-sm leading-6 text-secondary">{body}</p>
     </div>
 );

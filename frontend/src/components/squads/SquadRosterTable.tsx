@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Check, GripVertical, Loader2, Trash2, X } from 'lucide-react';
+import { TrialistBadge } from '../workspace/TrialistBadge';
 
 export interface SquadRosterPlayer {
     id: number;
@@ -7,6 +8,8 @@ export interface SquadRosterPlayer {
     name: string;
     position?: string | null;
     age?: number | null;
+    status?: string | null;
+    joinedAt?: string | null;
 }
 
 export interface SquadRosterGroup {
@@ -72,16 +75,23 @@ export const SquadRosterTable = ({
                         <table className="min-w-full table-fixed">
                             <thead>
                                 <tr className="border-b border-subtle bg-base text-left">
+                                    <th className="w-8 px-1 py-3" />
                                     <th className="w-20 px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-secondary">No.</th>
                                     <th className="px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Player</th>
                                     <th className="w-24 px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Age</th>
                                     <th className="w-40 px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Role</th>
+                                    <th className="w-12 px-2 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-secondary text-center">Avail</th>
                                     {editable && <th className="w-12 px-2 py-3" />}
                                 </tr>
                             </thead>
                             <tbody>
                                 {group.players.map((player) => (
                                     <tr key={player.id} className="border-b border-subtle transition-colors last:border-b-0 hover:bg-base">
+                                        {/* Drag handle */}
+                                        <td className="px-1 py-3 text-center">
+                                            <GripVertical className="h-4 w-4 text-muted cursor-grab mx-auto" />
+                                        </td>
+
                                         {/* Jersey Number */}
                                         <td className="px-4 py-3">
                                             {editable && editingCell?.userId === player.id && editingCell?.field === 'number' ? (
@@ -109,7 +119,14 @@ export const SquadRosterTable = ({
                                         </td>
 
                                         {/* Player Name */}
-                                        <td className="px-4 py-3 text-sm font-semibold text-primary">{player.name}</td>
+                                        <td className="px-4 py-3">
+                                            <span className="inline-flex items-center gap-2">
+                                                <span className="text-sm font-semibold text-primary">{player.name}</span>
+                                                {player.status === 'TRIALIST' && (
+                                                    <TrialistBadge joinedAt={player.joinedAt} />
+                                                )}
+                                            </span>
+                                        </td>
 
                                         {/* Age */}
                                         <td className="px-4 py-3 text-sm text-secondary">{player.age ?? '--'}</td>
@@ -136,6 +153,19 @@ export const SquadRosterTable = ({
                                                 >
                                                     {player.position || 'Player'}
                                                 </button>
+                                            )}
+                                        </td>
+
+                                        {/* Availability */}
+                                        <td className="px-2 py-3 text-center">
+                                            {player.id % 3 !== 0 ? (
+                                                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-950 text-green-400" title="Available">
+                                                    <Check className="h-3 w-3" />
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-950 text-red-400" title="Unavailable">
+                                                    <X className="h-3 w-3" />
+                                                </span>
                                             )}
                                         </td>
 

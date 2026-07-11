@@ -10,8 +10,6 @@ import { FeedPage } from './pages/FeedPage';
 import { LandingPage } from './pages/LandingPage';
 import { BrowseClubsPage } from './pages/BrowseClubsPage';
 import { MessagingPage } from './pages/MessagingPage';
-import { StorePage } from './pages/StorePage';
-import { CharityPage } from './pages/CharityPage';
 import { MyClubPage } from './pages/MyClubPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { ClubSquadsPage } from './pages/ClubSquadsPage';
@@ -31,6 +29,7 @@ import { TournamentDetailPage } from './pages/TournamentDetailPage';
 import { BrowseTournamentsPage } from './pages/BrowseTournamentsPage';
 import { CreateOrganizationPage } from './pages/CreateOrganizationPage';
 import { CreateClubPage } from './pages/CreateClubPage';
+import ClubWorkspacePage from './pages/ClubWorkspacePage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { buildLoginRedirectPath, resolvePostAuthRedirect } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
@@ -169,12 +168,12 @@ function MainLayout() {
     const isMapWorkspace = location.pathname === '/map';
     const isHomeFeed = location.pathname === '/feed';
     const isChromeFreeWorkspace = isCalendarWorkspace || isMapWorkspace;
-    const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads)?$/.test(location.pathname);
+    const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads|\/workspace)?$/.test(location.pathname);
     const isFullScreenPage =
-        ['/map', '/messages', '/store', '/charity', '/clubs', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin', '/tournaments', '/tournaments/setup'].includes(location.pathname) ||
+        ['/map', '/messages', '/clubs', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin', '/tournaments', '/tournaments/setup'].includes(location.pathname) ||
         location.pathname.startsWith('/profile') ||
         location.pathname.startsWith('/organizations') ||
-        /^\/tournaments\/\d+\/workspace$/.test(location.pathname) ||
+        location.pathname.startsWith('/tournaments/') ||
         isClubSurfaceRoute;
     const isBoundedCanvasPage = boundedCanvasPages.has(location.pathname);
 
@@ -224,11 +223,10 @@ function MainLayout() {
                         <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
                         <Route path="/profile/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
                         <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
+                        <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage /></ProtectedRoute>} />
                         <Route path="/clubs/:id" element={<ClubProfilePage />} />
                         <Route path="/clubs/create" element={<ProtectedRoute><CreateClubPage /></ProtectedRoute>} />
                         <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
-                        <Route path="/store" element={<ProtectedRoute><StorePage /></ProtectedRoute>} />
-                        <Route path="/charity" element={<ProtectedRoute><CharityPage /></ProtectedRoute>} />
                         <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
                     </Routes>
                 </main>

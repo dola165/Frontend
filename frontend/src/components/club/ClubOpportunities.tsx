@@ -1,5 +1,4 @@
-import type { ReactNode } from 'react';
-import { ArrowRight, BriefcaseBusiness, ExternalLink, Heart, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { ArrowRight, ExternalLink, HeartHandshake, ShoppingBag } from 'lucide-react';
 import type { ClubOpportunity, ClubProfile } from '../../pages/ClubProfilePage';
 
 interface ClubOpportunitiesProps {
@@ -44,10 +43,10 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
     }));
 
     return (
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-[calc(var(--app-header-height)+64px)]">
+        <aside className="flex flex-col gap-4 lg:sticky lg:top-[calc(var(--app-header-height)+14px)]">
             {showOpportunityBoard && (
-                <section className="club-page-panel rounded-[4px] overflow-hidden">
-                    <div className="border-b border-subtle px-4 py-3.5">
+                <section className="rounded-[4px] overflow-hidden border border-[color:var(--club-theme-border-subtle)]">
+                    <div className="border-b border-[color:var(--club-theme-border-subtle)] px-4 py-3.5">
                         <div className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-[color:var(--club-tone-green)]">
                             <span>$</span>
                             Opportunities
@@ -58,7 +57,8 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                         {groupedCounts.map((entry) => (
                             <div
                                 key={entry.type}
-                                className={`club-opportunity-tile ${entry.toneClassName} rounded-[4px] border px-3.5 py-3.5`}
+                                className={`rounded-[4px] border px-3.5 py-3.5 ${entry.toneClassName}`}
+                                style={{ background: 'rgba(10,10,12,0.6)', borderColor: 'var(--club-item-accent-border)' }}
                             >
                                 <div className="flex items-center justify-between gap-3">
                                     <span className="text-sm font-black tracking-[0.01em] text-[color:var(--club-item-accent)]">
@@ -93,13 +93,87 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                                 No live business requests are published yet.
                             </div>
                         )}
+
+                        {/* Store — Official Club Merchandise (hardcoded, always visible) */}
+                        <div className="border-t border-[color:var(--club-theme-border-subtle)] pt-3 mt-1">
+                            <div
+                                className="rounded-[4px] border px-3.5 py-3.5"
+                                style={{
+                                    background: 'rgba(10,10,12,0.6)',
+                                    borderColor: '#d4a853',
+                                }}
+                            >
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#d4a853' }}>
+                                        <ShoppingBag className="h-4 w-4" />
+                                        Official Club Store
+                                    </span>
+                                </div>
+                                <p className="mt-1.5 text-xs text-secondary leading-relaxed">
+                                    Official kit, training gear, and equipment. All purchases support your club directly.
+                                </p>
+                                <a
+                                    href="https://grasskickz.store"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="mt-2.5 inline-flex w-full items-center justify-between rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors hover:bg-[rgba(212,168,83,0.08)]"
+                                    style={{ borderColor: 'rgba(212,168,83,0.3)', color: '#d4a853' }}
+                                >
+                                    Visit Store
+                                    <ExternalLink className="h-3 w-3" />
+                                </a>
+                            </div>
+                        </div>
+
+                        {/* Talanti Foundation — Charity/Fundraising (hardcoded, always visible) */}
+                        <div className="pt-3">
+                            <div
+                                className="rounded-[4px] border px-3.5 py-3.5"
+                                style={{
+                                    background: 'rgba(10,10,12,0.6)',
+                                    borderColor: 'var(--club-tone-pink)',
+                                }}
+                            >
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="flex items-center gap-2 text-sm font-semibold text-[color:var(--club-tone-pink)]">
+                                        <HeartHandshake className="h-4 w-4" />
+                                        Talanti Foundation
+                                    </span>
+                                </div>
+                                <p className="mt-1.5 text-xs text-secondary leading-relaxed">
+                                    Support community football projects and youth development. Clubs and players run their own fundraisers.
+                                </p>
+                                <div className="mt-2.5 flex gap-2">
+                                    <a
+                                        href="https://www.gofundme.com/discover"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors hover:bg-[rgba(255,107,157,0.08)]"
+                                        style={{ borderColor: 'rgba(255,107,157,0.3)', color: 'var(--club-tone-pink)' }}
+                                    >
+                                        Donate
+                                        <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                    <a
+                                        href="https://www.gofundme.com/create"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors hover:bg-[rgba(255,255,255,0.04)]"
+                                        style={{ borderColor: 'var(--club-theme-border-subtle)', color: 'var(--club-theme-text-secondary)' }}
+                                    >
+                                        Start a Fundraiser
+                                        <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {onOpenModule && (
                         <button
                             type="button"
                             onClick={onOpenModule}
-                            className="club-open-board-button inline-flex w-full items-center justify-between border-t border-subtle px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-primary"
+                            className="inline-flex w-full items-center justify-between border-t border-[color:var(--club-theme-border-subtle)] px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-[color:var(--club-theme-text-secondary)] hover:text-[color:var(--club-theme-text-primary)] transition-colors"
                         >
                             Open Business Board
                             <ArrowRight className="h-3.5 w-3.5 text-[color:var(--club-tone-green)]" />
@@ -107,41 +181,7 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                     )}
                 </section>
             )}
-
-            <section className="club-page-panel rounded-[4px] overflow-hidden">
-                <div className="border-b border-subtle px-4 py-3.5">
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-primary">Club Stats</p>
-                </div>
-
-                <div className="space-y-3 p-3.5">
-                    <StatRow icon={<Users className="h-4 w-4 text-[color:var(--club-tone-green)]" />} label="Members" value={club?.memberCount || 0} />
-                    <StatRow icon={<Sparkles className="h-4 w-4 text-[color:var(--club-tone-blue)]" />} label="Followers" value={club?.followerCount || 0} />
-                    <StatRow icon={<ShieldCheck className="h-4 w-4 text-[color:var(--club-tone-violet)]" />} label="Status" value={club?.statusLabel || (club?.isOfficial ? 'Verified' : 'Unverified')} />
-                    <StatRow icon={<Heart className="h-4 w-4 text-[color:var(--club-tone-pink)]" />} label="Honours" value={club?.honours.length || 0} />
-                </div>
-
-                {!!club?.trustedByClubs?.length && (
-                    <div className="border-t border-subtle px-4 py-3.5">
-                        <div className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-[color:var(--club-tone-blue)]">
-                            <BriefcaseBusiness className="h-3.5 w-3.5" />
-                            Trusted By
-                        </div>
-                        <p className="mt-3 text-sm leading-6 text-secondary">
-                            {club.trustedByClubs.map((trustedClub) => trustedClub.clubName).join(', ')}
-                        </p>
-                    </div>
-                )}
-            </section>
         </aside>
     );
 };
 
-const StatRow = ({ icon, label, value }: { icon: ReactNode; label: string; value: string | number }) => (
-    <div className="flex items-center justify-between gap-3 rounded-[4px] border border-subtle bg-[color:var(--club-zone-highlight)] px-3.5 py-3.5">
-        <div className="flex items-center gap-3">
-            {icon}
-            <span className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary">{label}</span>
-        </div>
-        <span className="text-lg font-black uppercase tracking-[0.08em] text-primary">{value}</span>
-    </div>
-);

@@ -390,10 +390,13 @@ export const clubHandlers: HttpHandler[] = [
     const page = Number(url.searchParams.get('page') ?? 0);
     const size = Number(url.searchParams.get('size') ?? 20);
 
-    const all = [...users().values()].map((u) => ({
+    const POSITIONS = ['GK', 'DEF', 'MID', 'FWD', 'DEF', 'MID', 'FWD', 'GK', 'DEF', 'MID', 'FWD', 'DEF'];
+    const all = [...users().values()].map((u, i) => ({
       userId: u.id, fullName: u.fullName, username: u.username, avatarUrl: u.avatarUrl,
       status: 'ACTIVE' as const, primary: u.id === currentUserId(),
-      source: 'invited', joinedAt: new Date().toISOString(), endedAt: null,
+      source: 'invited', joinedAt: new Date(Date.now() - (i * 86400000 * 30)).toISOString(), endedAt: null,
+      position: u.position || POSITIONS[i % POSITIONS.length],
+      jerseyNumber: i + 1,
     }));
 
     return HttpResponse.json(paginate(all, page, size));
@@ -450,9 +453,12 @@ export const clubHandlers: HttpHandler[] = [
 
   http.get(`${API}/clubs/:clubId/squads/:squadId/roster`, async () => {
     await simulateLatency();
+    const STATUSES = ['ACTIVE', 'ACTIVE', 'TRIALIST', 'ACTIVE', 'ACTIVE', 'PAST'];
     return HttpResponse.json([{
-      groupName: 'Starting XI', players: [...users().values()].slice(0, 3).map((u) => ({
-        userId: u.id, fullName: u.fullName, username: u.username, avatarUrl: u.avatarUrl, position: u.position,
+      label: 'Starting XI', players: [...users().values()].slice(0, 6).map((u, i) => ({
+        id: u.id, number: i + 1, name: u.fullName || u.username, position: u.position,
+        age: 18 + (i % 15), status: STATUSES[i % STATUSES.length],
+        joinedAt: new Date(Date.now() - (i * 86400000 * 7)).toISOString(),
       })),
     }]);
   }),

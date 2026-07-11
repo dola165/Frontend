@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 @import "tailwindcss";
 @variant dark (&:is(.dark *));
 
@@ -90,35 +91,35 @@
     --club-theme-text-primary: #f4f4f5;
     --club-theme-text-secondary: #a1a1aa;
     --club-theme-text-muted: #71717a;
-    --club-tone-green: #00c853;
-    --club-tone-green-soft: rgba(0, 200, 83, 0.1);
-    --club-tone-green-border: rgba(0, 200, 83, 0.24);
+    --club-tone-green: #00ff6e;
+    --club-tone-green-soft: rgba(0, 255, 110, 0.12);
+    --club-tone-green-border: rgba(0, 255, 110, 0.3);
     --club-tone-cyan: #64c6ff;
     --club-tone-cyan-soft: rgba(100, 198, 255, 0.12);
     --club-tone-cyan-border: rgba(100, 198, 255, 0.26);
-    --club-tone-blue: #4c8fe8;
-    --club-tone-blue-soft: rgba(76, 143, 232, 0.12);
-    --club-tone-blue-border: rgba(76, 143, 232, 0.24);
+    --club-tone-blue: #5cadff;
+    --club-tone-blue-soft: rgba(92, 173, 255, 0.12);
+    --club-tone-blue-border: rgba(92, 173, 255, 0.3);
     --club-accent-orange: #ff9e58;
     --club-accent-orange-soft: rgba(255, 158, 88, 0.12);
     --club-tone-purple: #9076ff;
     --club-tone-purple-soft: rgba(144, 118, 255, 0.14);
     --club-tone-purple-border: rgba(144, 118, 255, 0.28);
-    --club-tone-violet: #b67dff;
-    --club-tone-violet-soft: rgba(182, 125, 255, 0.14);
-    --club-tone-violet-border: rgba(182, 125, 255, 0.28);
-    --club-tone-pink: #ff4b86;
-    --club-tone-pink-soft: rgba(255, 75, 134, 0.16);
-    --club-tone-pink-border: rgba(255, 75, 134, 0.3);
+    --club-tone-violet: #c084ff;
+    --club-tone-violet-soft: rgba(192, 132, 255, 0.12);
+    --club-tone-violet-border: rgba(192, 132, 255, 0.3);
+    --club-tone-pink: #ff6b9d;
+    --club-tone-pink-soft: rgba(255, 107, 157, 0.12);
+    --club-tone-pink-border: rgba(255, 107, 157, 0.3);
     --club-shell-glow: rgba(0, 200, 83, 0.04);
     --club-shell-top: #09090b;
     --club-shell-bottom: #09090b;
-    --club-band: #18181b;
-    --club-left-bg: #18181b;
-    --club-center-bg: #27272a;
-    --club-right-bg: #18181b;
-    --club-card: #27272a;
-    --club-zone-highlight: rgba(255, 255, 255, 0.04);
+    --club-band: #0a0a0c;
+    --club-left-bg: #0a0a0c;
+    --club-center-bg: #0f0f13;
+    --club-right-bg: #0a0a0c;
+    --club-card: #0f0f13;
+    --club-zone-highlight: rgba(255, 255, 255, 0.03);
     --club-theme-overlay: rgba(6, 6, 8, 0.76);
     --club-theme-overlay-strong: rgba(6, 6, 8, 0.9);
     --club-shadow-panel: 0 18px 38px rgba(0, 0, 0, 0.4);
@@ -137,6 +138,49 @@
       linear-gradient(135deg, #1a2d1a 0%, #18181b 42%, #09090b 100%);
     --club-hero-scrim:
       linear-gradient(to top, rgba(6, 6, 8, 0.92), rgba(6, 6, 8, 0.26) 60%, transparent);
+    /* ── workspace theme ── */
+    --workspace-theme-base: #0d0d12;
+    --workspace-theme-sidebar-bg: #0f0f14;
+    --workspace-theme-text-primary: #f4f4f5;
+    --workspace-theme-text-secondary: #a1a1aa;
+    --workspace-theme-text-muted: #71717a;
+    --workspace-theme-border: rgba(255, 255, 255, 0.06);
+    --workspace-theme-surface: rgba(255, 255, 255, 0.03);
+    --workspace-theme-surface-hover: rgba(255, 255, 255, 0.05);
+    --workspace-accent: #00e865;
+    --workspace-accent-soft: rgba(0, 232, 101, 0.10);
+    --workspace-accent-border: rgba(0, 232, 101, 0.28);
+    --workspace-state-danger: #d4737a;
+    --workspace-state-danger-soft: rgba(212, 115, 122, 0.14);
+    --workspace-state-warning: #c9a05a;
+    --workspace-state-warning-soft: rgba(201, 160, 90, 0.14);
+    --workspace-state-success: #00e865;
+    --workspace-state-success-soft: rgba(0, 232, 101, 0.10);
+    --workspace-state-info: #7db7e6;
+    --workspace-state-info-soft: rgba(125, 183, 230, 0.14);
+
+    /* ── Functional Clarity tokens (dark default) ── */
+    --fc-page-bg: #0f1117;
+    --fc-card-bg: #16181d;
+    --fc-sidebar-bg: #13141a;
+    --fc-surface-hover: #1a1c22;
+    --fc-border: #26282d;
+    --fc-text-primary: #e4e4e7;
+    --fc-text-secondary: #71717a;
+    --fc-text-muted: #52525b;
+    --fc-accent: #16a34a;
+    --fc-accent-soft: rgba(22, 163, 74, 0.10);
+    --fc-accent-border: rgba(22, 163, 74, 0.28);
+    --fc-state-success: #16a34a;
+    --fc-state-success-soft: rgba(22, 163, 74, 0.10);
+    --fc-state-warning: #d97706;
+    --fc-state-warning-soft: rgba(217, 119, 6, 0.10);
+    --fc-state-danger: #ef4444;
+    --fc-state-danger-soft: rgba(239, 68, 68, 0.10);
+    --fc-state-info: #3b82f6;
+    --fc-state-info-soft: rgba(59, 130, 246, 0.10);
+    --fc-radius: 6px;
+
     --schedule-theme-base: #edf3f8;
     --schedule-theme-surface: #f7fbff;
     --schedule-theme-elevated: #ffffff;
@@ -303,35 +347,35 @@
     --club-theme-text-primary: #f4f4f5;
     --club-theme-text-secondary: #a1a1aa;
     --club-theme-text-muted: #71717a;
-    --club-tone-green: #00c853;
-    --club-tone-green-soft: rgba(0, 200, 83, 0.1);
-    --club-tone-green-border: rgba(0, 200, 83, 0.24);
+    --club-tone-green: #00ff6e;
+    --club-tone-green-soft: rgba(0, 255, 110, 0.12);
+    --club-tone-green-border: rgba(0, 255, 110, 0.3);
     --club-tone-cyan: #64c6ff;
     --club-tone-cyan-soft: rgba(100, 198, 255, 0.12);
     --club-tone-cyan-border: rgba(100, 198, 255, 0.26);
-    --club-tone-blue: #4c8fe8;
-    --club-tone-blue-soft: rgba(76, 143, 232, 0.12);
-    --club-tone-blue-border: rgba(76, 143, 232, 0.24);
+    --club-tone-blue: #5cadff;
+    --club-tone-blue-soft: rgba(92, 173, 255, 0.12);
+    --club-tone-blue-border: rgba(92, 173, 255, 0.3);
     --club-accent-orange: #ff9e58;
     --club-accent-orange-soft: rgba(255, 158, 88, 0.12);
     --club-tone-purple: #9076ff;
     --club-tone-purple-soft: rgba(144, 118, 255, 0.14);
     --club-tone-purple-border: rgba(144, 118, 255, 0.28);
-    --club-tone-violet: #b67dff;
-    --club-tone-violet-soft: rgba(182, 125, 255, 0.14);
-    --club-tone-violet-border: rgba(182, 125, 255, 0.28);
-    --club-tone-pink: #ff4b86;
-    --club-tone-pink-soft: rgba(255, 75, 134, 0.16);
-    --club-tone-pink-border: rgba(255, 75, 134, 0.3);
+    --club-tone-violet: #c084ff;
+    --club-tone-violet-soft: rgba(192, 132, 255, 0.12);
+    --club-tone-violet-border: rgba(192, 132, 255, 0.3);
+    --club-tone-pink: #ff6b9d;
+    --club-tone-pink-soft: rgba(255, 107, 157, 0.12);
+    --club-tone-pink-border: rgba(255, 107, 157, 0.3);
     --club-shell-glow: rgba(0, 200, 83, 0.04);
     --club-shell-top: #09090b;
     --club-shell-bottom: #09090b;
-    --club-band: #18181b;
-    --club-left-bg: #18181b;
-    --club-center-bg: #27272a;
-    --club-right-bg: #18181b;
-    --club-card: #27272a;
-    --club-zone-highlight: rgba(255, 255, 255, 0.04);
+    --club-band: #0a0a0c;
+    --club-left-bg: #0a0a0c;
+    --club-center-bg: #0f0f13;
+    --club-right-bg: #0a0a0c;
+    --club-card: #0f0f13;
+    --club-zone-highlight: rgba(255, 255, 255, 0.03);
     --club-theme-overlay: rgba(6, 6, 8, 0.76);
     --club-theme-overlay-strong: rgba(6, 6, 8, 0.9);
     --club-shadow-panel: 0 18px 38px rgba(0, 0, 0, 0.4);
@@ -350,6 +394,49 @@
       linear-gradient(135deg, #1a2d1a 0%, #18181b 42%, #09090b 100%);
     --club-hero-scrim:
       linear-gradient(to top, rgba(6, 6, 8, 0.92), rgba(6, 6, 8, 0.26) 60%, transparent);
+    /* ── workspace theme (dark) ── */
+    --workspace-theme-base: #0d0d12;
+    --workspace-theme-sidebar-bg: #0f0f14;
+    --workspace-theme-text-primary: #f4f4f5;
+    --workspace-theme-text-secondary: #a1a1aa;
+    --workspace-theme-text-muted: #71717a;
+    --workspace-theme-border: rgba(255, 255, 255, 0.06);
+    --workspace-theme-surface: rgba(255, 255, 255, 0.03);
+    --workspace-theme-surface-hover: rgba(255, 255, 255, 0.05);
+    --workspace-accent: #00e865;
+    --workspace-accent-soft: rgba(0, 232, 101, 0.10);
+    --workspace-accent-border: rgba(0, 232, 101, 0.28);
+    --workspace-state-danger: #d4737a;
+    --workspace-state-danger-soft: rgba(212, 115, 122, 0.14);
+    --workspace-state-warning: #c9a05a;
+    --workspace-state-warning-soft: rgba(201, 160, 90, 0.14);
+    --workspace-state-success: #00e865;
+    --workspace-state-success-soft: rgba(0, 232, 101, 0.10);
+    --workspace-state-info: #7db7e6;
+    --workspace-state-info-soft: rgba(125, 183, 230, 0.14);
+
+    /* ── Functional Clarity tokens (dark — same as :root default) ── */
+    --fc-page-bg: #0f1117;
+    --fc-card-bg: #16181d;
+    --fc-sidebar-bg: #13141a;
+    --fc-surface-hover: #1a1c22;
+    --fc-border: #26282d;
+    --fc-text-primary: #e4e4e7;
+    --fc-text-secondary: #71717a;
+    --fc-text-muted: #52525b;
+    --fc-accent: #16a34a;
+    --fc-accent-soft: rgba(22, 163, 74, 0.10);
+    --fc-accent-border: rgba(22, 163, 74, 0.28);
+    --fc-state-success: #16a34a;
+    --fc-state-success-soft: rgba(22, 163, 74, 0.10);
+    --fc-state-warning: #d97706;
+    --fc-state-warning-soft: rgba(217, 119, 6, 0.10);
+    --fc-state-danger: #ef4444;
+    --fc-state-danger-soft: rgba(239, 68, 68, 0.10);
+    --fc-state-info: #3b82f6;
+    --fc-state-info-soft: rgba(59, 130, 246, 0.10);
+    --fc-radius: 6px;
+
     --schedule-theme-base: #09090b;
     --schedule-theme-surface: #18181b;
     --schedule-theme-elevated: #27272a;
@@ -689,6 +776,78 @@
     --workspace-card-bg: var(--club-card);
     --workspace-card-muted: color-mix(in srgb, var(--club-card) 78%, var(--workspace-zone-highlight));
     --workspace-zone-highlight: var(--club-zone-highlight);
+  }
+
+  /* ---- Workspace page shell: always-dark management surface ---- */
+  .workspace-page-shell {
+    /* Remap generic tokens to FC */
+    --bg-base: var(--fc-page-bg);
+    --bg-surface: var(--fc-card-bg);
+    --bg-elevated: var(--fc-card-bg);
+    --bg-inset: var(--fc-page-bg);
+    --border-subtle: var(--fc-border);
+    --border-strong: var(--fc-border);
+    --text-primary: var(--fc-text-primary);
+    --text-secondary: var(--fc-text-secondary);
+    --text-muted: var(--fc-text-muted);
+    --accent-primary: var(--fc-accent);
+    --accent-primary-soft: var(--fc-accent-soft);
+    --state-success: var(--fc-state-success);
+    --state-success-soft: var(--fc-state-success-soft);
+    --state-danger: var(--fc-state-danger);
+    --state-danger-soft: var(--fc-state-danger-soft);
+    --state-warning: var(--fc-state-warning);
+    --state-warning-soft: var(--fc-state-warning-soft);
+    --state-info: var(--fc-state-info);
+    --state-info-soft: var(--fc-state-info-soft);
+    --shadow-panel: none;
+    --shadow-float: none;
+
+    /* Backward compat: map legacy --workspace-* to --fc-* */
+    --workspace-theme-base: var(--fc-page-bg);
+    --workspace-theme-sidebar-bg: var(--fc-sidebar-bg);
+    --workspace-theme-text-primary: var(--fc-text-primary);
+    --workspace-theme-text-secondary: var(--fc-text-secondary);
+    --workspace-theme-text-muted: var(--fc-text-muted);
+    --workspace-theme-border: var(--fc-border);
+    --workspace-theme-surface: var(--fc-card-bg);
+    --workspace-theme-surface-hover: var(--fc-surface-hover);
+    --workspace-accent: var(--fc-accent);
+    --workspace-accent-soft: var(--fc-accent-soft);
+    --workspace-accent-border: var(--fc-accent-border);
+    --workspace-state-success: var(--fc-state-success);
+    --workspace-state-success-soft: var(--fc-state-success-soft);
+    --workspace-state-danger: var(--fc-state-danger);
+    --workspace-state-danger-soft: var(--fc-state-danger-soft);
+    --workspace-state-warning: var(--fc-state-warning);
+    --workspace-state-warning-soft: var(--fc-state-warning-soft);
+    --workspace-state-info: var(--fc-state-info);
+    --workspace-state-info-soft: var(--fc-state-info-soft);
+
+    font-family: "Inter", "IBM Plex Sans", "Segoe UI", sans-serif;
+  }
+
+  /* ── Workspace light mode overrides ── */
+  .workspace-light {
+    --fc-page-bg: #f4f6f4;
+    --fc-card-bg: #ffffff;
+    --fc-sidebar-bg: #ffffff;
+    --fc-surface-hover: #f9fafb;
+    --fc-border: #e5e7eb;
+    --fc-text-primary: #111827;
+    --fc-text-secondary: #6b7280;
+    --fc-text-muted: #9ca3af;
+    --fc-accent: #16a34a;
+    --fc-accent-soft: rgba(22, 163, 74, 0.08);
+    --fc-accent-border: rgba(22, 163, 74, 0.20);
+    --fc-state-success: #16a34a;
+    --fc-state-success-soft: rgba(22, 163, 74, 0.08);
+    --fc-state-warning: #d97706;
+    --fc-state-warning-soft: rgba(217, 119, 6, 0.08);
+    --fc-state-danger: #dc2626;
+    --fc-state-danger-soft: rgba(220, 38, 38, 0.08);
+    --fc-state-info: #2563eb;
+    --fc-state-info-soft: rgba(37, 99, 235, 0.08);
   }
 
   /* ---- Feed home shell: light mode (creamy white) ---- */
@@ -1218,6 +1377,20 @@
     --club-item-accent: var(--club-tone-pink);
     --club-item-accent-soft: var(--club-tone-pink-soft);
     --club-item-accent-border: var(--club-tone-pink-border);
+  }
+
+  @keyframes schedule-scale-in {
+    from { opacity: 0; transform: scale(0.95) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* Tutorial spotlight highlight ring */
+  .tutorial-highlight {
+    position: relative;
+    z-index: 10001 !important;
+    box-shadow: 0 0 0 4px var(--fc-accent, #16a34a), 0 0 20px rgba(22, 163, 74, 0.35) !important;
+    border-radius: var(--fc-radius, 6px) !important;
+    transition: box-shadow 300ms ease;
   }
 
   .schedule-page-shell {
@@ -2807,42 +2980,42 @@
 /* ── Chat Messenger Shell ────────────────────────────────────────── */
 
 .chat-messenger-shell {
-  /* Accent */
-  --chat-accent: #00c853;
-  --chat-accent-soft: rgba(0, 200, 83, 0.12);
-  --chat-accent-hover: #00e676;
-  --chat-accent-contrast: #000000;
+  /* Accent — inherits from base theme */
+  --chat-accent: var(--accent-primary);
+  --chat-accent-soft: var(--accent-primary-soft);
+  --chat-accent-hover: var(--accent-primary);
+  --chat-accent-contrast: #ffffff;
 
-  /* Header (WhatsApp-style green bar) */
-  --chat-header-bg: #075e54;
+  /* Header */
+  --chat-header-bg: var(--accent-primary);
 
-  /* Backgrounds */
-  --chat-bg: #faf9f6;
-  --chat-sidebar-bg: #ffffff;
-  --chat-surface: #f0ede7;
-  --chat-card: #ffffff;
+  /* Backgrounds — inherit from base theme */
+  --chat-bg: var(--bg-base);
+  --chat-sidebar-bg: var(--bg-surface);
+  --chat-surface: var(--bg-base);
+  --chat-card: var(--bg-surface);
   --chat-card-hover: rgba(0, 0, 0, 0.04);
 
   /* Borders */
-  --chat-card-border: rgba(0, 0, 0, 0.07);
-  --chat-divider: rgba(0, 0, 0, 0.06);
+  --chat-card-border: var(--border-subtle);
+  --chat-divider: var(--border-subtle);
 
-  /* Text */
-  --chat-text-primary: #1e1b18;
-  --chat-text-secondary: #6b625a;
-  --chat-text-muted: #9c9387;
-  --chat-text-placeholder: #9c9387;
+  /* Text — inherit from base theme */
+  --chat-text-primary: var(--text-primary);
+  --chat-text-secondary: var(--text-secondary);
+  --chat-text-muted: var(--text-muted);
+  --chat-text-placeholder: var(--text-muted);
 
   /* Bubbles */
-  --chat-bubble-other: #ffffff;
-  --chat-bubble-other-text: #1e1b18;
+  --chat-bubble-other: var(--bg-surface);
+  --chat-bubble-other-text: var(--text-primary);
 
   /* Input */
-  --chat-input-bg: #f5f2eb;
+  --chat-input-bg: var(--bg-base);
 
   /* Status */
-  --chat-online: #00c853;
-  --chat-offline: #9c9387;
+  --chat-online: var(--accent-primary);
+  --chat-offline: var(--text-muted);
 
   color-scheme: light;
   background-color: var(--chat-bg);
@@ -2850,29 +3023,29 @@
 }
 
 .dark .chat-messenger-shell {
-  --chat-accent-soft: rgba(0, 200, 83, 0.08);
-  --chat-accent-contrast: #000000;
+  --chat-accent-soft: var(--accent-primary-soft);
+  --chat-accent-contrast: #ffffff;
 
-  --chat-bg: #09090b;
-  --chat-sidebar-bg: #18181b;
-  --chat-surface: #09090b;
-  --chat-card: #27272a;
+  --chat-bg: var(--bg-base);
+  --chat-sidebar-bg: var(--bg-surface);
+  --chat-surface: var(--bg-base);
+  --chat-card: var(--bg-surface);
   --chat-card-hover: rgba(255, 255, 255, 0.05);
 
-  --chat-card-border: rgba(255, 255, 255, 0.08);
-  --chat-divider: rgba(255, 255, 255, 0.06);
+  --chat-card-border: var(--border-subtle);
+  --chat-divider: var(--border-subtle);
 
-  --chat-text-primary: #f4f4f5;
-  --chat-text-secondary: #a1a1aa;
-  --chat-text-muted: #71717a;
-  --chat-text-placeholder: #52525b;
+  --chat-text-primary: var(--text-primary);
+  --chat-text-secondary: var(--text-secondary);
+  --chat-text-muted: var(--text-muted);
+  --chat-text-placeholder: var(--text-muted);
 
-  --chat-bubble-other: #27272a;
-  --chat-bubble-other-text: #f4f4f5;
+  --chat-bubble-other: var(--bg-surface);
+  --chat-bubble-other-text: var(--text-primary);
 
-  --chat-input-bg: #18181b;
+  --chat-input-bg: var(--bg-base);
 
-  --chat-offline: #52525b;
+  --chat-offline: var(--text-muted);
 
   color-scheme: dark;
   background-color: var(--chat-bg);
@@ -3022,4 +3195,15 @@
 .chat-messenger-shell .chat-input-action:hover {
   color: var(--chat-accent);
   background: var(--chat-card-hover);
+}
+
+/* ── Help Drawer Slide Animation ─────────────────────────────── */
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.2s ease-out;
 }

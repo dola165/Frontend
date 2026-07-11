@@ -4,6 +4,7 @@ import { ChevronLeft, Loader2, MapPin, Pencil, ShieldCheck, Trash2, X } from 'lu
 import { apiClient } from '../api/axiosConfig';
 import { EntityHeaderBand, EntityPageLayout, EntitySection } from '../components/layout/EntityPageLayout';
 import { SquadRosterTable, type SquadRosterGroup } from '../components/squads/SquadRosterTable';
+import { SquadRosterGrid } from '../components/squads/SquadRosterGrid';
 import { AddPlayerToSquadModal } from '../components/squads/AddPlayerToSquadModal';
 import { deleteSquad, updateSquad, removePlayerFromSquad, updateSquadPlayer, type UpdateSquadPayload } from '../features/clubs/api';
 import { fetchMyClubMembershipContext } from '../features/clubs/api';
@@ -40,6 +41,7 @@ export const ClubSquadsPage = () => {
     const [deletingSquadId, setDeletingSquadId] = useState<number | null>(null);
     const [showAddPlayers, setShowAddPlayers] = useState(false);
     const [removingPlayerId, setRemovingPlayerId] = useState<number | null>(null);
+    const [cardView, setCardView] = useState(false);
 
     const selectedSquadId = Number(searchParams.get('squad'));
     const selectedSquad = useMemo(() => squads.find((squad) => squad.id === selectedSquadId) ?? squads[0] ?? null, [selectedSquadId, squads]);
@@ -375,8 +377,15 @@ export const ClubSquadsPage = () => {
                                 </div>
                             </EntitySection>
 
-                            {isClubAdmin && selectedSquad && (
-                                <div className="flex justify-end">
+                            {(isClubAdmin && selectedSquad) && (
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCardView(v => !v)}
+                                        className="inline-flex items-center gap-2 border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors"
+                                    >
+                                        {cardView ? 'Table View' : 'Card View'}
+                                    </button>
                                     <button
                                         type="button"
                                         onClick={() => setShowAddPlayers(true)}
@@ -387,13 +396,35 @@ export const ClubSquadsPage = () => {
                                 </div>
                             )}
 
-                            <SquadRosterTable
-                                groups={groups}
-                                editable={isClubAdmin}
-                                onRemovePlayer={handleRemovePlayer}
-                                onUpdatePlayer={handleUpdatePlayer}
-                                removingPlayerId={removingPlayerId}
-                            />
+                            {!isClubAdmin && (
+                                <div className="flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCardView(v => !v)}
+                                        className="inline-flex items-center gap-2 border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors"
+                                    >
+                                        {cardView ? 'Table View' : 'Card View'}
+                                    </button>
+                                </div>
+                            )}
+
+                            {cardView ? (
+                                <SquadRosterGrid
+                                    groups={groups}
+                                    editable={isClubAdmin}
+                                    onRemovePlayer={handleRemovePlayer}
+                                    onUpdatePlayer={handleUpdatePlayer}
+                                    removingPlayerId={removingPlayerId}
+                                />
+                            ) : (
+                                <SquadRosterTable
+                                    groups={groups}
+                                    editable={isClubAdmin}
+                                    onRemovePlayer={handleRemovePlayer}
+                                    onUpdatePlayer={handleUpdatePlayer}
+                                    removingPlayerId={removingPlayerId}
+                                />
+                            )}
                         </div>
                     )
                 )}

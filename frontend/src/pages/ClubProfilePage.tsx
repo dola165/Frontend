@@ -8,6 +8,7 @@ import { ClubProfileInfoPanel } from '../components/club/ClubProfileInfoPanel';
 import { ClubOpportunities } from '../components/club/ClubOpportunities';
 import { ClubProfileStickyHeader } from '../components/club/ClubProfileStickyHeader';
 import type { ClubNavigationTab } from '../components/club/clubNavigation';
+import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { MatchInviteModal, type MatchChallengePayload } from '../components/club/MatchInviteModal';
 import { ClubManagementModal, type ClubManagementTab } from '../components/club/ClubManagementModal';
 import { ClubMessageModal, buildClubCommunicationOptions, openClubCommunication } from '../components/club/ClubMessageModal';
@@ -26,9 +27,8 @@ import {
     type PlayerAffiliationStatus,
     type PlayerJoinPolicy
 } from '../features/clubs/domain';
-import { fetchMyClubMembershipContext, leaveClubMembership } from '../features/clubs/api';
+import { fetchMyClubMembershipContext, fetchClubManagementOverview } from '../features/clubs/api';
 import { ClubApplicationPanel } from '../features/applications/components/ClubApplicationPanel';
-import { createNotificationSearch } from '../utils/notifications';
 import { useAuth } from '../context/AuthContext';
 import { buildLoginRedirectPath } from '../utils/authRedirect';
 
@@ -159,10 +159,34 @@ export const ClubProfilePage = () => {
         void fetchUserContext();
     }, [id, status]);
 
-    const ownClubRole = club?.myRole ?? null;
-    const isOwnClubAdmin = isLeadershipRole(ownClubRole);
-    const canManageOwnClub = canManageClubOperations(ownClubRole);
-    const canChallengeOtherClub = Boolean(myClubId && myClubId !== Number(id) && myClubRole && isLeadershipRole(myClubRole));
+    // Cross-verify membership: if viewing own club but profile shows no role,
+    // attempt a recovery fetch via the management endpoint.
+    useEffect(() => {
+        if (!id || !club || status !== 'authenticated') return;
+        if (myClubId !== Number(id)) return;
+        if (club.myRole) return; // role already resolved — nothing to fix
+
+        let cancelled = false;
+        const verifyRole = async () => {
+            try {
+                const overview = await fetchClubManagementOverview(Number(id));
+                if (!cancelled && overview.currentUserRole) {
+                    setClub((prev) => prev ? { ...prev, myRole: overview.currentUserRole } : prev);
+                }
+            } catch {
+                // non-critical — the modal will show "Verifying membership…" instead
+            }
+        };
+        void verifyRole();
+        return () => { cancelled = true; };
+    }, [id, club, myClubId, status]);
+
+    const isViewingOwnClub = myClubId !== null && myClubId === Number(id);
+    const ownClubRole = club?.myRole ?? myClubRole ?? null;
+    const debugMode = searchParams.get('debug') === 'true';
+    const isOwnClubAdmin = isViewingOwnClub && canManageClubOperations(ownClubRole);
+    const canManageOwnClub = isViewingOwnClub && canManageClubOperations(ownClubRole);
+    const canChallengeOtherClub = Boolean(myClubId && myClubId !== Number(id) && myClubRole && canManageClubOperations(myClubRole));
     const canOpenCalendar = isOwnClubAdmin;
     const hasPlayerAffiliation = club?.playerAffiliationStatus === 'TRIALIST' || club?.playerAffiliationStatus === 'ACTIVE';
     const communicationOptions = buildClubCommunicationOptions(club?.whatsappNumber, club?.facebookMessengerUrl, club?.preferredCommunicationMethod);
@@ -198,6 +222,10 @@ export const ClubProfilePage = () => {
         }
         setSearchParams(nextSearchParams, { replace: true });
         setIsManageClubOpen(true);
+    };
+
+    const openWorkspace = () => {
+        navigate(`/clubs/${id}/workspace`);
     };
 
     const closeManageClub = () => {
@@ -255,16 +283,21 @@ export const ClubProfilePage = () => {
         setSquadsRefreshKey((current) => current + 1);
     };
 
-    const handleLeaveOwnClub = async () => {
-        if (!club) return;
-        await leaveClubMembership(club.id);
-        await handleMembershipLeft();
-    };
-
     if (loading) {
         return (
-            <div className="club-page-shell bg-base flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-accent-primary border-t-transparent"></div>
+            <div className="club-page-shell bg-base min-h-[calc(100vh-var(--app-header-height))]">
+                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] px-6 py-8">
+                    <div className="mb-8 h-[300px] w-full animate-pulse rounded-md bg-white/[0.02]" />
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_1fr_320px]">
+                        <div className="space-y-4">
+                            <SkeletonCard lines={5} />
+                        </div>
+                        <div className="space-y-5">
+                            <SkeletonCard lines={3} />
+                            <SkeletonCard lines={4} />
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -284,7 +317,7 @@ export const ClubProfilePage = () => {
     }
 
     return (
-        <div className="club-page-shell min-h-full bg-[linear-gradient(180deg,#050910_0%,#070d15_18%,#08111b_100%)]">
+        <div className="club-page-shell min-h-full bg-[color:var(--club-theme-base)]">
             <ClubHero
                 club={club}
                 canEditClubAssets={isOwnClubAdmin}
@@ -292,16 +325,15 @@ export const ClubProfilePage = () => {
                 canOpenCalendar={canOpenCalendar}
                 canChallengeClub={showVisitorActions && canChallengeOtherClub}
                 canMessageClub={canMessageClub}
-                showApplyButton={showVisitorActions && club.playerJoinPolicy !== 'INVITE_ONLY'}
+                showApplyButton={showVisitorActions && club.playerJoinPolicy !== 'INVITE_ONLY' && !isLeadershipRole(myClubRole)}
                 membershipRole={ownClubRole ?? null}
-                showInlineLeaveAction={ownClubRole === 'COACH' || hasPlayerAffiliation}
                 onFollowToggle={handleFollowToggle}
                 onOpenCalendar={() => setActiveTab('schedule')}
                 onOpenManageClub={() => openManageClub()}
+                onOpenWorkspace={isOwnClubAdmin ? openWorkspace : undefined}
                 onOpenChallengeModal={() => setIsChallengeModalOpen(true)}
                 onOpenMessage={handleOpenMessage}
                 onOpenApply={() => setIsApplyModalOpen(true)}
-                onLeaveClub={handleLeaveOwnClub}
                 onRefresh={fetchClubData}
             />
 
@@ -312,8 +344,8 @@ export const ClubProfilePage = () => {
             />
 
             <div className="mx-auto w-full px-6 pb-10 pt-4 sm:px-8">
-                <div className="mt-6 grid gap-5 lg:grid-cols-[272px_minmax(0,720px)] lg:justify-center xl:grid-cols-[272px_minmax(0,700px)_272px] xl:items-start xl:justify-center">
-                    <div className="hidden lg:block">
+                <div className="mt-6 grid gap-4 lg:grid-cols-[380px_minmax(0,1fr)_320px] lg:items-start lg:justify-center">
+                    <div className="hidden lg:block lg:sticky lg:top-[14px] pl-6">
                         <ClubProfileInfoPanel club={club} />
                     </div>
 
@@ -331,25 +363,14 @@ export const ClubProfilePage = () => {
                         {activeTab === 'contact' && <TabContact club={club} />}
                     </div>
 
-                    <div className="hidden xl:block">
-                        {activeTab === 'overview' ? (
+                    <div className="hidden lg:block lg:sticky lg:top-[14px]">
+                        {activeTab === 'overview' && (
                             <ClubOpportunities
                                 club={club}
                                 onOpenModule={() => setActiveTab('events')}
                                 showOpportunityBoard
                             />
-                        ) : canManageOwnClub ? (
-                            <div className="sticky top-[calc(var(--app-header-height)+18px)] rounded-[18px] border border-[color:var(--club-theme-border-subtle)] bg-[rgba(12,18,27,0.96)] p-4 shadow-[0_18px_34px_rgba(2,6,12,0.24)]">
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[color:var(--club-theme-text-secondary)]">Club Tools</p>
-                                <button
-                                    type="button"
-                                    onClick={() => navigate(`/notifications?${createNotificationSearch('club', club.id, club.name)}`)}
-                                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-[color:var(--club-theme-text-secondary)] transition-colors hover:text-[color:var(--club-theme-text-primary)]"
-                                >
-                                    Club Notifications
-                                </button>
-                            </div>
-                        ) : null}
+                        )}
                     </div>
                 </div>
             </div>
@@ -370,6 +391,7 @@ export const ClubProfilePage = () => {
                     clubName={club.name}
                     currentRole={ownClubRole ?? null}
                     initialTab={requestedManagementTab}
+                    debugMode={debugMode}
                     onClose={closeManageClub}
                     onSquadCreated={() => setSquadsRefreshKey((current) => current + 1)}
                     onDataChanged={() => {

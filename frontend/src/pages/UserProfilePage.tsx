@@ -7,18 +7,25 @@ import {
     BellRing,
     Building2,
     Camera,
+    ExternalLink,
     Film,
+    Footprints,
+    HeartHandshake,
+    Image,
     Loader2,
     MapPin,
+    MessageCircle,
     Ruler,
+    Share2,
     ShieldCheck,
+    Trophy,
+    Users,
     Weight
 } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { FeedPost, type FeedPostDto, type CommentDto } from '../components/feed/FeedPost';
 import { PostComposer } from '../components/feed/PostComposer';
 import { PostTheaterModal } from '../components/PostTheaterModal';
-import { EntityBannerBand, EntityHeaderBand, EntityPageLayout, EntitySection } from '../components/layout/EntityPageLayout';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { getStoredUserId, setStoredUserId } from '../utils/authStorage';
 import { StatusBadge } from '../components/ui/StatusBadge';
@@ -55,6 +62,7 @@ interface UserProfile {
     careerHistory?: CareerHistoryDto[];
     avatarUrl?: string | null;
     bannerUrl?: string | null;
+    dateOfBirth?: string | null;
 }
 
 type ProfileTab = 'feed' | 'stats' | 'media';
@@ -66,12 +74,6 @@ interface MediaEntry {
     kind: 'image' | 'video';
     createdAt: string;
     summary: string;
-}
-
-interface LabelValueItem {
-    label: string;
-    value: string | number;
-    accent?: boolean;
 }
 
 const normalizeTab = (value: string | null): ProfileTab => (value === 'stats' || value === 'media' ? value : 'feed');
@@ -91,17 +93,60 @@ const formatDateTime = (value: string) => {
     });
 };
 
-const RecordRow = ({ label, value, accent = false }: { label: string; value: string | number; accent?: boolean }) => (
-    <div className="flex items-start justify-between gap-3 px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em]">
-        <span className="text-secondary">{label}</span>
-        <span className={`max-w-[62%] text-right ${accent ? 'accent-primary' : 'text-primary'}`}>{value}</span>
+const positionColors: Record<string, string> = {
+    GK: 'var(--club-tone-green)',
+    DEF: 'var(--club-tone-blue)',
+    MID: 'var(--club-tone-cyan)',
+    FWD: 'var(--club-accent-orange)',
+};
+
+const positionAbbr = (pos: string | null | undefined): string => {
+    if (!pos) return '';
+    const p = pos.toLowerCase();
+    if (p.includes('goalkeeper')) return 'GK';
+    if (p.includes('centre-back') || p.includes('left-back') || p.includes('right-back') || p.includes('defender')) return 'DEF';
+    if (p.includes('midfield')) return 'MID';
+    if (p.includes('winger') || p.includes('striker') || p.includes('forward')) return 'FWD';
+    return pos.substring(0, 3).toUpperCase();
+};
+
+const StatCard = ({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: string | number }) => (
+    <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-4 py-3.5">
+        <div className="flex items-center gap-2 text-[color:var(--club-theme-text-secondary)]">
+            <Icon className="h-4 w-4" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em]">{label}</span>
+        </div>
+        <p className="mt-2 text-xl font-bold text-[color:var(--club-theme-text-primary)]">{value}</p>
     </div>
 );
 
-const SummaryCell = ({ label, value, accent = false }: { label: string; value: string | number; accent?: boolean }) => (
-    <div className="px-4 py-3">
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-secondary">{label}</p>
-        <p className={`mt-2 text-xl font-black uppercase tracking-tight ${accent ? 'accent-primary' : 'text-primary'}`}>{value}</p>
+const CareerEntryCard = ({ entry }: { entry: CareerHistoryDto }) => (
+    <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-4 py-3.5">
+        <div className="flex items-start justify-between gap-3">
+            <div>
+                <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-[color:var(--club-tone-green)]" />
+                    <p className="text-sm font-semibold text-[color:var(--club-theme-text-primary)]">{entry.clubName}</p>
+                </div>
+                <p className="mt-1 text-[11px] font-medium text-[color:var(--club-theme-text-secondary)]">{entry.season} · {entry.category}</p>
+            </div>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-base)] px-2.5 py-1 text-[10px] font-semibold text-[color:var(--club-theme-text-primary)]">
+                {entry.appearances} apps
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-base)] px-2.5 py-1 text-[10px] font-semibold text-[color:var(--club-theme-text-primary)]">
+                {entry.goals} goals
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-base)] px-2.5 py-1 text-[10px] font-semibold text-[color:var(--club-theme-text-primary)]">
+                {entry.assists} ast
+            </span>
+            {entry.cleanSheets > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-base)] px-2.5 py-1 text-[10px] font-semibold text-[color:var(--club-theme-text-primary)]">
+                    {entry.cleanSheets} cs
+                </span>
+            )}
+        </div>
     </div>
 );
 
@@ -328,22 +373,45 @@ export const UserProfilePage = () => {
         });
     }, [profile?.careerHistory]);
 
+    const handleShare = async () => {
+        if (!profile) return;
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: `${profile.fullName || profile.username} — GrassKickZ`,
+                    url: window.location.href,
+                });
+            } catch {
+                // user cancelled
+            }
+        } else {
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                setProfileError('Profile link copied to clipboard.');
+                setTimeout(() => setProfileError(''), 3000);
+            } catch {
+                setProfileError('Failed to copy link.');
+                setTimeout(() => setProfileError(''), 3000);
+            }
+        }
+    };
+
+    // --- Loading state ---
     if (loading) {
         return (
-            <div className="bg-base flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-10 w-10 animate-spin accent-primary" />
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-secondary">Loading profile workspace</p>
-                </div>
+            <div className="club-page-shell bg-base flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-accent-primary border-t-transparent" />
             </div>
         );
     }
 
+    // --- Not-found state ---
     if (!profile) {
         return (
-            <div className="bg-base flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center px-6">
-                <div className="border border-subtle bg-surface px-8 py-10 text-center">
-                    <h2 className="text-xl font-black uppercase tracking-[0.18em] text-primary">Personnel Not Found</h2>
+            <div className="club-page-shell bg-base flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center px-6">
+                <div className="bg-surface border border-subtle px-8 py-10 text-center">
+                    <ShieldCheck className="mx-auto mb-4 h-12 w-12 accent-primary" />
+                    <h2 className="text-xl font-black uppercase tracking-[0.18em] text-primary">Profile Not Found</h2>
                     <button type="button" onClick={() => navigate(-1)} className="mt-4 text-sm font-black uppercase tracking-[0.16em] accent-primary">
                         Go Back
                     </button>
@@ -357,322 +425,276 @@ export const UserProfilePage = () => {
     const bannerUrl = resolveMediaUrl(profile.bannerUrl);
     const avatarUrl = resolveMediaUrl(profile.avatarUrl);
     const isMyProfile = String(profile.id) === currentUserId;
-    const profileTabs: Array<{ id: ProfileTab; label: string; icon: typeof Activity; description: string }> = [
-        { id: 'feed', label: 'Timeline', icon: Activity, description: 'Primary timeline and updates' },
-        { id: 'stats', label: 'Career Stats', icon: BarChart3, description: 'Historical production and appearances' },
-        { id: 'media', label: 'Media', icon: Film, description: 'Attached images and video from the timeline' }
+    const posAbbr = positionAbbr(profile.position);
+    const playerAge = profile.dateOfBirth
+        ? Math.floor((Date.now() - new Date(profile.dateOfBirth).getTime()) / 31556952000)
+        : null;
+
+    const isPlayer = profile.role === 'PLAYER';
+
+    const tabs: Array<{ id: ProfileTab; label: string; icon: typeof Activity }> = [
+        { id: 'feed', label: 'Timeline', icon: Activity },
+        ...(isPlayer ? [{ id: 'stats' as ProfileTab, label: 'Career', icon: Trophy }] : []),
+        { id: 'media', label: 'Media', icon: Image },
     ];
 
-    const recordRows: LabelValueItem[] = profile.role === 'PLAYER'
-        ? [
-            { label: 'Primary Role', value: profile.position || profile.role },
-            { label: 'Secondary Role', value: profile.secondaryPosition || 'Not listed' },
-            { label: 'Preferred Foot', value: profile.preferredFoot || 'Not listed' },
-            { label: 'Availability', value: profile.availabilityStatus || 'Not listed', accent: true },
-            { label: 'Height', value: profile.heightCm ? `${profile.heightCm} cm` : 'N/A' },
-            { label: 'Weight', value: profile.weightKg ? `${profile.weightKg} kg` : 'N/A' }
-        ]
-        : profile.role === 'AGENT'
-            ? [
-                { label: 'Agency', value: profile.agencyName || 'Not listed' },
-                { label: 'License', value: profile.fifaLicenseNumber || 'Not listed' },
-                { label: 'Verification', value: profile.agentVerified ? 'Verified' : 'Pending', accent: true },
-                { label: 'Clients Visible', value: mediaEntries.length > 0 ? 'Active' : 'Building' }
-            ]
-            : [
-                { label: 'Role', value: profile.role },
-                { label: 'Primary Position', value: profile.position || 'Not listed' },
-                { label: 'Followers', value: profile.followerCount },
-                { label: 'Following', value: profile.followingCount }
-            ];
-
-    const centerSummary: LabelValueItem[] = activeTab === 'stats'
-        ? [
-            { label: 'Clubs', value: careerTotals.clubs },
-            { label: 'Appearances', value: careerTotals.appearances },
-            { label: profile.role === 'PLAYER' ? 'Goals' : 'Assists', value: profile.role === 'PLAYER' ? careerTotals.goals : careerTotals.assists, accent: true }
-        ]
-        : activeTab === 'media'
-            ? [
-                { label: 'Media Posts', value: mediaEntries.length },
-                { label: 'Timeline Posts', value: posts.length },
-                { label: 'Followers', value: profile.followerCount, accent: true }
-            ]
-            : [
-                { label: 'Posts', value: posts.length },
-                { label: 'Media', value: mediaEntries.length },
-                { label: 'Followers', value: profile.followerCount, accent: true }
-            ];
-
-    const leftRail = (
-        <div className="flex flex-col gap-4 lg:sticky lg:top-[calc(var(--app-header-height)+24px)]">
-            <EntitySection eyebrow="Profile Navigation" bodyClassName="divide-y divide-[color:var(--border-subtle)]">
-                {profileTabs.map((tab) => {
-                    const isActive = activeTab === tab.id;
-                    const Icon = tab.icon;
-
-                    return (
-                        <button
-                            key={tab.id}
-                            type="button"
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`flex w-full items-center justify-between gap-3 border-l-2 px-4 py-3 text-left transition-colors ${
-                                isActive ? 'border-accent-muted bg-elevated text-primary' : 'border-transparent text-secondary hover:bg-base hover:text-primary'
-                            }`}
-                        >
-                            <span className="flex items-center gap-3">
-                                <Icon className={`h-4 w-4 ${isActive ? 'accent-primary' : ''}`} />
-                                <span>
-                                    <span className="block text-[11px] font-black uppercase tracking-[0.16em]">{tab.label}</span>
-                                    <span className="mt-1 block text-[11px] font-medium normal-case tracking-normal text-secondary">{tab.description}</span>
-                                </span>
-                            </span>
-                        </button>
-                    );
-                })}
-            </EntitySection>
-
-            <EntitySection eyebrow="Professional Record" title={profile.role === 'PLAYER' ? 'Playing Profile' : profile.role === 'AGENT' ? 'Agency Profile' : 'Profile Record'} bodyClassName="divide-y divide-[color:var(--border-subtle)]">
-                {recordRows.map((item) => (
-                    <RecordRow key={item.label} label={item.label} value={item.value} accent={item.accent} />
-                ))}
-            </EntitySection>
-
-            <EntitySection eyebrow="Career Context" title="Recent Path" bodyClassName="divide-y divide-[color:var(--border-subtle)]">
-                {(profile.careerHistory || []).length === 0 ? (
-                    <div className="px-4 py-5 text-sm leading-6 text-secondary">Career history has not been published yet.</div>
-                ) : (
-                    (profile.careerHistory || []).slice(0, 4).map((entry) => (
-                        <div key={entry.id} className="px-4 py-3">
-                            <div className="flex items-start justify-between gap-3">
-                                <div>
-                                    <p className="text-sm font-black uppercase tracking-[0.12em] text-primary">{entry.clubName}</p>
-                                    <p className="mt-2 text-[11px] font-black uppercase tracking-[0.16em] text-secondary">{entry.season}</p>
-                                </div>
-                                <Building2 className="h-4 w-4 shrink-0 accent-primary" />
-                            </div>
-                        </div>
-                    ))
-                )}
-            </EntitySection>
-        </div>
-    );
-
-    const centerSurface = (
+    // --- Left Panel content ---
+    const leftPanel = (
         <div className="flex flex-col gap-4">
-            <EntitySection
-                eyebrow="Main Surface"
-                title={activeTab === 'feed' ? 'Timeline' : activeTab === 'stats' ? 'Career Stats' : 'Media Stream'}
-                description={activeTab === 'feed'
-                    ? 'Primary activity stays here in a readable feed lane, with posts kept inside a disciplined center width.'
-                    : activeTab === 'stats'
-                        ? 'Performance history stays grouped as rows for fast football scanning.'
-                        : 'Attached images and videos are surfaced as rows instead of gallery-card clutter.'}
-                bodyClassName="grid divide-y divide-[color:var(--border-subtle)] sm:grid-cols-3 sm:divide-x sm:divide-y-0"
-            >
-                {centerSummary.map((item) => (
-                    <SummaryCell key={item.label} label={item.label} value={item.value} accent={item.accent} />
-                ))}
-            </EntitySection>
+            {/* Profile summary card */}
+            <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] p-5">
+                <div className="flex items-center gap-3">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[14px] border-2 border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-base)] text-lg font-bold text-[color:var(--club-theme-text-primary)]">
+                        {avatarUrl ? <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" /> : initials}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-sm font-bold text-[color:var(--club-theme-text-primary)] truncate">{displayName}</p>
+                        <p className="text-xs text-[color:var(--club-theme-text-secondary)]">@{profile.username}</p>
+                    </div>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                    <div className="text-center">
+                        <p className="text-lg font-bold text-[color:var(--club-theme-text-primary)]">{profile.followerCount}</p>
+                        <p className="text-[10px] font-medium text-[color:var(--club-theme-text-muted)]">Followers</p>
+                    </div>
+                    <div className="text-center">
+                        <p className="text-lg font-bold text-[color:var(--club-theme-text-primary)]">{profile.followingCount}</p>
+                        <p className="text-[10px] font-medium text-[color:var(--club-theme-text-muted)]">Following</p>
+                    </div>
+                    <div className="text-center">
+                        <p className="text-lg font-bold text-[color:var(--club-theme-text-primary)]">{posts.length}</p>
+                        <p className="text-[10px] font-medium text-[color:var(--club-theme-text-muted)]">Posts</p>
+                    </div>
+                </div>
+            </div>
 
-            {activeTab === 'feed' && (
-                <div className="flex flex-col gap-4">
-                    {isMyProfile && (
-                        <PostComposer authorName={displayName} onPostCreated={() => void fetchProfile(false)} compact />
-                    )}
-
-                    {posts.length === 0 ? (
-                        <EntitySection eyebrow="Timeline" title="No Activity Yet" bodyClassName="px-5 py-12 text-center">
-                            <div className="mx-auto flex max-w-md flex-col items-center">
-                                <Activity className="h-10 w-10 text-secondary" />
-                                <p className="mt-4 text-sm leading-6 text-secondary">Updates, match notes, and public profile posts will appear here once this account starts publishing.</p>
+            {/* Player details */}
+            {isPlayer && (
+                <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] p-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)] mb-3">Player Profile</p>
+                    <div className="space-y-3">
+                        {profile.position && (
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-green-soft)]">
+                                    <MapPin className="h-4 w-4 text-[color:var(--club-tone-green)]" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-[color:var(--club-theme-text-primary)]">{profile.position}</p>
+                                    <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">Primary Position</p>
+                                </div>
                             </div>
-                        </EntitySection>
-                    ) : (
-                        posts.map((post) => (
-                            <FeedPost
-                                key={post.id}
-                                post={post}
-                                isCommentsOpen={openComments[post.id]}
-                                commentsData={commentsData[post.id]}
-                                onLikeToggle={handleLikeToggle}
-                                onToggleComments={toggleComments}
-                                onSubmitComment={submitComment}
-                                onImageClick={() => {
-                                    setSelectedPost(post);
-                                    void loadComments(post.id);
-                                }}
-                            />
-                        ))
-                    )}
+                        )}
+                        {playerAge != null && (
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-cyan-soft)]">
+                                    <span className="text-xs font-bold text-[color:var(--club-tone-cyan)]">{playerAge}</span>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-[color:var(--club-theme-text-primary)]">{playerAge} years</p>
+                                    <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">Age</p>
+                                </div>
+                            </div>
+                        )}
+                        {profile.preferredFoot && (
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-blue-soft)]">
+                                    <Footprints className="h-4 w-4 text-[color:var(--club-tone-blue)]" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-[color:var(--club-theme-text-primary)]">{profile.preferredFoot}</p>
+                                    <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">Preferred Foot</p>
+                                </div>
+                            </div>
+                        )}
+                        {profile.heightCm && (
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-accent-orange-soft)]">
+                                    <Ruler className="h-4 w-4 text-[color:var(--club-accent-orange)]" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-[color:var(--club-theme-text-primary)]">{profile.heightCm} cm</p>
+                                    <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">Height</p>
+                                </div>
+                            </div>
+                        )}
+                        {profile.weightKg && (
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-purple-soft)]">
+                                    <Weight className="h-4 w-4 text-[color:var(--club-tone-purple)]" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-[color:var(--club-theme-text-primary)]">{profile.weightKg} kg</p>
+                                    <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">Weight</p>
+                                </div>
+                            </div>
+                        )}
+                        {profile.availabilityStatus && (
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-green-soft)]">
+                                    <Activity className="h-4 w-4 text-[color:var(--club-tone-green)]" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-[color:var(--club-theme-text-primary)]">{profile.availabilityStatus}</p>
+                                    <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">Availability</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
-            {activeTab === 'stats' && (
-                <EntitySection eyebrow="Career Stats" title="Professional Record" bodyClassName="divide-y divide-[color:var(--border-subtle)]">
-                    {(profile.careerHistory || []).length === 0 ? (
-                        <div className="px-5 py-12 text-center">
-                            <BarChart3 className="mx-auto h-10 w-10 text-secondary" />
-                            <p className="mt-4 text-sm leading-6 text-secondary">This backend has not published career history for this profile yet.</p>
-                        </div>
-                    ) : (
-                        <>
-                            {(profile.careerHistory || []).map((entry) => (
-                                <article key={entry.id} className="grid gap-4 px-4 py-4 lg:grid-cols-[150px_minmax(0,1fr)_auto] lg:items-start">
-                                    <div className="text-[11px] font-black uppercase tracking-[0.16em] accent-primary">{entry.season}</div>
-                                    <div>
-                                        <p className="text-sm font-black uppercase tracking-[0.12em] text-primary">{entry.clubName}</p>
-                                        <p className="mt-2 text-[11px] font-black uppercase tracking-[0.16em] text-secondary">{entry.category}</p>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2 lg:justify-end">
-                                        <span className="border border-subtle bg-base px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-primary">{entry.appearances} apps</span>
-                                        <span className="border border-subtle bg-base px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-primary">{entry.goals} goals</span>
-                                        <span className="border border-subtle bg-base px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-primary">{entry.assists} assists</span>
-                                        <span className="border border-subtle bg-base px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-primary">{entry.cleanSheets} clean sheets</span>
-                                    </div>
-                                </article>
-                            ))}
-                        </>
-                    )}
-                </EntitySection>
+            {/* Agent profile details */}
+            {profile.role === 'AGENT' && (
+                <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] p-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)] mb-3">Agency Profile</p>
+                    <div className="space-y-3">
+                        {profile.agencyName && (
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-blue-soft)]">
+                                    <Building2 className="h-4 w-4 text-[color:var(--club-tone-blue)]" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-[color:var(--club-theme-text-primary)]">{profile.agencyName}</p>
+                                    <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">Agency</p>
+                                </div>
+                            </div>
+                        )}
+                        {profile.fifaLicenseNumber && (
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-green-soft)]">
+                                    <ShieldCheck className="h-4 w-4 text-[color:var(--club-tone-green)]" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold text-[color:var(--club-theme-text-primary)]">{profile.fifaLicenseNumber}</p>
+                                    <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">License</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
             )}
 
-            {activeTab === 'media' && (
-                <EntitySection eyebrow="Media Stream" title="Attached Media" bodyClassName="divide-y divide-[color:var(--border-subtle)]">
-                    {mediaEntries.length === 0 ? (
-                        <div className="px-5 py-12 text-center">
-                            <Film className="mx-auto h-10 w-10 text-secondary" />
-                            <p className="mt-4 text-sm leading-6 text-secondary">Open post media from the timeline once this profile starts publishing image or video updates.</p>
-                        </div>
-                    ) : (
-                        mediaEntries.map((entry) => {
-                            const mediaUrl = resolveMediaUrl(entry.url) || entry.url;
-                            const relatedPost = posts.find((post) => post.id === entry.postId) || null;
-
-                            return (
-                                <button
-                                    key={entry.key}
-                                    type="button"
-                                    onClick={() => {
-                                        setSelectedPost(relatedPost);
-                                        if (relatedPost) {
-                                            void loadComments(relatedPost.id);
-                                        }
-                                    }}
-                                    className="grid w-full gap-4 px-4 py-4 text-left transition-colors hover:bg-base sm:grid-cols-[120px_minmax(0,1fr)_auto] sm:items-center"
-                                >
-                                    <div className="overflow-hidden border border-subtle bg-base">
-                                        {entry.kind === 'video' ? (
-                                            <video src={mediaUrl} className="h-20 w-full object-cover sm:w-[120px]" />
-                                        ) : (
-                                            <img src={mediaUrl} alt="Timeline media" className="h-20 w-full object-cover sm:w-[120px]" />
-                                        )}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-black uppercase tracking-[0.12em] text-primary">{entry.kind === 'video' ? 'Video Attachment' : 'Image Attachment'}</p>
-                                        <p className="mt-2 text-sm leading-6 text-secondary">{entry.summary}</p>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2 sm:justify-end">
-                                        <span className="border border-subtle bg-base px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-primary">{formatDateTime(entry.createdAt)}</span>
-                                        <span className="border border-subtle bg-base px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] accent-primary">Open Post</span>
-                                    </div>
-                                </button>
-                            );
-                        })
-                    )}
-                </EntitySection>
+            {/* Career context — PLAYER only */}
+            {isPlayer && (
+            <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] p-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)] mb-3">Recent Career</p>
+                {(profile.careerHistory || []).length === 0 ? (
+                    <p className="text-xs leading-5 text-[color:var(--club-theme-text-secondary)]">No career history published yet.</p>
+                ) : (
+                    <div className="space-y-2">
+                        {(profile.careerHistory || []).slice(0, 3).map((entry) => (
+                            <div key={entry.id} className="flex items-center gap-2 text-xs">
+                                <Building2 className="h-3.5 w-3.5 shrink-0 text-[color:var(--club-tone-green)]" />
+                                <span className="font-semibold text-[color:var(--club-theme-text-primary)]">{entry.clubName}</span>
+                                <span className="text-[color:var(--club-theme-text-muted)]">{entry.season}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
             )}
         </div>
     );
 
-    const rightRail = (
-        <div className="flex flex-col gap-4 xl:sticky xl:top-[calc(var(--app-header-height)+24px)]">
-            <EntitySection eyebrow="Utility Layer" title={isMyProfile ? 'Account Utility' : 'Scouting Snapshot'} bodyClassName="divide-y divide-[color:var(--border-subtle)]">
-                <RecordRow label="Followers" value={profile.followerCount} />
-                <RecordRow label="Following" value={profile.followingCount} />
-                <RecordRow label="Media Entries" value={mediaEntries.length} />
-                <RecordRow label="Availability" value={profile.availabilityStatus || 'Not listed'} accent />
-            </EntitySection>
-
-            <EntitySection eyebrow="Profile Signals" title="Visibility" bodyClassName="divide-y divide-[color:var(--border-subtle)]">
-                <div className="flex items-start gap-3 px-4 py-3">
-                    <div className="flex h-9 w-9 items-center justify-center border border-subtle bg-base">
-                        <MapPin className="h-4 w-4 accent-primary" />
-                    </div>
-                    <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary">Primary Position</p>
-                        <p className="mt-2 text-sm font-black uppercase tracking-[0.12em] text-primary">{profile.position || profile.role}</p>
-                    </div>
+    // --- Right Panel content ---
+    const rightPanel = (
+        <div className="flex flex-col gap-4">
+            <StatCard icon={Users} label="Followers" value={profile.followerCount} />
+            <StatCard icon={Users} label="Following" value={profile.followingCount} />
+            <StatCard icon={Film} label="Media" value={mediaEntries.length} />
+            {isPlayer && profile.position && (
+                <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-4 py-3.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)] mb-2">Position</p>
+                    <span
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold"
+                        style={{ backgroundColor: `color-mix(in srgb, ${posAbbr ? positionColors[posAbbr] || 'var(--club-tone-green)' : 'var(--club-tone-green)'} 15%, transparent)`, color: posAbbr ? positionColors[posAbbr] || 'var(--club-tone-green)' : 'var(--club-tone-green)' }}
+                    >
+                        {profile.position}
+                    </span>
                 </div>
-                {profile.role === 'PLAYER' && (
-                    <>
-                        <div className="flex items-start gap-3 px-4 py-3">
-                            <div className="flex h-9 w-9 items-center justify-center border border-subtle bg-base">
-                                <Ruler className="h-4 w-4 accent-primary" />
-                            </div>
-                            <div>
-                                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary">Height</p>
-                                <p className="mt-2 text-sm font-black uppercase tracking-[0.12em] text-primary">{profile.heightCm ? `${profile.heightCm} cm` : 'N/A'}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3 px-4 py-3">
-                            <div className="flex h-9 w-9 items-center justify-center border border-subtle bg-base">
-                                <Weight className="h-4 w-4 accent-primary" />
-                            </div>
-                            <div>
-                                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary">Weight</p>
-                                <p className="mt-2 text-sm font-black uppercase tracking-[0.12em] text-primary">{profile.weightKg ? `${profile.weightKg} kg` : 'N/A'}</p>
-                            </div>
-                        </div>
-                    </>
-                )}
-                {profile.role === 'AGENT' && (
-                    <div className="flex items-start gap-3 px-4 py-3">
-                        <div className="flex h-9 w-9 items-center justify-center border border-subtle bg-base">
-                            <ShieldCheck className="h-4 w-4 accent-primary" />
-                        </div>
-                        <div>
-                            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary">License</p>
-                            <p className="mt-2 text-sm font-black uppercase tracking-[0.12em] text-primary">{profile.fifaLicenseNumber || 'Not listed'}</p>
-                        </div>
-                    </div>
-                )}
-            </EntitySection>
+            )}
+
+            {/* Talanti Foundation — Charity card (always visible) */}
+            <div className="rounded-[4px] border border-[color:var(--club-tone-pink)]/30 px-4 py-3.5" style={{ background: 'rgba(10,10,12,0.6)' }}>
+                <div className="flex items-center gap-2 mb-2">
+                    <HeartHandshake className="h-4 w-4 text-[color:var(--club-tone-pink)]" />
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)]">Talanti Foundation</p>
+                </div>
+                <p className="text-xs text-secondary leading-relaxed mb-3">
+                    Fund your training, equipment, or community project. Every player deserves a chance.
+                </p>
+                <div className="flex gap-2">
+                    <a
+                        href="https://www.gofundme.com/discover"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 inline-flex items-center justify-center gap-1 rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors hover:bg-[rgba(255,107,157,0.08)]"
+                        style={{ borderColor: 'rgba(255,107,157,0.3)', color: 'var(--club-tone-pink)' }}
+                    >
+                        Donate
+                        <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <a
+                        href="https://www.gofundme.com/create"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 inline-flex items-center justify-center gap-1 rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors hover:bg-[rgba(255,255,255,0.04)]"
+                        style={{ borderColor: 'var(--club-theme-border-subtle)', color: 'var(--club-theme-text-secondary)' }}
+                    >
+                        Start Fundraiser
+                        <ExternalLink className="h-3 w-3" />
+                    </a>
+                </div>
+            </div>
         </div>
     );
+
+    // --- Client-side action buttons ---
+    const systemBtnClass = 'inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-[color:var(--club-theme-text-primary)] transition-colors hover:bg-white/[0.07]';
+    const accentBtnClass = 'inline-flex items-center gap-2 rounded-full border border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green)] px-5 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-[#04110a] transition-all hover:brightness-105';
 
     return (
-        <>
+        <div className="club-page-shell min-h-full bg-[color:var(--club-theme-base)]">
+            {/* Error toast */}
             {profileError && (
-                <div className="mx-auto mt-4 flex w-full max-w-[1320px] items-center gap-3 border border-rose-300/50 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                <div className="mx-auto mt-4 flex w-full max-w-[min(1880px,calc(100vw-48px))] items-center gap-3 rounded-[4px] border border-[color:var(--state-danger)]/30 bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
                     {profileError}
                 </div>
             )}
-            <EntityBannerBand>
-                <div className="relative h-40 overflow-hidden sm:h-48 lg:h-56">
+
+            {/* ===== HERO SECTION ===== */}
+            <section className="border-b border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-band)]">
+                {/* Banner area */}
+                <div className="relative h-[240px] sm:h-[300px] lg:h-[360px] overflow-hidden">
                     {bannerUrl ? (
-                        <img src={bannerUrl} alt={`${displayName} banner`} className="h-full w-full object-cover" />
+                        <img src={bannerUrl} alt={`${displayName} banner`} className="h-full w-full object-cover object-top" />
                     ) : (
-                        <div className="h-full w-full bg-inset" />
+                        <div className="h-full w-full bg-[color:var(--club-theme-surface)]" />
                     )}
 
-                    <div className="absolute inset-0 bg-[linear-gradient(to_top,var(--theme-overlay),transparent_60%)]" />
+                    {/* Gradient overlay — dark fade to bottom */}
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,9,16,0.04)_0%,rgba(5,9,16,0.55)_40%,rgba(5,9,16,0.92)_75%,#050910_100%)]" />
 
+                    {/* Ambient radial glows */}
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(30,144,255,0.08),transparent_30%),radial-gradient(circle_at_top_left,rgba(34,197,94,0.08),transparent_26%)]" />
+
+                    {/* Back button */}
                     <button
                         type="button"
                         onClick={() => navigate(-1)}
-                        className="absolute left-4 top-4 inline-flex items-center gap-2 border border-subtle bg-surface px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary"
+                        className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/24 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white backdrop-blur-md transition-colors hover:bg-black/40"
                     >
                         <ArrowLeft className="h-4 w-4" />
                         Back
                     </button>
 
+                    {/* Edit Banner button */}
                     {isMyProfile && (
-                        <div className="absolute right-4 top-4 z-10">
+                        <div className="absolute right-5 top-5 z-10">
                             <button
                                 type="button"
                                 onClick={() => bannerInputRef.current?.click()}
-                                className="inline-flex items-center gap-2 border border-subtle bg-surface px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary"
+                                className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/24 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white backdrop-blur-md transition-colors hover:bg-black/40"
                             >
                                 {uploading === 'banner' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                                 Banner
@@ -681,102 +703,281 @@ export const UserProfilePage = () => {
                         </div>
                     )}
                 </div>
-            </EntityBannerBand>
 
-            <EntityHeaderBand>
-                <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
-                    <div className="flex items-start gap-4">
-                        <div className="relative shrink-0">
-                            <div className="flex h-20 w-20 items-center justify-center overflow-hidden border border-subtle bg-base text-xl font-black uppercase text-primary sm:h-24 sm:w-24">
-                                {avatarUrl ? <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" /> : initials}
-                            </div>
-                            {isMyProfile && (
-                                <>
-                                    <button
-                                        type="button"
-                                        onClick={() => avatarInputRef.current?.click()}
-                                        className="absolute -bottom-2 -right-2 inline-flex h-8 w-8 items-center justify-center border border-subtle bg-surface text-primary"
-                                    >
-                                        {uploading === 'avatar' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-                                    </button>
-                                    <input type="file" ref={avatarInputRef} className="hidden" accept="image/*" onChange={(event) => handleImageUpload(event, 'avatar')} />
-                                </>
-                            )}
-                        </div>
+                {/* Hero content area */}
+                <div className="bg-[#050910]">
+                    <div className="mx-auto w-full max-w-[min(1880px,calc(100vw-24px))] px-3 relative py-6 lg:py-8">
+                        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+                            {/* Left: Avatar + Identity */}
+                            <div className="flex items-start gap-4">
+                                {/* Avatar — overlaps banner bottom */}
+                                <div className="relative shrink-0 -mt-[76px] sm:-mt-[96px] lg:-mt-[112px]">
+                                    <div className="h-24 w-24 sm:h-28 sm:w-28 lg:h-36 lg:w-36 overflow-hidden rounded-[28px] border-[5px] border-[color:var(--club-band)] bg-[rgba(6,11,18,0.92)] shadow-[0_18px_44px_rgba(2,6,12,0.35)]">
+                                        {avatarUrl ? (
+                                            <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center text-2xl font-black uppercase text-[color:var(--club-theme-text-primary)]">
+                                                {initials}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {isMyProfile && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() => avatarInputRef.current?.click()}
+                                                className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-black/34 text-[color:var(--club-theme-text-primary)] transition-colors hover:bg-white/[0.12]"
+                                            >
+                                                {uploading === 'avatar' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                                            </button>
+                                            <input type="file" ref={avatarInputRef} className="hidden" accept="image/*" onChange={(event) => handleImageUpload(event, 'avatar')} />
+                                        </>
+                                    )}
+                                </div>
 
-                        <div className="min-w-0">
-                            <p className="text-[11px] font-black uppercase tracking-[0.2em] accent-primary">Profile Workspace</p>
-                            <div className="mt-2 flex flex-wrap items-center gap-2">
-                                <h1 className="text-2xl font-black uppercase tracking-tight text-primary sm:text-3xl">{displayName}</h1>
-                                <StatusBadge tone="neutral">{profile.role}</StatusBadge>
-                                {profile.agentVerified && <StatusBadge tone="success">Verified</StatusBadge>}
-                                {profile.availabilityStatus && <StatusBadge tone="info">{profile.availabilityStatus}</StatusBadge>}
+                                {/* Identity */}
+                                <div className="min-w-0 pt-2">
+                                    <h1 className="text-3xl font-black tracking-[-0.04em] text-[color:var(--club-theme-text-primary)] sm:text-5xl">
+                                        {displayName}
+                                    </h1>
+                                    <p className="mt-0.5 text-sm text-[color:var(--club-theme-text-secondary)]">@{profile.username}</p>
+
+                                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                                        <StatusBadge tone="neutral">{profile.role}</StatusBadge>
+                                        {profile.agentVerified && <StatusBadge tone="success">Verified</StatusBadge>}
+                                        {profile.availabilityStatus && <StatusBadge tone="info">{profile.availabilityStatus}</StatusBadge>}
+                                    </div>
+
+                                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] font-black uppercase tracking-[0.18em] text-[color:var(--club-theme-text-secondary)]">
+                                        <span>{profile.position || profile.role}</span>
+                                        {profile.secondaryPosition && (
+                                            <>
+                                                <span className="h-1 w-1 rounded-full bg-[color:var(--club-divider-dot)]" />
+                                                <span>{profile.secondaryPosition}</span>
+                                            </>
+                                        )}
+                                        {profile.agencyName && (
+                                            <>
+                                                <span className="h-1 w-1 rounded-full bg-[color:var(--club-divider-dot)]" />
+                                                <span>{profile.agencyName}</span>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    <p className="mt-4 max-w-3xl text-base leading-7 text-[color:var(--club-theme-text-secondary)]">
+                                        {profile.bio || 'No biography has been published on this profile yet.'}
+                                    </p>
+                                </div>
                             </div>
-                            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] font-black uppercase tracking-[0.18em] text-secondary">
-                                <span>{profile.position || profile.role}</span>
-                                {profile.secondaryPosition && (
+
+                            {/* Right: Action buttons */}
+                            <div className="flex flex-wrap gap-2">
+                                {isMyProfile ? (
                                     <>
-                                        <span className="h-1 w-1 rounded-full bg-[color:var(--accent-muted)]" />
-                                        <span>{profile.secondaryPosition}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate('/account?tab=profile')}
+                                            className={systemBtnClass}
+                                        >
+                                            <ShieldCheck className="h-4 w-4" />
+                                            Account Center
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate('/notifications?scope=personal')}
+                                            className={systemBtnClass}
+                                        >
+                                            <BellRing className="h-4 w-4" />
+                                            Notifications
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={handleFollowToggle}
+                                            className={profile.isFollowedByMe ? systemBtnClass : accentBtnClass}
+                                        >
+                                            {profile.isFollowedByMe ? 'Following' : 'Follow'}
+                                        </button>
+                                        <button type="button" className={systemBtnClass}>
+                                            <MessageCircle className="h-4 w-4" />
+                                            Message
+                                        </button>
                                     </>
                                 )}
-                                {profile.agencyName && (
-                                    <>
-                                        <span className="h-1 w-1 rounded-full bg-[color:var(--accent-muted)]" />
-                                        <span>{profile.agencyName}</span>
-                                    </>
-                                )}
-                            </div>
-                            <p className="mt-4 max-w-3xl text-sm leading-6 text-secondary">
-                                {profile.bio || 'No biography has been published on this profile yet.'}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="border border-subtle bg-base">
-                        <div className="grid divide-y divide-[color:var(--border-subtle)] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-                            <SummaryCell label="Followers" value={profile.followerCount} />
-                            <SummaryCell label="Following" value={profile.followingCount} />
-                            <SummaryCell label="Posts" value={posts.length} accent />
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 border-t border-subtle px-4 py-4">
-                            {isMyProfile ? (
-                                <>
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate('/notifications?scope=personal')}
-                                        className="inline-flex items-center gap-2 border border-accent-primary bg-accent-primary-soft px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary"
-                                    >
-                                        <BellRing className="h-4 w-4" />
-                                        Notifications
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate('/account?tab=profile')}
-                                        className="inline-flex items-center gap-2 border border-subtle bg-surface px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary"
-                                    >
-                                        <ShieldCheck className="h-4 w-4" />
-                                        Account Center
-                                    </button>
-                                </>
-                            ) : (
-                                <button
-                                    type="button"
-                                    onClick={handleFollowToggle}
-                                    className={`inline-flex items-center gap-2 border px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] ${profile.isFollowedByMe ? 'border-accent-primary bg-accent-primary-soft accent-primary' : 'border-subtle bg-surface text-primary'}`}
-                                >
-                                    <ShieldCheck className="h-4 w-4" />
-                                    {profile.isFollowedByMe ? 'Following' : 'Follow'}
+                                <button type="button" onClick={handleShare} className={systemBtnClass}>
+                                    <Share2 className="h-4 w-4" />
+                                    Share
                                 </button>
-                            )}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </EntityHeaderBand>
+            </section>
 
-            <EntityPageLayout left={leftRail} center={centerSurface} right={rightRail} />
+            {/* ===== STICKY TAB BAR ===== */}
+            <div className="border-b border-[color:var(--club-theme-border-subtle)] bg-[rgba(5,9,16,0.96)]">
+                <div className="mx-auto w-full overflow-x-auto px-6 sm:px-8">
+                    <div className="flex min-w-max items-stretch gap-2.5 py-3">
+                        {tabs.map((tab) => {
+                            const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-left text-[12px] font-semibold transition-all ${
+                                        isActive
+                                            ? 'border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green-soft)] text-[color:var(--club-theme-text-primary)]'
+                                            : 'border-transparent bg-transparent text-[color:var(--club-theme-text-secondary)] hover:border-white/8 hover:bg-white/[0.04] hover:text-[color:var(--club-theme-text-primary)]'
+                                    }`}
+                                >
+                                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-[color:var(--club-tone-green)]' : 'text-[color:var(--club-theme-text-secondary)]'}`} />
+                                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">{tab.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
 
+            {/* ===== CONTENT GRID ===== */}
+            <div className="mx-auto w-full max-w-[min(1440px,calc(100vw-48px))] px-6 pb-10 pt-4 sm:px-8">
+                <div className="grid gap-4 lg:grid-cols-[380px_minmax(0,1fr)_320px] lg:items-start lg:justify-center">
+                    {/* LEFT PANEL — profile info */}
+                    <div className="hidden lg:block lg:sticky lg:top-[14px] pl-6">
+                        {leftPanel}
+                    </div>
+
+                    {/* CENTER — tab content */}
+                    <div className="min-w-0">
+                        {/* Mobile: profile info shown above content */}
+                        <div className="mb-6 lg:hidden">
+                            {leftPanel}
+                        </div>
+
+                        {/* Tab: Timeline */}
+                        {activeTab === 'feed' && (
+                            <div className="flex flex-col gap-4">
+                                {isMyProfile && (
+                                    <PostComposer authorName={displayName} onPostCreated={() => void fetchProfile(false)} compact />
+                                )}
+
+                                {posts.length === 0 ? (
+                                    <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
+                                        <Activity className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
+                                        <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
+                                            Updates, match notes, and public profile posts will appear here once this account starts publishing.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    posts.map((post) => (
+                                        <FeedPost
+                                            key={post.id}
+                                            post={post}
+                                            isCommentsOpen={openComments[post.id]}
+                                            commentsData={commentsData[post.id]}
+                                            onLikeToggle={handleLikeToggle}
+                                            onToggleComments={toggleComments}
+                                            onSubmitComment={submitComment}
+                                            onImageClick={() => {
+                                                setSelectedPost(post);
+                                                void loadComments(post.id);
+                                            }}
+                                            compact
+                                        />
+                                    ))
+                                )}
+                            </div>
+                        )}
+
+                        {/* Tab: Career Stats */}
+                        {activeTab === 'stats' && (
+                            <div className="flex flex-col gap-4">
+                                {/* Career totals */}
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                                    <StatCard icon={Building2} label="Clubs" value={careerTotals.clubs} />
+                                    <StatCard icon={Activity} label="Apps" value={careerTotals.appearances} />
+                                    <StatCard icon={Trophy} label="Goals" value={careerTotals.goals} />
+                                    <StatCard icon={Users} label="Assists" value={careerTotals.assists} />
+                                    <StatCard icon={ShieldCheck} label="Clean Sheets" value={careerTotals.cleanSheets} />
+                                </div>
+
+                                {/* Career history */}
+                                {(profile.careerHistory || []).length === 0 ? (
+                                    <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
+                                        <BarChart3 className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
+                                        <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
+                                            Career history has not been published for this profile yet.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {(profile.careerHistory || []).map((entry) => (
+                                            <CareerEntryCard key={entry.id} entry={entry} />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Tab: Media */}
+                        {activeTab === 'media' && (
+                            <div className="flex flex-col gap-4">
+                                {mediaEntries.length === 0 ? (
+                                    <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
+                                        <Image className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
+                                        <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
+                                            No media has been posted yet. Images and videos from timeline posts will appear here.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                        {mediaEntries.map((entry) => {
+                                            const mediaUrl = resolveMediaUrl(entry.url) || entry.url;
+                                            const relatedPost = posts.find((post) => post.id === entry.postId) || null;
+
+                                            return (
+                                                <button
+                                                    key={entry.key}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedPost(relatedPost);
+                                                        if (relatedPost) {
+                                                            void loadComments(relatedPost.id);
+                                                        }
+                                                    }}
+                                                    className="group relative overflow-hidden rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] aspect-square"
+                                                >
+                                                    {entry.kind === 'video' ? (
+                                                        <video src={mediaUrl} className="h-full w-full object-cover" />
+                                                    ) : (
+                                                        <img src={mediaUrl} alt="Timeline media" className="h-full w-full object-cover" />
+                                                    )}
+                                                    <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/40 flex items-center justify-center">
+                                                        <span className="opacity-0 group-hover:opacity-100 text-[10px] font-semibold text-white uppercase tracking-[0.08em] transition-opacity">
+                                                            {entry.kind === 'video' ? 'Play' : 'View Post'}
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* RIGHT PANEL */}
+                    <div className="hidden lg:block lg:sticky lg:top-[14px]">
+                        {rightPanel}
+                    </div>
+                </div>
+            </div>
+
+            {/* Post theater modal */}
             <PostTheaterModal
                 isOpen={!!selectedPost}
                 post={selectedPost}
@@ -785,6 +986,6 @@ export const UserProfilePage = () => {
                 onSubmitComment={submitComment}
                 onLikeToggle={handleLikeToggle}
             />
-        </>
+        </div>
     );
 };

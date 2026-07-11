@@ -133,49 +133,52 @@ export const MatchInviteModal = ({
         }
     };
 
+    const formControlClass = 'theme-surface-strong theme-border w-full border px-3 py-2.5 text-sm font-semibold text-primary outline-none transition-colors focus:border-accent-primary disabled:opacity-60';
+
     return (
-        <div className="theme-overlay fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="theme-surface theme-border w-full max-w-2xl overflow-hidden rounded-lg border-2 shadow-2xl">
-                <div className="theme-surface-strong theme-border flex items-center justify-between border-b p-5">
+        <div className="theme-overlay-strong fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="theme-surface theme-border flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border shadow-2xl">
+                <div className="flex items-start justify-between gap-4 border-b border-subtle px-6 py-5 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-500/20">
-                            <Swords className="h-4 w-4 text-rose-600 dark:text-rose-500" />
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-subtle bg-base">
+                            <Swords className="h-4 w-4 accent-muted" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-black uppercase tracking-widest text-slate-900 dark:text-white">
+                            <h2 className="text-lg font-black uppercase tracking-tight text-primary">
                                 Issue Challenge
                             </h2>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary">
                                 versus {targetClubName}
                             </p>
                         </div>
                     </div>
                     <button
+                        type="button"
                         onClick={onClose}
-                        className="text-slate-400 transition-colors hover:text-rose-500"
+                        className="inline-flex h-10 w-10 items-center justify-center border border-subtle bg-base text-secondary transition-colors hover:text-primary"
                     >
                         <X className="h-5 w-5" />
                     </button>
                 </div>
 
-                <div className="space-y-5 p-6">
+                <div className="flex-1 overflow-y-auto space-y-5 p-6">
                     <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
                                 Challenge Type
                             </label>
                             <select
                                 value={formData.matchType}
                                 onChange={(event) => updateField('matchType', event.target.value as MatchChallengePayload['matchType'])}
-                                className="theme-surface-strong theme-border w-full rounded-sm border px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500 dark:text-white"
+                                className={formControlClass}
                             >
                                 <option value="FRIENDLY">Friendly</option>
                                 <option value="COMPETITIVE">Competitive</option>
                             </select>
                         </div>
 
-                        <div>
-                            <label className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
                                 <CalendarDays className="h-3.5 w-3.5" />
                                 Proposed Kickoff
                             </label>
@@ -183,21 +186,21 @@ export const MatchInviteModal = ({
                                 type="datetime-local"
                                 value={formData.proposedDate}
                                 onChange={(event) => updateField('proposedDate', event.target.value)}
-                                className="theme-surface-strong theme-border w-full rounded-sm border px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500 dark:text-white"
+                                className={formControlClass}
                             />
                         </div>
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
                                 Your Squad
                             </label>
                             <select
                                 value={formData.challengingSquadId}
                                 onChange={(event) => updateField('challengingSquadId', event.target.value)}
                                 disabled={isLoadingSquads}
-                                className="theme-surface-strong theme-border w-full rounded-sm border px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500 disabled:opacity-60 dark:text-white"
+                                className={formControlClass}
                             >
                                 <option value="">Whole club / not specified</option>
                                 {sourceSquads.map((squad) => (
@@ -207,21 +210,21 @@ export const MatchInviteModal = ({
                                 ))}
                             </select>
                             {selectedSourceSquad && (
-                                <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-500">
+                                <p className="text-[11px] font-black uppercase tracking-[0.16em] accent-primary">
                                     {selectedSourceSquad.category} / {selectedSourceSquad.gender}
                                 </p>
                             )}
                         </div>
 
-                        <div>
-                            <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
                                 Requested Opponent Squad
                             </label>
                             <select
                                 value={formData.targetSquadId}
                                 onChange={(event) => updateField('targetSquadId', event.target.value)}
                                 disabled={isLoadingSquads}
-                                className="theme-surface-strong theme-border w-full rounded-sm border px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500 disabled:opacity-60 dark:text-white"
+                                className={formControlClass}
                             >
                                 <option value="">Any suitable squad</option>
                                 {targetSquads.map((squad) => (
@@ -231,7 +234,7 @@ export const MatchInviteModal = ({
                                 ))}
                             </select>
                             {selectedTargetSquad && (
-                                <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-500">
+                                <p className="text-[11px] font-black uppercase tracking-[0.16em] accent-primary">
                                     {selectedTargetSquad.category} / {selectedTargetSquad.gender}
                                 </p>
                             )}
@@ -239,15 +242,15 @@ export const MatchInviteModal = ({
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
                                 <Shield className="h-3.5 w-3.5" />
                                 Venue Preference
                             </label>
                             <select
                                 value={formData.venuePreference}
                                 onChange={(event) => updateField('venuePreference', event.target.value as NonNullable<MatchChallengePayload['venuePreference']>)}
-                                className="theme-surface-strong theme-border w-full rounded-sm border px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500 dark:text-white"
+                                className={formControlClass}
                             >
                                 <option value="FLEXIBLE">Flexible</option>
                                 <option value="HOME">Host at our club</option>
@@ -256,8 +259,8 @@ export const MatchInviteModal = ({
                             </select>
                         </div>
 
-                        <div>
-                            <label className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
                                 <MapPin className="h-3.5 w-3.5" />
                                 Desired Location
                             </label>
@@ -267,13 +270,13 @@ export const MatchInviteModal = ({
                                 onChange={(event) => updateField('location', event.target.value)}
                                 maxLength={255}
                                 placeholder="Optional venue note or preferred ground"
-                                className="theme-surface-strong theme-border w-full rounded-sm border px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500 dark:text-white"
+                                className={formControlClass}
                             />
                         </div>
                     </div>
 
-                    <div>
-                        <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
                             Notes
                         </label>
                         <textarea
@@ -282,39 +285,41 @@ export const MatchInviteModal = ({
                             rows={4}
                             maxLength={500}
                             placeholder="Share context like age group balance, travel window, or the type of test you want."
-                            className="theme-surface-strong theme-border w-full resize-none rounded-sm border px-3 py-3 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500 dark:text-white"
+                            className={`${formControlClass} resize-none`}
                         />
-                        <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                        <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] font-black uppercase tracking-[0.16em] text-secondary">
                             <span>External messaging stays available separately from this challenge flow.</span>
                             <span>{formData.message.length}/500</span>
                         </div>
                     </div>
 
                     {isLoadingSquads && (
-                        <div className="flex items-center gap-2 rounded-md border border-slate-300/60 bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-500" />
+                        <div className="flex items-center gap-2 border border-subtle bg-base px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-secondary">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin accent-primary" />
                             Loading squad context
                         </div>
                     )}
 
                     {error && (
-                        <div className="rounded-md border border-rose-300/60 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
+                        <div className="border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
                             {error}
                         </div>
                     )}
                 </div>
 
-                <div className="theme-surface-strong theme-border flex justify-end gap-3 border-t p-5">
+                <div className="flex items-center justify-end gap-3 border-t border-subtle px-6 py-4 shrink-0">
                     <button
+                        type="button"
                         onClick={onClose}
-                        className="px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                        className="border border-subtle bg-base px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-secondary transition-colors hover:text-primary"
                     >
                         Cancel
                     </button>
                     <button
+                        type="button"
                         onClick={handleSubmit}
                         disabled={isSubmitting || !formData.proposedDate}
-                        className="flex items-center gap-2 rounded-sm border border-transparent bg-rose-600 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-[4px_4px_0px_0px_#020617] transition-all active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 hover:bg-rose-500"
+                        className="inline-flex items-center gap-2 border border-accent-muted bg-accent-muted-soft px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-[color:var(--accent-muted)] transition-colors disabled:opacity-50"
                     >
                         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4" /> Send Challenge</>}
                     </button>

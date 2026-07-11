@@ -54,8 +54,8 @@ export const ClubProfileInfoPanel = ({ club }: ClubProfileInfoPanelProps) => {
     const compactLinks = useMemo(() => publicLinks.slice(0, 4), [publicLinks]);
 
     return (
-        <aside className="w-full lg:sticky lg:top-[calc(var(--app-header-height)+14px)] lg:max-w-[272px] lg:self-start">
-            <section className="rounded-[16px] border border-[color:var(--club-theme-border-subtle)] bg-[rgba(12,18,27,0.96)] shadow-[0_16px_30px_rgba(2,6,12,0.22)] lg:max-h-[calc(100vh-var(--app-header-height)-28px)] lg:overflow-y-auto">
+        <aside className="w-full">
+            <section className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-band)] shadow-[0_16px_30px_rgba(2,6,12,0.22)]">
                 <div className="border-b border-white/6 px-3.5 py-3.5">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[color:var(--club-theme-text-secondary)]">Club Information</p>
                     <h2 className="mt-2 text-[15px] font-black uppercase leading-6 tracking-[0.06em] text-[color:var(--club-theme-text-primary)]">
@@ -63,7 +63,7 @@ export const ClubProfileInfoPanel = ({ club }: ClubProfileInfoPanelProps) => {
                     </h2>
                 </div>
 
-                <div className="space-y-4 px-3.5 py-3.5">
+                <div className="space-y-4 px-4 py-4 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0">
                     <PanelSection
                         icon={<Phone className="h-4 w-4 text-[color:var(--club-tone-green)]" />}
                         label="Public Contact"

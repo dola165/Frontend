@@ -2,9 +2,9 @@ import type { CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
 import { CalendarDays, Plus, TriangleAlert } from 'lucide-react';
 import { eventTypeCopy, type ScheduleWorkspaceEvent, type WorkspaceView } from './workspaceTypes';
 
-const SLOT_HEIGHT = 46;
+const SLOT_HEIGHT = 40;
 const TIMELINE_GUTTER_WIDTH = 64;
-const HOURS = Array.from({ length: 17 }, (_, index) => 6 + index);
+const HOURS = Array.from({ length: 24 }, (_, index) => index);
 
 const pad = (value: number) => String(value).padStart(2, '0');
 const toDateKey = (value: Date) => `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
@@ -50,8 +50,7 @@ const eventTimelinePosition = (event: ScheduleWorkspaceEvent) => {
     const end = parseDate(event.endsAt);
     const startMinutes = start.getHours() * 60 + start.getMinutes();
     const endMinutes = end.getHours() * 60 + end.getMinutes();
-    const timelineStart = HOURS[0] * 60;
-    const top = ((startMinutes - timelineStart) / 60) * SLOT_HEIGHT;
+    const top = (startMinutes / 60) * SLOT_HEIGHT;
     const height = Math.max(((endMinutes - startMinutes) / 60) * SLOT_HEIGHT, SLOT_HEIGHT * 0.8);
     return { top, height };
 };
@@ -71,9 +70,8 @@ interface ScheduleGridProps {
     monthEvents: Record<string, ScheduleWorkspaceEvent[]>;
     days: Date[];
     events: ScheduleWorkspaceEvent[];
-    selectedEventId: string | null;
     onSelectDate: (date: Date) => void;
-    onSelectEvent: (eventId: string) => void;
+    onEditEvent: (event: ScheduleWorkspaceEvent) => void;
     canCreate: boolean;
     onCreateAt: (date: Date) => void;
 }
@@ -84,9 +82,8 @@ export const ScheduleGrid = ({
     monthEvents,
     days,
     events,
-    selectedEventId,
     onSelectDate,
-    onSelectEvent,
+    onEditEvent,
     canCreate,
     onCreateAt
 }: ScheduleGridProps) => {
@@ -108,9 +105,8 @@ export const ScheduleGrid = ({
         <MonthBoard
             cursorDate={cursorDate}
             monthEvents={monthEvents}
-            selectedEventId={selectedEventId}
             onSelectDate={onSelectDate}
-            onSelectEvent={onSelectEvent}
+            onEditEvent={onEditEvent}
             canCreate={canCreate}
             onCreateAt={onCreateAt}
         />
@@ -118,8 +114,7 @@ export const ScheduleGrid = ({
         <TimelineBoard
             days={days}
             events={events}
-            selectedEventId={selectedEventId}
-            onSelectEvent={onSelectEvent}
+            onEditEvent={onEditEvent}
             canCreate={canCreate}
             onCreateAt={onCreateAt}
         />
@@ -129,24 +124,22 @@ export const ScheduleGrid = ({
 const MonthBoard = ({
     cursorDate,
     monthEvents,
-    selectedEventId,
     onSelectDate,
-    onSelectEvent,
+    onEditEvent,
     canCreate,
     onCreateAt
 }: {
     cursorDate: Date;
     monthEvents: Record<string, ScheduleWorkspaceEvent[]>;
-    selectedEventId: string | null;
     onSelectDate: (date: Date) => void;
-    onSelectEvent: (eventId: string) => void;
+    onEditEvent: (event: ScheduleWorkspaceEvent) => void;
     canCreate: boolean;
     onCreateAt: (date: Date) => void;
 }) => (
     <div className="schedule-scroll-surface h-full overflow-auto bg-[color:var(--schedule-board-cell)]">
-        <div className="schedule-board-head grid min-w-[840px] grid-cols-7 border-b border-subtle">
+        <div className="schedule-board-head sticky top-0 z-10 grid min-w-[840px] grid-cols-7 border-b border-subtle">
             {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((label) => (
-                <div key={label} className="border-r border-subtle px-3 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-secondary last:border-r-0">
+                <div key={label} className="border-r border-subtle px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-secondary last:border-r-0">
                     {label}
                 </div>
             ))}
@@ -161,18 +154,18 @@ const MonthBoard = ({
                     <div
                         key={toDateKey(date)}
                         onClick={() => canCreate && onCreateAt(date)}
-                        className={`flex min-h-[148px] flex-col border-b border-r border-subtle px-3 py-3 last:border-r-0 ${
+                        className={`flex min-h-[120px] flex-col border-b border-r border-subtle px-2.5 py-2.5 last:border-r-0 ${
                             inMonth ? 'schedule-board-cell' : 'schedule-board-cell--muted'
                         } ${canCreate ? 'cursor-pointer' : ''}`}
                     >
-                        <div className="mb-3 flex items-center justify-between gap-2">
+                        <div className="mb-2 flex items-center justify-between gap-2">
                             <button
                                 type="button"
                                 onClick={(event) => {
                                     event.stopPropagation();
                                     onSelectDate(date);
                                 }}
-                                className={`schedule-interactive schedule-tone-blue inline-flex h-8 w-8 items-center justify-center rounded-[4px] text-[11px] font-black ${
+                                className={`schedule-interactive schedule-tone-blue inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[11px] font-black ${
                                     activeDay ? 'bg-elevated text-current' : 'text-secondary'
                                 }`}
                                 data-active={activeDay}
@@ -194,17 +187,17 @@ const MonthBoard = ({
                             ) : null}
                         </div>
 
-                        <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-col gap-1">
                             {dayEvents.slice(0, 4).map((event) => (
                                 <button
                                     key={event.id}
                                     type="button"
                                     onClick={(clickEvent) => {
                                         clickEvent.stopPropagation();
-                                        onSelectEvent(event.id);
+                                        onEditEvent(event);
                                     }}
                                     className="rounded-[4px] border px-2 py-1.5 text-left transition-transform duration-150 hover:-translate-y-px hover:shadow-[0_8px_18px_rgba(0,0,0,0.18)]"
-                                    style={eventStyle(event, selectedEventId === event.id)}
+                                    style={eventStyle(event, false)}
                                 >
                                     <div className="flex items-center justify-between gap-2">
                                         <span className="truncate text-[10px] font-black uppercase tracking-[0.16em] text-primary">{event.title}</span>
@@ -226,85 +219,91 @@ const MonthBoard = ({
 const TimelineBoard = ({
     days,
     events,
-    selectedEventId,
-    onSelectEvent,
+    onEditEvent,
     canCreate,
     onCreateAt
 }: {
     days: Date[];
     events: ScheduleWorkspaceEvent[];
-    selectedEventId: string | null;
-    onSelectEvent: (eventId: string) => void;
+    onEditEvent: (event: ScheduleWorkspaceEvent) => void;
     canCreate: boolean;
     onCreateAt: (date: Date) => void;
 }) => (
-    <div className="schedule-scroll-surface h-full overflow-auto bg-[color:var(--schedule-board-cell)]">
-        <div className="grid min-w-[1008px]" style={{ gridTemplateColumns: `${TIMELINE_GUTTER_WIDTH}px repeat(${days.length}, minmax(${timelineDayMinWidth(days.length)}px, 1fr))` }}>
-            <div className="schedule-board-head border-r border-subtle" />
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[color:var(--schedule-board-cell)]">
+        {/* Sticky day headers */}
+        <div className="sticky top-0 z-10 grid shrink-0 border-b border-subtle bg-[color:var(--schedule-board-head)]" style={{ gridTemplateColumns: `${TIMELINE_GUTTER_WIDTH}px repeat(${days.length}, minmax(${timelineDayMinWidth(days.length)}px, 1fr))`, minWidth: 1008 }}>
+            <div className="border-r border-subtle" />
             {days.map((day) => (
-                <div key={toDateKey(day)} className="schedule-board-head border-r border-subtle px-3 py-2.5 last:border-r-0">
+                <div key={toDateKey(day)} className="border-r border-subtle px-3 py-2 last:border-r-0">
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
                         {day.toLocaleDateString(undefined, { weekday: 'short' })}
                     </p>
-                    <p className="mt-1 truncate text-[13px] font-black uppercase tracking-[0.12em] text-primary">
+                    <p className="mt-0.5 truncate text-[12px] font-black uppercase tracking-[0.12em] text-primary">
                         {day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     </p>
                 </div>
             ))}
+        </div>
 
-            <div className="schedule-board-head relative border-r border-subtle">
-                {HOURS.map((hour) => (
-                    <div key={hour} className="flex h-[46px] items-start justify-end border-b border-subtle px-2.5 pt-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-secondary">
-                        {pad(hour)}:00
-                    </div>
-                ))}
-            </div>
+        {/* Scrollable body */}
+        <div className="schedule-scroll-surface min-h-0 flex-1 overflow-auto">
+            <div style={{ display: 'grid', gridTemplateColumns: `${TIMELINE_GUTTER_WIDTH}px repeat(${days.length}, minmax(${timelineDayMinWidth(days.length)}px, 1fr))`, minWidth: 1008 }}>
+                {/* Time gutter */}
+                <div className="relative border-r border-subtle">
+                    {HOURS.map((hour) => (
+                        <div key={hour} className="flex h-[40px] items-start justify-end border-b border-subtle px-2.5 pt-1 text-[10px] font-black uppercase tracking-[0.16em] text-secondary">
+                            {pad(hour)}:00
+                        </div>
+                    ))}
+                </div>
 
-            {days.map((day) => {
-                const dayEvents = events.filter((event) => sameDay(parseDate(event.startsAt), day));
+                {/* Day columns */}
+                {days.map((day) => {
+                    const dayEvents = events.filter((event) => sameDay(parseDate(event.startsAt), day));
 
-                return (
-                    <div key={toDateKey(day)} className="relative border-r border-subtle last:border-r-0">
-                        {HOURS.map((hour) =>
-                            canCreate ? (
-                                <button
-                                    key={`${toDateKey(day)}-${hour}`}
-                                    type="button"
-                                    onClick={(event) => onCreateAt(resolveSlotDate(day, hour, event))}
-                                    className="schedule-slot-button block h-[46px] w-full border-b border-subtle text-transparent"
-                                >
-                                    slot
-                                </button>
-                            ) : (
-                                <div key={`${toDateKey(day)}-${hour}`} className="schedule-board-cell h-[46px] border-b border-subtle" />
-                            )
-                        )}
+                    return (
+                        <div key={toDateKey(day)} className="relative border-r border-subtle last:border-r-0">
+                            {HOURS.map((hour) =>
+                                canCreate ? (
+                                    <button
+                                        key={`${toDateKey(day)}-${hour}`}
+                                        type="button"
+                                        onClick={(event) => onCreateAt(resolveSlotDate(day, hour, event))}
+                                        className="schedule-slot-button block h-[40px] w-full border-b border-subtle text-transparent"
+                                    >
+                                        slot
+                                    </button>
+                                ) : (
+                                    <div key={`${toDateKey(day)}-${hour}`} className="schedule-board-cell h-[40px] border-b border-subtle" />
+                                )
+                            )}
 
-                        {dayEvents.map((event) => {
-                            const position = eventTimelinePosition(event);
-                            return (
-                                <button
-                                    key={event.id}
-                                    type="button"
-                                    onClick={() => onSelectEvent(event.id)}
-                                    className="absolute left-1.5 right-1.5 rounded-[4px] border px-2 py-1.5 text-left transition-transform duration-150 hover:-translate-y-px hover:shadow-[0_8px_18px_rgba(0,0,0,0.18)]"
-                                    style={{ ...eventStyle(event, selectedEventId === event.id), top: position.top + 2, height: position.height - 4 }}
-                                >
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="min-w-0">
-                                            <p className="truncate text-[11px] font-black uppercase tracking-[0.14em] text-primary">{event.title}</p>
-                                            <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.16em] text-secondary">
-                                                {formatTime(event.startsAt)} - {formatTime(event.endsAt)}
-                                            </p>
+                            {dayEvents.map((event) => {
+                                const position = eventTimelinePosition(event);
+                                return (
+                                    <button
+                                        key={event.id}
+                                        type="button"
+                                        onClick={() => onEditEvent(event)}
+                                        className="absolute left-1.5 right-1.5 rounded-[4px] border px-2 py-1.5 text-left transition-transform duration-150 hover:-translate-y-px hover:shadow-[0_8px_18px_rgba(0,0,0,0.18)]"
+                                        style={{ ...eventStyle(event, false), top: position.top + 2, height: position.height - 4 }}
+                                    >
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <p className="truncate text-[11px] font-black uppercase tracking-[0.14em] text-primary">{event.title}</p>
+                                                <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.16em] text-secondary">
+                                                    {formatTime(event.startsAt)} - {formatTime(event.endsAt)}
+                                                </p>
+                                            </div>
+                                            {event.conflict ? <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-[color:var(--state-danger)]" /> : null}
                                         </div>
-                                        {event.conflict ? <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-[color:var(--state-danger)]" /> : null}
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-                );
-            })}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     </div>
 );

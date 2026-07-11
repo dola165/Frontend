@@ -58,6 +58,13 @@ type SessionSummary = {
     revokedCount: number;
     expiredCount: number;
 };
+type TryoutApp = {
+    id: number;
+    tryoutId: number;
+    tryoutTitle: string;
+    status: string;
+    appliedAt: string;
+};
 type ProfileForm = {
     fullName: string;
     bio: string;
@@ -81,11 +88,13 @@ const tabItems: EntityTabItem[] = [
     { id: 'danger', label: 'Danger' }
 ];
 
-const surfaceClass = 'bg-surface border border-subtle';
-const insetClass = 'border border-subtle bg-base';
-const labelClass = 'text-[11px] font-black uppercase tracking-[0.18em] text-secondary';
-const inputClass = 'w-full border border-subtle bg-base px-3 py-2.5 text-sm text-primary outline-none transition-colors placeholder:text-muted focus:border-accent-primary';
-const textareaClass = `${inputClass} min-h-[120px] resize-none`;
+// Style primitives — use FC workspace tokens
+const surfaceClass = 'bg-[var(--fc-card-bg)] border border-[var(--fc-border)] rounded-md';
+const insetClass = 'border border-[var(--fc-border)] bg-[var(--fc-page-bg)] rounded-md';
+const labelClass = 'text-xs font-semibold text-[var(--fc-text-secondary)]';
+const inputClass = 'w-full rounded-md border border-[var(--fc-border)] bg-[var(--fc-page-bg)] px-3 py-2.5 text-sm text-[var(--fc-text-primary)] outline-none transition-colors placeholder:text-[var(--fc-text-muted)] focus:border-[var(--fc-accent)] focus:ring-1 focus:ring-[var(--fc-accent)]/30';
+const btnPrimaryClass = 'inline-flex items-center gap-2 rounded-md bg-[var(--fc-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50';
+const btnSecondaryClass = 'inline-flex items-center gap-2 rounded-md border border-[var(--fc-border)] bg-transparent px-4 py-2.5 text-sm font-semibold text-[var(--fc-text-primary)] transition-colors hover:bg-[var(--fc-surface-hover)] disabled:opacity-50';
 
 const normalizeTab = (value: string | null): Tab =>
     value === 'security' || value === 'sessions' || value === 'accounts' || value === 'danger' ? value : 'profile';
@@ -108,10 +117,23 @@ const buildForm = (account: Account): ProfileForm => ({
 });
 const sessionTone = (status: 'ACTIVE' | 'REVOKED' | 'EXPIRED') =>
     status === 'ACTIVE'
-        ? 'border-accent-primary bg-accent-primary-soft accent-primary'
+        ? 'bg-[var(--fc-accent-soft)] text-[var(--fc-accent)]'
         : status === 'REVOKED'
-            ? 'border-amber-500/40 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
-            : 'border-subtle bg-base text-secondary';
+            ? 'bg-[var(--fc-state-warning-soft)] text-[var(--fc-state-warning)]'
+            : 'bg-transparent text-[var(--fc-text-muted)]';
+
+const tryoutStatusStyle = (status: string) => {
+    switch (status) {
+        case 'ACCEPTED':
+            return 'bg-[var(--fc-accent-soft)] text-[var(--fc-accent)]';
+        case 'REJECTED':
+            return 'bg-[var(--fc-state-danger-soft)] text-[var(--fc-state-danger)]';
+        case 'SHORTLISTED':
+            return 'bg-[var(--fc-state-warning-soft)] text-[var(--fc-state-warning)]';
+        default:
+            return 'bg-transparent text-[var(--fc-text-muted)]';
+    }
+};
 
 const Section = ({
     title,
@@ -125,37 +147,37 @@ const Section = ({
     children: ReactNode;
 }) => (
     <section className={surfaceClass}>
-        <div className="flex flex-col gap-3 border-b border-subtle px-4 py-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 border-b border-[var(--fc-border)] px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-                <h2 className="text-lg font-black uppercase tracking-[0.12em] text-primary">{title}</h2>
-                {description && <p className="mt-1 text-sm leading-6 text-secondary">{description}</p>}
+                <h2 className="text-base font-semibold text-[color:var(--fc-text-primary)]">{title}</h2>
+                {description && <p className="mt-1 text-sm leading-6 text-[color:var(--fc-text-secondary)]">{description}</p>}
             </div>
             {actions}
         </div>
-        <div className="p-4">{children}</div>
+        <div className="p-5">{children}</div>
     </section>
 );
 
 const Field = ({ label, children }: { label: string; children: ReactNode }) => (
-    <label className="flex flex-col gap-2">
+    <label className="flex flex-col gap-1.5">
         <span className={labelClass}>{label}</span>
         {children}
     </label>
 );
 
 const StatTile = ({ label, value }: { label: string; value: ReactNode }) => (
-    <div className={insetClass}>
-        <div className="px-4 py-3">
+    <div className={surfaceClass}>
+        <div className="px-4 py-3.5">
             <p className={labelClass}>{label}</p>
-            <div className="mt-2 text-xl font-black uppercase tracking-tight text-primary">{value}</div>
+            <div className="mt-2 text-xl font-bold text-[color:var(--fc-text-primary)]">{value}</div>
         </div>
     </div>
 );
 
 const DetailRow = ({ label, value }: { label: string; value: ReactNode }) => (
-    <div className="flex items-start justify-between gap-4 border-b border-subtle py-3 first:pt-0 last:border-b-0 last:pb-0">
+    <div className="flex items-start justify-between gap-4 border-b border-[var(--fc-border)] py-3 first:pt-0 last:border-b-0 last:pb-0">
         <p className={labelClass}>{label}</p>
-        <div className="max-w-[70%] text-right text-sm font-semibold text-primary">{value}</div>
+        <div className="max-w-[70%] text-right text-sm font-semibold text-[color:var(--fc-text-primary)]">{value}</div>
     </div>
 );
 
@@ -179,7 +201,7 @@ export const AccountPage = () => {
     const [changingPassword, setChangingPassword] = useState(false);
     const [revokingSessions, setRevokingSessions] = useState(false);
     const [uploading, setUploading] = useState<'avatar' | 'banner' | null>(null);
-    const [tryoutApps, setTryoutApps] = useState<Array<{ id: number; tryoutId: number; tryoutTitle: string; status: string; appliedAt: string }>>([]);
+    const [tryoutApps, setTryoutApps] = useState<TryoutApp[]>([]);
     const [showTryoutApps, setShowTryoutApps] = useState(false);
 
     const activeTab = normalizeTab(searchParams.get('tab'));
@@ -341,22 +363,24 @@ export const AccountPage = () => {
         }
     };
 
+    // --- Loading state ---
     if (loading) {
         return (
-            <div className="bg-base flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
-                <Loader2 className="h-10 w-10 animate-spin accent-primary" />
+            <div className="workspace-page-shell flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
+                <Loader2 className="h-10 w-10 animate-spin text-[color:var(--fc-accent)]" />
             </div>
         );
     }
 
+    // --- Error / offline state ---
     if (!account || !form) {
         return (
-            <div className="bg-base flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center px-6">
+            <div className="workspace-page-shell flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center px-6">
                 <div className={`${surfaceClass} max-w-xl px-8 py-10 text-center`}>
-                    <ShieldAlert className="mx-auto mb-4 h-10 w-10 text-rose-500" />
-                    <h1 className="text-xl font-black uppercase tracking-[0.18em] text-primary">Account Center Offline</h1>
-                    <p className="mt-3 text-sm leading-6 text-secondary">{error || 'Your account settings could not be loaded right now.'}</p>
-                    <button type="button" onClick={() => void loadAccount()} className="mt-6 border border-accent-primary bg-accent-primary-soft px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] accent-primary">
+                    <ShieldAlert className="mx-auto mb-4 h-10 w-10 text-[color:var(--fc-state-danger)]" />
+                    <h1 className="text-xl font-bold text-[color:var(--fc-text-primary)]">Account Center Offline</h1>
+                    <p className="mt-3 text-sm leading-6 text-[color:var(--fc-text-secondary)]">{error || 'Your account settings could not be loaded right now.'}</p>
+                    <button type="button" onClick={() => void loadAccount()} className={`${btnPrimaryClass} mt-6`}>
                         Retry
                     </button>
                 </div>
@@ -365,12 +389,13 @@ export const AccountPage = () => {
     }
 
     return (
-        <div className="bg-base min-h-full pb-10">
-            <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
-                <header className="border-b border-subtle pb-5">
+        <div className="workspace-page-shell min-h-full pb-10">
+            <div className="mx-auto flex w-full max-w-[min(1320px,calc(100vw-48px))] flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
+                {/* ===== HEADER ===== */}
+                <header className="border-b border-[var(--fc-border)] pb-5">
                     <Link
                         to={user?.id ? `/profile/${user.id}` : '/feed'}
-                        className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-secondary transition-colors hover:text-primary"
+                        className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--fc-text-secondary)] transition-colors hover:text-[color:var(--fc-text-primary)]"
                     >
                         <ArrowLeft className="h-3.5 w-3.5" />
                         Back
@@ -378,22 +403,26 @@ export const AccountPage = () => {
 
                     <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
                         <div>
-                            <p className="text-[11px] font-black uppercase tracking-[0.2em] accent-primary">Utility Panel</p>
-                            <h1 className="mt-2 text-3xl font-black uppercase tracking-tight text-primary">Account Center</h1>
-                            <p className="mt-2 max-w-3xl text-sm leading-6 text-secondary">
-                                Identity, authentication, linked providers, and session controls live here as one settings destination with local tabs.
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--fc-accent)]">Account Center</p>
+                            <h1 className="mt-2 text-3xl font-bold text-[color:var(--fc-text-primary)]">Account Settings</h1>
+                            <p className="mt-2 max-w-3xl text-sm leading-6 text-[color:var(--fc-text-secondary)]">
+                                Identity, authentication, linked providers, and session controls — all in one place.
                             </p>
 
                             <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
-                                <div className="flex h-16 w-16 items-center justify-center overflow-hidden border border-subtle bg-surface text-xl font-black uppercase text-primary">
+                                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[16px] border-2 border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] text-xl font-bold text-[color:var(--fc-text-primary)]">
                                     {avatarPreview ? <img src={avatarPreview} alt={account.displayName} className="h-full w-full object-cover" /> : initials}
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-black uppercase tracking-[0.12em] text-primary">{account.displayName}</h2>
-                                    <p className="mt-1 text-sm text-secondary">{account.email}</p>
-                                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.16em]">
-                                        <span className="border border-subtle bg-surface px-2.5 py-1 text-primary">{account.role}</span>
-                                        <span className={`border px-2.5 py-1 ${account.emailVerified ? 'border-accent-primary bg-accent-primary-soft accent-primary' : 'border-amber-500/40 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'}`}>
+                                    <h2 className="text-xl font-bold text-[color:var(--fc-text-primary)]">{account.displayName}</h2>
+                                    <p className="mt-1 text-sm text-[color:var(--fc-text-secondary)]">{account.email}</p>
+                                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.08em]">
+                                        <span className="rounded-full border border-[var(--fc-border)] bg-[color:var(--fc-card-bg)] px-2.5 py-1 text-[color:var(--fc-text-primary)]">{account.role}</span>
+                                        <span className={`rounded-full border px-2.5 py-1 ${
+                                            account.emailVerified
+                                                ? 'border-[color:var(--fc-accent-border)] bg-[color:var(--fc-accent-soft)] text-[color:var(--fc-accent)]'
+                                                : 'border-[var(--fc-state-warning)]/30 bg-[color:var(--fc-state-warning-soft)] text-[color:var(--fc-state-warning)]'
+                                        }`}>
                                             {account.emailVerified ? 'Email Verified' : 'Verification Pending'}
                                         </span>
                                     </div>
@@ -401,38 +430,39 @@ export const AccountPage = () => {
                             </div>
                         </div>
 
-                        <section className={`${surfaceClass} px-4 py-4`}>
+                        {/* Quick Actions */}
+                        <section className={`${surfaceClass} px-5 py-4`}>
                             <p className={labelClass}>Quick Actions</p>
                             <div className="mt-4 grid gap-2">
-                                <Link to={user?.id ? `/profile/${user.id}` : '/feed'} className="border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary">
+                                <Link to={user?.id ? `/profile/${user.id}` : '/feed'} className="inline-flex items-center gap-2 rounded-md border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-white/[0.04]">
                                     View Public Profile
                                 </Link>
                                 <button
                                     type="button"
                                     onClick={() => setSearchParams({ tab: 'security' })}
-                                    className="border border-accent-primary bg-accent-primary-soft px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary"
+                                    className={btnPrimaryClass + ' justify-center'}
                                 >
                                     Security Controls
                                 </button>
-                                <Link to="/tournaments/setup" className="border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary">
+                                <Link to="/tournaments/setup" className="inline-flex items-center gap-2 rounded-md border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-white/[0.04]">
                                     Tournament Setup
                                 </Link>
                                 {account.role === 'PLAYER' && (
                                     <button
                                         type="button"
                                         onClick={() => { void loadTryoutApplications(); setShowTryoutApps((v) => !v); }}
-                                        className="border border-subtle bg-base px-3 py-2 text-left text-[11px] font-black uppercase tracking-[0.16em] text-primary hover:border-accent-primary"
+                                        className="inline-flex items-center gap-2 rounded-md border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:border-[color:var(--fc-accent)]"
                                     >
                                         {showTryoutApps ? 'Hide' : 'View'} My Tryout Applications
                                         {tryoutApps.length > 0 && (
-                                            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center border border-accent-primary bg-accent-primary-soft px-1.5 text-[10px] accent-primary">
+                                            <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-[color:var(--fc-accent-border)] bg-[color:var(--fc-accent-soft)] px-1.5 text-[10px] text-[color:var(--fc-accent)]">
                                                 {tryoutApps.length}
                                             </span>
                                         )}
                                     </button>
                                 )}
                                 {account.role === 'SYSTEM_ADMIN' && (
-                                    <Link to="/admin" className="border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary">
+                                    <Link to="/admin" className="inline-flex items-center gap-2 rounded-md border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-white/[0.04]">
                                         Admin Panel
                                     </Link>
                                 )}
@@ -441,52 +471,50 @@ export const AccountPage = () => {
                     </div>
                 </header>
 
+                {/* Tabs */}
                 <EntityTabs items={tabItems} activeId={activeTab} onChange={(tab) => setSearchParams({ tab })} />
 
+                {/* Messages */}
                 {message && (
-                    <div className="border border-accent-primary bg-accent-primary-soft px-4 py-3 text-sm font-semibold accent-primary">
+                    <div className="rounded-md border border-[color:var(--fc-accent-border)] bg-[color:var(--fc-accent-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--fc-accent)]">
                         {message}
                     </div>
                 )}
                 {error && (
-                    <div className="border border-rose-300/50 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                    <div className="rounded-md border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--fc-state-danger)]">
                         {error}
                     </div>
                 )}
 
+                {/* Tryout Applications (conditional) */}
                 {showTryoutApps && (
-                    <section className="border border-subtle bg-surface px-5 py-5">
+                    <section className={`${surfaceClass} px-5 py-5`}>
                         <div className="flex items-center justify-between gap-3">
                             <div>
-                                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary">Tryout Applications</p>
-                                <h3 className="mt-1 text-lg font-bold text-primary">My Submitted Applications</h3>
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--fc-text-muted)]">Tryout Applications</p>
+                                <h3 className="mt-1 text-base font-semibold text-[color:var(--fc-text-primary)]">My Submitted Applications</h3>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setShowTryoutApps(false)}
-                                className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary"
+                                className="text-xs font-medium text-[color:var(--fc-text-secondary)] hover:text-[color:var(--fc-text-primary)]"
                             >
                                 Hide
                             </button>
                         </div>
                         {tryoutApps.length === 0 ? (
-                            <p className="mt-4 text-sm text-secondary">You haven't applied to any tryouts yet.</p>
+                            <p className="mt-4 text-sm text-[color:var(--fc-text-secondary)]">You haven't applied to any tryouts yet.</p>
                         ) : (
                             <div className="mt-4 grid gap-2">
                                 {tryoutApps.map((app) => (
-                                    <div key={app.id} className="flex items-center justify-between gap-4 border border-subtle bg-base px-4 py-3">
+                                    <div key={app.id} className="flex items-center justify-between gap-4 rounded-md border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-4 py-3">
                                         <div className="min-w-0">
-                                            <p className="text-sm font-bold text-primary">{app.tryoutTitle}</p>
-                                            <p className="text-xs text-secondary">
+                                            <p className="text-sm font-semibold text-[color:var(--fc-text-primary)]">{app.tryoutTitle}</p>
+                                            <p className="text-xs text-[color:var(--fc-text-secondary)]">
                                                 Applied {new Date(app.appliedAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
                                             </p>
                                         </div>
-                                        <span className={`shrink-0 border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${
-                                            app.status === 'ACCEPTED' ? 'border-accent-primary bg-accent-primary-soft accent-primary' :
-                                            app.status === 'REJECTED' ? 'border-rose-300/50 bg-rose-50 text-rose-700' :
-                                            app.status === 'SHORTLISTED' ? 'border-amber-400/50 bg-amber-50 text-amber-700' :
-                                            'border-subtle bg-surface text-secondary'
-                                        }`}>
+                                        <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${tryoutStatusStyle(app.status)}`}>
                                             {app.status}
                                         </span>
                                     </div>
@@ -496,17 +524,18 @@ export const AccountPage = () => {
                     </section>
                 )}
 
+                {/* ===== PROFILE TAB ===== */}
                 {activeTab === 'profile' && (
-                <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+                    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
                         <Section
                             title="Profile Draft"
-                            description="This tab controls the public identity data that flows into your Talanti profile."
+                            description="Your public identity data — save to persist changes across the platform."
                             actions={
                                 <button
                                     type="button"
                                     onClick={() => void saveProfile()}
                                     disabled={saving}
-                                    className="inline-flex items-center gap-2 border border-accent-primary bg-accent-primary-soft px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary disabled:opacity-60"
+                                    className={btnPrimaryClass}
                                 >
                                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                                     Save Profile
@@ -518,13 +547,13 @@ export const AccountPage = () => {
                                     <input value={form.fullName} onChange={(event) => updateForm('fullName', event.target.value)} placeholder="Full name" className={inputClass} />
                                 </Field>
                                 <Field label="Email">
-                                    <input readOnly value={account.email} className={`${inputClass} cursor-not-allowed text-secondary`} />
+                                    <input readOnly value={account.email} className={`${inputClass} cursor-not-allowed opacity-60`} />
                                 </Field>
                             </div>
 
                             <div className="mt-4">
                                 <Field label="Bio">
-                                    <textarea value={form.bio} onChange={(event) => updateForm('bio', event.target.value)} rows={5} placeholder="Football background, experience, or role summary" className={textareaClass} />
+                                    <textarea value={form.bio} onChange={(event) => updateForm('bio', event.target.value)} rows={5} placeholder="Football background, experience, or role summary" className={`${inputClass} min-h-[120px] resize-none`} />
                                 </Field>
                             </div>
 
@@ -578,13 +607,13 @@ export const AccountPage = () => {
                         </Section>
 
                         <div className="flex flex-col gap-5">
-                            <Section title="Profile Assets" description="Banner and avatar stay here as controlled profile media, not as a separate page.">
-                                <div className="relative h-32 overflow-hidden border border-subtle bg-base">
+                            <Section title="Profile Assets" description="Banner and avatar media for your public profile.">
+                                <div className="relative h-32 overflow-hidden rounded-md border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)]">
                                     <img src={bannerPreview} alt="Account banner" className="h-full w-full object-cover" />
                                     <button
                                         type="button"
                                         onClick={() => bannerInputRef.current?.click()}
-                                        className="absolute right-3 top-3 inline-flex items-center gap-2 border border-subtle bg-surface px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary"
+                                        className="absolute right-3 top-3 inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/24 px-3 py-2 text-xs font-semibold text-white backdrop-blur-md transition-colors hover:bg-black/40"
                                     >
                                         {uploading === 'banner' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
                                         Banner
@@ -593,20 +622,20 @@ export const AccountPage = () => {
                                 </div>
 
                                 <div className="mt-4 flex items-center gap-4">
-                                    <div className="flex h-20 w-20 items-center justify-center overflow-hidden border border-subtle bg-base text-xl font-black uppercase text-primary">
+                                    <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[14px] border-2 border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] text-xl font-bold text-[color:var(--fc-text-primary)]">
                                         {avatarPreview ? <img src={avatarPreview} alt={account.displayName} className="h-full w-full object-cover" /> : initials}
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <button
                                             type="button"
                                             onClick={() => avatarInputRef.current?.click()}
-                                            className="inline-flex items-center gap-2 border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary"
+                                            className={btnSecondaryClass}
                                         >
                                             {uploading === 'avatar' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
                                             Avatar
                                         </button>
                                         <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => void uploadAsset(event, 'avatar')} />
-                                        <p className="text-xs leading-5 text-secondary">Uploads update the draft immediately. Save the profile to persist them.</p>
+                                        <p className="text-xs leading-5 text-[color:var(--fc-text-secondary)]">Uploads update the draft immediately. Save to persist.</p>
                                     </div>
                                 </div>
                             </Section>
@@ -615,23 +644,24 @@ export const AccountPage = () => {
                                 <DetailRow label="Username" value={account.username} />
                                 <DetailRow label="Role" value={account.role} />
                                 <DetailRow label="Linked Providers" value={account.linkedAccounts.length || 'None'} />
-                                <DetailRow label="Public View" value={<Link to={user?.id ? `/profile/${user.id}` : '/feed'} className="accent-primary underline underline-offset-4">Open profile</Link>} />
+                                <DetailRow label="Public View" value={<Link to={user?.id ? `/profile/${user.id}` : '/feed'} className="text-[color:var(--fc-accent)] underline underline-offset-4">Open profile</Link>} />
                             </Section>
                         </div>
                     </div>
                 )}
 
+                {/* ===== SECURITY TAB ===== */}
                 {activeTab === 'security' && (
-                <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-                        <Section title="Email And Password" description="Recovery and password flows stay in one operational section.">
+                    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+                        <Section title="Email And Password" description="Recovery and password flows in one operational section.">
                             <div className={`${insetClass} px-4 py-4`}>
                                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                     <div>
-                                        <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-                                            {account.emailVerified ? <BadgeCheck className="h-4 w-4 accent-primary" /> : <Mail className="h-4 w-4 text-amber-500" />}
+                                        <div className="flex items-center gap-2 text-sm font-semibold text-[color:var(--fc-text-primary)]">
+                                            {account.emailVerified ? <BadgeCheck className="h-4 w-4 text-[color:var(--fc-accent)]" /> : <Mail className="h-4 w-4 text-[color:var(--fc-state-warning)]" />}
                                             <span>{account.emailVerified ? 'Email verified' : 'Email verification pending'}</span>
                                         </div>
-                                        <p className="mt-2 text-sm leading-6 text-secondary">
+                                        <p className="mt-2 text-sm leading-6 text-[color:var(--fc-text-secondary)]">
                                             {account.emailVerified ? `Verified for ${account.email}${fmt(account.emailVerifiedAt) ? ` on ${fmt(account.emailVerifiedAt)}` : '.'}` : `We have not confirmed ${account.email} yet.`}
                                         </p>
                                     </div>
@@ -639,7 +669,7 @@ export const AccountPage = () => {
                                         type="button"
                                         onClick={() => void resendVerification()}
                                         disabled={account.emailVerified || sendingVerification}
-                                        className="inline-flex items-center justify-center gap-2 border border-subtle bg-base px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary disabled:opacity-60"
+                                        className={account.emailVerified ? `${btnSecondaryClass} opacity-50` : btnSecondaryClass}
                                     >
                                         {sendingVerification ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                                         {account.emailVerified ? 'Verified' : 'Resend Email'}
@@ -649,10 +679,10 @@ export const AccountPage = () => {
 
                             <div className={`mt-4 ${insetClass} px-4 py-4`}>
                                 <div className="flex items-start gap-3">
-                                    {account.passwordLoginEnabled ? <ShieldCheck className="mt-0.5 h-5 w-5 accent-primary" /> : <Lock className="mt-0.5 h-5 w-5 text-amber-500" />}
+                                    {account.passwordLoginEnabled ? <ShieldCheck className="mt-0.5 h-5 w-5 text-[color:var(--fc-accent)]" /> : <Lock className="mt-0.5 h-5 w-5 text-[color:var(--fc-state-warning)]" />}
                                     <div>
-                                        <h3 className="text-sm font-black uppercase tracking-[0.16em] text-primary">Password State</h3>
-                                        <p className="mt-2 text-sm leading-6 text-secondary">
+                                        <h3 className="text-sm font-semibold text-[color:var(--fc-text-primary)]">Password State</h3>
+                                        <p className="mt-2 text-sm leading-6 text-[color:var(--fc-text-secondary)]">
                                             {account.passwordLoginEnabled ? 'Password sign-in is configured. Changing it revokes remembered refresh sessions across other browsers.' : 'This account currently relies on a linked provider. Use the password reset route for this email when you are ready to add a password.'}
                                         </p>
                                     </div>
@@ -673,7 +703,7 @@ export const AccountPage = () => {
                                         </Field>
                                     </div>
                                     <div className="flex justify-end">
-                                        <button type="submit" disabled={changingPassword} className="inline-flex items-center gap-2 border border-accent-primary bg-accent-primary-soft px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary disabled:opacity-60">
+                                        <button type="submit" disabled={changingPassword} className={btnPrimaryClass}>
                                             {changingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
                                             Change Password
                                         </button>
@@ -684,16 +714,17 @@ export const AccountPage = () => {
 
                         <Section title="Deferred Controls">
                             <div className={`${insetClass} flex items-start gap-3 px-4 py-4`}>
-                                <Clock3 className="mt-0.5 h-5 w-5 text-secondary" />
+                                <Clock3 className="mt-0.5 h-5 w-5 text-[color:var(--fc-text-muted)]" />
                                 <div>
-                                    <p className="text-sm font-semibold text-primary">Two-factor authentication stays intentionally deferred for a later phase.</p>
-                                    <p className="mt-2 text-sm leading-6 text-secondary">The slot remains visible so future security additions land in a stable place without changing the navigation model.</p>
+                                    <p className="text-sm font-semibold text-[color:var(--fc-text-primary)]">Two-factor authentication stays intentionally deferred for a later phase.</p>
+                                    <p className="mt-2 text-sm leading-6 text-[color:var(--fc-text-secondary)]">The slot remains visible so future security additions land in a stable place without changing the navigation model.</p>
                                 </div>
                             </div>
                         </Section>
                     </div>
                 )}
 
+                {/* ===== SESSIONS TAB ===== */}
                 {activeTab === 'sessions' && (
                     <Section
                         title="Remembered Sessions"
@@ -704,7 +735,7 @@ export const AccountPage = () => {
                                     type="button"
                                     onClick={() => void revokeOtherSessions()}
                                     disabled={revokingSessions || sessionsLoading}
-                                    className="inline-flex items-center gap-2 border border-accent-primary bg-accent-primary-soft px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary disabled:opacity-60"
+                                    className={btnPrimaryClass}
                                 >
                                     {revokingSessions ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                                     Sign Out Others
@@ -713,18 +744,18 @@ export const AccountPage = () => {
                         }
                     >
                         {sessionsError && (
-                            <div className="mb-4 border border-rose-300/50 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                            <div className="mb-4 rounded-md border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--fc-state-danger)]">
                                 {sessionsError}
                             </div>
                         )}
 
                         {!account.sessionsSupported ? (
-                            <div className={`${insetClass} px-4 py-4 text-sm text-secondary`}>
+                            <div className={`${insetClass} px-4 py-4 text-sm text-[color:var(--fc-text-secondary)]`}>
                                 Session inventory is not exposed by the backend yet.
                             </div>
                         ) : sessionsLoading ? (
                             <div className="flex items-center justify-center py-12">
-                                <Loader2 className="h-6 w-6 animate-spin accent-primary" />
+                                <Loader2 className="h-6 w-6 animate-spin text-[color:var(--fc-accent)]" />
                             </div>
                         ) : (
                             <div className="space-y-4">
@@ -734,26 +765,26 @@ export const AccountPage = () => {
                                     <StatTile label="Expired" value={sessions?.expiredCount ?? 0} />
                                 </div>
 
-                                <div className="bg-surface border border-subtle">
+                                <div className={surfaceClass}>
                                     {sessions?.sessions.length ? (
-                                        <div className="divide-y divide-[color:var(--border-subtle)]">
+                                        <div className="divide-y divide-[color:var(--fc-border)]">
                                             {sessions.sessions.map((session) => (
-                                                <article key={session.id} className="flex flex-col gap-3 px-4 py-4 md:flex-row md:items-center md:justify-between">
+                                                <article key={session.id} className="flex flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between">
                                                     <div>
                                                         <div className="flex flex-wrap items-center gap-2">
-                                                            <p className="text-sm font-black uppercase tracking-[0.16em] text-primary">
+                                                            <p className="text-sm font-semibold text-[color:var(--fc-text-primary)]">
                                                                 {session.current ? 'Current Browser Session' : `Remembered Session #${session.id}`}
                                                             </p>
-                                                            <span className={`border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${sessionTone(session.status)}`}>
+                                                            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${sessionTone(session.status)}`}>
                                                                 {session.status}
                                                             </span>
                                                         </div>
-                                                        <p className="mt-2 text-sm leading-6 text-secondary">
+                                                        <p className="mt-2 text-sm leading-6 text-[color:var(--fc-text-secondary)]">
                                                             {fmt(session.expiresAt) ? `Refresh access expires ${fmt(session.expiresAt)}.` : 'Expiry details are not available for this session.'}
                                                         </p>
                                                     </div>
                                                     {session.current && (
-                                                        <span className="border border-accent-primary bg-accent-primary-soft px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary">
+                                                        <span className="rounded-full border border-[color:var(--fc-accent-border)] bg-[color:var(--fc-accent-soft)] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--fc-accent)]">
                                                             Current
                                                         </span>
                                                     )}
@@ -761,7 +792,7 @@ export const AccountPage = () => {
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="px-4 py-10 text-sm text-secondary">No remembered sessions are currently recorded for this account.</div>
+                                        <div className="px-5 py-10 text-sm text-[color:var(--fc-text-secondary)]">No remembered sessions are currently recorded for this account.</div>
                                     )}
                                 </div>
                             </div>
@@ -769,51 +800,53 @@ export const AccountPage = () => {
                     </Section>
                 )}
 
+                {/* ===== LINKED ACCOUNTS TAB ===== */}
                 {activeTab === 'accounts' && (
-                <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+                    <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
                         <Section title="Capability Summary">
                             <DetailRow label="Password Sign-In" value={account.passwordLoginEnabled ? 'Enabled' : 'Not configured'} />
                             <DetailRow label="External Providers" value={account.linkedAccounts.length > 0 ? `${account.linkedAccounts.length} connected` : 'None'} />
                         </Section>
 
-                        <Section title="Linked Providers" description="Provider visibility stays local to this destination and does not need its own page.">
+                        <Section title="Linked Providers" description="Provider visibility stays local to this destination.">
                             {account.linkedAccounts.length === 0 ? (
-                                <div className={`${insetClass} px-4 py-4 text-sm text-secondary`}>
+                                <div className={`${insetClass} px-4 py-4 text-sm text-[color:var(--fc-text-secondary)]`}>
                                     No linked providers are attached to this account yet.
                                 </div>
                             ) : (
-                                <div className="bg-surface border border-subtle">
-                                    <div className="divide-y divide-[color:var(--border-subtle)]">
+                                <div className={surfaceClass}>
+                                    <div className="divide-y divide-[color:var(--fc-border)]">
                                         {account.linkedAccounts.map((linked) => (
-                                            <article key={`${linked.provider}-${linked.linkedAt || 'current'}`} className="flex items-center justify-between gap-4 px-4 py-4">
+                                            <article key={`${linked.provider}-${linked.linkedAt || 'current'}`} className="flex items-center justify-between gap-4 px-5 py-4">
                                                 <div>
-                                                    <p className="text-sm font-black uppercase tracking-[0.16em] text-primary">{providerLabel(linked.provider)}</p>
-                                                    <p className="mt-1 text-sm text-secondary">{linked.linkedAt ? `Linked ${fmt(linked.linkedAt)}` : 'Linked account'}</p>
+                                                    <p className="text-sm font-semibold text-[color:var(--fc-text-primary)]">{providerLabel(linked.provider)}</p>
+                                                    <p className="mt-1 text-sm text-[color:var(--fc-text-secondary)]">{linked.linkedAt ? `Linked ${fmt(linked.linkedAt)}` : 'Linked account'}</p>
                                                 </div>
-                                                <BadgeCheck className="h-5 w-5 accent-primary" />
+                                                <BadgeCheck className="h-5 w-5 text-[color:var(--fc-accent)]" />
                                             </article>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            <div className={`mt-4 ${insetClass} px-4 py-4 text-sm leading-6 text-secondary`}>
+                            <div className={`mt-4 ${insetClass} px-4 py-4 text-sm leading-6 text-[color:var(--fc-text-secondary)]`}>
                                 Linking and unlinking flows beyond visibility stay intentionally deferred until the backend surface is broader.
                             </div>
                         </Section>
                     </div>
                 )}
 
+                {/* ===== DANGER TAB ===== */}
                 {activeTab === 'danger' && (
-                    <Section title="Danger Zone" description="Destructive account actions belong here and nowhere else in the navigation.">
-                        <div className="border border-rose-300/40 bg-rose-50 px-4 py-4 dark:bg-rose-500/10">
+                    <Section title="Danger Zone" description="Destructive account actions belong here and nowhere else.">
+                        <div className="rounded-md border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-5 py-4">
                             <div className="flex items-start gap-3">
-                                <TriangleAlert className="mt-0.5 h-5 w-5 text-rose-500" />
+                                <TriangleAlert className="mt-0.5 h-5 w-5 text-[color:var(--fc-state-danger)]" />
                                 <div>
-                                    <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">
+                                    <p className="text-sm font-semibold text-[color:var(--fc-state-danger)]">
                                         {account.accountDeletionSupported ? 'Account deletion is available for this account.' : 'Account deletion is not available in this phase.'}
                                     </p>
-                                    <p className="mt-2 text-sm leading-6 text-secondary">
+                                    <p className="mt-2 text-sm leading-6 text-[color:var(--fc-text-secondary)]">
                                         {account.accountDeletionSupported ? 'This control can be wired here without changing the account-center structure.' : 'The surface stays here so later destructive flows plug into the right place without pretending they work today.'}
                                     </p>
                                 </div>

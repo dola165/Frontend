@@ -3,6 +3,7 @@ import { AlertTriangle, Compass, Megaphone, RefreshCw, Search } from 'lucide-rea
 import { Link, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { FeedList } from '../components/feed/FeedList';
+import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { type CommentDto, type FeedPostDto } from '../components/feed/FeedPost';
 import { PostComposer } from '../components/feed/PostComposer';
 import { StoriesRail } from '../components/feed/StoriesRail';
@@ -122,8 +123,10 @@ export const FeedPage = () => {
 
     if (loading) {
         return (
-            <div className="flex justify-center py-10">
-                <p className="text-sm text-[var(--feed-text-secondary)]">{feedMeta.loadingLabel}</p>
+            <div className="mx-auto flex w-full max-w-[680px] flex-col gap-5 px-4 py-6">
+                <SkeletonCard lines={4} />
+                <SkeletonCard lines={3} />
+                <SkeletonCard lines={5} />
             </div>
         );
     }

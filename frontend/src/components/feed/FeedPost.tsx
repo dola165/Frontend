@@ -133,15 +133,15 @@ export const FeedPost = ({
     };
 
     return (
-        <article className="overflow-hidden rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)]">
-            <div className={`${compact ? 'px-3 py-2.5' : 'px-4 py-3'} flex items-start justify-between gap-3`}>
-                <div className="flex min-w-0 items-start gap-3">
-                    <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--feed-layer-bg)] font-semibold text-[var(--feed-text-secondary)] ${compact ? 'h-9 w-9 text-xs' : 'h-10 w-10 text-sm'}`}>
+        <article className="overflow-hidden rounded-xl border-2 border-[var(--feed-card-border)] bg-[var(--feed-card)] shadow-[0_4px_24px_rgba(0,0,0,0.16)]">
+            <div className={`${compact ? 'px-5 py-4' : 'px-6 py-5'} flex items-start justify-between gap-3`}>
+                <div className="flex min-w-0 items-start gap-4">
+                    <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--feed-layer-bg)] font-semibold text-[var(--feed-text-secondary)] ${compact ? 'h-11 w-11 text-sm' : 'h-12 w-12 text-base'}`}>
                         {authorAvatarUrl ? <img src={authorAvatarUrl} alt={post.clubName || post.authorName} className="h-full w-full object-cover" /> : initials}
                     </div>
                     <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="truncate text-sm font-semibold text-[var(--feed-text-primary)]">{post.clubName || post.authorName}</h4>
+                            <h4 className="truncate text-base font-semibold text-[var(--feed-text-primary)]">{post.clubName || post.authorName}</h4>
                             {post.clubName && <span className="rounded-full bg-[var(--feed-accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--feed-accent)]">Official</span>}
                         </div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--feed-text-muted)]">
@@ -158,8 +158,8 @@ export const FeedPost = ({
                 </button>
             </div>
 
-            <div className={`${compact ? 'px-3 pb-2.5' : 'px-4 pb-3'}`}>
-                <p className="whitespace-pre-line text-sm leading-6 text-[var(--feed-text-primary)]">{post.content}</p>
+            <div className={`${compact ? 'px-5 pb-4' : 'px-6 pb-5'}`}>
+                <p className="whitespace-pre-line text-base leading-7 text-[var(--feed-text-primary)]">{post.content}</p>
             </div>
 
             {renderMediaGrid()}
@@ -251,7 +251,7 @@ const ActionButton = ({
     <button
         type="button"
         onClick={onClick}
-        className={`flex flex-1 items-center justify-center gap-2 border-r border-[var(--feed-card-border)] px-3 py-2.5 text-xs font-medium transition-colors last:border-r-0 ${
+        className={`flex flex-1 items-center justify-center gap-2 border-r border-[var(--feed-card-border)] px-4 py-3.5 text-sm font-semibold transition-colors last:border-r-0 ${
             active ? 'bg-[var(--feed-accent-soft-bg)] text-[var(--feed-accent)]' : 'text-[var(--feed-text-muted)] hover:bg-[var(--feed-hover-bg)] hover:text-[var(--feed-text-secondary)]'
         }`}
     >

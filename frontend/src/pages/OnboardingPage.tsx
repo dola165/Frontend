@@ -77,16 +77,17 @@ export const OnboardingPage = () => {
         }
     };
 
+    const hasName = formData.fullName.trim().length > 0;
+
     const handleSkip = async () => {
+        if (!hasName) return; // Prevent skip without entering name
         setIsLoading(true);
         try {
-            if (formData.fullName.trim()) {
-                await apiClient.put('/users/me/profile', {
-                    fullName: formData.fullName,
-                    role: formData.role
-                });
-                await refreshAccessToken();
-            }
+            await apiClient.put('/users/me/profile', {
+                fullName: formData.fullName,
+                role: formData.role
+            });
+            await refreshAccessToken();
             const destination = formData.role === 'ORGANIZER' ? '/my-club' : '/feed';
             navigate(destination);
         } catch {
@@ -115,21 +116,23 @@ export const OnboardingPage = () => {
         }
     };
 
-    return (
-        <div className="min-h-screen bg-[#fcf8f2] dark:bg-[#09090b] flex flex-col justify-center items-center p-6 selection:bg-[#00c853]/20 dark:selection:bg-[#00c853]/30 font-sans text-[#1a1a1a] dark:text-gray-100">
-            <div className="w-full max-w-2xl bg-white dark:bg-[#18181b] p-8 md:p-12 rounded-2xl border-2 border-[#1a1a1a] dark:border-gray-700 shadow-[8px_8px_0px_0px_#1a1a1a] dark:shadow-[8px_8px_0px_0px_#000]">
+    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-primary outline-none transition-colors focus:border-accent-primary placeholder:text-secondary';
 
-                <div className="mb-8 border-b-2 border-gray-200 dark:border-gray-700 pb-6">
-                    <h1 className="text-4xl font-serif font-bold tracking-tighter italic uppercase mb-2">Establish Your Identity</h1>
+    return (
+        <div className="bg-base flex min-h-screen flex-col items-center justify-center p-6">
+            <div className="theme-surface theme-border w-full max-w-2xl rounded-2xl border p-8 shadow-2xl md:p-12">
+
+                <div className="mb-8 border-b border-subtle pb-6">
+                    <h1 className="text-3xl font-black uppercase tracking-tight text-primary mb-2">Establish Your Identity</h1>
                     {fetchedUsername && (
-                        <p className="text-sm text-[#00c853] font-bold uppercase tracking-wide mb-1">Your handle: @{fetchedUsername}</p>
+                        <p className="text-sm font-black uppercase tracking-[0.16em] accent-primary mb-1">Your handle: @{fetchedUsername}</p>
                     )}
-                    <p className="text-gray-500 font-serif italic text-sm">The database needs your credentials before granting network access.</p>
+                    <p className="text-sm text-secondary">Complete your profile to access the full network experience.</p>
                 </div>
 
                 {step === 1 && (
-                    <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                        <label className="block text-xs font-black uppercase tracking-widest mb-4 text-gray-500">What is your designation?</label>
+                    <div>
+                        <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary mb-4 block">What is your designation?</label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                             {[
                                 { id: 'PLAYER', icon: Activity, label: 'Player', desc: 'Seeking clubs & tryouts' },
@@ -139,22 +142,22 @@ export const OnboardingPage = () => {
                                 <button
                                     key={role.id}
                                     onClick={() => setFormData({...formData, role: role.id})}
-                                    className={`p-4 rounded-xl border-2 text-left transition-all ${formData.role === role.id ? 'border-[#00c853] bg-[#00c853]/10 dark:bg-[#00c853]/10 shadow-[4px_4px_0px_0px_#00c853]' : 'border-gray-200 dark:border-gray-700 hover:border-gray-400'}`}
+                                    className={`rounded-xl border p-4 text-left transition-colors ${formData.role === role.id ? 'border-accent-primary bg-accent-primary-soft' : 'border-subtle hover:border-strong'}`}
                                 >
-                                    <role.icon className={`w-8 h-8 mb-3 ${formData.role === role.id ? 'text-[#00c853]' : 'text-gray-400'}`} />
-                                    <h3 className="font-black uppercase tracking-widest text-sm mb-1">{role.label}</h3>
-                                    <p className="text-[10px] text-gray-500 font-bold uppercase">{role.desc}</p>
+                                    <role.icon className={`w-8 h-8 mb-3 ${formData.role === role.id ? 'accent-primary' : 'text-muted'}`} />
+                                    <h3 className="font-black uppercase tracking-[0.14em] text-sm mb-1 text-primary">{role.label}</h3>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-secondary">{role.desc}</p>
                                 </button>
                             ))}
                         </div>
 
-                        <div className="mb-8">
-                            <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Full Legal Name</label>
+                        <div className="mb-8 space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Full Legal Name</label>
                             <input
                                 type="text"
                                 value={formData.fullName}
                                 onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#00c853] font-bold transition-colors"
+                                className={inputClass}
                                 placeholder="E.g. Khvicha Kvaratskhelia"
                             />
                         </div>
@@ -163,13 +166,13 @@ export const OnboardingPage = () => {
                             <button
                                 onClick={() => setStep(2)}
                                 disabled={!formData.fullName.trim()}
-                                className="w-full bg-[#1a1a1a] dark:bg-white text-white dark:text-[#1a1a1a] hover:bg-gray-800 dark:hover:bg-gray-200 font-black uppercase tracking-widest py-4 rounded-xl border-2 border-[#1a1a1a] dark:border-transparent shadow-[4px_4px_0px_0px_#00c853] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                className="w-full inline-flex items-center justify-center gap-2 border border-accent-primary bg-accent-primary text-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] transition-colors disabled:opacity-50"
                             >
                                 Next Phase <ChevronRight className="w-5 h-5" />
                             </button>
                             <button
                                 onClick={handleSkip}
-                                className="w-full py-3 rounded-xl font-bold uppercase tracking-widest text-sm text-gray-500 hover:text-[#1a1a1a] dark:hover:text-white transition-colors"
+                                className="w-full py-3 text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary transition-colors"
                             >
                                 Skip for Now
                             </button>
@@ -178,22 +181,22 @@ export const OnboardingPage = () => {
                 )}
 
                 {step === 2 && (
-                    <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                    <div>
                         {formData.role === 'PLAYER' && (
                             <>
                                 <div className="grid grid-cols-2 gap-4 mb-4">
-                                    <div>
-                                        <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Primary Position</label>
-                                        <select value={formData.position} onChange={(e) => setFormData({...formData, position: e.target.value})} className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none font-bold appearance-none">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Primary Position</label>
+                                        <select value={formData.position} onChange={(e) => setFormData({...formData, position: e.target.value})} className={`${inputClass} appearance-none`}>
                                             <option value="">Select position</option>
                                             {POSITION_OPTIONS.map(p => (
                                                 <option key={p} value={p}>{p}</option>
                                             ))}
                                         </select>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Strong Foot</label>
-                                        <select value={formData.preferredFoot} onChange={(e) => setFormData({...formData, preferredFoot: e.target.value})} className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none font-bold appearance-none">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Strong Foot</label>
+                                        <select value={formData.preferredFoot} onChange={(e) => setFormData({...formData, preferredFoot: e.target.value})} className={`${inputClass} appearance-none`}>
                                             <option value="Right">Right</option>
                                             <option value="Left">Left</option>
                                             <option value="Both">Both</option>
@@ -201,28 +204,28 @@ export const OnboardingPage = () => {
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 mb-6">
-                                    <div>
-                                        <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Height (cm)</label>
-                                        <input type="number" value={formData.heightCm} onChange={(e) => setFormData({...formData, heightCm: e.target.value})} min={100} max={250} className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none font-bold" placeholder="185" />
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Height (cm)</label>
+                                        <input type="number" value={formData.heightCm} onChange={(e) => setFormData({...formData, heightCm: e.target.value})} min={100} max={250} className={inputClass} placeholder="185" />
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Weight (kg)</label>
-                                        <input type="number" value={formData.weightKg} onChange={(e) => setFormData({...formData, weightKg: e.target.value})} min={30} max={250} className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none font-bold" placeholder="78" />
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Weight (kg)</label>
+                                        <input type="number" value={formData.weightKg} onChange={(e) => setFormData({...formData, weightKg: e.target.value})} min={30} max={250} className={inputClass} placeholder="78" />
                                     </div>
                                 </div>
                             </>
                         )}
                         {formData.role === 'ORGANIZER' && (
-                            <div className="mb-6 p-6 bg-[#00c853]/5 dark:bg-[#00c853]/10 rounded-xl border-2 border-dashed border-[#00c853] flex flex-col items-center justify-center text-center">
-                                <Building2 className="w-10 h-10 text-[#00c853] mb-3" />
-                                <p className="text-sm font-bold text-gray-800 dark:text-gray-200">Ready to build your club?</p>
-                                <p className="mt-2 text-xs text-gray-500 max-w-md">After setup you'll be taken to your <strong>My Club</strong> workspace, where you can create your squad, manage rosters, schedule matches, and invite players.</p>
+                            <div className="mb-6 border border-accent-primary bg-accent-primary-soft rounded-xl p-6 flex flex-col items-center justify-center text-center">
+                                <Building2 className="w-10 h-10 accent-primary mb-3" />
+                                <p className="text-sm font-black uppercase tracking-[0.14em] text-primary">Ready to build your club?</p>
+                                <p className="mt-2 text-xs text-secondary max-w-md">After setup you'll be taken to your <strong>My Club</strong> workspace, where you can create your squad, manage rosters, schedule matches, and invite players.</p>
                             </div>
                         )}
                         {formData.role === 'FAN' && (
-                            <div className="mb-6 p-6 bg-slate-50 dark:bg-slate-900 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 flex flex-col items-center justify-center text-center">
-                                <p className="text-sm font-bold text-gray-600 dark:text-gray-300">Fan Profile</p>
-                                <p className="mt-2 text-xs text-gray-500">You can customize your experience and follow clubs from your Account page after setup.</p>
+                            <div className="mb-6 border border-dashed border-subtle bg-base rounded-xl p-6 flex flex-col items-center justify-center text-center">
+                                <p className="text-sm font-black uppercase tracking-[0.14em] text-primary">Fan Profile</p>
+                                <p className="mt-2 text-xs text-secondary">You can customize your experience and follow clubs from your Account page after setup.</p>
                             </div>
                         )}
 
@@ -242,50 +245,50 @@ export const OnboardingPage = () => {
                                 onClick={() => avatarInputRef.current?.click()}
                                 className={`flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed transition-colors ${
                                     formData.avatarUrl
-                                        ? 'border-[#00c853]'
-                                        : 'border-gray-300 dark:border-gray-600 hover:border-[#00c853]'
+                                        ? 'border-accent-primary'
+                                        : 'border-subtle hover:border-accent-primary'
                                 }`}
                             >
                                 {uploadingAvatar ? (
-                                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                                    <Loader2 className="h-6 w-6 animate-spin text-muted" />
                                 ) : formData.avatarUrl ? (
                                     <img src={formData.avatarUrl} alt="Avatar preview" className="h-full w-full object-cover" />
                                 ) : (
-                                    <Camera className="h-6 w-6 text-gray-400" />
+                                    <Camera className="h-6 w-6 text-muted" />
                                 )}
                             </div>
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
                                 {formData.avatarUrl ? 'Tap to change profile picture' : 'Tap to add profile picture'}
                             </p>
                         </div>
 
-                        <div className="mb-8">
-                            <label className="block text-xs font-black uppercase tracking-widest mb-2 text-gray-500">Personal Manifesto / Bio</label>
+                        <div className="mb-8 space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Personal Manifesto / Bio</label>
                             <textarea
                                 value={formData.bio}
                                 onChange={(e) => setFormData({...formData, bio: e.target.value})}
-                                className="w-full bg-[#fcf8f2] dark:bg-gray-900 border-2 border-[#1a1a1a] dark:border-gray-600 rounded-xl px-4 py-3 outline-none focus:border-[#00c853] font-bold h-24 resize-none"
+                                className={`${inputClass} h-24 resize-none`}
                                 placeholder="Brief summary of your football philosophy..."
                             />
                         </div>
 
                         <div className="flex flex-col gap-3">
                             <div className="flex gap-4">
-                                <button onClick={() => setStep(1)} className="px-6 py-4 rounded-xl border-2 border-gray-300 dark:border-gray-600 font-black uppercase tracking-widest text-gray-500 hover:text-[#1a1a1a] dark:hover:text-white transition-colors">
+                                <button onClick={() => setStep(1)} className="border border-subtle bg-base px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary transition-colors">
                                     Back
                                 </button>
                                 <button
                                     onClick={submitProfile}
-                                    disabled={isLoading}
-                                    className="flex-1 bg-[#00c853] hover:bg-[#00e676] text-black font-black uppercase tracking-widest py-4 rounded-xl border-2 border-[#1a1a1a] dark:border-transparent shadow-[4px_4px_0px_0px_#1a1a1a] dark:shadow-[4px_4px_0px_0px_#000] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2"
+                                    disabled={isLoading || !hasName}
+                                    className="flex-1 inline-flex items-center justify-center gap-2 border border-accent-primary bg-accent-primary text-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] transition-colors disabled:opacity-50"
                                 >
                                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Commit to Database'}
                                 </button>
                             </div>
                             <button
                                 onClick={handleSkip}
-                                disabled={isLoading}
-                                className="w-full py-3 rounded-xl font-bold uppercase tracking-widest text-sm text-gray-500 hover:text-[#1a1a1a] dark:hover:text-white transition-colors"
+                                disabled={isLoading || !hasName}
+                                className="w-full py-3 text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary transition-colors"
                             >
                                 Skip for Now
                             </button>

@@ -161,18 +161,16 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
     const showRecentContacts = !showSearchResults && visibleRecents.length > 0 && !isNameStep;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh]">
+        <div className="theme-overlay-strong fixed inset-0 z-[9999] flex items-start justify-center pt-[10vh] backdrop-blur-sm">
             <div
-                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                className="absolute inset-0"
                 onClick={onClose}
             />
 
-            <div className="relative w-full max-w-[420px] rounded-2xl overflow-hidden shadow-2xl"
-                style={{ backgroundColor: 'var(--chat-card, #ffffff)' }}>
+            <div className="theme-surface theme-border relative z-10 w-full max-w-[420px] overflow-hidden rounded-2xl border shadow-2xl">
 
                 {/* ── Header ──────────────────────────────────────── */}
-                <div className="flex items-center gap-3 px-5 h-14"
-                    style={{ backgroundColor: 'var(--chat-header-bg, #075e54)' }}>
+                <div className="flex items-center gap-3 bg-accent-primary px-5 h-14">
                     {isNameStep ? (
                         <button
                             onClick={() => setGroupStep('select')}
@@ -209,9 +207,8 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                 {isNameStep && (
                     <div className="px-5 py-6">
                         <div className="flex justify-center mb-6">
-                            <div className="w-24 h-24 rounded-full flex items-center justify-center"
-                                style={{ backgroundColor: 'var(--chat-surface, #f0ede7)' }}>
-                                <Users className="w-8 h-8" style={{ color: 'var(--chat-text-muted, #9ca93f)' }} />
+                            <div className="w-24 h-24 rounded-full flex items-center justify-center bg-base">
+                                <Users className="w-8 h-8 text-muted" />
                             </div>
                         </div>
 
@@ -223,13 +220,11 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                             placeholder="Group name"
                             maxLength={100}
                             onKeyDown={(e) => { if (e.key === 'Enter') handleCreateGroup(); }}
-                            className="w-full py-3 text-base font-medium text-center border-b-2 outline-none transition-colors"
+                            className="w-full py-3 text-base font-semibold text-center bg-transparent text-primary border-b-2 outline-none transition-colors focus:border-accent-primary"
                             style={{
-                                backgroundColor: 'transparent',
-                                color: 'var(--chat-text-primary)',
                                 borderColor: groupName.trim()
-                                    ? 'var(--chat-header-bg, #075e54)'
-                                    : 'var(--chat-card-border, rgba(0,0,0,0.08))',
+                                    ? 'var(--accent-primary)'
+                                    : 'var(--border-subtle)',
                             }}
                         />
 
@@ -238,11 +233,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                 {selectedUsers.map((user) => (
                                     <span
                                         key={user.id}
-                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium"
-                                        style={{
-                                            backgroundColor: 'rgba(7,94,84,0.08)',
-                                            color: 'var(--chat-header-bg, #075e54)',
-                                        }}
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold bg-accent-primary-soft accent-primary"
                                     >
                                         {(user.fullName || user.username)}
                                         <button
@@ -257,14 +248,13 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                         )}
 
                         {error && (
-                            <p className="text-sm text-red-500 text-center mt-4">{error}</p>
+                            <p className="text-sm font-semibold text-[color:var(--state-danger)] text-center mt-4">{error}</p>
                         )}
 
                         <button
                             onClick={handleCreateGroup}
                             disabled={creating || !groupName.trim() || selectedUsers.length === 0}
-                            className="w-full mt-6 py-3 rounded-full text-white text-sm font-bold tracking-wide transition-all hover:opacity-90 disabled:opacity-30"
-                            style={{ backgroundColor: 'var(--chat-header-bg, #075e54)' }}
+                            className="w-full mt-6 py-3 rounded-full text-white text-sm font-bold tracking-wide transition-all hover:opacity-90 disabled:opacity-30 bg-accent-primary"
                         >
                             {creating ? (
                                 <span className="inline-flex items-center gap-2">
@@ -285,24 +275,22 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                         <div className="flex gap-3 px-5 pt-4 pb-2">
                             <button
                                 onClick={() => switchMode('DIRECT')}
-                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                                     mode === 'DIRECT'
-                                        ? 'text-white shadow-sm'
-                                        : 'text-[var(--chat-text-secondary)] hover:bg-[var(--chat-card-hover)] border border-[var(--chat-card-border)]'
+                                        ? 'bg-accent-primary text-white'
+                                        : 'text-secondary hover:bg-elevated border border-subtle'
                                 }`}
-                                style={mode === 'DIRECT' ? { backgroundColor: 'var(--chat-accent, #00c853)' } : undefined}
                             >
                                 <UserPlus className="w-4 h-4" />
                                 New Contact
                             </button>
                             <button
                                 onClick={() => switchMode('GROUP')}
-                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                                     mode === 'GROUP'
-                                        ? 'text-white shadow-sm'
-                                        : 'text-[var(--chat-text-secondary)] hover:bg-[var(--chat-card-hover)] border border-[var(--chat-card-border)]'
+                                        ? 'bg-accent-primary text-white'
+                                        : 'text-secondary hover:bg-elevated border border-subtle'
                                 }`}
-                                style={mode === 'GROUP' ? { backgroundColor: 'var(--chat-accent, #00c853)' } : undefined}
                             >
                                 <Users className="w-4 h-4" />
                                 New Group
@@ -315,11 +303,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                 {selectedUsers.map((user) => (
                                     <span
                                         key={user.id}
-                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium"
-                                        style={{
-                                            backgroundColor: 'rgba(0,200,83,0.1)',
-                                            color: 'var(--chat-accent, #00c853)',
-                                        }}
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold bg-accent-primary-soft accent-primary"
                                     >
                                         {(user.fullName || user.username)}
                                         <button
@@ -336,7 +320,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                         {/* Search bar */}
                         <div className="px-5 py-3">
                             <div className="relative">
-                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--chat-text-muted)]" />
+                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                                 <input
                                     ref={inputRef}
                                     type="text"
@@ -347,25 +331,20 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                             ? 'Search people to add...'
                                             : 'Search name or username...'
                                     }
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none transition-colors"
-                                    style={{
-                                        backgroundColor: 'var(--chat-input-bg, #f5f2eb)',
-                                        color: 'var(--chat-text-primary)',
-                                    }}
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none bg-base text-primary placeholder:text-secondary"
                                 />
                             </div>
                         </div>
 
                         {/* Content area */}
-                        <div className="max-h-72 overflow-y-auto border-t"
-                            style={{ borderColor: 'var(--chat-card-border, rgba(0,0,0,0.06))' }}>
+                        <div className="max-h-72 overflow-y-auto border-t border-subtle">
 
                             {error && (
-                                <p className="px-5 py-6 text-sm text-red-500 text-center">{error}</p>
+                                <p className="px-5 py-6 text-sm font-semibold text-[color:var(--state-danger)] text-center">{error}</p>
                             )}
 
                             {loading && (
-                                <div className="flex items-center justify-center py-10 gap-2 text-[var(--chat-text-muted)]">
+                                <div className="flex items-center justify-center py-10 gap-2 text-muted">
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                     <span className="text-sm">Searching...</span>
                                 </div>
@@ -373,7 +352,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
 
                             {/* Search results */}
                             {showSearchResults && !loading && results.length === 0 && !error && (
-                                <p className="px-5 py-10 text-sm text-[var(--chat-text-muted)] text-center">
+                                <p className="px-5 py-10 text-sm text-muted text-center">
                                     No users found.
                                 </p>
                             )}
@@ -385,13 +364,9 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                         key={user.id}
                                         onClick={() => handleSelectUser(user)}
                                         disabled={creating && mode === 'DIRECT'}
-                                        className="w-full flex items-center gap-3 px-5 py-3 transition-colors disabled:opacity-50 text-left hover:bg-[var(--chat-card-hover)]"
+                                        className="w-full flex items-center gap-3 px-5 py-3 transition-colors disabled:opacity-50 text-left hover:bg-elevated"
                                     >
-                                        <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
-                                            style={{
-                                                backgroundColor: 'var(--chat-accent-soft, rgba(0,200,83,0.12))',
-                                                color: 'var(--chat-accent, #00c853)',
-                                            }}>
+                                        <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm shrink-0 bg-accent-primary-soft accent-primary">
                                             {user.avatarUrl ? (
                                                 <img
                                                     src={user.avatarUrl}
@@ -404,23 +379,21 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                         </div>
 
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-semibold truncate"
-                                                style={{ color: 'var(--chat-text-primary)' }}>
+                                            <p className="text-sm font-semibold truncate text-primary">
                                                 {user.fullName || user.username}
                                             </p>
-                                            <p className="text-xs text-[var(--chat-text-muted)]">
+                                            <p className="text-xs text-muted">
                                                 @{user.username}
                                                 {user.position ? `  ·  ${user.position}` : ''}
                                             </p>
                                         </div>
 
                                         {isGroup && (
-                                            <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all"
-                                                style={
-                                                    isSelected
-                                                        ? { backgroundColor: 'var(--chat-accent, #00c853)', borderColor: 'var(--chat-accent, #00c853)' }
-                                                        : { borderColor: 'var(--chat-card-border, rgba(0,0,0,0.15))' }
-                                                }>
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                                                isSelected
+                                                    ? 'border-accent-primary bg-accent-primary'
+                                                    : 'border-subtle'
+                                            }`}>
                                                 {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                                             </div>
                                         )}
@@ -431,7 +404,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                             {/* Recent / frequent contacts (when not searching) */}
                             {showRecentContacts && (
                                 <div className="pb-1">
-                                    <p className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--chat-text-muted)]">
+                                    <p className="px-5 py-3 text-xs font-black uppercase tracking-[0.16em] text-muted">
                                         Recent Contacts
                                     </p>
                                     {visibleRecents.map((user) => (
@@ -439,13 +412,9 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                             key={user.id}
                                             onClick={() => handleSelectUser(user)}
                                             disabled={creating && mode === 'DIRECT'}
-                                            className="w-full flex items-center gap-3 px-5 py-2.5 transition-colors disabled:opacity-50 text-left hover:bg-[var(--chat-card-hover)]"
+                                            className="w-full flex items-center gap-3 px-5 py-2.5 transition-colors disabled:opacity-50 text-left hover:bg-elevated"
                                         >
-                                            <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
-                                                style={{
-                                                    backgroundColor: 'var(--chat-accent-soft, rgba(0,200,83,0.12))',
-                                                    color: 'var(--chat-accent, #00c853)',
-                                                }}>
+                                            <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0 bg-accent-primary-soft accent-primary">
                                                 {user.avatarUrl ? (
                                                     <img
                                                         src={user.avatarUrl}
@@ -458,21 +427,19 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                             </div>
 
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold truncate"
-                                                    style={{ color: 'var(--chat-text-primary)' }}>
+                                                <p className="text-sm font-semibold truncate text-primary">
                                                     {user.fullName || user.username}
                                                 </p>
-                                                <p className="text-xs text-[var(--chat-text-muted)]">
+                                                <p className="text-xs text-muted">
                                                     @{user.username}
                                                 </p>
                                             </div>
 
                                             {isGroup ? (
-                                                <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
-                                                    style={{ borderColor: 'var(--chat-card-border, rgba(0,0,0,0.15))' }}>
+                                                <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 border-subtle">
                                                 </div>
                                             ) : (
-                                                <MessageCircle className="w-4 h-4 text-[var(--chat-text-muted)]" />
+                                                <MessageCircle className="w-4 h-4 text-muted" />
                                             )}
                                         </button>
                                     ))}
@@ -481,7 +448,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
 
                             {/* Empty state — no recents, no search */}
                             {!showSearchResults && !showRecentContacts && !loading && (
-                                <p className="px-5 py-10 text-sm text-[var(--chat-text-muted)] text-center">
+                                <p className="px-5 py-10 text-sm text-muted text-center">
                                     Search for people to start a conversation.
                                 </p>
                             )}

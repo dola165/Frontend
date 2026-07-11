@@ -86,6 +86,7 @@ interface DiscoveryRecord {
     official: boolean;
     followerCount: number;
     memberCount: number;
+    distanceKm: number | null;
     typeLabel: string | null;
     statusLabel: string | null;
     matchSubtype: 'FRIENDLY' | 'COMPETITIVE' | null;
@@ -347,6 +348,7 @@ const buildMapMarkerRecord = (marker: MapMarkerDto): DiscoveryRecord => {
         official: marker.verified,
         followerCount: marker.followers ?? 0,
         memberCount: marker.members ?? 0,
+        distanceKm: marker.distanceKm ?? null,
         typeLabel: marker.entityType === 'CLUB' ? marker.subtitle : marker.entityType,
         statusLabel: marker.status || null,
         matchSubtype,

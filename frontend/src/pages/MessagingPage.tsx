@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Client } from '@stomp/stompjs';
 import { MessageSquare, Plus, Users, Info, X, Send, Circle, Search, Loader2, Crown, Ban, UserMinus, UserPlus, ChevronDown, ChevronUp, Paperclip, Smile, CheckCheck, Check } from 'lucide-react';
+import { SkeletonMessageRow } from '../components/ui/SkeletonCard';
 import { buildWebSocketUrl } from '../api/axiosConfig';
 import { getStoredAccessToken, getStoredUserId } from '../utils/authStorage';
 import { chatApi, type ConversationDto, type ChatMessageResponse, type InviteSuggestion, type UserSearchResult } from '../api/chat';
@@ -35,6 +37,7 @@ function getAvatarLetter(conv: ConversationDto, currentUserId: number): string {
 export const MessagingPage = () => {
     const currentUserId = Number(getStoredUserId() || 0);
     const token = getStoredAccessToken();
+    const [searchParams, setSearchParams] = useSearchParams();
 
     const [conversations, setConversations] = useState<ConversationDto[]>([]);
     const [activeConvId, setActiveConvId] = useState<number | null>(null);
@@ -45,6 +48,37 @@ export const MessagingPage = () => {
     const [showInfo, setShowInfo] = useState(false);
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [sidebarLoading, setSidebarLoading] = useState(true);
+
+    // Handle ?chatWith= param — open direct chat with a specific user
+    useEffect(() => {
+        const chatWithUserId = searchParams.get('chatWith');
+        if (!chatWithUserId || !currentUserId || conversations.length === 0) return;
+        const targetId = Number(chatWithUserId);
+        if (Number.isNaN(targetId)) return;
+
+        // Find existing direct conversation
+        const existing = conversations.find(
+            (c) => c.contextType === 'DIRECT' && c.participants.some((p) => p.userId === targetId),
+        );
+        if (existing) {
+            setActiveConvId(existing.id);
+            const next = new URLSearchParams(searchParams);
+            next.delete('chatWith');
+            setSearchParams(next, { replace: true });
+        } else {
+            // Create a new direct conversation
+            chatApi.createConversation({ contextType: 'DIRECT', participantIds: [targetId] })
+                .then((res) => {
+                    setConversations((prev) => [res.data, ...prev]);
+                    setActiveConvId(res.data.id);
+                    const next = new URLSearchParams(searchParams);
+                    next.delete('chatWith');
+                    setSearchParams(next, { replace: true });
+                })
+                .catch(() => { /* silent */ });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [conversations.length > 0, currentUserId]);
 
     // Group management state
     const [suggestions, setSuggestions] = useState<InviteSuggestion[]>([]);
@@ -459,9 +493,11 @@ export const MessagingPage = () => {
                 {/* Conversation list */}
                 <div className="flex-1 overflow-y-auto">
                     {sidebarLoading ? (
-                        <div className="flex items-center justify-center py-12 gap-2 text-[var(--chat-text-muted)]">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span className="text-xs">Loading chats...</span>
+                        <div className="flex flex-col gap-2 px-3 py-2">
+                            <SkeletonMessageRow />
+                            <SkeletonMessageRow />
+                            <SkeletonMessageRow />
+                            <SkeletonMessageRow />
                         </div>
                     ) : conversations.length === 0 ? (
                         <div className="px-4 py-12 text-center">
@@ -504,7 +540,7 @@ export const MessagingPage = () => {
                                         )}
                                         {/* Online dot — show for DIRECT conversations */}
                                         {conv.contextType === 'DIRECT' && (
-                                            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--chat-sidebar-bg)] bg-emerald-500" />
+                                            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--chat-sidebar-bg)] bg-[var(--chat-online)]" />
                                         )}
                                     </div>
 
@@ -544,7 +580,7 @@ export const MessagingPage = () => {
                                             </p>
 
                                             {conv.unreadCount > 0 && (
-                                                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold leading-none shadow-sm shadow-emerald-500/25">
+                                                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[var(--chat-accent)] text-white text-[10px] font-bold leading-none">
                                                     {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
                                                 </span>
                                             )}

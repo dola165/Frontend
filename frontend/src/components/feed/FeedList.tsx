@@ -31,7 +31,7 @@ export const FeedList = ({
     }
 
     return (
-        <div className={`flex flex-col gap-3 ${className}`.trim()}>
+        <div className={`flex flex-col gap-5 ${className}`.trim()}>
             {posts.map((post) => (
                 <FeedPost
                     key={post.id}

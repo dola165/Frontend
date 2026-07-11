@@ -4,7 +4,6 @@ import {
     Camera,
     Check,
     Loader2,
-    LogOut,
     MapPin,
     MessageSquare,
     Plus,
@@ -31,14 +30,13 @@ interface ClubHeroProps {
     canMessageClub: boolean;
     showApplyButton?: boolean;
     membershipRole?: string | null;
-    showInlineLeaveAction?: boolean;
     onFollowToggle: () => void;
     onOpenManageClub: () => void;
     onOpenCalendar: () => void;
+    onOpenWorkspace?: () => void;
     onOpenChallengeModal: () => void;
     onOpenMessage: () => void;
     onOpenApply?: () => void;
-    onLeaveClub?: () => Promise<void> | void;
     onRefresh: () => void;
 }
 
@@ -51,24 +49,19 @@ export const ClubHero = ({
     canMessageClub,
     showApplyButton = false,
     membershipRole,
-    showInlineLeaveAction = false,
     onFollowToggle,
     onOpenManageClub,
     onOpenCalendar,
+    onOpenWorkspace,
     onOpenChallengeModal,
     onOpenMessage,
     onOpenApply,
-    onLeaveClub,
     onRefresh
 }: ClubHeroProps) => {
     const bannerInputRef = useRef<HTMLInputElement>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState<'banner' | 'logo' | null>(null);
     const [cropperModal, setCropperModal] = useState<{ isOpen: boolean; imageUrl: string; type: 'banner' | 'logo' } | null>(null);
-    const [isConfirmingLeave, setIsConfirmingLeave] = useState(false);
-    const [isLeavingClub, setIsLeavingClub] = useState(false);
-    const [leaveError, setLeaveError] = useState<string | null>(null);
-
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'banner' | 'logo') => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -109,22 +102,6 @@ export const ClubHero = ({
         }
     };
 
-    const handleLeaveClub = async () => {
-        if (!onLeaveClub) return;
-        setIsLeavingClub(true);
-        setLeaveError(null);
-
-        try {
-            await onLeaveClub();
-            setIsConfirmingLeave(false);
-        } catch (error) {
-            console.error('Failed to leave club', error);
-            setLeaveError('Failed to leave this club.');
-        } finally {
-            setIsLeavingClub(false);
-        }
-    };
-
     const bannerUrl = resolveMediaUrl(club?.bannerUrl);
     const logoUrl = resolveMediaUrl(club?.logoUrl);
     const showExternalVisitorActions = Boolean(club && !club.isMember);
@@ -137,13 +114,13 @@ export const ClubHero = ({
         <section className="border-b border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-band)]">
             <div className="relative h-[240px] overflow-hidden sm:h-[300px] lg:h-[360px]">
                 {bannerUrl ? (
-                    <img src={bannerUrl} alt="Club banner" className="h-full w-full object-cover" />
+                    <img src={bannerUrl} alt="Club banner" className="h-full w-full object-cover object-top" />
                 ) : (
                     <div className="club-banner-fallback h-full w-full" />
                 )}
 
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,12,0.08),rgba(2,6,12,0.68)_62%,rgba(4,9,15,0.96))]" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(30,144,255,0.18),transparent_30%),radial-gradient(circle_at_top_left,rgba(34,197,94,0.18),transparent_26%)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,9,16,0.04)_0%,rgba(5,9,16,0.55)_40%,rgba(5,9,16,0.92)_75%,#050910_100%)]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(30,144,255,0.08),transparent_30%),radial-gradient(circle_at_top_left,rgba(34,197,94,0.08),transparent_26%)]" />
 
                 {canEditClubAssets && (
                     <div className="absolute right-5 top-5 z-10">
@@ -161,7 +138,7 @@ export const ClubHero = ({
                 )}
             </div>
 
-            <PageHeroSection className="bg-[color:var(--club-band)]" frameClassName="club-page-frame relative py-8 lg:py-10">
+            <PageHeroSection className="bg-[#050910]" frameClassName="club-page-frame relative py-8 lg:py-10">
                 <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-end">
                         <div className="relative -mt-[76px] shrink-0 sm:-mt-[96px] lg:-mt-[112px]">
@@ -235,6 +212,12 @@ export const ClubHero = ({
                                     <Settings className="h-4 w-4 text-[color:var(--club-tone-blue)]" />
                                     Manage Club
                                 </button>
+                                {onOpenWorkspace && (
+                                    <button type="button" onClick={onOpenWorkspace} className={systemActionClassName}>
+                                        <Settings className="h-4 w-4 text-[color:var(--club-tone-blue)]" />
+                                        Workspace
+                                    </button>
+                                )}
                             </>
                         ) : showExternalVisitorActions ? (
                             <>
@@ -271,32 +254,10 @@ export const ClubHero = ({
                             </>
                         ) : null}
 
-                        {showInlineLeaveAction && (
-                            isConfirmingLeave ? (
-                                <>
-                                    <button type="button" onClick={() => setIsConfirmingLeave(false)} disabled={isLeavingClub} className={systemActionClassName}>
-                                        Cancel
-                                    </button>
-                                    <button type="button" onClick={() => void handleLeaveClub()} disabled={isLeavingClub} className={destructiveActionClassName}>
-                                        {isLeavingClub ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-                                        Confirm Leave
-                                    </button>
-                                </>
-                            ) : (
-                                <button type="button" onClick={() => setIsConfirmingLeave(true)} className={destructiveActionClassName}>
-                                    <LogOut className="h-4 w-4" />
-                                    Leave Club
-                                </button>
-                            )
-                        )}
                     </div>
                 </div>
 
-                {leaveError && (
-                    <div className="mt-6 rounded-[16px] border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
-                        {leaveError}
-                    </div>
-                )}
+
             </PageHeroSection>
 
             {cropperModal && (

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient, refreshAccessToken } from '../api/axiosConfig';
-import { Activity, Building2, Camera, ChevronRight, Loader2, User } from 'lucide-react';
+import { Activity, Briefcase, Building2, Camera, ChevronRight, Loader2, User } from 'lucide-react';
 
 const POSITION_OPTIONS = [
     'Goalkeeper',
@@ -25,7 +25,7 @@ export const OnboardingPage = () => {
 
     const [formData, setFormData] = useState({
         fullName: '',
-        role: 'PLAYER',
+        role: 'PLAYER' as 'PLAYER' | 'FAN' | 'ORGANIZER' | 'AGENT',
         position: '',
         preferredFoot: 'Right',
         heightCm: '',
@@ -46,7 +46,7 @@ export const OnboardingPage = () => {
             if (existingName && existingName !== 'New User') {
                 setFormData(prev => ({ ...prev, fullName: existingName }));
             }
-            if (existingRole === 'PLAYER' || existingRole === 'FAN') {
+            if (existingRole === 'PLAYER' || existingRole === 'FAN' || existingRole === 'AGENT') {
                 setFormData(prev => ({ ...prev, role: existingRole }));
             }
         });
@@ -68,7 +68,9 @@ export const OnboardingPage = () => {
                 avatarUrl: formData.avatarUrl || undefined
             });
             await refreshAccessToken();
-            const destination = formData.role === 'ORGANIZER' ? '/my-club' : '/feed';
+            const destination = formData.role === 'ORGANIZER' ? '/my-club'
+                : formData.role === 'AGENT' ? '/agent/dashboard'
+                : '/feed';
             navigate(destination);
         } catch {
             navigate('/feed');
@@ -88,7 +90,9 @@ export const OnboardingPage = () => {
                 role: formData.role
             });
             await refreshAccessToken();
-            const destination = formData.role === 'ORGANIZER' ? '/my-club' : '/feed';
+            const destination = formData.role === 'ORGANIZER' ? '/my-club'
+                : formData.role === 'AGENT' ? '/agent/dashboard'
+                : '/feed';
             navigate(destination);
         } catch {
             navigate('/feed');
@@ -137,6 +141,7 @@ export const OnboardingPage = () => {
                             {[
                                 { id: 'PLAYER', icon: Activity, label: 'Player', desc: 'Seeking clubs & tryouts' },
                                 { id: 'ORGANIZER', icon: Building2, label: 'Organizer', desc: 'Building a club or squad' },
+                                { id: 'AGENT', icon: Briefcase, label: 'Agent', desc: 'Representing players & talents' },
                                 { id: 'FAN', icon: User, label: 'Supporter', desc: 'Following the action' }
                             ].map(role => (
                                 <button
@@ -226,6 +231,13 @@ export const OnboardingPage = () => {
                             <div className="mb-6 border border-dashed border-subtle bg-base rounded-xl p-6 flex flex-col items-center justify-center text-center">
                                 <p className="text-sm font-black uppercase tracking-[0.14em] text-primary">Fan Profile</p>
                                 <p className="mt-2 text-xs text-secondary">You can customize your experience and follow clubs from your Account page after setup.</p>
+                            </div>
+                        )}
+                        {formData.role === 'AGENT' && (
+                            <div className="mb-6 border border-accent-primary bg-accent-primary-soft rounded-xl p-6 flex flex-col items-center justify-center text-center">
+                                <Briefcase className="w-10 h-10 accent-primary mb-3" />
+                                <p className="text-sm font-black uppercase tracking-[0.14em] text-primary">Ready to represent talent?</p>
+                                <p className="mt-2 text-xs text-secondary max-w-md">After setup you'll be taken to your <strong>Agent Dashboard</strong>, where you can build your player portfolio, connect with clubs, and add your agency details including FIFA license verification.</p>
                             </div>
                         )}
 

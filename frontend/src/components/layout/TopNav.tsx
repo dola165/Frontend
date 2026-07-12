@@ -10,6 +10,7 @@ import {
     Moon,
     Shield,
     ShieldCheck,
+    ShoppingBag,
     Sun,
     User
 } from 'lucide-react';
@@ -33,6 +34,7 @@ const primaryLinks = [
     { id: 'my-club', path: '/my-club', label: 'My Club', icon: Building2 },
     { id: 'calendar', path: '/calendar', label: 'Schedule', icon: CalendarDays },
     { id: 'messages', path: '/messages', label: 'Messages', icon: MessageSquare },
+    { id: 'marketplace', path: '/marketplace', label: 'Marketplace', icon: ShoppingBag },
     { id: 'notifications', path: '/notifications', label: 'Notifications', icon: BellRing }
 ];
 

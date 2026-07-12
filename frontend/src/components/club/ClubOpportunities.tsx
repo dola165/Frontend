@@ -1,4 +1,6 @@
-import { ArrowRight, ExternalLink, HeartHandshake, ShoppingBag } from 'lucide-react';
+import { ArrowRight, Briefcase, ExternalLink, HeartHandshake, ShoppingBag } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { apiClient } from '../../api/axiosConfig';
 import type { ClubOpportunity, ClubProfile } from '../../pages/ClubProfilePage';
 
 interface ClubOpportunitiesProps {
@@ -41,6 +43,15 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
         count: opportunities.filter((opportunity) => opportunity.type === entry.type).length,
         latest: opportunities.find((opportunity) => opportunity.type === entry.type)
     }));
+
+    const [agentEngagementCount, setAgentEngagementCount] = useState(0);
+
+    useEffect(() => {
+        if (!club?.id) return;
+        apiClient.get(`/clubs/${club.id}/agent-engagements`, { params: { status: 'ACTIVE' } })
+            .then(res => setAgentEngagementCount(Array.isArray(res.data) ? res.data.length : 0))
+            .catch(() => setAgentEngagementCount(0));
+    }, [club?.id]);
 
     return (
         <aside className="flex flex-col gap-4 lg:sticky lg:top-[calc(var(--app-header-height)+14px)]">
@@ -124,6 +135,30 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                                 </a>
                             </div>
                         </div>
+
+                        {/* Agent Engagements — shows count if any active relationships */}
+                        {agentEngagementCount > 0 && (
+                            <div className="pt-3">
+                                <div
+                                    className="rounded-[4px] border px-3.5 py-3.5"
+                                    style={{
+                                        background: 'rgba(10,10,12,0.6)',
+                                        borderColor: 'var(--club-tone-violet)',
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="flex items-center gap-2 text-sm font-semibold text-[color:var(--club-tone-violet)]">
+                                            <Briefcase className="h-4 w-4" />
+                                            Agent Engagements
+                                        </span>
+                                        <span className="text-sm font-bold text-[color:var(--club-tone-violet)]">{agentEngagementCount}</span>
+                                    </div>
+                                    <p className="mt-1.5 text-xs text-secondary leading-relaxed">
+                                        {agentEngagementCount} active agent relationship{agentEngagementCount !== 1 ? 's' : ''}. Agents help discover talent and facilitate player movement.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Talanti Foundation — Charity/Fundraising (hardcoded, always visible) */}
                         <div className="pt-3">

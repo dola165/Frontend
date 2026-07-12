@@ -30,6 +30,9 @@ import { BrowseTournamentsPage } from './pages/BrowseTournamentsPage';
 import { CreateOrganizationPage } from './pages/CreateOrganizationPage';
 import { CreateClubPage } from './pages/CreateClubPage';
 import ClubWorkspacePage from './pages/ClubWorkspacePage';
+import { AgentDashboardPage } from './pages/AgentDashboardPage';
+import { AgentProfilePage } from './pages/AgentProfilePage';
+import { MarketplacePage } from './pages/MarketplacePage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { buildLoginRedirectPath, resolvePostAuthRedirect } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
@@ -170,10 +173,11 @@ function MainLayout() {
     const isChromeFreeWorkspace = isCalendarWorkspace || isMapWorkspace;
     const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads|\/workspace)?$/.test(location.pathname);
     const isFullScreenPage =
-        ['/map', '/messages', '/clubs', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin', '/tournaments', '/tournaments/setup'].includes(location.pathname) ||
+        ['/map', '/messages', '/clubs', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin', '/tournaments', '/tournaments/setup', '/marketplace'].includes(location.pathname) ||
         location.pathname.startsWith('/profile') ||
         location.pathname.startsWith('/organizations') ||
         location.pathname.startsWith('/tournaments/') ||
+        location.pathname.startsWith('/agent') ||
         isClubSurfaceRoute;
     const isBoundedCanvasPage = boundedCanvasPages.has(location.pathname);
 
@@ -222,6 +226,9 @@ function MainLayout() {
                         <Route path="/organizations/create" element={<ProtectedRoute><CreateOrganizationPage /></ProtectedRoute>} />
                         <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
                         <Route path="/profile/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+                        <Route path="/agent/dashboard" element={<ProtectedRoute><AgentDashboardPage /></ProtectedRoute>} />
+                        <Route path="/agent/:id" element={<AgentProfilePage />} />
+                        <Route path="/marketplace" element={<MarketplacePage />} />
                         <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
                         <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage /></ProtectedRoute>} />
                         <Route path="/clubs/:id" element={<ClubProfilePage />} />

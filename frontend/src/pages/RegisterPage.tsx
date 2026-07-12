@@ -14,7 +14,7 @@ export const RegisterPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [role, setRole] = useState<'PLAYER' | 'FAN' | 'ORGANIZER'>('PLAYER');
+    const [role, setRole] = useState<'PLAYER' | 'FAN' | 'ORGANIZER' | 'AGENT'>('PLAYER');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '/feed');
@@ -84,16 +84,17 @@ export const RegisterPage = () => {
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Starting Role</label>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-2 gap-2">
                                 {[
                                     { id: 'PLAYER', label: 'Player', desc: 'Seeking clubs & tryouts' },
                                     { id: 'ORGANIZER', label: 'Organizer', desc: 'Building a club or squad' },
+                                    { id: 'AGENT', label: 'Agent', desc: 'Representing players & talents' },
                                     { id: 'FAN', label: 'Fan', desc: 'Following the action' }
                                 ].map((option) => (
                                     <button
                                         type="button"
                                         key={option.id}
-                                        onClick={() => setRole(option.id as 'PLAYER' | 'FAN' | 'ORGANIZER')}
+                                        onClick={() => setRole(option.id as 'PLAYER' | 'FAN' | 'ORGANIZER' | 'AGENT')}
                                         className={`rounded-xl border px-4 py-4 text-left transition-colors ${
                                             role === option.id
                                                 ? 'border-accent-primary bg-accent-primary-soft'

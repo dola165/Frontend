@@ -6,7 +6,6 @@ import { FeedList } from '../components/feed/FeedList';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { type CommentDto, type FeedPostDto } from '../components/feed/FeedPost';
 import { PostComposer } from '../components/feed/PostComposer';
-import { StoriesRail } from '../components/feed/StoriesRail';
 import { PostTheaterModal } from '../components/PostTheaterModal';
 
 type FeedView = 'for-you' | 'following';
@@ -175,8 +174,6 @@ export const FeedPage = () => {
                 </div>
             )}
             <PostComposer compact onPostCreated={loadFeed} />
-
-            <StoriesRail />
 
             <FeedList
                 posts={posts}

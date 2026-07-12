@@ -5,6 +5,7 @@ import {
     ArrowLeft,
     BarChart3,
     BellRing,
+    Briefcase,
     Building2,
     Camera,
     ExternalLink,
@@ -167,6 +168,7 @@ export const UserProfilePage = () => {
     const [currentUserId, setCurrentUserId] = useState<string | null>(getStoredUserId());
     const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
     const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
+    const [agentRep, setAgentRep] = useState<{ agencyName: string; agentUserId: number; agentVerified: boolean } | null>(null);
 
     const activeTab = normalizeTab(searchParams.get('tab'));
 
@@ -189,13 +191,23 @@ export const UserProfilePage = () => {
         }
 
         try {
-            const [userRes, postsRes] = await Promise.all([
+            const [userRes, postsRes, repRes] = await Promise.all([
                 apiClient.get(`/users/${id}`),
-                apiClient.get(`/posts/user/${id}`).catch(() => ({ data: { posts: [] } }))
+                apiClient.get(`/posts/user/${id}`).catch(() => ({ data: { posts: [] } })),
+                apiClient.get(`/agents/players/${id}/representation`).catch(() => ({ data: null }))
             ]);
 
             setProfile(userRes.data);
             setPosts(postsRes.data?.posts || []);
+            if (repRes.data) {
+                setAgentRep({
+                    agencyName: repRes.data.agencyName || repRes.data.fullName || 'Unknown Agent',
+                    agentUserId: repRes.data.agentUserId || repRes.data.playerUserId,
+                    agentVerified: repRes.data.agentVerified || false
+                });
+            } else {
+                setAgentRep(null);
+            }
         } catch (err) {
             console.error('Failed to fetch user profile', err);
         } finally {
@@ -536,6 +548,20 @@ export const UserProfilePage = () => {
                                 <div>
                                     <p className="text-xs font-semibold text-[color:var(--club-theme-text-primary)]">{profile.availabilityStatus}</p>
                                     <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">Availability</p>
+                                </div>
+                            </div>
+                        )}
+                        {agentRep && (
+                            <div className="flex items-center gap-3 pt-3 border-t border-[color:var(--club-theme-border-subtle)]">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-violet-soft)]">
+                                    <Briefcase className="h-4 w-4 text-[color:var(--club-tone-violet)]" />
+                                </div>
+                                <div>
+                                    <a href={`/agent/${agentRep.agentUserId}`} className="text-xs font-semibold text-[color:var(--club-tone-violet)] hover:underline">
+                                        {agentRep.agencyName}
+                                        {agentRep.agentVerified && <span className="ml-1 text-[10px] text-[color:var(--club-tone-green)]">✓</span>}
+                                    </a>
+                                    <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">Represented by</p>
                                 </div>
                             </div>
                         )}

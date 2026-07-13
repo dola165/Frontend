@@ -10,6 +10,7 @@ export type NavigationKey =
     | 'account'
     | 'tournament-setup'
     | 'marketplace'
+    | 'needs'
     | 'admin';
 
 const clubRoutePattern = /^\/clubs\/(\d+)(?:\/|$)/;
@@ -26,6 +27,7 @@ export const resolveNavigationKey = (pathname: string, myClubId: number | null) 
     if (pathname === '/tournaments/setup') return 'tournament-setup';
     if (pathname === '/admin') return 'admin';
     if (pathname === '/marketplace') return 'marketplace';
+    if (pathname === '/needs') return 'needs';
     if (pathname.startsWith('/profile/')) return 'profile';
 
     const clubRouteMatch = pathname.match(clubRoutePattern);

@@ -33,6 +33,7 @@ import ClubWorkspacePage from './pages/ClubWorkspacePage';
 import { AgentDashboardPage } from './pages/AgentDashboardPage';
 import { AgentProfilePage } from './pages/AgentProfilePage';
 import { MarketplacePage } from './pages/MarketplacePage';
+import { NeedsBoardPage } from './pages/NeedsBoardPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { buildLoginRedirectPath, resolvePostAuthRedirect } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
@@ -96,6 +97,44 @@ const SystemAdminRoute = ({ children }: { children: JSX.Element }) => {
 
     if (user?.role !== 'SYSTEM_ADMIN') {
         return <Navigate to="/feed" replace />;
+    }
+
+    return children;
+};
+
+const AgentOnlyRoute = ({ children }: { children: JSX.Element }) => {
+    const location = useLocation();
+    const { isBootstrapping, isAuthenticated, user } = useAuth();
+
+    if (isBootstrapping) {
+        return <PageBootSpinner label="Checking Access" />;
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to={buildLoginRedirectPath(location.pathname, location.search, location.hash)} replace />;
+    }
+
+    if (user?.role !== 'AGENT') {
+        return <Navigate to="/feed" replace />;
+    }
+
+    return children;
+};
+
+const OrganizerOnlyRoute = ({ children }: { children: JSX.Element }) => {
+    const location = useLocation();
+    const { isBootstrapping, isAuthenticated, user } = useAuth();
+
+    if (isBootstrapping) {
+        return <PageBootSpinner label="Checking Access" />;
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to={buildLoginRedirectPath(location.pathname, location.search, location.hash)} replace />;
+    }
+
+    if (user?.role !== 'ORGANIZER') {
+        return <Navigate to="/clubs" replace />;
     }
 
     return children;
@@ -173,7 +212,7 @@ function MainLayout() {
     const isChromeFreeWorkspace = isCalendarWorkspace || isMapWorkspace;
     const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads|\/workspace)?$/.test(location.pathname);
     const isFullScreenPage =
-        ['/map', '/messages', '/clubs', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin', '/tournaments', '/tournaments/setup', '/marketplace'].includes(location.pathname) ||
+        ['/map', '/messages', '/clubs', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin', '/tournaments', '/tournaments/setup', '/marketplace', '/needs'].includes(location.pathname) ||
         location.pathname.startsWith('/profile') ||
         location.pathname.startsWith('/organizations') ||
         location.pathname.startsWith('/tournaments/') ||
@@ -223,16 +262,17 @@ function MainLayout() {
                         <Route path="/tournaments/setup" element={<ProtectedRoute><TournamentSetupPage /></ProtectedRoute>} />
                         <Route path="/tournaments/:tournamentId" element={<TournamentDetailPage />} />
                         <Route path="/tournaments/:tournamentId/workspace" element={<ProtectedRoute><TournamentWorkspacePage /></ProtectedRoute>} />
-                        <Route path="/organizations/create" element={<ProtectedRoute><CreateOrganizationPage /></ProtectedRoute>} />
+                        <Route path="/organizations/create" element={<OrganizerOnlyRoute><CreateOrganizationPage /></OrganizerOnlyRoute>} />
                         <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
-                        <Route path="/profile/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
-                        <Route path="/agent/dashboard" element={<ProtectedRoute><AgentDashboardPage /></ProtectedRoute>} />
+                        <Route path="/profile/:id" element={<UserProfilePage />} />
+                        <Route path="/agent/dashboard" element={<AgentOnlyRoute><AgentDashboardPage /></AgentOnlyRoute>} />
                         <Route path="/agent/:id" element={<AgentProfilePage />} />
                         <Route path="/marketplace" element={<MarketplacePage />} />
+                        <Route path="/needs" element={<NeedsBoardPage />} />
                         <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
                         <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage /></ProtectedRoute>} />
                         <Route path="/clubs/:id" element={<ClubProfilePage />} />
-                        <Route path="/clubs/create" element={<ProtectedRoute><CreateClubPage /></ProtectedRoute>} />
+                        <Route path="/clubs/create" element={<OrganizerOnlyRoute><CreateClubPage /></OrganizerOnlyRoute>} />
                         <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
                         <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
                     </Routes>

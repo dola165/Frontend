@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Tag, Users } from 'lucide-react';
+import { Search, Users, Link2, ShieldCheck } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
+import { useAuth } from '../context/AuthContext';
 import { PageSpinner } from '../components/workspace/helpers';
 import { EmptyStateCard } from '../components/workspace/EmptyStateCard';
 
@@ -22,6 +23,9 @@ interface MarketplacePlayer {
     expectedFeeRange: string | null;
     preferredDestinations: string | null;
     createdAt: string;
+    playersRepresented: number | null;
+    clubConnections: number | null;
+    mutualConnections: number | null;
 }
 
 interface PageResult {
@@ -42,6 +46,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 export const MarketplacePage = () => {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
     const [listings, setListings] = useState<MarketplacePlayer[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -49,7 +54,17 @@ export const MarketplacePage = () => {
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
+    const [myClubId, setMyClubId] = useState<number | null>(null);
     const pageSize = 12;
+
+    // Detect viewer's club for mutual connections
+    useEffect(() => {
+        apiClient.get('/clubs/my-club')
+            .then(res => {
+                if (res.data?.id) setMyClubId(res.data.id);
+            })
+            .catch(() => { /* user has no club — no mutual connections */ });
+    }, []);
 
     const loadListings = useCallback(async () => {
         setLoading(true);
@@ -59,6 +74,7 @@ export const MarketplacePage = () => {
                 params: {
                     type: typeFilter === 'ALL' ? undefined : typeFilter,
                     search: search || undefined,
+                    viewerClubId: myClubId || undefined,
                     page,
                     size: pageSize
                 }
@@ -71,7 +87,7 @@ export const MarketplacePage = () => {
         } finally {
             setLoading(false);
         }
-    }, [typeFilter, search, page]);
+    }, [typeFilter, search, page, myClubId]);
 
     useEffect(() => { loadListings(); }, [loadListings]);
 
@@ -147,20 +163,45 @@ export const MarketplacePage = () => {
                                         <div className="min-w-0">
                                             <p className="text-sm font-semibold text-[#f4f4f5] truncate">{player.fullName}</p>
                                             <p className="text-xs text-[#71717a]">
-                                                {player.position || 'Unknown'} {player.age ? `· ${player.age}y` : ''}
+                                                {player.position || 'Unknown'}
+                                                {player.age != null ? ` · ${player.age}y` : ''}
+                                                {player.currentClubName ? ` · ${player.currentClubName}` : ''}
                                             </p>
                                         </div>
                                     </div>
 
-                                    {/* Agent info */}
-                                    <div className="mb-3 text-xs text-[#71717a]">
-                                        Represented by{' '}
-                                        <span className="font-medium text-[#a1a1aa]">
-                                            {player.agencyName || 'Unknown Agent'}
-                                            {player.agentVerified && (
-                                                <span className="ml-1 text-[10px] text-[#16a34a]">✓</span>
+                                    {/* Agent info with trust signals */}
+                                    <div className="mb-3">
+                                        <div className="text-xs text-[#71717a] mb-1">
+                                            Represented by{' '}
+                                            <span className="font-medium text-[#a1a1aa]">
+                                                {player.agencyName || 'Unknown Agent'}
+                                                {player.agentVerified && (
+                                                    <span className="ml-1 text-[10px] text-[#16a34a]">✓</span>
+                                                )}
+                                            </span>
+                                        </div>
+                                        {/* LinkedIn-style connection counts */}
+                                        <div className="flex items-center gap-3 text-[11px] text-[#71717a]">
+                                            {player.playersRepresented != null && player.playersRepresented > 0 && (
+                                                <span className="flex items-center gap-1">
+                                                    <Users className="w-3 h-3" />
+                                                    {player.playersRepresented} player{player.playersRepresented !== 1 ? 's' : ''}
+                                                </span>
                                             )}
-                                        </span>
+                                            {player.clubConnections != null && player.clubConnections > 0 && (
+                                                <span className="flex items-center gap-1">
+                                                    <Link2 className="w-3 h-3" />
+                                                    {player.clubConnections} connection{player.clubConnections !== 1 ? 's' : ''}
+                                                </span>
+                                            )}
+                                            {player.mutualConnections != null && player.mutualConnections > 0 && (
+                                                <span className="flex items-center gap-1 text-[#16a34a]">
+                                                    <ShieldCheck className="w-3 h-3" />
+                                                    {player.mutualConnections} mutual
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Description */}
@@ -173,12 +214,21 @@ export const MarketplacePage = () => {
                                         <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${TYPE_COLORS[player.availabilityType] || 'bg-[#71717a]/10 text-[#71717a]'}`}>
                                             {player.availabilityType.replace(/_/g, ' ')}
                                         </span>
-                                        <button
-                                            onClick={() => navigate(`/messages?chatWith=${player.agentUserId}`)}
-                                            className="text-xs font-semibold text-[#16a34a] hover:text-[#22c55e] transition-colors"
-                                        >
-                                            Express Interest →
-                                        </button>
+                                        {isAuthenticated ? (
+                                            <button
+                                                onClick={() => navigate(`/messages?chatWith=${player.agentUserId}`)}
+                                                className="text-xs font-semibold text-[#16a34a] hover:text-[#22c55e] transition-colors"
+                                            >
+                                                Express Interest →
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => navigate('/login?next=/marketplace')}
+                                                className="text-xs font-semibold text-[#71717a] hover:text-[#a1a1aa] transition-colors"
+                                            >
+                                                Sign in to contact →
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ))}

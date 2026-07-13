@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Navigate } from 'react-router-dom';
 import { Briefcase, Building2, BellRing, LayoutDashboard } from 'lucide-react';
 import { fetchAgentDashboard } from '../features/agents/api';
 import type { AgentDashboardData } from '../features/agents/domain';
@@ -14,6 +14,11 @@ type DashboardTab = 'portfolio' | 'relationships' | 'inbox';
 export const AgentDashboardPage = () => {
     const { user } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
+
+    // Redirect non-AGENT users (defense-in-depth — route is also gated by AgentOnlyRoute)
+    if (user && user.role !== 'AGENT') {
+        return <Navigate to="/feed" replace />;
+    }
     const [dashboard, setDashboard] = useState<AgentDashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);

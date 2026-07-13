@@ -12,6 +12,7 @@ import {
     ShieldCheck,
     ShoppingBag,
     Sun,
+    Target,
     User
 } from 'lucide-react';
 import { GlobalSearchBar } from '../search/GlobalSearchBar';
@@ -28,15 +29,18 @@ interface TopNavProps {
 }
 
 const primaryLinks = [
-    { id: 'feed', path: '/feed', label: 'Feed', icon: Home },
-    { id: 'map', path: '/map', label: 'Map', icon: MapIcon },
-    { id: 'clubs', path: '/clubs', label: 'Clubs', icon: Shield },
-    { id: 'my-club', path: '/my-club', label: 'My Club', icon: Building2 },
-    { id: 'calendar', path: '/calendar', label: 'Schedule', icon: CalendarDays },
-    { id: 'messages', path: '/messages', label: 'Messages', icon: MessageSquare },
-    { id: 'marketplace', path: '/marketplace', label: 'Marketplace', icon: ShoppingBag },
-    { id: 'notifications', path: '/notifications', label: 'Notifications', icon: BellRing }
+    { id: 'feed', path: '/feed', label: 'Feed', icon: Home, authRequired: true },
+    { id: 'map', path: '/map', label: 'Map', icon: MapIcon, authRequired: true },
+    { id: 'clubs', path: '/clubs', label: 'Clubs', icon: Shield, authRequired: false },
+    { id: 'my-club', path: '/my-club', label: 'My Club', icon: Building2, authRequired: true },
+    { id: 'calendar', path: '/calendar', label: 'Schedule', icon: CalendarDays, authRequired: true },
+    { id: 'messages', path: '/messages', label: 'Messages', icon: MessageSquare, authRequired: true },
+    { id: 'marketplace', path: '/marketplace', label: 'Marketplace', icon: ShoppingBag, authRequired: false },
+    { id: 'needs', path: '/needs', label: 'Club Needs', icon: Target, authRequired: false },
+    { id: 'notifications', path: '/notifications', label: 'Notifications', icon: BellRing, authRequired: true },
 ];
+
+const agentLink = { id: 'agent-dashboard', path: '/agent/dashboard', label: 'Agent Hub', icon: ShieldCheck, authRequired: true, roleRequired: 'AGENT' as const };
 
 export const TopNav = ({ user, myClubId, darkMode, setDarkMode, handleLogout }: TopNavProps) => {
     const location = useLocation();
@@ -122,7 +126,13 @@ export const TopNav = ({ user, myClubId, darkMode, setDarkMode, handleLogout }: 
 
                 <div className="scrollbar-hide overflow-x-auto border-t border-subtle">
                     <div className="flex min-w-max items-stretch gap-1 px-1">
-                        {primaryLinks.map((item) => {
+                        {(() => {
+                            // Filter links by auth status and role
+                            const visibleLinks = [
+                                ...primaryLinks.filter(item => !item.authRequired || !!user),
+                                ...(user?.role === 'AGENT' ? [agentLink] : [])
+                            ];
+                            return visibleLinks.map((item) => {
                             const active = activeKey === item.id;
                             const Icon = item.icon;
 
@@ -140,7 +150,8 @@ export const TopNav = ({ user, myClubId, darkMode, setDarkMode, handleLogout }: 
                                     {item.label}
                                 </Link>
                             );
-                        })}
+                            });
+                        })()}
                     </div>
                 </div>
             </div>

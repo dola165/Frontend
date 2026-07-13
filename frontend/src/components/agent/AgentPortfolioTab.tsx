@@ -1,19 +1,11 @@
 import { useState, useCallback } from 'react';
 import { UserPlus, Users, Search } from 'lucide-react';
-import type { AgentPortfolioPlayer } from '../../features/agents/domain';
-import { addPlayerToPortfolio, removePlayerFromPortfolio } from '../../features/agents/api';
+import type { AgentPortfolioPlayer, PlayerSearchResult } from '../../features/agents/domain';
+import { addPlayerToPortfolio, removePlayerFromPortfolio, searchPlayersForPortfolio } from '../../features/agents/api';
 import { SectionHeader } from '../workspace/helpers';
 import { EmptyStateCard } from '../workspace/EmptyStateCard';
 import { UserIdentityCell } from '../workspace/UserIdentityCell';
 import { OverflowActions } from '../ui/OverflowActions';
-import { apiClient } from '../../api/axiosConfig';
-
-interface PlayerSearchResult {
-    userId: number;
-    fullName: string;
-    username: string;
-    position: string | null;
-}
 
 interface Props {
     players: AgentPortfolioPlayer[];
@@ -40,10 +32,8 @@ export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
         }
         setSearching(true);
         try {
-            const res = await apiClient.get<PlayerSearchResult[]>('/agents/me/portfolio/players/search', {
-                params: { query: query.trim() }
-            });
-            setSearchResults(res.data);
+            const results = await searchPlayersForPortfolio(query);
+            setSearchResults(results);
         } catch {
             setSearchResults([]);
         } finally {

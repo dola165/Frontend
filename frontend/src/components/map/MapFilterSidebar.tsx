@@ -1,8 +1,9 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Building2, ChevronDown, ChevronRight, Crosshair, Filter, MapPin, Search, ShieldCheck, SlidersHorizontal, Trophy, Users, X } from 'lucide-react';
+import { type MapEntityType } from '../../api/map';
+export type { MapEntityType };
 import { MapHelpHint } from './MapHelpHint';
 
-export type MapEntityType = 'CLUB' | 'TRYOUT' | 'MATCH' | 'TOURNAMENT' | 'CLUB_NEED';
 export type MapSortMode = 'RELEVANCE' | 'SOONEST' | 'DISTANCE' | 'NAME';
 export type MapTimeWindow = 'Morning' | 'Afternoon' | 'Evening';
 export type MapDateWindow = 'NEXT_7_DAYS' | 'NEXT_30_DAYS' | 'NEXT_90_DAYS' | 'ANY';

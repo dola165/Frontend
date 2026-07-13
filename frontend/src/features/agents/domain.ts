@@ -33,3 +33,10 @@ export interface AgentEngagement {
     createdAt: string;
     respondedAt: string | null;
 }
+
+export interface PlayerSearchResult {
+    userId: number;
+    fullName: string;
+    username: string;
+    position: string;
+}

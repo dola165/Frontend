@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { ArrowRight, Building2, Check, ChevronLeft, ChevronRight, Clock, Filter, Loader2, MapPin, Plus, Search, Send, ShieldCheck, UserPlus, Users, X } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { createClubApplication, fetchMyClubMembershipContext, selfRegisterClubPlayer } from '../features/clubs/api';
+import { PaginationBar } from '../components/ui/PaginationBar';
 import type { ClubMembershipContext } from '../features/clubs/domain';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { useAuth } from '../context/AuthContext';
@@ -56,6 +57,7 @@ export const BrowseClubsPage = () => {
     const [country, setCountry] = useState(searchParams.get('country') || '');
     const [sort, setSort] = useState(searchParams.get('sort') || 'NEWEST');
     const [page, setPage] = useState(Number(searchParams.get('page')) || 0);
+    const [pageSize, setPageSize] = useState(12);
     const [showFilters, setShowFilters] = useState(false);
 
     // Data state
@@ -94,7 +96,7 @@ export const BrowseClubsPage = () => {
             if (country) queryParams.set('country', country);
             if (sort !== 'NEWEST') queryParams.set('sort', sort);
             queryParams.set('page', String(page));
-            queryParams.set('size', '12');
+            queryParams.set('size', String(pageSize));
 
             const membershipPromise =
                 status === 'authenticated'
@@ -123,7 +125,7 @@ export const BrowseClubsPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [status, search, selectedTypes, selectedPolicies, city, country, sort, page]);
+    }, [status, search, selectedTypes, selectedPolicies, city, country, sort, page, pageSize]);
 
     // Sync URL → local state on browser back/forward navigation
     useEffect(() => {
@@ -509,22 +511,14 @@ export const BrowseClubsPage = () => {
                     )}
                 </section>
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="flex items-center justify-between gap-4">
-                        <p className="text-xs text-secondary">
-                            Page {page + 1} of {totalPages} · {pageResult?.totalElements ?? 0} clubs
-                        </p>
-                        <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
-                                className="inline-flex items-center gap-1 border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary disabled:opacity-40">
-                                <ChevronLeft className="h-3.5 w-3.5" />Prev</button>
-                            <button type="button" onClick={() => setPage(page + 1)} disabled={page + 1 >= totalPages}
-                                className="inline-flex items-center gap-1 border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary disabled:opacity-40">
-                                Next<ChevronRight className="h-3.5 w-3.5" /></button>
-                        </div>
-                    </div>
-                )}
+                <PaginationBar
+                    page={page}
+                    totalPages={totalPages}
+                    totalElements={pageResult?.totalElements ?? 0}
+                    pageSize={pageSize}
+                    onPageChange={setPage}
+                    onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}
+                />
             </div>
         </div>
     );

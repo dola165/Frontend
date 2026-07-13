@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Users, Link2, ShieldCheck, X } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
+import { PaginationBar, PaginationTopBar } from '../components/ui/PaginationBar';
 import { PageSpinner } from '../components/workspace/helpers';
 import { EmptyStateCard } from '../components/workspace/EmptyStateCard';
 
@@ -177,23 +178,8 @@ export const MarketplacePage = () => {
                     />
                 ) : (
                     <>
-                        {/* Top pagination bar */}
                         {totalElements > 0 && (
-                            <div className="flex items-center justify-between mb-3">
-                                <span className="text-xs text-[#71717a]">{totalElements} players listed</span>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[11px] text-[#71717a]">Show:</span>
-                                    <select
-                                        value={pageSize}
-                                        onChange={e => handlePageSizeChange(Number(e.target.value))}
-                                        className="rounded-md border border-[#26282d] bg-[#0f1117] text-xs text-[#a1a1aa] px-2 py-1 outline-none focus:border-[#16a34a]"
-                                    >
-                                        {[9, 12, 15, 20, 30].map(s => (
-                                            <option key={s} value={s}>{s}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
+                            <PaginationTopBar totalElements={totalElements} pageSize={pageSize} onPageSizeChange={handlePageSizeChange} label="players listed" />
                         )}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -285,39 +271,14 @@ export const MarketplacePage = () => {
                             ))}
                         </div>
 
-                        {/* Pagination */}
-                        <div className="flex items-center justify-center gap-3 mt-6">
-                            <button
-                                onClick={() => setPage(p => Math.max(0, p - 1))}
-                                disabled={page === 0}
-                                className="px-3 py-1.5 rounded-md border border-[#26282d] text-xs text-[#a1a1aa] disabled:opacity-30 hover:bg-[rgba(255,255,255,0.03)] transition-colors"
-                            >
-                                Previous
-                            </button>
-                            <span className="text-xs text-[#71717a]">
-                                Page {page + 1} of {totalPages}
-                            </span>
-                            <button
-                                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                                disabled={page >= totalPages - 1}
-                                className="px-3 py-1.5 rounded-md border border-[#26282d] text-xs text-[#a1a1aa] disabled:opacity-30 hover:bg-[rgba(255,255,255,0.03)] transition-colors"
-                            >
-                                Next
-                            </button>
-                            <span className="text-[11px] text-[#4d4d52] mx-1">·</span>
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-[11px] text-[#4d4d52]">Show</span>
-                                <select
-                                    value={pageSize}
-                                    onChange={e => handlePageSizeChange(Number(e.target.value))}
-                                    className="rounded-md border border-[#26282d] bg-[#0f1117] text-xs text-[#a1a1aa] px-2 py-1 outline-none focus:border-[#16a34a]"
-                                >
-                                    {[9, 12, 15, 20, 30].map(s => (
-                                        <option key={s} value={s}>{s}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
+                        <PaginationBar
+                            page={page}
+                            totalPages={totalPages}
+                            totalElements={totalElements}
+                            pageSize={pageSize}
+                            onPageChange={setPage}
+                            onPageSizeChange={handlePageSizeChange}
+                        />
                     </>
                 )}
 

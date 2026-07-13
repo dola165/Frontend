@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Calendar, Check, Loader2, Search, Trophy, UserPlus, Users } from 'lucide-react';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { fetchTournaments, registerPlayer } from '../features/tournaments/api';
+import { PaginationBar } from '../components/ui/PaginationBar';
 import type { TournamentSummary } from '../features/tournaments/domain';
 import { tournamentScopeLabel, tournamentVisibilityLabel } from '../features/tournaments/domain';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +26,7 @@ export const BrowseTournamentsPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(0);
+    const [pageSize, setPageSize] = useState(12);
     const [totalPages, setTotalPages] = useState(1);
     const [scopeFilter, setScopeFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -44,7 +46,7 @@ export const BrowseTournamentsPage = () => {
         setLoading(true);
         setError(null);
         try {
-            const params: Record<string, string> = { page: String(page), size: '12' };
+            const params: Record<string, string> = { page: String(page), size: String(pageSize) };
             if (scopeFilter) params.scope = scopeFilter;
             if (statusFilter) params.status = statusFilter;
             const result = await fetchTournaments(params);
@@ -56,7 +58,7 @@ export const BrowseTournamentsPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, scopeFilter, statusFilter]);
+    }, [page, pageSize, scopeFilter, statusFilter]);
 
     useEffect(() => {
         void loadTournaments();
@@ -261,28 +263,14 @@ export const BrowseTournamentsPage = () => {
                             ))}
                         </div>
 
-                        {/* Pagination */}
-                        {totalPages > 1 && (
-                            <div className="flex items-center justify-center gap-4">
-                                <button
-                                    onClick={() => setPage((p) => Math.max(0, p - 1))}
-                                    disabled={page === 0}
-                                    className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                                >
-                                    Previous
-                                </button>
-                                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                                    Page {page + 1} of {totalPages}
-                                </span>
-                                <button
-                                    onClick={() => setPage((p) => p + 1)}
-                                    disabled={page + 1 >= totalPages}
-                                    className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        )}
+                        <PaginationBar
+                            page={page}
+                            totalPages={totalPages}
+                            totalElements={0}
+                            pageSize={pageSize}
+                            onPageChange={setPage}
+                            onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}
+                        />
                     </>
                 )}
             </div>

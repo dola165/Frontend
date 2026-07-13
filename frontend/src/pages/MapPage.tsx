@@ -1,5 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import MapGL, { Layer, Marker, Popup, Source, GeolocateControl, NavigationControl, useMap } from 'react-map-gl/mapbox';
+import MapGL, { Layer, Marker, Source, GeolocateControl, NavigationControl, useMap } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -7,19 +7,15 @@ import {
     CheckCheck,
     ChevronLeft,
     Clock,
-    Eye,
     ExternalLink,
-    ListFilter,
     Loader2,
     LocateFixed,
-    Map as MapIcon,
     MapPin,
     Menu,
     Navigation,
     RefreshCw,
     Search,
     ShieldCheck,
-    Sparkles,
     Trophy,
     Users,
     X
@@ -35,7 +31,6 @@ import { createScheduleChallenge, fetchPublicScheduleEvents, type ScheduleEventO
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
-type ViewMode = 'MAP' | 'LIST';
 type DerivedGender = 'Boys' | 'Girls' | 'Men' | 'Women' | 'Mixed';
 type DerivedLevel = 'Youth' | 'Academy' | 'Amateur' | 'Grassroots';
 type DerivedTravelPreference = 'HOME_ONLY' | 'WILL_TRAVEL' | 'NEUTRAL' | 'FLEXIBLE';
@@ -889,7 +884,6 @@ export const MapPage = () => {
     const [filters, setFilters] = useState<MapFilters>(defaultMapFilters);
     const [fetchVersion, setFetchVersion] = useState(0);
     const triggerFetch = useCallback(() => setFetchVersion((v) => v + 1), []);
-    const [viewMode, setViewMode] = useState<ViewMode>('MAP');
     const [isFilterOpen, setIsFilterOpen] = useState(true);
     const [searchInput, setSearchInput] = useState('');
     const deferredSearch = useDeferredValue(searchInput.trim());
@@ -912,10 +906,6 @@ export const MapPage = () => {
     const [responseNote, setResponseNote] = useState('');
     const [responseError, setResponseError] = useState<string | null>(null);
     const [responseSubmitting, setResponseSubmitting] = useState(false);
-    const [designMode, setDesignMode] = useState<'futuristic' | 'classic'>('futuristic');
-    const mapStyleUrl = designMode === 'futuristic'
-        ? 'mapbox://styles/mapbox/navigation-night-v1'
-        : 'mapbox://styles/mapbox/streets-v12';
 
     useEffect(() => {
         let active = true;
@@ -1148,7 +1138,6 @@ export const MapPage = () => {
         [filters.distanceKm, sortedRecords, viewportCenter]
     );
 
-    const listRecords = useMemo(() => sortedRecords, [sortedRecords]);
     const mapClusters = useMemo(() => {
         const grouped = new Map<string, MarkerCluster>();
         for (const record of mapRecords) {
@@ -1213,9 +1202,9 @@ export const MapPage = () => {
         };
     }, [filters.distanceKm, viewportCenter]);
 
-    const selectedRecord = useMemo(() => listRecords.find((record) => record.key === selectedKey) ?? null, [listRecords, selectedKey]);
+    const selectedRecord = useMemo(() => sortedRecords.find((record) => record.key === selectedKey) ?? null, [sortedRecords, selectedKey]);
     const activeCluster = useMemo(() => mapClusters.find((cluster) => cluster.key === activeClusterKey) ?? null, [activeClusterKey, mapClusters]);
-    const layoutSignature = `${viewMode}:${Boolean(selectedRecord)}:${Boolean(activeCluster)}:${isFilterOpen}`;
+    const layoutSignature = `${Boolean(selectedRecord)}:${Boolean(activeCluster)}:${isFilterOpen}`;
 
     useEffect(() => {
         if (selectedRecord?.clubId == null || clubProfiles[selectedRecord.clubId]) {
@@ -1237,13 +1226,13 @@ export const MapPage = () => {
     }, [clubProfiles, selectedRecord]);
 
     useEffect(() => {
-        if (selectedKey && !listRecords.some((record) => record.key === selectedKey)) {
+        if (selectedKey && !sortedRecords.some((record) => record.key === selectedKey)) {
             setSelectedKey(null);
         }
         if (activeClusterKey && !mapClusters.some((cluster) => cluster.key === activeClusterKey)) {
             setActiveClusterKey(null);
         }
-    }, [activeClusterKey, listRecords, mapClusters, selectedKey]);
+    }, [activeClusterKey, sortedRecords, mapClusters, selectedKey]);
 
     const handleFocusSettled = useCallback(() => setFocusTarget(null), []);
 
@@ -1347,7 +1336,7 @@ export const MapPage = () => {
     const toolbarCount = `${mapRecords.length} visible`;
 
     return (
-        <div className={`map-page-shell club-page-shell map-workspace h-full min-h-0 w-full overflow-hidden map-design-${designMode} relative`}>
+        <div className="map-page-shell club-page-shell map-workspace h-full min-h-0 w-full overflow-hidden map-design-futuristic relative">
             {!initialLoad && !error && (
                 <div className="map-canvas-frame absolute inset-0 z-0 overflow-hidden border-0 rounded-none">
                     <MapGL
@@ -1360,7 +1349,7 @@ export const MapPage = () => {
                             bearing: -17
                         }}
                         style={{ width: '100%', height: '100%' }}
-                        mapStyle={mapStyleUrl}
+                        mapStyle="mapbox://styles/mapbox/navigation-night-v1"
                         projection="globe"
                         renderWorldCopies={false}
                         onMoveEnd={(evt) => {

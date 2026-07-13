@@ -4,6 +4,7 @@ import { Search, Building2, MapPin, Clock, Target } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { PageSpinner } from '../components/workspace/helpers';
 import { EmptyStateCard } from '../components/workspace/EmptyStateCard';
+import { PaginationBar, PaginationTopBar } from '../components/ui/PaginationBar';
 
 interface ClubNeed {
     needId: number;
@@ -38,7 +39,7 @@ export const NeedsBoardPage = () => {
     const [typeFilter, setTypeFilter] = useState<string>('ALL');
     const [page, setPage] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
-    const pageSize = 12;
+    const [pageSize, setPageSize] = useState(12);
 
     const loadNeeds = useCallback(async () => {
         setLoading(true);
@@ -61,12 +62,17 @@ export const NeedsBoardPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [typeFilter, page]);
+    }, [typeFilter, page, pageSize]);
 
     useEffect(() => { loadNeeds(); }, [loadNeeds]);
 
     const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
     const hasMore = needs.length === pageSize;
+
+    const handlePageSizeChange = (newSize: number) => {
+        setPageSize(newSize);
+        setPage(0);
+    };
 
     return (
         <div className="bg-[#0f1117] min-h-[calc(100dvh-var(--app-header-height))]">
@@ -181,28 +187,14 @@ export const NeedsBoardPage = () => {
                             ))}
                         </div>
 
-                        {/* Pagination */}
-                        {hasMore && (
-                            <div className="flex items-center justify-center gap-3 mt-6">
-                                <button
-                                    onClick={() => setPage(p => Math.max(0, p - 1))}
-                                    disabled={page === 0}
-                                    className="px-3 py-1.5 rounded-md border border-[#26282d] text-xs text-[#a1a1aa] disabled:opacity-30"
-                                >
-                                    Previous
-                                </button>
-                                <span className="text-xs text-[#71717a]">
-                                    Page {page + 1} of {totalPages}
-                                </span>
-                                <button
-                                    onClick={() => setPage(p => p + 1)}
-                                    disabled={!hasMore}
-                                    className="px-3 py-1.5 rounded-md border border-[#26282d] text-xs text-[#a1a1aa] disabled:opacity-30"
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        )}
+                        <PaginationBar
+                            page={page}
+                            totalPages={totalPages}
+                            totalElements={totalElements}
+                            pageSize={pageSize}
+                            onPageChange={setPage}
+                            onPageSizeChange={handlePageSizeChange}
+                        />
                     </>
                 )}
             </div>

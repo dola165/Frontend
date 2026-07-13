@@ -1,8 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Building2, ChevronDown, ChevronRight, Filter, MapPin, Search, ShieldCheck, SlidersHorizontal, Trophy, Users, X } from 'lucide-react';
+import { Building2, ChevronDown, ChevronRight, Crosshair, Filter, MapPin, Search, ShieldCheck, SlidersHorizontal, Trophy, Users, X } from 'lucide-react';
 import { MapHelpHint } from './MapHelpHint';
 
-export type MapEntityType = 'CLUB' | 'TRYOUT' | 'MATCH' | 'TOURNAMENT';
+export type MapEntityType = 'CLUB' | 'TRYOUT' | 'MATCH' | 'TOURNAMENT' | 'CLUB_NEED';
 export type MapSortMode = 'RELEVANCE' | 'SOONEST' | 'DISTANCE' | 'NAME';
 export type MapTimeWindow = 'Morning' | 'Afternoon' | 'Evening';
 export type MapDateWindow = 'NEXT_7_DAYS' | 'NEXT_30_DAYS' | 'NEXT_90_DAYS' | 'ANY';
@@ -92,7 +92,7 @@ const TRAVEL_PREFERENCE_OPTIONS: Array<{ value: MapTravelPreference; label: stri
 ];
 
 export const defaultMapFilters: MapFilters = {
-    entityType: ['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT'],
+    entityType: ['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT', 'CLUB_NEED'],
     sortBy: 'RELEVANCE',
     distanceKm: 200,
     clubs: {
@@ -124,14 +124,24 @@ const ENTITY_LABELS: Record<MapEntityType, string> = {
     CLUB: 'Clubs',
     TRYOUT: 'Tryouts',
     MATCH: 'Matches',
-    TOURNAMENT: 'Tournaments'
+    TOURNAMENT: 'Tournaments',
+    CLUB_NEED: 'Club Needs'
 };
 
 const ENTITY_ICONS: Record<MapEntityType, ReactNode> = {
     CLUB: <Building2 className="h-4 w-4" />,
     TRYOUT: <Users className="h-4 w-4" />,
     MATCH: <Trophy className="h-4 w-4" />,
-    TOURNAMENT: <Trophy className="h-4 w-4" />
+    TOURNAMENT: <Trophy className="h-4 w-4" />,
+    CLUB_NEED: <Crosshair className="h-4 w-4" />
+};
+
+const ENTITY_DESCRIPTIONS: Record<MapEntityType, string> = {
+    CLUB: 'Find football clubs near you',
+    TRYOUT: 'Discover open tryout sessions',
+    MATCH: 'Browse open match challenges',
+    TOURNAMENT: 'Explore tournaments and cups',
+    CLUB_NEED: 'See what positions clubs need'
 };
 
 const toggleValue = <T extends string>(current: T[], value: T) =>
@@ -345,36 +355,52 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                             <RailSection
                                 icon={<Filter className="h-4 w-4" />}
                                 title="Browse"
-                                helpText="Pick clubs, tryouts, or matches. The rail updates to fit that lane."
+                                helpText="Pick a mode to discover clubs, tryouts, matches, tournaments, or club needs."
                                 expanded={expanded.entity}
                                 onToggle={() => toggleExpanded('entity')}
                             >
-                                <div className="grid gap-2">
-                                    {(['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT'] as MapEntityType[]).map((entityType) => {
-                                        const isActive = filters.entityType.includes(entityType);
+                                <div className="space-y-2">
+                                    {(['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT', 'CLUB_NEED'] as MapEntityType[]).map((entityType) => {
+                                        const isActive = filters.entityType.length === 1 && filters.entityType[0] === entityType;
                                         return (
                                             <button
                                                 key={entityType}
                                                 type="button"
                                                 onClick={() =>
-                                                    updateFilters((current) => {
-                                                        const next = isActive
-                                                            ? current.entityType.filter((t) => t !== entityType)
-                                                            : [...current.entityType, entityType];
-                                                        // Keep at least one type selected
-                                                        if (next.length === 0) return current;
-                                                        return { ...current, entityType: next };
-                                                    })
+                                                    updateFilters((current) => ({
+                                                        ...current,
+                                                        entityType: [entityType]
+                                                    }))
                                                 }
-                                                className={`map-entity-tile ${isActive ? 'map-entity-tile--active' : ''}`}
+                                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors ${
+                                                    isActive
+                                                        ? 'bg-[#f59e0b]/10 border border-[#f59e0b]/30 text-[#f59e0b]'
+                                                        : 'border border-transparent text-[#a1a1aa] hover:bg-[rgba(255,255,255,0.03)] hover:text-[#f4f4f5]'
+                                                }`}
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <span className="map-rail-icon">{ENTITY_ICONS[entityType]}</span>
-                                                    <p className="text-sm font-bold text-primary">{ENTITY_LABELS[entityType]}</p>
+                                                <span className={isActive ? 'text-[#f59e0b]' : 'text-[#71717a]'}>{ENTITY_ICONS[entityType]}</span>
+                                                <div>
+                                                    <p className="text-sm font-semibold">{ENTITY_LABELS[entityType]}</p>
+                                                    <p className="text-[10px] opacity-60">{ENTITY_DESCRIPTIONS[entityType]}</p>
                                                 </div>
+                                                {isActive && <span className="ml-auto w-2 h-2 rounded-full bg-[#f59e0b]" />}
                                             </button>
                                         );
                                     })}
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            updateFilters((current) => ({
+                                                ...current,
+                                                entityType: ['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT', 'CLUB_NEED']
+                                            }))
+                                        }
+                                        className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-xs text-[#71717a] hover:text-[#a1a1aa] hover:bg-[rgba(255,255,255,0.02)] transition-colors ${
+                                            filters.entityType.length > 1 ? 'text-[#f59e0b]/70' : ''
+                                        }`}
+                                    >
+                                        Show all types
+                                    </button>
                                 </div>
                             </RailSection>
 

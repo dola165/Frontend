@@ -371,6 +371,7 @@ const getRecordTypeLabel = (record: DiscoveryRecord) => {
         case 'TRYOUT': return 'Tryout';
         case 'MATCH': return record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Match';
         case 'TOURNAMENT': return 'Tournament';
+        case 'CLUB_NEED': return 'Club Need';
         default: return 'Match';
     }
 };
@@ -384,6 +385,9 @@ const getRecordTypeMeta = (record: DiscoveryRecord) => {
     }
     if (record.entityType === 'TOURNAMENT') {
         return record.statusLabel === 'ACTIVE' ? 'Active tournament' : 'Upcoming tournament';
+    }
+    if (record.entityType === 'CLUB_NEED') {
+        return record.subtitle ? `Player need: ${record.subtitle}` : 'Player recruitment need';
     }
     if (record.challengeState === 'OPEN') {
         return 'Open challenge';
@@ -405,6 +409,7 @@ const getMarkerTone = (record: DiscoveryRecord) => {
         case 'TRYOUT': return 'tryout';
         case 'MATCH': return 'match';
         case 'TOURNAMENT': return 'tournament';
+        case 'CLUB_NEED': return 'club-need';
         default: return 'match';
     }
 };
@@ -885,7 +890,7 @@ export const MapPage = () => {
     const [fetchVersion, setFetchVersion] = useState(0);
     const triggerFetch = useCallback(() => setFetchVersion((v) => v + 1), []);
     const [viewMode, setViewMode] = useState<ViewMode>('MAP');
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [isFilterOpen, setIsFilterOpen] = useState(true);
     const [searchInput, setSearchInput] = useState('');
     const deferredSearch = useDeferredValue(searchInput.trim());
     const [viewportCenter, setViewportCenter] = useState<[number, number]>(DEFAULT_CENTER);
@@ -1339,7 +1344,7 @@ export const MapPage = () => {
     ) : null;
 
     const hasSelectedResult = Boolean(selectedRecord);
-    const toolbarCount = viewMode === 'MAP' ? `${mapRecords.length} visible` : `${listRecords.length} shown`;
+    const toolbarCount = `${mapRecords.length} visible`;
 
     return (
         <div className={`map-page-shell club-page-shell map-workspace h-full min-h-0 w-full overflow-hidden map-design-${designMode} relative`}>
@@ -1380,7 +1385,7 @@ export const MapPage = () => {
                                 }}
                             />
                         </Source>
-                        {viewMode === 'MAP' && radiusVignette && (
+                        {radiusVignette && (
                             <Source id="radius-vignette" type="geojson" data={radiusVignette}>
                                 <Layer
                                     id="radius-vignette-fill"
@@ -1427,39 +1432,6 @@ export const MapPage = () => {
                                 </Marker>
                             );
                         })}
-                        {viewMode === 'LIST' && selectedRecord && selectedRecord.latitude != null && selectedRecord.longitude != null && (
-                            <Popup
-                                longitude={selectedRecord.longitude}
-                                latitude={selectedRecord.latitude}
-                                anchor="bottom"
-                                offset={40}
-                                onClose={() => setSelectedKey(null)}
-                                closeButton={false}
-                            >
-                                <div className="rounded-xl border border-subtle bg-[rgba(12,18,27,0.96)] px-4 py-3 shadow-[0_12px_28px_rgba(2,6,12,0.5)] backdrop-blur-xl max-w-[260px]">
-                                    <div className="flex items-center gap-2">
-                                        <span className="map-pill map-pill--accent text-[10px]">{getRecordTypeLabel(selectedRecord)}</span>
-                                        {selectedRecord.challengeState === 'OPEN' && <span className="map-pill text-[10px]">Open</span>}
-                                    </div>
-                                    <p className="mt-2 text-sm font-bold text-primary">{selectedRecord.title}</p>
-                                    {selectedRecord.subtitle && <p className="mt-0.5 text-xs text-secondary">{selectedRecord.subtitle}</p>}
-                                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-secondary">
-                                        {selectedRecord.locationName && <span>{selectedRecord.locationName}</span>}
-                                        {selectedRecord.startsAt && <span>{formatDateTime(selectedRecord.startsAt)}</span>}
-                                    </div>
-                                    {selectedRecord.clubId && (
-                                        <button
-                                            type="button"
-                                            onClick={() => openClubProfile(selectedRecord)}
-                                            className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[color:var(--accent-primary)] hover:underline"
-                                        >
-                                            <Building2 className="h-3 w-3" />
-                                            Open profile
-                                        </button>
-                                    )}
-                                </div>
-                            </Popup>
-                        )}
                     </MapGL>
                 </div>
             )}
@@ -1552,49 +1524,19 @@ export const MapPage = () => {
                                         )}
                                     </div>
 
-                                    <div className="map-mode-toggle">
-                                        <button
-                                            type="button"
-                                            onClick={() => setViewMode('MAP')}
-                                            className={`map-mode-button ${viewMode === 'MAP' ? 'map-mode-button--active' : ''}`}
-                                        >
-                                            <MapIcon className="h-3.5 w-3.5" />
-                                            Map
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setViewMode('LIST')}
-                                            className={`map-mode-button ${viewMode === 'LIST' ? 'map-mode-button--active' : ''}`}
-                                        >
-                                            <ListFilter className="h-3.5 w-3.5" />
-                                            Browse
-                                        </button>
-                                    </div>
-
                                     <span className="map-count-chip">{toolbarCount}</span>
 
                                     {filters.entityType.some(t => t !== 'CLUB') && (
                                         <button
                                             type="button"
                                             onClick={triggerFetch}
-                                            className="map-icon-button shrink-0"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#f59e0b]/15 border border-[#f59e0b]/25 text-[#f59e0b] text-xs font-semibold hover:bg-[#f59e0b]/25 transition-colors shrink-0"
                                             title="Search this area"
                                         >
                                             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                                            <span className="hidden sm:inline">Search this area</span>
                                         </button>
                                     )}
-
-                                    <button
-                                        type="button"
-                                        onClick={() => setDesignMode(m => m === 'futuristic' ? 'classic' : 'futuristic')}
-                                        className="map-icon-button shrink-0"
-                                        title={designMode === 'futuristic' ? 'Switch to classic look' : 'Switch to futuristic look'}
-                                    >
-                                        {designMode === 'futuristic'
-                                            ? <Sparkles className="h-4 w-4 text-[color:var(--accent-primary)]" />
-                                            : <Eye className="h-4 w-4" />
-                                        }
-                                    </button>
 
                                     <button
                                         type="button"
@@ -1612,60 +1554,8 @@ export const MapPage = () => {
                                 </div>
                             </div>
 
-                            {viewMode === 'LIST' && (
-                                <aside className="pointer-events-auto map-side-panel-shell absolute bottom-4 right-4 top-4 z-[620] hidden w-[360px] overflow-hidden xl:block">
-                                    <div className="map-details-panel flex h-full flex-col">
-                                        <div className="map-panel-header">
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div>
-                                                    <p className="map-eyebrow">Browse</p>
-                                                    <h2 className="mt-2 text-xl font-bold text-primary">{listRecords.length} result{listRecords.length !== 1 ? 's' : ''}</h2>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-                                            {listRecords.length === 0 ? (
-                                                <div className="flex h-full items-center justify-center p-6">
-                                                    <div className="text-center">
-                                                        <p className="text-base font-bold text-primary">No results yet.</p>
-                                                        <p className="mt-2 text-sm leading-6 text-secondary">Try a wider area or fewer filters.</p>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-2">
-                                                    {listRecords.map((record) => (
-                                                        <button
-                                                            key={record.key}
-                                                            type="button"
-                                                            onClick={() => selectRecord(record)}
-                                                            className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${
-                                                                selectedKey === record.key
-                                                                    ? 'border-[color:var(--accent-primary)] bg-[color:var(--accent-primary-soft)]'
-                                                                    : 'border-subtle hover:border-white/[0.08] hover:bg-surface'
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="map-pill map-pill--accent text-[10px]">{getRecordTypeLabel(record)}</span>
-                                                                <span className="map-pill text-[10px]">{getRecordTypeMeta(record)}</span>
-                                                            </div>
-                                                            <p className="mt-2 text-sm font-bold text-primary truncate">{record.title}</p>
-                                                            {record.subtitle && <p className="mt-0.5 text-xs text-secondary truncate">{record.subtitle}</p>}
-                                                            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-secondary">
-                                                                {record.locationName && <span className="truncate">{record.locationName}</span>}
-                                                                {record.startsAt && <span>{formatDateTime(record.startsAt)}</span>}
-                                                                {!record.startsAt && record.entityType === 'CLUB' && <span>Profile discovery</span>}
-                                                            </div>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </aside>
-                            )}
-
-                            {viewMode === 'MAP' && hasSelectedResult && (
-                                <aside className="pointer-events-auto map-side-panel-shell absolute bottom-4 right-4 top-4 z-[620] hidden w-[360px] overflow-hidden xl:block">
+                            {hasSelectedResult && (
+                                <aside className="pointer-events-auto map-side-panel-shell absolute bottom-4 right-4 top-4 z-[620] hidden w-[380px] overflow-hidden xl:block">
                                     {panelContent}
                                 </aside>
                             )}
@@ -1674,7 +1564,7 @@ export const MapPage = () => {
                 </div>
             </div>
 
-            {viewMode === 'MAP' && selectedRecord && (
+            {selectedRecord && (
                 <div className="pointer-events-auto map-mobile-panel fixed inset-x-4 bottom-4 top-auto z-[1200] max-h-[72vh] overflow-hidden xl:hidden">
                     {panelContent}
                 </div>

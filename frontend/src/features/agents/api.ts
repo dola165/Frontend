@@ -1,5 +1,6 @@
 import { apiClient } from '../../api/axiosConfig';
 import type { AgentDashboardData, AgentEngagement, AgentPortfolioPlayer } from './domain';
+import type { ClubSearchResult } from '../tournaments/domain';
 
 export const fetchAgentDashboard = async (): Promise<AgentDashboardData> => {
     const response = await apiClient.get<AgentDashboardData>('/agents/me/dashboard');
@@ -40,6 +41,14 @@ export const initiateEngagement = async (clubId: number, notes?: string): Promis
     const response = await apiClient.post<AgentEngagement>('/agents/me/engagements', {
         clubId,
         notes: notes || undefined
+    });
+    return response.data;
+};
+
+export const searchClubs = async (query: string): Promise<ClubSearchResult[]> => {
+    if (!query.trim()) return [];
+    const response = await apiClient.get<ClubSearchResult[]>('/clubs/search', {
+        params: { q: query.trim(), limit: 10 }
     });
     return response.data;
 };

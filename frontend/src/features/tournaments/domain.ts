@@ -219,6 +219,9 @@ export interface ClubSearchResult {
     name: string;
     logoUrl?: string | null;
     memberCount?: number | null;
+    cityName?: string | null;
+    countryName?: string | null;
+    /** @deprecated use cityName instead */
     city?: string | null;
 }
 

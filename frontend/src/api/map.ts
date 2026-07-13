@@ -1,6 +1,6 @@
 import { apiClient } from './axiosConfig';
 
-export type MapEntityType = 'CLUB' | 'TRYOUT' | 'MATCH' | 'TOURNAMENT';
+export type MapEntityType = 'CLUB' | 'TRYOUT' | 'MATCH' | 'TOURNAMENT' | 'CLUB_NEED';
 
 export interface MapMarkerDto {
     entityId: number;

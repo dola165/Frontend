@@ -54,11 +54,11 @@ export const MarketplacePage = () => {
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
+    const [pageSize, setPageSize] = useState(12);
     const [myClubId, setMyClubId] = useState<number | null>(null);
     const [interestListing, setInterestListing] = useState<MarketplacePlayer | null>(null);
     const [interestMessage, setInterestMessage] = useState('');
     const [interestSubmitting, setInterestSubmitting] = useState(false);
-    const pageSize = 12;
 
     // M13: Submit marketplace interest
     const handleExpressInterest = async (player: MarketplacePlayer) => {
@@ -114,9 +114,14 @@ export const MarketplacePage = () => {
         } finally {
             setLoading(false);
         }
-    }, [typeFilter, search, page, myClubId]);
+    }, [typeFilter, search, page, pageSize, myClubId]);
 
     useEffect(() => { loadListings(); }, [loadListings]);
+
+    const handlePageSizeChange = (newSize: number) => {
+        setPageSize(newSize);
+        setPage(0);
+    };
 
     const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
 
@@ -172,6 +177,25 @@ export const MarketplacePage = () => {
                     />
                 ) : (
                     <>
+                        {/* Top pagination bar */}
+                        {totalElements > 0 && (
+                            <div className="flex items-center justify-between mb-3">
+                                <span className="text-xs text-[#71717a]">{totalElements} players listed</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[11px] text-[#71717a]">Show:</span>
+                                    <select
+                                        value={pageSize}
+                                        onChange={e => handlePageSizeChange(Number(e.target.value))}
+                                        className="rounded-md border border-[#26282d] bg-[#0f1117] text-xs text-[#a1a1aa] px-2 py-1 outline-none focus:border-[#16a34a]"
+                                    >
+                                        {[9, 12, 15, 20, 30].map(s => (
+                                            <option key={s} value={s}>{s}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {listings.map(player => (
                                 <div
@@ -262,27 +286,38 @@ export const MarketplacePage = () => {
                         </div>
 
                         {/* Pagination */}
-                        {totalPages > 1 && (
-                            <div className="flex items-center justify-center gap-3 mt-6">
-                                <button
-                                    onClick={() => setPage(p => Math.max(0, p - 1))}
-                                    disabled={page === 0}
-                                    className="px-3 py-1.5 rounded-md border border-[#26282d] text-xs text-[#a1a1aa] disabled:opacity-30"
+                        <div className="flex items-center justify-center gap-3 mt-6">
+                            <button
+                                onClick={() => setPage(p => Math.max(0, p - 1))}
+                                disabled={page === 0}
+                                className="px-3 py-1.5 rounded-md border border-[#26282d] text-xs text-[#a1a1aa] disabled:opacity-30 hover:bg-[rgba(255,255,255,0.03)] transition-colors"
+                            >
+                                Previous
+                            </button>
+                            <span className="text-xs text-[#71717a]">
+                                Page {page + 1} of {totalPages}
+                            </span>
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                                disabled={page >= totalPages - 1}
+                                className="px-3 py-1.5 rounded-md border border-[#26282d] text-xs text-[#a1a1aa] disabled:opacity-30 hover:bg-[rgba(255,255,255,0.03)] transition-colors"
+                            >
+                                Next
+                            </button>
+                            <span className="text-[11px] text-[#4d4d52] mx-1">·</span>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] text-[#4d4d52]">Show</span>
+                                <select
+                                    value={pageSize}
+                                    onChange={e => handlePageSizeChange(Number(e.target.value))}
+                                    className="rounded-md border border-[#26282d] bg-[#0f1117] text-xs text-[#a1a1aa] px-2 py-1 outline-none focus:border-[#16a34a]"
                                 >
-                                    Previous
-                                </button>
-                                <span className="text-xs text-[#71717a]">
-                                    Page {page + 1} of {totalPages}
-                                </span>
-                                <button
-                                    onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                                    disabled={page >= totalPages - 1}
-                                    className="px-3 py-1.5 rounded-md border border-[#26282d] text-xs text-[#a1a1aa] disabled:opacity-30"
-                                >
-                                    Next
-                                </button>
+                                    {[9, 12, 15, 20, 30].map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
                             </div>
-                        )}
+                        </div>
                     </>
                 )}
 

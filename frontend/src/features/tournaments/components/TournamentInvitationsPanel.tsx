@@ -199,7 +199,7 @@ export const TournamentInvitationsPanel = ({ tournamentId }: Props) => {
                                 <div key={club.id} className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate text-sm font-semibold text-slate-950 dark:text-white">{club.name}</p>
-                                        {club.city && <p className="text-xs text-slate-500 dark:text-slate-400">{club.city}{club.memberCount != null ? ` · ${club.memberCount} members` : ''}</p>}
+                                        {(club.cityName || club.city) && <p className="text-xs text-slate-500 dark:text-slate-400">{club.cityName || club.city}{club.memberCount != null ? ` · ${club.memberCount} members` : ''}</p>}
                                     </div>
                                     {alreadyInvited ? (
                                         <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">Invited</span>

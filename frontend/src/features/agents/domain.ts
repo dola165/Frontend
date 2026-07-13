@@ -29,6 +29,7 @@ export interface AgentEngagement {
     clubLogoUrl: string | null;
     status: 'PENDING' | 'ACTIVE' | 'DECLINED' | 'CANCELLED' | 'TERMINATED';
     notes: string | null;
+    responseNotes: string | null;
     createdAt: string;
     respondedAt: string | null;
 }

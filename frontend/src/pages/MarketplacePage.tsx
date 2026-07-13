@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Users, Link2, ShieldCheck } from 'lucide-react';
+import { Search, Users, Link2, ShieldCheck, X } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import { PageSpinner } from '../components/workspace/helpers';
@@ -55,7 +55,34 @@ export const MarketplacePage = () => {
     const [page, setPage] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
     const [myClubId, setMyClubId] = useState<number | null>(null);
+    const [interestListing, setInterestListing] = useState<MarketplacePlayer | null>(null);
+    const [interestMessage, setInterestMessage] = useState('');
+    const [interestSubmitting, setInterestSubmitting] = useState(false);
     const pageSize = 12;
+
+    // M13: Submit marketplace interest
+    const handleExpressInterest = async (player: MarketplacePlayer) => {
+        if (!myClubId) {
+            navigate(`/messages?chatWith=${player.agentUserId}`);
+            return;
+        }
+        try {
+            setInterestSubmitting(true);
+            await apiClient.post(`/agents/marketplace/listings/${player.listingId}/interest`, {
+                clubId: myClubId,
+                message: interestMessage || undefined
+            });
+            setInterestListing(null);
+            setInterestMessage('');
+            navigate(`/messages?chatWith=${player.agentUserId}`);
+        } catch (err: any) {
+            if (err?.response?.status === 409) {
+                alert('Your club has already expressed interest in this player.');
+            }
+        } finally {
+            setInterestSubmitting(false);
+        }
+    };
 
     // Detect viewer's club for mutual connections
     useEffect(() => {
@@ -216,7 +243,7 @@ export const MarketplacePage = () => {
                                         </span>
                                         {isAuthenticated ? (
                                             <button
-                                                onClick={() => navigate(`/messages?chatWith=${player.agentUserId}`)}
+                                                onClick={() => myClubId ? setInterestListing(player) : navigate(`/messages?chatWith=${player.agentUserId}`)}
                                                 className="text-xs font-semibold text-[#16a34a] hover:text-[#22c55e] transition-colors"
                                             >
                                                 Express Interest →
@@ -257,6 +284,44 @@ export const MarketplacePage = () => {
                             </div>
                         )}
                     </>
+                )}
+
+                {/* M13: Express Interest Modal */}
+                {interestListing && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setInterestListing(null)}>
+                        <div className="bg-[#0f1117] border border-[#26282d] rounded-md p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-sm font-semibold text-[#f4f4f5]">Express Interest</h3>
+                                <button onClick={() => setInterestListing(null)} className="text-[#71717a] hover:text-[#a1a1aa]">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <p className="text-xs text-[#a1a1aa] mb-3">
+                                You're expressing interest in <span className="text-[#f4f4f5] font-medium">{interestListing.fullName}</span> — listed as {interestListing.availabilityType.replace(/_/g, ' ')}
+                            </p>
+                            <textarea
+                                value={interestMessage}
+                                onChange={e => setInterestMessage(e.target.value)}
+                                placeholder="Add a message for the agent... (optional)"
+                                className="w-full bg-[#16181d] border border-[#26282d] rounded-md px-3 py-2 text-sm text-[#f4f4f5] placeholder-[#71717a] resize-none h-20 mb-4 focus:outline-none focus:border-[#16a34a]/50"
+                            />
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    onClick={() => setInterestListing(null)}
+                                    className="px-4 py-2 text-xs font-medium text-[#a1a1aa] hover:text-[#f4f4f5]"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => handleExpressInterest(interestListing)}
+                                    disabled={interestSubmitting}
+                                    className="px-4 py-2 text-xs font-semibold bg-[#16a34a] text-white rounded-md hover:bg-[#22c55e] disabled:opacity-50"
+                                >
+                                    {interestSubmitting ? 'Submitting...' : 'Express Interest'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>

@@ -1,11 +1,19 @@
-import { useState } from 'react';
-import { UserPlus, Users } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { UserPlus, Users, Search } from 'lucide-react';
 import type { AgentPortfolioPlayer } from '../../features/agents/domain';
 import { addPlayerToPortfolio, removePlayerFromPortfolio } from '../../features/agents/api';
 import { SectionHeader } from '../workspace/helpers';
 import { EmptyStateCard } from '../workspace/EmptyStateCard';
 import { UserIdentityCell } from '../workspace/UserIdentityCell';
 import { OverflowActions } from '../ui/OverflowActions';
+import { apiClient } from '../../api/axiosConfig';
+
+interface PlayerSearchResult {
+    userId: number;
+    fullName: string;
+    username: string;
+    position: string | null;
+}
 
 interface Props {
     players: AgentPortfolioPlayer[];
@@ -14,23 +22,48 @@ interface Props {
 
 export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
     const [showAddModal, setShowAddModal] = useState(false);
-    const [playerIdInput, setPlayerIdInput] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<PlayerSearchResult[]>([]);
+    const [searching, setSearching] = useState(false);
+    const [selectedPlayer, setSelectedPlayer] = useState<PlayerSearchResult | null>(null);
     const [addingPlayer, setAddingPlayer] = useState(false);
     const [addError, setAddError] = useState<string | null>(null);
     const [busyId, setBusyId] = useState<number | null>(null);
 
+    // L3: Debounced player search
+    const handleSearch = useCallback(async (query: string) => {
+        setSearchQuery(query);
+        if (query.trim().length < 2) {
+            setSearchResults([]);
+            setSelectedPlayer(null);
+            return;
+        }
+        setSearching(true);
+        try {
+            const res = await apiClient.get<PlayerSearchResult[]>('/agents/me/portfolio/players/search', {
+                params: { query: query.trim() }
+            });
+            setSearchResults(res.data);
+        } catch {
+            setSearchResults([]);
+        } finally {
+            setSearching(false);
+        }
+    }, []);
+
     const handleAddPlayer = async () => {
-        const id = parseInt(playerIdInput, 10);
-        if (!id || isNaN(id)) {
-            setAddError('Enter a valid player user ID.');
+        if (!selectedPlayer) {
+            setAddError('Please search for and select a player.');
             return;
         }
         setAddingPlayer(true);
         setAddError(null);
         try {
-            await addPlayerToPortfolio(id);
+            await addPlayerToPortfolio(selectedPlayer.userId);
             setShowAddModal(false);
-            setPlayerIdInput('');
+            setSearchQuery('');
+            setSearchResults([]);
+            setSelectedPlayer(null);
             onRefresh();
         } catch (err: any) {
             setAddError(err?.response?.data?.message || err?.message || 'Failed to add player.');
@@ -119,27 +152,51 @@ export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
                 </div>
             )}
 
-            {/* Add Player Modal */}
+            {/* Add Player Modal — L3: name search instead of manual ID entry */}
             {showAddModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowAddModal(false)}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => { setShowAddModal(false); setSearchQuery(''); setSearchResults([]); setSelectedPlayer(null); }}>
                     <div className="bg-[#16181d] border border-[#26282d] rounded-md p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
                         <h3 className="text-base font-semibold text-[#f4f4f5] mb-4">Add Player to Portfolio</h3>
                         <div className="space-y-3">
-                            <div>
-                                <label className="text-[11px] font-semibold text-[#a1a1aa] block mb-1">Player User ID</label>
-                                <input
-                                    type="number"
-                                    value={playerIdInput}
-                                    onChange={e => setPlayerIdInput(e.target.value)}
-                                    className="w-full px-3 py-2 rounded-md border border-[#26282d] bg-[#0f1117] text-sm text-[#f4f4f5] outline-none focus:border-[#16a34a]"
-                                    placeholder="Enter player's user ID"
-                                    autoFocus
-                                />
+                            <div className="relative">
+                                <label className="text-[11px] font-semibold text-[#a1a1aa] block mb-1">Search Player</label>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#71717a]" />
+                                    <input
+                                        value={searchQuery}
+                                        onChange={e => handleSearch(e.target.value)}
+                                        className="w-full pl-9 pr-3 py-2 rounded-md border border-[#26282d] bg-[#0f1117] text-sm text-[#f4f4f5] outline-none focus:border-[#16a34a]"
+                                        placeholder="Search by player name..."
+                                        autoFocus
+                                    />
+                                </div>
+                                {/* Search results dropdown */}
+                                {searching && <p className="text-xs text-[#71717a] mt-1">Searching...</p>}
+                                {!searching && searchResults.length > 0 && (
+                                    <div className="mt-1 border border-[#26282d] rounded-md bg-[#0f1117] max-h-40 overflow-y-auto">
+                                        {searchResults.map(p => (
+                                            <button
+                                                key={p.userId}
+                                                onClick={() => { setSelectedPlayer(p); setSearchQuery(p.fullName); setSearchResults([]); }}
+                                                className={`w-full text-left px-3 py-2 text-sm hover:bg-[#ffffff0d] flex items-center gap-2 ${selectedPlayer?.userId === p.userId ? 'bg-[#16a34a]/10 text-[#16a34a]' : 'text-[#f4f4f5]'}`}
+                                            >
+                                                <span className="flex-1">{p.fullName}</span>
+                                                {p.position && <span className="text-[11px] text-[#71717a]">{p.position}</span>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {!searching && searchQuery.length >= 2 && searchResults.length === 0 && (
+                                    <p className="text-xs text-[#71717a] mt-1">No players found.</p>
+                                )}
                             </div>
+                            {selectedPlayer && (
+                                <p className="text-xs text-[#16a34a]">Selected: {selectedPlayer.fullName} @{selectedPlayer.username}</p>
+                            )}
                             {addError && <p className="text-xs text-[#d4737a]">{addError}</p>}
                             <div className="flex gap-2 justify-end pt-2">
-                                <button onClick={() => setShowAddModal(false)} className="px-3 py-1.5 rounded-md border border-[#26282d] text-xs font-semibold text-[#a1a1aa] hover:text-[#f4f4f5]">Cancel</button>
-                                <button onClick={handleAddPlayer} disabled={addingPlayer} className="px-3 py-1.5 rounded-md bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] disabled:opacity-50">
+                                <button onClick={() => { setShowAddModal(false); setSearchQuery(''); setSearchResults([]); setSelectedPlayer(null); }} className="px-3 py-1.5 rounded-md border border-[#26282d] text-xs font-semibold text-[#a1a1aa] hover:text-[#f4f4f5]">Cancel</button>
+                                <button onClick={handleAddPlayer} disabled={addingPlayer || !selectedPlayer} className="px-3 py-1.5 rounded-md bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] disabled:opacity-50">
                                     {addingPlayer ? 'Adding...' : 'Add Player'}
                                 </button>
                             </div>

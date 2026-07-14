@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowUp, Check, MessageSquare, Search, UserPlus, UserX, Users, X } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { ArrowDown, ArrowLeft, Check, MessageSquare, Search, UserPlus, UserX, Users, X } from 'lucide-react';
 import type { ClubPlayerAffiliation, PlayerAffiliationStatus, PageResult } from '../../../features/clubs/domain';
 import { ErrorBlock, formatMetaTime, PageSpinner, SectionHeader, Pill } from '../helpers';
+import type { SortState } from '../helpers';
 import { EmptyStateCard } from '../EmptyStateCard';
 import { UserIdentityCell } from '../UserIdentityCell';
 import { StatusCell } from '../StatusCell';
 import { OverflowActions, type OverflowActionItem } from '../../ui/OverflowActions';
-import { TrialistBadge, getTrialistDays } from '../TrialistBadge';
+import { TrialistBadge } from '../TrialistBadge';
 import type { WorkspaceTab } from '../types';
 
 interface PlayersTabProps {
@@ -47,6 +48,7 @@ export const PlayersTab = ({
 }: PlayersTabProps) => {
     const allPlayers = playerDirectory?.content ?? [];
     const [searchQuery, setSearchQuery] = useState('');
+    const [sort, setSort] = useState<SortState | null>(null);
 
     // counts per filter
     const counts = useMemo(() => {
@@ -68,6 +70,44 @@ export const PlayersTab = ({
                 (p.username || '').toLowerCase().includes(q),
         );
     }, [allPlayers, searchQuery]);
+
+    const getPlayerSortValue = (p: ClubPlayerAffiliation, col: number): string | number | null => {
+        switch (col) {
+            case 0: return (p.fullName || p.username || '').toLowerCase();
+            case 1: return p.status;
+            case 2: return p.position || '';
+            case 3: return p.jerseyNumber ?? -1;
+            case 4: return p.joinedAt ?? '';
+            default: return null;
+        }
+    };
+
+    const handleSort = useCallback((col: number) => {
+        setSort(prev =>
+            prev?.column === col
+                ? { column: col, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+                : { column: col, direction: 'asc' }
+        );
+    }, []);
+
+    const sortedPlayers = useMemo(() => {
+        if (!sort) return filteredPlayers;
+        try {
+            const data = [...filteredPlayers];
+            data.sort((a, b) => {
+                const aVal = getPlayerSortValue(a, sort.column);
+                const bVal = getPlayerSortValue(b, sort.column);
+                if (aVal == null && bVal == null) return 0;
+                if (aVal == null) return 1;
+                if (bVal == null) return -1;
+                const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+                return sort.direction === 'desc' ? -cmp : cmp;
+            });
+            return data;
+        } catch {
+            return filteredPlayers;
+        }
+    }, [filteredPlayers, sort]);
 
     const trialistCount = counts.TRIALIST || 0;
 
@@ -147,7 +187,7 @@ export const PlayersTab = ({
                 <PageSpinner />
             ) : playerError && !playerDirectory ? (
                 <ErrorBlock message={playerError} onRetry={onRetry} />
-            ) : filteredPlayers.length === 0 ? (
+            ) : sortedPlayers.length === 0 ? (
                 <EmptyStateCard
                     icon={Users}
                     title={searchQuery ? 'No matches' : 'No players yet'}
@@ -157,17 +197,31 @@ export const PlayersTab = ({
                 <>
                     {/* Column header */}
                     <div className="flex items-center gap-4 rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 h-11 text-xs font-semibold text-[var(--fc-text-secondary)]">
-                        <span className="flex-1 min-w-0">PLAYER</span>
-                        <span className="w-24">STATUS</span>
-                        <span className="w-20">POS</span>
-                        <span className="w-14">#</span>
-                        <span className="w-32">JOINED</span>
+                        {[
+                            { col: 0, label: 'PLAYER', className: 'flex-1 min-w-0' },
+                            { col: 1, label: 'STATUS', className: 'w-24' },
+                            { col: 2, label: 'POS', className: 'w-20' },
+                            { col: 3, label: '#', className: 'w-14' },
+                            { col: 4, label: 'JOINED', className: 'w-32' },
+                        ].map(({ col, label, className }) => (
+                            <button
+                                key={col}
+                                type="button"
+                                onClick={() => handleSort(col)}
+                                className={`inline-flex items-center gap-1 hover:text-[var(--fc-text-primary)] transition-colors ${className}`}
+                            >
+                                {label}
+                                <span className="text-[10px] leading-none">
+                                    {sort?.column === col ? (sort.direction === 'asc' ? '▲' : '▼') : '⇅'}
+                                </span>
+                            </button>
+                        ))}
                         <span className="w-36" />
                     </div>
 
                     {/* Card rows */}
                     <div className="space-y-1.5">
-                        {filteredPlayers.map((player) => {
+                        {sortedPlayers.map((player) => {
                             const isTrialist = player.status === 'TRIALIST';
                             const isInactive = player.status === 'PAST' || player.status === 'REMOVED';
                             const statusTone =

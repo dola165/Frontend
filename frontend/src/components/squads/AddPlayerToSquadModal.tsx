@@ -34,13 +34,20 @@ export const AddPlayerToSquadModal = ({ clubId, squadId, isOpen, onClose, onPlay
         setError(null);
         try {
             const result = await fetchClubPlayers(clubId, undefined, pageNum, 30);
+            const mapped: PlayerOption[] = result.content.map((p: any) => ({
+                userId: p.userId,
+                fullName: p.fullName || '',
+                username: p.username || '',
+                avatarUrl: p.avatarUrl ?? null,
+                status: p.status
+            }));
             const filtered = searchTerm
-                ? result.content.filter(
+                ? mapped.filter(
                     (p) =>
-                        p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        p.username.toLowerCase().includes(searchTerm.toLowerCase())
+                        (p.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (p.username || '').toLowerCase().includes(searchTerm.toLowerCase())
                 )
-                : result.content;
+                : mapped;
             if (pageNum === 0) {
                 setPlayers(filtered);
             } else {

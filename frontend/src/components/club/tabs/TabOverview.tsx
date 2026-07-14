@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '../../../api/axiosConfig';
-import { ArrowRight, CheckCircle, ChevronRight, Loader2, MapPin, Megaphone, Sparkles, UserPlus, Users, X } from 'lucide-react';
+import { ArrowRight, CheckCircle, Loader2, MapPin, Megaphone, Sparkles, UserPlus, Users, X } from 'lucide-react';
 import { PostComposer } from '../../feed/PostComposer';
 import { type FeedPostDto, type CommentDto } from '../../feed/FeedPost';
 import { FeedList } from '../../feed/FeedList';

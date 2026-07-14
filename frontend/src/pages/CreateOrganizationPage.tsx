@@ -25,7 +25,7 @@ const orgTypeOptions: OrgTypeOption[] = [
 const buildForm = () => ({ displayName: '', description: '', kind: 'SPORTS_ORG' as CreatableOrganizationKind });
 
 export const CreateOrganizationPage = () => {
-    const navigate = useNavigate();
+    useNavigate();
     const [form, setForm] = useState(buildForm);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<string | null>(null);

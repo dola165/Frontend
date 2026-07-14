@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Building2, Plus, Search, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { fetchMyEngagements, initiateEngagement, searchClubs } from '../../features/agents/api';
 import type { AgentEngagement } from '../../features/agents/domain';
 import type { ClubSearchResult } from '../../features/tournaments/domain';
@@ -90,10 +91,12 @@ export const ClubRelationshipsTab = () => {
             setSearchQuery('');
             setNotesInput('');
             setSubmitError(null);
+            toast.success(`Engagement request sent to ${selectedClub.name}`);
             loadEngagements();
         } catch (err: any) {
             const msg = err?.response?.data?.message || err?.message || 'Failed to initiate engagement.';
             setSubmitError(msg);
+            toast.error(msg);
         } finally {
             setSubmitting(false);
         }
@@ -123,6 +126,7 @@ export const ClubRelationshipsTab = () => {
     return (
         <div>
             <SectionHeader
+                eyebrow="Relationships"
                 title="Club Relationships"
                 description="Clubs you have active engagements with"
                 action={

@@ -1860,7 +1860,6 @@
     -webkit-backdrop-filter: var(--map-glass-blur);
     border-right: 1px solid var(--map-panel-border);
   }
-  }
 
   .map-main-column {
     background: transparent;

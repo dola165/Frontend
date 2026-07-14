@@ -74,11 +74,6 @@ export const TournamentWorkspacePage = () => {
 
     useEffect(() => { void loadTournament(); }, [loadTournament]);
 
-    const pendingEntries = useMemo(
-        () => (tournament?.entries ?? []).filter((e) => e.status === 'PENDING'),
-        [tournament?.entries],
-    );
-
     const confirmedEntries = useMemo(
         () => (tournament?.entries ?? []).filter((e) => e.status !== 'PENDING' && e.status !== 'REJECTED' && e.status !== 'WITHDRAWN'),
         [tournament?.entries],
@@ -100,10 +95,10 @@ export const TournamentWorkspacePage = () => {
 
     if (loading) {
         return (
-            <div className="flex min-h-full items-center justify-center bg-[#f2f4f7] dark:bg-slate-950">
+            <div className="flex min-h-full items-center justify-center bg-[#0f1117]">
                 <div className="flex flex-col items-center gap-4 text-center">
-                    <Loader2 className="h-10 w-10 animate-spin text-[#00c853]" />
-                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Loading Event</p>
+                    <Loader2 className="h-10 w-10 animate-spin text-[#16a34a]" />
+                    <p className="text-sm text-[#a1a1aa]">Loading Tournament</p>
                 </div>
             </div>
         );
@@ -111,12 +106,12 @@ export const TournamentWorkspacePage = () => {
 
     if (error || !tournament) {
         return (
-            <div className="flex min-h-full items-center justify-center bg-[#f2f4f7] dark:bg-slate-950">
+            <div className="flex min-h-full items-center justify-center bg-[#0f1117]">
                 <div className="max-w-md text-center">
-                    <Trophy className="mx-auto mb-4 h-12 w-12 text-slate-300 dark:text-slate-600" />
-                    <p className="text-lg font-semibold text-slate-700 dark:text-slate-200">Event Not Found</p>
-                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{error ?? 'The tournament could not be loaded.'}</p>
-                    <Link to="/tournaments/setup" className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#00c853] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[#00e676]">
+                    <Trophy className="mx-auto mb-4 h-12 w-12 text-[#a1a1aa]" />
+                    <p className="text-lg font-semibold text-[#f4f4f5]">Tournament Not Found</p>
+                    <p className="mt-2 text-sm text-[#a1a1aa]">{error ?? 'The tournament could not be loaded.'}</p>
+                    <Link to="/tournaments/setup" className="mt-6 inline-flex items-center gap-2 rounded-md bg-[#16a34a] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
                         <ArrowLeft className="h-4 w-4" />
                         Back to Setup
                     </Link>
@@ -126,35 +121,35 @@ export const TournamentWorkspacePage = () => {
     }
 
     return (
-        <div className="min-h-full bg-[#f2f4f7] font-sans text-slate-950 selection:bg-[#00c853]/20 dark:bg-slate-950 dark:text-slate-100 dark:selection:bg-[#00c853]/30">
+        <div className="min-h-full bg-[#0f1117] text-[#f4f4f5] selection:bg-[#16a34a]/20">
             {/* Header */}
-            <div className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-                <div className="mx-auto max-w-[1880px] px-6 py-5">
+            <div className="border-b border-[#ffffff0d] bg-[#16181d]">
+                <div className="px-6 py-5">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div>
-                            <Link to="/tournaments/setup" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+                            <Link to="/tournaments/setup" className="inline-flex items-center gap-2 text-sm text-[#a1a1aa] transition-colors hover:text-[#f4f4f5]">
                                 <ArrowLeft className="h-4 w-4" />
                                 Setup
                             </Link>
-                            <h1 className="mt-1 text-xl font-bold tracking-tight text-slate-950 dark:text-white">
+                            <h1 className="mt-1 text-xl font-semibold text-[#f4f4f5]">
                                 {tournament.name}
                             </h1>
-                            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            <p className="mt-1 text-sm text-[#a1a1aa]">
                                 Event #{tournament.id} &middot; {tournament.status}
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            <span className="rounded-full bg-[var(--fc-surface-hover)] px-3 py-1.5 text-xs font-semibold text-[#f4f4f5]">
                                 {tournamentScopeLabel(tournament.participantScope)}
                             </span>
-                            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            <span className="rounded-full bg-[var(--fc-surface-hover)] px-3 py-1.5 text-xs font-semibold text-[#f4f4f5]">
                                 {tournamentVisibilityLabel(tournament.visibility)}
                             </span>
                             <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                                tournament.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' :
-                                tournament.status === 'COMPLETED' ? 'bg-slate-100 text-slate-600 dark:bg-slate-500/10 dark:text-slate-400' :
-                                tournament.status === 'CANCELLED' ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300' :
-                                'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300'
+                                tournament.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' :
+                                tournament.status === 'COMPLETED' ? 'bg-slate-500/10 text-slate-400' :
+                                tournament.status === 'CANCELLED' ? 'bg-red-500/10 text-red-400' :
+                                'bg-sky-500/10 text-sky-400'
                             }`}>
                                 {tournament.status}
                             </span>
@@ -164,7 +159,7 @@ export const TournamentWorkspacePage = () => {
             </div>
 
             {/* Three-column workspace */}
-            <div className="mx-auto grid max-w-[1880px] grid-cols-1 gap-0 px-4 pb-10 pt-4 xl:grid-cols-[280px_minmax(0,1fr)_280px] xl:gap-4 xl:px-6">
+            <div className="grid grid-cols-1 gap-0 px-6 pb-10 pt-4 xl:grid-cols-[280px_minmax(0,1fr)_280px] xl:gap-4">
                 {/* Left Rail — Queue & Draft Builder */}
                 <aside className="flex flex-col gap-3">
                     <QueueAndDraftBuilder
@@ -177,17 +172,17 @@ export const TournamentWorkspacePage = () => {
                 {/* Center — Tabbed workspace */}
                 <section className="min-w-0">
                     {/* Tab bar */}
-                    <div className="flex rounded-t-[28px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+                    <div className="flex rounded-t-md border border-[#ffffff0d] bg-[#16181d]">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
                             return (
                                 <button
                                     key={tab.key}
                                     onClick={() => setActiveTab(tab.key)}
-                                    className={`flex flex-1 items-center justify-center gap-2 border-r border-slate-200 px-4 py-3.5 text-sm font-semibold transition-colors last:border-r-0 dark:border-slate-800 ${
+                                    className={`flex flex-1 items-center justify-center gap-2 border-r border-[#ffffff0d] px-4 py-3.5 text-sm font-semibold transition-colors last:border-r-0 ${
                                         activeTab === tab.key
-                                            ? 'bg-[#f2f4f7] text-[#00c853] dark:bg-slate-950 dark:text-[#00c853]'
-                                            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+                                            ? 'bg-[#0f1117] text-[#16a34a]'
+                                            : 'text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[var(--fc-surface-hover)]'
                                     }`}
                                 >
                                     <Icon className="h-4 w-4" />
@@ -199,17 +194,17 @@ export const TournamentWorkspacePage = () => {
 
                     {/* Message toast */}
                     {message && (
-                        <div className={`border border-t-0 border-slate-200 px-4 py-3 text-sm font-semibold dark:border-slate-800 ${
+                        <div className={`border border-t-0 border-[#ffffff0d] px-4 py-3 text-sm font-semibold ${
                             messageType === 'success'
-                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
-                                : 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300'
+                                ? 'bg-emerald-500/10 text-emerald-400'
+                                : 'bg-red-500/10 text-red-400'
                         }`}>
                             {message}
                         </div>
                     )}
 
                     {/* Tab content */}
-                    <div className="rounded-b-[28px] border border-t-0 border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+                    <div className="rounded-b-md border border-t-0 border-[#ffffff0d] bg-[#16181d]">
                         {activeTab === 'participants' && (
                             <div className="flex flex-col">
                                 {/* Pending Applications */}
@@ -221,14 +216,14 @@ export const TournamentWorkspacePage = () => {
 
                                 {/* Confirmed Roster */}
                                 <div>
-                                    <div className="border-b border-slate-200 bg-[#f2f4f7] px-5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
-                                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                    <div className="border-b border-[#ffffff0d] bg-[#16181d] px-5 py-3">
+                                        <p className="text-sm font-semibold text-[#f4f4f5]">
                                             Confirmed Roster
-                                            <span className="ml-2 text-slate-400">{confirmedEntries.length}</span>
+                                            <span className="ml-2 text-[#a1a1aa]">{confirmedEntries.length}</span>
                                         </p>
                                     </div>
                                     {confirmedEntries.length === 0 ? (
-                                        <div className="px-5 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
+                                        <div className="px-5 py-12 text-center text-sm text-[#a1a1aa]">
                                             No confirmed participants yet. Approve pending applications above.
                                         </div>
                                     ) : (
@@ -239,23 +234,23 @@ export const TournamentWorkspacePage = () => {
                                                 return (
                                                     <div
                                                         key={entry.id}
-                                                        className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                                                        className="flex items-center justify-between gap-3 border-b border-[#ffffff0d] px-5 py-3.5 transition-colors hover:bg-[var(--fc-surface-hover)]"
                                                     >
                                                         <div className="min-w-0 flex-1">
                                                             <div className="flex items-center gap-2">
-                                                                <p className="truncate text-sm font-semibold text-slate-950 dark:text-white">
+                                                                <p className="truncate text-sm font-semibold text-[#f4f4f5]">
                                                                     {entryLabel(entry)}
                                                                 </p>
                                                                 <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-                                                                    type === 'Club' ? 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300' :
-                                                                    type === 'Squad' ? 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300' :
-                                                                    'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
+                                                                    type === 'Club' ? 'border-sky-500/20 bg-sky-500/10 text-sky-400' :
+                                                                    type === 'Squad' ? 'border-violet-500/20 bg-violet-500/10 text-violet-400' :
+                                                                    'border-amber-500/20 bg-amber-500/10 text-amber-400'
                                                                 }`}>
                                                                     {type}
                                                                 </span>
                                                             </div>
                                                             {entrySubLabel(entry) && (
-                                                                <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{entrySubLabel(entry)}</p>
+                                                                <p className="mt-0.5 truncate text-xs text-[#a1a1aa]">{entrySubLabel(entry)}</p>
                                                             )}
                                                         </div>
                                                         <div className="flex items-center gap-2">
@@ -265,7 +260,7 @@ export const TournamentWorkspacePage = () => {
                                                             <button
                                                                 onClick={() => handleRemoveEntry(entry.id)}
                                                                 disabled={removingId === entry.id}
-                                                                className="inline-flex items-center justify-center rounded-full border border-rose-200 bg-white p-2 text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50 dark:border-rose-500/30 dark:bg-slate-900 dark:text-rose-400 dark:hover:bg-rose-500/10"
+                                                                className="inline-flex items-center justify-center rounded-md border border-red-500/20 bg-transparent p-2 text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
                                                                 title="Remove from event"
                                                             >
                                                                 {removingId === entry.id ? (
@@ -307,53 +302,53 @@ export const TournamentWorkspacePage = () => {
 
                 {/* Right Rail — Info Panel */}
                 <aside className="flex flex-col gap-3">
-                    <div className="rounded-[28px] border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                        <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-                            <p className="text-sm font-semibold text-slate-950 dark:text-white">Event Info</p>
+                    <div className="rounded-md border border-[#ffffff0d] bg-[#16181d]">
+                        <div className="border-b border-[#ffffff0d] px-5 py-4">
+                            <p className="text-sm font-semibold text-[#f4f4f5]">Tournament Info</p>
                         </div>
-                        <div className="divide-y divide-slate-200 px-5 py-1 text-sm dark:divide-slate-800">
+                        <div className="divide-y divide-[#ffffff0d] px-5 py-1 text-sm">
                             <div className="flex justify-between gap-3 py-2.5">
-                                <span className="text-slate-500">Host Club</span>
-                                <span className="font-semibold text-slate-950 dark:text-white">{tournament.hostClubId ?? 'None'}</span>
+                                <span className="text-[#a1a1aa]">Host Club</span>
+                                <span className="font-semibold text-[#f4f4f5]">{tournament.hostClubId ?? 'None'}</span>
                             </div>
                             <div className="flex justify-between gap-3 py-2.5">
-                                <span className="text-slate-500">Organizer</span>
-                                <span className="font-semibold text-slate-950 dark:text-white">#{tournament.organizerOrganizationId}</span>
+                                <span className="text-[#a1a1aa]">Organizer</span>
+                                <span className="font-semibold text-[#f4f4f5]">#{tournament.organizerOrganizationId}</span>
                             </div>
                             <div className="flex justify-between gap-3 py-2.5">
-                                <span className="text-slate-500">Registration</span>
-                                <span className="font-semibold text-slate-950 dark:text-white">{tournament.registrationPolicy === 'INVITE_ONLY' ? 'Invite-Only' : 'Open'}</span>
+                                <span className="text-[#a1a1aa]">Registration</span>
+                                <span className="font-semibold text-[#f4f4f5]">{tournament.registrationPolicy === 'INVITE_ONLY' ? 'Invite-Only' : 'Open'}</span>
                             </div>
                             {tournament.startDate && (
                                 <div className="flex justify-between gap-3 py-2.5">
-                                    <span className="text-slate-500">Starts</span>
-                                    <span className="font-semibold text-slate-950 dark:text-white">{new Date(tournament.startDate).toLocaleDateString()}</span>
+                                    <span className="text-[#a1a1aa]">Starts</span>
+                                    <span className="font-semibold text-[#f4f4f5]">{new Date(tournament.startDate).toLocaleDateString()}</span>
                                 </div>
                             )}
                             {tournament.endDate && (
                                 <div className="flex justify-between gap-3 py-2.5">
-                                    <span className="text-slate-500">Ends</span>
-                                    <span className="font-semibold text-slate-950 dark:text-white">{new Date(tournament.endDate).toLocaleDateString()}</span>
+                                    <span className="text-[#a1a1aa]">Ends</span>
+                                    <span className="font-semibold text-[#f4f4f5]">{new Date(tournament.endDate).toLocaleDateString()}</span>
                                 </div>
                             )}
                             {tournament.registrationOpensAt && (
                                 <div className="flex justify-between gap-3 py-2.5">
-                                    <span className="text-slate-500">Reg Opens</span>
-                                    <span className="font-semibold text-slate-950 dark:text-white">{new Date(tournament.registrationOpensAt).toLocaleString()}</span>
+                                    <span className="text-[#a1a1aa]">Reg Opens</span>
+                                    <span className="font-semibold text-[#f4f4f5]">{new Date(tournament.registrationOpensAt).toLocaleString()}</span>
                                 </div>
                             )}
                             {tournament.registrationClosesAt && (
                                 <div className="flex justify-between gap-3 py-2.5">
-                                    <span className="text-slate-500">Reg Closes</span>
-                                    <span className="font-semibold text-slate-950 dark:text-white">{new Date(tournament.registrationClosesAt).toLocaleString()}</span>
+                                    <span className="text-[#a1a1aa]">Reg Closes</span>
+                                    <span className="font-semibold text-[#f4f4f5]">{new Date(tournament.registrationClosesAt).toLocaleString()}</span>
                                 </div>
                             )}
                         </div>
                     </div>
 
                     {tournament.description && (
-                        <div className="rounded-[28px] border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                            <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+                        <div className="rounded-md border border-[#ffffff0d] bg-[#16181d]">
+                            <div className="border-b border-[#ffffff0d] px-5 py-4">
                                 <p className="text-sm font-semibold text-slate-950 dark:text-white">Description</p>
                             </div>
                             <p className="px-5 py-4 text-sm leading-6 text-slate-600 dark:text-slate-300">{tournament.description}</p>
@@ -361,8 +356,8 @@ export const TournamentWorkspacePage = () => {
                     )}
 
                     {tournament.rules && (
-                        <div className="rounded-[28px] border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                            <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+                        <div className="rounded-md border border-[#ffffff0d] bg-[#16181d]">
+                            <div className="border-b border-[#ffffff0d] px-5 py-4">
                                 <p className="text-sm font-semibold text-slate-950 dark:text-white">Rules</p>
                             </div>
                             <p className="whitespace-pre-wrap px-5 py-4 text-sm leading-6 text-slate-600 dark:text-slate-300">{tournament.rules}</p>
@@ -370,15 +365,15 @@ export const TournamentWorkspacePage = () => {
                     )}
 
                     {(tournament.staffAssignments?.length ?? 0) > 0 && (
-                        <div className="rounded-[28px] border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                            <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-                                <p className="text-sm font-semibold text-slate-950 dark:text-white">Staff ({tournament.staffAssignments.length})</p>
+                        <div className="rounded-md border border-[#ffffff0d] bg-[#16181d]">
+                            <div className="border-b border-[#ffffff0d] px-5 py-4">
+                                <p className="text-sm font-semibold text-[#f4f4f5]">Staff ({tournament.staffAssignments.length})</p>
                             </div>
                             <div className="max-h-[200px] overflow-y-auto">
                                 {tournament.staffAssignments.map((s) => (
-                                    <div key={s.id} className="flex items-center justify-between gap-2 border-b border-slate-100 px-5 py-3 text-sm dark:border-slate-800">
-                                        <span className="truncate font-semibold text-slate-950 dark:text-white">{s.fullName}</span>
-                                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">{s.role}</span>
+                                    <div key={s.id} className="flex items-center justify-between gap-2 border-b border-[#ffffff0d] px-5 py-3 text-sm">
+                                        <span className="truncate font-semibold text-[#f4f4f5]">{s.fullName}</span>
+                                        <span className="rounded-full bg-[var(--fc-surface-hover)] px-2.5 py-0.5 text-xs font-medium text-[#a1a1aa]">{s.role}</span>
                                     </div>
                                 ))}
                             </div>

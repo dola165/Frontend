@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Building2, MapPin, Clock, Target } from 'lucide-react';
+import { Building2, Clock, Target } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { PageSpinner } from '../components/workspace/helpers';
 import { EmptyStateCard } from '../components/workspace/EmptyStateCard';
-import { PaginationBar, PaginationTopBar } from '../components/ui/PaginationBar';
+import { PaginationBar } from '../components/ui/PaginationBar';
 
 interface ClubNeed {
     needId: number;
@@ -67,7 +67,6 @@ export const NeedsBoardPage = () => {
     useEffect(() => { loadNeeds(); }, [loadNeeds]);
 
     const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
-    const hasMore = needs.length === pageSize;
 
     const handlePageSizeChange = (newSize: number) => {
         setPageSize(newSize);
@@ -112,7 +111,7 @@ export const NeedsBoardPage = () => {
             {/* Content */}
             <div className="max-w-6xl mx-auto px-6 py-5">
                 {loading ? (
-                    <PageSpinner label="Loading club needs..." />
+                    <PageSpinner />
                 ) : error ? (
                     <p className="text-sm text-[#d4737a] py-10 text-center">{error}</p>
                 ) : needs.length === 0 ? (

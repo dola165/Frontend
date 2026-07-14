@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Building2, Check, ChevronLeft, ChevronRight, Clock, Filter, Loader2, MapPin, Plus, Search, Send, ShieldCheck, UserPlus, Users, X } from 'lucide-react';
+import { ArrowRight, Building2, Check, Clock, Filter, Loader2, MapPin, Plus, Search, Send, ShieldCheck, UserPlus, Users, X } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { createClubApplication, fetchMyClubMembershipContext, selfRegisterClubPlayer } from '../features/clubs/api';
 import { PaginationBar } from '../components/ui/PaginationBar';
@@ -255,38 +255,38 @@ export const BrowseClubsPage = () => {
 
     if (loading && clubs.length === 0) {
         return (
-            <div className="bg-base flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
-                <Loader2 className="h-9 w-9 animate-spin accent-primary" />
+            <div className="bg-[#0f1117] flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
+                <Loader2 className="h-9 w-9 animate-spin text-[#16a34a]" />
             </div>
         );
     }
 
     return (
-        <div className="bg-base min-h-full">
+        <div className="bg-[#0f1117] min-h-full">
             <div className="mx-auto flex w-full flex-col gap-6 px-6 py-6 sm:px-8">
                 {/* Header */}
-                <header className="border-b border-subtle pb-5">
+                <header className="border-b border-[#ffffff0d] pb-5">
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                         <div>
-                            <p className="text-[11px] font-black uppercase tracking-[0.2em] accent-primary">Destination Page</p>
-                            <h1 className="mt-2 text-3xl font-black uppercase tracking-tight text-primary">Club Directory</h1>
-                            <p className="mt-2 max-w-3xl text-sm leading-6 text-secondary">
+                            <p className="text-[11px] font-semibold text-[#16a34a]">Destination Page</p>
+                            <h1 className="mt-2 text-3xl font-semibold text-[#f4f4f5]">Club Directory</h1>
+                            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#a1a1aa]">
                                 Browse clubs as operational records: filter by type, location, join policy, or search by name.
                                 {pageResult && ` ${pageResult.totalElements} clubs found.`}
                             </p>
                         </div>
 
-                        <section className="bg-surface border border-subtle px-4 py-4 xl:w-[360px]">
-                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-secondary">My Club Workspace</p>
+                        <section className="rounded-md bg-[#16181d] border border-[#ffffff0d] px-4 py-4 xl:w-[360px]">
+                            <p className="text-[11px] font-medium text-[#a1a1aa]">My Club Workspace</p>
                             <div className="mt-3 flex items-start gap-3">
-                                <div className="flex h-10 w-10 items-center justify-center border border-subtle bg-base">
-                                    <Building2 className="h-4 w-4 accent-primary" />
+                                <div className="flex h-10 w-10 items-center justify-center border border-[#ffffff0d] bg-[#0f1117]">
+                                    <Building2 className="h-4 w-4 text-[#16a34a]" />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-sm font-black uppercase tracking-[0.16em] text-primary">
+                                    <p className="text-sm font-medium text-[#f4f4f5]">
                                         {status === 'authenticated' ? membershipContext?.clubName || 'No club attached' : 'Sign in required'}
                                     </p>
-                                    <p className="mt-1 text-xs leading-5 text-secondary">
+                                    <p className="mt-1 text-xs leading-5 text-[#a1a1aa]">
                                         {status === 'authenticated'
                                             ? membershipContext?.clubId
                                                 ? 'Open your club workspace directly or create a new one if the role allows it.'
@@ -298,15 +298,15 @@ export const BrowseClubsPage = () => {
                             <div className="mt-4 flex flex-wrap gap-2">
                                 {status !== 'authenticated' ? (
                                     <button type="button" onClick={() => navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash))}
-                                        className="inline-flex items-center gap-2 border border-accent-primary bg-accent-primary-soft px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary">Sign In</button>
+                                        className="rounded-md px-3 py-1.5 text-xs font-medium bg-[#16a34a] text-white">Sign In</button>
                                 ) : membershipContext?.canCreateClub ? (
                                     <button type="button" onClick={() => navigate('/clubs/create')}
-                                        className="inline-flex items-center gap-2 border border-accent-primary bg-accent-primary-soft px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary">
+                                        className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium bg-[#16a34a] text-white">
                                         <Plus className="h-3.5 w-3.5" />Create Club</button>
                                 ) : null}
                                 {status === 'authenticated' && membershipContext?.clubId && (
                                     <Link to={`/clubs/${membershipContext.clubId}`}
-                                        className="inline-flex items-center gap-2 border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary">
+                                        className="inline-flex items-center gap-2 border border-[#ffffff0d] bg-[#0f1117] px-3 py-2 text-[11px] font-medium text-[#f4f4f5]">
                                         Open My Club <ArrowRight className="h-3.5 w-3.5" /></Link>
                                 )}
                             </div>
@@ -316,45 +316,45 @@ export const BrowseClubsPage = () => {
 
                 {/* Error / Action Messages */}
                 {errorMessage && (
-                    <div className="border border-rose-300/50 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">{errorMessage}</div>
+                    <div className="border border-[var(--fc-state-danger)] bg-[var(--fc-state-danger-soft)] text-[var(--fc-state-danger)] px-4 py-3 text-sm font-semibold">{errorMessage}</div>
                 )}
                 {actionMessage && (
-                    <div className={`border px-4 py-3 text-sm font-semibold ${actionMessageType === 'success' ? 'border-emerald-600 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'border-rose-300/50 bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300'}`}>
+                    <div className={`border px-4 py-3 text-sm font-semibold ${actionMessageType === 'success' ? 'border border-[var(--fc-state-success)] bg-[var(--fc-state-success-soft)] text-[var(--fc-state-success)]' : 'border border-[var(--fc-state-danger)] bg-[var(--fc-state-danger-soft)] text-[var(--fc-state-danger)]'}`}>
                         {actionMessage}
                     </div>
                 )}
 
                 {/* Filter Bar */}
-                <div className="bg-surface border border-subtle">
+                <div className="rounded-md bg-[#16181d] border border-[#ffffff0d]">
                     <div className="flex flex-wrap items-center gap-3 px-4 py-3">
                         {/* Search */}
-                        <div className="flex min-w-[200px] flex-1 items-center gap-2 border border-subtle bg-base px-3 py-2">
-                            <Search className="h-4 w-4 text-secondary shrink-0" />
+                        <div className="flex min-w-[200px] flex-1 items-center gap-2 border border-[#ffffff0d] bg-[#0f1117] px-3 py-2">
+                            <Search className="h-4 w-4 text-[#a1a1aa] shrink-0" />
                             <input type="text" value={search} onChange={(e) => handleSearchChange(e.target.value)}
-                                placeholder="Search clubs..." className="flex-1 bg-transparent text-sm text-primary placeholder:text-secondary focus:outline-none" />
+                                placeholder="Search clubs..." className="flex-1 bg-transparent text-sm text-[#f4f4f5] placeholder:text-[#a1a1aa] focus:outline-none" />
                             {search && (
-                                <button type="button" onClick={() => handleSearchChange('')} className="text-secondary hover:text-primary">
+                                <button type="button" onClick={() => handleSearchChange('')} className="text-[#a1a1aa] hover:text-[#f4f4f5]">
                                     <X className="h-3.5 w-3.5" /></button>
                             )}
                         </div>
 
                         {/* Sort */}
                         <select value={sort} onChange={(e) => handleSortChange(e.target.value)}
-                            className="border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary focus:outline-none">
+                            className="rounded-md border border-[#ffffff0d] bg-[#16181d] px-3 py-1.5 text-sm font-medium text-[#f4f4f5] focus:outline-none">
                             {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
 
                         {/* Filter Toggle */}
                         <button type="button" onClick={() => setShowFilters(!showFilters)}
-                            className={`inline-flex items-center gap-2 border px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] ${showFilters || hasActiveFilters ? 'border-accent-primary bg-accent-primary-soft accent-primary' : 'border-subtle bg-base text-primary'}`}>
+                            className={`inline-flex items-center gap-2 border px-3 py-2 text-[11px] font-medium ${showFilters || hasActiveFilters ? 'border-[#16a34a] bg-[#16a34a]/10 text-[#16a34a]' : 'border-[#ffffff0d] bg-[#0f1117] text-[#f4f4f5]'}`}>
                             <Filter className="h-3.5 w-3.5" />
                             Filters
-                            {hasActiveFilters && <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent-primary text-[9px] text-[color:var(--accent-on-primary)]">!</span>}
+                            {hasActiveFilters && <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#16a34a] text-[9px] text-white">!</span>}
                         </button>
 
                         {hasActiveFilters && (
                             <button type="button" onClick={clearFilters}
-                                className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary">
+                                className="text-[11px] font-medium text-[#a1a1aa] hover:text-[#f4f4f5]">
                                 <X className="h-3.5 w-3.5 inline mr-1" />Clear
                             </button>
                         )}
@@ -362,14 +362,14 @@ export const BrowseClubsPage = () => {
 
                     {/* Expanded Filter Row */}
                     {showFilters && (
-                        <div className="border-t border-subtle px-4 py-4 space-y-4">
+                        <div className="border-t border-[#ffffff0d] px-4 py-4 space-y-4">
                             {/* Club Type */}
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Club Type</span>
+                                <span className="text-[10px] font-medium text-[#a1a1aa]">Club Type</span>
                                 <div className="mt-2 flex flex-wrap gap-2">
                                     {CLUB_TYPES.map((type) => (
                                         <button key={type} type="button" onClick={() => toggleType(type)}
-                                            className={`px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] border ${selectedTypes.includes(type) ? 'border-accent-primary bg-accent-primary-soft accent-primary' : 'border-subtle bg-base text-secondary hover:text-primary'}`}>
+                                            className={`px-3 py-1.5 text-[11px] font-medium border ${selectedTypes.includes(type) ? 'bg-[#16a34a]/10 border-[#16a34a] text-[#16a34a]' : 'border-[#ffffff0d] text-[#a1a1aa]'}`}>
                                             {type.replace('_', ' ')}</button>
                                     ))}
                                 </div>
@@ -377,11 +377,11 @@ export const BrowseClubsPage = () => {
 
                             {/* Join Policy */}
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Join Policy</span>
+                                <span className="text-[10px] font-medium text-[#a1a1aa]">Join Policy</span>
                                 <div className="mt-2 flex flex-wrap gap-2">
                                     {JOIN_POLICIES.map((policy) => (
                                         <button key={policy} type="button" onClick={() => togglePolicy(policy)}
-                                            className={`px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] border ${selectedPolicies.includes(policy) ? 'border-accent-primary bg-accent-primary-soft accent-primary' : 'border-subtle bg-base text-secondary hover:text-primary'}`}>
+                                            className={`px-3 py-1.5 text-[11px] font-medium border ${selectedPolicies.includes(policy) ? 'bg-[#16a34a]/10 border-[#16a34a] text-[#16a34a]' : 'border-[#ffffff0d] text-[#a1a1aa]'}`}>
                                             {policy.replace(/_/g, ' ')}</button>
                                     ))}
                                 </div>
@@ -389,15 +389,15 @@ export const BrowseClubsPage = () => {
 
                             {/* Location */}
                             <div className="flex flex-wrap gap-3">
-                                <div className="flex items-center gap-2 border border-subtle bg-base px-3 py-2 min-w-[140px]">
-                                    <MapPin className="h-4 w-4 text-secondary shrink-0" />
+                                <div className="flex items-center gap-2 border border-[#ffffff0d] bg-[#0f1117] px-3 py-2 min-w-[140px]">
+                                    <MapPin className="h-4 w-4 text-[#a1a1aa] shrink-0" />
                                     <input type="text" value={city} onChange={(e) => handleCityChange(e.target.value)}
-                                        placeholder="City..." className="flex-1 bg-transparent text-sm text-primary placeholder:text-secondary focus:outline-none w-24" />
+                                        placeholder="City..." className="flex-1 bg-transparent text-sm text-[#f4f4f5] placeholder:text-[#a1a1aa] focus:outline-none w-24" />
                                 </div>
-                                <div className="flex items-center gap-2 border border-subtle bg-base px-3 py-2 min-w-[140px]">
-                                    <span className="text-[10px] font-black text-secondary shrink-0">CC</span>
+                                <div className="flex items-center gap-2 border border-[#ffffff0d] bg-[#0f1117] px-3 py-2 min-w-[140px]">
+                                    <span className="text-[10px] font-medium text-[#a1a1aa] shrink-0">CC</span>
                                     <input type="text" value={country} onChange={(e) => handleCountryChange(e.target.value)}
-                                        placeholder="Country..." className="flex-1 bg-transparent text-sm text-primary placeholder:text-secondary focus:outline-none w-24" />
+                                        placeholder="Country..." className="flex-1 bg-transparent text-sm text-[#f4f4f5] placeholder:text-[#a1a1aa] focus:outline-none w-24" />
                                 </div>
                             </div>
                         </div>
@@ -405,8 +405,8 @@ export const BrowseClubsPage = () => {
                 </div>
 
                 {/* Club Table */}
-                <section className="bg-surface border border-subtle">
-                    <div className="hidden border-b border-subtle px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-secondary lg:grid lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1.6fr)_150px_170px_180px] lg:gap-4">
+                <section className="rounded-md bg-[#16181d] border border-[#ffffff0d]">
+                    <div className="hidden border-b border-[#ffffff0d] px-4 py-3 text-[11px] font-medium text-[#a1a1aa] lg:grid lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1.6fr)_150px_170px_180px] lg:gap-4">
                         <span>Club</span>
                         <span>Description</span>
                         <span>Location</span>
@@ -415,94 +415,98 @@ export const BrowseClubsPage = () => {
                     </div>
 
                     {loading ? (
-                        <div className="flex justify-center py-10"><Loader2 className="h-7 w-7 animate-spin accent-primary" /></div>
+                        <div className="flex justify-center py-10"><Loader2 className="h-7 w-7 animate-spin text-[#16a34a]" /></div>
                     ) : clubs.length === 0 ? (
                         <div className="px-4 py-12 text-center">
-                            <p className="text-sm font-semibold text-secondary">{hasActiveFilters ? 'No clubs match your filters.' : 'No clubs are available in the directory right now.'}</p>
+                            <p className="text-sm font-semibold text-[#a1a1aa]">{hasActiveFilters ? 'No clubs match your filters.' : 'No clubs are available in the directory right now.'}</p>
                         </div>
                     ) : (
-                        <div className="divide-y divide-[color:var(--border-subtle)]">
+                        <div className="divide-y divide-[#ffffff0d]">
                             {(Array.isArray(clubs) ? clubs : []).map((club) => {
                                 const logoUrl = resolveMediaUrl(club.logoUrl);
                                 return (
                                     <article key={club.id} className="grid gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1.6fr)_150px_170px_180px] lg:items-center">
                                         <div className="min-w-0">
                                             <div className="flex items-start gap-3">
-                                                <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-subtle bg-base text-sm font-black uppercase text-primary">
+                                                <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-[#ffffff0d] bg-[#0f1117] text-sm font-semibold text-[#f4f4f5]">
                                                     {logoUrl ? <img src={logoUrl} alt={`${club.name} logo`} className="h-full w-full object-cover" /> : club.name.substring(0, 2).toUpperCase()}
                                                 </div>
                                                 <div className="min-w-0">
                                                     <div className="flex flex-wrap items-center gap-2">
-                                                        <Link to={`/clubs/${club.id}`} className="truncate text-sm font-black uppercase tracking-[0.16em] text-primary hover:underline">{club.name}</Link>
-                                                        {club.isOfficial && <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] accent-primary"><ShieldCheck className="h-3.5 w-3.5" />Official</span>}
+                                                        <Link to={`/clubs/${club.id}`} className="truncate text-sm text-[#f4f4f5] font-semibold hover:text-[#16a34a]">{club.name}</Link>
+                                                        {club.isOfficial && <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#16a34a]"><ShieldCheck className="h-3.5 w-3.5" />Official</span>}
                                                         {club.joinPolicy && (
-                                                            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${
-                                                                club.joinPolicy === 'OPEN_TRIAL' ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
-                                                                : club.joinPolicy === 'APPLICATION_REQUIRED' ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
-                                                                : 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-300'}`}>
+                                                            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-medium ${
+                                                                club.joinPolicy === 'OPEN_TRIAL' ? 'bg-emerald-500/10 text-emerald-400'
+                                                                : club.joinPolicy === 'APPLICATION_REQUIRED' ? 'bg-amber-500/10 text-amber-400'
+                                                                : 'bg-violet-500/10 text-violet-400'}`}>
                                                                 {club.joinPolicy.replace(/_/g, ' ')}</span>
                                                         )}
                                                         {club.joinPolicy && (
-                                                            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${
+                                                            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-medium ${
                                                                 club.joinPolicy === 'OPEN_TRIAL'
-                                                                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
+                                                                    ? 'bg-emerald-500/10 text-emerald-400'
                                                                     : club.joinPolicy === 'APPLICATION_REQUIRED'
-                                                                    ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300'
-                                                                    : 'border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-500/30 dark:bg-purple-500/10 dark:text-purple-300'
+                                                                    ? 'bg-amber-500/10 text-amber-400'
+                                                                    : 'bg-violet-500/10 text-violet-400'
                                                             }`}>
                                                                 {club.joinPolicy.replace('_', ' ')}
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <p className="mt-1 text-[11px] font-black uppercase tracking-[0.18em] text-secondary">{club.type}</p>
+                                                    <p className="mt-1 text-[11px] font-medium text-[#a1a1aa]">{club.type}</p>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <p className="text-sm leading-6 text-secondary">{club.description || 'No club summary provided yet.'}</p>
+                                        <p className="text-sm leading-6 text-[#a1a1aa]">{club.description || 'No club summary provided yet.'}</p>
 
-                                        <div className="text-sm text-secondary">
+                                        <div className="text-sm text-[#a1a1aa]">
                                             <div className="inline-flex items-center gap-1.5">
-                                                <MapPin className="h-3.5 w-3.5 accent-primary" />
+                                                <MapPin className="h-3.5 w-3.5 text-[#16a34a]" />
                                                 <span>{club.cityName || club.addressText?.split(',')[0] || 'Location pending'}</span>
                                             </div>
                                         </div>
 
-                                        <div className="flex flex-wrap items-center gap-3 text-[11px] font-black uppercase tracking-[0.18em] text-secondary">
-                                            <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 accent-primary" />{club.memberCount} members</span>
+                                        <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-[#a1a1aa]">
+                                            <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-[#16a34a]" />{club.memberCount} members</span>
                                             <span>{club.followerCount} followers</span>
                                         </div>
 
                                         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                                             {status === 'authenticated' && club.relationshipState === 'NONE' && club.joinPolicy === 'OPEN_TRIAL' && (
                                                 <button type="button" onClick={() => handleJoinClub(club.id)} disabled={joiningClubId === club.id}
-                                                    className="inline-flex items-center gap-1.5 border border-accent-primary bg-accent-primary-soft px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] accent-primary disabled:opacity-60">
+                                                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium bg-[#16a34a] text-white disabled:opacity-60">
                                                     {joiningClubId === club.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}Join</button>
                                             )}
                                             {status === 'authenticated' && club.relationshipState === 'NONE' && club.joinPolicy === 'APPLICATION_REQUIRED' && (
                                                 <button type="button" onClick={() => handleApplyClub(club.id)} disabled={applyingClubId === club.id}
-                                                    className="inline-flex items-center gap-1.5 border border-accent-primary bg-accent-primary-soft px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] accent-primary disabled:opacity-60">
+                                                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium bg-[#16a34a] text-white disabled:opacity-60">
                                                     {applyingClubId === club.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}Apply</button>
                                             )}
                                             {status === 'authenticated' && club.relationshipState === 'ACTIVE' && (
-                                                <span className="inline-flex items-center gap-1 border border-emerald-600 bg-emerald-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"><Check className="h-3 w-3" />Member</span>
+                                                <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium bg-emerald-500/10 text-emerald-400"><Check className="h-3 w-3" />Member</span>
                                             )}
                                             {status === 'authenticated' && club.relationshipState === 'APPLIED' && (
-                                                <span className="inline-flex items-center gap-1 border border-amber-600 bg-amber-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"><Clock className="h-3 w-3" />Pending</span>
+                                                <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium bg-amber-500/10 text-amber-400"><Clock className="h-3 w-3" />Pending</span>
                                             )}
                                             {status === 'authenticated' && club.relationshipState === 'INVITED' && (
-                                                <span className="inline-flex items-center gap-1 border border-sky-600 bg-sky-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">Invited</span>
+                                                <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium bg-sky-500/10 text-sky-400">Invited</span>
                                             )}
                                             {status === 'authenticated' && club.relationshipState === 'TRIALIST' && (
-                                                <span className="inline-flex items-center gap-1 border border-purple-600 bg-purple-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-purple-700 dark:bg-purple-500/10 dark:text-purple-300">Trialist</span>
+                                                <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium bg-violet-500/10 text-violet-400">Trialist</span>
                                             )}
 
                                             <button type="button" onClick={(event) => handleFollowToggle(event, club.id)}
-                                                className={`inline-flex items-center gap-2 border px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] ${club.isFollowedByMe ? 'border-accent-primary bg-accent-primary-soft accent-primary' : 'border-subtle bg-base text-primary'}`}>
+                                                className={`inline-flex items-center gap-2 border px-3 py-2 text-[11px] font-medium rounded-md ${
+                                                    club.isFollowedByMe
+                                                        ? 'border-[#16a34a] bg-[#16a34a]/10 text-[#16a34a]'
+                                                        : 'border-[#ffffff0d] bg-[#0f1117] text-[#f4f4f5]'
+                                                }`}>
                                                 {club.isFollowedByMe ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}{club.isFollowedByMe ? 'Following' : 'Follow'}</button>
 
                                             <Link to={`/clubs/${club.id}`}
-                                                className="inline-flex items-center gap-2 border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary">Open <ArrowRight className="h-3.5 w-3.5" /></Link>
+                                                className="inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-xs font-medium text-[#16a34a]">Open <ArrowRight className="h-3.5 w-3.5" /></Link>
                                         </div>
                                     </article>
                                 );

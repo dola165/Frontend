@@ -21,9 +21,9 @@ interface RolesTabProps {
 }
 
 export const RolesTab = ({
-    overview, currentUserId, currentRole, pendingKey,
-    confirmingOwnershipTransferUserId, confirmingSelfLeave, isOwner,
-    transferCandidates, onConfirmOwnershipTransfer, onTransferOwnership,
+    overview, pendingKey,
+    confirmingSelfLeave, isOwner,
+    transferCandidates, onTransferOwnership,
     onConfirmSelfLeave, onLeaveClub
 }: RolesTabProps) => (
     <div className="space-y-4">

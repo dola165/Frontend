@@ -10,14 +10,14 @@ import { useAuth } from '../context/AuthContext';
 import { buildLoginRedirectPath } from '../utils/authRedirect';
 
 const statusTone: Record<string, string> = {
-    PLANNING: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/30',
-    ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-    COMPLETED: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/30',
-    CANCELLED: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
+    PLANNING: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+    ACTIVE: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    COMPLETED: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    CANCELLED: 'bg-red-500/10 text-red-400 border-red-500/20',
 };
 
-const inputClass = 'w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-[#00c853] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-[#00c853]';
-const selectClass = 'rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition-colors focus:border-[#00c853] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:focus:border-[#00c853]';
+const inputClass = 'w-full rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3 text-sm text-[#f4f4f5] outline-none transition-colors placeholder:text-[#a1a1aa] focus:ring-1 focus:ring-[#16a34a]';
+const selectClass = 'rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3 text-sm font-medium text-[#f4f4f5] outline-none transition-colors focus:ring-1 focus:ring-[#16a34a]';
 
 export const BrowseTournamentsPage = () => {
     const navigate = useNavigate();
@@ -86,25 +86,29 @@ export const BrowseTournamentsPage = () => {
         : tournaments;
 
     return (
-        <div className="min-h-full bg-[#f2f4f7] font-sans text-slate-950 selection:bg-[#00c853]/20 dark:bg-slate-950 dark:text-slate-100 dark:selection:bg-[#00c853]/30">
+        <div className="min-h-full bg-[#0f1117] text-[#f4f4f5] selection:bg-[#16a34a]/20">
             <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
                 {/* Header */}
-                <div>
-                    <p className="text-sm font-semibold text-[#00c853]">Discovery</p>
-                    <h1 className="mt-1 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl dark:text-white">
-                        Events
-                    </h1>
-                    <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300">
-                        Browse and register for events across the platform.
-                    </p>
+                <div className="flex items-start justify-between">
+                    <div>
+                        <p className="text-sm font-medium text-[#16a34a]">Discovery</p>
+                        <h1 className="mt-1 text-2xl font-semibold text-[#f4f4f5]">Tournaments</h1>
+                        <p className="mt-2 max-w-2xl text-sm text-[#a1a1aa]">
+                            Browse and register for tournaments across the platform.
+                        </p>
+                    </div>
+                    <Link to="/tournaments/setup" className="shrink-0 rounded-md bg-[#16a34a] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity inline-flex items-center gap-2">
+                        <Trophy className="h-4 w-4" />
+                        Create Tournament
+                    </Link>
                 </div>
 
                 {/* Toast */}
                 {message && (
-                    <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                    <div className={`rounded-md border px-4 py-3 text-sm font-semibold ${
                         messageType === 'success'
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
-                            : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300'
+                            ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
+                            : 'border-red-500/20 bg-red-500/10 text-red-400'
                     }`}>
                         {message}
                     </div>
@@ -113,7 +117,7 @@ export const BrowseTournamentsPage = () => {
                 {/* Filters */}
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="relative min-w-0 flex-1 lg:max-w-sm">
-                        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a1a1aa]" />
                         <input
                             type="text"
                             value={searchQuery}
@@ -134,20 +138,11 @@ export const BrowseTournamentsPage = () => {
                         <option value="ACTIVE">Active</option>
                         <option value="COMPLETED">Completed</option>
                     </select>
-                    {isAuthenticated && (
-                        <Link
-                            to="/tournaments/setup"
-                            className="inline-flex items-center gap-2 rounded-full bg-[#00c853] px-5 py-3 text-sm font-semibold text-black transition-colors hover:bg-[#00e676]"
-                        >
-                            <Trophy className="h-4 w-4" />
-                            Create Event
-                        </Link>
-                    )}
                 </div>
 
                 {/* Error */}
                 {error && (
-                    <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
+                    <div className="rounded-md border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400">
                         {error}
                     </div>
                 )}
@@ -155,16 +150,16 @@ export const BrowseTournamentsPage = () => {
                 {/* Content */}
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
-                        <Loader2 className="h-8 w-8 animate-spin text-[#00c853]" />
+                        <Loader2 className="h-8 w-8 animate-spin text-[#16a34a]" />
                     </div>
                 ) : displayTournaments.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <Trophy className="mb-4 h-12 w-12 text-slate-300 dark:text-slate-600" />
-                        <p className="text-lg font-semibold text-slate-700 dark:text-slate-200">No events found</p>
-                        <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        <Trophy className="mb-4 h-12 w-12 text-[#a1a1aa]" />
+                        <p className="text-lg font-semibold text-[#f4f4f5]">No tournaments found</p>
+                        <p className="mt-2 text-sm text-[#a1a1aa]">
                             {searchQuery || scopeFilter || statusFilter
                                 ? 'Try adjusting your filters.'
-                                : 'No events have been created yet.'}
+                                : 'No tournaments have been created yet.'}
                         </p>
                     </div>
                 ) : (
@@ -175,10 +170,10 @@ export const BrowseTournamentsPage = () => {
                                 <Link
                                     key={t.id}
                                     to={`/tournaments/${t.id}`}
-                                    className="group flex flex-col rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-[#1f6feb] hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-[#4c8dff]"
+                                    className="group flex flex-col rounded-md border border-[#ffffff0d] bg-[#16181d] p-5 transition-all hover:border-[#16a34a]"
                                 >
                                     <div className="flex items-start justify-between gap-3">
-                                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-[#f2f4f7] text-[#00c853] dark:border-slate-700 dark:bg-slate-800 dark:text-[#00c853]">
+                                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#ffffff0d] bg-[var(--fc-surface-hover)] text-[#16a34a]">
                                             <Trophy className="h-5 w-5" />
                                         </div>
                                         <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusTone[t.status] ?? statusTone.COMPLETED}`}>
@@ -186,39 +181,39 @@ export const BrowseTournamentsPage = () => {
                                         </span>
                                     </div>
 
-                                    <h3 className="mt-4 text-base font-semibold text-slate-950 group-hover:text-[#00c853] dark:text-white dark:group-hover:text-[#00c853]">
+                                    <h3 className="mt-4 text-base font-semibold text-[#f4f4f5] group-hover:text-[#16a34a] transition-colors">
                                         {t.name}
                                     </h3>
 
                                     {t.description && (
-                                        <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                        <p className="mt-2 line-clamp-2 text-sm text-[#a1a1aa]">
                                             {t.description}
                                         </p>
                                     )}
 
-                                    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 dark:bg-slate-800">
+                                    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[#a1a1aa]">
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--fc-surface-hover)] px-2.5 py-1">
                                             {t.participantScope === 'PLAYER' ? <UserPlus className="h-3 w-3" /> : <Users className="h-3 w-3" />}
                                             {tournamentScopeLabel(t.participantScope)}
                                         </span>
-                                        <span className="rounded-full bg-slate-100 px-2.5 py-1 dark:bg-slate-800">
+                                        <span className="rounded-full bg-[var(--fc-surface-hover)] px-2.5 py-1">
                                             {tournamentVisibilityLabel(t.visibility)}
                                         </span>
                                         {t.entryCount > 0 && (
-                                            <span className="rounded-full bg-slate-100 px-2.5 py-1 dark:bg-slate-800">
+                                            <span className="rounded-full bg-[var(--fc-surface-hover)] px-2.5 py-1">
                                                 {t.entryCount} entries
                                             </span>
                                         )}
                                     </div>
 
                                     {t.hostClubName && (
-                                        <p className="mt-3 text-xs font-medium text-slate-400 dark:text-slate-500">
+                                        <p className="mt-3 text-xs text-[#a1a1aa]">
                                             Hosted by {t.hostClubName}
                                         </p>
                                     )}
 
                                     {t.startDate && (
-                                        <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                                        <div className="mt-3 flex items-center gap-1.5 text-xs text-[#a1a1aa]">
                                             <Calendar className="h-3.5 w-3.5" />
                                             <span>{new Date(t.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                                             {t.endDate && (
@@ -228,13 +223,13 @@ export const BrowseTournamentsPage = () => {
                                     )}
 
                                     <div className="mt-5 flex items-center gap-2 pt-3">
-                                        <span className="flex-1 text-sm font-semibold text-[#00c853] group-hover:underline dark:text-[#00c853]">
+                                        <span className="flex-1 text-sm font-medium text-[#16a34a] group-hover:underline">
                                             View Event
                                             <ArrowRight className="ml-1.5 inline-block h-4 w-4" />
                                         </span>
                                         {t.participantScope === 'PLAYER' && t.status === 'PLANNING' && (
                                             registeredIds.has(t.id) ? (
-                                                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-400">
                                                     <Check className="h-3.5 w-3.5" />
                                                     Registered
                                                 </span>
@@ -247,7 +242,7 @@ export const BrowseTournamentsPage = () => {
                                                         handleRegister(t.id);
                                                     }}
                                                     disabled={registeringId === t.id}
-                                                    className="inline-flex items-center gap-1.5 rounded-full bg-[#00c853] px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-[#00e676] disabled:opacity-60"
+                                                    className="inline-flex items-center gap-1.5 rounded-md bg-[#16a34a] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                                                 >
                                                     {registeringId === t.id ? (
                                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />

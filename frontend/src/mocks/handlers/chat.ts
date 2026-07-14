@@ -1,6 +1,6 @@
 import { http, HttpHandler, HttpResponse } from 'msw';
 import { users, currentUserId } from '../data/store';
-import { conversations, messages, suggestions, blocks, blockKey, nextMsgId, mockSendMessage } from '../data/chatStore';
+import { conversations, messages, suggestions, blocks, blockKey } from '../data/chatStore';
 import { simulateLatency, paginate } from '../utils';
 import type { ConversationDto, ParticipantInfo } from '../../api/chat';
 
@@ -88,9 +88,6 @@ export const chatHandlers: HttpHandler[] = [
             contextId?: number;
             participantIds: number[];
         };
-
-        const user = users().get(uid);
-        const myName = user?.fullName || user?.username || 'Me';
 
         const allIds = [uid, ...body.participantIds.filter((id) => id !== uid)];
         const uniqueIds = [...new Set(allIds)];

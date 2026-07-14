@@ -90,7 +90,7 @@ export const MessagingPage = () => {
     const [peopleSearchLoading, setPeopleSearchLoading] = useState(false);
     const [managementError, setManagementError] = useState<string | null>(null);
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
-    const peopleSearchRef = useRef<ReturnType<typeof setTimeout>>();
+    const peopleSearchRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
     const clientRef = useRef<Client | null>(null);
     const subRef = useRef<{ unsubscribe: () => void } | null>(null);
@@ -385,7 +385,7 @@ export const MessagingPage = () => {
         if (!activeConvId) return;
         setManagementError(null);
         try {
-            const res = await chatApi.decideSuggestion(activeConvId, suggestionId, 'APPROVE');
+            await chatApi.decideSuggestion(activeConvId, suggestionId, 'APPROVE');
             setSuggestions((prev) => prev.filter((s) => s.id !== suggestionId));
             await loadConversations();
         } catch {

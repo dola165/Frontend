@@ -32,6 +32,10 @@ export interface AgentEngagement {
     responseNotes: string | null;
     createdAt: string;
     respondedAt: string | null;
+    agentUserId: number;
+    agentName: string;
+    agencyName: string | null;
+    agentAvatarUrl: string | null;
 }
 
 export interface PlayerSearchResult {

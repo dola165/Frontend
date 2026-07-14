@@ -1,4 +1,4 @@
-import { Loader2, X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 export const avatarLetter = (value?: string | null) => (value?.trim()?.charAt(0) || '?').toUpperCase();
@@ -21,30 +21,71 @@ export const SectionHeader = ({ eyebrow, title, description, action }: { eyebrow
     </div>
 );
 
-export const EmptyState = ({ message }: { message: string }) => (
-    <div className="rounded-md border border-[var(--fc-border)] px-4 py-12 text-center text-sm font-medium text-[var(--fc-text-muted)]">
-        {message}
+export const EmptyState = ({ message, description, icon }: { message: string; description?: string; icon?: React.ReactNode }) => (
+    <div className="rounded-md border border-[var(--fc-border)] px-4 py-12 text-center">
+        {icon && <div className="mb-3 flex justify-center text-[var(--fc-text-muted)]">{icon}</div>}
+        <p className="text-sm font-medium text-[var(--fc-text-muted)]">{message}</p>
+        {description && <p className="mt-1 text-xs text-[var(--fc-text-muted)]">{description}</p>}
     </div>
 );
 
-export const DataTable = ({ columns, children }: { columns: string[]; children: ReactNode }) => (
-    <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-            <thead>
-                <tr className="border-b border-[var(--fc-border)]">
-                    {columns.map((col) => (
-                        <th key={col} className="px-4 h-11 text-xs font-semibold text-[var(--fc-text-secondary)]">
-                            {col}
-                        </th>
-                    ))}
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--fc-border)]">
-                {children}
-            </tbody>
-        </table>
-    </div>
-);
+export interface SortState {
+    column: number;
+    direction: 'asc' | 'desc';
+}
+
+export const DataTable = ({
+    columns,
+    children,
+    sort,
+    onSort
+}: {
+    columns: string[];
+    children: ReactNode;
+    sort?: SortState | null;
+    onSort?: (columnIndex: number) => void;
+}) => {
+    const handleSort = (colIndex: number) => {
+        if (!onSort || columns[colIndex] === '') return; // last action column not sortable
+        onSort(colIndex);
+    };
+
+    return (
+        <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+                <thead>
+                    <tr className="border-b border-[var(--fc-border)]">
+                        {columns.map((col, i) => {
+                            const isSortable = onSort && col !== '';
+                            const isActive = sort?.column === i;
+                            return (
+                                <th key={col || `col-${i}`} className="px-4 h-11 text-xs font-semibold text-[var(--fc-text-secondary)]">
+                                    {isSortable ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSort(i)}
+                                            className="inline-flex items-center gap-1 hover:text-[var(--fc-text-primary)] transition-colors cursor-pointer"
+                                        >
+                                            {col}
+                                            <span className="text-[10px] leading-none">
+                                                {isActive ? (sort.direction === 'asc' ? '▲' : '▼') : '⇅'}
+                                            </span>
+                                        </button>
+                                    ) : (
+                                        col
+                                    )}
+                                </th>
+                            );
+                        })}
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--fc-border)]">
+                    {children}
+                </tbody>
+            </table>
+        </div>
+    );
+};
 
 export const Pill = ({ label, tone = 'neutral' }: { label: string; tone?: 'neutral' | 'success' | 'danger' | 'warning' | 'info' }) => {
     const tones: Record<string, string> = {

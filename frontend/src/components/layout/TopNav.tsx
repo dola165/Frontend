@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     BellRing,
     Building2,
@@ -13,6 +14,7 @@ import {
     ShoppingBag,
     Sun,
     Target,
+    Trophy,
     User
 } from 'lucide-react';
 import { GlobalSearchBar } from '../search/GlobalSearchBar';
@@ -28,12 +30,23 @@ interface TopNavProps {
     handleLogout: () => void;
 }
 
+const labelKey = (id: string): string => {
+    const keys: Record<string, string> = {
+        feed: 'nav.feed', map: 'nav.map', clubs: 'nav.clubs', 'my-club': 'nav.myClub',
+        calendar: 'nav.schedule', messages: 'nav.messages', marketplace: 'nav.marketplace',
+        needs: 'nav.clubNeeds', notifications: 'nav.notifications', 'agent-dashboard': 'nav.agentHub',
+        tournaments: 'nav.tournaments'
+    };
+    return keys[id] || id;
+};
+
 const primaryLinks = [
     { id: 'feed', path: '/feed', label: 'Feed', icon: Home, authRequired: true },
     { id: 'map', path: '/map', label: 'Map', icon: MapIcon, authRequired: true },
     { id: 'clubs', path: '/clubs', label: 'Clubs', icon: Shield, authRequired: false },
     { id: 'my-club', path: '/my-club', label: 'My Club', icon: Building2, authRequired: true },
     { id: 'calendar', path: '/calendar', label: 'Schedule', icon: CalendarDays, authRequired: true },
+    { id: 'tournaments', path: '/tournaments', label: 'Tournaments', icon: Trophy, authRequired: false },
     { id: 'messages', path: '/messages', label: 'Messages', icon: MessageSquare, authRequired: true },
     { id: 'marketplace', path: '/marketplace', label: 'Marketplace', icon: ShoppingBag, authRequired: false },
     { id: 'needs', path: '/needs', label: 'Club Needs', icon: Target, authRequired: false },
@@ -43,6 +56,7 @@ const primaryLinks = [
 const agentLink = { id: 'agent-dashboard', path: '/agent/dashboard', label: 'Agent Hub', icon: ShieldCheck, authRequired: true, roleRequired: 'AGENT' as const };
 
 export const TopNav = ({ user, myClubId, darkMode, setDarkMode, handleLogout }: TopNavProps) => {
+    const { t } = useTranslation();
     const location = useLocation();
     const activeKey = resolveNavigationKey(location.pathname, myClubId);
     const isClubPage = /^\/clubs\/\d+(\/squads)?$/.test(location.pathname);
@@ -55,7 +69,7 @@ export const TopNav = ({ user, myClubId, darkMode, setDarkMode, handleLogout }: 
                         <button
                             type="button"
                             className="inline-flex h-9 w-9 items-center justify-center rounded-full text-secondary hover:bg-black/5 dark:hover:bg-white/[0.06] lg:hidden"
-                            aria-label="Open navigation"
+                            aria-label={t('nav.openNav')}
                         >
                             <Menu className="h-4 w-4" />
                         </button>
@@ -83,7 +97,7 @@ export const TopNav = ({ user, myClubId, darkMode, setDarkMode, handleLogout }: 
                             type="button"
                             onClick={() => setDarkMode(!darkMode)}
                             className="inline-flex h-9 w-9 items-center justify-center rounded-full text-secondary transition-colors hover:bg-black/5 hover:text-primary dark:hover:bg-white/[0.06] dark:hover:text-[#f4f4f5]"
-                            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                            aria-label={darkMode ? t('nav.switchToLight') : t('nav.switchToDark')}
                         >
                             {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                         </button>
@@ -101,7 +115,7 @@ export const TopNav = ({ user, myClubId, darkMode, setDarkMode, handleLogout }: 
                                     onClick={handleLogout}
                                     className="hidden rounded-full px-3 py-2 text-xs font-semibold transition-colors sm:inline-flex text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-[#71717a] dark:hover:bg-white/[0.04] dark:hover:text-[#f4f4f5]"
                                 >
-                                    Sign Out
+                                    {t('nav.signOut')}
                                 </button>
                             </>
                         ) : (
@@ -110,14 +124,14 @@ export const TopNav = ({ user, myClubId, darkMode, setDarkMode, handleLogout }: 
                                     to="/login"
                                     className="hidden rounded-full px-3 py-2 text-xs font-semibold transition-colors sm:inline-flex text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-[#71717a] dark:hover:bg-white/[0.04] dark:hover:text-[#f4f4f5]"
                                 >
-                                    Sign In
+                                    {t('nav.signIn')}
                                 </Link>
                                 <Link
                                     to="/signup"
                                     className="inline-flex items-center gap-2 rounded-full bg-[#00c853] px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-[#00e676]"
                                 >
                                     <User className="h-3.5 w-3.5" />
-                                    Account
+                                    {t('nav.account')}
                                 </Link>
                             </>
                         )}
@@ -147,7 +161,7 @@ export const TopNav = ({ user, myClubId, darkMode, setDarkMode, handleLogout }: 
                                     }`}
                                 >
                                     <Icon className={`h-4 w-4 ${active ? 'text-[#00c853]' : ''}`} />
-                                    {item.label}
+                                    {t(labelKey(item.id), item.label)}
                                 </Link>
                             );
                             });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building2, ChevronLeft, ChevronRight, Heart, Loader2, MapPin, MessageSquare, ShieldCheck, Users, X } from 'lucide-react';
+import { Building2, ChevronLeft, ChevronRight, Heart, Loader2, ShieldCheck, Users, X } from 'lucide-react';
 import { apiClient } from '../../api/axiosConfig';
 import { useAuth } from '../../context/AuthContext';
 import { extractApiErrorMessage } from '../../utils/apiError';
@@ -124,9 +124,6 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
         if (step === 2) return formData.name.trim().length > 0;
         return false;
     };
-
-    const selectedKind = orgKindOptions.find(k => k.value === orgKind);
-    const isKindAvailable = selectedKind ? selectedKind.allowedRoles.includes(userRole ?? '') && !selectedKind.comingSoon : false;
 
     // Shared input class
     const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-primary outline-none transition-colors focus:border-accent-primary placeholder:text-secondary';

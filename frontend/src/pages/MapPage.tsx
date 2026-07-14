@@ -4,7 +4,6 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { useNavigate } from 'react-router-dom';
 import {
     Building2,
-    CheckCheck,
     ChevronLeft,
     Clock,
     ExternalLink,
@@ -16,7 +15,6 @@ import {
     RefreshCw,
     Search,
     ShieldCheck,
-    Trophy,
     Users,
     X
 } from 'lucide-react';
@@ -27,7 +25,7 @@ import { MapFilterSidebar, defaultMapFilters, type MapEntityType, type MapFilter
 import { useAuth } from '../context/AuthContext';
 import { fetchMyClubMembershipContext } from '../features/clubs/api';
 import { isLeadershipRole } from '../features/clubs/domain';
-import { createScheduleChallenge, fetchPublicScheduleEvents, type ScheduleEventOccurrence } from '../features/schedule/api';
+import { createScheduleChallenge, type ScheduleEventOccurrence } from '../features/schedule/api';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -114,8 +112,6 @@ interface MarkerCluster {
 }
 
 const DEFAULT_CENTER: [number, number] = [42.3154, 43.3569]; // Caucasus — most seed clubs are here
-const MAP_HORIZON_DAYS = 90;
-const AGE_GROUP_REGEX = /\b(U8|U9|U10|U11|U12|U13|U14|U15|U16|U17|U18|U19|U21|Senior)\b/gi;
 const CLUB_QUERY_LIMIT = 8;
 
 const dateTimeFormatter = new Intl.DateTimeFormat('en-GB', {
@@ -161,40 +157,6 @@ const haversineKm = (from: [number, number], latitude?: number | null, longitude
     return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-const extractAgeGroups = (value: string) => {
-    const matches = value.match(AGE_GROUP_REGEX) ?? [];
-    return Array.from(new Set(matches.map((entry) => entry.toUpperCase().startsWith('U') ? entry.toUpperCase() : 'Senior')));
-};
-
-const extractGenders = (value: string): DerivedGender[] => {
-    const normalized = normalizeText(value);
-    const genders: DerivedGender[] = [];
-    if (normalized.includes('girls') || normalized.includes('female')) genders.push('Girls');
-    if (normalized.includes('women') || normalized.includes('ladies')) genders.push('Women');
-    if (normalized.includes('boys')) genders.push('Boys');
-    if (normalized.includes('men') || normalized.includes('male')) genders.push('Men');
-    if (normalized.includes('mixed') || normalized.includes('co-ed') || normalized.includes('coed')) genders.push('Mixed');
-    return Array.from(new Set(genders));
-};
-
-const extractLevel = (value: string): DerivedLevel | null => {
-    const normalized = normalizeText(value);
-    if (normalized.includes('academy')) return 'Academy';
-    if (normalized.includes('grassroots')) return 'Grassroots';
-    if (normalized.includes('amateur')) return 'Amateur';
-    if (normalized.includes('youth')) return 'Youth';
-    return null;
-};
-
-const extractTravelPreference = (value: string): DerivedTravelPreference | null => {
-    const normalized = normalizeText(value);
-    if (normalized.includes('home only') || normalized.includes('host only')) return 'HOME_ONLY';
-    if (normalized.includes('willing to travel') || normalized.includes('can travel') || normalized.includes('away ok')) return 'WILL_TRAVEL';
-    if (normalized.includes('neutral')) return 'NEUTRAL';
-    if (normalized.includes('flexible')) return 'FLEXIBLE';
-    return null;
-};
-
 const extractCityCountry = (value?: string | null) => {
     if (!value) {
         return { city: null, country: null };
@@ -216,27 +178,7 @@ const getTimeWindow = (value?: string | null) => {
     return 'Evening';
 };
 
-const matchDateWindow = (value: string | null, window: 'NEXT_7_DAYS' | 'NEXT_30_DAYS' | 'NEXT_90_DAYS') => {
-    if (!value) {
-        return false;
-    }
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-        return false;
-    }
-    const now = new Date();
-    const diff = parsed.getTime() - now.getTime();
-    const limitDays = window === 'NEXT_7_DAYS' ? 7 : window === 'NEXT_30_DAYS' ? 30 : 90;
-    return diff >= 0 && diff <= limitDays * 24 * 60 * 60 * 1000;
-};
-
 const joinSearchText = (...parts: Array<string | null | undefined>) => normalizeText(parts.filter(Boolean).join(' '));
-
-const getMatchState = (event: ScheduleEventOccurrence): DerivedMatchState => {
-    if (event.challengeStatus === 'OPEN') return 'OPEN';
-    if (event.challengeStatus === 'PENDING') return 'PENDING';
-    return 'CONFIRMED';
-};
 
 const buildClubRecord = (club: ClubDirectoryRecord): DiscoveryRecord => {
     const city = club.cityName ?? extractCityCountry(club.addressText).city;
@@ -258,6 +200,7 @@ const buildClubRecord = (club: ClubDirectoryRecord): DiscoveryRecord => {
         official: Boolean(club.isOfficial),
         followerCount: club.followerCount ?? 0,
         memberCount: club.memberCount ?? 0,
+        distanceKm: null,
         typeLabel: club.type || null,
         statusLabel: club.statusLabel ?? null,
         matchSubtype: null,
@@ -270,50 +213,6 @@ const buildClubRecord = (club: ClubDirectoryRecord): DiscoveryRecord => {
         city,
         country,
         searchText: joinSearchText(club.name, club.description, club.addressText, club.type)
-    };
-};
-
-const buildScheduleRecord = (event: ScheduleEventOccurrence, clubsById: Map<number, ClubDirectoryRecord>): DiscoveryRecord | null => {
-    if (event.eventType !== 'TRYOUT' && event.eventType !== 'MATCH' && event.eventType !== 'FRIENDLY') {
-        return null;
-    }
-
-    const club = event.clubId != null ? clubsById.get(event.clubId) : undefined;
-    const sourceText = [event.title, event.description, event.locationName, event.clubName, event.opponentClubName].filter(Boolean).join(' ');
-    const { city, country } = extractCityCountry(event.locationName ?? club?.addressText);
-
-    return {
-        key: `event:${event.occurrenceId}`,
-        entityType: event.eventType === 'TRYOUT' ? 'TRYOUT' : 'MATCH',
-        source: 'SCHEDULE',
-        title: event.title,
-        subtitle: event.eventType === 'TRYOUT'
-            ? (event.clubName ?? club?.name ?? 'Club schedule')
-            : [event.eventType === 'FRIENDLY' ? 'Friendly' : 'Match', event.challengeStatus === 'OPEN' ? 'Open Need' : event.opponentClubName].filter(Boolean).join(' / '),
-        description: event.description,
-        clubId: event.clubId,
-        clubName: event.clubName ?? club?.name ?? null,
-        startsAt: event.startsAt,
-        endsAt: event.endsAt,
-        locationName: event.locationName ?? club?.addressText ?? null,
-        latitude: event.locationLat ?? null,
-        longitude: event.locationLng ?? null,
-        official: Boolean(club?.isOfficial),
-        followerCount: club?.followerCount ?? 0,
-        memberCount: club?.memberCount ?? 0,
-        typeLabel: club?.type ?? null,
-        statusLabel: event.challengeStatus ?? event.status ?? null,
-        matchSubtype: event.eventType === 'TRYOUT' ? null : event.eventType === 'FRIENDLY' ? 'FRIENDLY' : 'COMPETITIVE',
-        challengeState: event.eventType === 'TRYOUT' ? null : getMatchState(event),
-        locationState: event.locationLat != null && event.locationLng != null ? 'PINNED' : 'OPEN_VENUE',
-        ageGroups: extractAgeGroups(sourceText),
-        genders: extractGenders(sourceText),
-        level: extractLevel(sourceText),
-        travelPreference: extractTravelPreference(sourceText),
-        city,
-        country,
-        searchText: joinSearchText(event.title, event.description, event.locationName, event.clubName, event.opponentClubName, club?.type),
-        rawEvent: event
     };
 };
 
@@ -369,25 +268,6 @@ const getRecordTypeLabel = (record: DiscoveryRecord) => {
         case 'CLUB_NEED': return 'Club Need';
         default: return 'Match';
     }
-};
-
-const getRecordTypeMeta = (record: DiscoveryRecord) => {
-    if (record.entityType === 'CLUB') {
-        return record.official ? 'Verified club' : 'Club profile';
-    }
-    if (record.entityType === 'TRYOUT') {
-        return 'Public tryout';
-    }
-    if (record.entityType === 'TOURNAMENT') {
-        return record.statusLabel === 'ACTIVE' ? 'Active tournament' : 'Upcoming tournament';
-    }
-    if (record.entityType === 'CLUB_NEED') {
-        return record.subtitle ? `Player need: ${record.subtitle}` : 'Player recruitment need';
-    }
-    if (record.challengeState === 'OPEN') {
-        return 'Open challenge';
-    }
-    return record.matchSubtype === 'FRIENDLY' ? 'Friendly fixture' : 'Scheduled match';
 };
 
 const getTravelPreferenceLabel = (value: DerivedTravelPreference | null) => {
@@ -895,9 +775,9 @@ export const MapPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [mapMarkers, setMapMarkers] = useState<MapMarkerDto[]>([]);
     const [clubRecords, setClubRecords] = useState<DiscoveryRecord[]>([]);
-    const [totalMapElements, setTotalMapElements] = useState(0);
-    const [currentPage, setCurrentPage] = useState(0);
-    const [hasMorePages, setHasMorePages] = useState(false);
+    const [_totalMapElements, setTotalMapElements] = useState(0);
+    const [currentPage, _setCurrentPage] = useState(0);
+    const [_hasMorePages, setHasMorePages] = useState(false);
     const [membership, setMembership] = useState<{ clubId?: number | null; clubName?: string | null; myRole?: string | null } | null>(null);
     const [selectedKey, setSelectedKey] = useState<string | null>(null);
     const [activeClusterKey, setActiveClusterKey] = useState<string | null>(null);
@@ -1236,14 +1116,6 @@ export const MapPage = () => {
 
     const handleFocusSettled = useCallback(() => setFocusTarget(null), []);
 
-    const handleGoBack = useCallback(() => {
-        if (window.history.length > 1) {
-            navigate(-1);
-            return;
-        }
-        navigate('/feed');
-    }, [navigate]);
-
     const selectRecord = useCallback((record: DiscoveryRecord) => {
         setSelectedKey(record.key);
         setActiveClusterKey(null);
@@ -1300,7 +1172,7 @@ export const MapPage = () => {
         setResponseError(null);
 
         try {
-            const updated = await createScheduleChallenge(scheduleEventId, {
+            await createScheduleChallenge(scheduleEventId, {
                 challengerClubId: membership.clubId,
                 targetClubId: responseModalRecord.clubId,
                 note: responseNote.trim() || undefined

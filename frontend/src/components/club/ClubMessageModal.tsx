@@ -1,4 +1,4 @@
-import { ExternalLink, MessageSquare, PhoneCall, Shield, X } from 'lucide-react';
+import { ExternalLink, MessageSquare, PhoneCall, X } from 'lucide-react';
 import { MessageCircle } from 'lucide-react';
 
 export interface ClubCommunicationOption {

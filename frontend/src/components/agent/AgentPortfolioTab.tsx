@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { UserPlus, Users, Search } from 'lucide-react';
+import { toast } from 'sonner';
 import type { AgentPortfolioPlayer, PlayerSearchResult } from '../../features/agents/domain';
 import { addPlayerToPortfolio, removePlayerFromPortfolio, searchPlayersForPortfolio } from '../../features/agents/api';
 import { SectionHeader } from '../workspace/helpers';
@@ -54,9 +55,11 @@ export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
             setSearchQuery('');
             setSearchResults([]);
             setSelectedPlayer(null);
+            toast.success('Player added to portfolio');
             onRefresh();
         } catch (err: any) {
             setAddError(err?.response?.data?.message || err?.message || 'Failed to add player.');
+            toast.error('Failed to add player.');
         } finally {
             setAddingPlayer(false);
         }
@@ -66,9 +69,11 @@ export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
         setBusyId(representationId);
         try {
             await removePlayerFromPortfolio(representationId);
+            toast.success('Player removed from portfolio');
             onRefresh();
         } catch (err) {
             console.error('Failed to remove player', err);
+            toast.error('Failed to remove player.');
         } finally {
             setBusyId(null);
         }
@@ -77,6 +82,7 @@ export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
     return (
         <div>
             <SectionHeader
+                eyebrow="Portfolio"
                 title="Player Portfolio"
                 description="Players you represent"
                 action={
@@ -125,16 +131,17 @@ export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
                                 <OverflowActions
                                     items={[
                                         {
+                                            id: 'remove',
                                             label: 'Remove from Portfolio',
-                                            onClick: () => handleRemove(player.representationId),
+                                            onSelect: () => handleRemove(player.representationId),
                                             tone: 'danger',
+                                            disabled: busyId === player.representationId,
                                             confirm: {
                                                 title: 'Remove Player',
                                                 body: `Remove ${player.fullName} from your portfolio?`
                                             }
                                         }
                                     ]}
-                                    disabled={busyId === player.representationId}
                                 />
                             </div>
                         </div>

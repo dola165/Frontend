@@ -265,35 +265,35 @@ export const NotificationsPage = () => {
 
     if (loading) {
         return (
-            <div className="bg-base flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
-                <Loader2 className="h-9 w-9 animate-spin accent-primary" />
+            <div className="bg-[#0f1117] flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
+                <Loader2 className="h-9 w-9 animate-spin text-[#16a34a]" />
             </div>
         );
     }
 
     return (
-        <div className="bg-base min-h-full">
+        <div className="bg-[#0f1117] min-h-full">
             <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-                <header className="border-b border-subtle pb-5">
+                <header className="border-b border-[#ffffff0d] pb-5">
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                         <div>
-                            <p className="text-[11px] font-black uppercase tracking-[0.2em] accent-primary">Destination Page</p>
-                            <h1 className="mt-2 text-3xl font-black uppercase tracking-tight text-primary">Notifications</h1>
-                            <p className="mt-2 max-w-3xl text-sm leading-6 text-secondary">
+                            <p className="text-[11px] font-semibold text-[#16a34a]">Destination Page</p>
+                            <h1 className="mt-2 text-3xl font-semibold text-[#f4f4f5]">Notifications</h1>
+                            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#a1a1aa]">
                                 A single operational stream for personal updates and club actions, with scope changes treated as local tab switches.
                             </p>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-2 border border-subtle bg-surface px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-primary">
-                                <BellRing className="h-3.5 w-3.5 accent-primary" />
+                            <span className="inline-flex items-center gap-2 border border-[#ffffff0d] bg-[#16181d] px-3 py-2 text-[11px] font-medium text-[#f4f4f5]">
+                                <BellRing className="h-3.5 w-3.5 text-[#16a34a]" />
                                 {unreadCount} unread
                             </span>
                             <button
                                 type="button"
                                 onClick={() => void handleMarkAllAsRead()}
                                 disabled={markingAll || unreadCount === 0}
-                                className="inline-flex items-center gap-2 border border-accent-primary bg-accent-primary-soft px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+                                className="rounded-md bg-[#16a34a] px-3 py-1.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 {markingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCheck className="h-3.5 w-3.5" />}
                                 Mark Visible Read
@@ -302,7 +302,7 @@ export const NotificationsPage = () => {
                     </div>
 
                     <div className="mt-5 overflow-x-auto">
-                        <div className="flex min-w-max gap-5 border-b border-subtle">
+                        <div className="flex min-w-max gap-5 border-b border-[#ffffff0d]">
                             {scopeTabs.map((tab) => {
                                 const isActive = filter.scope === tab.id;
                                 const unread =
@@ -319,14 +319,14 @@ export const NotificationsPage = () => {
                                                 tab.id === 'club' ? filter.clubName : null
                                             )
                                         }
-                                        className={`inline-flex min-h-12 items-center gap-2 border-b-2 px-1 text-sm font-black uppercase tracking-[0.16em] transition-colors ${
-                                            isActive ? 'border-accent-muted text-primary' : 'border-transparent text-secondary hover:text-primary'
+                                        className={`inline-flex min-h-12 items-center gap-2 border-b-2 px-1 text-sm font-medium transition-colors ${
+                                            isActive ? 'border-[#16a34a] text-[#16a34a] font-semibold' : 'border-transparent text-[#a1a1aa] font-medium hover:text-[#f4f4f5]'
                                         }`}
                                         title={tab.description}
                                     >
                                         <span>{tab.label}</span>
                                         {unread > 0 && (
-                                            <span className={`rounded-full px-2 py-0.5 text-[10px] ${isActive ? 'bg-accent-primary-soft accent-primary' : 'bg-surface text-secondary'}`}>
+                                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${isActive ? 'bg-[#16a34a]/10 text-[#16a34a]' : 'bg-[#16181d] text-[#a1a1aa]'}`}>
                                                 {unread}
                                             </span>
                                         )}
@@ -337,12 +337,12 @@ export const NotificationsPage = () => {
                     </div>
 
                     <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-secondary">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-[#a1a1aa]">
                             <span>Current scope</span>
-                            <span className="accent-primary">{scopeTabs.find((tab) => tab.id === filter.scope)?.label}</span>
+                            <span className="text-[#16a34a]">{scopeTabs.find((tab) => tab.id === filter.scope)?.label}</span>
                             {filter.scope === 'club' && (
                                 <>
-                                    <span className="h-1 w-1 rounded-full bg-[color:var(--accent-muted)]" />
+                                    <span className="h-1 w-1 rounded-full bg-[#16a34a]" />
                                     <span>{activeClubLabel ? activeClubLabel : 'All managed clubs'}</span>
                                 </>
                             )}
@@ -350,7 +350,7 @@ export const NotificationsPage = () => {
                                 <button
                                     type="button"
                                     onClick={() => updateScopeSearch('club')}
-                                    className="inline-flex items-center gap-1.5 border border-subtle bg-surface px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-secondary"
+                                    className="inline-flex items-center gap-1.5 border border-[#ffffff0d] bg-[#16181d] px-2.5 py-1.5 text-[10px] font-medium text-[#a1a1aa]"
                                 >
                                     <X className="h-3.5 w-3.5" />
                                     Clear Club Filter
@@ -363,7 +363,7 @@ export const NotificationsPage = () => {
                                 <Link
                                     key={link.to}
                                     to={link.to}
-                                    className="border border-subtle bg-surface px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-secondary transition-colors hover:text-primary"
+                                    className="border border-[#ffffff0d] bg-[#16181d] px-3 py-2 text-[11px] font-medium text-[#a1a1aa] transition-colors hover:text-[#f4f4f5]"
                                 >
                                     {link.label}
                                 </Link>
@@ -373,31 +373,31 @@ export const NotificationsPage = () => {
                 </header>
 
                 {errorMessage && (
-                    <div className="border border-rose-300/50 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                    <div className="border border-[var(--fc-state-danger)] bg-[var(--fc-state-danger-soft)] text-[var(--fc-state-danger)] px-4 py-3 text-sm font-semibold">
                         {errorMessage}
                     </div>
                 )}
 
-                <section className="bg-surface border border-subtle">
+                <section className="rounded-md bg-[#16181d] border border-[#ffffff0d]">
                     {notifications.length === 0 ? (
                         <div className="px-6 py-16 text-center">
-                            <BellRing className="mx-auto h-10 w-10 text-secondary" />
-                            <h2 className="mt-4 text-xl font-black uppercase tracking-tight text-primary">{emptyState.title}</h2>
-                            <p className="mt-2 text-sm leading-6 text-secondary">{emptyState.body}</p>
+                            <BellRing className="mx-auto h-10 w-10 text-[#a1a1aa]" />
+                            <h2 className="mt-4 text-xl font-semibold text-[#f4f4f5]">{emptyState.title}</h2>
+                            <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">{emptyState.body}</p>
                             <div className="mt-5 flex justify-center gap-2">
                                 {filter.scope === 'club' ? (
-                                    <Link to="/my-club" className="border border-accent-primary bg-accent-primary-soft px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary">
+                                    <Link to="/my-club" className="border border-[#16a34a] bg-[#16a34a]/10 px-4 py-2 text-[11px] font-medium text-[#16a34a]">
                                         Open My Club
                                     </Link>
                                 ) : (
-                                    <Link to="/clubs" className="border border-accent-primary bg-accent-primary-soft px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary">
+                                    <Link to="/clubs" className="border border-[#16a34a] bg-[#16a34a]/10 px-4 py-2 text-[11px] font-medium text-[#16a34a]">
                                         Browse Clubs
                                     </Link>
                                 )}
                             </div>
                         </div>
                     ) : (
-                        <div className="divide-y divide-[color:var(--border-subtle)]">
+                        <div className="divide-y divide-[#ffffff0d]">
                             {notifications.map((notification) => (
                                 <NotificationListItem
                                     key={notification.id}
@@ -417,7 +417,7 @@ export const NotificationsPage = () => {
                             type="button"
                             onClick={() => void handleLoadMore()}
                             disabled={loadingMore}
-                            className="inline-flex items-center gap-2 border border-subtle bg-surface px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary disabled:cursor-wait disabled:opacity-60"
+                            className="rounded-md border border-[#ffffff0d] px-3 py-1.5 text-xs font-medium text-[#f4f4f5] w-full disabled:cursor-wait disabled:opacity-60"
                         >
                             {loadingMore && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                             Load More

@@ -44,39 +44,39 @@ export const TabTeams = ({ clubId, refreshKey = 0 }: { clubId: number; refreshKe
     if (loading) {
         return (
             <div className="flex justify-center py-10">
-                <Loader2 className="h-8 w-8 animate-spin accent-primary" />
+                <Loader2 className="h-8 w-8 animate-spin text-[#16a34a]" />
             </div>
         );
     }
 
     if (squads.length === 0) {
         return (
-            <div className="bg-surface border border-subtle px-5 py-10 text-center">
-                <h3 className="text-lg font-black uppercase tracking-[0.14em] text-primary">No Active Squads</h3>
-                <p className="mt-2 text-sm text-secondary">This club has not registered any squads yet.</p>
+            <div className="bg-[#16181d] border border-[#ffffff0d] rounded-md px-5 py-10 text-center">
+                <h3 className="text-base font-semibold text-[#f4f4f5]">No Active Squads</h3>
+                <p className="mt-2 text-sm text-[#a1a1aa]">This club has not registered any squads yet.</p>
             </div>
         );
     }
 
     return (
-        <section className="bg-surface border border-subtle">
-            <div className="border-b border-subtle px-4 py-4">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] accent-primary">Entity Tab</p>
-                <h2 className="mt-2 text-2xl font-black uppercase tracking-tight text-primary">Squads</h2>
-                <p className="mt-2 text-sm leading-6 text-secondary">Each squad keeps a dedicated roster page, while this tab stays as the club-level squad directory.</p>
+        <section className="bg-[#16181d] border border-[#ffffff0d] rounded-md">
+            <div className="border-b border-[#ffffff0d] px-4 py-4">
+                <p className="text-xs text-[#a1a1aa] text-[#16a34a]">Entity Tab</p>
+                <h2 className="text-lg font-semibold text-[#f4f4f5]">Squads</h2>
+                <p className="text-sm text-[#a1a1aa]">Each squad keeps a dedicated roster page, while this tab stays as the club-level squad directory.</p>
             </div>
-            <div className="divide-y divide-[color:var(--border-subtle)]">
+            <div className="divide-y divide-[#ffffff0d]">
                 {squads.map((squad) => (
                     <article key={squad.id} className="flex flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                             <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-base font-black uppercase tracking-[0.12em] text-primary">{squad.name}</p>
-                                <span className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.16em] accent-primary">
+                                <p className="text-sm font-semibold text-[#f4f4f5]">{squad.name}</p>
+                                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#16a34a]">
                                     <Users className="h-3.5 w-3.5" />
                                     {squadCounts.get(squad.id) || 0}
                                 </span>
                             </div>
-                            <p className="mt-2 text-[11px] font-black uppercase tracking-[0.16em] text-secondary">
+                            <p className="mt-2 text-[11px] font-semibold text-[#a1a1aa]">
                                 {squad.category} / {squad.gender}
                             </p>
                         </div>
@@ -84,7 +84,7 @@ export const TabTeams = ({ clubId, refreshKey = 0 }: { clubId: number; refreshKe
                         <button
                             type="button"
                             onClick={() => navigate(`/clubs/${clubId}/squads?squad=${squad.id}`)}
-                            className="inline-flex items-center gap-2 border border-subtle bg-base px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-primary"
+                            className="inline-flex items-center gap-2 rounded-md border border-[#ffffff0d] bg-[var(--fc-card-bg)] px-3 py-1.5 text-xs font-semibold text-[#f4f4f5]"
                         >
                             Open Squad View
                             <ArrowRight className="h-3.5 w-3.5" />

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, X, Loader2, Users, Check, ArrowLeft, UserPlus, MessageCircle, Paperclip } from 'lucide-react';
+import { Search, X, Loader2, Users, Check, ArrowLeft, UserPlus, MessageCircle } from 'lucide-react';
 import { chatApi, type UserSearchResult } from '../../api/chat';
 import { getStoredUserId } from '../../utils/authStorage';
 
@@ -25,7 +25,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
     const [error, setError] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const nameInputRef = useRef<HTMLInputElement>(null);
-    const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const currentUserId = Number(getStoredUserId() || 0);
 

@@ -1,4 +1,5 @@
-import { BellRing, ClipboardList, Send, ShieldCheck, UserCheck, UserPlus, Users } from 'lucide-react';
+import { BellRing, ClipboardList, Send, ShieldCheck, Trophy, UserCheck, UserPlus, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { ClubManagementOverview } from '../../../features/clubs/domain';
 import { SectionHeader } from '../helpers';
 import { MetricCardV2 } from '../MetricCardV2';
@@ -13,6 +14,7 @@ interface OverviewTabProps {
 }
 
 export const OverviewTab = ({ overview, onTabChange, overdueTrialistCount = 0 }: OverviewTabProps) => {
+    const navigate = useNavigate();
     const pendingActions = (overview?.pendingInvitations.length ?? 0) + (overview?.pendingApplications.length ?? 0);
     const totalTrialists = overview?.trialistCount ?? 0;
     const regularTrialistCount = Math.max(0, totalTrialists - overdueTrialistCount);
@@ -96,6 +98,10 @@ export const OverviewTab = ({ overview, onTabChange, overdueTrialistCount = 0 }:
                 <QuickLinkTile
                     icon={ShieldCheck} title="Squads" subtitle="Create and manage team rosters"
                     onClick={() => onTabChange('squads')}
+                />
+                <QuickLinkTile
+                    icon={Trophy} title="Tournament" subtitle="Host a bracket competition"
+                    onClick={() => navigate('/tournaments/setup')}
                 />
             </div>
 

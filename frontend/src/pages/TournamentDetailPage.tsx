@@ -9,10 +9,10 @@ import { buildLoginRedirectPath } from '../utils/authRedirect';
 import { extractApiErrorMessage } from '../utils/apiError';
 
 const statusTone: Record<string, string> = {
-    PLANNING: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/30',
-    ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-    COMPLETED: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/30',
-    CANCELLED: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
+    PLANNING: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+    ACTIVE: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    COMPLETED: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    CANCELLED: 'bg-red-500/10 text-red-400 border-red-500/20',
 };
 
 export const TournamentDetailPage = () => {
@@ -74,33 +74,33 @@ export const TournamentDetailPage = () => {
 
     if (loading) {
         return (
-            <div className="flex min-h-full items-center justify-center bg-base">
-                <Loader2 className="h-8 w-8 animate-spin accent-primary" />
+            <div className="flex min-h-full items-center justify-center bg-[#0f1117]">
+                <Loader2 className="h-8 w-8 animate-spin text-[#16a34a]" />
             </div>
         );
     }
 
     if (error || !tournament) {
         return (
-            <div className="flex min-h-full flex-col items-center justify-center gap-4 bg-base px-6 text-center">
-                <Trophy className="h-12 w-12 text-slate-300 dark:text-slate-600" />
-                <h1 className="text-xl font-black uppercase tracking-tight text-primary">Event Not Found</h1>
-                <p className="text-sm text-secondary">{error ?? 'This event does not exist or has been removed.'}</p>
-                <Link to="/tournaments" className="inline-flex items-center gap-2 rounded-full bg-accent-primary px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-accent-primary-hover">
-                    Back to Events
+            <div className="flex min-h-full flex-col items-center justify-center gap-4 bg-[#0f1117] px-6 text-center">
+                <Trophy className="h-12 w-12 text-[#a1a1aa]" />
+                <h1 className="text-xl font-semibold text-[#f4f4f5]">Tournament Not Found</h1>
+                <p className="text-sm text-[#a1a1aa]">{error ?? 'This tournament does not exist or has been removed.'}</p>
+                <Link to="/tournaments" className="inline-flex items-center gap-2 rounded-md bg-[#16a34a] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+                    Back to Tournaments
                 </Link>
             </div>
         );
     }
 
     return (
-        <div className="min-h-full bg-base">
+        <div className="min-h-full bg-[#0f1117]">
             <div className="mx-auto flex w-full max-w-[960px] flex-col gap-6 px-4 py-8 sm:px-6">
                 {message && (
-                    <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                    <div className={`rounded-md border px-4 py-3 text-sm font-semibold ${
                         message.type === 'success'
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
-                            : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300'
+                            ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
+                            : 'border-red-500/20 bg-red-500/10 text-red-400'
                     }`}>
                         {message.text}
                     </div>
@@ -108,12 +108,12 @@ export const TournamentDetailPage = () => {
 
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                        <Link to="/tournaments" className="text-xs font-semibold text-secondary hover:text-primary">
-                            &larr; Back to Events
+                        <Link to="/tournaments" className="text-xs text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors">
+                            ← Back to Tournaments
                         </Link>
-                        <h1 className="mt-2 text-3xl font-black uppercase tracking-tight text-primary sm:text-4xl">{tournament.name}</h1>
+                        <h1 className="mt-2 text-2xl font-semibold text-[#f4f4f5]">{tournament.name}</h1>
                         {tournament.description && (
-                            <p className="mt-3 max-w-2xl text-sm leading-7 text-secondary">{tournament.description}</p>
+                            <p className="mt-3 max-w-2xl text-sm text-[#a1a1aa]">{tournament.description}</p>
                         )}
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
@@ -125,14 +125,14 @@ export const TournamentDetailPage = () => {
                                 type="button"
                                 onClick={handleRegister}
                                 disabled={registering}
-                                className="inline-flex items-center gap-2 rounded-full bg-accent-primary px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-accent-primary-hover disabled:opacity-60"
+                                className="inline-flex items-center gap-2 rounded-md bg-[#16a34a] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                             >
                                 {registering ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
                                 Register
                             </button>
                         )}
                         {isRegistered && (
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-400">
                                 <Shield className="h-4 w-4" />
                                 Registered
                             </span>
@@ -140,7 +140,7 @@ export const TournamentDetailPage = () => {
                         {isStaff && (
                             <Link
                                 to={`/tournaments/${tournament.id}/workspace`}
-                                className="inline-flex items-center gap-2 rounded-full border border-subtle bg-surface px-5 py-2.5 text-sm font-semibold text-primary transition-colors hover:border-accent-primary"
+                                className="inline-flex items-center gap-2 rounded-md border border-[#ffffff0d] px-5 py-2.5 text-sm font-semibold text-[#f4f4f5] transition-colors hover:bg-[var(--fc-surface-hover)]"
                             >
                                 <Shield className="h-4 w-4" />
                                 Workspace
@@ -151,25 +151,25 @@ export const TournamentDetailPage = () => {
                 </div>
 
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    <div className="rounded-xl border border-subtle bg-surface px-5 py-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Scope</p>
+                    <div className="rounded-md border border-[#ffffff0d] bg-[#16181d] px-5 py-4">
+                        <p className="text-xs font-medium text-[#a1a1aa]">Scope</p>
                         <div className="mt-2 flex items-center gap-2">
-                            {tournament.participantScope === 'PLAYER' ? <UserPlus className="h-4 w-4 accent-primary" /> : <Users className="h-4 w-4 accent-primary" />}
-                            <span className="text-sm font-semibold text-primary">{tournamentScopeLabel(tournament.participantScope)}</span>
+                            {tournament.participantScope === 'PLAYER' ? <UserPlus className="h-4 w-4 text-[#16a34a]" /> : <Users className="h-4 w-4 text-[#16a34a]" />}
+                            <span className="text-sm font-semibold text-[#f4f4f5]">{tournamentScopeLabel(tournament.participantScope)}</span>
                         </div>
                     </div>
-                    <div className="rounded-xl border border-subtle bg-surface px-5 py-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Visibility</p>
-                        <p className="mt-2 text-sm font-semibold text-primary">{tournamentVisibilityLabel(tournament.visibility)}</p>
+                    <div className="rounded-md border border-[#ffffff0d] bg-[#16181d] px-5 py-4">
+                        <p className="text-xs font-medium text-[#a1a1aa]">Visibility</p>
+                        <p className="mt-2 text-sm font-semibold text-[#f4f4f5]">{tournamentVisibilityLabel(tournament.visibility)}</p>
                     </div>
-                    <div className="rounded-xl border border-subtle bg-surface px-5 py-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Participants</p>
-                        <p className="mt-2 text-sm font-semibold text-primary">{entryCount} entr{entryCount === 1 ? 'y' : 'ies'} &middot; {fixtureCount} fixture{fixtureCount === 1 ? '' : 's'}</p>
+                    <div className="rounded-md border border-[#ffffff0d] bg-[#16181d] px-5 py-4">
+                        <p className="text-xs font-medium text-[#a1a1aa]">Participants</p>
+                        <p className="mt-2 text-sm font-semibold text-[#f4f4f5]">{entryCount} entr{entryCount === 1 ? 'y' : 'ies'} &middot; {fixtureCount} fixture{fixtureCount === 1 ? '' : 's'}</p>
                     </div>
                 </div>
 
                 {tournament.startDate && (
-                    <div className="flex flex-wrap gap-4 text-sm text-secondary">
+                    <div className="flex flex-wrap gap-4 text-sm text-[#a1a1aa]">
                         <span className="inline-flex items-center gap-1.5">
                             <Calendar className="h-4 w-4" />
                             {new Date(tournament.startDate).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
@@ -186,9 +186,9 @@ export const TournamentDetailPage = () => {
                 )}
 
                 {tournament.rules && (
-                    <div className="rounded-xl border border-subtle bg-surface px-5 py-4">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Rules</p>
-                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-secondary">{tournament.rules}</p>
+                    <div className="rounded-md border border-[#ffffff0d] bg-[#16181d] px-5 py-4">
+                        <p className="text-xs font-medium text-[#a1a1aa]">Rules</p>
+                        <p className="mt-2 whitespace-pre-wrap text-sm text-[#a1a1aa]">{tournament.rules}</p>
                     </div>
                 )}
             </div>

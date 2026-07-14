@@ -2,6 +2,25 @@ const ka = {
   app: {
     name: 'GrassKickZ',
   },
+  nav: {
+    feed: 'მთავარი',
+    map: 'რუკა',
+    clubs: 'კლუბები',
+    myClub: 'ჩემი კლუბი',
+    schedule: 'განრიგი',
+    messages: 'შეტყობინებები',
+    marketplace: 'მარკეტპლეისი',
+    clubNeeds: 'კლუბის მოთხოვნები',
+    notifications: 'შეტყობინებები',
+    tournaments: 'ტურნირები',
+    agentHub: 'აგენტის პანელი',
+    signIn: 'შესვლა',
+    signOut: 'გასვლა',
+    account: 'ანგარიში',
+    openNav: 'ნავიგაციის გახსნა',
+    switchToLight: 'ღია რეჟიმზე გადასვლა',
+    switchToDark: 'მუქ რეჟიმზე გადასვლა',
+  },
   tutorial: {
     calendar: {
       backNav: {

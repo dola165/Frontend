@@ -1,7 +1,9 @@
+import { useCallback, useMemo, useState } from 'react';
 import { UserMinus } from 'lucide-react';
 import type { ClubManagedMember, ClubManagementOverview, ClubMembershipRole } from '../../../features/clubs/domain';
 import { clubRoleLabel, isLegacyAgentMembershipRole } from '../../../features/clubs/domain';
 import { DataTable, EmptyState, Pill, SectionHeader } from '../helpers';
+import type { SortState } from '../helpers';
 import { UserIdentityCell } from '../UserIdentityCell';
 import { OverflowActions } from '../../ui/OverflowActions';
 
@@ -18,7 +20,7 @@ interface PersonnelTabProps {
 
 export const PersonnelTab = ({
     overview, currentUserId, currentRole, pendingKey,
-    confirmingRemovalUserId, onRoleChange, onRemoveMember, onConfirmRemoval
+    onRoleChange, onRemoveMember
 }: PersonnelTabProps) => {
     const canRemoveMember = (member: ClubManagedMember) => {
         if (!currentUserId || member.userId === currentUserId || member.role === 'OWNER') return false;
@@ -34,15 +36,49 @@ export const PersonnelTab = ({
         return member.roleEditable ? null : 'This role is locked by club authority rules.';
     };
 
+    const [sort, setSort] = useState<SortState | null>(null);
+
+    const handleSort = useCallback((col: number) => {
+        setSort(prev =>
+            prev?.column === col
+                ? { column: col, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+                : { column: col, direction: 'asc' }
+        );
+    }, []);
+
+    const getPersonnelSortValue = (m: ClubManagedMember, col: number): string | number | null => {
+        switch (col) {
+            case 0: return (m.fullName || m.username || '').toLowerCase();
+            case 1: return m.role;
+            case 2: return null;
+            default: return null;
+        }
+    };
+
+    const sortedMembers = useMemo(() => {
+        if (!sort || !overview) return overview?.members ?? [];
+        const data = [...overview.members];
+        data.sort((a, b) => {
+            const aVal = getPersonnelSortValue(a, sort.column);
+            const bVal = getPersonnelSortValue(b, sort.column);
+            if (aVal == null && bVal == null) return 0;
+            if (aVal == null) return 1;
+            if (bVal == null) return -1;
+            const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+            return sort.direction === 'desc' ? -cmp : cmp;
+        });
+        return data;
+    }, [overview?.members, sort]);
+
     return (
         <div className="space-y-4">
             <SectionHeader eyebrow="Personnel" title="Staff Members" description="Manage club staff roles. Player affiliations are managed in the Players tab." />
-            {overview && overview.members.length === 0 ? (
+            {overview && sortedMembers.length === 0 ? (
                 <EmptyState message="No staff members are attached to this club." />
             ) : overview && (
                 <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
-                    <DataTable columns={['Member', 'Role', 'Status', '']}>
-                        {overview.members.map((member) => {
+                    <DataTable columns={['Member', 'Role', 'Status', '']} sort={sort} onSort={handleSort}>
+                        {sortedMembers.map((member) => {
                             const isSelf = member.userId === currentUserId;
                             const lockReason = memberLockReason(member);
                             return (

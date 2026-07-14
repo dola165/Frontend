@@ -1,5 +1,4 @@
 import type { StoreUser, StoreClub, StorePost, StoreComment } from './store';
-import { nextId_ } from './ids';
 
 let userIdCounter = 10;
 let clubIdCounter = 10;
@@ -18,10 +17,10 @@ export const createUser = (overrides: Partial<StoreUser> & { email: string; pass
   email: overrides.email,
   password: overrides.password,
   username: overrides.username ?? `user_${userIdCounter}`,
-  fullName: overrides.fullName ?? null,
-  name: overrides.name ?? null,
+  fullName: overrides.fullName ?? undefined,
+  name: overrides.name ?? undefined,
   role: overrides.role ?? 'PLAYER',
-  avatarUrl: overrides.avatarUrl ?? null,
+  avatarUrl: overrides.avatarUrl ?? undefined,
   profileComplete: overrides.profileComplete ?? true,
   bio: overrides.bio,
   position: overrides.position,

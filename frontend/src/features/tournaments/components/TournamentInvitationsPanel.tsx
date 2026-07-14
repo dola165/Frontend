@@ -213,7 +213,7 @@ export const TournamentInvitationsPanel = ({ tournamentId }: Props) => {
                         })
                     ) : (
                         (searchResults as UserSearchResult[]).map((user) => {
-                            const alreadyInvited = invitations.some((i) => i.userId === user.id && i.status === 'PENDING');
+                            const alreadyInvited = invitations.some((i) => i.status === 'PENDING');
                             return (
                                 <div key={user.id} className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
                                     <div className="min-w-0 flex-1">

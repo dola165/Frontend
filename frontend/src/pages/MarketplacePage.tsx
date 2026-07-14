@@ -167,7 +167,7 @@ export const MarketplacePage = () => {
             {/* Content */}
             <div className="max-w-6xl mx-auto px-6 py-5">
                 {loading ? (
-                    <PageSpinner label="Loading listings..." />
+                    <PageSpinner />
                 ) : error ? (
                     <p className="text-sm text-[#d4737a] py-10 text-center">{error}</p>
                 ) : listings.length === 0 ? (

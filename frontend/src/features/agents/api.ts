@@ -70,3 +70,10 @@ export const respondToEngagement = async (engagementId: number, clubId: number, 
     });
     return response.data;
 };
+
+export const fetchClubAgentEngagements = async (clubId: number, status?: string): Promise<AgentEngagement[]> => {
+    const response = await apiClient.get<AgentEngagement[]>(`/agents/clubs/${clubId}/agent-engagements`, {
+        params: { status: status || undefined }
+    });
+    return response.data;
+};

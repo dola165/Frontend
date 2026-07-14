@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
     CheckCircle2,
     Crown,
+    Handshake,
     LayoutDashboard,
     ShieldCheck,
     UserPlus,
@@ -50,6 +51,7 @@ import {
 } from '../utils/notifications';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { getStoredUserId } from '../utils/authStorage';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { ErrorBlock, PageSpinner } from '../components/workspace/helpers';
 import { WorkspaceSidebar } from '../components/workspace/WorkspaceSidebar';
 import { ContextPanel } from '../components/workspace/ContextPanel';
@@ -62,6 +64,7 @@ import { RolesTab } from '../components/workspace/tabs/RolesTab';
 import { SquadsTab } from '../components/workspace/tabs/SquadsTab';
 import { TryoutsTab } from '../components/workspace/tabs/TryoutsTab';
 import { InboxTab } from '../components/workspace/tabs/InboxTab';
+import { AgentEngagementsTab } from '../components/workspace/tabs/AgentEngagementsTab';
 import type { WorkspaceTab, TabItem, UserSearchDto, TryoutApplicantDto } from '../components/workspace/types';
 
 // ── page ──
@@ -97,6 +100,10 @@ export default function ClubWorkspacePage() {
 
     // ── theme ──
     const [isLight, setIsLight] = useState(false);
+
+    // ── confirmation dialogs ──
+    const [showStatusConfirm, setShowStatusConfirm] = useState(false);
+    const pendingStatusRef = useRef<{ userId: number; status: PlayerAffiliationStatus; playerName?: string } | null>(null);
 
     // ── data ──
     const [overview, setOverview] = useState<ClubManagementOverview | null>(null);
@@ -145,14 +152,7 @@ export default function ClubWorkspacePage() {
         () => (overview?.members || []).filter((m) => isOwner && m.userId !== currentUserId && m.role !== 'OWNER' && !isLegacyAgentMembershipRole(m.role)),
         [overview, isOwner, currentUserId]
     );
-    const overdueTrialistCount = useMemo(() => {
-        if (!playerDirectory) return 0;
-        return playerDirectory.content.filter((p) => {
-            if (p.status !== 'TRIALIST' || !p.joinedAt) return false;
-            const days = Math.floor((Date.now() - new Date(p.joinedAt).getTime()) / 86400000);
-            return days > 14;
-        }).length;
-    }, [playerDirectory]);
+    const overdueTrialistCount = overview?.overdueTrialistCount ?? 0;
 
     // ── data loading ──
 
@@ -331,16 +331,27 @@ export default function ClubWorkspacePage() {
 
     const handlePlayerStatusChange = async (userId: number, status: PlayerAffiliationStatus, playerName?: string) => {
         if (status === 'PAST' || status === 'REMOVED') {
-            const msg = status === 'PAST'
-                ? `Mark "${playerName || 'this player'}" as a past player? They will be removed from ALL squads.`
-                : `Remove "${playerName || 'this player'}" from the club? They will be removed from ALL squads.`;
-            if (!window.confirm(msg)) return;
+            pendingStatusRef.current = { userId, status, playerName };
+            setShowStatusConfirm(true);
+            return;
         }
+        await executeStatusChange(userId, status);
+    };
+
+    const executeStatusChange = async (userId: number, status: PlayerAffiliationStatus) => {
         await runAction(`player-${userId}-${status}`, async () => {
             await updateClubPlayerStatus(clubId, userId, status);
             await Promise.all([loadOverview(), loadPlayers()]);
             setSuccessMessage(`Player status updated to ${status}.`);
         });
+    };
+
+    const handleConfirmStatus = async () => {
+        setShowStatusConfirm(false);
+        const pending = pendingStatusRef.current;
+        if (!pending) return;
+        await executeStatusChange(pending.userId, pending.status);
+        pendingStatusRef.current = null;
     };
 
     const handleTransferOwnership = async (member: ClubManagedMember) => {
@@ -418,6 +429,9 @@ export default function ClubWorkspacePage() {
         if (canManageTryouts) {
             items.push({ id: 'tryouts', label: 'Tryouts', icon: CheckCircle2, badge: tryoutApplicants.length > 0 ? String(tryoutApplicants.length) : null });
         }
+        if (canManageLeadership) {
+            items.push({ id: 'engagements', label: 'Agents', icon: Handshake });
+        }
         return items;
     }, [canManageLeadership, canManageTryouts, overview, tryoutApplicants.length]);
 
@@ -438,7 +452,7 @@ export default function ClubWorkspacePage() {
         );
     }
 
-    return (
+    return (<>
         <div className={`flex h-[calc(100dvh-var(--app-header-height))] workspace-page-shell ${isLight ? 'workspace-light' : ''}`}>
             <WorkspaceSidebar
                 clubId={clubId}
@@ -573,6 +587,10 @@ export default function ClubWorkspacePage() {
                                 />
                             )}
 
+                            {activeTab === 'engagements' && (
+                                <AgentEngagementsTab clubId={clubId} />
+                            )}
+
                             {activeTab === 'inbox' && (
                                 <InboxTab
                                     notifications={inboxNotifications}
@@ -600,5 +618,16 @@ export default function ClubWorkspacePage() {
                 onTabChange={switchTab}
             />
         </div>
-    );
+        <ConfirmDialog
+            open={showStatusConfirm}
+            title={pendingStatusRef.current?.status === 'PAST' ? 'Mark as Past Player' : 'Remove Player'}
+            message={pendingStatusRef.current?.status === 'PAST'
+                ? `Mark "${pendingStatusRef.current?.playerName || 'this player'}" as a past player? They will be removed from ALL squads.`
+                : `Remove "${pendingStatusRef.current?.playerName || 'this player'}" from the club? They will be removed from ALL squads.`}
+            confirmLabel={pendingStatusRef.current?.status === 'PAST' ? 'Mark as Past' : 'Remove'}
+            variant="danger"
+            onConfirm={handleConfirmStatus}
+            onCancel={() => { setShowStatusConfirm(false); pendingStatusRef.current = null; }}
+        />
+    </>);
 }

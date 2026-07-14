@@ -72,8 +72,8 @@ export const ClubManagementModal = ({
     const [overviewError, setOverviewError] = useState<string | null>(null);
     const [tryoutCount, setTryoutCount] = useState(0);
     const [tryoutsLoading, setTryoutsLoading] = useState(canManageTryouts || debugActive);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [errorMessage] = useState<string | null>(null);
+    const [successMessage] = useState<string | null>(null);
 
     // Self-healing role recovery
     const [recoveredRole, setRecoveredRole] = useState<string | null>(null);

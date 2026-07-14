@@ -76,21 +76,6 @@ const MATCH_SUBTYPE_OPTIONS: Array<{ value: MapMatchSubtype; label: string }> = 
     { value: 'FRIENDLY', label: 'Friendly' },
     { value: 'COMPETITIVE', label: 'Competitive' }
 ];
-const MATCH_STATE_OPTIONS: Array<{ value: MapChallengeState; label: string }> = [
-    { value: 'OPEN', label: 'Open' },
-    { value: 'PENDING', label: 'Pending' },
-    { value: 'CONFIRMED', label: 'Confirmed' }
-];
-const LOCATION_STATE_OPTIONS: Array<{ value: MapLocationState; label: string }> = [
-    { value: 'PINNED', label: 'Location set' },
-    { value: 'OPEN_VENUE', label: 'Venue open' }
-];
-const TRAVEL_PREFERENCE_OPTIONS: Array<{ value: MapTravelPreference; label: string }> = [
-    { value: 'WILL_TRAVEL', label: 'Willing to travel' },
-    { value: 'HOME_ONLY', label: 'Home only' },
-    { value: 'NEUTRAL', label: 'Neutral venue' },
-    { value: 'FLEXIBLE', label: 'Flexible' }
-];
 
 export const defaultMapFilters: MapFilters = {
     entityType: ['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT', 'CLUB_NEED'],

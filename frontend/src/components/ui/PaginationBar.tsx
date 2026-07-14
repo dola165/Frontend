@@ -13,7 +13,6 @@ const DEFAULT_PAGE_SIZES = [9, 12, 15, 20, 30];
 export const PaginationBar = ({
     page,
     totalPages,
-    totalElements,
     pageSize,
     onPageChange,
     onPageSizeChange,

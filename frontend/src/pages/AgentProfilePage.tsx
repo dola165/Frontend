@@ -60,8 +60,8 @@ export const AgentProfilePage = () => {
         return () => { active = false; };
     }, [id]);
 
-    if (loading) return <PageSpinner label="Loading agent profile..." />;
-    if (error) return <ErrorBlock message={error} />;
+    if (loading) return <PageSpinner />;
+    if (error) return <ErrorBlock message={error} onRetry={() => window.location.reload()} />;
     if (!profile || profile.role !== 'AGENT') {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">

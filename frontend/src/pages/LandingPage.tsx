@@ -77,7 +77,7 @@ export const LandingPage = () => {
                 }
                 // Handle both PageResult and legacy List response formats
                 const data = response.data;
-                setClubs(Array.isArray(data) ? data : data?.content ? data.content : []);
+                setClubs(Array.isArray(data) ? data : (data as { content: LandingClub[] })?.content ?? []);
             } catch (error) {
                 if (!active) {
                     return;

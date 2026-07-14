@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { chatApi } from '../api/chat';
 import { ShieldCheck } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { ClubHero } from '../components/club/ClubHero';

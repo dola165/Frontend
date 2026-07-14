@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Loader2, Pencil, ShieldCheck, Trash2, X } from 'lucide-react';
 import { apiClient } from '../../../api/axiosConfig';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { SectionHeader, EmptyState } from '../helpers';
 import { SquadRosterTable, type SquadRosterGroup } from '../../squads/SquadRosterTable';
 import { SquadRosterGrid } from '../../squads/SquadRosterGrid';
@@ -52,6 +53,12 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
 
     // create form
     const [squadForm, setSquadForm] = useState({ name: '', category: 'SENIOR', gender: 'MALE' });
+
+    // confirmation dialogs
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+    const pendingDeleteRef = useRef<{ squadId: number; squadName: string } | null>(null);
+    const pendingRemoveRef = useRef<{ userId: number; playerName: string } | null>(null);
 
     // modals + actions
     const [showAddPlayers, setShowAddPlayers] = useState(false);
@@ -131,7 +138,7 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
         setSavingSquad(true);
         try {
             await updateSquad(clubId, squadId, editForm);
-            setSquads((prev) => prev.map((s) => (s.id === squadId ? { ...s, ...editForm } : s)));
+            setSquads((prev) => prev.map((s) => (s.id === squadId ? { ...s, ...editForm } as SquadDto : s)));
             setEditingSquadId(null);
             setEditForm({});
             setParentSuccess('Squad updated.');
@@ -144,36 +151,53 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
     };
 
     const handleDeleteSquad = async (squadId: number, squadName: string) => {
-        if (!window.confirm(`Delete squad "${squadName}"? All players must be removed first.`)) return;
-        setDeletingSquadId(squadId);
+        pendingDeleteRef.current = { squadId, squadName };
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDeleteSquad = async () => {
+        setShowDeleteConfirm(false);
+        const pending = pendingDeleteRef.current;
+        if (!pending) return;
+        setDeletingSquadId(pending.squadId);
         try {
-            await deleteSquad(clubId, squadId);
-            setSquads((prev) => prev.filter((s) => s.id !== squadId));
-            if (selectedSquadId === squadId) {
-                const remaining = squads.filter((s) => s.id !== squadId);
+            await deleteSquad(clubId, pending.squadId);
+            setSquads((prev) => prev.filter((s) => s.id !== pending.squadId));
+            if (selectedSquadId === pending.squadId) {
+                const remaining = squads.filter((s) => s.id !== pending.squadId);
                 setSelectedSquadId(remaining.length > 0 ? remaining[0].id : null);
             }
-            setParentSuccess(`Squad "${squadName}" deleted.`);
+            setParentSuccess(`Squad "${pending.squadName}" deleted.`);
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Failed to delete squad.';
             setParentError(msg);
         } finally {
             setDeletingSquadId(null);
+            pendingDeleteRef.current = null;
         }
     };
 
     const handleRemovePlayer = async (userId: number, playerName: string) => {
-        if (!selectedSquad || !window.confirm(`Remove "${playerName}" from squad "${selectedSquad.name}"?`)) return;
-        setRemovingPlayerId(userId);
+        if (!selectedSquad) return;
+        pendingRemoveRef.current = { userId, playerName };
+        setShowRemoveConfirm(true);
+    };
+
+    const confirmRemovePlayer = async () => {
+        setShowRemoveConfirm(false);
+        const pending = pendingRemoveRef.current;
+        if (!pending || !selectedSquad) return;
+        setRemovingPlayerId(pending.userId);
         try {
-            await removePlayerFromSquad(clubId, selectedSquad.id, userId);
+            await removePlayerFromSquad(clubId, selectedSquad.id, pending.userId);
             await loadRoster(selectedSquad.id);
-            setParentSuccess(`${playerName} removed from squad.`);
+            setParentSuccess(`${pending.playerName} removed from squad.`);
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Failed to remove player.';
             setParentError(msg);
         } finally {
             setRemovingPlayerId(null);
+            pendingRemoveRef.current = null;
         }
     };
 
@@ -436,6 +460,24 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                     onPlayersAdded={handlePlayersAdded}
                 />
             )}
+            <ConfirmDialog
+                open={showDeleteConfirm}
+                title="Delete Squad"
+                message={pendingDeleteRef.current ? `Delete squad "${pendingDeleteRef.current.squadName}"? All players must be removed first.` : ''}
+                confirmLabel="Delete"
+                variant="danger"
+                onConfirm={confirmDeleteSquad}
+                onCancel={() => { setShowDeleteConfirm(false); pendingDeleteRef.current = null; }}
+            />
+            <ConfirmDialog
+                open={showRemoveConfirm}
+                title="Remove Player"
+                message={pendingRemoveRef.current ? `Remove "${pendingRemoveRef.current.playerName}" from squad "${selectedSquad?.name}"?` : ''}
+                confirmLabel="Remove"
+                variant="danger"
+                onConfirm={confirmRemovePlayer}
+                onCancel={() => { setShowRemoveConfirm(false); pendingRemoveRef.current = null; }}
+            />
         </div>
     );
 };

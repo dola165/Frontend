@@ -17,6 +17,7 @@ import {
     Zap
 } from 'lucide-react';
 import { MiniMap } from '../MiniMap';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import type { DayOfWeek, ScheduleEventType, ScheduleEventUpsertInput, ScheduleVisibility } from '../../features/schedule/api';
 import { extractApiErrorMessage } from '../../utils/apiError';
 
@@ -77,7 +78,6 @@ const visibilityOptions: Array<{ value: ScheduleVisibility; label: string; descr
     { value: 'SCHEDULED_PUBLICATION', label: 'Auto-publish', description: 'Private now, goes public automatically on a date you pick.', icon: Clock }
 ];
 
-const p2 = (v: number) => String(v).padStart(2, '0');
 const bdt = (date: string, time: string) => `${date}T${time.length === 5 ? time : time.slice(0, 5)}:00`;
 const normDt = (v: string) => (v && v.length === 16 ? `${v}:00` : v);
 const normT = (t: string) => (t.length === 5 ? t : t.slice(0, 5));
@@ -87,13 +87,14 @@ const gDow = (ds: string): DayOfWeek => {
 };
 
 export const EventCreationModal = ({
-    isOpen, mode, surface, initialValues, clubId, targetEventId, subjectLabel, onClose, onSubmit
+    isOpen, mode, surface, initialValues, onClose, onSubmit
 }: EventCreationModalProps) => {
     const [step, setStep] = useState(0);
     const [form, setForm] = useState<EventCreationFormValues>(initialValues);
     const [creationMode, setCreationMode] = useState<'single' | 'recurring'>('single');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -188,7 +189,10 @@ export const EventCreationModal = ({
     };
 
     const handleBackdropClick = () => {
-        if ((form.title.trim() || form.eventType) && !window.confirm('Discard this event?')) return;
+        if ((form.title.trim() || form.eventType)) {
+            setShowDiscardConfirm(true);
+            return;
+        }
         onClose();
     };
 
@@ -455,6 +459,15 @@ export const EventCreationModal = ({
                     </div>
                 </div>
             </div>
+            <ConfirmDialog
+                open={showDiscardConfirm}
+                title="Discard Event"
+                message="You have unsaved changes. Are you sure you want to discard this event?"
+                confirmLabel="Discard"
+                variant="warning"
+                onConfirm={() => { setShowDiscardConfirm(false); onClose(); }}
+                onCancel={() => setShowDiscardConfirm(false)}
+            />
         </div>
     );
 };

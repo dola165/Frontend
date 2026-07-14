@@ -1,4 +1,4 @@
-import type { ConversationDto, ChatMessageResponse, ParticipantInfo, InviteSuggestion, UserSearchResult } from '../../api/chat';
+import type { ConversationDto, ChatMessageResponse, InviteSuggestion } from '../../api/chat';
 
 // ── In-memory chat store ──────────────────────────────────────────────
 

@@ -23,7 +23,7 @@ import {
     type WorkspaceView
 } from '../components/schedule/workspaceTypes';
 import { fetchMyClubMembershipContext } from '../features/clubs/api';
-import { isLeadershipRole, canManageClubOperations, type ClubMembershipContext } from '../features/clubs/domain';
+import { canManageClubOperations, type ClubMembershipContext } from '../features/clubs/domain';
 import {
     createClubEvent,
     createMyEvent,
@@ -130,7 +130,7 @@ const decoConflict = (per: SEvent[], club: SEvent[]) =>
         return { ...ev, conflict: { sourceEventId: src.id, sourceTitle: src.title, overlapMinutes: om, severity: sev, explanation: `Overlaps with ${src.title} for ${om} minutes.` } };
     });
 
-export const CalendarPage = ({ user }: CalendarPageProps) => {
+export const CalendarPage = ({}: CalendarPageProps) => {
     const navigate = useNavigate();
     const colRef = useRef<HTMLDivElement | null>(null);
     const [ctx, setCtx] = useState<ClubMembershipContext | null>(null);

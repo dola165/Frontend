@@ -31,7 +31,9 @@ export const OnboardingPage = () => {
         heightCm: '',
         weightKg: '',
         bio: '',
-        avatarUrl: ''
+        avatarUrl: '',
+        agencyName: '',
+        fifaLicenseNumber: ''
     });
 
     const [fetchedUsername, setFetchedUsername] = useState('');
@@ -65,7 +67,9 @@ export const OnboardingPage = () => {
                 heightCm: formData.heightCm ? Number(formData.heightCm) : undefined,
                 weightKg: formData.weightKg ? Number(formData.weightKg) : undefined,
                 bio: formData.bio || undefined,
-                avatarUrl: formData.avatarUrl || undefined
+                avatarUrl: formData.avatarUrl || undefined,
+                agencyName: formData.agencyName || undefined,
+                fifaLicenseNumber: formData.fifaLicenseNumber || undefined
             });
             await refreshAccessToken();
             const destination = formData.role === 'ORGANIZER' ? '/my-club'
@@ -146,7 +150,7 @@ export const OnboardingPage = () => {
                             ].map(role => (
                                 <button
                                     key={role.id}
-                                    onClick={() => setFormData({...formData, role: role.id})}
+                                    onClick={() => setFormData({...formData, role: role.id as 'PLAYER' | 'FAN' | 'ORGANIZER' | 'AGENT'})}
                                     className={`rounded-xl border p-4 text-left transition-colors ${formData.role === role.id ? 'border-accent-primary bg-accent-primary-soft' : 'border-subtle hover:border-strong'}`}
                                 >
                                     <role.icon className={`w-8 h-8 mb-3 ${formData.role === role.id ? 'accent-primary' : 'text-muted'}`} />
@@ -177,7 +181,8 @@ export const OnboardingPage = () => {
                             </button>
                             <button
                                 onClick={handleSkip}
-                                className="w-full py-3 text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary transition-colors"
+                                disabled={!formData.fullName.trim()}
+                                className="w-full py-3 text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Skip for Now
                             </button>
@@ -234,10 +239,31 @@ export const OnboardingPage = () => {
                             </div>
                         )}
                         {formData.role === 'AGENT' && (
-                            <div className="mb-6 border border-accent-primary bg-accent-primary-soft rounded-xl p-6 flex flex-col items-center justify-center text-center">
-                                <Briefcase className="w-10 h-10 accent-primary mb-3" />
-                                <p className="text-sm font-black uppercase tracking-[0.14em] text-primary">Ready to represent talent?</p>
-                                <p className="mt-2 text-xs text-secondary max-w-md">After setup you'll be taken to your <strong>Agent Dashboard</strong>, where you can build your player portfolio, connect with clubs, and add your agency details including FIFA license verification.</p>
+                            <div className="space-y-3 mb-6">
+                                <div className="border border-accent-primary bg-accent-primary-soft rounded-xl p-4 flex items-center gap-3">
+                                    <Briefcase className="w-5 h-5 text-accent-primary shrink-0" />
+                                    <p className="text-xs text-secondary">Set your agency details now or add them later from your Account page.</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary mb-1 block">Agency Name</label>
+                                    <input
+                                        type="text"
+                                        value={formData.agencyName}
+                                        onChange={e => setFormData(prev => ({ ...prev, agencyName: e.target.value }))}
+                                        placeholder="e.g. Zviad Sports Management"
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary mb-1 block">FIFA License Number</label>
+                                    <input
+                                        type="text"
+                                        value={formData.fifaLicenseNumber}
+                                        onChange={e => setFormData(prev => ({ ...prev, fifaLicenseNumber: e.target.value }))}
+                                        placeholder="e.g. FIFA-202301"
+                                        className={inputClass}
+                                    />
+                                </div>
                             </div>
                         )}
 

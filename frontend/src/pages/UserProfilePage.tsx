@@ -79,21 +79,6 @@ interface MediaEntry {
 
 const normalizeTab = (value: string | null): ProfileTab => (value === 'stats' || value === 'media' ? value : 'feed');
 
-const formatDateTime = (value: string) => {
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-        return value;
-    }
-
-    return parsed.toLocaleString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-};
-
 const positionColors: Record<string, string> = {
     GK: 'var(--club-tone-green)',
     DEF: 'var(--club-tone-blue)',

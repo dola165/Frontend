@@ -9,7 +9,7 @@ let mediaIdCounter = 300;
 export const mediaHandlers: HttpHandler[] = [
 
   http.post(`${API}/media/upload`, async ({ request }) => {
-    await simulateLatency(400);
+    await simulateLatency();
     const form = await request.formData();
     const _file = form.get('file');
     const id = mediaIdCounter++;

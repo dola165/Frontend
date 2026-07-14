@@ -2,6 +2,25 @@ const en = {
   app: {
     name: 'GrassKickZ',
   },
+  nav: {
+    feed: 'Feed',
+    map: 'Map',
+    clubs: 'Clubs',
+    myClub: 'My Club',
+    schedule: 'Schedule',
+    messages: 'Messages',
+    marketplace: 'Marketplace',
+    clubNeeds: 'Club Needs',
+    notifications: 'Notifications',
+    tournaments: 'Tournaments',
+    agentHub: 'Agent Hub',
+    signIn: 'Sign In',
+    signOut: 'Sign Out',
+    account: 'Account',
+    openNav: 'Open navigation',
+    switchToLight: 'Switch to light mode',
+    switchToDark: 'Switch to dark mode',
+  },
   tutorial: {
     calendar: {
       backNav: {

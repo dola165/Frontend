@@ -1,5 +1,4 @@
 import type { ClubManagementOverview, ClubPlayerAffiliation, PageResult } from '../../features/clubs/domain';
-import { clubRoleLabel } from '../../features/clubs/domain';
 import type { WorkspaceTab, TryoutApplicantDto } from './types';
 
 interface ContextPanelProps {

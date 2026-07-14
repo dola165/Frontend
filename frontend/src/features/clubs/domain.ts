@@ -63,6 +63,7 @@ export interface ClubManagementOverview {
     assignableStaffRoles: Exclude<ClubMembershipRole, 'PLAYER'>[];
     activePlayerCount: number;
     trialistCount: number;
+    overdueTrialistCount: number;
     members: ClubManagedMember[];
     pendingInvitations: ClubMembershipInvite[];
     pendingApplications: ClubMembershipApplication[];

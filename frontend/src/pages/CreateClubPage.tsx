@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, CheckCircle, ChevronLeft, ChevronRight, Heart, Loader2, MapPin, MessageSquare, ShieldCheck, Users, X } from 'lucide-react';
+import { Building2, CheckCircle, ChevronLeft, ChevronRight, Heart, Loader2, ShieldCheck, Users, X } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorMessage } from '../utils/apiError';
@@ -56,7 +56,6 @@ export const CreateClubPage = () => {
 
     const hasWhatsapp = formData.whatsappNumber.trim().length > 0;
     const hasMessenger = formData.facebookMessengerUrl.trim().length > 0;
-    const selectedKind = orgKindOptions.find(k => k.value === orgKind);
 
     const updateField = (field: keyof typeof formData, value: string) => {
         setFormData((current) => ({ ...current, [field]: value }));

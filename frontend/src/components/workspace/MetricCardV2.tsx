@@ -18,7 +18,7 @@ const trendColorMap: Record<string, string> = {
     flat: 'text-[var(--fc-text-muted)]'
 };
 
-export const MetricCardV2 = ({ label, value, icon: Icon, trend, tone = 'default' }: MetricCardV2Props) => {
+export const MetricCardV2 = ({ label, value, icon: Icon, trend }: MetricCardV2Props) => {
     const TrendIcon = trend?.direction === 'up' ? TrendingUp : trend?.direction === 'down' ? TrendingDown : Minus;
     const trendColor = trend ? trendColorMap[trend.direction] : '';
 

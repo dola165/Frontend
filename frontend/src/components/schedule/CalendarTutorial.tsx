@@ -105,8 +105,8 @@ const Spotlight = ({ step, stepIndex, total, onNext, onBack, onSkip, onClose }: 
         if (!rect) return { display: 'none' } as React.CSSProperties;
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
-        const cardCx = tooltipStyle.left! + 180; // card center x
-        const cardCy = tooltipStyle.top! + 90;   // card center y
+        const cardCx = Number(tooltipStyle.left!) + 180; // card center x
+        const cardCy = Number(tooltipStyle.top!) + 90;   // card center y
         const angle = Math.atan2(cy - cardCy, cx - cardCx) * (180 / Math.PI);
         return { transform: `rotate(${angle}deg)` };
     }, [rect, tooltipStyle]);

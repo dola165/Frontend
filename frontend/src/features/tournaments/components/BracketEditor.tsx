@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Loader2, Trophy, Undo2, XCircle, Edit3 } from 'lucide-react';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { cancelFixture, completeFixture, reopenFixture, updateFixtureScores } from '../api';
-import type { TournamentDetail, TournamentEntryDto, TournamentFixtureDto, TournamentStageDto } from '../domain';
+import type { TournamentDetail, TournamentEntryDto, TournamentFixtureDto } from '../domain';
 import { fixtureStatusTone, tournamentScopeLabel } from '../domain';
 
 interface Props {

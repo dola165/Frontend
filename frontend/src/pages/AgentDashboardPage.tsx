@@ -6,7 +6,6 @@ import type { AgentDashboardData } from '../features/agents/domain';
 import { PageSpinner, ErrorBlock } from '../components/workspace/helpers';
 import { AgentPortfolioTab } from '../components/agent/AgentPortfolioTab';
 import { ClubRelationshipsTab } from '../components/agent/ClubRelationshipsTab';
-import { InboxTab } from '../components/workspace/tabs/InboxTab';
 import { useAuth } from '../context/AuthContext';
 
 type DashboardTab = 'portfolio' | 'relationships' | 'inbox';
@@ -108,7 +107,7 @@ export const AgentDashboardPage = () => {
 
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto">
-                {loading && <PageSpinner label="Loading dashboard..." />}
+                {loading && <PageSpinner />}
                 {error && <ErrorBlock message={error} onRetry={loadDashboard} />}
                 {!loading && !error && (
                     <div className="px-6 py-5">
@@ -122,7 +121,9 @@ export const AgentDashboardPage = () => {
                             <ClubRelationshipsTab />
                         )}
                         {activeTab === 'inbox' && (
-                            <InboxTab />
+                            <div className="py-12 text-center">
+                                <p className="text-sm text-[#71717a]">Inbox is available from the club workspace.</p>
+                            </div>
                         )}
                     </div>
                 )}

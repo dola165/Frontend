@@ -29,7 +29,7 @@ export const EmptyStateCard = ({
     }, [autoFocus]);
 
     return (
-        <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-6 py-16 text-center">
+        <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-6 py-16 text-center">
             <Icon className="mx-auto h-8 w-8 text-[var(--fc-accent)]" />
             <h3 className="mt-3 text-sm font-semibold text-[var(--fc-text-primary)]">{title}</h3>
             <p className="mx-auto mt-1.5 max-w-sm text-sm text-[var(--fc-text-secondary)]">
@@ -40,7 +40,7 @@ export const EmptyStateCard = ({
                     ref={btnRef}
                     type="button"
                     onClick={onAction}
-                    className="mt-4 inline-flex items-center gap-2 rounded-md bg-[var(--fc-accent)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--fc-accent)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
                 >
                     {ActionIcon && <ActionIcon className="h-4 w-4" />}
                     {actionLabel}

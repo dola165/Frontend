@@ -84,7 +84,7 @@ export const OverflowActions = ({
                 aria-expanded={open}
                 aria-controls={menuId}
                 onClick={() => setOpen((current) => !current)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--fc-text-secondary)] transition-colors hover:text-[var(--fc-text-primary)] hover:bg-[var(--fc-surface-hover)]"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-[var(--fc-text-secondary)] transition-colors hover:text-[var(--fc-text-primary)] hover:bg-[var(--fc-surface-hover)]"
             >
                 <span className="sr-only">{label}</span>
                 <TriggerIcon className="h-4 w-4" />
@@ -94,7 +94,7 @@ export const OverflowActions = ({
                 <div
                     id={menuId}
                     role="menu"
-                    className="absolute right-0 top-[calc(100%+4px)] z-20 min-w-[200px] rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-1"
+                    className="absolute right-0 top-[calc(100%+4px)] z-20 min-w-[200px] rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-1"
                 >
                     {items.map((item) => {
                         const isConfirming = confirmingItemId === item.id;
@@ -104,7 +104,7 @@ export const OverflowActions = ({
                                     <hr className="my-1 border-[var(--fc-border)]" />
                                 ) : null}
                                 {isConfirming ? (
-                                    <div className="rounded-md bg-[var(--fc-state-warning-soft)] px-3 py-3">
+                                    <div className="rounded-xl bg-[var(--fc-state-warning-soft)] px-3 py-3">
                                         <div className="flex items-start gap-2">
                                             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--fc-state-warning)]" />
                                             <div className="min-w-0">
@@ -118,7 +118,7 @@ export const OverflowActions = ({
                                                     <button
                                                         type="button"
                                                         onClick={() => setConfirmingItemId(null)}
-                                                        className="rounded-md border border-[var(--fc-border)] px-2.5 py-1 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] transition-colors"
+                                                        className="rounded-xl border border-[var(--fc-border)] px-2.5 py-1 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] transition-colors"
                                                     >
                                                         {item.confirm?.cancelLabel || 'Cancel'}
                                                     </button>
@@ -126,7 +126,7 @@ export const OverflowActions = ({
                                                         type="button"
                                                         onClick={() => handleConfirm(item)}
                                                         disabled={item.disabled}
-                                                        className="rounded-md bg-[var(--fc-state-warning)] px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+                                                        className="rounded-xl bg-[var(--fc-state-warning)] px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
                                                     >
                                                         {item.confirm?.confirmLabel || 'Confirm'}
                                                     </button>
@@ -140,7 +140,7 @@ export const OverflowActions = ({
                                         role="menuitem"
                                         disabled={item.disabled}
                                         onClick={() => handleSelect(item)}
-                                        className={`flex w-full items-start gap-2.5 rounded-md px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${toneClass(item.tone)}`}
+                                        className={`flex w-full items-start gap-2.5 rounded-xl px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${toneClass(item.tone)}`}
                                     >
                                         {item.icon ? <span className="mt-0.5 shrink-0">{item.icon}</span> : null}
                                         <span className="min-w-0">

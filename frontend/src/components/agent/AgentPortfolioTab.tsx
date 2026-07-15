@@ -88,7 +88,7 @@ export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
                 action={
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] transition-colors"
                     >
                         <UserPlus className="w-3.5 h-3.5" /> Add Player
                     </button>
@@ -109,7 +109,7 @@ export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
                     {players.map(player => (
                         <div
                             key={player.representationId}
-                            className="flex items-center gap-4 px-4 py-3 rounded-md border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)]"
+                            className="flex items-center gap-4 px-4 py-3 rounded-xl border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)]"
                         >
                             <div className="flex-1 min-w-0">
                                 <UserIdentityCell
@@ -152,7 +152,7 @@ export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
             {/* Add Player Modal — L3: name search instead of manual ID entry */}
             {showAddModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => { setShowAddModal(false); setSearchQuery(''); setSearchResults([]); setSelectedPlayer(null); }}>
-                    <div className="bg-[#16181d] border border-[#26282d] rounded-md p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+                    <div className="bg-[#16181d] border border-[#26282d] rounded-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
                         <h3 className="text-base font-semibold text-[#f4f4f5] mb-4">Add Player to Portfolio</h3>
                         <div className="space-y-3">
                             <div className="relative">
@@ -162,7 +162,7 @@ export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
                                     <input
                                         value={searchQuery}
                                         onChange={e => handleSearch(e.target.value)}
-                                        className="w-full pl-9 pr-3 py-2 rounded-md border border-[#26282d] bg-[#0f1117] text-sm text-[#f4f4f5] outline-none focus:border-[#16a34a]"
+                                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#26282d] bg-[#0f1117] text-sm text-[#f4f4f5] outline-none focus:border-[#16a34a]"
                                         placeholder="Search by player name..."
                                         autoFocus
                                     />
@@ -170,7 +170,7 @@ export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
                                 {/* Search results dropdown */}
                                 {searching && <p className="text-xs text-[#71717a] mt-1">Searching...</p>}
                                 {!searching && searchResults.length > 0 && (
-                                    <div className="mt-1 border border-[#26282d] rounded-md bg-[#0f1117] max-h-40 overflow-y-auto">
+                                    <div className="mt-1 border border-[#26282d] rounded-xl bg-[#0f1117] max-h-40 overflow-y-auto">
                                         {searchResults.map(p => (
                                             <button
                                                 key={p.userId}
@@ -192,8 +192,8 @@ export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
                             )}
                             {addError && <p className="text-xs text-[#d4737a]">{addError}</p>}
                             <div className="flex gap-2 justify-end pt-2">
-                                <button onClick={() => { setShowAddModal(false); setSearchQuery(''); setSearchResults([]); setSelectedPlayer(null); }} className="px-3 py-1.5 rounded-md border border-[#26282d] text-xs font-semibold text-[#a1a1aa] hover:text-[#f4f4f5]">Cancel</button>
-                                <button onClick={handleAddPlayer} disabled={addingPlayer || !selectedPlayer} className="px-3 py-1.5 rounded-md bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] disabled:opacity-50">
+                                <button onClick={() => { setShowAddModal(false); setSearchQuery(''); setSearchResults([]); setSelectedPlayer(null); }} className="px-3 py-1.5 rounded-xl border border-[#26282d] text-xs font-semibold text-[#a1a1aa] hover:text-[#f4f4f5]">Cancel</button>
+                                <button onClick={handleAddPlayer} disabled={addingPlayer || !selectedPlayer} className="px-3 py-1.5 rounded-xl bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] disabled:opacity-50">
                                     {addingPlayer ? 'Adding...' : 'Add Player'}
                                 </button>
                             </div>

@@ -56,7 +56,7 @@ export const ApplicationsTab = ({ overview, pendingKey, onAcceptApplication, onD
             {overview && sortedApplications.length === 0 ? (
                 <EmptyState message="No pending applications to review." />
             ) : overview && (
-                <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
+                <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
                     <DataTable columns={['Applicant', 'Role', 'Message', 'Submitted', '']} sort={sort} onSort={handleSort}>
                         {sortedApplications.map((app) => (
                             <tr key={app.id} className="group h-11 hover:bg-[var(--fc-surface-hover)] transition-colors">

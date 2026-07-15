@@ -334,7 +334,7 @@ export const CalendarPage = ({}: CalendarPageProps) => {
                             </button>
 
                             <div data-tutorial="calendar-event-filters" className="border-t border-[var(--fc-border)] pt-4 space-y-3">
-                                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--fc-text-muted)]">Event Types</p>
+                                <p className="text-[10px] font-bold  text-[var(--fc-text-muted)]">Event Types</p>
                                 <div className="space-y-1">
                                     {EVENT_TYPES.map((type) => {
                                         const meta = eventTypeCopy[type];

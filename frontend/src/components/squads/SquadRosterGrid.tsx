@@ -30,14 +30,14 @@ const PlayerCard = ({
             {/* image area */}
             <div className="relative h-24 w-full bg-[rgba(255,255,255,0.03)]">
                 <div className="flex h-full w-full items-center justify-center">
-                    <span className="text-3xl font-black text-[var(--fc-text-muted)]">{initial}</span>
+                    <span className="text-3xl font-semibold text-[var(--fc-text-muted)]">{initial}</span>
                 </div>
                 {/* drag handle */}
                 <span className="absolute top-1 left-1 text-[var(--fc-text-muted)] cursor-grab">
                     <GripVertical className="h-4 w-4" />
                 </span>
                 {/* jersey number badge */}
-                <span className="absolute top-2 left-7 rounded-[2px] bg-black/70 px-2 py-0.5 text-[10px] font-black text-[var(--fc-text-primary)]">
+                <span className="absolute top-2 left-7 rounded-[2px] bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-[var(--fc-text-primary)]">
                     #{player.number ?? '--'}
                 </span>
                 {/* availability */}
@@ -114,7 +114,7 @@ export const SquadRosterGrid = ({
 }: SquadRosterGridProps) => {
     if (groups.length === 0) {
         return (
-            <div className="rounded-md border border-[#ffffff0d] bg-[#16181d] px-5 py-10 text-center">
+            <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d] px-5 py-10 text-center">
                 <p className="text-sm text-[var(--fc-text-secondary)]">No registered players in this squad yet.</p>
             </div>
         );

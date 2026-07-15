@@ -184,11 +184,11 @@ const RailSection = ({
         <button type="button" onClick={onToggle} className="map-filter-card__header">
             <div className="flex min-w-0 items-center gap-3">
                 <span className="map-rail-icon">{icon}</span>
-                <h3 className="truncate text-sm font-bold text-primary">{title}</h3>
+                <h3 className="truncate text-sm font-bold text-[#f4f4f5]">{title}</h3>
             </div>
             <div className="flex shrink-0 items-center gap-2">
                 {helpText ? <MapHelpHint text={helpText} align="right" /> : null}
-                {expanded ? <ChevronDown className="h-4 w-4 text-secondary" /> : <ChevronRight className="h-4 w-4 text-secondary" />}
+                {expanded ? <ChevronDown className="h-4 w-4 text-[#a1a1aa]" /> : <ChevronRight className="h-4 w-4 text-[#a1a1aa]" />}
             </div>
         </button>
         {expanded && <div className="map-filter-card__body">{children}</div>}
@@ -209,7 +209,7 @@ const TextField = ({
     <label className="space-y-2">
         <span className="map-field-label">{label}</span>
         <div className="map-input-shell">
-            <Search className="h-4 w-4 text-secondary" />
+            <Search className="h-4 w-4 text-[#a1a1aa]" />
             <input
                 type="text"
                 value={value}
@@ -237,8 +237,8 @@ const CheckRow = ({
     onChange: () => void;
 }) => (
     <label className="map-option-row cursor-pointer">
-        <span className="min-w-0 text-sm font-semibold text-primary">{label}</span>
-        <input type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4 accent-[var(--accent-primary)]" />
+        <span className="min-w-0 text-sm font-semibold text-[#f4f4f5]">{label}</span>
+        <input type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4 accent-[#16a34a]" />
     </label>
 );
 
@@ -254,8 +254,8 @@ const RadioRow = ({
     onChange: () => void;
 }) => (
     <label className="map-option-row cursor-pointer">
-        <span className="text-sm font-semibold text-primary">{label}</span>
-        <input type="radio" name={name} checked={checked} onChange={onChange} className="h-4 w-4 accent-[var(--accent-primary)]" />
+        <span className="text-sm font-semibold text-[#f4f4f5]">{label}</span>
+        <input type="radio" name={name} checked={checked} onChange={onChange} className="h-4 w-4 accent-[#16a34a]" />
     </label>
 );
 
@@ -307,7 +307,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                         <SlidersHorizontal className="h-4 w-4" />
                                     </span>
                                     <div className="flex min-w-0 items-center gap-2">
-                                        <h2 className="truncate text-lg font-bold text-primary">Filters</h2>
+                                        <h2 className="truncate text-lg font-bold text-[#f4f4f5]">Filters</h2>
                                         <MapHelpHint
                                             text="Search moves the map. Filters narrow what stays visible or listed."
                                             align="right"
@@ -320,10 +320,10 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                             </button>
                         </div>
 
-                        <div className="mt-4 flex items-center justify-between gap-3 rounded-[18px] border border-subtle bg-accent-primary-soft px-4 py-3">
+                        <div className="mt-4 flex items-center justify-between gap-3 rounded-[18px] border border-[#ffffff0d] bg-[#16a34a]-soft px-4 py-3">
                             <div>
-                                <p className="text-xs font-semibold text-secondary">Active</p>
-                                <p className="mt-1 text-sm font-bold text-primary">{activeCount === 0 ? 'Default' : `${activeCount} active`}</p>
+                                <p className="text-xs font-semibold text-[#a1a1aa]">Active</p>
+                                <p className="mt-1 text-sm font-bold text-[#f4f4f5]">{activeCount === 0 ? 'Default' : `${activeCount} active`}</p>
                             </div>
                             <button
                                 type="button"
@@ -358,7 +358,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                                         entityType: [entityType]
                                                     }))
                                                 }
-                                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors ${
+                                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-colors ${
                                                     isActive
                                                         ? 'bg-[#f59e0b]/10 border border-[#f59e0b]/30 text-[#f59e0b]'
                                                         : 'border border-transparent text-[#a1a1aa] hover:bg-[rgba(255,255,255,0.03)] hover:text-[#f4f4f5]'
@@ -381,7 +381,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                                 entityType: ['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT', 'CLUB_NEED']
                                             }))
                                         }
-                                        className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-xs text-[#71717a] hover:text-[#a1a1aa] hover:bg-[rgba(255,255,255,0.02)] transition-colors ${
+                                        className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-xl text-xs text-[#71717a] hover:text-[#a1a1aa] hover:bg-[rgba(255,255,255,0.02)] transition-colors ${
                                             filters.entityType.length > 1 ? 'text-[#f59e0b]/70' : ''
                                         }`}
                                     >
@@ -415,7 +415,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                     <div>
                                         <div className="flex items-center justify-between gap-3">
                                             <span className="map-field-label">Radius</span>
-                                            <span className="rounded-full border border-subtle bg-base px-2.5 py-1 text-xs font-semibold text-primary">
+                                            <span className="rounded-full border border-[#ffffff0d] bg-[#0f1117] px-2.5 py-1 text-xs font-semibold text-[#f4f4f5]">
                                                 {filters.distanceKm} km
                                             </span>
                                         </div>
@@ -428,9 +428,9 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                             onChange={(event) =>
                                                 updateFilters((current) => ({ ...current, distanceKm: Number(event.target.value) }))
                                             }
-                                            className="mt-3 h-2 w-full cursor-pointer appearance-none rounded-full bg-[color:var(--theme-surface-inset)] accent-[var(--accent-primary)]"
+                                            className="mt-3 h-2 w-full cursor-pointer appearance-none rounded-full bg-[color:var(--theme-surface-inset)] accent-[#16a34a]"
                                         />
-                                        <div className="mt-2 flex items-center justify-between text-xs text-secondary">
+                                        <div className="mt-2 flex items-center justify-between text-xs text-[#a1a1aa]">
                                             <span>Close by</span>
                                             <span>Wider search</span>
                                         </div>

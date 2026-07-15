@@ -76,7 +76,7 @@ export const AgentEngagementsTab = ({ clubId }: AgentEngagementsTabProps) => {
         return (
             <div className="space-y-4">
                 <SectionHeader eyebrow="Agents" title="Agent Engagements" description="Agents who have initiated contact with your club." />
-                <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-6 text-center">
+                <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-6 text-center">
                     <p className="text-sm text-[var(--fc-state-danger)] mb-3">{error}</p>
                     <button
                         type="button"

@@ -105,9 +105,9 @@ export const ClubHero = ({
     const bannerUrl = resolveMediaUrl(club?.bannerUrl);
     const logoUrl = resolveMediaUrl(club?.logoUrl);
     const showExternalVisitorActions = Boolean(club && !club.isMember);
-    const systemActionClassName = 'inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-[color:var(--club-theme-text-primary)] transition-colors hover:bg-white/[0.07]';
-    const accentActionClassName = 'inline-flex items-center gap-2 rounded-full border border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green)] px-5 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-[#04110a] transition-all hover:brightness-105';
-    const challengeActionClassName = 'inline-flex items-center gap-2 rounded-full border border-[rgba(255,158,88,0.3)] bg-[color:var(--club-accent-orange-soft)] px-5 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-[color:var(--club-accent-orange)] transition-colors hover:bg-[rgba(255,158,88,0.18)]';
+    const systemActionClassName = 'inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-4 py-3 text-[11px] font-semibold  text-[color:var(--club-theme-text-primary)] transition-colors hover:bg-white/[0.07]';
+    const accentActionClassName = 'inline-flex items-center gap-2 rounded-full border border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green)] px-5 py-3 text-[11px] font-semibold  text-[#04110a] transition-all hover:brightness-105';
+    const challengeActionClassName = 'inline-flex items-center gap-2 rounded-full border border-[rgba(255,158,88,0.3)] bg-[color:var(--club-accent-orange-soft)] px-5 py-3 text-[11px] font-semibold  text-[color:var(--club-accent-orange)] transition-colors hover:bg-[rgba(255,158,88,0.18)]';
     return (
         <section className="border-b border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-band)]">
             <div className="relative h-[240px] overflow-hidden sm:h-[300px] lg:h-[360px]">
@@ -127,7 +127,7 @@ export const ClubHero = ({
                             type="button"
                             onClick={() => bannerInputRef.current?.click()}
                             disabled={uploading === 'banner'}
-                            className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/24 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white backdrop-blur-md"
+                            className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/24 px-3 py-2 text-[11px] font-semibold  text-white backdrop-blur-md"
                         >
                             {uploading === 'banner' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                             Banner
@@ -140,7 +140,7 @@ export const ClubHero = ({
                 <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-end">
                         <div className="relative -mt-[76px] shrink-0 sm:-mt-[96px] lg:-mt-[112px]">
-                            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-[28px] border-[5px] border-[color:var(--club-band)] bg-[rgba(6,11,18,0.92)] text-2xl font-black uppercase text-[color:var(--club-theme-text-primary)] shadow-[0_18px_44px_rgba(2,6,12,0.35)] sm:h-28 sm:w-28 lg:h-36 lg:w-36">
+                            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border-[5px] border-[color:var(--club-band)] bg-[rgba(6,11,18,0.92)] text-2xl font-semibold uppercase text-[color:var(--club-theme-text-primary)] shadow-[0_18px_44px_rgba(2,6,12,0.35)] sm:h-28 sm:w-28 lg:h-36 lg:w-36">
                                 {logoUrl ? <img src={logoUrl} alt="Club logo" className="h-full w-full object-cover" /> : (club?.name ?? 'CL').substring(0, 2).toUpperCase()}
                             </div>
                             {club?.isOfficial ? (
@@ -164,16 +164,16 @@ export const ClubHero = ({
 
                         <div className="min-w-0 pb-2">
                             <div className="mt-2 flex flex-wrap items-center gap-3">
-                                <h1 className="text-3xl font-black tracking-[-0.04em] text-[color:var(--club-theme-text-primary)] sm:text-5xl">{club?.name}</h1>
+                                <h1 className="text-3xl font-semibold tracking-[-0.04em] text-[color:var(--club-theme-text-primary)] sm:text-5xl">{club?.name}</h1>
                                 {club?.isOfficial && (
-                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green-soft)] px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-[color:var(--club-tone-green)]">
+                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green-soft)] px-3 py-1 text-[11px] font-semibold  text-[color:var(--club-tone-green)]">
                                         <ShieldCheck className="h-3.5 w-3.5" />
                                         Verified club
                                     </span>
                                 )}
                             </div>
 
-                            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] font-black uppercase tracking-[0.18em] text-[color:var(--club-theme-text-secondary)]">
+                            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] font-semibold  text-[color:var(--club-theme-text-secondary)]">
                                 <span className="inline-flex items-center gap-1.5">
                                     <MapPin className="h-3.5 w-3.5 text-[color:var(--club-tone-green)]" />
                                     {club?.addressText || 'Location pending'}

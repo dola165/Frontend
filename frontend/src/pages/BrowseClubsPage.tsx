@@ -276,7 +276,7 @@ export const BrowseClubsPage = () => {
                             </p>
                         </div>
 
-                        <section className="rounded-md bg-[#16181d] border border-[#ffffff0d] px-4 py-4 xl:w-[360px]">
+                        <section className="rounded-xl bg-[#16181d] border border-[#ffffff0d] px-4 py-4 xl:w-[360px]">
                             <p className="text-[11px] font-medium text-[#a1a1aa]">My Club Workspace</p>
                             <div className="mt-3 flex items-start gap-3">
                                 <div className="flex h-10 w-10 items-center justify-center border border-[#ffffff0d] bg-[#0f1117]">
@@ -298,10 +298,10 @@ export const BrowseClubsPage = () => {
                             <div className="mt-4 flex flex-wrap gap-2">
                                 {status !== 'authenticated' ? (
                                     <button type="button" onClick={() => navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash))}
-                                        className="rounded-md px-3 py-1.5 text-xs font-medium bg-[#16a34a] text-white">Sign In</button>
+                                        className="rounded-xl px-3 py-1.5 text-xs font-medium bg-[#16a34a] text-white">Sign In</button>
                                 ) : membershipContext?.canCreateClub ? (
                                     <button type="button" onClick={() => navigate('/clubs/create')}
-                                        className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium bg-[#16a34a] text-white">
+                                        className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium bg-[#16a34a] text-white">
                                         <Plus className="h-3.5 w-3.5" />Create Club</button>
                                 ) : null}
                                 {status === 'authenticated' && membershipContext?.clubId && (
@@ -325,7 +325,7 @@ export const BrowseClubsPage = () => {
                 )}
 
                 {/* Filter Bar */}
-                <div className="rounded-md bg-[#16181d] border border-[#ffffff0d]">
+                <div className="rounded-xl bg-[#16181d] border border-[#ffffff0d]">
                     <div className="flex flex-wrap items-center gap-3 px-4 py-3">
                         {/* Search */}
                         <div className="flex min-w-[200px] flex-1 items-center gap-2 border border-[#ffffff0d] bg-[#0f1117] px-3 py-2">
@@ -340,7 +340,7 @@ export const BrowseClubsPage = () => {
 
                         {/* Sort */}
                         <select value={sort} onChange={(e) => handleSortChange(e.target.value)}
-                            className="rounded-md border border-[#ffffff0d] bg-[#16181d] px-3 py-1.5 text-sm font-medium text-[#f4f4f5] focus:outline-none">
+                            className="rounded-xl border border-[#ffffff0d] bg-[#16181d] px-3 py-1.5 text-sm font-medium text-[#f4f4f5] focus:outline-none">
                             {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
 
@@ -405,7 +405,7 @@ export const BrowseClubsPage = () => {
                 </div>
 
                 {/* Club Table */}
-                <section className="rounded-md bg-[#16181d] border border-[#ffffff0d]">
+                <section className="rounded-xl bg-[#16181d] border border-[#ffffff0d]">
                     <div className="hidden border-b border-[#ffffff0d] px-4 py-3 text-[11px] font-medium text-[#a1a1aa] lg:grid lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1.6fr)_150px_170px_180px] lg:gap-4">
                         <span>Club</span>
                         <span>Description</span>
@@ -476,12 +476,12 @@ export const BrowseClubsPage = () => {
                                         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                                             {status === 'authenticated' && club.relationshipState === 'NONE' && club.joinPolicy === 'OPEN_TRIAL' && (
                                                 <button type="button" onClick={() => handleJoinClub(club.id)} disabled={joiningClubId === club.id}
-                                                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium bg-[#16a34a] text-white disabled:opacity-60">
+                                                    className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-medium bg-[#16a34a] text-white disabled:opacity-60">
                                                     {joiningClubId === club.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}Join</button>
                                             )}
                                             {status === 'authenticated' && club.relationshipState === 'NONE' && club.joinPolicy === 'APPLICATION_REQUIRED' && (
                                                 <button type="button" onClick={() => handleApplyClub(club.id)} disabled={applyingClubId === club.id}
-                                                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium bg-[#16a34a] text-white disabled:opacity-60">
+                                                    className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-medium bg-[#16a34a] text-white disabled:opacity-60">
                                                     {applyingClubId === club.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}Apply</button>
                                             )}
                                             {status === 'authenticated' && club.relationshipState === 'ACTIVE' && (
@@ -498,7 +498,7 @@ export const BrowseClubsPage = () => {
                                             )}
 
                                             <button type="button" onClick={(event) => handleFollowToggle(event, club.id)}
-                                                className={`inline-flex items-center gap-2 border px-3 py-2 text-[11px] font-medium rounded-md ${
+                                                className={`inline-flex items-center gap-2 border px-3 py-2 text-[11px] font-medium rounded-xl ${
                                                     club.isFollowedByMe
                                                         ? 'border-[#16a34a] bg-[#16a34a]/10 text-[#16a34a]'
                                                         : 'border-[#ffffff0d] bg-[#0f1117] text-[#f4f4f5]'
@@ -506,7 +506,7 @@ export const BrowseClubsPage = () => {
                                                 {club.isFollowedByMe ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}{club.isFollowedByMe ? 'Following' : 'Follow'}</button>
 
                                             <Link to={`/clubs/${club.id}`}
-                                                className="inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-xs font-medium text-[#16a34a]">Open <ArrowRight className="h-3.5 w-3.5" /></Link>
+                                                className="inline-flex items-center gap-2 rounded-xl px-2.5 py-1 text-xs font-medium text-[#16a34a]">Open <ArrowRight className="h-3.5 w-3.5" /></Link>
                                         </div>
                                     </article>
                                 );

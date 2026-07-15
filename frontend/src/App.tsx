@@ -42,10 +42,10 @@ const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset
 const boundedCanvasPages = new Set(['/map', '/messages', '/calendar']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
-    <div className="flex min-h-screen items-center justify-center bg-[#f2f4f7] dark:bg-slate-950">
+    <div className="flex min-h-screen items-center justify-center bg-[#0f1117]">
         <div className="flex flex-col items-center gap-4 text-center">
-            <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#1f6feb] border-t-transparent"></div>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#16a34a] border-t-transparent"></div>
+            <p className="text-sm font-medium text-[#a1a1aa]">
                 {label}
             </p>
         </div>
@@ -221,7 +221,7 @@ function MainLayout() {
     const isBoundedCanvasPage = boundedCanvasPages.has(location.pathname);
 
     return (
-        <div className="min-h-screen bg-base text-primary transition-colors duration-200">
+        <div className="min-h-screen bg-[#0f1117] text-[#f4f4f5] transition-colors duration-200">
             {!isLandingPage && !isAuthPage && !isChromeFreeWorkspace && (
                 <TopNav
                     user={user}
@@ -270,7 +270,7 @@ function MainLayout() {
                         <Route path="/marketplace" element={<MarketplacePage />} />
                         <Route path="/needs" element={<NeedsBoardPage />} />
                         <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
-                        <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage /></ProtectedRoute>} />
+                        <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage darkMode={darkMode} /></ProtectedRoute>} />
                         <Route path="/clubs/:id" element={<ClubProfilePage />} />
                         <Route path="/clubs/create" element={<OrganizerOnlyRoute><CreateClubPage /></OrganizerOnlyRoute>} />
                         <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />

@@ -3,7 +3,7 @@
  * Dark-mode compatible — uses translucent white on dark backgrounds.
  */
 export const SkeletonCard = ({ lines = 3, className = '' }: { lines?: number; className?: string }) => (
-    <div className={`animate-pulse rounded-md border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] p-5 ${className}`}>
+    <div className={`animate-pulse rounded-xl border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] p-5 ${className}`}>
         <div className="mb-4 flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-white/[0.04]" />
             <div className="flex-1 space-y-2">
@@ -22,7 +22,7 @@ export const SkeletonCard = ({ lines = 3, className = '' }: { lines?: number; cl
 );
 
 export const SkeletonMessageRow = ({ className = '' }: { className?: string }) => (
-    <div className={`animate-pulse flex items-center gap-3 rounded-md border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] p-4 ${className}`}>
+    <div className={`animate-pulse flex items-center gap-3 rounded-xl border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] p-4 ${className}`}>
         <div className="h-11 w-11 shrink-0 rounded-full bg-white/[0.04]" />
         <div className="min-w-0 flex-1 space-y-2">
             <div className="flex items-center justify-between">
@@ -36,7 +36,7 @@ export const SkeletonMessageRow = ({ className = '' }: { className?: string }) =
 
 export const SkeletonHero = ({ className = '' }: { className?: string }) => (
     <div className={`animate-pulse ${className}`}>
-        <div className="h-[300px] w-full rounded-md bg-white/[0.02]" />
+        <div className="h-[300px] w-full rounded-xl bg-white/[0.02]" />
         <div className="-mt-20 ml-8 h-24 w-24 rounded-full border-[5px] border-[var(--club-band)] bg-white/[0.04]" />
         <div className="mt-4 ml-8 space-y-2">
             <div className="h-6 w-48 rounded bg-white/[0.04]" />

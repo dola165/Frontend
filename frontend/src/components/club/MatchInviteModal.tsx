@@ -133,21 +133,21 @@ export const MatchInviteModal = ({
         }
     };
 
-    const formControlClass = 'theme-surface-strong theme-border w-full border px-3 py-2.5 text-sm font-semibold text-primary outline-none transition-colors focus:border-accent-primary disabled:opacity-60';
+    const formControlClass = 'theme-surface-strong theme-border w-full border px-3 py-2.5 text-sm font-semibold text-[#f4f4f5] outline-none transition-colors focus:border-[#16a34a] disabled:opacity-60';
 
     return (
         <div className="theme-overlay-strong fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="theme-surface theme-border flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border shadow-2xl">
-                <div className="flex items-start justify-between gap-4 border-b border-subtle px-6 py-5 shrink-0">
+            <div className="theme-surface theme-border flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border shadow-2xl">
+                <div className="flex items-start justify-between gap-4 border-b border-[#ffffff0d] px-6 py-5 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-subtle bg-base">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#ffffff0d] bg-[#0f1117]">
                             <Swords className="h-4 w-4 accent-muted" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-black uppercase tracking-tight text-primary">
+                            <h2 className="text-lg font-semibold uppercase tracking-tight text-[#f4f4f5]">
                                 Issue Challenge
                             </h2>
-                            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary">
+                            <p className="text-[11px] font-semibold  text-[#a1a1aa]">
                                 versus {targetClubName}
                             </p>
                         </div>
@@ -155,7 +155,7 @@ export const MatchInviteModal = ({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="inline-flex h-10 w-10 items-center justify-center border border-subtle bg-base text-secondary transition-colors hover:text-primary"
+                        className="inline-flex h-10 w-10 items-center justify-center border border-[#ffffff0d] bg-[#0f1117] text-[#a1a1aa] transition-colors hover:text-[#f4f4f5]"
                     >
                         <X className="h-5 w-5" />
                     </button>
@@ -164,7 +164,7 @@ export const MatchInviteModal = ({
                 <div className="flex-1 overflow-y-auto space-y-5 p-6">
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
+                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">
                                 Challenge Type
                             </label>
                             <select
@@ -178,7 +178,7 @@ export const MatchInviteModal = ({
                         </div>
 
                         <div className="space-y-2">
-                            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
+                            <label className="flex items-center gap-2 text-[10px] font-semibold  text-[#a1a1aa]">
                                 <CalendarDays className="h-3.5 w-3.5" />
                                 Proposed Kickoff
                             </label>
@@ -193,7 +193,7 @@ export const MatchInviteModal = ({
 
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
+                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">
                                 Your Squad
                             </label>
                             <select
@@ -210,14 +210,14 @@ export const MatchInviteModal = ({
                                 ))}
                             </select>
                             {selectedSourceSquad && (
-                                <p className="text-[11px] font-black uppercase tracking-[0.16em] accent-primary">
+                                <p className="text-[11px] font-semibold  text-[#16a34a]">
                                     {selectedSourceSquad.category} / {selectedSourceSquad.gender}
                                 </p>
                             )}
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
+                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">
                                 Requested Opponent Squad
                             </label>
                             <select
@@ -234,7 +234,7 @@ export const MatchInviteModal = ({
                                 ))}
                             </select>
                             {selectedTargetSquad && (
-                                <p className="text-[11px] font-black uppercase tracking-[0.16em] accent-primary">
+                                <p className="text-[11px] font-semibold  text-[#16a34a]">
                                     {selectedTargetSquad.category} / {selectedTargetSquad.gender}
                                 </p>
                             )}
@@ -243,7 +243,7 @@ export const MatchInviteModal = ({
 
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
+                            <label className="flex items-center gap-2 text-[10px] font-semibold  text-[#a1a1aa]">
                                 <Shield className="h-3.5 w-3.5" />
                                 Venue Preference
                             </label>
@@ -260,7 +260,7 @@ export const MatchInviteModal = ({
                         </div>
 
                         <div className="space-y-2">
-                            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
+                            <label className="flex items-center gap-2 text-[10px] font-semibold  text-[#a1a1aa]">
                                 <MapPin className="h-3.5 w-3.5" />
                                 Desired Location
                             </label>
@@ -276,7 +276,7 @@ export const MatchInviteModal = ({
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
+                        <label className="text-[10px] font-semibold  text-[#a1a1aa]">
                             Notes
                         </label>
                         <textarea
@@ -287,15 +287,15 @@ export const MatchInviteModal = ({
                             placeholder="Share context like age group balance, travel window, or the type of test you want."
                             className={`${formControlClass} resize-none`}
                         />
-                        <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] font-black uppercase tracking-[0.16em] text-secondary">
+                        <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] font-semibold  text-[#a1a1aa]">
                             <span>External messaging stays available separately from this challenge flow.</span>
                             <span>{formData.message.length}/500</span>
                         </div>
                     </div>
 
                     {isLoadingSquads && (
-                        <div className="flex items-center gap-2 border border-subtle bg-base px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-secondary">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin accent-primary" />
+                        <div className="flex items-center gap-2 border border-[#ffffff0d] bg-[#0f1117] px-4 py-3 text-xs font-semibold  text-[#a1a1aa]">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#16a34a]" />
                             Loading squad context
                         </div>
                     )}
@@ -307,11 +307,11 @@ export const MatchInviteModal = ({
                     )}
                 </div>
 
-                <div className="flex items-center justify-end gap-3 border-t border-subtle px-6 py-4 shrink-0">
+                <div className="flex items-center justify-end gap-3 border-t border-[#ffffff0d] px-6 py-4 shrink-0">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="border border-subtle bg-base px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-secondary transition-colors hover:text-primary"
+                        className="border border-[#ffffff0d] bg-[#0f1117] px-4 py-2 text-[11px] font-semibold  text-[#a1a1aa] transition-colors hover:text-[#f4f4f5]"
                     >
                         Cancel
                     </button>
@@ -319,7 +319,7 @@ export const MatchInviteModal = ({
                         type="button"
                         onClick={handleSubmit}
                         disabled={isSubmitting || !formData.proposedDate}
-                        className="inline-flex items-center gap-2 border border-accent-muted bg-accent-muted-soft px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-[color:var(--accent-muted)] transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-2 border border-accent-muted bg-accent-muted-soft px-4 py-2 text-[11px] font-semibold  text-[color:var(--accent-muted)] transition-colors disabled:opacity-50"
                     >
                         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4" /> Send Challenge</>}
                     </button>

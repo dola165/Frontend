@@ -59,7 +59,7 @@ export function MiniMap({
         <div className={mode === 'picker' ? `relative ${className}`.trim() : `sticky top-24 relative z-50 ${className}`.trim()}>
             <div className="mb-3 flex items-center justify-between gap-3 px-1">
                 <div className="flex min-w-0 items-center gap-2">
-                    <h3 className="truncate text-xs font-black uppercase tracking-[0.18em] text-primary">{previewTitle}</h3>
+                    <h3 className="truncate text-xs font-semibold  text-[#f4f4f5]">{previewTitle}</h3>
                     {mode === 'picker' ? (
                         <MapHelpHint
                             text={selectedPoint ? 'Click a new spot to move the venue pin.' : 'Click anywhere on the map to place the venue pin.'}
@@ -73,7 +73,7 @@ export function MiniMap({
                         <button
                             type="button"
                             onClick={() => navigate('/map')}
-                            className="inline-flex h-8 items-center gap-1 rounded-[4px] border border-subtle bg-surface px-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-primary transition-colors hover:bg-elevated"
+                            className="inline-flex h-8 items-center gap-1 rounded-[4px] border border-[#ffffff0d] bg-[#16181d] px-2.5 text-[10px] font-semibold  text-[#f4f4f5] transition-colors hover:bg-elevated"
                         >
                             <MapIcon className="h-3.5 w-3.5" />
                             Full Map
@@ -83,7 +83,7 @@ export function MiniMap({
                     <button
                         type="button"
                         onClick={() => setExpanded((current) => !current)}
-                        className="inline-flex h-8 items-center gap-1 rounded-[4px] border border-subtle bg-surface px-2.5 text-[10px] font-black uppercase tracking-[0.16em] text-primary transition-colors hover:bg-elevated"
+                        className="inline-flex h-8 items-center gap-1 rounded-[4px] border border-[#ffffff0d] bg-[#16181d] px-2.5 text-[10px] font-semibold  text-[#f4f4f5] transition-colors hover:bg-elevated"
                     >
                         {expanded ? <Shrink className="h-3.5 w-3.5" /> : <Expand className="h-3.5 w-3.5" />}
                         {expanded ? 'Collapse' : 'Expand'}
@@ -92,7 +92,7 @@ export function MiniMap({
             </div>
 
             <div
-                className={`theme-surface theme-border relative overflow-hidden border shadow-sm transition-[height] duration-200 ${
+                className={`theme-surface theme-border relative overflow-hidden border  transition-[height] duration-200 ${
                     expanded ? 'h-[320px]' : mode === 'picker' ? 'h-[220px]' : 'h-64'
                 }`}
             >

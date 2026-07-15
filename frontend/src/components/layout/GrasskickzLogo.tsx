@@ -20,7 +20,7 @@ export const GrasskickzLogo = ({ compact = false, className = '', ...props }: Gr
                 />
             ) : (
                 <div className="flex flex-col leading-none">
-                    <span className={`bg-[linear-gradient(135deg,var(--accent-highlight),var(--accent-primary)_55%,color-mix(in_srgb,var(--accent-primary)_70%,var(--bg-base)))] bg-clip-text font-black tracking-[-0.06em] text-transparent ${compact ? 'text-lg' : 'text-[1.45rem]'}`}>
+                    <span className={`bg-[linear-gradient(135deg,var(--accent-highlight),#16a34a_55%,color-mix(in_srgb,#16a34a_70%,var(--bg-base)))] bg-clip-text font-semibold tracking-[-0.06em] text-transparent ${compact ? 'text-lg' : 'text-[1.45rem]'}`}>
                         Grasskickz
                     </span>
                     <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.26em] text-[color:var(--text-secondary)]">

@@ -35,9 +35,9 @@ export const ClubProfileStickyHeader = ({
                             }`}
                         >
                             <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-[color:var(--club-tone-green)]' : 'text-[color:var(--club-theme-text-secondary)]'}`} />
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">{item.label}</span>
+                            <span className="text-[11px] font-semibold ">{item.label}</span>
                             {badge != null && badge > 0 ? (
-                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] ${
+                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold  ${
                                     isActive
                                         ? 'bg-[rgba(255,255,255,0.08)] text-[color:var(--club-theme-text-primary)]'
                                         : 'bg-white/[0.04] text-[color:var(--club-theme-text-secondary)]'

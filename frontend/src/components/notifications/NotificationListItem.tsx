@@ -57,14 +57,14 @@ export const NotificationListItem = ({
             disabled={busy}
             className={`group relative grid w-full gap-3 text-left transition-colors ${
                 compact ? 'px-4 py-3' : 'px-5 py-4'
-            } ${busy ? 'cursor-wait opacity-70' : 'cursor-pointer'} ${notification.isRead ? 'hover:bg-base' : 'bg-accent-primary-soft hover:bg-base'}`}
+            } ${busy ? 'cursor-wait opacity-70' : 'cursor-pointer'} ${notification.isRead ? 'hover:bg-[#0f1117]' : 'bg-[#16a34a]-soft hover:bg-[#0f1117]'}`}
         >
             {!notification.isRead && (
                 <span className="absolute inset-y-0 left-0 w-px bg-[color:var(--accent-muted)]" aria-hidden="true" />
             )}
 
             <div className="flex items-start gap-3">
-                <div className={`mt-0.5 flex shrink-0 items-center justify-center border ${notification.isRead ? 'border-subtle bg-base text-secondary' : 'border-accent-primary bg-accent-primary-soft accent-primary'} ${compact ? 'h-9 w-9' : 'h-10 w-10'}`}>
+                <div className={`mt-0.5 flex shrink-0 items-center justify-center border ${notification.isRead ? 'border-[#ffffff0d] bg-[#0f1117] text-[#a1a1aa]' : 'border-[#16a34a] bg-[#16a34a]-soft text-[#16a34a]'} ${compact ? 'h-9 w-9' : 'h-10 w-10'}`}>
                     <Icon className="h-4 w-4" />
                 </div>
 
@@ -72,23 +72,23 @@ export const NotificationListItem = ({
                     <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                                {!notification.isRead && <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--accent-primary)]" />}
-                                <p className={`truncate text-sm uppercase tracking-[0.08em] text-primary ${notification.isRead ? 'font-bold' : 'font-black'}`}>
+                                {!notification.isRead && <span className="h-1.5 w-1.5 rounded-full bg-[color:#16a34a]" />}
+                                <p className={`truncate text-sm uppercase tracking-[0.08em] text-[#f4f4f5] ${notification.isRead ? 'font-bold' : 'font-semibold'}`}>
                                     {notification.title}
                                 </p>
                             </div>
-                            <p className={`mt-1 text-sm leading-6 text-secondary ${compact ? 'max-w-[26rem]' : ''}`}>
+                            <p className={`mt-1 text-sm leading-6 text-[#a1a1aa] ${compact ? 'max-w-[26rem]' : ''}`}>
                                 {notification.body}
                             </p>
                         </div>
 
-                        <span className="shrink-0 whitespace-nowrap text-[11px] font-black uppercase tracking-[0.16em] text-secondary">
+                        <span className="shrink-0 whitespace-nowrap text-[11px] font-semibold  text-[#a1a1aa]">
                             {formatNotificationTime(notification.createdAt)}
                         </span>
                     </div>
 
                     <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-black uppercase tracking-[0.16em] text-secondary">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold  text-[#a1a1aa]">
                             {metaItems.map((item, index) => (
                                 <Fragment key={`${notification.id}-${item}-${index}`}>
                                     {index > 0 && <span className="h-1 w-1 rounded-full bg-[color:var(--accent-muted)]" />}
@@ -98,7 +98,7 @@ export const NotificationListItem = ({
                         </div>
 
                         {actionLabel && (
-                            <span className="inline-flex items-center gap-1.5 self-start text-[11px] font-black uppercase tracking-[0.16em] accent-primary">
+                            <span className="inline-flex items-center gap-1.5 self-start text-[11px] font-semibold  text-[#16a34a]">
                                 {actionLabel}
                                 <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                             </span>

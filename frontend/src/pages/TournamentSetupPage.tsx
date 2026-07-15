@@ -26,7 +26,7 @@ type TournamentFormState = {
     endDate: string;
 };
 
-const inputClass = 'rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] text-[#f4f4f5] placeholder:text-[#a1a1aa] px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#16a34a]';
+const inputClass = 'rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] text-[#f4f4f5] placeholder:text-[#a1a1aa] px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#16a34a]';
 const textareaClass = `${inputClass} min-h-[110px] resize-none`;
 const selectClass = inputClass;
 
@@ -182,7 +182,7 @@ export const TournamentSetupPage = () => {
                     </div>
 
                     {/* Stats */}
-                    <div className="rounded-md border border-[#ffffff0d] bg-[#16181d]">
+                    <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d]">
                         <div className="grid divide-y divide-[#ffffff0d] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
                             <div className="px-5 py-4">
                                 <p className="text-xs font-semibold text-[#a1a1aa]">Organizations</p>
@@ -204,7 +204,7 @@ export const TournamentSetupPage = () => {
                 <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)_300px] xl:grid-cols-[260px_minmax(0,1fr)_320px] xl:items-start">
                     {/* Left sidebar — Steps */}
                     <aside className="flex flex-col gap-4 lg:sticky lg:top-[calc(var(--app-header-height)+24px)]">
-                        <div className="rounded-md border border-[#ffffff0d] bg-[#16181d]">
+                        <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d]">
                             <div className="border-b border-[#ffffff0d] px-5 py-4">
                                 <p className="text-xs font-semibold text-[#a1a1aa]">Workflow</p>
                                 <p className="mt-1 text-base font-semibold text-[#f4f4f5]">Steps</p>
@@ -234,7 +234,7 @@ export const TournamentSetupPage = () => {
                             </div>
                         </div>
 
-                        <div className="rounded-md border border-[#ffffff0d] bg-[#16181d]">
+                        <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d]">
                             <div className="border-b border-[#ffffff0d] px-5 py-4">
                                 <p className="text-xs font-semibold text-[#a1a1aa]">Current Organizer</p>
                                 <p className="mt-1 text-base font-semibold text-[#f4f4f5]">Selection</p>
@@ -242,7 +242,7 @@ export const TournamentSetupPage = () => {
                             <div className="px-5 py-4">
                                 {selectedOrganizer ? (
                                     <div className="space-y-3">
-                                        <div className="rounded-md border border-[#ffffff0d] bg-[#16181d] p-4">
+                                        <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d] p-4">
                                             <p className="text-xs font-semibold text-[#a1a1aa]">Organizer</p>
                                             <p className="mt-1 text-sm font-semibold text-[#f4f4f5]">{selectedOrganizer.displayName}</p>
                                             <p className="mt-1 text-sm leading-5 text-[#a1a1aa]">{selectedOrganizer.description || 'No description yet.'}</p>
@@ -266,7 +266,7 @@ export const TournamentSetupPage = () => {
 
                     {/* Center — Form */}
                     <section className="min-w-0">
-                        <div className="rounded-md border border-[#ffffff0d] bg-[#16181d]">
+                        <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d]">
                             <div className="border-b border-[#ffffff0d] px-6 py-5">
                                 <p className="text-xs font-semibold text-[#a1a1aa]">Event Form</p>
                                 <p className="mt-1 text-lg font-semibold text-[#f4f4f5]">Create New Event</p>
@@ -288,7 +288,7 @@ export const TournamentSetupPage = () => {
                                         </div>
 
                                         {eventReadyOrganizations.length === 0 ? (
-                                            <div className="mt-6 rounded-md border border-[#ffffff0d] bg-[#16181d] p-5 text-sm leading-6 text-[#a1a1aa]">
+                                            <div className="mt-6 rounded-xl border border-[#ffffff0d] bg-[#16181d] p-5 text-sm leading-6 text-[#a1a1aa]">
                                                 No organization with event-creation access is available yet. Organizations are managed through your club workspace.
                                             </div>
                                         ) : (
@@ -353,10 +353,10 @@ export const TournamentSetupPage = () => {
                                             </div>
                                         )}
 
-                                        {error && <div className="mt-5 rounded-md border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-300">{error}</div>}
+                                        {error && <div className="mt-5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-300">{error}</div>}
 
                                         <div className="mt-6 flex justify-end">
-                                            <button type="submit" disabled={saving || selectedOrganizerId == null} className="inline-flex items-center gap-2 rounded-md bg-[#16a34a] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#22c55e] disabled:opacity-60">
+                                            <button type="submit" disabled={saving || selectedOrganizerId == null} className="inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#22c55e] disabled:opacity-60">
                                                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trophy className="h-4 w-4" />}
                                                 Create Event
                                             </button>
@@ -370,7 +370,7 @@ export const TournamentSetupPage = () => {
                     {/* Right sidebar */}
                     <aside className="flex flex-col gap-4 lg:sticky lg:top-[calc(var(--app-header-height)+24px)]">
                         {/* Host Club Options */}
-                        <div className="rounded-md border border-[#ffffff0d] bg-[#16181d]">
+                        <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d]">
                             <div className="border-b border-[#ffffff0d] px-5 py-4">
                                 <p className="text-xs font-semibold text-[#a1a1aa]">Host Club Options</p>
                                 <p className="mt-1 text-sm text-[#a1a1aa]">These options come from the organizer and backend rules.</p>
@@ -397,7 +397,7 @@ export const TournamentSetupPage = () => {
                         </div>
 
                         {/* Selected Context */}
-                        <div className="rounded-md border border-[#ffffff0d] bg-[#16181d] p-5">
+                        <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d] p-5">
                             <div className="flex items-start gap-3">
                                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#16a34a]" />
                                 <div>
@@ -410,7 +410,7 @@ export const TournamentSetupPage = () => {
 
                         {/* Last Created Event */}
                         {createdEvent && (
-                            <div className="rounded-md border border-[#ffffff0d] bg-[#16181d]">
+                            <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d]">
                                 <div className="border-b border-[#ffffff0d] px-5 py-4">
                                     <p className="text-xs font-semibold text-[#a1a1aa]">Last Created Event</p>
                                     <p className="mt-1 text-sm font-semibold text-[#f4f4f5]">{createdEvent.name}</p>

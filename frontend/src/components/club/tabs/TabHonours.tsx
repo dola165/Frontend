@@ -9,7 +9,7 @@ export const TabHonours = ({ club }: TabHonoursProps) => {
     const honours = club.honours || [];
 
     return (
-        <section className="bg-[#16181d] border border-[#ffffff0d] rounded-md">
+        <section className="bg-[#16181d] border border-[#ffffff0d] rounded-xl">
             <div className="border-b border-[#ffffff0d] px-4 py-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>

@@ -23,7 +23,7 @@ export const PaginationBar = ({
             <button
                 onClick={() => onPageChange(Math.max(0, page - 1))}
                 disabled={page === 0}
-                className="px-3 py-1.5 rounded-md border border-[#26282d] text-xs text-[#a1a1aa] disabled:opacity-30 hover:bg-[rgba(255,255,255,0.03)] transition-colors"
+                className="px-3 py-1.5 rounded-xl border border-[#26282d] text-xs text-[#a1a1aa] disabled:opacity-30 hover:bg-[rgba(255,255,255,0.03)] transition-colors"
             >
                 Previous
             </button>
@@ -33,7 +33,7 @@ export const PaginationBar = ({
             <button
                 onClick={() => onPageChange(Math.min(totalPages - 1, page + 1))}
                 disabled={page >= totalPages - 1}
-                className="px-3 py-1.5 rounded-md border border-[#26282d] text-xs text-[#a1a1aa] disabled:opacity-30 hover:bg-[rgba(255,255,255,0.03)] transition-colors"
+                className="px-3 py-1.5 rounded-xl border border-[#26282d] text-xs text-[#a1a1aa] disabled:opacity-30 hover:bg-[rgba(255,255,255,0.03)] transition-colors"
             >
                 Next
             </button>
@@ -46,7 +46,7 @@ export const PaginationBar = ({
                         onPageSizeChange(Number(e.target.value));
                         onPageChange(0);
                     }}
-                    className="rounded-md border border-[#26282d] bg-[#0f1117] text-xs text-[#a1a1aa] px-2 py-1 outline-none focus:border-[#16a34a]"
+                    className="rounded-xl border border-[#26282d] bg-[#0f1117] text-xs text-[#a1a1aa] px-2 py-1 outline-none focus:border-[#16a34a]"
                 >
                     {pageSizeOptions.map(s => (
                         <option key={s} value={s}>{s}</option>
@@ -78,7 +78,7 @@ export const PaginationTopBar = ({
                 <select
                     value={pageSize}
                     onChange={e => onPageSizeChange(Number(e.target.value))}
-                    className="rounded-md border border-[#26282d] bg-[#0f1117] text-xs text-[#a1a1aa] px-2 py-1 outline-none focus:border-[#16a34a]"
+                    className="rounded-xl border border-[#26282d] bg-[#0f1117] text-xs text-[#a1a1aa] px-2 py-1 outline-none focus:border-[#16a34a]"
                 >
                     {pageSizeOptions.map(s => (
                         <option key={s} value={s}>{s}</option>

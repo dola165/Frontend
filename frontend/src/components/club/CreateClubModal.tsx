@@ -126,25 +126,25 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
     };
 
     // Shared input class
-    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-primary outline-none transition-colors focus:border-accent-primary placeholder:text-secondary';
+    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-[#f4f4f5] outline-none transition-colors focus:border-[#16a34a] placeholder:text-[#a1a1aa]';
 
     return (
         <div className="theme-overlay-strong fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="theme-surface theme-border flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border shadow-2xl">
+            <div className="theme-surface theme-border flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border shadow-2xl">
                 {/* Header */}
-                <div className="flex items-start justify-between gap-4 border-b border-subtle px-6 py-5 shrink-0">
+                <div className="flex items-start justify-between gap-4 border-b border-[#ffffff0d] px-6 py-5 shrink-0">
                     <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.18em] accent-primary">
+                        <p className="text-[11px] font-semibold  text-[#16a34a]">
                             {step === 0 ? 'Choose Type' : step === 1 ? 'Set Location' : 'Club Details'}
                         </p>
-                        <h2 className="mt-2 text-xl font-black uppercase tracking-tight text-primary">
+                        <h2 className="mt-2 text-xl font-semibold uppercase tracking-tight text-[#f4f4f5]">
                             {step === 0 ? 'What are you building?' : step === 1 ? 'Where is it based?' : 'Final details'}
                         </h2>
                     </div>
                     <button
                         type="button"
                         onClick={resetAndClose}
-                        className="inline-flex h-10 w-10 items-center justify-center border border-subtle bg-base text-secondary transition-colors hover:text-primary"
+                        className="inline-flex h-10 w-10 items-center justify-center border border-[#ffffff0d] bg-[#0f1117] text-[#a1a1aa] transition-colors hover:text-[#f4f4f5]"
                     >
                         <X className="h-5 w-5" />
                     </button>
@@ -170,34 +170,34 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
                                         onClick={() => setOrgKind(kind.value)}
                                         className={`flex items-start gap-4 rounded-xl border p-5 text-left transition-colors ${
                                             isSelected
-                                                ? 'border-accent-primary bg-accent-primary-soft'
+                                                ? 'border-[#16a34a] bg-[#16a34a]-soft'
                                                 : isAvailable
-                                                ? 'border-subtle hover:border-strong'
-                                                : 'border-subtle opacity-50 cursor-not-allowed'
+                                                ? 'border-[#ffffff0d] hover:border-strong'
+                                                : 'border-[#ffffff0d] opacity-50 cursor-not-allowed'
                                         }`}
                                     >
                                         <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${
-                                            isSelected ? 'border-accent-primary bg-accent-primary text-white' : 'border-subtle text-muted'
+                                            isSelected ? 'border-[#16a34a] bg-[#16a34a] text-white' : 'border-[#ffffff0d] text-muted'
                                         }`}>
                                             <Icon className="h-6 w-6" />
                                         </div>
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <p className="text-sm font-black uppercase tracking-[0.16em] text-primary">
+                                                <p className="text-sm font-semibold  text-[#f4f4f5]">
                                                     {kind.label}
                                                 </p>
                                                 {kind.comingSoon && (
-                                                    <span className="rounded-full bg-[color:var(--state-warning-soft)] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[color:var(--state-warning)]">
+                                                    <span className="rounded-full bg-[color:var(--state-warning-soft)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[color:var(--state-warning)]">
                                                         Coming Soon
                                                     </span>
                                                 )}
                                                 {!kind.comingSoon && !kind.allowedRoles.includes(userRole ?? '') && (
-                                                    <span className="rounded-full bg-inset px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-secondary">
+                                                    <span className="rounded-full bg-inset px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#a1a1aa]">
                                                         {kind.value === 'CLUB' ? 'Organizer Only' : 'Fan Only'}
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="mt-1 text-xs leading-5 text-secondary">{kind.description}</p>
+                                            <p className="mt-1 text-xs leading-5 text-[#a1a1aa]">{kind.description}</p>
                                         </div>
                                     </button>
                                 );
@@ -208,7 +208,7 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
                     {/* Step 1: Location */}
                     {step === 1 && (
                         <div>
-                            <p className="text-sm text-secondary mb-4">
+                            <p className="text-sm text-[#a1a1aa] mb-4">
                                 Click anywhere on the map to place your club's pin. You can update this later from the club workspace.
                             </p>
                             <MiniMap
@@ -216,10 +216,10 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
                                 title="Club Location"
                                 selectedLocation={selectedLocation}
                                 onSelectLocation={(coords) => setSelectedLocation(coords)}
-                                className="rounded-xl overflow-hidden border border-subtle"
+                                className="rounded-xl overflow-hidden border border-[#ffffff0d]"
                             />
                             {selectedLocation && (
-                                <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] accent-primary">
+                                <p className="mt-3 text-xs font-semibold  text-[#16a34a]">
                                     Location set: {selectedLocation.lat.toFixed(4)}, {selectedLocation.lng.toFixed(4)}
                                 </p>
                             )}
@@ -231,7 +231,7 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
                         <div className="space-y-6">
                             {/* Club type subtype */}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Club Type</label>
+                                <label className="text-[10px] font-semibold  text-[#a1a1aa]">Club Type</label>
                                 <div className="grid gap-2 grid-cols-3">
                                     {clubTypeOptions.map((option) => {
                                         const isActive = formData.type === option.value;
@@ -242,12 +242,12 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
                                                 onClick={() => updateField('type', option.value)}
                                                 className={`rounded-xl border px-3 py-3 text-left transition-colors ${
                                                     isActive
-                                                        ? 'border-accent-primary bg-accent-primary-soft'
-                                                        : 'border-subtle hover:border-strong'
+                                                        ? 'border-[#16a34a] bg-[#16a34a]-soft'
+                                                        : 'border-[#ffffff0d] hover:border-strong'
                                                 }`}
                                             >
-                                                <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">{option.label}</p>
-                                                <p className="mt-1 text-[10px] leading-4 text-secondary">{option.description}</p>
+                                                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">{option.label}</p>
+                                                <p className="mt-1 text-[10px] leading-4 text-[#a1a1aa]">{option.description}</p>
                                             </button>
                                         );
                                     })}
@@ -256,7 +256,7 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
 
                             {/* Club name */}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Club Name *</label>
+                                <label className="text-[10px] font-semibold  text-[#a1a1aa]">Club Name *</label>
                                 <input
                                     type="text"
                                     value={formData.name}
@@ -270,7 +270,7 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
 
                             {/* Description */}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Club Story</label>
+                                <label className="text-[10px] font-semibold  text-[#a1a1aa]">Club Story</label>
                                 <textarea
                                     value={formData.description}
                                     onChange={(e) => updateField('description', e.target.value)}
@@ -283,7 +283,7 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
 
                             {/* Contact */}
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Contact (optional)</label>
+                                <label className="text-[10px] font-semibold  text-[#a1a1aa]">Contact (optional)</label>
                                 <div className="grid gap-3 grid-cols-2">
                                     <input
                                         type="email"
@@ -312,8 +312,8 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
                             {/* Preferred communication */}
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2">
-                                    <ShieldCheck className="h-4 w-4 accent-primary" />
-                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Preferred Contact Method</p>
+                                    <ShieldCheck className="h-4 w-4 text-[#16a34a]" />
+                                    <p className="text-[10px] font-semibold  text-[#a1a1aa]">Preferred Contact Method</p>
                                 </div>
                                 <div className="space-y-2">
                                     {communicationOptions.map((option) => {
@@ -325,20 +325,20 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
                                                 type="button"
                                                 onClick={() => updateField('preferredCommunicationMethod', option.value)}
                                                 className={`flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
-                                                    isActive ? 'border-accent-primary bg-accent-primary-soft' : 'border-subtle hover:border-strong'
+                                                    isActive ? 'border-[#16a34a] bg-[#16a34a]-soft' : 'border-[#ffffff0d] hover:border-strong'
                                                 }`}
                                             >
-                                                <span className={`mt-1 h-3.5 w-3.5 shrink-0 rounded-full border ${isActive ? 'border-accent-primary bg-accent-primary' : 'border-strong'}`} />
+                                                <span className={`mt-1 h-3.5 w-3.5 shrink-0 rounded-full border ${isActive ? 'border-[#16a34a] bg-[#16a34a]' : 'border-strong'}`} />
                                                 <span className="min-w-0">
-                                                    <span className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.12em] text-primary">
+                                                    <span className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.12em] text-[#f4f4f5]">
                                                         {option.label}
                                                         {isUnavailable && (
-                                                            <span className="rounded-full bg-[color:var(--state-warning-soft)] px-2 py-0.5 text-[9px] font-black uppercase text-[color:var(--state-warning)]">
+                                                            <span className="rounded-full bg-[color:var(--state-warning-soft)] px-2 py-0.5 text-[9px] font-semibold uppercase text-[color:var(--state-warning)]">
                                                                 Add contact
                                                             </span>
                                                         )}
                                                     </span>
-                                                    <span className="mt-1 block text-xs text-secondary">{option.helper}</span>
+                                                    <span className="mt-1 block text-xs text-[#a1a1aa]">{option.helper}</span>
                                                 </span>
                                             </button>
                                         );
@@ -347,11 +347,11 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
                                         type="button"
                                         onClick={() => updateField('preferredCommunicationMethod', '')}
                                         className={`flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
-                                            !formData.preferredCommunicationMethod ? 'border-accent-primary bg-accent-primary-soft' : 'border-subtle hover:border-strong'
+                                            !formData.preferredCommunicationMethod ? 'border-[#16a34a] bg-[#16a34a]-soft' : 'border-[#ffffff0d] hover:border-strong'
                                         }`}
                                     >
-                                        <span className={`mt-1 h-3.5 w-3.5 shrink-0 rounded-full border ${!formData.preferredCommunicationMethod ? 'border-accent-primary bg-accent-primary' : 'border-strong'}`} />
-                                        <span className="text-sm font-black uppercase tracking-[0.12em] text-primary">No preferred method yet</span>
+                                        <span className={`mt-1 h-3.5 w-3.5 shrink-0 rounded-full border ${!formData.preferredCommunicationMethod ? 'border-[#16a34a] bg-[#16a34a]' : 'border-strong'}`} />
+                                        <span className="text-sm font-semibold uppercase tracking-[0.12em] text-[#f4f4f5]">No preferred method yet</span>
                                     </button>
                                 </div>
                             </div>
@@ -366,13 +366,13 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
                 </div>
 
                 {/* Footer with navigation */}
-                <div className="flex items-center justify-between gap-3 border-t border-subtle px-6 py-4 shrink-0">
+                <div className="flex items-center justify-between gap-3 border-t border-[#ffffff0d] px-6 py-4 shrink-0">
                     <div>
                         {step > 0 && (
                             <button
                                 type="button"
                                 onClick={() => setStep((s) => s - 1)}
-                                className="inline-flex items-center gap-2 border border-subtle bg-base px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-secondary transition-colors hover:text-primary"
+                                className="inline-flex items-center gap-2 border border-[#ffffff0d] bg-[#0f1117] px-4 py-2 text-[11px] font-semibold  text-[#a1a1aa] transition-colors hover:text-[#f4f4f5]"
                             >
                                 <ChevronLeft className="h-4 w-4" />
                                 Back
@@ -383,7 +383,7 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
                         <button
                             type="button"
                             onClick={resetAndClose}
-                            className="border border-subtle bg-base px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-secondary transition-colors hover:text-primary"
+                            className="border border-[#ffffff0d] bg-[#0f1117] px-4 py-2 text-[11px] font-semibold  text-[#a1a1aa] transition-colors hover:text-[#f4f4f5]"
                         >
                             Cancel
                         </button>
@@ -392,7 +392,7 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
                                 type="button"
                                 onClick={() => setStep((s) => s + 1)}
                                 disabled={!canGoNext()}
-                                className="inline-flex items-center gap-2 border border-accent-primary bg-accent-primary-soft px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] accent-primary transition-colors disabled:opacity-50"
+                                className="inline-flex items-center gap-2 border border-[#16a34a] bg-[#16a34a]-soft px-4 py-2 text-[11px] font-semibold  text-[#16a34a] transition-colors disabled:opacity-50"
                             >
                                 Next
                                 <ChevronRight className="h-4 w-4" />
@@ -402,7 +402,7 @@ export const CreateClubModal = ({ isOpen, onClose, onCreated }: CreateClubModalP
                                 type="button"
                                 onClick={handleSubmit}
                                 disabled={submitting || !canGoNext()}
-                                className="inline-flex items-center gap-2 border border-accent-primary bg-accent-primary px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white transition-colors disabled:opacity-50"
+                                className="inline-flex items-center gap-2 border border-[#16a34a] bg-[#16a34a] px-4 py-2 text-[11px] font-semibold  text-white transition-colors disabled:opacity-50"
                             >
                                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
                                 Create Club

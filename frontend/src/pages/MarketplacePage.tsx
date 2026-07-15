@@ -157,7 +157,7 @@ export const MarketplacePage = () => {
                                 value={search}
                                 onChange={e => { setSearch(e.target.value); setPage(0); }}
                                 placeholder="Search players..."
-                                className="w-full pl-8 pr-3 py-1.5 rounded-md border border-[#26282d] bg-[#0f1117] text-sm text-[#f4f4f5] outline-none focus:border-[#16a34a] placeholder:text-[#71717a]"
+                                className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-[#26282d] bg-[#0f1117] text-sm text-[#f4f4f5] outline-none focus:border-[#16a34a] placeholder:text-[#71717a]"
                             />
                         </div>
                     </div>
@@ -186,7 +186,7 @@ export const MarketplacePage = () => {
                             {listings.map(player => (
                                 <div
                                     key={player.listingId}
-                                    className="rounded-md border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] p-4 hover:border-[#ffffff15] transition-colors"
+                                    className="rounded-xl border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] p-4 hover:border-[#ffffff15] transition-colors"
                                 >
                                     {/* Player identity */}
                                     <div className="flex items-center gap-3 mb-3">
@@ -285,7 +285,7 @@ export const MarketplacePage = () => {
                 {/* M13: Express Interest Modal */}
                 {interestListing && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setInterestListing(null)}>
-                        <div className="bg-[#0f1117] border border-[#26282d] rounded-md p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                        <div className="bg-[#0f1117] border border-[#26282d] rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-sm font-semibold text-[#f4f4f5]">Express Interest</h3>
                                 <button onClick={() => setInterestListing(null)} className="text-[#71717a] hover:text-[#a1a1aa]">
@@ -299,7 +299,7 @@ export const MarketplacePage = () => {
                                 value={interestMessage}
                                 onChange={e => setInterestMessage(e.target.value)}
                                 placeholder="Add a message for the agent... (optional)"
-                                className="w-full bg-[#16181d] border border-[#26282d] rounded-md px-3 py-2 text-sm text-[#f4f4f5] placeholder-[#71717a] resize-none h-20 mb-4 focus:outline-none focus:border-[#16a34a]/50"
+                                className="w-full bg-[#16181d] border border-[#26282d] rounded-xl px-3 py-2 text-sm text-[#f4f4f5] placeholder-[#71717a] resize-none h-20 mb-4 focus:outline-none focus:border-[#16a34a]/50"
                             />
                             <div className="flex justify-end gap-2">
                                 <button
@@ -311,7 +311,7 @@ export const MarketplacePage = () => {
                                 <button
                                     onClick={() => handleExpressInterest(interestListing)}
                                     disabled={interestSubmitting}
-                                    className="px-4 py-2 text-xs font-semibold bg-[#16a34a] text-white rounded-md hover:bg-[#22c55e] disabled:opacity-50"
+                                    className="px-4 py-2 text-xs font-semibold bg-[#16a34a] text-white rounded-xl hover:bg-[#22c55e] disabled:opacity-50"
                                 >
                                     {interestSubmitting ? 'Submitting...' : 'Express Interest'}
                                 </button>

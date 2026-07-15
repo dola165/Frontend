@@ -16,8 +16,8 @@ const statusTone: Record<string, string> = {
     CANCELLED: 'bg-red-500/10 text-red-400 border-red-500/20',
 };
 
-const inputClass = 'w-full rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3 text-sm text-[#f4f4f5] outline-none transition-colors placeholder:text-[#a1a1aa] focus:ring-1 focus:ring-[#16a34a]';
-const selectClass = 'rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3 text-sm font-medium text-[#f4f4f5] outline-none transition-colors focus:ring-1 focus:ring-[#16a34a]';
+const inputClass = 'w-full rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3 text-sm text-[#f4f4f5] outline-none transition-colors placeholder:text-[#a1a1aa] focus:ring-1 focus:ring-[#16a34a]';
+const selectClass = 'rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3 text-sm font-medium text-[#f4f4f5] outline-none transition-colors focus:ring-1 focus:ring-[#16a34a]';
 
 export const BrowseTournamentsPage = () => {
     const navigate = useNavigate();
@@ -97,7 +97,7 @@ export const BrowseTournamentsPage = () => {
                             Browse and register for tournaments across the platform.
                         </p>
                     </div>
-                    <Link to="/tournaments/setup" className="shrink-0 rounded-md bg-[#16a34a] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity inline-flex items-center gap-2">
+                    <Link to="/tournaments/setup" className="shrink-0 rounded-xl bg-[#16a34a] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity inline-flex items-center gap-2">
                         <Trophy className="h-4 w-4" />
                         Create Tournament
                     </Link>
@@ -105,7 +105,7 @@ export const BrowseTournamentsPage = () => {
 
                 {/* Toast */}
                 {message && (
-                    <div className={`rounded-md border px-4 py-3 text-sm font-semibold ${
+                    <div className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
                         messageType === 'success'
                             ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
                             : 'border-red-500/20 bg-red-500/10 text-red-400'
@@ -142,7 +142,7 @@ export const BrowseTournamentsPage = () => {
 
                 {/* Error */}
                 {error && (
-                    <div className="rounded-md border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400">
+                    <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400">
                         {error}
                     </div>
                 )}
@@ -170,7 +170,7 @@ export const BrowseTournamentsPage = () => {
                                 <Link
                                     key={t.id}
                                     to={`/tournaments/${t.id}`}
-                                    className="group flex flex-col rounded-md border border-[#ffffff0d] bg-[#16181d] p-5 transition-all hover:border-[#16a34a]"
+                                    className="group flex flex-col rounded-xl border border-[#ffffff0d] bg-[#16181d] p-5 transition-all hover:border-[#16a34a]"
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#ffffff0d] bg-[var(--fc-surface-hover)] text-[#16a34a]">
@@ -242,7 +242,7 @@ export const BrowseTournamentsPage = () => {
                                                         handleRegister(t.id);
                                                     }}
                                                     disabled={registeringId === t.id}
-                                                    className="inline-flex items-center gap-1.5 rounded-md bg-[#16a34a] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                                                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#16a34a] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                                                 >
                                                     {registeringId === t.id ? (
                                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />

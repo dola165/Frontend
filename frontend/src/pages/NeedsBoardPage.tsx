@@ -126,7 +126,7 @@ export const NeedsBoardPage = () => {
                             {needs.map(need => (
                                 <div
                                     key={need.needId}
-                                    className="rounded-md border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] p-4 hover:border-[#ffffff15] transition-colors"
+                                    className="rounded-xl border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] p-4 hover:border-[#ffffff15] transition-colors"
                                 >
                                     {/* Club identity */}
                                     <div className="flex items-center gap-3 mb-3">

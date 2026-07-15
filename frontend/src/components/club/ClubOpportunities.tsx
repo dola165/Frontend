@@ -58,7 +58,7 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
             {showOpportunityBoard && (
                 <section className="rounded-[4px] overflow-hidden border border-[color:var(--club-theme-border-subtle)]">
                     <div className="border-b border-[color:var(--club-theme-border-subtle)] px-4 py-3.5">
-                        <div className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-[color:var(--club-tone-green)]">
+                        <div className="inline-flex items-center gap-2 text-[11px] font-semibold  text-[color:var(--club-tone-green)]">
                             <span>$</span>
                             Opportunities
                         </div>
@@ -72,23 +72,23 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                                 style={{ background: 'rgba(10,10,12,0.6)', borderColor: 'var(--club-item-accent-border)' }}
                             >
                                 <div className="flex items-center justify-between gap-3">
-                                    <span className="text-sm font-black tracking-[0.01em] text-[color:var(--club-item-accent)]">
+                                    <span className="text-sm font-semibold tracking-[0.01em] text-[color:var(--club-item-accent)]">
                                         {entry.label}
                                     </span>
-                                    <span className="text-sm font-black text-[color:var(--club-item-accent)]">
+                                    <span className="text-sm font-semibold text-[color:var(--club-item-accent)]">
                                         {entry.count}
                                     </span>
                                 </div>
 
                                 {entry.latest ? (
                                     <div className="mt-2 flex items-center justify-between gap-3">
-                                        <p className="truncate text-xs text-secondary">{entry.latest.title}</p>
+                                        <p className="truncate text-xs text-[#a1a1aa]">{entry.latest.title}</p>
                                         {entry.latest.externalLink ? (
                                             <a
                                                 href={entry.latest.externalLink}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.16em] text-primary"
+                                                className="inline-flex items-center gap-1 text-[10px] font-semibold  text-[#f4f4f5]"
                                             >
                                                 Open
                                                 <ExternalLink className="h-3 w-3" />
@@ -100,7 +100,7 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                         ))}
 
                         {opportunities.length === 0 && (
-                            <div className="rounded-[4px] border border-dashed border-subtle px-4 py-5 text-sm text-secondary">
+                            <div className="rounded-[4px] border border-dashed border-[#ffffff0d] px-4 py-5 text-sm text-[#a1a1aa]">
                                 No live business requests are published yet.
                             </div>
                         )}
@@ -120,7 +120,7 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                                         Official Club Store
                                     </span>
                                 </div>
-                                <p className="mt-1.5 text-xs text-secondary leading-relaxed">
+                                <p className="mt-1.5 text-xs text-[#a1a1aa] leading-relaxed">
                                     Official kit, training gear, and equipment. All purchases support your club directly.
                                 </p>
                                 <a
@@ -153,7 +153,7 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                                         </span>
                                         <span className="text-sm font-bold text-[color:var(--club-tone-violet)]">{agentEngagementCount}</span>
                                     </div>
-                                    <p className="mt-1.5 text-xs text-secondary leading-relaxed">
+                                    <p className="mt-1.5 text-xs text-[#a1a1aa] leading-relaxed">
                                         {agentEngagementCount} active agent relationship{agentEngagementCount !== 1 ? 's' : ''}. Agents help discover talent and facilitate player movement.
                                     </p>
                                 </div>
@@ -175,7 +175,7 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                                         Talanti Foundation
                                     </span>
                                 </div>
-                                <p className="mt-1.5 text-xs text-secondary leading-relaxed">
+                                <p className="mt-1.5 text-xs text-[#a1a1aa] leading-relaxed">
                                     Support community football projects and youth development. Clubs and players run their own fundraisers.
                                 </p>
                                 <div className="mt-2.5 flex gap-2">
@@ -208,7 +208,7 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                         <button
                             type="button"
                             onClick={onOpenModule}
-                            className="inline-flex w-full items-center justify-between border-t border-[color:var(--club-theme-border-subtle)] px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-[color:var(--club-theme-text-secondary)] hover:text-[color:var(--club-theme-text-primary)] transition-colors"
+                            className="inline-flex w-full items-center justify-between border-t border-[color:var(--club-theme-border-subtle)] px-4 py-3 text-[11px] font-semibold  text-[color:var(--club-theme-text-secondary)] hover:text-[color:var(--club-theme-text-primary)] transition-colors"
                         >
                             Open Business Board
                             <ArrowRight className="h-3.5 w-3.5 text-[color:var(--club-tone-green)]" />

@@ -148,11 +148,11 @@ export const NotificationBell = ({ enabled }: NotificationBellProps) => {
             <button
                 type="button"
                 onClick={handleToggle}
-                className="relative p-2 text-secondary transition-colors hover:text-primary"
+                className="relative p-2 text-[#a1a1aa] transition-colors hover:text-[#f4f4f5]"
             >
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
-                    <span className="absolute -right-1 -top-1 inline-flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-[color:var(--accent-muted)] px-1.5 text-[10px] font-black text-white shadow-panel">
+                    <span className="absolute -right-1 -top-1 inline-flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-[color:var(--accent-muted)] px-1.5 text-[10px] font-semibold text-white shadow-panel">
                         {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                 )}
@@ -160,10 +160,10 @@ export const NotificationBell = ({ enabled }: NotificationBellProps) => {
 
             {isOpen && (
                 <div className="theme-surface theme-border theme-shadow absolute right-0 top-12 z-[120] w-[380px] overflow-hidden border">
-                    <div className="flex items-center justify-between border-b border-subtle px-4 py-3">
+                    <div className="flex items-center justify-between border-b border-[#ffffff0d] px-4 py-3">
                         <div>
-                            <p className="text-sm font-black uppercase tracking-[0.16em] text-primary">Notifications</p>
-                            <p className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-secondary">
+                            <p className="text-sm font-semibold  text-[#f4f4f5]">Notifications</p>
+                            <p className="mt-1 text-[11px] font-semibold  text-[#a1a1aa]">
                                 {unreadCount} unread
                             </p>
                         </div>
@@ -171,15 +171,15 @@ export const NotificationBell = ({ enabled }: NotificationBellProps) => {
 
                     <div className="max-h-[420px] overflow-y-auto">
                         {loadingPreview ? (
-                            <div className="flex items-center justify-center py-10 text-secondary">
+                            <div className="flex items-center justify-center py-10 text-[#a1a1aa]">
                                 <Loader2 className="h-5 w-5 animate-spin" />
                             </div>
                         ) : notifications.length === 0 ? (
                             <div className="px-4 py-10 text-center">
-                                <p className="text-sm font-medium text-secondary">No notifications yet.</p>
+                                <p className="text-sm font-medium text-[#a1a1aa]">No notifications yet.</p>
                             </div>
                         ) : (
-                            <div className="divide-y divide-[color:var(--border-subtle)]">
+                            <div className="divide-y divide-[color:#ffffff0d]">
                                 {notifications.map((notification) => (
                                     <NotificationListItem
                                         key={notification.id}
@@ -197,7 +197,7 @@ export const NotificationBell = ({ enabled }: NotificationBellProps) => {
                     <Link
                         to="/notifications"
                         onClick={() => setIsOpen(false)}
-                        className="block border-t border-subtle px-4 py-3 text-center text-[11px] font-black uppercase tracking-[0.16em] accent-primary transition-colors hover:bg-base"
+                        className="block border-t border-[#ffffff0d] px-4 py-3 text-center text-[11px] font-semibold  text-[#16a34a] transition-colors hover:bg-[#0f1117]"
                     >
                         See all
                     </Link>

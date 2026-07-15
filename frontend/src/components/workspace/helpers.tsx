@@ -22,7 +22,7 @@ export const SectionHeader = ({ eyebrow, title, description, action }: { eyebrow
 );
 
 export const EmptyState = ({ message, description, icon }: { message: string; description?: string; icon?: React.ReactNode }) => (
-    <div className="rounded-md border border-[var(--fc-border)] px-4 py-12 text-center">
+    <div className="rounded-xl border border-[var(--fc-border)] px-4 py-12 text-center">
         {icon && <div className="mb-3 flex justify-center text-[var(--fc-text-muted)]">{icon}</div>}
         <p className="text-sm font-medium text-[var(--fc-text-muted)]">{message}</p>
         {description && <p className="mt-1 text-xs text-[var(--fc-text-muted)]">{description}</p>}
@@ -109,13 +109,13 @@ export const PageSpinner = () => (
 );
 
 export const ErrorBlock = ({ message, onRetry }: { message: string; onRetry: () => void }) => (
-    <div className="rounded-md border border-[var(--fc-state-danger-soft)] bg-[var(--fc-state-danger-soft)] px-6 py-10 text-center">
+    <div className="rounded-xl border border-[var(--fc-state-danger-soft)] bg-[var(--fc-state-danger-soft)] px-6 py-10 text-center">
         <h3 className="text-base font-semibold text-[var(--fc-text-primary)]">Something went wrong</h3>
         <p className="mx-auto mt-2 max-w-xl text-sm text-[var(--fc-text-secondary)]">{message}</p>
         <button
             type="button"
             onClick={onRetry}
-            className="mt-4 inline-flex items-center gap-2 rounded-md bg-[var(--fc-accent)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--fc-accent)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
         >
             Retry
         </button>

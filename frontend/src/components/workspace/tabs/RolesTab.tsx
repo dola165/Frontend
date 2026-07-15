@@ -29,11 +29,11 @@ export const RolesTab = ({
     <div className="space-y-4">
         <SectionHeader eyebrow="Roles" title="Authority & Ownership" description="View your clearance, manage role assignments, transfer ownership, or leave the club." />
         <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
+            <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
                 <p className="text-xs font-medium text-[var(--fc-text-muted)]">Your Clearance</p>
                 <p className="mt-1 text-lg font-semibold text-[var(--fc-text-primary)]">{clubRoleLabel(overview.currentUserRole)}</p>
             </div>
-            <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
+            <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
                 <p className="text-xs font-medium text-[var(--fc-text-muted)]">Assignable Roles</p>
                 <div className="mt-1.5 flex flex-wrap gap-1">
                     {overview.assignableStaffRoles.length === 0 ? (
@@ -45,7 +45,7 @@ export const RolesTab = ({
                     )}
                 </div>
             </div>
-            <div className="rounded-md border border-[var(--fc-state-warning-soft)] bg-[var(--fc-state-warning-soft)] px-4 py-3">
+            <div className="rounded-xl border border-[var(--fc-state-warning-soft)] bg-[var(--fc-state-warning-soft)] px-4 py-3">
                 <p className="text-xs font-medium text-[var(--fc-state-warning)]">Membership Exit</p>
                 <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">
                     {isOwner ? 'Transfer ownership before you can leave.' : 'Leave this club when ready.'}
@@ -59,7 +59,7 @@ export const RolesTab = ({
                 {transferCandidates.length === 0 ? (
                     <EmptyState message="No eligible members available for ownership transfer." />
                 ) : (
-                    <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
+                    <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
                         <DataTable columns={['Member', 'Current Role', '']}>
                             {transferCandidates.map((member) => (
                                 <tr key={member.userId} className="group h-11 hover:bg-[var(--fc-surface-hover)] transition-colors">
@@ -86,7 +86,7 @@ export const RolesTab = ({
             </div>
         )}
 
-        <div className="rounded-md border border-[var(--fc-state-danger-soft)] bg-[var(--fc-state-danger-soft)] px-4 py-3">
+        <div className="rounded-xl border border-[var(--fc-state-danger-soft)] bg-[var(--fc-state-danger-soft)] px-4 py-3">
             <div className="flex items-start gap-3">
                 <LogOut className="mt-0.5 h-4 w-4 shrink-0 text-[var(--fc-state-danger)]" />
                 <div className="min-w-0 flex-1">
@@ -98,11 +98,11 @@ export const RolesTab = ({
                         <div className="mt-3">
                             {confirmingSelfLeave ? (
                                 <div className="flex gap-2">
-                                    <button type="button" onClick={() => onConfirmSelfLeave(false)} disabled={pendingKey === 'leave-club'} className="rounded-md border border-[var(--fc-border)] px-3 py-1.5 text-xs font-medium text-[var(--fc-text-secondary)] disabled:opacity-50">Cancel</button>
-                                    <button type="button" onClick={() => void onLeaveClub()} disabled={pendingKey === 'leave-club'} className="rounded-md bg-[var(--fc-state-danger)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50">{pendingKey === 'leave-club' ? 'Leaving...' : 'Confirm Leave'}</button>
+                                    <button type="button" onClick={() => onConfirmSelfLeave(false)} disabled={pendingKey === 'leave-club'} className="rounded-xl border border-[var(--fc-border)] px-3 py-1.5 text-xs font-medium text-[var(--fc-text-secondary)] disabled:opacity-50">Cancel</button>
+                                    <button type="button" onClick={() => void onLeaveClub()} disabled={pendingKey === 'leave-club'} className="rounded-xl bg-[var(--fc-state-danger)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50">{pendingKey === 'leave-club' ? 'Leaving...' : 'Confirm Leave'}</button>
                                 </div>
                             ) : (
-                                <button type="button" onClick={() => onConfirmSelfLeave(true)} className="rounded-md border border-[var(--fc-state-danger)] px-3 py-1.5 text-xs font-semibold text-[var(--fc-state-danger)] hover:bg-[var(--fc-state-danger)] hover:text-white transition-colors">Leave Club</button>
+                                <button type="button" onClick={() => onConfirmSelfLeave(true)} className="rounded-xl border border-[var(--fc-state-danger)] px-3 py-1.5 text-xs font-semibold text-[var(--fc-state-danger)] hover:bg-[var(--fc-state-danger)] hover:text-white transition-colors">Leave Club</button>
                             )}
                         </div>
                     )}

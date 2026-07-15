@@ -12,7 +12,7 @@ export const QuickLinkTile = ({ icon: Icon, title, subtitle, badge, onClick }: Q
     <button
         type="button"
         onClick={onClick}
-        className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3 text-left transition-colors hover:bg-[var(--fc-surface-hover)]"
+        className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3 text-left transition-colors hover:bg-[var(--fc-surface-hover)]"
     >
         <div className="flex items-start gap-3">
             <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--fc-accent)]" />
@@ -21,7 +21,7 @@ export const QuickLinkTile = ({ icon: Icon, title, subtitle, badge, onClick }: Q
                 <p className="mt-0.5 text-xs text-[var(--fc-text-secondary)]">{subtitle}</p>
             </div>
             {badge && (
-                <span className="shrink-0 rounded-md bg-[var(--fc-accent-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--fc-accent)]">
+                <span className="shrink-0 rounded-xl bg-[var(--fc-accent-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--fc-accent)]">
                     {badge}
                 </span>
             )}

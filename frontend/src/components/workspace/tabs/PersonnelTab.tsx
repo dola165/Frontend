@@ -76,7 +76,7 @@ export const PersonnelTab = ({
             {overview && sortedMembers.length === 0 ? (
                 <EmptyState message="No staff members are attached to this club." />
             ) : overview && (
-                <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
+                <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
                     <DataTable columns={['Member', 'Role', 'Status', '']} sort={sort} onSort={handleSort}>
                         {sortedMembers.map((member) => {
                             const isSelf = member.userId === currentUserId;
@@ -92,7 +92,7 @@ export const PersonnelTab = ({
                                                 value={member.role}
                                                 onChange={(e) => { const r = e.target.value as ClubMembershipRole; if (r !== member.role) void onRoleChange(member.userId, r); }}
                                                 disabled={pendingKey === `role-${member.userId}`}
-                                                className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2.5 py-1.5 text-sm font-medium text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)] disabled:opacity-50"
+                                                className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2.5 py-1.5 text-sm font-medium text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)] disabled:opacity-50"
                                             >
                                                 {Array.from(new Set([member.role, ...(overview?.assignableStaffRoles || [])])).map((role) => (
                                                     <option key={role} value={role}>{clubRoleLabel(role)}</option>

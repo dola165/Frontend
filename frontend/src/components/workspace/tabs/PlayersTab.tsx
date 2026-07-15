@@ -123,7 +123,7 @@ export const PlayersTab = ({
                     <button
                         type="button"
                         onClick={() => onTabChange('invites')}
-                        className="inline-flex items-center gap-1.5 rounded-md bg-[#16a34a] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-[#16a34a] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
                     >
                         <UserPlus className="h-3.5 w-3.5" />
                         + Invite Player
@@ -142,7 +142,7 @@ export const PlayersTab = ({
                                 key={status}
                                 type="button"
                                 onClick={() => onStatusFilterChange(status)}
-                                className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                                className={`rounded-xl border px-3 py-1.5 text-xs font-medium transition-colors ${
                                     isActive
                                         ? 'bg-[var(--fc-accent-soft)] border-[var(--fc-accent-border)] text-[var(--fc-accent)]'
                                         : 'border-[var(--fc-border)] bg-[var(--fc-card-bg)] text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]'
@@ -161,14 +161,14 @@ export const PlayersTab = ({
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search by name or handle..."
-                        className="w-full rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] py-2 pl-9 pr-3 text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)] focus:ring-1 focus:ring-[var(--fc-accent)]"
+                        className="w-full rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] py-2 pl-9 pr-3 text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)] focus:ring-1 focus:ring-[var(--fc-accent)]"
                     />
                 </div>
             </div>
 
             {/* Alert banner */}
             {trialistCount > 0 && (
-                <div className="rounded-md border border-[var(--fc-state-warning-soft)] bg-[var(--fc-state-warning-soft)] px-4 py-2.5 flex items-center gap-3">
+                <div className="rounded-xl border border-[var(--fc-state-warning-soft)] bg-[var(--fc-state-warning-soft)] px-4 py-2.5 flex items-center gap-3">
                     <span className="text-sm text-[var(--fc-text-primary)]">
                         <strong>{trialistCount}</strong> player{trialistCount !== 1 ? 's are' : ' is'} waiting for a decision.
                     </span>
@@ -196,7 +196,7 @@ export const PlayersTab = ({
             ) : (
                 <>
                     {/* Column header */}
-                    <div className="flex items-center gap-4 rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 h-11 text-xs font-semibold text-[var(--fc-text-secondary)]">
+                    <div className="flex items-center gap-4 rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 h-11 text-xs font-semibold text-[var(--fc-text-secondary)]">
                         {[
                             { col: 0, label: 'PLAYER', className: 'flex-1 min-w-0' },
                             { col: 1, label: 'STATUS', className: 'w-24' },
@@ -236,7 +236,7 @@ export const PlayersTab = ({
                             return (
                                 <div
                                     key={`${player.userId}-${player.status}`}
-                                    className={`flex items-center gap-4 rounded-md border px-4 py-3 transition-colors group ${
+                                    className={`flex items-center gap-4 rounded-xl border px-4 py-3 transition-colors group ${
                                         isTrialist
                                             ? 'bg-[var(--fc-state-warning-soft)] border-[var(--fc-state-warning-soft)]'
                                             : 'bg-[var(--fc-card-bg)] border-[var(--fc-border)] hover:bg-[var(--fc-surface-hover)]'
@@ -293,7 +293,7 @@ export const PlayersTab = ({
                                                     type="button"
                                                     disabled={pendingKey === `player-${player.userId}-ACTIVE`}
                                                     onClick={() => void onPlayerStatusChange(player.userId, 'ACTIVE', player.fullName || undefined)}
-                                                    className="inline-flex items-center gap-1 rounded-md bg-[#16a34a] px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+                                                    className="inline-flex items-center gap-1 rounded-xl bg-[#16a34a] px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
                                                 >
                                                     <Check className="h-3 w-3" />
                                                     Accept
@@ -302,7 +302,7 @@ export const PlayersTab = ({
                                                     type="button"
                                                     disabled={pendingKey === `player-${player.userId}-REMOVED`}
                                                     onClick={() => void onPlayerStatusChange(player.userId, 'REMOVED', player.fullName || undefined)}
-                                                    className="inline-flex items-center gap-1 rounded-md border border-[var(--fc-state-danger)] px-2.5 py-1 text-xs font-semibold text-[var(--fc-state-danger)] hover:bg-[var(--fc-state-danger-soft)] disabled:opacity-50 transition-colors"
+                                                    className="inline-flex items-center gap-1 rounded-xl border border-[var(--fc-state-danger)] px-2.5 py-1 text-xs font-semibold text-[var(--fc-state-danger)] hover:bg-[var(--fc-state-danger-soft)] disabled:opacity-50 transition-colors"
                                                 >
                                                     <X className="h-3 w-3" />
                                                     Decline
@@ -314,7 +314,7 @@ export const PlayersTab = ({
                                                     <button
                                                         type="button"
                                                         onClick={() => onMessagePlayer(player.userId, player.fullName || undefined)}
-                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--fc-text-muted)] hover:text-[var(--fc-accent)] hover:bg-[var(--fc-accent-soft)] opacity-0 group-hover:opacity-100 transition-all"
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-[var(--fc-text-muted)] hover:text-[var(--fc-accent)] hover:bg-[var(--fc-accent-soft)] opacity-0 group-hover:opacity-100 transition-all"
                                                         title={`Message ${player.fullName || player.username}`}
                                                     >
                                                         <MessageSquare className="h-4 w-4" />
@@ -385,7 +385,7 @@ export const PlayersTab = ({
                                     type="button"
                                     onClick={() => onPageChange(Math.max(0, playerDirectory.pageNumber - 1))}
                                     disabled={playerDirectory.pageNumber === 0}
-                                    className="rounded-md border border-[var(--fc-border)] px-2.5 py-1 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-40"
+                                    className="rounded-xl border border-[var(--fc-border)] px-2.5 py-1 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-40"
                                 >
                                     Prev
                                 </button>
@@ -393,7 +393,7 @@ export const PlayersTab = ({
                                     type="button"
                                     onClick={() => onPageChange(playerDirectory.pageNumber + 1)}
                                     disabled={playerDirectory.pageNumber + 1 >= totalPlayerPages}
-                                    className="rounded-md border border-[var(--fc-border)] px-2.5 py-1 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-40"
+                                    className="rounded-xl border border-[var(--fc-border)] px-2.5 py-1 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-40"
                                 >
                                     Next
                                 </button>

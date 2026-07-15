@@ -15,8 +15,8 @@ export const ClubSidebar = ({ activeTab, setActiveTab, club, canManageClub, onOp
     <aside className="min-w-0">
         <div className="lg:sticky lg:top-[calc(var(--app-header-height)+18px)]">
             <div className="mb-6 px-1">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-secondary">Club Navigation</p>
-                <p className="mt-2 text-sm font-black uppercase tracking-[0.14em] text-primary">{club.name || 'Club Workspace'}</p>
+                <p className="text-[11px] font-semibold  text-[#a1a1aa]">Club Navigation</p>
+                <p className="mt-2 text-sm font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">{club.name || 'Club Workspace'}</p>
             </div>
 
             <div className="space-y-2.5">
@@ -36,13 +36,13 @@ export const ClubSidebar = ({ activeTab, setActiveTab, club, canManageClub, onOp
                         >
                             <span className="flex items-center gap-3">
                                 <Icon className="h-4 w-4" />
-                                <span className="text-[11px] font-black uppercase tracking-[0.16em]">{item.label}</span>
+                                <span className="text-[11px] font-semibold ">{item.label}</span>
                             </span>
 
                             {badge != null && badge > 0 ? (
                                 <span
-                                    className={`club-sidebar-badge rounded-[4px] border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
-                                        isActive ? 'club-sidebar-badge--active' : 'border-subtle text-secondary'
+                                    className={`club-sidebar-badge rounded-[4px] border px-2.5 py-1 text-[10px] font-semibold  ${
+                                        isActive ? 'club-sidebar-badge--active' : 'border-[#ffffff0d] text-[#a1a1aa]'
                                     }`}
                                 >
                                     {badge}
@@ -54,7 +54,7 @@ export const ClubSidebar = ({ activeTab, setActiveTab, club, canManageClub, onOp
             </div>
 
             {canManageClub && onOpenNotifications && (
-                <div className="mt-8 border-t border-subtle pt-5">
+                <div className="mt-8 border-t border-[#ffffff0d] pt-5">
                     <button
                         type="button"
                         onClick={onOpenNotifications}
@@ -62,7 +62,7 @@ export const ClubSidebar = ({ activeTab, setActiveTab, club, canManageClub, onOp
                     >
                         <span className="flex items-center gap-3">
                             <BellRing className="h-4 w-4" />
-                            <span className="text-[11px] font-black uppercase tracking-[0.16em]">Notifications</span>
+                            <span className="text-[11px] font-semibold ">Notifications</span>
                         </span>
                     </button>
                 </div>

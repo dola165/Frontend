@@ -67,15 +67,15 @@ export const ScheduleToolbar = ({
                         key={`${stat.label}-${stat.value}`}
                         className={`schedule-inline-chip ${statToneClass[stat.tone ?? 'neutral']}`.trim()}
                     >
-                        <span className="text-secondary">{stat.label}</span>
-                        <span className="text-primary">{stat.value}</span>
+                        <span className="text-[#a1a1aa]">{stat.label}</span>
+                        <span className="text-[#f4f4f5]">{stat.value}</span>
                     </span>
                 ))}
 
                 {scheduleBusy ? (
                     <span className="schedule-inline-chip schedule-tone-blue">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-secondary" />
-                        <span className="text-secondary">Refreshing</span>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-[#a1a1aa]" />
+                        <span className="text-[#a1a1aa]">Refreshing</span>
                     </span>
                 ) : null}
             </div>

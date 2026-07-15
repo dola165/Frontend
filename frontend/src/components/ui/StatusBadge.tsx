@@ -9,7 +9,7 @@ interface StatusBadgeProps {
 }
 
 const toneClassNames: Record<StatusBadgeTone, string> = {
-    neutral: 'border-subtle bg-base text-secondary',
+    neutral: 'border-[#ffffff0d] bg-[#0f1117] text-[#a1a1aa]',
     success: 'border-[color:var(--state-success)] bg-[color:var(--state-success-soft)] text-[color:var(--state-success)]',
     danger: 'border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] text-[color:var(--state-danger)]',
     warning: 'border-[color:var(--state-warning)] bg-[color:var(--state-warning-soft)] text-[color:var(--state-warning)]',
@@ -17,7 +17,7 @@ const toneClassNames: Record<StatusBadgeTone, string> = {
 };
 
 export const StatusBadge = ({ children, tone = 'neutral', className = '' }: StatusBadgeProps) => (
-    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${toneClassNames[tone]} ${className}`.trim()}>
+    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-semibold  ${toneClassNames[tone]} ${className}`.trim()}>
         {children}
     </span>
 );

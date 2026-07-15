@@ -12,10 +12,10 @@ interface Props {
 }
 
 const statusToneBorder: Record<string, string> = {
-    info: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/30',
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-    danger: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
-    neutral: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/30',
+    info: 'bg-sky-500/10 text-sky-400 border-sky-500/30',
+    success: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+    danger: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+    neutral: 'bg-[#16181d] text-[#a1a1aa] border-[#ffffff0d]',
 };
 
 type ModalMode = 'scores' | 'complete' | null;
@@ -25,11 +25,11 @@ const entryLabel = (entry: TournamentEntryDto | undefined): string => {
     return entry.displayName ?? entry.clubName ?? entry.squadName ?? `Entry #${entry.id}`;
 };
 
-const inputClass = 'w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#1f6feb] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-[#4c8dff]';
+const inputClass = 'w-full rounded-xl border border-[#ffffff0d] bg-[#16181d] px-3 py-2.5 text-sm font-semibold text-[#f4f4f5] outline-none placeholder:text-[#a1a1aa] focus:border-[#16a34a]';
 const selectClass = inputClass;
-const btnDefault = 'inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800';
-const btnDestructive = 'inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50 dark:border-rose-500/30 dark:bg-slate-900 dark:text-rose-400 dark:hover:bg-rose-500/10';
-const btnPrimary = 'inline-flex items-center gap-1.5 rounded-full bg-[#1f6feb] px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#1957bb] disabled:opacity-50';
+const btnDefault = 'inline-flex items-center gap-1.5 rounded-xl border border-[#ffffff0d] bg-[#16181d] px-3 py-1.5 text-xs font-semibold text-[#a1a1aa] transition-colors hover:bg-[#1a1c22] disabled:opacity-40';
+const btnDestructive = 'inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-[#16181d] px-3 py-1.5 text-xs font-semibold text-rose-400 transition-colors hover:bg-rose-500/10 disabled:opacity-50';
+const btnPrimary = 'inline-flex items-center gap-1.5 rounded-xl bg-[#16a34a] px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#22c55e] disabled:opacity-50';
 
 export const BracketEditor = ({ tournamentId, tournament, onRefresh }: Props) => {
     const [modalMode, setModalMode] = useState<ModalMode>(null);
@@ -158,13 +158,13 @@ export const BracketEditor = ({ tournamentId, tournament, onRefresh }: Props) =>
     if (fixtures.length === 0) {
         return (
             <div>
-                <div className="border-b border-slate-200 bg-[#f2f4f7] px-5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Bracketing</p>
+                <div className="border-b border-[#ffffff0d] bg-[#16181d] px-5 py-3">
+                    <p className="text-sm font-semibold text-[#f4f4f5]">Bracketing</p>
                 </div>
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <Trophy className="mb-4 h-10 w-10 text-slate-300 dark:text-slate-600" />
-                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">No fixtures yet</p>
-                    <p className="mt-2 text-sm text-slate-400 dark:text-slate-500">Create stages and fixtures to start managing the bracket.</p>
+                    <Trophy className="mb-4 h-10 w-10 text-[#a1a1aa]" />
+                    <p className="text-sm font-semibold text-[#a1a1aa]">No fixtures yet</p>
+                    <p className="mt-2 text-sm text-[#a1a1aa]">Create stages and fixtures to start managing the bracket.</p>
                 </div>
             </div>
         );
@@ -173,31 +173,31 @@ export const BracketEditor = ({ tournamentId, tournament, onRefresh }: Props) =>
     return (
         <div>
             {/* Stats bar */}
-            <div className="grid grid-cols-4 divide-x divide-slate-200 border-b border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+            <div className="grid grid-cols-4 divide-x divide-[#ffffff0d] border-b border-[#ffffff0d]">
                 <div className="px-4 py-3 text-center">
-                    <p className="text-xl font-bold text-slate-950 dark:text-white">{fixtures.length}</p>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Fixtures</p>
+                    <p className="text-xl font-bold text-[#f4f4f5]">{fixtures.length}</p>
+                    <p className="text-xs font-medium text-[#a1a1aa]">Fixtures</p>
                 </div>
                 <div className="px-4 py-3 text-center">
-                    <p className="text-xl font-bold text-slate-950 dark:text-white">{stages.length}</p>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Stages</p>
+                    <p className="text-xl font-bold text-[#f4f4f5]">{stages.length}</p>
+                    <p className="text-xs font-medium text-[#a1a1aa]">Stages</p>
                 </div>
                 <div className="px-4 py-3 text-center">
-                    <p className="text-xl font-bold text-slate-950 dark:text-white">{tournament.entries?.length ?? 0}</p>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Entries</p>
+                    <p className="text-xl font-bold text-[#f4f4f5]">{tournament.entries?.length ?? 0}</p>
+                    <p className="text-xs font-medium text-[#a1a1aa]">Entries</p>
                 </div>
                 <div className="px-4 py-3 text-center">
-                    <p className="text-xl font-bold text-slate-950 dark:text-white">{tournamentScopeLabel(tournament.participantScope)}</p>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Scope</p>
+                    <p className="text-xl font-bold text-[#f4f4f5]">{tournamentScopeLabel(tournament.participantScope)}</p>
+                    <p className="text-xs font-medium text-[#a1a1aa]">Scope</p>
                 </div>
             </div>
 
             {/* Message toast */}
             {message && (
-                <div className={`border-b border-slate-200 px-4 py-3 text-sm font-semibold dark:border-slate-800 ${
+                <div className={`border-b border-[#ffffff0d] px-4 py-3 text-sm font-semibold ${
                     messageType === 'success'
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
-                        : 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300'
+                        ? 'bg-[#16a34a]/10 text-[#16a34a]'
+                        : 'bg-[#ef4444]/10 text-[#ef4444]'
                 }`}>
                     {message}
                 </div>
@@ -209,10 +209,10 @@ export const BracketEditor = ({ tournamentId, tournament, onRefresh }: Props) =>
                 if (stageFixtures.length === 0) return null;
                 return (
                     <div key={stage.id}>
-                        <div className="border-b border-slate-200 bg-[#f2f4f7] px-5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
-                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        <div className="border-b border-[#ffffff0d] bg-[#16181d] px-5 py-3">
+                            <p className="text-sm font-semibold text-[#f4f4f5]">
                                 {stage.name}
-                                <span className="ml-2 font-normal text-slate-400">
+                                <span className="ml-2 font-normal text-[#a1a1aa]">
                                     {stage.stageType} &middot; {stage.status}
                                 </span>
                             </p>
@@ -220,13 +220,13 @@ export const BracketEditor = ({ tournamentId, tournament, onRefresh }: Props) =>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="border-b border-slate-200 dark:border-slate-800">
-                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400">#</th>
-                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400">Home</th>
-                                        <th className="px-2 py-2.5 text-center text-xs font-semibold text-slate-500 dark:text-slate-400" style={{ width: 60 }}>Score</th>
-                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400">Away</th>
-                                        <th className="px-2 py-2.5 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">Status</th>
-                                        <th className="px-5 py-2.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400">Actions</th>
+                                    <tr className="border-b border-[#ffffff0d]">
+                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">#</th>
+                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">Home</th>
+                                        <th className="px-2 py-2.5 text-center text-xs font-semibold text-[#a1a1aa]" style={{ width: 60 }}>Score</th>
+                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">Away</th>
+                                        <th className="px-2 py-2.5 text-center text-xs font-semibold text-[#a1a1aa]">Status</th>
+                                        <th className="px-5 py-2.5 text-right text-xs font-semibold text-[#a1a1aa]">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -236,27 +236,27 @@ export const BracketEditor = ({ tournamentId, tournament, onRefresh }: Props) =>
                                         const isComplete = fx.status === 'COMPLETED';
                                         const isScheduled = fx.status === 'SCHEDULED';
                                         return (
-                                            <tr key={fx.id} className={`border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50 ${isComplete ? 'opacity-70' : ''}`}>
-                                                <td className="px-5 py-3 text-xs font-medium text-slate-400">
+                                            <tr key={fx.id} className={`border-b border-[#ffffff0d] transition-colors hover:bg-[#1a1c22] ${isComplete ? 'opacity-70' : ''}`}>
+                                                <td className="px-5 py-3 text-xs font-medium text-[#a1a1aa]">
                                                     {fx.roundNumber != null ? `R${fx.roundNumber}` : '—'}
                                                 </td>
-                                                <td className="px-5 py-3 text-sm font-semibold text-slate-950 dark:text-white">
+                                                <td className="px-5 py-3 text-sm font-semibold text-[#f4f4f5]">
                                                     {entryLabel(home)}
                                                     {fx.winnerEntryId != null && fx.winnerEntryId === fx.homeEntryId && (
                                                         <Trophy className="ml-1.5 inline-block h-3.5 w-3.5 text-amber-500" />
                                                     )}
                                                 </td>
-                                                <td className="px-2 py-3 text-center text-sm font-bold tabular-nums text-slate-950 dark:text-white">
+                                                <td className="px-2 py-3 text-center text-sm font-bold tabular-nums text-[#f4f4f5]">
                                                     {fx.homeScore != null && fx.awayScore != null ? `${fx.homeScore} - ${fx.awayScore}` : '—'}
                                                 </td>
-                                                <td className="px-5 py-3 text-sm font-semibold text-slate-950 dark:text-white">
+                                                <td className="px-5 py-3 text-sm font-semibold text-[#f4f4f5]">
                                                     {entryLabel(away)}
                                                     {fx.winnerEntryId != null && fx.winnerEntryId === fx.awayEntryId && (
                                                         <Trophy className="ml-1.5 inline-block h-3.5 w-3.5 text-amber-500" />
                                                     )}
                                                 </td>
                                                 <td className="px-2 py-3 text-center">
-                                                    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusToneBorder[tone] ?? statusToneBorder.neutral}`}>
+                                                    <span className={`inline-block rounded-xl border px-2.5 py-0.5 text-xs font-semibold ${statusToneBorder[tone] ?? statusToneBorder.neutral}`}>
                                                         {fx.status}
                                                     </span>
                                                 </td>
@@ -300,19 +300,19 @@ export const BracketEditor = ({ tournamentId, tournament, onRefresh }: Props) =>
                 if (orphanFixtures.length === 0) return null;
                 return (
                     <div>
-                        <div className="border-b border-slate-200 bg-[#f2f4f7] px-5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
-                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Unassigned Fixtures</p>
+                        <div className="border-b border-[#ffffff0d] bg-[#16181d] px-5 py-3">
+                            <p className="text-sm font-semibold text-[#f4f4f5]">Unassigned Fixtures</p>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="border-b border-slate-200 dark:border-slate-800">
-                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400">#</th>
-                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400">Home</th>
-                                        <th className="px-2 py-2.5 text-center text-xs font-semibold text-slate-500 dark:text-slate-400" style={{ width: 60 }}>Score</th>
-                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400">Away</th>
-                                        <th className="px-2 py-2.5 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">Status</th>
-                                        <th className="px-5 py-2.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400">Actions</th>
+                                    <tr className="border-b border-[#ffffff0d]">
+                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">#</th>
+                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">Home</th>
+                                        <th className="px-2 py-2.5 text-center text-xs font-semibold text-[#a1a1aa]" style={{ width: 60 }}>Score</th>
+                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">Away</th>
+                                        <th className="px-2 py-2.5 text-center text-xs font-semibold text-[#a1a1aa]">Status</th>
+                                        <th className="px-5 py-2.5 text-right text-xs font-semibold text-[#a1a1aa]">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -322,15 +322,15 @@ export const BracketEditor = ({ tournamentId, tournament, onRefresh }: Props) =>
                                         const isComplete = fx.status === 'COMPLETED';
                                         const isScheduled = fx.status === 'SCHEDULED';
                                         return (
-                                            <tr key={fx.id} className="border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50">
-                                                <td className="px-5 py-3 text-xs font-medium text-slate-400">—</td>
-                                                <td className="px-5 py-3 text-sm font-semibold text-slate-950 dark:text-white">{entryLabel(home)}</td>
-                                                <td className="px-2 py-3 text-center text-sm font-bold tabular-nums text-slate-950 dark:text-white">
+                                            <tr key={fx.id} className="border-b border-[#ffffff0d] transition-colors hover:bg-[#1a1c22]">
+                                                <td className="px-5 py-3 text-xs font-medium text-[#a1a1aa]">—</td>
+                                                <td className="px-5 py-3 text-sm font-semibold text-[#f4f4f5]">{entryLabel(home)}</td>
+                                                <td className="px-2 py-3 text-center text-sm font-bold tabular-nums text-[#f4f4f5]">
                                                     {fx.homeScore != null && fx.awayScore != null ? `${fx.homeScore} - ${fx.awayScore}` : '—'}
                                                 </td>
-                                                <td className="px-5 py-3 text-sm font-semibold text-slate-950 dark:text-white">{entryLabel(away)}</td>
+                                                <td className="px-5 py-3 text-sm font-semibold text-[#f4f4f5]">{entryLabel(away)}</td>
                                                 <td className="px-2 py-3 text-center">
-                                                    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusToneBorder[tone] ?? statusToneBorder.neutral}`}>
+                                                    <span className={`inline-block rounded-xl border px-2.5 py-0.5 text-xs font-semibold ${statusToneBorder[tone] ?? statusToneBorder.neutral}`}>
                                                         {fx.status}
                                                     </span>
                                                 </td>
@@ -371,22 +371,22 @@ export const BracketEditor = ({ tournamentId, tournament, onRefresh }: Props) =>
             {/* Modal Overlay */}
             {modalMode && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeModal}>
-                    <div className="w-full max-w-md rounded-[28px] border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900" onClick={(e) => e.stopPropagation()}>
+                    <div className="w-full max-w-md rounded-xl border border-[#ffffff0d] bg-[#16181d] " onClick={(e) => e.stopPropagation()}>
                         {modalMode === 'scores' && selectedFixture && (
                             <>
-                                <div className="rounded-t-[28px] border-b border-slate-200 bg-[#f2f4f7] px-6 py-4 dark:border-slate-800 dark:bg-slate-800/50">
-                                    <p className="text-base font-semibold text-slate-950 dark:text-white">Update Scores</p>
+                                <div className="border-b border-[#ffffff0d] bg-[#16181d] px-6 py-4">
+                                    <p className="text-base font-semibold text-[#f4f4f5]">Update Scores</p>
                                 </div>
                                 <div className="space-y-5 p-6">
                                     <div className="grid grid-cols-2 gap-4">
                                         <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                            <span className="text-sm font-semibold text-[#f4f4f5]">
                                                 {entryLabel(entriesById.get(selectedFixture.homeEntryId!))}
                                             </span>
                                             <input type="number" value={homeScore} onChange={(e) => setHomeScore(e.target.value)} className={inputClass} placeholder="Home" />
                                         </label>
                                         <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                            <span className="text-sm font-semibold text-[#f4f4f5]">
                                                 {entryLabel(entriesById.get(selectedFixture.awayEntryId!))}
                                             </span>
                                             <input type="number" value={awayScore} onChange={(e) => setAwayScore(e.target.value)} className={inputClass} placeholder="Away" />
@@ -405,12 +405,12 @@ export const BracketEditor = ({ tournamentId, tournament, onRefresh }: Props) =>
 
                         {modalMode === 'complete' && selectedFixture && (
                             <>
-                                <div className="rounded-t-[28px] border-b border-amber-200 bg-amber-50 px-6 py-4 dark:border-amber-500/30 dark:bg-amber-500/10">
-                                    <p className="text-base font-semibold text-amber-800 dark:text-amber-300">Force Complete Fixture</p>
+                                <div className="border-b border-amber-500/30 bg-amber-500/10 px-6 py-4">
+                                    <p className="text-base font-semibold text-amber-400">Force Complete Fixture</p>
                                 </div>
                                 <div className="space-y-5 p-6">
                                     <label className="flex flex-col gap-2">
-                                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Winner</span>
+                                        <span className="text-sm font-semibold text-[#f4f4f5]">Winner</span>
                                         <select value={winnerEntryId} onChange={(e) => setWinnerEntryId(e.target.value)} className={selectClass}>
                                             <option value="">Select winner...</option>
                                             {selectedFixture.homeEntryId != null && (
@@ -423,11 +423,11 @@ export const BracketEditor = ({ tournamentId, tournament, onRefresh }: Props) =>
                                     </label>
                                     <div className="grid grid-cols-2 gap-4">
                                         <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Home Score</span>
+                                            <span className="text-sm font-semibold text-[#f4f4f5]">Home Score</span>
                                             <input type="number" value={homeScore} onChange={(e) => setHomeScore(e.target.value)} className={inputClass} />
                                         </label>
                                         <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Away Score</span>
+                                            <span className="text-sm font-semibold text-[#f4f4f5]">Away Score</span>
                                             <input type="number" value={awayScore} onChange={(e) => setAwayScore(e.target.value)} className={inputClass} />
                                         </label>
                                     </div>

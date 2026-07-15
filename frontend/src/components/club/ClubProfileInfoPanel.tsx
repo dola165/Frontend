@@ -57,8 +57,8 @@ export const ClubProfileInfoPanel = ({ club }: ClubProfileInfoPanelProps) => {
         <aside className="w-full">
             <section className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-band)] shadow-[0_16px_30px_rgba(2,6,12,0.22)]">
                 <div className="border-b border-white/6 px-3.5 py-3.5">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[color:var(--club-theme-text-secondary)]">Club Information</p>
-                    <h2 className="mt-2 text-[15px] font-black uppercase leading-6 tracking-[0.06em] text-[color:var(--club-theme-text-primary)]">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--club-theme-text-secondary)]">Club Information</p>
+                    <h2 className="mt-2 text-[15px] font-semibold uppercase leading-6 tracking-[0.06em] text-[color:var(--club-theme-text-primary)]">
                         Contact, public links, and quick facts
                     </h2>
                 </div>
@@ -68,7 +68,7 @@ export const ClubProfileInfoPanel = ({ club }: ClubProfileInfoPanelProps) => {
                         icon={<Phone className="h-4 w-4 text-[color:var(--club-tone-green)]" />}
                         label="Public Contact"
                     >
-                        <p className="text-lg font-black tracking-[0.01em] text-[color:var(--club-theme-text-primary)]">
+                        <p className="text-lg font-semibold tracking-[0.01em] text-[color:var(--club-theme-text-primary)]">
                             {club.whatsappNumber || 'Not published'}
                         </p>
                         <p className="mt-1.5 text-[12px] leading-5 text-[color:var(--club-theme-text-secondary)]">
@@ -137,7 +137,7 @@ export const ClubProfileInfoPanel = ({ club }: ClubProfileInfoPanelProps) => {
 
 const PanelSection = ({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) => (
     <section className="border-b border-white/6 pb-4 last:border-b-0 last:pb-0">
-        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-[color:var(--club-theme-text-secondary)]">
+        <div className="flex items-center gap-2 text-[10px] font-semibold  text-[color:var(--club-theme-text-secondary)]">
             {icon}
             {label}
         </div>
@@ -147,7 +147,7 @@ const PanelSection = ({ icon, label, children }: { icon: ReactNode; label: strin
 
 const InfoRow = ({ label, value, multiline = false }: { label: string; value: string; multiline?: boolean }) => (
     <div className={`mt-2 flex gap-3 rounded-[10px] bg-white/[0.03] px-2.5 py-2 ${multiline ? 'items-start' : 'items-center justify-between'}`}>
-        <span className="shrink-0 text-[9px] font-black uppercase tracking-[0.18em] text-[color:var(--club-theme-text-secondary)]">{label}</span>
+        <span className="shrink-0 text-[9px] font-semibold  text-[color:var(--club-theme-text-secondary)]">{label}</span>
         <span className={`text-[13px] font-semibold text-[color:var(--club-theme-text-primary)] ${multiline ? 'leading-5' : ''}`}>{value}</span>
     </div>
 );
@@ -157,7 +157,7 @@ const InfoLink = ({ href, label, external = false }: { href: string; label: stri
         href={href}
         target={external ? '_blank' : undefined}
         rel={external ? 'noopener noreferrer' : undefined}
-        className="inline-flex items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-[color:var(--club-theme-text-primary)]"
+        className="inline-flex items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1.5 text-[9px] font-semibold  text-[color:var(--club-theme-text-primary)]"
     >
         {label}
         {external ? <ExternalLink className="h-3 w-3" /> : null}
@@ -165,7 +165,7 @@ const InfoLink = ({ href, label, external = false }: { href: string; label: stri
 );
 
 const Tag = ({ children }: { children: ReactNode }) => (
-    <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.05] px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-[color:var(--club-theme-text-secondary)]">
+    <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.05] px-2 py-1 text-[9px] font-semibold  text-[color:var(--club-theme-text-secondary)]">
         <ShieldCheck className="h-2.5 w-2.5 text-[color:var(--club-tone-green)]" />
         {children}
     </span>

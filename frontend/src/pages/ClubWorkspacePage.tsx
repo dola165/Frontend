@@ -69,7 +69,7 @@ import type { WorkspaceTab, TabItem, UserSearchDto, TryoutApplicantDto } from '.
 
 // ── page ──
 
-export default function ClubWorkspacePage() {
+export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     const { id: clubIdParam } = useParams<{ id: string }>();
     const clubId = Number(clubIdParam);
     const navigate = useNavigate();
@@ -98,8 +98,7 @@ export default function ClubWorkspacePage() {
         setSearchParams(next, { replace: true });
     };
 
-    // ── theme ──
-    const [isLight, setIsLight] = useState(false);
+    // ── theme (driven by global TopNav toggle) ──
 
     // ── confirmation dialogs ──
     const [showStatusConfirm, setShowStatusConfirm] = useState(false);
@@ -453,15 +452,13 @@ export default function ClubWorkspacePage() {
     }
 
     return (<>
-        <div className={`flex h-[calc(100dvh-var(--app-header-height))] workspace-page-shell ${isLight ? 'workspace-light' : ''}`}>
+        <div className={`flex h-[calc(100dvh-var(--app-header-height))] workspace-page-shell ${!darkMode ? 'workspace-light' : ''}`}>
             <WorkspaceSidebar
                 clubId={clubId}
                 overview={overview}
                 activeTab={activeTab}
                 tabs={tabs}
                 unreadInboxCount={inboxUnreadCount}
-                isLight={isLight}
-                onToggleLight={() => setIsLight((prev) => !prev)}
                 onTabChange={switchTab}
                 onNavigate={navigate}
             />
@@ -470,13 +467,13 @@ export default function ClubWorkspacePage() {
             <main className="flex-1 overflow-y-auto">
                 <div className="sticky top-0 z-10 space-y-2 px-6 pt-4">
                     {errorMessage && (
-                        <div className="rounded-md border border-[var(--fc-state-danger-soft)] bg-[var(--fc-state-danger-soft)] px-4 py-2.5 text-sm flex items-center justify-between">
+                        <div className="rounded-xl border border-[var(--fc-state-danger-soft)] bg-[var(--fc-state-danger-soft)] px-4 py-2.5 text-sm flex items-center justify-between">
                             <span className="font-medium text-[var(--fc-text-primary)]">{errorMessage}</span>
                             <button type="button" onClick={() => setErrorMessage(null)} className="text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]"><X className="h-4 w-4" /></button>
                         </div>
                     )}
                     {successMessage && (
-                        <div className="rounded-md border border-[var(--fc-accent-soft)] bg-[var(--fc-accent-soft)] px-4 py-2.5 text-sm flex items-center justify-between">
+                        <div className="rounded-xl border border-[var(--fc-accent-soft)] bg-[var(--fc-accent-soft)] px-4 py-2.5 text-sm flex items-center justify-between">
                             <span className="font-medium text-[var(--fc-text-primary)]">{successMessage}</span>
                             <button type="button" onClick={() => setSuccessMessage(null)} className="text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]"><X className="h-4 w-4" /></button>
                         </div>

@@ -44,25 +44,25 @@ export const RegisterPage = () => {
         }
     };
 
-    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-primary outline-none transition-colors focus:border-accent-primary placeholder:text-secondary';
+    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-[#f4f4f5] outline-none transition-colors focus:border-[#16a34a] placeholder:text-[#a1a1aa]';
 
     return (
-        <div className="bg-base flex min-h-screen flex-col items-center justify-center p-6">
+        <div className="bg-[#0f1117] flex min-h-screen flex-col items-center justify-center p-6">
 
-            <Link to="/" className="absolute top-8 left-8 inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary transition-colors">
+            <Link to="/" className="absolute top-8 left-8 inline-flex items-center gap-2 text-[11px] font-semibold  text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors">
                 <ArrowLeft className="w-5 h-5" /> Back to Base
             </Link>
 
             <div className="w-full max-w-md">
                 <div className="text-center mb-10">
-                    <div className="w-16 h-16 bg-accent-primary text-white flex items-center justify-center mx-auto mb-6 border border-accent-primary">
+                    <div className="w-16 h-16 bg-[#16a34a] text-white flex items-center justify-center mx-auto mb-6 border border-[#16a34a]">
                         <Shield className="w-8 h-8" />
                     </div>
-                    <h1 className="text-3xl font-black uppercase tracking-tight text-primary mb-2">Draft Day</h1>
-                    <p className="text-sm text-secondary">Register your profile and enter the global arena.</p>
+                    <h1 className="text-3xl font-semibold uppercase tracking-tight text-[#f4f4f5] mb-2">Draft Day</h1>
+                    <p className="text-sm text-[#a1a1aa]">Register your profile and enter the global arena.</p>
                 </div>
 
-                <div className="theme-surface theme-border border shadow-2xl p-8 rounded-2xl">
+                <div className="theme-surface theme-border border shadow-2xl p-8 rounded-xl">
 
                     {error && (
                         <div className="mb-6 border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)] flex items-center gap-2">
@@ -72,7 +72,7 @@ export const RegisterPage = () => {
 
                     <form onSubmit={handleRegister} className="flex flex-col gap-5">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Email Address</label>
+                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">Email Address</label>
                             <input
                                 type="email"
                                 value={email}
@@ -83,7 +83,7 @@ export const RegisterPage = () => {
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Starting Role</label>
+                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">Starting Role</label>
                             <div className="grid grid-cols-2 gap-2">
                                 {[
                                     { id: 'PLAYER', label: 'Player', desc: 'Seeking clubs & tryouts' },
@@ -97,18 +97,18 @@ export const RegisterPage = () => {
                                         onClick={() => setRole(option.id as 'PLAYER' | 'FAN' | 'ORGANIZER' | 'AGENT')}
                                         className={`rounded-xl border px-4 py-4 text-left transition-colors ${
                                             role === option.id
-                                                ? 'border-accent-primary bg-accent-primary-soft'
-                                                : 'border-subtle hover:border-strong'
+                                                ? 'border-[#16a34a] bg-[#16a34a]-soft'
+                                                : 'border-[#ffffff0d] hover:border-strong'
                                         }`}
                                     >
-                                        <p className="font-black uppercase tracking-[0.14em] text-sm text-primary">{option.label}</p>
-                                        <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-secondary">{option.desc}</p>
+                                        <p className="font-semibold uppercase tracking-[0.14em] text-sm text-[#f4f4f5]">{option.label}</p>
+                                        <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a1a1aa]">{option.desc}</p>
                                     </button>
                                 ))}
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Password</label>
+                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">Password</label>
                             <input
                                 type="password"
                                 value={password}
@@ -118,10 +118,10 @@ export const RegisterPage = () => {
                                 className={inputClass}
                                 placeholder="********"
                             />
-                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">At least 6 characters</p>
+                            <p className="text-[10px] font-semibold  text-muted">At least 6 characters</p>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Confirm Password</label>
+                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">Confirm Password</label>
                             <input
                                 type="password"
                                 value={confirmPassword}
@@ -135,16 +135,16 @@ export const RegisterPage = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full mt-2 inline-flex items-center justify-center gap-2 border border-accent-primary bg-accent-primary text-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] transition-colors disabled:opacity-50"
+                            className="w-full mt-2 inline-flex items-center justify-center gap-2 border border-[#16a34a] bg-[#16a34a] text-white px-4 py-3 text-[11px] font-semibold  transition-colors disabled:opacity-50"
                         >
                             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Legacy'}
                         </button>
                     </form>
 
                     <div className="my-8 flex items-center gap-4">
-                        <div className="h-px bg-[color:var(--border-subtle)] flex-1"></div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-muted">Or draft via</span>
-                        <div className="h-px bg-[color:var(--border-subtle)] flex-1"></div>
+                        <div className="h-px bg-[color:#ffffff0d] flex-1"></div>
+                        <span className="text-[10px] font-semibold  text-muted">Or draft via</span>
+                        <div className="h-px bg-[color:#ffffff0d] flex-1"></div>
                     </div>
 
                     <div className="flex justify-center w-full">
@@ -181,8 +181,8 @@ export const RegisterPage = () => {
                     </div>
                 </div>
 
-                <p className="text-center mt-8 text-[11px] font-black uppercase tracking-[0.14em] text-secondary">
-                    Already drafted? <Link to="/login" className="accent-primary hover:underline ml-1">Access Database</Link>
+                <p className="text-center mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa]">
+                    Already drafted? <Link to="/login" className="text-[#16a34a] hover:underline ml-1">Access Database</Link>
                 </p>
             </div>
         </div>

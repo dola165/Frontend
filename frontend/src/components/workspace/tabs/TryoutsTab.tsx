@@ -58,7 +58,7 @@ export const TryoutsTab = ({ tryoutApplicants, tryoutsLoading, pendingKey, onTry
             ) : sortedApplicants.length === 0 ? (
                 <EmptyState message="No tryout applications to review." />
             ) : (
-                <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
+                <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
                     <DataTable columns={['Name', 'Position', 'Age Group', 'Status', '']} sort={sort} onSort={handleSort}>
                         {sortedApplicants.map((app) => (
                             <tr key={app.id} className="group h-11 hover:bg-[var(--fc-surface-hover)] transition-colors">

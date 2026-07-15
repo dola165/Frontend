@@ -38,13 +38,13 @@ export const EntityFrame = ({ children, className = '' }: EntityFrameProps) => (
 );
 
 export const EntityBannerBand = ({ children, className = '' }: EntityFrameProps) => (
-    <section className={`border-b border-subtle bg-surface ${className}`.trim()}>
+    <section className={`border-b border-[#ffffff0d] bg-[#16181d] ${className}`.trim()}>
         {children}
     </section>
 );
 
 export const EntityHeaderBand = ({ children, className = '' }: EntityFrameProps) => (
-    <section className={`border-b border-subtle bg-surface ${className}`.trim()}>
+    <section className={`border-b border-[#ffffff0d] bg-[#16181d] ${className}`.trim()}>
         <EntityFrame className="py-5">{children}</EntityFrame>
     </section>
 );
@@ -83,7 +83,7 @@ export const EntityPageLayout = ({
     const gridClassNameValue = `${getGridClassName(hasLeft, hasRight)} ${gridClassName}`.trim();
 
     return (
-        <div className={`bg-base min-h-full pb-10 ${className}`.trim()}>
+        <div className={`bg-[#0f1117] min-h-full pb-10 ${className}`.trim()}>
             {beforeFrame}
 
             <EntityFrame className={frameClassName}>
@@ -117,14 +117,14 @@ export const EntitySection = ({
     const hasHeader = Boolean(eyebrow || title || description || actions);
 
     return (
-        <section className={`border border-subtle bg-surface ${className}`.trim()}>
+        <section className={`border border-[#ffffff0d] bg-[#16181d] ${className}`.trim()}>
             {hasHeader && (
-                <div className={`border-b border-subtle px-4 py-4 ${headerClassName}`.trim()}>
+                <div className={`border-b border-[#ffffff0d] px-4 py-4 ${headerClassName}`.trim()}>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
-                            {eyebrow && <p className="text-[11px] font-black uppercase tracking-[0.18em] text-secondary">{eyebrow}</p>}
-                            {title && <h2 className="mt-2 text-xl font-black uppercase tracking-[0.12em] text-primary">{title}</h2>}
-                            {description && <p className="mt-2 max-w-3xl text-sm leading-6 text-secondary">{description}</p>}
+                            {eyebrow && <p className="text-[11px] font-semibold  text-[#a1a1aa]">{eyebrow}</p>}
+                            {title && <h2 className="mt-2 text-xl font-semibold uppercase tracking-[0.12em] text-[#f4f4f5]">{title}</h2>}
+                            {description && <p className="mt-2 max-w-3xl text-sm leading-6 text-[#a1a1aa]">{description}</p>}
                         </div>
                         {actions && <div className="shrink-0">{actions}</div>}
                     </div>
@@ -133,7 +133,7 @@ export const EntitySection = ({
 
             <div className={bodyClassName}>{children}</div>
 
-            {footer && <div className="border-t border-subtle">{footer}</div>}
+            {footer && <div className="border-t border-[#ffffff0d]">{footer}</div>}
         </section>
     );
 };

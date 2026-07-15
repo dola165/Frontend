@@ -110,14 +110,14 @@ export const InvitesTab = ({
                             value={searchQuery}
                             onChange={(e) => { onSearchQueryChange(e.target.value); onSearchPageChange(0); }}
                             placeholder="Search by name or username..."
-                            className="w-full rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] py-2 pl-10 pr-4 text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)] focus:ring-1 focus:ring-[var(--fc-accent)]"
+                            className="w-full rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] py-2 pl-10 pr-4 text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)] focus:ring-1 focus:ring-[var(--fc-accent)]"
                         />
                     </div>
                     <select
                         value={selectedInviteRole}
                         onChange={(e) => onInviteRoleChange(e.target.value as ClubMembershipRole)}
                         disabled={(overview?.assignableInviteRoles.length ?? 0) === 0}
-                        className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-sm font-medium text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)] disabled:opacity-50"
+                        className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-sm font-medium text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)] disabled:opacity-50"
                     >
                         {(overview?.assignableInviteRoles || []).map((role) => (
                             <option key={role} value={role}>{clubRoleLabel(role)}</option>
@@ -131,7 +131,7 @@ export const InvitesTab = ({
                         <Loader2 className="h-6 w-6 animate-spin text-[var(--fc-text-muted)]" />
                     </div>
                 ) : searchResults?.content.length ? (
-                    <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
+                    <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
                         <DataTable columns={['User', 'Details', 'Action']} sort={searchSort} onSort={handleSearchSort}>
                             {sortedSearchResults.map((user) => {
                                 const alreadyInvited = invitedUserIds.has(user.id);
@@ -154,7 +154,7 @@ export const InvitesTab = ({
                                                     type="button"
                                                     onClick={() => void onInvite(user.id)}
                                                     disabled={pendingKey === `invite-${user.id}` || (overview?.assignableInviteRoles.length ?? 0) === 0}
-                                                    className="inline-flex items-center gap-1.5 rounded-md bg-[var(--fc-accent)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+                                                    className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--fc-accent)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
                                                 >
                                                     {pendingKey === `invite-${user.id}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
                                                     Invite as {clubRoleLabel(selectedInviteRole)}
@@ -169,8 +169,8 @@ export const InvitesTab = ({
                             <div className="flex items-center justify-between border-t border-[var(--fc-border)] px-4 h-11">
                                 <p className="text-xs text-[var(--fc-text-muted)]">Page {searchResults.pageNumber + 1} of {totalSearchPages}</p>
                                 <div className="flex gap-2">
-                                    <button type="button" onClick={() => onSearchPageChange(Math.max(0, searchResults.pageNumber - 1))} disabled={searchResults.pageNumber === 0} className="rounded-md border border-[var(--fc-border)] px-2.5 py-1 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-40">Prev</button>
-                                    <button type="button" onClick={() => onSearchPageChange(searchResults.pageNumber + 1)} disabled={searchResults.pageNumber + 1 >= totalSearchPages} className="rounded-md border border-[var(--fc-border)] px-2.5 py-1 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-40">Next</button>
+                                    <button type="button" onClick={() => onSearchPageChange(Math.max(0, searchResults.pageNumber - 1))} disabled={searchResults.pageNumber === 0} className="rounded-xl border border-[var(--fc-border)] px-2.5 py-1 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-40">Prev</button>
+                                    <button type="button" onClick={() => onSearchPageChange(searchResults.pageNumber + 1)} disabled={searchResults.pageNumber + 1 >= totalSearchPages} className="rounded-xl border border-[var(--fc-border)] px-2.5 py-1 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-40">Next</button>
                                 </div>
                             </div>
                         )}
@@ -185,7 +185,7 @@ export const InvitesTab = ({
                 {overview && sortedInvitations.length === 0 ? (
                     <EmptyState message="No pending invitations." />
                 ) : overview && (
-                    <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
+                    <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
                         <DataTable columns={['User', 'Role', 'Status', 'Sent', '']} sort={inviteSort} onSort={handleInviteSort}>
                             {sortedInvitations.map((invite) => (
                                 <tr key={invite.id} className="group h-11 hover:bg-[var(--fc-surface-hover)] transition-colors">

@@ -11,8 +11,8 @@ export const TabContact = ({ club }: { club: ClubProfile }) => {
     return (
         <section className="rounded-[24px] border border-[color:var(--club-theme-border-subtle)] bg-[rgba(12,18,27,0.96)] p-5 shadow-[0_18px_32px_rgba(2,6,12,0.22)]">
             <div className="mb-5">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[color:var(--club-tone-green)]">Contact</p>
-                <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-[color:var(--club-theme-text-primary)]">Reach club staff</h2>
+                <p className="text-[11px] font-semibold  text-[color:var(--club-tone-green)]">Contact</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[color:var(--club-theme-text-primary)]">Reach club staff</h2>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
@@ -44,7 +44,7 @@ export const TabContact = ({ club }: { club: ClubProfile }) => {
                     {club.trustedByClubs.length > 0 ? (
                         <div className="mt-4 flex flex-wrap gap-2">
                             {club.trustedByClubs.map((trustedClub) => (
-                                <span key={trustedClub.clubId} className="rounded-full bg-white/[0.05] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-[color:var(--club-theme-text-primary)]">
+                                <span key={trustedClub.clubId} className="rounded-full bg-white/[0.05] px-3 py-2 text-[10px] font-semibold  text-[color:var(--club-theme-text-primary)]">
                                     {trustedClub.clubName}
                                 </span>
                             ))}
@@ -58,7 +58,7 @@ export const TabContact = ({ club }: { club: ClubProfile }) => {
 
 const Card = ({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) => (
     <article className="rounded-[18px] border border-white/6 bg-white/[0.03] p-4">
-        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-[color:var(--club-tone-green)]">
+        <div className="flex items-center gap-2 text-[10px] font-semibold  text-[color:var(--club-tone-green)]">
             {icon}
             {title}
         </div>
@@ -71,7 +71,7 @@ const ActionLink = ({ href, label, external = false }: { href: string; label: st
         href={href}
         target={external ? '_blank' : undefined}
         rel={external ? 'noopener noreferrer' : undefined}
-        className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-[color:var(--club-theme-text-primary)]"
+        className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-2 text-[10px] font-semibold  text-[color:var(--club-theme-text-primary)]"
     >
         {label === 'Messenger' ? <MessageSquare className="h-3.5 w-3.5" /> : null}
         {label === 'Email' ? <Mail className="h-3.5 w-3.5" /> : null}

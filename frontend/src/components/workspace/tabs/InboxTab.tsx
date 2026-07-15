@@ -48,7 +48,7 @@ export const InboxTab = ({
                         <button
                             type="button"
                             onClick={onMarkAllRead}
-                            className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-1.5 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] transition-colors"
+                            className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-1.5 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] transition-colors"
                         >
                             Mark All Read
                         </button>
@@ -56,7 +56,7 @@ export const InboxTab = ({
                 }
             />
 
-            <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden divide-y divide-[var(--fc-border)]">
+            <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden divide-y divide-[var(--fc-border)]">
                 {notifications.map((notification) => (
                     <NotificationListItem
                         key={notification.id}
@@ -75,7 +75,7 @@ export const InboxTab = ({
                         type="button"
                         onClick={onLoadMore}
                         disabled={loadingMore}
-                        className="inline-flex items-center gap-2 rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-2 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-50 transition-colors"
+                        className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-2 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-50 transition-colors"
                     >
                         {loadingMore ? (
                             <>

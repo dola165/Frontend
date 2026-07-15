@@ -118,33 +118,33 @@ export const AddPlayerToSquadModal = ({ clubId, squadId, isOpen, onClose, onPlay
     return (
         <div className="fixed inset-0 z-[1200] flex items-center justify-center">
             <div className="theme-overlay absolute inset-0" onClick={onClose} />
-            <div className="relative z-10 mx-4 w-full max-w-lg border border-subtle bg-base shadow-2xl">
+            <div className="relative z-10 mx-4 w-full max-w-lg border border-[#ffffff0d] bg-[#0f1117] shadow-2xl">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-subtle px-5 py-4">
+                <div className="flex items-center justify-between border-b border-[#ffffff0d] px-5 py-4">
                     <div className="flex items-center gap-3">
-                        <UserPlus className="h-5 w-5 accent-primary" />
+                        <UserPlus className="h-5 w-5 text-[#16a34a]" />
                         <div>
-                            <h2 className="text-sm font-black uppercase tracking-[0.16em] text-primary">Add Players</h2>
-                            <p className="mt-0.5 text-[11px] font-medium text-secondary">
+                            <h2 className="text-sm font-semibold  text-[#f4f4f5]">Add Players</h2>
+                            <p className="mt-0.5 text-[11px] font-medium text-[#a1a1aa]">
                                 {selected.size > 0 ? `${selected.size} selected` : 'Search and select players to add to this squad'}
                             </p>
                         </div>
                     </div>
-                    <button type="button" onClick={onClose} className="p-1 text-secondary hover:text-primary">
+                    <button type="button" onClick={onClose} className="p-1 text-[#a1a1aa] hover:text-[#f4f4f5]">
                         <X className="h-4 w-4" />
                     </button>
                 </div>
 
                 {/* Search */}
-                <div className="border-b border-subtle px-5 py-3">
-                    <div className="flex items-center gap-2 border border-subtle bg-elevated px-3 py-2">
-                        <Search className="h-4 w-4 text-secondary" />
+                <div className="border-b border-[#ffffff0d] px-5 py-3">
+                    <div className="flex items-center gap-2 border border-[#ffffff0d] bg-elevated px-3 py-2">
+                        <Search className="h-4 w-4 text-[#a1a1aa]" />
                         <input
                             type="text"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Search by name or username..."
-                            className="flex-1 bg-transparent text-sm text-primary placeholder:text-secondary focus:outline-none"
+                            className="flex-1 bg-transparent text-sm text-[#f4f4f5] placeholder:text-[#a1a1aa] focus:outline-none"
                         />
                     </div>
                 </div>
@@ -159,14 +159,14 @@ export const AddPlayerToSquadModal = ({ clubId, squadId, isOpen, onClose, onPlay
 
                     {loading && players.length === 0 ? (
                         <div className="flex justify-center py-10">
-                            <Loader2 className="h-7 w-7 animate-spin accent-primary" />
+                            <Loader2 className="h-7 w-7 animate-spin text-[#16a34a]" />
                         </div>
                     ) : players.length === 0 ? (
-                        <div className="px-5 py-10 text-center text-sm text-secondary">
+                        <div className="px-5 py-10 text-center text-sm text-[#a1a1aa]">
                             {search ? 'No players match your search.' : 'No players found in this club.'}
                         </div>
                     ) : (
-                        <div className="divide-y divide-[color:var(--border-subtle)]">
+                        <div className="divide-y divide-[color:#ffffff0d]">
                             {players.map((player) => {
                                 const isSelected = selected.has(player.userId);
                                 return (
@@ -175,10 +175,10 @@ export const AddPlayerToSquadModal = ({ clubId, squadId, isOpen, onClose, onPlay
                                         type="button"
                                         onClick={() => togglePlayer(player.userId)}
                                         className={`flex w-full items-center gap-4 px-5 py-3 text-left transition-colors hover:bg-elevated ${
-                                            isSelected ? 'border-l-2 border-accent-primary bg-accent-primary-soft' : 'border-l-2 border-transparent'
+                                            isSelected ? 'border-l-2 border-[#16a34a] bg-[#16a34a]-soft' : 'border-l-2 border-transparent'
                                         }`}
                                     >
-                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-elevated text-xs font-black uppercase tracking-[0.12em] text-secondary">
+                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-elevated text-xs font-semibold uppercase tracking-[0.12em] text-[#a1a1aa]">
                                             {player.avatarUrl ? (
                                                 <img src={player.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
                                             ) : (
@@ -186,16 +186,16 @@ export const AddPlayerToSquadModal = ({ clubId, squadId, isOpen, onClose, onPlay
                                             )}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <p className="truncate text-sm font-bold text-primary">{player.fullName || player.username}</p>
-                                            <p className="mt-0.5 text-[11px] font-medium text-secondary">
+                                            <p className="truncate text-sm font-bold text-[#f4f4f5]">{player.fullName || player.username}</p>
+                                            <p className="mt-0.5 text-[11px] font-medium text-[#a1a1aa]">
                                                 @{player.username} · {player.status}
                                             </p>
                                         </div>
                                         <div
                                             className={`flex h-5 w-5 shrink-0 items-center justify-center border ${
                                                 isSelected
-                                                    ? 'border-accent-primary bg-accent-primary text-[color:var(--accent-on-primary)]'
-                                                    : 'border-subtle'
+                                                    ? 'border-[#16a34a] bg-[#16a34a] text-[color:var(--accent-on-primary)]'
+                                                    : 'border-[#ffffff0d]'
                                             }`}
                                         >
                                             {isSelected && <Plus className="h-3 w-3" />}
@@ -208,12 +208,12 @@ export const AddPlayerToSquadModal = ({ clubId, squadId, isOpen, onClose, onPlay
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between border-t border-subtle px-5 py-3">
+                <div className="flex items-center justify-between border-t border-[#ffffff0d] px-5 py-3">
                     <button
                         type="button"
                         onClick={() => { setPage((p) => p + 1); loadPlayers(page + 1, search); }}
                         disabled={!hasMore || loading}
-                        className="text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary disabled:opacity-40"
+                        className="text-[11px] font-semibold  text-[#a1a1aa] hover:text-[#f4f4f5] disabled:opacity-40"
                     >
                         {loading ? 'Loading...' : hasMore ? 'Load More' : 'All players loaded'}
                     </button>
@@ -221,7 +221,7 @@ export const AddPlayerToSquadModal = ({ clubId, squadId, isOpen, onClose, onPlay
                         <button
                             type="button"
                             onClick={onClose}
-                            className="border border-subtle px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-secondary hover:text-primary"
+                            className="border border-[#ffffff0d] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa] hover:text-[#f4f4f5]"
                         >
                             Cancel
                         </button>
@@ -229,7 +229,7 @@ export const AddPlayerToSquadModal = ({ clubId, squadId, isOpen, onClose, onPlay
                             type="button"
                             onClick={handleAddSelected}
                             disabled={selected.size === 0 || saving}
-                            className="border border-accent-primary bg-accent-primary px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-[color:var(--accent-on-primary)] hover:bg-accent-primary-hover disabled:opacity-50"
+                            className="border border-[#16a34a] bg-[#16a34a] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--accent-on-primary)] hover:bg-[#16a34a]-hover disabled:opacity-50"
                         >
                             {saving ? (
                                 <span className="inline-flex items-center gap-2">

@@ -44,25 +44,25 @@ export const LoginPage = () => {
         }
     };
 
-    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-primary outline-none transition-colors focus:border-accent-primary placeholder:text-secondary';
+    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-[#f4f4f5] outline-none transition-colors focus:border-[#16a34a] placeholder:text-[#a1a1aa]';
 
     return (
-        <div className="bg-base flex min-h-screen flex-col items-center justify-center p-6">
+        <div className="bg-[#0f1117] flex min-h-screen flex-col items-center justify-center p-6">
 
-            <Link to="/" className="absolute top-8 left-8 inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary transition-colors">
+            <Link to="/" className="absolute top-8 left-8 inline-flex items-center gap-2 text-[11px] font-semibold  text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors">
                 <ArrowLeft className="w-5 h-5" /> Back to Base
             </Link>
 
             <div className="w-full max-w-md">
                 <div className="text-center mb-10">
-                    <div className="w-16 h-16 bg-accent-primary text-white flex items-center justify-center mx-auto mb-6 border border-accent-primary">
+                    <div className="w-16 h-16 bg-[#16a34a] text-white flex items-center justify-center mx-auto mb-6 border border-[#16a34a]">
                         <Shield className="w-8 h-8" />
                     </div>
-                    <h1 className="text-3xl font-black uppercase tracking-tight text-primary mb-2">Welcome Back</h1>
-                    <p className="text-sm text-secondary">Your legacy awaits. Access the Command Center.</p>
+                    <h1 className="text-3xl font-semibold uppercase tracking-tight text-[#f4f4f5] mb-2">Welcome Back</h1>
+                    <p className="text-sm text-[#a1a1aa]">Your legacy awaits. Access the Command Center.</p>
                 </div>
 
-                <div className="theme-surface theme-border border shadow-2xl p-8 rounded-2xl">
+                <div className="theme-surface theme-border border shadow-2xl p-8 rounded-xl">
 
                     {error && (
                         <div className="mb-6 border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)] flex items-center gap-2">
@@ -72,7 +72,7 @@ export const LoginPage = () => {
 
                     <form onSubmit={handleLogin} className="flex flex-col gap-5">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Email Address</label>
+                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">Email Address</label>
                             <input
                                 type="email"
                                 value={email}
@@ -84,8 +84,8 @@ export const LoginPage = () => {
                         </div>
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Password</label>
-                                <Link to="/forgot-password" className="text-[10px] font-black uppercase tracking-[0.16em] accent-primary hover:underline">Forgot?</Link>
+                                <label className="text-[10px] font-semibold  text-[#a1a1aa]">Password</label>
+                                <Link to="/forgot-password" className="text-[10px] font-semibold  text-[#16a34a] hover:underline">Forgot?</Link>
                             </div>
                             <input
                                 type="password"
@@ -100,16 +100,16 @@ export const LoginPage = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full mt-2 inline-flex items-center justify-center gap-2 border border-accent-primary bg-accent-primary text-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] transition-colors disabled:opacity-50"
+                            className="w-full mt-2 inline-flex items-center justify-center gap-2 border border-[#16a34a] bg-[#16a34a] text-white px-4 py-3 text-[11px] font-semibold  transition-colors disabled:opacity-50"
                         >
                             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Enter Database'}
                         </button>
                     </form>
 
                     <div className="my-8 flex items-center gap-4">
-                        <div className="h-px bg-[color:var(--border-subtle)] flex-1"></div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-muted">Or bypass with</span>
-                        <div className="h-px bg-[color:var(--border-subtle)] flex-1"></div>
+                        <div className="h-px bg-[color:#ffffff0d] flex-1"></div>
+                        <span className="text-[10px] font-semibold  text-muted">Or bypass with</span>
+                        <div className="h-px bg-[color:#ffffff0d] flex-1"></div>
                     </div>
 
                     <div className="flex justify-center w-full">
@@ -148,7 +148,7 @@ export const LoginPage = () => {
                         <>
                             <div className="my-8 flex items-center gap-4">
                                 <div className="h-px bg-[color:var(--accent-muted-soft)] flex-1"></div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.18em] accent-muted flex items-center gap-1.5">
+                                <span className="text-[10px] font-semibold  accent-muted flex items-center gap-1.5">
                                     <FlaskConical className="w-3.5 h-3.5" />
                                     Mock Quick Login
                                 </span>
@@ -176,12 +176,12 @@ export const LoginPage = () => {
                                         }}
                                         className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border border-[color:var(--accent-muted-soft)] bg-[color:var(--accent-muted-soft)] hover:opacity-80 text-left transition-colors disabled:opacity-50"
                                     >
-                                        <div className="w-8 h-8 rounded-full bg-[color:var(--accent-muted)]/20 flex items-center justify-center text-xs font-black accent-muted shrink-0">
+                                        <div className="w-8 h-8 rounded-full bg-[color:var(--accent-muted)]/20 flex items-center justify-center text-xs font-semibold accent-muted shrink-0">
                                             {u.label.charAt(0)}
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-primary">{u.label}</p>
-                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] accent-muted">{u.role}</p>
+                                            <p className="text-sm font-semibold text-[#f4f4f5]">{u.label}</p>
+                                            <p className="text-[10px] font-semibold  accent-muted">{u.role}</p>
                                         </div>
                                     </button>
                                 ))}
@@ -190,8 +190,8 @@ export const LoginPage = () => {
                     )}
                 </div>
 
-                <p className="text-center mt-8 text-[11px] font-black uppercase tracking-[0.14em] text-secondary">
-                    Not drafted yet? <Link to="/signup" className="accent-primary hover:underline ml-1">Create Legacy</Link>
+                <p className="text-center mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa]">
+                    Not drafted yet? <Link to="/signup" className="text-[#16a34a] hover:underline ml-1">Create Legacy</Link>
                 </p>
             </div>
         </div>

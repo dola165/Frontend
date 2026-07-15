@@ -68,7 +68,7 @@ export const TrialistBadge = ({
                 {days}d
             </button>
             {open && (
-                <div className="absolute left-0 top-full mt-1 z-30 min-w-[170px] rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-1">
+                <div className="absolute left-0 top-full mt-1 z-30 min-w-[170px] rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-1">
                     {onApprove && (
                         <button
                             type="button"

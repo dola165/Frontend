@@ -63,7 +63,7 @@ export const TabCalendar = ({ clubId, isOwnClubAdmin }: TabCalendarProps) => {
     }
 
     return (
-        <section className="bg-[#16181d] border border-[#ffffff0d] rounded-md">
+        <section className="bg-[#16181d] border border-[#ffffff0d] rounded-xl">
             <div className="border-b border-[#ffffff0d] px-4 py-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
@@ -72,7 +72,7 @@ export const TabCalendar = ({ clubId, isOwnClubAdmin }: TabCalendarProps) => {
                         <p className="text-sm text-[#a1a1aa]">Public fixtures, tryouts, and internal planning entries stay grouped under the club context.</p>
                     </div>
                     {isOwnClubAdmin && (
-                        <Link to="/calendar" className="inline-flex items-center gap-2 rounded-md border border-[#ffffff0d] bg-[var(--fc-card-bg)] px-3 py-1.5 text-xs font-semibold text-[#f4f4f5]">
+                        <Link to="/calendar" className="inline-flex items-center gap-2 rounded-xl border border-[#ffffff0d] bg-[var(--fc-card-bg)] px-3 py-1.5 text-xs font-semibold text-[#f4f4f5]">
                             Open Schedule
                             <ChevronRight className="h-3.5 w-3.5" />
                         </Link>
@@ -115,8 +115,8 @@ export const TabCalendar = ({ clubId, isOwnClubAdmin }: TabCalendarProps) => {
                                         {item.details && <p className="mt-3 text-sm text-[#a1a1aa]">{item.details}</p>}
                                     </div>
                                     <div className="flex flex-wrap gap-2 lg:justify-end">
-                                        <span className="rounded-md border border-[#ffffff0d] px-2 py-0.5 text-xs font-medium text-[#f4f4f5]">{scheduleVisibilityLabel[item.visibility]}</span>
-                                        <span className="rounded-md border border-[#ffffff0d] px-2 py-0.5 text-xs font-medium text-[#a1a1aa]">{scheduleStatusLabel[item.status]}</span>
+                                        <span className="rounded-xl border border-[#ffffff0d] px-2 py-0.5 text-xs font-medium text-[#f4f4f5]">{scheduleVisibilityLabel[item.visibility]}</span>
+                                        <span className="rounded-xl border border-[#ffffff0d] px-2 py-0.5 text-xs font-medium text-[#a1a1aa]">{scheduleStatusLabel[item.status]}</span>
                                     </div>
                                 </article>
                             ))}

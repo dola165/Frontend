@@ -57,17 +57,17 @@ export const openClubCommunication = (option: ClubCommunicationOption) => {
 export const ClubMessageModal = ({ clubName, options, onClose, onOpenGrassKickZChat }: ClubMessageModalProps) => {
     return (
         <div className="theme-overlay-strong fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="theme-surface theme-border w-full max-w-lg overflow-hidden rounded-2xl border shadow-2xl">
-                <div className="flex items-start justify-between gap-4 border-b border-subtle px-6 py-5">
+            <div className="theme-surface theme-border w-full max-w-lg overflow-hidden rounded-xl border shadow-2xl">
+                <div className="flex items-start justify-between gap-4 border-b border-[#ffffff0d] px-6 py-5">
                     <div>
-                        <div className="inline-flex items-center gap-2 rounded-full border border-accent-primary/20 bg-accent-primary-soft px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] accent-primary">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-[#16a34a]/20 bg-[#16a34a]-soft px-3 py-1 text-[10px] font-semibold  text-[#16a34a]">
                             <MessageSquare className="h-3.5 w-3.5" />
                             Club Message
                         </div>
-                        <h2 className="mt-4 text-xl font-black uppercase tracking-tight text-primary">
+                        <h2 className="mt-4 text-xl font-semibold uppercase tracking-tight text-[#f4f4f5]">
                             Contact {clubName}
                         </h2>
-                        <p className="mt-2 text-sm text-secondary">
+                        <p className="mt-2 text-sm text-[#a1a1aa]">
                             Choose how you'd like to reach {clubName}. In-app chat is available as a demo.
                         </p>
                     </div>
@@ -75,7 +75,7 @@ export const ClubMessageModal = ({ clubName, options, onClose, onOpenGrassKickZC
                     <button
                         type="button"
                         onClick={onClose}
-                        className="inline-flex h-10 w-10 items-center justify-center border border-subtle bg-base text-secondary transition-colors hover:text-primary"
+                        className="inline-flex h-10 w-10 items-center justify-center border border-[#ffffff0d] bg-[#0f1117] text-[#a1a1aa] transition-colors hover:text-[#f4f4f5]"
                     >
                         <X className="h-5 w-5" />
                     </button>
@@ -87,23 +87,23 @@ export const ClubMessageModal = ({ clubName, options, onClose, onOpenGrassKickZC
                             key={option.id}
                             type="button"
                             onClick={() => openClubCommunication(option)}
-                            className="flex w-full items-start gap-4 rounded-2xl border border-subtle bg-surface px-4 py-4 text-left transition-colors hover:border-accent-primary hover:bg-accent-primary-soft"
+                            className="flex w-full items-start gap-4 rounded-xl border border-[#ffffff0d] bg-[#16181d] px-4 py-4 text-left transition-colors hover:border-[#16a34a] hover:bg-[#16a34a]-soft"
                         >
-                            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border border-subtle bg-base accent-primary">
+                            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border border-[#ffffff0d] bg-[#0f1117] text-[#16a34a]">
                                 {option.id === 'WHATSAPP' ? <PhoneCall className="h-4 w-4" /> : <ExternalLink className="h-4 w-4" />}
                             </div>
                             <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <p className="text-sm font-black uppercase tracking-[0.14em] text-primary">
+                                    <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">
                                         {option.label}
                                     </p>
                                     {option.isRecommended && (
-                                        <span className="rounded-full border border-accent-primary/20 bg-accent-primary-soft px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] accent-primary">
+                                        <span className="rounded-full border border-[#16a34a]/20 bg-[#16a34a]-soft px-2 py-0.5 text-[9px] font-semibold  text-[#16a34a]">
                                             Recommended
                                         </span>
                                     )}
                                 </div>
-                                <p className="mt-2 text-sm leading-relaxed text-secondary">
+                                <p className="mt-2 text-sm leading-relaxed text-[#a1a1aa]">
                                     {option.description}
                                 </p>
                             </div>
@@ -113,21 +113,21 @@ export const ClubMessageModal = ({ clubName, options, onClose, onOpenGrassKickZC
                     <button
                         type="button"
                         onClick={onOpenGrassKickZChat}
-                        className="flex w-full items-start gap-4 rounded-2xl border border-subtle bg-surface px-4 py-4 text-left transition-colors hover:border-accent-primary hover:bg-accent-primary-soft"
+                        className="flex w-full items-start gap-4 rounded-xl border border-[#ffffff0d] bg-[#16181d] px-4 py-4 text-left transition-colors hover:border-[#16a34a] hover:bg-[#16a34a]-soft"
                     >
-                        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border border-subtle bg-base accent-primary">
+                        <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border border-[#ffffff0d] bg-[#0f1117] text-[#16a34a]">
                             <MessageCircle className="h-4 w-4" />
                         </div>
                         <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-black uppercase tracking-[0.14em] text-primary">
+                                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">
                                     GrassKickZ Messenger
                                 </p>
-                                <span className="rounded-full border border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning-soft)] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-[color:var(--state-warning)]">
+                                <span className="rounded-full border border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning-soft)] px-2 py-0.5 text-[9px] font-semibold  text-[color:var(--state-warning)]">
                                     Demo
                                 </span>
                             </div>
-                            <p className="mt-2 text-sm leading-relaxed text-secondary">
+                            <p className="mt-2 text-sm leading-relaxed text-[#a1a1aa]">
                                 Chat directly with {clubName} using the built-in GrassKickZ messenger.
                             </p>
                         </div>

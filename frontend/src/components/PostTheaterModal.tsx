@@ -57,7 +57,7 @@ export const PostTheaterModal = ({
                 <X className="h-6 w-6" />
             </button>
 
-            <div className="flex h-full w-full max-w-[1400px] flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0d1117] shadow-2xl lg:flex-row">
+            <div className="flex h-full w-full max-w-[1400px] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0d1117] shadow-2xl lg:flex-row">
                 <div className="group relative flex h-[40vh] flex-1 items-center justify-center overflow-hidden bg-black lg:h-full">
                     {currentMediaUrl && (
                         <div
@@ -92,7 +92,7 @@ export const PostTheaterModal = ({
                 <div className="flex h-[60vh] w-full shrink-0 flex-col border-l border-white/[0.06] bg-[#0d1117] lg:h-full lg:w-[400px] xl:w-[450px]">
                     <div className="shrink-0 border-b border-white/[0.06] p-5">
                         <div className="mb-4 flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#00c853] text-sm font-semibold text-black shadow-sm">
+                            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#16a34a] text-sm font-semibold text-black ">
                                 {authorAvatarUrl ? (
                                     <img src={authorAvatarUrl} alt={post.clubName || post.authorName} className="h-full w-full object-cover" />
                                 ) : (
@@ -110,10 +110,10 @@ export const PostTheaterModal = ({
                     <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] px-5 py-3">
                         <span className="text-xs font-medium text-[#64748b]">{post.likeCount} likes &middot; {post.commentCount} comments</span>
                         <div className="flex gap-2">
-                            <button onClick={() => onLikeToggle(post.id)} className={`rounded-full p-2 transition-colors ${post.isLikedByMe ? 'bg-[#00c853]/15 text-[#00c853]' : 'bg-[#1a2030] text-[#64748b] hover:text-[#00c853]'}`}>
+                            <button onClick={() => onLikeToggle(post.id)} className={`rounded-full p-2 transition-colors ${post.isLikedByMe ? 'bg-[#16a34a]/15 text-[#16a34a]' : 'bg-[#1a2030] text-[#64748b] hover:text-[#16a34a]'}`}>
                                 <Heart className={`h-5 w-5 ${post.isLikedByMe ? 'fill-current' : ''}`} />
                             </button>
-                            <button className="rounded-full bg-[#1a2030] p-2 text-[#64748b] transition-colors hover:text-[#00c853]">
+                            <button className="rounded-full bg-[#1a2030] p-2 text-[#64748b] transition-colors hover:text-[#16a34a]">
                                 <MessageCircle className="h-5 w-5" />
                             </button>
                         </div>
@@ -154,12 +154,12 @@ export const PostTheaterModal = ({
                                 value={commentInput}
                                 onChange={(e) => setCommentInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleCommentSubmit()}
-                                className="w-full rounded-full border border-white/[0.06] bg-[#161c28] py-3 pl-5 pr-12 text-sm text-[#f1f5f9] outline-none transition-colors focus:border-[#00c853]"
+                                className="w-full rounded-full border border-white/[0.06] bg-[#161c28] py-3 pl-5 pr-12 text-sm text-[#f1f5f9] outline-none transition-colors focus:border-[#16a34a]"
                             />
                             <button
                                 onClick={handleCommentSubmit}
                                 disabled={!commentInput.trim()}
-                                className="absolute right-1.5 top-1.5 bottom-1.5 rounded-full bg-[#00c853] px-3 text-black transition-colors hover:bg-[#00e676] disabled:opacity-40"
+                                className="absolute right-1.5 top-1.5 bottom-1.5 rounded-full bg-[#16a34a] px-3 text-black transition-colors hover:bg-[#22c55e] disabled:opacity-40"
                             >
                                 <Send className="h-4 w-4" />
                             </button>

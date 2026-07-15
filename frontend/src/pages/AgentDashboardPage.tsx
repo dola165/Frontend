@@ -61,7 +61,7 @@ export const AgentDashboardPage = () => {
             <aside className="w-[220px] shrink-0 border-r border-[#ffffff0d] bg-[#0a0a0c] flex flex-col">
                 <div className="px-4 py-5 border-b border-[#ffffff0d]">
                     <div className="flex items-center gap-2.5 mb-3">
-                        <div className="w-8 h-8 rounded-md bg-[#16a34a]/20 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-xl bg-[#16a34a]/20 flex items-center justify-center">
                             <Briefcase className="w-4 h-4 text-[#16a34a]" />
                         </div>
                         <div>
@@ -82,7 +82,7 @@ export const AgentDashboardPage = () => {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
                                 activeTab === tab.id
                                     ? 'bg-[#16a34a]/10 text-[#16a34a] border-l-[3px] border-[#16a34a] pl-2.5'
                                     : 'text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-[rgba(255,255,255,0.03)] border-l-[3px] border-transparent pl-2.5'

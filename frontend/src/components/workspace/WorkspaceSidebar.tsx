@@ -1,4 +1,4 @@
-import { ArrowLeft, BellRing, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, BellRing } from 'lucide-react';
 import { clubRoleLabel, type ClubManagementOverview } from '../../features/clubs/domain';
 import type { TabItem, WorkspaceTab } from './types';
 
@@ -8,15 +8,13 @@ interface WorkspaceSidebarProps {
     activeTab: WorkspaceTab;
     tabs: TabItem[];
     unreadInboxCount: number;
-    isLight: boolean;
-    onToggleLight: () => void;
     onTabChange: (tab: WorkspaceTab) => void;
     onNavigate: (path: string) => void;
 }
 
 export const WorkspaceSidebar = ({
     clubId, overview, activeTab, tabs, unreadInboxCount,
-    isLight, onToggleLight, onTabChange, onNavigate,
+    onTabChange, onNavigate,
 }: WorkspaceSidebarProps) => (
     <aside className="flex w-[210px] shrink-0 flex-col border-r border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)]">
         {/* Header */}
@@ -47,7 +45,7 @@ export const WorkspaceSidebar = ({
                         key={tab.id}
                         type="button"
                         onClick={() => onTabChange(tab.id)}
-                        className={`flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors ${
+                        className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors ${
                             isActive
                                 ? 'bg-[var(--fc-accent-soft)] text-[var(--fc-accent)] border-l-[3px] border-[var(--fc-accent)]'
                                 : 'text-[var(--fc-text-secondary)] hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)] border-l-[3px] border-transparent'
@@ -58,7 +56,7 @@ export const WorkspaceSidebar = ({
                             {tab.label}
                         </span>
                         {tab.badge && (
-                            <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${
+                            <span className={`rounded-xl px-1.5 py-0.5 text-[11px] font-semibold ${
                                 isActive
                                     ? 'bg-[var(--fc-accent-soft)] text-[var(--fc-accent)]'
                                     : 'bg-[var(--fc-surface-hover)] text-[var(--fc-text-muted)]'
@@ -76,7 +74,7 @@ export const WorkspaceSidebar = ({
             <button
                 type="button"
                 onClick={() => onTabChange('inbox')}
-                className={`flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors ${
+                className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors ${
                     activeTab === 'inbox'
                         ? 'bg-[var(--fc-accent-soft)] text-[var(--fc-accent)] border-l-[3px] border-[var(--fc-accent)]'
                         : 'text-[var(--fc-text-secondary)] hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)] border-l-[3px] border-transparent'
@@ -87,7 +85,7 @@ export const WorkspaceSidebar = ({
                     Inbox
                 </span>
                 {unreadInboxCount > 0 && (
-                    <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${
+                    <span className={`rounded-xl px-1.5 py-0.5 text-[11px] font-semibold ${
                         activeTab === 'inbox'
                             ? 'bg-[var(--fc-accent-soft)] text-[var(--fc-accent)]'
                             : 'bg-[var(--fc-surface-hover)] text-[var(--fc-text-muted)]'
@@ -97,17 +95,5 @@ export const WorkspaceSidebar = ({
                 )}
             </button>
         </nav>
-
-        {/* Light mode toggle */}
-        <div className="border-t border-[var(--fc-border)] p-2">
-            <button
-                type="button"
-                onClick={onToggleLight}
-                className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-[var(--fc-text-secondary)] hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)] transition-colors"
-            >
-                {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                {isLight ? 'Dark Mode' : 'Light Mode'}
-            </button>
-        </div>
     </aside>
 );

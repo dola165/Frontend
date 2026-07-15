@@ -293,7 +293,7 @@ export const NotificationsPage = () => {
                                 type="button"
                                 onClick={() => void handleMarkAllAsRead()}
                                 disabled={markingAll || unreadCount === 0}
-                                className="rounded-md bg-[#16a34a] px-3 py-1.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                className="rounded-xl bg-[#16a34a] px-3 py-1.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 {markingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCheck className="h-3.5 w-3.5" />}
                                 Mark Visible Read
@@ -378,7 +378,7 @@ export const NotificationsPage = () => {
                     </div>
                 )}
 
-                <section className="rounded-md bg-[#16181d] border border-[#ffffff0d]">
+                <section className="rounded-xl bg-[#16181d] border border-[#ffffff0d]">
                     {notifications.length === 0 ? (
                         <div className="px-6 py-16 text-center">
                             <BellRing className="mx-auto h-10 w-10 text-[#a1a1aa]" />
@@ -417,7 +417,7 @@ export const NotificationsPage = () => {
                             type="button"
                             onClick={() => void handleLoadMore()}
                             disabled={loadingMore}
-                            className="rounded-md border border-[#ffffff0d] px-3 py-1.5 text-xs font-medium text-[#f4f4f5] w-full disabled:cursor-wait disabled:opacity-60"
+                            className="rounded-xl border border-[#ffffff0d] px-3 py-1.5 text-xs font-medium text-[#f4f4f5] w-full disabled:cursor-wait disabled:opacity-60"
                         >
                             {loadingMore && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                             Load More

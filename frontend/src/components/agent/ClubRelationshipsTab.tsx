@@ -132,7 +132,7 @@ export const ClubRelationshipsTab = () => {
                 action={
                     <button
                         onClick={handleOpenModal}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] transition-colors"
                     >
                         <Plus className="w-3.5 h-3.5" /> Initiate Engagement
                     </button>
@@ -158,9 +158,9 @@ export const ClubRelationshipsTab = () => {
                     {engagements.map(eng => (
                         <div
                             key={eng.engagementId}
-                            className="flex items-center gap-4 px-4 py-3 rounded-md border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)]"
+                            className="flex items-center gap-4 px-4 py-3 rounded-xl border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)]"
                         >
-                            <div className="w-8 h-8 rounded-md bg-[rgba(255,255,255,0.06)] flex items-center justify-center shrink-0">
+                            <div className="w-8 h-8 rounded-xl bg-[rgba(255,255,255,0.06)] flex items-center justify-center shrink-0">
                                 {eng.clubLogoUrl ? (
                                     <img src={eng.clubLogoUrl} alt="" className="w-6 h-6 rounded object-cover" />
                                 ) : (
@@ -185,7 +185,7 @@ export const ClubRelationshipsTab = () => {
             {/* Initiate Engagement Modal */}
             {showEngageModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={handleCloseModal}>
-                    <div className="bg-[#16181d] border border-[#26282d] rounded-md p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+                    <div className="bg-[#16181d] border border-[#26282d] rounded-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
                         <h3 className="text-base font-semibold text-[#f4f4f5] mb-4">Initiate Club Engagement</h3>
 
                         {/* Club Search / Selection */}
@@ -195,8 +195,8 @@ export const ClubRelationshipsTab = () => {
 
                                 {selectedClub ? (
                                     /* Selected club chip */
-                                    <div className="flex items-center gap-3 px-3 py-2 rounded-md border border-[#16a34a]/30 bg-[#16a34a]/5">
-                                        <div className="w-8 h-8 rounded-md bg-[rgba(255,255,255,0.08)] flex items-center justify-center shrink-0 overflow-hidden">
+                                    <div className="flex items-center gap-3 px-3 py-2 rounded-xl border border-[#16a34a]/30 bg-[#16a34a]/5">
+                                        <div className="w-8 h-8 rounded-xl bg-[rgba(255,255,255,0.08)] flex items-center justify-center shrink-0 overflow-hidden">
                                             {selectedClub.logoUrl ? (
                                                 <img src={selectedClub.logoUrl} alt="" className="w-6 h-6 rounded object-cover" />
                                             ) : (
@@ -226,7 +226,7 @@ export const ClubRelationshipsTab = () => {
                                             type="text"
                                             value={searchQuery}
                                             onChange={e => setSearchQuery(e.target.value)}
-                                            className="w-full pl-8 pr-3 py-2 rounded-md border border-[#26282d] bg-[#0f1117] text-sm text-[#f4f4f5] outline-none focus:border-[#16a34a]"
+                                            className="w-full pl-8 pr-3 py-2 rounded-xl border border-[#26282d] bg-[#0f1117] text-sm text-[#f4f4f5] outline-none focus:border-[#16a34a]"
                                             placeholder="Search clubs by name..."
                                             autoFocus
                                         />
@@ -235,7 +235,7 @@ export const ClubRelationshipsTab = () => {
 
                                 {/* Search results dropdown */}
                                 {!selectedClub && (searchQuery.trim().length >= 2 || searching) && (
-                                    <div className="mt-1 max-h-[220px] overflow-y-auto rounded-md border border-[#26282d] bg-[#0f1117]">
+                                    <div className="mt-1 max-h-[220px] overflow-y-auto rounded-xl border border-[#26282d] bg-[#0f1117]">
                                         {searching && clubResults.length === 0 && (
                                             <p className="px-3 py-3 text-xs text-[#71717a]">Searching…</p>
                                         )}
@@ -255,7 +255,7 @@ export const ClubRelationshipsTab = () => {
                                                             : 'hover:bg-[rgba(255,255,255,0.04)]'
                                                     }`}
                                                 >
-                                                    <div className="w-8 h-8 rounded-md bg-[rgba(255,255,255,0.06)] flex items-center justify-center shrink-0 overflow-hidden">
+                                                    <div className="w-8 h-8 rounded-xl bg-[rgba(255,255,255,0.06)] flex items-center justify-center shrink-0 overflow-hidden">
                                                         {club.logoUrl ? (
                                                             <img src={club.logoUrl} alt="" className="w-5 h-5 rounded object-cover" />
                                                         ) : (
@@ -286,7 +286,7 @@ export const ClubRelationshipsTab = () => {
                                     <textarea
                                         value={notesInput}
                                         onChange={e => setNotesInput(e.target.value)}
-                                        className="w-full px-3 py-2 rounded-md border border-[#26282d] bg-[#0f1117] text-sm text-[#f4f4f5] outline-none focus:border-[#16a34a] h-20 resize-none"
+                                        className="w-full px-3 py-2 rounded-xl border border-[#26282d] bg-[#0f1117] text-sm text-[#f4f4f5] outline-none focus:border-[#16a34a] h-20 resize-none"
                                         placeholder="e.g. Seeking trial opportunities for U16 striker..."
                                     />
                                 </div>
@@ -299,13 +299,13 @@ export const ClubRelationshipsTab = () => {
 
                             {/* Actions */}
                             <div className="flex gap-2 justify-end pt-2">
-                                <button onClick={handleCloseModal} className="px-3 py-1.5 rounded-md border border-[#26282d] text-xs font-semibold text-[#a1a1aa] hover:bg-[rgba(255,255,255,0.04)] transition-colors">
+                                <button onClick={handleCloseModal} className="px-3 py-1.5 rounded-xl border border-[#26282d] text-xs font-semibold text-[#a1a1aa] hover:bg-[rgba(255,255,255,0.04)] transition-colors">
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleInitiate}
                                     disabled={submitting || !selectedClub}
-                                    className="px-3 py-1.5 rounded-md bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] disabled:opacity-50 transition-colors"
+                                    className="px-3 py-1.5 rounded-xl bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] disabled:opacity-50 transition-colors"
                                 >
                                     {submitting ? 'Submitting...' : 'Initiate'}
                                 </button>

@@ -38,8 +38,8 @@ export const TabEvents = ({ clubId }: { clubId: number }) => {
     return (
         <section className="rounded-[24px] border border-[color:var(--club-theme-border-subtle)] bg-[rgba(12,18,27,0.96)] p-5 shadow-[0_18px_32px_rgba(2,6,12,0.22)]">
             <div className="mb-5">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[color:var(--club-tone-blue)]">Events</p>
-                <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-[color:var(--club-theme-text-primary)]">Upcoming club events</h2>
+                <p className="text-[11px] font-semibold  text-[color:var(--club-tone-blue)]">Events</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[color:var(--club-theme-text-primary)]">Upcoming club events</h2>
             </div>
 
             {items.length === 0 ? (
@@ -51,11 +51,11 @@ export const TabEvents = ({ clubId }: { clubId: number }) => {
                 <div className="grid gap-3 lg:grid-cols-2">
                     {items.map((item) => (
                         <article key={item.id} className="rounded-[18px] border border-white/6 bg-white/[0.03] p-4">
-                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-[color:var(--club-accent-orange)]">
+                            <div className="flex items-center gap-2 text-[10px] font-semibold  text-[color:var(--club-accent-orange)]">
                                 <CalendarDays className="h-3.5 w-3.5" />
                                 {formatDate(item.startsAt)}
                             </div>
-                            <h3 className="mt-3 text-lg font-black tracking-[-0.03em] text-[color:var(--club-theme-text-primary)]">{item.title}</h3>
+                            <h3 className="mt-3 text-lg font-semibold tracking-[-0.03em] text-[color:var(--club-theme-text-primary)]">{item.title}</h3>
                             {item.subtitle ? <p className="mt-1 text-sm text-[color:var(--club-theme-text-secondary)]">{item.subtitle}</p> : null}
                             {item.locationText ? (
                                 <p className="mt-3 inline-flex items-center gap-2 text-sm text-[color:var(--club-theme-text-secondary)]">

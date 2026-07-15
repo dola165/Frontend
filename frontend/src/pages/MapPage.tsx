@@ -360,7 +360,7 @@ const MatchResponseModal = ({
                     <div className="flex items-center gap-2">
                         <div>
                             <p className="map-eyebrow">Match response</p>
-                            <h2 className="mt-2 text-xl font-bold text-primary">Respond to match need</h2>
+                            <h2 className="mt-2 text-xl font-bold text-[#f4f4f5]">Respond to match need</h2>
                         </div>
                         <MapHelpHint
                             text="You are replying to the existing published request. This does not rewrite the original post."
@@ -381,8 +381,8 @@ const MatchResponseModal = ({
                         {record.matchSubtype && <span className="map-pill">{record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Competitive'}</span>}
                         {record.challengeState && <span className="map-pill">{record.challengeState === 'OPEN' ? 'Open challenge' : record.challengeState}</span>}
                     </div>
-                    <p className="mt-3 text-lg font-bold text-primary">{record.title}</p>
-                    <p className="mt-2 text-sm leading-6 text-secondary">
+                    <p className="mt-3 text-lg font-bold text-[#f4f4f5]">{record.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">
                         {record.clubName} · {record.locationName ?? 'Venue still open'} · {formatDateTime(record.startsAt) ?? 'Schedule timing pending'}
                     </p>
                 </section>
@@ -410,7 +410,7 @@ const MatchResponseModal = ({
                         className="map-textarea"
                         placeholder="Optional note"
                     />
-                    <div className="flex items-center justify-between text-xs text-secondary">
+                    <div className="flex items-center justify-between text-xs text-[#a1a1aa]">
                         <span />
                         <span>{note.length}/500</span>
                     </div>
@@ -475,9 +475,9 @@ const InfoSection = ({
         <button
             type="button"
             onClick={onToggle}
-            className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-surface/50 transition-colors"
+            className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-[#16181d]/50 transition-colors"
         >
-            <span className="text-sm font-semibold text-primary">{title}</span>
+            <span className="text-sm font-semibold text-[#f4f4f5]">{title}</span>
             <ChevronLeft className={`h-4 w-4 text-muted transition-transform duration-200 ${expanded ? '-rotate-90' : 'rotate-90'}`} />
         </button>
         {expanded && <div className="px-5 pb-4 space-y-3 border-t border-[var(--map-panel-border)] pt-3 mx-5">{children}</div>}
@@ -556,18 +556,18 @@ const DiscoveryDetailPanel = ({
         {/* ── Banner with translucent overlay + overlapping logo ── */}
         <div className="relative shrink-0">
             {bannerUrl ? (
-                <div className="relative h-40 w-full overflow-hidden bg-surface-inset">
+                <div className="relative h-40 w-full overflow-hidden bg-[#16181d]-inset">
                     <img src={bannerUrl} alt="" className="h-full w-full object-cover opacity-70" />
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-base/60" />
                 </div>
             ) : (
-                <div className="h-12 w-full bg-base" />
+                <div className="h-12 w-full bg-[#0f1117]" />
             )}
 
             {/* Logo — upper half sits inside the banner zone, lower half below */}
             {logoUrl && (
                 <div className="absolute left-5 bottom-0 translate-y-1/2">
-                    <div className="h-[84px] w-[84px] overflow-hidden rounded-2xl bg-surface">
+                    <div className="h-[84px] w-[84px] overflow-hidden rounded-xl bg-[#16181d]">
                         <img src={logoUrl} alt="" className="h-full w-full object-cover" />
                     </div>
                 </div>
@@ -576,12 +576,12 @@ const DiscoveryDetailPanel = ({
 
         {/* ── Header: name + type (left-padded to make room for overlapping logo) ── */}
         <div className={`shrink-0 px-5 pt-4 pb-3 ${logoUrl ? 'pl-[120px]' : ''}`}>
-            <h2 className="text-[18px] font-bold text-primary leading-tight line-clamp-2">
+            <h2 className="text-[18px] font-bold text-[#f4f4f5] leading-tight line-clamp-2">
                 {record.title}
             </h2>
-            <p className="mt-0.5 text-[13px] text-secondary">{typeSubtitle}</p>
+            <p className="mt-0.5 text-[13px] text-[#a1a1aa]">{typeSubtitle}</p>
             {record.clubName && record.entityType !== 'CLUB' && (
-                <p className="mt-0.5 text-[13px] font-medium text-secondary truncate">{record.clubName}</p>
+                <p className="mt-0.5 text-[13px] font-medium text-[#a1a1aa] truncate">{record.clubName}</p>
             )}
             <button type="button" onClick={onClose} className="absolute top-3 right-3 map-icon-button">
                 <X className="h-5 w-5" />
@@ -591,21 +591,21 @@ const DiscoveryDetailPanel = ({
         {/* ── Info rows ───────────────────────────── */}
         <div className="min-h-0 flex-1 overflow-y-auto">
             {/* Quick stats strip */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3 text-[13px] text-secondary">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3 text-[13px] text-[#a1a1aa]">
                 {(clubProfile?.memberCount != null || clubProfile?.followerCount != null) && (
                     <>
                         <Users className="h-3.5 w-3.5 text-muted" />
-                        <span className="font-semibold text-primary">{clubProfile?.memberCount ?? record.memberCount}</span>
+                        <span className="font-semibold text-[#f4f4f5]">{clubProfile?.memberCount ?? record.memberCount}</span>
                         <span>members</span>
                         <span className="text-muted">·</span>
-                        <span className="font-semibold text-primary">{clubProfile?.followerCount ?? record.followerCount}</span>
+                        <span className="font-semibold text-[#f4f4f5]">{clubProfile?.followerCount ?? record.followerCount}</span>
                         <span>followers</span>
                     </>
                 )}
                 {(clubProfile?.isOfficial ?? record.official) && (
                     <>
                         <span className="text-muted">·</span>
-                        <ShieldCheck className="h-3.5 w-3.5 text-[color:var(--accent-primary)]" />
+                        <ShieldCheck className="h-3.5 w-3.5 text-[color:#16a34a]" />
                         <span>Official</span>
                     </>
                 )}
@@ -614,14 +614,14 @@ const DiscoveryDetailPanel = ({
             {addressLine && (
                 <div className="flex items-start gap-3 px-5 py-2.5 border-t border-[var(--map-panel-border)]">
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
-                    <p className="text-[14px] leading-5 text-secondary">{addressLine}</p>
+                    <p className="text-[14px] leading-5 text-[#a1a1aa]">{addressLine}</p>
                 </div>
             )}
 
             {record.startsAt && (
                 <div className={`flex items-center gap-3 px-5 py-2 ${!addressLine ? 'border-t border-[var(--map-panel-border)]' : ''}`}>
                     <Clock className="h-4 w-4 shrink-0 text-muted" />
-                    <p className="text-[14px] text-secondary">
+                    <p className="text-[14px] text-[#a1a1aa]">
                         {formatDateTime(record.startsAt)}
                         {record.endsAt && <span className="text-muted"> — {formatDateTime(record.endsAt)}</span>}
                     </p>
@@ -631,7 +631,7 @@ const DiscoveryDetailPanel = ({
             {record.distanceKm != null && (
                 <div className={`flex items-center gap-3 px-5 py-2 ${!addressLine && !record.startsAt ? 'border-t border-[var(--map-panel-border)]' : ''}`}>
                     <Navigation className="h-4 w-4 shrink-0 text-muted" />
-                    <p className="text-[14px] text-secondary">
+                    <p className="text-[14px] text-[#a1a1aa]">
                         {record.distanceKm < 1
                             ? `${Math.round(record.distanceKm * 1000)} m away`
                             : `${record.distanceKm.toFixed(1)} km away`}
@@ -642,7 +642,7 @@ const DiscoveryDetailPanel = ({
             {/* ── Description — always visible ──────── */}
             {description && (
                 <div className="px-5 pt-3 mt-1 border-t border-[var(--map-panel-border)]">
-                    <p className="text-[14px] leading-6 text-secondary line-clamp-3">
+                    <p className="text-[14px] leading-6 text-[#a1a1aa] line-clamp-3">
                         {description}
                     </p>
                 </div>
@@ -714,7 +714,7 @@ const DiscoveryDetailPanel = ({
                                 href={action.href}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--map-panel-border)] px-4 py-1.5 text-[13px] font-medium text-secondary hover:border-[color:var(--accent-primary)] hover:text-[color:var(--accent-primary)] transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--map-panel-border)] px-4 py-1.5 text-[13px] font-medium text-[#a1a1aa] hover:border-[color:#16a34a] hover:text-[color:#16a34a] transition-colors"
                             >
                                 {action.icon}
                                 {action.label}
@@ -724,7 +724,7 @@ const DiscoveryDetailPanel = ({
                                 key={action.label}
                                 type="button"
                                 onClick={action.onClick}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--map-panel-border)] px-4 py-1.5 text-[13px] font-medium text-secondary hover:border-[color:var(--accent-primary)] hover:text-[color:var(--accent-primary)] transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--map-panel-border)] px-4 py-1.5 text-[13px] font-medium text-[#a1a1aa] hover:border-[color:#16a34a] hover:text-[color:#16a34a] transition-colors"
                             >
                                 {action.icon}
                                 {action.label}
@@ -738,7 +738,7 @@ const DiscoveryDetailPanel = ({
             <button
                 type="button"
                 onClick={onOpenClub}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--map-panel-border)] px-4 py-2.5 text-[14px] font-semibold text-primary hover:bg-surface transition-colors"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--map-panel-border)] px-4 py-2.5 text-[14px] font-semibold text-[#f4f4f5] hover:bg-[#16181d] transition-colors"
             >
                 <Building2 className="h-4 w-4" />
                 View full profile
@@ -748,7 +748,7 @@ const DiscoveryDetailPanel = ({
                 <button
                     type="button"
                     onClick={onRespond}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--accent-primary)] py-2.5 text-[14px] font-bold text-white hover:opacity-90 transition-opacity"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[color:#16a34a] py-2.5 text-[14px] font-bold text-white hover:opacity-90 transition-opacity"
                 >
                     Respond
                 </button>
@@ -1299,22 +1299,22 @@ export const MapPage = () => {
             {initialLoad && (
                 <div className="absolute inset-0 z-[5] flex items-center justify-center bg-[var(--map-workspace-bg)]">
                     <div className="flex flex-col items-center gap-3 text-center">
-                        <Loader2 className="h-8 w-8 animate-spin accent-primary" />
-                        <p className="text-sm font-semibold text-secondary">Loading map...</p>
+                        <Loader2 className="h-8 w-8 animate-spin text-[#16a34a]" />
+                        <p className="text-sm font-semibold text-[#a1a1aa]">Loading map...</p>
                     </div>
                 </div>
             )}
             {loading && !initialLoad && (
                 <div className="absolute top-4 right-4 z-[700] pointer-events-none">
-                    <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-subtle bg-surface px-3 py-1.5 shadow-sm">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-secondary" />
-                        <span className="text-xs text-secondary">Updating...</span>
+                    <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-[#ffffff0d] bg-[#16181d] px-3 py-1.5 ">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-[#a1a1aa]" />
+                        <span className="text-xs text-[#a1a1aa]">Updating...</span>
                     </div>
                 </div>
             )}
             {error && (
                 <div className="absolute inset-0 z-[5] flex items-center justify-center bg-[var(--map-workspace-bg)] px-6">
-                    <div className="map-empty-panel max-w-md px-6 py-6 text-center text-sm leading-6 text-secondary">{error}</div>
+                    <div className="map-empty-panel max-w-md px-6 py-6 text-center text-sm leading-6 text-[#a1a1aa]">{error}</div>
                 </div>
             )}
             <div className="pointer-events-none flex h-full min-h-0">
@@ -1345,7 +1345,7 @@ export const MapPage = () => {
 
                                     <div className="relative w-[180px] sm:w-[240px]">
                                         <div className="map-search-surface map-search-surface--toolbar">
-                                            <Search className="h-3.5 w-3.5 text-secondary shrink-0" />
+                                            <Search className="h-3.5 w-3.5 text-[#a1a1aa] shrink-0" />
                                             <input
                                                 type="text"
                                                 value={searchInput}
@@ -1375,10 +1375,10 @@ export const MapPage = () => {
                                                         className="map-suggestion-row"
                                                     >
                                                         <div className="min-w-0">
-                                                            <p className="truncate text-sm font-bold text-primary">{suggestion.label}</p>
-                                                            <p className="mt-1 truncate text-xs text-secondary">{suggestion.meta}</p>
+                                                            <p className="truncate text-sm font-bold text-[#f4f4f5]">{suggestion.label}</p>
+                                                            <p className="mt-1 truncate text-xs text-[#a1a1aa]">{suggestion.meta}</p>
                                                         </div>
-                                                        <LocateFixed className="h-4 w-4 accent-primary" />
+                                                        <LocateFixed className="h-4 w-4 text-[#16a34a]" />
                                                     </button>
                                                 ))}
                                             </div>
@@ -1391,7 +1391,7 @@ export const MapPage = () => {
                                         <button
                                             type="button"
                                             onClick={triggerFetch}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#f59e0b]/15 border border-[#f59e0b]/25 text-[#f59e0b] text-xs font-semibold hover:bg-[#f59e0b]/25 transition-colors shrink-0"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f59e0b]/15 border border-[#f59e0b]/25 text-[#f59e0b] text-xs font-semibold hover:bg-[#f59e0b]/25 transition-colors shrink-0"
                                             title="Search this area"
                                         >
                                             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />

@@ -139,7 +139,7 @@ export const AgentProfilePage = () => {
                             portfolio.map(player => (
                                 <div
                                     key={player.representationId}
-                                    className="flex items-center gap-4 px-4 py-3 rounded-md border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)]"
+                                    className="flex items-center gap-4 px-4 py-3 rounded-xl border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)]"
                                 >
                                     <UserIdentityCell
                                         avatarUrl={player.avatarUrl}

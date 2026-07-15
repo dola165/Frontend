@@ -12,11 +12,11 @@ interface Props {
 }
 
 const statusToneBorder: Record<string, string> = {
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30',
-    warning: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
-    info: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/30',
-    danger: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/30',
-    neutral: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/30',
+    success: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+    warning: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+    info: 'bg-sky-500/10 text-sky-400 border-sky-500/30',
+    danger: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+    neutral: 'bg-[#16181d] text-[#a1a1aa] border-[#ffffff0d]',
 };
 
 const validTransitions: Record<TournamentEntryStatus, TournamentEntryStatus[]> = {
@@ -83,10 +83,10 @@ export const EntryReviewPanel = ({ tournamentId, tournament, onRefresh }: Props)
     if (entries.length === 0) {
         return (
             <div>
-                <div className="border-b border-slate-200 bg-[#f2f4f7] px-5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Pending Applications</p>
+                <div className="border-b border-[#ffffff0d] bg-[#16181d] px-5 py-3">
+                    <p className="text-sm font-semibold text-[#f4f4f5]">Pending Applications</p>
                 </div>
-                <div className="px-5 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
+                <div className="px-5 py-12 text-center text-sm text-[#a1a1aa]">
                     No entries yet. Entries will appear here when players or clubs register.
                 </div>
             </div>
@@ -95,11 +95,11 @@ export const EntryReviewPanel = ({ tournamentId, tournament, onRefresh }: Props)
 
     return (
         <div>
-            <div className="border-b border-slate-200 bg-[#f2f4f7] px-5 py-3 dark:border-slate-800 dark:bg-slate-800/50">
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <div className="border-b border-[#ffffff0d] bg-[#16181d] px-5 py-3">
+                <p className="text-sm font-semibold text-[#f4f4f5]">
                     Pending Applications
                     {pendingCount > 0 && (
-                        <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-500 px-1.5 text-xs font-bold text-white">
+                        <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-xl bg-amber-500/20 px-1.5 text-xs font-bold text-amber-400">
                             {pendingCount}
                         </span>
                     )}
@@ -107,10 +107,10 @@ export const EntryReviewPanel = ({ tournamentId, tournament, onRefresh }: Props)
             </div>
 
             {message && (
-                <div className={`border-b border-slate-200 px-4 py-3 text-sm font-semibold dark:border-slate-800 ${
+                <div className={`border-b border-[#ffffff0d] px-4 py-3 text-sm font-semibold ${
                     messageType === 'success'
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
-                        : 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300'
+                        ? 'bg-[#16a34a]/10 text-[#16a34a]'
+                        : 'bg-[#ef4444]/10 text-[#ef4444]'
                 }`}>
                     {message}
                 </div>
@@ -123,17 +123,17 @@ export const EntryReviewPanel = ({ tournamentId, tournament, onRefresh }: Props)
                     return (
                         <div
                             key={entry.id}
-                            className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-3 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                            className="flex items-center justify-between gap-3 border-b border-[#ffffff0d] px-5 py-3 transition-colors hover:bg-[#1a1c22]"
                         >
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-slate-950 dark:text-white">
+                                <p className="truncate text-sm font-semibold text-[#f4f4f5]">
                                     {entryLabel(entry)}
                                 </p>
                                 {entrySubLabel(entry) && (
-                                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">{entrySubLabel(entry)}</p>
+                                    <p className="truncate text-xs text-[#a1a1aa]">{entrySubLabel(entry)}</p>
                                 )}
                             </div>
-                            <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusToneBorder[tone] ?? statusToneBorder.neutral}`}>
+                            <span className={`shrink-0 rounded-xl border px-2.5 py-0.5 text-xs font-semibold ${statusToneBorder[tone] ?? statusToneBorder.neutral}`}>
                                 {entry.status}
                             </span>
                             {available.length > 0 && (
@@ -147,10 +147,10 @@ export const EntryReviewPanel = ({ tournamentId, tournament, onRefresh }: Props)
                                                 type="button"
                                                 onClick={() => handleStatusChange(entry.id, targetStatus)}
                                                 disabled={actionLoading === entry.id}
-                                                className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                                className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors ${
                                                     isDestructive
-                                                        ? 'border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10'
-                                                        : 'border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
+                                                        ? 'border-rose-500/30 text-rose-400 hover:bg-rose-500/10'
+                                                        : 'border-[#ffffff0d] text-[#a1a1aa] hover:bg-[#1a1c22]'
                                                 } disabled:opacity-50`}
                                                 title={transitionLabel[targetStatus]}
                                             >

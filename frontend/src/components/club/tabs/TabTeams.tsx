@@ -51,7 +51,7 @@ export const TabTeams = ({ clubId, refreshKey = 0 }: { clubId: number; refreshKe
 
     if (squads.length === 0) {
         return (
-            <div className="bg-[#16181d] border border-[#ffffff0d] rounded-md px-5 py-10 text-center">
+            <div className="bg-[#16181d] border border-[#ffffff0d] rounded-xl px-5 py-10 text-center">
                 <h3 className="text-base font-semibold text-[#f4f4f5]">No Active Squads</h3>
                 <p className="mt-2 text-sm text-[#a1a1aa]">This club has not registered any squads yet.</p>
             </div>
@@ -59,7 +59,7 @@ export const TabTeams = ({ clubId, refreshKey = 0 }: { clubId: number; refreshKe
     }
 
     return (
-        <section className="bg-[#16181d] border border-[#ffffff0d] rounded-md">
+        <section className="bg-[#16181d] border border-[#ffffff0d] rounded-xl">
             <div className="border-b border-[#ffffff0d] px-4 py-4">
                 <p className="text-xs text-[#a1a1aa] text-[#16a34a]">Entity Tab</p>
                 <h2 className="text-lg font-semibold text-[#f4f4f5]">Squads</h2>
@@ -84,7 +84,7 @@ export const TabTeams = ({ clubId, refreshKey = 0 }: { clubId: number; refreshKe
                         <button
                             type="button"
                             onClick={() => navigate(`/clubs/${clubId}/squads?squad=${squad.id}`)}
-                            className="inline-flex items-center gap-2 rounded-md border border-[#ffffff0d] bg-[var(--fc-card-bg)] px-3 py-1.5 text-xs font-semibold text-[#f4f4f5]"
+                            className="inline-flex items-center gap-2 rounded-xl border border-[#ffffff0d] bg-[var(--fc-card-bg)] px-3 py-1.5 text-xs font-semibold text-[#f4f4f5]"
                         >
                             Open Squad View
                             <ArrowRight className="h-3.5 w-3.5" />

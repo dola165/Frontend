@@ -284,9 +284,9 @@ export const ClubProfilePage = () => {
 
     if (loading) {
         return (
-            <div className="club-page-shell bg-base min-h-[calc(100vh-var(--app-header-height))]">
+            <div className="bg-[#0f1117] min-h-[calc(100vh-var(--app-header-height))]">
                 <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] px-6 py-8">
-                    <div className="mb-8 h-[300px] w-full animate-pulse rounded-md bg-white/[0.02]" />
+                    <div className="mb-8 h-[300px] w-full animate-pulse rounded-xl bg-white/[0.02]" />
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_1fr_320px]">
                         <div className="space-y-4">
                             <SkeletonCard lines={5} />
@@ -303,11 +303,11 @@ export const ClubProfilePage = () => {
 
     if (!club) {
         return (
-            <div className="club-page-shell bg-base flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center px-6">
-                <div className="bg-surface border border-subtle px-8 py-10 text-center">
-                    <ShieldCheck className="mx-auto mb-4 h-12 w-12 accent-primary" />
-                    <h2 className="text-xl font-black uppercase tracking-[0.18em] text-primary">Club Not Found</h2>
-                    <button type="button" onClick={() => navigate(-1)} className="mt-4 text-sm font-black uppercase tracking-[0.16em] accent-primary">
+            <div className="bg-[#0f1117] flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center px-6">
+                <div className="bg-[#16181d] border border-[#ffffff0d] rounded-xl px-8 py-10 text-center">
+                    <ShieldCheck className="mx-auto mb-4 h-12 w-12 text-[#16a34a]" />
+                    <h2 className="text-xl font-semibold text-[#f4f4f5]">Club Not Found</h2>
+                    <button type="button" onClick={() => navigate(-1)} className="mt-4 text-sm font-semibold text-[#16a34a] hover:text-[#22c55e]">
                         Go Back
                     </button>
                 </div>
@@ -414,7 +414,7 @@ export const ClubProfilePage = () => {
             {isApplyModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsApplyModalOpen(false)} />
-                    <div className="relative z-10 w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl">
+                    <div className="relative z-10 w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl">
                         <ClubApplicationPanel
                             clubId={club.id}
                             clubName={club.name}

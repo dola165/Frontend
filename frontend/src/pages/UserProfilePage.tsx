@@ -396,8 +396,8 @@ export const UserProfilePage = () => {
     // --- Loading state ---
     if (loading) {
         return (
-            <div className="club-page-shell bg-base flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-accent-primary border-t-transparent" />
+            <div className="club-page-shell bg-[#0f1117] flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#16a34a] border-t-transparent" />
             </div>
         );
     }
@@ -405,11 +405,11 @@ export const UserProfilePage = () => {
     // --- Not-found state ---
     if (!profile) {
         return (
-            <div className="club-page-shell bg-base flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center px-6">
-                <div className="bg-surface border border-subtle px-8 py-10 text-center">
-                    <ShieldCheck className="mx-auto mb-4 h-12 w-12 accent-primary" />
-                    <h2 className="text-xl font-black uppercase tracking-[0.18em] text-primary">Profile Not Found</h2>
-                    <button type="button" onClick={() => navigate(-1)} className="mt-4 text-sm font-black uppercase tracking-[0.16em] accent-primary">
+            <div className="club-page-shell bg-[#0f1117] flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center px-6">
+                <div className="bg-[#16181d] border border-[#ffffff0d] px-8 py-10 text-center">
+                    <ShieldCheck className="mx-auto mb-4 h-12 w-12 text-[#16a34a]" />
+                    <h2 className="text-xl font-semibold  text-[#f4f4f5]">Profile Not Found</h2>
+                    <button type="button" onClick={() => navigate(-1)} className="mt-4 text-sm font-semibold  text-[#16a34a]">
                         Go Back
                     </button>
                 </div>
@@ -631,7 +631,7 @@ export const UserProfilePage = () => {
                     <HeartHandshake className="h-4 w-4 text-[color:var(--club-tone-pink)]" />
                     <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)]">Talanti Foundation</p>
                 </div>
-                <p className="text-xs text-secondary leading-relaxed mb-3">
+                <p className="text-xs text-[#a1a1aa] leading-relaxed mb-3">
                     Fund your training, equipment, or community project. Every player deserves a chance.
                 </p>
                 <div className="flex gap-2">
@@ -661,8 +661,8 @@ export const UserProfilePage = () => {
     );
 
     // --- Client-side action buttons ---
-    const systemBtnClass = 'inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-[color:var(--club-theme-text-primary)] transition-colors hover:bg-white/[0.07]';
-    const accentBtnClass = 'inline-flex items-center gap-2 rounded-full border border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green)] px-5 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-[#04110a] transition-all hover:brightness-105';
+    const systemBtnClass = 'inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-4 py-3 text-[11px] font-semibold  text-[color:var(--club-theme-text-primary)] transition-colors hover:bg-white/[0.07]';
+    const accentBtnClass = 'inline-flex items-center gap-2 rounded-full border border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green)] px-5 py-3 text-[11px] font-semibold  text-[#04110a] transition-all hover:brightness-105';
 
     return (
         <div className="club-page-shell min-h-full bg-[color:var(--club-theme-base)]">
@@ -693,7 +693,7 @@ export const UserProfilePage = () => {
                     <button
                         type="button"
                         onClick={() => navigate(-1)}
-                        className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/24 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white backdrop-blur-md transition-colors hover:bg-black/40"
+                        className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/24 px-3 py-2 text-[11px] font-semibold  text-white backdrop-blur-md transition-colors hover:bg-black/40"
                     >
                         <ArrowLeft className="h-4 w-4" />
                         Back
@@ -705,7 +705,7 @@ export const UserProfilePage = () => {
                             <button
                                 type="button"
                                 onClick={() => bannerInputRef.current?.click()}
-                                className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/24 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white backdrop-blur-md transition-colors hover:bg-black/40"
+                                className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/24 px-3 py-2 text-[11px] font-semibold  text-white backdrop-blur-md transition-colors hover:bg-black/40"
                             >
                                 {uploading === 'banner' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                                 Banner
@@ -723,11 +723,11 @@ export const UserProfilePage = () => {
                             <div className="flex items-start gap-4">
                                 {/* Avatar — overlaps banner bottom */}
                                 <div className="relative shrink-0 -mt-[76px] sm:-mt-[96px] lg:-mt-[112px]">
-                                    <div className="h-24 w-24 sm:h-28 sm:w-28 lg:h-36 lg:w-36 overflow-hidden rounded-[28px] border-[5px] border-[color:var(--club-band)] bg-[rgba(6,11,18,0.92)] shadow-[0_18px_44px_rgba(2,6,12,0.35)]">
+                                    <div className="h-24 w-24 sm:h-28 sm:w-28 lg:h-36 lg:w-36 overflow-hidden rounded-xl border-[5px] border-[color:var(--club-band)] bg-[rgba(6,11,18,0.92)] shadow-[0_18px_44px_rgba(2,6,12,0.35)]">
                                         {avatarUrl ? (
                                             <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
                                         ) : (
-                                            <div className="flex h-full w-full items-center justify-center text-2xl font-black uppercase text-[color:var(--club-theme-text-primary)]">
+                                            <div className="flex h-full w-full items-center justify-center text-2xl font-semibold uppercase text-[color:var(--club-theme-text-primary)]">
                                                 {initials}
                                             </div>
                                         )}
@@ -748,7 +748,7 @@ export const UserProfilePage = () => {
 
                                 {/* Identity */}
                                 <div className="min-w-0 pt-2">
-                                    <h1 className="text-3xl font-black tracking-[-0.04em] text-[color:var(--club-theme-text-primary)] sm:text-5xl">
+                                    <h1 className="text-3xl font-semibold tracking-[-0.04em] text-[color:var(--club-theme-text-primary)] sm:text-5xl">
                                         {displayName}
                                     </h1>
                                     <p className="mt-0.5 text-sm text-[color:var(--club-theme-text-secondary)]">@{profile.username}</p>
@@ -759,7 +759,7 @@ export const UserProfilePage = () => {
                                         {profile.availabilityStatus && <StatusBadge tone="info">{profile.availabilityStatus}</StatusBadge>}
                                     </div>
 
-                                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] font-black uppercase tracking-[0.18em] text-[color:var(--club-theme-text-secondary)]">
+                                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] font-semibold  text-[color:var(--club-theme-text-secondary)]">
                                         <span>{profile.position || profile.role}</span>
                                         {profile.secondaryPosition && (
                                             <>
@@ -846,7 +846,7 @@ export const UserProfilePage = () => {
                                     }`}
                                 >
                                     <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-[color:var(--club-tone-green)]' : 'text-[color:var(--club-theme-text-secondary)]'}`} />
-                                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">{tab.label}</span>
+                                    <span className="text-[11px] font-semibold ">{tab.label}</span>
                                 </button>
                             );
                         })}

@@ -228,7 +228,7 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                 title="Create Squad"
                 description="Create a new squad. Manage rosters, assign jersey numbers, and set squad roles inline below."
             />
-            <form onSubmit={handleCreateSquad} className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-4">
+            <form onSubmit={handleCreateSquad} className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-4">
                 <div className="grid gap-3 sm:grid-cols-3">
                     <input
                         type="text"
@@ -236,7 +236,7 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                         onChange={(e) => setSquadForm({ ...squadForm, name: e.target.value })}
                         placeholder="Squad name"
                         required
-                        className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)] focus:ring-1 focus:ring-[var(--fc-accent)]"
+                        className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)] focus:ring-1 focus:ring-[var(--fc-accent)]"
                     />
                     <input
                         type="text"
@@ -244,12 +244,12 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                         onChange={(e) => setSquadForm({ ...squadForm, category: e.target.value.toUpperCase() })}
                         placeholder="Category (e.g. SENIOR)"
                         required
-                        className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)] focus:ring-1 focus:ring-[var(--fc-accent)]"
+                        className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)] focus:ring-1 focus:ring-[var(--fc-accent)]"
                     />
                     <select
                         value={squadForm.gender}
                         onChange={(e) => setSquadForm({ ...squadForm, gender: e.target.value })}
-                        className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-sm font-medium text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)]"
+                        className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-sm font-medium text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)]"
                     >
                         <option value="MALE">Male</option>
                         <option value="FEMALE">Female</option>
@@ -259,7 +259,7 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                 <button
                     type="submit"
                     disabled={localPending === 'create-squad'}
-                    className="mt-3 inline-flex items-center gap-2 rounded-md bg-[var(--fc-accent)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+                    className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[var(--fc-accent)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
                 >
                     {localPending === 'create-squad' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                     Create Squad
@@ -268,12 +268,12 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
 
             {/* Stat cards */}
             <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
                     <p className="text-xs font-medium text-[var(--fc-text-muted)]">Active Player Pool</p>
                     <p className="mt-1 text-2xl font-semibold text-[var(--fc-text-primary)]">{overview?.activePlayerCount ?? 0}</p>
                     <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">Players available for squad assignment.</p>
                 </div>
-                <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
                     <p className="text-xs font-medium text-[var(--fc-text-muted)]">Total Squads</p>
                     <p className="mt-1 text-2xl font-semibold text-[var(--fc-text-primary)]">{squads.length}</p>
                     <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">Squads registered for this club.</p>
@@ -290,7 +290,7 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
             ) : (
                 <div className="space-y-4">
                     {/* Squad selector — horizontal pill tabs */}
-                    <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)]">
+                    <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)]">
                         <div className="border-b border-[var(--fc-border)] px-4 py-2.5">
                             <p className="text-xs font-medium text-[var(--fc-text-muted)]">Squad Selector</p>
                         </div>
@@ -301,7 +301,7 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                                 return (
                                     <div key={squad.id} className="flex items-center">
                                         {isEditing ? (
-                                            <div className="flex items-center gap-1.5 rounded-md border border-[var(--fc-accent-border)] bg-[var(--fc-surface-hover)] px-2 py-1.5">
+                                            <div className="flex items-center gap-1.5 rounded-xl border border-[var(--fc-accent-border)] bg-[var(--fc-surface-hover)] px-2 py-1.5">
                                                 <input
                                                     value={editForm.name ?? squad.name}
                                                     onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
@@ -327,14 +327,14 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                                                     type="button"
                                                     onClick={() => void handleUpdateSquad(squad.id)}
                                                     disabled={savingSquad}
-                                                    className="rounded-md bg-[var(--fc-accent)] px-2 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                                                    className="rounded-xl bg-[var(--fc-accent)] px-2 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
                                                 >
                                                     {savingSquad ? '...' : 'Save'}
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => { setEditingSquadId(null); setEditForm({}); }}
-                                                    className="rounded-md p-0.5 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]"
+                                                    className="rounded-xl p-0.5 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]"
                                                 >
                                                     <X className="h-3.5 w-3.5" />
                                                 </button>
@@ -343,7 +343,7 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                                             <button
                                                 type="button"
                                                 onClick={() => setSelectedSquadId(squad.id)}
-                                                className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                                                className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${
                                                     isActive
                                                         ? 'bg-[var(--fc-accent-soft)] text-[var(--fc-accent)] border border-[var(--fc-accent-border)]'
                                                         : 'text-[var(--fc-text-secondary)] border border-transparent hover:border-[var(--fc-border)] hover:text-[var(--fc-text-primary)]'
@@ -360,7 +360,7 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                                                 <button
                                                     type="button"
                                                     onClick={(e) => { e.stopPropagation(); setEditingSquadId(squad.id); setEditForm({ name: squad.name, category: squad.category, gender: squad.gender }); }}
-                                                    className="rounded-md p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)] transition-colors"
+                                                    className="rounded-xl p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)] transition-colors"
                                                     title="Edit squad"
                                                 >
                                                     <Pencil className="h-3 w-3" />
@@ -369,7 +369,7 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                                                     type="button"
                                                     onClick={(e) => { e.stopPropagation(); void handleDeleteSquad(squad.id, squad.name); }}
                                                     disabled={deletingSquadId === squad.id}
-                                                    className="rounded-md p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-state-danger)] disabled:opacity-50 transition-colors"
+                                                    className="rounded-xl p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-state-danger)] disabled:opacity-50 transition-colors"
                                                     title="Delete squad"
                                                 >
                                                     {deletingSquadId === squad.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
@@ -386,7 +386,7 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                     {selectedSquad && (
                         <>
                             {/* Detail bar */}
-                            <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)]">
+                            <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)]">
                                 <div className="grid divide-y divide-[var(--fc-border)] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
                                     <div className="px-4 py-3">
                                         <p className="text-xs font-medium text-[var(--fc-text-muted)]">Category</p>
@@ -408,14 +408,14 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                                 <button
                                     type="button"
                                     onClick={() => setCardView((v) => !v)}
-                                    className="inline-flex items-center gap-2 rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-1.5 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] transition-colors"
+                                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-1.5 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] transition-colors"
                                 >
                                     {cardView ? 'Table View' : 'Card View'}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setShowAddPlayers(true)}
-                                    className="inline-flex items-center gap-2 rounded-md bg-[var(--fc-accent)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
+                                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--fc-accent)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
                                 >
                                     + Add Players
                                 </button>

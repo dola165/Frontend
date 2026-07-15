@@ -212,7 +212,7 @@ export const EventCreationModal = ({
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4 border-b border-[var(--fc-border)] px-5 py-4">
                     <div className="min-w-0">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--fc-text-muted)]">
+                        <p className="text-[10px] font-bold  text-[var(--fc-text-muted)]">
                             {mode === 'create' ? 'New Event' : 'Edit Event'} — Step {step + 1} of 3
                         </p>
                         <h2 className="mt-1 text-lg font-semibold text-[var(--fc-text-primary)]">

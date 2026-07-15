@@ -53,7 +53,7 @@ export const StandingSchedule = ({ events }: StandingScheduleProps) => {
         <div className="space-y-3">
             <div className="flex items-center gap-2">
                 <Repeat2 className="h-3.5 w-3.5 text-[var(--fc-text-muted)]" />
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--fc-text-muted)]">Standing Schedule</p>
+                <p className="text-[10px] font-bold  text-[var(--fc-text-muted)]">Standing Schedule</p>
             </div>
 
             {entries.length === 0 ? (

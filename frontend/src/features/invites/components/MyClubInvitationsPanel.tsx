@@ -125,10 +125,10 @@ export const MyClubInvitationsPanel = ({ onInvitationAccepted }: MyClubInvitatio
                     {orderedInvitations.filter((invite) => invite.status === 'PENDING').length} pending
                 </StatusBadge>
             )}
-            bodyClassName="divide-y divide-[color:var(--border-subtle)]"
+            bodyClassName="divide-y divide-[color:#ffffff0d]"
         >
             {errorMessage && (
-                <div className="border-b border-subtle px-4 py-4">
+                <div className="border-b border-[#ffffff0d] px-4 py-4">
                     <div className="border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
                         {errorMessage}
                     </div>
@@ -136,7 +136,7 @@ export const MyClubInvitationsPanel = ({ onInvitationAccepted }: MyClubInvitatio
             )}
 
             {successMessage && (
-                <div className="border-b border-subtle px-4 py-4">
+                <div className="border-b border-[#ffffff0d] px-4 py-4">
                     <div className="border border-[color:var(--state-success)] bg-[color:var(--state-success-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-success)]">
                         {successMessage}
                     </div>
@@ -145,12 +145,12 @@ export const MyClubInvitationsPanel = ({ onInvitationAccepted }: MyClubInvitatio
 
             {loading ? (
                 <div className="flex justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin accent-primary" />
+                    <Loader2 className="h-8 w-8 animate-spin text-[#16a34a]" />
                 </div>
             ) : orderedInvitations.length === 0 ? (
                 <div className="px-4 py-10 text-center">
-                    <Inbox className="mx-auto h-8 w-8 text-secondary" />
-                    <p className="mt-4 text-sm leading-6 text-secondary">
+                    <Inbox className="mx-auto h-8 w-8 text-[#a1a1aa]" />
+                    <p className="mt-4 text-sm leading-6 text-[#a1a1aa]">
                         No club invitations are waiting for this account right now.
                     </p>
                 </div>
@@ -165,7 +165,7 @@ export const MyClubInvitationsPanel = ({ onInvitationAccepted }: MyClubInvitatio
                             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <h4 className="text-base font-black uppercase tracking-[0.12em] text-primary">
+                                        <h4 className="text-base font-semibold uppercase tracking-[0.12em] text-[#f4f4f5]">
                                             {invitation.clubName}
                                         </h4>
                                         <StatusBadge tone={getInviteTone(invitation.status)}>
@@ -173,11 +173,11 @@ export const MyClubInvitationsPanel = ({ onInvitationAccepted }: MyClubInvitatio
                                         </StatusBadge>
                                     </div>
 
-                                    <p className="mt-2 text-[11px] font-black uppercase tracking-[0.18em] text-secondary">
+                                    <p className="mt-2 text-[11px] font-semibold  text-[#a1a1aa]">
                                         Role offered: {clubRoleLabel(invitation.role)}
                                     </p>
 
-                                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-black uppercase tracking-[0.16em] text-secondary">
+                                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-semibold  text-[#a1a1aa]">
                                         <span>Created: {createdAtLabel || 'Recently'}</span>
                                         {expiresAtLabel && <span>Expires: {expiresAtLabel}</span>}
                                     </div>
@@ -188,7 +188,7 @@ export const MyClubInvitationsPanel = ({ onInvitationAccepted }: MyClubInvitatio
                                         type="button"
                                         onClick={() => void runDecision(invitation, 'decline')}
                                         disabled={!isPending || pendingActionKey === `accept-${invitation.id}` || pendingActionKey === `decline-${invitation.id}`}
-                                        className="inline-flex items-center justify-center gap-2 border border-subtle bg-base px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="inline-flex items-center justify-center gap-2 border border-[#ffffff0d] bg-[#0f1117] px-4 py-2.5 text-[11px] font-semibold  text-[#f4f4f5] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {pendingActionKey === `decline-${invitation.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
                                         Decline
@@ -197,7 +197,7 @@ export const MyClubInvitationsPanel = ({ onInvitationAccepted }: MyClubInvitatio
                                         type="button"
                                         onClick={() => void runDecision(invitation, 'accept')}
                                         disabled={!isPending || pendingActionKey === `accept-${invitation.id}` || pendingActionKey === `decline-${invitation.id}`}
-                                        className="inline-flex items-center justify-center gap-2 border border-accent-primary bg-accent-primary-soft px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] accent-primary disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="inline-flex items-center justify-center gap-2 border border-[#16a34a] bg-[#16a34a]-soft px-4 py-2.5 text-[11px] font-semibold  text-[#16a34a] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {pendingActionKey === `accept-${invitation.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                                         Accept

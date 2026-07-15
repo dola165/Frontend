@@ -23,7 +23,7 @@ export const MetricCardV2 = ({ label, value, icon: Icon, trend }: MetricCardV2Pr
     const trendColor = trend ? trendColorMap[trend.direction] : '';
 
     return (
-        <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
+        <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
             <div className="flex items-center justify-between">
                 <p className="text-xs font-medium text-[var(--fc-text-secondary)]">{label}</p>
                 <Icon className="h-4 w-4 text-[var(--fc-text-muted)]" />

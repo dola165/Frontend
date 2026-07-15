@@ -89,12 +89,12 @@ const tabItems: EntityTabItem[] = [
 ];
 
 // Style primitives — use FC workspace tokens
-const surfaceClass = 'bg-[var(--fc-card-bg)] border border-[var(--fc-border)] rounded-md';
-const insetClass = 'border border-[var(--fc-border)] bg-[var(--fc-page-bg)] rounded-md';
+const surfaceClass = 'bg-[var(--fc-card-bg)] border border-[var(--fc-border)] rounded-xl';
+const insetClass = 'border border-[var(--fc-border)] bg-[var(--fc-page-bg)] rounded-xl';
 const labelClass = 'text-xs font-semibold text-[var(--fc-text-secondary)]';
-const inputClass = 'w-full rounded-md border border-[var(--fc-border)] bg-[var(--fc-page-bg)] px-3 py-2.5 text-sm text-[var(--fc-text-primary)] outline-none transition-colors placeholder:text-[var(--fc-text-muted)] focus:border-[var(--fc-accent)] focus:ring-1 focus:ring-[var(--fc-accent)]/30';
-const btnPrimaryClass = 'inline-flex items-center gap-2 rounded-md bg-[var(--fc-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50';
-const btnSecondaryClass = 'inline-flex items-center gap-2 rounded-md border border-[var(--fc-border)] bg-transparent px-4 py-2.5 text-sm font-semibold text-[var(--fc-text-primary)] transition-colors hover:bg-[var(--fc-surface-hover)] disabled:opacity-50';
+const inputClass = 'w-full rounded-xl border border-[var(--fc-border)] bg-[var(--fc-page-bg)] px-3 py-2.5 text-sm text-[var(--fc-text-primary)] outline-none transition-colors placeholder:text-[var(--fc-text-muted)] focus:border-[var(--fc-accent)] focus:ring-1 focus:ring-[var(--fc-accent)]/30';
+const btnPrimaryClass = 'inline-flex items-center gap-2 rounded-xl bg-[var(--fc-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50';
+const btnSecondaryClass = 'inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-transparent px-4 py-2.5 text-sm font-semibold text-[var(--fc-text-primary)] transition-colors hover:bg-[var(--fc-surface-hover)] disabled:opacity-50';
 
 const normalizeTab = (value: string | null): Tab =>
     value === 'security' || value === 'sessions' || value === 'accounts' || value === 'danger' ? value : 'profile';
@@ -434,7 +434,7 @@ export const AccountPage = () => {
                         <section className={`${surfaceClass} px-5 py-4`}>
                             <p className={labelClass}>Quick Actions</p>
                             <div className="mt-4 grid gap-2">
-                                <Link to={user?.id ? `/profile/${user.id}` : '/feed'} className="inline-flex items-center gap-2 rounded-md border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-white/[0.04]">
+                                <Link to={user?.id ? `/profile/${user.id}` : '/feed'} className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-white/[0.04]">
                                     View Public Profile
                                 </Link>
                                 <button
@@ -444,14 +444,14 @@ export const AccountPage = () => {
                                 >
                                     Security Controls
                                 </button>
-                                <Link to="/tournaments/setup" className="inline-flex items-center gap-2 rounded-md border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-white/[0.04]">
+                                <Link to="/tournaments/setup" className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-white/[0.04]">
                                     Tournament Setup
                                 </Link>
                                 {account.role === 'PLAYER' && (
                                     <button
                                         type="button"
                                         onClick={() => { void loadTryoutApplications(); setShowTryoutApps((v) => !v); }}
-                                        className="inline-flex items-center gap-2 rounded-md border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:border-[color:var(--fc-accent)]"
+                                        className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:border-[color:var(--fc-accent)]"
                                     >
                                         {showTryoutApps ? 'Hide' : 'View'} My Tryout Applications
                                         {tryoutApps.length > 0 && (
@@ -462,7 +462,7 @@ export const AccountPage = () => {
                                     </button>
                                 )}
                                 {account.role === 'SYSTEM_ADMIN' && (
-                                    <Link to="/admin" className="inline-flex items-center gap-2 rounded-md border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-white/[0.04]">
+                                    <Link to="/admin" className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-white/[0.04]">
                                         Admin Panel
                                     </Link>
                                 )}
@@ -476,12 +476,12 @@ export const AccountPage = () => {
 
                 {/* Messages */}
                 {message && (
-                    <div className="rounded-md border border-[color:var(--fc-accent-border)] bg-[color:var(--fc-accent-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--fc-accent)]">
+                    <div className="rounded-xl border border-[color:var(--fc-accent-border)] bg-[color:var(--fc-accent-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--fc-accent)]">
                         {message}
                     </div>
                 )}
                 {error && (
-                    <div className="rounded-md border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--fc-state-danger)]">
+                    <div className="rounded-xl border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--fc-state-danger)]">
                         {error}
                     </div>
                 )}
@@ -507,7 +507,7 @@ export const AccountPage = () => {
                         ) : (
                             <div className="mt-4 grid gap-2">
                                 {tryoutApps.map((app) => (
-                                    <div key={app.id} className="flex items-center justify-between gap-4 rounded-md border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-4 py-3">
+                                    <div key={app.id} className="flex items-center justify-between gap-4 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-4 py-3">
                                         <div className="min-w-0">
                                             <p className="text-sm font-semibold text-[color:var(--fc-text-primary)]">{app.tryoutTitle}</p>
                                             <p className="text-xs text-[color:var(--fc-text-secondary)]">
@@ -608,7 +608,7 @@ export const AccountPage = () => {
 
                         <div className="flex flex-col gap-5">
                             <Section title="Profile Assets" description="Banner and avatar media for your public profile.">
-                                <div className="relative h-32 overflow-hidden rounded-md border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)]">
+                                <div className="relative h-32 overflow-hidden rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)]">
                                     <img src={bannerPreview} alt="Account banner" className="h-full w-full object-cover" />
                                     <button
                                         type="button"
@@ -744,7 +744,7 @@ export const AccountPage = () => {
                         }
                     >
                         {sessionsError && (
-                            <div className="mb-4 rounded-md border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--fc-state-danger)]">
+                            <div className="mb-4 rounded-xl border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--fc-state-danger)]">
                                 {sessionsError}
                             </div>
                         )}
@@ -839,7 +839,7 @@ export const AccountPage = () => {
                 {/* ===== DANGER TAB ===== */}
                 {activeTab === 'danger' && (
                     <Section title="Danger Zone" description="Destructive account actions belong here and nowhere else.">
-                        <div className="rounded-md border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-5 py-4">
+                        <div className="rounded-xl border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-5 py-4">
                             <div className="flex items-start gap-3">
                                 <TriangleAlert className="mt-0.5 h-5 w-5 text-[color:var(--fc-state-danger)]" />
                                 <div>

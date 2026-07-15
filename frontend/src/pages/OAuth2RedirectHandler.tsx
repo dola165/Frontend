@@ -44,7 +44,7 @@ export const OAuth2RedirectHandler = () => {
     return (
         <div className="h-screen flex flex-col items-center justify-center bg-slate-900">
             <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="mt-4 text-emerald-500 font-black tracking-widest uppercase text-xs">Initializing Secure Session...</p>
+            <p className="mt-4 text-emerald-500 font-semibold tracking-widest uppercase text-xs">Initializing Secure Session...</p>
         </div>
     );
 };

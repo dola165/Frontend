@@ -86,7 +86,7 @@ export const TournamentDetailPage = () => {
                 <Trophy className="h-12 w-12 text-[#a1a1aa]" />
                 <h1 className="text-xl font-semibold text-[#f4f4f5]">Tournament Not Found</h1>
                 <p className="text-sm text-[#a1a1aa]">{error ?? 'This tournament does not exist or has been removed.'}</p>
-                <Link to="/tournaments" className="inline-flex items-center gap-2 rounded-md bg-[#16a34a] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+                <Link to="/tournaments" className="inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
                     Back to Tournaments
                 </Link>
             </div>
@@ -97,7 +97,7 @@ export const TournamentDetailPage = () => {
         <div className="min-h-full bg-[#0f1117]">
             <div className="mx-auto flex w-full max-w-[960px] flex-col gap-6 px-4 py-8 sm:px-6">
                 {message && (
-                    <div className={`rounded-md border px-4 py-3 text-sm font-semibold ${
+                    <div className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
                         message.type === 'success'
                             ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
                             : 'border-red-500/20 bg-red-500/10 text-red-400'
@@ -125,7 +125,7 @@ export const TournamentDetailPage = () => {
                                 type="button"
                                 onClick={handleRegister}
                                 disabled={registering}
-                                className="inline-flex items-center gap-2 rounded-md bg-[#16a34a] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                                className="inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                             >
                                 {registering ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
                                 Register
@@ -140,7 +140,7 @@ export const TournamentDetailPage = () => {
                         {isStaff && (
                             <Link
                                 to={`/tournaments/${tournament.id}/workspace`}
-                                className="inline-flex items-center gap-2 rounded-md border border-[#ffffff0d] px-5 py-2.5 text-sm font-semibold text-[#f4f4f5] transition-colors hover:bg-[var(--fc-surface-hover)]"
+                                className="inline-flex items-center gap-2 rounded-xl border border-[#ffffff0d] px-5 py-2.5 text-sm font-semibold text-[#f4f4f5] transition-colors hover:bg-[var(--fc-surface-hover)]"
                             >
                                 <Shield className="h-4 w-4" />
                                 Workspace
@@ -151,18 +151,18 @@ export const TournamentDetailPage = () => {
                 </div>
 
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    <div className="rounded-md border border-[#ffffff0d] bg-[#16181d] px-5 py-4">
+                    <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d] px-5 py-4">
                         <p className="text-xs font-medium text-[#a1a1aa]">Scope</p>
                         <div className="mt-2 flex items-center gap-2">
                             {tournament.participantScope === 'PLAYER' ? <UserPlus className="h-4 w-4 text-[#16a34a]" /> : <Users className="h-4 w-4 text-[#16a34a]" />}
                             <span className="text-sm font-semibold text-[#f4f4f5]">{tournamentScopeLabel(tournament.participantScope)}</span>
                         </div>
                     </div>
-                    <div className="rounded-md border border-[#ffffff0d] bg-[#16181d] px-5 py-4">
+                    <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d] px-5 py-4">
                         <p className="text-xs font-medium text-[#a1a1aa]">Visibility</p>
                         <p className="mt-2 text-sm font-semibold text-[#f4f4f5]">{tournamentVisibilityLabel(tournament.visibility)}</p>
                     </div>
-                    <div className="rounded-md border border-[#ffffff0d] bg-[#16181d] px-5 py-4">
+                    <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d] px-5 py-4">
                         <p className="text-xs font-medium text-[#a1a1aa]">Participants</p>
                         <p className="mt-2 text-sm font-semibold text-[#f4f4f5]">{entryCount} entr{entryCount === 1 ? 'y' : 'ies'} &middot; {fixtureCount} fixture{fixtureCount === 1 ? '' : 's'}</p>
                     </div>
@@ -186,7 +186,7 @@ export const TournamentDetailPage = () => {
                 )}
 
                 {tournament.rules && (
-                    <div className="rounded-md border border-[#ffffff0d] bg-[#16181d] px-5 py-4">
+                    <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d] px-5 py-4">
                         <p className="text-xs font-medium text-[#a1a1aa]">Rules</p>
                         <p className="mt-2 whitespace-pre-wrap text-sm text-[#a1a1aa]">{tournament.rules}</p>
                     </div>

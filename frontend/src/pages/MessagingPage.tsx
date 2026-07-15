@@ -661,7 +661,7 @@ export const MessagingPage = () => {
                                                 </span>
                                             )}
                                             <div
-                                                className={`px-3.5 py-2 rounded-2xl max-w-[70%] text-[15px] leading-relaxed ${
+                                                className={`px-3.5 py-2 rounded-xl max-w-[70%] text-[15px] leading-relaxed ${
                                                     isMe
                                                         ? 'bg-[var(--chat-accent)] text-[var(--chat-accent-contrast)] rounded-br-sm'
                                                         : 'bg-[var(--chat-bubble-other)] text-[var(--chat-bubble-other-text)] rounded-bl-sm border border-[var(--chat-card-border)]'

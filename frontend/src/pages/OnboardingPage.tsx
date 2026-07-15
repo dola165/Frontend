@@ -124,23 +124,23 @@ export const OnboardingPage = () => {
         }
     };
 
-    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-primary outline-none transition-colors focus:border-accent-primary placeholder:text-secondary';
+    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-[#f4f4f5] outline-none transition-colors focus:border-[#16a34a] placeholder:text-[#a1a1aa]';
 
     return (
-        <div className="bg-base flex min-h-screen flex-col items-center justify-center p-6">
-            <div className="theme-surface theme-border w-full max-w-2xl rounded-2xl border p-8 shadow-2xl md:p-12">
+        <div className="bg-[#0f1117] flex min-h-screen flex-col items-center justify-center p-6">
+            <div className="theme-surface theme-border w-full max-w-2xl rounded-xl border p-8 shadow-2xl md:p-12">
 
-                <div className="mb-8 border-b border-subtle pb-6">
-                    <h1 className="text-3xl font-black uppercase tracking-tight text-primary mb-2">Establish Your Identity</h1>
+                <div className="mb-8 border-b border-[#ffffff0d] pb-6">
+                    <h1 className="text-3xl font-semibold uppercase tracking-tight text-[#f4f4f5] mb-2">Establish Your Identity</h1>
                     {fetchedUsername && (
-                        <p className="text-sm font-black uppercase tracking-[0.16em] accent-primary mb-1">Your handle: @{fetchedUsername}</p>
+                        <p className="text-sm font-semibold  text-[#16a34a] mb-1">Your handle: @{fetchedUsername}</p>
                     )}
-                    <p className="text-sm text-secondary">Complete your profile to access the full network experience.</p>
+                    <p className="text-sm text-[#a1a1aa]">Complete your profile to access the full network experience.</p>
                 </div>
 
                 {step === 1 && (
                     <div>
-                        <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary mb-4 block">What is your designation?</label>
+                        <label className="text-[10px] font-semibold  text-[#a1a1aa] mb-4 block">What is your designation?</label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                             {[
                                 { id: 'PLAYER', icon: Activity, label: 'Player', desc: 'Seeking clubs & tryouts' },
@@ -151,17 +151,17 @@ export const OnboardingPage = () => {
                                 <button
                                     key={role.id}
                                     onClick={() => setFormData({...formData, role: role.id as 'PLAYER' | 'FAN' | 'ORGANIZER' | 'AGENT'})}
-                                    className={`rounded-xl border p-4 text-left transition-colors ${formData.role === role.id ? 'border-accent-primary bg-accent-primary-soft' : 'border-subtle hover:border-strong'}`}
+                                    className={`rounded-xl border p-4 text-left transition-colors ${formData.role === role.id ? 'border-[#16a34a] bg-[#16a34a]-soft' : 'border-[#ffffff0d] hover:border-strong'}`}
                                 >
-                                    <role.icon className={`w-8 h-8 mb-3 ${formData.role === role.id ? 'accent-primary' : 'text-muted'}`} />
-                                    <h3 className="font-black uppercase tracking-[0.14em] text-sm mb-1 text-primary">{role.label}</h3>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-secondary">{role.desc}</p>
+                                    <role.icon className={`w-8 h-8 mb-3 ${formData.role === role.id ? 'text-[#16a34a]' : 'text-muted'}`} />
+                                    <h3 className="font-semibold uppercase tracking-[0.14em] text-sm mb-1 text-[#f4f4f5]">{role.label}</h3>
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a1a1aa]">{role.desc}</p>
                                 </button>
                             ))}
                         </div>
 
                         <div className="mb-8 space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Full Legal Name</label>
+                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">Full Legal Name</label>
                             <input
                                 type="text"
                                 value={formData.fullName}
@@ -175,14 +175,14 @@ export const OnboardingPage = () => {
                             <button
                                 onClick={() => setStep(2)}
                                 disabled={!formData.fullName.trim()}
-                                className="w-full inline-flex items-center justify-center gap-2 border border-accent-primary bg-accent-primary text-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] transition-colors disabled:opacity-50"
+                                className="w-full inline-flex items-center justify-center gap-2 border border-[#16a34a] bg-[#16a34a] text-white px-4 py-3 text-[11px] font-semibold  transition-colors disabled:opacity-50"
                             >
                                 Next Phase <ChevronRight className="w-5 h-5" />
                             </button>
                             <button
                                 onClick={handleSkip}
                                 disabled={!formData.fullName.trim()}
-                                className="w-full py-3 text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full py-3 text-[11px] font-semibold  text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Skip for Now
                             </button>
@@ -196,7 +196,7 @@ export const OnboardingPage = () => {
                             <>
                                 <div className="grid grid-cols-2 gap-4 mb-4">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Primary Position</label>
+                                        <label className="text-[10px] font-semibold  text-[#a1a1aa]">Primary Position</label>
                                         <select value={formData.position} onChange={(e) => setFormData({...formData, position: e.target.value})} className={`${inputClass} appearance-none`}>
                                             <option value="">Select position</option>
                                             {POSITION_OPTIONS.map(p => (
@@ -205,7 +205,7 @@ export const OnboardingPage = () => {
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Strong Foot</label>
+                                        <label className="text-[10px] font-semibold  text-[#a1a1aa]">Strong Foot</label>
                                         <select value={formData.preferredFoot} onChange={(e) => setFormData({...formData, preferredFoot: e.target.value})} className={`${inputClass} appearance-none`}>
                                             <option value="Right">Right</option>
                                             <option value="Left">Left</option>
@@ -215,37 +215,37 @@ export const OnboardingPage = () => {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 mb-6">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Height (cm)</label>
+                                        <label className="text-[10px] font-semibold  text-[#a1a1aa]">Height (cm)</label>
                                         <input type="number" value={formData.heightCm} onChange={(e) => setFormData({...formData, heightCm: e.target.value})} min={100} max={250} className={inputClass} placeholder="185" />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Weight (kg)</label>
+                                        <label className="text-[10px] font-semibold  text-[#a1a1aa]">Weight (kg)</label>
                                         <input type="number" value={formData.weightKg} onChange={(e) => setFormData({...formData, weightKg: e.target.value})} min={30} max={250} className={inputClass} placeholder="78" />
                                     </div>
                                 </div>
                             </>
                         )}
                         {formData.role === 'ORGANIZER' && (
-                            <div className="mb-6 border border-accent-primary bg-accent-primary-soft rounded-xl p-6 flex flex-col items-center justify-center text-center">
-                                <Building2 className="w-10 h-10 accent-primary mb-3" />
-                                <p className="text-sm font-black uppercase tracking-[0.14em] text-primary">Ready to build your club?</p>
-                                <p className="mt-2 text-xs text-secondary max-w-md">After setup you'll be taken to your <strong>My Club</strong> workspace, where you can create your squad, manage rosters, schedule matches, and invite players.</p>
+                            <div className="mb-6 border border-[#16a34a] bg-[#16a34a]-soft rounded-xl p-6 flex flex-col items-center justify-center text-center">
+                                <Building2 className="w-10 h-10 text-[#16a34a] mb-3" />
+                                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">Ready to build your club?</p>
+                                <p className="mt-2 text-xs text-[#a1a1aa] max-w-md">After setup you'll be taken to your <strong>My Club</strong> workspace, where you can create your squad, manage rosters, schedule matches, and invite players.</p>
                             </div>
                         )}
                         {formData.role === 'FAN' && (
-                            <div className="mb-6 border border-dashed border-subtle bg-base rounded-xl p-6 flex flex-col items-center justify-center text-center">
-                                <p className="text-sm font-black uppercase tracking-[0.14em] text-primary">Fan Profile</p>
-                                <p className="mt-2 text-xs text-secondary">You can customize your experience and follow clubs from your Account page after setup.</p>
+                            <div className="mb-6 border border-dashed border-[#ffffff0d] bg-[#0f1117] rounded-xl p-6 flex flex-col items-center justify-center text-center">
+                                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">Fan Profile</p>
+                                <p className="mt-2 text-xs text-[#a1a1aa]">You can customize your experience and follow clubs from your Account page after setup.</p>
                             </div>
                         )}
                         {formData.role === 'AGENT' && (
                             <div className="space-y-3 mb-6">
-                                <div className="border border-accent-primary bg-accent-primary-soft rounded-xl p-4 flex items-center gap-3">
-                                    <Briefcase className="w-5 h-5 text-accent-primary shrink-0" />
-                                    <p className="text-xs text-secondary">Set your agency details now or add them later from your Account page.</p>
+                                <div className="border border-[#16a34a] bg-[#16a34a]-soft rounded-xl p-4 flex items-center gap-3">
+                                    <Briefcase className="w-5 h-5 text-text-[#16a34a] shrink-0" />
+                                    <p className="text-xs text-[#a1a1aa]">Set your agency details now or add them later from your Account page.</p>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary mb-1 block">Agency Name</label>
+                                    <label className="text-[10px] font-semibold  text-[#a1a1aa] mb-1 block">Agency Name</label>
                                     <input
                                         type="text"
                                         value={formData.agencyName}
@@ -255,7 +255,7 @@ export const OnboardingPage = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary mb-1 block">FIFA License Number</label>
+                                    <label className="text-[10px] font-semibold  text-[#a1a1aa] mb-1 block">FIFA License Number</label>
                                     <input
                                         type="text"
                                         value={formData.fifaLicenseNumber}
@@ -283,8 +283,8 @@ export const OnboardingPage = () => {
                                 onClick={() => avatarInputRef.current?.click()}
                                 className={`flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed transition-colors ${
                                     formData.avatarUrl
-                                        ? 'border-accent-primary'
-                                        : 'border-subtle hover:border-accent-primary'
+                                        ? 'border-[#16a34a]'
+                                        : 'border-[#ffffff0d] hover:border-[#16a34a]'
                                 }`}
                             >
                                 {uploadingAvatar ? (
@@ -295,13 +295,13 @@ export const OnboardingPage = () => {
                                     <Camera className="h-6 w-6 text-muted" />
                                 )}
                             </div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
+                            <p className="text-[10px] font-semibold  text-muted">
                                 {formData.avatarUrl ? 'Tap to change profile picture' : 'Tap to add profile picture'}
                             </p>
                         </div>
 
                         <div className="mb-8 space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">Personal Manifesto / Bio</label>
+                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">Personal Manifesto / Bio</label>
                             <textarea
                                 value={formData.bio}
                                 onChange={(e) => setFormData({...formData, bio: e.target.value})}
@@ -312,13 +312,13 @@ export const OnboardingPage = () => {
 
                         <div className="flex flex-col gap-3">
                             <div className="flex gap-4">
-                                <button onClick={() => setStep(1)} className="border border-subtle bg-base px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary transition-colors">
+                                <button onClick={() => setStep(1)} className="border border-[#ffffff0d] bg-[#0f1117] px-4 py-3 text-[11px] font-semibold  text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors">
                                     Back
                                 </button>
                                 <button
                                     onClick={submitProfile}
                                     disabled={isLoading || !hasName}
-                                    className="flex-1 inline-flex items-center justify-center gap-2 border border-accent-primary bg-accent-primary text-white px-4 py-3 text-[11px] font-black uppercase tracking-[0.16em] transition-colors disabled:opacity-50"
+                                    className="flex-1 inline-flex items-center justify-center gap-2 border border-[#16a34a] bg-[#16a34a] text-white px-4 py-3 text-[11px] font-semibold  transition-colors disabled:opacity-50"
                                 >
                                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Commit to Database'}
                                 </button>
@@ -326,7 +326,7 @@ export const OnboardingPage = () => {
                             <button
                                 onClick={handleSkip}
                                 disabled={isLoading || !hasName}
-                                className="w-full py-3 text-[11px] font-black uppercase tracking-[0.16em] text-secondary hover:text-primary transition-colors"
+                                className="w-full py-3 text-[11px] font-semibold  text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors"
                             >
                                 Skip for Now
                             </button>

@@ -27,7 +27,7 @@ export const OverviewTab = ({ overview, onTabChange, overdueTrialistCount = 0 }:
 
             {/* Urgent items */}
             {hasUrgent && (
-                <div className={`rounded-md border p-4 ${
+                <div className={`rounded-xl border p-4 ${
                     hasOverdue
                         ? 'border-[var(--fc-state-danger-soft)] bg-[var(--fc-state-danger-soft)]'
                         : 'border-[var(--fc-state-warning-soft)] bg-[var(--fc-state-warning-soft)]'
@@ -106,7 +106,7 @@ export const OverviewTab = ({ overview, onTabChange, overdueTrialistCount = 0 }:
             </div>
 
             {/* Week schedule placeholder */}
-            <div className="rounded-md border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-4">
+            <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-4">
                 <p className="text-xs font-semibold text-[var(--fc-text-muted)]">THIS WEEK</p>
                 <p className="mt-1 text-sm font-semibold text-[var(--fc-text-primary)]">Schedule</p>
                 <p className="mt-1 text-sm text-[var(--fc-text-secondary)]">

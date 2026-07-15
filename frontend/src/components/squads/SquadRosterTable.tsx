@@ -97,7 +97,7 @@ export const SquadRosterTable = ({
     };
 
     return (
-        <div className="rounded-md bg-[#16181d] border border-[#ffffff0d]">
+        <div className="rounded-xl bg-[#16181d] border border-[#ffffff0d]">
             {sortedGroups.map((group, index) => (
                 <section key={group.label} className={index === 0 ? '' : 'border-t border-[#ffffff0d]'}>
                     <div className="flex items-center justify-between gap-4 border-b border-[#ffffff0d] bg-[#16181d] px-4 py-3">
@@ -154,14 +154,14 @@ export const SquadRosterTable = ({
                                                     onChange={(e) => setEditValue(e.target.value)}
                                                     onBlur={() => commitEdit(player.id, 'number')}
                                                     onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(player.id, 'number'); if (e.key === 'Escape') setEditingCell(null); }}
-                                                    className="rounded-md w-14 border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2 py-1 text-sm font-black text-[#f4f4f5] focus:outline-none"
+                                                    className="rounded-xl w-14 border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2 py-1 text-sm font-semibold text-[#f4f4f5] focus:outline-none"
                                                     autoFocus
                                                 />
                                             ) : (
                                                 <button
                                                     type="button"
                                                     onClick={() => editable && startEdit(player.id, 'number', String(player.number ?? ''))}
-                                                    className={`text-sm font-black ${editable ? 'cursor-pointer hover:text-[#16a34a]' : ''} text-[#f4f4f5]`}
+                                                    className={`text-sm font-semibold ${editable ? 'cursor-pointer hover:text-[#16a34a]' : ''} text-[#f4f4f5]`}
                                                     tabIndex={editable ? 0 : -1}
                                                 >
                                                     {player.number ?? '--'}

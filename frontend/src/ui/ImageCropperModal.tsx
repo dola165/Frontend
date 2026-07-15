@@ -33,7 +33,7 @@ export const ImageCropperModal = ({ isOpen, imageUrl, aspectRatio, title, onClos
 
                 {/* Header */}
                 <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                    <h2 className="text-lg font-black text-white uppercase tracking-widest">{title}</h2>
+                    <h2 className="text-lg font-semibold text-white uppercase tracking-widest">{title}</h2>
                     <button onClick={onClose} disabled={isProcessing} className="text-slate-400 hover:text-rose-500 transition-colors">
                         <X className="w-5 h-5" />
                     </button>
@@ -75,7 +75,7 @@ export const ImageCropperModal = ({ isOpen, imageUrl, aspectRatio, title, onClos
                         <button
                             onClick={() => onCropComplete(croppedPixels)}
                             disabled={!croppedPixels || isProcessing}
-                            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded font-semibold uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                         >
                             {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4" /> Apply Crop</>}
                         </button>

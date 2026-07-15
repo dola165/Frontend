@@ -91,9 +91,9 @@ export const ScheduleGrid = ({
         return (
             <div className="flex h-full items-center justify-center px-6 text-center">
                 <div className="max-w-md">
-                    <CalendarDays className="mx-auto h-10 w-10 text-secondary" />
-                    <h2 className="mt-4 text-lg font-black uppercase tracking-[0.16em] text-primary">No Schedule Items In View</h2>
-                    <p className="mt-3 text-sm leading-6 text-secondary">
+                    <CalendarDays className="mx-auto h-10 w-10 text-[#a1a1aa]" />
+                    <h2 className="mt-4 text-lg font-semibold  text-[#f4f4f5]">No Schedule Items In View</h2>
+                    <p className="mt-3 text-sm leading-6 text-[#a1a1aa]">
                         Adjust the current filters, date window, or view mode to reveal schedule items.
                     </p>
                 </div>
@@ -137,9 +137,9 @@ const MonthBoard = ({
     onCreateAt: (date: Date) => void;
 }) => (
     <div className="schedule-scroll-surface h-full overflow-auto bg-[color:var(--schedule-board-cell)]">
-        <div className="schedule-board-head sticky top-0 z-10 grid min-w-[840px] grid-cols-7 border-b border-subtle">
+        <div className="schedule-board-head sticky top-0 z-10 grid min-w-[840px] grid-cols-7 border-b border-[#ffffff0d]">
             {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((label) => (
-                <div key={label} className="border-r border-subtle px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-secondary last:border-r-0">
+                <div key={label} className="border-r border-[#ffffff0d] px-3 py-2 text-[10px] font-semibold  text-[#a1a1aa] last:border-r-0">
                     {label}
                 </div>
             ))}
@@ -154,7 +154,7 @@ const MonthBoard = ({
                     <div
                         key={toDateKey(date)}
                         onClick={() => canCreate && onCreateAt(date)}
-                        className={`flex min-h-[120px] flex-col border-b border-r border-subtle px-2.5 py-2.5 last:border-r-0 ${
+                        className={`flex min-h-[120px] flex-col border-b border-r border-[#ffffff0d] px-2.5 py-2.5 last:border-r-0 ${
                             inMonth ? 'schedule-board-cell' : 'schedule-board-cell--muted'
                         } ${canCreate ? 'cursor-pointer' : ''}`}
                     >
@@ -165,8 +165,8 @@ const MonthBoard = ({
                                     event.stopPropagation();
                                     onSelectDate(date);
                                 }}
-                                className={`schedule-interactive schedule-tone-blue inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[11px] font-black ${
-                                    activeDay ? 'bg-elevated text-current' : 'text-secondary'
+                                className={`schedule-interactive schedule-tone-blue inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[11px] font-semibold ${
+                                    activeDay ? 'bg-elevated text-current' : 'text-[#a1a1aa]'
                                 }`}
                                 data-active={activeDay}
                             >
@@ -180,7 +180,7 @@ const MonthBoard = ({
                                         event.stopPropagation();
                                         onCreateAt(date);
                                     }}
-                                    className="schedule-interactive schedule-tone-green inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-secondary"
+                                    className="schedule-interactive schedule-tone-green inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#a1a1aa]"
                                 >
                                     <Plus className="h-3.5 w-3.5" />
                                 </button>
@@ -200,13 +200,13 @@ const MonthBoard = ({
                                     style={eventStyle(event, false)}
                                 >
                                     <div className="flex items-center justify-between gap-2">
-                                        <span className="truncate text-[10px] font-black uppercase tracking-[0.16em] text-primary">{event.title}</span>
-                                        <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.16em] text-secondary">{formatTime(event.startsAt)}</span>
+                                        <span className="truncate text-[10px] font-semibold  text-[#f4f4f5]">{event.title}</span>
+                                        <span className="shrink-0 text-[10px] font-semibold  text-[#a1a1aa]">{formatTime(event.startsAt)}</span>
                                     </div>
                                 </button>
                             ))}
                             {dayEvents.length > 4 ? (
-                                <div className="text-[10px] font-black uppercase tracking-[0.16em] text-secondary">+{dayEvents.length - 4} more</div>
+                                <div className="text-[10px] font-semibold  text-[#a1a1aa]">+{dayEvents.length - 4} more</div>
                             ) : null}
                         </div>
                     </div>
@@ -231,14 +231,14 @@ const TimelineBoard = ({
 }) => (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[color:var(--schedule-board-cell)]">
         {/* Sticky day headers */}
-        <div className="sticky top-0 z-10 grid shrink-0 border-b border-subtle bg-[color:var(--schedule-board-head)]" style={{ gridTemplateColumns: `${TIMELINE_GUTTER_WIDTH}px repeat(${days.length}, minmax(${timelineDayMinWidth(days.length)}px, 1fr))`, minWidth: 1008 }}>
-            <div className="border-r border-subtle" />
+        <div className="sticky top-0 z-10 grid shrink-0 border-b border-[#ffffff0d] bg-[color:var(--schedule-board-head)]" style={{ gridTemplateColumns: `${TIMELINE_GUTTER_WIDTH}px repeat(${days.length}, minmax(${timelineDayMinWidth(days.length)}px, 1fr))`, minWidth: 1008 }}>
+            <div className="border-r border-[#ffffff0d]" />
             {days.map((day) => (
-                <div key={toDateKey(day)} className="border-r border-subtle px-3 py-2 last:border-r-0">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-secondary">
+                <div key={toDateKey(day)} className="border-r border-[#ffffff0d] px-3 py-2 last:border-r-0">
+                    <p className="text-[10px] font-semibold  text-[#a1a1aa]">
                         {day.toLocaleDateString(undefined, { weekday: 'short' })}
                     </p>
-                    <p className="mt-0.5 truncate text-[12px] font-black uppercase tracking-[0.12em] text-primary">
+                    <p className="mt-0.5 truncate text-[12px] font-semibold uppercase tracking-[0.12em] text-[#f4f4f5]">
                         {day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     </p>
                 </div>
@@ -249,9 +249,9 @@ const TimelineBoard = ({
         <div className="schedule-scroll-surface min-h-0 flex-1 overflow-auto">
             <div style={{ display: 'grid', gridTemplateColumns: `${TIMELINE_GUTTER_WIDTH}px repeat(${days.length}, minmax(${timelineDayMinWidth(days.length)}px, 1fr))`, minWidth: 1008 }}>
                 {/* Time gutter */}
-                <div className="relative border-r border-subtle">
+                <div className="relative border-r border-[#ffffff0d]">
                     {HOURS.map((hour) => (
-                        <div key={hour} className="flex h-[40px] items-start justify-end border-b border-subtle px-2.5 pt-1 text-[10px] font-black uppercase tracking-[0.16em] text-secondary">
+                        <div key={hour} className="flex h-[40px] items-start justify-end border-b border-[#ffffff0d] px-2.5 pt-1 text-[10px] font-semibold  text-[#a1a1aa]">
                             {pad(hour)}:00
                         </div>
                     ))}
@@ -262,19 +262,19 @@ const TimelineBoard = ({
                     const dayEvents = events.filter((event) => sameDay(parseDate(event.startsAt), day));
 
                     return (
-                        <div key={toDateKey(day)} className="relative border-r border-subtle last:border-r-0">
+                        <div key={toDateKey(day)} className="relative border-r border-[#ffffff0d] last:border-r-0">
                             {HOURS.map((hour) =>
                                 canCreate ? (
                                     <button
                                         key={`${toDateKey(day)}-${hour}`}
                                         type="button"
                                         onClick={(event) => onCreateAt(resolveSlotDate(day, hour, event))}
-                                        className="schedule-slot-button block h-[40px] w-full border-b border-subtle text-transparent"
+                                        className="schedule-slot-button block h-[40px] w-full border-b border-[#ffffff0d] text-transparent"
                                     >
                                         slot
                                     </button>
                                 ) : (
-                                    <div key={`${toDateKey(day)}-${hour}`} className="schedule-board-cell h-[40px] border-b border-subtle" />
+                                    <div key={`${toDateKey(day)}-${hour}`} className="schedule-board-cell h-[40px] border-b border-[#ffffff0d]" />
                                 )
                             )}
 
@@ -290,8 +290,8 @@ const TimelineBoard = ({
                                     >
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="min-w-0">
-                                                <p className="truncate text-[11px] font-black uppercase tracking-[0.14em] text-primary">{event.title}</p>
-                                                <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.16em] text-secondary">
+                                                <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">{event.title}</p>
+                                                <p className="mt-1 truncate text-[10px] font-semibold  text-[#a1a1aa]">
                                                     {formatTime(event.startsAt)} - {formatTime(event.endsAt)}
                                                 </p>
                                             </div>

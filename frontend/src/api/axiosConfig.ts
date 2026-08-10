@@ -84,7 +84,9 @@ const shouldSkipAuthRetry = (url?: string) => {
         || url.includes('/auth/google')
         || url.includes('/auth/refresh')
         || url.includes('/auth/logout')
-        || url.includes('/auth/csrf');
+        || url.includes('/auth/csrf')
+        || url.includes('/auth/qr/initiate')
+        || url.includes('/auth/qr/status/');
 };
 
 apiClient.interceptors.response.use(

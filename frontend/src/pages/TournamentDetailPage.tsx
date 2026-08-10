@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, Calendar, Clock, Loader2, Shield, Trophy, UserPlus, Users } from 'lucide-react';
-import { fetchTournament, registerPlayer } from '../features/tournaments/api';
+import { ArrowRight, Building2, Calendar, Clock, Loader2, Shield, Trophy, UserPlus, Users, X } from 'lucide-react';
+import { fetchTournament, registerPlayer, requestEntry } from '../features/tournaments/api';
 import type { TournamentDetail } from '../features/tournaments/domain';
 import { tournamentScopeLabel, tournamentVisibilityLabel } from '../features/tournaments/domain';
 import { useAuth } from '../context/AuthContext';
 import { buildLoginRedirectPath } from '../utils/authRedirect';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { apiClient } from '../api/axiosConfig';
 
 const statusTone: Record<string, string> = {
     PLANNING: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
@@ -29,9 +30,20 @@ export const TournamentDetailPage = () => {
     const isStaff = tournament?.staffAssignments?.some((s) => s.userId === user?.id && s.status === 'ACTIVE');
     const userEntry = tournament?.entries?.find((e) => e.userId === user?.id);
     const isRegistered = userEntry != null;
-    const canRegister = tournament?.participantScope === 'PLAYER' && tournament?.status === 'PLANNING' && isAuthenticated && !isRegistered;
     const entryCount = tournament?.entries?.length ?? 0;
     const fixtureCount = tournament?.fixtures?.length ?? 0;
+    const [myClubId, setMyClubId] = useState<number | null>(null);
+    const [myClubName, setMyClubName] = useState<string | null>(null);
+    const [showEntryModal, setShowEntryModal] = useState(false);
+    const [entrySubmitting, setEntrySubmitting] = useState(false);
+    const [withdrawing, setWithdrawing] = useState(false);
+    const scope = tournament?.participantScope;
+    const policy = tournament?.registrationPolicy;
+    const userClubHasEntry = myClubId != null && tournament?.entries?.some(e => e.clubId === myClubId);
+    const canRegisterPlayer = scope === 'PLAYER' && tournament?.status === 'PLANNING' && isAuthenticated && !isRegistered;
+    const canRequestClubEntry = (scope === 'CLUB' || scope === 'SQUAD') && tournament?.status === 'PLANNING' && isAuthenticated && myClubId != null && policy !== 'INVITE_ONLY' && !userClubHasEntry;
+    const isInviteOnly = policy === 'INVITE_ONLY' && tournament?.status === 'PLANNING';
+    const canWithdraw = isRegistered && tournament?.status === 'PLANNING';
 
     useEffect(() => {
         if (!id) return;
@@ -54,6 +66,18 @@ export const TournamentDetailPage = () => {
         return () => { active = false; };
     }, [id]);
 
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        apiClient.get('/clubs/my-club')
+            .then(res => {
+                if (res.data?.clubId) {
+                    setMyClubId(res.data.clubId);
+                    setMyClubName(res.data.clubName ?? null);
+                }
+            })
+            .catch(() => { /* user has no club */ });
+    }, [isAuthenticated]);
+
     const handleRegister = async () => {
         if (!isAuthenticated) {
             navigate(buildLoginRedirectPath(window.location.pathname));
@@ -69,6 +93,38 @@ export const TournamentDetailPage = () => {
             setMessage({ text: extractApiErrorMessage(err, 'Failed to register.'), type: 'error' });
         } finally {
             setRegistering(false);
+        }
+    };
+
+    const handleConfirmEntry = async () => {
+        if (!myClubId) return;
+        setEntrySubmitting(true);
+        try {
+            await requestEntry(id, { clubId: myClubId });
+            setMessage({ text: 'Entry request submitted successfully.', type: 'success' });
+            setShowEntryModal(false);
+            const data = await fetchTournament(id);
+            setTournament(data);
+        } catch (err) {
+            setMessage({ text: extractApiErrorMessage(err, 'Failed to request entry.'), type: 'error' });
+        } finally {
+            setEntrySubmitting(false);
+        }
+    };
+
+    const handleWithdraw = async () => {
+        if (!userEntry) return;
+        if (!window.confirm('Are you sure you want to withdraw your entry from this tournament?')) return;
+        setWithdrawing(true);
+        try {
+            await apiClient.post(`/tournaments/${id}/entries/${userEntry.id}/withdraw`);
+            setMessage({ text: 'Successfully withdrawn from the tournament.', type: 'success' });
+            const data = await fetchTournament(id);
+            setTournament(data);
+        } catch (err) {
+            setMessage({ text: extractApiErrorMessage(err, 'Failed to withdraw.'), type: 'error' });
+        } finally {
+            setWithdrawing(false);
         }
     };
 
@@ -120,7 +176,13 @@ export const TournamentDetailPage = () => {
                         <span className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${statusTone[tournament.status] ?? statusTone.COMPLETED}`}>
                             {tournament.status}
                         </span>
-                        {canRegister && (
+                        {isInviteOnly && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-400">
+                                <Shield className="h-3.5 w-3.5" />
+                                Invite Only
+                            </span>
+                        )}
+                        {canRegisterPlayer && (
                             <button
                                 type="button"
                                 onClick={handleRegister}
@@ -129,6 +191,27 @@ export const TournamentDetailPage = () => {
                             >
                                 {registering ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
                                 Register
+                            </button>
+                        )}
+                        {canRequestClubEntry && (
+                            <button
+                                type="button"
+                                onClick={() => setShowEntryModal(true)}
+                                className="inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                            >
+                                <Building2 className="h-4 w-4" />
+                                Request Entry
+                            </button>
+                        )}
+                        {canWithdraw && (
+                            <button
+                                type="button"
+                                onClick={handleWithdraw}
+                                disabled={withdrawing}
+                                className="inline-flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-5 py-2.5 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-60"
+                            >
+                                {withdrawing ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                                Withdraw
                             </button>
                         )}
                         {isRegistered && (
@@ -185,6 +268,13 @@ export const TournamentDetailPage = () => {
                     </div>
                 )}
 
+                {tournament.incentives && (
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-5 py-4">
+                        <p className="text-xs font-medium text-emerald-400">Incentives &amp; Prizes</p>
+                        <p className="mt-2 whitespace-pre-wrap text-sm text-emerald-400/80">{tournament.incentives}</p>
+                    </div>
+                )}
+
                 {tournament.rules && (
                     <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d] px-5 py-4">
                         <p className="text-xs font-medium text-[#a1a1aa]">Rules</p>
@@ -192,6 +282,51 @@ export const TournamentDetailPage = () => {
                     </div>
                 )}
             </div>
+
+            {/* Entry Request Modal */}
+            {showEntryModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowEntryModal(false)}>
+                    <div className="bg-[#16181d] border border-[#ffffff0d] rounded-xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-semibold text-[#f4f4f5]">Request Tournament Entry</h3>
+                            <button onClick={() => setShowEntryModal(false)} className="text-[#71717a] hover:text-[#a1a1aa]">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <p className="text-xs text-[#a1a1aa] mb-4">
+                            Submit an entry request for <span className="text-[#f4f4f5] font-medium">{tournament.name}</span>.
+                            {scope === 'CLUB' && ' This is a club-level tournament.'}
+                            {scope === 'SQUAD' && ' This is a squad-level tournament.'}
+                        </p>
+                        <div className="rounded-xl border border-[#ffffff0d] bg-[#0f1117] px-4 py-3 mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-[rgba(255,255,255,0.06)] flex items-center justify-center shrink-0">
+                                    <Building2 className="w-4 h-4 text-[#16a34a]" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-[#f4f4f5]">{myClubName || 'Your Club'}</p>
+                                    <p className="text-xs text-[#71717a]">{scope === 'SQUAD' ? 'Entering with default squad' : 'Club entry'}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setShowEntryModal(false)}
+                                className="px-4 py-2 text-xs font-medium text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmEntry}
+                                disabled={entrySubmitting}
+                                className="px-4 py-2 text-xs font-semibold bg-[#16a34a] text-white rounded-xl hover:bg-[#22c55e] disabled:opacity-50 transition-colors"
+                            >
+                                {entrySubmitting ? 'Submitting...' : 'Submit Entry Request'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

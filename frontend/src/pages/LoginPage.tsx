@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
-import { Shield, ArrowLeft, Loader2, AlertCircle, FlaskConical } from 'lucide-react';
+import { Shield, ArrowLeft, Loader2, AlertCircle, FlaskConical, QrCode } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
+import { QrLoginSection } from '../components/auth/QrLoginSection';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { resolvePostAuthRedirect } from '../utils/authRedirect';
 
@@ -25,6 +26,7 @@ export const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [showQr, setShowQr] = useState(false);
     const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '/feed');
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -64,6 +66,10 @@ export const LoginPage = () => {
 
                 <div className="theme-surface theme-border border shadow-2xl p-8 rounded-xl">
 
+                    {showQr ? (
+                        <QrLoginSection onBack={() => setShowQr(false)} />
+                    ) : (
+                        <>
                     {error && (
                         <div className="mb-6 border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)] flex items-center gap-2">
                             <AlertCircle className="w-5 h-5 shrink-0" /> {error}
@@ -108,11 +114,20 @@ export const LoginPage = () => {
 
                     <div className="my-8 flex items-center gap-4">
                         <div className="h-px bg-[color:#ffffff0d] flex-1"></div>
-                        <span className="text-[10px] font-semibold  text-muted">Or bypass with</span>
+                        <span className="text-[10px] font-semibold  text-muted">Or continue with</span>
                         <div className="h-px bg-[color:#ffffff0d] flex-1"></div>
                     </div>
 
-                    <div className="flex justify-center w-full">
+                    <div className="flex flex-col gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setShowQr(true)}
+                            className="w-full flex items-center justify-center gap-2 rounded-xl border border-[color:var(--accent-muted-soft)] px-4 py-2.5 text-xs font-semibold text-[var(--fc-text-primary)] hover:bg-[var(--fc-surface-hover)] transition-colors"
+                        >
+                            <QrCode className="h-4 w-4 text-[var(--fc-accent)]" />
+                            Sign in with QR Code
+                        </button>
+
                         <GoogleLogin
                             theme="filled_black"
                             size="large"
@@ -188,6 +203,8 @@ export const LoginPage = () => {
                             </div>
                         </>
                     )}
+                </>
+            )}
                 </div>
 
                 <p className="text-center mt-8 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa]">

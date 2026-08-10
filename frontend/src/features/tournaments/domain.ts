@@ -49,6 +49,7 @@ export interface CreateTournamentPayload {
     registrationOpensAt?: string | null;
     registrationClosesAt?: string | null;
     locationId?: number | null;
+    incentives?: string | null;
 }
 
 export interface TournamentStaffAssignmentDto {
@@ -146,6 +147,7 @@ export interface TournamentDetail {
     entries: TournamentEntryDto[];
     stages: TournamentStageDto[];
     fixtures: TournamentFixtureDto[];
+    incentives?: string | null;
 }
 
 export interface RequestTournamentEntryPayload {
@@ -193,6 +195,7 @@ export interface TournamentSummary {
     registrationOpensAt?: string | null;
     registrationClosesAt?: string | null;
     entryCount: number;
+    incentives?: string | null;
 }
 
 export type TournamentInvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
@@ -243,6 +246,7 @@ export interface UpdateTournamentPayload {
     endDate?: string | null;
     registrationOpensAt?: string | null;
     registrationClosesAt?: string | null;
+    incentives?: string | null;
 }
 
 export interface PageResult<T> {

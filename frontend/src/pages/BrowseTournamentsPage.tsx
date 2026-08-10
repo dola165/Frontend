@@ -1,23 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Calendar, Check, Loader2, Search, Trophy, UserPlus, Users } from 'lucide-react';
+import { LayoutGrid, LayoutList, Loader2, Search, Trophy } from 'lucide-react';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { fetchTournaments, registerPlayer } from '../features/tournaments/api';
 import { PaginationBar } from '../components/ui/PaginationBar';
+import { TournamentCard } from '../components/tournaments/TournamentCard';
+import { TournamentListCard } from '../components/tournaments/TournamentListCard';
 import type { TournamentSummary } from '../features/tournaments/domain';
-import { tournamentScopeLabel, tournamentVisibilityLabel } from '../features/tournaments/domain';
 import { useAuth } from '../context/AuthContext';
 import { buildLoginRedirectPath } from '../utils/authRedirect';
 
-const statusTone: Record<string, string> = {
-    PLANNING: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-    ACTIVE: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    COMPLETED: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-    CANCELLED: 'bg-red-500/10 text-red-400 border-red-500/20',
-};
-
-const inputClass = 'w-full rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3 text-sm text-[#f4f4f5] outline-none transition-colors placeholder:text-[#a1a1aa] focus:ring-1 focus:ring-[#16a34a]';
-const selectClass = 'rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3 text-sm font-medium text-[#f4f4f5] outline-none transition-colors focus:ring-1 focus:ring-[#16a34a]';
+const inputClass = 'w-full rounded-xl border border-[#ffffff0d] bg-[#16181d] px-4 py-3 text-sm text-[#f4f4f5] outline-none transition-colors placeholder:text-[#a1a1aa] focus:ring-1 focus:ring-[#16a34a]';
+const selectClass = 'rounded-xl border border-[#ffffff0d] bg-[#16181d] px-4 py-3 text-sm font-medium text-[#f4f4f5] outline-none transition-colors focus:ring-1 focus:ring-[#16a34a]';
 
 export const BrowseTournamentsPage = () => {
     const navigate = useNavigate();
@@ -35,6 +29,13 @@ export const BrowseTournamentsPage = () => {
     const [registeredIds, setRegisteredIds] = useState<Set<number>>(new Set());
     const [message, setMessage] = useState<string | null>(null);
     const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
+        try {
+            return (localStorage.getItem('tournament-view-mode') as 'list' | 'grid') || 'list';
+        } catch {
+            return 'list';
+        }
+    });
 
     const showMessage = (text: string, type: 'success' | 'error') => {
         setMessage(text);
@@ -64,6 +65,14 @@ export const BrowseTournamentsPage = () => {
         void loadTournaments();
     }, [loadTournaments]);
 
+    useEffect(() => {
+        try {
+            localStorage.setItem('tournament-view-mode', viewMode);
+        } catch {
+            /* noop — localStorage may be unavailable */
+        }
+    }, [viewMode]);
+
     const handleRegister = async (tournamentId: number) => {
         if (!isAuthenticated) {
             navigate(buildLoginRedirectPath(window.location.pathname));
@@ -87,7 +96,7 @@ export const BrowseTournamentsPage = () => {
 
     return (
         <div className="min-h-full bg-[#0f1117] text-[#f4f4f5] selection:bg-[#16a34a]/20">
-            <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+            <div className="mx-auto flex w-full flex-col gap-6 px-6 py-6 sm:px-8">
                 {/* Header */}
                 <div className="flex items-start justify-between">
                     <div>
@@ -138,6 +147,34 @@ export const BrowseTournamentsPage = () => {
                         <option value="ACTIVE">Active</option>
                         <option value="COMPLETED">Completed</option>
                     </select>
+
+                    {/* View toggle */}
+                    <div className="ml-auto flex rounded-xl border border-[#ffffff0d] bg-[#16181d] p-0.5">
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('list')}
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+                                viewMode === 'list'
+                                    ? 'bg-[#16a34a] text-white'
+                                    : 'text-[#a1a1aa] hover:text-[#f4f4f5]'
+                            }`}
+                            aria-label="List view"
+                        >
+                            <LayoutList className="h-4 w-4" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('grid')}
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+                                viewMode === 'grid'
+                                    ? 'bg-[#16a34a] text-white'
+                                    : 'text-[#a1a1aa] hover:text-[#f4f4f5]'
+                            }`}
+                            aria-label="Grid view"
+                        >
+                            <LayoutGrid className="h-4 w-4" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Error */}
@@ -164,98 +201,26 @@ export const BrowseTournamentsPage = () => {
                     </div>
                 ) : (
                     <>
-                        {/* Grid of cards */}
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {displayTournaments.map((t) => (
-                                <Link
-                                    key={t.id}
-                                    to={`/tournaments/${t.id}`}
-                                    className="group flex flex-col rounded-xl border border-[#ffffff0d] bg-[#16181d] p-5 transition-all hover:border-[#16a34a]"
-                                >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#ffffff0d] bg-[var(--fc-surface-hover)] text-[#16a34a]">
-                                            <Trophy className="h-5 w-5" />
-                                        </div>
-                                        <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusTone[t.status] ?? statusTone.COMPLETED}`}>
-                                            {t.status}
-                                        </span>
-                                    </div>
-
-                                    <h3 className="mt-4 text-base font-semibold text-[#f4f4f5] group-hover:text-[#16a34a] transition-colors">
-                                        {t.name}
-                                    </h3>
-
-                                    {t.description && (
-                                        <p className="mt-2 line-clamp-2 text-sm text-[#a1a1aa]">
-                                            {t.description}
-                                        </p>
-                                    )}
-
-                                    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[#a1a1aa]">
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--fc-surface-hover)] px-2.5 py-1">
-                                            {t.participantScope === 'PLAYER' ? <UserPlus className="h-3 w-3" /> : <Users className="h-3 w-3" />}
-                                            {tournamentScopeLabel(t.participantScope)}
-                                        </span>
-                                        <span className="rounded-full bg-[var(--fc-surface-hover)] px-2.5 py-1">
-                                            {tournamentVisibilityLabel(t.visibility)}
-                                        </span>
-                                        {t.entryCount > 0 && (
-                                            <span className="rounded-full bg-[var(--fc-surface-hover)] px-2.5 py-1">
-                                                {t.entryCount} entries
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {t.hostClubName && (
-                                        <p className="mt-3 text-xs text-[#a1a1aa]">
-                                            Hosted by {t.hostClubName}
-                                        </p>
-                                    )}
-
-                                    {t.startDate && (
-                                        <div className="mt-3 flex items-center gap-1.5 text-xs text-[#a1a1aa]">
-                                            <Calendar className="h-3.5 w-3.5" />
-                                            <span>{new Date(t.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                                            {t.endDate && (
-                                                <span>— {new Date(t.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    <div className="mt-5 flex items-center gap-2 pt-3">
-                                        <span className="flex-1 text-sm font-medium text-[#16a34a] group-hover:underline">
-                                            View Event
-                                            <ArrowRight className="ml-1.5 inline-block h-4 w-4" />
-                                        </span>
-                                        {t.participantScope === 'PLAYER' && t.status === 'PLANNING' && (
-                                            registeredIds.has(t.id) ? (
-                                                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-400">
-                                                    <Check className="h-3.5 w-3.5" />
-                                                    Registered
-                                                </span>
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        handleRegister(t.id);
-                                                    }}
-                                                    disabled={registeringId === t.id}
-                                                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#16a34a] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-                                                >
-                                                    {registeringId === t.id ? (
-                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                    ) : (
-                                                        <UserPlus className="h-3.5 w-3.5" />
-                                                    )}
-                                                    Register
-                                                </button>
-                                            )
-                                        )}
-                                    </div>
-                                </Link>
-                            ))}
+                        <div className={viewMode === 'grid' ? 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-4'}>
+                            {displayTournaments.map((t) =>
+                                viewMode === 'grid' ? (
+                                    <TournamentCard
+                                        key={t.id}
+                                        tournament={t}
+                                        isRegistered={registeredIds.has(t.id)}
+                                        isRegistering={registeringId === t.id}
+                                        onRegister={handleRegister}
+                                    />
+                                ) : (
+                                    <TournamentListCard
+                                        key={t.id}
+                                        tournament={t}
+                                        isRegistered={registeredIds.has(t.id)}
+                                        isRegistering={registeringId === t.id}
+                                        onRegister={handleRegister}
+                                    />
+                                )
+                            )}
                         </div>
 
                         <PaginationBar

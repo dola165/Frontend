@@ -159,4 +159,37 @@ export const authHandlers: HttpHandler[] = [
     await simulateLatency();
     return HttpResponse.json({ revokedCount: 0 });
   }),
+
+  // ── QR Code Login ─────────────────────────────────────────────────────
+
+  // QR initiate
+  http.post(`${API}/auth/qr/initiate`, async () => {
+    await simulateLatency();
+    return HttpResponse.json({
+      sessionCode: 'mock-qr-session-abc123def456',
+      pollToken: 'mock-poll-token-xyz789',
+      expiresIn: 120,
+    });
+  }),
+
+  // QR status (auto-confirms after ~5 polls for demo)
+  http.get(`${API}/auth/qr/status/:code`, async () => {
+    await simulateLatency();
+    const prev = (typeof globalThis !== 'undefined' && (globalThis as any).__qrPollCount) || 0;
+    const count = prev + 1;
+    if (typeof globalThis !== 'undefined') (globalThis as any).__qrPollCount = count;
+
+    if (count >= 5) {
+      if (typeof globalThis !== 'undefined') (globalThis as any).__qrPollCount = 0;
+      const token = makeToken(currentUserId() ?? 1, 'PLAYER');
+      return HttpResponse.json({ status: 'CONFIRMED', accessToken: token, expiresIn: 900 });
+    }
+    return HttpResponse.json({ status: 'PENDING', expiresIn: 120 - count * 2 });
+  }),
+
+  // QR confirm (phone)
+  http.post('/api/qr/confirm', async () => {
+    await simulateLatency();
+    return HttpResponse.json({ confirmed: true });
+  }),
 ];

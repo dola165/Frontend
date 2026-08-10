@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { Loader2, PencilLine } from 'lucide-react';
 
 interface ScheduleToolbarStat {
     label: string;
@@ -13,6 +13,9 @@ interface ScheduleToolbarProps {
     stats: ScheduleToolbarStat[];
     scheduleBusy: boolean;
     onViewModeChange: (view: 'month' | 'week' | 'day') => void;
+    editMode: boolean;
+    onToggleEditMode: () => void;
+    canEdit: boolean;
 }
 
 const VIEW_OPTIONS = [
@@ -27,7 +30,10 @@ export const ScheduleToolbar = ({
     viewMode,
     stats,
     scheduleBusy,
-    onViewModeChange
+    onViewModeChange,
+    editMode,
+    onToggleEditMode,
+    canEdit
 }: ScheduleToolbarProps) => {
     const statToneClass: Record<NonNullable<ScheduleToolbarStat['tone']>, string> = {
         green: 'schedule-tone-green',
@@ -42,6 +48,20 @@ export const ScheduleToolbar = ({
             <div className="flex items-center gap-4">
                 <span className="text-xs font-semibold text-[var(--fc-text-primary)]">{workspaceLabel}</span>
                 <span className="text-xs text-[var(--fc-text-secondary)]">{rangeLabel}</span>
+                {canEdit && (
+                    <button
+                        type="button"
+                        onClick={onToggleEditMode}
+                        className={`inline-flex h-8 items-center gap-1.5 rounded-[4px] border px-2.5 text-[11px] font-black uppercase tracking-[0.14em] transition-all ${
+                            editMode
+                                ? 'schedule-tone-green border-[var(--fc-accent)] bg-[var(--fc-accent-soft)] text-[var(--fc-accent)]'
+                                : 'schedule-tone-blue border-[var(--fc-border)] bg-transparent text-[var(--fc-text-muted)] hover:border-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]'
+                        }`}
+                    >
+                        <PencilLine className="h-3.5 w-3.5" />
+                        {editMode ? 'Edit Mode' : 'Edit Mode'}
+                    </button>
+                )}
             </div>
 
             <div className="flex items-center gap-3">

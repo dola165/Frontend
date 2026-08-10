@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import { PaginationBar, PaginationTopBar } from '../components/ui/PaginationBar';
 import { PageSpinner } from '../components/workspace/helpers';
 import { EmptyStateCard } from '../components/workspace/EmptyStateCard';
+import { AvatarCell } from '../components/workspace/AvatarCell';
+import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 
 interface MarketplacePlayer {
     listingId: number;
@@ -190,13 +192,11 @@ export const MarketplacePage = () => {
                                 >
                                     {/* Player identity */}
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-full bg-[rgba(255,255,255,0.06)] flex items-center justify-center shrink-0 text-sm font-semibold text-[#a1a1aa]">
-                                            {player.avatarUrl ? (
-                                                <img src={player.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
-                                            ) : (
-                                                (player.fullName || '?')[0].toUpperCase()
-                                            )}
-                                        </div>
+                                        <AvatarCell
+                                            avatarUrl={resolveMediaUrl(player.avatarUrl)}
+                                            fallback={player.fullName || player.username || '?'}
+                                            size="md"
+                                        />
                                         <div className="min-w-0">
                                             <p className="text-sm font-semibold text-[#f4f4f5] truncate">{player.fullName}</p>
                                             <p className="text-xs text-[#71717a]">

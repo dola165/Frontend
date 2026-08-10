@@ -45,17 +45,16 @@ export const NeedsBoardPage = () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await apiClient.get<ClubNeed[]>('/agents/player-needs', {
+            const res = await apiClient.get<{ content: ClubNeed[]; totalElements: number }>('/agents/player-needs', {
                 params: {
                     needType: typeFilter === 'ALL' ? undefined : typeFilter,
                     page,
                     size: pageSize
                 }
             });
-            // Backend returns a plain list; derive pagination info
-            const data = Array.isArray(res.data) ? res.data : [];
+            const data = res.data?.content ?? [];
             setNeeds(data);
-            setTotalElements(data.length >= pageSize ? (page + 2) * pageSize : data.length);
+            setTotalElements(res.data?.totalElements ?? 0);
         } catch (err) {
             console.error('Failed to load player needs', err);
             setError('Could not load club needs.');

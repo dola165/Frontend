@@ -130,6 +130,31 @@ const decoConflict = (per: SEvent[], club: SEvent[]) =>
         return { ...ev, conflict: { sourceEventId: src.id, sourceTitle: src.title, overlapMinutes: om, severity: sev, explanation: `Overlaps with ${src.title} for ${om} minutes.` } };
     });
 
+const toUpsert = (ev: SEvent): ScheduleEventUpsertInput => ({
+    title: ev.title,
+    description: ev.description,
+    eventType: ev.eventType,
+    startsAt: ev.startsAt,
+    endsAt: ev.endsAt,
+    visibility: ev.visibility === 'CLUB_ONLY' ? 'PRIVATE' : ev.visibility as ScheduleEventUpsertInput['visibility'],
+    publishAt: ev.publishAt ?? null,
+    locationName: ev.locationText ?? null,
+    locationLat: ev.locationLat ?? null,
+    locationLng: ev.locationLng ?? null,
+    opponentClubId: ev.opponentClubId ?? null,
+    hostSquadId: null,
+    recurrence: ev.recurring && ev.recurrence ? {
+        frequency: 'WEEKLY',
+        intervalValue: ev.recurrence.intervalValue ?? 1,
+        daysOfWeek: ev.recurrence.daysOfWeek,
+        startDate: ev.recurrence.startDate,
+        endDate: ev.recurrence.endDate ?? null,
+        startTime: ev.recurrence.startTime,
+        endTime: ev.recurrence.endTime,
+        timezone: ev.recurrence.timezone ?? 'UTC',
+    } : null,
+});
+
 export const CalendarPage = ({}: CalendarPageProps) => {
     const navigate = useNavigate();
     const colRef = useRef<HTMLDivElement | null>(null);
@@ -147,6 +172,8 @@ export const CalendarPage = ({}: CalendarPageProps) => {
     const [clubEv, setClubEv] = useState<SEvent[]>([]);
     const [perRaw, setPerRaw] = useState<SEvent[]>([]);
     const [rk, setRk] = useState(0);
+    const [editMode, setEditMode] = useState(false);
+    const [localOverrides, setLocalOverrides] = useState<Map<number, { startsAt: string; endsAt: string }>>(new Map());
 
     const [modal, setModal] = useState(false);
     const [mmode, setMmode] = useState<'create' | 'edit'>('create');
@@ -227,8 +254,12 @@ export const CalendarPage = ({}: CalendarPageProps) => {
         active.filter((e) => etypes.includes(e.eventType))
             .filter((e) => ix(e, vr.s, vr.e))
             .filter((e) => surface === 'CLUB_SCHEDULE' ? (!pubOnly || isPub(e)) : true)
+            .map((e) => {
+                const ov = localOverrides.get(e.eventId);
+                return ov ? { ...e, startsAt: ov.startsAt, endsAt: ov.endsAt } : e;
+            })
             .sort((a, b) => parseD(a.startsAt).getTime() - parseD(b.startsAt).getTime()),
-        [active, etypes, pubOnly, vr, surface]);
+        [active, etypes, pubOnly, vr, surface, localOverrides]);
 
     const monthE = useMemo(() => filtered.reduce<Record<string, SEvent[]>>((acc, e) => {
         const k = dk(parseD(e.startsAt));
@@ -286,6 +317,51 @@ export const CalendarPage = ({}: CalendarPageProps) => {
             setActN({ tone: 'success', message: 'Event updated.' });
         }
         setModal(false); setRk((k) => k + 1);
+    };
+
+    const handleEventDragEnd = async (eventId: number, newStartsAt: string, newEndsAt: string) => {
+        const event = filtered.find((e) => e.eventId === eventId);
+        if (!event) return;
+
+        // Recurring: show confirmation
+        if (event.recurring && !window.confirm(
+            `"${event.title}" is part of a recurring series. Moving this occurrence will update only this instance. Continue?`
+        )) {
+            setEditMode(false);
+            return;
+        }
+
+        // Save original for rollback
+        const original = { startsAt: event.startsAt, endsAt: event.endsAt };
+
+        // Optimistic update
+        setLocalOverrides((prev) => {
+            const next = new Map(prev);
+            next.set(eventId, { startsAt: newStartsAt, endsAt: newEndsAt });
+            return next;
+        });
+
+        try {
+            const payload = toUpsert(event);
+            payload.startsAt = newStartsAt;
+            payload.endsAt = newEndsAt;
+            await updateScheduleEvent(eventId, payload);
+            setActN({ tone: 'success', message: 'Event time updated.' });
+            // Clear override and re-fetch
+            setLocalOverrides(new Map());
+            setRk((k) => k + 1);
+        } catch (error) {
+            // Revert optimistic update
+            setLocalOverrides((prev) => {
+                const next = new Map(prev);
+                next.delete(eventId);
+                return next;
+            });
+            setActN({
+                tone: 'error',
+                message: extractApiErrorMessage(error, 'Could not update event time.')
+            });
+        }
     };
 
     const stats: Array<{ label: string; value: string; tone: 'green' | 'blue' | 'purple' | 'pink' | 'neutral' }> = [
@@ -384,6 +460,9 @@ export const CalendarPage = ({}: CalendarPageProps) => {
                             stats={stats}
                             scheduleBusy={busy}
                             onViewModeChange={setVm}
+                            editMode={editMode}
+                            onToggleEditMode={() => setEditMode((p) => !p)}
+                            canEdit={canCreate}
                         />
                         {actN && <NoticeBanner notice={actN} />}
                         {loadN && <NoticeBanner notice={{ tone: 'warning', message: loadN }} />}
@@ -404,6 +483,8 @@ export const CalendarPage = ({}: CalendarPageProps) => {
                                     monthEvents={monthE} days={weekDays} events={filtered}
                                     onSelectDate={setCursor} onEditEvent={openEdit}
                                     canCreate={canCreate} onCreateAt={(d) => openCreate(d)}
+                                    editMode={editMode}
+                                    onEventDragEnd={handleEventDragEnd}
                                 />
                             )}
                         </div>

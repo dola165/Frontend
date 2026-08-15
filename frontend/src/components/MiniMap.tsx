@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import Map, { Marker, useMap } from 'react-map-gl/mapbox';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import { useEffect, useState } from 'react';
+import Map, { Marker, useMap } from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { Expand, Map as MapIcon, Shrink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MapHelpHint } from './map/MapHelpHint';
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+const MINI_MAP_STYLE = 'https://tiles.openfreemap.org/styles/dark';
 
 type MapPoint = [number, number];
 
@@ -44,12 +44,11 @@ export function MiniMap({
     const [expanded, setExpanded] = useState(false);
     const navigate = useNavigate();
 
-    const selectedPoint = useMemo<MapPoint | null>(() => {
-        if (selectedLocation?.lat == null || selectedLocation?.lng == null) {
-            return null;
-        }
-        return [selectedLocation.lat, selectedLocation.lng];
-    }, [selectedLocation?.lat, selectedLocation?.lng]);
+    const selectedLat = selectedLocation?.lat;
+    const selectedLng = selectedLocation?.lng;
+    const selectedPoint: MapPoint | null = selectedLat != null && selectedLng != null
+        ? [selectedLat, selectedLng]
+        : null;
 
     const center = selectedPoint ?? initialCenter;
     const previewTitle = title ?? (mode === 'picker' ? 'Venue Picker' : 'Explore Nearby');
@@ -97,14 +96,13 @@ export function MiniMap({
                 }`}
             >
                 <Map
-                    mapboxAccessToken={MAPBOX_TOKEN}
                     initialViewState={{
                         latitude: center[0],
                         longitude: center[1],
                         zoom: selectedPoint ? 13 : 11
                     }}
                     style={{ width: '100%', height: '100%' }}
-                    mapStyle="mapbox://styles/mapbox/dark-v11"
+                    mapStyle={MINI_MAP_STYLE}
                     dragPan={true}
                     scrollZoom={true}
                     cursor={pickerEnabled ? 'crosshair' : undefined}

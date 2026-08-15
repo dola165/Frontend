@@ -1,6 +1,6 @@
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import MapGL, { Layer, Marker, Source, GeolocateControl, NavigationControl, useMap } from 'react-map-gl/mapbox';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import MapGL, { Layer, Marker, Source, GeolocateControl, NavigationControl, useMap } from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { useNavigate } from 'react-router-dom';
 import {
     Building2,
@@ -21,13 +21,22 @@ import {
 import { apiClient, API_ORIGIN } from '../api/axiosConfig';
 import { fetchNearbyMap, type MapMarkerDto } from '../api/map';
 import { MapHelpHint } from '../components/map/MapHelpHint';
+import { MapModeControl } from '../components/map/MapModeControl';
 import { MapFilterSidebar, defaultMapFilters, type MapEntityType, type MapFilters } from '../components/map/MapFilterSidebar';
 import { useAuth } from '../context/AuthContext';
 import { fetchMyClubMembershipContext } from '../features/clubs/api';
 import { isLeadershipRole } from '../features/clubs/domain';
 import { createScheduleChallenge, type ScheduleEventOccurrence } from '../features/schedule/api';
+import { usePersistedState } from '../utils/usePersistedState';
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+// Map v2 (WEB_APP_MASTER_PLAN.md §3): three user-selectable modes. FLAT is the
+// default — the fastest, cleanest option. GLOBE renders the Liberty style on a
+// real globe projection; TILTED mirrors Android's MapTiler streets + 45° tilt.
+const STYLE_FLAT = 'https://tiles.openfreemap.org/styles/liberty';
+const STYLE_TILTED = (key: string) => `https://api.maptiler.com/maps/streets-v2/style.json?key=${key}`;
+const MAPTILER_API_KEY = import.meta.env.VITE_MAPTILER_API_KEY as string | undefined;
+
+export type MapMode = 'flat' | 'globe' | 'tilted';
 
 type DerivedGender = 'Boys' | 'Girls' | 'Men' | 'Women' | 'Mixed';
 type DerivedLevel = 'Youth' | 'Academy' | 'Amateur' | 'Grassroots';
@@ -50,6 +59,7 @@ interface ClubDirectoryRecord {
     latitude?: number | null;
     longitude?: number | null;
     logoUrl?: string | null;
+    joinPolicy?: string | null;
 }
 
 interface ClubProfileSummary extends ClubDirectoryRecord {
@@ -92,6 +102,7 @@ interface DiscoveryRecord {
     city: string | null;
     country: string | null;
     searchText: string;
+    joinPolicy: string | null;
     rawEvent?: ScheduleEventOccurrence;
     rawMapMarker?: MapMarkerDto;
 }
@@ -212,7 +223,8 @@ const buildClubRecord = (club: ClubDirectoryRecord): DiscoveryRecord => {
         travelPreference: null,
         city,
         country,
-        searchText: joinSearchText(club.name, club.description, club.addressText, club.type)
+        searchText: joinSearchText(club.name, club.description, club.addressText, club.type),
+        joinPolicy: club.joinPolicy ?? null
     };
 };
 
@@ -255,6 +267,7 @@ const buildMapMarkerRecord = (marker: MapMarkerDto): DiscoveryRecord => {
         city: city || null,
         country: country || null,
         searchText: [marker.title, marker.subtitle, marker.clubName, marker.addressText, marker.ageGroup].filter(Boolean).join(' ').toLowerCase(),
+        joinPolicy: marker.joinPolicy ?? null,
         rawMapMarker: marker
     };
 };
@@ -760,7 +773,7 @@ const DiscoveryDetailPanel = ({
 
 export const MapPage = () => {
     const navigate = useNavigate();
-    const { status } = useAuth();
+    const { status, user } = useAuth();
     const [filters, setFilters] = useState<MapFilters>(defaultMapFilters);
     const [fetchVersion, setFetchVersion] = useState(0);
     const triggerFetch = useCallback(() => setFetchVersion((v) => v + 1), []);
@@ -779,6 +792,31 @@ export const MapPage = () => {
     const [currentPage, _setCurrentPage] = useState(0);
     const [_hasMorePages, setHasMorePages] = useState(false);
     const [membership, setMembership] = useState<{ clubId?: number | null; clubName?: string | null; myRole?: string | null } | null>(null);
+    const [mapMode, setMapMode] = usePersistedState<MapMode>('map.mapMode', 'flat');
+    const [modeWarningDismissed, setModeWarningDismissed] = usePersistedState<boolean>('map.modeWarningDismissed', false);
+    const [pendingMode, setPendingMode] = useState<MapMode | null>(null);
+
+    // Role-based categories (WEB_APP_MASTER_PLAN.md §3.3): restricted viewers
+    // (anonymous, PLAYER, FAN) only get CLUB + TRYOUT; organizers, agents, and
+    // club staff additionally get MATCH + TOURNAMENT. The backend re-clamps
+    // server-side — this is the UX half.
+    const ALL_MAP_TYPES: MapEntityType[] = ['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT'];
+    const viewerAllowedTypes = useMemo<MapEntityType[]>(() => {
+        const fullAccess = user?.role === 'ORGANIZER' || user?.role === 'AGENT' || user?.role === 'CLUB_ADMIN'
+            || (membership?.myRole != null && ['OWNER', 'CLUB_ADMIN', 'COACH'].includes(membership.myRole));
+        return fullAccess ? ALL_MAP_TYPES : ['CLUB', 'TRYOUT'];
+    }, [user?.role, membership?.myRole]);
+
+    useEffect(() => {
+        setFilters((current) => {
+            const clamped = current.entityType.filter((t) => viewerAllowedTypes.includes(t));
+            const next = clamped.length > 0 ? clamped : viewerAllowedTypes;
+            if (next.length === current.entityType.length && next.every((t, i) => t === current.entityType[i])) {
+                return current;
+            }
+            return { ...current, entityType: next };
+        });
+    }, [viewerAllowedTypes]);
     const [selectedKey, setSelectedKey] = useState<string | null>(null);
     const [activeClusterKey, setActiveClusterKey] = useState<string | null>(null);
     const [clubProfiles, setClubProfiles] = useState<Record<number, ClubProfileSummary>>({});
@@ -949,6 +987,7 @@ export const MapPage = () => {
 
             if (record.entityType === 'CLUB') {
                 if (filters.clubs.officialOnly && !record.official) return false;
+                if (filters.clubs.openTryoutsOnly && record.joinPolicy === 'INVITE_ONLY') return false;
                 return true;
             }
 
@@ -1212,18 +1251,29 @@ export const MapPage = () => {
             {!initialLoad && !error && (
                 <div className="map-canvas-frame absolute inset-0 z-0 overflow-hidden border-0 rounded-none">
                     <MapGL
-                        mapboxAccessToken={MAPBOX_TOKEN}
                         initialViewState={{
                             latitude: DEFAULT_CENTER[0],
                             longitude: DEFAULT_CENTER[1],
                             zoom: 8,
-                            pitch: 45,
-                            bearing: -17
+                            pitch: mapMode === 'tilted' ? 45 : 0,
+                            bearing: mapMode === 'tilted' ? -17 : 0
                         }}
                         style={{ width: '100%', height: '100%' }}
-                        mapStyle="mapbox://styles/mapbox/navigation-night-v1"
-                        projection="globe"
-                        renderWorldCopies={false}
+                        mapStyle={mapMode === 'tilted' && MAPTILER_API_KEY ? STYLE_TILTED(MAPTILER_API_KEY) : STYLE_FLAT}
+                        onLoad={(evt) => {
+                            // MapLibre v5: drive the projection imperatively (react-map-gl 8
+                            // does not forward a projection prop).
+                            try {
+                                evt.target.setProjection({ type: mapMode === 'globe' ? 'globe' : 'mercator' });
+                            } catch {
+                                /* projection unsupported — stay mercator */
+                            }
+                            if (mapMode === 'tilted') {
+                                evt.target.easeTo({ pitch: 45, bearing: -17, duration: 400 });
+                            } else {
+                                evt.target.easeTo({ pitch: 0, bearing: 0, duration: 400 });
+                            }
+                        }}
                         onMoveEnd={(evt) => {
                             const center = evt.target.getCenter();
                             setViewportCenter([Number(center.lat.toFixed(6)), Number(center.lng.toFixed(6))]);
@@ -1232,20 +1282,6 @@ export const MapPage = () => {
                     >
                         <MapFocusController target={focusTarget} onSettled={handleFocusSettled} />
                         <MapSizeGuard layoutSignature={layoutSignature} />
-                        <Source id="buildings" type="vector" url="mapbox://mapbox.mapbox-streets-v8">
-                            <Layer
-                                id="buildings-3d"
-                                type="fill-extrusion"
-                                source-layer="building"
-                                minzoom={13.5}
-                                paint={{
-                                    'fill-extrusion-color': '#1a1a2e',
-                                    'fill-extrusion-height': ['get', 'height'],
-                                    'fill-extrusion-base': ['get', 'min_height'],
-                                    'fill-extrusion-opacity': 0.5
-                                }}
-                            />
-                        </Source>
                         {radiusVignette && (
                             <Source id="radius-vignette" type="geojson" data={radiusVignette}>
                                 <Layer
@@ -1261,11 +1297,29 @@ export const MapPage = () => {
                             </Source>
                         )}
                         <NavigationControl position="bottom-right" />
+                        <MapModeControl
+                            mode={mapMode}
+                            tiltedAvailable={Boolean(MAPTILER_API_KEY)}
+                            pendingMode={pendingMode}
+                            onRequestMode={(next) => {
+                                if (next === 'flat' || modeWarningDismissed) {
+                                    setPendingMode(null);
+                                    setMapMode(next);
+                                    return;
+                                }
+                                setPendingMode(next);
+                            }}
+                            onConfirmMode={() => {
+                                if (pendingMode) setMapMode(pendingMode);
+                                setPendingMode(null);
+                            }}
+                            onDismissWarning={(dismissed) => setModeWarningDismissed(dismissed)}
+                            onCancelWarning={() => setPendingMode(null)}
+                        />
                         <GeolocateControl
                             position="bottom-right"
                             positionOptions={{ enableHighAccuracy: true }}
                             trackUserLocation={true}
-                            showUserHeading={true}
                         />
                         {mapClusters.map((cluster) => {
                             const primaryRecord = cluster.records[0];
@@ -1322,6 +1376,7 @@ export const MapPage = () => {
                     isVisible={isFilterOpen}
                     filters={filters}
                     onFiltersChange={setFilters}
+                    allowedEntityTypes={viewerAllowedTypes}
                     onClose={() => setIsFilterOpen(false)}
                 />
 

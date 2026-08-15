@@ -1,6 +1,6 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
-import Map, { Layer, Marker, Source, NavigationControl, GeolocateControl, useMap } from 'react-map-gl/mapbox';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import Map, { Marker, NavigationControl, GeolocateControl, useMap } from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { ArrowRight, Loader2, LogIn, MapPin, Search, UserPlus } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
@@ -10,7 +10,7 @@ import { extractApiErrorMessage } from '../utils/apiError';
 import { resolvePostAuthRedirect } from '../utils/authRedirect';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+const LANDING_MAP_STYLE = 'https://tiles.openfreemap.org/styles/dark';
 
 interface LandingClub {
     id: number;
@@ -323,7 +323,6 @@ export const LandingPage = () => {
                                     </div>
                                 ) : (
                                     <Map
-                                        mapboxAccessToken={MAPBOX_TOKEN}
                                         initialViewState={{
                                             ...LANDING_MAP_CENTER,
                                             zoom: 7,
@@ -331,30 +330,15 @@ export const LandingPage = () => {
                                             bearing: -17
                                         }}
                                         style={{ width: '100%', height: '100%' }}
-                                        mapStyle="mapbox://styles/mapbox/navigation-night-v1"
+                                        mapStyle={LANDING_MAP_STYLE}
                                         scrollZoom={true}
                                     >
                                         <LandingMapFocusController club={highlightedClub} />
-                                        <Source id="landing-buildings" type="vector" url="mapbox://mapbox.mapbox-streets-v8">
-                                            <Layer
-                                                id="landing-buildings-3d"
-                                                type="fill-extrusion"
-                                                source-layer="building"
-                                                minzoom={13.5}
-                                                paint={{
-                                                    'fill-extrusion-color': '#1a1a2e',
-                                                    'fill-extrusion-height': ['get', 'height'],
-                                                    'fill-extrusion-base': ['get', 'min_height'],
-                                                    'fill-extrusion-opacity': 0.5
-                                                }}
-                                            />
-                                        </Source>
                                         <NavigationControl position="bottom-right" />
                                         <GeolocateControl
                                             position="bottom-right"
                                             positionOptions={{ enableHighAccuracy: true }}
                                             trackUserLocation={true}
-                                            showUserHeading={true}
                                         />
                                         {mappedClubs.map((club) => {
                                             const isHighlighted = highlightedClub?.id === club.id;

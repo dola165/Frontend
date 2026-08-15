@@ -2376,7 +2376,7 @@
     padding: 8px 10px;
   }
 
-  .mapboxgl-ctrl-geolocate {
+  .maplibregl-ctrl-geolocate {
     background-color: var(--map-panel-bg) !important;
     border: 1px solid var(--map-panel-border) !important;
     border-radius: 2px !important;

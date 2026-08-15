@@ -24,6 +24,8 @@ export interface MapMarkerDto {
     countryName: string;
     eventSubtype?: string | null;
     scheduleEventId?: number | null;
+    logoUrl?: string | null;
+    joinPolicy?: string | null;
 }
 
 export interface MapPageResult {

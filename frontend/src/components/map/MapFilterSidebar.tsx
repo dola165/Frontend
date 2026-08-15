@@ -16,6 +16,7 @@ export type MapChallengeState = 'OPEN' | 'PENDING' | 'CONFIRMED';
 
 interface ClubFilters {
     officialOnly: boolean;
+    openTryoutsOnly: boolean;
     city: string;
     country: string;
 }
@@ -54,6 +55,8 @@ interface MapFilterSidebarProps {
     filters: MapFilters;
     onFiltersChange: (filters: MapFilters) => void;
     onClose: () => void;
+    /** Role-gated entity types (WEB_APP_MASTER_PLAN.md §3.3): restricted viewers only get CLUB + TRYOUT. */
+    allowedEntityTypes: MapEntityType[];
 }
 
 const AGE_GROUPS = ['U8', 'U9', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19', 'U21', 'Senior'];
@@ -78,11 +81,12 @@ const MATCH_SUBTYPE_OPTIONS: Array<{ value: MapMatchSubtype; label: string }> = 
 ];
 
 export const defaultMapFilters: MapFilters = {
-    entityType: ['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT', 'CLUB_NEED'],
+    entityType: ['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT'],
     sortBy: 'RELEVANCE',
     distanceKm: 200,
     clubs: {
         officialOnly: false,
+        openTryoutsOnly: false,
         city: '',
         country: ''
     },
@@ -145,6 +149,7 @@ const countActiveFilters = (filters: MapFilters) => {
     if (filters.sortBy !== defaultMapFilters.sortBy) count += 1;
     if (filters.distanceKm !== defaultMapFilters.distanceKm) count += 1;
     if (filters.clubs.officialOnly) count += 1;
+    if (filters.clubs.openTryoutsOnly) count += 1;
     if (filters.clubs.city) count += 1;
     if (filters.clubs.country) count += 1;
     if (filters.tryouts.city) count += 1;
@@ -259,7 +264,7 @@ const RadioRow = ({
     </label>
 );
 
-export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose }: MapFilterSidebarProps) => {
+export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose, allowedEntityTypes }: MapFilterSidebarProps) => {
     const [expanded, setExpanded] = useState<Record<string, boolean>>({
         entity: true,
         browse: true,
@@ -346,7 +351,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                 onToggle={() => toggleExpanded('entity')}
                             >
                                 <div className="space-y-2">
-                                    {(['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT', 'CLUB_NEED'] as MapEntityType[]).map((entityType) => {
+                                    {allowedEntityTypes.map((entityType) => {
                                         const isActive = filters.entityType.length === 1 && filters.entityType[0] === entityType;
                                         return (
                                             <button
@@ -378,7 +383,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                         onClick={() =>
                                             updateFilters((current) => ({
                                                 ...current,
-                                                entityType: ['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT', 'CLUB_NEED']
+                                                entityType: allowedEntityTypes
                                             }))
                                         }
                                         className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-xl text-xs text-[#71717a] hover:text-[#a1a1aa] hover:bg-[rgba(255,255,255,0.02)] transition-colors ${
@@ -516,6 +521,16 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose 
                                             updateFilters((current) => ({
                                                 ...current,
                                                 clubs: { ...current.clubs, officialOnly: !current.clubs.officialOnly }
+                                            }))
+                                        }
+                                    />
+                                    <CheckRow
+                                        checked={filters.clubs.openTryoutsOnly}
+                                        label="Open tryouts only"
+                                        onChange={() =>
+                                            updateFilters((current) => ({
+                                                ...current,
+                                                clubs: { ...current.clubs, openTryoutsOnly: !current.clubs.openTryoutsOnly }
                                             }))
                                         }
                                     />

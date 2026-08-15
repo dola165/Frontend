@@ -8,7 +8,8 @@ import type {
     ClubPlayerAffiliation,
     MyClubInvitation,
     MyClubMembership,
-    PageResult
+    PageResult,
+    PlayerJoinPolicy
 } from './domain';
 
 export const fetchMyClubMembershipContext = async () => {
@@ -84,9 +85,70 @@ export const updateClubPlayerStatus = async (clubId: number, userId: number, sta
     return response.data;
 };
 
-export const createClubApplication = async (clubId: number, role: Extract<ClubMembershipRole, 'COACH' | 'PLAYER'>, message?: string | null) => {
-    const response = await apiClient.post<{ applicationId: number }>(`/clubs/${clubId}/applications`, { role, message });
+export const createClubApplication = async (
+    clubId: number,
+    role: Extract<ClubMembershipRole, 'COACH' | 'PLAYER'>,
+    message?: string | null,
+    extra?: { position?: string | null; ageGroup?: string | null; jobId?: number | null }
+) => {
+    const response = await apiClient.post<{ applicationId: number }>(`/clubs/${clubId}/applications`, {
+        role,
+        message,
+        position: extra?.position ?? null,
+        ageGroup: extra?.ageGroup ?? null,
+        jobId: extra?.jobId ?? null,
+    });
     return response.data;
+};
+
+// ── Club jobs (WEB_APP_MASTER_PLAN.md §4.2, Phase 2) ──
+
+export interface ClubJob {
+    id: number;
+    clubId?: number | null;
+    title: string;
+    description?: string | null;
+    ageGroup?: string | null;
+    level?: string | null;
+    status?: string | null;
+    createdAt?: string | null;
+}
+
+export interface ClubJobPayload {
+    title?: string;
+    description?: string | null;
+    ageGroup?: string | null;
+    level?: string | null;
+    status?: 'OPEN' | 'CLOSED';
+}
+
+export const fetchClubJobs = async (clubId: number) => {
+    const response = await apiClient.get<ClubJob[]>(`/clubs/${clubId}/jobs`);
+    return response.data;
+};
+
+export const fetchAllClubJobs = async (clubId: number) => {
+    const response = await apiClient.get<ClubJob[]>(`/clubs/${clubId}/jobs/all`);
+    return response.data;
+};
+
+export const createClubJob = async (clubId: number, payload: ClubJobPayload) => {
+    const response = await apiClient.post<ClubJob>(`/clubs/${clubId}/jobs`, payload);
+    return response.data;
+};
+
+export const updateClubJob = async (clubId: number, jobId: number, payload: ClubJobPayload) => {
+    const response = await apiClient.patch<ClubJob>(`/clubs/${clubId}/jobs/${jobId}`, payload);
+    return response.data;
+};
+
+export const deleteClubJob = async (clubId: number, jobId: number) => {
+    await apiClient.delete(`/clubs/${clubId}/jobs/${jobId}`);
+};
+
+/** Owner/admin only — the backend rejects COACH (Phase 2 §4.4). */
+export const updateClubSettings = async (clubId: number, playerJoinPolicy: PlayerJoinPolicy) => {
+    await apiClient.patch(`/clubs/${clubId}`, { playerJoinPolicy });
 };
 
 export const selfRegisterClubPlayer = async (clubId: number) => {
@@ -158,4 +220,70 @@ export const removePlayerFromSquad = async (clubId: number, squadId: number, use
 
 export const batchAddPlayersToSquad = async (clubId: number, squadId: number, payload: BatchAddSquadPlayersPayload) => {
     await apiClient.post(`/clubs/${clubId}/squads/${squadId}/players/batch`, payload);
+};
+
+// ── Player Cards (WEB_APP_MASTER_PLAN.md §2.2) ──
+
+export interface PlayerCard {
+    id: number;
+    clubId?: number | null;
+    userId?: number | null;
+    fullName?: string | null;
+    birthYear?: number | null;
+    position?: string | null;
+    jerseyNumber?: number | null;
+    photoUrl?: string | null;
+    parentEmail?: string | null;
+    guardianUserId?: number | null;
+    squadId?: number | null;
+    claimed?: boolean;
+    registered?: boolean;
+}
+
+export interface CreatePlayerCardPayload {
+    fullName: string;
+    birthYear: number;
+    position?: string | null;
+    jerseyNumber?: number | null;
+    photoUrl?: string | null;
+    parentEmail?: string | null;
+    squadId?: number | null;
+}
+
+export const createPlayerCard = async (clubId: number, payload: CreatePlayerCardPayload) => {
+    const response = await apiClient.post<PlayerCard>(`/clubs/${clubId}/player-cards`, payload);
+    return response.data;
+};
+
+export const fetchPlayerCards = async (clubId: number) => {
+    const response = await apiClient.get<PlayerCard[]>(`/clubs/${clubId}/player-cards`);
+    return response.data;
+};
+
+export const updatePlayerCard = async (clubId: number, cardId: number, payload: Partial<CreatePlayerCardPayload>) => {
+    const response = await apiClient.patch<PlayerCard>(`/clubs/${clubId}/player-cards/${cardId}`, payload);
+    return response.data;
+};
+
+export const deletePlayerCard = async (clubId: number, cardId: number) => {
+    await apiClient.delete(`/clubs/${clubId}/player-cards/${cardId}`);
+};
+
+// ── Parental consent + activation (Sprint 3) ──
+
+export const sendParentalConsentEmail = async (clubId: number, userId: number, parentEmail?: string | null) => {
+    await apiClient.post(`/clubs/${clubId}/players/${userId}/consent-email`, { parentEmail });
+};
+
+export const fetchMyPlayerCards = async () => {
+    const response = await apiClient.get<PlayerCard[]>('/player-cards/mine');
+    return response.data;
+};
+
+export const activatePlayerCard = async (cardId: number, dateOfBirth: string, email: string) => {
+    const response = await apiClient.post<{ username: string; tempPassword: string }>(
+        `/player-cards/${cardId}/activate`,
+        { dateOfBirth, email }
+    );
+    return response.data;
 };

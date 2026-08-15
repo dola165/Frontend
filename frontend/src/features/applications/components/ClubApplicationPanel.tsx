@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ClipboardCheck, Loader2, Send, Sparkles, UserPlus, XCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { ClipboardCheck, Loader2, Sparkles, UserPlus, XCircle } from 'lucide-react';
 import { cancelClubApplication, createClubApplication, selfRegisterClubPlayer } from '../../clubs/api';
 import {
   clubApplicationStatusLabel,
@@ -44,9 +45,11 @@ export const ClubApplicationPanel = ({
   onSignIn,
   onStateChange
 }: ClubApplicationPanelProps) => {
+  const { t } = useTranslation();
   const [playerMessage, setPlayerMessage] = useState('');
-  const [coachMessage, setCoachMessage] = useState('');
-  const [pendingKey, setPendingKey] = useState<'player' | 'coach' | 'cancel' | null>(null);
+  const [playerPosition, setPlayerPosition] = useState('GOALKEEPER');
+  const [playerAgeGroup, setPlayerAgeGroup] = useState('');
+  const [pendingKey, setPendingKey] = useState<'player' | 'cancel' | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -64,41 +67,23 @@ export const ClubApplicationPanel = ({
           pendingApplicationId: null,
           pendingApplicationRole: null
         });
-        setSuccessMessage(`You can now train with ${clubName}.`);
+        setSuccessMessage(t('apply.canTrain', { clubName }));
         return;
       }
 
-      const response = await createClubApplication(clubId, 'PLAYER', playerMessage.trim() || null);
+      const response = await createClubApplication(clubId, 'PLAYER', playerMessage.trim() || null, {
+        position: playerPosition || null,
+        ageGroup: playerAgeGroup || null,
+      });
       onStateChange({
         relationshipState: 'APPLIED',
         playerAffiliationStatus: null,
         pendingApplicationId: response.applicationId,
         pendingApplicationRole: 'PLAYER'
       });
-      setSuccessMessage(`Player request sent to ${clubName}.`);
+      setSuccessMessage(t('apply.requestSent', { clubName }));
     } catch (error) {
-      setErrorMessage(extractApiErrorMessage(error, 'Failed to submit player request.'));
-    } finally {
-      setPendingKey(null);
-    }
-  };
-
-  const handleCoachApply = async () => {
-    setPendingKey('coach');
-    setErrorMessage(null);
-    setSuccessMessage(null);
-
-    try {
-      const response = await createClubApplication(clubId, 'COACH', coachMessage.trim() || null);
-      onStateChange({
-        relationshipState: 'APPLIED',
-        playerAffiliationStatus: null,
-        pendingApplicationId: response.applicationId,
-        pendingApplicationRole: 'COACH'
-      });
-      setSuccessMessage(`Coach application sent to ${clubName}.`);
-    } catch (error) {
-      setErrorMessage(extractApiErrorMessage(error, 'Failed to submit coach application.'));
+      setErrorMessage(extractApiErrorMessage(error, t('apply.submitFailed')));
     } finally {
       setPendingKey(null);
     }
@@ -121,25 +106,25 @@ export const ClubApplicationPanel = ({
         pendingApplicationId: null,
         pendingApplicationRole: null
       });
-      setSuccessMessage('Request cancelled.');
+      setSuccessMessage(t('apply.cancelled'));
     } catch (error) {
-      setErrorMessage(extractApiErrorMessage(error, 'Failed to cancel request.'));
+      setErrorMessage(extractApiErrorMessage(error, t('apply.cancelFailed')));
     } finally {
       setPendingKey(null);
     }
   };
 
   const playerHeadline = playerJoinPolicy === 'OPEN_TRIAL'
-    ? 'Join training'
+    ? t('apply.joinTraining')
     : playerJoinPolicy === 'APPLICATION_REQUIRED'
-      ? 'Request to join'
-      : 'Player entry is invite only';
+      ? t('apply.requestToJoin')
+      : t('apply.inviteOnlyHeadline');
 
   const playerDescription = playerJoinPolicy === 'OPEN_TRIAL'
-    ? 'This club allows open training entry. You can join as a trialist first and decide later if the club is right for you.'
+    ? t('apply.joinTrainingDescription')
     : playerJoinPolicy === 'APPLICATION_REQUIRED'
-      ? 'Send a lightweight player request and the club can decide when to bring you in.'
-      : 'This club manages player entry directly. Wait for a club invitation or contact them through the public details on the page.';
+      ? t('apply.requestDescription')
+      : t('apply.inviteOnlyDescription');
 
   return (
     <section className="theme-surface theme-border rounded-xl border px-5 py-4 ">
@@ -147,13 +132,13 @@ export const ClubApplicationPanel = ({
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-600">
             <ClipboardCheck className="h-3.5 w-3.5" />
-            Club Entry
+            {t('apply.clubEntry')}
           </div>
           <h3 className="mt-4 text-lg font-semibold uppercase tracking-tight text-slate-900">
-            Connect with {clubName}
+            {t('apply.connectWith', { clubName })}
           </h3>
           <p className="mt-2 text-sm font-medium text-slate-600">
-            Player entry follows the club&apos;s policy, while coach applications stay as a separate review path.
+            {t('apply.policyNote')}
           </p>
         </div>
 
@@ -177,22 +162,22 @@ export const ClubApplicationPanel = ({
       {!isAuthenticated ? (
         <div className="mt-5 rounded-xl border border-slate-300 bg-slate-50 px-4 py-4">
           <p className="text-sm font-medium text-slate-600">
-            Sign in to join training, request player entry, or apply as a coach.
+            {t('apply.signInPrompt')}
           </p>
           <button
             type="button"
             onClick={onSignIn}
             className="mt-4 inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 bg-emerald-600 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white shadow-[4px_4px_0px_0px_#020617] transition-all hover:bg-emerald-500 active:translate-y-0.5 active:shadow-none"
           >
-            Sign In To Continue
+            {t('apply.signInToContinue')}
           </button>
         </div>
       ) : relationshipState === 'INVITED' ? (
         <div className="mt-5 rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-4">
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge tone="info">Invited</StatusBadge>
+            <StatusBadge tone="info">{t('apply.invited')}</StatusBadge>
             <p className="text-sm font-semibold text-sky-800">
-              This club already invited you. Review that invite instead of starting another flow.
+              {t('apply.invitedNote')}
             </p>
           </div>
           <button
@@ -200,7 +185,7 @@ export const ClubApplicationPanel = ({
             onClick={onOpenInvites}
             className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-900 bg-slate-200 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-900 shadow-[4px_4px_0px_0px_#020617] transition-all hover:bg-slate-300 active:translate-y-0.5 active:shadow-none"
           >
-            Review Invite
+            {t('apply.reviewInvite')}
           </button>
         </div>
       ) : relationshipState === 'APPLIED' && pendingApplicationId ? (
@@ -212,7 +197,7 @@ export const ClubApplicationPanel = ({
             )}
           </div>
           <p className="mt-3 text-sm font-medium text-slate-600">
-            Your request is waiting for club review. You can cancel it while it remains pending.
+            {t('apply.pendingNote')}
           </p>
           <button
             type="button"
@@ -221,24 +206,24 @@ export const ClubApplicationPanel = ({
             className="mt-4 inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-700 transition-colors hover:bg-rose-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pendingKey === 'cancel' ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-            Cancel Request
+            {t('apply.cancelRequest')}
           </button>
         </div>
       ) : playerAffiliationStatus === 'TRIALIST' || relationshipState === 'TRIALIST' ? (
         <div className="mt-5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-4">
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge tone="success">Trialist</StatusBadge>
+            <StatusBadge tone="success">{t('apply.trialist')}</StatusBadge>
             <p className="text-sm font-semibold text-emerald-800">
-              You are currently registered as a trialist with this club.
+              {t('apply.trialistNote')}
             </p>
           </div>
         </div>
       ) : playerAffiliationStatus === 'ACTIVE' || relationshipState === 'ACTIVE' ? (
         <div className="mt-5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-4">
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge tone="success">Active player</StatusBadge>
+            <StatusBadge tone="success">{t('apply.activePlayer')}</StatusBadge>
             <p className="text-sm font-semibold text-emerald-800">
-              You already have an active player relationship with this club.
+              {t('apply.activePlayerNote')}
             </p>
           </div>
         </div>
@@ -247,20 +232,49 @@ export const ClubApplicationPanel = ({
           <div className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-4">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-emerald-500" />
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Player Route</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('apply.playerRoute')}</p>
             </div>
             <h4 className="mt-4 text-base font-semibold uppercase tracking-tight text-slate-900">{playerHeadline}</h4>
             <p className="mt-2 text-sm font-medium text-slate-600">{playerDescription}</p>
 
             {playerJoinPolicy === 'APPLICATION_REQUIRED' && (
-              <textarea
-                value={playerMessage}
-                onChange={(event) => setPlayerMessage(event.target.value)}
-                rows={4}
-                maxLength={2000}
-                placeholder="Tell the club a little about yourself."
-                className="theme-surface-muted theme-border mt-4 w-full rounded-xl border px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500"
-              />
+              <div className="mt-4 space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t('apply.preferredPosition')}</label>
+                    <select
+                      value={playerPosition}
+                      onChange={(event) => setPlayerPosition(event.target.value)}
+                      className="theme-surface-muted theme-border w-full rounded-xl border px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500"
+                    >
+                      {['GOALKEEPER', 'DEFENDER', 'MIDFIELDER', 'FORWARD'].map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t('apply.ageGroup')}</label>
+                    <select
+                      value={playerAgeGroup}
+                      onChange={(event) => setPlayerAgeGroup(event.target.value)}
+                      className="theme-surface-muted theme-border w-full rounded-xl border px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500"
+                    >
+                      <option value="">{t('apply.notSure')}</option>
+                      {['U8', 'U10', 'U12', 'U14', 'U16', 'U18', 'Senior'].map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <textarea
+                  value={playerMessage}
+                  onChange={(event) => setPlayerMessage(event.target.value)}
+                  rows={4}
+                  maxLength={2000}
+                  placeholder={t('apply.aboutYou')}
+                  className="theme-surface-muted theme-border w-full rounded-xl border px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500"
+                />
+              </div>
             )}
 
             {playerJoinPolicy === 'INVITE_ONLY' ? null : (
@@ -271,37 +285,9 @@ export const ClubApplicationPanel = ({
                 className="mt-4 inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 bg-emerald-600 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white shadow-[4px_4px_0px_0px_#020617] transition-all hover:bg-emerald-500 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {pendingKey === 'player' ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-                {playerJoinPolicy === 'OPEN_TRIAL' ? 'Join Training' : 'Request Player Entry'}
+                {playerJoinPolicy === 'OPEN_TRIAL' ? t('apply.joinTrainingCta') : t('apply.requestEntryCta')}
               </button>
             )}
-          </div>
-
-          <div className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-4">
-            <div className="flex items-center gap-2">
-              <ClipboardCheck className="h-4 w-4 text-sky-500" />
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Coach Route</p>
-            </div>
-            <h4 className="mt-4 text-base font-semibold uppercase tracking-tight text-slate-900">Apply as coach</h4>
-            <p className="mt-2 text-sm font-medium text-slate-600">
-              Coaching stays on a reviewed application path so the club can verify fit and access level before adding you to staff.
-            </p>
-            <textarea
-              value={coachMessage}
-              onChange={(event) => setCoachMessage(event.target.value)}
-              rows={4}
-              maxLength={2000}
-              placeholder="Share your coaching background, age groups, or current availability."
-              className="theme-surface-muted theme-border mt-4 w-full rounded-xl border px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500"
-            />
-            <button
-              type="button"
-              onClick={() => void handleCoachApply()}
-              disabled={pendingKey === 'coach'}
-              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-900 bg-slate-200 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-900 shadow-[4px_4px_0px_0px_#020617] transition-all hover:bg-slate-300 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {pendingKey === 'coach' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              Apply As Coach
-            </button>
           </div>
         </div>
       )}

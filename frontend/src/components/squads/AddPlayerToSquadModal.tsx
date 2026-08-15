@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Loader2, Plus, Search, UserPlus, X } from 'lucide-react';
 import { addPlayerToSquad, batchAddPlayersToSquad, fetchClubPlayers, type AddSquadPlayerPayload } from '../../features/clubs/api';
+import { PlayerCardModal } from './PlayerCardModal';
 
 interface PlayerOption {
     userId: number;
@@ -27,6 +28,7 @@ export const AddPlayerToSquadModal = ({ clubId, squadId, isOpen, onClose, onPlay
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(false);
+    const [showCardModal, setShowCardModal] = useState(false);
 
     const loadPlayers = useCallback(async (pageNum: number, searchTerm: string) => {
         if (!clubId) return;
@@ -130,9 +132,18 @@ export const AddPlayerToSquadModal = ({ clubId, squadId, isOpen, onClose, onPlay
                             </p>
                         </div>
                     </div>
-                    <button type="button" onClick={onClose} className="p-1 text-[#a1a1aa] hover:text-[#f4f4f5]">
-                        <X className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setShowCardModal(true)}
+                            className="border border-[#16a34a]/30 bg-[#16a34a]/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#16a34a] hover:bg-[#16a34a]/20 transition-colors"
+                        >
+                            Create player card
+                        </button>
+                        <button type="button" onClick={onClose} className="p-1 text-[#a1a1aa] hover:text-[#f4f4f5]">
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Search */}
@@ -242,6 +253,14 @@ export const AddPlayerToSquadModal = ({ clubId, squadId, isOpen, onClose, onPlay
                     </div>
                 </div>
             </div>
+
+            <PlayerCardModal
+                clubId={clubId}
+                squadId={squadId}
+                isOpen={showCardModal}
+                onClose={() => setShowCardModal(false)}
+                onCardCreated={onPlayersAdded}
+            />
         </div>
     );
 };

@@ -1,4 +1,4 @@
-import { Crown, LogOut } from 'lucide-react';
+import { Briefcase, Crown, LogOut } from 'lucide-react';
 import type { ClubManagedMember, ClubManagementOverview } from '../../../features/clubs/domain';
 import { clubRoleLabel } from '../../../features/clubs/domain';
 import { DataTable, EmptyState, Pill, SectionHeader } from '../helpers';
@@ -18,16 +18,32 @@ interface RolesTabProps {
     onTransferOwnership: (member: ClubManagedMember) => Promise<void>;
     onConfirmSelfLeave: (v: boolean) => void;
     onLeaveClub: () => Promise<void>;
+    onOpenJobs?: () => void;
 }
 
 export const RolesTab = ({
     overview, pendingKey,
     confirmingSelfLeave, isOwner,
     transferCandidates, onTransferOwnership,
-    onConfirmSelfLeave, onLeaveClub
+    onConfirmSelfLeave, onLeaveClub, onOpenJobs
 }: RolesTabProps) => (
     <div className="space-y-4">
-        <SectionHeader eyebrow="Roles" title="Authority & Ownership" description="View your clearance, manage role assignments, transfer ownership, or leave the club." />
+        <SectionHeader
+            eyebrow="Roles"
+            title="Authority & Ownership"
+            description="View your clearance, manage role assignments, transfer ownership, or leave the club."
+            action={
+                onOpenJobs ? (
+                    <button
+                        type="button"
+                        onClick={onOpenJobs}
+                        className="inline-flex items-center gap-2 rounded-xl border border-[#16a34a]/30 bg-[#16a34a]/10 px-3 py-2 text-xs font-semibold text-[#16a34a] hover:bg-[#16a34a]/20"
+                    >
+                        <Briefcase className="h-3.5 w-3.5" /> Looking for a coach?
+                    </button>
+                ) : undefined
+            }
+        />
         <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
                 <p className="text-xs font-medium text-[var(--fc-text-muted)]">Your Clearance</p>

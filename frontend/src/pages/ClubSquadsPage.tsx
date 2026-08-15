@@ -9,6 +9,7 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { deleteSquad, updateSquad, removePlayerFromSquad, updateSquadPlayer, type UpdateSquadPayload } from '../features/clubs/api';
 import { fetchMyClubMembershipContext } from '../features/clubs/api';
 import { isLeadershipRole } from '../features/clubs/domain';
+import { usePersistedState } from '../utils/usePersistedState';
 
 interface ClubSquadHeader {
     id: number;
@@ -41,7 +42,7 @@ export const ClubSquadsPage = () => {
     const [deletingSquadId, setDeletingSquadId] = useState<number | null>(null);
     const [showAddPlayers, setShowAddPlayers] = useState(false);
     const [removingPlayerId, setRemovingPlayerId] = useState<number | null>(null);
-    const [cardView, setCardView] = useState(false);
+    const [cardView, setCardView] = usePersistedState('gkz:roster:cardView', false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
     const pendingDeleteRef = useRef<{ squadId: number; squadName: string } | null>(null);

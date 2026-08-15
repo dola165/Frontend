@@ -58,6 +58,7 @@ export interface UserSearchResult {
     position: string | null;
     userType: string;
     avatarUrl: string | null;
+    isMinor: boolean;
 }
 
 export interface PageParams {

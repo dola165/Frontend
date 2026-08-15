@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
+    Briefcase,
     CheckCircle2,
     Crown,
     Handshake,
     LayoutDashboard,
+    Settings,
     ShieldCheck,
+    ShoppingBag,
     UserPlus,
     Users,
     X
@@ -33,6 +36,7 @@ import {
     leaveClubMembership,
     removeClubMember,
     searchClubInviteCandidates,
+    sendParentalConsentEmail,
     updateClubPlayerStatus,
     transferClubOwnership,
     updateClubMemberRole
@@ -61,6 +65,9 @@ import { PlayersTab } from '../components/workspace/tabs/PlayersTab';
 import { InvitesTab } from '../components/workspace/tabs/InvitesTab';
 import { ApplicationsTab } from '../components/workspace/tabs/ApplicationsTab';
 import { RolesTab } from '../components/workspace/tabs/RolesTab';
+import { JobsTab } from '../components/workspace/tabs/JobsTab';
+import { SettingsTab } from '../components/workspace/tabs/SettingsTab';
+import { StoreTab } from '../components/workspace/tabs/StoreTab';
 import { SquadsTab } from '../components/workspace/tabs/SquadsTab';
 import { TryoutsTab } from '../components/workspace/tabs/TryoutsTab';
 import { InboxTab } from '../components/workspace/tabs/InboxTab';
@@ -345,6 +352,13 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         });
     };
 
+    const handleSendConsentEmail = async (userId: number, parentEmail?: string | null) => {
+        await runAction(`consent-${userId}`, async () => {
+            await sendParentalConsentEmail(clubId, userId, parentEmail);
+            setSuccessMessage('Consent email queued to the parent.');
+        });
+    };
+
     const handleConfirmStatus = async () => {
         setShowStatusConfirm(false);
         const pending = pendingStatusRef.current;
@@ -423,6 +437,9 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
             items.push({ id: 'invites', label: 'Invites', icon: UserPlus, badge: overview && overview.pendingInvitations.length > 0 ? String(overview.pendingInvitations.length) : null });
             items.push({ id: 'applications', label: 'Applications', icon: CheckCircle2, badge: overview && overview.pendingApplications.length > 0 ? String(overview.pendingApplications.length) : null });
             items.push({ id: 'roles', label: 'Roles', icon: Crown });
+        items.push({ id: 'jobs', label: 'Jobs', icon: Briefcase });
+        items.push({ id: 'store', label: 'Store', icon: ShoppingBag });
+        items.push({ id: 'settings', label: 'Settings', icon: Settings });
             items.push({ id: 'squads', label: 'Squads', icon: ShieldCheck });
         }
         if (canManageTryouts) {
@@ -517,6 +534,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                     onRetry={() => { void loadPlayers(); }}
                                     onPageChange={setPlayerPage}
                                     onMessagePlayer={(userId) => navigate(`/messages?chatWith=${userId}`)}
+                                    onSendConsentEmail={handleSendConsentEmail}
                                     onTabChange={switchTab}
                                 />
                             )}
@@ -563,7 +581,20 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                     onTransferOwnership={handleTransferOwnership}
                                     onConfirmSelfLeave={setConfirmingSelfLeave}
                                     onLeaveClub={handleLeaveClub}
+                                    onOpenJobs={() => switchTab('jobs')}
                                 />
+                            )}
+
+                            {activeTab === 'jobs' && (
+                                <JobsTab clubId={clubId} pendingKey={pendingKey} />
+                            )}
+
+                            {activeTab === 'store' && (
+                                <StoreTab clubId={clubId} pendingKey={pendingKey} />
+                            )}
+
+                            {activeTab === 'settings' && (
+                                <SettingsTab clubId={clubId} pendingKey={pendingKey} />
                             )}
 
                             {activeTab === 'squads' && (

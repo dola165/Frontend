@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 
-export type WorkspaceTab = 'overview' | 'personnel' | 'players' | 'invites' | 'applications' | 'roles' | 'squads' | 'tryouts' | 'engagements' | 'inbox';
+export type WorkspaceTab = 'overview' | 'personnel' | 'players' | 'invites' | 'applications' | 'roles' | 'jobs' | 'store' | 'settings' | 'squads' | 'tryouts' | 'engagements' | 'inbox';
 
 export interface TabItem {
     id: WorkspaceTab;

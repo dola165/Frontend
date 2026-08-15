@@ -81,6 +81,9 @@ export interface ClubPlayerAffiliation {
     endedAt?: string | null;
     position?: string | null;
     jerseyNumber?: number | null;
+    parentEmail?: string | null;
+    parentalConsentStatus?: string | null;
+    parentalConsentAt?: string | null;
 }
 
 export interface ClubInviteCandidate {

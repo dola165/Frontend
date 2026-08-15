@@ -1,12 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Loader2, Users } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { apiClient } from '../../../api/axiosConfig';
-
-interface ClubRosterDto {
-    id: number;
-    squadId?: number | null;
-}
 
 interface SquadDto {
     id: number;
@@ -18,28 +13,17 @@ interface SquadDto {
 
 export const TabTeams = ({ clubId, refreshKey = 0 }: { clubId: number; refreshKey?: number }) => {
     const navigate = useNavigate();
-    const [roster, setRoster] = useState<ClubRosterDto[]>([]);
     const [squads, setSquads] = useState<SquadDto[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        Promise.all([apiClient.get(`/clubs/${clubId}/roster`), apiClient.get(`/clubs/${clubId}/squads`)])
-            .then(([rosterResponse, squadsResponse]) => {
-                setRoster(rosterResponse.data || []);
+        apiClient.get(`/clubs/${clubId}/squads`)
+            .then((squadsResponse) => {
                 setSquads(squadsResponse.data || []);
             })
             .catch((error) => console.error('Failed to load squad directory', error))
             .finally(() => setLoading(false));
     }, [clubId, refreshKey]);
-
-    const squadCounts = useMemo(() => {
-        const counts = new Map<number, number>();
-        roster.forEach((player) => {
-            if (!player.squadId) return;
-            counts.set(player.squadId, (counts.get(player.squadId) || 0) + 1);
-        });
-        return counts;
-    }, [roster]);
 
     if (loading) {
         return (
@@ -71,10 +55,6 @@ export const TabTeams = ({ clubId, refreshKey = 0 }: { clubId: number; refreshKe
                         <div>
                             <div className="flex flex-wrap items-center gap-2">
                                 <p className="text-sm font-semibold text-[#f4f4f5]">{squad.name}</p>
-                                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#16a34a]">
-                                    <Users className="h-3.5 w-3.5" />
-                                    {squadCounts.get(squad.id) || 0}
-                                </span>
                             </div>
                             <p className="mt-2 text-[11px] font-semibold text-[#a1a1aa]">
                                 {squad.category} / {squad.gender}

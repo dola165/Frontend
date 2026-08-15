@@ -29,8 +29,16 @@ const PlayerCard = ({
         <div className="rounded-[2px] border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] overflow-hidden transition-colors hover:border-[#ffffff1a]">
             {/* image area */}
             <div className="relative h-24 w-full bg-[rgba(255,255,255,0.03)]">
-                <div className="flex h-full w-full items-center justify-center">
-                    <span className="text-3xl font-semibold text-[var(--fc-text-muted)]">{initial}</span>
+                <div className="flex h-full w-full items-center justify-center overflow-hidden">
+                    {player.photoUrl ? (
+                        <img
+                            src={player.photoUrl}
+                            alt={player.name}
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        <span className="text-3xl font-semibold text-[var(--fc-text-muted)]">{initial}</span>
+                    )}
                 </div>
                 {/* drag handle */}
                 <span className="absolute top-1 left-1 text-[var(--fc-text-muted)] cursor-grab">
@@ -60,6 +68,11 @@ const PlayerCard = ({
                     <p className="text-sm font-bold text-[var(--fc-text-primary)] truncate" title={player.name}>
                         {player.name}
                     </p>
+                    {player.isRegistered !== true && (
+                        <span className="inline-flex shrink-0 rounded-full border border-[#a1a1aa]/30 bg-[#a1a1aa]/10 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-[#a1a1aa]">
+                            Not registered
+                        </span>
+                    )}
                     {player.status === 'TRIALIST' && (
                         <TrialistBadge joinedAt={player.joinedAt} className="shrink-0" />
                     )}
@@ -68,6 +81,11 @@ const PlayerCard = ({
                     {player.position && (
                         <span className="inline-flex rounded-full border border-[#16a34a]/20 bg-[#16a34a]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#16a34a]">
                             {player.position}
+                        </span>
+                    )}
+                    {player.squadRole && player.squadRole !== 'PLAYER' && (
+                        <span className="inline-flex rounded-full border border-[#16a34a]/20 bg-[#16a34a]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#16a34a]">
+                            {player.squadRole}
                         </span>
                     )}
                     {player.age != null && (

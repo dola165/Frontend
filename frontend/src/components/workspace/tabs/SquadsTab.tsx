@@ -14,6 +14,7 @@ import {
     type UpdateSquadPayload
 } from '../../../features/clubs/api';
 import type { ClubManagementOverview } from '../../../features/clubs/domain';
+import { usePersistedState } from '../../../utils/usePersistedState';
 
 // ── types ──
 
@@ -45,7 +46,7 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
     const [rosterLoading, setRosterLoading] = useState(false);
 
     // view toggle
-    const [cardView, setCardView] = useState(false);
+    const [cardView, setCardView] = usePersistedState('gkz:roster:cardView', false);
 
     // edit
     const [editingSquadId, setEditingSquadId] = useState<number | null>(null);

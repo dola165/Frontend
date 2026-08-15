@@ -5,6 +5,7 @@ import { apiClient } from '../api/axiosConfig';
 import { ClubHero } from '../components/club/ClubHero';
 import { ClubProfileInfoPanel } from '../components/club/ClubProfileInfoPanel';
 import { ClubOpportunities } from '../components/club/ClubOpportunities';
+import { ClubJobsPanel } from '../components/club/ClubJobsPanel';
 import { ClubProfileStickyHeader } from '../components/club/ClubProfileStickyHeader';
 import type { ClubNavigationTab } from '../components/club/clubNavigation';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
@@ -33,7 +34,7 @@ import { buildLoginRedirectPath } from '../utils/authRedirect';
 
 export interface ClubOpportunity {
     id: number;
-    type: 'FUNDRAISING' | 'JOB' | 'VOLUNTEER' | 'WISHLIST';
+    type: 'FUNDRAISING' | 'JOB' | 'VOLUNTEER';
     title: string;
     externalLink: string;
 }
@@ -369,6 +370,9 @@ export const ClubProfilePage = () => {
                                 onOpenModule={() => setActiveTab('events')}
                                 showOpportunityBoard
                             />
+                        )}
+                        {activeTab === 'overview' && (
+                            <ClubJobsPanel clubId={club.id} isAuthenticated={status === 'authenticated'} />
                         )}
                     </div>
                 </div>

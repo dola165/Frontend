@@ -11,6 +11,9 @@ export interface SquadRosterPlayer {
     age?: number | null;
     status?: string | null;
     joinedAt?: string | null;
+    photoUrl?: string | null;
+    isRegistered?: boolean;
+    squadRole?: string | null;
 }
 
 export interface SquadRosterGroup {
@@ -173,6 +176,16 @@ export const SquadRosterTable = ({
                                         <td className="px-4 py-3">
                                             <span className="inline-flex items-center gap-2">
                                                 <span className="text-sm font-semibold text-[#f4f4f5]">{player.name}</span>
+                                                {player.isRegistered !== true && (
+                                                    <span className="inline-flex rounded-full border border-[#a1a1aa]/30 bg-[#a1a1aa]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#a1a1aa]">
+                                                        Not registered
+                                                    </span>
+                                                )}
+                                                {player.squadRole && player.squadRole !== 'PLAYER' && (
+                                                    <span className="inline-flex rounded-full border border-[#16a34a]/20 bg-[#16a34a]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#16a34a]">
+                                                        {player.squadRole}
+                                                    </span>
+                                                )}
                                                 {player.status === 'TRIALIST' && (
                                                     <TrialistBadge joinedAt={player.joinedAt} />
                                                 )}

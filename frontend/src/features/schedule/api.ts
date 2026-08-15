@@ -23,7 +23,7 @@ export interface ScheduleRecurrenceRule {
     timezone?: string | null;
 }
 
-export interface ScheduleRecurrenceRuleInput extends ScheduleRecurrenceRule {}
+export type ScheduleRecurrenceRuleInput = ScheduleRecurrenceRule;
 
 export interface ScheduleEventUpsertInput {
     title: string;
@@ -168,4 +168,12 @@ export const respondToScheduleChallenge = async (eventId: number, payload: Sched
 
 export const completeClubEvent = async (clubId: number, eventId: number) => {
     await apiClient.post(`/schedule/clubs/${clubId}/events/${eventId}/complete`);
+};
+
+export const completeClubEventWithResult = async (
+    clubId: number,
+    eventId: number,
+    payload: { homeScore: number; awayScore: number; winnerClubId: number | null }
+) => {
+    await apiClient.post(`/schedule/clubs/${clubId}/events/${eventId}/result`, payload);
 };

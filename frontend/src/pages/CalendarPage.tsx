@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { EventCreationModal, type EventCreationFormValues, type ModalSurface } from '../components/schedule/EventCreationModal';
+import { PastEventModal } from '../components/schedule/PastEventModal';
 import { ScheduleGrid } from '../components/schedule/ScheduleGrid';
 import { ScheduleToolbar } from '../components/schedule/ScheduleToolbar';
 import { ScheduleWorkspaceHeader } from '../components/schedule/ScheduleWorkspaceHeader';
@@ -60,6 +61,7 @@ const inpDt = (v: Date) => `${inpDate(v)}T${inpTime(v)}`;
 const apiDt = (v: Date) => `${inpDate(v)}T${inpTime(v)}:00`;
 const normTime = (v: string) => (v.length >= 5 ? v.slice(0, 5) : v);
 const parseD = (v: string) => { const d = new Date(v); return Number.isNaN(d.getTime()) ? new Date() : d; };
+const isPastEvent = (v: string) => parseD(v).getTime() < Date.now();
 const fmtEnum = (v: string) => v.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase());
 const sod = (v: Date) => { const d = cDate(v); d.setHours(0, 0, 0, 0); return d; };
 const sow = (v: Date) => { const d = sod(v); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; };
@@ -155,7 +157,8 @@ const toUpsert = (ev: SEvent): ScheduleEventUpsertInput => ({
     } : null,
 });
 
-export const CalendarPage = ({}: CalendarPageProps) => {
+export const CalendarPage = (props: CalendarPageProps) => {
+    void props; // Props kept for API symmetry — the page reads auth via context.
     const navigate = useNavigate();
     const colRef = useRef<HTMLDivElement | null>(null);
     const [ctx, setCtx] = useState<ClubMembershipContext | null>(null);
@@ -173,6 +176,7 @@ export const CalendarPage = ({}: CalendarPageProps) => {
     const [perRaw, setPerRaw] = useState<SEvent[]>([]);
     const [rk, setRk] = useState(0);
     const [editMode, setEditMode] = useState(false);
+    const [pastEvent, setPastEvent] = useState<SEvent | null>(null);
     const [localOverrides, setLocalOverrides] = useState<Map<number, { startsAt: string; endsAt: string }>>(new Map());
 
     const [modal, setModal] = useState(false);
@@ -270,6 +274,8 @@ export const CalendarPage = ({}: CalendarPageProps) => {
     const weekDays = useMemo(() => vm === 'day' ? [cursor] : Array.from({ length: 7 }, (_, i) => addD(sow(cursor), i)), [cursor, vm]);
     const canCreate = surface === 'MY_SCHEDULE' || canMgmt;
 
+    const openPastEvent = (event: SEvent) => setPastEvent(event);
+
     const openCreate = (anchor?: Date, ptype?: ScheduleEventType) => {
         const s = normAnchor(surface, anchor ?? cursor);
         const et = ptype ?? (surface === 'CLUB_SCHEDULE' ? 'TRAINING' : 'ACTIVITY');
@@ -280,6 +286,11 @@ export const CalendarPage = ({}: CalendarPageProps) => {
     };
 
     const openEdit = (event: SEvent) => {
+        // Past-event guard backstop: the past is read-only, never editable.
+        if (isPastEvent(event.startsAt)) {
+            setPastEvent(event);
+            return;
+        }
         const s = parseD(event.startsAt), e = parseD(event.endsAt);
         const rc = event.recurrence;
         setMmode('edit'); setEid(event.eventId);
@@ -330,9 +341,6 @@ export const CalendarPage = ({}: CalendarPageProps) => {
             setEditMode(false);
             return;
         }
-
-        // Save original for rollback
-        const original = { startsAt: event.startsAt, endsAt: event.endsAt };
 
         // Optimistic update
         setLocalOverrides((prev) => {
@@ -481,7 +489,7 @@ export const CalendarPage = ({}: CalendarPageProps) => {
                                 <ScheduleGrid
                                     viewMode={vm} cursorDate={cursor}
                                     monthEvents={monthE} days={weekDays} events={filtered}
-                                    onSelectDate={setCursor} onEditEvent={openEdit}
+                                    onSelectDate={setCursor} onEditEvent={openEdit} onOpenPastEvent={openPastEvent}
                                     canCreate={canCreate} onCreateAt={(d) => openCreate(d)}
                                     editMode={editMode}
                                     onEventDragEnd={handleEventDragEnd}
@@ -497,6 +505,16 @@ export const CalendarPage = ({}: CalendarPageProps) => {
                     initialValues={mvals} clubId={ctx?.clubId ?? null} targetEventId={eid ?? undefined}
                     subjectLabel={surface === 'CLUB_SCHEDULE' ? clubLbl : 'Visible only to you'}
                     onClose={() => setModal(false)} onSubmit={handleSubmit} />
+            )}
+
+            {pastEvent && (
+                <PastEventModal
+                    event={pastEvent}
+                    clubId={surface === 'CLUB_SCHEDULE' ? ctx?.clubId ?? null : null}
+                    clubName={clubLbl}
+                    onClose={() => setPastEvent(null)}
+                    onCompleted={() => { setPastEvent(null); setRk((k) => k + 1); }}
+                />
             )}
 
             {showTutorial && <CalendarTutorial onComplete={() => setShowTutorial(false)} />}

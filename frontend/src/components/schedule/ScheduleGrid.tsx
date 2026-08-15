@@ -21,6 +21,7 @@ const HOURS = Array.from({ length: 24 }, (_, index) => index);
 const pad = (value: number) => String(value).padStart(2, '0');
 const toDateKey = (value: Date) => `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
 const parseDate = (value: string) => new Date(value.includes('T') ? value : `${value}T00:00:00`);
+const isPast = (value: string) => parseDate(value).getTime() < Date.now();
 const sameDay = (left: Date, right: Date) => toDateKey(left) === toDateKey(right);
 const timelineDayMinWidth = (dayCount: number) => {
     if (dayCount === 1) return 520;
@@ -123,7 +124,6 @@ const computeTimelineDropTimes = (
 const DraggableMonthEvent = ({
     event,
     selected,
-    onEdit,
 }: {
     event: ScheduleWorkspaceEvent;
     selected: boolean;
@@ -229,12 +229,58 @@ const DroppableDayCell = ({
     );
 };
 
+// --- Static past-event chips (read-only — the past is never draggable/editable) ---
+
+const StaticMonthEvent = ({
+    event,
+    onOpenPastEvent,
+}: {
+    event: ScheduleWorkspaceEvent;
+    onOpenPastEvent: (event: ScheduleWorkspaceEvent) => void;
+}) => (
+    <button
+        type="button"
+        onClick={() => onOpenPastEvent(event)}
+        className="rounded-[4px] border px-2 py-1.5 text-left opacity-70"
+        style={eventStyle(event, false)}
+    >
+        <div className="flex items-center justify-between gap-2">
+            <span className="truncate text-[10px] font-semibold text-[#f4f4f5]">{event.title}</span>
+            <span className="shrink-0 text-[10px] font-semibold text-[#a1a1aa]">{formatTime(event.startsAt)}</span>
+        </div>
+    </button>
+);
+
+const StaticTimelineEvent = ({
+    event,
+    onOpenPastEvent,
+}: {
+    event: ScheduleWorkspaceEvent;
+    onOpenPastEvent: (event: ScheduleWorkspaceEvent) => void;
+}) => {
+    const position = eventTimelinePosition(event);
+    return (
+        <button
+            type="button"
+            onClick={() => onOpenPastEvent(event)}
+            className="absolute left-1.5 right-1.5 rounded-[4px] border px-2 py-1.5 text-left opacity-70"
+            style={{ ...eventStyle(event, false), top: position.top + 2, height: position.height - 4 }}
+        >
+            <div className="min-w-0">
+                <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">{event.title}</p>
+                <p className="mt-1 truncate text-[10px] font-semibold text-[#a1a1aa]">
+                    {formatTime(event.startsAt)} - {formatTime(event.endsAt)}
+                </p>
+            </div>
+        </button>
+    );
+};
+
 // --- DnD sub-components for timeline view ---
 
 const DraggableTimelineEvent = ({
     event,
     selected,
-    onEdit,
 }: {
     event: ScheduleWorkspaceEvent;
     selected: boolean;
@@ -323,6 +369,7 @@ interface ScheduleGridProps {
     events: ScheduleWorkspaceEvent[];
     onSelectDate: (date: Date) => void;
     onEditEvent: (event: ScheduleWorkspaceEvent) => void;
+    onOpenPastEvent: (event: ScheduleWorkspaceEvent) => void;
     canCreate: boolean;
     onCreateAt: (date: Date) => void;
     editMode: boolean;
@@ -337,6 +384,7 @@ export const ScheduleGrid = ({
     events,
     onSelectDate,
     onEditEvent,
+    onOpenPastEvent,
     canCreate,
     onCreateAt,
     editMode,
@@ -415,6 +463,7 @@ export const ScheduleGrid = ({
                         onSelectDate={onSelectDate}
                         canCreate={canCreate}
                         onCreateAt={onCreateAt}
+                        onOpenPastEvent={onOpenPastEvent}
                     />
                 ) : (
                     <TimelineBoardDnd
@@ -422,6 +471,7 @@ export const ScheduleGrid = ({
                         events={events}
                         canCreate={canCreate}
                         onCreateAt={onCreateAt}
+                        onOpenPastEvent={onOpenPastEvent}
                     />
                 )}
                 <DragOverlay dropAnimation={null}>
@@ -437,6 +487,7 @@ export const ScheduleGrid = ({
             monthEvents={monthEvents}
             onSelectDate={onSelectDate}
             onEditEvent={onEditEvent}
+            onOpenPastEvent={onOpenPastEvent}
             canCreate={canCreate}
             onCreateAt={onCreateAt}
         />
@@ -445,6 +496,7 @@ export const ScheduleGrid = ({
             days={days}
             events={events}
             onEditEvent={onEditEvent}
+            onOpenPastEvent={onOpenPastEvent}
             canCreate={canCreate}
             onCreateAt={onCreateAt}
         />
@@ -460,6 +512,7 @@ const MonthBoard = ({
     monthEvents,
     onSelectDate,
     onEditEvent,
+    onOpenPastEvent,
     canCreate,
     onCreateAt
 }: {
@@ -467,6 +520,7 @@ const MonthBoard = ({
     monthEvents: Record<string, ScheduleWorkspaceEvent[]>;
     onSelectDate: (date: Date) => void;
     onEditEvent: (event: ScheduleWorkspaceEvent) => void;
+    onOpenPastEvent: (event: ScheduleWorkspaceEvent) => void;
     canCreate: boolean;
     onCreateAt: (date: Date) => void;
 }) => (
@@ -528,7 +582,7 @@ const MonthBoard = ({
                                     type="button"
                                     onClick={(clickEvent) => {
                                         clickEvent.stopPropagation();
-                                        onEditEvent(event);
+                                        (isPast(event.startsAt) ? onOpenPastEvent : onEditEvent)(event);
                                     }}
                                     className="rounded-[4px] border px-2 py-1.5 text-left transition-transform duration-150 hover:-translate-y-px hover:shadow-[0_8px_18px_rgba(0,0,0,0.18)]"
                                     style={eventStyle(event, false)}
@@ -554,12 +608,14 @@ const TimelineBoard = ({
     days,
     events,
     onEditEvent,
+    onOpenPastEvent,
     canCreate,
     onCreateAt
 }: {
     days: Date[];
     events: ScheduleWorkspaceEvent[];
     onEditEvent: (event: ScheduleWorkspaceEvent) => void;
+    onOpenPastEvent: (event: ScheduleWorkspaceEvent) => void;
     canCreate: boolean;
     onCreateAt: (date: Date) => void;
 }) => (
@@ -618,7 +674,7 @@ const TimelineBoard = ({
                                     <button
                                         key={event.id}
                                         type="button"
-                                        onClick={() => onEditEvent(event)}
+                                        onClick={() => (isPast(event.startsAt) ? onOpenPastEvent(event) : onEditEvent(event))}
                                         className="absolute left-1.5 right-1.5 rounded-[4px] border px-2 py-1.5 text-left transition-transform duration-150 hover:-translate-y-px hover:shadow-[0_8px_18px_rgba(0,0,0,0.18)]"
                                         style={{ ...eventStyle(event, false), top: position.top + 2, height: position.height - 4 }}
                                     >
@@ -652,12 +708,14 @@ const MonthBoardDnd = ({
     onSelectDate,
     canCreate,
     onCreateAt,
+    onOpenPastEvent,
 }: {
     cursorDate: Date;
     monthEvents: Record<string, ScheduleWorkspaceEvent[]>;
     onSelectDate: (date: Date) => void;
     canCreate: boolean;
     onCreateAt: (date: Date) => void;
+    onOpenPastEvent: (event: ScheduleWorkspaceEvent) => void;
 }) => (
     <div className="schedule-scroll-surface h-full overflow-auto bg-[color:var(--schedule-board-cell)]">
         <div className="schedule-board-head sticky top-0 z-10 grid min-w-[840px] grid-cols-7 border-b border-[#ffffff0d]">
@@ -685,12 +743,16 @@ const MonthBoardDnd = ({
                     >
                         <div className="flex flex-col gap-1">
                             {dayEvents.map((event) => (
-                                <DraggableMonthEvent
-                                    key={event.id}
-                                    event={event}
-                                    selected={false}
-                                    onEdit={() => {}}
-                                />
+                                isPast(event.startsAt) ? (
+                                    <StaticMonthEvent key={event.id} event={event} onOpenPastEvent={onOpenPastEvent} />
+                                ) : (
+                                    <DraggableMonthEvent
+                                        key={event.id}
+                                        event={event}
+                                        selected={false}
+                                        onEdit={() => {}}
+                                    />
+                                )
                             ))}
                         </div>
                     </DroppableDayCell>
@@ -705,11 +767,13 @@ const TimelineBoardDnd = ({
     events,
     canCreate,
     onCreateAt,
+    onOpenPastEvent,
 }: {
     days: Date[];
     events: ScheduleWorkspaceEvent[];
     canCreate: boolean;
     onCreateAt: (date: Date) => void;
+    onOpenPastEvent: (event: ScheduleWorkspaceEvent) => void;
 }) => (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[color:var(--schedule-board-cell)]">
         {/* Sticky day headers */}
@@ -761,12 +825,16 @@ const TimelineBoardDnd = ({
                             )}
 
                             {dayEvents.map((event) => (
-                                <DraggableTimelineEvent
-                                    key={event.id}
-                                    event={event}
-                                    selected={false}
-                                    onEdit={() => {}}
-                                />
+                                isPast(event.startsAt) ? (
+                                    <StaticTimelineEvent key={event.id} event={event} onOpenPastEvent={onOpenPastEvent} />
+                                ) : (
+                                    <DraggableTimelineEvent
+                                        key={event.id}
+                                        event={event}
+                                        selected={false}
+                                        onEdit={() => {}}
+                                    />
+                                )
                             ))}
                         </DroppableDayColumn>
                     );

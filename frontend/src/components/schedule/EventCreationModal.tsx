@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     CalendarDays,
     Check,
@@ -64,21 +65,22 @@ const DAY_OPTIONS: Array<{ value: DayOfWeek; label: string }> = [
     { value: 'SUNDAY', label: 'Sun' }
 ];
 
-const eventTypeOptions: Array<{ value: ScheduleEventType; label: string; description: string; icon: typeof CalendarDays }> = [
-    { value: 'TRAINING', label: 'Training', description: 'Recurring or one-time training sessions.', icon: Dumbbell },
-    { value: 'MATCH', label: 'Match', description: 'Competitive fixtures against other clubs.', icon: Swords },
-    { value: 'TRYOUT', label: 'Tryout', description: 'Trials, talent windows, and recruitment.', icon: Target },
-    { value: 'FRIENDLY', label: 'Friendly', description: 'Casual fixtures and open challenges.', icon: Handshake },
-    { value: 'ACTIVITY', label: 'Activity', description: 'Meetings, operations, and general events.', icon: Zap }
+const eventTypeOptions: Array<{ value: ScheduleEventType; labelKey: string; descriptionKey: string; icon: typeof CalendarDays }> = [
+    { value: 'TRAINING', labelKey: 'schedule.event.training', descriptionKey: 'schedule.event.trainingDescription', icon: Dumbbell },
+    { value: 'MATCH', labelKey: 'schedule.event.match', descriptionKey: 'schedule.event.matchDescription', icon: Swords },
+    { value: 'TRYOUT', labelKey: 'schedule.event.tryout', descriptionKey: 'schedule.event.tryoutDescription', icon: Target },
+    { value: 'FRIENDLY', labelKey: 'schedule.event.friendly', descriptionKey: 'schedule.event.friendlyDescription', icon: Handshake },
+    { value: 'ACTIVITY', labelKey: 'schedule.event.activity', descriptionKey: 'schedule.event.activityDescription', icon: Zap }
 ];
 
-const visibilityOptions: Array<{ value: ScheduleVisibility; label: string; description: string; icon: typeof Globe }> = [
-    { value: 'PUBLIC', label: 'Public', description: 'Visible to everyone — appears on the map.', icon: Globe },
-    { value: 'PRIVATE', label: 'Private', description: 'Club members only — hidden from the map.', icon: Lock },
-    { value: 'SCHEDULED_PUBLICATION', label: 'Auto-publish', description: 'Private now, goes public automatically on a date you pick.', icon: Clock }
+const visibilityOptions: Array<{ value: ScheduleVisibility; labelKey: string; descriptionKey: string; icon: typeof Globe }> = [
+    { value: 'PUBLIC', labelKey: 'schedule.event.public', descriptionKey: 'schedule.event.publicDescription', icon: Globe },
+    { value: 'PRIVATE', labelKey: 'schedule.event.private', descriptionKey: 'schedule.event.privateDescription', icon: Lock },
+    { value: 'SCHEDULED_PUBLICATION', labelKey: 'schedule.event.autoPublish', descriptionKey: 'schedule.event.autoPublishDescription', icon: Clock }
 ];
 
 const bdt = (date: string, time: string) => `${date}T${time.length === 5 ? time : time.slice(0, 5)}:00`;
+const todayISO = () => new Date().toISOString().slice(0, 10);
 const normDt = (v: string) => (v && v.length === 16 ? `${v}:00` : v);
 const normT = (t: string) => (t.length === 5 ? t : t.slice(0, 5));
 const gDow = (ds: string): DayOfWeek => {
@@ -89,6 +91,7 @@ const gDow = (ds: string): DayOfWeek => {
 export const EventCreationModal = ({
     isOpen, mode, surface, initialValues, onClose, onSubmit
 }: EventCreationModalProps) => {
+    const { t } = useTranslation();
     const [step, setStep] = useState(0);
     const [form, setForm] = useState<EventCreationFormValues>(initialValues);
     const [creationMode, setCreationMode] = useState<'single' | 'recurring'>('single');
@@ -139,21 +142,26 @@ export const EventCreationModal = ({
     }, [step, form, isStanding, isTraining]);
 
     const validate = (): string | null => {
-        if (!form.title.trim()) return 'Title is required.';
+        if (!form.title.trim()) return t('schedule.event.titleRequired');
         const recurring = form.isRecurring || isStanding;
         if (recurring && (isTraining || isStanding)) {
-            if (!form.recurrenceStartDate || !form.recurrenceStartTime || !form.recurrenceEndTime) return 'Recurring training needs start date and start/end time.';
-            if (form.recurrenceEndDate && form.recurrenceStartDate && form.recurrenceEndDate < form.recurrenceStartDate) return 'Recurrence end date cannot be before start.';
+            if (!form.recurrenceStartDate || !form.recurrenceStartTime || !form.recurrenceEndTime) return t('schedule.event.recurringNeedsTimes');
+            if (form.recurrenceEndDate && form.recurrenceStartDate && form.recurrenceEndDate < form.recurrenceStartDate) return t('schedule.event.recurrenceEndBeforeStart');
             if (form.recurrenceStartDate && form.recurrenceStartTime && form.recurrenceEndTime) {
-                if (bdt(form.recurrenceStartDate, form.recurrenceEndTime) <= bdt(form.recurrenceStartDate, form.recurrenceStartTime)) return 'End time must be after start time.';
+                if (bdt(form.recurrenceStartDate, form.recurrenceEndTime) <= bdt(form.recurrenceStartDate, form.recurrenceStartTime)) return t('schedule.event.endAfterStart');
             }
             const days = form.recurrenceDays ?? [];
-            if (days.length === 0) return 'Select at least one day of the week.';
+            if (days.length === 0) return t('schedule.event.selectWeekday');
         } else {
-            if (!form.date || !form.startTime || !form.endTime) return 'Date and times are required.';
-            if (bdt(form.date, form.endTime) <= bdt(form.date, form.startTime)) return 'End time must be after start time.';
+            if (!form.date || !form.startTime || !form.endTime) return t('schedule.event.dateTimesRequired');
+            if (bdt(form.date, form.endTime) <= bdt(form.date, form.startTime)) return t('schedule.event.endAfterStart');
         }
-        if (isClub && form.visibility === 'SCHEDULED_PUBLICATION' && !form.publishAt) return 'Choose a publication date.';
+        if (isClub && form.visibility === 'SCHEDULED_PUBLICATION' && !form.publishAt) return t('schedule.event.publicationDateRequired');
+        // Past-event guard: the plan window must start in the future.
+        const startIso = recurring
+            ? (form.recurrenceStartDate && form.recurrenceStartTime ? bdt(form.recurrenceStartDate, form.recurrenceStartTime) : null)
+            : (form.date && form.startTime ? bdt(form.date, form.startTime) : null);
+        if (startIso && new Date(startIso) <= new Date()) return t('schedule.event.startInFuture');
         return null;
     };
 
@@ -185,7 +193,7 @@ export const EventCreationModal = ({
         };
         setSubmitting(true); setErrorMessage(null);
         try { await onSubmit(payload, { eventType: eType, recurring: recur }); }
-        catch (error) { setErrorMessage(extractApiErrorMessage(error, 'Could not save the event.')); setSubmitting(false); }
+        catch (error) { setErrorMessage(extractApiErrorMessage(error, t('schedule.event.saveFailed'))); setSubmitting(false); }
     };
 
     const handleBackdropClick = () => {
@@ -213,10 +221,10 @@ export const EventCreationModal = ({
                 <div className="flex items-start justify-between gap-4 border-b border-[var(--fc-border)] px-5 py-4">
                     <div className="min-w-0">
                         <p className="text-[10px] font-bold  text-[var(--fc-text-muted)]">
-                            {mode === 'create' ? 'New Event' : 'Edit Event'} — Step {step + 1} of 3
+                            {mode === 'create' ? t('schedule.event.newEvent') : t('schedule.event.editEvent')} — {t('schedule.event.stepOf', { current: step + 1, total: 3 })}
                         </p>
                         <h2 className="mt-1 text-lg font-semibold text-[var(--fc-text-primary)]">
-                            {step === 0 ? 'What kind of event?' : step === 1 ? 'When is it?' : 'Who can see this?'}
+                            {step === 0 ? t('schedule.event.whatKind') : step === 1 ? t('schedule.event.whenIsIt') : t('schedule.event.whoCanSee')}
                         </h2>
                     </div>
                     <button type="button" onClick={onClose} disabled={submitting}
@@ -244,7 +252,7 @@ export const EventCreationModal = ({
                                         if (form.eventType === 'TRAINING') update('isRecurring', false);
                                     }}
                                     className={`flex-1 rounded-[4px] px-3 py-2 text-xs font-semibold text-center transition-all ${creationMode === 'single' ? 'bg-[var(--fc-accent)] text-white' : 'text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]'}`}>
-                                    One-time Event
+                                    {t('schedule.event.oneTimeEvent')}
                                 </button>
                                 <button type="button"
                                     onClick={() => {
@@ -257,7 +265,7 @@ export const EventCreationModal = ({
                                     }}
                                     className={`flex-1 rounded-[4px] px-3 py-2 text-xs font-semibold text-center transition-all flex items-center justify-center gap-1.5 ${creationMode === 'recurring' ? 'bg-[var(--fc-accent)] text-white' : 'text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]'}`}>
                                     <Repeat2 className="h-3.5 w-3.5" />
-                                    Standing Schedule
+                                    {t('schedule.event.standingSchedule')}
                                 </button>
                             </div>
 
@@ -274,8 +282,8 @@ export const EventCreationModal = ({
                                             className={`flex flex-col items-start gap-2 rounded-[var(--fc-radius)] border p-4 text-left transition-all ${locked ? 'opacity-30 cursor-not-allowed' : active ? 'border-[var(--fc-accent)] bg-[var(--fc-accent-soft)]' : 'border-[var(--fc-border)] hover:border-[var(--fc-accent-border)] hover:bg-[var(--fc-surface-hover)]'}`}>
                                             <Icon className={`h-5 w-5 ${active ? 'text-[var(--fc-accent)]' : 'text-[var(--fc-text-muted)]'}`} />
                                             <div>
-                                                <p className="text-sm font-semibold text-[var(--fc-text-primary)]">{opt.label}</p>
-                                                <p className="mt-0.5 text-xs leading-5 text-[var(--fc-text-secondary)]">{locked ? 'Standing schedules use Training events' : opt.description}</p>
+                                                <p className="text-sm font-semibold text-[var(--fc-text-primary)]">{t(opt.labelKey)}</p>
+                                                <p className="mt-0.5 text-xs leading-5 text-[var(--fc-text-secondary)]">{locked ? t('schedule.event.standingNote') : t(opt.descriptionKey)}</p>
                                             </div>
                                         </button>
                                     );
@@ -283,7 +291,7 @@ export const EventCreationModal = ({
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-[var(--fc-text-secondary)]">Event Name</label>
+                                <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.eventName')}</label>
                                 <input type="text" value={form.title} onChange={(e) => update('title', e.target.value)}
                                     maxLength={140} placeholder={isStanding ? 'e.g. Senior Training' : 'e.g. Senior Training'} className={inputClass} autoFocus
                                     onKeyDown={(e) => { if (e.key === 'Enter' && canGoNext) setStep(1); }} />
@@ -299,18 +307,18 @@ export const EventCreationModal = ({
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">Start Date</label>
-                                            <input type="date" value={form.recurrenceStartDate ?? form.date}
+                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.startDate')}</label>
+                                            <input type="date" min={todayISO()} value={form.recurrenceStartDate ?? form.date}
                                                 onChange={(e) => update('recurrenceStartDate', e.target.value)} className={inputClass} />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">End Date (optional)</label>
-                                            <input type="date" value={form.recurrenceEndDate ?? ''}
+                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.endDateOptional')}</label>
+                                            <input type="date" min={todayISO()} value={form.recurrenceEndDate ?? ''}
                                                 onChange={(e) => update('recurrenceEndDate', e.target.value)} className={inputClass} />
                                         </div>
                                     </div>
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-medium text-[var(--fc-text-secondary)]">Days of Week</label>
+                                        <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.daysOfWeek')}</label>
                                         <div className="flex flex-wrap gap-1.5">
                                             {DAY_OPTIONS.map((opt) => {
                                                 const days = form.recurrenceDays ?? [];
@@ -326,12 +334,12 @@ export const EventCreationModal = ({
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">Start Time</label>
+                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.startTime')}</label>
                                             <input type="time" value={form.recurrenceStartTime ?? form.startTime}
                                                 onChange={(e) => update('recurrenceStartTime', e.target.value)} className={inputClass} />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">End Time</label>
+                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.endTime')}</label>
                                             <input type="time" value={form.recurrenceEndTime ?? form.endTime}
                                                 onChange={(e) => update('recurrenceEndTime', e.target.value)} className={inputClass} />
                                         </div>
@@ -342,15 +350,15 @@ export const EventCreationModal = ({
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-3 gap-3">
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">Date</label>
-                                            <input type="date" value={form.date} onChange={(e) => update('date', e.target.value)} className={inputClass} />
+                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.date')}</label>
+                                            <input type="date" min={todayISO()} value={form.date} onChange={(e) => update('date', e.target.value)} className={inputClass} />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">Start Time</label>
+                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.startTime')}</label>
                                             <input type="time" value={form.startTime} onChange={(e) => update('startTime', e.target.value)} className={inputClass} />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">End Time</label>
+                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.endTime')}</label>
                                             <input type="time" value={form.endTime} onChange={(e) => update('endTime', e.target.value)} className={inputClass} />
                                         </div>
                                     </div>
@@ -363,8 +371,8 @@ export const EventCreationModal = ({
                                             }}
                                             className="flex w-full items-start justify-between gap-3 rounded-[var(--fc-radius)] border border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] p-3.5 text-left transition-colors hover:bg-[var(--fc-surface-hover)]">
                                             <div>
-                                                <p className="text-sm font-semibold text-[var(--fc-text-primary)]">Repeat every week</p>
-                                                <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">Set once — shows automatically each week</p>
+                                                <p className="text-sm font-semibold text-[var(--fc-text-primary)]">{t('schedule.event.repeatWeekly')}</p>
+                                                <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">{t('schedule.event.repeatWeeklyNote')}</p>
                                             </div>
                                             <span className={`mt-0.5 inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors ${form.isRecurring ? 'border-[var(--fc-accent)] bg-[var(--fc-accent-soft)] justify-end' : 'border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] justify-start'}`}>
                                                 <span className="mx-1 h-2.5 w-2.5 rounded-full bg-[var(--fc-accent)]" />
@@ -375,15 +383,15 @@ export const EventCreationModal = ({
                             )}
 
                             <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-[var(--fc-text-secondary)]">Location</label>
+                                <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.location')}</label>
                                 <input type="text" value={form.locationName} onChange={(e) => update('locationName', e.target.value)}
-                                    maxLength={255} placeholder="e.g. Dinamo Academy Pitch" className={inputClass} />
+                                    maxLength={255} placeholder={t('schedule.event.locationPlaceholder')} className={inputClass} />
                             </div>
 
                             {/* Minimap */}
                             <MiniMap
                                 mode="picker"
-                                title="Venue Picker"
+                                title={t('schedule.event.venuePicker')}
                                 selectedLocation={{ lat: selLat, lng: selLng }}
                                 onSelectLocation={({ lat, lng }) => { update('locationLat', String(lat)); update('locationLng', String(lng)); }}
                             />
@@ -406,15 +414,15 @@ export const EventCreationModal = ({
                                                     {active ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-sm font-semibold text-[var(--fc-text-primary)]">{opt.label}</p>
-                                                    <p className="mt-0.5 text-xs text-[var(--fc-text-secondary)]">{opt.description}</p>
+                                                    <p className="text-sm font-semibold text-[var(--fc-text-primary)]">{t(opt.labelKey)}</p>
+                                                    <p className="mt-0.5 text-xs text-[var(--fc-text-secondary)]">{t(opt.descriptionKey)}</p>
                                                 </div>
                                             </button>
                                         );
                                     })}
                                     {form.visibility === 'SCHEDULED_PUBLICATION' && (
                                         <div className="space-y-1.5 pt-2">
-                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">Publish on</label>
+                                            <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.publishOn')}</label>
                                             <input type="datetime-local" value={form.publishAt} onChange={(e) => update('publishAt', e.target.value)} className={inputClass} />
                                         </div>
                                     )}
@@ -422,8 +430,8 @@ export const EventCreationModal = ({
                             ) : (
                                 <div className="rounded-[var(--fc-radius)] border border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] p-5 text-center">
                                     <Lock className="mx-auto h-8 w-8 text-[var(--fc-text-muted)]" />
-                                    <p className="mt-3 text-sm font-semibold text-[var(--fc-text-primary)]">Personal events are always private</p>
-                                    <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">My Schedule stays personal only — it never appears on the map or in public listings.</p>
+                                    <p className="mt-3 text-sm font-semibold text-[var(--fc-text-primary)]">{t('schedule.event.personalAlwaysPrivate')}</p>
+                                    <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">{t('schedule.event.personalNote')}</p>
                                 </div>
                             )}
                             {errorMessage && <ErrorBanner message={errorMessage} />}
@@ -436,24 +444,24 @@ export const EventCreationModal = ({
                     {step > 0 ? (
                         <button type="button" onClick={() => { setStep((s) => s - 1); setErrorMessage(null); }}
                             className="inline-flex items-center gap-1.5 rounded-[var(--fc-radius)] px-3 py-2 text-sm font-medium text-[var(--fc-text-secondary)] transition-colors hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)]">
-                            <ChevronLeft className="h-4 w-4" /> Back
+                            <ChevronLeft className="h-4 w-4" /> {t('schedule.event.back')}
                         </button>
                     ) : <div />}
                     <div className="flex items-center gap-2">
                         <button type="button" onClick={onClose} disabled={submitting}
                             className="rounded-[var(--fc-radius)] px-3 py-2 text-sm font-medium text-[var(--fc-text-secondary)] transition-colors hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)]">
-                            Cancel
+                            {t('schedule.event.cancel')}
                         </button>
                         {step < 2 ? (
                             <button type="button" onClick={() => { setStep((s) => s + 1); setErrorMessage(null); }}
                                 disabled={!canGoNext}
                                 className="inline-flex items-center gap-1.5 rounded-[var(--fc-radius)] bg-[var(--fc-accent)] px-4 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed">
-                                Continue <ChevronRight className="h-4 w-4" />
+                                {t('schedule.event.continue')} <ChevronRight className="h-4 w-4" />
                             </button>
                         ) : (
                             <button type="button" onClick={handleSave} disabled={submitting}
                                 className="inline-flex items-center gap-2 rounded-[var(--fc-radius)] bg-[var(--fc-accent)] px-5 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed">
-                                {submitting && <Loader2 className="h-4 w-4 animate-spin" />} Save Event
+                                {submitting && <Loader2 className="h-4 w-4 animate-spin" />} {t('schedule.event.saveEvent')}
                             </button>
                         )}
                     </div>
@@ -461,9 +469,9 @@ export const EventCreationModal = ({
             </div>
             <ConfirmDialog
                 open={showDiscardConfirm}
-                title="Discard Event"
-                message="You have unsaved changes. Are you sure you want to discard this event?"
-                confirmLabel="Discard"
+                title={t('schedule.event.discardEvent')}
+                message={t('schedule.event.discardConfirm')}
+                confirmLabel={t('schedule.event.discard')}
                 variant="warning"
                 onConfirm={() => { setShowDiscardConfirm(false); onClose(); }}
                 onCancel={() => setShowDiscardConfirm(false)}

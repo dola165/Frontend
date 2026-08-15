@@ -6,7 +6,7 @@ interface TabOpportunitiesProps {
     isOwnClubAdmin: boolean;
 }
 
-const orderedTypes: ClubOpportunity['type'][] = ['FUNDRAISING', 'JOB', 'VOLUNTEER', 'WISHLIST'];
+const orderedTypes: ClubOpportunity['type'][] = ['FUNDRAISING', 'JOB', 'VOLUNTEER'];
 
 export const TabOpportunities = ({ club, isOwnClubAdmin }: TabOpportunitiesProps) => {
     const grouped = new Map<ClubOpportunity['type'], ClubOpportunity[]>();
@@ -24,7 +24,7 @@ export const TabOpportunities = ({ club, isOwnClubAdmin }: TabOpportunitiesProps
                     <div>
                         <p className="text-[11px] font-semibold  text-[#16a34a]">Entity Tab</p>
                         <h2 className="mt-2 text-2xl font-semibold uppercase tracking-tight text-[#f4f4f5]">Opportunities</h2>
-                        <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">Fundraising, jobs, volunteers, and wishlist items published from the club workspace.</p>
+                        <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">Fundraising, jobs, and volunteer opportunities published from the club workspace.</p>
                     </div>
                     <div className="border border-[#ffffff0d] bg-[#0f1117] px-4 py-3">
                         <p className="text-[11px] font-semibold  text-[#a1a1aa]">Live Entries</p>
@@ -37,7 +37,7 @@ export const TabOpportunities = ({ club, isOwnClubAdmin }: TabOpportunitiesProps
             {opportunityCount === 0 ? (
                 <div className="px-5 py-12 text-center">
                     <h3 className="text-lg font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">No Active Opportunities</h3>
-                    <p className="mt-2 text-sm text-[#a1a1aa]">This club has not published fundraising, jobs, volunteer roles, or wishlist items yet.</p>
+                    <p className="mt-2 text-sm text-[#a1a1aa]">This club has not published fundraising, jobs, or volunteer opportunities yet.</p>
                 </div>
             ) : (
                 orderedTypes.map((type) => {

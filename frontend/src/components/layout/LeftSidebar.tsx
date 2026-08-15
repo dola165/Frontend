@@ -5,6 +5,7 @@ import {
     CalendarDays,
     Compass,
     Map as MapIcon,
+    Store as StoreIcon,
     Users
 } from 'lucide-react';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
@@ -27,7 +28,8 @@ interface SidebarNavItem {
 
 const mainNavItems: SidebarNavItem[] = [
     { id: 'map', path: '/map', label: 'Maps', icon: MapIcon },
-    { id: 'calendar', path: '/calendar', label: 'Schedule', icon: CalendarDays }
+    { id: 'calendar', path: '/calendar', label: 'Schedule', icon: CalendarDays },
+    { id: 'store', path: '/store', label: 'Store', icon: StoreIcon }
 ];
 
 const initialsFrom = (value: string) =>

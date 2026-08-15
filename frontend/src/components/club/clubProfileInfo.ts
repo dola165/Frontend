@@ -49,8 +49,10 @@ export const buildClubProfileLinks = (club: ClubProfile): ClubProfileActionLink[
                         ? 'Jobs'
                         : opportunity.type === 'VOLUNTEER'
                             ? 'Volunteer'
-                            : 'Store';
-            pushLink(opportunity.externalLink, label, 'club-tone-blue');
+                            : null;
+            if (label) {
+                pushLink(opportunity.externalLink, label, 'club-tone-blue');
+            }
         });
 
     return links;

@@ -28,6 +28,7 @@ export const resolveNavigationKey = (pathname: string, myClubId: number | null) 
     if (pathname === '/admin') return 'admin';
     if (pathname === '/marketplace') return 'marketplace';
     if (pathname === '/needs') return 'needs';
+    if (pathname === '/store') return 'store';
     if (pathname.startsWith('/profile/')) return 'profile';
 
     const clubRouteMatch = pathname.match(clubRoutePattern);

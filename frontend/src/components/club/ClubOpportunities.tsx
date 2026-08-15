@@ -1,5 +1,6 @@
 import { ArrowRight, Briefcase, ExternalLink, HeartHandshake, ShoppingBag } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
 import type { ClubOpportunity, ClubProfile } from '../../pages/ClubProfilePage';
 
@@ -20,19 +21,9 @@ const orderedTypes: Array<{
         toneClassName: 'club-tone-green'
     },
     {
-        type: 'JOB',
-        label: 'Job Opportunities',
-        toneClassName: 'club-tone-blue'
-    },
-    {
         type: 'VOLUNTEER',
         label: 'Volunteer Opportunities',
         toneClassName: 'club-tone-violet'
-    },
-    {
-        type: 'WISHLIST',
-        label: 'Wish List',
-        toneClassName: 'club-tone-pink'
     }
 ];
 
@@ -105,7 +96,7 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                             </div>
                         )}
 
-                        {/* Store — Official Club Merchandise (hardcoded, always visible) */}
+                        {/* Store — Official Club Merchandise (internal store, always visible) */}
                         <div className="border-t border-[color:var(--club-theme-border-subtle)] pt-3 mt-1">
                             <div
                                 className="rounded-[4px] border px-3.5 py-3.5"
@@ -123,16 +114,14 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                                 <p className="mt-1.5 text-xs text-[#a1a1aa] leading-relaxed">
                                     Official kit, training gear, and equipment. All purchases support your club directly.
                                 </p>
-                                <a
-                                    href="https://grasskickz.store"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <Link
+                                    to={`/clubs/${club?.id}/store`}
                                     className="mt-2.5 inline-flex w-full items-center justify-between rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors hover:bg-[rgba(212,168,83,0.08)]"
                                     style={{ borderColor: 'rgba(212,168,83,0.3)', color: '#d4a853' }}
                                 >
                                     Visit Store
-                                    <ExternalLink className="h-3 w-3" />
-                                </a>
+                                    <ArrowRight className="h-3 w-3" />
+                                </Link>
                             </div>
                         </div>
 

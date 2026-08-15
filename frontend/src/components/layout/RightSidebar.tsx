@@ -1,76 +1,47 @@
 import { Link } from 'react-router-dom';
-import { MessageSquare, Radar, Trophy } from 'lucide-react';
+import { MessageSquare, Megaphone, Radar, Zap } from 'lucide-react';
 import { MiniMap } from '../MiniMap';
 
-const trendingItems = [
-    { label: '#ChampionsLeague Final', mentions: '12.4K posts' },
-    { label: 'Kvaratskhelia transfer', mentions: '8.2K posts' },
-    { label: 'U21 Scouting Spotlight', mentions: '5.1K posts' },
-    { label: 'Dinamo Tbilisi — Cup Run', mentions: '3.6K posts' },
-    { label: 'Grassroots Weekend Recap', mentions: '2.8K posts' }
-];
-
-const liveScores = [
-    { home: 'FC Dinamo', away: 'Saburtalo', homeScore: 2, awayScore: 1, minute: "74'", live: true },
-    { home: 'Torpedo', away: 'Locomotive', homeScore: 0, awayScore: 0, minute: "32'", live: true },
-    { home: 'Dila Gori', away: 'Samgurali', homeScore: 1, awayScore: 2, minute: "FT", live: false }
-];
-
+/**
+ * Feed right rail. The top slot is a mock ad — an imitation to showcase that
+ * this placement is reserved for sponsored content (WEB_APP_MASTER_PLAN.md §7,
+ * monetization lane "ads"). No real advertiser, no tracking, dead CTA.
+ */
 export const RightSidebar = () => (
     <aside className="hidden lg:block">
         <div className="sticky top-[calc(var(--app-header-height)+12px)] flex flex-col gap-3">
-            {/* Trending in Football */}
+            {/* Sponsored slot — mock ad */}
             <section className="overflow-hidden rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)]">
-                <div className="flex items-center gap-2 border-b border-[var(--feed-card-border)] px-4 py-3">
-                    <Trophy className="h-4 w-4 text-[var(--feed-accent)]" />
-                    <p className="text-sm font-semibold text-[var(--feed-text-primary)]">Trending in Football</p>
+                <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--feed-text-muted)]">
+                        Sponsored
+                    </p>
+                    <Megaphone className="h-3.5 w-3.5 text-[var(--feed-text-muted)]" />
                 </div>
-                <div className="divide-y divide-[var(--feed-divider)]">
-                    {trendingItems.map((item, idx) => (
-                        <div key={idx} className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-[var(--feed-hover-bg)]">
-                            <span className="mt-0.5 text-sm font-bold text-[var(--feed-accent)]">{idx + 1}</span>
-                            <div className="min-w-0">
-                                <p className="truncate text-sm font-medium text-[var(--feed-text-primary)]">{item.label}</p>
-                                <p className="text-xs text-[var(--feed-text-muted)]">{item.mentions}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
-            {/* Live Scores */}
-            <section className="overflow-hidden rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)]">
-                <div className="flex items-center justify-between border-b border-[var(--feed-card-border)] px-4 py-3">
+                <div className="mx-3 rounded-lg border border-[var(--feed-card-border)] bg-gradient-to-br from-[#16a34a]/15 via-[var(--feed-layer-bg)] to-[#0f1117] px-4 py-4">
                     <div className="flex items-center gap-2">
-                        <span className="flex h-2 w-2 rounded-full bg-[var(--feed-accent)] animate-pulse" />
-                        <p className="text-sm font-semibold text-[var(--feed-text-primary)]">Live Scores</p>
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#16a34a]">
+                            <Zap className="h-4 w-4 text-white" />
+                        </span>
+                        <p className="text-sm font-bold tracking-tight text-[var(--feed-text-primary)]">VOLT Performance</p>
                     </div>
-                    <span className="text-xs font-medium text-[var(--feed-text-muted)]">Georgia</span>
+                    <p className="mt-2.5 text-sm font-semibold text-[var(--feed-text-primary)]">
+                        Fuel the next 90 minutes.
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-[var(--feed-text-muted)]">
+                        Isotonic hydration built with grassroots clubs. Squad discount for every GrassKickZ team.
+                    </p>
+                    <a
+                        href="#"
+                        onClick={(e) => e.preventDefault()}
+                        className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-[var(--feed-accent)] px-3 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                    >
+                        Learn More
+                    </a>
                 </div>
-                <div className="divide-y divide-[var(--feed-divider)]">
-                    {liveScores.length === 0 ? (
-                        <div className="px-4 py-8 text-center">
-                            <p className="text-sm text-[var(--feed-text-muted)]">No live matches right now</p>
-                            <p className="mt-1 text-xs text-[var(--feed-text-placeholder)]">Scores will appear during matchdays</p>
-                        </div>
-                    ) : (
-                        liveScores.map((match, idx) => (
-                            <div key={idx} className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-[var(--feed-hover-bg)]">
-                                <div className="min-w-0 flex-1">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <span className="text-sm font-medium text-[var(--feed-text-primary)]">{match.home}</span>
-                                        <span className="text-lg font-bold text-[var(--feed-text-primary)] tabular-nums">{match.homeScore} - {match.awayScore}</span>
-                                        <span className="text-sm font-medium text-[var(--feed-text-primary)]">{match.away}</span>
-                                    </div>
-                                    <div className="mt-1 flex items-center gap-2">
-                                        {match.live && <span className="h-1.5 w-1.5 rounded-full bg-[var(--feed-accent)]" />}
-                                        <span className={`text-xs font-medium ${match.live ? 'text-[var(--feed-accent)]' : 'text-[var(--feed-text-muted)]'}`}>{match.minute}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
+                <p className="px-4 pb-3 pt-2 text-[10px] text-[var(--feed-text-placeholder)]">
+                    Ad · This slot is available for sponsors
+                </p>
             </section>
 
             {/* Map Integration */}

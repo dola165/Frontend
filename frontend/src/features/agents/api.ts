@@ -30,6 +30,11 @@ export const removePlayerFromPortfolio = async (representationId: number): Promi
     await apiClient.delete(`/agents/me/portfolio/players/${representationId}`);
 };
 
+/** 16-17 self-consent: the player accepts or declines their agent representation. */
+export const respondToRepresentationConsent = async (representationId: number, accept: boolean): Promise<void> => {
+    await apiClient.post(`/agents/representations/${representationId}/consent`, { accept });
+};
+
 export const fetchMyEngagements = async (status?: string): Promise<AgentEngagement[]> => {
     const response = await apiClient.get<AgentEngagement[]>('/agents/me/engagements', {
         params: { status: status || undefined }

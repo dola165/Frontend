@@ -21,6 +21,7 @@ export const createUser = (overrides: Partial<StoreUser> & { email: string; pass
   name: overrides.name ?? undefined,
   role: overrides.role ?? 'PLAYER',
   avatarUrl: overrides.avatarUrl ?? undefined,
+  dob: overrides.dob ?? null,
   profileComplete: overrides.profileComplete ?? true,
   bio: overrides.bio,
   position: overrides.position,

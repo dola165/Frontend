@@ -1,5 +1,5 @@
 import { createUser, createClub, createPost, createComment, resetFactoryCounters } from './factories';
-import { users, clubs, posts, comments, currentUserId, followedClubIds, events, nextEventId, resetStore } from './store';
+import { users, clubs, posts, comments, currentUserId, followedClubIds, events, nextEventId, resetStore, products, type StoreProduct } from './store';
 import { resetIds } from './ids';
 
 export const seed = () => {
@@ -8,13 +8,21 @@ export const seed = () => {
   resetFactoryCounters();
 
   // -- users --
-  const u1 = createUser({ id: 1, email: 'player@test.dev', password: 'mock', username: 'marcus.r', fullName: 'Marcus Rivera', role: 'PLAYER', position: 'Forward', bio: 'Sunday league forward. Always looking for a game.' });
-  const u2 = createUser({ id: 2, email: 'organizer@test.dev', password: 'mock', username: 'sarah.c', fullName: 'Sarah Chen', role: 'ORGANIZER' });
-  const u3 = createUser({ id: 3, email: 'coach@test.dev', password: 'mock', username: 'james.w', fullName: 'James Wilson', role: 'COACH', position: 'Head Coach' });
-  const u4 = createUser({ id: 4, email: 'fan@test.dev', password: 'mock', username: 'emma.t', fullName: 'Emma Thompson', role: 'FAN', profileComplete: false });
-  const u5 = createUser({ id: 5, email: 'admin@test.dev', password: 'mock', username: 'alex.k', fullName: 'Alex Kim', role: 'ADMIN' });
+  // Adult DOBs so the minors framework (allowlist, private profiles, gates)
+  // treats every demo persona as an adult — except the two intentional ones below.
+  const u1 = createUser({ id: 1, email: 'player@test.dev', password: 'mock', username: 'marcus.r', fullName: 'Marcus Rivera', role: 'PLAYER', position: 'Forward', bio: 'Sunday league forward. Always looking for a game.', dob: '1998-05-14' });
+  const u2 = createUser({ id: 2, email: 'organizer@test.dev', password: 'mock', username: 'sarah.c', fullName: 'Sarah Chen', role: 'ORGANIZER', dob: '1992-09-02' });
+  const u3 = createUser({ id: 3, email: 'coach@test.dev', password: 'mock', username: 'james.w', fullName: 'James Wilson', role: 'COACH', position: 'Head Coach', dob: '1985-01-23' });
+  const u4 = createUser({ id: 4, email: 'fan@test.dev', password: 'mock', username: 'emma.t', fullName: 'Emma Thompson', role: 'FAN', profileComplete: false, dob: '2000-07-30' });
+  const u5 = createUser({ id: 5, email: 'admin@test.dev', password: 'mock', username: 'alex.k', fullName: 'Alex Kim', role: 'ADMIN', dob: '1981-11-05' });
 
-  [u1, u2, u3, u4, u5].forEach((u) => users().set(u.id, u));
+  // Minors-framework demo personas: a 14-year-old player (consent PENDING on
+  // the Creekside affiliation) and their guardian — powers the DM allowlist,
+  // private-profile, and consent flows in mock mode.
+  const u6 = createUser({ id: 6, email: 'youth@test.dev', password: 'mock', username: 'saba.y', fullName: 'Saba Youth', role: 'PLAYER', position: 'Goalkeeper', dob: `${new Date().getFullYear() - 14}-08-01` });
+  const u7 = createUser({ id: 7, email: 'parent@test.dev', password: 'mock', username: 'nino.p', fullName: 'Nino Parent', role: 'FAN', dob: `${new Date().getFullYear() - 38}-03-20` });
+
+  [u1, u2, u3, u4, u5, u6, u7].forEach((u) => users().set(u.id, u));
 
   // -- clubs --
   const c1 = createClub({ id: 1, name: 'Creekside FC', ownerId: u1.id, city: 'Bristol', description: 'Grassroots community club. Open trials every Saturday.', joinPolicy: 'OPEN_TRIAL', memberCount: 42 });
@@ -22,6 +30,40 @@ export const seed = () => {
   const c3 = createClub({ id: 3, name: 'Lakeside Athletic', ownerId: u3.id, city: 'London', description: 'Semi-professional club. First team in the Isthmian League.', joinPolicy: 'INVITE_ONLY', memberCount: 56 });
 
   [c1, c2, c3].forEach((c) => clubs().set(c.id, c));
+
+  // -- store products (WEB_APP_MASTER_PLAN.md §4.1, Phase 3) --
+  let nextProductId = 1;
+  const seedProduct = (clubId: number, clubName: string, name: string, description: string | null, price: number, sizes: string[], imageSeed: string, category: string, city: string) => {
+    const product: StoreProduct = {
+      id: nextProductId++,
+      clubId,
+      clubName,
+      clubLogoUrl: null,
+      clubWhatsappNumber: null,
+      clubEmail: null,
+      name,
+      description,
+      price,
+      sizes,
+      images: [`https://picsum.photos/seed/${imageSeed}/800/800`],
+      active: true,
+      createdAt: new Date().toISOString(),
+      category,
+      clubCityName: city,
+      clubCountryName: 'United Kingdom',
+    };
+    products().set(product.id, product);
+  };
+
+  seedProduct(c1.id, c1.name, 'Home Kit 2026/27', 'Official home shirt — navy with white trim.', 65, ['S', 'M', 'L', 'XL'], 'store-creekside-kit', 'SHIRT', c1.city);
+  seedProduct(c1.id, c1.name, 'Academy Scarf', 'Knitted club scarf in home colours.', 18, [], 'store-creekside-scarf', 'ACCESSORIES', c1.city);
+  seedProduct(c1.id, c1.name, 'Training Top', 'Lightweight training top for academy sessions.', 40, ['M', 'L', 'XL'], 'store-creekside-top', 'TRAINING', c1.city);
+  seedProduct(c1.id, c1.name, 'Matchday Ticket', 'General admission for the Saturday derby.', 8, [], 'store-creekside-ticket', 'TICKETS', c1.city);
+  seedProduct(c2.id, c2.name, 'Academy Kit', 'Full academy kit — red and white.', 80, ['XS', 'S', 'M', 'L'], 'store-metro-kit', 'SHIRT', c2.city);
+  seedProduct(c2.id, c2.name, 'Club Cap', 'Adjustable club cap — embroidered crest.', 22, [], 'store-metro-cap', 'ACCESSORIES', c2.city);
+  seedProduct(c2.id, c2.name, 'Club Football', 'Size 5 training ball with the club crest.', 35, [], 'store-metro-ball', 'EQUIPMENT', c2.city);
+  seedProduct(c3.id, c3.name, 'Home Kit 2026', 'Semi-pro home shirt, breathable match fabric.', 75, ['S', 'M', 'L'], 'store-lakeside-kit', 'SHIRT', c3.city);
+  seedProduct(c3.id, c3.name, 'Winter Beanie', 'Club beanie for cold matchdays.', 20, [], 'store-lakeside-beanie', 'ACCESSORIES', c3.city);
 
   // -- posts --
   const p1 = createPost({ authorId: u1.id, clubId: c1.id, content: 'Great session this morning! The new 4-3-3 shape is starting to click. See everyone at the match on Saturday.' });

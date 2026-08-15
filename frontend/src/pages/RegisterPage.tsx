@@ -6,6 +6,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { resolvePostAuthRedirect } from '../utils/authRedirect';
+import { isUnder13, todayIso } from '../utils/age';
 
 export const RegisterPage = () => {
     const navigate = useNavigate();
@@ -15,6 +16,7 @@ export const RegisterPage = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [role, setRole] = useState<'PLAYER' | 'FAN' | 'ORGANIZER' | 'AGENT'>('PLAYER');
+    const [dob, setDob] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '/feed');
@@ -27,12 +29,21 @@ export const RegisterPage = () => {
             return;
         }
 
+        if (!dob) {
+            setError("Date of birth is required.");
+            return;
+        }
+        if (isUnder13(dob)) {
+            setError("You must be at least 13 years old to register. Ask your parent or coach to add you through your club.");
+            return;
+        }
+
         setIsLoading(true);
         setError('');
 
         try {
             const normalizedEmail = email.trim();
-            await apiClient.post('/auth/register', { email: normalizedEmail, password, role });
+            await apiClient.post('/auth/register', { email: normalizedEmail, password, role, dateOfBirth: dob });
             const loginRes = await apiClient.post('/auth/login', { email: normalizedEmail, password });
             const authenticatedUser = await loginWithAccessToken(loginRes.data.accessToken);
             navigate(authenticatedUser.profileComplete ? nextPath : '/onboarding');
@@ -108,6 +119,18 @@ export const RegisterPage = () => {
                             </div>
                         </div>
                         <div className="space-y-2">
+                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">Date of Birth</label>
+                            <input
+                                type="date"
+                                value={dob}
+                                max={todayIso()}
+                                onChange={(e) => setDob(e.target.value)}
+                                required
+                                className={inputClass}
+                            />
+                            <p className="text-[10px] font-semibold  text-muted">You must be at least 13 years old to join</p>
+                        </div>
+                        <div className="space-y-2">
                             <label className="text-[10px] font-semibold  text-[#a1a1aa]">Password</label>
                             <input
                                 type="password"
@@ -162,7 +185,9 @@ export const RegisterPage = () => {
                                     });
 
                                     const authenticatedUser = await loginWithAccessToken(res.data.accessToken);
-                                    if (!authenticatedUser.profileComplete) {
+                                    if (!authenticatedUser.dob) {
+                                        navigate('/dob');
+                                    } else if (!authenticatedUser.profileComplete) {
                                         navigate('/onboarding');
                                     } else {
                                         navigate(nextPath);

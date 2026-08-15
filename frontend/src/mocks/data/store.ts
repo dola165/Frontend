@@ -44,6 +44,36 @@ export interface StoreComment {
   createdAt: string;
 }
 
+export interface StoreJob {
+  id: number;
+  clubId: number;
+  title: string;
+  description: string | null;
+  ageGroup: string | null;
+  level: string | null;
+  status: 'OPEN' | 'CLOSED';
+  createdAt: string;
+}
+
+export interface StoreProduct {
+  id: number;
+  clubId: number;
+  clubName: string | null;
+  clubLogoUrl: string | null;
+  clubWhatsappNumber: string | null;
+  clubEmail: string | null;
+  name: string;
+  description: string | null;
+  price: number;
+  sizes: string[];
+  images: string[];
+  active: boolean;
+  createdAt: string;
+  category: string;
+  clubCityName: string | null;
+  clubCountryName: string | null;
+}
+
 export interface StoreEvent {
   eventId: number;
   occurrenceId: string;
@@ -78,6 +108,8 @@ let _clubs: Map<number, StoreClub> | null = null;
 let _posts: Map<number, StorePost> | null = null;
 let _comments: Map<number, StoreComment> | null = null;
 let _events: Map<number, StoreEvent> | null = null;
+let _jobs: Map<number, StoreJob> | null = null;
+let _products: Map<number, StoreProduct> | null = null;
 let _currentUserId: number | null = null;
 let _followedClubIds: Set<number> | null = null;
 let _nextEventId = 100;
@@ -87,6 +119,8 @@ export const clubs = () => { if (!_clubs) _clubs = new Map(); return _clubs; };
 export const posts = () => { if (!_posts) _posts = new Map(); return _posts; };
 export const comments = () => { if (!_comments) _comments = new Map(); return _comments; };
 export const events = () => { if (!_events) _events = new Map(); return _events; };
+export const jobs = () => { if (!_jobs) _jobs = new Map(); return _jobs; };
+export const products = () => { if (!_products) _products = new Map(); return _products; };
 export const currentUserId = (v?: number | null) => { if (v !== undefined) _currentUserId = v; return _currentUserId; };
 export const followedClubIds = () => { if (!_followedClubIds) _followedClubIds = new Set(); return _followedClubIds; };
 export const nextEventId = () => { const id = _nextEventId; _nextEventId++; return id; };
@@ -97,6 +131,8 @@ export const resetStore = () => {
   _posts = null;
   _comments = null;
   _events = null;
+  _jobs = null;
+  _products = null;
   _currentUserId = null;
   _followedClubIds = null;
   _nextEventId = 100;

@@ -79,8 +79,10 @@ const normalizeManagementPath = (notification: NotificationItem, path: string) =
         return path;
     }
 
+    // Phase 2 §4.5: legacy management paths route to the workspace tab — the
+    // manage-club modal ignores managementTab, while the workspace re-syncs ?tab=.
     const clubId = Number(match[1]);
-    const managementTab = notification.type === 'TRYOUT_APPLICATION_RECEIVED'
+    const workspaceTab = notification.type === 'TRYOUT_APPLICATION_RECEIVED'
         ? 'tryouts'
         : notification.type === 'CLUB_APPLICATION_RECEIVED'
             ? 'applications'
@@ -88,7 +90,7 @@ const normalizeManagementPath = (notification: NotificationItem, path: string) =
                 ? 'invites'
                 : 'personnel';
 
-    return `/clubs/${clubId}?manageClub=1&managementTab=${managementTab}`;
+    return `/clubs/${clubId}/workspace?tab=${workspaceTab}`;
 };
 
 export const buildNotificationDestination = (notification: NotificationItem) => {
@@ -97,14 +99,15 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
     }
 
     if (notification.clubId != null) {
+        // Phase 2 §4.5: club-management notifications land on the workspace tab.
         if (notification.type === 'TRYOUT_APPLICATION_RECEIVED') {
-            return `/clubs/${notification.clubId}?manageClub=1&managementTab=tryouts`;
+            return `/clubs/${notification.clubId}/workspace?tab=tryouts`;
         }
         if (notification.type === 'CLUB_APPLICATION_RECEIVED') {
-            return `/clubs/${notification.clubId}?manageClub=1&managementTab=applications`;
+            return `/clubs/${notification.clubId}/workspace?tab=applications`;
         }
         if (notification.type === 'CLUB_INVITATION_ACCEPTED' || notification.type === 'CLUB_INVITATION_DECLINED') {
-            return `/clubs/${notification.clubId}?manageClub=1&managementTab=invites`;
+            return `/clubs/${notification.clubId}/workspace?tab=invites`;
         }
         if (notification.type === 'SQUAD_ASSIGNMENT' && notification.entityId != null) {
             return `/clubs/${notification.clubId}/squads?squad=${notification.entityId}`;

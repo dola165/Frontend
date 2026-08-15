@@ -37,7 +37,12 @@ export const LoginPage = () => {
         try {
             const res = await apiClient.post('/auth/login', { email: email.trim(), password });
             const authenticatedUser = await loginWithAccessToken(res.data.accessToken);
-            navigate(authenticatedUser.profileComplete ? nextPath : '/onboarding');
+            if (res.data.mustChangePassword) {
+                // Card-activated account: the kid must set their own password first.
+                navigate('/set-password');
+            } else {
+                navigate(authenticatedUser.profileComplete ? nextPath : '/onboarding');
+            }
         } catch (err) {
             console.error(err);
             setError(extractApiErrorMessage(err, 'Invalid credentials. Please try again.'));

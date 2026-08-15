@@ -311,6 +311,7 @@ export const MessagingPage = () => {
                         position: null,
                         userType: '',
                         avatarUrl: p.profilePictureUrl,
+                        isMinor: false,
                     });
                 }
             }

@@ -2,6 +2,7 @@ import { http, HttpHandler, HttpResponse } from 'msw';
 import { users, currentUserId } from '../data/store';
 import { createUser } from '../data/factories';
 import { simulateLatency } from '../utils';
+import { isUnder13 } from '../../utils/age';
 
 const API = '*/api';
 
@@ -31,7 +32,10 @@ export const authHandlers: HttpHandler[] = [
     for (const u of users().values()) {
       if (u.email === email && u.password === body.password) {
         currentUserId(u.id);
-        return HttpResponse.json({ accessToken: makeToken(u.id, u.role ?? 'PLAYER') });
+        return HttpResponse.json({
+          accessToken: makeToken(u.id, u.role ?? 'PLAYER'),
+          mustChangePassword: false,
+        });
       }
     }
 
@@ -41,11 +45,17 @@ export const authHandlers: HttpHandler[] = [
   // -- register (returns 201 with message only — NO accessToken) --
   http.post(`${API}/auth/register`, async ({ request }) => {
     await simulateLatency();
-    const body = (await request.json()) as { email?: string; password?: string; username?: string; fullName?: string; role?: string };
+    const body = (await request.json()) as { email?: string; password?: string; username?: string; fullName?: string; role?: string; dateOfBirth?: string };
 
     const email = body.email?.trim().toLowerCase();
     if (!email) {
       return HttpResponse.json({ error: 'Email is required.' }, { status: 400 });
+    }
+    if (!body.dateOfBirth) {
+      return HttpResponse.json({ error: 'Date of birth is required.' }, { status: 400 });
+    }
+    if (isUnder13(body.dateOfBirth)) {
+      return HttpResponse.json({ error: 'You must be at least 13 years old to register.' }, { status: 400 });
     }
 
     for (const u of users().values()) {
@@ -60,6 +70,7 @@ export const authHandlers: HttpHandler[] = [
       username: body.username,
       fullName: body.fullName,
       role: (body.role as 'PLAYER' | 'FAN' | 'ORGANIZER' | 'COACH' | 'ADMIN') ?? 'PLAYER',
+      dob: body.dateOfBirth,
       profileComplete: false,
     });
     users().set(newUser.id, newUser);

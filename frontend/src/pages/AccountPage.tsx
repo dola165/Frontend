@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     ArrowLeft,
     BadgeCheck,
@@ -18,6 +19,8 @@ import { apiClient } from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
+import { isUnder13, todayIso } from '../utils/age';
+import { activatePlayerCard, fetchMyPlayerCards, type PlayerCard } from '../features/clubs/api';
 import { EntityTabs, type EntityTabItem } from '../components/layout/EntityTabs';
 
 type Tab = 'profile' | 'security' | 'sessions' | 'accounts' | 'danger';
@@ -182,6 +185,7 @@ const DetailRow = ({ label, value }: { label: string; value: ReactNode }) => (
 );
 
 export const AccountPage = () => {
+    const { t } = useTranslation();
     const [searchParams, setSearchParams] = useSearchParams();
     const { user, bootstrapSession } = useAuth();
     const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -203,6 +207,13 @@ export const AccountPage = () => {
     const [uploading, setUploading] = useState<'avatar' | 'banner' | null>(null);
     const [tryoutApps, setTryoutApps] = useState<TryoutApp[]>([]);
     const [showTryoutApps, setShowTryoutApps] = useState(false);
+    const [myCards, setMyCards] = useState<PlayerCard[]>([]);
+    const [activatingCard, setActivatingCard] = useState<PlayerCard | null>(null);
+    const [childDob, setChildDob] = useState('');
+    const [childEmail, setChildEmail] = useState('');
+    const [activationCreds, setActivationCreds] = useState<{ username: string; tempPassword: string } | null>(null);
+    const [activationError, setActivationError] = useState<string | null>(null);
+    const [activating, setActivating] = useState(false);
 
     const activeTab = normalizeTab(searchParams.get('tab'));
 
@@ -247,7 +258,29 @@ export const AccountPage = () => {
     useEffect(() => {
         void loadAccount();
         void loadSessions();
+        void fetchMyPlayerCards()
+            .then(setMyCards)
+            .catch(() => setMyCards([]));
     }, []);
+
+    const submitActivation = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!activatingCard) return;
+        if (!childDob || isUnder13(childDob)) {
+            setActivationError(t('minors.account.childTooYoung'));
+            return;
+        }
+        setActivating(true);
+        setActivationError(null);
+        try {
+            const creds = await activatePlayerCard(activatingCard.id, childDob, childEmail.trim());
+            setActivationCreds(creds);
+        } catch (err) {
+            setActivationError(extractApiErrorMessage(err, t('minors.account.activationFailed')));
+        } finally {
+            setActivating(false);
+        }
+    };
 
     useEffect(() => {
         if (account && account.role === 'PLAYER') {
@@ -486,6 +519,38 @@ export const AccountPage = () => {
                     </div>
                 )}
 
+                {/* Linked kids — claimed Player Cards (WEB_APP_MASTER_PLAN.md §2.2) */}
+                {myCards.length > 0 && (
+                    <section className={`${surfaceClass} px-5 py-5`}>
+                        <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--fc-text-muted)]">{t('minors.account.linkedKids')}</p>
+                            <h3 className="mt-1 text-base font-semibold text-[color:var(--fc-text-primary)]">{t('minors.account.yourCards')}</h3>
+                        </div>
+                        <div className="mt-4 grid gap-2">
+                            {myCards.map((card) => (
+                                <div key={card.id} className="flex items-center justify-between gap-4 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-4 py-3">
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-semibold text-[color:var(--fc-text-primary)]">{card.fullName}</p>
+                                        <p className="text-xs text-[color:var(--fc-text-secondary)]">
+                                            {t('minors.account.born', { year: card.birthYear })}
+                                            {card.registered ? t('minors.account.accountActive') : t('minors.account.awaitingActivation')}
+                                        </p>
+                                    </div>
+                                    {!card.registered && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setActivatingCard(card)}
+                                            className="shrink-0 rounded-full border border-[#16a34a] bg-[#16a34a]/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#16a34a] hover:bg-[#16a34a]/20"
+                                        >
+                                            {t('minors.account.activate')}
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
                 {/* Tryout Applications (conditional) */}
                 {showTryoutApps && (
                     <section className={`${surfaceClass} px-5 py-5`}>
@@ -522,6 +587,86 @@ export const AccountPage = () => {
                             </div>
                         )}
                     </section>
+                )}
+
+                {/* Activation modal (guardian) */}
+                {activatingCard && (
+                    <div className="fixed inset-0 z-[1300] flex items-center justify-center">
+                        <div
+                            className="theme-overlay absolute inset-0"
+                            onClick={() => {
+                                setActivatingCard(null);
+                                setActivationCreds(null);
+                                setActivationError(null);
+                            }}
+                        />
+                        <div className="relative z-10 mx-4 w-full max-w-md border border-[#ffffff0d] bg-[#0f1117] shadow-2xl">
+                            <div className="flex items-center justify-between border-b border-[#ffffff0d] px-5 py-4">
+                                <h2 className="text-sm font-semibold text-[#f4f4f5]">{t('minors.account.activateTitle', { name: activatingCard.fullName })}</h2>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setActivatingCard(null);
+                                        setActivationCreds(null);
+                                        setActivationError(null);
+                                    }}
+                                    className="text-[#a1a1aa] hover:text-[#f4f4f5]"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <div className="px-5 py-5">
+                                {activationCreds ? (
+                                    <div className="flex flex-col gap-3">
+                                        <p className="text-[11px] font-semibold text-[color:var(--state-danger)]">
+                                            {t('minors.account.shownOnce')}
+                                        </p>
+                                        <div className="flex items-center justify-between border border-[#ffffff0d] bg-elevated px-3 py-2">
+                                            <span className="text-sm font-mono text-[#f4f4f5]">{activationCreds.username}</span>
+                                            <button type="button" onClick={() => { void navigator.clipboard.writeText(activationCreds.username); }} className="text-[10px] font-semibold uppercase text-[#16a34a]">{t('minors.account.copy')}</button>
+                                        </div>
+                                        <div className="flex items-center justify-between border border-[#ffffff0d] bg-elevated px-3 py-2">
+                                            <span className="text-sm font-mono text-[#f4f4f5]">{activationCreds.tempPassword}</span>
+                                            <button type="button" onClick={() => { void navigator.clipboard.writeText(activationCreds.tempPassword); }} className="text-[10px] font-semibold uppercase text-[#16a34a]">{t('minors.account.copy')}</button>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setActivatingCard(null);
+                                                setActivationCreds(null);
+                                                void fetchMyPlayerCards().then(setMyCards);
+                                            }}
+                                            className="mt-2 border border-[#16a34a] bg-[#16a34a] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white"
+                                        >
+                                            {t('minors.account.done')}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <form onSubmit={submitActivation} className="flex flex-col gap-4">
+                                        {activationError && (
+                                            <div className="border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-3 py-2 text-xs font-semibold text-[color:var(--state-danger)]">
+                                                {activationError}
+                                            </div>
+                                        )}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-semibold text-[#a1a1aa]">{t('minors.consent.childDob')}</label>
+                                            <input type="date" value={childDob} max={todayIso()} onChange={(e) => setChildDob(e.target.value)} required
+                                                className="theme-surface-strong theme-border w-full border px-3 py-2 text-sm font-semibold text-[#f4f4f5] focus:border-[#16a34a] outline-none" />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-semibold text-[#a1a1aa]">{t('minors.consent.childEmail')}</label>
+                                            <input type="email" value={childEmail} onChange={(e) => setChildEmail(e.target.value)} required
+                                                className="theme-surface-strong theme-border w-full border px-3 py-2 text-sm font-semibold text-[#f4f4f5] focus:border-[#16a34a] outline-none" placeholder={t('minors.consent.emailPlaceholder')} />
+                                        </div>
+                                        <button type="submit" disabled={activating}
+                                            className="inline-flex items-center justify-center border border-[#16a34a] bg-[#16a34a] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white disabled:opacity-50">
+                                            {activating ? t('minors.account.activating') : t('minors.account.activateAccount')}
+                                        </button>
+                                    </form>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 )}
 
                 {/* ===== PROFILE TAB ===== */}

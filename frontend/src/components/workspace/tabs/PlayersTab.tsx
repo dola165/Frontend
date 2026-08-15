@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowDown, ArrowLeft, Check, MessageSquare, Search, UserPlus, UserX, Users, X } from 'lucide-react';
 import type { ClubPlayerAffiliation, PlayerAffiliationStatus, PageResult } from '../../../features/clubs/domain';
 import { ErrorBlock, formatMetaTime, PageSpinner, SectionHeader, Pill } from '../helpers';
@@ -22,6 +23,7 @@ interface PlayersTabProps {
     onRetry: () => void;
     onPageChange: (page: number) => void;
     onMessagePlayer?: (userId: number, playerName?: string) => void;
+    onSendConsentEmail?: (userId: number, parentEmail?: string | null) => void;
     onTabChange: (tab: WorkspaceTab) => void;
 }
 
@@ -44,8 +46,9 @@ const FILTERS = ['ALL', 'TRIALIST', 'ACTIVE', 'PAST', 'REMOVED'] as const;
 export const PlayersTab = ({
     playerDirectory, playerLoading, playerError, playerStatusFilter,
     pendingKey, totalPlayerPages, onStatusFilterChange, onPlayerStatusChange, onRetry, onPageChange,
-    onMessagePlayer, onTabChange,
+    onMessagePlayer, onSendConsentEmail, onTabChange,
 }: PlayersTabProps) => {
+    const { t } = useTranslation();
     const allPlayers = playerDirectory?.content ?? [];
     const [searchQuery, setSearchQuery] = useState('');
     const [sort, setSort] = useState<SortState | null>(null);
@@ -200,9 +203,10 @@ export const PlayersTab = ({
                         {[
                             { col: 0, label: 'PLAYER', className: 'flex-1 min-w-0' },
                             { col: 1, label: 'STATUS', className: 'w-24' },
-                            { col: 2, label: 'POS', className: 'w-20' },
-                            { col: 3, label: '#', className: 'w-14' },
-                            { col: 4, label: 'JOINED', className: 'w-32' },
+                            { col: 2, label: 'CONSENT', className: 'w-36' },
+                            { col: 3, label: 'POS', className: 'w-20' },
+                            { col: 4, label: '#', className: 'w-14' },
+                            { col: 5, label: 'JOINED', className: 'w-32' },
                         ].map(({ col, label, className }) => (
                             <button
                                 key={col}
@@ -262,6 +266,52 @@ export const PlayersTab = ({
                                     {/* Status */}
                                     <span className="w-24">
                                         <StatusCell label={player.status.replace('_', ' ')} tone={statusTone} />
+                                    </span>
+
+                                    {/* Parental consent (13-15, WEB_APP_MASTER_PLAN.md §2.1) */}
+                                    <span className="w-36 flex items-center gap-1">
+                                        {player.parentalConsentStatus === 'CONFIRMED' ? (
+                                            <Pill label={t('minors.playersTab.consentParent')} tone="success" />
+                                        ) : player.parentalConsentStatus === 'DECLINED' ? (
+                                            <>
+                                                <Pill label={t('minors.playersTab.consentDeclined')} tone="danger" />
+                                                {player.status === 'ACTIVE' && onSendConsentEmail && (
+                                                    <button
+                                                        type="button"
+                                                        title={t('minors.playersTab.resendTo', { email: player.parentEmail ?? 'parent' })}
+                                                        onClick={() => onSendConsentEmail(player.userId, player.parentEmail)}
+                                                        className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#16a34a] hover:underline"
+                                                    >
+                                                        {t('minors.playersTab.resend')}
+                                                    </button>
+                                                )}
+                                            </>
+                                        ) : player.parentalConsentStatus === 'PENDING' ? (
+                                            <>
+                                                <Pill label={t('minors.playersTab.consentPending')} tone="warning" />
+                                                {player.status === 'ACTIVE' && onSendConsentEmail && (
+                                                    <button
+                                                        type="button"
+                                                        title={t('minors.playersTab.resendTo', { email: player.parentEmail ?? 'parent' })}
+                                                        onClick={() => onSendConsentEmail(player.userId, player.parentEmail)}
+                                                        className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#16a34a] hover:underline"
+                                                    >
+                                                        {t('minors.playersTab.resend')}
+                                                    </button>
+                                                )}
+                                            </>
+                                        ) : player.parentEmail && player.status === 'ACTIVE' && onSendConsentEmail ? (
+                                            <button
+                                                type="button"
+                                                title={t('minors.playersTab.sendTo', { email: player.parentEmail })}
+                                                onClick={() => onSendConsentEmail(player.userId, player.parentEmail)}
+                                                className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#16a34a] hover:underline"
+                                            >
+                                                {t('minors.playersTab.sendConsent')}
+                                            </button>
+                                        ) : (
+                                            <span className="text-xs text-[var(--fc-text-muted)]">—</span>
+                                        )}
                                     </span>
 
                                     {/* POS */}

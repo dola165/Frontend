@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     Activity,
     ArrowLeft,
@@ -24,6 +25,7 @@ import {
     Weight
 } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
+import { respondToRepresentationConsent } from '../features/agents/api';
 import { FeedPost, type FeedPostDto, type CommentDto } from '../components/feed/FeedPost';
 import { PostComposer } from '../components/feed/PostComposer';
 import { PostTheaterModal } from '../components/PostTheaterModal';
@@ -64,6 +66,7 @@ interface UserProfile {
     avatarUrl?: string | null;
     bannerUrl?: string | null;
     dateOfBirth?: string | null;
+    isPrivate?: boolean;
 }
 
 type ProfileTab = 'feed' | 'stats' | 'media';
@@ -137,6 +140,7 @@ const CareerEntryCard = ({ entry }: { entry: CareerHistoryDto }) => (
 );
 
 export const UserProfilePage = () => {
+    const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -153,7 +157,21 @@ export const UserProfilePage = () => {
     const [currentUserId, setCurrentUserId] = useState<string | null>(getStoredUserId());
     const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
     const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
-    const [agentRep, setAgentRep] = useState<{ agencyName: string; agentUserId: number; agentVerified: boolean } | null>(null);
+    const [agentRep, setAgentRep] = useState<{ agencyName: string; agentUserId: number; agentVerified: boolean; representationId?: number | null; minorConsentStatus?: string | null } | null>(null);
+    const [consentBusy, setConsentBusy] = useState(false);
+
+    const handleRepresentationConsent = async (accept: boolean) => {
+        if (!agentRep?.representationId) return;
+        setConsentBusy(true);
+        try {
+            await respondToRepresentationConsent(agentRep.representationId, accept);
+            void fetchProfile();
+        } catch (err) {
+            console.error('Representation consent failed', err);
+        } finally {
+            setConsentBusy(false);
+        }
+    };
 
     const activeTab = normalizeTab(searchParams.get('tab'));
 
@@ -188,7 +206,9 @@ export const UserProfilePage = () => {
                 setAgentRep({
                     agencyName: repRes.data.agencyName || repRes.data.fullName || 'Unknown Agent',
                     agentUserId: repRes.data.agentUserId || repRes.data.playerUserId,
-                    agentVerified: repRes.data.agentVerified || false
+                    agentVerified: repRes.data.agentVerified || false,
+                    representationId: repRes.data.representationId ?? null,
+                    minorConsentStatus: repRes.data.minorConsentStatus ?? null
                 });
             } else {
                 setAgentRep(null);
@@ -438,6 +458,14 @@ export const UserProfilePage = () => {
     // --- Left Panel content ---
     const leftPanel = (
         <div className="flex flex-col gap-4">
+            {profile.isPrivate && !isMyProfile && (
+                <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-4 py-3">
+                    <p className="text-sm font-semibold text-[color:var(--club-theme-text-primary)]">This player's profile is private.</p>
+                    <p className="mt-1 text-xs text-[color:var(--club-theme-text-muted)]">
+                        Young players are protected by default — only identity details are shown.
+                    </p>
+                </div>
+            )}
             {/* Profile summary card */}
             <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] p-5">
                 <div className="flex items-center gap-3">
@@ -541,13 +569,33 @@ export const UserProfilePage = () => {
                                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-violet-soft)]">
                                     <Briefcase className="h-4 w-4 text-[color:var(--club-tone-violet)]" />
                                 </div>
-                                <div>
+                                <div className="min-w-0 flex-1">
                                     <a href={`/agent/${agentRep.agentUserId}`} className="text-xs font-semibold text-[color:var(--club-tone-violet)] hover:underline">
                                         {agentRep.agencyName}
                                         {agentRep.agentVerified && <span className="ml-1 text-[10px] text-[color:var(--club-tone-green)]">✓</span>}
                                     </a>
-                                    <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">Represented by</p>
+                                    <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">{t('minors.profile.representedBy')}</p>
                                 </div>
+                                {isMyProfile && agentRep.representationId != null && agentRep.minorConsentStatus === 'PENDING' && (
+                                    <div className="flex shrink-0 items-center gap-1">
+                                        <button
+                                            type="button"
+                                            disabled={consentBusy}
+                                            onClick={() => void handleRepresentationConsent(true)}
+                                            className="rounded-full border border-[#16a34a] bg-[#16a34a]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#16a34a] hover:bg-[#16a34a]/20 disabled:opacity-50"
+                                        >
+                                            {t('minors.profile.accept')}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={consentBusy}
+                                            onClick={() => void handleRepresentationConsent(false)}
+                                            className="rounded-full border border-[color:var(--state-danger)]/30 bg-[color:var(--state-danger-soft)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[color:var(--state-danger)] disabled:opacity-50"
+                                        >
+                                            {t('minors.profile.decline')}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

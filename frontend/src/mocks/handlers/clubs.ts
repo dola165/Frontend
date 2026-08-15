@@ -1,5 +1,5 @@
 import { http, HttpHandler, HttpResponse } from 'msw';
-import { clubs, currentUserId, users, followedClubIds, events } from '../data/store';
+import { clubs, currentUserId, users, followedClubIds, events, jobs, type StoreClub, type StoreJob } from '../data/store';
 import { simulateLatency, paginate } from '../utils';
 import { createClub } from '../data/factories';
 
@@ -176,6 +176,17 @@ export const clubHandlers: HttpHandler[] = [
   // -- PUT /clubs/:id (returns empty 200) --
   http.put(`${API}/clubs/:clubId`, async () => {
     await simulateLatency();
+    return new HttpResponse(null, { status: 200 });
+  }),
+
+  // Phase 2 §4.4: join-policy settings (owner/admin only in the real backend)
+  http.patch(`${API}/clubs/:clubId`, async ({ params, request }) => {
+    await simulateLatency();
+    const club = clubs().get(Number(params.clubId));
+    const body = (await request.json()) as { playerJoinPolicy?: string };
+    if (club && body.playerJoinPolicy) {
+      club.joinPolicy = body.playerJoinPolicy as StoreClub['joinPolicy'];
+    }
     return new HttpResponse(null, { status: 200 });
   }),
 
@@ -459,8 +470,113 @@ export const clubHandlers: HttpHandler[] = [
         id: u.id, number: i + 1, name: u.fullName || u.username, position: u.position,
         age: 18 + (i % 15), status: STATUSES[i % STATUSES.length],
         joinedAt: new Date(Date.now() - (i * 86400000 * 7)).toISOString(),
+        photoUrl: null, isRegistered: true, squadRole: 'PLAYER',
       })),
     }]);
+  }),
+
+  // -- player cards (WEB_APP_MASTER_PLAN.md §2.2) --
+  http.get(`${API}/clubs/:clubId/player-cards`, async () => {
+    await simulateLatency();
+    return HttpResponse.json([]);
+  }),
+
+  http.post(`${API}/clubs/:clubId/player-cards`, async ({ request }) => {
+    await simulateLatency();
+    const body = (await request.json()) as Record<string, unknown>;
+    const year = Number(body.birthYear);
+    if (!body.fullName) {
+      return HttpResponse.json({ error: 'Full name is required.' }, { status: 400 });
+    }
+    if (!year || year < 1990 || year > new Date().getFullYear() - 4) {
+      return HttpResponse.json({ error: 'Birth year is invalid.' }, { status: 400 });
+    }
+    if (body.photoUrl && new Date().getFullYear() - year < 13) {
+      return HttpResponse.json({ error: 'Player cards for players under 13 cannot have a photo.' }, { status: 400 });
+    }
+    return HttpResponse.json({
+      id: 500, clubId: 1, userId: 999, fullName: body.fullName, birthYear: year,
+      position: body.position ?? null, jerseyNumber: body.jerseyNumber ?? null,
+      photoUrl: body.photoUrl ?? null, parentEmail: body.parentEmail ?? null,
+      guardianUserId: null, squadId: body.squadId ?? null,
+      claimed: false, registered: false,
+    }, { status: 201 });
+  }),
+
+  // -- club jobs (WEB_APP_MASTER_PLAN.md §4.2, Phase 2) --
+  http.get(`${API}/clubs/:clubId/jobs`, async ({ params }) => {
+    await simulateLatency();
+    const clubId = Number(params.clubId);
+    return HttpResponse.json(
+      [...jobs().values()].filter((j) => j.clubId === clubId && j.status === 'OPEN')
+    );
+  }),
+
+  http.get(`${API}/clubs/:clubId/jobs/all`, async ({ params }) => {
+    await simulateLatency();
+    const clubId = Number(params.clubId);
+    return HttpResponse.json([...jobs().values()].filter((j) => j.clubId === clubId));
+  }),
+
+  http.post(`${API}/clubs/:clubId/jobs`, async ({ params, request }) => {
+    await simulateLatency();
+    const clubId = Number(params.clubId);
+    const body = (await request.json()) as Record<string, unknown>;
+    if (!body.title) {
+      return HttpResponse.json({ error: 'Title is required.' }, { status: 400 });
+    }
+    const job: StoreJob = {
+      id: Math.floor(Math.random() * 100000) + 1000,
+      clubId,
+      title: body.title as string,
+      description: (body.description as string | null) ?? null,
+      ageGroup: (body.ageGroup as string | null) ?? null,
+      level: (body.level as string | null) ?? null,
+      status: 'OPEN',
+      createdAt: new Date().toISOString(),
+    };
+    jobs().set(job.id, job);
+    return HttpResponse.json(job, { status: 201 });
+  }),
+
+  http.patch(`${API}/clubs/:clubId/jobs/:jobId`, async ({ params, request }) => {
+    await simulateLatency();
+    const job = jobs().get(Number(params.jobId));
+    if (!job) return HttpResponse.json({ error: 'Job posting not found.' }, { status: 404 });
+    const body = (await request.json()) as Record<string, unknown>;
+    if (body.title != null) job.title = body.title as string;
+    if (body.description !== undefined) job.description = (body.description as string | null) ?? null;
+    if (body.ageGroup !== undefined) job.ageGroup = (body.ageGroup as string | null) ?? null;
+    if (body.level !== undefined) job.level = (body.level as string | null) ?? null;
+    if (body.status != null) job.status = body.status as 'OPEN' | 'CLOSED';
+    return HttpResponse.json(job);
+  }),
+
+  http.delete(`${API}/clubs/:clubId/jobs/:jobId`, async ({ params }) => {
+    await simulateLatency();
+    jobs().delete(Number(params.jobId));
+    return HttpResponse.json({ message: 'Job posting deleted.' });
+  }),
+
+  // -- parental consent + activation (Sprint 3) --
+  http.post(`${API}/clubs/:clubId/players/:userId/consent-email`, async () => {
+    await simulateLatency();
+    return HttpResponse.json({ message: 'Consent email queued.' });
+  }),
+
+  http.post(`${API}/consent/confirm`, async () => {
+    await simulateLatency();
+    return HttpResponse.json({ accepted: true, cardId: null, playerUserId: null });
+  }),
+
+  http.get(`${API}/player-cards/mine`, async () => {
+    await simulateLatency();
+    return HttpResponse.json([]);
+  }),
+
+  http.post(`${API}/player-cards/:cardId/activate`, async () => {
+    await simulateLatency();
+    return HttpResponse.json({ username: 'card_demo_mock', tempPassword: 'MockTemp123' });
   }),
 
   http.post(`${API}/clubs/:clubId/squads`, async () => {

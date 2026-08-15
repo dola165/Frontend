@@ -1,6 +1,7 @@
 import { http, HttpHandler, HttpResponse } from 'msw';
 import { users, currentUserId } from '../data/store';
 import { simulateLatency, paginate } from '../utils';
+import { isMinor, isUnder13 } from '../../utils/age';
 
 const API = '*/api';
 
@@ -18,7 +19,7 @@ export const userHandlers: HttpHandler[] = [
     return HttpResponse.json({
       id: u.id, username: u.username, role: u.role, fullName: u.fullName,
       name: u.name, avatarUrl: u.avatarUrl, profileComplete: u.profileComplete,
-      bio: u.bio, position: u.position, email: u.email,
+      bio: u.bio, position: u.position, email: u.email, dob: u.dob ?? null,
     });
   }),
 
@@ -34,6 +35,12 @@ export const userHandlers: HttpHandler[] = [
     if (body.fullName != null) u.fullName = body.fullName as string;
     if (body.bio != null) u.bio = body.bio as string;
     if (body.position != null) u.position = body.position as string;
+    if (body.dateOfBirth != null) {
+      if (isUnder13(body.dateOfBirth as string)) {
+        return HttpResponse.json({ error: 'You must be at least 13 years old.' }, { status: 400 });
+      }
+      u.dob = body.dateOfBirth as string;
+    }
 
     return HttpResponse.json({
       id: u.id, username: u.username, fullName: u.fullName, avatarUrl: u.avatarUrl,
@@ -117,6 +124,7 @@ export const userHandlers: HttpHandler[] = [
     return HttpResponse.json(paginate(hits.map((u) => ({
       id: u.id,
       fullName: u.fullName,
+      isMinor: isMinor(u.dob),
       username: u.username,
       avatarUrl: u.avatarUrl,
       position: u.position,

@@ -29,10 +29,11 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
 
     const currentUserId = Number(getStoredUserId() || 0);
 
-    // Deduplicate recent contacts against selected users
+    // Deduplicate recent contacts against selected users; hide minors
+    // (belt-and-braces — the server already filters the allowlist).
     const visibleRecents = useMemo(
         () => recentContacts.filter(
-            (c) => c.id !== currentUserId && !selectedUsers.some((s) => s.id === c.id),
+            (c) => c.id !== currentUserId && !c.isMinor && !selectedUsers.some((s) => s.id === c.id),
         ).slice(0, 8),
         [recentContacts, currentUserId, selectedUsers],
     );
@@ -64,7 +65,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                 const res = await chatApi.searchUsers(query.trim());
                 setResults(
                     res.data.content.filter(
-                        (u) => u.id !== currentUserId && !selectedUsers.some((s) => s.id === u.id),
+                        (u) => u.id !== currentUserId && !u.isMinor && !selectedUsers.some((s) => s.id === u.id),
                     ),
                 );
             } catch {

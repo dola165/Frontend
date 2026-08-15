@@ -17,6 +17,9 @@ import { NotificationsPage } from './pages/NotificationsPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { DobGatePage } from './pages/DobGatePage';
+import { ConsentPage } from './pages/ConsentPage';
+import { SetPasswordPage } from './pages/SetPasswordPage';
 import { OAuth2RedirectHandler } from './pages/OAuth2RedirectHandler';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
@@ -34,11 +37,13 @@ import { AgentDashboardPage } from './pages/AgentDashboardPage';
 import { AgentProfilePage } from './pages/AgentProfilePage';
 import { MarketplacePage } from './pages/MarketplacePage';
 import { NeedsBoardPage } from './pages/NeedsBoardPage';
+import { StorePage } from './pages/StorePage';
+import { ClubStorePage } from './pages/ClubStorePage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { buildLoginRedirectPath, resolvePostAuthRedirect } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
 
-const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email']);
+const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/consent']);
 const boundedCanvasPages = new Set(['/map', '/messages', '/calendar']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
@@ -161,7 +166,7 @@ function MainLayout() {
             return;
         }
 
-        if (!user.profileComplete && location.pathname !== '/onboarding' && location.pathname !== '/oauth2/callback') {
+        if (!user.profileComplete && location.pathname !== '/onboarding' && location.pathname !== '/oauth2/callback' && location.pathname !== '/dob' && location.pathname !== '/set-password') {
             navigate('/onboarding', { replace: true });
         }
     }, [location.pathname, navigate, status, user]);
@@ -210,9 +215,9 @@ function MainLayout() {
     const isMapWorkspace = location.pathname === '/map';
     const isHomeFeed = location.pathname === '/feed';
     const isChromeFreeWorkspace = isCalendarWorkspace || isMapWorkspace;
-    const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads|\/workspace)?$/.test(location.pathname);
+    const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads|\/workspace|\/store)?$/.test(location.pathname);
     const isFullScreenPage =
-        ['/map', '/messages', '/clubs', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/account', '/admin', '/tournaments', '/tournaments/setup', '/marketplace', '/needs'].includes(location.pathname) ||
+        ['/map', '/messages', '/clubs', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/tournaments', '/tournaments/setup', '/marketplace', '/needs', '/store'].includes(location.pathname) ||
         location.pathname.startsWith('/profile') ||
         location.pathname.startsWith('/organizations') ||
         location.pathname.startsWith('/tournaments/') ||
@@ -241,6 +246,7 @@ function MainLayout() {
                         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/verify-email" element={<VerifyEmailPage />} />
+                        <Route path="/consent" element={<ConsentPage />} />
                         <Route path="/oauth2/callback" element={<OAuth2RedirectHandler />} />
                     </Routes>
                 </main>
@@ -269,12 +275,16 @@ function MainLayout() {
                         <Route path="/agent/:id" element={<AgentProfilePage />} />
                         <Route path="/marketplace" element={<MarketplacePage />} />
                         <Route path="/needs" element={<NeedsBoardPage />} />
+                        <Route path="/store" element={<StorePage />} />
+                        <Route path="/clubs/:id/store" element={<ClubStorePage />} />
                         <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
                         <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage darkMode={darkMode} /></ProtectedRoute>} />
                         <Route path="/clubs/:id" element={<ClubProfilePage />} />
                         <Route path="/clubs/create" element={<OrganizerOnlyRoute><CreateClubPage /></OrganizerOnlyRoute>} />
                         <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
                         <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+                        <Route path="/dob" element={<ProtectedRoute><DobGatePage /></ProtectedRoute>} />
+                        <Route path="/set-password" element={<ProtectedRoute><SetPasswordPage /></ProtectedRoute>} />
                     </Routes>
                 </main>
             ) : (

@@ -1,7 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient, refreshAccessToken } from '../api/axiosConfig';
-import { Activity, Briefcase, Building2, Camera, ChevronRight, Loader2, User } from 'lucide-react';
+import { Activity, Briefcase, Building2, Camera, ChevronRight, Loader2, ShieldCheck, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { isMinor } from '../utils/age';
+import { getPendingName, clearPendingName } from '../utils/authNameCarry';
+import { StatusBadge } from '../components/ui/StatusBadge';
+import {
+    authInputClass,
+    authPrimaryButtonClass,
+    authGhostButtonClass,
+    authSecondaryButtonClass,
+    authLabelClass,
+} from '../components/auth/authClasses';
 
 const POSITION_OPTIONS = [
     'Goalkeeper',
@@ -16,12 +27,16 @@ const POSITION_OPTIONS = [
     'Striker'
 ] as const;
 
+const FOOT_OPTIONS = ['Right', 'Left', 'Both'] as const;
+
 export const OnboardingPage = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const avatarInputRef = useRef<HTMLInputElement>(null);
     const [step, setStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const [isMinorUser, setIsMinorUser] = useState(false);
 
     const [formData, setFormData] = useState({
         fullName: '',
@@ -39,22 +54,28 @@ export const OnboardingPage = () => {
     const [fetchedUsername, setFetchedUsername] = useState('');
 
     useEffect(() => {
-        // Fetch existing data (like if Google provided their real name)
+        // Fetch existing data (like if Google provided their real name).
+        // The name typed on the register form rides in sessionStorage (authNameCarry)
+        // and wins over the server name — /auth/register has no name field.
         apiClient.get('/users/me').then(res => {
             const existingName = res.data.fullName || res.data.name;
             const existingRole = res.data.role;
             const existingUsername = res.data.username;
             if (existingUsername) setFetchedUsername(existingUsername);
-            if (existingName && existingName !== 'New User') {
+            const pending = getPendingName();
+            if (pending) {
+                setFormData(prev => ({ ...prev, fullName: pending }));
+                clearPendingName();
+            } else if (existingName && existingName !== 'New User') {
                 setFormData(prev => ({ ...prev, fullName: existingName }));
             }
             if (existingRole === 'PLAYER' || existingRole === 'FAN' || existingRole === 'AGENT') {
                 setFormData(prev => ({ ...prev, role: existingRole }));
             }
+            // Missing DOB = adult, mirroring backend MinorPolicy.
+            setIsMinorUser(isMinor(res.data.dob));
         });
     }, []);
-
-
 
     const submitProfile = async () => {
         setIsLoading(true);
@@ -124,215 +145,324 @@ export const OnboardingPage = () => {
         }
     };
 
-    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-[#f4f4f5] outline-none transition-colors focus:border-[#16a34a] placeholder:text-[#a1a1aa]';
+    const roleOptions: ReadonlyArray<{ id: 'PLAYER' | 'FAN' | 'ORGANIZER' | 'AGENT'; icon: typeof Activity; label: string; desc: string }> = [
+        { id: 'PLAYER', icon: Activity, label: t('onboarding.rolePlayer'), desc: t('onboarding.rolePlayerDesc') },
+        { id: 'ORGANIZER', icon: Building2, label: t('onboarding.roleOrganizer'), desc: t('onboarding.roleOrganizerDesc') },
+        { id: 'AGENT', icon: Briefcase, label: t('onboarding.roleAgent'), desc: t('onboarding.roleAgentDesc') },
+        { id: 'FAN', icon: User, label: t('onboarding.roleFan'), desc: t('onboarding.roleFanDesc') },
+    ];
 
     return (
-        <div className="bg-[#0f1117] flex min-h-screen flex-col items-center justify-center p-6">
-            <div className="theme-surface theme-border w-full max-w-2xl rounded-xl border p-8 shadow-2xl md:p-12">
+        <div className="relative min-h-screen bg-[#0f1117] text-[#f4f4f5]">
+            {/* same glow backdrop as the auth split shell */}
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,200,83,0.12),transparent_36%),radial-gradient(circle_at_bottom_left,rgba(0,200,83,0.07),transparent_42%)]" />
 
-                <div className="mb-8 border-b border-[#ffffff0d] pb-6">
-                    <h1 className="text-3xl font-semibold uppercase tracking-tight text-[#f4f4f5] mb-2">Establish Your Identity</h1>
-                    {fetchedUsername && (
-                        <p className="text-sm font-semibold  text-[#16a34a] mb-1">Your handle: @{fetchedUsername}</p>
-                    )}
-                    <p className="text-sm text-[#a1a1aa]">Complete your profile to access the full network experience.</p>
-                </div>
-
-                {step === 1 && (
-                    <div>
-                        <label className="text-[10px] font-semibold  text-[#a1a1aa] mb-4 block">What is your designation?</label>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                            {[
-                                { id: 'PLAYER', icon: Activity, label: 'Player', desc: 'Seeking clubs & tryouts' },
-                                { id: 'ORGANIZER', icon: Building2, label: 'Organizer', desc: 'Building a club or squad' },
-                                { id: 'AGENT', icon: Briefcase, label: 'Agent', desc: 'Representing players & talents' },
-                                { id: 'FAN', icon: User, label: 'Supporter', desc: 'Following the action' }
-                            ].map(role => (
-                                <button
-                                    key={role.id}
-                                    onClick={() => setFormData({...formData, role: role.id as 'PLAYER' | 'FAN' | 'ORGANIZER' | 'AGENT'})}
-                                    className={`rounded-xl border p-4 text-left transition-colors ${formData.role === role.id ? 'border-[#16a34a] bg-[#16a34a]-soft' : 'border-[#ffffff0d] hover:border-strong'}`}
-                                >
-                                    <role.icon className={`w-8 h-8 mb-3 ${formData.role === role.id ? 'text-[#16a34a]' : 'text-muted'}`} />
-                                    <h3 className="font-semibold uppercase tracking-[0.14em] text-sm mb-1 text-[#f4f4f5]">{role.label}</h3>
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a1a1aa]">{role.desc}</p>
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="mb-8 space-y-2">
-                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">Full Legal Name</label>
-                            <input
-                                type="text"
-                                value={formData.fullName}
-                                onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                                className={inputClass}
-                                placeholder="E.g. Khvicha Kvaratskhelia"
-                            />
-                        </div>
-
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={() => setStep(2)}
-                                disabled={!formData.fullName.trim()}
-                                className="w-full inline-flex items-center justify-center gap-2 border border-[#16a34a] bg-[#16a34a] text-white px-4 py-3 text-[11px] font-semibold  transition-colors disabled:opacity-50"
-                            >
-                                Next Phase <ChevronRight className="w-5 h-5" />
-                            </button>
-                            <button
-                                onClick={handleSkip}
-                                disabled={!formData.fullName.trim()}
-                                className="w-full py-3 text-[11px] font-semibold  text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Skip for Now
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {step === 2 && (
-                    <div>
-                        {formData.role === 'PLAYER' && (
-                            <>
-                                <div className="grid grid-cols-2 gap-4 mb-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-semibold  text-[#a1a1aa]">Primary Position</label>
-                                        <select value={formData.position} onChange={(e) => setFormData({...formData, position: e.target.value})} className={`${inputClass} appearance-none`}>
-                                            <option value="">Select position</option>
-                                            {POSITION_OPTIONS.map(p => (
-                                                <option key={p} value={p}>{p}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-semibold  text-[#a1a1aa]">Strong Foot</label>
-                                        <select value={formData.preferredFoot} onChange={(e) => setFormData({...formData, preferredFoot: e.target.value})} className={`${inputClass} appearance-none`}>
-                                            <option value="Right">Right</option>
-                                            <option value="Left">Left</option>
-                                            <option value="Both">Both</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 mb-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-semibold  text-[#a1a1aa]">Height (cm)</label>
-                                        <input type="number" value={formData.heightCm} onChange={(e) => setFormData({...formData, heightCm: e.target.value})} min={100} max={250} className={inputClass} placeholder="185" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-semibold  text-[#a1a1aa]">Weight (kg)</label>
-                                        <input type="number" value={formData.weightKg} onChange={(e) => setFormData({...formData, weightKg: e.target.value})} min={30} max={250} className={inputClass} placeholder="78" />
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                        {formData.role === 'ORGANIZER' && (
-                            <div className="mb-6 border border-[#16a34a] bg-[#16a34a]-soft rounded-xl p-6 flex flex-col items-center justify-center text-center">
-                                <Building2 className="w-10 h-10 text-[#16a34a] mb-3" />
-                                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">Ready to build your club?</p>
-                                <p className="mt-2 text-xs text-[#a1a1aa] max-w-md">After setup you'll be taken to your <strong>My Club</strong> workspace, where you can create your squad, manage rosters, schedule matches, and invite players.</p>
-                            </div>
-                        )}
-                        {formData.role === 'FAN' && (
-                            <div className="mb-6 border border-dashed border-[#ffffff0d] bg-[#0f1117] rounded-xl p-6 flex flex-col items-center justify-center text-center">
-                                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">Fan Profile</p>
-                                <p className="mt-2 text-xs text-[#a1a1aa]">You can customize your experience and follow clubs from your Account page after setup.</p>
-                            </div>
-                        )}
-                        {formData.role === 'AGENT' && (
-                            <div className="space-y-3 mb-6">
-                                <div className="border border-[#16a34a] bg-[#16a34a]-soft rounded-xl p-4 flex items-center gap-3">
-                                    <Briefcase className="w-5 h-5 text-text-[#16a34a] shrink-0" />
-                                    <p className="text-xs text-[#a1a1aa]">Set your agency details now or add them later from your Account page.</p>
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-semibold  text-[#a1a1aa] mb-1 block">Agency Name</label>
-                                    <input
-                                        type="text"
-                                        value={formData.agencyName}
-                                        onChange={e => setFormData(prev => ({ ...prev, agencyName: e.target.value }))}
-                                        placeholder="e.g. Zviad Sports Management"
-                                        className={inputClass}
+            <div className="relative flex min-h-screen flex-col items-center justify-center p-6">
+                <div className="theme-surface theme-border w-full max-w-2xl rounded-xl border p-8 shadow-2xl md:p-12">
+                    <div className="mb-8 border-b border-[#ffffff0d] pb-6">
+                        <div className="mb-4 flex items-center gap-3">
+                            <div className="flex items-center gap-1.5">
+                                {[1, 2].map((s) => (
+                                    <span
+                                        key={s}
+                                        className={`h-2 w-2 rounded-full ${
+                                            s === step ? 'bg-[#16a34a]' : s < step ? 'bg-[#a1a1aa]' : 'bg-[#ffffff0d]'
+                                        }`}
                                     />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-semibold  text-[#a1a1aa] mb-1 block">FIFA License Number</label>
-                                    <input
-                                        type="text"
-                                        value={formData.fifaLicenseNumber}
-                                        onChange={e => setFormData(prev => ({ ...prev, fifaLicenseNumber: e.target.value }))}
-                                        placeholder="e.g. FIFA-202301"
-                                        className={inputClass}
-                                    />
-                                </div>
+                                ))}
                             </div>
-                        )}
-
-                        <div className="mb-6 flex flex-col items-center gap-3">
-                            <input
-                                ref={avatarInputRef}
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) uploadAvatar(file);
-                                    e.target.value = '';
-                                }}
-                            />
-                            <div
-                                onClick={() => avatarInputRef.current?.click()}
-                                className={`flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed transition-colors ${
-                                    formData.avatarUrl
-                                        ? 'border-[#16a34a]'
-                                        : 'border-[#ffffff0d] hover:border-[#16a34a]'
-                                }`}
-                            >
-                                {uploadingAvatar ? (
-                                    <Loader2 className="h-6 w-6 animate-spin text-muted" />
-                                ) : formData.avatarUrl ? (
-                                    <img src={formData.avatarUrl} alt="Avatar preview" className="h-full w-full object-cover" />
-                                ) : (
-                                    <Camera className="h-6 w-6 text-muted" />
-                                )}
-                            </div>
-                            <p className="text-[10px] font-semibold  text-muted">
-                                {formData.avatarUrl ? 'Tap to change profile picture' : 'Tap to add profile picture'}
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa]">
+                                {t('onboarding.stepOf', { current: step, total: 2 })}
+                            </span>
+                        </div>
+                        <h1 className="text-3xl font-semibold uppercase tracking-tight text-[#f4f4f5] mb-2">
+                            {t('onboarding.title')}
+                        </h1>
+                        {fetchedUsername && (
+                            <p className="text-sm font-semibold text-[#16a34a] mb-1">
+                                {t('onboarding.handleLabel', { username: fetchedUsername })}
                             </p>
-                        </div>
+                        )}
+                        <p className="text-sm text-[#a1a1aa]">{t('onboarding.subtitle')}</p>
+                    </div>
 
-                        <div className="mb-8 space-y-2">
-                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">Personal Manifesto / Bio</label>
-                            <textarea
-                                value={formData.bio}
-                                onChange={(e) => setFormData({...formData, bio: e.target.value})}
-                                className={`${inputClass} h-24 resize-none`}
-                                placeholder="Brief summary of your football philosophy..."
-                            />
-                        </div>
+                    {step === 1 && (
+                        <div>
+                            <label className={`${authLabelClass} mb-4 block`}>{t('onboarding.designation')}</label>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                {roleOptions.map(role => (
+                                    <button
+                                        key={role.id}
+                                        onClick={() => setFormData({...formData, role: role.id})}
+                                        className={`rounded-xl border p-4 text-left transition-colors ${formData.role === role.id ? 'border-[#16a34a] bg-[#16a34a]/10' : 'border-[#ffffff0d] hover:border-strong'}`}
+                                    >
+                                        <role.icon className={`w-8 h-8 mb-3 ${formData.role === role.id ? 'text-[#16a34a]' : 'text-muted'}`} />
+                                        <h3 className="font-semibold uppercase tracking-[0.14em] text-sm mb-1 text-[#f4f4f5]">{role.label}</h3>
+                                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a1a1aa]">{role.desc}</p>
+                                    </button>
+                                ))}
+                            </div>
 
-                        <div className="flex flex-col gap-3">
-                            <div className="flex gap-4">
-                                <button onClick={() => setStep(1)} className="border border-[#ffffff0d] bg-[#0f1117] px-4 py-3 text-[11px] font-semibold  text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors">
-                                    Back
+                            <div className="mb-8 space-y-2">
+                                <label htmlFor="onboarding-name" className={authLabelClass}>
+                                    {t('onboarding.labelName')}
+                                </label>
+                                <input
+                                    id="onboarding-name"
+                                    type="text"
+                                    value={formData.fullName}
+                                    onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                                    className={authInputClass}
+                                    placeholder={t('onboarding.namePlaceholder')}
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={() => setStep(2)}
+                                    disabled={!hasName}
+                                    className={authPrimaryButtonClass}
+                                >
+                                    {t('onboarding.next')} <ChevronRight className="w-5 h-5" />
                                 </button>
                                 <button
-                                    onClick={submitProfile}
-                                    disabled={isLoading || !hasName}
-                                    className="flex-1 inline-flex items-center justify-center gap-2 border border-[#16a34a] bg-[#16a34a] text-white px-4 py-3 text-[11px] font-semibold  transition-colors disabled:opacity-50"
+                                    onClick={handleSkip}
+                                    disabled={!hasName}
+                                    className={authGhostButtonClass}
                                 >
-                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Commit to Database'}
+                                    {t('onboarding.skip')}
                                 </button>
                             </div>
-                            <button
-                                onClick={handleSkip}
-                                disabled={isLoading || !hasName}
-                                className="w-full py-3 text-[11px] font-semibold  text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors"
-                            >
-                                Skip for Now
-                            </button>
                         </div>
-                    </div>
-                )}
+                    )}
+
+                    {step === 2 && (
+                        <div>
+                            {formData.role === 'ORGANIZER' && (
+                                <div className="mb-6 border border-[#16a34a] bg-[#16a34a]/10 rounded-xl p-6 flex flex-col items-center justify-center text-center">
+                                    <Building2 className="w-10 h-10 text-[#16a34a] mb-3" />
+                                    <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">
+                                        {t('onboarding.orgCardTitle')}
+                                    </p>
+                                    <p className="mt-2 text-xs text-[#a1a1aa] max-w-md">{t('onboarding.orgCardBody')}</p>
+                                </div>
+                            )}
+                            {formData.role === 'FAN' && (
+                                <div className="mb-6 border border-dashed border-[#ffffff0d] bg-[#0f1117] rounded-xl p-6 flex flex-col items-center justify-center text-center">
+                                    <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">
+                                        {t('onboarding.fanCardTitle')}
+                                    </p>
+                                    <p className="mt-2 text-xs text-[#a1a1aa]">{t('onboarding.fanCardBody')}</p>
+                                </div>
+                            )}
+                            {formData.role === 'AGENT' && (
+                                <div className="mb-6 border border-[#16a34a] bg-[#16a34a]/10 rounded-xl p-4 flex items-center gap-3">
+                                    <Briefcase className="w-5 h-5 text-[#16a34a] shrink-0" />
+                                    <p className="text-xs text-[#a1a1aa]">{t('onboarding.agencyHint')}</p>
+                                </div>
+                            )}
+
+                            {!isMinorUser ? (
+                                <div className="mb-6 rounded-xl border border-[#ffffff0d] bg-[#0f1117] p-6">
+                                    <div className="mb-5 flex items-center gap-3">
+                                        <StatusBadge tone="neutral">{t('onboarding.optionalBadge')}</StatusBadge>
+                                        <div>
+                                            <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">
+                                                {t('onboarding.optionalTitle')}
+                                            </h3>
+                                            <p className="mt-0.5 text-xs text-[#a1a1aa]">{t('onboarding.optionalNote')}</p>
+                                        </div>
+                                    </div>
+
+                                    {formData.role === 'PLAYER' && (
+                                        <>
+                                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                                <div className="space-y-2">
+                                                    <label htmlFor="onboarding-position" className={authLabelClass}>
+                                                        {t('onboarding.labelPosition')}
+                                                    </label>
+                                                    <select
+                                                        id="onboarding-position"
+                                                        value={formData.position}
+                                                        onChange={(e) => setFormData({...formData, position: e.target.value})}
+                                                        className={`${authInputClass} appearance-none`}
+                                                    >
+                                                        <option value="">{t('onboarding.positionPlaceholder')}</option>
+                                                        {POSITION_OPTIONS.map(p => (
+                                                            <option key={p} value={p}>{p}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label htmlFor="onboarding-foot" className={authLabelClass}>
+                                                        {t('onboarding.labelFoot')}
+                                                    </label>
+                                                    <select
+                                                        id="onboarding-foot"
+                                                        value={formData.preferredFoot}
+                                                        onChange={(e) => setFormData({...formData, preferredFoot: e.target.value})}
+                                                        className={`${authInputClass} appearance-none`}
+                                                    >
+                                                        {FOOT_OPTIONS.map(f => (
+                                                            <option key={f} value={f}>
+                                                                {f === 'Right' ? t('onboarding.footRight') : f === 'Left' ? t('onboarding.footLeft') : t('onboarding.footBoth')}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                                <div className="space-y-2">
+                                                    <label htmlFor="onboarding-height" className={authLabelClass}>
+                                                        {t('onboarding.labelHeight')}
+                                                    </label>
+                                                    <input
+                                                        id="onboarding-height"
+                                                        type="number"
+                                                        value={formData.heightCm}
+                                                        onChange={(e) => setFormData({...formData, heightCm: e.target.value})}
+                                                        min={100}
+                                                        max={250}
+                                                        className={authInputClass}
+                                                        placeholder="185"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label htmlFor="onboarding-weight" className={authLabelClass}>
+                                                        {t('onboarding.labelWeight')}
+                                                    </label>
+                                                    <input
+                                                        id="onboarding-weight"
+                                                        type="number"
+                                                        value={formData.weightKg}
+                                                        onChange={(e) => setFormData({...formData, weightKg: e.target.value})}
+                                                        min={30}
+                                                        max={250}
+                                                        className={authInputClass}
+                                                        placeholder="78"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                    {formData.role === 'AGENT' && (
+                                        <div className="space-y-3 mb-6">
+                                            <div>
+                                                <label htmlFor="onboarding-agency" className={`${authLabelClass} mb-1 block`}>
+                                                    {t('onboarding.labelAgency')}
+                                                </label>
+                                                <input
+                                                    id="onboarding-agency"
+                                                    type="text"
+                                                    value={formData.agencyName}
+                                                    onChange={e => setFormData(prev => ({ ...prev, agencyName: e.target.value }))}
+                                                    placeholder={t('onboarding.agencyPlaceholder')}
+                                                    className={authInputClass}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label htmlFor="onboarding-fifa" className={`${authLabelClass} mb-1 block`}>
+                                                    {t('onboarding.labelFifa')}
+                                                </label>
+                                                <input
+                                                    id="onboarding-fifa"
+                                                    type="text"
+                                                    value={formData.fifaLicenseNumber}
+                                                    onChange={e => setFormData(prev => ({ ...prev, fifaLicenseNumber: e.target.value }))}
+                                                    placeholder={t('onboarding.fifaPlaceholder')}
+                                                    className={authInputClass}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="mb-6 flex flex-col items-center gap-3">
+                                        <input
+                                            ref={avatarInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) uploadAvatar(file);
+                                                e.target.value = '';
+                                            }}
+                                        />
+                                        <div
+                                            onClick={() => avatarInputRef.current?.click()}
+                                            className={`flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed transition-colors ${
+                                                formData.avatarUrl
+                                                    ? 'border-[#16a34a]'
+                                                    : 'border-[#ffffff0d] hover:border-[#16a34a]'
+                                            }`}
+                                        >
+                                            {uploadingAvatar ? (
+                                                <Loader2 className="h-6 w-6 animate-spin text-muted" />
+                                            ) : formData.avatarUrl ? (
+                                                <img src={formData.avatarUrl} alt="Avatar preview" className="h-full w-full object-cover" />
+                                            ) : (
+                                                <Camera className="h-6 w-6 text-muted" />
+                                            )}
+                                        </div>
+                                        <p className="text-[10px] font-semibold text-muted">
+                                            {formData.avatarUrl ? t('onboarding.avatarChange') : t('onboarding.avatarAdd')}
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label htmlFor="onboarding-bio" className={authLabelClass}>
+                                            {t('onboarding.labelBio')}
+                                        </label>
+                                        <textarea
+                                            id="onboarding-bio"
+                                            value={formData.bio}
+                                            onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                                            className={`${authInputClass} h-24 resize-none`}
+                                            placeholder={t('onboarding.bioPlaceholder')}
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="mb-6 flex items-start gap-3 rounded-xl border border-[#ffffff0d] bg-[#0f1117] p-6">
+                                    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#16a34a]" />
+                                    <div>
+                                        <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">
+                                            {t('onboarding.minorNoteTitle')}
+                                        </h3>
+                                        <p className="mt-1 text-xs leading-5 text-[#a1a1aa]">
+                                            {t('onboarding.minorNoteBody')}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex flex-col gap-3">
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => setStep(1)}
+                                        className={authSecondaryButtonClass}
+                                    >
+                                        {t('onboarding.back')}
+                                    </button>
+                                    <button
+                                        onClick={submitProfile}
+                                        disabled={isLoading || !hasName}
+                                        className="flex-1 inline-flex items-center justify-center gap-2 border border-[#16a34a] bg-[#16a34a] text-white px-4 py-3 text-[11px] font-semibold transition-colors disabled:opacity-50"
+                                    >
+                                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('onboarding.submit')}
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={handleSkip}
+                                    disabled={isLoading || !hasName}
+                                    className={authGhostButtonClass}
+                                >
+                                    {t('onboarding.skip')}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

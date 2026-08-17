@@ -166,6 +166,15 @@ function MainLayout() {
             return;
         }
 
+        // Aug 17 fail-safe: any authenticated user without a DOB must complete
+        // the DOB gate before anything else — closing the tab mid-gate can no
+        // longer leave a no-DOB account treated as an adult (mirrors backend
+        // MinorPolicy). Setting the DOB lifts the gate on the next bootstrap.
+        if (!user.dob && location.pathname !== '/dob' && location.pathname !== '/oauth2/callback' && location.pathname !== '/set-password') {
+            navigate('/dob', { replace: true });
+            return;
+        }
+
         if (!user.profileComplete && location.pathname !== '/onboarding' && location.pathname !== '/oauth2/callback' && location.pathname !== '/dob' && location.pathname !== '/set-password') {
             navigate('/onboarding', { replace: true });
         }

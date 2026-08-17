@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Loader2, Pencil, ShieldCheck, Trash2, X } from 'lucide-react';
 import { apiClient } from '../../../api/axiosConfig';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
@@ -6,12 +6,15 @@ import { SectionHeader, EmptyState } from '../helpers';
 import { SquadRosterTable, type SquadRosterGroup } from '../../squads/SquadRosterTable';
 import { SquadRosterGrid } from '../../squads/SquadRosterGrid';
 import { AddPlayerToSquadModal } from '../../squads/AddPlayerToSquadModal';
+import { PlayerCardModal } from '../../squads/PlayerCardModal';
 import {
     updateSquad,
     deleteSquad,
     removePlayerFromSquad,
     updateSquadPlayer,
-    type UpdateSquadPayload
+    fetchPlayerCards,
+    type UpdateSquadPayload,
+    type PlayerCard
 } from '../../../features/clubs/api';
 import type { ClubManagementOverview } from '../../../features/clubs/domain';
 import { usePersistedState } from '../../../utils/usePersistedState';
@@ -65,6 +68,11 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
     const [showAddPlayers, setShowAddPlayers] = useState(false);
     const [removingPlayerId, setRemovingPlayerId] = useState<number | null>(null);
 
+    // player cards (Aug 17: roster rows get an edit-card pencil for card players)
+    const [cards, setCards] = useState<PlayerCard[]>([]);
+    const [editingCard, setEditingCard] = useState<PlayerCard | null>(null);
+    const cardUserIds = useMemo(() => new Set(cards.map((c) => c.userId).filter((id): id is number => id != null)), [cards]);
+
     // loading states
     const [localPending, setLocalPending] = useState<string | null>(null);
     const [savingSquad, setSavingSquad] = useState(false);
@@ -109,6 +117,16 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
             setRosterGroups([]);
         }
     }, [selectedSquadId, loadRoster]);
+
+    const loadCards = useCallback(async () => {
+        try {
+            setCards(await fetchPlayerCards(clubId));
+        } catch {
+            // cards are optional context for the roster pencil — non-critical
+        }
+    }, [clubId]);
+
+    useEffect(() => { void loadCards(); }, [loadCards]);
 
     // ── actions ──
 
@@ -436,6 +454,8 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                                     onRemovePlayer={handleRemovePlayer}
                                     onUpdatePlayer={handleUpdatePlayer}
                                     removingPlayerId={removingPlayerId}
+                                    cardUserIds={cardUserIds}
+                                    onEditCard={(userId) => setEditingCard(cards.find((c) => c.userId === userId) ?? null)}
                                 />
                             ) : (
                                 <SquadRosterTable
@@ -444,6 +464,8 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                                     onRemovePlayer={handleRemovePlayer}
                                     onUpdatePlayer={handleUpdatePlayer}
                                     removingPlayerId={removingPlayerId}
+                                    cardUserIds={cardUserIds}
+                                    onEditCard={(userId) => setEditingCard(cards.find((c) => c.userId === userId) ?? null)}
                                 />
                             )}
                         </>
@@ -461,6 +483,21 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                     onPlayersAdded={handlePlayersAdded}
                 />
             )}
+
+            {/* Edit player card modal (roster pencil) */}
+            <PlayerCardModal
+                clubId={clubId}
+                isOpen={editingCard != null}
+                onClose={() => setEditingCard(null)}
+                card={editingCard}
+                onCardUpdated={async () => {
+                    await loadCards();
+                    if (selectedSquad) {
+                        await loadRoster(selectedSquad.id);
+                    }
+                    setParentSuccess('Player card updated.');
+                }}
+            />
             <ConfirmDialog
                 open={showDeleteConfirm}
                 title="Delete Squad"

@@ -99,6 +99,24 @@ test.describe('Talanti smoke flows — leader', () => {
         await expect(page.getByText(/open trial/i).first()).toBeVisible();
         await expect(page.getByText(/invite only/i).first()).toBeVisible();
     });
+
+    test('workspace player-cards tab opens create and edit surfaces', async ({ page }) => {
+        test.skip(!leaderEmail || !leaderPassword, 'Seeded leader credentials are required for this smoke flow.');
+
+        await page.goto('/my-club');
+        await page.waitForURL(/\/clubs\/\d+/);
+        const clubId = page.url().match(/\/clubs\/(\d+)/)?.[1];
+        if (!clubId) throw new Error('Could not resolve club id from /my-club redirect.');
+
+        await page.goto(`/clubs/${clubId}/workspace?tab=player-cards`);
+        // The tab renders either the card list (headers) or the empty state.
+        await expect(page.getByText(/no player cards yet|full name/i).first()).toBeVisible({ timeout: 15000 });
+
+        // The create modal opens with the create title.
+        await page.getByRole('button', { name: /create card/i }).click();
+        await expect(page.getByRole('heading', { name: /create player card/i })).toBeVisible();
+        await page.getByRole('button', { name: /^cancel$/i }).click();
+    });
 });
 
 test.describe('Talanti smoke flows — player', () => {

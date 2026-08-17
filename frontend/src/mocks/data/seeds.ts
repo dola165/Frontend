@@ -1,5 +1,5 @@
 import { createUser, createClub, createPost, createComment, resetFactoryCounters } from './factories';
-import { users, clubs, posts, comments, currentUserId, followedClubIds, events, nextEventId, resetStore, products, type StoreProduct } from './store';
+import { users, clubs, posts, comments, currentUserId, followedClubIds, events, nextEventId, resetStore, products, playerCards, type StoreProduct, type StorePlayerCard } from './store';
 import { resetIds } from './ids';
 
 export const seed = () => {
@@ -30,6 +30,26 @@ export const seed = () => {
   const c3 = createClub({ id: 3, name: 'Lakeside Athletic', ownerId: u3.id, city: 'London', description: 'Semi-professional club. First team in the Isthmian League.', joinPolicy: 'INVITE_ONLY', memberCount: 56 });
 
   [c1, c2, c3].forEach((c) => clubs().set(c.id, c));
+
+  // -- player cards (Aug 17: workspace Player Cards tab + roster edit demo) --
+  // U12 card for Creekside — no photo by rule; pseudo-userId so the roster
+  // handler can render it as a "Not registered" row with the edit affordance.
+  const card: StorePlayerCard = {
+    id: 500,
+    clubId: 1,
+    userId: 999,
+    fullName: 'Nika Tsintsadze',
+    birthYear: new Date().getFullYear() - 12,
+    position: 'GOALKEEPER',
+    jerseyNumber: 1,
+    photoUrl: null,
+    parentEmail: 'parent@example.com',
+    guardianUserId: null,
+    squadId: 1,
+    claimed: false,
+    registered: false,
+  };
+  playerCards().set(card.id, card);
 
   // -- store products (WEB_APP_MASTER_PLAN.md §4.1, Phase 3) --
   let nextProductId = 1;

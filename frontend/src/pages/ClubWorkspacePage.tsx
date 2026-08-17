@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
     Briefcase,
     CheckCircle2,
+    CreditCard,
     Crown,
     Handshake,
     LayoutDashboard,
@@ -69,6 +70,7 @@ import { JobsTab } from '../components/workspace/tabs/JobsTab';
 import { SettingsTab } from '../components/workspace/tabs/SettingsTab';
 import { StoreTab } from '../components/workspace/tabs/StoreTab';
 import { SquadsTab } from '../components/workspace/tabs/SquadsTab';
+import { PlayerCardsTab } from '../components/workspace/tabs/PlayerCardsTab';
 import { TryoutsTab } from '../components/workspace/tabs/TryoutsTab';
 import { InboxTab } from '../components/workspace/tabs/InboxTab';
 import { AgentEngagementsTab } from '../components/workspace/tabs/AgentEngagementsTab';
@@ -441,6 +443,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         items.push({ id: 'store', label: 'Store', icon: ShoppingBag });
         items.push({ id: 'settings', label: 'Settings', icon: Settings });
             items.push({ id: 'squads', label: 'Squads', icon: ShieldCheck });
+            items.push({ id: 'player-cards', label: 'Player Cards', icon: CreditCard });
         }
         if (canManageTryouts) {
             items.push({ id: 'tryouts', label: 'Tryouts', icon: CheckCircle2, badge: tryoutApplicants.length > 0 ? String(tryoutApplicants.length) : null });
@@ -601,6 +604,14 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                 <SquadsTab
                                     clubId={clubId}
                                     overview={overview}
+                                    setParentError={setErrorMessage}
+                                    setParentSuccess={setSuccessMessage}
+                                />
+                            )}
+
+                            {activeTab === 'player-cards' && (
+                                <PlayerCardsTab
+                                    clubId={clubId}
                                     setParentError={setErrorMessage}
                                     setParentSuccess={setSuccessMessage}
                                 />

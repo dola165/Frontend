@@ -6,8 +6,9 @@ import { SquadRosterTable, type SquadRosterGroup } from '../components/squads/Sq
 import { SquadRosterGrid } from '../components/squads/SquadRosterGrid';
 import { AddPlayerToSquadModal } from '../components/squads/AddPlayerToSquadModal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { deleteSquad, updateSquad, removePlayerFromSquad, updateSquadPlayer, type UpdateSquadPayload } from '../features/clubs/api';
+import { deleteSquad, updateSquad, removePlayerFromSquad, updateSquadPlayer, fetchPlayerCards, type UpdateSquadPayload, type PlayerCard } from '../features/clubs/api';
 import { fetchMyClubMembershipContext } from '../features/clubs/api';
+import { PlayerCardModal } from '../components/squads/PlayerCardModal';
 import { isLeadershipRole } from '../features/clubs/domain';
 import { usePersistedState } from '../utils/usePersistedState';
 
@@ -42,6 +43,11 @@ export const ClubSquadsPage = () => {
     const [deletingSquadId, setDeletingSquadId] = useState<number | null>(null);
     const [showAddPlayers, setShowAddPlayers] = useState(false);
     const [removingPlayerId, setRemovingPlayerId] = useState<number | null>(null);
+
+    // player cards (Aug 17: roster rows get an edit-card affordance for card players)
+    const [cards, setCards] = useState<PlayerCard[]>([]);
+    const [editingCard, setEditingCard] = useState<PlayerCard | null>(null);
+    const cardUserIds = useMemo(() => new Set(cards.map((c) => c.userId).filter((userId): userId is number => userId != null)), [cards]);
     const [cardView, setCardView] = usePersistedState('gkz:roster:cardView', false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
@@ -73,6 +79,13 @@ export const ClubSquadsPage = () => {
             .then((ctx) => setIsClubAdmin(isLeadershipRole(ctx?.myRole) && ctx?.clubId === Number(id)))
             .catch(() => setIsClubAdmin(false));
     }, [id]);
+
+    useEffect(() => {
+        if (!id || !isClubAdmin) return;
+        fetchPlayerCards(Number(id))
+            .then(setCards)
+            .catch(() => setCards([]));
+    }, [id, isClubAdmin]);
 
     const handleUpdateSquad = useCallback(async (squadId: number) => {
         if (!id || !editForm.name?.trim()) return;
@@ -382,6 +395,8 @@ export const ClubSquadsPage = () => {
                                     onRemovePlayer={handleRemovePlayer}
                                     onUpdatePlayer={handleUpdatePlayer}
                                     removingPlayerId={removingPlayerId}
+                                    cardUserIds={isClubAdmin ? cardUserIds : null}
+                                    onEditCard={(userId) => setEditingCard(cards.find((c) => c.userId === userId) ?? null)}
                                 />
                             ) : (
                                 <SquadRosterTable
@@ -390,6 +405,8 @@ export const ClubSquadsPage = () => {
                                     onRemovePlayer={handleRemovePlayer}
                                     onUpdatePlayer={handleUpdatePlayer}
                                     removingPlayerId={removingPlayerId}
+                                    cardUserIds={isClubAdmin ? cardUserIds : null}
+                                    onEditCard={(userId) => setEditingCard(cards.find((c) => c.userId === userId) ?? null)}
                                 />
                             )}
                         </>
@@ -443,6 +460,23 @@ export const ClubSquadsPage = () => {
                     onPlayersAdded={handlePlayersAdded}
                 />
             )}
+
+            {/* Edit player card modal (roster pencil) */}
+            <PlayerCardModal
+                clubId={Number(id)}
+                isOpen={editingCard != null}
+                onClose={() => setEditingCard(null)}
+                card={editingCard}
+                onCardUpdated={async () => {
+                    if (id) {
+                        fetchPlayerCards(Number(id)).then(setCards).catch(() => setCards([]));
+                    }
+                    if (selectedSquad) {
+                        const response = await apiClient.get(`/clubs/${id}/squads/${selectedSquad.id}/roster`);
+                        setGroups(response.data || []);
+                    }
+                }}
+            />
             <ConfirmDialog
                 open={showDeleteConfirm}
                 title="Delete Squad"

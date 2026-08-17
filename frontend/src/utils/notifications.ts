@@ -74,23 +74,33 @@ export const notificationScopeLabel = (scope: NotificationScope) => (
 );
 
 const normalizeManagementPath = (notification: NotificationItem, path: string) => {
+    // Phase 2 §4.5: legacy management paths route to the workspace tab — the
+    // manage-club modal ignores managementTab, while the workspace re-syncs ?tab=.
+    const workspaceTabFor = (type: string) => {
+        switch (type) {
+            case 'TRYOUT_APPLICATION_RECEIVED': return 'tryouts';
+            case 'CLUB_APPLICATION_RECEIVED': return 'applications';
+            case 'CLUB_INVITATION_ACCEPTED':
+            case 'CLUB_INVITATION_DECLINED': return 'invites';
+            case 'TRIALIST_OVERDUE': return 'players';
+            default: return 'personnel';
+        }
+    };
+
+    // Aug 17 (P2.5): the pre-Phase-2 link format /clubs/{id}?manageClub=1&managementTab=X
+    // exists on rows written before the workspace-tab migration — rewrite it too.
+    const legacyQueryMatch = path.match(/^\/clubs\/(\d+)\?manageClub=1&managementTab=([a-z]+)$/);
+    if (legacyQueryMatch) {
+        const tab = legacyQueryMatch[2] === 'players' ? 'players' : workspaceTabFor(notification.type);
+        return `/clubs/${Number(legacyQueryMatch[1])}/workspace?tab=${tab}`;
+    }
+
     const match = path.match(/^\/clubs\/(\d+)\/management(?:\?.*)?$/);
     if (!match) {
         return path;
     }
 
-    // Phase 2 §4.5: legacy management paths route to the workspace tab — the
-    // manage-club modal ignores managementTab, while the workspace re-syncs ?tab=.
-    const clubId = Number(match[1]);
-    const workspaceTab = notification.type === 'TRYOUT_APPLICATION_RECEIVED'
-        ? 'tryouts'
-        : notification.type === 'CLUB_APPLICATION_RECEIVED'
-            ? 'applications'
-            : notification.type === 'CLUB_INVITATION_ACCEPTED' || notification.type === 'CLUB_INVITATION_DECLINED'
-                ? 'invites'
-                : 'personnel';
-
-    return `/clubs/${clubId}/workspace?tab=${workspaceTab}`;
+    return `/clubs/${Number(match[1])}/workspace?tab=${workspaceTabFor(notification.type)}`;
 };
 
 export const buildNotificationDestination = (notification: NotificationItem) => {
@@ -116,6 +126,11 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
     }
 
     const fallbackScope: NotificationListScope = notification.scope === 'CLUB' ? 'club' : 'personal';
+    // Aug 17 (P2.5): a club-scoped item without a club id cannot land on a
+    // meaningful club filter — plain notifications list instead of ?scope=club.
+    if (fallbackScope === 'club' && notification.clubId == null) {
+        return '/notifications';
+    }
     const search = createNotificationSearch(fallbackScope, notification.clubId ?? null, notification.clubName ?? null);
     return search ? `/notifications?${search}` : '/notifications';
 };

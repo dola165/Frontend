@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, GripVertical, Loader2, Trash2, X } from 'lucide-react';
+import { Check, GripVertical, Loader2, Pencil, Trash2, X } from 'lucide-react';
 import { TrialistBadge } from '../workspace/TrialistBadge';
 import type { SortState } from '../workspace/helpers';
 
@@ -27,6 +27,9 @@ interface SquadRosterTableProps {
     onRemovePlayer?: (userId: number, playerName: string) => void;
     onUpdatePlayer?: (userId: number, jerseyNumber: number | null, squadRole: string | null) => void;
     removingPlayerId?: number | null;
+    /** Roster ids (users.id) that have a Player Card — shows the edit-card pencil. */
+    cardUserIds?: Set<number> | null;
+    onEditCard?: (userId: number) => void;
 }
 
 const getSortValue = (p: SquadRosterPlayer, col: number): string | number | null => {
@@ -44,7 +47,9 @@ export const SquadRosterTable = ({
     editable = false,
     onRemovePlayer,
     onUpdatePlayer,
-    removingPlayerId
+    removingPlayerId,
+    cardUserIds,
+    onEditCard
 }: SquadRosterTableProps) => {
     const [editingCell, setEditingCell] = useState<{ userId: number; field: 'number' | 'role' } | null>(null);
     const [editValue, setEditValue] = useState('');
@@ -233,22 +238,34 @@ export const SquadRosterTable = ({
                                             )}
                                         </td>
 
-                                        {/* Remove Button (editable only) */}
+                                        {/* Row actions (editable only) */}
                                         {editable && (
                                             <td className="px-2 py-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => onRemovePlayer?.(player.id, player.name)}
-                                                    disabled={removingPlayerId === player.id}
-                                                    className="p-1 text-[#a1a1aa] hover:text-[color:var(--state-danger)] disabled:opacity-50"
-                                                    title={`Remove ${player.name} from squad`}
-                                                >
-                                                    {removingPlayerId === player.id ? (
-                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                    ) : (
-                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                <div className="flex items-center justify-end gap-1">
+                                                    {cardUserIds?.has(player.id) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onEditCard?.(player.id)}
+                                                            className="p-1 text-[#a1a1aa] hover:text-[#16a34a]"
+                                                            title={`Edit player card for ${player.name}`}
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </button>
                                                     )}
-                                                </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onRemovePlayer?.(player.id, player.name)}
+                                                        disabled={removingPlayerId === player.id}
+                                                        className="p-1 text-[#a1a1aa] hover:text-[color:var(--state-danger)] disabled:opacity-50"
+                                                        title={`Remove ${player.name} from squad`}
+                                                    >
+                                                        {removingPlayerId === player.id ? (
+                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        )}
+                                                    </button>
+                                                </div>
                                             </td>
                                         )}
                                     </tr>

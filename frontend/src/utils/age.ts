@@ -15,7 +15,9 @@ export const ageFromDob = (dob: string): number => {
 export const isUnder13 = (dob: string): boolean => ageFromDob(dob) < 13;
 
 export const isMinor = (dob?: string | null): boolean => {
-    if (!dob) return false; // missing DOB = adult by design (mirrors backend MinorPolicy)
+    // Aug 17 fail-safe: missing DOB = minor (mirrors backend MinorPolicy) —
+    // unknown age gets the restrictions until the DOB gate is completed.
+    if (!dob) return true;
     return ageFromDob(dob) < 18;
 };
 

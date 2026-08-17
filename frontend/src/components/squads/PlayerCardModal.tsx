@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Plus, Upload, X } from 'lucide-react';
-import { createPlayerCard } from '../../features/clubs/api';
+import { createPlayerCard, updatePlayerCard, type PlayerCard } from '../../features/clubs/api';
 import { apiClient } from '../../api/axiosConfig';
 
 interface PlayerCardModalProps {
     clubId: number;
-    squadId: number;
+    squadId?: number | null;
     isOpen: boolean;
     onClose: () => void;
-    onCardCreated: () => void;
+    onCardCreated?: () => void;
+    /** When set, the modal edits this card instead of creating a new one. */
+    card?: PlayerCard | null;
+    onCardUpdated?: () => void;
 }
 
 const POSITIONS = [
@@ -19,11 +22,14 @@ const POSITIONS = [
 
 /**
  * Club-created Player Card (WEB_APP_MASTER_PLAN.md §2.2) — a roster entry for
- * a kid without a GrassKickZ account. U13 cards never carry photos; the server
- * rejects the payload if the UI misses it.
+ * a kid without a GrassKickZ account. Dual create/edit mode (Aug 17): pass
+ * `card` to edit an existing card. U13 cards never carry photos; the server
+ * rejects the payload if the UI misses it, and flipping a card to U13 on edit
+ * strips the stored photo server-side.
  */
-export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreated }: PlayerCardModalProps) => {
+export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreated, card, onCardUpdated }: PlayerCardModalProps) => {
     const { t } = useTranslation();
+    const editing = card != null;
     const [fullName, setFullName] = useState('');
     const [birthYear, setBirthYear] = useState('');
     const [position, setPosition] = useState('GOALKEEPER');
@@ -36,6 +42,18 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
 
     const currentYear = new Date().getFullYear();
     const under13 = birthYear ? currentYear - Number(birthYear) < 13 : false;
+
+    // Prefill when opening in edit mode.
+    useEffect(() => {
+        if (!isOpen || !card) return;
+        setFullName(card.fullName ?? '');
+        setBirthYear(card.birthYear != null ? String(card.birthYear) : '');
+        setPosition(card.position ?? 'GOALKEEPER');
+        setJerseyNumber(card.jerseyNumber != null ? String(card.jerseyNumber) : '');
+        setParentEmail(card.parentEmail ?? '');
+        setPhotoUrl(card.photoUrl ?? null);
+        setError(null);
+    }, [isOpen, card]);
 
     const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -72,16 +90,24 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
         setSaving(true);
         setError(null);
         try {
-            await createPlayerCard(clubId, {
+            const payload = {
                 fullName: fullName.trim(),
                 birthYear: year,
                 position: position || null,
                 jerseyNumber: jerseyNumber ? Number(jerseyNumber) : null,
-                photoUrl,
+                // U13 rule: never send a photo for an under-13 card — the
+                // server rejects it, and on a flip it strips the stored one.
+                photoUrl: under13 ? null : photoUrl,
                 parentEmail: parentEmail.trim() || null,
-                squadId,
-            });
-            onCardCreated();
+                ...(squadId != null ? { squadId } : {}),
+            };
+            if (editing && card) {
+                await updatePlayerCard(clubId, card.id, payload);
+                onCardUpdated?.();
+            } else {
+                await createPlayerCard(clubId, payload);
+                onCardCreated?.();
+            }
             onClose();
         } catch (err: unknown) {
             const apiMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -105,7 +131,9 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
                     <div className="flex items-center gap-3">
                         <Plus className="h-5 w-5 text-[#16a34a]" />
                         <div>
-                            <h2 className="text-sm font-semibold  text-[#f4f4f5]">{t('minors.playerCard.title')}</h2>
+                            <h2 className="text-sm font-semibold  text-[#f4f4f5]">
+                                {editing ? t('minors.playerCard.editTitle') : t('minors.playerCard.title')}
+                            </h2>
                             <p className="mt-0.5 text-[11px] font-medium text-[#a1a1aa]">
                                 {t('minors.playerCard.subtitle')}
                             </p>
@@ -189,7 +217,9 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
                         <label className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.playerCard.photo')}</label>
                         {under13 ? (
                             <p className="text-[10px] font-semibold  text-[color:var(--state-danger)]">
-                                {t('minors.playerCard.photoRule')}
+                                {editing && photoUrl
+                                    ? t('minors.playerCard.photoRemovedOnFlip')
+                                    : t('minors.playerCard.photoRule')}
                             </p>
                         ) : (
                             <div className="flex items-center gap-3">
@@ -216,7 +246,7 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
                             disabled={saving || uploading}
                             className="inline-flex items-center gap-2 border border-[#16a34a] bg-[#16a34a] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white disabled:opacity-50"
                         >
-                            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : t('minors.playerCard.create')}
+                            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : editing ? t('minors.playerCard.save') : t('minors.playerCard.create')}
                         </button>
                     </div>
                 </form>

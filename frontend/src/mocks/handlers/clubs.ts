@@ -1,5 +1,5 @@
 import { http, HttpHandler, HttpResponse } from 'msw';
-import { clubs, currentUserId, users, followedClubIds, events, jobs, type StoreClub, type StoreJob } from '../data/store';
+import { clubs, currentUserId, users, followedClubIds, events, jobs, playerCards, type StoreClub, type StoreJob, type StorePlayerCard } from '../data/store';
 import { simulateLatency, paginate } from '../utils';
 import { createClub } from '../data/factories';
 
@@ -462,27 +462,40 @@ export const clubHandlers: HttpHandler[] = [
     ]);
   }),
 
-  http.get(`${API}/clubs/:clubId/squads/:squadId/roster`, async () => {
+  http.get(`${API}/clubs/:clubId/squads/:squadId/roster`, async ({ params }) => {
     await simulateLatency();
     const STATUSES = ['ACTIVE', 'ACTIVE', 'TRIALIST', 'ACTIVE', 'ACTIVE', 'PAST'];
+    const regularPlayers = [...users().values()].slice(0, 6).map((u, i) => ({
+      id: u.id, number: i + 1, name: u.fullName || u.username, position: u.position,
+      age: 18 + (i % 15), status: STATUSES[i % STATUSES.length],
+      joinedAt: new Date(Date.now() - (i * 86400000 * 7)).toISOString(),
+      photoUrl: null, isRegistered: true, squadRole: 'PLAYER',
+    }));
+    // Aug 17: cards render as "Not registered" roster rows with the edit affordance.
+    const cardRows = [...playerCards().values()]
+      .filter((c) => c.clubId === Number(params.clubId))
+      .map((c) => ({
+        id: c.userId, number: c.jerseyNumber ?? null, name: c.fullName, position: c.position,
+        age: new Date().getFullYear() - c.birthYear, status: 'TRIALIST',
+        joinedAt: new Date().toISOString(),
+        photoUrl: c.photoUrl, isRegistered: false, squadRole: 'PLAYER',
+      }));
     return HttpResponse.json([{
-      label: 'Starting XI', players: [...users().values()].slice(0, 6).map((u, i) => ({
-        id: u.id, number: i + 1, name: u.fullName || u.username, position: u.position,
-        age: 18 + (i % 15), status: STATUSES[i % STATUSES.length],
-        joinedAt: new Date(Date.now() - (i * 86400000 * 7)).toISOString(),
-        photoUrl: null, isRegistered: true, squadRole: 'PLAYER',
-      })),
+      label: 'Starting XI', players: [...regularPlayers, ...cardRows],
     }]);
   }),
 
-  // -- player cards (WEB_APP_MASTER_PLAN.md §2.2) --
-  http.get(`${API}/clubs/:clubId/player-cards`, async () => {
+  // -- player cards (WEB_APP_MASTER_PLAN.md §2.2; workspace tab Aug 17) --
+  http.get(`${API}/clubs/:clubId/player-cards`, async ({ params }) => {
     await simulateLatency();
-    return HttpResponse.json([]);
+    return HttpResponse.json(
+      [...playerCards().values()].filter((c) => c.clubId === Number(params.clubId))
+    );
   }),
 
-  http.post(`${API}/clubs/:clubId/player-cards`, async ({ request }) => {
+  http.post(`${API}/clubs/:clubId/player-cards`, async ({ params, request }) => {
     await simulateLatency();
+    const clubId = Number(params.clubId);
     const body = (await request.json()) as Record<string, unknown>;
     const year = Number(body.birthYear);
     if (!body.fullName) {
@@ -494,13 +507,55 @@ export const clubHandlers: HttpHandler[] = [
     if (body.photoUrl && new Date().getFullYear() - year < 13) {
       return HttpResponse.json({ error: 'Player cards for players under 13 cannot have a photo.' }, { status: 400 });
     }
-    return HttpResponse.json({
-      id: 500, clubId: 1, userId: 999, fullName: body.fullName, birthYear: year,
-      position: body.position ?? null, jerseyNumber: body.jerseyNumber ?? null,
-      photoUrl: body.photoUrl ?? null, parentEmail: body.parentEmail ?? null,
-      guardianUserId: null, squadId: body.squadId ?? null,
-      claimed: false, registered: false,
-    }, { status: 201 });
+    const id = Math.floor(Math.random() * 100000) + 1000;
+    const card: StorePlayerCard = {
+      id,
+      clubId,
+      userId: 900000 + id,
+      fullName: body.fullName as string,
+      birthYear: year,
+      position: (body.position as string | null) ?? null,
+      jerseyNumber: (body.jerseyNumber as number | null) ?? null,
+      photoUrl: (body.photoUrl as string | null) ?? null,
+      parentEmail: (body.parentEmail as string | null) ?? null,
+      guardianUserId: null,
+      squadId: (body.squadId as number | null) ?? null,
+      claimed: false,
+      registered: false,
+    };
+    playerCards().set(id, card);
+    return HttpResponse.json(card, { status: 201 });
+  }),
+
+  http.patch(`${API}/clubs/:clubId/player-cards/:cardId`, async ({ params, request }) => {
+    await simulateLatency();
+    const card = playerCards().get(Number(params.cardId));
+    if (!card) return HttpResponse.json({ error: 'Player card not found.' }, { status: 404 });
+    const body = (await request.json()) as Record<string, unknown>;
+    const currentYear = new Date().getFullYear();
+    const effectiveYear = body.birthYear != null ? Number(body.birthYear) : card.birthYear;
+    if (effectiveYear > currentYear - 4 || effectiveYear < currentYear - 100) {
+      return HttpResponse.json({ error: 'Birth year is invalid.' }, { status: 400 });
+    }
+    const under13 = currentYear - effectiveYear < 13;
+    if (body.photoUrl && under13) {
+      return HttpResponse.json({ error: 'Player cards for players under 13 cannot have a photo.' }, { status: 400 });
+    }
+    if (body.fullName != null) card.fullName = body.fullName as string;
+    if (body.birthYear != null) card.birthYear = effectiveYear;
+    if (under13 && card.photoUrl) card.photoUrl = null; // the flip strips the stored photo
+    if (body.position != null) card.position = body.position as string;
+    if (body.jerseyNumber != null) card.jerseyNumber = Number(body.jerseyNumber);
+    if (body.photoUrl != null) card.photoUrl = body.photoUrl as string;
+    if (body.parentEmail != null) card.parentEmail = body.parentEmail as string;
+    if (body.squadId != null) card.squadId = Number(body.squadId);
+    return HttpResponse.json(card);
+  }),
+
+  http.delete(`${API}/clubs/:clubId/player-cards/:cardId`, async ({ params }) => {
+    await simulateLatency();
+    playerCards().delete(Number(params.cardId));
+    return HttpResponse.json({ message: 'Player card deleted.' });
   }),
 
   // -- club jobs (WEB_APP_MASTER_PLAN.md §4.2, Phase 2) --

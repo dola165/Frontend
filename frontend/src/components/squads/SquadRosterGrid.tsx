@@ -8,6 +8,9 @@ interface SquadRosterGridProps {
     onRemovePlayer?: (userId: number, playerName: string) => void;
     onUpdatePlayer?: (userId: number, jerseyNumber: number | null, squadRole: string | null) => void;
     removingPlayerId?: number | null;
+    /** Roster ids (users.id) that have a Player Card — shows the edit-card pencil. */
+    cardUserIds?: Set<number> | null;
+    onEditCard?: (userId: number) => void;
 }
 
 const PlayerCard = ({
@@ -15,13 +18,17 @@ const PlayerCard = ({
     editable,
     onRemovePlayer,
     onUpdatePlayer,
-    isRemoving
+    isRemoving,
+    isCard,
+    onEditCard
 }: {
     player: SquadRosterPlayer;
     editable: boolean;
     onRemovePlayer?: (userId: number, playerName: string) => void;
     onUpdatePlayer?: (userId: number, jerseyNumber: number | null, squadRole: string | null) => void;
     isRemoving: boolean;
+    isCard: boolean;
+    onEditCard?: (userId: number) => void;
 }) => {
     const initial = (player.name || '?').charAt(0).toUpperCase();
 
@@ -106,6 +113,16 @@ const PlayerCard = ({
                                 Edit
                             </button>
                         )}
+                        {isCard && onEditCard && (
+                            <button
+                                type="button"
+                                onClick={() => onEditCard(player.id)}
+                                className="flex-1 rounded-[2px] border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] transition-colors"
+                                title={`Edit player card for ${player.name}`}
+                            >
+                                Card
+                            </button>
+                        )}
                         {onRemovePlayer && (
                             <button
                                 type="button"
@@ -128,7 +145,9 @@ export const SquadRosterGrid = ({
     editable = false,
     onRemovePlayer,
     onUpdatePlayer,
-    removingPlayerId
+    removingPlayerId,
+    cardUserIds,
+    onEditCard
 }: SquadRosterGridProps) => {
     if (groups.length === 0) {
         return (
@@ -158,6 +177,8 @@ export const SquadRosterGrid = ({
                                 onRemovePlayer={onRemovePlayer}
                                 onUpdatePlayer={onUpdatePlayer}
                                 isRemoving={removingPlayerId === player.id}
+                                isCard={cardUserIds?.has(player.id) ?? false}
+                                onEditCard={onEditCard}
                             />
                         ))}
                     </div>

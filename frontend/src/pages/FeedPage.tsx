@@ -133,17 +133,17 @@ export const FeedPage = () => {
  return (
   <div className="mx-auto flex w-full max-w-[680px] flex-col gap-3">
    {loadError && (
-    <div className="rounded-xl border border-rose-200 bg-rose-50 px-5 py-4">
+    <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-5 py-4">
      <div className="flex items-start gap-3">
-      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-400" />
       <div className="min-w-0">
-       <p className="text-sm font-semibold text-rose-700">Failed to load feed</p>
-       <p className="mt-1 text-xs text-rose-600">Check your connection and try again.</p>
+       <p className="text-sm font-semibold text-rose-300">Failed to load feed</p>
+       <p className="mt-1 text-xs text-rose-300/80">Check your connection and try again.</p>
       </div>
       <button
        type="button"
        onClick={() => void loadFeed()}
-       className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-100"
+       className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full border border-rose-500/30 bg-[#16181d] px-3 py-1.5 text-xs font-semibold text-rose-300 transition-colors hover:bg-[#1a1c22]"
       >
        <RefreshCw className="h-3.5 w-3.5" />
        Retry

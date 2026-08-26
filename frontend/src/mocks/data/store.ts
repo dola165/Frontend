@@ -22,6 +22,7 @@ export interface StoreClub {
   memberCount: number;
   ownerId: number;
   joinPolicy: 'OPEN_TRIAL' | 'APPLICATION_REQUIRED' | 'INVITE_ONLY';
+  category: string;
   createdAt: string;
 }
 
@@ -52,6 +53,8 @@ export interface StoreJob {
   ageGroup: string | null;
   level: string | null;
   status: 'OPEN' | 'CLOSED';
+  createdBy?: number | null;
+  applicationCount?: number;
   createdAt: string;
 }
 

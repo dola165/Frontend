@@ -6,7 +6,6 @@ import {
     CalendarDays,
     Home,
     Map as MapIcon,
-    Menu,
     MessageSquare,
     Moon,
     Shield,
@@ -48,31 +47,34 @@ const primaryLinks = [
     { id: 'calendar', path: '/calendar', label: 'Schedule', icon: CalendarDays, authRequired: true },
     { id: 'tournaments', path: '/tournaments', label: 'Tournaments', icon: Trophy, authRequired: false },
     { id: 'messages', path: '/messages', label: 'Messages', icon: MessageSquare, authRequired: true },
-    { id: 'marketplace', path: '/marketplace', label: 'Marketplace', icon: ShoppingBag, authRequired: false },
-    { id: 'needs', path: '/needs', label: 'Club Needs', icon: Target, authRequired: false },
     { id: 'notifications', path: '/notifications', label: 'Notifications', icon: BellRing, authRequired: true },
 ];
 
-const agentLink = { id: 'agent-dashboard', path: '/agent/dashboard', label: 'Agent Hub', icon: ShieldCheck, authRequired: true, roleRequired: 'AGENT' as const };
+// Agent-cut (P1 W1): Marketplace + Club Needs are AGENT-only surfaces. The seeded
+// AGENT demo account (zviad@) keeps full access; other roles never see the links.
+const agentOnlyLinks = [
+    { id: 'marketplace', path: '/marketplace', label: 'Marketplace', icon: ShoppingBag, authRequired: false },
+    { id: 'needs', path: '/needs', label: 'Club Needs', icon: Target, authRequired: false },
+    { id: 'agent-dashboard', path: '/agent/dashboard', label: 'Agent Hub', icon: ShieldCheck, authRequired: true },
+];
 
 export const TopNav = ({ user, myClubId, darkMode, setDarkMode, handleLogout }: TopNavProps) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const location = useLocation();
     const activeKey = resolveNavigationKey(location.pathname, myClubId);
     const isClubPage = /^\/clubs\/\d+(\/squads)?$/.test(location.pathname);
+    // W6: language switcher — shows the code of the language it will switch to.
+    // i18next-browser-languagedetector persists the choice to localStorage
+    // (cache key 'i18nextLng') on changeLanguage, so no manual storage needed.
+    const currentLanguage = (i18n.resolvedLanguage ?? i18n.language ?? 'en').toLowerCase();
+    const isGeorgian = currentLanguage.startsWith('ka');
+    const switchLanguage = () => void i18n.changeLanguage(isGeorgian ? 'en' : 'ka');
 
     return (
         <nav className="sticky top-0 z-50 border-b border-[#ffffff0d] bg-[#0f1117] backdrop-blur-xl">
             <div className="mx-auto flex w-full flex-col px-6 sm:px-8">
                 <div className="flex h-[56px] items-center justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-3">
-                        <button
-                            type="button"
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#a1a1aa] hover:bg-[#1a1c22] lg:hidden"
-                            aria-label={t('nav.openNav')}
-                        >
-                            <Menu className="h-4 w-4" />
-                        </button>
                         <Link to={user ? '/feed' : '/'} className="shrink-0">
                             <GrasskickzLogo compact={isClubPage} />
                         </Link>
@@ -92,6 +94,16 @@ export const TopNav = ({ user, myClubId, darkMode, setDarkMode, handleLogout }: 
                                 Admin
                             </Link>
                         )}
+
+                        <button
+                            type="button"
+                            onClick={switchLanguage}
+                            className="inline-flex h-9 min-w-9 items-center justify-center rounded-xl border border-[#ffffff0d] bg-[#16181d] px-2.5 text-[11px] font-bold text-[#a1a1aa] transition-colors hover:bg-[#1a1c22] hover:text-[#f4f4f5]"
+                            aria-label={t('nav.language')}
+                            title={t('nav.language')}
+                        >
+                            {isGeorgian ? t('nav.langEn') : t('nav.langKa')}
+                        </button>
 
                         <button
                             type="button"
@@ -144,7 +156,7 @@ export const TopNav = ({ user, myClubId, darkMode, setDarkMode, handleLogout }: 
                             // Filter links by auth status and role
                             const visibleLinks = [
                                 ...primaryLinks.filter(item => !item.authRequired || !!user),
-                                ...(user?.role === 'AGENT' ? [agentLink] : [])
+                                ...(user?.role === 'AGENT' ? agentOnlyLinks : [])
                             ];
                             return visibleLinks.map((item) => {
                             const active = activeKey === item.id;

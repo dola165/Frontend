@@ -6,7 +6,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { QrLoginSection } from '../components/auth/QrLoginSection';
-import { extractApiErrorMessage } from '../utils/apiError';
+import { extractApiErrorCode, extractApiErrorMessage } from '../utils/apiError';
 import { resolvePostAuthRedirect } from '../utils/authRedirect';
 import { AuthSplitShell } from '../components/auth/AuthSplitShell';
 import { GrasskickzLogo } from '../components/layout/GrasskickzLogo';
@@ -44,6 +44,9 @@ export const LoginPage = () => {
     const [error, setError] = useState('');
     const [showQr, setShowQr] = useState(false);
     const [fieldErrors, setFieldErrors] = useState<Partial<Record<'email' | 'password', string>>>({});
+    const [emailNotVerified, setEmailNotVerified] = useState(false);
+    const [isResendingVerification, setIsResendingVerification] = useState(false);
+    const [resendConfirmation, setResendConfirmation] = useState<string | null>(null);
     const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '/feed');
 
     const clearFieldError = (field: 'email' | 'password') =>
@@ -76,6 +79,8 @@ export const LoginPage = () => {
 
         setIsLoading(true);
         setError('');
+        setEmailNotVerified(false);
+        setResendConfirmation(null);
 
         try {
             const res = await apiClient.post('/auth/login', { email: email.trim(), password });
@@ -89,8 +94,25 @@ export const LoginPage = () => {
         } catch (err) {
             console.error(err);
             setError(extractApiErrorMessage(err, t('auth.login.errInvalid')));
+            setEmailNotVerified(extractApiErrorCode(err) === 'EMAIL_NOT_VERIFIED');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleResendLoginVerification = async () => {
+        setIsResendingVerification(true);
+        try {
+            const res = await apiClient.post<{ message?: string }>('/auth/resend-verification', {
+                email: email.trim(),
+            });
+            setError('');
+            setEmailNotVerified(false);
+            setResendConfirmation(res.data?.message ?? 'Verification email sent.');
+        } catch (err) {
+            setError(extractApiErrorMessage(err, 'Could not resend the verification email. Please try again.'));
+        } finally {
+            setIsResendingVerification(false);
         }
     };
 
@@ -158,8 +180,30 @@ export const LoginPage = () => {
             ) : (
                 <>
                     {error && (
-                        <div className="mb-6 border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)] flex items-center gap-2">
-                            <AlertCircle className="w-5 h-5 shrink-0" /> {error}
+                        <div className="mb-6 border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
+                            <div className="flex items-center gap-2">
+                                <AlertCircle className="w-5 h-5 shrink-0" /> {error}
+                            </div>
+                            {emailNotVerified && (
+                                <button
+                                    type="button"
+                                    onClick={() => void handleResendLoginVerification()}
+                                    disabled={isResendingVerification}
+                                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[color:var(--state-danger)] px-4 py-2 text-xs font-semibold text-[color:var(--state-danger)] transition-colors hover:bg-[color:var(--state-danger)] hover:text-white disabled:opacity-60"
+                                >
+                                    {isResendingVerification ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        'Resend verification email'
+                                    )}
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {resendConfirmation && (
+                        <div className="mb-6 border border-[#16a34a]/30 bg-[#16a34a]/10 px-4 py-3 text-sm font-semibold text-[#16a34a]">
+                            {resendConfirmation}
                         </div>
                     )}
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Building2, CheckCircle, ChevronLeft, ChevronRight, Heart, Loader2, ShieldCheck, Users, X } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
@@ -12,31 +13,32 @@ type OrgKind = 'CLUB' | 'FAN_CLUB' | 'COMPANY';
 
 interface CreateClubResponse { id: number; }
 
-const clubTypeOptions: Array<{ value: ClubType; label: string; description: string }> = [
-  { value: 'GRASSROOTS', label: 'Grassroots', description: 'Community-first clubs, local teams, and neighborhood football projects.' },
-  { value: 'ACADEMY', label: 'Academy', description: 'Structured player development programs and age-group squads.' },
-  { value: 'PROFESSIONAL', label: 'Professional', description: 'Senior competitive clubs with formal football operations.' }
+const clubTypeOptions: Array<{ value: ClubType; labelKey: string; descriptionKey: string }> = [
+  { value: 'GRASSROOTS', labelKey: 'createClub.typeGrassroots', descriptionKey: 'createClub.typeGrassrootsDesc' },
+  { value: 'ACADEMY', labelKey: 'createClub.typeAcademy', descriptionKey: 'createClub.typeAcademyDesc' },
+  { value: 'PROFESSIONAL', labelKey: 'createClub.typeProfessional', descriptionKey: 'createClub.typeProfessionalDesc' }
 ];
 
-const communicationOptions: Array<{ value: ClubCommunicationMethod; label: string; helper: string }> = [
-  { value: 'WHATSAPP', label: 'WhatsApp', helper: 'Fastest way for players and clubs to reach you immediately.' },
-  { value: 'FACEBOOK_MESSENGER', label: 'Facebook / Messenger', helper: 'Use a Facebook page or direct Messenger link.' }
+const communicationOptions: Array<{ value: ClubCommunicationMethod; labelKey: string; helperKey: string }> = [
+  { value: 'WHATSAPP', labelKey: 'createClub.whatsapp', helperKey: 'createClub.whatsappHelper' },
+  { value: 'FACEBOOK_MESSENGER', labelKey: 'createClub.messenger', helperKey: 'createClub.messengerHelper' }
 ];
 
-const orgKindOptions: Array<{ value: OrgKind; label: string; description: string; allowedRoles: string[]; comingSoon?: boolean }> = [
-  { value: 'CLUB', label: 'Club', description: 'Create and manage a football club, academy, or competitive team. Schedule matches, build squads, and grow your organization.', allowedRoles: ['ORGANIZER'] },
-  { value: 'FAN_CLUB', label: 'Fan Club', description: 'Build a supporter community around your favorite teams. Organize watch parties, share content, and connect with fellow fans.', allowedRoles: ['FAN'], comingSoon: true },
-  { value: 'COMPANY', label: 'Organization', description: 'For brands, sponsors, and businesses that want to advertise, partner with clubs, or promote football-related services.', allowedRoles: [], comingSoon: true }
+const orgKindOptions: Array<{ value: OrgKind; labelKey: string; descriptionKey: string; allowedRoles: string[]; comingSoon?: boolean }> = [
+  { value: 'CLUB', labelKey: 'createClub.kindClub', descriptionKey: 'createClub.kindClubDesc', allowedRoles: ['ORGANIZER'] },
+  { value: 'FAN_CLUB', labelKey: 'createClub.kindFanClub', descriptionKey: 'createClub.kindFanClubDesc', allowedRoles: ['FAN'], comingSoon: true },
+  { value: 'COMPANY', labelKey: 'createClub.kindCompany', descriptionKey: 'createClub.kindCompanyDesc', allowedRoles: [], comingSoon: true }
 ];
 
 const STEPS = [
-  { number: 1, label: 'Type', description: 'Choose what kind of organization you want to create' },
-  { number: 2, label: 'Location', description: 'Pin your club on the map so players can find you' },
-  { number: 3, label: 'Details', description: 'Name your club, set the category, and add contact info' }
+  { number: 1, labelKey: 'createClub.steps.type', descriptionKey: 'createClub.steps.typeDesc' },
+  { number: 2, labelKey: 'createClub.steps.location', descriptionKey: 'createClub.steps.locationDesc' },
+  { number: 3, labelKey: 'createClub.steps.details', descriptionKey: 'createClub.steps.detailsDesc' }
 ];
 
 export const CreateClubPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const userRole = user?.role;
   const [step, setStep] = useState(0);
@@ -79,7 +81,7 @@ export const CreateClubPage = () => {
 
     if (!hasValidPreferredMethod) {
       setSubmitting(false);
-      setErrorMessage('Preferred communication method must match an available contact option.');
+      setErrorMessage(t('createClub.methodMismatch'));
       return;
     }
 
@@ -98,25 +100,25 @@ export const CreateClubPage = () => {
 
       navigate(`/clubs/${response.data.id}`);
     } catch (error) {
-      setErrorMessage(extractApiErrorMessage(error, 'Failed to create club.'));
+      setErrorMessage(extractApiErrorMessage(error, t('createClub.createFailed')));
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-[calc(100dvh-var(--app-header-height))] bg-[#fcf8f2] flex">
+    <div className="min-h-[calc(100dvh-var(--app-header-height))] bg-[#0f1117] text-[#f4f4f5] flex">
       {/* Left step sidebar — AWS-style */}
-      <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r-2 border-[#1a1a1a] bg-white p-6">
+      <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-[#ffffff0d] bg-[#16181d] p-6">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-gray-500 hover:text-[#1a1a1a] transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors mb-8"
         >
           <ChevronLeft className="h-5 w-5" />
-          Back
+          {t('createClub.back')}
         </button>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400 mb-6">Setup Progress</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#71717a] mb-6">{t('createClub.setupProgress')}</p>
         <nav className="space-y-1">
           {STEPS.map((s, i) => {
             const isCurrent = i === step;
@@ -129,17 +131,17 @@ export const CreateClubPage = () => {
                       ? 'border-[#16a34a] bg-[#16a34a] text-black'
                       : isCurrent
                       ? 'border-[#16a34a] bg-[#16a34a]/10 text-[#16a34a]'
-                      : 'border-gray-300 text-gray-400'
+                      : 'border-[#ffffff0d] text-[#71717a]'
                   }`}>
                     {isComplete ? <CheckCircle className="h-4 w-4" /> : s.number}
                   </div>
                   {i < STEPS.length - 1 && (
-                    <div className={`w-0.5 flex-1 mt-1 ${i < step ? 'bg-[#16a34a]' : 'bg-gray-300'}`} />
+                    <div className={`w-0.5 flex-1 mt-1 ${i < step ? 'bg-[#16a34a]' : 'bg-[#ffffff0d]'}`} />
                   )}
                 </div>
                 <div className={`pb-6 ${!isCurrent && !isComplete ? 'opacity-50' : ''}`}>
-                  <p className="text-sm font-semibold uppercase tracking-widest text-[#1a1a1a]">{s.label}</p>
-                  <p className="mt-0.5 text-xs text-gray-500">{s.description}</p>
+                  <p className="text-sm font-semibold uppercase tracking-widest text-[#f4f4f5]">{t(s.labelKey)}</p>
+                  <p className="mt-0.5 text-xs text-[#a1a1aa]">{t(s.descriptionKey)}</p>
                 </div>
               </div>
             );
@@ -150,19 +152,19 @@ export const CreateClubPage = () => {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile step indicator */}
-        <div className="lg:hidden flex items-center gap-2 px-6 py-4 border-b-2 border-gray-200 bg-white">
-          <button onClick={() => navigate(-1)} className="p-1 text-gray-500 hover:text-[#1a1a1a]">
+        <div className="lg:hidden flex items-center gap-2 px-6 py-4 border-b border-[#ffffff0d] bg-[#16181d]">
+          <button onClick={() => navigate(-1)} className="p-1 text-[#a1a1aa] hover:text-[#f4f4f5]">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2">
             {STEPS.map((s, i) => (
               <div key={s.number} className="flex items-center gap-2">
                 <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold ${
-                  i < step ? 'bg-[#16a34a] text-black' : i === step ? 'bg-[#16a34a]/10 text-[#16a34a] border border-[#16a34a]' : 'bg-gray-200 text-gray-500'
+                  i < step ? 'bg-[#16a34a] text-black' : i === step ? 'bg-[#16a34a]/10 text-[#16a34a] border border-[#16a34a]' : 'bg-[#1a1c22] text-[#71717a]'
                 }`}>
                   {i < step ? <CheckCircle className="h-3.5 w-3.5" /> : s.number}
                 </div>
-                {i < STEPS.length - 1 && <div className={`w-6 h-0.5 ${i < step ? 'bg-[#16a34a]' : 'bg-gray-300'}`} />}
+                {i < STEPS.length - 1 && <div className={`w-6 h-0.5 ${i < step ? 'bg-[#16a34a]' : 'bg-[#ffffff0d]'}`} />}
               </div>
             ))}
           </div>
@@ -175,11 +177,10 @@ export const CreateClubPage = () => {
             {step === 0 && (
               <div>
                 <div className="mb-8">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#16a34a]">Step 1 of 3</p>
-                  <h1 className="mt-3 text-3xl lg:text-4xl font-serif font-bold tracking-tighter italic text-[#1a1a1a]">What are you building?</h1>
-                  <p className="mt-3 text-gray-500 leading-relaxed">
-                    Choose the type of organization that matches your goal. Each type unlocks different tools and features.
-                    Your account role determines which types you can create — options unavailable to you are shown below for transparency.
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#16a34a]">{t('createClub.stepOf', { current: 1, total: 3 })}</p>
+                  <h1 className="mt-3 text-3xl lg:text-4xl font-bold tracking-tight text-[#f4f4f5]">{t('createClub.step1Title')}</h1>
+                  <p className="mt-3 text-[#a1a1aa] leading-relaxed">
+                    {t('createClub.step1Subtitle')}
                   </p>
                 </div>
                 <div className="grid gap-4">
@@ -196,39 +197,39 @@ export const CreateClubPage = () => {
                         type="button"
                         disabled={!isAvailable}
                         onClick={() => setOrgKind(kind.value)}
-                        className={`flex items-start gap-5 rounded-xl border-2 p-6 text-left transition-all ${
+                        className={`flex items-start gap-5 rounded-xl border p-6 text-left transition-all ${
                           isSelected
-                            ? 'border-[#16a34a] bg-[#16a34a]/10 shadow-[4px_4px_0px_0px_#16a34a]'
+                            ? 'border-[#16a34a] bg-[#16a34a]/10'
                             : isAvailable
-                            ? 'border-gray-200 hover:border-gray-400 hover:shadow-[4px_4px_0px_0px_#ccc]'
-                            : 'border-gray-200 opacity-50 cursor-not-allowed'
+                            ? 'border-[#ffffff0d] hover:border-[#ffffff1f] hover:bg-[#1a1c22]'
+                            : 'border-[#ffffff0d] opacity-40 cursor-not-allowed'
                         }`}
                       >
-                        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-2 transition-colors ${
-                          isSelected ? 'border-[#16a34a] bg-[#16a34a] text-black' : 'border-gray-300 text-gray-400'
+                        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border transition-colors ${
+                          isSelected ? 'border-[#16a34a] bg-[#16a34a] text-black' : 'border-[#ffffff0d] text-[#71717a]'
                         }`}>
                           <Icon className="h-7 w-7" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-base font-semibold uppercase tracking-widest text-[#1a1a1a]">{kind.label}</p>
+                            <p className="text-base font-semibold uppercase tracking-widest text-[#f4f4f5]">{t(kind.labelKey)}</p>
                             {kind.comingSoon && (
-                              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-700">
-                                Coming Soon
+                              <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-400">
+                                {t('createClub.comingSoon')}
                               </span>
                             )}
                             {!kind.comingSoon && !kind.allowedRoles.includes(userRole ?? '') && (
-                              <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-gray-500">
-                                {kind.value === 'CLUB' ? 'Requires Organizer Account' : 'Requires Fan Account'}
+                              <span className="rounded-full bg-[#1a1c22] px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#a1a1aa]">
+                                {kind.value === 'CLUB' ? t('createClub.requiresOrganizer') : t('createClub.requiresFan')}
                               </span>
                             )}
                             {isAvailable && (
                               <span className="rounded-full bg-[#16a34a]/10 px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#16a34a]">
-                                Available to You
+                                {t('createClub.availableToYou')}
                               </span>
                             )}
                           </div>
-                          <p className="mt-2 text-sm text-gray-500 leading-relaxed">{kind.description}</p>
+                          <p className="mt-2 text-sm text-[#a1a1aa] leading-relaxed">{t(kind.descriptionKey)}</p>
                         </div>
                       </button>
                     );
@@ -241,56 +242,55 @@ export const CreateClubPage = () => {
             {step === 1 && (
               <div>
                 <div className="mb-8">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#16a34a]">Step 2 of 3</p>
-                  <h1 className="mt-3 text-3xl lg:text-4xl font-serif font-bold tracking-tighter italic text-[#1a1a1a]">Where is your club based?</h1>
-                  <p className="mt-3 text-gray-500 leading-relaxed">
-                    Click anywhere on the map to drop a pin at your club's location. This helps players and other clubs find you.
-                    You can zoom in, pan around, and click to reposition the pin as many times as you like.
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#16a34a]">{t('createClub.stepOf', { current: 2, total: 3 })}</p>
+                  <h1 className="mt-3 text-3xl lg:text-4xl font-bold tracking-tight text-[#f4f4f5]">{t('createClub.step2Title')}</h1>
+                  <p className="mt-3 text-[#a1a1aa] leading-relaxed">
+                    {t('createClub.step2Subtitle')}
                   </p>
                 </div>
 
                 {/* Location confirmation card */}
                 {selectedLocation ? (
-                  <div className="mb-4 rounded-xl border-2 border-[#16a34a] bg-[#16a34a]/10 p-4 flex items-center gap-3">
+                  <div className="mb-4 rounded-xl border border-[#16a34a] bg-[#16a34a]/10 p-4 flex items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#16a34a] text-black">
                       <CheckCircle className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold uppercase tracking-widest text-[#1a1a1a]">Location Confirmed</p>
-                      <p className="text-xs text-gray-500">
-                        Lat: {selectedLocation.lat.toFixed(6)} &middot; Lng: {selectedLocation.lng.toFixed(6)}
+                      <p className="text-sm font-semibold uppercase tracking-widest text-[#f4f4f5]">{t('createClub.locationConfirmed')}</p>
+                      <p className="text-xs text-[#a1a1aa]">
+                        {t('createClub.latLng', { lat: selectedLocation.lat.toFixed(6), lng: selectedLocation.lng.toFixed(6) })}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSelectedLocation(null)}
-                      className="ml-auto p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                      title="Clear selected location"
+                      className="ml-auto p-1.5 rounded-lg text-[#71717a] hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      title={t('createClub.clearLocation')}
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
                 ) : (
-                  <div className="mb-4 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50 p-4">
-                    <p className="text-sm font-bold text-amber-700">
-                      No location selected yet — click on the map below to place your club's pin.
+                  <div className="mb-4 rounded-xl border border-dashed border-amber-500/30 bg-amber-500/10 p-4">
+                    <p className="text-sm font-bold text-amber-400">
+                      {t('createClub.noLocationTitle')}
                     </p>
-                    <p className="mt-1 text-xs text-amber-600">
-                      You can skip this step and add a location later from your club workspace.
+                    <p className="mt-1 text-xs text-amber-400/80">
+                      {t('createClub.noLocationHint')}
                     </p>
                   </div>
                 )}
 
-                <div className="rounded-xl border-2 border-[#1a1a1a] overflow-hidden shadow-[4px_4px_0px_0px_#1a1a1a]">
+                <div className="rounded-xl border border-[#ffffff0d] overflow-hidden">
                   <MiniMap
                     mode="picker"
-                    title="Click the map to place your club pin"
+                    title={t('createClub.mapTitle')}
                     selectedLocation={selectedLocation}
                     onSelectLocation={(coords) => setSelectedLocation(coords)}
                   />
                 </div>
-                <p className="mt-3 text-xs text-gray-400 text-center">
-                  Tip: Use the scroll wheel to zoom in for more precise pin placement. You can always update the location later.
+                <p className="mt-3 text-xs text-[#71717a] text-center">
+                  {t('createClub.mapTip')}
                 </p>
               </div>
             )}
@@ -299,19 +299,18 @@ export const CreateClubPage = () => {
             {step === 2 && (
               <div>
                 <div className="mb-8">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#16a34a]">Step 3 of 3</p>
-                  <h1 className="mt-3 text-3xl lg:text-4xl font-serif font-bold tracking-tighter italic text-[#1a1a1a]">Final details</h1>
-                  <p className="mt-3 text-gray-500 leading-relaxed">
-                    Give your club a name, choose its competitive level, and add optional contact information.
-                    Everything except the name can be changed later.
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#16a34a]">{t('createClub.stepOf', { current: 3, total: 3 })}</p>
+                  <h1 className="mt-3 text-3xl lg:text-4xl font-bold tracking-tight text-[#f4f4f5]">{t('createClub.step3Title')}</h1>
+                  <p className="mt-3 text-[#a1a1aa] leading-relaxed">
+                    {t('createClub.step3Subtitle')}
                   </p>
                 </div>
 
                 <div className="space-y-6">
                   {/* Club type */}
                   <div className="space-y-3">
-                    <label className="text-xs font-semibold uppercase tracking-widest text-gray-500">Competitive Level</label>
-                    <p className="text-xs text-gray-400">This helps categorize your club in search results and matchmaking.</p>
+                    <label className="text-xs font-semibold uppercase tracking-widest text-[#a1a1aa]">{t('createClub.competitiveLevel')}</label>
+                    <p className="text-xs text-[#71717a]">{t('createClub.competitiveLevelHint')}</p>
                     <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
                       {clubTypeOptions.map((option) => {
                         const isActive = formData.type === option.value;
@@ -320,14 +319,14 @@ export const CreateClubPage = () => {
                             key={option.value}
                             type="button"
                             onClick={() => updateField('type', option.value)}
-                            className={`rounded-xl border-2 p-4 text-left transition-all ${
+                            className={`rounded-xl border p-4 text-left transition-all ${
                               isActive
-                                ? 'border-[#16a34a] bg-[#16a34a]/10 shadow-[3px_3px_0px_0px_#16a34a]'
-                                : 'border-gray-200 hover:border-gray-400'
+                                ? 'border-[#16a34a] bg-[#16a34a]/10'
+                                : 'border-[#ffffff0d] hover:border-[#ffffff1f]'
                             }`}
                           >
-                            <p className="text-sm font-semibold uppercase tracking-widest text-[#1a1a1a]">{option.label}</p>
-                            <p className="mt-1 text-[11px] leading-4 text-gray-500">{option.description}</p>
+                            <p className="text-sm font-semibold uppercase tracking-widest text-[#f4f4f5]">{t(option.labelKey)}</p>
+                            <p className="mt-1 text-[11px] leading-4 text-[#a1a1aa]">{t(option.descriptionKey)}</p>
                           </button>
                         );
                       })}
@@ -336,63 +335,63 @@ export const CreateClubPage = () => {
 
                   {/* Name */}
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-widest text-gray-500">
-                      Club Name <span className="text-red-500">*</span>
+                    <label className="text-xs font-semibold uppercase tracking-widest text-[#a1a1aa]">
+                      {t('createClub.nameLabel')} <span className="text-red-500">{t('createClub.nameRequired')}</span>
                     </label>
-                    <p className="text-xs text-gray-400">Choose a unique name that represents your organization. This is how other users will find you.</p>
+                    <p className="text-xs text-[#71717a]">{t('createClub.nameHint')}</p>
                     <input
                       type="text"
                       value={formData.name}
                       onChange={(e) => updateField('name', e.target.value)}
                       maxLength={120}
                       required
-                      placeholder="e.g. GrassKickZ Tbilisi Academy"
-                      className="w-full bg-white border-2 border-[#1a1a1a] rounded-xl px-4 py-3.5 outline-none focus:border-[#16a34a] font-bold transition-colors shadow-[2px_2px_0px_0px_#1a1a1a]"
+                      placeholder={t('createClub.namePlaceholder')}
+                      className="w-full bg-[#16181d] border border-[#ffffff0d] rounded-xl px-4 py-3.5 outline-none focus:border-[#16a34a] font-bold text-[#f4f4f5] transition-colors"
                     />
                   </div>
 
                   {/* Description */}
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-widest text-gray-500">Club Story</label>
-                    <p className="text-xs text-gray-400">Tell players, parents, and partner clubs what your organization is about. This appears on your club profile.</p>
+                    <label className="text-xs font-semibold uppercase tracking-widest text-[#a1a1aa]">{t('createClub.storyLabel')}</label>
+                    <p className="text-xs text-[#71717a]">{t('createClub.storyHint')}</p>
                     <textarea
                       value={formData.description}
                       onChange={(e) => updateField('description', e.target.value)}
                       maxLength={2000}
                       rows={3}
-                      placeholder="Describe your club's mission, history, and what makes it unique..."
-                      className="w-full bg-white border-2 border-[#1a1a1a] rounded-xl px-4 py-3 outline-none focus:border-[#16a34a] font-medium text-sm resize-none transition-colors shadow-[2px_2px_0px_0px_#1a1a1a]"
+                      placeholder={t('createClub.storyPlaceholder')}
+                      className="w-full bg-[#16181d] border border-[#ffffff0d] rounded-xl px-4 py-3 outline-none focus:border-[#16a34a] font-medium text-sm text-[#f4f4f5] resize-none transition-colors"
                     />
                   </div>
 
                   {/* Contact */}
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs font-semibold uppercase tracking-widest text-gray-500">Contact Information</label>
-                      <p className="mt-1 text-xs text-gray-400">All optional — add now or fill in later from your club workspace.</p>
+                      <label className="text-xs font-semibold uppercase tracking-widest text-[#a1a1aa]">{t('createClub.contactLabel')}</label>
+                      <p className="mt-1 text-xs text-[#71717a]">{t('createClub.contactHint')}</p>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <input
                         type="email"
                         value={formData.contactEmail}
                         onChange={(e) => updateField('contactEmail', e.target.value)}
-                        placeholder="Contact email"
-                        className="w-full bg-white border-2 border-[#1a1a1a] rounded-xl px-4 py-3 outline-none focus:border-[#16a34a] font-medium text-sm transition-colors"
+                        placeholder={t('createClub.contactEmailPlaceholder')}
+                        className="w-full bg-[#16181d] border border-[#ffffff0d] rounded-xl px-4 py-3 outline-none focus:border-[#16a34a] font-medium text-sm text-[#f4f4f5] transition-colors"
                       />
                       <input
                         type="text"
                         value={formData.whatsappNumber}
                         onChange={(e) => updateField('whatsappNumber', e.target.value)}
-                        placeholder="WhatsApp number"
-                        className="w-full bg-white border-2 border-[#1a1a1a] rounded-xl px-4 py-3 outline-none focus:border-[#16a34a] font-medium text-sm transition-colors"
+                        placeholder={t('createClub.whatsappPlaceholder')}
+                        className="w-full bg-[#16181d] border border-[#ffffff0d] rounded-xl px-4 py-3 outline-none focus:border-[#16a34a] font-medium text-sm text-[#f4f4f5] transition-colors"
                       />
                     </div>
                     <input
                       type="url"
                       value={formData.facebookMessengerUrl}
                       onChange={(e) => updateField('facebookMessengerUrl', e.target.value)}
-                      placeholder="Facebook / Messenger URL (e.g. https://m.me/yourclub)"
-                      className="w-full bg-white border-2 border-[#1a1a1a] rounded-xl px-4 py-3 outline-none focus:border-[#16a34a] font-medium text-sm transition-colors"
+                      placeholder={t('createClub.messengerPlaceholder')}
+                      className="w-full bg-[#16181d] border border-[#ffffff0d] rounded-xl px-4 py-3 outline-none focus:border-[#16a34a] font-medium text-sm text-[#f4f4f5] transition-colors"
                     />
                   </div>
 
@@ -401,9 +400,9 @@ export const CreateClubPage = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <ShieldCheck className="h-4 w-4 text-[#16a34a]" />
-                        <label className="text-xs font-semibold uppercase tracking-widest text-gray-500">Preferred Contact Method</label>
+                        <label className="text-xs font-semibold uppercase tracking-widest text-[#a1a1aa]">{t('createClub.preferredContact')}</label>
                       </div>
-                      <p className="mt-1 text-xs text-gray-400">Let people know the best way to reach you. Only methods you've provided contact info for can be selected.</p>
+                      <p className="mt-1 text-xs text-[#71717a]">{t('createClub.preferredContactHint')}</p>
                     </div>
                     <div className="space-y-2">
                       {communicationOptions.map((option) => {
@@ -415,25 +414,25 @@ export const CreateClubPage = () => {
                             type="button"
                             disabled={isUnavailable}
                             onClick={() => updateField('preferredCommunicationMethod', option.value)}
-                            className={`flex w-full items-start gap-3 rounded-lg border-2 px-4 py-3 text-left transition-colors ${
+                            className={`flex w-full items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
                               isActive
                                 ? 'border-[#16a34a] bg-[#16a34a]/10'
                                 : isUnavailable
-                                ? 'border-gray-200 opacity-40 cursor-not-allowed'
-                                : 'border-gray-200 hover:border-gray-400'
+                                ? 'border-[#ffffff0d] opacity-40 cursor-not-allowed'
+                                : 'border-[#ffffff0d] hover:border-[#ffffff1f]'
                             }`}
                           >
-                            <span className={`mt-1 h-3.5 w-3.5 rounded-full border-2 shrink-0 ${isActive ? 'border-[#16a34a] bg-[#16a34a]' : 'border-gray-400'}`} />
+                            <span className={`mt-1 h-3.5 w-3.5 rounded-full border-2 shrink-0 ${isActive ? 'border-[#16a34a] bg-[#16a34a]' : 'border-[#71717a]'}`} />
                             <span>
-                              <span className="flex items-center gap-2 text-sm font-bold text-[#1a1a1a]">
-                                {option.label}
+                              <span className="flex items-center gap-2 text-sm font-bold text-[#f4f4f5]">
+                                {t(option.labelKey)}
                                 {isUnavailable && (
-                                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold uppercase text-amber-700">
-                                    Add contact info first
+                                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase text-amber-400">
+                                    {t('createClub.addContactFirst')}
                                   </span>
                                 )}
                               </span>
-                              <span className="mt-1 block text-xs text-gray-500">{option.helper}</span>
+                              <span className="mt-1 block text-xs text-[#a1a1aa]">{t(option.helperKey)}</span>
                             </span>
                           </button>
                         );
@@ -441,12 +440,12 @@ export const CreateClubPage = () => {
                       <button
                         type="button"
                         onClick={() => updateField('preferredCommunicationMethod', '')}
-                        className={`flex w-full items-start gap-3 rounded-lg border-2 px-4 py-3 text-left transition-colors ${
-                          !formData.preferredCommunicationMethod ? 'border-[#16a34a] bg-[#16a34a]/10' : 'border-gray-200 hover:border-gray-400'
+                        className={`flex w-full items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
+                          !formData.preferredCommunicationMethod ? 'border-[#16a34a] bg-[#16a34a]/10' : 'border-[#ffffff0d] hover:border-[#ffffff1f]'
                         }`}
                       >
-                        <span className={`mt-1 h-3.5 w-3.5 rounded-full border-2 shrink-0 ${!formData.preferredCommunicationMethod ? 'border-[#16a34a] bg-[#16a34a]' : 'border-gray-400'}`} />
-                        <span className="text-sm font-bold text-[#1a1a1a]">No preference yet</span>
+                        <span className={`mt-1 h-3.5 w-3.5 rounded-full border-2 shrink-0 ${!formData.preferredCommunicationMethod ? 'border-[#16a34a] bg-[#16a34a]' : 'border-[#71717a]'}`} />
+                        <span className="text-sm font-bold text-[#f4f4f5]">{t('createClub.noPreference')}</span>
                       </button>
                     </div>
                   </div>
@@ -455,7 +454,7 @@ export const CreateClubPage = () => {
             )}
 
             {errorMessage && (
-              <div className="mt-6 rounded-lg border-2 border-red-500 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+              <div className="mt-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400">
                 {errorMessage}
               </div>
             )}
@@ -463,17 +462,17 @@ export const CreateClubPage = () => {
         </div>
 
         {/* Bottom navigation bar */}
-        <div className="shrink-0 border-t-2 border-gray-200 bg-white px-6 py-4">
+        <div className="shrink-0 border-t border-[#ffffff0d] bg-[#16181d] px-6 py-4">
           <div className="max-w-2xl mx-auto flex items-center justify-between">
             <div>
               {step > 0 && (
                 <button
                   type="button"
                   onClick={() => setStep((s) => s - 1)}
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border-2 border-gray-300 font-semibold uppercase tracking-widest text-sm text-gray-500 hover:text-[#1a1a1a] transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-[#ffffff0d] font-semibold uppercase tracking-widest text-sm text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors"
                 >
                   <ChevronLeft className="h-5 w-5" />
-                  Back
+                  {t('createClub.back')}
                 </button>
               )}
             </div>
@@ -481,18 +480,18 @@ export const CreateClubPage = () => {
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="px-4 py-3 rounded-xl font-bold uppercase tracking-widest text-sm text-gray-500 hover:text-[#1a1a1a] transition-colors"
+                className="px-4 py-3 rounded-xl font-bold uppercase tracking-widest text-sm text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors"
               >
-                Cancel
+                {t('createClub.cancel')}
               </button>
               {step < 2 ? (
                 <button
                   type="button"
                   onClick={() => setStep((s) => s + 1)}
                   disabled={!canGoNext()}
-                  className="inline-flex items-center gap-2 bg-[#1a1a1a] text-white hover:bg-gray-800 font-semibold uppercase tracking-widest text-sm px-6 py-3 rounded-xl border-2 border-[#1a1a1a] shadow-[4px_4px_0px_0px_#16a34a] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-2 bg-[#16a34a] text-black hover:bg-[#22c55e] font-semibold uppercase tracking-widest text-sm px-6 py-3 rounded-xl border border-[#16a34a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {step === 1 && !selectedLocation ? 'Skip & Continue' : 'Next Step'}
+                  {step === 1 && !selectedLocation ? t('createClub.skipContinue') : t('createClub.nextStep')}
                   <ChevronRight className="h-5 w-5" />
                 </button>
               ) : (
@@ -500,10 +499,10 @@ export const CreateClubPage = () => {
                   type="button"
                   onClick={handleSubmit}
                   disabled={submitting || !canGoNext()}
-                  className="inline-flex items-center gap-2 bg-[#16a34a] hover:bg-[#22c55e] text-black font-semibold uppercase tracking-widest text-sm px-6 py-3 rounded-xl border-2 border-[#1a1a1a] shadow-[4px_4px_0px_0px_#1a1a1a] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-2 bg-[#16a34a] hover:bg-[#22c55e] text-black font-semibold uppercase tracking-widest text-sm px-6 py-3 rounded-xl border border-[#16a34a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Building2 className="h-5 w-5" />}
-                  Create Club
+                  {t('createClub.createClub')}
                 </button>
               )}
             </div>

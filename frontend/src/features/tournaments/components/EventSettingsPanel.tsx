@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Globe, Loader2, Lock, Save } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { updateTournament } from '../api';
 import type { TournamentDetail, TournamentVisibility } from '../domain';
@@ -12,13 +13,15 @@ interface Props {
 const inputClass = 'w-full rounded-xl border border-[#ffffff0d] bg-[#16181d] px-4 py-3 text-sm text-[#f4f4f5] outline-none transition-colors placeholder:text-[#a1a1aa] focus:border-[#16a34a]';
 
 export const EventSettingsPanel = ({ tournament, onRefresh }: Props) => {
+    const { t } = useTranslation();
     const [name, setName] = useState(tournament.name);
     const [description, setDescription] = useState(tournament.description ?? '');
     const [rules, setRules] = useState(tournament.rules ?? '');
     const [visibility, setVisibility] = useState<TournamentVisibility>(tournament.visibility);
-    const [registrationPolicy, setRegistrationPolicy] = useState<'OPEN' | 'INVITE_ONLY'>(
+    const [registrationPolicy, setRegistrationPolicy] = useState<'OPEN' | 'APPROVAL_ONLY' | 'INVITE_ONLY'>(
         tournament.registrationPolicy ?? 'OPEN',
     );
+    const [bannerImageUrl, setBannerImageUrl] = useState(tournament.bannerImageUrl ?? '');
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const [messageType, setMessageType] = useState<'success' | 'error'>('success');
@@ -34,7 +37,8 @@ export const EventSettingsPanel = ({ tournament, onRefresh }: Props) => {
         (description || '') !== (tournament.description ?? '') ||
         (rules || '') !== (tournament.rules ?? '') ||
         visibility !== tournament.visibility ||
-        registrationPolicy !== (tournament.registrationPolicy ?? 'OPEN');
+        registrationPolicy !== (tournament.registrationPolicy ?? 'OPEN') ||
+        (bannerImageUrl || '') !== (tournament.bannerImageUrl ?? '');
 
     const handleSave = async () => {
         setSaving(true);
@@ -45,6 +49,7 @@ export const EventSettingsPanel = ({ tournament, onRefresh }: Props) => {
                 rules: rules.trim() || null,
                 visibility,
                 registrationPolicy,
+                bannerImageUrl: bannerImageUrl.trim() || null,
             });
             showMessage('Settings saved.', 'success');
             setName(updated.name);
@@ -52,6 +57,7 @@ export const EventSettingsPanel = ({ tournament, onRefresh }: Props) => {
             setRules(updated.rules ?? '');
             setVisibility(updated.visibility);
             setRegistrationPolicy(updated.registrationPolicy ?? 'OPEN');
+            setBannerImageUrl(updated.bannerImageUrl ?? '');
             onRefresh();
         } catch (err) {
             showMessage(extractApiErrorMessage(err, 'Failed to save settings.'), 'error');
@@ -95,6 +101,12 @@ export const EventSettingsPanel = ({ tournament, onRefresh }: Props) => {
                     <textarea value={rules} onChange={(e) => setRules(e.target.value)} className={`${inputClass} min-h-[80px] resize-none`} placeholder="Bracket, tie-break, or eligibility notes." />
                 </label>
 
+                <label className="flex flex-col gap-2">
+                    <span className="text-sm font-semibold text-[#f4f4f5]">{t('tournaments.workspace.bannerLabel')}</span>
+                    <input type="text" value={bannerImageUrl} onChange={(e) => setBannerImageUrl(e.target.value)} className={inputClass} placeholder="https://…/banner.jpg" />
+                    <p className="text-xs text-[#a1a1aa]">Leave blank for the default dark banner.</p>
+                </label>
+
                 <fieldset>
                     <legend className="text-sm font-semibold text-[#f4f4f5]">Visibility</legend>
                     <div className="mt-2 flex gap-3">
@@ -131,6 +143,15 @@ export const EventSettingsPanel = ({ tournament, onRefresh }: Props) => {
                             <div>
                                 <p className="text-sm font-semibold text-[#f4f4f5]">Open</p>
                                 <p className="text-xs text-[#a1a1aa]">Anyone can apply</p>
+                            </div>
+                        </label>
+                        <label className={`flex flex-1 cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-all ${
+                            registrationPolicy === 'APPROVAL_ONLY' ? radioSelected : radioDefault
+                        }`}>
+                            <input type="radio" name="settings-registration" value="APPROVAL_ONLY" checked={registrationPolicy === 'APPROVAL_ONLY'} onChange={() => setRegistrationPolicy('APPROVAL_ONLY')} className="accent-[#16a34a]" />
+                            <div>
+                                <p className="text-sm font-semibold text-[#f4f4f5]">Approval</p>
+                                <p className="text-xs text-[#a1a1aa]">Host approves each entry</p>
                             </div>
                         </label>
                         <label className={`flex flex-1 cursor-pointer items-center gap-3 rounded-xl border px-4 py-3.5 transition-all ${

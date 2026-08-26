@@ -5,6 +5,7 @@ import { Activity, Briefcase, Building2, Camera, ChevronRight, Loader2, ShieldCh
 import { useTranslation } from 'react-i18next';
 import { isMinor } from '../utils/age';
 import { getPendingName, clearPendingName } from '../utils/authNameCarry';
+import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import {
     authInputClass,
@@ -15,16 +16,16 @@ import {
 } from '../components/auth/authClasses';
 
 const POSITION_OPTIONS = [
-    'Goalkeeper',
-    'Centre-Back',
-    'Left-Back',
-    'Right-Back',
-    'Defensive Midfield',
-    'Central Midfield',
-    'Attacking Midfield',
-    'Left Winger',
-    'Right Winger',
-    'Striker'
+    { label: 'Goalkeeper', value: 'GOALKEEPER' },
+    { label: 'Centre-Back', value: 'CENTER_BACK' },
+    { label: 'Left-Back', value: 'LEFT_BACK' },
+    { label: 'Right-Back', value: 'RIGHT_BACK' },
+    { label: 'Defensive Midfield', value: 'DEFENSIVE_MIDFIELDER' },
+    { label: 'Central Midfield', value: 'CENTRAL_MIDFIELDER' },
+    { label: 'Attacking Midfield', value: 'ATTACKING_MIDFIELDER' },
+    { label: 'Left Winger', value: 'LEFT_WINGER' },
+    { label: 'Right Winger', value: 'RIGHT_WINGER' },
+    { label: 'Striker', value: 'STRIKER' }
 ] as const;
 
 const FOOT_OPTIONS = ['Right', 'Left', 'Both'] as const;
@@ -32,11 +33,13 @@ const FOOT_OPTIONS = ['Right', 'Left', 'Both'] as const;
 export const OnboardingPage = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
+    const { bootstrapSession } = useAuth();
     const avatarInputRef = useRef<HTMLInputElement>(null);
     const [step, setStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [isMinorUser, setIsMinorUser] = useState(false);
+    const [existingRole, setExistingRole] = useState<'PLAYER' | 'FAN' | 'ORGANIZER' | 'AGENT' | null>(null);
 
     const [formData, setFormData] = useState({
         fullName: '',
@@ -59,7 +62,7 @@ export const OnboardingPage = () => {
         // and wins over the server name — /auth/register has no name field.
         apiClient.get('/users/me').then(res => {
             const existingName = res.data.fullName || res.data.name;
-            const existingRole = res.data.role;
+            const roleValue = res.data.role;
             const existingUsername = res.data.username;
             if (existingUsername) setFetchedUsername(existingUsername);
             const pending = getPendingName();
@@ -69,8 +72,12 @@ export const OnboardingPage = () => {
             } else if (existingName && existingName !== 'New User') {
                 setFormData(prev => ({ ...prev, fullName: existingName }));
             }
-            if (existingRole === 'PLAYER' || existingRole === 'FAN' || existingRole === 'AGENT') {
-                setFormData(prev => ({ ...prev, role: existingRole }));
+            // Every self-registered account already chose a role at sign-up, so
+            // onboarding must not ask again (and must prefill ORGANIZER too —
+            // it was previously excluded, letting organizers self-downgrade).
+            if (roleValue === 'PLAYER' || roleValue === 'FAN' || roleValue === 'ORGANIZER' || roleValue === 'AGENT') {
+                setFormData(prev => ({ ...prev, role: roleValue }));
+                setExistingRole(roleValue);
             }
             // Missing DOB = adult, mirroring backend MinorPolicy.
             setIsMinorUser(isMinor(res.data.dob));
@@ -93,6 +100,11 @@ export const OnboardingPage = () => {
                 fifaLicenseNumber: formData.fifaLicenseNumber || undefined
             });
             await refreshAccessToken();
+            // Refresh the auth user BEFORE navigating: the App-level guard
+            // redirects any authenticated user with profileComplete=false back
+            // to /onboarding, and a stale user object caused the endless
+            // register → onboarding → register loop.
+            await bootstrapSession();
             const destination = formData.role === 'ORGANIZER' ? '/my-club'
                 : formData.role === 'AGENT' ? '/agent/dashboard'
                 : '/feed';
@@ -115,6 +127,7 @@ export const OnboardingPage = () => {
                 role: formData.role
             });
             await refreshAccessToken();
+            await bootstrapSession();
             const destination = formData.role === 'ORGANIZER' ? '/my-club'
                 : formData.role === 'AGENT' ? '/agent/dashboard'
                 : '/feed';
@@ -148,7 +161,6 @@ export const OnboardingPage = () => {
     const roleOptions: ReadonlyArray<{ id: 'PLAYER' | 'FAN' | 'ORGANIZER' | 'AGENT'; icon: typeof Activity; label: string; desc: string }> = [
         { id: 'PLAYER', icon: Activity, label: t('onboarding.rolePlayer'), desc: t('onboarding.rolePlayerDesc') },
         { id: 'ORGANIZER', icon: Building2, label: t('onboarding.roleOrganizer'), desc: t('onboarding.roleOrganizerDesc') },
-        { id: 'AGENT', icon: Briefcase, label: t('onboarding.roleAgent'), desc: t('onboarding.roleAgentDesc') },
         { id: 'FAN', icon: User, label: t('onboarding.roleFan'), desc: t('onboarding.roleFanDesc') },
     ];
 
@@ -189,19 +201,28 @@ export const OnboardingPage = () => {
                     {step === 1 && (
                         <div>
                             <label className={`${authLabelClass} mb-4 block`}>{t('onboarding.designation')}</label>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                                {roleOptions.map(role => (
-                                    <button
-                                        key={role.id}
-                                        onClick={() => setFormData({...formData, role: role.id})}
-                                        className={`rounded-xl border p-4 text-left transition-colors ${formData.role === role.id ? 'border-[#16a34a] bg-[#16a34a]/10' : 'border-[#ffffff0d] hover:border-strong'}`}
-                                    >
-                                        <role.icon className={`w-8 h-8 mb-3 ${formData.role === role.id ? 'text-[#16a34a]' : 'text-muted'}`} />
-                                        <h3 className="font-semibold uppercase tracking-[0.14em] text-sm mb-1 text-[#f4f4f5]">{role.label}</h3>
-                                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a1a1aa]">{role.desc}</p>
-                                    </button>
-                                ))}
-                            </div>
+                            {existingRole ? (
+                                <div className="mb-8 flex items-center gap-3 rounded-xl border border-[#ffffff0d] bg-[#0f1117] p-4">
+                                    <StatusBadge tone="neutral">{formData.role}</StatusBadge>
+                                    <p className="text-xs font-semibold text-[#a1a1aa]">
+                                        Chosen at sign-up — continue with your name below.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                    {roleOptions.map(role => (
+                                        <button
+                                            key={role.id}
+                                            onClick={() => setFormData({...formData, role: role.id})}
+                                            className={`rounded-xl border p-4 text-left transition-colors ${formData.role === role.id ? 'border-[#16a34a] bg-[#16a34a]/10' : 'border-[#ffffff0d] hover:border-strong'}`}
+                                        >
+                                            <role.icon className={`w-8 h-8 mb-3 ${formData.role === role.id ? 'text-[#16a34a]' : 'text-muted'}`} />
+                                            <h3 className="font-semibold uppercase tracking-[0.14em] text-sm mb-1 text-[#f4f4f5]">{role.label}</h3>
+                                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#a1a1aa]">{role.desc}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
 
                             <div className="mb-8 space-y-2">
                                 <label htmlFor="onboarding-name" className={authLabelClass}>
@@ -289,7 +310,7 @@ export const OnboardingPage = () => {
                                                     >
                                                         <option value="">{t('onboarding.positionPlaceholder')}</option>
                                                         {POSITION_OPTIONS.map(p => (
-                                                            <option key={p} value={p}>{p}</option>
+                                                            <option key={p.value} value={p.value}>{p.label}</option>
                                                         ))}
                                                     </select>
                                                 </div>

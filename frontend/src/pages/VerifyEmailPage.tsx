@@ -1,18 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, BadgeCheck, Loader2, MailWarning, RefreshCw, ShieldAlert } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { extractApiErrorCode, extractApiErrorMessage } from '../utils/apiError';
 import { useAuth } from '../context/AuthContext';
+import { authPrimaryButtonClass } from '../components/auth/authClasses';
 
 type VerifyState = 'loading' | 'success' | 'error';
 
 export const VerifyEmailPage = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const { status, bootstrapSession } = useAuth();
   const token = searchParams.get('token');
   const [verifyState, setVerifyState] = useState<VerifyState>(token ? 'loading' : 'error');
-  const [message, setMessage] = useState<string>(token ? 'Verifying your Talanti email...' : 'This verification link is missing its token.');
+  const [message, setMessage] = useState<string>(token ? t('auth.verify.verifyingMessage') : t('auth.verify.missingToken'));
   const [resendMessage, setResendMessage] = useState<string | null>(null);
   const [resendError, setResendError] = useState<string | null>(null);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
@@ -33,7 +36,7 @@ export const VerifyEmailPage = () => {
           return;
         }
         setVerifyState('success');
-        setMessage(response.data?.message || 'Email verified successfully.');
+        setMessage(response.data?.message || t('auth.verify.successFallback'));
         if (status === 'authenticated') {
           await bootstrapSession();
         }
@@ -43,11 +46,11 @@ export const VerifyEmailPage = () => {
         }
         const code = extractApiErrorCode(error);
         if (code === 'expired_token') {
-          setMessage('This verification link has expired.');
+          setMessage(t('auth.verify.expired'));
         } else if (code === 'used_token') {
-          setMessage('This verification link has already been used.');
+          setMessage(t('auth.verify.used'));
         } else {
-          setMessage(extractApiErrorMessage(error, 'This verification link is invalid.'));
+          setMessage(extractApiErrorMessage(error, t('auth.verify.invalid')));
         }
         setVerifyState('error');
       }
@@ -58,13 +61,13 @@ export const VerifyEmailPage = () => {
     return () => {
       isCancelled = true;
     };
-  }, [bootstrapSession, token]);
+  }, [bootstrapSession, status, t, token]);
 
   const statusBlock = useMemo(() => {
     if (verifyState === 'loading') {
       return {
         icon: <Loader2 className="h-6 w-6 animate-spin text-[#16a34a]" />,
-        title: 'Verifying',
+        title: t('auth.verify.verifying'),
         copy: message,
         className: 'border-[#16a34a]/30 bg-[#16a34a]/10 text-[#16a34a]'
       };
@@ -73,7 +76,7 @@ export const VerifyEmailPage = () => {
     if (verifyState === 'success') {
       return {
         icon: <BadgeCheck className="h-6 w-6 text-[#16a34a]" />,
-        title: 'Verified',
+        title: t('auth.verify.verified'),
         copy: message,
         className: 'border-[#16a34a]/30 bg-[#16a34a]/10 text-[#16a34a]'
       };
@@ -81,11 +84,11 @@ export const VerifyEmailPage = () => {
 
     return {
       icon: <MailWarning className="h-6 w-6 text-amber-500" />,
-      title: 'Verification Issue',
+      title: t('auth.verify.verificationIssue'),
       copy: message,
-      className: 'border-amber-500/30 bg-amber-50 text-amber-800'
+      className: 'border-amber-500/30 bg-amber-500/10 text-amber-400'
     };
-  }, [message, verifyState]);
+  }, [message, t, verifyState]);
 
   const handleResend = async () => {
     setIsSendingVerification(true);
@@ -94,37 +97,40 @@ export const VerifyEmailPage = () => {
 
     try {
       const response = await apiClient.post<{ message?: string }>('/auth/send-verification');
-      setResendMessage(response.data?.message || 'Verification email sent.');
+      setResendMessage(response.data?.message || t('auth.verify.resendMessageFallback'));
       await bootstrapSession();
     } catch (error) {
-      setResendError(extractApiErrorMessage(error, 'Failed to send another verification email.'));
+      setResendError(extractApiErrorMessage(error, t('auth.verify.resendErrorFallback')));
     } finally {
       setIsSendingVerification(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#fcf8f2] p-6 font-sans text-[#1a1a1a]">
-      <Link to={canResendFromHere ? '/account?tab=security' : '/login'} className="absolute left-8 top-8 flex items-center gap-2 text-sm font-bold uppercase tracking-widest transition-transform hover:-translate-x-1">
-        <ArrowLeft className="h-5 w-5" /> {canResendFromHere ? 'Back to Account' : 'Back to Login'}
+    <div className="relative min-h-screen bg-[#0f1117] p-6 text-[#f4f4f5] selection:bg-[#16a34a]/20">
+      {/* layered glow backdrop — matches AuthSplitShell */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,200,83,0.12),transparent_36%),radial-gradient(circle_at_bottom_left,rgba(0,200,83,0.07),transparent_42%)]" />
+
+      <Link to={canResendFromHere ? '/account?tab=security' : '/login'} className="absolute left-8 top-8 z-10 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-[#a1a1aa] transition-colors hover:text-[#f4f4f5]">
+        <ArrowLeft className="h-4 w-4" /> {canResendFromHere ? t('auth.verify.backToAccount') : t('auth.verify.backToLogin')}
       </Link>
 
-      <div className="mx-auto flex min-h-screen max-w-md items-center justify-center">
-        <div className="w-full rounded-xl border-2 border-[#1a1a1a] bg-white p-8 shadow-[8px_8px_0px_0px_#1a1a1a]">
+      <div className="relative mx-auto flex min-h-screen max-w-md items-center justify-center">
+        <div className="theme-surface theme-border w-full rounded-xl border p-6 shadow-2xl sm:p-8">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-xl border-2 border-[#1a1a1a] bg-[#1a1a1a] text-white shadow-[4px_4px_0px_0px_#16a34a]">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-xl border border-[#16a34a]/40 bg-[#16a34a]/10 text-[#16a34a]">
               <BadgeCheck className="h-8 w-8" />
             </div>
-            <h1 className="mb-2 text-4xl font-serif font-bold uppercase italic tracking-tighter">Email Verification</h1>
-            <p className="font-serif italic text-gray-500">Talanti uses this step to secure password recovery and future account protection.</p>
+            <h1 className="mb-2 text-4xl font-bold tracking-tight">{t('auth.verify.title')}</h1>
+            <p className="text-sm leading-6 text-[#a1a1aa]">{t('auth.verify.subtitle')}</p>
           </div>
 
-          <div className={`rounded-lg border-2 p-5 ${statusBlock.className}`}>
+          <div className={`rounded-lg border p-5 ${statusBlock.className}`}>
             <div className="flex items-start gap-3">
               {statusBlock.icon}
               <div>
                 <h2 className="text-sm font-semibold uppercase tracking-widest">{statusBlock.title}</h2>
-                <p className="mt-2 text-sm font-semibold">{statusBlock.copy}</p>
+                <p className="mt-2 text-sm font-medium">{statusBlock.copy}</p>
               </div>
             </div>
           </div>
@@ -132,12 +138,12 @@ export const VerifyEmailPage = () => {
           {canResendFromHere && verifyState === 'error' && (
             <div className="mt-6">
               {resendMessage && (
-                <div className="mb-4 rounded-lg border border-[#16a34a]/30 bg-[#16a34a]/10 px-4 py-3 text-sm font-bold text-[#16a34a]">
+                <div className="mb-4 rounded-lg border border-[#16a34a]/30 bg-[#16a34a]/10 px-4 py-3 text-sm font-semibold text-[#16a34a]">
                   {resendMessage}
                 </div>
               )}
               {resendError && (
-                <div className="mb-4 flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+                <div className="mb-4 flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-400">
                   <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>{resendError}</span>
                 </div>
@@ -145,10 +151,10 @@ export const VerifyEmailPage = () => {
               <button
                 onClick={() => void handleResend()}
                 disabled={isSendingVerification}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1a1a1a] bg-[#16a34a] py-4 font-semibold uppercase tracking-widest text-black shadow-[4px_4px_0px_0px_#1a1a1a] transition-all hover:bg-[#22c55e] active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-60"
+                className={`${authPrimaryButtonClass} rounded-xl`}
               >
                 {isSendingVerification ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
-                Resend Verification Email
+                {t('auth.verify.resend')}
               </button>
             </div>
           )}

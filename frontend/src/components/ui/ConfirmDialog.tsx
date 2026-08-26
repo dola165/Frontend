@@ -7,6 +7,14 @@ interface ConfirmDialogProps {
     confirmLabel?: string;
     cancelLabel?: string;
     variant?: 'danger' | 'warning' | 'default';
+    /** Optional note textarea (phase A2 — gentle release message). */
+    noteField?: {
+        label: string;
+        placeholder?: string;
+        maxLength?: number;
+        value: string;
+        onChange: (value: string) => void;
+    };
     onConfirm: () => void;
     onCancel: () => void;
 }
@@ -18,6 +26,7 @@ export function ConfirmDialog({
     confirmLabel = 'Confirm',
     cancelLabel = 'Cancel',
     variant = 'default',
+    noteField,
     onConfirm,
     onCancel,
 }: ConfirmDialogProps) {
@@ -53,6 +62,22 @@ export function ConfirmDialog({
                         </p>
                     </div>
                 </div>
+                {noteField && (
+                    <div className="mt-4">
+                        <label htmlFor="confirm-dialog-note" className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa]">
+                            {noteField.label}
+                        </label>
+                        <textarea
+                            id="confirm-dialog-note"
+                            value={noteField.value}
+                            maxLength={noteField.maxLength}
+                            onChange={(e) => noteField.onChange(e.target.value)}
+                            placeholder={noteField.placeholder}
+                            rows={3}
+                            className="w-full resize-none rounded-lg border border-[#ffffff0d] bg-[#0f1117] px-3 py-2 text-sm text-[#f4f4f5] outline-none placeholder:text-[#a1a1aa] focus:border-[var(--fc-accent)]"
+                        />
+                    </div>
+                )}
                 <div className="flex justify-end gap-3 mt-6">
                     <button
                         onClick={onCancel}

@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Building2, ChevronDown, ChevronRight, Crosshair, Filter, MapPin, Search, ShieldCheck, SlidersHorizontal, Trophy, Users, X } from 'lucide-react';
+import { Building2, ChevronDown, ChevronRight, Crosshair, Filter, Loader2, MapPin, Navigation, Search, ShieldCheck, SlidersHorizontal, Trophy, Users, X } from 'lucide-react';
 import { type MapEntityType } from '../../api/map';
 export type { MapEntityType };
 import { MapHelpHint } from './MapHelpHint';
@@ -13,12 +13,17 @@ export type MapMatchSubtype = 'FRIENDLY' | 'COMPETITIVE';
 export type MapTravelPreference = 'HOME_ONLY' | 'WILL_TRAVEL' | 'NEUTRAL' | 'FLEXIBLE';
 export type MapLocationState = 'PINNED' | 'OPEN_VENUE';
 export type MapChallengeState = 'OPEN' | 'PENDING' | 'CONFIRMED';
+export type ClubCategory = 'PROFESSIONAL_ACADEMY' | 'PRIVATE_ACADEMY' | 'SCHOOL_CLUB' | 'AMATEUR_CLUB' | 'OTHER';
 
 interface ClubFilters {
     officialOnly: boolean;
     openTryoutsOnly: boolean;
     city: string;
     country: string;
+    categories: ClubCategory[];
+    ageGroups: string[];
+    genders: MapGender[];
+    levels: MapLevel[];
 }
 
 interface TryoutFilters {
@@ -52,8 +57,18 @@ export interface MapFilters {
 
 interface MapFilterSidebarProps {
     isVisible: boolean;
-    filters: MapFilters;
-    onFiltersChange: (filters: MapFilters) => void;
+    /** Working copy of the filters — every control writes here only. Nothing refetches until Apply. */
+    draftFilters: MapFilters;
+    onDraftChange: (filters: MapFilters) => void;
+    /** Commits the draft: one API call + optional place geocode + camera fly. */
+    onApply: () => void;
+    /** Clears the draft back to defaults (Apply still required to re-fetch). */
+    onResetAll: () => void;
+    applying: boolean;
+    resultCount: number | null;
+    /** Fly-to place text — resolved against /map/geocode when Apply is pressed. */
+    placeSearch: string;
+    onPlaceSearchChange: (value: string) => void;
     onClose: () => void;
     /** Role-gated entity types (WEB_APP_MASTER_PLAN.md §3.3): restricted viewers only get CLUB + TRYOUT. */
     allowedEntityTypes: MapEntityType[];
@@ -79,6 +94,13 @@ const MATCH_SUBTYPE_OPTIONS: Array<{ value: MapMatchSubtype; label: string }> = 
     { value: 'FRIENDLY', label: 'Friendly' },
     { value: 'COMPETITIVE', label: 'Competitive' }
 ];
+const CLUB_CATEGORY_OPTIONS: Array<{ value: ClubCategory; label: string }> = [
+    { value: 'PROFESSIONAL_ACADEMY', label: 'Pro academy' },
+    { value: 'PRIVATE_ACADEMY', label: 'Private academy' },
+    { value: 'SCHOOL_CLUB', label: 'School club' },
+    { value: 'AMATEUR_CLUB', label: 'Amateur club' },
+    { value: 'OTHER', label: 'Other' }
+];
 
 export const defaultMapFilters: MapFilters = {
     entityType: ['CLUB', 'TRYOUT', 'MATCH', 'TOURNAMENT'],
@@ -88,7 +110,11 @@ export const defaultMapFilters: MapFilters = {
         officialOnly: false,
         openTryoutsOnly: false,
         city: '',
-        country: ''
+        country: '',
+        categories: [],
+        ageGroups: [],
+        genders: [],
+        levels: []
     },
     tryouts: {
         city: '',
@@ -152,6 +178,10 @@ const countActiveFilters = (filters: MapFilters) => {
     if (filters.clubs.openTryoutsOnly) count += 1;
     if (filters.clubs.city) count += 1;
     if (filters.clubs.country) count += 1;
+    count += countArrayDelta(filters.clubs.categories, defaultMapFilters.clubs.categories);
+    count += countArrayDelta(filters.clubs.ageGroups, defaultMapFilters.clubs.ageGroups);
+    count += countArrayDelta(filters.clubs.genders, defaultMapFilters.clubs.genders);
+    count += countArrayDelta(filters.clubs.levels, defaultMapFilters.clubs.levels);
     if (filters.tryouts.city) count += 1;
     if (filters.tryouts.country) count += 1;
     if (filters.tryouts.dateWindow !== defaultMapFilters.tryouts.dateWindow) count += 1;
@@ -264,8 +294,21 @@ const RadioRow = ({
     </label>
 );
 
-export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose, allowedEntityTypes }: MapFilterSidebarProps) => {
+export const MapFilterSidebar = ({
+    isVisible,
+    draftFilters,
+    onDraftChange,
+    onApply,
+    onResetAll,
+    applying,
+    resultCount,
+    placeSearch,
+    onPlaceSearchChange,
+    onClose,
+    allowedEntityTypes
+}: MapFilterSidebarProps) => {
     const [expanded, setExpanded] = useState<Record<string, boolean>>({
+        place: true,
         entity: true,
         browse: true,
         location: true,
@@ -274,9 +317,9 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
         matches: true
     });
 
-    const activeCount = useMemo(() => countActiveFilters(filters), [filters]);
+    const activeCount = useMemo(() => countActiveFilters(draftFilters), [draftFilters]);
     const updateFilters = (updater: (current: MapFilters) => MapFilters) => {
-        onFiltersChange(updater(filters));
+        onDraftChange(updater(draftFilters));
     };
 
     const toggleExpanded = (key: string) => {
@@ -284,7 +327,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
     };
 
     // Clubs don't have dates, so "Soonest" and "Best fit" are meaningless for club-only browsing.
-    const clubsOnly = filters.entityType.length === 1 && filters.entityType[0] === 'CLUB';
+    const clubsOnly = draftFilters.entityType.length === 1 && draftFilters.entityType[0] === 'CLUB';
     const visibleSortOptions = useMemo(
         () => (clubsOnly ? SORT_OPTIONS.filter((o) => o.value === 'DISTANCE' || o.value === 'NAME') : SORT_OPTIONS),
         [clubsOnly]
@@ -332,7 +375,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                             </div>
                             <button
                                 type="button"
-                                onClick={() => onFiltersChange(defaultMapFilters)}
+                                onClick={onResetAll}
                                 className="map-secondary-button whitespace-nowrap"
                                 disabled={activeCount === 0}
                             >
@@ -344,6 +387,21 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                     <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-4">
                         <div className="space-y-3">
                             <RailSection
+                                icon={<Navigation className="h-4 w-4" />}
+                                title="Find a place"
+                                helpText="Type a city or country, then Apply — the camera flies there and it becomes the search center."
+                                expanded={expanded.place}
+                                onToggle={() => toggleExpanded('place')}
+                            >
+                                <TextField
+                                    label="City or country"
+                                    placeholder="e.g. Tbilisi, Georgia"
+                                    value={placeSearch}
+                                    onChange={onPlaceSearchChange}
+                                />
+                            </RailSection>
+
+                            <RailSection
                                 icon={<Filter className="h-4 w-4" />}
                                 title="Browse"
                                 helpText="Pick a mode to discover clubs, tryouts, matches, tournaments, or club needs."
@@ -352,7 +410,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                             >
                                 <div className="space-y-2">
                                     {allowedEntityTypes.map((entityType) => {
-                                        const isActive = filters.entityType.length === 1 && filters.entityType[0] === entityType;
+                                        const isActive = draftFilters.entityType.length === 1 && draftFilters.entityType[0] === entityType;
                                         return (
                                             <button
                                                 key={entityType}
@@ -387,7 +445,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                             }))
                                         }
                                         className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-xl text-xs text-[#71717a] hover:text-[#a1a1aa] hover:bg-[rgba(255,255,255,0.02)] transition-colors ${
-                                            filters.entityType.length > 1 ? 'text-[#f59e0b]/70' : ''
+                                            draftFilters.entityType.length > 1 ? 'text-[#f59e0b]/70' : ''
                                         }`}
                                     >
                                         Show all types
@@ -409,7 +467,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                             {visibleSortOptions.map((option) => (
                                                 <ToggleChip
                                                     key={option.value}
-                                                    active={filters.sortBy === option.value}
+                                                    active={draftFilters.sortBy === option.value}
                                                     label={option.label}
                                                     onClick={() => updateFilters((current) => ({ ...current, sortBy: option.value }))}
                                                 />
@@ -421,7 +479,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                         <div className="flex items-center justify-between gap-3">
                                             <span className="map-field-label">Radius</span>
                                             <span className="rounded-full border border-[#ffffff0d] bg-[#0f1117] px-2.5 py-1 text-xs font-semibold text-[#f4f4f5]">
-                                                {filters.distanceKm} km
+                                                {draftFilters.distanceKm} km
                                             </span>
                                         </div>
                                         <input
@@ -429,7 +487,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                             min={5}
                                             max={150}
                                             step={5}
-                                            value={filters.distanceKm}
+                                            value={draftFilters.distanceKm}
                                             onChange={(event) =>
                                                 updateFilters((current) => ({ ...current, distanceKm: Number(event.target.value) }))
                                             }
@@ -455,11 +513,11 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                         label="City"
                                         placeholder="Filter by city"
                                         value={
-                                            filters.entityType.includes('CLUB')
-                                                ? filters.clubs.city
-                                                : filters.entityType.includes('TRYOUT')
-                                                    ? filters.tryouts.city
-                                                    : filters.matches.city
+                                            draftFilters.entityType.includes('CLUB')
+                                                ? draftFilters.clubs.city
+                                                : draftFilters.entityType.includes('TRYOUT')
+                                                    ? draftFilters.tryouts.city
+                                                    : draftFilters.matches.city
                                         }
                                         onChange={(value) =>
                                             updateFilters((current) => {
@@ -481,11 +539,11 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                         label="Country"
                                         placeholder="Filter by country"
                                         value={
-                                            filters.entityType.includes('CLUB')
-                                                ? filters.clubs.country
-                                                : filters.entityType.includes('TRYOUT')
-                                                    ? filters.tryouts.country
-                                                    : filters.matches.country
+                                            draftFilters.entityType.includes('CLUB')
+                                                ? draftFilters.clubs.country
+                                                : draftFilters.entityType.includes('TRYOUT')
+                                                    ? draftFilters.tryouts.country
+                                                    : draftFilters.matches.country
                                         }
                                         onChange={(value) =>
                                             updateFilters((current) => {
@@ -506,38 +564,130 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                 </div>
                             </RailSection>
 
-                            {filters.entityType.includes('CLUB') && (
+                            {draftFilters.entityType.includes('CLUB') && (
                                 <RailSection
                                     icon={<ShieldCheck className="h-4 w-4" />}
                                     title="Club filters"
-                                    helpText="Show only verified public club profiles."
+                                    helpText="Choose club type, age group, gender, and level — plus verified or tryout-running clubs."
                                     expanded={expanded.clubs}
                                     onToggle={() => toggleExpanded('clubs')}
                                 >
-                                    <CheckRow
-                                        checked={filters.clubs.officialOnly}
-                                        label="Official clubs only"
-                                        onChange={() =>
-                                            updateFilters((current) => ({
-                                                ...current,
-                                                clubs: { ...current.clubs, officialOnly: !current.clubs.officialOnly }
-                                            }))
-                                        }
-                                    />
-                                    <CheckRow
-                                        checked={filters.clubs.openTryoutsOnly}
-                                        label="Open tryouts only"
-                                        onChange={() =>
-                                            updateFilters((current) => ({
-                                                ...current,
-                                                clubs: { ...current.clubs, openTryoutsOnly: !current.clubs.openTryoutsOnly }
-                                            }))
-                                        }
-                                    />
+                                    <div className="space-y-5">
+                                        <div className="space-y-3">
+                                            <CheckRow
+                                                checked={draftFilters.clubs.officialOnly}
+                                                label="Official clubs only"
+                                                onChange={() =>
+                                                    updateFilters((current) => ({
+                                                        ...current,
+                                                        clubs: { ...current.clubs, officialOnly: !current.clubs.officialOnly }
+                                                    }))
+                                                }
+                                            />
+                                            <CheckRow
+                                                checked={draftFilters.clubs.openTryoutsOnly}
+                                                label="Open tryouts only"
+                                                onChange={() =>
+                                                    updateFilters((current) => ({
+                                                        ...current,
+                                                        clubs: { ...current.clubs, openTryoutsOnly: !current.clubs.openTryoutsOnly }
+                                                    }))
+                                                }
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <span className="map-field-label">Club type</span>
+                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                {CLUB_CATEGORY_OPTIONS.map((option) => (
+                                                    <ToggleChip
+                                                        key={option.value}
+                                                        active={draftFilters.clubs.categories.includes(option.value)}
+                                                        label={option.label}
+                                                        onClick={() =>
+                                                            updateFilters((current) => ({
+                                                                ...current,
+                                                                clubs: {
+                                                                    ...current.clubs,
+                                                                    categories: toggleValue(current.clubs.categories, option.value)
+                                                                }
+                                                            }))
+                                                        }
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <span className="map-field-label">Age group</span>
+                                            <div className="mt-2 grid grid-cols-2 gap-2">
+                                                {AGE_GROUPS.map((ageGroup) => (
+                                                    <ToggleChip
+                                                        key={ageGroup}
+                                                        active={draftFilters.clubs.ageGroups.includes(ageGroup)}
+                                                        label={ageGroup}
+                                                        onClick={() =>
+                                                            updateFilters((current) => ({
+                                                                ...current,
+                                                                clubs: {
+                                                                    ...current.clubs,
+                                                                    ageGroups: toggleValue(current.clubs.ageGroups, ageGroup)
+                                                                }
+                                                            }))
+                                                        }
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <span className="map-field-label">Gender</span>
+                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                {GENDER_OPTIONS.map((gender) => (
+                                                    <ToggleChip
+                                                        key={gender}
+                                                        active={draftFilters.clubs.genders.includes(gender)}
+                                                        label={gender}
+                                                        onClick={() =>
+                                                            updateFilters((current) => ({
+                                                                ...current,
+                                                                clubs: {
+                                                                    ...current.clubs,
+                                                                    genders: toggleValue(current.clubs.genders, gender)
+                                                                }
+                                                            }))
+                                                        }
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <span className="map-field-label">Level</span>
+                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                {LEVEL_OPTIONS.map((level) => (
+                                                    <ToggleChip
+                                                        key={level}
+                                                        active={draftFilters.clubs.levels.includes(level)}
+                                                        label={level}
+                                                        onClick={() =>
+                                                            updateFilters((current) => ({
+                                                                ...current,
+                                                                clubs: {
+                                                                    ...current.clubs,
+                                                                    levels: toggleValue(current.clubs.levels, level)
+                                                                }
+                                                            }))
+                                                        }
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </RailSection>
                             )}
 
-                            {filters.entityType.includes('TRYOUT') && (
+                            {draftFilters.entityType.includes('TRYOUT') && (
                                 <RailSection
                                     icon={<Users className="h-4 w-4" />}
                                     title="Tryout filters"
@@ -554,7 +704,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                                         key={option.value}
                                                         name="tryout-date-window"
                                                         label={option.label}
-                                                        checked={filters.tryouts.dateWindow === option.value}
+                                                        checked={draftFilters.tryouts.dateWindow === option.value}
                                                         onChange={() =>
                                                             updateFilters((current) => ({
                                                                 ...current,
@@ -572,7 +722,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                                 {TIME_WINDOWS.map((window) => (
                                                     <ToggleChip
                                                         key={window}
-                                                        active={filters.tryouts.timeWindows.includes(window)}
+                                                        active={draftFilters.tryouts.timeWindows.includes(window)}
                                                         label={window}
                                                         onClick={() =>
                                                             updateFilters((current) => ({
@@ -594,7 +744,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                                 {GENDER_OPTIONS.map((gender) => (
                                                     <ToggleChip
                                                         key={gender}
-                                                        active={filters.tryouts.genders.includes(gender)}
+                                                        active={draftFilters.tryouts.genders.includes(gender)}
                                                         label={gender}
                                                         onClick={() =>
                                                             updateFilters((current) => ({
@@ -616,7 +766,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                                 {AGE_GROUPS.map((ageGroup) => (
                                                     <ToggleChip
                                                         key={ageGroup}
-                                                        active={filters.tryouts.ageGroups.includes(ageGroup)}
+                                                        active={draftFilters.tryouts.ageGroups.includes(ageGroup)}
                                                         label={ageGroup}
                                                         onClick={() =>
                                                             updateFilters((current) => ({
@@ -634,7 +784,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                     </div>
                                 </RailSection>
                             )}
-                            {filters.entityType.includes('MATCH') && (
+                            {draftFilters.entityType.includes('MATCH') && (
                                 <RailSection
                                     icon={<Trophy className="h-4 w-4" />}
                                     title="Match filters"
@@ -649,7 +799,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                                 {MATCH_SUBTYPE_OPTIONS.map((option) => (
                                                     <ToggleChip
                                                         key={option.value}
-                                                        active={filters.matches.subtypes.includes(option.value)}
+                                                        active={draftFilters.matches.subtypes.includes(option.value)}
                                                         label={option.label}
                                                         onClick={() =>
                                                             updateFilters((current) => ({
@@ -673,7 +823,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                                         key={option.value}
                                                         name="match-date-window"
                                                         label={option.label}
-                                                        checked={filters.matches.dateWindow === option.value}
+                                                        checked={draftFilters.matches.dateWindow === option.value}
                                                         onChange={() =>
                                                             updateFilters((current) => ({
                                                                 ...current,
@@ -691,7 +841,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                                 {TIME_WINDOWS.map((window) => (
                                                     <ToggleChip
                                                         key={window}
-                                                        active={filters.matches.timeWindows.includes(window)}
+                                                        active={draftFilters.matches.timeWindows.includes(window)}
                                                         label={window}
                                                         onClick={() =>
                                                             updateFilters((current) => ({
@@ -713,7 +863,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                                 {GENDER_OPTIONS.map((gender) => (
                                                     <ToggleChip
                                                         key={gender}
-                                                        active={filters.matches.genders.includes(gender)}
+                                                        active={draftFilters.matches.genders.includes(gender)}
                                                         label={gender}
                                                         onClick={() =>
                                                             updateFilters((current) => ({
@@ -735,7 +885,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                                 {LEVEL_OPTIONS.map((level) => (
                                                     <ToggleChip
                                                         key={level}
-                                                        active={filters.matches.levels.includes(level)}
+                                                        active={draftFilters.matches.levels.includes(level)}
                                                         label={level}
                                                         onClick={() =>
                                                             updateFilters((current) => ({
@@ -757,7 +907,7 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                                 {AGE_GROUPS.map((ageGroup) => (
                                                     <ToggleChip
                                                         key={ageGroup}
-                                                        active={filters.matches.ageGroups.includes(ageGroup)}
+                                                        active={draftFilters.matches.ageGroups.includes(ageGroup)}
                                                         label={ageGroup}
                                                         onClick={() =>
                                                             updateFilters((current) => ({
@@ -776,6 +926,30 @@ export const MapFilterSidebar = ({ isVisible, filters, onFiltersChange, onClose,
                                 </RailSection>
                             )}
                         </div>
+                    </div>
+
+                    <div className="shrink-0 border-t border-[#ffffff0d] px-4 py-4">
+                        <div className="flex items-center gap-2.5">
+                            <button
+                                type="button"
+                                onClick={onApply}
+                                className="map-primary-button flex flex-1 items-center justify-center gap-2"
+                            >
+                                {applying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                                {applying ? 'Searching...' : 'Apply filters'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onResetAll}
+                                className="map-secondary-button whitespace-nowrap"
+                                disabled={activeCount === 0}
+                            >
+                                Reset
+                            </button>
+                        </div>
+                        {resultCount != null && (
+                            <p className="mt-2 text-center text-xs font-semibold text-[#a1a1aa]">{resultCount} results</p>
+                        )}
                     </div>
                 </div>
             </aside>

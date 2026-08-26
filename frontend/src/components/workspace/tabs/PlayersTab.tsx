@@ -20,6 +20,8 @@ interface PlayersTabProps {
     totalPlayerPages: number;
     onStatusFilterChange: (filter: 'ALL' | PlayerAffiliationStatus) => void;
     onPlayerStatusChange: (userId: number, status: PlayerAffiliationStatus, playerName?: string) => Promise<void>;
+    onPromotePlayer: (player: ClubPlayerAffiliation) => void;
+    onTrialEndsChange: (userId: number, trialEndsOn: string) => Promise<void>;
     onRetry: () => void;
     onPageChange: (page: number) => void;
     onMessagePlayer?: (userId: number, playerName?: string) => void;
@@ -45,13 +47,16 @@ const FILTERS = ['ALL', 'TRIALIST', 'ACTIVE', 'PAST', 'REMOVED'] as const;
 
 export const PlayersTab = ({
     playerDirectory, playerLoading, playerError, playerStatusFilter,
-    pendingKey, totalPlayerPages, onStatusFilterChange, onPlayerStatusChange, onRetry, onPageChange,
-    onMessagePlayer, onSendConsentEmail, onTabChange,
+    pendingKey, totalPlayerPages, onStatusFilterChange, onPlayerStatusChange, onPromotePlayer, onTrialEndsChange,
+    onRetry, onPageChange, onMessagePlayer, onSendConsentEmail, onTabChange,
 }: PlayersTabProps) => {
     const { t } = useTranslation();
     const allPlayers = playerDirectory?.content ?? [];
     const [searchQuery, setSearchQuery] = useState('');
     const [sort, setSort] = useState<SortState | null>(null);
+    // Phase A5 — inline parent-email capture for trialist consent sends.
+    const [consentEmailFor, setConsentEmailFor] = useState<number | null>(null);
+    const [consentEmailValue, setConsentEmailValue] = useState('');
 
     // counts per filter
     const counts = useMemo(() => {
@@ -78,9 +83,11 @@ export const PlayersTab = ({
         switch (col) {
             case 0: return (p.fullName || p.username || '').toLowerCase();
             case 1: return p.status;
-            case 2: return p.position || '';
-            case 3: return p.jerseyNumber ?? -1;
-            case 4: return p.joinedAt ?? '';
+            case 2: return p.parentalConsentStatus ?? '';
+            case 3: return p.position || '';
+            case 4: return p.jerseyNumber ?? -1;
+            case 5: return p.trialEndsOn ?? '';
+            case 6: return p.joinedAt ?? '';
             default: return null;
         }
     };
@@ -194,7 +201,13 @@ export const PlayersTab = ({
                 <EmptyStateCard
                     icon={Users}
                     title={searchQuery ? 'No matches' : 'No players yet'}
-                    description={searchQuery ? 'Try a different search term.' : 'Players will appear here when they join your club or are invited.'}
+                    description={
+                        searchQuery
+                            ? 'Try a different search term.'
+                            : playerStatusFilter === 'TRIALIST'
+                                ? t('trialists.emptyOnTrial')
+                                : 'Players will appear here when they join your club or are invited.'
+                    }
                 />
             ) : (
                 <>
@@ -206,7 +219,8 @@ export const PlayersTab = ({
                             { col: 2, label: 'CONSENT', className: 'w-36' },
                             { col: 3, label: 'POS', className: 'w-20' },
                             { col: 4, label: '#', className: 'w-14' },
-                            { col: 5, label: 'JOINED', className: 'w-32' },
+                            { col: 5, label: t('trialists.trialEnds').toUpperCase(), className: 'w-32' },
+                            { col: 6, label: 'JOINED', className: 'w-32' },
                         ].map(({ col, label, className }) => (
                             <button
                                 key={col}
@@ -228,6 +242,13 @@ export const PlayersTab = ({
                         {sortedPlayers.map((player) => {
                             const isTrialist = player.status === 'TRIALIST';
                             const isInactive = player.status === 'PAST' || player.status === 'REMOVED';
+                            const isCurrent = player.status === 'ACTIVE' || player.status === 'TRIALIST';
+                            // Phase A5 — consent attaches at first contact: offer the
+                            // send affordance on trialist rows too.
+                            const consentNeedsSending = isCurrent
+                                && !!player.requiresParentalConsent
+                                && (!player.parentalConsentStatus || player.parentalConsentStatus === 'NOT_REQUIRED')
+                                && !!onSendConsentEmail;
                             const statusTone =
                                 player.status === 'ACTIVE' ? 'success'
                                 : player.status === 'TRIALIST' ? 'warning'
@@ -257,8 +278,9 @@ export const PlayersTab = ({
                                         {isTrialist && (
                                             <TrialistBadge
                                                 joinedAt={player.joinedAt}
-                                                onApprove={() => onPlayerStatusChange(player.userId, 'ACTIVE', player.fullName || undefined)}
-                                                onRelease={() => onPlayerStatusChange(player.userId, 'REMOVED', player.fullName || undefined)}
+                                                approveLabel={t('trialists.promote')}
+                                                onApprove={() => onPromotePlayer(player)}
+                                                onRelease={() => void onPlayerStatusChange(player.userId, 'REMOVED', player.fullName || undefined)}
                                             />
                                         )}
                                     </span>
@@ -268,17 +290,17 @@ export const PlayersTab = ({
                                         <StatusCell label={player.status.replace('_', ' ')} tone={statusTone} />
                                     </span>
 
-                                    {/* Parental consent (13-15, WEB_APP_MASTER_PLAN.md §2.1) */}
+                                    {/* Parental consent (13-15, WEB_APP_MASTER_PLAN.md §2.1; phase A5 covers trialists) */}
                                     <span className="w-36 flex items-center gap-1">
                                         {player.parentalConsentStatus === 'CONFIRMED' ? (
                                             <Pill label={t('minors.playersTab.consentParent')} tone="success" />
                                         ) : player.parentalConsentStatus === 'DECLINED' ? (
                                             <>
                                                 <Pill label={t('minors.playersTab.consentDeclined')} tone="danger" />
-                                                {player.status === 'ACTIVE' && onSendConsentEmail && (
+                                                {player.parentEmail && isCurrent && onSendConsentEmail && (
                                                     <button
                                                         type="button"
-                                                        title={t('minors.playersTab.resendTo', { email: player.parentEmail ?? 'parent' })}
+                                                        title={t('minors.playersTab.resendTo', { email: player.parentEmail })}
                                                         onClick={() => onSendConsentEmail(player.userId, player.parentEmail)}
                                                         className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#16a34a] hover:underline"
                                                     >
@@ -289,10 +311,10 @@ export const PlayersTab = ({
                                         ) : player.parentalConsentStatus === 'PENDING' ? (
                                             <>
                                                 <Pill label={t('minors.playersTab.consentPending')} tone="warning" />
-                                                {player.status === 'ACTIVE' && onSendConsentEmail && (
+                                                {player.parentEmail && isCurrent && onSendConsentEmail && (
                                                     <button
                                                         type="button"
-                                                        title={t('minors.playersTab.resendTo', { email: player.parentEmail ?? 'parent' })}
+                                                        title={t('minors.playersTab.resendTo', { email: player.parentEmail })}
                                                         onClick={() => onSendConsentEmail(player.userId, player.parentEmail)}
                                                         className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#16a34a] hover:underline"
                                                     >
@@ -300,15 +322,52 @@ export const PlayersTab = ({
                                                     </button>
                                                 )}
                                             </>
-                                        ) : player.parentEmail && player.status === 'ACTIVE' && onSendConsentEmail ? (
+                                        ) : consentNeedsSending && consentEmailFor !== player.userId ? (
                                             <button
                                                 type="button"
-                                                title={t('minors.playersTab.sendTo', { email: player.parentEmail })}
-                                                onClick={() => onSendConsentEmail(player.userId, player.parentEmail)}
+                                                onClick={() => {
+                                                    if (player.parentEmail) {
+                                                        void onSendConsentEmail?.(player.userId, player.parentEmail);
+                                                    } else {
+                                                        setConsentEmailFor(player.userId);
+                                                        setConsentEmailValue('');
+                                                    }
+                                                }}
                                                 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#16a34a] hover:underline"
                                             >
                                                 {t('minors.playersTab.sendConsent')}
                                             </button>
+                                        ) : consentEmailFor === player.userId ? (
+                                            <span className="flex items-center gap-1">
+                                                <input
+                                                    type="email"
+                                                    value={consentEmailValue}
+                                                    onChange={(e) => setConsentEmailValue(e.target.value)}
+                                                    placeholder={t('minors.playersTab.parentEmailPlaceholder')}
+                                                    aria-label={`${t('minors.playersTab.parentEmailPlaceholder')} ${player.fullName || player.username}`}
+                                                    className="w-28 rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-1.5 py-0.5 text-[11px] text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)]"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    disabled={!consentEmailValue.trim()}
+                                                    onClick={() => {
+                                                        void onSendConsentEmail?.(player.userId, consentEmailValue.trim());
+                                                        setConsentEmailFor(null);
+                                                        setConsentEmailValue('');
+                                                    }}
+                                                    className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#16a34a] hover:underline disabled:opacity-50"
+                                                >
+                                                    {t('minors.playersTab.send')}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setConsentEmailFor(null)}
+                                                    className="text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]"
+                                                    aria-label={t('minors.playersTab.cancelEmail')}
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            </span>
                                         ) : (
                                             <span className="text-xs text-[var(--fc-text-muted)]">—</span>
                                         )}
@@ -328,6 +387,21 @@ export const PlayersTab = ({
                                         {jersey ?? '—'}
                                     </span>
 
+                                    {/* Trial ends (phase A1) — editable for trialists */}
+                                    <span className="w-32">
+                                        {isTrialist ? (
+                                            <input
+                                                type="date"
+                                                value={player.trialEndsOn ?? ''}
+                                                onChange={(e) => void onTrialEndsChange(player.userId, e.target.value)}
+                                                aria-label={`${t('trialists.trialEnds')} ${player.fullName || player.username}`}
+                                                className="w-full rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2 py-1 text-xs text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)]"
+                                            />
+                                        ) : (
+                                            <span className="text-xs text-[var(--fc-text-muted)]">—</span>
+                                        )}
+                                    </span>
+
                                     {/* Joined date */}
                                     <span className="w-32 text-xs text-[var(--fc-text-secondary)]">
                                         {formatMetaTime(player.joinedAt) || '—'}
@@ -342,11 +416,11 @@ export const PlayersTab = ({
                                                 <button
                                                     type="button"
                                                     disabled={pendingKey === `player-${player.userId}-ACTIVE`}
-                                                    onClick={() => void onPlayerStatusChange(player.userId, 'ACTIVE', player.fullName || undefined)}
+                                                    onClick={() => onPromotePlayer(player)}
                                                     className="inline-flex items-center gap-1 rounded-xl bg-[#16a34a] px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
                                                 >
                                                     <Check className="h-3 w-3" />
-                                                    Accept
+                                                    {t('trialists.promote')}
                                                 </button>
                                                 <button
                                                     type="button"
@@ -355,7 +429,7 @@ export const PlayersTab = ({
                                                     className="inline-flex items-center gap-1 rounded-xl border border-[var(--fc-state-danger)] px-2.5 py-1 text-xs font-semibold text-[var(--fc-state-danger)] hover:bg-[var(--fc-state-danger-soft)] disabled:opacity-50 transition-colors"
                                                 >
                                                     <X className="h-3 w-3" />
-                                                    Decline
+                                                    {t('trialists.release')}
                                                 </button>
                                             </>
                                         ) : (

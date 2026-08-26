@@ -38,6 +38,7 @@ export const createClub = (overrides: Partial<StoreClub> & { name: string; owner
   memberCount: overrides.memberCount ?? 1,
   ownerId: overrides.ownerId,
   joinPolicy: overrides.joinPolicy ?? 'OPEN_TRIAL',
+  category: overrides.category ?? 'OTHER',
   createdAt: overrides.createdAt ?? new Date().toISOString(),
 });
 

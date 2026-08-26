@@ -18,6 +18,8 @@ export const notificationHandlers: HttpHandler[] = [
       { id: 3, type: 'POST_LIKE', scope: 'PERSONAL', entityType: 'POST', entityId: 4, title: 'New Like', body: 'Sarah Chen liked your post.', isRead: true, createdAt: new Date(Date.now() - 86400000).toISOString() },
       { id: 4, type: 'COMMENT', scope: 'PERSONAL', entityType: 'POST', entityId: 4, title: 'New Comment', body: 'James Wilson commented on your post.', isRead: true, createdAt: new Date(Date.now() - 172800000).toISOString() },
       { id: 5, type: 'TOURNAMENT_INVITE', scope: 'CLUB', clubId: 3, clubName: 'Lakeside Athletic', entityType: 'TOURNAMENT', entityId: 1, title: 'Tournament Invitation', body: 'You have been invited to the Summer Cup 2026.', isRead: false, createdAt: new Date().toISOString(), linkPath: '/tournaments/1' },
+      // Phase A2 — a decision notification carrying trial instructions.
+      { id: 6, type: 'CLUB_APPLICATION_ACCEPTED', scope: 'PERSONAL', clubId: 1, clubName: 'Creekside FC', entityType: 'CLUB', entityId: 1, title: 'Club application update', body: "You've been invited to trial at Creekside FC — Thursday 18:00, pitch 2. Bring boots, shin pads and water. Parents must attend.", isRead: false, createdAt: new Date(Date.now() - 900000).toISOString(), linkPath: '/clubs/1' },
     ];
 
     return HttpResponse.json(paginate(items, page, size));

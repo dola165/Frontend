@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test';
 
+// W7a pin — reason: this is a Playwright E2E suite (needs the Playwright runner, playwright/.auth
+// storage states, a live backend and seeded E2E_* credentials); Vitest's default include pattern
+// (**.spec.ts) picks it up and fails at collection under the Vitest runner. Run it via
+// `npm run qa:smoke` (npx playwright test e2e/smoke.spec.ts) instead.
+if (process.env.VITEST) {
+    describe.skip('e2e smoke — Playwright-only suite, pinned under Vitest (see comment above)', () => {});
+} else {
+
 const leaderEmail = process.env.E2E_LEADER_EMAIL;
 const leaderPassword = process.env.E2E_LEADER_PASSWORD;
 const adminEmail = process.env.E2E_SYSTEM_ADMIN_EMAIL;
@@ -144,3 +152,5 @@ test.describe('Talanti smoke flows — system admin', () => {
         await expect(page.getByPlaceholder(/search by name, username, or email/i)).toBeVisible();
     });
 });
+
+}

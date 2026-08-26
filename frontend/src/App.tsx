@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useNavig
 import { TopNav } from './components/layout/TopNav';
 import { LeftSidebar } from './components/layout/LeftSidebar';
 import { RightSidebar } from './components/layout/RightSidebar';
+import { AppPageFrame } from './components/layout/AppPageShell';
 import { ClubProfilePage } from './pages/ClubProfilePage';
 import { UserProfilePage } from './pages/UserProfilePage';
 import { MapPage } from './pages/MapPage';
@@ -233,6 +234,46 @@ function MainLayout() {
         location.pathname.startsWith('/agent') ||
         isClubSurfaceRoute;
     const isBoundedCanvasPage = boundedCanvasPages.has(location.pathname);
+    // W6 — one shell: browse/list/destination pages share a single App-level
+    // frame (app-page-shell + AppPageFrame, one max-width); the map, chat,
+    // schedule and the management workspaces stay full-width canvases.
+    const canvasWorkspacePages = new Set(['/map', '/calendar', '/messages', '/onboarding', '/dob', '/set-password']);
+    const isImmersiveCanvasPage =
+        canvasWorkspacePages.has(location.pathname) ||
+        /^\/clubs\/\d+\/workspace$/.test(location.pathname) ||
+        /^\/tournaments\/\d+\/workspace$/.test(location.pathname);
+
+    const fullScreenRoutes = (
+        <Routes>
+            <Route path="/map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
+            <Route path="/clubs" element={<BrowseClubsPage />} />
+            <Route path="/calendar" element={<ProtectedRoute><CalendarPage user={user} darkMode={darkMode} setDarkMode={setDarkMode} /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+            <Route path="/messages" element={<ProtectedRoute><MessagingPage /></ProtectedRoute>} />
+            <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+            <Route path="/tournaments" element={<BrowseTournamentsPage />} />
+            <Route path="/tournaments/setup" element={<ProtectedRoute><TournamentSetupPage /></ProtectedRoute>} />
+            <Route path="/tournaments/:tournamentId" element={<TournamentDetailPage />} />
+            <Route path="/tournaments/:tournamentId/workspace" element={<ProtectedRoute><TournamentWorkspacePage /></ProtectedRoute>} />
+            <Route path="/organizations/create" element={<OrganizerOnlyRoute><CreateOrganizationPage /></OrganizerOnlyRoute>} />
+            <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
+            <Route path="/profile/:id" element={<UserProfilePage />} />
+            <Route path="/agent/dashboard" element={<AgentOnlyRoute><AgentDashboardPage /></AgentOnlyRoute>} />
+            <Route path="/agent/:id" element={<AgentOnlyRoute><AgentProfilePage /></AgentOnlyRoute>} />
+            <Route path="/marketplace" element={<AgentOnlyRoute><MarketplacePage /></AgentOnlyRoute>} />
+            <Route path="/needs" element={<AgentOnlyRoute><NeedsBoardPage /></AgentOnlyRoute>} />
+            <Route path="/store" element={<StorePage />} />
+            <Route path="/clubs/:id/store" element={<ClubStorePage />} />
+            <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
+            <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage darkMode={darkMode} /></ProtectedRoute>} />
+            <Route path="/clubs/:id" element={<ClubProfilePage />} />
+            <Route path="/clubs/create" element={<OrganizerOnlyRoute><CreateClubPage /></OrganizerOnlyRoute>} />
+            <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
+            <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+            <Route path="/dob" element={<ProtectedRoute><DobGatePage /></ProtectedRoute>} />
+            <Route path="/set-password" element={<ProtectedRoute><SetPasswordPage /></ProtectedRoute>} />
+        </Routes>
+    );
 
     return (
         <div className="min-h-screen bg-[#0f1117] text-[#f4f4f5] transition-colors duration-200">
@@ -260,42 +301,22 @@ function MainLayout() {
                     </Routes>
                 </main>
             ) : isFullScreenPage ? (
-                <main
-                    className={`relative w-full ${isBoundedCanvasPage ? 'overflow-hidden' : 'overflow-y-auto'}`}
-                    style={isChromeFreeWorkspace
-                        ? { minHeight: '100dvh', height: '100dvh' }
-                        : { minHeight: 'calc(100dvh - var(--app-header-height))', height: 'calc(100dvh - var(--app-header-height))' }}
-                >
-                    <Routes>
-                        <Route path="/map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
-                        <Route path="/clubs" element={<BrowseClubsPage />} />
-                        <Route path="/calendar" element={<ProtectedRoute><CalendarPage user={user} darkMode={darkMode} setDarkMode={setDarkMode} /></ProtectedRoute>} />
-                        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-                        <Route path="/messages" element={<ProtectedRoute><MessagingPage /></ProtectedRoute>} />
-                        <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
-                        <Route path="/tournaments" element={<BrowseTournamentsPage />} />
-                        <Route path="/tournaments/setup" element={<ProtectedRoute><TournamentSetupPage /></ProtectedRoute>} />
-                        <Route path="/tournaments/:tournamentId" element={<TournamentDetailPage />} />
-                        <Route path="/tournaments/:tournamentId/workspace" element={<ProtectedRoute><TournamentWorkspacePage /></ProtectedRoute>} />
-                        <Route path="/organizations/create" element={<OrganizerOnlyRoute><CreateOrganizationPage /></OrganizerOnlyRoute>} />
-                        <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
-                        <Route path="/profile/:id" element={<UserProfilePage />} />
-                        <Route path="/agent/dashboard" element={<AgentOnlyRoute><AgentDashboardPage /></AgentOnlyRoute>} />
-                        <Route path="/agent/:id" element={<AgentProfilePage />} />
-                        <Route path="/marketplace" element={<MarketplacePage />} />
-                        <Route path="/needs" element={<NeedsBoardPage />} />
-                        <Route path="/store" element={<StorePage />} />
-                        <Route path="/clubs/:id/store" element={<ClubStorePage />} />
-                        <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
-                        <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage darkMode={darkMode} /></ProtectedRoute>} />
-                        <Route path="/clubs/:id" element={<ClubProfilePage />} />
-                        <Route path="/clubs/create" element={<OrganizerOnlyRoute><CreateClubPage /></OrganizerOnlyRoute>} />
-                        <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
-                        <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-                        <Route path="/dob" element={<ProtectedRoute><DobGatePage /></ProtectedRoute>} />
-                        <Route path="/set-password" element={<ProtectedRoute><SetPasswordPage /></ProtectedRoute>} />
-                    </Routes>
-                </main>
+                isImmersiveCanvasPage ? (
+                    <main
+                        className={`relative w-full ${isBoundedCanvasPage ? 'overflow-hidden' : 'overflow-y-auto'}`}
+                        style={isChromeFreeWorkspace
+                            ? { minHeight: '100dvh', height: '100dvh' }
+                            : { minHeight: 'calc(100dvh - var(--app-header-height))', height: 'calc(100dvh - var(--app-header-height))' }}
+                    >
+                        {fullScreenRoutes}
+                    </main>
+                ) : (
+                    <main className="app-page-shell min-h-[calc(100dvh-var(--app-header-height))]">
+                        <AppPageFrame className="py-6">
+                            {fullScreenRoutes}
+                        </AppPageFrame>
+                    </main>
+                )
             ) : (
                 <div className={isHomeFeed ? 'feed-home-shell min-h-[calc(100dvh-var(--app-header-height))]' : ''}>
                     <div className={`grid grid-cols-1 gap-6 px-6 pb-10 pt-6 ${isHomeFeed ? 'feed-home-grid w-full lg:grid-cols-[280px_1fr_320px]' : 'mx-auto max-w-[1480px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[220px_minmax(0,720px)_280px]'}`}>

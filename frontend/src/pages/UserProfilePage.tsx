@@ -9,10 +9,8 @@ import {
     Briefcase,
     Building2,
     Camera,
-    ExternalLink,
     Film,
     Footprints,
-    HeartHandshake,
     Image,
     Loader2,
     MapPin,
@@ -32,6 +30,7 @@ import { PostTheaterModal } from '../components/PostTheaterModal';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { getStoredUserId, setStoredUserId } from '../utils/authStorage';
 import { StatusBadge } from '../components/ui/StatusBadge';
+import { useAuth } from '../context/AuthContext';
 
 interface CareerHistoryDto {
     id: number;
@@ -141,6 +140,7 @@ const CareerEntryCard = ({ entry }: { entry: CareerHistoryDto }) => (
 
 export const UserProfilePage = () => {
     const { t } = useTranslation();
+    const { user } = useAuth();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -570,10 +570,17 @@ export const UserProfilePage = () => {
                                     <Briefcase className="h-4 w-4 text-[color:var(--club-tone-violet)]" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <a href={`/agent/${agentRep.agentUserId}`} className="text-xs font-semibold text-[color:var(--club-tone-violet)] hover:underline">
-                                        {agentRep.agencyName}
-                                        {agentRep.agentVerified && <span className="ml-1 text-[10px] text-[color:var(--club-tone-green)]">✓</span>}
-                                    </a>
+                                    {user?.role === 'AGENT' ? (
+                                        <a href={`/agent/${agentRep.agentUserId}`} className="text-xs font-semibold text-[color:var(--club-tone-violet)] hover:underline">
+                                            {agentRep.agencyName}
+                                            {agentRep.agentVerified && <span className="ml-1 text-[10px] text-[color:var(--club-tone-green)]">✓</span>}
+                                        </a>
+                                    ) : (
+                                        <span className="text-xs font-semibold text-[color:var(--club-tone-violet)]">
+                                            {agentRep.agencyName}
+                                            {agentRep.agentVerified && <span className="ml-1 text-[10px] text-[color:var(--club-tone-green)]">✓</span>}
+                                        </span>
+                                    )}
                                     <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">{t('minors.profile.representedBy')}</p>
                                 </div>
                                 {isMyProfile && agentRep.representationId != null && agentRep.minorConsentStatus === 'PENDING' && (
@@ -672,39 +679,6 @@ export const UserProfilePage = () => {
                     </span>
                 </div>
             )}
-
-            {/* Talanti Foundation — Charity card (always visible) */}
-            <div className="rounded-[4px] border border-[color:var(--club-tone-pink)]/30 px-4 py-3.5" style={{ background: 'rgba(10,10,12,0.6)' }}>
-                <div className="flex items-center gap-2 mb-2">
-                    <HeartHandshake className="h-4 w-4 text-[color:var(--club-tone-pink)]" />
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)]">Talanti Foundation</p>
-                </div>
-                <p className="text-xs text-[#a1a1aa] leading-relaxed mb-3">
-                    Fund your training, equipment, or community project. Every player deserves a chance.
-                </p>
-                <div className="flex gap-2">
-                    <a
-                        href="https://www.gofundme.com/discover"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 inline-flex items-center justify-center gap-1 rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors hover:bg-[rgba(255,107,157,0.08)]"
-                        style={{ borderColor: 'rgba(255,107,157,0.3)', color: 'var(--club-tone-pink)' }}
-                    >
-                        Donate
-                        <ExternalLink className="h-3 w-3" />
-                    </a>
-                    <a
-                        href="https://www.gofundme.com/create"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 inline-flex items-center justify-center gap-1 rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors hover:bg-[rgba(255,255,255,0.04)]"
-                        style={{ borderColor: 'var(--club-theme-border-subtle)', color: 'var(--club-theme-text-secondary)' }}
-                    >
-                        Start Fundraiser
-                        <ExternalLink className="h-3 w-3" />
-                    </a>
-                </div>
-            </div>
         </div>
     );
 
@@ -859,7 +833,11 @@ export const UserProfilePage = () => {
                                         >
                                             {profile.isFollowedByMe ? 'Following' : 'Follow'}
                                         </button>
-                                        <button type="button" className={systemBtnClass}>
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate(`/messages?chatWith=${profile.id}`)}
+                                            className={systemBtnClass}
+                                        >
                                             <MessageCircle className="h-4 w-4" />
                                             Message
                                         </button>

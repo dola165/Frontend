@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Building2, Check, Clock, Filter, Loader2, MapPin, Plus, Search, Send, ShieldCheck, UserPlus, Users, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../api/axiosConfig';
 import { createClubApplication, fetchMyClubMembershipContext, selfRegisterClubPlayer } from '../features/clubs/api';
 import { PaginationBar } from '../components/ui/PaginationBar';
@@ -47,6 +48,7 @@ export const BrowseClubsPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { status } = useAuth();
+    const { t } = useTranslation();
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Filter state (synced to URL)
@@ -418,7 +420,16 @@ export const BrowseClubsPage = () => {
                         <div className="flex justify-center py-10"><Loader2 className="h-7 w-7 animate-spin text-[#16a34a]" /></div>
                     ) : clubs.length === 0 ? (
                         <div className="px-4 py-12 text-center">
-                            <p className="text-sm font-semibold text-[#a1a1aa]">{hasActiveFilters ? 'No clubs match your filters.' : 'No clubs are available in the directory right now.'}</p>
+                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#ffffff0d] bg-[#0f1117]">
+                                <Building2 className="h-6 w-6 text-[#16a34a]" />
+                            </div>
+                            <p className="mt-4 text-sm font-semibold text-[#a1a1aa]">
+                                {hasActiveFilters ? t('browseClubs.emptyFiltered') : t('browseClubs.empty')}
+                            </p>
+                            <Link to="/map" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+                                <MapPin className="h-4 w-4" />
+                                {t('browseClubs.exploreMap')}
+                            </Link>
                         </div>
                     ) : (
                         <div className="divide-y divide-[#ffffff0d]">
@@ -441,17 +452,6 @@ export const BrowseClubsPage = () => {
                                                                 : club.joinPolicy === 'APPLICATION_REQUIRED' ? 'bg-amber-500/10 text-amber-400'
                                                                 : 'bg-violet-500/10 text-violet-400'}`}>
                                                                 {club.joinPolicy.replace(/_/g, ' ')}</span>
-                                                        )}
-                                                        {club.joinPolicy && (
-                                                            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-medium ${
-                                                                club.joinPolicy === 'OPEN_TRIAL'
-                                                                    ? 'bg-emerald-500/10 text-emerald-400'
-                                                                    : club.joinPolicy === 'APPLICATION_REQUIRED'
-                                                                    ? 'bg-amber-500/10 text-amber-400'
-                                                                    : 'bg-violet-500/10 text-violet-400'
-                                                            }`}>
-                                                                {club.joinPolicy.replace('_', ' ')}
-                                                            </span>
                                                         )}
                                                     </div>
                                                     <p className="mt-1 text-[11px] font-medium text-[#a1a1aa]">{club.type}</p>

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Clock, Target } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../api/axiosConfig';
 import { PageSpinner } from '../components/workspace/helpers';
 import { EmptyStateCard } from '../components/workspace/EmptyStateCard';
@@ -33,6 +34,7 @@ const NEED_LABELS: Record<string, string> = {
 
 export const NeedsBoardPage = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [needs, setNeeds] = useState<ClubNeed[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -118,6 +120,9 @@ export const NeedsBoardPage = () => {
                         icon={Target}
                         title="No club needs yet"
                         description="No clubs have posted player needs. Clubs can post positions they're recruiting for from their workspace."
+                        actionLabel={t('needs.emptyCta')}
+                        actionIcon={Building2}
+                        onAction={() => navigate('/clubs')}
                     />
                 ) : (
                     <>

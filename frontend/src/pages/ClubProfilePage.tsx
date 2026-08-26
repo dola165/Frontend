@@ -19,6 +19,7 @@ import { TabCalendar } from '../components/club/tabs/TabCalendar';
 import { TabMedia } from '../components/club/tabs/TabMedia';
 import { TabEvents } from '../components/club/tabs/TabEvents';
 import { TabContact } from '../components/club/tabs/TabContact';
+import { ClubBusinessTab } from '../components/club/ClubBusinessTab';
 import {
     canManageClubOperations,
     isLeadershipRole,
@@ -82,6 +83,8 @@ export interface ClubProfile {
     trustedByClubs: Array<{ clubId: number; clubName: string }>;
     honours: ClubHonour[];
     opportunities: ClubOpportunity[];
+    category?: string | null;
+    pendingApplicationJobId?: number | null;
 }
 
 export type ClubTab = ClubNavigationTab;
@@ -92,7 +95,7 @@ const normalizeManagementTab = (value: string | null): ClubManagementTab | null 
         : null;
 
 const normalizeTab = (value: string | null): ClubTab =>
-    value === 'honours' || value === 'teams' || value === 'schedule' || value === 'media' || value === 'events' || value === 'contact'
+    value === 'honours' || value === 'teams' || value === 'schedule' || value === 'media' || value === 'events' || value === 'business' || value === 'contact'
         ? value
         : 'overview';
 
@@ -101,7 +104,7 @@ export const ClubProfilePage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
-    const { status } = useAuth();
+    const { status, user } = useAuth();
 
     const [club, setClub] = useState<ClubProfile | null>(null);
     const [loading, setLoading] = useState(true);
@@ -360,6 +363,18 @@ export const ClubProfilePage = () => {
                         {activeTab === 'schedule' && <TabCalendar clubId={club.id} isOwnClubAdmin={isOwnClubAdmin} />}
                         {activeTab === 'media' && <TabMedia clubId={club.id} />}
                         {activeTab === 'events' && <TabEvents clubId={club.id} />}
+                        {activeTab === 'business' && (
+                            <ClubBusinessTab
+                                club={club}
+                                ownClubRole={ownClubRole as ClubMembershipRole | null}
+                                isAuthenticated={status === 'authenticated'}
+                                currentUserId={user?.id ?? null}
+                                onDataChanged={() => {
+                                    void fetchClubData();
+                                    void fetchUserContext();
+                                }}
+                            />
+                        )}
                         {activeTab === 'contact' && <TabContact club={club} />}
                     </div>
 
@@ -367,7 +382,7 @@ export const ClubProfilePage = () => {
                         {activeTab === 'overview' && (
                             <ClubOpportunities
                                 club={club}
-                                onOpenModule={() => setActiveTab('events')}
+                                onOpenModule={() => setActiveTab('business')}
                                 showOpportunityBoard
                             />
                         )}

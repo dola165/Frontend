@@ -7,6 +7,7 @@ import {
     Camera,
     CheckCircle2,
     Clock3,
+    Image as ImageIcon,
     KeyRound,
     Loader2,
     Lock,
@@ -21,6 +22,7 @@ import { extractApiErrorMessage } from '../utils/apiError';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { isUnder13, todayIso } from '../utils/age';
 import { activatePlayerCard, fetchMyPlayerCards, type PlayerCard } from '../features/clubs/api';
+import { ClubJourneyPanel } from '../features/journey/components/ClubJourneyPanel';
 import { EntityTabs, type EntityTabItem } from '../components/layout/EntityTabs';
 
 type Tab = 'profile' | 'security' | 'sessions' | 'accounts' | 'danger';
@@ -291,8 +293,7 @@ export const AccountPage = () => {
     const bannerPreview = useMemo(
         () =>
             resolveMediaUrl(form?.bannerUrl) ||
-            resolveMediaUrl(account?.bannerUrl) ||
-            'https://images.unsplash.com/photo-1518605368461-1ee71161d91a?auto=format&fit=crop&q=80&w=1200&h=420',
+            resolveMediaUrl(account?.bannerUrl),
         [account?.bannerUrl, form?.bannerUrl]
     );
     const avatarPreview = useMemo(() => resolveMediaUrl(form?.avatarUrl) || resolveMediaUrl(account?.avatarUrl), [account?.avatarUrl, form?.avatarUrl]);
@@ -752,9 +753,19 @@ export const AccountPage = () => {
                         </Section>
 
                         <div className="flex flex-col gap-5">
+                            <Section title="My Clubs" description="Your club journey — applications, invitations, trials and memberships.">
+                                <ClubJourneyPanel />
+                            </Section>
+
                             <Section title="Profile Assets" description="Banner and avatar media for your public profile.">
                                 <div className="relative h-32 overflow-hidden rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)]">
-                                    <img src={bannerPreview} alt="Account banner" className="h-full w-full object-cover" />
+                                    {bannerPreview ? (
+                                        <img src={bannerPreview} alt="Account banner" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center">
+                                            <ImageIcon className="h-8 w-8 text-[color:var(--fc-text-secondary)]" />
+                                        </div>
+                                    )}
                                     <button
                                         type="button"
                                         onClick={() => bannerInputRef.current?.click()}

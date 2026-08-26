@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Award, Calendar, Check, Loader2, Trophy, UserPlus, Users } from 'lucide-react';
 import type { TournamentSummary } from '../../features/tournaments/domain';
 import { tournamentScopeLabel, tournamentVisibilityLabel } from '../../features/tournaments/domain';
+import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 
 const statusTone: Record<string, string> = {
     PLANNING: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
@@ -13,8 +14,6 @@ const statusTone: Record<string, string> = {
 
 const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-
-const tournamentImageUrl = (id: number) => `https://picsum.photos/seed/tournament-${id}/400/200`;
 
 interface TournamentListCardProps {
     tournament: TournamentSummary;
@@ -30,6 +29,7 @@ export const TournamentListCard = ({
     onRegister,
 }: TournamentListCardProps) => {
     const [imgFailed, setImgFailed] = useState(false);
+    const bannerUrl = resolveMediaUrl(t.bannerImageUrl);
 
     return (
     <Link
@@ -38,13 +38,13 @@ export const TournamentListCard = ({
     >
         {/* Left: Banner / Thumbnail */}
         <div className="flex h-32 w-full shrink-0 items-center justify-center bg-[#1a1c22] md:h-full md:w-[240px] relative">
-            {imgFailed ? (
+            {imgFailed || !bannerUrl ? (
                 <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[#ffffff0d] bg-[#16181d] text-[#16a34a]">
                     <Trophy className="h-7 w-7" />
                 </div>
             ) : (
                 <img
-                    src={tournamentImageUrl(t.id)}
+                    src={bannerUrl}
                     alt={t.name}
                     className="h-full w-full object-cover"
                     loading="lazy"

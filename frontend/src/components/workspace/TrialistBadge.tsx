@@ -7,6 +7,8 @@ export interface TrialistBadgeProps {
     onApprove?: () => void;
     /** Optional — if provided, clicking the badge opens an approve/release popover */
     onRelease?: () => void;
+    /** Optional label for the approve action (default "Approve to Active") */
+    approveLabel?: string;
     className?: string;
 }
 
@@ -21,6 +23,7 @@ export const TrialistBadge = ({
     joinedAt,
     onApprove,
     onRelease,
+    approveLabel = 'Approve to Active',
     className = '',
 }: TrialistBadgeProps) => {
     const days = getTrialistDays(joinedAt);
@@ -76,7 +79,7 @@ export const TrialistBadge = ({
                             className="flex w-full items-center gap-2 rounded px-3 py-2 text-xs font-medium text-[var(--fc-accent)] hover:bg-[var(--fc-accent-soft)] transition-colors"
                         >
                             <Check className="h-3.5 w-3.5" />
-                            Approve to Active
+                            {approveLabel}
                         </button>
                     )}
                     {onRelease && (

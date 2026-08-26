@@ -1,31 +1,33 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Building2, Loader2, Plus } from 'lucide-react';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { createOrganization, fetchMyOrganizations } from '../features/tournaments/api';
 import type { CreatableOrganizationKind, MyOrganization } from '../features/tournaments/domain';
 import { membershipRoleLabel, organizationKindLabel } from '../features/tournaments/domain';
 
-const inputClass = 'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-[#16a34a]';
+const inputClass = 'w-full rounded-xl border border-[#ffffff0d] bg-[#16181d] px-4 py-3 text-sm text-[#f4f4f5] outline-none transition-colors placeholder:text-[#71717a] focus:border-[#16a34a]';
 const textareaClass = `${inputClass} min-h-[100px] resize-none`;
 
 interface OrgTypeOption {
   value: CreatableOrganizationKind;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
 }
 
 const orgTypeOptions: OrgTypeOption[] = [
-  { value: 'SPORTS_ORG', label: 'Club', description: 'Sports club or athletic organization' },
-  { value: 'COMPANY', label: 'Betting Company', description: 'Betting or gaming company' },
-  { value: 'SPONSOR', label: 'Sponsor', description: 'Brand sponsor or corporate partner' },
-  { value: 'PARTNER', label: 'Other', description: 'Other type of organization' },
+  { value: 'SPORTS_ORG', labelKey: 'createOrg.typeClub', descriptionKey: 'createOrg.typeClubDesc' },
+  { value: 'COMPANY', labelKey: 'createOrg.typeCompany', descriptionKey: 'createOrg.typeCompanyDesc' },
+  { value: 'SPONSOR', labelKey: 'createOrg.typeSponsor', descriptionKey: 'createOrg.typeSponsorDesc' },
+  { value: 'PARTNER', labelKey: 'createOrg.typeOther', descriptionKey: 'createOrg.typeOtherDesc' },
 ];
 
 const buildForm = () => ({ displayName: '', description: '', kind: 'SPORTS_ORG' as CreatableOrganizationKind });
 
 export const CreateOrganizationPage = () => {
   useNavigate();
+  const { t } = useTranslation();
   const [form, setForm] = useState(buildForm);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -63,31 +65,31 @@ export const CreateOrganizationPage = () => {
         description: form.description.trim() || null,
         kind: form.kind,
       });
-      showMessage(`${created.displayName} has been created.`, 'success');
+      showMessage(t('createOrg.created', { name: created.displayName }), 'success');
       setForm(buildForm());
       void loadOrganizations();
     } catch (err) {
-      showMessage(extractApiErrorMessage(err, 'Failed to create organization.'), 'error');
+      showMessage(extractApiErrorMessage(err, t('createOrg.createFailed')), 'error');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="min-h-full bg-[#16181d] font-sans text-slate-950 selection:bg-[#16a34a]/20">
+    <div className="min-h-full bg-[#0f1117] font-sans text-[#f4f4f5] selection:bg-[#16a34a]/20">
       <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div>
-          <Link to="/tournaments/setup" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition-colors hover:text-slate-900">
+          <Link to="/tournaments/setup" className="inline-flex items-center gap-2 text-sm font-semibold text-[#a1a1aa] transition-colors hover:text-[#f4f4f5]">
             <ArrowLeft className="h-4 w-4" />
-            Back to Event Setup
+            {t('createOrg.backToSetup')}
           </Link>
-          <p className="mt-4 text-sm font-semibold text-[#16a34a]">Organizer Layer</p>
-          <h1 className="mt-1 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
-            Create Organization
+          <p className="mt-4 text-sm font-semibold text-[#16a34a]">{t('createOrg.eyebrow')}</p>
+          <h1 className="mt-1 text-4xl font-bold tracking-tight text-[#f4f4f5] sm:text-5xl">
+            {t('createOrg.title')}
           </h1>
-          <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-            An organization acts as the legal or hosting entity behind events. Create one to start organizing events on the platform.
+          <p className="mt-3 max-w-2xl text-base leading-7 text-[#a1a1aa]">
+            {t('createOrg.subtitle')}
           </p>
         </div>
 
@@ -95,8 +97,8 @@ export const CreateOrganizationPage = () => {
         {message && (
           <div className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
             messageType === 'success'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-              : 'border-rose-200 bg-rose-50 text-rose-700'
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+              : 'border-rose-500/30 bg-rose-500/10 text-rose-400'
           }`}>
             {message}
           </div>
@@ -104,39 +106,39 @@ export const CreateOrganizationPage = () => {
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
           {/* Form */}
-          <form onSubmit={handleSubmit} className="rounded-xl border border-slate-200 bg-white p-6 ">
+          <form onSubmit={handleSubmit} className="rounded-xl border border-[#ffffff0d] bg-[#16181d] p-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-[#16181d] text-[#16a34a]">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#ffffff0d] bg-[#0f1117] text-[#16a34a]">
                 <Building2 className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-950">New Organization</p>
-                <p className="text-sm text-slate-500">Fill in the details below to register a new organizer.</p>
+                <p className="text-sm font-semibold text-[#f4f4f5]">{t('createOrg.title')}</p>
+                <p className="text-sm text-[#a1a1aa]">{t('createOrg.subtitle')}</p>
               </div>
             </div>
 
             <div className="mt-6 space-y-5">
               <label className="flex flex-col gap-2">
-                <span className="text-sm font-semibold text-slate-700">Organization Name</span>
+                <span className="text-sm font-semibold text-[#f4f4f5]">{t('createOrg.nameLabel')}</span>
                 <input
                   value={form.displayName}
                   onChange={(e) => setForm((c) => ({ ...c, displayName: e.target.value }))}
                   className={inputClass}
-                  placeholder="e.g. Crocobet Events, Borjomi Sports"
+                  placeholder={t('createOrg.namePlaceholder')}
                   required
                 />
               </label>
 
               <fieldset>
-                <legend className="text-sm font-semibold text-slate-700">Organization Type</legend>
+                <legend className="text-sm font-semibold text-[#f4f4f5]">{t('createOrg.typeLabel')}</legend>
                 <div className="mt-2 grid gap-3 sm:grid-cols-2">
                   {orgTypeOptions.map((opt) => (
                     <label
                       key={opt.value}
                       className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-4 transition-all ${
                         form.kind === opt.value
-                          ? 'border-[#16a34a] bg-blue-50'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                          ? 'border-[#16a34a] bg-[#16a34a]/10'
+                          : 'border-[#ffffff0d] bg-[#0f1117] hover:bg-[#1a1c22]'
                       }`}
                     >
                       <input
@@ -148,8 +150,8 @@ export const CreateOrganizationPage = () => {
                         className="mt-0.5 accent-[#16a34a]"
                       />
                       <div>
-                        <p className="text-sm font-semibold text-slate-950">{opt.label}</p>
-                        <p className="mt-1 text-xs leading-5 text-slate-500">{opt.description}</p>
+                        <p className="text-sm font-semibold text-[#f4f4f5]">{t(opt.labelKey)}</p>
+                        <p className="mt-1 text-xs leading-5 text-[#a1a1aa]">{t(opt.descriptionKey)}</p>
                       </div>
                     </label>
                   ))}
@@ -157,12 +159,12 @@ export const CreateOrganizationPage = () => {
               </fieldset>
 
               <label className="flex flex-col gap-2">
-                <span className="text-sm font-semibold text-slate-700">Description (Optional)</span>
+                <span className="text-sm font-semibold text-[#f4f4f5]">{t('createOrg.descLabel')}</span>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))}
                   className={textareaClass}
-                  placeholder="Short internal note about this organization."
+                  placeholder={t('createOrg.descPlaceholder')}
                 />
               </label>
             </div>
@@ -170,9 +172,9 @@ export const CreateOrganizationPage = () => {
             <div className="mt-6 flex justify-end gap-3">
               <Link
                 to="/tournaments/setup"
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+                className="inline-flex items-center gap-2 rounded-full border border-[#ffffff0d] bg-[#0f1117] px-5 py-2.5 text-sm font-semibold text-[#a1a1aa] transition-colors hover:bg-[#1a1c22] hover:text-[#f4f4f5]"
               >
-                Cancel
+                {t('createOrg.cancel')}
               </Link>
               <button
                 type="submit"
@@ -180,36 +182,36 @@ export const CreateOrganizationPage = () => {
                 className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[#22c55e] disabled:opacity-60"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Create Organization
+                {t('createOrg.create')}
               </button>
             </div>
           </form>
 
           {/* Sidebar — My Organizations */}
           <aside className="flex flex-col gap-4">
-            <div className="rounded-xl border border-slate-200 bg-white ">
-              <div className="border-b border-slate-200 px-6 py-5">
-                <p className="text-sm font-semibold text-slate-950">My Organizations</p>
-                <p className="mt-1 text-sm text-slate-500">Existing organizations linked to your account.</p>
+            <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d]">
+              <div className="border-b border-[#ffffff0d] px-6 py-5">
+                <p className="text-sm font-semibold text-[#f4f4f5]">{t('createOrg.myOrganizations')}</p>
+                <p className="mt-1 text-sm text-[#a1a1aa]">{t('createOrg.myOrganizationsHint')}</p>
               </div>
               {orgsLoading ? (
                 <div className="flex items-center justify-center px-6 py-10">
                   <Loader2 className="h-5 w-5 animate-spin text-[#16a34a]" />
                 </div>
               ) : organizations.length === 0 ? (
-                <div className="px-6 py-10 text-center text-sm text-slate-500">
-                  No organizations yet. Create one to start organizing events.
+                <div className="px-6 py-10 text-center text-sm text-[#a1a1aa]">
+                  {t('createOrg.noOrganizations')}
                 </div>
               ) : (
-                <div className="max-h-[400px] divide-y divide-slate-200 overflow-y-auto">
+                <div className="max-h-[400px] divide-y divide-[#ffffff0d] overflow-y-auto">
                   {organizations.map((org) => (
                     <div key={org.id} className="px-6 py-4">
-                      <p className="text-sm font-semibold text-slate-950">{org.displayName}</p>
+                      <p className="text-sm font-semibold text-[#f4f4f5]">{org.displayName}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{membershipRoleLabel(org.membershipRole)}</span>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{organizationKindLabel(org.primaryKind)}</span>
+                        <span className="rounded-full bg-[#1a1c22] px-2.5 py-1 text-xs font-medium text-[#a1a1aa]">{membershipRoleLabel(org.membershipRole)}</span>
+                        <span className="rounded-full bg-[#1a1c22] px-2.5 py-1 text-xs font-medium text-[#a1a1aa]">{organizationKindLabel(org.primaryKind)}</span>
                         {org.canCreateTournament && (
-                          <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[#16a34a]">Event Access</span>
+                          <span className="rounded-full bg-[#16a34a]/10 px-2.5 py-1 text-xs font-semibold text-[#16a34a]">{t('createOrg.eventAccess')}</span>
                         )}
                       </div>
                     </div>

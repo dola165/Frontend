@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Loader2, Search, User, Building2, Trophy, X } from 'lucide-react';
 import { apiClient } from '../../api/axiosConfig';
 import { HighlightedText } from './HighlightedText';
@@ -39,6 +40,7 @@ const DEBOUNCE_MS = 250;
 const MIN_QUERY_LENGTH = 2;
 
 export const GlobalSearchBar = () => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -223,9 +225,9 @@ export const GlobalSearchBar = () => {
 
   const getResultIcon = (r: SearchResult) => {
     switch (r.type) {
-      case 'user': return <User className="h-4 w-4 shrink-0 text-slate-400" />;
-      case 'club': return <Building2 className="h-4 w-4 shrink-0 text-slate-400" />;
-      case 'tournament': return <Trophy className="h-4 w-4 shrink-0 text-slate-400" />;
+      case 'user': return <User className="h-4 w-4 shrink-0 text-[#71717a]" />;
+      case 'club': return <Building2 className="h-4 w-4 shrink-0 text-[#71717a]" />;
+      case 'tournament': return <Trophy className="h-4 w-4 shrink-0 text-[#71717a]" />;
     }
   };
 
@@ -241,7 +243,7 @@ export const GlobalSearchBar = () => {
   return (
     <div ref={containerRef} className="relative hidden min-w-0 max-w-xl flex-1 lg:flex">
       <div className="relative w-full">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" />
         <input
           ref={inputRef}
           type="text"
@@ -249,22 +251,22 @@ export const GlobalSearchBar = () => {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => { if (results.length > 0) setIsOpen(true); }}
           onKeyDown={handleKeyDown}
-          placeholder="Search people, clubs, events..."
-          className="w-full rounded-full border border-slate-200 bg-slate-50 py-2 pl-10 pr-9 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-[#16a34a] focus:bg-white"
-          aria-label="Global search"
+          placeholder={t('search.placeholder')}
+          className="w-full rounded-full border border-[#ffffff0d] bg-[#16181d] py-2 pl-10 pr-9 text-sm text-[#f4f4f5] outline-none transition-colors placeholder:text-[#71717a] focus:border-[#16a34a] focus:bg-[#1a1c22]"
+          aria-label={t('search.ariaLabel')}
           autoComplete="off"
           spellCheck={false}
         />
         {/* Loading spinner or clear button */}
         <div className="absolute right-2 top-1/2 -translate-y-1/2">
           {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+            <Loader2 className="h-4 w-4 animate-spin text-[#71717a]" />
           ) : query.length > 0 ? (
             <button
               type="button"
               onClick={clearSearch}
-              className="flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-600"
-              aria-label="Clear search"
+              className="flex h-5 w-5 items-center justify-center rounded-full text-[#71717a] hover:bg-[#1a1c22] hover:text-[#f4f4f5]"
+              aria-label={t('search.clear')}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -274,14 +276,14 @@ export const GlobalSearchBar = () => {
 
       {/* Results dropdown */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[420px] overflow-y-auto rounded-xl border border-slate-200 bg-white ">
+        <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[420px] overflow-y-auto rounded-xl border border-[#ffffff0d] bg-[#16181d] shadow-2xl">
           {error ? (
-            <div className="px-4 py-6 text-center text-sm text-slate-500">
-              Failed to load results. Try a different search.
+            <div className="px-4 py-6 text-center text-sm text-[#a1a1aa]">
+              {t('search.loadFailed')}
             </div>
           ) : results.length === 0 && debouncedQuery.length >= MIN_QUERY_LENGTH && !isLoading ? (
-            <div className="px-4 py-6 text-center text-sm text-slate-500">
-              No results for &quot;{debouncedQuery}&quot;
+            <div className="px-4 py-6 text-center text-sm text-[#a1a1aa]">
+              {t('search.noResults', { query: debouncedQuery })}
             </div>
           ) : (
             <ul className="py-2">
@@ -296,11 +298,11 @@ export const GlobalSearchBar = () => {
                     }}
                     className={`flex items-start gap-3 px-4 py-2.5 transition-colors ${
                       idx === selectedIndex
-                        ? 'bg-slate-100'
-                        : 'hover:bg-slate-50'
+                        ? 'bg-[#1a1c22]'
+                        : 'hover:bg-[#1a1c22]'
                     }`}
                   >
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100">
+                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a1c22]">
                       {r.type === 'user' && r.avatarUrl ? (
                         <img src={r.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
                       ) : (
@@ -309,26 +311,26 @@ export const GlobalSearchBar = () => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-semibold text-slate-900">
+                        <span className="truncate text-sm font-semibold text-[#f4f4f5]">
                           <HighlightedText text={r.type === 'user' ? (r.fullName || r.username) : r.name} query={debouncedQuery} />
                         </span>
-                        <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-500">
-                          {r.type === 'user' ? 'Person' : r.type === 'club' ? 'Club' : 'Event'}
+                        <span className="shrink-0 rounded-full bg-[#1a1c22] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#a1a1aa]">
+                          {r.type === 'user' ? t('search.person') : r.type === 'club' ? t('search.club') : t('search.event')}
                         </span>
                       </div>
                       {r.type === 'user' && r.position && (
-                        <p className="mt-0.5 truncate text-xs text-slate-500">{r.position}</p>
+                        <p className="mt-0.5 truncate text-xs text-[#a1a1aa]">{r.position}</p>
                       )}
                       {r.type === 'user' && !r.position && r.username && (
-                        <p className="mt-0.5 truncate text-xs text-slate-500">@{r.username}</p>
+                        <p className="mt-0.5 truncate text-xs text-[#a1a1aa]">@{r.username}</p>
                       )}
                       {r.type === 'club' && (
-                        <p className="mt-0.5 text-xs text-slate-500">
-                          {[r.city, r.memberCount > 0 ? `${r.memberCount} members` : null].filter(Boolean).join(' · ') || 'Club'}
+                        <p className="mt-0.5 text-xs text-[#a1a1aa]">
+                          {[r.city, r.memberCount > 0 ? t('search.members', { count: r.memberCount }) : null].filter(Boolean).join(' · ') || t('search.club')}
                         </p>
                       )}
                       {r.type === 'tournament' && (
-                        <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
+                        <p className="mt-0.5 line-clamp-1 text-xs text-[#a1a1aa]">
                           <HighlightedText text={r.description ?? ''} query={debouncedQuery} />
                         </p>
                       )}

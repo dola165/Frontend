@@ -55,6 +55,92 @@ export interface ClubMembershipApplication {
     status: ClubApplicationStatus;
     message?: string | null;
     createdAt?: string | null;
+    position?: string | null;
+    ageGroup?: string | null;
+    jobId?: number | null;
+    jobTitle?: string | null;
+    // Phase A3 — applicant summary
+    age?: number | null;
+    preferredFoot?: string | null;
+    heightCm?: number | null;
+    currentClubName?: string | null;
+    careerHistoryCount?: number | null;
+    isMinor?: boolean | null;
+    currentConsentStatus?: string | null;
+}
+
+export interface BulkApplicationDecisionRequestPayload {
+    applicationIds: number[];
+    action: 'ACCEPT' | 'DECLINE';
+    message?: string | null;
+}
+
+export interface BulkApplicationDecisionResult {
+    applicationId: number;
+    status: 'ACCEPT' | 'DECLINE' | 'SKIPPED';
+    reason?: string | null;
+}
+
+export interface BulkApplicationDecisionResponse {
+    results: BulkApplicationDecisionResult[];
+}
+
+// Phase A4 — player club journey
+export interface ClubJourneyApplication {
+    applicationId: number;
+    clubId: number;
+    clubName: string;
+    role?: string | null;
+    status: string;
+    createdAt?: string | null;
+    decisionMessage?: string | null;
+}
+
+export interface ClubJourneyInvitation {
+    inviteId: number;
+    clubId: number;
+    clubName: string;
+    role?: string | null;
+    createdAt?: string | null;
+    expiresAt?: string | null;
+}
+
+export interface ClubJourneyTryout {
+    tryoutApplicationId: number;
+    tryoutId: number;
+    clubId: number;
+    clubName: string;
+    title?: string | null;
+    tryoutDate?: string | null;
+    status: string;
+    decisionMessage?: string | null;
+}
+
+export interface ClubJourneyAffiliation {
+    clubId: number;
+    clubName: string;
+    status: string;
+    squadName?: string | null;
+    trialEndsOn?: string | null;
+    consentStatus?: string | null;
+    joinedAt?: string | null;
+    endedAt?: string | null;
+}
+
+export interface ClubJourneyDecision {
+    kind: 'APPLICATION' | 'TRYOUT';
+    clubName: string;
+    status: string;
+    decidedAt?: string | null;
+    message?: string | null;
+}
+
+export interface ClubJourney {
+    applications: ClubJourneyApplication[];
+    invitations: ClubJourneyInvitation[];
+    tryouts: ClubJourneyTryout[];
+    affiliations: ClubJourneyAffiliation[];
+    recentDecisions: ClubJourneyDecision[];
 }
 
 export interface ClubManagementOverview {
@@ -84,6 +170,8 @@ export interface ClubPlayerAffiliation {
     parentEmail?: string | null;
     parentalConsentStatus?: string | null;
     parentalConsentAt?: string | null;
+    trialEndsOn?: string | null;
+    requiresParentalConsent?: boolean | null;
 }
 
 export interface ClubInviteCandidate {

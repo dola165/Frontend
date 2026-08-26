@@ -1,5 +1,5 @@
 import { createUser, createClub, createPost, createComment, resetFactoryCounters } from './factories';
-import { users, clubs, posts, comments, currentUserId, followedClubIds, events, nextEventId, resetStore, products, playerCards, type StoreProduct, type StorePlayerCard } from './store';
+import { users, clubs, posts, comments, currentUserId, followedClubIds, events, nextEventId, resetStore, products, playerCards, jobs, type StoreProduct, type StorePlayerCard } from './store';
 import { resetIds } from './ids';
 
 export const seed = () => {
@@ -25,11 +25,16 @@ export const seed = () => {
   [u1, u2, u3, u4, u5, u6, u7].forEach((u) => users().set(u.id, u));
 
   // -- clubs --
-  const c1 = createClub({ id: 1, name: 'Creekside FC', ownerId: u1.id, city: 'Bristol', description: 'Grassroots community club. Open trials every Saturday.', joinPolicy: 'OPEN_TRIAL', memberCount: 42 });
-  const c2 = createClub({ id: 2, name: 'Metro United Academy', ownerId: u2.id, city: 'Manchester', description: 'Youth development academy. U14–U18 squads competing in regional leagues.', joinPolicy: 'APPLICATION_REQUIRED', memberCount: 128 });
-  const c3 = createClub({ id: 3, name: 'Lakeside Athletic', ownerId: u3.id, city: 'London', description: 'Semi-professional club. First team in the Isthmian League.', joinPolicy: 'INVITE_ONLY', memberCount: 56 });
+  const c1 = createClub({ id: 1, name: 'Creekside FC', ownerId: u1.id, city: 'Bristol', description: 'Grassroots community club. Open trials every Saturday.', joinPolicy: 'OPEN_TRIAL', category: 'AMATEUR_CLUB', memberCount: 42 });
+  const c2 = createClub({ id: 2, name: 'Metro United Academy', ownerId: u2.id, city: 'Manchester', description: 'Youth development academy. U14–U18 squads competing in regional leagues.', joinPolicy: 'APPLICATION_REQUIRED', category: 'PRIVATE_ACADEMY', memberCount: 128 });
+  const c3 = createClub({ id: 3, name: 'Lakeside Athletic', ownerId: u3.id, city: 'London', description: 'Semi-professional club. First team in the Isthmian League.', joinPolicy: 'INVITE_ONLY', category: 'PROFESSIONAL_ACADEMY', memberCount: 56 });
 
   [c1, c2, c3].forEach((c) => clubs().set(c.id, c));
+
+  // -- club jobs (item 5): seeded for the Business tab demo --
+  const j1 = { id: 101, clubId: c2.id, title: 'U14 goalkeeper coach wanted', description: 'Lead the U14 keepers through the regional league season. Two evening sessions per week.', ageGroup: 'U14', level: 'EXPERIENCED', status: 'OPEN' as const, createdBy: u2.id, applicationCount: 1, createdAt: new Date().toISOString() };
+  const j2 = { id: 102, clubId: c2.id, title: 'Fitness coach — first team', description: 'Pre-season conditioning and recovery programmes for the senior squad.', ageGroup: 'SENIOR', level: 'LICENSED', status: 'OPEN' as const, createdBy: u2.id, applicationCount: 0, createdAt: new Date().toISOString() };
+  [j1, j2].forEach((j) => jobs().set(j.id, j));
 
   // -- player cards (Aug 17: workspace Player Cards tab + roster edit demo) --
   // U12 card for Creekside — no photo by rule; pseudo-userId so the roster

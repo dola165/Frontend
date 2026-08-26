@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, Loader2, Pencil, ShieldCheck, Trash2, X } from 'lucide-react';
+import { ChevronLeft, Loader2, Pencil, Plus, ShieldCheck, Trash2, Users, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../api/axiosConfig';
 import { SquadRosterTable, type SquadRosterGroup } from '../components/squads/SquadRosterTable';
 import { SquadRosterGrid } from '../components/squads/SquadRosterGrid';
@@ -31,6 +32,7 @@ interface SquadDto {
 export const ClubSquadsPage = () => {
     const { id } = useParams<{ id: string }>();
     const [searchParams, setSearchParams] = useSearchParams();
+    const { t } = useTranslation();
     const [club, setClub] = useState<ClubSquadHeader | null>(null);
     const [squads, setSquads] = useState<SquadDto[]>([]);
     const [groups, setGroups] = useState<SquadRosterGroup[]>([]);
@@ -329,8 +331,19 @@ export const ClubSquadsPage = () => {
                 {/* CENTER */}
                 <div className="flex flex-col gap-4">
                     {squads.length === 0 ? (
-                        <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d] p-5 text-center">
-                            <p className="text-sm text-[#a1a1aa]">No registered squads for this club yet.</p>
+                        <div className="rounded-xl border border-[#ffffff0d] bg-[#16181d] px-5 py-12 text-center">
+                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#ffffff0d] bg-[#0f1117]">
+                                <Users className="h-6 w-6 text-[#16a34a]" />
+                            </div>
+                            <p className="mt-4 text-sm font-semibold text-[#f4f4f5]">{t('squads.emptyTitle')}</p>
+                            <p className="mx-auto mt-1.5 max-w-sm text-sm leading-5 text-[#a1a1aa]">{t('squads.emptyDescription')}</p>
+                            {isClubAdmin && (
+                                <Link to={`/clubs/${club.id}/workspace?tab=squads`}
+                                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+                                    <Plus className="h-4 w-4" />
+                                    {t('squads.createSquad')}
+                                </Link>
+                            )}
                         </div>
                     ) : loadingRoster ? (
                         <div className="flex justify-center py-10">

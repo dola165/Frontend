@@ -1,6 +1,6 @@
-import { Building2, CalendarDays, Camera, Flag, Phone, Trophy, Users } from 'lucide-react';
+import { Briefcase, Building2, CalendarDays, Camera, Flag, Phone, Trophy, Users } from 'lucide-react';
 
-export type ClubNavigationTab = 'overview' | 'honours' | 'teams' | 'schedule' | 'media' | 'events' | 'contact';
+export type ClubNavigationTab = 'overview' | 'honours' | 'teams' | 'schedule' | 'media' | 'events' | 'business' | 'contact';
 
 export interface ClubNavigationClubSummary {
     honours?: Array<unknown>;
@@ -52,6 +52,12 @@ export const clubNavigationItems: ClubNavigationItem[] = [
         icon: Flag,
         label: 'Events',
         toneClassName: 'club-tone-blue'
+    },
+    {
+        id: 'business',
+        icon: Briefcase,
+        label: 'Business',
+        toneClassName: 'club-tone-green'
     },
     {
         id: 'contact',

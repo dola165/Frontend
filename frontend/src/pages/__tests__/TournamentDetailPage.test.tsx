@@ -79,14 +79,14 @@ describe('TournamentDetailPage', () => {
     it('shows error state when API fails', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('fail'));
         renderPage();
-        expect(await screen.findByText('Event Not Found')).toBeInTheDocument();
+        expect(await screen.findByText('Tournament Not Found')).toBeInTheDocument();
         expect(screen.getByText('Failed to load tournament details.')).toBeInTheDocument();
     });
 
     it('shows not-found state when tournament is null', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(null);
         renderPage();
-        expect(await screen.findByText('Event Not Found')).toBeInTheDocument();
+        expect(await screen.findByText('Tournament Not Found')).toBeInTheDocument();
     });
 
     it('renders tournament name and description on success', async () => {
@@ -96,10 +96,10 @@ describe('TournamentDetailPage', () => {
         expect(screen.getByText('A seasonal tournament')).toBeInTheDocument();
     });
 
-    it('shows the Back to Events link', async () => {
+    it('shows the Back to Tournaments link', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
         renderPage();
-        expect(await screen.findByText(/Back to Events/)).toBeInTheDocument();
+        expect(await screen.findByText(/Back to Tournaments/)).toBeInTheDocument();
     });
 
     it('shows status badge', async () => {

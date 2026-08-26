@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapPin, Search, ShoppingBag } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Building2, MapPin, Search, ShoppingBag } from 'lucide-react';
 import { PageSpinner } from '../components/workspace/helpers';
 import { EmptyStateCard } from '../components/workspace/EmptyStateCard';
 import { PaginationBar } from '../components/ui/PaginationBar';
@@ -24,6 +25,7 @@ const EMPTY_REGION: RegionFilter = { country: null, city: null, clubId: null };
  */
 export const StorePage = () => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const [products, setProducts] = useState<StoreProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -259,6 +261,9 @@ export const StorePage = () => {
                         icon={ShoppingBag}
                         title={t('store.emptyTitle')}
                         description={t('store.emptyDescription')}
+                        actionLabel={t('store.emptyCta')}
+                        actionIcon={Building2}
+                        onAction={() => navigate('/clubs')}
                     />
                 ) : (
                     <>

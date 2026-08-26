@@ -104,6 +104,19 @@ const normalizeManagementPath = (notification: NotificationItem, path: string) =
 };
 
 export const buildNotificationDestination = (notification: NotificationItem) => {
+    // P1 W6 (audit H7): schedule events/challenges live on /calendar. The web
+    // app has no /clubs/{id}/schedule route, so any schedule-type notification
+    // (including stale rows written before the backend fix) lands there.
+    if (notification.type.startsWith('SCHEDULE_EVENT_') || notification.type.startsWith('SCHEDULE_CHALLENGE_')) {
+        return '/calendar';
+    }
+
+    // P1 W4/W6: the player-journey membership notifications land on /account
+    // (journey panel). Explicit mappings also override stale linkPaths.
+    if (notification.type === 'CLUB_MEMBERSHIP_ACTIVATED' || notification.type === 'TRIAL_ENDED') {
+        return '/account';
+    }
+
     if (notification.linkPath) {
         return normalizeManagementPath(notification, notification.linkPath);
     }

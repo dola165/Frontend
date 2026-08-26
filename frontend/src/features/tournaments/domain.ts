@@ -78,6 +78,7 @@ export interface TournamentEntryDto {
     confirmedAt: string | null;
     withdrawnAt: string | null;
     withdrawalReason: string | null;
+    draftTeamId?: number | null;
 }
 
 export interface TournamentStageDto {
@@ -87,6 +88,7 @@ export interface TournamentStageDto {
     stageType: TournamentStageType;
     stageOrder: number;
     status: TournamentStageStatus;
+    advanceCount: number | null;
 }
 
 export interface TournamentFixtureDto {
@@ -117,6 +119,11 @@ export interface DraftTeamDto {
     createdAt: string;
 }
 
+export interface DraftTeamFakeMemberDto {
+    id: number;
+    name: string;
+}
+
 export interface DraftTeamDetailDto {
     id: number;
     name: string;
@@ -125,6 +132,7 @@ export interface DraftTeamDetailDto {
     createdBy: number | null;
     createdAt: string;
     members: TournamentEntryDto[];
+    fakeMembers?: DraftTeamFakeMemberDto[] | null;
 }
 
 export interface TournamentDetail {
@@ -137,7 +145,7 @@ export interface TournamentDetail {
     hostClubId?: number | null;
     participantScope: TournamentParticipantScope;
     visibility: TournamentVisibility;
-    registrationPolicy?: 'OPEN' | 'INVITE_ONLY' | null;
+    registrationPolicy?: 'OPEN' | 'APPROVAL_ONLY' | 'INVITE_ONLY' | null;
     startDate?: string | null;
     endDate?: string | null;
     registrationOpensAt?: string | null;
@@ -147,7 +155,10 @@ export interface TournamentDetail {
     entries: TournamentEntryDto[];
     stages: TournamentStageDto[];
     fixtures: TournamentFixtureDto[];
+    championEntryId?: number | null;
+    championName?: string | null;
     incentives?: string | null;
+    bannerImageUrl?: string | null;
 }
 
 export interface RequestTournamentEntryPayload {
@@ -164,12 +175,24 @@ export interface CreateDraftTeamPayload {
     name: string;
 }
 
+export interface UpdateDraftTeamPayload {
+    name: string;
+}
+
 export interface AddDraftTeamMembersPayload {
     entryIds: number[];
 }
 
+export interface AddDraftTeamFakeMemberPayload {
+    name: string;
+}
+
+export interface UpdateEntrySquadPayload {
+    squadId: number | null;
+}
+
 export interface CompleteFixturePayload {
-    winnerEntryId: number;
+    winnerEntryId: number | null;
     homeScore?: number | null;
     awayScore?: number | null;
 }
@@ -177,6 +200,58 @@ export interface CompleteFixturePayload {
 export interface UpdateFixtureScoresPayload {
     homeScore?: number | null;
     awayScore?: number | null;
+}
+
+export interface CreateStagePayload {
+    parentStageId?: number | null;
+    name: string;
+    stageType: TournamentStageType;
+    stageOrder: number;
+    advanceCount?: number | null;
+    bracketSize?: number | null;
+}
+
+export interface CreateFixturePayload {
+    homeEntryId?: number | null;
+    awayEntryId?: number | null;
+    roundNumber: number;
+    fixtureOrder: number;
+    scheduledAt?: string | null;
+    locationId?: number | null;
+}
+
+export interface UpdateFixtureParticipantsPayload {
+    homeEntryId?: number | null;
+    awayEntryId?: number | null;
+}
+
+export interface MoveEntryPayload {
+    entryId: number;
+    targetFixtureId: number;
+    targetSlot: 'HOME' | 'AWAY';
+}
+
+export interface ReplaceEntryPayload {
+    slot: 'HOME' | 'AWAY';
+    replacementEntryId: number;
+}
+
+export interface UpdateSeedingPayload {
+    entries: { entryId: number; seed: number }[];
+}
+
+export interface GroupStandingsRow {
+    entryId: number;
+    entryName: string;
+    entryType: 'CLUB' | 'FREE_AGENT' | 'DRAFT_TEAM';
+    played: number;
+    won: number;
+    drawn: number;
+    lost: number;
+    goalsFor: number;
+    goalsAgainst: number;
+    goalDifference: number;
+    points: number;
 }
 
 export interface TournamentSummary {
@@ -196,6 +271,7 @@ export interface TournamentSummary {
     registrationClosesAt?: string | null;
     entryCount: number;
     incentives?: string | null;
+    bannerImageUrl?: string | null;
 }
 
 export type TournamentInvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
@@ -241,12 +317,13 @@ export interface UpdateTournamentPayload {
     description?: string | null;
     rules?: string | null;
     visibility?: TournamentVisibility | null;
-    registrationPolicy?: 'OPEN' | 'INVITE_ONLY' | null;
+    registrationPolicy?: 'OPEN' | 'APPROVAL_ONLY' | 'INVITE_ONLY' | null;
     startDate?: string | null;
     endDate?: string | null;
     registrationOpensAt?: string | null;
     registrationClosesAt?: string | null;
     incentives?: string | null;
+    bannerImageUrl?: string | null;
 }
 
 export interface PageResult<T> {
@@ -295,7 +372,7 @@ export const tournamentVisibilityLabel = (visibility?: string | null) => {
 export const entryStatusTone = (status: string) => {
     switch (status) {
         case 'ACTIVE': return 'success';
-        case 'PENDING': return 'warning';
+        case 'PENDING': case 'WAITLISTED': return 'warning';
         case 'APPROVED': return 'info';
         case 'REJECTED': case 'WITHDRAWN': case 'ELIMINATED': return 'danger';
         case 'COMPLETED': return 'neutral';
@@ -316,6 +393,7 @@ export const entryTypeLabel = (entry: TournamentEntryDto): string => {
     if (entry.squadId != null) return 'Squad';
     if (entry.clubId != null) return 'Club';
     if (entry.userId != null) return 'Player';
+    if (entry.draftTeamId != null) return 'Draft team';
     return 'Unknown';
 };
 

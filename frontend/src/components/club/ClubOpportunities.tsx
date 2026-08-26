@@ -1,4 +1,4 @@
-import { ArrowRight, Briefcase, ExternalLink, HeartHandshake, ShoppingBag } from 'lucide-react';
+import { ArrowRight, Briefcase, ExternalLink, ShoppingBag } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
@@ -148,49 +148,6 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                                 </div>
                             </div>
                         )}
-
-                        {/* Talanti Foundation — Charity/Fundraising (hardcoded, always visible) */}
-                        <div className="pt-3">
-                            <div
-                                className="rounded-[4px] border px-3.5 py-3.5"
-                                style={{
-                                    background: 'rgba(10,10,12,0.6)',
-                                    borderColor: 'var(--club-tone-pink)',
-                                }}
-                            >
-                                <div className="flex items-center justify-between gap-3">
-                                    <span className="flex items-center gap-2 text-sm font-semibold text-[color:var(--club-tone-pink)]">
-                                        <HeartHandshake className="h-4 w-4" />
-                                        Talanti Foundation
-                                    </span>
-                                </div>
-                                <p className="mt-1.5 text-xs text-[#a1a1aa] leading-relaxed">
-                                    Support community football projects and youth development. Clubs and players run their own fundraisers.
-                                </p>
-                                <div className="mt-2.5 flex gap-2">
-                                    <a
-                                        href="https://www.gofundme.com/discover"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors hover:bg-[rgba(255,107,157,0.08)]"
-                                        style={{ borderColor: 'rgba(255,107,157,0.3)', color: 'var(--club-tone-pink)' }}
-                                    >
-                                        Donate
-                                        <ExternalLink className="h-3 w-3" />
-                                    </a>
-                                    <a
-                                        href="https://www.gofundme.com/create"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-[4px] border px-3 py-2 text-xs font-semibold transition-colors hover:bg-[rgba(255,255,255,0.04)]"
-                                        style={{ borderColor: 'var(--club-theme-border-subtle)', color: 'var(--club-theme-text-secondary)' }}
-                                    >
-                                        Start a Fundraiser
-                                        <ExternalLink className="h-3 w-3" />
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     {onOpenModule && (

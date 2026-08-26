@@ -81,3 +81,64 @@ describe('buildNotificationDestination — Aug 17 deep-link audit (P2.5)', () =>
         expect(destination).toBe('/clubs/3/workspace?tab=tryouts');
     });
 });
+
+describe('buildNotificationDestination — P1 W6 deep-link sweep (H7 + W4 types)', () => {
+    it('routes every SCHEDULE_EVENT_* type to /calendar, overriding stale club-schedule links', () => {
+        for (const type of ['SCHEDULE_EVENT_CREATED', 'SCHEDULE_EVENT_UPDATED', 'SCHEDULE_EVENT_PUBLISHED']) {
+            expect(buildNotificationDestination(notification({
+                type,
+                scope: 'CLUB',
+                clubId: 7,
+                linkPath: '/clubs/7/schedule'
+            }))).toBe('/calendar');
+        }
+    });
+
+    it('routes every SCHEDULE_CHALLENGE_* type to /calendar even without a linkPath', () => {
+        for (const type of ['SCHEDULE_CHALLENGE_RECEIVED', 'SCHEDULE_CHALLENGE_ACCEPTED', 'SCHEDULE_CHALLENGE_REJECTED']) {
+            expect(buildNotificationDestination(notification({
+                type,
+                scope: 'CLUB',
+                clubId: 9,
+                linkPath: null
+            }))).toBe('/calendar');
+        }
+    });
+
+    it('routes CLUB_MEMBERSHIP_ACTIVATED to /account (player journey), overriding a stale club link', () => {
+        expect(buildNotificationDestination(notification({
+            type: 'CLUB_MEMBERSHIP_ACTIVATED',
+            scope: 'PERSONAL',
+            clubId: 4,
+            linkPath: '/clubs/4'
+        }))).toBe('/account');
+    });
+
+    it('routes TRIAL_ENDED to /account even without a linkPath', () => {
+        expect(buildNotificationDestination(notification({
+            type: 'TRIAL_ENDED',
+            scope: 'PERSONAL',
+            clubId: 4,
+            linkPath: null
+        }))).toBe('/account');
+    });
+
+    it('keeps the review-marked-valid club workspace mappings intact', () => {
+        expect(buildNotificationDestination(notification({
+            type: 'CLUB_APPLICATION_RECEIVED',
+            clubId: 3,
+            linkPath: null
+        }))).toBe('/clubs/3/workspace?tab=applications');
+        expect(buildNotificationDestination(notification({
+            type: 'CLUB_INVITATION_DECLINED',
+            clubId: 5,
+            linkPath: null
+        }))).toBe('/clubs/5/workspace?tab=invites');
+        expect(buildNotificationDestination(notification({
+            type: 'SQUAD_ASSIGNMENT',
+            clubId: 6,
+            entityId: 12,
+            linkPath: null
+        }))).toBe('/clubs/6/squads?squad=12');
+    });
+});

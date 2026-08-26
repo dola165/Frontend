@@ -84,6 +84,8 @@ const toClubProfile = (c: ReturnType<typeof clubs> extends Map<number, infer T> 
   relationshipState: relationshipForUser(c.id),
   pendingApplicationId: null,
   pendingApplicationRole: null,
+  pendingApplicationJobId: null, // mock limitation — job applications don't persist a profile link
+  category: c.category ?? null,
   addressText: c.city,
   logoUrl: c.logoUrl ?? undefined,
   bannerUrl: c.bannerUrl ?? undefined,
@@ -106,6 +108,30 @@ const toClubProfile = (c: ReturnType<typeof clubs> extends Map<number, infer T> 
 });
 
 export const clubHandlers: HttpHandler[] = [
+
+  // -- GET /me/club-journey (phase A4) --
+  http.get(`${API}/me/club-journey`, async () => {
+    await simulateLatency();
+    return HttpResponse.json({
+      applications: [
+        { applicationId: 601, clubId: 2, clubName: 'Metro United Academy', role: 'PLAYER', status: 'PENDING', createdAt: new Date(Date.now() - 86400000).toISOString(), decisionMessage: null },
+        { applicationId: 602, clubId: 3, clubName: 'Lakeside Athletic', role: 'PLAYER', status: 'DECLINED', createdAt: new Date(Date.now() - 604800000).toISOString(), decisionMessage: 'This intake is full — try again at our next tryouts. Keep training!' },
+      ],
+      invitations: [
+        { inviteId: 701, clubId: 4, clubName: 'Creekside FC', role: 'PLAYER', createdAt: new Date(Date.now() - 43200000).toISOString(), expiresAt: new Date(Date.now() + 6 * 86400000).toISOString() },
+      ],
+      tryouts: [
+        { tryoutApplicationId: 801, tryoutId: 11, clubId: 2, clubName: 'Metro United Academy', title: 'U15 Open Tryout', tryoutDate: new Date(Date.now() + 3 * 86400000).toISOString(), status: 'ACCEPTED', decisionMessage: 'Thursday 18:00, pitch 2. Bring boots, shin pads and water.' },
+      ],
+      affiliations: [
+        { clubId: 2, clubName: 'Metro United Academy', status: 'TRIALIST', squadName: 'U15', trialEndsOn: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10), consentStatus: 'PENDING', joinedAt: new Date(Date.now() - 172800000).toISOString(), endedAt: null },
+      ],
+      recentDecisions: [
+        { kind: 'TRYOUT', clubName: 'Metro United Academy', status: 'ACCEPTED', decidedAt: new Date(Date.now() - 3600000).toISOString(), message: 'Thursday 18:00, pitch 2. Bring boots, shin pads and water.' },
+        { kind: 'APPLICATION', clubName: 'Lakeside Athletic', status: 'DECLINED', decidedAt: new Date(Date.now() - 259200000).toISOString(), message: 'This intake is full — try again at our next tryouts. Keep training!' },
+      ],
+    });
+  }),
 
   // -- GET /clubs (returns flat List<ClubProfileDto>) --
   http.get(`${API}/clubs`, async ({ request }) => {
@@ -358,10 +384,46 @@ export const clubHandlers: HttpHandler[] = [
     return new HttpResponse(null, { status: 200 });
   }),
 
-  // -- GET /clubs/:id/management/applications --
-  http.get(`${API}/clubs/:clubId/management/applications`, async () => {
+  // -- GET /clubs/:id/management/applications (phase A3: enriched + filters) --
+  http.get(`${API}/clubs/:clubId/management/applications`, async ({ request }) => {
     await simulateLatency();
-    return HttpResponse.json([]);
+    const url = new URL(request.url);
+    const position = url.searchParams.get('position');
+    const ageGroup = url.searchParams.get('ageGroup');
+    const status = url.searchParams.get('status');
+
+    type AppRow = {
+      id: number; userId: number; fullName: string | null; username: string; avatarUrl: string | null;
+      role: string; status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED'; message: string | null;
+      createdAt: string; position: string | null; ageGroup: string | null; jobId: number | null; jobTitle: string | null;
+      age: number | null; preferredFoot: string | null; heightCm: number | null;
+      currentClubName: string | null; careerHistoryCount: number | null; isMinor: boolean | null; currentConsentStatus: string | null;
+    };
+    const seed: AppRow[] = [
+      { id: 501, userId: 21, fullName: 'Luka Trialist', username: 'luka.trial', avatarUrl: null, role: 'PLAYER', status: 'PENDING', message: 'I want to join the U15s.', createdAt: new Date(Date.now() - 86400000).toISOString(), position: 'STRIKER', ageGroup: 'U15', jobId: null, jobTitle: null, age: 15, preferredFoot: 'LEFT', heightCm: 176, currentClubName: 'Saburtalo Academy', careerHistoryCount: 2, isMinor: true, currentConsentStatus: 'PENDING' },
+      { id: 502, userId: 22, fullName: 'Nika Goalkeeper', username: 'nika.gk', avatarUrl: null, role: 'PLAYER', status: 'PENDING', message: 'GK looking for a club.', createdAt: new Date(Date.now() - 172800000).toISOString(), position: 'GOALKEEPER', ageGroup: 'U16', jobId: null, jobTitle: null, age: 17, preferredFoot: 'RIGHT', heightCm: 188, currentClubName: null, careerHistoryCount: 4, isMinor: true, currentConsentStatus: null },
+      { id: 503, userId: 23, fullName: 'Adult Coach Candidate', username: 'coach.cand', avatarUrl: null, role: 'COACH', status: 'DECLINED', message: 'U14 coach opening.', createdAt: new Date(Date.now() - 259200000).toISOString(), position: null, ageGroup: 'U14', jobId: null, jobTitle: null, age: 32, preferredFoot: null, heightCm: null, currentClubName: null, careerHistoryCount: null, isMinor: false, currentConsentStatus: null },
+    ];
+    let rows = seed;
+    if (status) rows = rows.filter((r) => r.status === status);
+    else rows = rows.filter((r) => r.status === 'PENDING');
+    if (position) rows = rows.filter((r) => r.position === position);
+    if (ageGroup) rows = rows.filter((r) => r.ageGroup === ageGroup);
+    return HttpResponse.json(rows);
+  }),
+
+  // -- POST /clubs/:id/applications/bulk-decide (phase A3) --
+  http.post(`${API}/clubs/:clubId/applications/bulk-decide`, async ({ request }) => {
+    await simulateLatency();
+    const body = await request.json().catch(() => ({})) as { applicationIds?: number[]; action?: string };
+    const ids = body.applicationIds ?? [];
+    return HttpResponse.json({
+      results: ids.map((id) => ({
+        applicationId: id,
+        status: id === 503 ? 'SKIPPED' : body.action ?? 'ACCEPT',
+        reason: id === 503 ? 'Only pending applications can be decided.' : null,
+      })),
+    });
   }),
 
   // -- POST /clubs/:id/management/applications/:appId/accept (returns empty 200) --
@@ -400,28 +462,67 @@ export const clubHandlers: HttpHandler[] = [
     const url = new URL(request.url);
     const page = Number(url.searchParams.get('page') ?? 0);
     const size = Number(url.searchParams.get('size') ?? 20);
+    const status = url.searchParams.get('status');
 
     const POSITIONS = ['GK', 'DEF', 'MID', 'FWD', 'DEF', 'MID', 'FWD', 'GK', 'DEF', 'MID', 'FWD', 'DEF'];
-    const all = [...users().values()].map((u, i) => ({
-      userId: u.id, fullName: u.fullName, username: u.username, avatarUrl: u.avatarUrl,
-      status: 'ACTIVE' as const, primary: u.id === currentUserId(),
+    type PlayerRow = {
+        userId: number; fullName: string | null; username: string | null; avatarUrl: string | null;
+        status: 'ACTIVE' | 'TRIALIST'; primary: boolean; source: string; joinedAt: string; endedAt: null;
+        position: string | null; jerseyNumber: number | null; trialEndsOn: string | null;
+        requiresParentalConsent: boolean; parentalConsentStatus?: string | null; parentEmail?: string | null;
+    };
+    const all: PlayerRow[] = [...users().values()].map((u, i) => ({
+      userId: u.id, fullName: u.fullName ?? null, username: u.username ?? null, avatarUrl: u.avatarUrl ?? null,
+      status: 'ACTIVE', primary: u.id === currentUserId(),
       source: 'invited', joinedAt: new Date(Date.now() - (i * 86400000 * 30)).toISOString(), endedAt: null,
       position: u.position || POSITIONS[i % POSITIONS.length],
       jerseyNumber: i + 1,
+      trialEndsOn: null,
+      requiresParentalConsent: false,
     }));
 
-    return HttpResponse.json(paginate(all, page, size));
+    // Phase A1/A5 — a demo trialist so the trialists queue is visible in mock
+    // mode; the consent flag is set (A5) so the consent column offers "Send consent".
+    all.push({
+      userId: 999, fullName: 'Giorgi Trialist', username: 'giorgi.trial', avatarUrl: null,
+      status: 'TRIALIST', primary: false, source: 'application',
+      joinedAt: new Date(Date.now() - 5 * 86400000).toISOString(), endedAt: null,
+      position: 'FWD', jerseyNumber: null, trialEndsOn: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
+      requiresParentalConsent: true, parentalConsentStatus: 'NOT_REQUIRED', parentEmail: null,
+    });
+
+    const filtered = status ? all.filter((p) => p.status === status) : all;
+    return HttpResponse.json(paginate(filtered, page, size));
   }),
 
   // -- PATCH /clubs/:id/players/:userId (returns ClubPlayerAffiliationDto) --
-  http.patch(`${API}/clubs/:clubId/players/:userId`, async ({ params }) => {
+  http.patch(`${API}/clubs/:clubId/players/:userId`, async ({ params, request }) => {
     await simulateLatency();
     const u = users().get(Number(params.userId));
+    const body = (await request.json().catch(() => ({}))) as { status?: string; trialEndsOn?: string | null };
+    const isTrialistSeed = Number(params.userId) === 999;
     return HttpResponse.json({
-      userId: Number(params.userId), fullName: u?.fullName ?? null,
-      username: u?.username, avatarUrl: u?.avatarUrl ?? null,
-      status: 'ACTIVE', primary: false, source: 'invited',
+      userId: Number(params.userId), fullName: isTrialistSeed ? 'Giorgi Trialist' : u?.fullName ?? null,
+      username: isTrialistSeed ? 'giorgi.trial' : u?.username, avatarUrl: u?.avatarUrl ?? null,
+      status: isTrialistSeed ? 'TRIALIST' : body.status ?? 'ACTIVE', primary: false,
+      source: isTrialistSeed ? 'application' : 'invited',
       joinedAt: new Date().toISOString(), endedAt: null,
+      trialEndsOn: body.trialEndsOn ?? null,
+    });
+  }),
+
+  // -- POST /clubs/:id/players/:userId/promote (phase A1) --
+  http.post(`${API}/clubs/:clubId/players/:userId/promote`, async ({ params, request }) => {
+    await simulateLatency();
+    const u = users().get(Number(params.userId));
+    const body = (await request.json().catch(() => ({}))) as { squadId?: number; trialEndsOn?: string | null };
+    const isTrialistSeed = Number(params.userId) === 999;
+    return HttpResponse.json({
+      userId: Number(params.userId), fullName: isTrialistSeed ? 'Giorgi Trialist' : u?.fullName ?? null,
+      username: isTrialistSeed ? 'giorgi.trial' : u?.username, avatarUrl: u?.avatarUrl ?? null,
+      status: 'ACTIVE', primary: true, source: 'application',
+      joinedAt: new Date().toISOString(), endedAt: null,
+      trialEndsOn: body.trialEndsOn ?? null,
     });
   }),
 
@@ -588,6 +689,8 @@ export const clubHandlers: HttpHandler[] = [
       ageGroup: (body.ageGroup as string | null) ?? null,
       level: (body.level as string | null) ?? null,
       status: 'OPEN',
+      createdBy: currentUserId(),
+      applicationCount: 0,
       createdAt: new Date().toISOString(),
     };
     jobs().set(job.id, job);
@@ -611,6 +714,32 @@ export const clubHandlers: HttpHandler[] = [
     await simulateLatency();
     jobs().delete(Number(params.jobId));
     return HttpResponse.json({ message: 'Job posting deleted.' });
+  }),
+
+  // -- per-job applications (item 5): job creator or club owner/admin only --
+  http.get(`${API}/clubs/:clubId/jobs/:jobId/applications`, async ({ params }) => {
+    await simulateLatency();
+    const job = jobs().get(Number(params.jobId));
+    if (!job || job.clubId !== Number(params.clubId)) {
+      return HttpResponse.json({ error: 'Job posting not found.' }, { status: 404 });
+    }
+    return HttpResponse.json([
+      {
+        id: 9001,
+        userId: 6,
+        fullName: 'Saba Youth',
+        username: 'saba.y',
+        avatarUrl: null,
+        role: 'COACH',
+        status: 'PENDING',
+        message: 'I coach U14 goalkeepers and would love to join the academy staff.',
+        createdAt: new Date().toISOString(),
+        position: 'Goalkeeper Coach',
+        ageGroup: 'U14',
+        jobId: job.id,
+        jobTitle: job.title,
+      },
+    ]);
   }),
 
   // -- parental consent + activation (Sprint 3) --

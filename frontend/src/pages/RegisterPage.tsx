@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
-import { Loader2, AlertCircle, Check } from 'lucide-react';
+import { Loader2, AlertCircle, Check, MailCheck } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -24,7 +24,7 @@ import {
     authRoleCardClass,
 } from '../components/auth/authClasses';
 
-type RoleOption = 'PLAYER' | 'FAN' | 'ORGANIZER' | 'AGENT';
+type RoleOption = 'PLAYER' | 'FAN' | 'ORGANIZER';
 
 type RegisterField = 'name' | 'email' | 'password' | 'confirmPassword' | 'dob';
 
@@ -44,6 +44,10 @@ export const RegisterPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [fieldErrors, setFieldErrors] = useState<Partial<Record<RegisterField, string>>>({});
+    const [registrationSent, setRegistrationSent] = useState(false);
+    const [sentEmail, setSentEmail] = useState('');
+    const [isResending, setIsResending] = useState(false);
+    const [resendMessage, setResendMessage] = useState<string | null>(null);
     const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '/feed');
 
     // Backend password rule (CreateUserDto: @Size(min=8) + uppercase + lowercase + digit).
@@ -59,7 +63,6 @@ export const RegisterPage = () => {
     const roleOptions: ReadonlyArray<{ id: RoleOption; label: string; desc: string }> = [
         { id: 'PLAYER', label: t('auth.register.rolePlayer'), desc: t('auth.register.rolePlayerDesc') },
         { id: 'ORGANIZER', label: t('auth.register.roleOrganizer'), desc: t('auth.register.roleOrganizerDesc') },
-        { id: 'AGENT', label: t('auth.register.roleAgent'), desc: t('auth.register.roleAgentDesc') },
         { id: 'FAN', label: t('auth.register.roleFan'), desc: t('auth.register.roleFanDesc') },
     ];
 
@@ -111,7 +114,20 @@ export const RegisterPage = () => {
 
         try {
             const normalizedEmail = email.trim();
-            await apiClient.post('/auth/register', { email: normalizedEmail, password, role, dateOfBirth: dob });
+            const registerRes = await apiClient.post<{
+                message?: string;
+                emailVerificationRequired?: boolean;
+            }>('/auth/register', { email: normalizedEmail, password, role, dateOfBirth: dob });
+
+            // Email verification required (production): the account exists but
+            // cannot log in until the inbox link is clicked. Show the inbox
+            // state instead of attempting a login that is guaranteed to 403.
+            if (registerRes.data?.emailVerificationRequired) {
+                setSentEmail(normalizedEmail);
+                setRegistrationSent(true);
+                return;
+            }
+
             const loginRes = await apiClient.post('/auth/login', { email: normalizedEmail, password });
             const authenticatedUser = await loginWithAccessToken(loginRes.data.accessToken);
             navigate(authenticatedUser.profileComplete ? nextPath : '/onboarding');
@@ -120,6 +136,21 @@ export const RegisterPage = () => {
             setError(extractApiErrorMessage(err, t('auth.register.errSubmitFallback')));
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleResendVerification = async () => {
+        setIsResending(true);
+        setResendMessage(null);
+        try {
+            const res = await apiClient.post<{ message?: string }>('/auth/resend-verification', {
+                email: sentEmail,
+            });
+            setResendMessage(res.data?.message ?? 'Verification email sent.');
+        } catch (err) {
+            setResendMessage(extractApiErrorMessage(err, 'Could not resend the verification email. Please try again.'));
+        } finally {
+            setIsResending(false);
         }
     };
 
@@ -146,6 +177,46 @@ export const RegisterPage = () => {
             setIsLoading(false);
         }
     };
+
+    if (registrationSent) {
+        return (
+            <AuthSplitShell
+                heroMicro={t('auth.register.heroMicro')}
+                heroTitle={t('auth.register.heroTitle')}
+                heroTagline={t('auth.register.heroTagline')}
+                chips={[t('auth.register.chipFollow'), t('auth.register.chipEvents'), t('auth.register.chipFree')]}
+                footer={
+                    <>
+                        {t('auth.register.alreadyHave')}{' '}
+                        <Link to="/login" className="text-[#16a34a] hover:underline ml-1">
+                            {t('auth.register.goLogin')}
+                        </Link>
+                    </>
+                }
+            >
+                <div className="flex flex-col items-center gap-4 py-4 text-center">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-[color:var(--accent-muted-soft)] bg-[color:var(--accent-muted-soft)]">
+                        <MailCheck className="h-8 w-8 text-[#16a34a]" />
+                    </div>
+                    <h2 className="text-xl font-semibold uppercase tracking-tight text-[#f4f4f5]">Check your inbox</h2>
+                    <p className="text-sm text-[#a1a1aa]">
+                        We sent a verification link to{' '}
+                        <span className="font-semibold text-[#f4f4f5]">{sentEmail}</span>. Confirm it to activate
+                        your account.
+                    </p>
+                    {resendMessage && <p className="text-xs font-semibold text-[#a1a1aa]">{resendMessage}</p>}
+                    <button
+                        type="button"
+                        onClick={() => void handleResendVerification()}
+                        disabled={isResending}
+                        className={authPrimaryButtonClass}
+                    >
+                        {isResending ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Resend Verification Email'}
+                    </button>
+                </div>
+            </AuthSplitShell>
+        );
+    }
 
     return (
         <AuthSplitShell

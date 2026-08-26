@@ -26,6 +26,7 @@ export interface MapMarkerDto {
     scheduleEventId?: number | null;
     logoUrl?: string | null;
     joinPolicy?: string | null;
+    category?: string | null;
 }
 
 export interface MapPageResult {
@@ -43,6 +44,7 @@ export interface NearbyMapParams {
     gender?: string[];
     ageGroups?: string[];
     level?: string[];
+    category?: string[];
     cities?: string[];
     countries?: string[];
     query?: string;
@@ -71,6 +73,9 @@ export const fetchNearbyMap = async (params: NearbyMapParams): Promise<MapPageRe
     if (params.level && params.level.length > 0) {
         params.level.forEach((l) => searchParams.append('level', l));
     }
+    if (params.category && params.category.length > 0) {
+        params.category.forEach((c) => searchParams.append('category', c));
+    }
     if (params.cities && params.cities.length > 0) {
         params.cities.forEach((c) => searchParams.append('cities', c));
     }
@@ -84,5 +89,23 @@ export const fetchNearbyMap = async (params: NearbyMapParams): Promise<MapPageRe
     if (params.size != null) searchParams.set('size', String(params.size));
 
     const response = await apiClient.get<MapPageResult>(`/map/nearby?${searchParams.toString()}`);
+    return response.data;
+};
+
+export type GeocodeResultType = 'CITY' | 'COUNTRY';
+
+export interface GeocodeResult {
+    name: string;
+    cityName: string | null;
+    countryName: string | null;
+    countryCode: string | null;
+    latitude: number;
+    longitude: number;
+    type: GeocodeResultType;
+}
+
+/** Resolves a city or country name against the backend locations table (global, zero external deps). */
+export const geocodePlace = async (q: string): Promise<GeocodeResult[]> => {
+    const response = await apiClient.get<GeocodeResult[]>(`/map/geocode?q=${encodeURIComponent(q.trim())}`);
     return response.data;
 };

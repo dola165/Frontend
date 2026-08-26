@@ -1,9 +1,11 @@
-import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import MapGL, { Layer, Marker, Source, GeolocateControl, NavigationControl, useMap } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
     Building2,
+    Check,
     ChevronLeft,
     Clock,
     ExternalLink,
@@ -18,8 +20,10 @@ import {
     Users,
     X
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { apiClient, API_ORIGIN } from '../api/axiosConfig';
-import { fetchNearbyMap, type MapMarkerDto } from '../api/map';
+import { fetchNearbyMap, geocodePlace, type MapMarkerDto } from '../api/map';
+import { applyToTryout } from '../api/tryouts';
 import { MapHelpHint } from '../components/map/MapHelpHint';
 import { MapModeControl } from '../components/map/MapModeControl';
 import { MapFilterSidebar, defaultMapFilters, type MapEntityType, type MapFilters } from '../components/map/MapFilterSidebar';
@@ -27,6 +31,7 @@ import { useAuth } from '../context/AuthContext';
 import { fetchMyClubMembershipContext } from '../features/clubs/api';
 import { isLeadershipRole } from '../features/clubs/domain';
 import { createScheduleChallenge, type ScheduleEventOccurrence } from '../features/schedule/api';
+import { extractApiErrorMessage } from '../utils/apiError';
 import { usePersistedState } from '../utils/usePersistedState';
 
 // Map v2 (WEB_APP_MASTER_PLAN.md §3): three user-selectable modes. FLAT is the
@@ -155,30 +160,6 @@ const toIsoWindow = (date: Date) => {
     return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 };
 
-const haversineKm = (from: [number, number], latitude?: number | null, longitude?: number | null) => {
-    if (latitude == null || longitude == null) {
-        return Number.POSITIVE_INFINITY;
-    }
-    const toRadians = (value: number) => (value * Math.PI) / 180;
-    const latDelta = toRadians(latitude - from[0]);
-    const lngDelta = toRadians(longitude - from[1]);
-    const a =
-        Math.sin(latDelta / 2) ** 2 +
-        Math.cos(toRadians(from[0])) * Math.cos(toRadians(latitude)) * Math.sin(lngDelta / 2) ** 2;
-    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-
-const extractCityCountry = (value?: string | null) => {
-    if (!value) {
-        return { city: null, country: null };
-    }
-    const parts = value.split(',').map((part) => part.trim()).filter(Boolean);
-    return {
-        city: parts[0] ?? null,
-        country: parts.length > 1 ? parts[parts.length - 1] : null
-    };
-};
-
 const getTimeWindow = (value?: string | null) => {
     if (!value) return null;
     const parsed = new Date(value);
@@ -187,45 +168,6 @@ const getTimeWindow = (value?: string | null) => {
     if (hour < 12) return 'Morning';
     if (hour < 18) return 'Afternoon';
     return 'Evening';
-};
-
-const joinSearchText = (...parts: Array<string | null | undefined>) => normalizeText(parts.filter(Boolean).join(' '));
-
-const buildClubRecord = (club: ClubDirectoryRecord): DiscoveryRecord => {
-    const city = club.cityName ?? extractCityCountry(club.addressText).city;
-    const country = club.countryName ?? extractCityCountry(club.addressText).country;
-    return {
-        key: `club:${club.id}`,
-        entityType: 'CLUB',
-        source: 'CLUB',
-        title: club.name,
-        subtitle: club.type || null,
-        description: club.description || null,
-        clubId: club.id,
-        clubName: club.name,
-        startsAt: null,
-        endsAt: null,
-        locationName: club.addressText ?? null,
-        latitude: club.latitude ?? null,
-        longitude: club.longitude ?? null,
-        official: Boolean(club.isOfficial),
-        followerCount: club.followerCount ?? 0,
-        memberCount: club.memberCount ?? 0,
-        distanceKm: null,
-        typeLabel: club.type || null,
-        statusLabel: club.statusLabel ?? null,
-        matchSubtype: null,
-        challengeState: null,
-        locationState: club.latitude != null && club.longitude != null ? 'PINNED' : 'OPEN_VENUE',
-        ageGroups: [],
-        genders: [],
-        level: null,
-        travelPreference: null,
-        city,
-        country,
-        searchText: joinSearchText(club.name, club.description, club.addressText, club.type),
-        joinPolicy: club.joinPolicy ?? null
-    };
 };
 
 const buildMapMarkerRecord = (marker: MapMarkerDto): DiscoveryRecord => {
@@ -302,12 +244,12 @@ const getMarkerTone = (record: DiscoveryRecord) => {
     }
 };
 
-function MapFocusController({ target, onSettled }: { target: [number, number] | null; onSettled: () => void }) {
+function MapFocusController({ target, onSettled }: { target: { center: [number, number]; zoom?: number } | null; onSettled: () => void }) {
     const { current: map } = useMap();
 
     useEffect(() => {
         if (!target || !map) return;
-        map.flyTo({ center: [target[1], target[0]], duration: 350 });
+        map.flyTo({ center: [target.center[1], target.center[0]], zoom: target.zoom, duration: 350 });
         onSettled();
     }, [map, onSettled, target]);
 
@@ -515,6 +457,29 @@ const DiscoveryDetailPanel = ({
     onClose: () => void;
 }) => {
     const [detailsOpen, setDetailsOpen] = useState(false);
+    const { t } = useTranslation();
+    const [applyState, setApplyState] = useState<'idle' | 'applying' | 'applied'>('idle');
+    const [applyError, setApplyError] = useState<string | null>(null);
+
+    // W2 — tryout self-service apply. The backend enforces the club's join
+    // policy: INVITE_ONLY clubs answer 409 (ConflictException) and we surface
+    // the server message verbatim ("This club only accepts invited players.").
+    const handleApply = async () => {
+        const tryoutId = record.rawMapMarker?.entityId;
+        if (!tryoutId || applyState === 'applying' || applyState === 'applied') {
+            return;
+        }
+        setApplyState('applying');
+        setApplyError(null);
+        try {
+            await applyToTryout(tryoutId);
+            setApplyState('applied');
+        } catch (requestError) {
+            console.error('Failed to apply to tryout', requestError);
+            setApplyState('idle');
+            setApplyError(extractApiErrorMessage(requestError, t('map.tryouts.applyFailed')));
+        }
+    };
 
     const directionsUrl = buildGoogleMapsDirectionsUrl(record.latitude, record.longitude);
     const bannerUrl = resolveMediaUrl(clubProfile?.bannerUrl);
@@ -766,6 +731,35 @@ const DiscoveryDetailPanel = ({
                     Respond
                 </button>
             )}
+
+            {record.entityType === 'TRYOUT' && (
+                <button
+                    type="button"
+                    onClick={() => void handleApply()}
+                    disabled={applyState === 'applying' || applyState === 'applied'}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[color:#16a34a] py-2.5 text-[14px] font-bold text-white hover:opacity-90 transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    {applyState === 'applying' ? (
+                        <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            {t('map.tryouts.applying')}
+                        </>
+                    ) : applyState === 'applied' ? (
+                        <>
+                            <Check className="h-4 w-4" />
+                            {t('map.tryouts.applied')}
+                        </>
+                    ) : (
+                        t('map.tryouts.apply')
+                    )}
+                </button>
+            )}
+
+            {applyError && (
+                <p className="text-center text-[13px] font-medium" style={{ color: 'var(--state-danger)' }}>
+                    {applyError}
+                </p>
+            )}
         </div>
     </div>
     );
@@ -774,23 +768,27 @@ const DiscoveryDetailPanel = ({
 export const MapPage = () => {
     const navigate = useNavigate();
     const { status, user } = useAuth();
-    const [filters, setFilters] = useState<MapFilters>(defaultMapFilters);
-    const [fetchVersion, setFetchVersion] = useState(0);
-    const triggerFetch = useCallback(() => setFetchVersion((v) => v + 1), []);
+    const { t } = useTranslation();
+    // Draft vs committed split (MAP_SEARCH_AND_CLUB_JOBS_PLAN.md item 4): every
+    // control writes to the draft only; a single Apply commits the draft and
+    // triggers exactly one fetch. Typing in the toolbar is equally draft-only.
+    const [committedFilters, setCommittedFilters] = useState<MapFilters>(defaultMapFilters);
+    const [draftFilters, setDraftFilters] = useState<MapFilters>(defaultMapFilters);
+    const [draftSearch, setDraftSearch] = useState('');
+    const [committedSearch, setCommittedSearch] = useState('');
+    const [placeSearch, setPlaceSearch] = useState('');
     const [isFilterOpen, setIsFilterOpen] = useState(true);
-    const [searchInput, setSearchInput] = useState('');
-    const deferredSearch = useDeferredValue(searchInput.trim());
     const [viewportCenter, setViewportCenter] = useState<[number, number]>(DEFAULT_CENTER);
+    // The anchor the last fetch used — a geocoded place when one was resolved,
+    // otherwise the viewport center at Apply time.
+    const [queryCenter, setQueryCenter] = useState<[number, number]>(DEFAULT_CENTER);
     const [currentZoom, setCurrentZoom] = useState(11);
-    const [focusTarget, setFocusTarget] = useState<[number, number] | null>(null);
+    const [focusTarget, setFocusTarget] = useState<{ center: [number, number]; zoom?: number } | null>(null);
     const [loading, setLoading] = useState(true);
     const [initialLoad, setInitialLoad] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [mapMarkers, setMapMarkers] = useState<MapMarkerDto[]>([]);
-    const [clubRecords, setClubRecords] = useState<DiscoveryRecord[]>([]);
-    const [_totalMapElements, setTotalMapElements] = useState(0);
-    const [currentPage, _setCurrentPage] = useState(0);
-    const [_hasMorePages, setHasMorePages] = useState(false);
+    const [resultCount, setResultCount] = useState<number | null>(null);
     const [membership, setMembership] = useState<{ clubId?: number | null; clubName?: string | null; myRole?: string | null } | null>(null);
     const [mapMode, setMapMode] = usePersistedState<MapMode>('map.mapMode', 'flat');
     const [modeWarningDismissed, setModeWarningDismissed] = usePersistedState<boolean>('map.modeWarningDismissed', false);
@@ -808,13 +806,18 @@ export const MapPage = () => {
     }, [user?.role, membership?.myRole]);
 
     useEffect(() => {
-        setFilters((current) => {
+        const clamp = (current: MapFilters): MapFilters => {
             const clamped = current.entityType.filter((t) => viewerAllowedTypes.includes(t));
             const next = clamped.length > 0 ? clamped : viewerAllowedTypes;
             if (next.length === current.entityType.length && next.every((t, i) => t === current.entityType[i])) {
                 return current;
             }
             return { ...current, entityType: next };
+        };
+        setDraftFilters(clamp);
+        setCommittedFilters((current) => {
+            const next = clamp(current);
+            return next === current ? current : next;
         });
     }, [viewerAllowedTypes]);
     const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -838,85 +841,91 @@ export const MapPage = () => {
                         ? fetchMyClubMembershipContext().catch(() => null)
                         : Promise.resolve(null);
 
-                const wantsClubs = filters.entityType.includes('CLUB');
-                const nonClubTypes = filters.entityType.filter((t) => t !== 'CLUB');
-
-                // --- Fetch clubs globally from /api/clubs (no spatial filter) ---
-                const clubPromise: Promise<ClubDirectoryRecord[]> = wantsClubs
-                    ? (async () => {
-                        const params = new URLSearchParams();
-                        params.set('size', '100');
-                        params.set('sort', 'NAME');
-                        if (filters.clubs.city) params.set('city', filters.clubs.city);
-                        if (filters.clubs.country) params.set('country', filters.clubs.country);
-                        if (deferredSearch) params.set('search', deferredSearch);
-                        if (filters.clubs.officialOnly) {
-                            // No server-side officialOnly — filter client-side
-                        }
-                        const res = await apiClient.get<ClubDirectoryRecord[] | { content: ClubDirectoryRecord[] }>(
-                            `/clubs?${params.toString()}`
-                        );
-                        const data = res.data;
-                        return Array.isArray(data) ? data : data?.content ? data.content : [];
-                    })()
-                    : Promise.resolve([] as ClubDirectoryRecord[]);
-
-                // --- Fetch non-club entities from spatial endpoint ---
-                const isTryoutSelected = nonClubTypes.includes('TRYOUT');
-                const isMatchSelected = nonClubTypes.includes('MATCH');
-                const activeDateWindow = isTryoutSelected ? filters.tryouts.dateWindow :
-                    isMatchSelected ? filters.matches.dateWindow : null;
+                // One spatial call for every selected type — clubs included. The
+                // server applies ST_DWithin radius + filters; nothing is refetched
+                // until the committed inputs change (Apply / amber button / clamp).
+                const types = committedFilters.entityType;
+                const isTryoutSelected = types.includes('TRYOUT');
+                const isMatchSelected = types.includes('MATCH');
+                const activeDateWindow = isTryoutSelected ? committedFilters.tryouts.dateWindow :
+                    isMatchSelected ? committedFilters.matches.dateWindow : null;
                 let dateFrom: string | undefined;
                 let dateTo: string | undefined;
-                if (activeDateWindow && activeDateWindow !== 'ANY' && nonClubTypes.length > 0) {
+                if (activeDateWindow && activeDateWindow !== 'ANY' && types.length > 0) {
                     const now = new Date();
                     dateFrom = toIsoWindow(now);
                     const days = activeDateWindow === 'NEXT_7_DAYS' ? 7 : activeDateWindow === 'NEXT_30_DAYS' ? 30 : 90;
                     dateTo = toIsoWindow(new Date(now.getTime() + days * 24 * 60 * 60 * 1000));
                 }
 
-                const serverAgeGroups = (isTryoutSelected && filters.tryouts.ageGroups.length > 0) ? filters.tryouts.ageGroups
-                    : (isMatchSelected && filters.matches.ageGroups.length > 0) ? filters.matches.ageGroups : undefined;
-                const serverGender = (isTryoutSelected && filters.tryouts.genders.length > 0) ? filters.tryouts.genders
-                    : (isMatchSelected && filters.matches.genders.length > 0) ? filters.matches.genders : undefined;
-                const serverLevel = isMatchSelected && filters.matches.levels.length > 0 ? filters.matches.levels : undefined;
+                // Club attribute filters (plan doc item 2): union the club-section
+                // values with the tryout/match values. Club gender chips are mapped
+                // to the stored squads tokens (Boys/Men→MALE, Girls/Women→FEMALE,
+                // Mixed→MIXED); the server canonicalizes the rest.
+                const clubGenderTokens = committedFilters.clubs.genders.map((g) => {
+                    switch (g) {
+                        case 'Boys':
+                        case 'Men': return 'MALE';
+                        case 'Girls':
+                        case 'Women': return 'FEMALE';
+                        case 'Mixed': return 'MIXED';
+                    }
+                });
+                const serverAgeGroups = [
+                    ...(isTryoutSelected ? committedFilters.tryouts.ageGroups : []),
+                    ...(isMatchSelected ? committedFilters.matches.ageGroups : []),
+                    ...(types.includes('CLUB') ? committedFilters.clubs.ageGroups : [])
+                ];
+                const serverGender = [
+                    ...(isTryoutSelected ? committedFilters.tryouts.genders : []),
+                    ...(isMatchSelected ? committedFilters.matches.genders : []),
+                    ...clubGenderTokens
+                ];
+                const serverLevel = [
+                    ...(isMatchSelected ? committedFilters.matches.levels : []),
+                    ...(types.includes('CLUB') ? committedFilters.clubs.levels : [])
+                ];
+                const serverCategories = types.includes('CLUB') && committedFilters.clubs.categories.length > 0
+                    ? committedFilters.clubs.categories : undefined;
 
-                const spatialCity = filters.tryouts.city || filters.matches.city || undefined;
-                const spatialCountry = filters.tryouts.country || filters.matches.country || undefined;
+                const cities = [
+                    ...(types.includes('CLUB') && committedFilters.clubs.city ? [committedFilters.clubs.city] : []),
+                    ...(types.includes('TRYOUT') && committedFilters.tryouts.city ? [committedFilters.tryouts.city] : []),
+                    ...(types.includes('MATCH') && committedFilters.matches.city ? [committedFilters.matches.city] : [])
+                ];
+                const countries = [
+                    ...(types.includes('CLUB') && committedFilters.clubs.country ? [committedFilters.clubs.country] : []),
+                    ...(types.includes('TRYOUT') && committedFilters.tryouts.country ? [committedFilters.tryouts.country] : []),
+                    ...(types.includes('MATCH') && committedFilters.matches.country ? [committedFilters.matches.country] : [])
+                ];
 
-                const spatialPromise: Promise<{ content: MapMarkerDto[]; totalElements: number }> =
-                    nonClubTypes.length > 0
-                        ? fetchNearbyMap({
-                            lat: viewportCenter[0],
-                            lng: viewportCenter[1],
-                            radius: 250, // max radius — client-side distanceKm slider still filters visually
-                            type: nonClubTypes as MapEntityType[],
-                            cities: spatialCity ? [spatialCity] : undefined,
-                            countries: spatialCountry ? [spatialCountry] : undefined,
-                            query: deferredSearch || undefined,
-                            dateFrom,
-                            dateTo,
-                            ageGroups: serverAgeGroups,
-                            gender: serverGender,
-                            level: serverLevel,
-                            page: currentPage,
-                            size: 50
-                        })
-                        : Promise.resolve({ content: [], totalElements: 0 });
+                const mapPromise = fetchNearbyMap({
+                    lat: queryCenter[0],
+                    lng: queryCenter[1],
+                    radius: committedFilters.distanceKm,
+                    type: types,
+                    cities: cities.length > 0 ? [...new Set(cities)] : undefined,
+                    countries: countries.length > 0 ? [...new Set(countries)] : undefined,
+                    query: committedSearch || undefined,
+                    dateFrom,
+                    dateTo,
+                    ageGroups: serverAgeGroups.length > 0 ? serverAgeGroups : undefined,
+                    gender: serverGender.length > 0 ? serverGender : undefined,
+                    level: serverLevel.length > 0 ? serverLevel : undefined,
+                    category: serverCategories,
+                    page: 0,
+                    size: 100
+                });
 
-                const [membershipContext, clubs, mapData] = await Promise.all([
+                const [membershipContext, mapData] = await Promise.all([
                     membershipPromise,
-                    clubPromise,
-                    spatialPromise
+                    mapPromise
                 ]);
 
                 if (!active) return;
 
-                const clubRecs = clubs.map(buildClubRecord);
-                setClubRecords(clubRecs);
                 setMapMarkers(mapData.content);
-                setTotalMapElements(clubRecs.length + mapData.totalElements);
-                setHasMorePages((currentPage + 1) * 50 < mapData.totalElements);
+                setResultCount(mapData.totalElements);
                 setMembership(membershipContext);
                 setInitialLoad(false);
             } catch (requestError) {
@@ -932,21 +941,15 @@ export const MapPage = () => {
         return () => {
             active = false;
         };
-    }, [status, fetchVersion]);
-
-    // Re-fetch when filters change (skip initial mount)
-    const initialFiltersRef = useRef(filters);
-    useEffect(() => {
-        if (filters !== initialFiltersRef.current) triggerFetch();
-    }, [filters]);
+    }, [status, committedFilters, committedSearch, queryCenter]);
 
     const allRecords = useMemo(
-        () => [...clubRecords, ...mapMarkers.map(buildMapMarkerRecord)],
-        [mapMarkers, clubRecords]
+        () => mapMarkers.map(buildMapMarkerRecord),
+        [mapMarkers]
     );
 
     const suggestions = useMemo(() => {
-        const query = normalizeText(searchInput);
+        const query = normalizeText(draftSearch);
         if (!query) {
             return [] as SearchSuggestion[];
         }
@@ -976,51 +979,52 @@ export const MapPage = () => {
         }
 
         return Array.from(deduped.values()).slice(0, 6);
-    }, [allRecords, searchInput]);
+    }, [allRecords, draftSearch]);
 
     const filteredRecords = useMemo(() => {
-        const query = normalizeText(deferredSearch);
+        const query = normalizeText(committedSearch);
 
         return allRecords.filter((record) => {
             // Type filtering handled server-side; client only filters what server can't
             if (query && !record.searchText.includes(query)) return false;
 
             if (record.entityType === 'CLUB') {
-                if (filters.clubs.officialOnly && !record.official) return false;
-                if (filters.clubs.openTryoutsOnly && record.joinPolicy === 'INVITE_ONLY') return false;
+                if (committedFilters.clubs.officialOnly && !record.official) return false;
+                if (committedFilters.clubs.openTryoutsOnly && record.joinPolicy === 'INVITE_ONLY') return false;
                 return true;
             }
 
             // Time-of-day filter (server doesn't handle this)
-            const timeWindows = record.entityType === 'TRYOUT' ? filters.tryouts.timeWindows : filters.matches.timeWindows;
+            const timeWindows = record.entityType === 'TRYOUT' ? committedFilters.tryouts.timeWindows : committedFilters.matches.timeWindows;
             if (timeWindows.length > 0) {
                 const window = getTimeWindow(record.startsAt);
                 if (!window || !timeWindows.includes(window)) return false;
             }
 
             // Age/level/gender from extracted text (server doesn't extract these)
-            const selectedGenders = record.entityType === 'TRYOUT' ? filters.tryouts.genders : filters.matches.genders;
+            const selectedGenders = record.entityType === 'TRYOUT' ? committedFilters.tryouts.genders : committedFilters.matches.genders;
             if (selectedGenders.length > 0 && !record.genders.some((gender) => selectedGenders.includes(gender))) return false;
 
             // Level filter only applies to matches (tryouts don't have a level dimension)
-            if (record.entityType === 'MATCH' && filters.matches.levels.length > 0
-                && (!record.level || !filters.matches.levels.includes(record.level))) return false;
+            if (record.entityType === 'MATCH' && committedFilters.matches.levels.length > 0
+                && (!record.level || !committedFilters.matches.levels.includes(record.level))) return false;
 
-            const selectedAges = record.entityType === 'TRYOUT' ? filters.tryouts.ageGroups : filters.matches.ageGroups;
+            const selectedAges = record.entityType === 'TRYOUT' ? committedFilters.tryouts.ageGroups : committedFilters.matches.ageGroups;
             if (selectedAges.length > 0 && !record.ageGroups.some((ageGroup) => selectedAges.includes(ageGroup))) return false;
 
             if (record.entityType === 'MATCH') {
-                if (record.matchSubtype && filters.matches.subtypes.length > 0 && !filters.matches.subtypes.includes(record.matchSubtype)) return false;
+                if (record.matchSubtype && committedFilters.matches.subtypes.length > 0 && !committedFilters.matches.subtypes.includes(record.matchSubtype)) return false;
             }
 
             // Server already filtered by gender/age/level/date for MATCH and TRYOUT
             return true;
         });
-    }, [allRecords, deferredSearch, filters]);
+    }, [allRecords, committedSearch, committedFilters]);
 
     const sortedRecords = useMemo(() => {
         const records = [...filteredRecords];
-        const distanceFor = (record: DiscoveryRecord) => haversineKm(viewportCenter, record.latitude, record.longitude);
+        // Server-computed geodesic distance from the query center (ST_Distance).
+        const distanceFor = (record: DiscoveryRecord) => record.distanceKm ?? Number.POSITIVE_INFINITY;
         const timestampFor = (record: DiscoveryRecord) => {
             if (!record.startsAt) return Number.MAX_SAFE_INTEGER;
             const parsed = new Date(record.startsAt).getTime();
@@ -1028,13 +1032,13 @@ export const MapPage = () => {
         };
 
         const compareBySort = (left: DiscoveryRecord, right: DiscoveryRecord) => {
-            if (filters.sortBy === 'DISTANCE') {
+            if (committedFilters.sortBy === 'DISTANCE') {
                 return distanceFor(left) - distanceFor(right) || left.title.localeCompare(right.title);
             }
-            if (filters.sortBy === 'SOONEST') {
+            if (committedFilters.sortBy === 'SOONEST') {
                 return timestampFor(left) - timestampFor(right) || left.title.localeCompare(right.title);
             }
-            if (filters.sortBy === 'NAME') {
+            if (committedFilters.sortBy === 'NAME') {
                 return left.title.localeCompare(right.title);
             }
 
@@ -1044,17 +1048,13 @@ export const MapPage = () => {
         };
 
         return records.sort(compareBySort);
-    }, [filteredRecords, filters.sortBy, viewportCenter]);
+    }, [filteredRecords, committedFilters.sortBy]);
 
+    // Server-side ST_DWithin already applied the committed radius — keep only the
+    // lat/lng guard here (markers without a pin never render).
     const mapRecords = useMemo(
-        () =>
-            sortedRecords.filter((record) => {
-                if (record.latitude == null || record.longitude == null) {
-                    return false;
-                }
-                return haversineKm(viewportCenter, record.latitude, record.longitude) <= filters.distanceKm;
-            }),
-        [filters.distanceKm, sortedRecords, viewportCenter]
+        () => sortedRecords.filter((record) => record.latitude != null && record.longitude != null),
+        [sortedRecords]
     );
 
     const mapClusters = useMemo(() => {
@@ -1075,10 +1075,12 @@ export const MapPage = () => {
 
     const radiusVignette = useMemo(() => {
         const maxRadius = 150;
-        if (filters.distanceKm >= maxRadius) return null;
+        if (committedFilters.distanceKm >= maxRadius) return null;
 
-        const center = viewportCenter;
-        const distanceKm = filters.distanceKm;
+        // Anchored to the query center (the place the last fetch resolved against),
+        // not the live viewport — the vignette must match the fetched data.
+        const center = queryCenter;
+        const distanceKm = committedFilters.distanceKm;
         const numPoints = 72;
         const R = 6371;
 
@@ -1119,7 +1121,7 @@ export const MapPage = () => {
                 ],
             },
         };
-    }, [filters.distanceKm, viewportCenter]);
+    }, [committedFilters.distanceKm, queryCenter]);
 
     const selectedRecord = useMemo(() => sortedRecords.find((record) => record.key === selectedKey) ?? null, [sortedRecords, selectedKey]);
     const activeCluster = useMemo(() => mapClusters.find((cluster) => cluster.key === activeClusterKey) ?? null, [activeClusterKey, mapClusters]);
@@ -1159,7 +1161,7 @@ export const MapPage = () => {
         setSelectedKey(record.key);
         setActiveClusterKey(null);
         if (record.latitude != null && record.longitude != null) {
-            setFocusTarget([record.latitude, record.longitude]);
+            setFocusTarget({ center: [record.latitude, record.longitude] });
         }
     }, []);
 
@@ -1183,10 +1185,13 @@ export const MapPage = () => {
     );
 
     const handleSuggestionPick = (suggestion: SearchSuggestion) => {
-        setSearchInput(suggestion.label);
+        // Commit the picked text — the fetch effect refires on committedSearch
+        // and narrows results server-side; the client filter follows.
+        setDraftSearch(suggestion.label);
+        setCommittedSearch(suggestion.label);
         if (suggestion.center) {
             setViewportCenter(suggestion.center);
-            setFocusTarget(suggestion.center);
+            setFocusTarget({ center: suggestion.center });
         }
         if (suggestion.recordKey) {
             const record = allRecords.find((entry) => entry.key === suggestion.recordKey);
@@ -1200,6 +1205,49 @@ export const MapPage = () => {
         setActiveClusterKey(null);
         selectRecord(cluster.records[0]);
     };
+
+    // W7b — zero-results empty state: widen the committed radius to the slider
+    // max and refetch in place (the fetch effect refires on committedFilters).
+    const widenRadius = useCallback(() => {
+        setDraftFilters((current) => ({ ...current, distanceKm: 150 }));
+        setCommittedFilters((current) => ({ ...current, distanceKm: 150 }));
+    }, []);
+
+    // Single commit path (plan items 1+4): geocode the place text when present
+    // (empty/error aborts the whole commit and leaves the draft intact), then
+    // commit the draft — the fetch effect refires on the committed inputs.
+    const commitAndFetch = useCallback(
+        async (opts: { center?: [number, number]; zoom?: number; fly?: boolean } = {}) => {
+            let center = opts.center ?? viewportCenter;
+            let zoom = opts.zoom;
+
+            const place = placeSearch.trim();
+            if (place) {
+                try {
+                    const results = await geocodePlace(place);
+                    if (results.length === 0) {
+                        toast.error(`No place found for "${place}"`);
+                        return;
+                    }
+                    const top = results[0];
+                    center = [top.latitude, top.longitude];
+                    zoom = top.type === 'CITY' ? 11.5 : 5.5;
+                    toast.success(`Flew to ${top.name}`);
+                } catch (placeError) {
+                    toast.error(extractApiErrorMessage(placeError, 'Could not resolve that place.'));
+                    return;
+                }
+            }
+
+            setCommittedFilters(draftFilters);
+            setCommittedSearch(draftSearch.trim());
+            setQueryCenter(center);
+            if (opts.fly || zoom != null) {
+                setFocusTarget({ center, zoom });
+            }
+        },
+        [draftFilters, draftSearch, placeSearch, viewportCenter]
+    );
 
     const submitResponse = async () => {
         const scheduleEventId = responseModalRecord?.rawMapMarker?.scheduleEventId;
@@ -1371,11 +1419,38 @@ export const MapPage = () => {
                     <div className="map-empty-panel max-w-md px-6 py-6 text-center text-sm leading-6 text-[#a1a1aa]">{error}</div>
                 </div>
             )}
+            {!initialLoad && !loading && !error && mapRecords.length === 0 && (
+                <div className="pointer-events-auto absolute left-1/2 top-1/2 z-[700] w-[min(92vw,340px)] -translate-x-1/2 -translate-y-1/2">
+                    <div className="map-empty-panel px-6 py-6 text-center">
+                        <MapPin className="mx-auto h-6 w-6 text-[#16a34a]" />
+                        <p className="mt-3 text-sm font-semibold text-[#f4f4f5]">{t('map.empty.title')}</p>
+                        <p className="mt-1.5 text-xs leading-5 text-[#a1a1aa]">{t('map.empty.subtitle')}</p>
+                        <button
+                            type="button"
+                            onClick={widenRadius}
+                            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                        >
+                            <LocateFixed className="h-3.5 w-3.5" />
+                            {t('map.empty.widenCta')}
+                        </button>
+                    </div>
+                </div>
+            )}
             <div className="pointer-events-none flex h-full min-h-0">
                 <MapFilterSidebar
                     isVisible={isFilterOpen}
-                    filters={filters}
-                    onFiltersChange={setFilters}
+                    draftFilters={draftFilters}
+                    onDraftChange={setDraftFilters}
+                    onApply={() => void commitAndFetch({ fly: true })}
+                    onResetAll={() => {
+                        setDraftFilters(defaultMapFilters);
+                        setDraftSearch('');
+                        setPlaceSearch('');
+                    }}
+                    applying={loading}
+                    resultCount={resultCount}
+                    placeSearch={placeSearch}
+                    onPlaceSearchChange={setPlaceSearch}
                     allowedEntityTypes={viewerAllowedTypes}
                     onClose={() => setIsFilterOpen(false)}
                 />
@@ -1403,8 +1478,8 @@ export const MapPage = () => {
                                             <Search className="h-3.5 w-3.5 text-[#a1a1aa] shrink-0" />
                                             <input
                                                 type="text"
-                                                value={searchInput}
-                                                onChange={(event) => setSearchInput(event.target.value)}
+                                                value={draftSearch}
+                                                onChange={(event) => setDraftSearch(event.target.value)}
                                                 onKeyDown={(event) => {
                                                     if (event.key === 'Enter' && suggestions[0]) {
                                                         handleSuggestionPick(suggestions[0]);
@@ -1413,8 +1488,8 @@ export const MapPage = () => {
                                                 placeholder="Search..."
                                                 className="map-search-input text-xs"
                                             />
-                                            {searchInput && (
-                                                <button type="button" onClick={() => setSearchInput('')} className="map-icon-button shrink-0">
+                                            {draftSearch && (
+                                                <button type="button" onClick={() => setDraftSearch('')} className="map-icon-button shrink-0">
                                                     <X className="h-3.5 w-3.5" />
                                                 </button>
                                             )}
@@ -1442,23 +1517,22 @@ export const MapPage = () => {
 
                                     <span className="map-count-chip">{toolbarCount}</span>
 
-                                    {filters.entityType.some(t => t !== 'CLUB') && (
-                                        <button
-                                            type="button"
-                                            onClick={triggerFetch}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f59e0b]/15 border border-[#f59e0b]/25 text-[#f59e0b] text-xs font-semibold hover:bg-[#f59e0b]/25 transition-colors shrink-0"
-                                            title="Search this area"
-                                        >
-                                            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-                                            <span className="hidden sm:inline">Search this area</span>
-                                        </button>
-                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => void commitAndFetch({ center: viewportCenter })}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f59e0b]/15 border border-[#f59e0b]/25 text-[#f59e0b] text-xs font-semibold hover:bg-[#f59e0b]/25 transition-colors shrink-0"
+                                        title="Search this area"
+                                    >
+                                        <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                                        <span className="hidden sm:inline">Search this area</span>
+                                    </button>
 
                                     <button
                                         type="button"
                                         onClick={() => {
                                             setViewportCenter(DEFAULT_CENTER);
-                                            setFocusTarget(DEFAULT_CENTER);
+                                            setQueryCenter(DEFAULT_CENTER);
+                                            setFocusTarget({ center: DEFAULT_CENTER });
                                             setSelectedKey(null);
                                             setActiveClusterKey(null);
                                         }}

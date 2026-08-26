@@ -1,23 +1,33 @@
 import { apiClient } from '../../api/axiosConfig';
 import type {
+    AddDraftTeamFakeMemberPayload,
     AddDraftTeamMembersPayload,
     ClubSearchResult,
     CompleteFixturePayload,
     CreateDraftTeamPayload,
+    CreateFixturePayload,
     CreateOrganizationPayload,
+    CreateStagePayload,
     CreateTournamentInvitationPayload,
     CreateTournamentPayload,
     DraftTeamDetailDto,
     DraftTeamDto,
+    GroupStandingsRow,
+    MoveEntryPayload,
     MyOrganization,
     PageResult,
+    ReplaceEntryPayload,
     RequestTournamentEntryPayload,
     TournamentDetail,
     TournamentHostClubOption,
     TournamentInvitationDto,
     TournamentSummary,
     UpdateEntryStatusPayload,
+    UpdateDraftTeamPayload,
+    UpdateEntrySquadPayload,
+    UpdateFixtureParticipantsPayload,
     UpdateFixtureScoresPayload,
+    UpdateSeedingPayload,
     UpdateTournamentPayload,
     UserSearchResult,
 } from './domain';
@@ -69,6 +79,11 @@ export const updateEntryStatus = async (tournamentId: number, entryId: number, p
     return response.data;
 };
 
+export const updateEntrySquad = async (tournamentId: number, entryId: number, payload: UpdateEntrySquadPayload) => {
+    const response = await apiClient.patch<TournamentDetail>(`/tournaments/${tournamentId}/entries/${entryId}/squad`, payload);
+    return response.data;
+};
+
 export const createDraftTeam = async (tournamentId: number, payload: CreateDraftTeamPayload) => {
     const response = await apiClient.post<DraftTeamDetailDto>(`/tournaments/${tournamentId}/draft-teams`, payload);
     return response.data;
@@ -84,6 +99,11 @@ export const fetchDraftTeam = async (tournamentId: number, teamId: number) => {
     return response.data;
 };
 
+export const updateDraftTeam = async (tournamentId: number, teamId: number, payload: UpdateDraftTeamPayload) => {
+    const response = await apiClient.patch<DraftTeamDetailDto>(`/tournaments/${tournamentId}/draft-teams/${teamId}`, payload);
+    return response.data;
+};
+
 export const addDraftTeamMembers = async (tournamentId: number, teamId: number, payload: AddDraftTeamMembersPayload) => {
     const response = await apiClient.post<DraftTeamDetailDto>(`/tournaments/${tournamentId}/draft-teams/${teamId}/members`, payload);
     return response.data;
@@ -91,6 +111,16 @@ export const addDraftTeamMembers = async (tournamentId: number, teamId: number, 
 
 export const removeDraftTeamMember = async (tournamentId: number, teamId: number, entryId: number) => {
     const response = await apiClient.delete<DraftTeamDetailDto>(`/tournaments/${tournamentId}/draft-teams/${teamId}/members/${entryId}`);
+    return response.data;
+};
+
+export const addDraftTeamFakeMember = async (tournamentId: number, teamId: number, payload: AddDraftTeamFakeMemberPayload) => {
+    const response = await apiClient.post<DraftTeamDetailDto>(`/tournaments/${tournamentId}/draft-teams/${teamId}/fake-members`, payload);
+    return response.data;
+};
+
+export const removeDraftTeamFakeMember = async (tournamentId: number, teamId: number, memberId: number) => {
+    const response = await apiClient.delete<DraftTeamDetailDto>(`/tournaments/${tournamentId}/draft-teams/${teamId}/fake-members/${memberId}`);
     return response.data;
 };
 
@@ -161,4 +191,44 @@ export const updateTournament = async (tournamentId: number, payload: UpdateTour
 
 export const removeEntry = async (tournamentId: number, entryId: number) => {
     await apiClient.delete(`/tournaments/${tournamentId}/entries/${entryId}`);
+};
+
+export const createStage = async (tournamentId: number, payload: CreateStagePayload) => {
+    const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/stages`, payload);
+    return response.data;
+};
+
+export const createFixture = async (tournamentId: number, stageId: number, payload: CreateFixturePayload) => {
+    const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/stages/${stageId}/fixtures`, payload);
+    return response.data;
+};
+
+export const randomizeStageBracket = async (tournamentId: number, stageId: number) => {
+    const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/stages/${stageId}/fixtures/randomize`);
+    return response.data;
+};
+
+export const fetchGroupStandings = async (tournamentId: number, stageId: number) => {
+    const response = await apiClient.get<GroupStandingsRow[]>(`/tournaments/${tournamentId}/stages/${stageId}/standings`);
+    return response.data;
+};
+
+export const updateSeeding = async (tournamentId: number, payload: UpdateSeedingPayload) => {
+    const response = await apiClient.put<TournamentDetail>(`/tournaments/${tournamentId}/entries/seeding`, payload);
+    return response.data;
+};
+
+export const updateFixtureParticipants = async (tournamentId: number, fixtureId: number, payload: UpdateFixtureParticipantsPayload) => {
+    const response = await apiClient.patch<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/participants`, payload);
+    return response.data;
+};
+
+export const moveEntry = async (tournamentId: number, fixtureId: number, payload: MoveEntryPayload) => {
+    const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/move-entry`, payload);
+    return response.data;
+};
+
+export const replaceEntry = async (tournamentId: number, fixtureId: number, payload: ReplaceEntryPayload) => {
+    const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/replace-entry`, payload);
+    return response.data;
 };

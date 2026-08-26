@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ArrowRight, Building2, Calendar, Clock, Loader2, Shield, Trophy, UserPlus, Users, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { fetchTournament, registerPlayer, requestEntry } from '../features/tournaments/api';
 import type { TournamentDetail } from '../features/tournaments/domain';
 import { tournamentScopeLabel, tournamentVisibilityLabel } from '../features/tournaments/domain';
 import { useAuth } from '../context/AuthContext';
 import { buildLoginRedirectPath } from '../utils/authRedirect';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { apiClient } from '../api/axiosConfig';
 
 const statusTone: Record<string, string> = {
@@ -20,6 +22,7 @@ export const TournamentDetailPage = () => {
     const { tournamentId } = useParams<{ tournamentId: string }>();
     const navigate = useNavigate();
     const { isAuthenticated, user } = useAuth();
+    const { t } = useTranslation();
     const [tournament, setTournament] = useState<TournamentDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -35,6 +38,8 @@ export const TournamentDetailPage = () => {
     const [myClubId, setMyClubId] = useState<number | null>(null);
     const [myClubName, setMyClubName] = useState<string | null>(null);
     const [showEntryModal, setShowEntryModal] = useState(false);
+    const [mySquads, setMySquads] = useState<{ id: number; name: string }[]>([]);
+    const [selectedSquadId, setSelectedSquadId] = useState('');
     const [entrySubmitting, setEntrySubmitting] = useState(false);
     const [withdrawing, setWithdrawing] = useState(false);
     const scope = tournament?.participantScope;
@@ -96,11 +101,31 @@ export const TournamentDetailPage = () => {
         }
     };
 
+    const openEntryModal = async () => {
+        setSelectedSquadId('');
+        setMySquads([]);
+        setShowEntryModal(true);
+        if (!myClubId) return;
+        try {
+            const res = await apiClient.get<Array<{ id?: number; name?: string }>>(`/clubs/${myClubId}/squads`);
+            setMySquads(
+                (res.data ?? [])
+                    .map((s) => ({ id: s.id ?? 0, name: s.name ?? '—' }))
+                    .filter((s) => s.id > 0),
+            );
+        } catch {
+            setMySquads([]);
+        }
+    };
+
     const handleConfirmEntry = async () => {
         if (!myClubId) return;
         setEntrySubmitting(true);
         try {
-            await requestEntry(id, { clubId: myClubId });
+            await requestEntry(id, {
+                clubId: myClubId,
+                squadId: selectedSquadId ? Number(selectedSquadId) : null,
+            });
             setMessage({ text: 'Entry request submitted successfully.', type: 'success' });
             setShowEntryModal(false);
             const data = await fetchTournament(id);
@@ -162,6 +187,16 @@ export const TournamentDetailPage = () => {
                     </div>
                 )}
 
+                {resolveMediaUrl(tournament.bannerImageUrl) && (
+                    <div className="overflow-hidden rounded-xl border border-[#ffffff0d] bg-[#16181d]">
+                        <img
+                            src={resolveMediaUrl(tournament.bannerImageUrl)}
+                            alt=""
+                            className="h-44 w-full object-cover sm:h-56"
+                        />
+                    </div>
+                )}
+
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                         <Link to="/tournaments" className="text-xs text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors">
@@ -196,7 +231,7 @@ export const TournamentDetailPage = () => {
                         {canRequestClubEntry && (
                             <button
                                 type="button"
-                                onClick={() => setShowEntryModal(true)}
+                                onClick={openEntryModal}
                                 className="inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
                             >
                                 <Building2 className="h-4 w-4" />
@@ -305,10 +340,30 @@ export const TournamentDetailPage = () => {
                                 </div>
                                 <div>
                                     <p className="text-sm font-semibold text-[#f4f4f5]">{myClubName || 'Your Club'}</p>
-                                    <p className="text-xs text-[#71717a]">{scope === 'SQUAD' ? 'Entering with default squad' : 'Club entry'}</p>
+                                    <p className="text-xs text-[#71717a]">{scope === 'SQUAD' ? 'Entering with a squad' : 'Club entry'}</p>
                                 </div>
                             </div>
                         </div>
+                        {scope === 'SQUAD' && mySquads.length === 0 && (
+                            <p className="mb-4 text-xs font-semibold text-amber-400">{t('tournaments.diagram.noSquadsAvailable')}</p>
+                        )}
+                        {mySquads.length > 0 && (
+                            <label className="mb-4 block">
+                                <span className="mb-1.5 block text-xs font-semibold text-[#a1a1aa]">
+                                    {scope === 'SQUAD' ? t('tournaments.entry.squadRequired') : t('tournaments.entry.selectSquad')}
+                                </span>
+                                <select
+                                    value={selectedSquadId}
+                                    onChange={(e) => setSelectedSquadId(e.target.value)}
+                                    className="w-full rounded-xl border border-[#ffffff0d] bg-[#0f1117] px-3 py-2.5 text-sm font-semibold text-[#f4f4f5] outline-none focus:border-[#16a34a]"
+                                >
+                                    {scope === 'CLUB' && <option value="">{t('tournaments.entry.playAsClub')}</option>}
+                                    {mySquads.map((s) => (
+                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                    ))}
+                                </select>
+                            </label>
+                        )}
                         <div className="flex justify-end gap-2">
                             <button
                                 onClick={() => setShowEntryModal(false)}
@@ -318,7 +373,7 @@ export const TournamentDetailPage = () => {
                             </button>
                             <button
                                 onClick={handleConfirmEntry}
-                                disabled={entrySubmitting}
+                                disabled={entrySubmitting || (scope === 'SQUAD' && !selectedSquadId)}
                                 className="px-4 py-2 text-xs font-semibold bg-[#16a34a] text-white rounded-xl hover:bg-[#22c55e] disabled:opacity-50 transition-colors"
                             >
                                 {entrySubmitting ? 'Submitting...' : 'Submit Entry Request'}

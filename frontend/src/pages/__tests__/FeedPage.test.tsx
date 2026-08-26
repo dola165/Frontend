@@ -10,8 +10,10 @@ vi.mock('../../api/axiosConfig', () => ({
     },
 }));
 
-vi.mock('../../components/feed/StoriesRail', () => ({
-    StoriesRail: () => <div data-testid="stories-rail">StoriesRail</div>,
+vi.mock('../../components/ui/SkeletonCard', () => ({
+    SkeletonCard: () => <div data-testid="skeleton-card" />,
+    SkeletonMessageRow: () => <div data-testid="skeleton-message-row" />,
+    SkeletonHero: () => <div data-testid="skeleton-hero" />,
 }));
 
 vi.mock('../../components/feed/PostComposer', () => ({
@@ -45,10 +47,10 @@ describe('FeedPage', () => {
     });
 
     describe('loading state', () => {
-        it('shows loading text while fetching', () => {
+        it('shows skeleton cards while fetching', () => {
             (apiClient.get as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
             renderPage();
-            expect(screen.getByText('Loading feed...')).toBeInTheDocument();
+            expect(screen.getAllByTestId('skeleton-card').length).toBeGreaterThan(0);
         });
     });
 
@@ -151,21 +153,13 @@ describe('FeedPage', () => {
         });
     });
 
-    describe('PostComposer and StoriesRail', () => {
+    describe('PostComposer', () => {
         it('renders PostComposer', async () => {
             (apiClient.get as ReturnType<typeof vi.fn>).mockResolvedValue({
                 data: { content: [{ id: 1 }] },
             });
             renderPage();
             expect(await screen.findByTestId('post-composer')).toBeInTheDocument();
-        });
-
-        it('renders StoriesRail', async () => {
-            (apiClient.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-                data: { content: [{ id: 1 }] },
-            });
-            renderPage();
-            expect(await screen.findByTestId('stories-rail')).toBeInTheDocument();
         });
     });
 });

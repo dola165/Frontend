@@ -18,6 +18,7 @@ export default defineConfig({
   server: {
     host: 'localhost',
     port: 5173,
+      allowedHosts: ['app.grasskickz.com', 'grasskickz.com'],
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
       'Cross-Origin-Embedder-Policy': 'unsafe-none',

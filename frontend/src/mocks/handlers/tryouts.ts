@@ -3,6 +3,58 @@ import { simulateLatency, paginate } from '../utils';
 
 const API = '*/api';
 
+// Shared mock tryout catalog — used by GET /tryouts and the apply handler
+// (join-policy enforcement). Exported so the map mock can render TRYOUT
+// markers for the same demo records.
+export interface MockTryout {
+  id: number;
+  title: string;
+  clubId: number;
+  clubName: string;
+  position: string;
+  ageGroup: string;
+  date: string;
+  location: string;
+  status: string;
+  applicantCount: number;
+  joinPolicy: 'OPEN_TRIAL' | 'APPLICATION_REQUIRED' | 'INVITE_ONLY';
+}
+
+/** GET /tryouts payload — the browse DTO carries no joinPolicy field. */
+const toBrowseItem = (t: MockTryout) => ({
+  id: t.id,
+  title: t.title,
+  clubId: t.clubId,
+  clubName: t.clubName,
+  position: t.position,
+  ageGroup: t.ageGroup,
+  date: t.date,
+  location: t.location,
+  status: t.status,
+  applicantCount: t.applicantCount,
+});
+
+export const MOCK_TRYOUTS: MockTryout[] = [
+  {
+    id: 1, title: 'U16 Open Trials', clubId: 1, clubName: 'Creekside FC',
+    position: 'Forward', ageGroup: 'U16', date: '2026-06-14T10:00:00Z',
+    location: 'Training Ground A', status: 'OPEN', applicantCount: 5,
+    joinPolicy: 'OPEN_TRIAL',
+  },
+  {
+    id: 2, title: 'Goalkeeper Assessment', clubId: 2, clubName: 'Metro United Academy',
+    position: 'Goalkeeper', ageGroup: 'U18', date: '2026-06-20T09:00:00Z',
+    location: 'Academy Pitch 2', status: 'OPEN', applicantCount: 3,
+    joinPolicy: 'APPLICATION_REQUIRED',
+  },
+  {
+    id: 3, title: 'Elite Intake — By Invitation', clubId: 3, clubName: 'Lakeside Athletic',
+    position: 'Midfielder', ageGroup: 'U17', date: '2026-06-28T11:00:00Z',
+    location: 'Lakeside Arena', status: 'OPEN', applicantCount: 0,
+    joinPolicy: 'INVITE_ONLY',
+  },
+];
+
 export const tryoutHandlers: HttpHandler[] = [
 
   // -- GET /tryouts (returns PageResult<TryoutBrowseItemDto>) --
@@ -12,26 +64,28 @@ export const tryoutHandlers: HttpHandler[] = [
     const page = Number(url.searchParams.get('page') ?? 0);
     const size = Number(url.searchParams.get('size') ?? 20);
 
-    return HttpResponse.json(paginate([
-      {
-        id: 1, title: 'U16 Open Trials', clubId: 1, clubName: 'Creekside FC',
-        position: 'Forward', ageGroup: 'U16', date: '2026-06-14T10:00:00Z',
-        location: 'Training Ground A', status: 'OPEN', applicantCount: 5,
-      },
-      {
-        id: 2, title: 'Goalkeeper Assessment', clubId: 2, clubName: 'Metro United Academy',
-        position: 'Goalkeeper', ageGroup: 'U18', date: '2026-06-20T09:00:00Z',
-        location: 'Academy Pitch 2', status: 'OPEN', applicantCount: 3,
-      },
-    ], page, size));
+    return HttpResponse.json(paginate(
+      MOCK_TRYOUTS.map(toBrowseItem),
+      page,
+      size
+    ));
   }),
 
-  // -- POST /tryouts/:id/apply (returns 201) --
-  http.post(`${API}/tryouts/:tryoutId/apply`, async () => {
+  // -- POST /tryouts/:id/apply (201; 409 when the club is invite-only) --
+  http.post(`${API}/tryouts/:tryoutId/apply`, async ({ params }) => {
     await simulateLatency();
+    const tryout = MOCK_TRYOUTS.find((t) => t.id === Number(params.tryoutId));
+
+    if (tryout?.joinPolicy === 'INVITE_ONLY') {
+      return HttpResponse.json(
+        { error: 'This club only accepts invited players.' },
+        { status: 409 }
+      );
+    }
+
     return HttpResponse.json({
       id: Math.floor(Math.random() * 1000) + 100,
-      tryoutId: 1,
+      tryoutId: tryout?.id ?? 1,
       status: 'PENDING',
       appliedAt: new Date().toISOString(),
     }, { status: 201 });

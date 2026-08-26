@@ -1,6 +1,9 @@
 import { apiClient } from '../../api/axiosConfig';
 import type {
+    BulkApplicationDecisionRequestPayload,
+    BulkApplicationDecisionResponse,
     ClubInviteCandidate,
+    ClubJourney,
     ClubManagementOverview,
     ClubMembershipApplication,
     ClubMembershipContext,
@@ -73,6 +76,39 @@ export const fetchPendingClubApplications = async (clubId: number) => {
     return response.data;
 };
 
+/** Phase A3 — applications list with optional position/ageGroup/status filters. */
+export const fetchClubApplications = async (
+    clubId: number,
+    filters?: { position?: string | null; ageGroup?: string | null; status?: string | null }
+) => {
+    const response = await apiClient.get<ClubMembershipApplication[]>(`/clubs/${clubId}/management/applications`, {
+        params: {
+            position: filters?.position || undefined,
+            ageGroup: filters?.ageGroup || undefined,
+            status: filters?.status || undefined,
+        },
+    });
+    return response.data;
+};
+
+/** Phase A3 — bulk accept/decline with per-id results. */
+export const bulkDecideClubApplications = async (
+    clubId: number,
+    payload: BulkApplicationDecisionRequestPayload
+) => {
+    const response = await apiClient.post<BulkApplicationDecisionResponse>(
+        `/clubs/${clubId}/applications/bulk-decide`,
+        payload
+    );
+    return response.data;
+};
+
+/** Phase A4 — the authenticated player's club journey aggregate. */
+export const fetchClubJourney = async () => {
+    const response = await apiClient.get<ClubJourney>('/me/club-journey');
+    return response.data;
+};
+
 export const fetchClubPlayers = async (clubId: number, status?: string | null, page = 0, size = 20) => {
     const response = await apiClient.get<PageResult<ClubPlayerAffiliation>>(`/clubs/${clubId}/players`, {
         params: { status: status || undefined, page, size }
@@ -80,8 +116,31 @@ export const fetchClubPlayers = async (clubId: number, status?: string | null, p
     return response.data;
 };
 
-export const updateClubPlayerStatus = async (clubId: number, userId: number, status: string) => {
-    const response = await apiClient.patch<ClubPlayerAffiliation>(`/clubs/${clubId}/players/${userId}`, { status });
+export const updateClubPlayerStatus = async (
+    clubId: number,
+    userId: number,
+    status: string,
+    trialEndsOn?: string | null,
+    message?: string | null
+) => {
+    const response = await apiClient.patch<ClubPlayerAffiliation>(`/clubs/${clubId}/players/${userId}`, {
+        status,
+        trialEndsOn: trialEndsOn ?? null,
+        message: message ?? null,
+    });
+    return response.data;
+};
+
+/** Phase A1 — promote a trialist to ACTIVE and assign them to a squad in one action. */
+export const promoteClubPlayer = async (
+    clubId: number,
+    userId: number,
+    payload: { squadId: number; trialEndsOn?: string | null }
+) => {
+    const response = await apiClient.post<ClubPlayerAffiliation>(`/clubs/${clubId}/players/${userId}/promote`, {
+        squadId: payload.squadId,
+        trialEndsOn: payload.trialEndsOn ?? null,
+    });
     return response.data;
 };
 
@@ -112,6 +171,8 @@ export interface ClubJob {
     level?: string | null;
     status?: string | null;
     createdAt?: string | null;
+    createdBy?: number | null;
+    applicationCount?: number | null;
 }
 
 export interface ClubJobPayload {
@@ -146,6 +207,12 @@ export const deleteClubJob = async (clubId: number, jobId: number) => {
     await apiClient.delete(`/clubs/${clubId}/jobs/${jobId}`);
 };
 
+/** Per-job application list (item 5) — job creator or club owner/admin only. */
+export const fetchJobApplications = async (clubId: number, jobId: number): Promise<ClubMembershipApplication[]> => {
+    const response = await apiClient.get<ClubMembershipApplication[]>(`/clubs/${clubId}/jobs/${jobId}/applications`);
+    return response.data;
+};
+
 /** Owner/admin only — the backend rejects COACH (Phase 2 §4.4). */
 export const updateClubSettings = async (clubId: number, playerJoinPolicy: PlayerJoinPolicy) => {
     await apiClient.patch(`/clubs/${clubId}`, { playerJoinPolicy });
@@ -161,12 +228,16 @@ export const cancelClubApplication = async (clubId: number, applicationId: numbe
     return response.data;
 };
 
-export const acceptClubApplication = async (clubId: number, applicationId: number) => {
-    await apiClient.post(`/clubs/${clubId}/management/applications/${applicationId}/accept`);
+export const acceptClubApplication = async (clubId: number, applicationId: number, message?: string | null) => {
+    await apiClient.post(`/clubs/${clubId}/management/applications/${applicationId}/accept`, {
+        message: message ?? null,
+    });
 };
 
-export const declineClubApplication = async (clubId: number, applicationId: number) => {
-    await apiClient.post(`/clubs/${clubId}/management/applications/${applicationId}/decline`);
+export const declineClubApplication = async (clubId: number, applicationId: number, message?: string | null) => {
+    await apiClient.post(`/clubs/${clubId}/management/applications/${applicationId}/decline`, {
+        message: message ?? null,
+    });
 };
 
 export const fetchMyClubMemberships = async () => {

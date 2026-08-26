@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Users, Link2, ShieldCheck, X } from 'lucide-react';
+import { Building2, Search, Users, Link2, ShieldCheck, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import { PaginationBar, PaginationTopBar } from '../components/ui/PaginationBar';
@@ -50,6 +51,7 @@ const TYPE_COLORS: Record<string, string> = {
 export const MarketplacePage = () => {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
+    const { t } = useTranslation();
     const [listings, setListings] = useState<MarketplacePlayer[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -177,6 +179,9 @@ export const MarketplacePage = () => {
                         icon={Users}
                         title="No listings yet"
                         description="No players are currently listed on the marketplace. Agents will post available players here."
+                        actionLabel={t('marketplace.emptyCta')}
+                        actionIcon={Building2}
+                        onAction={() => navigate('/clubs')}
                     />
                 ) : (
                     <>

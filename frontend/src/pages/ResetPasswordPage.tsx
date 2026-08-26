@@ -1,10 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CheckCircle2, KeyRound, Loader2, ShieldAlert } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { extractApiErrorCode, extractApiErrorMessage } from '../utils/apiError';
+import { authInputClass, authLabelClass, authPrimaryButtonClass } from '../components/auth/authClasses';
 
 export const ResetPasswordPage = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [password, setPassword] = useState('');
@@ -15,20 +18,20 @@ export const ResetPasswordPage = () => {
 
   const tokenError = useMemo(() => {
     if (!token?.trim()) {
-      return 'This reset link is missing its token.';
+      return t('auth.reset.missingToken');
     }
     return null;
-  }, [token]);
+  }, [token, t]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
     if (!token) {
-      setErrorMessage('This reset link is not usable.');
+      setErrorMessage(t('auth.reset.unusableToken'));
       return;
     }
     if (password !== confirmPassword) {
-      setErrorMessage('New password and confirmation do not match.');
+      setErrorMessage(t('auth.reset.mismatch'));
       return;
     }
 
@@ -41,17 +44,17 @@ export const ResetPasswordPage = () => {
         token,
         newPassword: password
       });
-      setSuccessMessage(response.data?.message || 'Password updated successfully.');
+      setSuccessMessage(response.data?.message || t('auth.reset.successFallback'));
       setPassword('');
       setConfirmPassword('');
     } catch (error) {
       const code = extractApiErrorCode(error);
       if (code === 'expired_token') {
-        setErrorMessage('This reset link has expired. Request a new password reset email.');
+        setErrorMessage(t('auth.reset.expired'));
       } else if (code === 'used_token') {
-        setErrorMessage('This reset link has already been used. Request a fresh one if needed.');
+        setErrorMessage(t('auth.reset.used'));
       } else {
-        setErrorMessage(extractApiErrorMessage(error, 'Failed to reset password.'));
+        setErrorMessage(extractApiErrorMessage(error, t('auth.reset.failed')));
       }
     } finally {
       setIsSubmitting(false);
@@ -59,37 +62,40 @@ export const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#fcf8f2] p-6 font-sans text-[#1a1a1a]">
-      <Link to="/login" className="absolute left-8 top-8 flex items-center gap-2 text-sm font-bold uppercase tracking-widest transition-transform hover:-translate-x-1">
-        <ArrowLeft className="h-5 w-5" /> Back to Login
+    <div className="relative min-h-screen bg-[#0f1117] p-6 text-[#f4f4f5] selection:bg-[#16a34a]/20">
+      {/* layered glow backdrop — matches AuthSplitShell */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,200,83,0.12),transparent_36%),radial-gradient(circle_at_bottom_left,rgba(0,200,83,0.07),transparent_42%)]" />
+
+      <Link to="/login" className="absolute left-8 top-8 z-10 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-[#a1a1aa] transition-colors hover:text-[#f4f4f5]">
+        <ArrowLeft className="h-4 w-4" /> {t('auth.reset.backToLogin')}
       </Link>
 
-      <div className="mx-auto flex min-h-screen max-w-md items-center justify-center">
-        <div className="w-full rounded-xl border-2 border-[#1a1a1a] bg-white p-8 shadow-[8px_8px_0px_0px_#1a1a1a]">
+      <div className="relative mx-auto flex min-h-screen max-w-md items-center justify-center">
+        <div className="theme-surface theme-border w-full rounded-xl border p-6 shadow-2xl sm:p-8">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-xl border-2 border-[#1a1a1a] bg-[#16a34a] text-black shadow-[4px_4px_0px_0px_#1a1a1a]">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-xl border border-[#16a34a]/40 bg-[#16a34a]/10 text-[#16a34a]">
               <KeyRound className="h-8 w-8" />
             </div>
-            <h1 className="mb-2 text-4xl font-serif font-bold uppercase italic tracking-tighter">Set New Access</h1>
-            <p className="font-serif italic text-gray-500">Use your secure Talanti link to establish a new password.</p>
+            <h1 className="mb-2 text-4xl font-bold tracking-tight">{t('auth.reset.title')}</h1>
+            <p className="text-sm leading-6 text-[#a1a1aa]">{t('auth.reset.subtitle')}</p>
           </div>
 
           {tokenError && (
-            <div className="mb-6 flex items-start gap-2 rounded-lg border-2 border-rose-500 bg-rose-50 p-4 text-sm font-bold text-rose-700">
+            <div className="mb-6 flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 text-sm font-semibold text-rose-400">
               <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" />
               <span>{tokenError}</span>
             </div>
           )}
 
           {errorMessage && (
-            <div className="mb-6 flex items-start gap-2 rounded-lg border-2 border-rose-500 bg-rose-50 p-4 text-sm font-bold text-rose-700">
+            <div className="mb-6 flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 text-sm font-semibold text-rose-400">
               <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" />
               <span>{errorMessage}</span>
             </div>
           )}
 
           {successMessage && (
-            <div className="mb-6 flex items-start gap-2 rounded-lg border-2 border-emerald-500 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">
+            <div className="mb-6 flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm font-semibold text-emerald-400">
               <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
               <span>{successMessage}</span>
             </div>
@@ -97,40 +103,41 @@ export const ResetPasswordPage = () => {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-500">New Password</label>
+              <label className={`${authLabelClass} mb-2 block`}>{t('auth.reset.newPasswordLabel')}</label>
               <input
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 disabled={Boolean(tokenError) || Boolean(successMessage)}
-                className="w-full rounded-xl border-2 border-[#1a1a1a] bg-[#fcf8f2] px-4 py-3 font-medium outline-none transition-colors focus:border-[#16a34a] disabled:opacity-60"
-                placeholder="********"
+                className={authInputClass}
+                placeholder={t('auth.reset.placeholder')}
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-500">Confirm Password</label>
+              <label className={`${authLabelClass} mb-2 block`}>{t('auth.reset.confirmPasswordLabel')}</label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 disabled={Boolean(tokenError) || Boolean(successMessage)}
-                className="w-full rounded-xl border-2 border-[#1a1a1a] bg-[#fcf8f2] px-4 py-3 font-medium outline-none transition-colors focus:border-[#16a34a] disabled:opacity-60"
-                placeholder="********"
+                className={authInputClass}
+                placeholder={t('auth.reset.placeholder')}
               />
             </div>
 
             <button
               type="submit"
               disabled={Boolean(tokenError) || Boolean(successMessage) || isSubmitting}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1a1a1a] bg-[#16a34a] py-4 font-semibold uppercase tracking-widest text-black shadow-[4px_4px_0px_0px_#1a1a1a] transition-all hover:bg-[#22c55e] active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-60"
+              className={`${authPrimaryButtonClass} rounded-xl`}
             >
-              {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Reset Password'}
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {t('auth.reset.submit')}
             </button>
           </form>
 
-          <p className="mt-6 text-xs font-semibold leading-relaxed text-gray-500">
-            Once this succeeds, use your new password on the normal Talanti sign-in screen.
+          <p className="mt-6 text-xs font-medium leading-relaxed text-[#71717a]">
+            {t('auth.reset.note')}
           </p>
         </div>
       </div>

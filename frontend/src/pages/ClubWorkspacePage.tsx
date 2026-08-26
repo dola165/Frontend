@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     Briefcase,
     CheckCircle2,
@@ -22,6 +23,7 @@ import {
     isLegacyAgentMembershipRole,
     type ClubManagedMember,
     type ClubManagementOverview,
+    type ClubMembershipApplication,
     type ClubMembershipRole,
     type ClubPlayerAffiliation,
     type PlayerAffiliationStatus,
@@ -29,12 +31,15 @@ import {
 } from '../features/clubs/domain';
 import {
     acceptClubApplication,
+    bulkDecideClubApplications,
     cancelClubInvitation,
     createClubInvitation,
     declineClubApplication,
+    fetchClubApplications,
     fetchClubPlayers,
     fetchClubManagementOverview,
     leaveClubMembership,
+    promoteClubPlayer,
     removeClubMember,
     searchClubInviteCandidates,
     sendParentalConsentEmail,
@@ -63,8 +68,10 @@ import { ContextPanel } from '../components/workspace/ContextPanel';
 import { OverviewTab } from '../components/workspace/tabs/OverviewTab';
 import { PersonnelTab } from '../components/workspace/tabs/PersonnelTab';
 import { PlayersTab } from '../components/workspace/tabs/PlayersTab';
+import { PromotePlayerModal } from '../components/workspace/tabs/PromotePlayerModal';
+import { DecisionNoteModal } from '../components/workspace/tabs/DecisionNoteModal';
 import { InvitesTab } from '../components/workspace/tabs/InvitesTab';
-import { ApplicationsTab } from '../components/workspace/tabs/ApplicationsTab';
+import { ApplicationsTab, type ApplicationFilters } from '../components/workspace/tabs/ApplicationsTab';
 import { RolesTab } from '../components/workspace/tabs/RolesTab';
 import { JobsTab } from '../components/workspace/tabs/JobsTab';
 import { SettingsTab } from '../components/workspace/tabs/SettingsTab';
@@ -79,6 +86,7 @@ import type { WorkspaceTab, TabItem, UserSearchDto, TryoutApplicantDto } from '.
 // ── page ──
 
 export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
+    const { t } = useTranslation();
     const { id: clubIdParam } = useParams<{ id: string }>();
     const clubId = Number(clubIdParam);
     const navigate = useNavigate();
@@ -120,11 +128,26 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     const [tryoutApplicants, setTryoutApplicants] = useState<TryoutApplicantDto[]>([]);
     const [tryoutsLoading, setTryoutsLoading] = useState(false);
 
+    // Phase A3 — dedicated applications list with filters + bulk decisions.
+    const [applicationsList, setApplicationsList] = useState<ClubMembershipApplication[]>([]);
+    const [applicationsLoading, setApplicationsLoading] = useState(false);
+    const [applicationsError, setApplicationsError] = useState<string | null>(null);
+    const [applicationsFilters, setApplicationsFilters] = useState<ApplicationFilters>({ position: '', ageGroup: '', status: 'PENDING' });
+
     const [playerStatusFilter, setPlayerStatusFilter] = useState<'ALL' | PlayerAffiliationStatus>('ALL');
     const [playerPage, setPlayerPage] = useState(0);
     const [playerDirectory, setPlayerDirectory] = useState<PageResult<ClubPlayerAffiliation> | null>(null);
     const [playerLoading, setPlayerLoading] = useState(false);
     const [playerError, setPlayerError] = useState<string | null>(null);
+    // Phase A1 — trialists filter defaults on the first time trialists exist.
+    const trialistAutoSelectRef = useRef(false);
+    const [promoteTarget, setPromoteTarget] = useState<ClubPlayerAffiliation | null>(null);
+    // Phase A2 — decision-note modal targets + release gentle message.
+    const [acceptTarget, setAcceptTarget] = useState<ClubMembershipApplication | null>(null);
+    const [declineTarget, setDeclineTarget] = useState<ClubMembershipApplication | null>(null);
+    const [tryoutAcceptTarget, setTryoutAcceptTarget] = useState<TryoutApplicantDto | null>(null);
+    const [tryoutDeclineTarget, setTryoutDeclineTarget] = useState<TryoutApplicantDto | null>(null);
+    const [releaseMessage, setReleaseMessage] = useState('');
 
     const [searchQuery, setSearchQuery] = useState('');
     const [searchPage, setSearchPage] = useState(0);
@@ -186,6 +209,13 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         try {
             const response = await fetchClubPlayers(clubId, playerStatusFilter === 'ALL' ? null : playerStatusFilter, playerPage, 20);
             setPlayerDirectory(response);
+            // Phase A1 — default the filter to TRIALIST once, when any exist.
+            if (!trialistAutoSelectRef.current
+                && playerStatusFilter === 'ALL'
+                && response.content.some((p) => p.status === 'TRIALIST')) {
+                trialistAutoSelectRef.current = true;
+                setPlayerStatusFilter('TRIALIST');
+            }
         } catch (error) {
             setPlayerError(extractApiErrorMessage(error, 'Failed to load player affiliations.'));
         } finally {
@@ -205,8 +235,26 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         }
     };
 
+    const loadApplications = async () => {
+        setApplicationsLoading(true);
+        setApplicationsError(null);
+        try {
+            const response = await fetchClubApplications(clubId, {
+                position: applicationsFilters.position || null,
+                ageGroup: applicationsFilters.ageGroup || null,
+                status: applicationsFilters.status || null,
+            });
+            setApplicationsList(response);
+        } catch (error) {
+            setApplicationsError(extractApiErrorMessage(error, 'Failed to load applications.'));
+        } finally {
+            setApplicationsLoading(false);
+        }
+    };
+
     useEffect(() => { void loadOverview(); void loadTryouts(); }, [clubId]);
     useEffect(() => { void loadPlayers(); }, [clubId, playerPage, playerStatusFilter]);
+    useEffect(() => { void loadApplications(); }, [clubId, applicationsFilters]);
 
     useEffect(() => {
         if (activeTab !== 'invites') return;
@@ -321,34 +369,88 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         });
     };
 
-    const handleAcceptApplication = async (applicationId: number) => {
-        await runAction(`accept-${applicationId}`, async () => {
-            await acceptClubApplication(clubId, applicationId);
-            await loadOverview();
+    const handleAcceptApplication = (applicationId: number) => {
+        const target = overview?.pendingApplications.find((a) => a.id === applicationId) ?? null;
+        setAcceptTarget(target);
+    };
+
+    const handleAcceptConfirm = async (message: string | null) => {
+        if (!acceptTarget) return;
+        const target = acceptTarget;
+        await runAction(`accept-${target.id}`, async () => {
+            await acceptClubApplication(clubId, target.id, message);
+            await Promise.all([loadOverview(), loadApplications()]);
             setSuccessMessage('Application accepted.');
+            setAcceptTarget(null);
         });
     };
 
-    const handleDeclineApplication = async (applicationId: number) => {
-        await runAction(`decline-${applicationId}`, async () => {
-            await declineClubApplication(clubId, applicationId);
-            await loadOverview();
+    // Phase A6 — single decline opens the note modal (gentle rejection).
+    const handleDeclineApplication = (applicationId: number) => {
+        const target = applicationsList.find((a) => a.id === applicationId) ?? null;
+        setDeclineTarget(target);
+    };
+
+    const handleDeclineConfirm = async (message: string | null) => {
+        if (!declineTarget) return;
+        const target = declineTarget;
+        await runAction(`decline-${target.id}`, async () => {
+            await declineClubApplication(clubId, target.id, message);
+            await Promise.all([loadOverview(), loadApplications()]);
             setSuccessMessage('Application declined.');
+            setDeclineTarget(null);
         });
+    };
+
+    const handleTryoutDeclineConfirm = async (message: string | null) => {
+        if (!tryoutDeclineTarget) return;
+        const target = tryoutDeclineTarget;
+        await runAction(`tryout-${target.id}-REJECTED`, async () => {
+            await apiClient.put(
+                `/admin/tryouts/clubs/${clubId}/applications/${target.id}/status`,
+                { message: message ?? null },
+                { params: { status: 'REJECTED' } }
+            );
+            await loadTryouts();
+            setSuccessMessage('Tryout declined.');
+            setTryoutDeclineTarget(null);
+        });
+    };
+
+    // Phase A3 — bulk accept/decline; returns true on completion so the tab
+    // clears its selection only when the request actually went through.
+    const handleBulkDecide = async (
+        applicationIds: number[],
+        action: 'ACCEPT' | 'DECLINE',
+        message: string | null
+    ): Promise<boolean> => {
+        let completed = false;
+        await runAction(`bulk-${action}`, async () => {
+            const response = await bulkDecideClubApplications(clubId, { applicationIds, action, message });
+            await Promise.all([loadOverview(), loadApplications()]);
+            const decided = response.results.filter((r) => r.status === action).length;
+            const skipped = response.results.filter((r) => r.status === 'SKIPPED').length;
+            setSuccessMessage(
+                `${decided} application(s) ${action === 'ACCEPT' ? 'accepted' : 'declined'}${skipped > 0 ? `, ${skipped} skipped` : ''}.`
+            );
+            completed = true;
+        });
+        return completed;
     };
 
     const handlePlayerStatusChange = async (userId: number, status: PlayerAffiliationStatus, playerName?: string) => {
         if (status === 'PAST' || status === 'REMOVED') {
             pendingStatusRef.current = { userId, status, playerName };
+            setReleaseMessage('');
             setShowStatusConfirm(true);
             return;
         }
         await executeStatusChange(userId, status);
     };
 
-    const executeStatusChange = async (userId: number, status: PlayerAffiliationStatus) => {
+    const executeStatusChange = async (userId: number, status: PlayerAffiliationStatus, message?: string | null) => {
         await runAction(`player-${userId}-${status}`, async () => {
-            await updateClubPlayerStatus(clubId, userId, status);
+            await updateClubPlayerStatus(clubId, userId, status, undefined, message);
             await Promise.all([loadOverview(), loadPlayers()]);
             setSuccessMessage(`Player status updated to ${status}.`);
         });
@@ -361,12 +463,34 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         });
     };
 
+    // ── phase A1: promote + trial deadline ──
+
+    const handlePromoteConfirm = async (squadId: number, trialEndsOn: string | null) => {
+        if (!promoteTarget) return;
+        const target = promoteTarget;
+        await runAction(`promote-${target.userId}`, async () => {
+            await promoteClubPlayer(clubId, target.userId, { squadId, trialEndsOn });
+            await Promise.all([loadOverview(), loadPlayers()]);
+            setSuccessMessage(`${target.fullName || target.username || 'Player'} promoted to active.`);
+            setPromoteTarget(null);
+        });
+    };
+
+    const handleTrialEndsChange = async (userId: number, trialEndsOn: string) => {
+        await runAction(`trial-ends-${userId}`, async () => {
+            await updateClubPlayerStatus(clubId, userId, 'TRIALIST', trialEndsOn || null);
+            await loadPlayers();
+            setSuccessMessage('Trial deadline updated.');
+        });
+    };
+
     const handleConfirmStatus = async () => {
         setShowStatusConfirm(false);
         const pending = pendingStatusRef.current;
         if (!pending) return;
-        await executeStatusChange(pending.userId, pending.status);
+        await executeStatusChange(pending.userId, pending.status, releaseMessage.trim() || null);
         pendingStatusRef.current = null;
+        setReleaseMessage('');
     };
 
     const handleTransferOwnership = async (member: ClubManagedMember) => {
@@ -386,11 +510,29 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         });
     };
 
-    const handleTryoutStatus = async (applicationId: number, status: 'ACCEPTED' | 'REJECTED') => {
-        await runAction(`tryout-${applicationId}-${status}`, async () => {
-            await apiClient.put(`/admin/tryouts/clubs/${clubId}/applications/${applicationId}/status`, null, { params: { status } });
+    const handleTryoutStatus = (applicationId: number, status: 'ACCEPTED' | 'REJECTED') => {
+        // Phase A2/A6 — both decisions open the note modal (accept = invitation
+        // instructions, reject = the kind note); the mutation happens on confirm.
+        const target = tryoutApplicants.find((a) => a.id === applicationId) ?? null;
+        if (status === 'ACCEPTED') {
+            setTryoutAcceptTarget(target);
+        } else {
+            setTryoutDeclineTarget(target);
+        }
+    };
+
+    const handleTryoutAcceptConfirm = async (message: string | null) => {
+        if (!tryoutAcceptTarget) return;
+        const target = tryoutAcceptTarget;
+        await runAction(`tryout-${target.id}-ACCEPTED`, async () => {
+            await apiClient.put(
+                `/admin/tryouts/clubs/${clubId}/applications/${target.id}/status`,
+                { message: message ?? null },
+                { params: { status: 'ACCEPTED' } }
+            );
             await loadTryouts();
-            setSuccessMessage(`Tryout ${status === 'ACCEPTED' ? 'accepted' : 'declined'}.`);
+            setSuccessMessage('Tryout accepted.');
+            setTryoutAcceptTarget(null);
         });
     };
 
@@ -534,6 +676,8 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                     totalPlayerPages={totalPlayerPages}
                                     onStatusFilterChange={(f) => { setPlayerStatusFilter(f); setPlayerPage(0); }}
                                     onPlayerStatusChange={handlePlayerStatusChange}
+                                    onPromotePlayer={setPromoteTarget}
+                                    onTrialEndsChange={handleTrialEndsChange}
                                     onRetry={() => { void loadPlayers(); }}
                                     onPageChange={setPlayerPage}
                                     onMessagePlayer={(userId) => navigate(`/messages?chatWith=${userId}`)}
@@ -563,10 +707,16 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
 
                             {activeTab === 'applications' && (
                                 <ApplicationsTab
-                                    overview={overview}
-                                    pendingKey={pendingKey}
+                                    applications={applicationsList}
+                                    applicationsLoading={applicationsLoading}
+                                    applicationsError={applicationsError}
+                                    filters={applicationsFilters}
+                                    bulkPending={!!pendingKey && pendingKey.startsWith('bulk-')}
+                                    onFiltersChange={(f) => setApplicationsFilters(f)}
                                     onAcceptApplication={handleAcceptApplication}
                                     onDeclineApplication={handleDeclineApplication}
+                                    onBulkDecide={handleBulkDecide}
+                                    onRetry={() => { void loadApplications(); }}
                                 />
                             )}
 
@@ -657,6 +807,57 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                 onTabChange={switchTab}
             />
         </div>
+        {promoteTarget && (
+            <PromotePlayerModal
+                clubId={clubId}
+                player={promoteTarget}
+                saving={!!pendingKey && pendingKey.startsWith('promote-')}
+                onClose={() => setPromoteTarget(null)}
+                onConfirm={(squadId, trialEndsOn) => void handlePromoteConfirm(squadId, trialEndsOn)}
+            />
+        )}
+        {acceptTarget && (
+            <DecisionNoteModal
+                title={t('decisions.acceptTitle')}
+                subtitle={t('decisions.acceptSubtitle', { name: acceptTarget.fullName || acceptTarget.username })}
+                saving={!!pendingKey && pendingKey.startsWith('accept-')}
+                onClose={() => setAcceptTarget(null)}
+                onConfirm={(message) => void handleAcceptConfirm(message)}
+            />
+        )}
+        {tryoutAcceptTarget && (
+            <DecisionNoteModal
+                title={t('decisions.tryoutAcceptTitle')}
+                subtitle={t('decisions.acceptSubtitle', { name: tryoutAcceptTarget.name })}
+                saving={!!pendingKey && pendingKey.startsWith('tryout-')}
+                onClose={() => setTryoutAcceptTarget(null)}
+                onConfirm={(message) => void handleTryoutAcceptConfirm(message)}
+            />
+        )}
+        {declineTarget && (
+            <DecisionNoteModal
+                title={t('decisions.declineTitle')}
+                subtitle={t('decisions.declineSubtitle', { name: declineTarget.fullName || declineTarget.username })}
+                saving={!!pendingKey && pendingKey.startsWith('decline-')}
+                confirmLabel={t('applications.declineConfirm')}
+                danger
+                templateKey="decisions.declineTemplate"
+                onClose={() => setDeclineTarget(null)}
+                onConfirm={(message) => void handleDeclineConfirm(message)}
+            />
+        )}
+        {tryoutDeclineTarget && (
+            <DecisionNoteModal
+                title={t('decisions.tryoutDeclineTitle')}
+                subtitle={t('decisions.declineSubtitle', { name: tryoutDeclineTarget.name })}
+                saving={!!pendingKey && pendingKey.startsWith('tryout-')}
+                confirmLabel={t('applications.declineConfirm')}
+                danger
+                templateKey="decisions.declineTemplate"
+                onClose={() => setTryoutDeclineTarget(null)}
+                onConfirm={(message) => void handleTryoutDeclineConfirm(message)}
+            />
+        )}
         <ConfirmDialog
             open={showStatusConfirm}
             title={pendingStatusRef.current?.status === 'PAST' ? 'Mark as Past Player' : 'Remove Player'}
@@ -665,8 +866,15 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                 : `Remove "${pendingStatusRef.current?.playerName || 'this player'}" from the club? They will be removed from ALL squads.`}
             confirmLabel={pendingStatusRef.current?.status === 'PAST' ? 'Mark as Past' : 'Remove'}
             variant="danger"
+            noteField={{
+                label: t('decisions.releaseNoteLabel'),
+                placeholder: t('decisions.releaseNotePlaceholder'),
+                maxLength: 1000,
+                value: releaseMessage,
+                onChange: setReleaseMessage,
+            }}
             onConfirm={handleConfirmStatus}
-            onCancel={() => { setShowStatusConfirm(false); pendingStatusRef.current = null; }}
+            onCancel={() => { setShowStatusConfirm(false); pendingStatusRef.current = null; setReleaseMessage(''); }}
         />
     </>);
 }

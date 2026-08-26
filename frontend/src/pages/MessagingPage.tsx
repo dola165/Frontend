@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Client } from '@stomp/stompjs';
-import { MessageSquare, Plus, Users, Info, X, Send, Circle, Search, Loader2, Crown, Ban, UserMinus, UserPlus, ChevronDown, ChevronUp, Paperclip, Smile, CheckCheck, Check } from 'lucide-react';
+import { MessageSquare, Plus, Users, Info, X, Send, Circle, Search, Loader2, Crown, Ban, UserMinus, UserPlus, ChevronDown, ChevronUp, CheckCheck, Check } from 'lucide-react';
 import { SkeletonMessageRow } from '../components/ui/SkeletonCard';
 import { buildWebSocketUrl } from '../api/axiosConfig';
 import { getStoredAccessToken, getStoredUserId } from '../utils/authStorage';
@@ -683,15 +683,6 @@ export const MessagingPage = () => {
                         {/* Input */}
                         <div className="px-4 py-3 bg-[var(--chat-card)] border-t border-[var(--chat-card-border)] shrink-0">
                             <form onSubmit={sendMessage} className="flex items-center gap-2">
-                                {/* Attachment button */}
-                                <button
-                                    type="button"
-                                    className="w-10 h-10 rounded-full text-[var(--chat-text-muted)] hover:bg-[var(--chat-card-hover)] hover:text-[var(--chat-accent)] flex items-center justify-center transition-colors shrink-0"
-                                    title="Attach file"
-                                >
-                                    <Paperclip className="w-5 h-5" />
-                                </button>
-
                                 <input
                                     type="text"
                                     value={input}
@@ -703,14 +694,7 @@ export const MessagingPage = () => {
                                     className="flex-1 bg-[var(--chat-input-bg)] border border-[var(--chat-card-border)] text-[var(--chat-text-primary)] rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--chat-accent)]/40 transition-all disabled:opacity-50 placeholder:text-[var(--chat-text-placeholder)]"
                                 />
 
-                                {/* Emoji button */}
-                                <button
-                                    type="button"
-                                    className="w-10 h-10 rounded-full text-[var(--chat-text-muted)] hover:bg-[var(--chat-card-hover)] hover:text-[var(--chat-accent)] flex items-center justify-center transition-colors shrink-0"
-                                    title="Add emoji"
-                                >
-                                    <Smile className="w-5 h-5" />
-                                </button>
+                                {/* Emoji button removed — chat API is text-only; no emoji/attachment support (P1 W6) */}
 
                                 <button
                                     type="submit"

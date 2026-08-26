@@ -11,7 +11,8 @@ interface TryoutsTabProps {
     tryoutApplicants: TryoutApplicantDto[];
     tryoutsLoading: boolean;
     pendingKey: string | null;
-    onTryoutStatus: (applicationId: number, status: 'ACCEPTED' | 'REJECTED') => Promise<void>;
+    /** Phase A2 — ACCEPTED opens the note modal in the parent; REJECTED stays direct. */
+    onTryoutStatus: (applicationId: number, status: 'ACCEPTED' | 'REJECTED') => void;
 }
 
 export const TryoutsTab = ({ tryoutApplicants, tryoutsLoading, pendingKey, onTryoutStatus }: TryoutsTabProps) => {
@@ -74,8 +75,8 @@ export const TryoutsTab = ({ tryoutApplicants, tryoutsLoading, pendingKey, onTry
                                             triggerIcon="vertical"
                                             label="Tryout actions"
                                             items={[
-                                                { id: 'accept', label: 'Accept', description: 'Approve tryout application', icon: <Check className="h-3.5 w-3.5" />, tone: 'positive', disabled: pendingKey === `tryout-${app.id}-ACCEPTED`, onSelect: () => void onTryoutStatus(app.id, 'ACCEPTED') },
-                                                { id: 'decline', label: 'Decline', description: 'Reject tryout application', icon: <X className="h-3.5 w-3.5" />, tone: 'danger', divider: true, disabled: pendingKey === `tryout-${app.id}-REJECTED`, confirm: { title: 'Decline tryout?', body: `Decline the tryout application from ${app.name}?` }, onSelect: () => void onTryoutStatus(app.id, 'REJECTED') },
+                                                { id: 'accept', label: 'Accept', description: 'Approve tryout application', icon: <Check className="h-3.5 w-3.5" />, tone: 'positive', disabled: pendingKey === `tryout-${app.id}-ACCEPTED`, onSelect: () => onTryoutStatus(app.id, 'ACCEPTED') },
+                                                { id: 'decline', label: 'Decline', description: 'Reject tryout application with a kind note (phase A6)', icon: <X className="h-3.5 w-3.5" />, tone: 'danger', divider: true, disabled: pendingKey === `tryout-${app.id}-REJECTED`, onSelect: () => onTryoutStatus(app.id, 'REJECTED') },
                                             ]}
                                         />
                                     </div>

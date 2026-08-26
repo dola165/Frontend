@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LayoutGrid, LayoutList, Loader2, Search, Trophy } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { fetchTournaments, registerPlayer } from '../features/tournaments/api';
 import { PaginationBar } from '../components/ui/PaginationBar';
@@ -16,12 +17,14 @@ const selectClass = 'rounded-xl border border-[#ffffff0d] bg-[#16181d] px-4 py-3
 export const BrowseTournamentsPage = () => {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
+    const { t } = useTranslation();
     const [tournaments, setTournaments] = useState<TournamentSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(0);
     const [pageSize, setPageSize] = useState(12);
     const [totalPages, setTotalPages] = useState(1);
+    const [totalElements, setTotalElements] = useState(0);
     const [scopeFilter, setScopeFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
@@ -53,6 +56,7 @@ export const BrowseTournamentsPage = () => {
             const result = await fetchTournaments(params);
             setTournaments(result.content);
             setTotalPages(result.totalPages);
+            setTotalElements(result.totalElements);
         } catch (err) {
             setError(extractApiErrorMessage(err, 'Failed to load events.'));
             setTournaments([]);
@@ -93,6 +97,15 @@ export const BrowseTournamentsPage = () => {
     const displayTournaments = searchQuery
         ? tournaments.filter((t) => t.name.toLowerCase().includes(searchQuery.toLowerCase()))
         : tournaments;
+
+    const hasActiveFilters = Boolean(searchQuery || scopeFilter || statusFilter);
+
+    const clearFilters = () => {
+        setSearchQuery('');
+        setScopeFilter('');
+        setStatusFilter('');
+        setPage(0);
+    };
 
     return (
         <div className="min-h-full bg-[#0f1117] text-[#f4f4f5] selection:bg-[#16a34a]/20">
@@ -194,10 +207,24 @@ export const BrowseTournamentsPage = () => {
                         <Trophy className="mb-4 h-12 w-12 text-[#a1a1aa]" />
                         <p className="text-lg font-semibold text-[#f4f4f5]">No tournaments found</p>
                         <p className="mt-2 text-sm text-[#a1a1aa]">
-                            {searchQuery || scopeFilter || statusFilter
+                            {hasActiveFilters
                                 ? 'Try adjusting your filters.'
                                 : 'No tournaments have been created yet.'}
                         </p>
+                        {hasActiveFilters ? (
+                            <button
+                                type="button"
+                                onClick={clearFilters}
+                                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                            >
+                                {t('browseTournaments.emptyCtaClear')}
+                            </button>
+                        ) : (
+                            <Link to="/tournaments/setup" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+                                <Trophy className="h-4 w-4" />
+                                {t('browseTournaments.emptyCtaCreate')}
+                            </Link>
+                        )}
                     </div>
                 ) : (
                     <>
@@ -226,7 +253,7 @@ export const BrowseTournamentsPage = () => {
                         <PaginationBar
                             page={page}
                             totalPages={totalPages}
-                            totalElements={0}
+                            totalElements={totalElements}
                             pageSize={pageSize}
                             onPageChange={setPage}
                             onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}

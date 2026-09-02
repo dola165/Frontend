@@ -102,7 +102,7 @@ export const AdminPage = () => {
 
     return (
         <div className="bg-[#0f1117] min-h-[calc(100vh-64px)] text-[#f4f4f5]">
-            <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+            <div className="flex w-full flex-col gap-6">
                 <header className="border-b border-[#ffffff0d] pb-6">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div>

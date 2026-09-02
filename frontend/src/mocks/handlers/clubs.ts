@@ -59,6 +59,8 @@ const toClubDirectoryItem = (c: ReturnType<typeof clubs> extends Map<number, inf
   memberCount: c.memberCount,
   isFollowedByMe: followedClubIds().has(c.id),
   addressText: c.city,
+  cityName: c.city,
+  countryName: 'United Kingdom',
   logoUrl: c.logoUrl ?? undefined,
   joinPolicy: c.joinPolicy,
   relationshipState: relationshipForUser(c.id) as 'NONE' | 'ACTIVE',
@@ -108,6 +110,26 @@ const toClubProfile = (c: ReturnType<typeof clubs> extends Map<number, infer T> 
 });
 
 export const clubHandlers: HttpHandler[] = [
+  // Aggregate directory uses the exact same in-memory jobs map as the club
+  // workspace handlers below, so newly published postings appear immediately.
+  http.get(`${API}/jobs`, async () => {
+    await simulateLatency();
+    return HttpResponse.json(
+      [...jobs().values()]
+        .filter((job) => job.status === 'OPEN')
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map((job) => {
+          const club = clubs().get(job.clubId);
+          return {
+            ...job,
+            clubName: club?.name ?? null,
+            clubLogoUrl: club?.logoUrl ?? null,
+            clubCityName: club?.city ?? null,
+            clubCountryName: club ? 'United Kingdom' : null,
+          };
+        })
+    );
+  }),
 
   // -- GET /me/club-journey (phase A4) --
   http.get(`${API}/me/club-journey`, async () => {
@@ -158,14 +180,6 @@ export const clubHandlers: HttpHandler[] = [
       .map((c) => ({ id: c.id, name: c.name, logoUrl: c.logoUrl, memberCount: c.memberCount, city: c.city }));
 
     return HttpResponse.json(items);
-  }),
-
-  // -- GET /clubs/:id --
-  http.get(`${API}/clubs/:clubId`, async ({ params }) => {
-    await simulateLatency();
-    const c = clubs().get(Number(params.clubId));
-    if (!c) return HttpResponse.json({ error: 'Club not found.' }, { status: 404 });
-    return HttpResponse.json(toClubProfile(c));
   }),
 
   // -- GET /clubs/my-club --
@@ -223,7 +237,7 @@ export const clubHandlers: HttpHandler[] = [
     if (uid == null) return HttpResponse.json({ hasClubMembership: false, canCreateClub: false });
 
     const user = users().get(uid);
-    const canCreate = user?.role === 'ORGANIZER' || user?.role === 'ADMIN';
+    const canCreate = user?.role === 'ORGANIZER' || user?.role === 'SYSTEM_ADMIN';
     const owned = [...clubs().values()].find((c) => c.ownerId === uid);
 
     return HttpResponse.json({
@@ -233,6 +247,16 @@ export const clubHandlers: HttpHandler[] = [
       clubName: owned?.name ?? null,
       myRole: owned ? 'OWNER' : null,
     });
+  }),
+
+  // Keep the parameterized profile route after the static /clubs/my-* routes.
+  // Otherwise MSW treats "my-membership-context" as a club id and the demo
+  // session incorrectly appears to have no club.
+  http.get(`${API}/clubs/:clubId`, async ({ params }) => {
+    await simulateLatency();
+    const c = clubs().get(Number(params.clubId));
+    if (!c) return HttpResponse.json({ error: 'Club not found.' }, { status: 404 });
+    return HttpResponse.json(toClubProfile(c));
   }),
 
   // -- POST /clubs/:id/follow (returns { following: boolean }) --
@@ -271,11 +295,51 @@ export const clubHandlers: HttpHandler[] = [
   }),
 
   // -- GET /clubs/:id/staff --
-  http.get(`${API}/clubs/:clubId/staff`, async () => {
+  http.get(`${API}/clubs/:clubId/staff`, async ({ params }) => {
     await simulateLatency();
-    return HttpResponse.json([...users().values()].slice(0, 2).map((u) => ({
-      userId: u.id, fullName: u.fullName, username: u.username, avatarUrl: u.avatarUrl, role: u.role,
-    })));
+    const clubId = Number(params.clubId);
+    const club = clubs().get(clubId);
+
+    // Extra club-people personas (seeded in mocks/data/seeds.ts) mapped per club.
+    const personasByClub: Record<number, number[]> = {
+      1: [8, 9], // Creekside FC — Lea Carter (COACH), Daniel Osei (CLUB_ADMIN)
+      2: [10],   // Metro United Academy — Sophie Brandt (COACH)
+      3: [8],    // Lakeside Athletic — Lea Carter (COACH)
+      4: [9],    // Tbilisi School FC — Daniel Osei (CLUB_ADMIN)
+    };
+    const personaRolesByClub: Record<number, Record<number, string>> = {
+      1: { 8: 'COACH', 9: 'CLUB_ADMIN' },
+      2: { 10: 'COACH' },
+      3: { 8: 'COACH' },
+      4: { 9: 'CLUB_ADMIN' },
+    };
+
+    const owner = club ? users().get(club.ownerId) : undefined;
+    const ownerEntry = owner
+      ? {
+          userId: owner.id,
+          fullName: owner.fullName ?? owner.username,
+          avatarUrl: owner.avatarUrl ?? null,
+          role: 'OWNER',
+          bio: owner.bio ?? 'Club founder and president.',
+        }
+      : null;
+
+    const personaEntries = (personasByClub[clubId] ?? [])
+      .map((userId) => {
+        const persona = users().get(userId);
+        if (!persona) return null;
+        return {
+          userId: persona.id,
+          fullName: persona.fullName ?? persona.username,
+          avatarUrl: persona.avatarUrl ?? null,
+          role: personaRolesByClub[clubId]?.[userId] ?? 'COACH',
+          bio: persona.bio ?? null,
+        };
+      })
+      .filter(Boolean);
+
+    return HttpResponse.json([ownerEntry, ...personaEntries].filter(Boolean));
   }),
 
   // -- GET /clubs/:id/calendar --
@@ -688,6 +752,9 @@ export const clubHandlers: HttpHandler[] = [
       description: (body.description as string | null) ?? null,
       ageGroup: (body.ageGroup as string | null) ?? null,
       level: (body.level as string | null) ?? null,
+      requiredRole: (body.requiredRole as string | null) ?? null,
+      category: (body.category as StoreJob['category'] | null) ?? 'OTHER',
+      engagementType: (body.engagementType as StoreJob['engagementType'] | null) ?? 'UNSPECIFIED',
       status: 'OPEN',
       createdBy: currentUserId(),
       applicationCount: 0,
@@ -706,6 +773,9 @@ export const clubHandlers: HttpHandler[] = [
     if (body.description !== undefined) job.description = (body.description as string | null) ?? null;
     if (body.ageGroup !== undefined) job.ageGroup = (body.ageGroup as string | null) ?? null;
     if (body.level !== undefined) job.level = (body.level as string | null) ?? null;
+    if (body.requiredRole !== undefined) job.requiredRole = (body.requiredRole as string | null) ?? null;
+    if (body.category != null) job.category = body.category as StoreJob['category'];
+    if (body.engagementType != null) job.engagementType = body.engagementType as StoreJob['engagementType'];
     if (body.status != null) job.status = body.status as 'OPEN' | 'CLOSED';
     return HttpResponse.json(job);
   }),

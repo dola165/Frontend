@@ -159,9 +159,13 @@ export const authHandlers: HttpHandler[] = [
         device: 'Mock Browser',
         ip: '127.0.0.1',
         current: true,
+        status: 'ACTIVE',
         createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 86400000 * 14).toISOString(),
       }],
-      total: 1,
+      activeCount: 1,
+      revokedCount: 0,
+      expiredCount: 0,
     });
   }),
 

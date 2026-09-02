@@ -138,11 +138,15 @@ const sampleDetail = (id: number) => ({
   // Champion set so the workspace banner is visible in the dev-browser walk.
   championEntryId: 2,
   championName: 'Metro United Academy',
-  staffAssignments: [],
+  staffAssignments: [
+    { id: 1, userId: 2, fullName: 'Sarah Chen', role: 'ADMIN', status: 'ACTIVE', assignedBy: 2, createdAt: '2026-05-10T00:00:00Z' },
+  ],
   entries: [
     { id: 1, clubId: 1, clubName: 'Creekside FC', squadId: 11, squadName: 'Creekside U18', userId: null, displayName: 'Creekside FC', status: 'APPROVED', seed: 1, requestedBy: null, decidedBy: null, decidedAt: null, confirmedAt: '2026-06-02T00:00:00Z', withdrawnAt: null, withdrawalReason: null },
     { id: 2, clubId: 2, clubName: 'Metro United Academy', squadId: null, squadName: null, userId: null, displayName: 'Metro United Academy', status: 'APPROVED', seed: 2, requestedBy: null, decidedBy: null, decidedAt: null, confirmedAt: '2026-06-03T00:00:00Z', withdrawnAt: null, withdrawalReason: null },
     { id: 3, clubId: 4, clubName: 'Riverside Rovers', squadId: null, squadName: null, userId: null, displayName: 'Riverside Rovers', status: 'ACTIVE', seed: 3, requestedBy: null, decidedBy: null, decidedAt: null, confirmedAt: '2026-06-04T00:00:00Z', withdrawnAt: null, withdrawalReason: null },
+    { id: 4, clubId: 5, clubName: 'Northstar Athletic', squadId: null, squadName: null, userId: null, displayName: 'Northstar Athletic', status: 'COMPLETED', seed: 4, requestedBy: null, decidedBy: null, decidedAt: null, confirmedAt: '2026-06-05T00:00:00Z', withdrawnAt: null, withdrawalReason: null },
+    { id: 5, clubId: 6, clubName: 'Old Town United', squadId: null, squadName: null, userId: null, displayName: 'Old Town United', status: 'ACTIVE', seed: 5, requestedBy: null, decidedBy: null, decidedAt: null, confirmedAt: '2026-06-06T00:00:00Z', withdrawnAt: null, withdrawalReason: null },
   ],
   stages: [
     { id: 1, parentStageId: null, name: 'Group A', stageType: 'GROUP', stageOrder: 1, status: 'ACTIVE', advanceCount: 2 },
@@ -151,6 +155,9 @@ const sampleDetail = (id: number) => ({
   ],
   fixtures: [
     { id: 1, stageId: 1, stageName: 'Group A', homeEntryId: 1, homeLabel: 'Creekside FC', awayEntryId: 2, awayLabel: 'Metro United Academy', winnerEntryId: null, homeScore: null, awayScore: null, roundNumber: 1, fixtureOrder: 1, scheduledAt: '2026-07-01T15:00:00Z', locationId: null, status: 'SCHEDULED', linkedMatchId: null },
+    { id: 2, stageId: 3, stageName: 'Knockout', homeEntryId: 1, homeLabel: 'Creekside FC', awayEntryId: 4, awayLabel: 'Northstar Athletic', winnerEntryId: 1, homeScore: 2, awayScore: 0, roundNumber: 1, fixtureOrder: 1, scheduledAt: '2026-07-10T15:00:00Z', locationId: null, status: 'COMPLETED', linkedMatchId: null },
+    { id: 3, stageId: 3, stageName: 'Knockout', homeEntryId: 3, homeLabel: 'Riverside Rovers', awayEntryId: 2, awayLabel: 'Metro United Academy', winnerEntryId: 2, homeScore: 1, awayScore: 3, roundNumber: 1, fixtureOrder: 2, scheduledAt: '2026-07-10T18:00:00Z', locationId: null, status: 'COMPLETED', linkedMatchId: null },
+    { id: 4, stageId: 3, stageName: 'Knockout', homeEntryId: 1, homeLabel: 'Creekside FC', awayEntryId: 2, awayLabel: 'Metro United Academy', winnerEntryId: 2, homeScore: 1, awayScore: 2, roundNumber: 2, fixtureOrder: 1, scheduledAt: '2026-07-14T17:00:00Z', locationId: null, status: 'COMPLETED', linkedMatchId: null },
   ],
 });
 

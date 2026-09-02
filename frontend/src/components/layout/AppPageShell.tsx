@@ -21,10 +21,17 @@ interface RegionProps extends HTMLAttributes<HTMLElement> {
 
 interface FrameProps extends HTMLAttributes<HTMLDivElement> {
     children: ReactNode;
+    variant?: 'wide' | 'focused' | 'bleed';
 }
 
-export const AppPageFrame = ({ children, className = '', ...rest }: FrameProps) => (
-    <div className={`app-page-frame ${className}`.trim()} {...rest}>
+const frameVariantClassName = {
+    wide: 'app-page-frame--wide',
+    focused: 'app-page-frame--focused',
+    bleed: 'app-page-frame--bleed'
+} as const;
+
+export const AppPageFrame = ({ children, className = '', variant = 'wide', ...rest }: FrameProps) => (
+    <div data-layout-frame={variant} className={`app-page-frame ${frameVariantClassName[variant]} ${className}`.trim()} {...rest}>
         {children}
     </div>
 );
@@ -60,19 +67,29 @@ export const AppPageShell = ({
     leftClassName = '',
     centerClassName = '',
     rightClassName = ''
-}: AppPageShellProps) => (
-    <div className={`app-page-shell min-h-full ${shellClassName}`.trim()}>
-        {hero}
-        {beforeContent}
+}: AppPageShellProps) => {
+    const regionClassName = left && right
+        ? 'app-page-grid--both'
+        : left
+            ? 'app-page-grid--left'
+            : right
+                ? 'app-page-grid--right'
+                : 'app-page-grid--center';
 
-        <AppPageFrame className={`${frameClassName} app-page-column-band`.trim()}>
-            <div className={`app-page-grid ${gridClassName}`.trim()}>
-                {left ? <LeftRail className={leftClassName}>{left}</LeftRail> : null}
-                <CenterCanvas className={centerClassName}>{center}</CenterCanvas>
-                {right ? <RightRail className={rightClassName}>{right}</RightRail> : null}
-            </div>
-        </AppPageFrame>
+    return (
+        <div className={`app-page-shell min-h-full ${shellClassName}`.trim()}>
+            {hero}
+            {beforeContent}
 
-        {afterContent}
-    </div>
-);
+            <AppPageFrame className={`${frameClassName} app-page-column-band`.trim()}>
+                <div className={`app-page-grid ${regionClassName} ${gridClassName}`.trim()}>
+                    {left ? <LeftRail className={leftClassName}>{left}</LeftRail> : null}
+                    <CenterCanvas className={centerClassName}>{center}</CenterCanvas>
+                    {right ? <RightRail className={rightClassName}>{right}</RightRail> : null}
+                </div>
+            </AppPageFrame>
+
+            {afterContent}
+        </div>
+    );
+};

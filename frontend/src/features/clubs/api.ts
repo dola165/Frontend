@@ -63,6 +63,10 @@ export const removeClubMember = async (clubId: number, userId: number) => {
     await apiClient.post(`/clubs/${clubId}/management/members/${userId}/remove`);
 };
 
+export const dissolveClub = async (clubId: number) => {
+    await apiClient.post(`/clubs/${clubId}/dissolve`);
+};
+
 export const leaveClubMembership = async (clubId: number) => {
     await apiClient.post(`/clubs/${clubId}/membership/leave`);
 };
@@ -169,19 +173,37 @@ export interface ClubJob {
     description?: string | null;
     ageGroup?: string | null;
     level?: string | null;
+    requiredRole?: string | null;
     status?: string | null;
     createdAt?: string | null;
     createdBy?: number | null;
     applicationCount?: number | null;
+    category?: ClubJobCategory | null;
+    engagementType?: ClubJobEngagementType | null;
+    clubName?: string | null;
+    clubLogoUrl?: string | null;
+    clubCityName?: string | null;
+    clubCountryName?: string | null;
 }
+
+export type ClubJobCategory = 'COACHING' | 'FOOTBALL_OPERATIONS' | 'ADMINISTRATION' | 'MEDIA_COMMUNICATIONS' | 'FACILITIES' | 'MEDICAL' | 'MATCHDAY' | 'OTHER';
+export type ClubJobEngagementType = 'PAID' | 'VOLUNTEER' | 'FLEXIBLE' | 'UNSPECIFIED';
 
 export interface ClubJobPayload {
     title?: string;
     description?: string | null;
     ageGroup?: string | null;
     level?: string | null;
+    requiredRole?: string | null;
+    category?: ClubJobCategory | null;
+    engagementType?: ClubJobEngagementType | null;
     status?: 'OPEN' | 'CLOSED';
 }
+
+export const fetchOpenJobDirectory = async () => {
+    const response = await apiClient.get<ClubJob[]>('/jobs');
+    return response.data;
+};
 
 export const fetchClubJobs = async (clubId: number) => {
     const response = await apiClient.get<ClubJob[]>(`/clubs/${clubId}/jobs`);

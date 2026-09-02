@@ -257,15 +257,15 @@ export const BrowseClubsPage = () => {
 
     if (loading && clubs.length === 0) {
         return (
-            <div className="bg-[#0f1117] flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
+            <div className="flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center bg-transparent">
                 <Loader2 className="h-9 w-9 animate-spin text-[#16a34a]" />
             </div>
         );
     }
 
     return (
-        <div className="bg-[#0f1117] min-h-full">
-            <div className="mx-auto flex w-full flex-col gap-6 px-6 py-6 sm:px-8">
+        <div className="min-h-full bg-transparent px-[var(--app-page-gutter)] py-6 text-[color:var(--text-primary)]">
+            <div className="flex w-full flex-col gap-6">
                 {/* Header */}
                 <header className="border-b border-[#ffffff0d] pb-5">
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">

@@ -16,7 +16,7 @@ export const ClubProfileStickyHeader = ({
     club
 }: ClubProfileStickyHeaderProps) => (
     <div className="border-b border-[color:var(--club-theme-border-subtle)] bg-[rgba(5,9,16,0.96)]">
-        <div className="mx-auto w-full overflow-x-auto px-6 sm:px-8">
+        <div className="w-full overflow-x-auto">
             <div className="flex min-w-max items-stretch gap-2 py-3">
                 {clubNavigationItems.map((item) => {
                     const Icon = item.icon;

@@ -1,7 +1,7 @@
 interface PaginationBarProps {
     page: number;
     totalPages: number;
-    totalElements: number;
+    totalElements?: number;
     pageSize: number;
     onPageChange: (page: number) => void;
     onPageSizeChange: (size: number) => void;
@@ -13,6 +13,7 @@ const DEFAULT_PAGE_SIZES = [9, 12, 15, 20, 30];
 export const PaginationBar = ({
     page,
     totalPages,
+    totalElements,
     pageSize,
     onPageChange,
     onPageSizeChange,
@@ -30,6 +31,11 @@ export const PaginationBar = ({
             <span className="text-xs text-[#71717a]">
                 Page {page + 1} of {totalPages}
             </span>
+            {totalElements !== undefined && (
+                <span className="text-[11px] text-[#4d4d52]">
+                    {totalElements} items
+                </span>
+            )}
             <button
                 onClick={() => onPageChange(Math.min(totalPages - 1, page + 1))}
                 disabled={page >= totalPages - 1}

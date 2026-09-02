@@ -111,7 +111,7 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
 
   return (
     <div className="mx-auto flex w-full max-w-[760px] flex-col gap-4">
-      {isOwnClubAdmin && <PostComposer clubId={club.id} authorName={club.name} onPostCreated={loadFeed} compact />}
+      {isOwnClubAdmin && <PostComposer clubId={club.id} authorName={club.name} avatarUrl={club.logoUrl} onPostCreated={loadFeed} compact />}
 
       {isOwnClubAdmin && !checklistDismissed && (
         <div className="relative overflow-hidden rounded-[18px] border-2 border-amber-400/40 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 p-5 shadow-[0_8px_32px_rgba(251,191,36,0.15)]">

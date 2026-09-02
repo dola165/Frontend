@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from 'react';
+import { useEffect, useState, type CSSProperties, type JSX } from 'react';
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { TopNav } from './components/layout/TopNav';
 import { LeftSidebar } from './components/layout/LeftSidebar';
@@ -40,9 +40,14 @@ import { MarketplacePage } from './pages/MarketplacePage';
 import { NeedsBoardPage } from './pages/NeedsBoardPage';
 import { StorePage } from './pages/StorePage';
 import { ClubStorePage } from './pages/ClubStorePage';
+import { FollowedClubsPage } from './pages/FollowedClubsPage';
+import { OpportunityDirectoryPage } from './pages/OpportunityDirectoryPage';
+import { JobsDirectoryPage } from './pages/JobsDirectoryPage';
+import { PeoplePage } from './pages/PeoplePage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { buildLoginRedirectPath, resolvePostAuthRedirect } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
+import { isThemePreference, type ThemePreference } from './theme';
 
 const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/consent']);
 const boundedCanvasPages = new Set(['/map', '/messages', '/calendar']);
@@ -146,20 +151,59 @@ const OrganizerOnlyRoute = ({ children }: { children: JSX.Element }) => {
     return children;
 };
 
+// O14a — the backend also gates POST /clubs on the membership context
+// (canCreateClub). Fail closed here so an existing club owner never walks the
+// whole wizard just to hit a 400 on submit. Compose with OrganizerOnlyRoute so
+// both the organizer-type and canCreateClub checks apply.
+const ClubCreateRoute = ({ children }: { children: JSX.Element }) => {
+    const [canCreateClub, setCanCreateClub] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        let active = true;
+
+        void fetchMyClubMembershipContext()
+            .then((context) => {
+                if (active) {
+                    setCanCreateClub(context.canCreateClub === true);
+                }
+            })
+            .catch(() => {
+                if (active) {
+                    setCanCreateClub(false);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    if (canCreateClub === null) {
+        return <PageBootSpinner label="Checking Access" />;
+    }
+
+    if (!canCreateClub) {
+        return <Navigate to="/clubs" replace />;
+    }
+
+    return children;
+};
+
 function MainLayout() {
     const location = useLocation();
     const navigate = useNavigate();
     const { status, user, logout } = useAuth();
     const [myClubId, setMyClubId] = useState<number | null>(null);
-    const [darkMode, setDarkMode] = useState(() => {
-        const saved = localStorage.getItem('theme');
-        if (saved === 'dark') {
-            return true;
-        }
-        if (saved === 'light') {
-            return false;
-        }
-        return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+    const [collapsedNavLocationKey, setCollapsedNavLocationKey] = useState<string | null>(null);
+    const [themePreference, setThemePreference] = useState<ThemePreference>(() => {
+        const savedPreference = localStorage.getItem('theme-preference');
+        if (isThemePreference(savedPreference)) return savedPreference;
+
+        // Migrate the former two-state setting. Existing dark users receive
+        // the recommended dark-app/light-Map treatment; explicit light users
+        // keep full light mode.
+        const legacyTheme = localStorage.getItem('theme');
+        return legacyTheme === 'light' ? 'light' : 'map-light';
     });
 
     useEffect(() => {
@@ -181,16 +225,22 @@ function MainLayout() {
         }
     }, [location.pathname, navigate, status, user]);
 
+    const isMapRoute = location.pathname === '/map';
+    const darkMode = themePreference !== 'light';
+    const effectiveDarkMode = themePreference === 'dark' || (themePreference === 'map-light' && !isMapRoute);
+
     useEffect(() => {
-        document.documentElement.classList.toggle('dark', darkMode);
-        localStorage.setItem('theme', darkMode ? 'dark' : 'light');
-    }, [darkMode]);
+        document.documentElement.classList.toggle('dark', effectiveDarkMode);
+        localStorage.setItem('theme-preference', themePreference);
+        // Retain the legacy value for older clients that only understand the
+        // original light/dark key.
+        localStorage.setItem('theme', themePreference === 'light' ? 'light' : 'dark');
+    }, [effectiveDarkMode, themePreference]);
 
     useEffect(() => {
         let active = true;
 
         if (status !== 'authenticated') {
-            setMyClubId(null);
             return () => {
                 active = false;
             };
@@ -215,19 +265,23 @@ function MainLayout() {
     }, [location.pathname, status]);
 
     const handleLogout = async () => {
+        setMyClubId(null);
         await logout();
         navigate('/login', { replace: true });
     };
 
     const isLandingPage = location.pathname === '/';
     const isAuthPage = authRoutePaths.has(location.pathname) || location.pathname === '/oauth2/callback';
-    const isCalendarWorkspace = location.pathname === '/calendar';
-    const isMapWorkspace = location.pathname === '/map';
-    const isHomeFeed = location.pathname === '/feed';
-    const isChromeFreeWorkspace = isCalendarWorkspace || isMapWorkspace;
+    const isHomeFeed = location.pathname === '/home' || location.pathname === '/feed';
     const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads|\/workspace|\/store)?$/.test(location.pathname);
+    // Public destination pages with full-bleed heroes (banner + tab bars) render
+    // edge-to-edge; everything else keeps the bounded wide frame.
+    const isBleedDestinationPage =
+        location.pathname === '/clubs' ||
+        /^\/clubs\/\d+$/.test(location.pathname) ||
+        /^\/profile\/\d+$/.test(location.pathname);
     const isFullScreenPage =
-        ['/map', '/messages', '/clubs', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/tournaments', '/tournaments/setup', '/marketplace', '/needs', '/store'].includes(location.pathname) ||
+        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/tournaments', '/tournaments/setup', '/marketplace', '/needs', '/store', '/jobs', '/campaigns', '/people'].includes(location.pathname) ||
         location.pathname.startsWith('/profile') ||
         location.pathname.startsWith('/organizations') ||
         location.pathname.startsWith('/tournaments/') ||
@@ -242,12 +296,25 @@ function MainLayout() {
         canvasWorkspacePages.has(location.pathname) ||
         /^\/clubs\/\d+\/workspace$/.test(location.pathname) ||
         /^\/tournaments\/\d+\/workspace$/.test(location.pathname);
+    const isCollapsibleNavWorkspace =
+        ['/map', '/calendar', '/messages'].includes(location.pathname) ||
+        /^\/clubs\/\d+\/workspace$/.test(location.pathname) ||
+        /^\/tournaments\/\d+\/workspace$/.test(location.pathname);
+    // React Router assigns a new key to every navigation entry. Binding the
+    // collapsed state to that key makes it route-visit-local without an effect:
+    // navigate away (or revisit later) and navigation is immediately visible.
+    const isTopNavCollapsed = isCollapsibleNavWorkspace && collapsedNavLocationKey === location.key;
+    const hasProductNavigation = !isLandingPage && !isAuthPage;
+    const activeHeaderHeight = hasProductNavigation && !isTopNavCollapsed
+        ? 'var(--app-header-height)'
+        : '0px';
 
     const fullScreenRoutes = (
         <Routes>
-            <Route path="/map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
+            <Route path="/map" element={<ProtectedRoute><MapPage darkMode={themePreference === 'dark'} /></ProtectedRoute>} />
             <Route path="/clubs" element={<BrowseClubsPage />} />
-            <Route path="/calendar" element={<ProtectedRoute><CalendarPage user={user} darkMode={darkMode} setDarkMode={setDarkMode} /></ProtectedRoute>} />
+            <Route path="/clubs/following" element={<ProtectedRoute><FollowedClubsPage /></ProtectedRoute>} />
+            <Route path="/calendar" element={<ProtectedRoute><CalendarPage user={user} darkMode={darkMode} setDarkMode={(value) => setThemePreference(value ? 'dark' : 'light')} /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute><MessagingPage /></ProtectedRoute>} />
             <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
@@ -263,11 +330,14 @@ function MainLayout() {
             <Route path="/marketplace" element={<AgentOnlyRoute><MarketplacePage /></AgentOnlyRoute>} />
             <Route path="/needs" element={<AgentOnlyRoute><NeedsBoardPage /></AgentOnlyRoute>} />
             <Route path="/store" element={<StorePage />} />
+            <Route path="/jobs" element={<JobsDirectoryPage />} />
+            <Route path="/campaigns" element={<OpportunityDirectoryPage type="campaigns" />} />
+            <Route path="/people" element={<ProtectedRoute><PeoplePage /></ProtectedRoute>} />
             <Route path="/clubs/:id/store" element={<ClubStorePage />} />
             <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage darkMode={darkMode} /></ProtectedRoute>} />
             <Route path="/clubs/:id" element={<ClubProfilePage />} />
-            <Route path="/clubs/create" element={<OrganizerOnlyRoute><CreateClubPage /></OrganizerOnlyRoute>} />
+            <Route path="/clubs/create" element={<OrganizerOnlyRoute><ClubCreateRoute><CreateClubPage /></ClubCreateRoute></OrganizerOnlyRoute>} />
             <Route path="/my-club" element={<ProtectedRoute><MyClubPage /></ProtectedRoute>} />
             <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
             <Route path="/dob" element={<ProtectedRoute><DobGatePage /></ProtectedRoute>} />
@@ -276,14 +346,20 @@ function MainLayout() {
     );
 
     return (
-        <div className="min-h-screen bg-[#0f1117] text-[#f4f4f5] transition-colors duration-200">
-            {!isLandingPage && !isAuthPage && !isChromeFreeWorkspace && (
+        <div
+            className={`${hasProductNavigation ? 'product-app-shell' : ''} min-h-screen bg-[color:var(--theme-page)] text-[color:var(--text-primary)] transition-colors duration-200`}
+            style={{ '--app-active-header-height': activeHeaderHeight } as CSSProperties}
+        >
+            {hasProductNavigation && (
                 <TopNav
                     user={user}
                     myClubId={myClubId}
-                    darkMode={darkMode}
-                    setDarkMode={setDarkMode}
+                    themePreference={themePreference}
+                    setThemePreference={setThemePreference}
                     handleLogout={handleLogout}
+                    collapsible={isCollapsibleNavWorkspace}
+                    collapsed={isTopNavCollapsed}
+                    onCollapsedChange={(collapsed) => setCollapsedNavLocationKey(collapsed ? location.key : null)}
                 />
             )}
 
@@ -304,7 +380,7 @@ function MainLayout() {
                 isImmersiveCanvasPage ? (
                     <main
                         className={`relative w-full ${isBoundedCanvasPage ? 'overflow-hidden' : 'overflow-y-auto'}`}
-                        style={isChromeFreeWorkspace
+                        style={isTopNavCollapsed
                             ? { minHeight: '100dvh', height: '100dvh' }
                             : { minHeight: 'calc(100dvh - var(--app-header-height))', height: 'calc(100dvh - var(--app-header-height))' }}
                     >
@@ -312,19 +388,20 @@ function MainLayout() {
                     </main>
                 ) : (
                     <main className="app-page-shell min-h-[calc(100dvh-var(--app-header-height))]">
-                        <AppPageFrame className="py-6">
+                        <AppPageFrame variant={isBleedDestinationPage ? 'bleed' : 'wide'} className={`app-route-frame ${isBleedDestinationPage ? '' : 'py-6'}`}>
                             {fullScreenRoutes}
                         </AppPageFrame>
                     </main>
                 )
             ) : (
                 <div className={isHomeFeed ? 'feed-home-shell min-h-[calc(100dvh-var(--app-header-height))]' : ''}>
-                    <div className={`grid grid-cols-1 gap-6 px-6 pb-10 pt-6 ${isHomeFeed ? 'feed-home-grid w-full lg:grid-cols-[280px_1fr_320px]' : 'mx-auto max-w-[1480px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[220px_minmax(0,720px)_280px]'}`}>
-                        <LeftSidebar user={user} myClubId={myClubId} />
+                    <div className={`grid grid-cols-1 gap-6 px-4 pb-10 pt-6 sm:px-6 ${isHomeFeed ? 'feed-home-grid w-full lg:grid-cols-[240px_minmax(0,680px)] lg:justify-between xl:grid-cols-[220px_minmax(0,680px)_280px] 2xl:grid-cols-[300px_minmax(0,680px)_300px]' : 'mx-auto max-w-[1480px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[220px_minmax(0,720px)_280px]'}`}>
+                            <LeftSidebar user={user} />
 
                         <main className="min-w-0">
                             <Routes>
-                                <Route path="/feed" element={<ProtectedRoute><FeedPage /></ProtectedRoute>} />
+                                <Route path="/home" element={<ProtectedRoute><FeedPage user={user} /></ProtectedRoute>} />
+                                <Route path="/feed" element={<Navigate to={`/home${location.search}`} replace />} />
                             </Routes>
                         </main>
 

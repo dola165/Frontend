@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Check, Clock, Loader2, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { updateEntryStatus } from '../api';
 import type { TournamentDetail, TournamentEntryDto, TournamentEntryStatus } from '../domain';
 import { entryStatusTone } from '../domain';
+import { tournamentEntryStatusText } from '../../../components/tournaments/tournamentFormatters';
 
 interface Props {
     tournamentId: number;
@@ -30,11 +32,11 @@ const validTransitions: Record<TournamentEntryStatus, TournamentEntryStatus[]> =
     COMPLETED: [],
 };
 
-const transitionLabel: Record<string, string> = {
-    APPROVED: 'Approve',
-    REJECTED: 'Reject',
-    WAITLISTED: 'Waitlist',
-    ACTIVE: 'Activate',
+const transitionLabelKey: Record<string, string> = {
+    APPROVED: 'tournaments.workspace.entryActions.approve',
+    REJECTED: 'tournaments.workspace.entryActions.reject',
+    WAITLISTED: 'tournaments.workspace.entryActions.waitlist',
+    ACTIVE: 'tournaments.workspace.entryActions.activate',
 };
 
 const transitionIcon: Record<string, typeof Check> = {
@@ -54,6 +56,7 @@ const entrySubLabel = (entry: TournamentEntryDto): string | null => {
 };
 
 export const EntryReviewPanel = ({ tournamentId, tournament, onRefresh }: Props) => {
+    const { t } = useTranslation();
     const [actionLoading, setActionLoading] = useState<number | null>(null);
     const [message, setMessage] = useState<string | null>(null);
     const [messageType, setMessageType] = useState<'success' | 'error'>('success');
@@ -79,15 +82,16 @@ export const EntryReviewPanel = ({ tournamentId, tournament, onRefresh }: Props)
 
     const entries = tournament.entries ?? [];
     const pendingCount = entries.filter((e) => e.status === 'PENDING').length;
+    const reviewEntries = entries.filter((entry) => (validTransitions[entry.status] ?? []).length > 0);
 
-    if (entries.length === 0) {
+    if (reviewEntries.length === 0) {
         return (
             <div>
-                <div className="border-b border-[#ffffff0d] bg-[#16181d] px-5 py-3">
-                    <p className="text-sm font-semibold text-[#f4f4f5]">Pending Applications</p>
+                <div className="border-b border-white/[0.08] px-5 py-4 sm:px-6">
+                    <p className="text-sm font-bold text-zinc-100">{t('tournaments.workspace.entryReview')}</p>
                 </div>
-                <div className="px-5 py-12 text-center text-sm text-[#a1a1aa]">
-                    No entries yet. Entries will appear here when players or clubs register.
+                <div className="px-5 py-12 text-center text-sm text-zinc-500">
+                    {entries.length === 0 ? t('tournaments.workspace.noEntries') : t('tournaments.workspace.noEntryDecisions')}
                 </div>
             </div>
         );
@@ -95,15 +99,16 @@ export const EntryReviewPanel = ({ tournamentId, tournament, onRefresh }: Props)
 
     return (
         <div>
-            <div className="border-b border-[#ffffff0d] bg-[#16181d] px-5 py-3">
-                <p className="text-sm font-semibold text-[#f4f4f5]">
-                    Pending Applications
+            <div className="border-b border-white/[0.08] px-5 py-4 sm:px-6">
+                <p className="text-sm font-bold text-zinc-100">
+                    {t('tournaments.workspace.entryReview')}
                     {pendingCount > 0 && (
-                        <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-xl bg-amber-500/20 px-1.5 text-xs font-bold text-amber-400">
+                        <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-300/15 px-1.5 text-xs font-bold text-amber-300">
                             {pendingCount}
                         </span>
                     )}
                 </p>
+                <p className="mt-1 text-xs text-zinc-500">{t('tournaments.workspace.entryReviewHint')}</p>
             </div>
 
             {message && (
@@ -116,25 +121,25 @@ export const EntryReviewPanel = ({ tournamentId, tournament, onRefresh }: Props)
                 </div>
             )}
 
-            <div className="max-h-[400px] overflow-y-auto">
-                {entries.map((entry) => {
+            <div className="max-h-[430px] divide-y divide-white/[0.06] overflow-y-auto">
+                {reviewEntries.map((entry) => {
                     const tone = entryStatusTone(entry.status);
                     const available = validTransitions[entry.status] ?? [];
                     return (
                         <div
                             key={entry.id}
-                            className="flex items-center justify-between gap-3 border-b border-[#ffffff0d] px-5 py-3 transition-colors hover:bg-[#1a1c22]"
+                            className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-white/[0.025] sm:flex-nowrap sm:px-6"
                         >
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-[#f4f4f5]">
+                                <p className="truncate text-sm font-bold text-zinc-100">
                                     {entryLabel(entry)}
                                 </p>
                                 {entrySubLabel(entry) && (
-                                    <p className="truncate text-xs text-[#a1a1aa]">{entrySubLabel(entry)}</p>
+                                    <p className="mt-0.5 truncate text-xs text-zinc-500">{entrySubLabel(entry)}</p>
                                 )}
                             </div>
                             <span className={`shrink-0 rounded-xl border px-2.5 py-0.5 text-xs font-semibold ${statusToneBorder[tone] ?? statusToneBorder.neutral}`}>
-                                {entry.status}
+                                {tournamentEntryStatusText(entry.status, t)}
                             </span>
                             {available.length > 0 && (
                                 <div className="flex shrink-0 gap-1">
@@ -147,19 +152,19 @@ export const EntryReviewPanel = ({ tournamentId, tournament, onRefresh }: Props)
                                                 type="button"
                                                 onClick={() => handleStatusChange(entry.id, targetStatus)}
                                                 disabled={actionLoading === entry.id}
-                                                className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                                className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
                                                     isDestructive
                                                         ? 'border-rose-500/30 text-rose-400 hover:bg-rose-500/10'
                                                         : 'border-[#ffffff0d] text-[#a1a1aa] hover:bg-[#1a1c22]'
                                                 } disabled:opacity-50`}
-                                                title={transitionLabel[targetStatus]}
+                                                title={t(transitionLabelKey[targetStatus])}
                                             >
                                                 {actionLoading === entry.id ? (
                                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                                 ) : (
                                                     <Icon className="h-3.5 w-3.5" />
                                                 )}
-                                                {transitionLabel[targetStatus]}
+                                                {t(transitionLabelKey[targetStatus])}
                                             </button>
                                         );
                                     })}

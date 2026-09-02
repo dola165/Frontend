@@ -11,6 +11,7 @@ const enrichPost = (p: ReturnType<typeof posts> extends Map<number, infer T> ? T
     id: p.id,
     content: p.content,
     createdAt: p.createdAt,
+    authorId: p.authorId,
     authorName: author?.fullName ?? author?.username ?? 'Unknown',
     authorAvatarUrl: author?.avatarUrl ?? null,
     clubId: p.clubId ?? null,

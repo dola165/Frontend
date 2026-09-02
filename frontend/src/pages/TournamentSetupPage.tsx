@@ -333,6 +333,11 @@ export const TournamentSetupPage = () => {
                                                         <option value="UNLISTED">Unlisted</option>
                                                         <option value="PUBLIC">Public</option>
                                                     </select>
+                                                    <span className="text-[11px] leading-4 text-[#71717a]">
+                                                        {form.visibility === 'PRIVATE'
+                                                            ? 'Saved privately: it will open in your workspace, but will not appear in public Browse Events.'
+                                                            : 'This event can appear in Browse Events after it is created.'}
+                                                    </span>
                                                 </label>
                                                 <label className="flex flex-col gap-2">
                                                     <span className="text-sm font-semibold text-[#f4f4f5]">Registration Opens</span>

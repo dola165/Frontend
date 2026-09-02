@@ -1,20 +1,22 @@
 import { createUser, createClub, createPost, createComment, resetFactoryCounters } from './factories';
 import { users, clubs, posts, comments, currentUserId, followedClubIds, events, nextEventId, resetStore, products, playerCards, jobs, type StoreProduct, type StorePlayerCard } from './store';
 import { resetIds } from './ids';
+import { conversations as chatConversations, messages as chatMessages, resetChatStore } from './chatStore';
 
 export const seed = () => {
   resetStore();
+  resetChatStore();
   resetIds();
   resetFactoryCounters();
 
   // -- users --
   // Adult DOBs so the minors framework (allowlist, private profiles, gates)
   // treats every demo persona as an adult — except the two intentional ones below.
-  const u1 = createUser({ id: 1, email: 'player@test.dev', password: 'mock', username: 'marcus.r', fullName: 'Marcus Rivera', role: 'PLAYER', position: 'Forward', bio: 'Sunday league forward. Always looking for a game.', dob: '1998-05-14' });
-  const u2 = createUser({ id: 2, email: 'organizer@test.dev', password: 'mock', username: 'sarah.c', fullName: 'Sarah Chen', role: 'ORGANIZER', dob: '1992-09-02' });
-  const u3 = createUser({ id: 3, email: 'coach@test.dev', password: 'mock', username: 'james.w', fullName: 'James Wilson', role: 'COACH', position: 'Head Coach', dob: '1985-01-23' });
-  const u4 = createUser({ id: 4, email: 'fan@test.dev', password: 'mock', username: 'emma.t', fullName: 'Emma Thompson', role: 'FAN', profileComplete: false, dob: '2000-07-30' });
-  const u5 = createUser({ id: 5, email: 'admin@test.dev', password: 'mock', username: 'alex.k', fullName: 'Alex Kim', role: 'ADMIN', dob: '1981-11-05' });
+  const u1 = createUser({ id: 1, email: 'player@test.dev', password: 'mock', username: 'marcus.r', fullName: 'Marcus Rivera', role: 'PLAYER', position: 'Forward', bio: 'Founder and president of Creekside FC. Grassroots coach and lifelong Sunday-league player.', dob: '1998-05-14', avatarUrl: 'https://i.pravatar.cc/160?img=12' });
+  const u2 = createUser({ id: 2, email: 'organizer@test.dev', password: 'mock', username: 'sarah.c', fullName: 'Sarah Chen', role: 'ORGANIZER', bio: 'Academy director at Metro United — building clear pathways from U14 to senior football.', dob: '1992-09-02', avatarUrl: 'https://i.pravatar.cc/160?img=32' });
+  const u3 = createUser({ id: 3, email: 'coach@test.dev', password: 'mock', username: 'james.w', fullName: 'James Wilson', role: 'COACH', position: 'Head Coach', bio: 'Head coach at Lakeside Athletic. UEFA A licence with semi-professional management experience.', dob: '1985-01-23', avatarUrl: 'https://i.pravatar.cc/160?img=53' });
+  const u4 = createUser({ id: 4, email: 'fan@test.dev', password: 'mock', username: 'emma.t', fullName: 'Emma Thompson', role: 'FAN', profileComplete: false, bio: 'Runs the Tbilisi school programme — football for every pupil, every week.', dob: '2000-07-30', avatarUrl: 'https://i.pravatar.cc/160?img=47' });
+  const u5 = createUser({ id: 5, email: 'admin@test.dev', password: 'mock', username: 'alex.k', fullName: 'Alex Kim', role: 'SYSTEM_ADMIN', dob: '1981-11-05' });
 
   // Minors-framework demo personas: a 14-year-old player (consent PENDING on
   // the Creekside affiliation) and their guardian — powers the DM allowlist,
@@ -22,19 +24,57 @@ export const seed = () => {
   const u6 = createUser({ id: 6, email: 'youth@test.dev', password: 'mock', username: 'saba.y', fullName: 'Saba Youth', role: 'PLAYER', position: 'Goalkeeper', dob: `${new Date().getFullYear() - 14}-08-01` });
   const u7 = createUser({ id: 7, email: 'parent@test.dev', password: 'mock', username: 'nino.p', fullName: 'Nino Parent', role: 'FAN', dob: `${new Date().getFullYear() - 38}-03-20` });
 
-  [u1, u2, u3, u4, u5, u6, u7].forEach((u) => users().set(u.id, u));
+  // Club-people demo personas — back the public club People tab in mock mode.
+  const u8 = createUser({ id: 8, email: 'lea.carter@test.dev', password: 'mock', username: 'lea.carter', fullName: 'Lea Carter', role: 'ORGANIZER', bio: 'U12–U14 head coach. UEFA B licence and ten years of grassroots youth development. Brave dribbling, quick combinations.', dob: '1990-04-11', avatarUrl: 'https://i.pravatar.cc/160?img=44' });
+  const u9 = createUser({ id: 9, email: 'daniel.osei@test.dev', password: 'mock', username: 'daniel.o', fullName: 'Daniel Osei', role: 'ORGANIZER', bio: 'Club administrator handling fixtures, registrations and parent communication across every age group.', dob: '1987-09-19', avatarUrl: 'https://i.pravatar.cc/160?img=68' });
+  const u10 = createUser({ id: 10, email: 'sophie.b@test.dev', password: 'mock', username: 'sophie.b', fullName: 'Sophie Brandt', role: 'ORGANIZER', bio: 'Senior squad coach. UEFA A licence with a background in performance analysis.', dob: '1991-12-03', avatarUrl: 'https://i.pravatar.cc/160?img=26' });
+
+  [u1, u2, u3, u4, u5, u6, u7, u8, u9, u10].forEach((u) => users().set(u.id, u));
+
+  // Home recent-contact rail: keep two realistic direct conversations in the
+  // showcase seed so the compact chat popup is visible without a setup step.
+  const marcusDisplayName = u1.fullName || u1.username || 'Marcus Rivera';
+  const sarahDisplayName = u2.fullName || u2.username || 'Sarah Chen';
+  const recentContactTime = new Date(Date.now() - 25 * 60_000).toISOString();
+  chatConversations().set(1, {
+    id: 1,
+    name: null,
+    contextType: 'DIRECT',
+    contextId: null,
+    lastMessage: 'I can send the updated squad list this afternoon.',
+    lastMessageSenderId: u1.id,
+    lastMessageSenderName: marcusDisplayName,
+    lastMessageAt: recentContactTime,
+    unreadCount: 1,
+    participantCount: 2,
+    participants: [
+      { userId: u2.id, displayName: sarahDisplayName, profilePictureUrl: u2.avatarUrl ?? null, role: null },
+      { userId: u1.id, displayName: marcusDisplayName, profilePictureUrl: u1.avatarUrl ?? null, role: null },
+    ],
+  });
+  chatMessages().set(1, [{
+    id: 1,
+    conversationId: 1,
+    senderId: u1.id,
+    senderName: marcusDisplayName,
+    content: 'I can send the updated squad list this afternoon.',
+    createdAt: recentContactTime,
+  }]);
 
   // -- clubs --
   const c1 = createClub({ id: 1, name: 'Creekside FC', ownerId: u1.id, city: 'Bristol', description: 'Grassroots community club. Open trials every Saturday.', joinPolicy: 'OPEN_TRIAL', category: 'AMATEUR_CLUB', memberCount: 42 });
   const c2 = createClub({ id: 2, name: 'Metro United Academy', ownerId: u2.id, city: 'Manchester', description: 'Youth development academy. U14–U18 squads competing in regional leagues.', joinPolicy: 'APPLICATION_REQUIRED', category: 'PRIVATE_ACADEMY', memberCount: 128 });
   const c3 = createClub({ id: 3, name: 'Lakeside Athletic', ownerId: u3.id, city: 'London', description: 'Semi-professional club. First team in the Isthmian League.', joinPolicy: 'INVITE_ONLY', category: 'PROFESSIONAL_ACADEMY', memberCount: 56 });
+  const c4 = createClub({ id: 4, name: 'Tbilisi School Football Club', ownerId: u4.id, city: 'Tbilisi', description: 'After-school football programme for local pupils, families, and the wider school community.', joinPolicy: 'APPLICATION_REQUIRED', category: 'SCHOOL_CLUB', memberCount: 76 });
 
-  [c1, c2, c3].forEach((c) => clubs().set(c.id, c));
+  [c1, c2, c3, c4].forEach((c) => clubs().set(c.id, c));
 
   // -- club jobs (item 5): seeded for the Business tab demo --
-  const j1 = { id: 101, clubId: c2.id, title: 'U14 goalkeeper coach wanted', description: 'Lead the U14 keepers through the regional league season. Two evening sessions per week.', ageGroup: 'U14', level: 'EXPERIENCED', status: 'OPEN' as const, createdBy: u2.id, applicationCount: 1, createdAt: new Date().toISOString() };
-  const j2 = { id: 102, clubId: c2.id, title: 'Fitness coach — first team', description: 'Pre-season conditioning and recovery programmes for the senior squad.', ageGroup: 'SENIOR', level: 'LICENSED', status: 'OPEN' as const, createdBy: u2.id, applicationCount: 0, createdAt: new Date().toISOString() };
-  [j1, j2].forEach((j) => jobs().set(j.id, j));
+  const j1 = { id: 101, clubId: c2.id, title: 'U14 goalkeeper coach wanted', description: 'Lead the U14 keepers through the regional league season. Two evening sessions per week.', ageGroup: 'U14', level: 'EXPERIENCED', requiredRole: 'COACH', category: 'COACHING' as const, engagementType: 'PAID' as const, status: 'OPEN' as const, createdBy: u2.id, applicationCount: 1, createdAt: new Date().toISOString() };
+  const j2 = { id: 102, clubId: c2.id, title: 'Fitness coach — first team', description: 'Pre-season conditioning and recovery programmes for the senior squad.', ageGroup: 'Senior', level: 'LICENSED', requiredRole: 'COACH', category: 'COACHING' as const, engagementType: 'FLEXIBLE' as const, status: 'OPEN' as const, createdBy: u2.id, applicationCount: 0, createdAt: new Date(Date.now() - 86_400_000).toISOString() };
+  const j3 = { id: 103, clubId: c1.id, title: 'Volunteer social media coordinator', description: 'Help tell the story of our grassroots teams on matchdays and schedule the club’s weekly posts.', ageGroup: null, level: 'ANY', requiredRole: null, category: 'MEDIA_COMMUNICATIONS' as const, engagementType: 'VOLUNTEER' as const, status: 'OPEN' as const, createdBy: u1.id, applicationCount: 0, createdAt: new Date(Date.now() - 172_800_000).toISOString() };
+  const j4 = { id: 104, clubId: c3.id, title: 'Part-time clubhouse cleaner', description: 'Keep the clubhouse and changing areas ready for training and weekend fixtures.', ageGroup: null, level: 'ANY', requiredRole: null, category: 'FACILITIES' as const, engagementType: 'PAID' as const, status: 'OPEN' as const, createdBy: u3.id, applicationCount: 0, createdAt: new Date(Date.now() - 259_200_000).toISOString() };
+  [j1, j2, j3, j4].forEach((j) => jobs().set(j.id, j));
 
   // -- player cards (Aug 17: workspace Player Cards tab + roster edit demo) --
   // U12 card for Creekside — no photo by rule; pseudo-userId so the roster
@@ -64,7 +104,9 @@ export const seed = () => {
       clubId,
       clubName,
       clubLogoUrl: null,
-      clubWhatsappNumber: null,
+      // UK drama-use range: gives the showcase catalog a safe, complete
+      // contact-out flow without pointing at a real person's number.
+      clubWhatsappNumber: '+44 7700 900123',
       clubEmail: null,
       name,
       description,
@@ -179,6 +221,22 @@ export const seed = () => {
     recurring: false, recurrence: null,
     opponentClubId: null, opponentClubName: null, challengeStatus: 'OPEN',
     status: 'SCHEDULED', conflict: false, conflictingEventIds: [],
+  });
+
+  // Keep one completed event inside the current week so the calendar's
+  // read-only past-event path remains demonstrable regardless of run date.
+  const e5 = nextEventId();
+  const completedStart = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  const completedEnd = new Date(Date.now() - 60 * 60 * 1000);
+  events().set(e5, {
+    eventId: e5, occurrenceId: `occ-${e5}`, clubId: 2, clubName: 'Metro United Academy', userId: 2,
+    eventType: 'MATCH', title: 'Friendly vs Saburtalo U16', description: 'Completed showcase fixture.',
+    startsAt: completedStart.toISOString(), endsAt: completedEnd.toISOString(),
+    locationName: 'Metro Academy Pitch', locationLat: 53.4808, locationLng: -2.2426,
+    visibility: 'PUBLIC', publishAt: null, publicNow: true,
+    recurring: false, recurrence: null,
+    opponentClubId: null, opponentClubName: 'Saburtalo U16', challengeStatus: 'ACCEPTED',
+    status: 'COMPLETED', conflict: false, conflictingEventIds: [],
   });
 };
 

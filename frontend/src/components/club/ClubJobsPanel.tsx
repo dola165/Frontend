@@ -70,6 +70,9 @@ export const ClubJobsPanel = ({ clubId, isAuthenticated }: ClubJobsPanelProps) =
                             <p className="truncate text-sm font-semibold text-[#f4f4f5]">{job.title}</p>
                             <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#a1a1aa]">
                                 {[job.ageGroup, job.level].filter(Boolean).join(' · ') || t('jobs.coachingRole')}
+                                {job.requiredRole && (
+                                    <span className="ml-2 rounded-full border border-[#ffffff0d] px-1.5 py-0.5">{job.requiredRole}</span>
+                                )}
                             </p>
                         </div>
                         {isAuthenticated ? (

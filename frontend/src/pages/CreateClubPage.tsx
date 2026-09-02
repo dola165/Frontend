@@ -10,6 +10,7 @@ import { MiniMap } from '../components/MiniMap';
 type ClubCommunicationMethod = 'WHATSAPP' | 'FACEBOOK_MESSENGER';
 type ClubType = 'GRASSROOTS' | 'ACADEMY' | 'PROFESSIONAL';
 type OrgKind = 'CLUB' | 'FAN_CLUB' | 'COMPANY';
+type ClubCategory = 'PROFESSIONAL_ACADEMY' | 'PRIVATE_ACADEMY' | 'SCHOOL_CLUB' | 'AMATEUR_CLUB' | 'OTHER';
 
 interface CreateClubResponse { id: number; }
 
@@ -28,6 +29,14 @@ const orgKindOptions: Array<{ value: OrgKind; labelKey: string; descriptionKey: 
   { value: 'CLUB', labelKey: 'createClub.kindClub', descriptionKey: 'createClub.kindClubDesc', allowedRoles: ['ORGANIZER'] },
   { value: 'FAN_CLUB', labelKey: 'createClub.kindFanClub', descriptionKey: 'createClub.kindFanClubDesc', allowedRoles: ['FAN'], comingSoon: true },
   { value: 'COMPANY', labelKey: 'createClub.kindCompany', descriptionKey: 'createClub.kindCompanyDesc', allowedRoles: [], comingSoon: true }
+];
+
+const clubCategoryOptions: Array<{ value: ClubCategory; label: string }> = [
+  { value: 'AMATEUR_CLUB', label: 'Amateur Club' },
+  { value: 'PROFESSIONAL_ACADEMY', label: 'Professional Academy' },
+  { value: 'PRIVATE_ACADEMY', label: 'Private Academy' },
+  { value: 'SCHOOL_CLUB', label: 'School Club' },
+  { value: 'OTHER', label: 'Other' }
 ];
 
 const STEPS = [
@@ -51,7 +60,9 @@ export const CreateClubPage = () => {
     contactEmail: '',
     whatsappNumber: '',
     facebookMessengerUrl: '',
-    preferredCommunicationMethod: null as ClubCommunicationMethod | null
+    preferredCommunicationMethod: null as ClubCommunicationMethod | null,
+    category: '',
+    organizationId: ''
   });
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -95,7 +106,9 @@ export const CreateClubPage = () => {
         facebookMessengerUrl: formData.facebookMessengerUrl || null,
         preferredCommunicationMethod: formData.preferredCommunicationMethod,
         latitude: selectedLocation?.lat ?? null,
-        longitude: selectedLocation?.lng ?? null
+        longitude: selectedLocation?.lng ?? null,
+        category: formData.category || undefined,
+        organizationId: formData.organizationId.trim() ? Number(formData.organizationId) : null
       });
 
       navigate(`/clubs/${response.data.id}`);
@@ -333,6 +346,24 @@ export const CreateClubPage = () => {
                     </div>
                   </div>
 
+                  {/* Category */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-widest text-[#a1a1aa]">Category</label>
+                    <p className="text-xs text-[#71717a]">Used by map and search category filters</p>
+                    <select
+                      value={formData.category}
+                      onChange={(e) => updateField('category', e.target.value)}
+                      className="w-full bg-[#16181d] border border-[#ffffff0d] rounded-xl px-4 py-3 outline-none focus:border-[#16a34a] font-medium text-sm text-[#f4f4f5] transition-colors cursor-pointer"
+                    >
+                      <option value="">No category</option>
+                      {clubCategoryOptions.map((option) => (
+                        <option key={option.value} value={option.value} className="bg-[#16181d]">
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   {/* Name */}
                   <div className="space-y-2">
                     <label className="text-xs font-semibold uppercase tracking-widest text-[#a1a1aa]">
@@ -391,6 +422,20 @@ export const CreateClubPage = () => {
                       value={formData.facebookMessengerUrl}
                       onChange={(e) => updateField('facebookMessengerUrl', e.target.value)}
                       placeholder={t('createClub.messengerPlaceholder')}
+                      className="w-full bg-[#16181d] border border-[#ffffff0d] rounded-xl px-4 py-3 outline-none focus:border-[#16a34a] font-medium text-sm text-[#f4f4f5] transition-colors"
+                    />
+                  </div>
+
+                  {/* Organization link */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-widest text-[#a1a1aa]">Organization ID (optional)</label>
+                    <p className="text-xs text-[#71717a]">Only if you own an organization — links this club to it</p>
+                    <input
+                      type="number"
+                      min={1}
+                      value={formData.organizationId}
+                      onChange={(e) => updateField('organizationId', e.target.value)}
+                      placeholder="e.g. 42"
                       className="w-full bg-[#16181d] border border-[#ffffff0d] rounded-xl px-4 py-3 outline-none focus:border-[#16a34a] font-medium text-sm text-[#f4f4f5] transition-colors"
                     />
                   </div>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+    Ban,
     CalendarDays,
     Check,
     ChevronLeft,
@@ -17,8 +18,10 @@ import {
     X,
     Zap
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { MiniMap } from '../MiniMap';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { cancelScheduleEvent } from '../../features/schedule/api';
 import type { DayOfWeek, ScheduleEventType, ScheduleEventUpsertInput, ScheduleVisibility } from '../../features/schedule/api';
 import { extractApiErrorMessage } from '../../utils/apiError';
 
@@ -52,6 +55,14 @@ interface EventCreationModalProps {
     initialValues: EventCreationFormValues;
     clubId: number | null;
     targetEventId?: number;
+    /** Whether the viewer manages the club that owns the event (OWNER/CLUB_ADMIN). */
+    canManageSchedule?: boolean;
+    /** Owning club of the event being edited — null for personal events. */
+    targetEventClubId?: number | null;
+    /** Original start of the event being edited (cancel is future-only). */
+    targetEventStartsAt?: string | null;
+    /** Fired after a successful cancel so the page can refresh its events. */
+    onCancelled?: () => void;
     subjectLabel: string;
     onClose: () => void;
     onSubmit: (payload: ScheduleEventUpsertInput, meta: { eventType: ScheduleEventType; recurring: boolean }) => Promise<void>;
@@ -89,7 +100,8 @@ const gDow = (ds: string): DayOfWeek => {
 };
 
 export const EventCreationModal = ({
-    isOpen, mode, surface, initialValues, onClose, onSubmit
+    isOpen, mode, surface, initialValues, targetEventId, canManageSchedule = false,
+    targetEventClubId = null, targetEventStartsAt = null, onCancelled, onClose, onSubmit
 }: EventCreationModalProps) => {
     const { t } = useTranslation();
     const [step, setStep] = useState(0);
@@ -98,6 +110,8 @@ export const EventCreationModal = ({
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -106,11 +120,20 @@ export const EventCreationModal = ({
         setStep(0);
         setErrorMessage(null);
         setSubmitting(false);
+        setCancelling(false);
     }, [initialValues, isOpen]);
 
     const isClub = surface === 'CLUB_SCHEDULE';
     const isStanding = creationMode === 'recurring';
     const isTraining = form.eventType === 'TRAINING';
+
+    // Cancel event: edit mode only, club-owned future events, manager viewing.
+    const targetStartMs = targetEventStartsAt ? new Date(targetEventStartsAt).getTime() : NaN;
+    const canCancelEvent = mode === 'edit'
+        && canManageSchedule
+        && targetEventClubId != null
+        && Number.isFinite(targetStartMs)
+        && targetStartMs > Date.now();
 
     const update = <K extends keyof EventCreationFormValues>(field: K, value: EventCreationFormValues[K]) => {
         setForm((prev) => ({ ...prev, [field]: value }));
@@ -194,6 +217,22 @@ export const EventCreationModal = ({
         setSubmitting(true); setErrorMessage(null);
         try { await onSubmit(payload, { eventType: eType, recurring: recur }); }
         catch (error) { setErrorMessage(extractApiErrorMessage(error, t('schedule.event.saveFailed'))); setSubmitting(false); }
+    };
+
+    const handleCancelEvent = async () => {
+        if (targetEventClubId == null || !targetEventId) return;
+        setCancelling(true);
+        setErrorMessage(null);
+        try {
+            await cancelScheduleEvent(targetEventClubId, targetEventId);
+            toast.success('Event cancelled');
+            onClose();
+            onCancelled?.();
+        } catch (error) {
+            setErrorMessage(extractApiErrorMessage(error, 'Could not cancel the event.'));
+        } finally {
+            setCancelling(false);
+        }
     };
 
     const handleBackdropClick = () => {
@@ -441,12 +480,20 @@ export const EventCreationModal = ({
 
                 {/* Footer */}
                 <div className="flex items-center justify-between gap-3 border-t border-[var(--fc-border)] px-5 py-3">
-                    {step > 0 ? (
-                        <button type="button" onClick={() => { setStep((s) => s - 1); setErrorMessage(null); }}
-                            className="inline-flex items-center gap-1.5 rounded-[var(--fc-radius)] px-3 py-2 text-sm font-medium text-[var(--fc-text-secondary)] transition-colors hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)]">
-                            <ChevronLeft className="h-4 w-4" /> {t('schedule.event.back')}
-                        </button>
-                    ) : <div />}
+                    <div className="flex items-center gap-2">
+                        {step > 0 && (
+                            <button type="button" onClick={() => { setStep((s) => s - 1); setErrorMessage(null); }}
+                                className="inline-flex items-center gap-1.5 rounded-[var(--fc-radius)] px-3 py-2 text-sm font-medium text-[var(--fc-text-secondary)] transition-colors hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)]">
+                                <ChevronLeft className="h-4 w-4" /> {t('schedule.event.back')}
+                            </button>
+                        )}
+                        {canCancelEvent && (
+                            <button type="button" onClick={() => setShowCancelConfirm(true)} disabled={submitting || cancelling}
+                                className="inline-flex items-center gap-1.5 rounded-[var(--fc-radius)] px-3 py-2 text-sm font-semibold text-[var(--fc-state-danger)] transition-colors hover:bg-[rgba(239,68,68,0.1)] disabled:opacity-40 disabled:cursor-not-allowed">
+                                {cancelling && <Loader2 className="h-4 w-4 animate-spin" />} <Ban className="h-4 w-4" /> Cancel event
+                            </button>
+                        )}
+                    </div>
                     <div className="flex items-center gap-2">
                         <button type="button" onClick={onClose} disabled={submitting}
                             className="rounded-[var(--fc-radius)] px-3 py-2 text-sm font-medium text-[var(--fc-text-secondary)] transition-colors hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)]">
@@ -475,6 +522,16 @@ export const EventCreationModal = ({
                 variant="warning"
                 onConfirm={() => { setShowDiscardConfirm(false); onClose(); }}
                 onCancel={() => setShowDiscardConfirm(false)}
+            />
+            <ConfirmDialog
+                open={showCancelConfirm}
+                title="Cancel this event?"
+                message="The opponent club and your followers will be notified."
+                confirmLabel="Cancel event"
+                cancelLabel="Keep event"
+                variant="danger"
+                onConfirm={() => { setShowCancelConfirm(false); void handleCancelEvent(); }}
+                onCancel={() => setShowCancelConfirm(false)}
             />
         </div>
     );

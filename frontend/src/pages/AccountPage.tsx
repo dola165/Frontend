@@ -424,7 +424,7 @@ export const AccountPage = () => {
 
     return (
         <div className="workspace-page-shell min-h-full pb-10">
-            <div className="mx-auto flex w-full max-w-[min(1320px,calc(100vw-48px))] flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
+            <div className="flex w-full flex-col gap-5">
                 {/* ===== HEADER ===== */}
                 <header className="border-b border-[var(--fc-border)] pb-5">
                     <Link

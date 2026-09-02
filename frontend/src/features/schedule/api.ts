@@ -156,6 +156,10 @@ export const deleteScheduleEvent = async (eventId: number) => {
     await apiClient.delete(`/schedule/events/${eventId}`);
 };
 
+export const cancelScheduleEvent = async (clubId: number, eventId: number) => {
+    await apiClient.post(`/schedule/clubs/${clubId}/events/${eventId}/cancel`);
+};
+
 export const createScheduleChallenge = async (eventId: number, payload: ScheduleChallengeRequest) => {
     const response = await apiClient.post<ScheduleEventOccurrence>(`/schedule/events/${eventId}/challenge`, payload);
     return response.data;

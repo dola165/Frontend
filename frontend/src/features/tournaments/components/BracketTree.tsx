@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, Edit3, Pencil, Plus, Trophy, Undo2, X, XCircle, ZoomIn, ZoomOut } from 'lucide-react';
+import { ChevronRight, Edit3, Maximize2, Move, Pencil, Plus, RotateCcw, Trophy, Undo2, X, XCircle, ZoomIn, ZoomOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { fetchDraftTeams, moveEntry, replaceEntry, updateFixtureParticipants } from '../api';
@@ -8,6 +8,7 @@ import { entryTypeLabel, fixtureStatusTone } from '../domain';
 import { ParticipantProfileModal } from './ParticipantProfileModal';
 import { CreateTeamModal } from './CreateTeamModal';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
+import { tournamentEntryTypeText } from '../../../components/tournaments/tournamentFormatters';
 
 type Slot = 'HOME' | 'AWAY';
 
@@ -19,6 +20,7 @@ interface Props {
     fixtures: TournamentFixtureDto[];
     saving: boolean;
     canManage: boolean;
+    canScore?: boolean;
     onRefresh: () => void;
     onEditScores: (fixture: TournamentFixtureDto) => void;
     onComplete: (fixture: TournamentFixtureDto) => void;
@@ -75,6 +77,7 @@ export const BracketTree = ({
     fixtures,
     saving,
     canManage,
+    canScore = canManage,
     onRefresh,
     onEditScores,
     onComplete,
@@ -126,6 +129,21 @@ export const BracketTree = ({
     };
 
     const clampZoom = (value: number) => Math.min(1.75, Math.max(0.5, Math.round(value * 4) / 4));
+
+    const resetView = () => {
+        setZoom(1);
+        setPan({ x: 0, y: 0 });
+    };
+
+    const fitToBracket = () => {
+        const availableWidth = canvasRef.current?.clientWidth ?? 0;
+        const contentWidth = geometry.width + 56;
+        const fittedZoom = availableWidth > 0 && contentWidth > 0
+            ? clampZoom(Math.min(1, (availableWidth - 32) / contentWidth))
+            : 1;
+        setZoom(fittedZoom);
+        setPan({ x: 0, y: 0 });
+    };
 
     // Ctrl/Cmd + wheel zooms the bracket (non-passive so preventDefault works).
     useEffect(() => {
@@ -323,7 +341,7 @@ export const BracketTree = ({
 
     // ---- Pan: drag on empty canvas moves the view (no scrollbars). ----
     const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (!canManage || e.button !== 0) return;
+        if (e.button !== 0) return;
         panning.current = { startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y };
     };
 
@@ -436,12 +454,13 @@ export const BracketTree = ({
         const target = advanceTarget(fx);
         const score = slot === 'HOME' ? fx.homeScore : fx.awayScore;
         const isPrediction = (fx.roundNumber ?? 0) > 1 && fx.status === 'SCHEDULED' && fx.winnerEntryId == null;
+        const isWinner = entryId != null && fx.winnerEntryId === entryId;
 
         return (
             <div
-                className={`grid grid-cols-[28px_minmax(0,1fr)_44px] items-center gap-2 ${
+                className={`grid grid-cols-[28px_minmax(0,1fr)_44px] items-center gap-2 rounded-xl transition-colors ${
                     entry ? '' : 'rounded-lg border border-dashed border-white/20 bg-black px-1.5 py-1.5'
-                } ${isOver ? 'border-[#16a34a] bg-[#16a34a]/10' : ''}`}
+                } ${isOver ? 'border-emerald-300/60 bg-emerald-300/10' : ''} ${isWinner ? 'bg-emerald-300/[0.06]' : ''}`}
                 onDragOver={(e) => {
                     e.preventDefault();
                     setDragOver(dropKey);
@@ -471,18 +490,18 @@ export const BracketTree = ({
                             onDragEnd={onDragEnd}
                             onClick={() => setSelectedEntry(entry)}
                             onPointerDown={(e) => e.stopPropagation()}
-                            className={`flex min-w-0 items-center justify-between gap-1.5 rounded-lg border-2 bg-black px-2.5 py-1.5 transition-colors hover:bg-white/5 ${
-                                isPrediction ? 'border-dashed border-amber-500/50' : 'border-white/10'
+                            className={`flex min-w-0 items-center justify-between gap-1.5 rounded-lg border bg-[#0a0e0b] px-2.5 py-2 transition-colors hover:bg-white/5 ${
+                                isPrediction ? 'border-dashed border-amber-300/40' : isWinner ? 'border-emerald-300/30' : 'border-white/10'
                             } ${
                                 drag?.kind === 'move' && drag.fixtureId === fx.id && drag.slot === slot ? 'opacity-40' : ''
                             } ${isBusy ? 'cursor-wait' : canManage ? 'cursor-grab' : 'cursor-default'}`}
                             title={isPrediction ? t('tournaments.diagram.predictionHint') : t('tournaments.diagram.profileTitle')}
                         >
                             <div className="min-w-0 flex-1">
-                                <span className="flex items-center truncate text-sm font-bold text-white">
+                                <span className={`flex items-center truncate text-sm font-bold ${isWinner ? 'text-emerald-100' : 'text-white'}`}>
                                     {entryPrimary(entry)}
                                     {fx.winnerEntryId === entryId && (
-                                        <Trophy className="ml-1.5 inline-block h-3.5 w-3.5 shrink-0 text-amber-500" />
+                                        <Trophy className="ml-1.5 inline-block h-3.5 w-3.5 shrink-0 text-amber-300" />
                                     )}
                                 </span>
                                 {entrySecondary(entry) && (
@@ -503,7 +522,7 @@ export const BracketTree = ({
                                 </button>
                             )}
                         </div>
-                        <span className={`text-right text-base font-black tabular-nums ${fx.status === 'COMPLETED' ? 'text-white' : 'text-[#71717a]'}`}>
+                        <span className={`text-right text-lg font-black tabular-nums ${isWinner ? 'text-emerald-300' : fx.status === 'COMPLETED' ? 'text-white' : 'text-zinc-600'}`}>
                             {score != null ? score : '–'}
                         </span>
                     </>
@@ -521,7 +540,7 @@ export const BracketTree = ({
     };
 
     return (
-        <div className="border-b border-white/10 bg-black">
+        <div className="border-b border-white/[0.08] bg-[#090d0a]">
             {/* Message toast */}
             {message && (
                 <div className={`border-b border-white/10 px-4 py-2.5 text-sm font-semibold ${
@@ -533,30 +552,41 @@ export const BracketTree = ({
                 </div>
             )}
 
-            {/* Toolbar: zoom + create team + pan hint */}
-            <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-2">
-                <div className="flex items-center gap-2">
+            {/* Toolbar: bracket context + creation + viewport controls */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] bg-[#111612] px-4 py-3 sm:px-5">
+                <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-300/15 bg-emerald-300/[0.07] text-emerald-300">
+                        <Move className="h-4 w-4" />
+                    </span>
+                    <span className="hidden sm:block">
+                        <span className="block text-xs font-bold text-zinc-200">{t('tournaments.diagram.canvasTitle')}</span>
+                        <span className="mt-0.5 block text-[11px] text-zinc-500">{t('tournaments.diagram.panHint')}</span>
+                    </span>
                     {canManage && (
                         <button
                             onClick={() => {
                                 setEditingTeamId(null);
                                 setCreateTeamOpen(true);
                             }}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-[#16a34a] px-3 py-1.5 text-xs font-bold text-black transition-colors hover:bg-[#22c55e]"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-400 px-3 py-2 text-xs font-bold text-[#07110b] transition-colors hover:bg-emerald-300"
                         >
                             <Plus className="h-3.5 w-3.5" />
                             {t('tournaments.diagram.createTeam')}
                         </button>
                     )}
-                    <span className="hidden text-[11px] font-semibold text-[#71717a] md:block">
-                        {t('tournaments.diagram.panHint')}
-                    </span>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 rounded-xl border border-white/[0.08] bg-black/25 p-1">
+                    <button onClick={fitToBracket} className={iconBtn} title={t('tournaments.diagram.fit')}>
+                        <Maximize2 className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={resetView} className={iconBtn} title={t('tournaments.diagram.resetView')}>
+                        <RotateCcw className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="mx-0.5 h-5 w-px bg-white/10" />
                     <button onClick={() => setZoom((z) => clampZoom(z - 0.25))} disabled={zoom <= 0.5} className={iconBtn} title={t('tournaments.diagram.zoomOut')}>
                         <ZoomOut className="h-3.5 w-3.5" />
                     </button>
-                    <span className="w-12 text-center text-xs font-bold tabular-nums text-white">{Math.round(zoom * 100)}%</span>
+                    <span className="w-12 text-center text-xs font-bold tabular-nums text-zinc-200">{Math.round(zoom * 100)}%</span>
                     <button onClick={() => setZoom((z) => clampZoom(z + 0.25))} disabled={zoom >= 1.75} className={iconBtn} title={t('tournaments.diagram.zoomIn')}>
                         <ZoomIn className="h-3.5 w-3.5" />
                     </button>
@@ -566,8 +596,13 @@ export const BracketTree = ({
             {/* Pannable canvas (no scrollbars) */}
             <div
                 ref={canvasRef}
-                className={`relative overflow-hidden ${canManage ? 'cursor-grab active:cursor-grabbing' : ''}`}
-                style={{ touchAction: 'none' }}
+                className="relative min-h-[460px] cursor-grab overflow-hidden active:cursor-grabbing"
+                style={{
+                    touchAction: 'none',
+                    backgroundColor: '#080c09',
+                    backgroundImage: 'radial-gradient(circle at 16% 10%, rgba(52, 211, 153, 0.07), transparent 30%), linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
+                    backgroundSize: 'auto, 32px 32px, 32px 32px',
+                }}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
@@ -591,13 +626,13 @@ export const BracketTree = ({
                             aria-hidden="true"
                         >
                             {geometry.paths.map((d, i) => (
-                                <path key={i} d={d} stroke="#ffffff2e" strokeWidth={2} fill="none" />
+                                <path key={i} d={d} stroke="#7dd3a24d" strokeWidth={2.5} fill="none" />
                             ))}
                         </svg>
 
                         {/* Teams-only pool */}
-                        <div className="w-64 shrink-0">
-                            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white">
+                        <div className="w-64 shrink-0 rounded-2xl border border-white/[0.08] bg-[#0d120f]/90 p-3 shadow-xl shadow-black/20">
+                            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-300">
                                 {t('tournaments.diagram.unplaced')}
                                 <span className="ml-2 text-[#71717a]">{poolEntries.length}</span>
                             </p>
@@ -616,7 +651,7 @@ export const BracketTree = ({
                                             onDragEnd={onDragEnd}
                                             onClick={() => setSelectedEntry(entry)}
                                             onPointerDown={(e) => e.stopPropagation()}
-                                            className={`rounded-lg border-2 border-white/10 bg-black px-3 py-2 transition-colors hover:bg-white/5 ${
+                                            className={`rounded-xl border border-white/10 bg-[#080c09] px-3 py-2.5 transition-colors hover:border-white/20 hover:bg-white/[0.04] ${
                                                 drag?.kind === 'entry' && drag.entryId === entry.id ? 'opacity-40' : ''
                                             } ${isBusy ? 'cursor-wait' : canManage ? 'cursor-grab' : 'cursor-default'}`}
                                         >
@@ -625,7 +660,7 @@ export const BracketTree = ({
                                                     {entryPrimary(entry)}
                                                 </span>
                                                 <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${entryTypeTone(entry)}`}>
-                                                    {entryTypeLabel(entry)}
+                                                    {tournamentEntryTypeText(entryTypeLabel(entry), t)}
                                                 </span>
                                             </div>
                                             {entrySecondary(entry) && (
@@ -646,22 +681,25 @@ export const BracketTree = ({
                                         {draftTeams.map((team) => (
                                             <div
                                                 key={team.id}
-                                                className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-white/15 bg-black/60 px-3 py-2 opacity-80"
+                                                className="rounded-xl border border-dashed border-amber-300/20 bg-amber-300/[0.04] px-3 py-2.5"
                                             >
-                                                <div className="min-w-0">
-                                                    <p className="truncate text-sm font-bold text-[#a1a1aa]">{team.name}</p>
-                                                    <p className="text-[11px] font-semibold text-[#71717a]">{team.memberCount} / 5</p>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="min-w-0">
+                                                        <p className="truncate text-sm font-bold text-zinc-300">{team.name}</p>
+                                                        <p className="text-[11px] font-semibold text-amber-200/70">{t('tournaments.diagram.readiness', { count: team.memberCount })}</p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingTeamId(team.id);
+                                                            setCreateTeamOpen(true);
+                                                        }}
+                                                        title={t('tournaments.diagram.editDraftTeam')}
+                                                        className="shrink-0 rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-white/[0.05] hover:text-emerald-300"
+                                                    >
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                    </button>
                                                 </div>
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingTeamId(team.id);
-                                                        setCreateTeamOpen(true);
-                                                    }}
-                                                    title={t('tournaments.diagram.editDraftTeam')}
-                                                    className="shrink-0 text-[#71717a] transition-colors hover:text-[#16a34a]"
-                                                >
-                                                    <Pencil className="h-3 w-3" />
-                                                </button>
+                                                <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.06]"><div className="h-full rounded-full bg-amber-300/70" style={{ width: `${Math.min(100, (team.memberCount / 5) * 100)}%` }} /></div>
                                             </div>
                                         ))}
                                     </div>
@@ -670,16 +708,20 @@ export const BracketTree = ({
                         </div>
 
                         {/* Round columns */}
-                        {rounds.map((round) => (
+                        {rounds.map((round, roundIndex) => (
                             <div key={round} className="shrink-0">
-                                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white">
-                                    {t('tournaments.bracket.round', { number: round })}
+                                <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-300">
+                                    <span className="flex h-6 min-w-6 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-1.5 text-emerald-300">R{round}</span>
+                                    {roundIndex === rounds.length - 1 && rounds.length > 1 ? (
+                                        <><span>{t('tournaments.bracket.final')}</span><span className="sr-only">{t('tournaments.bracket.round', { number: round })}</span></>
+                                    ) : t('tournaments.bracket.round', { number: round })}
                                 </p>
                                 <div className="mt-2 space-y-4">
                                     {(fixturesByRound.get(round) ?? []).map((fx) => {
                                         const tone = fixtureStatusTone(fx.status);
                                         const isComplete = fx.status === 'COMPLETED';
                                         const isScheduled = fx.status === 'SCHEDULED';
+                                        const isCancelled = fx.status === 'CANCELLED';
                                         const offset = geometry.offsets.get(fx.id) ?? 0;
                                         return (
                                             <div
@@ -689,7 +731,9 @@ export const BracketTree = ({
                                                     else cardRefs.current.delete(fx.id);
                                                 }}
                                                 onPointerDown={(e) => e.stopPropagation()}
-                                                className="w-[300px] rounded-lg border-2 border-white/15 bg-[#050607] p-2.5"
+                                                className={`w-[310px] rounded-2xl border p-3 shadow-xl shadow-black/25 ${
+                                                    isComplete ? 'border-emerald-300/20 bg-[#0c1510]' : isCancelled ? 'border-rose-400/15 bg-[#120d0e] opacity-70' : 'border-white/10 bg-[#0b0f0c]'
+                                                }`}
                                                 style={{ transform: `translateY(${offset}px)` }}
                                             >
                                                 {renderSquadRow(fx, 'HOME')}
@@ -699,11 +743,11 @@ export const BracketTree = ({
                                                             #{fx.fixtureOrder}
                                                         </span>
                                                         <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusToneBorder[tone] ?? statusToneBorder.neutral}`}>
-                                                            {fx.status}
+                                                            {t(`tournaments.bracket.status.${fx.status.toLowerCase()}`)}
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center gap-1">
-                                                        {(isScheduled || isComplete) && (
+                                                        {canScore && (isScheduled || isComplete) && (
                                                             <button onClick={() => onEditScores(fx)} className={iconBtn} title="Edit scores">
                                                                 <Edit3 className="h-3 w-3" />
                                                             </button>
@@ -741,6 +785,7 @@ export const BracketTree = ({
                 <ParticipantProfileModal
                     entry={selectedEntry}
                     tournamentId={tournamentId}
+                    canManage={canManage}
                     onRefresh={onRefresh}
                     onClose={() => setSelectedEntry(null)}
                 />

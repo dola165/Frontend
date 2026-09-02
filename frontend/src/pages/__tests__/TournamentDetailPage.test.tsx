@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import '../../i18n';
 import { TournamentDetailPage } from '../../pages/TournamentDetailPage';
 import type { TournamentDetail } from '../../features/tournaments/domain';
 
@@ -18,6 +19,7 @@ vi.mock('react-router-dom', async () => {
 vi.mock('../../features/tournaments/api', () => ({
     fetchTournament: vi.fn(),
     registerPlayer: vi.fn(),
+    requestEntry: vi.fn(),
 }));
 
 vi.mock('../../context/AuthContext', () => ({
@@ -79,33 +81,33 @@ describe('TournamentDetailPage', () => {
     it('shows error state when API fails', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('fail'));
         renderPage();
-        expect(await screen.findByText('Tournament Not Found')).toBeInTheDocument();
+        expect(await screen.findByText('Tournament not found')).toBeInTheDocument();
         expect(screen.getByText('Failed to load tournament details.')).toBeInTheDocument();
     });
 
     it('shows not-found state when tournament is null', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(null);
         renderPage();
-        expect(await screen.findByText('Tournament Not Found')).toBeInTheDocument();
+        expect(await screen.findByText('Tournament not found')).toBeInTheDocument();
     });
 
     it('renders tournament name and description on success', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
         renderPage();
-        expect(await screen.findByText('Spring Cup')).toBeInTheDocument();
-        expect(screen.getByText('A seasonal tournament')).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: 'Spring Cup', level: 1 })).toBeInTheDocument();
+        expect(screen.getAllByText('A seasonal tournament')).toHaveLength(2);
     });
 
     it('shows the Back to Tournaments link', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
         renderPage();
-        expect(await screen.findByText(/Back to Tournaments/)).toBeInTheDocument();
+        expect(await screen.findByRole('link', { name: 'Back to tournaments' })).toHaveAttribute('href', '/tournaments');
     });
 
     it('shows status badge', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
         renderPage();
-        expect(await screen.findByText('PLANNING')).toBeInTheDocument();
+        expect((await screen.findAllByText('Registration')).length).toBeGreaterThan(0);
     });
 
     it('shows register button for PLANNING + PLAYER-scope tournament', async () => {
@@ -130,11 +132,11 @@ describe('TournamentDetailPage', () => {
             participantScope: 'CLUB',
         });
         renderPage();
-        await screen.findByText('Club');
+        await screen.findAllByText('Clubs');
         expect(screen.queryByRole('button', { name: /register/i })).not.toBeInTheDocument();
     });
 
-    it('does not show register button for unauthenticated users', async () => {
+    it('shows a sign-in registration action for unauthenticated users', async () => {
         (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
             isAuthenticated: false,
             user: null,
@@ -142,7 +144,8 @@ describe('TournamentDetailPage', () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
         renderPage();
         await screen.findByText('Spring Cup');
-        expect(screen.queryByText('Register')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Sign in to register' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Register' })).not.toBeInTheDocument();
     });
 
     it('registers and refreshes tournament on success', async () => {
@@ -155,7 +158,7 @@ describe('TournamentDetailPage', () => {
         const btn = await screen.findByText('Register');
         await user.click(btn);
         expect(registerPlayer).toHaveBeenCalledWith(42);
-        expect(await screen.findByText('Successfully registered for the event.')).toBeInTheDocument();
+        expect(await screen.findByText('Successfully registered for the tournament.')).toBeInTheDocument();
     });
 
     it('shows error message when registration fails', async () => {
@@ -174,47 +177,61 @@ describe('TournamentDetailPage', () => {
             staffAssignments: [{ userId: 1, role: 'ORGANIZER', status: 'ACTIVE' } as any],
         });
         renderPage();
-        expect(await screen.findByText('Workspace')).toBeInTheDocument();
+        expect(await screen.findByRole('link', { name: /Open workspace/ })).toHaveAttribute('href', '/tournaments/42/workspace');
     });
 
     it('renders scope and visibility badges', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
         renderPage();
-        expect(await screen.findByText('Player')).toBeInTheDocument();
-        expect(screen.getByText('Public')).toBeInTheDocument();
+        expect((await screen.findAllByText('Players')).length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Public').length).toBeGreaterThan(0);
     });
 
     it('renders participant counts', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue({
             ...mockTournament,
-            entries: [{ id: 1 } as any, { id: 2 } as any],
+            entries: [{ id: 1, status: 'APPROVED' } as any, { id: 2, status: 'APPROVED' } as any],
             fixtures: [{ id: 10 } as any],
         });
         renderPage();
-        expect(await screen.findByText(/2 entries/)).toBeInTheDocument();
-        expect(screen.getByText(/1 fixture/)).toBeInTheDocument();
+        expect((await screen.findAllByText(/2 entries/)).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/1 fixture/).length).toBeGreaterThan(0);
     });
 
     it('renders dates when present', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
         renderPage();
-        expect(await screen.findByText(/Registration:/)).toBeInTheDocument();
+        expect(await screen.findByText('Entry window')).toBeInTheDocument();
     });
 
     it('renders rules section when present', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
         renderPage();
-        expect(await screen.findByText('Rules')).toBeInTheDocument();
+        expect(await screen.findByText('Competition rules')).toBeInTheDocument();
         expect(screen.getByText('No fouls allowed')).toBeInTheDocument();
     });
 
-    it('omits rules section when not present', async () => {
+    it('shows a useful rules empty state when rules are not present', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue({
             ...mockTournament,
             rules: null,
         });
         renderPage();
         await screen.findByText('Spring Cup');
-        expect(screen.queryByText('Rules')).not.toBeInTheDocument();
+        expect(screen.getByText('Competition rules')).toBeInTheDocument();
+        expect(screen.getByText('The organizer has not published competition rules yet.')).toBeInTheDocument();
+    });
+
+    it('renders the tournament banner fallback when no image is available', async () => {
+        (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
+        renderPage();
+        expect(await screen.findByTestId('tournament-visual-fallback')).toBeInTheDocument();
+    });
+
+    it('renders useful empty states for participants and fixtures', async () => {
+        (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
+        renderPage();
+        expect(await screen.findByText('No confirmed entries yet')).toBeInTheDocument();
+        expect(screen.getByText('Schedule coming soon')).toBeInTheDocument();
     });
 });

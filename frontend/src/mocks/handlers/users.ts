@@ -8,9 +8,26 @@ const API = '*/api';
 export const userHandlers: HttpHandler[] = [
 
   // -- GET /users/me (returns Map<String, Object>) --
-  http.get(`${API}/users/me`, async () => {
+  http.get(`${API}/users/me`, async ({ request }) => {
     await simulateLatency();
-    const uid = currentUserId();
+    const authorization = request.headers.get('Authorization');
+    let uid = currentUserId();
+
+    // Role-aware E2E contexts restore only localStorage. Rehydrate the mock
+    // session from its access token so a new page does not fall back to the
+    // seed's default player regardless of the role that logged in.
+    if (authorization?.startsWith('Bearer mock-jwt.')) {
+      try {
+        const payload = JSON.parse(atob(authorization.split('.')[1])) as { sub?: number };
+        if (typeof payload.sub === 'number' && users().has(payload.sub)) {
+          uid = payload.sub;
+          currentUserId(uid);
+        }
+      } catch {
+        // Invalid mock tokens follow the normal unauthorized path below.
+      }
+    }
+
     if (uid == null) return HttpResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const u = users().get(uid);
@@ -71,9 +88,55 @@ export const userHandlers: HttpHandler[] = [
     const u = users().get(uid)!;
     return HttpResponse.json({
       id: u.id, email: u.email, username: u.username, role: u.role,
-      fullName: u.fullName, createdAt: new Date(Date.now() - 86400000 * 90).toISOString(),
-      emailVerified: true, profileComplete: u.profileComplete,
+      displayName: u.fullName || u.username,
+      fullName: u.fullName,
+      bio: u.bio ?? null,
+      avatarUrl: u.avatarUrl ?? null,
+      bannerUrl: null,
+      createdAt: new Date(Date.now() - 86400000 * 90).toISOString(),
+      emailVerified: true,
+      emailVerifiedAt: new Date(Date.now() - 86400000 * 60).toISOString(),
+      profileComplete: u.profileComplete,
+      passwordLoginEnabled: true,
+      playerProfile: u.role === 'PLAYER' ? {
+        primaryPosition: u.position ?? null,
+        secondaryPosition: null,
+        preferredFoot: null,
+        heightCm: null,
+        weightKg: null,
+        availabilityStatus: 'AVAILABLE',
+      } : null,
+      agentProfile: null,
+      linkedAccounts: [],
+      sessionsSupported: true,
+      sessionRevocationSupported: true,
+      accountDeletionSupported: false,
     });
+  }),
+
+  // -- GET /users/search (must precede /users/:userId) --
+  http.get(`${API}/users/search`, async ({ request }) => {
+    await simulateLatency();
+    const url = new URL(request.url);
+    const query = (url.searchParams.get('query') ?? '').toLowerCase();
+    const page = Number(url.searchParams.get('page') ?? 0);
+    const size = Number(url.searchParams.get('size') ?? 20);
+
+    const hits = [...users().values()].filter((u) => {
+      if (!query) return true;
+      return (u.username ?? '').toLowerCase().includes(query)
+        || (u.fullName ?? '').toLowerCase().includes(query);
+    });
+
+    return HttpResponse.json(paginate(hits.map((u) => ({
+      id: u.id,
+      fullName: u.fullName,
+      isMinor: isMinor(u.dob),
+      username: u.username,
+      avatarUrl: u.avatarUrl,
+      position: u.position,
+      userType: u.role,
+    })), page, size));
   }),
 
   // -- GET /users/:id (returns PublicUserProfileDto) --
@@ -105,30 +168,5 @@ export const userHandlers: HttpHandler[] = [
   http.post(`${API}/users/:userId/block`, async () => {
     await simulateLatency();
     return HttpResponse.json({ blocked: true });
-  }),
-
-  // -- GET /users/search (query param is "query", not "q") --
-  http.get(`${API}/users/search`, async ({ request }) => {
-    await simulateLatency();
-    const url = new URL(request.url);
-    const query = (url.searchParams.get('query') ?? '').toLowerCase();
-    const page = Number(url.searchParams.get('page') ?? 0);
-    const size = Number(url.searchParams.get('size') ?? 20);
-
-    const hits = [...users().values()].filter((u) => {
-      if (!query) return true;
-      return (u.username ?? '').toLowerCase().includes(query)
-        || (u.fullName ?? '').toLowerCase().includes(query);
-    });
-
-    return HttpResponse.json(paginate(hits.map((u) => ({
-      id: u.id,
-      fullName: u.fullName,
-      isMinor: isMinor(u.dob),
-      username: u.username,
-      avatarUrl: u.avatarUrl,
-      position: u.position,
-      userType: u.role,
-    })), page, size));
   }),
 ];

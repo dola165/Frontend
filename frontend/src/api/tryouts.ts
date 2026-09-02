@@ -28,3 +28,47 @@ export const applyToTryout = async (tryoutId: number, message?: string): Promise
     });
     return response.data;
 };
+
+export interface TryoutDto {
+    id: number;
+    clubId: number;
+    title: string;
+    description: string | null;
+    position: string | null;
+    ageGroup: string | null;
+    gender: string | null;
+    tryoutDate: string;
+    deadline: string | null;
+}
+
+/** POST /tryouts — club-owner tryout creation. */
+export const createTryout = async (payload: {
+    clubId: number;
+    title: string;
+    tryoutDate: string;
+    deadline?: string;
+    position?: string;
+    ageGroup?: string;
+    description?: string;
+}): Promise<TryoutDto> => {
+    const response = await apiClient.post<TryoutDto>('/tryouts', payload);
+    return response.data;
+};
+
+/** PUT /tryouts/{id} — club-owner tryout update. */
+export const updateTryout = async (tryoutId: number, payload: {
+    title?: string;
+    tryoutDate?: string;
+    deadline?: string;
+    position?: string;
+    ageGroup?: string;
+    description?: string;
+}): Promise<TryoutDto> => {
+    const response = await apiClient.put<TryoutDto>(`/tryouts/${tryoutId}`, payload);
+    return response.data;
+};
+
+/** DELETE /tryouts/{id} — club-owner tryout deletion. */
+export const deleteTryout = async (tryoutId: number): Promise<void> => {
+    await apiClient.delete(`/tryouts/${tryoutId}`);
+};

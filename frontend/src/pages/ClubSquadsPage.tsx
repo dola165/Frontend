@@ -225,7 +225,7 @@ export const ClubSquadsPage = () => {
 
     return (
         <div className="bg-[#0f1117] min-h-full">
-            <div className="border-b border-[#ffffff0d] px-6 py-5">
+            <div className="border-b border-[#ffffff0d] py-5">
                 <div className="flex items-center gap-2 mb-2">
                     <Link to={`/clubs/${club.id}`} className="inline-flex items-center gap-1.5 text-xs font-medium text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors">
                         <ChevronLeft className="h-3.5 w-3.5" />
@@ -254,7 +254,7 @@ export const ClubSquadsPage = () => {
                 </div>
             </div>
 
-            <div className="grid gap-6 px-6 py-6 xl:grid-cols-[280px_1fr_280px] xl:items-start">
+            <div className="grid gap-6 py-6 xl:grid-cols-[280px_minmax(0,1fr)_280px] xl:items-start">
                 {/* LEFT SIDEBAR */}
                 <div className="flex flex-col gap-4 xl:sticky xl:top-[calc(var(--app-header-height)+24px)]">
                     {/* Squad Navigation */}

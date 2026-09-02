@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BarChart3 } from 'lucide-react';
 import { fetchGroupStandings } from '../api';
-import type { GroupStandingsRow } from '../domain';
+import type { GroupStandingsRow, TournamentEntryStatus } from '../domain';
+import { tournamentEntryStatusText } from '../../../components/tournaments/tournamentFormatters';
 
 interface Props {
     tournamentId: number;
     stageId: number;
     refreshKey: number;
-    entryStatuses: Map<number, string>;
+    entryStatuses: Map<number, TournamentEntryStatus>;
+    advanceCount?: number | null;
 }
 
 const badgeStatuses = new Set(['ELIMINATED', 'WAITLISTED', 'COMPLETED']);
@@ -27,13 +30,12 @@ const sortRows = (rows: GroupStandingsRow[]): GroupStandingsRow[] =>
             a.entryName.localeCompare(b.entryName),
     );
 
-export const StandingsTable = ({ tournamentId, stageId, refreshKey, entryStatuses }: Props) => {
+export const StandingsTable = ({ tournamentId, stageId, refreshKey, entryStatuses, advanceCount }: Props) => {
     const { t } = useTranslation();
     const [rows, setRows] = useState<GroupStandingsRow[] | null>(null);
 
     useEffect(() => {
         let cancelled = false;
-        setRows(null);
         fetchGroupStandings(tournamentId, stageId)
             .then((data) => {
                 if (!cancelled) setRows(data ?? []);
@@ -49,17 +51,29 @@ export const StandingsTable = ({ tournamentId, stageId, refreshKey, entryStatuse
     if (rows === null) return null;
 
     return (
-        <div className="border-t border-[#ffffff0d] bg-[#101318]">
-            <div className="px-5 py-2.5">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#a1a1aa]">
-                    {t('tournaments.standings.title')}
-                </p>
+        <div className="border-t border-white/[0.08] bg-[#0a0e0b]">
+            <div className="flex items-center justify-between gap-3 px-5 py-3.5">
+                <div className="flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-zinc-500"><BarChart3 className="h-4 w-4" /></span>
+                    <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-300">{t('tournaments.standings.title')}</p>
+                        <p className="mt-0.5 text-[11px] text-zinc-600">{t('tournaments.standings.rankingHint')}</p>
+                    </div>
+                </div>
+                {advanceCount != null && advanceCount > 0 && (
+                    <span className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.06] px-2.5 py-1 text-[10px] font-bold text-emerald-300">
+                        {t('tournaments.standings.advanceCount', { count: advanceCount })}
+                    </span>
+                )}
             </div>
             {rows.length === 0 ? (
-                <p className="px-5 pb-4 text-xs text-[#71717a]">{t('tournaments.standings.empty')}</p>
+                <div className="border-t border-white/[0.06] px-5 py-8 text-center">
+                    <p className="text-sm font-semibold text-zinc-400">{t('tournaments.standings.empty')}</p>
+                    <p className="mt-1 text-xs text-zinc-600">{t('tournaments.standings.emptyHint')}</p>
+                </div>
             ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                <div className="overflow-x-auto border-t border-white/[0.06]">
+                    <table className="w-full min-w-[720px] text-sm">
                         <thead>
                             <tr className="border-b border-[#ffffff0d]">
                                 <th className="w-8 px-3 py-2 text-center text-[11px] font-semibold text-[#a1a1aa]">#</th>
@@ -91,38 +105,37 @@ export const StandingsTable = ({ tournamentId, stageId, refreshKey, entryStatuse
                             </tr>
                         </thead>
                         <tbody>
-                            {sortRows(rows).map((row, index) => (
-                                <tr
+                            {sortRows(rows).map((row, index) => {
+                                const qualifies = advanceCount != null && advanceCount > 0 && index < advanceCount;
+                                return <tr
                                     key={row.entryId}
-                                    className={`border-b border-[#ffffff0d] transition-colors hover:bg-[#1a1c22] ${
-                                        index === 0 ? 'bg-[#16a34a]/5' : ''
-                                    }`}
+                                    className={`border-b border-white/[0.06] transition-colors hover:bg-white/[0.03] ${qualifies ? 'bg-emerald-300/[0.035]' : ''}`}
                                 >
-                                    <td className="px-3 py-2 text-center text-xs font-bold text-[#a1a1aa]">{index + 1}</td>
+                                    <td className={`border-l-2 px-3 py-3 text-center text-xs font-black ${qualifies ? 'border-emerald-300 text-emerald-300' : 'border-transparent text-zinc-500'}`}>{index + 1}</td>
                                     <td className="px-2 py-2">
-                                        <span className="text-sm font-semibold text-[#f4f4f5]">{row.entryName}</span>
+                                        <span className="text-sm font-bold text-zinc-100">{row.entryName}</span>
                                         {(() => {
                                             const status = entryStatuses.get(row.entryId);
                                             if (!status || !badgeStatuses.has(status)) return null;
                                             return (
                                                 <span className={`ml-2 inline-block rounded-xl border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badgeTones[status]}`}>
-                                                    {status}
+                                                    {tournamentEntryStatusText(status, t)}
                                                 </span>
                                             );
                                         })()}
                                     </td>
-                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-[#a1a1aa]">{row.played}</td>
-                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-[#a1a1aa]">{row.won}</td>
-                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-[#a1a1aa]">{row.drawn}</td>
-                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-[#a1a1aa]">{row.lost}</td>
-                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-[#a1a1aa]">{row.goalsFor}</td>
-                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-[#a1a1aa]">{row.goalsAgainst}</td>
+                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-zinc-400">{row.played}</td>
+                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-zinc-400">{row.won}</td>
+                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-zinc-400">{row.drawn}</td>
+                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-zinc-400">{row.lost}</td>
+                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-zinc-400">{row.goalsFor}</td>
+                                    <td className="px-2 py-2 text-center text-xs tabular-nums text-zinc-400">{row.goalsAgainst}</td>
                                     <td className="px-2 py-2 text-center text-xs tabular-nums text-[#a1a1aa]">
                                         {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
                                     </td>
-                                    <td className="px-3 py-2 text-center text-sm font-bold tabular-nums text-[#16a34a]">{row.points}</td>
+                                    <td className="px-3 py-2 text-center text-base font-black tabular-nums text-emerald-300">{row.points}</td>
                                 </tr>
-                            ))}
+                            })}
                         </tbody>
                     </table>
                 </div>

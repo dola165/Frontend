@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { BellRing, CheckCheck, Loader2, X } from 'lucide-react';
+import { ArrowUpRight, BellRing, Building2, CheckCheck, Inbox, Loader2, UserRound, X } from 'lucide-react';
 import {
     fetchNotifications,
     fetchUnreadNotificationCount,
@@ -45,6 +45,8 @@ export const NotificationsPage = () => {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const hasMore = notifications.length < totalElements;
+    const activeScope = scopeTabs.find((tab) => tab.id === filter.scope) ?? scopeTabs[0];
+    const activeScopeTitle = filter.scope === 'all' ? 'All activity' : `${activeScope.label} activity`;
     const activeClubLabel =
         filter.clubName ||
         notifications.find((notification) => notification.clubId === filter.clubId)?.clubName ||
@@ -63,7 +65,7 @@ export const NotificationsPage = () => {
         return links;
     }, [user?.role]);
 
-    const loadScopeCounts = async () => {
+    const loadScopeCounts = useCallback(async () => {
         try {
             const [allCount, personalCount, clubCount] = await Promise.all([
                 fetchUnreadNotificationCount(),
@@ -78,16 +80,16 @@ export const NotificationsPage = () => {
         } catch (error) {
             console.error('Failed to load notification scope counts', error);
         }
-    };
+    }, []);
 
-    const refreshUnreadCount = async (scope = filter.scope, clubId = filter.clubId) => {
+    const refreshUnreadCount = useCallback(async (scope = filter.scope, clubId = filter.clubId) => {
         try {
             const response = await fetchUnreadNotificationCount({ scope, clubId });
             setUnreadCount(response.unreadCount);
         } catch (error) {
             console.error('Failed to refresh unread count', error);
         }
-    };
+    }, [filter.clubId, filter.scope]);
 
     const loadNotifications = async (
         targetPage: number,
@@ -176,7 +178,7 @@ export const NotificationsPage = () => {
         });
 
         return () => unsubscribe();
-    }, [filter.clubId, filter.scope]);
+    }, [loadScopeCounts, refreshUnreadCount]);
 
     const updateScopeSearch = (scope: NotificationListScope, clubId?: number | null, clubName?: string | null) => {
         const search = createNotificationSearch(scope, clubId ?? null, clubName ?? null);
@@ -265,53 +267,64 @@ export const NotificationsPage = () => {
 
     if (loading) {
         return (
-            <div className="bg-[#0f1117] flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
-                <Loader2 className="h-9 w-9 animate-spin text-[#16a34a]" />
+            <div className="theme-page flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
+                <Loader2 className="h-9 w-9 animate-spin text-[var(--accent-primary)]" />
             </div>
         );
     }
 
     return (
-        <div className="bg-[#0f1117] min-h-full">
-            <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-                <header className="border-b border-[#ffffff0d] pb-5">
-                    <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-                        <div>
-                            <p className="text-[11px] font-semibold text-[#16a34a]">Destination Page</p>
-                            <h1 className="mt-2 text-3xl font-semibold text-[#f4f4f5]">Notifications</h1>
-                            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#a1a1aa]">
-                                A single operational stream for personal updates and club actions, with scope changes treated as local tab switches.
+        <div className="theme-page min-h-full [--accent-primary:#3f7666] [--accent-primary-soft:rgba(63,118,102,0.10)] dark:[--accent-primary:#5f927f] dark:[--accent-primary-soft:rgba(95,146,127,0.16)]">
+            <div className="flex w-full flex-col gap-6">
+                <header className="border-b theme-border pb-6">
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="max-w-3xl">
+                            <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent-primary)]">
+                                <Inbox className="h-4 w-4" />
+                                Activity inbox
+                            </div>
+                            <h1 className="mt-3 text-4xl font-black tracking-[-0.04em] text-primary sm:text-5xl">Notifications</h1>
+                            <p className="mt-3 text-sm leading-6 text-secondary sm:text-base">
+                                Invites, decisions, match reminders, and club updates—kept in one place and ordered by what happened most recently.
                             </p>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-2 border border-[#ffffff0d] bg-[#16181d] px-3 py-2 text-[11px] font-medium text-[#f4f4f5]">
-                                <BellRing className="h-3.5 w-3.5 text-[#16a34a]" />
-                                {unreadCount} unread
-                            </span>
+                        <div className="flex flex-wrap items-center gap-4 sm:gap-5">
+                            <div className="border-l-2 border-[var(--accent-primary)] pl-3">
+                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">Unread in this view</p>
+                                <p className="mt-0.5 text-2xl font-black leading-none text-primary">{unreadCount}</p>
+                            </div>
                             <button
                                 type="button"
                                 onClick={() => void handleMarkAllAsRead()}
                                 disabled={markingAll || unreadCount === 0}
-                                className="rounded-xl bg-[#16a34a] px-3 py-1.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                className="inline-flex min-h-11 items-center justify-center gap-2 border border-[var(--accent-primary)] bg-[var(--accent-primary)] px-4 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                             >
-                                {markingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCheck className="h-3.5 w-3.5" />}
-                                Mark Visible Read
+                                {markingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCheck className="h-4 w-4" />}
+                                Mark all as read
                             </button>
                         </div>
                     </div>
+                </header>
 
-                    <div className="mt-5 overflow-x-auto">
-                        <div className="flex min-w-max gap-5 border-b border-[#ffffff0d]">
+                <div className="grid min-w-0 gap-6 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[290px_minmax(0,1fr)]">
+                    <aside className="min-w-0 lg:sticky lg:top-6 lg:self-start">
+                        <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-muted">Show notifications</p>
+                        <nav aria-label="Notification scope" className="grid grid-cols-3 border-y theme-border lg:grid-cols-1">
                             {scopeTabs.map((tab) => {
                                 const isActive = filter.scope === tab.id;
-                                const unread =
-                                    tab.id === 'all' ? scopeCounts.all : tab.id === 'personal' ? scopeCounts.personal : scopeCounts.club;
+                                const unread = tab.id === 'all'
+                                    ? scopeCounts.all
+                                    : tab.id === 'personal'
+                                        ? scopeCounts.personal
+                                        : scopeCounts.club;
+                                const ScopeIcon = tab.id === 'all' ? Inbox : tab.id === 'personal' ? UserRound : Building2;
 
                                 return (
                                     <button
                                         key={tab.id}
                                         type="button"
+                                        aria-pressed={isActive}
                                         onClick={() =>
                                             updateScopeSearch(
                                                 tab.id,
@@ -319,111 +332,134 @@ export const NotificationsPage = () => {
                                                 tab.id === 'club' ? filter.clubName : null
                                             )
                                         }
-                                        className={`inline-flex min-h-12 items-center gap-2 border-b-2 px-1 text-sm font-medium transition-colors ${
-                                            isActive ? 'border-[#16a34a] text-[#16a34a] font-semibold' : 'border-transparent text-[#a1a1aa] font-medium hover:text-[#f4f4f5]'
+                                        className={`group flex min-w-0 items-center gap-1.5 border-l-2 px-2 py-3 text-left transition-colors lg:gap-3 lg:border-b lg:px-3 lg:last:border-b-0 ${
+                                            isActive
+                                                ? 'border-l-[var(--accent-primary)] bg-[var(--accent-primary-soft)] text-primary lg:border-b-[var(--theme-border)]'
+                                                : 'border-l-transparent text-secondary hover:bg-[var(--theme-surface-muted)] hover:text-primary lg:border-b-[var(--theme-border)]'
                                         }`}
                                         title={tab.description}
                                     >
-                                        <span>{tab.label}</span>
-                                        {unread > 0 && (
-                                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${isActive ? 'bg-[#16a34a]/10 text-[#16a34a]' : 'bg-[#16181d] text-[#a1a1aa]'}`}>
-                                                {unread}
+                                        <ScopeIcon className={`hidden h-4 w-4 shrink-0 lg:block ${isActive ? 'text-[var(--accent-primary)]' : 'text-muted'}`} />
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block text-sm font-bold">{tab.label}</span>
+                                            <span className="mt-0.5 hidden truncate text-[11px] text-muted lg:block">
+                                                {tab.id === 'all' ? 'Everything together' : tab.id === 'personal' ? 'Invites and decisions' : 'Managed club activity'}
                                             </span>
-                                        )}
+                                        </span>
+                                        <span className={`text-xs font-black tabular-nums ${unread > 0 && isActive ? 'text-[var(--accent-primary)]' : 'text-muted'}`}>
+                                            {unread}
+                                        </span>
                                     </button>
                                 );
                             })}
-                        </div>
-                    </div>
+                        </nav>
 
-                    <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-[#a1a1aa]">
-                            <span>Current scope</span>
-                            <span className="text-[#16a34a]">{scopeTabs.find((tab) => tab.id === filter.scope)?.label}</span>
+                        <div className="mt-6 hidden lg:block">
+                            <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted">Shortcuts</p>
+                            <div className="border-y theme-border">
+                                {quickLinks.map((link) => (
+                                    <Link
+                                        key={link.to}
+                                        to={link.to}
+                                        className="group flex items-center justify-between border-b theme-border px-1 py-3 text-sm font-semibold text-secondary transition-colors last:border-b-0 hover:text-primary"
+                                    >
+                                        {link.label}
+                                        <ArrowUpRight className="h-4 w-4 text-muted transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                    </aside>
+
+                    <main className="min-w-0">
+                        <div className="mb-4 flex flex-col gap-3 border-b theme-border pb-4 sm:flex-row sm:items-end sm:justify-between">
+                            <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h2 className="text-xl font-black text-primary">{activeScopeTitle}</h2>
+                                    <span className="text-xs font-bold text-muted">{totalElements} total</span>
+                                </div>
+                                <p className="mt-1 text-sm text-secondary">{activeScope.description}</p>
+                            </div>
+
                             {filter.scope === 'club' && (
-                                <>
-                                    <span className="h-1 w-1 rounded-full bg-[#16a34a]" />
-                                    <span>{activeClubLabel ? activeClubLabel : 'All managed clubs'}</span>
-                                </>
-                            )}
-                            {filter.clubId != null && (
-                                <button
-                                    type="button"
-                                    onClick={() => updateScopeSearch('club')}
-                                    className="inline-flex items-center gap-1.5 border border-[#ffffff0d] bg-[#16181d] px-2.5 py-1.5 text-[10px] font-medium text-[#a1a1aa]"
-                                >
-                                    <X className="h-3.5 w-3.5" />
-                                    Clear Club Filter
-                                </button>
+                                <div className="flex flex-wrap items-center gap-2 text-xs text-secondary">
+                                    <Building2 className="h-4 w-4 text-[var(--accent-primary)]" />
+                                    <span>{activeClubLabel || 'All managed clubs'}</span>
+                                    {filter.clubId != null && (
+                                        <button
+                                            type="button"
+                                            onClick={() => updateScopeSearch('club')}
+                                            className="inline-flex items-center gap-1 border-b border-[var(--accent-primary)] py-1 font-bold text-[var(--accent-primary)]"
+                                        >
+                                            <X className="h-3.5 w-3.5" />
+                                            Clear club filter
+                                        </button>
+                                    )}
+                                </div>
                             )}
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
+                        {errorMessage && (
+                            <div className="mb-4 border-l-2 border-[var(--state-danger)] bg-[var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[var(--state-danger)]">
+                                {errorMessage}
+                            </div>
+                        )}
+
+                        <section className="theme-surface border-y theme-border">
+                            {notifications.length === 0 ? (
+                                <div className="px-6 py-16 text-center">
+                                    <BellRing className="mx-auto h-9 w-9 text-muted" />
+                                    <h2 className="mt-4 text-xl font-black text-primary">{emptyState.title}</h2>
+                                    <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-secondary">{emptyState.body}</p>
+                                    <div className="mt-5 flex justify-center gap-2">
+                                        {filter.scope === 'club' ? (
+                                            <Link to="/my-club" className="border-b-2 border-[var(--accent-primary)] px-1 py-2 text-sm font-bold text-[var(--accent-primary)]">
+                                                Open My Club
+                                            </Link>
+                                        ) : (
+                                            <Link to="/clubs" className="border-b-2 border-[var(--accent-primary)] px-1 py-2 text-sm font-bold text-[var(--accent-primary)]">
+                                                Browse Clubs
+                                            </Link>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-[var(--theme-border)]">
+                                    {notifications.map((notification) => (
+                                        <NotificationListItem
+                                            key={notification.id}
+                                            notification={notification}
+                                            busy={busyId === notification.id}
+                                            showScope={filter.scope === 'all'}
+                                            onOpen={handleOpenNotification}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </section>
+
+                        {hasMore && (
+                            <button
+                                type="button"
+                                onClick={() => void handleLoadMore()}
+                                disabled={loadingMore}
+                                className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 border theme-border text-sm font-bold text-primary transition-colors hover:bg-[var(--theme-surface-muted)] disabled:cursor-wait disabled:opacity-60"
+                            >
+                                {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
+                                Load more notifications
+                            </button>
+                        )}
+
+                        <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 lg:hidden">
                             {quickLinks.map((link) => (
-                                <Link
-                                    key={link.to}
-                                    to={link.to}
-                                    className="border border-[#ffffff0d] bg-[#16181d] px-3 py-2 text-[11px] font-medium text-[#a1a1aa] transition-colors hover:text-[#f4f4f5]"
-                                >
+                                <Link key={link.to} to={link.to} className="inline-flex items-center gap-1.5 text-sm font-semibold text-secondary">
                                     {link.label}
+                                    <ArrowUpRight className="h-4 w-4" />
                                 </Link>
                             ))}
                         </div>
-                    </div>
-                </header>
-
-                {errorMessage && (
-                    <div className="border border-[var(--fc-state-danger)] bg-[var(--fc-state-danger-soft)] text-[var(--fc-state-danger)] px-4 py-3 text-sm font-semibold">
-                        {errorMessage}
-                    </div>
-                )}
-
-                <section className="rounded-xl bg-[#16181d] border border-[#ffffff0d]">
-                    {notifications.length === 0 ? (
-                        <div className="px-6 py-16 text-center">
-                            <BellRing className="mx-auto h-10 w-10 text-[#a1a1aa]" />
-                            <h2 className="mt-4 text-xl font-semibold text-[#f4f4f5]">{emptyState.title}</h2>
-                            <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">{emptyState.body}</p>
-                            <div className="mt-5 flex justify-center gap-2">
-                                {filter.scope === 'club' ? (
-                                    <Link to="/my-club" className="border border-[#16a34a] bg-[#16a34a]/10 px-4 py-2 text-[11px] font-medium text-[#16a34a]">
-                                        Open My Club
-                                    </Link>
-                                ) : (
-                                    <Link to="/clubs" className="border border-[#16a34a] bg-[#16a34a]/10 px-4 py-2 text-[11px] font-medium text-[#16a34a]">
-                                        Browse Clubs
-                                    </Link>
-                                )}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-[#ffffff0d]">
-                            {notifications.map((notification) => (
-                                <NotificationListItem
-                                    key={notification.id}
-                                    notification={notification}
-                                    busy={busyId === notification.id}
-                                    showScope={filter.scope === 'all'}
-                                    onOpen={handleOpenNotification}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </section>
-
-                {hasMore && (
-                    <div className="flex justify-center">
-                        <button
-                            type="button"
-                            onClick={() => void handleLoadMore()}
-                            disabled={loadingMore}
-                            className="rounded-xl border border-[#ffffff0d] px-3 py-1.5 text-xs font-medium text-[#f4f4f5] w-full disabled:cursor-wait disabled:opacity-60"
-                        >
-                            {loadingMore && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                            Load More
-                        </button>
-                    </div>
-                )}
+                    </main>
+                </div>
             </div>
         </div>
     );

@@ -28,7 +28,7 @@ const MOCK_USERS = [
     { email: 'organizer@test.dev', password: 'mock', label: 'Sarah Chen', role: 'ORGANIZER' },
     { email: 'coach@test.dev', password: 'mock', label: 'James Wilson', role: 'COACH' },
     { email: 'fan@test.dev', password: 'mock', label: 'Emma Thompson', role: 'FAN' },
-    { email: 'admin@test.dev', password: 'mock', label: 'Alex Kim', role: 'ADMIN' },
+    { email: 'admin@test.dev', password: 'mock', label: 'Alex Kim', role: 'SYSTEM_ADMIN' },
 ];
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

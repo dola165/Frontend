@@ -103,7 +103,13 @@ const shellFixtures = [
     makeFixture({ id: 12, roundNumber: 2, fixtureOrder: 1 }),
 ];
 
-const renderTree = (entries: TournamentEntryDto[] = defaultEntries, fixtures = shellFixtures, onRefresh = () => {}) =>
+const renderTree = (
+    entries: TournamentEntryDto[] = defaultEntries,
+    fixtures = shellFixtures,
+    onRefresh = () => {},
+    canManage = true,
+    canScore = canManage,
+) =>
     render(
         <MemoryRouter>
             <BracketTree
@@ -111,7 +117,8 @@ const renderTree = (entries: TournamentEntryDto[] = defaultEntries, fixtures = s
                 tournament={makeTournament(entries)}
                 fixtures={fixtures}
                 saving={false}
-                canManage={true}
+                canManage={canManage}
+                canScore={canScore}
                 onRefresh={onRefresh}
                 onEditScores={() => {}}
                 onComplete={() => {}}
@@ -243,7 +250,7 @@ describe('BracketTree', () => {
         );
         expect(screen.getAllByText('2')).toHaveLength(1);
         expect(screen.getAllByText('1')).toHaveLength(1);
-        expect(screen.getByText('COMPLETED')).toBeInTheDocument();
+        expect(screen.getByText('tournaments.bracket.status.completed')).toBeInTheDocument();
     });
 
     it('shows the squad name in small text beneath the club name', () => {
@@ -288,8 +295,19 @@ describe('BracketTree', () => {
         expect(screen.getByText('100%')).toBeInTheDocument();
         fireEvent.click(screen.getByTitle('tournaments.diagram.zoomIn'));
         expect(await screen.findByText('125%')).toBeInTheDocument();
-        fireEvent.click(screen.getByTitle('tournaments.diagram.zoomOut'));
+        fireEvent.click(screen.getByTitle('tournaments.diagram.resetView'));
         expect(await screen.findByText('100%')).toBeInTheDocument();
+        fireEvent.click(screen.getByTitle('tournaments.diagram.fit'));
+        expect(screen.getByText('100%')).toBeInTheDocument();
+    });
+
+    it('keeps navigation controls but hides mutation controls in read-only mode', () => {
+        renderTree(defaultEntries, shellFixtures, () => {}, false, false);
+        expect(screen.getByTitle('tournaments.diagram.fit')).toBeInTheDocument();
+        expect(screen.getByTitle('tournaments.diagram.resetView')).toBeInTheDocument();
+        expect(screen.queryByText('tournaments.diagram.createTeam')).not.toBeInTheDocument();
+        expect(screen.queryByTitle('Edit scores')).not.toBeInTheDocument();
+        expect(screen.queryByTitle('Cancel fixture')).not.toBeInTheDocument();
     });
 
     it('shows teams only in the pool — players stay out', () => {

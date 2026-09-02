@@ -11,6 +11,7 @@ import {
     Settings,
     ShieldCheck,
     Swords,
+    Trash2,
     Users
 } from 'lucide-react';
 import { apiClient } from '../../api/axiosConfig';
@@ -34,6 +35,7 @@ interface ClubHeroProps {
     onOpenManageClub: () => void;
     onOpenCalendar: () => void;
     onOpenWorkspace?: () => void;
+    onDissolveClub?: () => void;
     onOpenChallengeModal: () => void;
     onOpenMessage: () => void;
     onOpenApply?: () => void;
@@ -53,6 +55,7 @@ export const ClubHero = ({
     onOpenManageClub,
     onOpenCalendar,
     onOpenWorkspace,
+    onDissolveClub,
     onOpenChallengeModal,
     onOpenMessage,
     onOpenApply,
@@ -214,6 +217,16 @@ export const ClubHero = ({
                                     <button type="button" onClick={onOpenWorkspace} className={systemActionClassName}>
                                         <Settings className="h-4 w-4 text-[color:var(--club-tone-blue)]" />
                                         Workspace
+                                    </button>
+                                )}
+                                {onDissolveClub && (
+                                    <button
+                                        type="button"
+                                        onClick={onDissolveClub}
+                                        className={`${systemActionClassName} text-red-400 hover:text-red-300`}
+                                    >
+                                        <Trash2 className="h-4 w-4 text-red-400" />
+                                        Dissolve Club
                                     </button>
                                 )}
                             </>

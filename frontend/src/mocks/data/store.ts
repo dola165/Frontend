@@ -52,6 +52,9 @@ export interface StoreJob {
   description: string | null;
   ageGroup: string | null;
   level: string | null;
+  requiredRole?: string | null;
+  category: 'COACHING' | 'FOOTBALL_OPERATIONS' | 'ADMINISTRATION' | 'MEDIA_COMMUNICATIONS' | 'FACILITIES' | 'MEDICAL' | 'MATCHDAY' | 'OTHER';
+  engagementType: 'PAID' | 'VOLUNTEER' | 'FLEXIBLE' | 'UNSPECIFIED';
   status: 'OPEN' | 'CLOSED';
   createdBy?: number | null;
   applicationCount?: number;

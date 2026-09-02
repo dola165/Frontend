@@ -45,6 +45,7 @@ export interface NearbyMapParams {
     ageGroups?: string[];
     level?: string[];
     category?: string[];
+    positions?: string[];
     cities?: string[];
     countries?: string[];
     query?: string;
@@ -76,6 +77,9 @@ export const fetchNearbyMap = async (params: NearbyMapParams): Promise<MapPageRe
     if (params.category && params.category.length > 0) {
         params.category.forEach((c) => searchParams.append('category', c));
     }
+    if (params.positions && params.positions.length > 0) {
+        params.positions.forEach((position) => searchParams.append('positions', position));
+    }
     if (params.cities && params.cities.length > 0) {
         params.cities.forEach((c) => searchParams.append('cities', c));
     }
@@ -105,7 +109,15 @@ export interface GeocodeResult {
 }
 
 /** Resolves a city or country name against the backend locations table (global, zero external deps). */
-export const geocodePlace = async (q: string): Promise<GeocodeResult[]> => {
-    const response = await apiClient.get<GeocodeResult[]>(`/map/geocode?q=${encodeURIComponent(q.trim())}`);
+export interface GeocodeOptions {
+    countryCode?: string;
+    type?: GeocodeResultType;
+}
+
+export const geocodePlace = async (q: string, options: GeocodeOptions = {}): Promise<GeocodeResult[]> => {
+    const searchParams = new URLSearchParams({ q: q.trim() });
+    if (options.countryCode) searchParams.set('countryCode', options.countryCode);
+    if (options.type) searchParams.set('type', options.type);
+    const response = await apiClient.get<GeocodeResult[]>(`/map/geocode?${searchParams.toString()}`);
     return response.data;
 };

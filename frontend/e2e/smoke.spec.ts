@@ -15,6 +15,38 @@ const adminPassword = process.env.E2E_SYSTEM_ADMIN_PASSWORD;
 const otherClubId = process.env.E2E_OTHER_CLUB_ID;
 const playerEmail = process.env.E2E_PLAYER_EMAIL;
 const playerPassword = process.env.E2E_PLAYER_PASSWORD;
+const mockMode = process.env.E2E_MOCKS === 'true';
+
+test.beforeEach(async ({ page }, testInfo) => {
+    if (!mockMode) return;
+
+    // The first public navigation lets the browser worker claim the context;
+    // logging in through the mock API then establishes both the browser token
+    // and the worker-side session before the actual smoke destination boots.
+    await page.goto('/clubs');
+    await expect(page.getByRole('heading', { name: /club directory/i })).toBeVisible({ timeout: 15000 });
+
+    const titlePath = testInfo.titlePath.join(' ').toLowerCase();
+    const email = titlePath.includes('system admin') ? adminEmail : titlePath.includes('— player') ? playerEmail : leaderEmail;
+    const password = titlePath.includes('system admin') ? adminPassword : titlePath.includes('— player') ? playerPassword : leaderPassword;
+    if (!email || !password) return;
+
+    await page.evaluate(async ({ loginEmail, loginPassword }) => {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: loginEmail, password: loginPassword })
+        });
+        if (!response.ok) throw new Error(`Mock login failed with ${response.status}.`);
+        const data = await response.json() as { accessToken?: string };
+        if (!data.accessToken) throw new Error('Mock login did not return an access token.');
+        const payload = JSON.parse(atob(data.accessToken.split('.')[1])) as { sub: number };
+        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('userId', String(payload.sub));
+    }, { loginEmail: email, loginPassword: password });
+    await page.reload();
+    await expect(page.getByRole('link', { name: /profile/i })).toBeVisible({ timeout: 15000 });
+});
 
 test.describe('Talanti smoke flows — leader', () => {
     test.use({ storageState: 'playwright/.auth/leader.json' });
@@ -48,6 +80,7 @@ test.describe('Talanti smoke flows — leader', () => {
 
     test('leader can open the challenge flow against another club', async ({ page }) => {
         test.skip(!leaderEmail || !leaderPassword || !otherClubId, 'Leader credentials and E2E_OTHER_CLUB_ID are required for challenge smoke coverage.');
+        test.skip(mockMode, 'The challenge dialog requires the live seeded squad context; it is outside the investor walkthrough.');
 
         await page.goto(`/clubs/${otherClubId}`);
         await expect(page.getByRole('button', { name: /challenge/i })).toBeVisible();
@@ -60,8 +93,9 @@ test.describe('Talanti smoke flows — leader', () => {
 
         await page.goto('/store');
         await expect(page.getByRole('heading', { name: /^store$/i })).toBeVisible();
-        await expect(page.getByText('Matchday Ticket — U16 Derby').first()).toBeVisible();
-        await page.getByText('Matchday Ticket — U16 Derby').first().click();
+        const ticketName = mockMode ? 'Matchday Ticket' : 'Matchday Ticket — U16 Derby';
+        await expect(page.getByText(ticketName, { exact: true }).first()).toBeVisible();
+        await page.getByText(ticketName, { exact: true }).first().click();
         await expect(page.getByRole('link', { name: /order via whatsapp/i })).toBeVisible();
     });
 
@@ -69,8 +103,8 @@ test.describe('Talanti smoke flows — leader', () => {
         test.skip(!leaderEmail || !leaderPassword, 'Seeded leader credentials are required for this smoke flow.');
 
         await page.goto('/map');
-        await expect(page.getByRole('button', { name: /Matches Browse open match challenges/i })).toBeVisible();
-        await expect(page.getByRole('button', { name: /Tournaments Explore tournaments and cups/i })).toBeVisible();
+        await expect(page.getByRole('button', { name: /^Matches$/i })).toBeVisible();
+        await expect(page.getByRole('button', { name: /^Tournaments$/i })).toBeVisible();
     });
 
     test('calendar opens past events read-only with a complete action', async ({ page }) => {
@@ -79,13 +113,14 @@ test.describe('Talanti smoke flows — leader', () => {
         await page.goto('/calendar');
         await expect(page.getByRole('button', { name: /new event/i })).toBeVisible();
 
-        const pastChip = page.locator('button', { hasText: 'Friendly vs Saburtalo U16' }).first();
+        const pastTitle = 'Friendly vs Saburtalo U16';
+        const pastChip = page.locator('button', { hasText: pastTitle }).first();
         await expect(pastChip).toBeVisible({ timeout: 15000 });
         // Dispatch a DOM click directly — the timeline bars re-render continuously,
         // which makes Playwright's pointer-actionability checks time out.
         await pastChip.evaluate((el) => (el as HTMLButtonElement).click());
         // PastEventModal, not the event editor
-        await expect(page.getByRole('heading', { name: 'Friendly vs Saburtalo U16' })).toBeVisible();
+        await expect(page.getByRole('heading', { name: pastTitle })).toBeVisible();
         await expect(page.getByText(/(completed|in the past)/i).first()).toBeVisible();
         await expect(page.getByRole('heading', { name: /edit event/i })).toHaveCount(0);
     });
@@ -134,10 +169,10 @@ test.describe('Talanti smoke flows — player', () => {
         test.skip(!playerEmail || !playerPassword, 'Seeded player credentials are required for this smoke flow.');
 
         await page.goto('/map');
-        await expect(page.getByRole('button', { name: /Clubs Find football clubs near you/i })).toBeVisible();
-        await expect(page.getByRole('button', { name: /Tryouts Discover open tryout sessions/i })).toBeVisible();
-        await expect(page.getByRole('button', { name: /Matches Browse open match challenges/i })).toHaveCount(0);
-        await expect(page.getByRole('button', { name: /Tournaments Explore tournaments and cups/i })).toHaveCount(0);
+        await expect(page.getByRole('button', { name: /^Clubs$/i })).toBeVisible();
+        await expect(page.getByRole('button', { name: /^Tryouts$/i })).toBeVisible();
+        await expect(page.getByRole('button', { name: /^Matches$/i })).toHaveCount(0);
+        await expect(page.getByRole('button', { name: /^Tournaments$/i })).toHaveCount(0);
     });
 });
 

@@ -142,7 +142,9 @@ export interface TournamentDetail {
     rules?: string | null;
     status: TournamentStatus;
     organizerOrganizationId: number;
+    organizerName?: string | null;
     hostClubId?: number | null;
+    hostClubName?: string | null;
     participantScope: TournamentParticipantScope;
     visibility: TournamentVisibility;
     registrationPolicy?: 'OPEN' | 'APPROVAL_ONLY' | 'INVITE_ONLY' | null;

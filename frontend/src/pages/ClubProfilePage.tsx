@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
+import { toast } from 'sonner';
 import { apiClient } from '../api/axiosConfig';
 import { ClubHero } from '../components/club/ClubHero';
 import { ClubProfileInfoPanel } from '../components/club/ClubProfileInfoPanel';
@@ -9,11 +10,14 @@ import { ClubJobsPanel } from '../components/club/ClubJobsPanel';
 import { ClubProfileStickyHeader } from '../components/club/ClubProfileStickyHeader';
 import type { ClubNavigationTab } from '../components/club/clubNavigation';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { MatchInviteModal, type MatchChallengePayload } from '../components/club/MatchInviteModal';
 import { ClubManagementModal, type ClubManagementTab } from '../components/club/ClubManagementModal';
 import { ClubMessageModal, buildClubCommunicationOptions, openClubCommunication } from '../components/club/ClubMessageModal';
 import { TabTeams } from '../components/club/tabs/TabTeams';
 import { TabOverview } from '../components/club/tabs/TabOverview';
+import { TabPeople } from '../components/club/tabs/TabPeople';
+import { TabFacilities } from '../components/club/tabs/TabFacilities';
 import { TabHonours } from '../components/club/tabs/TabHonours';
 import { TabCalendar } from '../components/club/tabs/TabCalendar';
 import { TabMedia } from '../components/club/tabs/TabMedia';
@@ -28,10 +32,11 @@ import {
     type PlayerAffiliationStatus,
     type PlayerJoinPolicy
 } from '../features/clubs/domain';
-import { fetchMyClubMembershipContext, fetchClubManagementOverview } from '../features/clubs/api';
+import { fetchMyClubMembershipContext, fetchClubManagementOverview, dissolveClub } from '../features/clubs/api';
 import { ClubApplicationPanel } from '../features/applications/components/ClubApplicationPanel';
 import { useAuth } from '../context/AuthContext';
 import { buildLoginRedirectPath } from '../utils/authRedirect';
+import { extractApiErrorMessage } from '../utils/apiError';
 
 export interface ClubOpportunity {
     id: number;
@@ -95,7 +100,7 @@ const normalizeManagementTab = (value: string | null): ClubManagementTab | null 
         : null;
 
 const normalizeTab = (value: string | null): ClubTab =>
-    value === 'honours' || value === 'teams' || value === 'schedule' || value === 'media' || value === 'events' || value === 'business' || value === 'contact'
+    value === 'people' || value === 'facilities' || value === 'honours' || value === 'teams' || value === 'schedule' || value === 'media' || value === 'events' || value === 'business' || value === 'contact'
         ? value
         : 'overview';
 
@@ -115,6 +120,8 @@ export const ClubProfilePage = () => {
     const [isChallengeModalOpen, setIsChallengeModalOpen] = useState(false);
     const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
+    const [isDissolveDialogOpen, setIsDissolveDialogOpen] = useState(false);
+    const [isDissolving, setIsDissolving] = useState(false);
 
     const activeTab = normalizeTab(searchParams.get('tab'));
     const requestedManagementTab = useMemo(() => normalizeManagementTab(searchParams.get('managementTab')), [searchParams]);
@@ -189,6 +196,7 @@ export const ClubProfilePage = () => {
     const debugMode = searchParams.get('debug') === 'true';
     const isOwnClubAdmin = isViewingOwnClub && canManageClubOperations(ownClubRole);
     const canManageOwnClub = isViewingOwnClub && canManageClubOperations(ownClubRole);
+    const canDissolveClub = isViewingOwnClub && isLeadershipRole(ownClubRole);
     const canChallengeOtherClub = Boolean(myClubId && myClubId !== Number(id) && myClubRole && canManageClubOperations(myClubRole));
     const canOpenCalendar = isOwnClubAdmin;
     const hasPlayerAffiliation = club?.playerAffiliationStatus === 'TRIALIST' || club?.playerAffiliationStatus === 'ACTIVE';
@@ -286,10 +294,25 @@ export const ClubProfilePage = () => {
         setSquadsRefreshKey((current) => current + 1);
     };
 
+    const handleDissolveConfirm = async () => {
+        if (!club || isDissolving) return;
+        setIsDissolving(true);
+        try {
+            await dissolveClub(club.id);
+            setIsDissolveDialogOpen(false);
+            toast.success('Club dissolved');
+            navigate('/clubs');
+        } catch (error) {
+            toast.error(extractApiErrorMessage(error, 'Failed to dissolve club'));
+        } finally {
+            setIsDissolving(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="bg-[#0f1117] min-h-[calc(100vh-var(--app-header-height))]">
-                <div className="mx-auto max-w-[min(1440px,calc(100vw-48px))] px-6 py-8">
+                <div className="w-full py-8">
                     <div className="mb-8 h-[300px] w-full animate-pulse rounded-xl bg-white/[0.02]" />
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_1fr_320px]">
                         <div className="space-y-4">
@@ -334,6 +357,7 @@ export const ClubProfilePage = () => {
                 onOpenCalendar={() => setActiveTab('schedule')}
                 onOpenManageClub={() => openManageClub()}
                 onOpenWorkspace={isOwnClubAdmin ? openWorkspace : undefined}
+                onDissolveClub={canDissolveClub ? () => setIsDissolveDialogOpen(true) : undefined}
                 onOpenChallengeModal={() => setIsChallengeModalOpen(true)}
                 onOpenMessage={handleOpenMessage}
                 onOpenApply={() => setIsApplyModalOpen(true)}
@@ -346,18 +370,20 @@ export const ClubProfilePage = () => {
                 club={club}
             />
 
-            <div className="mx-auto w-full px-6 pb-10 pt-4 sm:px-8">
-                <div className="mt-6 grid gap-4 lg:grid-cols-[380px_minmax(0,1fr)_320px] lg:items-start lg:justify-center">
-                    <div className="hidden lg:block lg:sticky lg:top-[14px] pl-6">
+            <div className="w-full pb-10 pt-4">
+                <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(260px,340px)_minmax(0,1fr)_minmax(260px,320px)] xl:items-start">
+                    <div className="hidden xl:block xl:sticky xl:top-[14px]">
                         <ClubProfileInfoPanel club={club} />
                     </div>
 
                     <div className="min-w-0">
-                        <div className="mb-6 lg:hidden">
+                        <div className="mb-6 xl:hidden">
                             <ClubProfileInfoPanel club={club} />
                         </div>
 
                         {activeTab === 'overview' && <TabOverview club={club} isOwnClubAdmin={isOwnClubAdmin} onOpenManageClub={(tab) => openManageClub(tab)} />}
+                        {activeTab === 'people' && <TabPeople clubId={club.id} clubName={club.name} isOwnClubAdmin={isOwnClubAdmin} />}
+                        {activeTab === 'facilities' && <TabFacilities club={club} isOwnClubAdmin={isOwnClubAdmin} />}
                         {activeTab === 'honours' && <TabHonours club={club} />}
                         {activeTab === 'teams' && <TabTeams clubId={club.id} refreshKey={squadsRefreshKey} />}
                         {activeTab === 'schedule' && <TabCalendar clubId={club.id} isOwnClubAdmin={isOwnClubAdmin} />}
@@ -378,7 +404,7 @@ export const ClubProfilePage = () => {
                         {activeTab === 'contact' && <TabContact club={club} />}
                     </div>
 
-                    <div className="hidden lg:block lg:sticky lg:top-[14px]">
+                    <div className="hidden xl:block xl:sticky xl:top-[14px]">
                         {activeTab === 'overview' && (
                             <ClubOpportunities
                                 club={club}
@@ -458,6 +484,16 @@ export const ClubProfilePage = () => {
                     </div>
                 </div>
             )}
+
+            <ConfirmDialog
+                open={isDissolveDialogOpen}
+                variant="danger"
+                title="Dissolve this club?"
+                message="Dissolving is permanent. Members and followers will be notified and the club will be removed from browse, map and search."
+                confirmLabel="Dissolve Club"
+                onConfirm={() => void handleDissolveConfirm()}
+                onCancel={() => setIsDissolveDialogOpen(false)}
+            />
         </div>
     );
 };

@@ -1,5 +1,5 @@
 export type NavigationKey =
-    | 'feed'
+    | 'home'
     | 'map'
     | 'clubs'
     | 'my-club'
@@ -16,7 +16,7 @@ export type NavigationKey =
 const clubRoutePattern = /^\/clubs\/(\d+)(?:\/|$)/;
 
 export const resolveNavigationKey = (pathname: string, myClubId: number | null) => {
-    if (pathname === '/feed') return 'feed';
+    if (pathname === '/home' || pathname === '/feed') return 'home';
     if (pathname === '/map') return 'map';
     if (pathname === '/clubs') return 'clubs';
     if (pathname === '/my-club') return 'my-club';

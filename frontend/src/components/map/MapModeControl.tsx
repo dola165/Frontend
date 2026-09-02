@@ -14,16 +14,18 @@ interface MapModeControlProps {
     onCancelWarning: () => void;
 }
 
-const MODES: Array<{ id: MapMode; labelKey: 'flat' | 'globe' | 'tilted'; icon: typeof Circle }> = [
-    { id: 'flat', labelKey: 'flat', icon: MapIcon },
-    { id: 'globe', labelKey: 'globe', icon: Globe2 },
-    { id: 'tilted', labelKey: 'tilted', icon: Circle }
+/** FLAT renders positron in both themes (canvas gets a CSS dusk filter in dark mode); GLOBE and TILTED are the opt-in heavy modes. */
+const MODES: Array<{ id: MapMode; label: string; icon: typeof Circle }> = [
+    { id: 'flat', label: 'Map', icon: MapIcon },
+    { id: 'globe', label: 'Globe', icon: Globe2 },
+    { id: 'tilted', label: 'Tilted', icon: Circle }
 ];
 
 /**
  * Map v2 mode switcher (WEB_APP_MASTER_PLAN.md §3.2): FLAT is the default —
- * the fastest, cleanest option. GLOBE and TILTED are opt-in heavy modes with a
- * one-time warning; the choice persists and the default is always FLAT.
+ * the fastest, cleanest option (now rendered in the dark style). GLOBE and
+ * TILTED are opt-in heavy modes with a one-time warning; the choice persists
+ * and the default is always FLAT.
  */
 export const MapModeControl = ({
     mode,
@@ -39,44 +41,44 @@ export const MapModeControl = ({
 
     return (
         <>
-            <div className="absolute bottom-3 left-3 z-10 flex gap-1 rounded-xl border border-[#26282d] bg-[#0f1117]/90 p-1 backdrop-blur">
-                {MODES.map(({ id, labelKey, icon: Icon }) => (
+            {/* Positioning (bottom-left, shifted right of the open drawer) is owned
+                by the wrapper in MapPage — this component only paints the pill. */}
+            <div className="map-mode-toggle">
+                {MODES.map(({ id, label, icon: Icon }) => (
                     <button
                         key={id}
                         type="button"
                         title={id === 'tilted' && !tiltedAvailable ? t('map.modes.needsKey') : undefined}
                         disabled={id === 'tilted' && !tiltedAvailable}
                         onClick={() => onRequestMode(id)}
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                            mode === id
-                                ? 'bg-[#16a34a] text-white'
-                                : 'text-[#a1a1aa] hover:bg-[rgba(255,255,255,0.06)] hover:text-[#f4f4f5]'
+                        className={`map-mode-button disabled:cursor-not-allowed disabled:opacity-40 ${
+                            mode === id ? 'map-mode-button--active' : ''
                         }`}
                     >
                         <Icon className="h-3.5 w-3.5" />
-                        {t(`map.modes.${labelKey}`)}
+                        {label}
                     </button>
                 ))}
             </div>
 
             {pendingMode && (
-                <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/60 p-4" onClick={onCancelWarning}>
+                <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-slate-900/50 p-4 dark:bg-black/60" onClick={onCancelWarning}>
                     <div
-                        className="w-full max-w-sm rounded-xl border border-[#26282d] bg-[#0f1117] p-6"
+                        className="w-full max-w-sm rounded-[18px] border border-slate-200 bg-white/95 p-6 shadow-[0_8px_32px_rgba(15,23,42,0.12)] backdrop-blur-md dark:border-white/10 dark:bg-[#0d1016]/95 dark:shadow-[0_8px_32px_rgba(0,0,0,0.45)]"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <h2 className="text-lg font-semibold text-[#f4f4f5]">{t('map.modes.heavyTitle')}</h2>
-                        <p className="mt-2 text-sm leading-6 text-[#a1a1aa]">
+                        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('map.modes.heavyTitle')}</h2>
+                        <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
                             {pendingMode === 'globe'
                                 ? t('map.modes.globeWarning')
                                 : t('map.modes.tiltedWarning')}
                         </p>
-                        <label className="mt-4 flex items-center gap-2 text-xs font-medium text-[#a1a1aa]">
+                        <label className="mt-4 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
                             <input
                                 type="checkbox"
                                 checked={dontShow}
                                 onChange={(e) => setDontShow(e.target.checked)}
-                                className="accent-[#16a34a]"
+                                className="accent-emerald-700"
                             />
                             {t('map.modes.dontShowAgain')}
                         </label>
@@ -84,7 +86,7 @@ export const MapModeControl = ({
                             <button
                                 type="button"
                                 onClick={onCancelWarning}
-                                className="rounded-xl border border-[#ffffff0d] bg-[#16181d] px-4 py-2 text-sm font-medium text-[#f4f4f5] hover:bg-[#1a1c22]"
+                                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
                             >
                                 {t('map.modes.cancel')}
                             </button>
@@ -94,9 +96,9 @@ export const MapModeControl = ({
                                     if (dontShow) onDismissWarning(true);
                                     onConfirmMode();
                                 }}
-                                className="rounded-xl bg-[#16a34a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#22c55e]"
+                                className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
                             >
-                                {t('map.modes.switchTo', { mode: pendingMode === 'globe' ? t('map.modes.globe') : t('map.modes.tilted') })}
+                                {t('map.modes.switchTo', { mode: pendingMode === 'globe' ? 'Globe' : 'Tilted' })}
                             </button>
                         </div>
                     </div>

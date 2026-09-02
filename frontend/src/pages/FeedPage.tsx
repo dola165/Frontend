@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { AlertTriangle, Compass, Megaphone, RefreshCw, Search } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { AlertTriangle, Compass, Megaphone, RefreshCw, Search, Sparkles, Users } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { FeedList } from '../components/feed/FeedList';
@@ -12,7 +12,11 @@ type FeedView = 'for-you' | 'following';
 
 const resolveFeedView = (value: string | null): FeedView => (value === 'following' ? 'following' : 'for-you');
 
-export const FeedPage = () => {
+interface FeedPageProps {
+ user?: { username?: string; fullName?: string; avatarUrl?: string } | null;
+}
+
+export const FeedPage = ({ user = null }: FeedPageProps) => {
  const [searchParams] = useSearchParams();
  const [posts, setPosts] = useState<FeedPostDto[]>([]);
  const [loading, setLoading] = useState(true);
@@ -20,28 +24,22 @@ export const FeedPage = () => {
  const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
  const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
  const [selectedPost, setSelectedPost] = useState<FeedPostDto | null>(null);
- const [showWelcomeBanner, setShowWelcomeBanner] = useState(
-  () => !localStorage.getItem('hasSeenWelcomeBanner')
- );
  const feedView = resolveFeedView(searchParams.get('view'));
  const isFollowingView = feedView === 'following';
+ const feedEndpoint = isFollowingView ? '/posts/feed/following' : '/posts/feed/for-you';
 
  const feedMeta = isFollowingView
   ? {
-   endpoint: '/posts/feed/following',
-   loadingLabel: 'Loading following feed...',
    emptyTitle: 'No Following Activity Yet',
-   emptyText: 'Follow clubs and creators to build your feed here.',
+   emptyText: 'Follow clubs and people to bring their latest posts into Home.',
    emptyGuides: [
     { label: 'Browse Clubs', to: '/clubs' },
     { label: 'Explore Map', to: '/map' }
    ]
   }
   : {
-   endpoint: '/posts/feed/for-you',
-   loadingLabel: 'Loading feed...',
-   emptyTitle: 'Your feed is waiting',
-   emptyText: "You haven't followed any clubs yet, but there's a whole network to explore. Start by browsing clubs or checking the map for events near you.",
+   emptyTitle: 'Your Home is ready',
+   emptyText: "Your recommendations will grow as you follow clubs, people and competitions. Start with a few useful places.",
    emptyGuides: [
     { label: 'Find Clubs', to: '/clubs' },
     { label: 'Browse Map', to: '/map' },
@@ -49,7 +47,7 @@ export const FeedPage = () => {
    ]
   };
 
- const loadFeed = async () => {
+ const loadFeed = useCallback(async () => {
   setLoading(true);
   setLoadError(false);
   setOpenComments({});
@@ -57,7 +55,7 @@ export const FeedPage = () => {
   setSelectedPost(null);
 
   try {
-   const response = await apiClient.get(feedMeta.endpoint);
+   const response = await apiClient.get(feedEndpoint);
    setPosts(response.data.content || response.data.posts || response.data || []);
   } catch (error) {
    console.error('Failed to load feed', error);
@@ -66,11 +64,11 @@ export const FeedPage = () => {
   } finally {
    setLoading(false);
   }
- };
+ }, [feedEndpoint]);
 
  useEffect(() => {
   void loadFeed();
- }, [feedView]);
+ }, [loadFeed]);
 
  const handleLikeToggle = async (postId: number) => {
   setPosts((current) =>
@@ -120,24 +118,38 @@ export const FeedPage = () => {
   }
  };
 
- if (loading) {
-  return (
-   <div className="mx-auto flex w-full max-w-[680px] flex-col gap-5 px-4 py-6">
-    <SkeletonCard lines={4} />
-    <SkeletonCard lines={3} />
-    <SkeletonCard lines={5} />
-   </div>
-  );
- }
-
  return (
   <div className="mx-auto flex w-full max-w-[680px] flex-col gap-3">
+   <h1 className="sr-only">Home</h1>
+
+   <PostComposer
+    compact
+    authorName={user?.fullName || user?.username || 'You'}
+    avatarUrl={user?.avatarUrl}
+    onPostCreated={loadFeed}
+   />
+
+   <nav aria-label="Home posts" className="grid grid-cols-2 border-b border-[var(--feed-divider)] bg-transparent px-1">
+    <Link
+     to="/home"
+     className={`inline-flex min-h-11 items-center justify-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors ${!isFollowingView ? 'border-[var(--feed-accent)] text-[var(--feed-text-primary)]' : 'border-transparent text-[var(--feed-text-muted)] hover:text-[var(--feed-text-primary)]'}`}
+    >
+     <Sparkles className="h-4 w-4" /> For You
+    </Link>
+    <Link
+     to="/home?view=following"
+     className={`inline-flex min-h-11 items-center justify-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors ${isFollowingView ? 'border-[var(--feed-accent)] text-[var(--feed-text-primary)]' : 'border-transparent text-[var(--feed-text-muted)] hover:text-[var(--feed-text-primary)]'}`}
+    >
+     <Users className="h-4 w-4" /> Following
+    </Link>
+   </nav>
+
    {loadError && (
     <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-5 py-4">
      <div className="flex items-start gap-3">
       <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-400" />
       <div className="min-w-0">
-       <p className="text-sm font-semibold text-rose-300">Failed to load feed</p>
+       <p className="text-sm font-semibold text-rose-300">Home could not load</p>
        <p className="mt-1 text-xs text-rose-300/80">Check your connection and try again.</p>
       </div>
       <button
@@ -151,31 +163,13 @@ export const FeedPage = () => {
      </div>
     </div>
    )}
-   {showWelcomeBanner && (
-    <div className="rounded-xl border border-[var(--feed-accent)] bg-[var(--feed-accent)]/5 px-5 py-4">
-     <div className="flex items-start justify-between gap-3">
-      <div>
-       <p className="text-sm font-semibold text-[var(--feed-text-primary)]">Welcome to your feed</p>
-       <p className="mt-1 text-xs text-[var(--feed-text-secondary)]">
-        Use the sidebar to explore clubs, browse the map, and find people to follow. Your feed fills up as you connect with the network.
-       </p>
-      </div>
-      <button
-       type="button"
-       onClick={() => {
-        localStorage.setItem('hasSeenWelcomeBanner', '1');
-        setShowWelcomeBanner(false);
-       }}
-       className="shrink-0 text-xs font-semibold text-[var(--feed-accent)] hover:underline"
-      >
-       Got it
-      </button>
-     </div>
+   {loading ? (
+    <div className="flex flex-col gap-3" aria-label="Loading Home posts">
+     <SkeletonCard lines={4} />
+     <SkeletonCard lines={3} />
+     <SkeletonCard lines={5} />
     </div>
-   )}
-   <PostComposer compact onPostCreated={loadFeed} />
-
-   <FeedList
+   ) : <FeedList
     posts={posts}
     openComments={openComments}
     commentsData={commentsData}
@@ -208,7 +202,7 @@ export const FeedPage = () => {
      </div>
     )}
     className="gap-3"
-   />
+   />}
 
    <PostTheaterModal
     isOpen={!!selectedPost}

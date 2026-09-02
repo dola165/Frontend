@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Building2, MapPin, Search, ShoppingBag } from 'lucide-react';
+import { Building2, Search, ShoppingBag } from 'lucide-react';
 import { PageSpinner } from '../components/workspace/helpers';
 import { EmptyStateCard } from '../components/workspace/EmptyStateCard';
 import { PaginationBar } from '../components/ui/PaginationBar';
@@ -9,14 +9,9 @@ import { ProductCard } from '../components/store/ProductCard';
 import { ProductQuickViewModal } from '../components/store/ProductQuickViewModal';
 import { fetchAllStoreCatalog, STORE_CATEGORIES } from '../features/store/api';
 import type { StoreProduct, StoreProductCategory } from '../features/store/api';
-
-interface RegionFilter {
-    country: string | null;
-    city: string | null;
-    clubId: number | null;
-}
-
-const EMPTY_REGION: RegionFilter = { country: null, city: null, clubId: null };
+import { DiscoverySectionTabs } from '../components/discovery/DiscoverySectionTabs';
+import { ClubLocationFilter } from '../components/discovery/ClubLocationFilter';
+import { EMPTY_CLUB_REGION, type ClubRegionSelection } from '../components/discovery/clubLocationTypes';
 
 /**
  * Aggregate store catalog (WEB_APP_MASTER_PLAN.md §4.1) — active products
@@ -31,8 +26,7 @@ export const StorePage = () => {
     const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<'ALL' | StoreProductCategory>('ALL');
-    const [regionOpen, setRegionOpen] = useState(false);
-    const [region, setRegion] = useState<RegionFilter>(EMPTY_REGION);
+    const [region, setRegion] = useState<ClubRegionSelection>(EMPTY_CLUB_REGION);
     const [selected, setSelected] = useState<StoreProduct | null>(null);
     const [page, setPage] = useState(0);
     const [pageSize, setPageSize] = useState(12);
@@ -55,44 +49,12 @@ export const StorePage = () => {
         void load();
     }, [load]);
 
-    /** country → city → clubs tree, derived from the catalog itself. */
-    const locationTree = useMemo(() => {
-        const map = new Map<string, Map<string, Map<number, string>>>();
-        for (const p of products) {
-            if (!p.clubCountryName || p.clubId == null) continue;
-            const country = p.clubCountryName;
-            const city = p.clubCityName ?? '';
-            if (!map.has(country)) map.set(country, new Map());
-            const cities = map.get(country)!;
-            if (!cities.has(city)) cities.set(city, new Map());
-            cities.get(city)!.set(p.clubId, p.clubName ?? '');
-        }
-        return Array.from(map.entries())
-            .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([country, cities]) => ({
-                country,
-                cities: Array.from(cities.entries())
-                    .sort((a, b) => a[0].localeCompare(b[0]))
-                    .map(([city, clubs]) => ({
-                        city,
-                        clubs: Array.from(clubs.entries())
-                            .sort((a, b) => a[1].localeCompare(b[1]))
-                            .map(([id, name]) => ({ id, name })),
-                    })),
-            }));
-    }, [products]);
-
-    const regionClubs = useMemo(() => {
-        const list: { id: number; name: string }[] = [];
-        for (const c of locationTree) {
-            if (region.country && c.country !== region.country) continue;
-            for (const city of c.cities) {
-                if (region.city && city.city !== region.city) continue;
-                list.push(...city.clubs);
-            }
-        }
-        return list;
-    }, [locationTree, region.country, region.city]);
+    const clubLocationItems = useMemo(() => products.flatMap((product) => product.clubId == null ? [] : [{
+        clubId: product.clubId,
+        clubName: product.clubName ?? 'Club',
+        cityName: product.clubCityName,
+        countryName: product.clubCountryName,
+    }]), [products]);
 
     const filtered = useMemo(() => {
         const query = search.trim().toLowerCase();
@@ -112,8 +74,6 @@ export const StorePage = () => {
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     const visible = filtered.slice(page * pageSize, (page + 1) * pageSize);
 
-    const isRegionActive = region.country != null || region.city != null || region.clubId != null;
-
     const handleCategory = (category: 'ALL' | StoreProductCategory) => {
         setCategoryFilter(category);
         setPage(0);
@@ -128,9 +88,10 @@ export const StorePage = () => {
 
     return (
         <div className="bg-[#0f1117] min-h-[calc(100dvh-var(--app-header-height))]">
+            <DiscoverySectionTabs />
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-[#0f1117] border-b border-[#ffffff0d] px-6 py-4">
-                <div className="max-w-6xl mx-auto">
+            <div className="sticky top-0 z-10 border-b border-[#ffffff0d] bg-[#0f1117] py-4">
+                <div className="w-full">
                     <div className="flex items-center gap-3 mb-3">
                         <h1 className="text-xl font-semibold text-[#f4f4f5]">{t('store.title')}</h1>
                         <span className="text-xs text-[#71717a] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded-full">
@@ -151,75 +112,8 @@ export const StorePage = () => {
                                 className={`${inputClass} pl-8 w-64`}
                             />
                         </div>
-                        <button
-                            onClick={() => setRegionOpen((v) => !v)}
-                            className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                                regionOpen || isRegionActive
-                                    ? 'border-[#16a34a]/40 bg-[#16a34a]/10 text-[#16a34a]'
-                                    : 'border-[#26282d] bg-[#16181d] text-[#a1a1aa] hover:text-[#f4f4f5]'
-                            }`}
-                        >
-                            <MapPin className="h-3.5 w-3.5" />
-                            {t('store.filterByClubs')}
-                        </button>
+                        <ClubLocationFilter items={clubLocationItems} value={region} onChange={(next) => { setRegion(next); setPage(0); }} label={t('store.filterByClubs')} />
                     </div>
-
-                    {/* Club filter panel — country → city → club */}
-                    {regionOpen && (
-                        <div className="mt-3 rounded-xl border border-[#26282d] bg-[#16181d] p-3">
-                            <div className="flex items-center gap-3 flex-wrap">
-                                <select
-                                    value={region.country ?? ''}
-                                    onChange={(e) => {
-                                        setRegion((r) => ({ ...r, country: e.target.value || null, city: null, clubId: null }));
-                                        setPage(0);
-                                    }}
-                                    className={inputClass}
-                                >
-                                    <option value="">{t('store.anyCountry')}</option>
-                                    {locationTree.map((c) => (
-                                        <option key={c.country} value={c.country}>{c.country}</option>
-                                    ))}
-                                </select>
-                                <select
-                                    value={region.city ?? ''}
-                                    disabled={!region.country}
-                                    onChange={(e) => {
-                                        setRegion((r) => ({ ...r, city: e.target.value || null, clubId: null }));
-                                        setPage(0);
-                                    }}
-                                    className={`${inputClass} disabled:opacity-40`}
-                                >
-                                    <option value="">{t('store.anyCity')}</option>
-                                    {(locationTree.find((c) => c.country === region.country)?.cities ?? []).map((city) => (
-                                        <option key={city.city} value={city.city}>{city.city || '—'}</option>
-                                    ))}
-                                </select>
-                                <select
-                                    value={region.clubId ?? ''}
-                                    disabled={!region.country}
-                                    onChange={(e) => {
-                                        setRegion((r) => ({ ...r, clubId: e.target.value ? Number(e.target.value) : null }));
-                                        setPage(0);
-                                    }}
-                                    className={`${inputClass} disabled:opacity-40`}
-                                >
-                                    <option value="">{t('store.anyClub')}</option>
-                                    {regionClubs.map((club) => (
-                                        <option key={club.id} value={club.id}>{club.name}</option>
-                                    ))}
-                                </select>
-                                {isRegionActive && (
-                                    <button
-                                        onClick={() => { setRegion(EMPTY_REGION); setPage(0); }}
-                                        className="text-xs font-semibold text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors"
-                                    >
-                                        {t('store.resetFilters')}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    )}
 
                     {/* Category chips */}
                     <div className="flex gap-1.5 flex-wrap mt-3">
@@ -251,7 +145,7 @@ export const StorePage = () => {
             </div>
 
             {/* Content */}
-            <div className="max-w-6xl mx-auto px-6 py-5">
+            <div className="w-full py-5">
                 {loading ? (
                     <PageSpinner />
                 ) : error ? (

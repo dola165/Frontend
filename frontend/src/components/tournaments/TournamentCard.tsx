@@ -1,14 +1,13 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Award, Calendar, Check, Loader2, Trophy, UserPlus, Users } from 'lucide-react';
+import { ArrowRight, Award, CalendarDays, Check, Loader2, UserPlus, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { TournamentSummary } from '../../features/tournaments/domain';
-import { tournamentScopeLabel, tournamentVisibilityLabel } from '../../features/tournaments/domain';
-
-const statusTone: Record<string, string> = {
-    PLANNING: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-    ACTIVE: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    COMPLETED: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-    CANCELLED: 'bg-red-500/10 text-red-400 border-red-500/20',
-};
+import {
+    TournamentScopeBadge,
+    TournamentStatusBadge,
+    TournamentVisual,
+} from './TournamentPresentation';
+import { formatTournamentDate, formatTournamentDateRange, tournamentVisibilityText } from './tournamentFormatters';
 
 interface TournamentCardProps {
     tournament: TournamentSummary;
@@ -18,103 +17,98 @@ interface TournamentCardProps {
 }
 
 export const TournamentCard = ({
-    tournament: t,
+    tournament,
     isRegistered,
     isRegistering,
     onRegister,
-}: TournamentCardProps) => (
-    <Link
-        to={`/tournaments/${t.id}`}
-        className="group flex flex-col rounded-xl border border-[#ffffff0d] bg-[#16181d] p-5 transition-all hover:border-[#16a34a]"
-    >
-        <div className="flex items-start justify-between gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#ffffff0d] bg-[#1a1c22] text-[#16a34a]">
-                <Trophy className="h-5 w-5" />
-            </div>
-            <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusTone[t.status] ?? statusTone.COMPLETED}`}>
-                {t.status}
-            </span>
-        </div>
+}: TournamentCardProps) => {
+    const { t, i18n } = useTranslation();
+    const dateRange = formatTournamentDateRange(tournament.startDate, tournament.endDate, i18n.language);
+    const registrationClose = formatTournamentDate(tournament.registrationClosesAt, i18n.language);
+    const hostName = tournament.hostClubName ?? tournament.organizerName;
+    const canRegister = tournament.participantScope === 'PLAYER' && tournament.status === 'PLANNING';
 
-        <h3 className="mt-4 text-base font-semibold text-[#f4f4f5] group-hover:text-[#16a34a] transition-colors">
-            {t.name}
-        </h3>
+    return (
+        <article className="group flex min-h-full flex-col overflow-hidden rounded-2xl border border-white/[0.07] bg-[#15181c] shadow-[0_18px_50px_rgba(0,0,0,0.12)] transition duration-200 hover:-translate-y-0.5 hover:border-emerald-400/30 hover:shadow-[0_22px_60px_rgba(0,0,0,0.24)] focus-within:border-emerald-400/40">
+            <TournamentVisual name={tournament.name} imageUrl={tournament.bannerImageUrl} className="h-44">
+                <div className="flex h-full flex-col justify-between p-4">
+                    <div className="flex items-start justify-between gap-2">
+                        <TournamentStatusBadge status={tournament.status} />
+                        <TournamentScopeBadge scope={tournament.participantScope} />
+                    </div>
+                    <div className="flex items-end justify-between gap-3 text-xs text-zinc-300">
+                        <span className="truncate font-medium">{hostName ? t('tournaments.public.hostedBy', { name: hostName }) : t('tournaments.public.independentEvent')}</span>
+                        <span className="shrink-0 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 backdrop-blur-sm">
+                            {tournamentVisibilityText(tournament.visibility, t)}
+                        </span>
+                    </div>
+                </div>
+            </TournamentVisual>
 
-        {t.description && (
-            <p className="mt-2 line-clamp-2 text-sm text-[#a1a1aa]">
-                {t.description}
-            </p>
-        )}
+            <div className="flex flex-1 flex-col p-5">
+                <Link
+                    to={`/tournaments/${tournament.id}`}
+                    className="rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70"
+                >
+                    <h2 className="text-lg font-bold tracking-[-0.015em] text-zinc-100 transition-colors group-hover:text-emerald-300">
+                        {tournament.name}
+                    </h2>
+                </Link>
+                <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-zinc-400">
+                    {tournament.description || t('tournaments.public.noDescription')}
+                </p>
 
-        {t.incentives && (
-            <div className="mt-3 flex items-start gap-1.5 text-xs text-emerald-400/80">
-                <Award className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <span className="line-clamp-1">{t.incentives.split('|')[0]}</span>
-            </div>
-        )}
+                <div className="mt-5 space-y-2.5 border-t border-white/[0.06] pt-4 text-xs text-zinc-400">
+                    <div className="flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4 shrink-0 text-zinc-500" />
+                        <span>{dateRange || t('tournaments.public.datesToBeConfirmed')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 shrink-0 text-zinc-500" />
+                        <span>{t('tournaments.public.entryCount', { count: tournament.entryCount })}</span>
+                        {registrationClose ? (
+                            <span className="ml-auto truncate text-zinc-500">
+                                {t('tournaments.public.registrationClosesShort', { date: registrationClose })}
+                            </span>
+                        ) : null}
+                    </div>
+                </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[#a1a1aa]">
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#1a1c22] px-2.5 py-1">
-                {t.participantScope === 'PLAYER' ? <UserPlus className="h-3 w-3" /> : <Users className="h-3 w-3" />}
-                {tournamentScopeLabel(t.participantScope)}
-            </span>
-            <span className="rounded-full bg-[#1a1c22] px-2.5 py-1">
-                {tournamentVisibilityLabel(t.visibility)}
-            </span>
-            {t.entryCount > 0 && (
-                <span className="rounded-full bg-[#1a1c22] px-2.5 py-1">
-                    {t.entryCount} entries
-                </span>
-            )}
-        </div>
+                {tournament.incentives ? (
+                    <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-300/15 bg-amber-300/[0.06] px-3 py-2.5 text-xs text-amber-100/80">
+                        <Award className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
+                        <span className="line-clamp-1">{tournament.incentives.split('|')[0]}</span>
+                    </div>
+                ) : null}
 
-        {t.hostClubName && (
-            <p className="mt-3 text-xs text-[#a1a1aa]">
-                Hosted by {t.hostClubName}
-            </p>
-        )}
-
-        {t.startDate && (
-            <div className="mt-3 flex items-center gap-1.5 text-xs text-[#a1a1aa]">
-                <Calendar className="h-3.5 w-3.5" />
-                <span>{new Date(t.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                {t.endDate && (
-                    <span>— {new Date(t.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                )}
-            </div>
-        )}
-
-        <div className="mt-5 flex items-center gap-2 pt-3">
-            <span className="flex-1 text-sm font-medium text-[#16a34a] group-hover:underline">
-                View Event
-                <ArrowRight className="ml-1.5 inline-block h-4 w-4" />
-            </span>
-            {t.participantScope === 'PLAYER' && t.status === 'PLANNING' && (
-                isRegistered ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-400">
-                        <Check className="h-3.5 w-3.5" />
-                        Registered
-                    </span>
-                ) : (
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onRegister(t.id);
-                        }}
-                        disabled={isRegistering}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-[#16a34a] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                <div className="mt-auto flex items-center gap-3 pt-5">
+                    <Link
+                        to={`/tournaments/${tournament.id}`}
+                        className="inline-flex flex-1 items-center gap-1.5 text-sm font-semibold text-zinc-200 outline-none transition-colors hover:text-emerald-300 focus-visible:text-emerald-300"
                     >
-                        {isRegistering ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        {t('tournaments.public.viewDetails')}
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                    {canRegister ? (
+                        isRegistered ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3.5 py-2 text-xs font-bold text-emerald-300">
+                                <Check className="h-3.5 w-3.5" />
+                                {t('tournaments.public.registered')}
+                            </span>
                         ) : (
-                            <UserPlus className="h-3.5 w-3.5" />
-                        )}
-                        Register
-                    </button>
-                )
-            )}
-        </div>
-    </Link>
-);
+                            <button
+                                type="button"
+                                onClick={() => onRegister(tournament.id)}
+                                disabled={isRegistering}
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-lg shadow-emerald-950/20 transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-wait disabled:opacity-60"
+                            >
+                                {isRegistering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
+                                {t('tournaments.public.register')}
+                            </button>
+                        )
+                    ) : null}
+                </div>
+            </div>
+        </article>
+    );
+};

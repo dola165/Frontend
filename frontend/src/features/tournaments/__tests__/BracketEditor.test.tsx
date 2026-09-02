@@ -108,10 +108,15 @@ const makeTournament = (overrides: Partial<TournamentDetail> = {}): TournamentDe
     ...overrides,
 });
 
-const renderEditor = (tournament: TournamentDetail, onRefresh: () => void = () => {}) =>
+const renderEditor = (
+    tournament: TournamentDetail,
+    onRefresh: () => void = () => {},
+    canManage = true,
+    canScore = canManage,
+) =>
     render(
         <MemoryRouter>
-            <BracketEditor tournamentId={1} tournament={tournament} canManage={true} onRefresh={onRefresh} />
+            <BracketEditor tournamentId={1} tournament={tournament} canManage={canManage} canScore={canScore} onRefresh={onRefresh} />
         </MemoryRouter>,
     );
 
@@ -123,6 +128,13 @@ describe('BracketEditor', () => {
         (createStage as ReturnType<typeof vi.fn>).mockResolvedValue({});
         (fetchDraftTeams as ReturnType<typeof vi.fn>).mockResolvedValue([]);
         (fetchGroupStandings as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    });
+
+    it('renders a useful no-stages starting state', () => {
+        renderEditor(makeTournament({ stages: [], fixtures: [] }));
+        expect(screen.getByText('tournaments.stages.empty')).toBeInTheDocument();
+        expect(screen.getByText('tournaments.stages.emptyHint')).toBeInTheDocument();
+        expect(screen.getByText('tournaments.stages.newStage')).toBeInTheDocument();
     });
 
     it('renders an empty knockout stage without generate/randomize (teams-only, P7)', () => {
@@ -228,7 +240,7 @@ describe('BracketEditor', () => {
         );
         expect(await screen.findByText('tournaments.standings.title')).toBeInTheDocument();
         // Badge shows in both the fixture row and the standings row for the eliminated entry.
-        expect(screen.getAllByText('ELIMINATED')).toHaveLength(2);
+        expect(screen.getAllByText('tournaments.workspace.entryStatus.eliminated')).toHaveLength(2);
         expect(fetchGroupStandings).toHaveBeenCalledWith(1, 1);
     });
 
@@ -290,5 +302,19 @@ describe('BracketEditor', () => {
             scheduledAt: null,
             locationId: null,
         });
+    });
+
+    it('presents a clean read-only competition view', () => {
+        renderEditor(
+            makeTournament({ fixtures: [makeFixture()] }),
+            () => {},
+            false,
+            false,
+        );
+        expect(screen.getByText('tournaments.workspace.readOnlyHint')).toBeInTheDocument();
+        expect(screen.queryByText('tournaments.stages.newStage')).not.toBeInTheDocument();
+        expect(screen.queryByTitle('Edit scores')).not.toBeInTheDocument();
+        expect(screen.queryByTitle('Force complete')).not.toBeInTheDocument();
+        expect(screen.queryByTitle('Cancel fixture')).not.toBeInTheDocument();
     });
 });

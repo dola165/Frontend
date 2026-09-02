@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { FeedPage } from '../../pages/FeedPage';
+import type { FeedPostDto } from '../../components/feed/FeedPost';
 
 vi.mock('../../api/axiosConfig', () => ({
     apiClient: {
@@ -23,7 +24,7 @@ vi.mock('../../components/feed/PostComposer', () => ({
 }));
 
 vi.mock('../../components/feed/FeedList', () => ({
-    FeedList: ({ posts, emptyState }: { posts: any[]; emptyState: React.ReactNode }) =>
+    FeedList: ({ posts, emptyState }: { posts: FeedPostDto[]; emptyState: React.ReactNode }) =>
         posts.length === 0 ? <>{emptyState}</> : <div data-testid="feed-list">{posts.length} posts</div>,
 }));
 
@@ -35,7 +36,7 @@ import { apiClient } from '../../api/axiosConfig';
 
 const renderPage = () =>
     render(
-        <MemoryRouter initialEntries={['/feed']}>
+        <MemoryRouter initialEntries={['/home']}>
             <FeedPage />
         </MemoryRouter>
     );
@@ -58,7 +59,7 @@ describe('FeedPage', () => {
         it('shows error banner when API fails', async () => {
             (apiClient.get as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('fail'));
             renderPage();
-            expect(await screen.findByText('Failed to load feed')).toBeInTheDocument();
+            expect(await screen.findByText('Home could not load')).toBeInTheDocument();
             expect(screen.getByText(/Check your connection/)).toBeInTheDocument();
         });
 
@@ -89,7 +90,7 @@ describe('FeedPage', () => {
                 data: { content: [] },
             });
             renderPage();
-            expect(await screen.findByText('Your feed is waiting')).toBeInTheDocument();
+            expect(await screen.findByText('Your Home is ready')).toBeInTheDocument();
             expect(screen.getByText('Find Clubs')).toBeInTheDocument();
             expect(screen.getByText('Browse Map')).toBeInTheDocument();
             expect(screen.getByText('Discover Events')).toBeInTheDocument();
@@ -100,7 +101,7 @@ describe('FeedPage', () => {
                 data: { content: [] },
             });
             render(
-                <MemoryRouter initialEntries={['/feed?view=following']}>
+                <MemoryRouter initialEntries={['/home?view=following']}>
                     <FeedPage />
                 </MemoryRouter>
             );
@@ -114,42 +115,23 @@ describe('FeedPage', () => {
                 data: { content: [] },
             });
             renderPage();
-            await screen.findByText('Your feed is waiting');
+            await screen.findByText('Your Home is ready');
             expect(screen.getByText('Find Clubs').closest('a')).toHaveAttribute('href', '/clubs');
             expect(screen.getByText('Browse Map').closest('a')).toHaveAttribute('href', '/map');
             expect(screen.getByText('Discover Events').closest('a')).toHaveAttribute('href', '/tournaments');
         });
     });
 
-    describe('welcome banner', () => {
-        it('shows welcome banner on first visit', async () => {
-            (apiClient.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-                data: { content: [{ id: 1 }] },
-            });
-            renderPage();
-            expect(await screen.findByText('Welcome to your feed')).toBeInTheDocument();
-        });
-
-        it('hides welcome banner after clicking Got it', async () => {
-            const user = userEvent.setup();
-            (apiClient.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-                data: { content: [{ id: 1 }] },
-            });
-            renderPage();
-            const gotItBtn = await screen.findByText('Got it');
-            await user.click(gotItBtn);
-            expect(screen.queryByText('Welcome to your feed')).not.toBeInTheDocument();
-            expect(localStorage.getItem('hasSeenWelcomeBanner')).toBe('1');
-        });
-
-        it('does not show welcome banner if already dismissed', async () => {
-            localStorage.setItem('hasSeenWelcomeBanner', '1');
+    describe('Home controls', () => {
+        it('shows Home with the feed switch directly below the composer', async () => {
             (apiClient.get as ReturnType<typeof vi.fn>).mockResolvedValue({
                 data: { content: [{ id: 1 }] },
             });
             renderPage();
             await screen.findByTestId('feed-list');
-            expect(screen.queryByText('Welcome to your feed')).not.toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: 'Home' })).toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /For You/i })).toHaveAttribute('href', '/home');
+            expect(screen.getByRole('link', { name: /Following/i })).toHaveAttribute('href', '/home?view=following');
         });
     });
 

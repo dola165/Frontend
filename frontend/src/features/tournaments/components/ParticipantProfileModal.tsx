@@ -7,10 +7,12 @@ import { updateEntrySquad } from '../api';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import type { TournamentEntryDto } from '../domain';
 import { entryStatusTone } from '../domain';
+import { tournamentEntryStatusText } from '../../../components/tournaments/tournamentFormatters';
 
 interface Props {
     entry: TournamentEntryDto;
     tournamentId: number;
+    canManage: boolean;
     onRefresh: () => void;
     onClose: () => void;
 }
@@ -33,7 +35,7 @@ const entryPrimary = (entry: TournamentEntryDto): string =>
 
 const selectClass = 'min-w-0 flex-1 rounded-xl border border-[#ffffff0d] bg-[#16181d] px-3 py-2.5 text-sm font-semibold text-[#f4f4f5] outline-none focus:border-[#16a34a]';
 
-export const ParticipantProfileModal = ({ entry, tournamentId, onRefresh, onClose }: Props) => {
+export const ParticipantProfileModal = ({ entry, tournamentId, canManage, onRefresh, onClose }: Props) => {
     const { t } = useTranslation();
     const [squads, setSquads] = useState<SquadOption[]>([]);
     const [squadId, setSquadId] = useState<string>(entry.squadId != null ? String(entry.squadId) : '');
@@ -101,13 +103,14 @@ export const ParticipantProfileModal = ({ entry, tournamentId, onRefresh, onClos
     const tone = entryStatusTone(entry.status);
     const link = profileLink();
     const squadChanged = squadId !== (entry.squadId != null ? String(entry.squadId) : '');
+    const avatarLabel = entryPrimary(entry).split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-            <div className="w-full max-w-sm rounded-xl border border-[#ffffff0d] bg-[#16181d]" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between gap-3 border-b border-[#ffffff0d] bg-[#16181d] px-6 py-4">
-                    <p className="text-base font-semibold text-[#f4f4f5]">{t('tournaments.diagram.profileTitle')}</p>
-                    <button onClick={onClose} className="text-[#a1a1aa] transition-colors hover:text-[#f4f4f5]" title="Close">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={onClose}>
+            <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-[#111612] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] px-6 py-4">
+                    <p className="text-base font-bold text-zinc-100">{t('tournaments.diagram.profileTitle')}</p>
+                    <button onClick={onClose} className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-white/[0.05] hover:text-zinc-100" title={t('tournaments.workspace.close')}>
                         <X className="h-4 w-4" />
                     </button>
                 </div>
@@ -115,18 +118,21 @@ export const ParticipantProfileModal = ({ entry, tournamentId, onRefresh, onClos
                     {message && (
                         <p className="rounded-xl border border-[#ffffff0d] bg-[#ef4444]/10 px-3 py-2 text-sm font-semibold text-[#ef4444]">{message}</p>
                     )}
-                    <div>
-                        <p className="text-lg font-bold text-[#f4f4f5]">{entryPrimary(entry)}</p>
+                    <div className="flex items-center gap-3">
+                        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-black text-emerald-300">{avatarLabel}</span>
+                        <div className="min-w-0">
+                        <p className="truncate text-lg font-bold text-zinc-100">{entryPrimary(entry)}</p>
                         {entry.squadName && entry.clubId != null && entry.squadName !== entry.clubName && (
-                            <p className="mt-0.5 text-sm text-[#a1a1aa]">{entry.squadName}</p>
+                            <p className="mt-0.5 truncate text-sm text-zinc-500">{entry.squadName}</p>
                         )}
                         <div className="mt-2 flex items-center gap-2">
                             <span className="rounded-full bg-[var(--fc-surface-hover)] px-2.5 py-0.5 text-xs font-semibold text-[#f4f4f5]">
                                 {typeLabel()}
                             </span>
                             <span className={`inline-block rounded-xl border px-2.5 py-0.5 text-xs font-semibold ${statusToneBorder[tone] ?? statusToneBorder.neutral}`}>
-                                {entry.status}
+                                {tournamentEntryStatusText(entry.status, t)}
                             </span>
+                        </div>
                         </div>
                     </div>
 
@@ -138,7 +144,7 @@ export const ParticipantProfileModal = ({ entry, tournamentId, onRefresh, onClos
                                     {entry.squadName ?? t('tournaments.diagram.playAsClub')}
                                 </span>
                             </div>
-                            {squads.length > 0 ? (
+                            {canManage && squads.length > 0 ? (
                                 <div className="flex items-center gap-2">
                                     <select value={squadId} onChange={(e) => setSquadId(e.target.value)} className={selectClass}>
                                         <option value="">{t('tournaments.diagram.playAsClub')}</option>
@@ -154,9 +160,9 @@ export const ParticipantProfileModal = ({ entry, tournamentId, onRefresh, onClos
                                         {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t('tournaments.diagram.change')}
                                     </button>
                                 </div>
-                            ) : (
+                            ) : canManage ? (
                                 <p className="text-xs text-[#71717a]">{t('tournaments.diagram.noSquadsAvailable')}</p>
-                            )}
+                            ) : null}
                         </div>
                     )}
 

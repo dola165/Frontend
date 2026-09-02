@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Heart, MessageCircle, MoreHorizontal, Send, Share2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 
 export interface CommentDto {
@@ -14,6 +15,7 @@ export interface FeedPostDto {
     id: number;
     content: string;
     createdAt: string;
+    authorId?: number | null;
     authorName: string;
     authorAvatarUrl?: string | null;
     clubId?: number | null;
@@ -54,6 +56,12 @@ export const FeedPost = ({
 
     const initials = (post.clubName || post.authorName).substring(0, 2).toUpperCase();
     const authorAvatarUrl = resolveMediaUrl(post.authorAvatarUrl);
+    const displayAuthorName = post.clubName || post.authorName;
+    const authorProfilePath = post.clubId != null
+        ? `/clubs/${post.clubId}`
+        : post.authorId != null
+            ? `/profile/${post.authorId}`
+            : null;
 
     const handleCommentSubmit = () => {
         if (!commentInput.trim()) return;
@@ -85,6 +93,26 @@ export const FeedPost = ({
     };
 
     const mediaList = post.mediaUrls && post.mediaUrls.length > 0 ? post.mediaUrls : post.image ? [post.image] : [];
+    const authorIdentity = (
+        <>
+            <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--feed-layer-bg)] font-semibold text-[var(--feed-text-secondary)] ring-2 ring-transparent transition-all group-hover/author:ring-[var(--feed-accent-border)] ${compact ? 'h-11 w-11 text-sm' : 'h-12 w-12 text-base'}`}>
+                {authorAvatarUrl ? <img src={authorAvatarUrl} alt={displayAuthorName} className="h-full w-full object-cover" /> : initials}
+            </div>
+            <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="truncate text-base font-semibold text-[var(--feed-text-primary)] transition-colors group-hover/author:text-[var(--feed-accent)]">{displayAuthorName}</h4>
+                    {post.clubName && <span className="rounded-full bg-[var(--feed-accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--feed-accent)]">Official</span>}
+                </div>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--feed-text-muted)]">
+                    <span>{formatTime(post.createdAt)}</span>
+                    <span className="h-1 w-1 rounded-full bg-[var(--feed-icon-muted)]" />
+                    <span>{post.likeCount} likes</span>
+                    <span className="h-1 w-1 rounded-full bg-[var(--feed-icon-muted)]" />
+                    <span>{post.commentCount} comments</span>
+                </div>
+            </div>
+        </>
+    );
 
     const renderMediaGrid = () => {
         if (mediaList.length === 0) return null;
@@ -135,24 +163,17 @@ export const FeedPost = ({
     return (
         <article className="overflow-hidden rounded-xl border-2 border-[var(--feed-card-border)] bg-[var(--feed-card)] shadow-[0_4px_24px_rgba(0,0,0,0.16)]">
             <div className={`${compact ? 'px-5 py-4' : 'px-6 py-5'} flex items-start justify-between gap-3`}>
-                <div className="flex min-w-0 items-start gap-4">
-                    <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--feed-layer-bg)] font-semibold text-[var(--feed-text-secondary)] ${compact ? 'h-11 w-11 text-sm' : 'h-12 w-12 text-base'}`}>
-                        {authorAvatarUrl ? <img src={authorAvatarUrl} alt={post.clubName || post.authorName} className="h-full w-full object-cover" /> : initials}
-                    </div>
-                    <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="truncate text-base font-semibold text-[var(--feed-text-primary)]">{post.clubName || post.authorName}</h4>
-                            {post.clubName && <span className="rounded-full bg-[var(--feed-accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--feed-accent)]">Official</span>}
-                        </div>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--feed-text-muted)]">
-                            <span>{formatTime(post.createdAt)}</span>
-                            <span className="h-1 w-1 rounded-full bg-[var(--feed-icon-muted)]" />
-                            <span>{post.likeCount} likes</span>
-                            <span className="h-1 w-1 rounded-full bg-[var(--feed-icon-muted)]" />
-                            <span>{post.commentCount} comments</span>
-                        </div>
-                    </div>
-                </div>
+                {authorProfilePath ? (
+                    <Link
+                        to={authorProfilePath}
+                        aria-label={`View ${displayAuthorName} profile`}
+                        className="group/author flex min-w-0 items-start gap-4 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--feed-accent)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--feed-card)]"
+                    >
+                        {authorIdentity}
+                    </Link>
+                ) : (
+                    <div className="flex min-w-0 items-start gap-4">{authorIdentity}</div>
+                )}
                 <button type="button" className="rounded-full p-1 text-[var(--feed-text-placeholder)] transition-colors hover:bg-[var(--feed-hover-bg)] hover:text-[var(--feed-text-secondary)]">
                     <MoreHorizontal className="h-4 w-4" />
                 </button>

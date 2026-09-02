@@ -21,11 +21,16 @@ export const ProductCard = ({ product, onOpen, showClub }: ProductCardProps) => 
             onClick={() => onOpen(product)}
         >
             {/* Cover */}
-            <div className="aspect-square bg-[rgba(255,255,255,0.04)] flex items-center justify-center">
-                {cover ? (
-                    <img src={cover} alt={product.name ?? 'Product'} className="h-full w-full object-cover" loading="lazy" />
-                ) : (
-                    <ShoppingBag className="h-10 w-10 text-[#3f3f46]" />
+            <div className="relative aspect-square bg-[rgba(255,255,255,0.04)] flex items-center justify-center">
+                <ShoppingBag className="h-10 w-10 text-[#3f3f46]" />
+                {cover && (
+                    <img
+                        src={cover}
+                        alt={product.name ?? 'Product'}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        loading="lazy"
+                        onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                    />
                 )}
             </div>
 

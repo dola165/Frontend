@@ -6,13 +6,13 @@ interface GrasskickzLogoProps extends HTMLAttributes<HTMLDivElement> {
 
 export const GrasskickzLogo = ({ compact = false, className = '', ...props }: GrasskickzLogoProps) => {
     const [imageFailed, setImageFailed] = useState(false);
-    const logoHeight = compact ? 30 : 34;
+    const logoHeight = compact ? 24 : 27;
 
     return (
         <div className={`flex items-center ${className}`.trim()} {...props}>
             {!imageFailed ? (
                 <img
-                    src="/logo/logo.jpg"
+                    src="/brand/grasskickz-main.png"
                     alt="Grasskickz"
                     className="block w-auto object-contain"
                     style={{ height: `${logoHeight}px` }}

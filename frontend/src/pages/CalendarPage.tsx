@@ -5,7 +5,7 @@ import {
     Loader2,
     TriangleAlert,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { EventCreationModal, type EventCreationFormValues, type ModalSurface } from '../components/schedule/EventCreationModal';
 import { PastEventModal } from '../components/schedule/PastEventModal';
 import { ScheduleGrid } from '../components/schedule/ScheduleGrid';
@@ -24,7 +24,7 @@ import {
     type WorkspaceView
 } from '../components/schedule/workspaceTypes';
 import { fetchMyClubMembershipContext } from '../features/clubs/api';
-import { canManageClubOperations, type ClubMembershipContext } from '../features/clubs/domain';
+import { canManageClubOperations, isLeadershipRole, type ClubMembershipContext } from '../features/clubs/domain';
 import {
     createClubEvent,
     createMyEvent,
@@ -160,6 +160,7 @@ const toUpsert = (ev: SEvent): ScheduleEventUpsertInput => ({
 export const CalendarPage = (props: CalendarPageProps) => {
     void props; // Props kept for API symmetry — the page reads auth via context.
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const colRef = useRef<HTMLDivElement | null>(null);
     const [ctx, setCtx] = useState<ClubMembershipContext | null>(null);
     const [ctxOk, setCtxOk] = useState(false);
@@ -183,6 +184,9 @@ export const CalendarPage = (props: CalendarPageProps) => {
     const [mmode, setMmode] = useState<'create' | 'edit'>('create');
     const [mvals, setMvals] = useState<EventCreationFormValues>(emptyForm());
     const [eid, setEid] = useState<number | null>(null);
+    // Edit-target metadata the form values don't carry: owning club + original start (cancel gating).
+    const [editMeta, setEditMeta] = useState<{ clubId: number | null; startsAt: string } | null>(null);
+    const occClubById = useRef(new Map<string, number | null>());
 
     const [railW, setRailW] = useState(() => Number(localStorage.getItem('talanti:schedule-left-rail')) || DEFAULT_LEFT);
     const [resizing, setResizing] = useState<{ sx: number; sw: number } | null>(null);
@@ -223,6 +227,8 @@ export const CalendarPage = (props: CalendarPageProps) => {
 
     const canClub = Boolean(ctx?.clubId);
     const canMgmt = canManageClubOperations(ctx?.myRole);
+    // Schedule-management gate for the cancel endpoint: viewer is OWNER/CLUB_ADMIN of the viewed club.
+    const canManageSchedule = canClub && isLeadershipRole(ctx?.myRole);
     const clubLbl = ctx?.clubName ?? 'Club Schedule';
     const vr = useMemo(() => vrng(vm, cursor), [cursor, vm]);
     const rw = useMemo(() => {
@@ -242,6 +248,7 @@ export const CalendarPage = (props: CalendarPageProps) => {
                     ctx?.clubId ? fetchClubSchedule(ctx.clubId, from, to) : Promise.resolve([])
                 ]);
                 if (!a) return;
+                occClubById.current = new Map([...per, ...clb].map((e) => [e.occurrenceId, e.clubId]));
                 setClubEv(clb.map((e) => toWE(e, clubLbl)));
                 setPerRaw(per.map((e) => toWE(e, 'Visible only to you')));
                 setLoadN(null);
@@ -280,10 +287,26 @@ export const CalendarPage = (props: CalendarPageProps) => {
         const s = normAnchor(surface, anchor ?? cursor);
         const et = ptype ?? (surface === 'CLUB_SCHEDULE' ? 'TRAINING' : 'ACTIVITY');
         const end = addM(s, durationByType[et]);
-        setMmode('create'); setEid(null);
+        setMmode('create'); setEid(null); setEditMeta(null);
         setMvals({ eventType: et, title: '', date: inpDate(s), startTime: inpTime(s), endTime: inpTime(end), isRecurring: false, locationName: '', locationLat: '', locationLng: '', visibility: 'PRIVATE', publishAt: '' });
         setModal(true);
     };
+
+    const newEventRequested = searchParams.get('newEvent') === '1';
+    useEffect(() => {
+        if (!ctxOk || !canCreate || !newEventRequested) return;
+        const start = normAnchor(surface, cursor);
+        const eventType: ScheduleEventType = surface === 'CLUB_SCHEDULE' ? 'TRAINING' : 'ACTIVITY';
+        const end = addM(start, durationByType[eventType]);
+        setMmode('create');
+        setEid(null);
+        setEditMeta(null);
+        setMvals({ eventType, title: '', date: inpDate(start), startTime: inpTime(start), endTime: inpTime(end), isRecurring: false, locationName: '', locationLat: '', locationLng: '', visibility: 'PRIVATE', publishAt: '' });
+        setModal(true);
+        const next = new URLSearchParams(searchParams);
+        next.delete('newEvent');
+        setSearchParams(next, { replace: true });
+    }, [canCreate, ctxOk, cursor, newEventRequested, searchParams, setSearchParams, surface]);
 
     const openEdit = (event: SEvent) => {
         // Past-event guard backstop: the past is read-only, never editable.
@@ -294,6 +317,7 @@ export const CalendarPage = (props: CalendarPageProps) => {
         const s = parseD(event.startsAt), e = parseD(event.endsAt);
         const rc = event.recurrence;
         setMmode('edit'); setEid(event.eventId);
+        setEditMeta({ clubId: occClubById.current.get(event.id) ?? null, startsAt: event.startsAt });
         setMvals({
             eventType: event.eventType, title: event.title,
             date: inpDate(s), startTime: inpTime(s), endTime: inpTime(e),
@@ -503,6 +527,10 @@ export const CalendarPage = (props: CalendarPageProps) => {
             {modal && (
                 <EventCreationModal isOpen mode={mmode} surface={surface as ModalSurface}
                     initialValues={mvals} clubId={ctx?.clubId ?? null} targetEventId={eid ?? undefined}
+                    canManageSchedule={canManageSchedule}
+                    targetEventClubId={editMeta?.clubId ?? null}
+                    targetEventStartsAt={editMeta?.startsAt ?? null}
+                    onCancelled={() => setRk((k) => k + 1)}
                     subjectLabel={surface === 'CLUB_SCHEDULE' ? clubLbl : 'Visible only to you'}
                     onClose={() => setModal(false)} onSubmit={handleSubmit} />
             )}

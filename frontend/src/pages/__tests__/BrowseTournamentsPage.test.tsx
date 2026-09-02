@@ -81,7 +81,7 @@ describe('BrowseTournamentsPage', () => {
     it('shows error banner when API fails', async () => {
         (fetchTournaments as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('fail'));
         renderPage();
-        expect(await screen.findByText('Failed to load events.')).toBeInTheDocument();
+        expect(await screen.findByText('Failed to load tournaments.')).toBeInTheDocument();
     });
 
     it('renders tournament cards on success', async () => {
@@ -96,7 +96,7 @@ describe('BrowseTournamentsPage', () => {
     it('renders status badge on each card', async () => {
         (fetchTournaments as ReturnType<typeof vi.fn>).mockResolvedValue(pageResult([makeTournament()]));
         renderPage();
-        expect(await screen.findByText('PLANNING')).toBeInTheDocument();
+        expect(await screen.findByText('Registration')).toBeInTheDocument();
     });
 
     it('shows Register button for PLANNING + PLAYER-scope tournaments', async () => {
@@ -159,7 +159,7 @@ describe('BrowseTournamentsPage', () => {
             pageResult([makeTournament({ status: 'ACTIVE' })])
         );
         renderPage();
-        await screen.findByText('ACTIVE');
+        await screen.findByText('In progress');
         expect(screen.queryByText('Register')).not.toBeInTheDocument();
     });
 
@@ -179,7 +179,7 @@ describe('BrowseTournamentsPage', () => {
         renderPage();
         await screen.findByText('Summer Showdown');
 
-        const searchInput = screen.getByPlaceholderText('Search events...');
+        const searchInput = screen.getByPlaceholderText('Search by tournament, host, or organizer...');
         await user.type(searchInput, 'winter');
 
         expect(screen.queryByText('Summer Showdown')).not.toBeInTheDocument();
@@ -207,7 +207,7 @@ describe('BrowseTournamentsPage', () => {
     it('shows scope and visibility chips on cards', async () => {
         (fetchTournaments as ReturnType<typeof vi.fn>).mockResolvedValue(pageResult([makeTournament()]));
         renderPage();
-        expect(await screen.findByText('Player')).toBeInTheDocument();
+        expect(await screen.findByText('Players')).toBeInTheDocument();
         expect(screen.getByText('Public')).toBeInTheDocument();
     });
 
@@ -217,6 +217,22 @@ describe('BrowseTournamentsPage', () => {
         );
         renderPage();
         expect(await screen.findByText(/Hosted by FC Barcelona/)).toBeInTheDocument();
+    });
+
+    it('renders a polished banner fallback when no image is provided', async () => {
+        (fetchTournaments as ReturnType<typeof vi.fn>).mockResolvedValue(pageResult([makeTournament()]));
+        renderPage();
+        expect(await screen.findByTestId('tournament-visual-fallback')).toBeInTheDocument();
+    });
+
+    it('shows the create action to organizers', async () => {
+        (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
+            isAuthenticated: true,
+            user: { id: 2, role: 'ORGANIZER' },
+        });
+        (fetchTournaments as ReturnType<typeof vi.fn>).mockResolvedValue(pageResult([]));
+        renderPage();
+        expect(await screen.findByRole('link', { name: 'Create tournament' })).toHaveAttribute('href', '/tournaments/setup');
     });
 
     // reason: BrowseTournamentsPage now always renders the header "Create Tournament" link regardless

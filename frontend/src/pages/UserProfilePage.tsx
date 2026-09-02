@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
     Activity,
@@ -19,6 +19,7 @@ import {
     Share2,
     ShieldCheck,
     Trophy,
+    UserRound,
     Users,
     Weight
 } from 'lucide-react';
@@ -68,7 +69,7 @@ interface UserProfile {
     isPrivate?: boolean;
 }
 
-type ProfileTab = 'feed' | 'stats' | 'media';
+type ProfileTab = 'about' | 'stats' | 'images' | 'videos';
 
 interface MediaEntry {
     key: string;
@@ -79,23 +80,33 @@ interface MediaEntry {
     summary: string;
 }
 
-const normalizeTab = (value: string | null): ProfileTab => (value === 'stats' || value === 'media' ? value : 'feed');
+interface FollowedClubBrief {
+    id: number;
+    name: string;
+    logoUrl?: string | null;
+    cityName?: string | null;
+    countryName?: string | null;
+    isFollowedByMe?: boolean;
+}
 
-const positionColors: Record<string, string> = {
-    GK: 'var(--club-tone-green)',
-    DEF: 'var(--club-tone-blue)',
-    MID: 'var(--club-tone-cyan)',
-    FWD: 'var(--club-accent-orange)',
+const normalizeTab = (value: string | null): ProfileTab => {
+    if (value === 'stats') return 'stats';
+    if (value === 'images' || value === 'media') return 'images';
+    if (value === 'videos') return 'videos';
+    return 'about'; // default + legacy 'feed'/'timeline'
 };
 
-const positionAbbr = (pos: string | null | undefined): string => {
-    if (!pos) return '';
-    const p = pos.toLowerCase();
-    if (p.includes('goalkeeper')) return 'GK';
-    if (p.includes('centre-back') || p.includes('left-back') || p.includes('right-back') || p.includes('defender')) return 'DEF';
-    if (p.includes('midfield')) return 'MID';
-    if (p.includes('winger') || p.includes('striker') || p.includes('forward')) return 'FWD';
-    return pos.substring(0, 3).toUpperCase();
+const timeAgo = (iso: string): string => {
+    const then = new Date(iso).getTime();
+    if (Number.isNaN(then)) return '';
+    const minutes = Math.floor((Date.now() - then) / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(iso).toLocaleDateString();
 };
 
 const StatCard = ({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: string | number }) => (
@@ -159,6 +170,8 @@ export const UserProfilePage = () => {
     const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
     const [agentRep, setAgentRep] = useState<{ agencyName: string; agentUserId: number; agentVerified: boolean; representationId?: number | null; minorConsentStatus?: string | null } | null>(null);
     const [consentBusy, setConsentBusy] = useState(false);
+    const [followedClubs, setFollowedClubs] = useState<FollowedClubBrief[]>([]);
+    const [followedClubsLoading, setFollowedClubsLoading] = useState(false);
 
     const handleRepresentationConsent = async (accept: boolean) => {
         if (!agentRep?.representationId) return;
@@ -174,6 +187,29 @@ export const UserProfilePage = () => {
     };
 
     const activeTab = normalizeTab(searchParams.get('tab'));
+    const isMyProfile = profile != null && String(profile.id) === currentUserId;
+
+    useEffect(() => {
+        if (!isMyProfile) {
+            setFollowedClubs([]);
+            return;
+        }
+        let cancelled = false;
+        setFollowedClubsLoading(true);
+        apiClient.get<{ content?: FollowedClubBrief[] } | FollowedClubBrief[]>('/clubs', {
+            params: { page: 0, size: 100, sort: 'POPULARITY' }
+        })
+            .then((res) => {
+                if (cancelled) return;
+                const data = Array.isArray(res.data) ? res.data : res.data.content ?? [];
+                setFollowedClubs(data.filter((club) => club.isFollowedByMe));
+            })
+            .catch(() => undefined)
+            .finally(() => {
+                if (!cancelled) setFollowedClubsLoading(false);
+            });
+        return () => { cancelled = true; };
+    }, [isMyProfile]);
 
     const loadComments = async (postId: number) => {
         if (commentsData[postId]) return;
@@ -238,7 +274,7 @@ export const UserProfilePage = () => {
 
     const setActiveTab = (tab: ProfileTab) => {
         const nextParams = new URLSearchParams(searchParams);
-        if (tab === 'feed') {
+        if (tab === 'about') {
             nextParams.delete('tab');
         } else {
             nextParams.set('tab', tab);
@@ -368,11 +404,21 @@ export const UserProfilePage = () => {
                     url,
                     kind: /\.(mp4|mov|webm)$/i.test(resolvedUrl) ? 'video' : 'image',
                     createdAt: post.createdAt,
-                    summary: post.content || 'Timeline media'
+                    summary: post.content || 'Profile media'
                 };
             });
         })
     ), [posts]);
+
+    const imageEntries = useMemo(() => mediaEntries.filter((entry) => entry.kind === 'image'), [mediaEntries]);
+    const videoEntries = useMemo(() => mediaEntries.filter((entry) => entry.kind === 'video'), [mediaEntries]);
+
+    const recentPosts = useMemo(
+        () => [...posts]
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 5),
+        [posts]
+    );
 
     const careerTotals = useMemo(() => {
         return (profile?.careerHistory || []).reduce((acc, item) => ({
@@ -389,6 +435,40 @@ export const UserProfilePage = () => {
             cleanSheets: 0
         });
     }, [profile?.careerHistory]);
+
+    const renderMediaGrid = (entries: MediaEntry[]) => (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {entries.map((entry) => {
+                const mediaUrl = resolveMediaUrl(entry.url) || entry.url;
+                const relatedPost = posts.find((post) => post.id === entry.postId) || null;
+
+                return (
+                    <button
+                        key={entry.key}
+                        type="button"
+                        onClick={() => {
+                            setSelectedPost(relatedPost);
+                            if (relatedPost) {
+                                void loadComments(relatedPost.id);
+                            }
+                        }}
+                        className="group relative overflow-hidden rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] aspect-square"
+                    >
+                        {entry.kind === 'video' ? (
+                            <video src={mediaUrl} className="h-full w-full object-cover" />
+                        ) : (
+                            <img src={mediaUrl} alt="Profile media" className="h-full w-full object-cover" />
+                        )}
+                        <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/40 flex items-center justify-center">
+                            <span className="opacity-0 group-hover:opacity-100 text-[10px] font-semibold text-white uppercase tracking-[0.08em] transition-opacity">
+                                {entry.kind === 'video' ? 'Play' : 'View Post'}
+                            </span>
+                        </div>
+                    </button>
+                );
+            })}
+        </div>
+    );
 
     const handleShare = async () => {
         if (!profile) return;
@@ -441,8 +521,6 @@ export const UserProfilePage = () => {
     const initials = displayName.substring(0, 2).toUpperCase();
     const bannerUrl = resolveMediaUrl(profile.bannerUrl);
     const avatarUrl = resolveMediaUrl(profile.avatarUrl);
-    const isMyProfile = String(profile.id) === currentUserId;
-    const posAbbr = positionAbbr(profile.position);
     const playerAge = profile.dateOfBirth
         ? Math.floor((Date.now() - new Date(profile.dateOfBirth).getTime()) / 31556952000)
         : null;
@@ -450,9 +528,10 @@ export const UserProfilePage = () => {
     const isPlayer = profile.role === 'PLAYER';
 
     const tabs: Array<{ id: ProfileTab; label: string; icon: typeof Activity }> = [
-        { id: 'feed', label: 'Timeline', icon: Activity },
+        { id: 'about', label: 'About me', icon: UserRound },
         ...(isPlayer ? [{ id: 'stats' as ProfileTab, label: 'Career', icon: Trophy }] : []),
-        { id: 'media', label: 'Media', icon: Image },
+        { id: 'images', label: 'Images', icon: Image },
+        { id: 'videos', label: 'Videos', icon: Film },
     ];
 
     // --- Left Panel content ---
@@ -466,32 +545,55 @@ export const UserProfilePage = () => {
                     </p>
                 </div>
             )}
-            {/* Profile summary card */}
-            <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] p-5">
-                <div className="flex items-center gap-3">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[14px] border-2 border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-base)] text-lg font-bold text-[color:var(--club-theme-text-primary)]">
-                        {avatarUrl ? <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" /> : initials}
+            {/* Followed clubs — real follow data on the owner's own profile */}
+            {isMyProfile && (
+                <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] p-5">
+                    <div className="flex items-center justify-between gap-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)]">Followed clubs</p>
+                        {followedClubs.length > 0 && (
+                            <Link to="/clubs/following" className="text-[11px] font-semibold text-[color:var(--club-tone-green)] hover:underline">
+                                View all
+                            </Link>
+                        )}
                     </div>
-                    <div className="min-w-0">
-                        <p className="text-sm font-bold text-[color:var(--club-theme-text-primary)] truncate">{displayName}</p>
-                        <p className="text-xs text-[color:var(--club-theme-text-secondary)]">@{profile.username}</p>
-                    </div>
+                    {followedClubsLoading ? (
+                        <div className="mt-3 flex items-center justify-center py-4">
+                            <Loader2 className="h-5 w-5 animate-spin text-[color:var(--club-theme-text-muted)]" />
+                        </div>
+                    ) : followedClubs.length === 0 ? (
+                        <div className="mt-3">
+                            <p className="text-xs leading-5 text-[color:var(--club-theme-text-secondary)]">
+                                You haven't followed any clubs yet. Follow clubs to keep their updates close.
+                            </p>
+                            <Link to="/clubs" className="mt-2 inline-flex text-[11px] font-semibold text-[color:var(--club-tone-green)] hover:underline">
+                                Find clubs to follow
+                            </Link>
+                        </div>
+                    ) : (
+                        <ul className="mt-3 space-y-2.5">
+                            {followedClubs.slice(0, 5).map((club) => {
+                                const clubLogoUrl = resolveMediaUrl(club.logoUrl);
+                                const clubLocation = [club.cityName, club.countryName].filter(Boolean).join(', ');
+                                return (
+                                    <li key={club.id}>
+                                        <Link to={`/clubs/${club.id}`} className="group flex items-center gap-2.5">
+                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-base)] text-[10px] font-bold text-[color:var(--club-theme-text-primary)]">
+                                                {clubLogoUrl ? <img src={clubLogoUrl} alt="" className="h-full w-full object-cover" /> : club.name.substring(0, 2).toUpperCase()}
+                                            </span>
+                                            <span className="min-w-0">
+                                                <span className="block truncate text-xs font-semibold text-[color:var(--club-theme-text-primary)] group-hover:underline">{club.name}</span>
+                                                {clubLocation && (
+                                                    <span className="block truncate text-[10px] text-[color:var(--club-theme-text-muted)]">{clubLocation}</span>
+                                                )}
+                                            </span>
+                                        </Link>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
                 </div>
-                <div className="mt-4 grid grid-cols-3 gap-2">
-                    <div className="text-center">
-                        <p className="text-lg font-bold text-[color:var(--club-theme-text-primary)]">{profile.followerCount}</p>
-                        <p className="text-[10px] font-medium text-[color:var(--club-theme-text-muted)]">Followers</p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-lg font-bold text-[color:var(--club-theme-text-primary)]">{profile.followingCount}</p>
-                        <p className="text-[10px] font-medium text-[color:var(--club-theme-text-muted)]">Following</p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-lg font-bold text-[color:var(--club-theme-text-primary)]">{posts.length}</p>
-                        <p className="text-[10px] font-medium text-[color:var(--club-theme-text-muted)]">Posts</p>
-                    </div>
-                </div>
-            </div>
+            )}
 
             {/* Player details */}
             {isPlayer && (
@@ -662,23 +764,53 @@ export const UserProfilePage = () => {
         </div>
     );
 
-    // --- Right Panel content ---
+    // --- Right Panel content: recent activity (latest public posts) ---
+    const openPost = (post: FeedPostDto) => {
+        setSelectedPost(post);
+        void loadComments(post.id);
+    };
+
     const rightPanel = (
         <div className="flex flex-col gap-4">
-            <StatCard icon={Users} label="Followers" value={profile.followerCount} />
-            <StatCard icon={Users} label="Following" value={profile.followingCount} />
-            <StatCard icon={Film} label="Media" value={mediaEntries.length} />
-            {isPlayer && profile.position && (
-                <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-4 py-3.5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)] mb-2">Position</p>
-                    <span
-                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold"
-                        style={{ backgroundColor: `color-mix(in srgb, ${posAbbr ? positionColors[posAbbr] || 'var(--club-tone-green)' : 'var(--club-tone-green)'} 15%, transparent)`, color: posAbbr ? positionColors[posAbbr] || 'var(--club-tone-green)' : 'var(--club-tone-green)' }}
-                    >
-                        {profile.position}
-                    </span>
+            <section className="overflow-hidden rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)]">
+                <div className="flex items-center gap-2 border-b border-[color:var(--club-theme-border-subtle)] px-4 py-3.5">
+                    <Activity className="h-3.5 w-3.5 text-[color:var(--club-tone-green)]" />
+                    <span className="text-[11px] font-semibold text-[color:var(--club-tone-green)]">Recent activity</span>
                 </div>
-            )}
+                {recentPosts.length === 0 ? (
+                    <p className="px-4 py-5 text-xs leading-5 text-[color:var(--club-theme-text-muted)]">
+                        No recent activity yet.
+                    </p>
+                ) : (
+                    <ul className="divide-y divide-[color:var(--club-theme-border-subtle)]">
+                        {recentPosts.map((post) => (
+                            <li key={post.id}>
+                                <button
+                                    type="button"
+                                    onClick={() => openPost(post)}
+                                    className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/[0.03]"
+                                >
+                                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--club-tone-green-soft)]">
+                                        {(post.mediaUrls && post.mediaUrls.length > 0) || post.image ? (
+                                            <Image className="h-3.5 w-3.5 text-[color:var(--club-tone-green)]" />
+                                        ) : (
+                                            <Activity className="h-3.5 w-3.5 text-[color:var(--club-tone-green)]" />
+                                        )}
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="line-clamp-2 text-xs leading-5 text-[color:var(--club-theme-text-secondary)]">
+                                            {post.content || 'Shared media'}
+                                        </span>
+                                        <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.06em] text-[color:var(--club-theme-text-muted)]">
+                                            {timeAgo(post.createdAt)}
+                                        </span>
+                                    </span>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
         </div>
     );
 
@@ -690,7 +822,7 @@ export const UserProfilePage = () => {
         <div className="club-page-shell min-h-full bg-[color:var(--club-theme-base)]">
             {/* Error toast */}
             {profileError && (
-                <div className="mx-auto mt-4 flex w-full max-w-[min(1880px,calc(100vw-48px))] items-center gap-3 rounded-[4px] border border-[color:var(--state-danger)]/30 bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
+                <div className="mt-4 flex w-full items-center gap-3 rounded-[4px] border border-[color:var(--state-danger)]/30 bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
                     {profileError}
                 </div>
             )}
@@ -739,12 +871,12 @@ export const UserProfilePage = () => {
 
                 {/* Hero content area */}
                 <div className="bg-[#050910]">
-                    <div className="mx-auto w-full max-w-[min(1880px,calc(100vw-24px))] px-3 relative py-6 lg:py-8">
+                    <div className="relative w-full py-6 lg:py-8">
                         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                             {/* Left: Avatar + Identity */}
-                            <div className="flex items-start gap-4">
+                            <div className="flex flex-col gap-6 lg:flex-row lg:items-end">
                                 {/* Avatar — overlaps banner bottom */}
-                                <div className="relative shrink-0 -mt-[76px] sm:-mt-[96px] lg:-mt-[112px]">
+                                <div className="relative -mt-[76px] shrink-0 sm:-mt-[96px] lg:-mt-[112px]">
                                     <div className="h-24 w-24 sm:h-28 sm:w-28 lg:h-36 lg:w-36 overflow-hidden rounded-xl border-[5px] border-[color:var(--club-band)] bg-[rgba(6,11,18,0.92)] shadow-[0_18px_44px_rgba(2,6,12,0.35)]">
                                         {avatarUrl ? (
                                             <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
@@ -769,7 +901,7 @@ export const UserProfilePage = () => {
                                 </div>
 
                                 {/* Identity */}
-                                <div className="min-w-0 pt-2">
+                                <div className="min-w-0 pb-2">
                                     <h1 className="text-3xl font-semibold tracking-[-0.04em] text-[color:var(--club-theme-text-primary)] sm:text-5xl">
                                         {displayName}
                                     </h1>
@@ -781,25 +913,31 @@ export const UserProfilePage = () => {
                                         {profile.availabilityStatus && <StatusBadge tone="info">{profile.availabilityStatus}</StatusBadge>}
                                     </div>
 
-                                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] font-semibold  text-[color:var(--club-theme-text-secondary)]">
-                                        <span>{profile.position || profile.role}</span>
-                                        {profile.secondaryPosition && (
-                                            <>
-                                                <span className="h-1 w-1 rounded-full bg-[color:var(--club-divider-dot)]" />
-                                                <span>{profile.secondaryPosition}</span>
-                                            </>
-                                        )}
-                                        {profile.agencyName && (
-                                            <>
-                                                <span className="h-1 w-1 rounded-full bg-[color:var(--club-divider-dot)]" />
-                                                <span>{profile.agencyName}</span>
-                                            </>
-                                        )}
-                                    </div>
+                                    {(profile.position || profile.secondaryPosition || profile.agencyName) && (
+                                        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] font-semibold  text-[color:var(--club-theme-text-secondary)]">
+                                            {profile.position && <span>{profile.position}</span>}
+                                            {profile.secondaryPosition && (
+                                                <>
+                                                    <span className="h-1 w-1 rounded-full bg-[color:var(--club-divider-dot)]" />
+                                                    <span>{profile.secondaryPosition}</span>
+                                                </>
+                                            )}
+                                            {profile.agencyName && (
+                                                <>
+                                                    <span className="h-1 w-1 rounded-full bg-[color:var(--club-divider-dot)]" />
+                                                    <span>{profile.agencyName}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
 
-                                    <p className="mt-4 max-w-3xl text-base leading-7 text-[color:var(--club-theme-text-secondary)]">
-                                        {profile.bio || 'No biography has been published on this profile yet.'}
-                                    </p>
+                                    <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
+                                        <span className="font-bold text-[color:var(--club-theme-text-primary)]">{profile.followerCount}</span>
+                                        <span className="text-[color:var(--club-theme-text-secondary)]">Followers</span>
+                                        <span className="h-1 w-1 rounded-full bg-[color:var(--club-divider-dot)]" />
+                                        <span className="font-bold text-[color:var(--club-theme-text-primary)]">{profile.followingCount}</span>
+                                        <span className="text-[color:var(--club-theme-text-secondary)]">Following</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -855,7 +993,7 @@ export const UserProfilePage = () => {
 
             {/* ===== STICKY TAB BAR ===== */}
             <div className="border-b border-[color:var(--club-theme-border-subtle)] bg-[rgba(5,9,16,0.96)]">
-                <div className="mx-auto w-full overflow-x-auto px-6 sm:px-8">
+                <div className="w-full overflow-x-auto">
                     <div className="flex min-w-max items-stretch gap-2.5 py-3">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
@@ -881,134 +1019,135 @@ export const UserProfilePage = () => {
             </div>
 
             {/* ===== CONTENT GRID ===== */}
-            <div className="mx-auto w-full max-w-[min(1440px,calc(100vw-48px))] px-6 pb-10 pt-4 sm:px-8">
-                <div className="grid gap-4 lg:grid-cols-[380px_minmax(0,1fr)_320px] lg:items-start lg:justify-center">
+            <div className="w-full pb-10 pt-4">
+                <div className="grid gap-4 xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)_minmax(260px,320px)] xl:items-start">
                     {/* LEFT PANEL — profile info */}
-                    <div className="hidden lg:block lg:sticky lg:top-[14px] pl-6">
+                    <div className="hidden xl:block xl:sticky xl:top-[14px]">
                         {leftPanel}
                     </div>
 
                     {/* CENTER — tab content */}
                     <div className="min-w-0">
                         {/* Mobile: profile info shown above content */}
-                        <div className="mb-6 lg:hidden">
+                        <div className="mb-6 xl:hidden">
                             {leftPanel}
                         </div>
 
-                        {/* Tab: Timeline */}
-                        {activeTab === 'feed' && (
-                            <div className="flex flex-col gap-4">
-                                {isMyProfile && (
-                                    <PostComposer authorName={displayName} onPostCreated={() => void fetchProfile(false)} compact />
-                                )}
-
-                                {posts.length === 0 ? (
-                                    <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
-                                        <Activity className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
-                                        <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
-                                            Updates, match notes, and public profile posts will appear here once this account starts publishing.
+                        <div className="mx-auto flex w-full max-w-[760px] flex-col gap-4">
+                            {/* Tab: About me — bio + posts */}
+                            {activeTab === 'about' && (
+                                <>
+                                    <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <UserRound className="h-4 w-4 text-[color:var(--club-tone-green)]" />
+                                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)]">About me</p>
+                                        </div>
+                                        <p className="mt-3 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
+                                            {profile.bio || 'No biography has been published on this profile yet.'}
                                         </p>
+                                        {profile.availabilityStatus && (
+                                            <p className="mt-3 text-xs font-semibold text-[color:var(--club-tone-green)]">{profile.availabilityStatus}</p>
+                                        )}
                                     </div>
-                                ) : (
-                                    posts.map((post) => (
-                                        <FeedPost
-                                            key={post.id}
-                                            post={post}
-                                            isCommentsOpen={openComments[post.id]}
-                                            commentsData={commentsData[post.id]}
-                                            onLikeToggle={handleLikeToggle}
-                                            onToggleComments={toggleComments}
-                                            onSubmitComment={submitComment}
-                                            onImageClick={() => {
-                                                setSelectedPost(post);
-                                                void loadComments(post.id);
-                                            }}
-                                            compact
-                                        />
-                                    ))
-                                )}
-                            </div>
-                        )}
 
-                        {/* Tab: Career Stats */}
-                        {activeTab === 'stats' && (
-                            <div className="flex flex-col gap-4">
-                                {/* Career totals */}
-                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                                    <StatCard icon={Building2} label="Clubs" value={careerTotals.clubs} />
-                                    <StatCard icon={Activity} label="Apps" value={careerTotals.appearances} />
-                                    <StatCard icon={Trophy} label="Goals" value={careerTotals.goals} />
-                                    <StatCard icon={Users} label="Assists" value={careerTotals.assists} />
-                                    <StatCard icon={ShieldCheck} label="Clean Sheets" value={careerTotals.cleanSheets} />
-                                </div>
+                                    {isMyProfile && (
+                                        <PostComposer authorName={displayName} avatarUrl={profile.avatarUrl} onPostCreated={() => void fetchProfile(false)} compact />
+                                    )}
 
-                                {/* Career history */}
-                                {(profile.careerHistory || []).length === 0 ? (
-                                    <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
-                                        <BarChart3 className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
-                                        <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
-                                            Career history has not been published for this profile yet.
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {(profile.careerHistory || []).map((entry) => (
-                                            <CareerEntryCard key={entry.id} entry={entry} />
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                                    {posts.length === 0 ? (
+                                        <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
+                                            <Activity className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
+                                            <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
+                                                Updates, match notes, and public profile posts will appear here once this account starts publishing.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        posts.map((post) => (
+                                            <FeedPost
+                                                key={post.id}
+                                                post={post}
+                                                isCommentsOpen={openComments[post.id]}
+                                                commentsData={commentsData[post.id]}
+                                                onLikeToggle={handleLikeToggle}
+                                                onToggleComments={toggleComments}
+                                                onSubmitComment={submitComment}
+                                                onImageClick={() => {
+                                                    setSelectedPost(post);
+                                                    void loadComments(post.id);
+                                                }}
+                                                compact
+                                            />
+                                        ))
+                                    )}
+                                </>
+                            )}
 
-                        {/* Tab: Media */}
-                        {activeTab === 'media' && (
-                            <div className="flex flex-col gap-4">
-                                {mediaEntries.length === 0 ? (
-                                    <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
-                                        <Image className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
-                                        <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
-                                            No media has been posted yet. Images and videos from timeline posts will appear here.
-                                        </p>
+                            {/* Tab: Career Stats */}
+                            {activeTab === 'stats' && (
+                                <>
+                                    {/* Career totals */}
+                                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                                        <StatCard icon={Building2} label="Clubs" value={careerTotals.clubs} />
+                                        <StatCard icon={Activity} label="Apps" value={careerTotals.appearances} />
+                                        <StatCard icon={Trophy} label="Goals" value={careerTotals.goals} />
+                                        <StatCard icon={Users} label="Assists" value={careerTotals.assists} />
+                                        <StatCard icon={ShieldCheck} label="Clean Sheets" value={careerTotals.cleanSheets} />
                                     </div>
-                                ) : (
-                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                                        {mediaEntries.map((entry) => {
-                                            const mediaUrl = resolveMediaUrl(entry.url) || entry.url;
-                                            const relatedPost = posts.find((post) => post.id === entry.postId) || null;
 
-                                            return (
-                                                <button
-                                                    key={entry.key}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setSelectedPost(relatedPost);
-                                                        if (relatedPost) {
-                                                            void loadComments(relatedPost.id);
-                                                        }
-                                                    }}
-                                                    className="group relative overflow-hidden rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] aspect-square"
-                                                >
-                                                    {entry.kind === 'video' ? (
-                                                        <video src={mediaUrl} className="h-full w-full object-cover" />
-                                                    ) : (
-                                                        <img src={mediaUrl} alt="Timeline media" className="h-full w-full object-cover" />
-                                                    )}
-                                                    <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/40 flex items-center justify-center">
-                                                        <span className="opacity-0 group-hover:opacity-100 text-[10px] font-semibold text-white uppercase tracking-[0.08em] transition-opacity">
-                                                            {entry.kind === 'video' ? 'Play' : 'View Post'}
-                                                        </span>
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                                    {/* Career history */}
+                                    {(profile.careerHistory || []).length === 0 ? (
+                                        <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
+                                            <BarChart3 className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
+                                            <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
+                                                Career history has not been published for this profile yet.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {(profile.careerHistory || []).map((entry) => (
+                                                <CareerEntryCard key={entry.id} entry={entry} />
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Tab: Images */}
+                            {activeTab === 'images' && (
+                                <>
+                                    {imageEntries.length === 0 ? (
+                                        <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
+                                            <Image className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
+                                            <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
+                                                No images have been posted yet. Images from profile posts will appear here.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        renderMediaGrid(imageEntries)
+                                    )}
+                                </>
+                            )}
+
+                            {/* Tab: Videos */}
+                            {activeTab === 'videos' && (
+                                <>
+                                    {videoEntries.length === 0 ? (
+                                        <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
+                                            <Film className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
+                                            <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
+                                                No videos have been posted yet. Videos from profile posts will appear here.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        renderMediaGrid(videoEntries)
+                                    )}
+                                </>
+                            )}
+                        </div>
                     </div>
 
-                    {/* RIGHT PANEL */}
-                    <div className="hidden lg:block lg:sticky lg:top-[14px]">
+                    {/* RIGHT PANEL — recent activity */}
+                    <div className="hidden xl:block xl:sticky xl:top-[14px]">
                         {rightPanel}
                     </div>
                 </div>

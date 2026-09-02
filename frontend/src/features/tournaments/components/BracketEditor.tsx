@@ -11,16 +11,24 @@ import {
     reopenFixture,
     updateFixtureScores,
 } from '../api';
-import type { TournamentDetail, TournamentEntryDto, TournamentFixtureDto, TournamentStageDto, TournamentStageType } from '../domain';
-import { fixtureStatusTone, tournamentScopeLabel } from '../domain';
+import type { TournamentDetail, TournamentEntryDto, TournamentEntryStatus, TournamentFixtureDto, TournamentStageDto, TournamentStageType } from '../domain';
+import { fixtureStatusTone } from '../domain';
 import { StandingsTable } from './StandingsTable';
 import { BracketTree } from './BracketTree';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
+import {
+    tournamentEntryStatusText,
+    tournamentFixtureStatusText,
+    tournamentScopeText,
+    tournamentStageStatusText,
+    tournamentStageTypeText,
+} from '../../../components/tournaments/tournamentFormatters';
 
 interface Props {
     tournamentId: number;
     tournament: TournamentDetail;
     canManage: boolean;
+    canScore?: boolean;
     onRefresh: () => void;
 }
 
@@ -54,7 +62,7 @@ const btnDefault = 'inline-flex items-center gap-1.5 rounded-xl border border-[#
 const btnDestructive = 'inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-[#16181d] px-3 py-1.5 text-xs font-semibold text-rose-400 transition-colors hover:bg-rose-500/10 disabled:opacity-50';
 const btnPrimary = 'inline-flex items-center gap-1.5 rounded-xl bg-[#16a34a] px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#22c55e] disabled:opacity-50';
 
-export const BracketEditor = ({ tournamentId, tournament, canManage, onRefresh }: Props) => {
+export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = canManage, onRefresh }: Props) => {
     const { t } = useTranslation();
     const [modalMode, setModalMode] = useState<ModalMode>(null);
     const [selectedFixture, setSelectedFixture] = useState<TournamentFixtureDto | null>(null);
@@ -96,13 +104,18 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, onRefresh }
     }, [tournament.entries]);
 
     const entryStatuses = useMemo(() => {
-        const map = new Map<number, string>();
+        const map = new Map<number, TournamentEntryStatus>();
         (tournament.entries ?? []).forEach((e) => map.set(e.id, e.status));
         return map;
     }, [tournament.entries]);
 
-    const stages = tournament.stages ?? [];
-    const fixtures = tournament.fixtures ?? [];
+    const stages = useMemo(() => tournament.stages ?? [], [tournament.stages]);
+    const fixtures = useMemo(() => tournament.fixtures ?? [], [tournament.fixtures]);
+    const canOperateFixtures = canManage || canScore;
+    const displayStages = useMemo(
+        () => [...stages].sort((a, b) => Number(b.stageType === 'KNOCKOUT') - Number(a.stageType === 'KNOCKOUT') || a.stageOrder - b.stageOrder),
+        [stages],
+    );
 
     const stageById = useMemo(() => {
         const map = new Map<number, TournamentStageDto>();
@@ -327,7 +340,7 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, onRefresh }
             if (!status || !entryChipStatuses.has(status)) return null;
             return (
                 <span className={`ml-1.5 inline-block rounded-xl border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${entryChipTones[status]}`}>
-                    {status}
+                    {tournamentEntryStatusText(status, t)}
                 </span>
             );
         };
@@ -367,33 +380,33 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, onRefresh }
                 <td className="px-5 py-3 text-sm font-semibold text-[#f4f4f5]">{awayCell}</td>
                 <td className="px-2 py-3 text-center">
                     <span className={`inline-block rounded-xl border px-2.5 py-0.5 text-xs font-semibold ${statusToneBorder[tone] ?? statusToneBorder.neutral}`}>
-                        {fx.status}
+                        {tournamentFixtureStatusText(fx.status, t)}
                     </span>
                 </td>
-                <td className="px-5 py-3 text-right">
+                {canOperateFixtures && <td className="px-5 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                        {(isScheduled || isComplete) && (
+                        {canScore && (isScheduled || isComplete) && (
                             <button onClick={() => openScoresModal(fx)} className={btnDefault} title="Edit scores">
                                 <Edit3 className="h-3.5 w-3.5" />
                             </button>
                         )}
-                        {isScheduled && fx.homeEntryId != null && fx.awayEntryId != null && (
+                        {canManage && isScheduled && fx.homeEntryId != null && fx.awayEntryId != null && (
                             <button onClick={() => openCompleteModal(fx)} className={btnDestructive} title="Force complete">
                                 <Trophy className="h-3.5 w-3.5" />
                             </button>
                         )}
-                        {isComplete && (
+                        {canManage && isComplete && (
                             <button onClick={() => handleReopen(fx.id)} disabled={saving} className={btnDefault} title="Reopen fixture">
                                 <Undo2 className="h-3.5 w-3.5" />
                             </button>
                         )}
-                        {!isComplete && fx.status !== 'CANCELLED' && (
+                        {canManage && !isComplete && fx.status !== 'CANCELLED' && (
                             <button onClick={() => handleCancel(fx.id)} disabled={saving} className={btnDestructive} title="Cancel fixture">
                                 <XCircle className="h-3.5 w-3.5" />
                             </button>
                         )}
                     </div>
-                </td>
+                </td>}
             </tr>
         );
     };
@@ -410,7 +423,7 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, onRefresh }
                                 <th className="px-2 py-2.5 text-center text-xs font-semibold text-[#a1a1aa]" style={{ width: 60 }}>Score</th>
                                 <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">Away</th>
                                 <th className="px-2 py-2.5 text-center text-xs font-semibold text-[#a1a1aa]">Status</th>
-                                <th className="px-5 py-2.5 text-right text-xs font-semibold text-[#a1a1aa]">Actions</th>
+                                {canOperateFixtures && <th className="px-5 py-2.5 text-right text-xs font-semibold text-[#a1a1aa]">Actions</th>}
                             </tr>
                         </thead>
                         <tbody>{stageFixtures.map((fx) => renderFixtureRow(fx, stage, true))}</tbody>
@@ -428,14 +441,14 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, onRefresh }
                             <th className="px-2 py-2.5 text-center text-xs font-semibold text-[#a1a1aa]" style={{ width: 60 }}>Score</th>
                             <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">Away</th>
                             <th className="px-2 py-2.5 text-center text-xs font-semibold text-[#a1a1aa]">Status</th>
-                            <th className="px-5 py-2.5 text-right text-xs font-semibold text-[#a1a1aa]">Actions</th>
+                            {canOperateFixtures && <th className="px-5 py-2.5 text-right text-xs font-semibold text-[#a1a1aa]">Actions</th>}
                         </tr>
                     </thead>
                     <tbody>
                         {rounds.map((round) => (
                             <Fragment key={round}>
                                 <tr className="border-b border-[#ffffff0d] bg-[#101318]">
-                                    <td colSpan={5} className="px-5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#a1a1aa]">
+                                    <td colSpan={canOperateFixtures ? 5 : 4} className="px-5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#a1a1aa]">
                                         {t('tournaments.bracket.round', { number: round })}
                                     </td>
                                 </tr>
@@ -453,39 +466,45 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, onRefresh }
 
     const entryOptions = (tournament.entries ?? []).map((e) => (
         <option key={e.id} value={e.id}>
-            {entryLabel(e)} ({e.status})
+            {entryLabel(e)} ({tournamentEntryStatusText(e.status, t)})
         </option>
     ));
 
     return (
-        <div>
+        <div className="bg-[#0d1210]">
             {/* Stats bar */}
-            <div className="grid grid-cols-4 divide-x divide-[#ffffff0d] border-b border-[#ffffff0d]">
-                <div className="px-4 py-3 text-center">
-                    <p className="text-xl font-bold text-[#f4f4f5]">{fixtures.length}</p>
-                    <p className="text-xs font-medium text-[#a1a1aa]">Fixtures</p>
+            <div className="grid grid-cols-2 border-b border-white/[0.08] bg-[#111612] sm:grid-cols-4 sm:divide-x sm:divide-white/[0.06]">
+                <div className="border-b border-r border-white/[0.06] px-4 py-4 text-center sm:border-b-0 sm:border-r-0">
+                    <p className="text-2xl font-black tabular-nums text-zinc-100">{fixtures.length}</p>
+                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">{t('tournaments.workspace.metrics.fixtures')}</p>
+                </div>
+                <div className="border-b border-white/[0.06] px-4 py-4 text-center sm:border-b-0">
+                    <p className="text-2xl font-black tabular-nums text-zinc-100">{stages.length}</p>
+                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">{t('tournaments.workspace.metrics.stages')}</p>
+                </div>
+                <div className="border-r border-white/[0.06] px-4 py-4 text-center sm:border-r-0">
+                    <p className="text-2xl font-black tabular-nums text-zinc-100">{tournament.entries?.length ?? 0}</p>
+                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">{t('tournaments.workspace.metrics.entries')}</p>
                 </div>
                 <div className="px-4 py-3 text-center">
-                    <p className="text-xl font-bold text-[#f4f4f5]">{stages.length}</p>
-                    <p className="text-xs font-medium text-[#a1a1aa]">Stages</p>
-                </div>
-                <div className="px-4 py-3 text-center">
-                    <p className="text-xl font-bold text-[#f4f4f5]">{tournament.entries?.length ?? 0}</p>
-                    <p className="text-xs font-medium text-[#a1a1aa]">Entries</p>
-                </div>
-                <div className="px-4 py-3 text-center">
-                    <p className="text-xl font-bold text-[#f4f4f5]">{tournamentScopeLabel(tournament.participantScope)}</p>
-                    <p className="text-xs font-medium text-[#a1a1aa]">Scope</p>
+                    <p className="text-lg font-black text-zinc-100">{tournamentScopeText(tournament.participantScope, t)}</p>
+                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">{t('tournaments.workspace.metrics.scope')}</p>
                 </div>
             </div>
 
+            {!canOperateFixtures && (
+                <div className="flex items-center justify-center border-b border-sky-400/15 bg-sky-400/[0.06] px-5 py-2.5 text-xs font-semibold text-sky-200">
+                    {t('tournaments.workspace.readOnlyHint')}
+                </div>
+            )}
+
             {/* Champion banner */}
             {(tournament.championEntryId != null || tournament.championName) && (
-                <div className="flex items-center gap-3 border-b border-amber-500/30 bg-amber-500/10 px-5 py-3">
-                    <Trophy className="h-5 w-5 shrink-0 text-amber-500" />
-                    <p className="text-sm font-bold text-amber-400">
+                <div className="flex items-center gap-3 border-b border-amber-300/20 bg-gradient-to-r from-amber-300/15 via-amber-300/[0.06] to-transparent px-5 py-4">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-300/20 bg-amber-300/10"><Trophy className="h-5 w-5 shrink-0 text-amber-300" /></span>
+                    <p className="text-sm font-bold text-amber-200">
                         {t('tournaments.bracket.champion')}
-                        <span className="mx-1.5 text-amber-500/50">&middot;</span>
+                        <span className="mx-1.5 text-amber-300/40">&middot;</span>
                         {tournament.championName ?? `Entry #${tournament.championEntryId}`}
                     </p>
                 </div>
@@ -503,19 +522,17 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, onRefresh }
             )}
 
             {/* Fixtures by stage */}
-            {stages.map((stage) => {
+            {displayStages.map((stage) => {
                 const stageFixtures = fixturesByStage.get(stage.id) ?? [];
                 return (
-                    <div key={stage.id}>
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ffffff0d] bg-[#16181d] px-5 py-3">
-                            <p className="text-sm font-semibold text-[#f4f4f5]">
-                                {stage.name}
-                                <span className="ml-2 font-normal text-[#a1a1aa]">
-                                    {stage.stageType} &middot; {stage.status}
-                                </span>
-                            </p>
+                    <section key={stage.id} className="border-b border-white/[0.08] last:border-b-0">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] bg-[#111612] px-5 py-4">
+                            <div>
+                                <p className="text-sm font-bold text-zinc-100">{stage.name}</p>
+                                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{tournamentStageTypeText(stage.stageType, t)} <span className="mx-1 text-zinc-700">/</span> {tournamentStageStatusText(stage.status, t)}</p>
+                            </div>
                             <div className="flex items-center gap-1.5">
-                                {stage.stageType !== 'KNOCKOUT' && stageFixtures.length === 0 && (
+                                {canManage && stage.stageType !== 'KNOCKOUT' && stageFixtures.length === 0 && (
                                     <button
                                         onClick={() => handleRandomize(stage.id)}
                                         disabled={actingStageId === stage.id}
@@ -525,7 +542,7 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, onRefresh }
                                         {t('tournaments.bracket.randomize')}
                                     </button>
                                 )}
-                                {!(stage.stageType === 'KNOCKOUT' && stageFixtures.length > 0) && (
+                                {canManage && !(stage.stageType === 'KNOCKOUT' && stageFixtures.length > 0) && (
                                     <button
                                         onClick={() =>
                                             fixtureFormStageId === stage.id ? setFixtureFormStageId(null) : openFixtureForm(stage.id)
@@ -558,6 +575,7 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, onRefresh }
                                     fixtures={stageFixtures}
                                     saving={saving}
                                     canManage={canManage}
+                                    canScore={canScore}
                                     onRefresh={onRefresh}
                                     onEditScores={openScoresModal}
                                     onComplete={openCompleteModal}
@@ -619,16 +637,18 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, onRefresh }
                                 stageId={stage.id}
                                 refreshKey={refreshKey}
                                 entryStatuses={entryStatuses}
+                                advanceCount={stage.advanceCount}
                             />
                         )}
-                    </div>
+                    </section>
                 );
             })}
 
             {stages.length === 0 && (
-                <div className="flex flex-col items-center justify-center border-b border-[#ffffff0d] py-14 text-center">
-                    <Trophy className="mb-3 h-10 w-10 text-[#a1a1aa]" />
-                    <p className="text-sm font-semibold text-[#a1a1aa]">{t('tournaments.stages.empty')}</p>
+                <div className="flex flex-col items-center justify-center border-b border-white/[0.08] px-6 py-16 text-center">
+                    <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.03]"><Trophy className="h-7 w-7 text-zinc-600" /></span>
+                    <p className="mt-4 text-sm font-bold text-zinc-300">{t('tournaments.stages.empty')}</p>
+                    <p className="mt-1 max-w-md text-xs leading-5 text-zinc-500">{t('tournaments.stages.emptyHint')}</p>
                 </div>
             )}
 
@@ -661,7 +681,7 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, onRefresh }
             })()}
 
             {/* New stage form */}
-            <div className="border-b border-[#ffffff0d]">
+            {canManage && <div className="border-b border-[#ffffff0d]">
                 {!stageFormOpen ? (
                     <button
                         onClick={openStageForm}
@@ -681,7 +701,7 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, onRefresh }
                                 <span className="text-xs font-semibold text-[#a1a1aa]">{t('tournaments.stages.type')}</span>
                                 <select value={stageType} onChange={(e) => setStageType(e.target.value as TournamentStageType)} className={selectClass}>
                                     {stageTypeOptions.map((type) => (
-                                        <option key={type} value={type}>{type}</option>
+                                        <option key={type} value={type}>{tournamentStageTypeText(type, t)}</option>
                                     ))}
                                 </select>
                             </label>
@@ -714,7 +734,7 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, onRefresh }
                         </div>
                     </div>
                 )}
-            </div>
+            </div>}
 
             {/* Modal Overlay */}
             {modalMode && (

@@ -18,6 +18,7 @@ import {
 import { apiClient } from '../api/axiosConfig';
 import {
     clubRoleLabel,
+    canManageClubOperations,
     canReviewTryouts,
     isLeadershipRole,
     isLegacyAgentMembershipRole,
@@ -175,6 +176,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
 
     const currentRole: string | null = overview?.currentUserRole ?? null;
     const canManageLeadership = isLeadershipRole(currentRole);
+    const canManageOperations = canManageClubOperations(currentRole);
     const canManageTryouts = canReviewTryouts(currentRole);
     const isOwner = currentRole === 'OWNER';
 
@@ -577,13 +579,23 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         ];
         if (canManageLeadership) {
             items.push({ id: 'personnel', label: 'Personnel', icon: Users, badge: overview ? String(overview.members.length) : null });
+        }
+        if (canManageOperations) {
             items.push({ id: 'players', label: 'Players', icon: Users, badge: overview ? String((overview.activePlayerCount || 0) + (overview.trialistCount || 0)) : null });
+        }
+        if (canManageLeadership) {
             items.push({ id: 'invites', label: 'Invites', icon: UserPlus, badge: overview && overview.pendingInvitations.length > 0 ? String(overview.pendingInvitations.length) : null });
+        }
+        if (canManageOperations) {
             items.push({ id: 'applications', label: 'Applications', icon: CheckCircle2, badge: overview && overview.pendingApplications.length > 0 ? String(overview.pendingApplications.length) : null });
+        }
+        if (canManageLeadership) {
             items.push({ id: 'roles', label: 'Roles', icon: Crown });
-        items.push({ id: 'jobs', label: 'Jobs', icon: Briefcase });
-        items.push({ id: 'store', label: 'Store', icon: ShoppingBag });
-        items.push({ id: 'settings', label: 'Settings', icon: Settings });
+            items.push({ id: 'jobs', label: 'Jobs', icon: Briefcase });
+            items.push({ id: 'store', label: 'Store', icon: ShoppingBag });
+            items.push({ id: 'settings', label: 'Settings', icon: Settings });
+        }
+        if (canManageOperations) {
             items.push({ id: 'squads', label: 'Squads', icon: ShieldCheck });
             items.push({ id: 'player-cards', label: 'Player Cards', icon: CreditCard });
         }
@@ -594,7 +606,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
             items.push({ id: 'engagements', label: 'Agents', icon: Handshake });
         }
         return items;
-    }, [canManageLeadership, canManageTryouts, overview, tryoutApplicants.length]);
+    }, [canManageLeadership, canManageOperations, canManageTryouts, overview, tryoutApplicants.length]);
 
     const totalPlayerPages = playerDirectory ? Math.max(1, Math.ceil(playerDirectory.totalElements / Math.max(playerDirectory.pageSize, 1))) : 1;
     const totalSearchPages = searchResults ? Math.max(1, Math.ceil(searchResults.totalElements / Math.max(searchResults.pageSize, 1))) : 1;
@@ -769,6 +781,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
 
                             {activeTab === 'tryouts' && (
                                 <TryoutsTab
+                                    clubId={clubId}
                                     tryoutApplicants={tryoutApplicants}
                                     tryoutsLoading={tryoutsLoading}
                                     pendingKey={pendingKey}

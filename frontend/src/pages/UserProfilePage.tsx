@@ -96,16 +96,16 @@ const normalizeTab = (value: string | null): ProfileTab => {
     return 'about'; // default + legacy 'feed'/'timeline'
 };
 
-const timeAgo = (iso: string): string => {
+const timeAgo = (iso: string, t: (key: string, options?: Record<string, unknown>) => string): string => {
     const then = new Date(iso).getTime();
     if (Number.isNaN(then)) return '';
     const minutes = Math.floor((Date.now() - then) / 60000);
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 1) return t('userProfile.justNow');
+    if (minutes < 60) return t('userProfile.minutesAgo', { count: minutes });
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 24) return t('userProfile.hoursAgo', { count: hours });
     const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
+    if (days < 7) return t('userProfile.daysAgo', { count: days });
     return new Date(iso).toLocaleDateString();
 };
 
@@ -528,10 +528,10 @@ export const UserProfilePage = () => {
     const isPlayer = profile.role === 'PLAYER';
 
     const tabs: Array<{ id: ProfileTab; label: string; icon: typeof Activity }> = [
-        { id: 'about', label: 'About me', icon: UserRound },
-        ...(isPlayer ? [{ id: 'stats' as ProfileTab, label: 'Career', icon: Trophy }] : []),
-        { id: 'images', label: 'Images', icon: Image },
-        { id: 'videos', label: 'Videos', icon: Film },
+        { id: 'about', label: t('userProfile.tabs.about'), icon: UserRound },
+        ...(isPlayer ? [{ id: 'stats' as ProfileTab, label: t('userProfile.tabs.career'), icon: Trophy }] : []),
+        { id: 'images', label: t('userProfile.tabs.images'), icon: Image },
+        { id: 'videos', label: t('userProfile.tabs.videos'), icon: Film },
     ];
 
     // --- Left Panel content ---
@@ -775,11 +775,11 @@ export const UserProfilePage = () => {
             <section className="overflow-hidden rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)]">
                 <div className="flex items-center gap-2 border-b border-[color:var(--club-theme-border-subtle)] px-4 py-3.5">
                     <Activity className="h-3.5 w-3.5 text-[color:var(--club-tone-green)]" />
-                    <span className="text-[11px] font-semibold text-[color:var(--club-tone-green)]">Recent activity</span>
+                    <span className="text-[11px] font-semibold text-[color:var(--club-tone-green)]">{t('userProfile.recentActivity')}</span>
                 </div>
                 {recentPosts.length === 0 ? (
                     <p className="px-4 py-5 text-xs leading-5 text-[color:var(--club-theme-text-muted)]">
-                        No recent activity yet.
+                        {t('userProfile.recentActivityEmpty')}
                     </p>
                 ) : (
                     <ul className="divide-y divide-[color:var(--club-theme-border-subtle)]">
@@ -799,10 +799,10 @@ export const UserProfilePage = () => {
                                     </span>
                                     <span className="min-w-0 flex-1">
                                         <span className="line-clamp-2 text-xs leading-5 text-[color:var(--club-theme-text-secondary)]">
-                                            {post.content || 'Shared media'}
+                                            {post.content || t('userProfile.sharedMedia')}
                                         </span>
                                         <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.06em] text-[color:var(--club-theme-text-muted)]">
-                                            {timeAgo(post.createdAt)}
+                                            {timeAgo(post.createdAt, t)}
                                         </span>
                                     </span>
                                 </button>
@@ -933,10 +933,10 @@ export const UserProfilePage = () => {
 
                                     <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
                                         <span className="font-bold text-[color:var(--club-theme-text-primary)]">{profile.followerCount}</span>
-                                        <span className="text-[color:var(--club-theme-text-secondary)]">Followers</span>
+                                        <span className="text-[color:var(--club-theme-text-secondary)]">{t('userProfile.followers')}</span>
                                         <span className="h-1 w-1 rounded-full bg-[color:var(--club-divider-dot)]" />
                                         <span className="font-bold text-[color:var(--club-theme-text-primary)]">{profile.followingCount}</span>
-                                        <span className="text-[color:var(--club-theme-text-secondary)]">Following</span>
+                                        <span className="text-[color:var(--club-theme-text-secondary)]">{t('userProfile.following')}</span>
                                     </div>
                                 </div>
                             </div>
@@ -1040,10 +1040,10 @@ export const UserProfilePage = () => {
                                     <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-4">
                                         <div className="flex items-center gap-2">
                                             <UserRound className="h-4 w-4 text-[color:var(--club-tone-green)]" />
-                                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)]">About me</p>
+                                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)]">{t('userProfile.aboutTitle')}</p>
                                         </div>
                                         <p className="mt-3 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
-                                            {profile.bio || 'No biography has been published on this profile yet.'}
+                                            {profile.bio || t('userProfile.bioEmpty')}
                                         </p>
                                         {profile.availabilityStatus && (
                                             <p className="mt-3 text-xs font-semibold text-[color:var(--club-tone-green)]">{profile.availabilityStatus}</p>
@@ -1058,7 +1058,7 @@ export const UserProfilePage = () => {
                                         <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
                                             <Activity className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
                                             <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
-                                                Updates, match notes, and public profile posts will appear here once this account starts publishing.
+                                                {t('userProfile.postsEmpty')}
                                             </p>
                                         </div>
                                     ) : (
@@ -1119,7 +1119,7 @@ export const UserProfilePage = () => {
                                         <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
                                             <Image className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
                                             <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
-                                                No images have been posted yet. Images from profile posts will appear here.
+                                                {t('userProfile.imagesEmpty')}
                                             </p>
                                         </div>
                                     ) : (
@@ -1135,7 +1135,7 @@ export const UserProfilePage = () => {
                                         <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
                                             <Film className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
                                             <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
-                                                No videos have been posted yet. Videos from profile posts will appear here.
+                                                {t('userProfile.videosEmpty')}
                                             </p>
                                         </div>
                                     ) : (

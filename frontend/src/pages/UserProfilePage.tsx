@@ -86,7 +86,6 @@ interface FollowedClubBrief {
     logoUrl?: string | null;
     cityName?: string | null;
     countryName?: string | null;
-    isFollowedByMe?: boolean;
 }
 
 const normalizeTab = (value: string | null): ProfileTab => {
@@ -196,13 +195,9 @@ export const UserProfilePage = () => {
         }
         let cancelled = false;
         setFollowedClubsLoading(true);
-        apiClient.get<{ content?: FollowedClubBrief[] } | FollowedClubBrief[]>('/clubs', {
-            params: { page: 0, size: 100, sort: 'POPULARITY' }
-        })
+        apiClient.get<FollowedClubBrief[]>('/clubs/followed')
             .then((res) => {
-                if (cancelled) return;
-                const data = Array.isArray(res.data) ? res.data : res.data.content ?? [];
-                setFollowedClubs(data.filter((club) => club.isFollowedByMe));
+                if (!cancelled) setFollowedClubs(res.data);
             })
             .catch(() => undefined)
             .finally(() => {

@@ -14,7 +14,6 @@ interface FollowedClub {
     followerCount?: number;
     memberCount?: number;
     isOfficial?: boolean;
-    isFollowedByMe: boolean;
 }
 
 const initialsFrom = (name: string) => name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'GK';
@@ -30,11 +29,8 @@ export const FollowedClubsPage = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await apiClient.get<{ content?: FollowedClub[] } | FollowedClub[]>('/clubs', {
-                params: { page: 0, size: 100, sort: 'POPULARITY' }
-            });
-            const data = Array.isArray(response.data) ? response.data : response.data.content ?? [];
-            setClubs(data.filter((club) => club.isFollowedByMe));
+            const response = await apiClient.get<FollowedClub[]>('/clubs/followed');
+            setClubs(response.data);
         } catch (requestError) {
             console.error('Failed to load followed clubs', requestError);
             setError('Your followed clubs could not be loaded.');

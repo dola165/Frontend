@@ -5,10 +5,14 @@ interface FeedListProps {
     posts: FeedPostDto[];
     openComments: Record<number, boolean>;
     commentsData: Record<number, CommentDto[]>;
-    onLikeToggle: (postId: number) => void;
+    onLikeToggle: (postId: number) => void | Promise<void>;
     onToggleComments: (postId: number) => void;
-    onSubmitComment: (postId: number, content: string) => void;
+    onSubmitComment: (postId: number, content: string) => void | Promise<void>;
     onSelectPost: (post: FeedPostDto) => void;
+    pendingLikes?: Record<number, boolean>;
+    likeErrors?: Record<number, string | null>;
+    commentsErrors?: Record<number, string | null>;
+    onRetryComments?: (postId: number) => void;
     compact?: boolean;
     emptyState?: ReactNode;
     className?: string;
@@ -22,6 +26,10 @@ export const FeedList = ({
     onToggleComments,
     onSubmitComment,
     onSelectPost,
+    pendingLikes = {},
+    likeErrors = {},
+    commentsErrors = {},
+    onRetryComments,
     compact = false,
     emptyState = null,
     className = ''
@@ -43,6 +51,10 @@ export const FeedList = ({
                     onToggleComments={onToggleComments}
                     onSubmitComment={onSubmitComment}
                     onImageClick={() => onSelectPost(post)}
+                    likePending={pendingLikes[post.id] === true}
+                    likeError={likeErrors[post.id]}
+                    commentsError={commentsErrors[post.id]}
+                    onRetryComments={onRetryComments}
                 />
             ))}
         </div>

@@ -27,6 +27,7 @@ import { FeedPost, type FeedPostDto, type CommentDto } from '../components/feed/
 import { PostComposer } from '../components/feed/PostComposer';
 import { PostTheaterModal } from '../components/PostTheaterModal';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
+import { extractApiErrorMessage } from '../utils/apiError';
 import { getStoredUserId, setStoredUserId } from '../utils/authStorage';
 import { StatusBadge } from '../components/ui/StatusBadge';
 
@@ -160,6 +161,9 @@ export const UserProfilePage = () => {
     const [currentUserId, setCurrentUserId] = useState<string | null>(getStoredUserId());
     const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
     const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
+    const [commentsErrors, setCommentsErrors] = useState<Record<number, string | null>>({});
+    const [pendingLikes, setPendingLikes] = useState<Record<number, boolean>>({});
+    const [likeErrors, setLikeErrors] = useState<Record<number, string | null>>({});
     const [followedClubs, setFollowedClubs] = useState<FollowedClubBrief[]>([]);
     const [followedClubsLoading, setFollowedClubsLoading] = useState(false);
 
@@ -184,14 +188,15 @@ export const UserProfilePage = () => {
         return () => { cancelled = true; };
     }, [isMyProfile]);
 
-    const loadComments = async (postId: number) => {
-        if (commentsData[postId]) return;
+    const loadComments = async (postId: number, force = false) => {
+        if (commentsData[postId] && !force) return;
 
+        setCommentsErrors((current) => ({ ...current, [postId]: null }));
         try {
             const res = await apiClient.get<CommentDto[]>(`/posts/${postId}/comments`);
             setCommentsData((prev) => ({ ...prev, [postId]: res.data }));
         } catch (err) {
-            console.error(err);
+            setCommentsErrors((current) => ({ ...current, [postId]: extractApiErrorMessage(err, 'Comments could not load.') }));
         }
     };
 
@@ -306,32 +311,32 @@ export const UserProfilePage = () => {
     };
 
     const handleLikeToggle = async (postId: number) => {
-        setPosts((current) => current.map((post) => (
-            post.id === postId
-                ? {
-                    ...post,
-                    isLikedByMe: !post.isLikedByMe,
-                    likeCount: post.isLikedByMe ? post.likeCount - 1 : post.likeCount + 1
-                }
-                : post
-        )));
-
-        if (selectedPost?.id === postId) {
-            setSelectedPost((prev) => (
-                prev
-                    ? {
-                        ...prev,
-                        isLikedByMe: !prev.isLikedByMe,
-                        likeCount: prev.isLikedByMe ? prev.likeCount - 1 : prev.likeCount + 1
-                    }
-                    : null
-            ));
-        }
+        if (pendingLikes[postId]) return;
+        const currentPost = posts.find((post) => post.id === postId) ?? (selectedPost?.id === postId ? selectedPost : null);
+        if (!currentPost) return;
+        const previous = currentPost.isLikedByMe;
+        const desired = !previous;
+        const applyState = (liked: boolean) => {
+            const update = (post: FeedPostDto) => post.id !== postId || post.isLikedByMe === liked ? post : {
+                ...post,
+                isLikedByMe: liked,
+                likeCount: Math.max(0, post.likeCount + (liked ? 1 : -1)),
+            };
+            setPosts((current) => current.map(update));
+            setSelectedPost((current) => current ? update(current) : null);
+        };
+        setPendingLikes((current) => ({ ...current, [postId]: true }));
+        setLikeErrors((current) => ({ ...current, [postId]: null }));
+        applyState(desired);
 
         try {
-            await apiClient.post(`/posts/${postId}/like`);
-        } catch {
-            // Keep optimistic UI for now.
+            const response = await apiClient.put<{ isLiked: boolean }>(`/posts/${postId}/like`, { liked: desired });
+            applyState(response.data.isLiked);
+        } catch (error) {
+            applyState(previous);
+            setLikeErrors((current) => ({ ...current, [postId]: extractApiErrorMessage(error, 'Like could not be saved. Your previous choice was restored.') }));
+        } finally {
+            setPendingLikes((current) => ({ ...current, [postId]: false }));
         }
     };
 
@@ -344,16 +349,10 @@ export const UserProfilePage = () => {
     };
 
     const submitComment = async (postId: number, content: string) => {
-        try {
-            const res = await apiClient.post<CommentDto>(`/posts/${postId}/comments`, { content });
-            setCommentsData((prev) => ({ ...prev, [postId]: [...(prev[postId] || []), res.data] }));
-            setPosts((current) => current.map((post) => (post.id === postId ? { ...post, commentCount: post.commentCount + 1 } : post)));
-            if (selectedPost?.id === postId) {
-                setSelectedPost((prev) => (prev ? { ...prev, commentCount: prev.commentCount + 1 } : null));
-            }
-        } catch (err) {
-            console.error('Failed to post comment', err);
-        }
+        const res = await apiClient.post<CommentDto>(`/posts/${postId}/comments`, { content });
+        setCommentsData((prev) => ({ ...prev, [postId]: [...(prev[postId] || []), res.data] }));
+        setPosts((current) => current.map((post) => (post.id === postId ? { ...post, commentCount: post.commentCount + 1 } : post)));
+        setSelectedPost((current) => current?.id === postId ? { ...current, commentCount: current.commentCount + 1 } : current);
     };
 
     const mediaEntries = useMemo<MediaEntry[]>(() => (
@@ -956,6 +955,10 @@ export const UserProfilePage = () => {
                                                 onLikeToggle={handleLikeToggle}
                                                 onToggleComments={toggleComments}
                                                 onSubmitComment={submitComment}
+                                                likePending={pendingLikes[post.id] === true}
+                                                likeError={likeErrors[post.id]}
+                                                commentsError={commentsErrors[post.id]}
+                                                onRetryComments={(postId) => void loadComments(postId, true)}
                                                 onImageClick={() => {
                                                     setSelectedPost(post);
                                                     void loadComments(post.id);
@@ -1046,6 +1049,8 @@ export const UserProfilePage = () => {
                 commentsData={selectedPost ? commentsData[selectedPost.id] : undefined}
                 onSubmitComment={submitComment}
                 onLikeToggle={handleLikeToggle}
+                likePending={selectedPost ? pendingLikes[selectedPost.id] === true : false}
+                likeError={selectedPost ? likeErrors[selectedPost.id] : null}
             />
         </div>
     );

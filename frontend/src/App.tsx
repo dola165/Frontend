@@ -40,6 +40,7 @@ import { FollowedClubsPage } from './pages/FollowedClubsPage';
 import { OpportunityDirectoryPage } from './pages/OpportunityDirectoryPage';
 import { JobsDirectoryPage } from './pages/JobsDirectoryPage';
 import { PeoplePage } from './pages/PeoplePage';
+import { PostPage } from './pages/PostPage';
 import { PublicWorldMapPage } from './pages/PublicWorldMapPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { buildLoginRedirectPath, requiredAccountStep, resolvePostAuthRedirect } from './utils/authRedirect';
@@ -262,6 +263,7 @@ function MainLayout() {
     const isFullScreenPage =
         ['/map', '/world', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/tournaments', '/tournaments/setup', '/marketplace', '/needs', '/store', '/jobs', '/campaigns', '/people'].includes(location.pathname) ||
         location.pathname.startsWith('/profile') ||
+        location.pathname.startsWith('/posts/') ||
         location.pathname.startsWith('/organizations') ||
         location.pathname.startsWith('/tournaments/') ||
         location.pathname.startsWith('/agent') ||
@@ -305,6 +307,7 @@ function MainLayout() {
             <Route path="/organizations/create" element={<OrganizerOnlyRoute><CreateOrganizationPage /></OrganizerOnlyRoute>} />
             <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
             <Route path="/profile/:id" element={<UserProfilePage />} />
+            <Route path="/posts/:postId" element={<PostPage />} />
             <Route path="/agent/*" element={<Navigate to="/clubs" replace />} />
             <Route path="/marketplace" element={<Navigate to="/clubs" replace />} />
             <Route path="/needs" element={<Navigate to="/clubs" replace />} />

@@ -2,14 +2,17 @@ import { useState } from 'react';
 import { X, Heart, MessageCircle, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { FeedPostDto, CommentDto } from './feed/FeedPost';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
+import { extractApiErrorMessage } from '../utils/apiError';
 
 interface PostTheaterModalProps {
     isOpen: boolean;
     post: FeedPostDto | null;
     onClose: () => void;
     commentsData?: CommentDto[];
-    onSubmitComment: (postId: number, content: string) => void;
-    onLikeToggle: (postId: number) => void;
+    onSubmitComment: (postId: number, content: string) => void | Promise<void>;
+    onLikeToggle: (postId: number) => void | Promise<void>;
+    likePending?: boolean;
+    likeError?: string | null;
 }
 
 export const PostTheaterModal = ({
@@ -18,10 +21,14 @@ export const PostTheaterModal = ({
     onClose,
     commentsData,
     onSubmitComment,
-    onLikeToggle
+    onLikeToggle,
+    likePending = false,
+    likeError = null
 }: PostTheaterModalProps) => {
     const [commentInput, setCommentInput] = useState("");
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [commentPending, setCommentPending] = useState(false);
+    const [commentError, setCommentError] = useState('');
 
     if (!isOpen || !post) return null;
 
@@ -31,10 +38,19 @@ export const PostTheaterModal = ({
         return new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     };
 
-    const handleCommentSubmit = () => {
-        if (!commentInput.trim()) return;
-        onSubmitComment(post.id, commentInput);
-        setCommentInput("");
+    const handleCommentSubmit = async () => {
+        const submittedContent = commentInput.trim();
+        if (!submittedContent || commentPending) return;
+        setCommentPending(true);
+        setCommentError('');
+        try {
+            await onSubmitComment(post.id, submittedContent);
+            setCommentInput((current) => current.trim() === submittedContent ? '' : current);
+        } catch (error) {
+            setCommentError(extractApiErrorMessage(error, 'Comment could not be posted. Your draft is still here.'));
+        } finally {
+            setCommentPending(false);
+        }
     };
 
     const handleNext = (e: React.MouseEvent) => {
@@ -110,7 +126,7 @@ export const PostTheaterModal = ({
                     <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] px-5 py-3">
                         <span className="text-xs font-medium text-[#64748b]">{post.likeCount} likes &middot; {post.commentCount} comments</span>
                         <div className="flex gap-2">
-                            <button onClick={() => onLikeToggle(post.id)} className={`rounded-full p-2 transition-colors ${post.isLikedByMe ? 'bg-[#16a34a]/15 text-[#16a34a]' : 'bg-[#1a2030] text-[#64748b] hover:text-[#16a34a]'}`}>
+                            <button onClick={() => void onLikeToggle(post.id)} disabled={likePending} className={`rounded-full p-2 transition-colors disabled:cursor-wait disabled:opacity-60 ${post.isLikedByMe ? 'bg-[#16a34a]/15 text-[#16a34a]' : 'bg-[#1a2030] text-[#64748b] hover:text-[#16a34a]'}`}>
                                 <Heart className={`h-5 w-5 ${post.isLikedByMe ? 'fill-current' : ''}`} />
                             </button>
                             <button className="rounded-full bg-[#1a2030] p-2 text-[#64748b] transition-colors hover:text-[#16a34a]">
@@ -152,18 +168,28 @@ export const PostTheaterModal = ({
                                 type="text"
                                 placeholder="Write a comment..."
                                 value={commentInput}
-                                onChange={(e) => setCommentInput(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleCommentSubmit()}
+                                onChange={(e) => {
+                                    setCommentInput(e.target.value);
+                                    setCommentError('');
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        void handleCommentSubmit();
+                                    }
+                                }}
                                 className="w-full rounded-full border border-white/[0.06] bg-[#161c28] py-3 pl-5 pr-12 text-sm text-[#f1f5f9] outline-none transition-colors focus:border-[#16a34a]"
                             />
                             <button
-                                onClick={handleCommentSubmit}
-                                disabled={!commentInput.trim()}
+                                aria-label="Post comment"
+                                onClick={() => void handleCommentSubmit()}
+                                disabled={!commentInput.trim() || commentPending}
                                 className="absolute right-1.5 top-1.5 bottom-1.5 rounded-full bg-[#16a34a] px-3 text-black transition-colors hover:bg-[#22c55e] disabled:opacity-40"
                             >
                                 <Send className="h-4 w-4" />
                             </button>
                         </div>
+                        {(commentError || likeError) && <p role="alert" className="mt-2 text-xs font-medium text-rose-400">{commentError || likeError}</p>}
                     </div>
                 </div>
             </div>

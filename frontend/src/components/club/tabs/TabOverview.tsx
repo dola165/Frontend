@@ -7,6 +7,7 @@ import { FeedList } from '../../feed/FeedList';
 import { PostTheaterModal } from '../../PostTheaterModal';
 import type { ClubProfile } from '../../../pages/ClubProfilePage';
 import type { ClubManagementTab } from '../../club/ClubManagementModal';
+import { extractApiErrorMessage } from '../../../utils/apiError';
 
 const SETUP_CHECKLIST_KEY = 'club_setup_checklist_dismissed';
 
@@ -22,6 +23,9 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
   const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
   const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
   const [selectedPost, setSelectedPost] = useState<FeedPostDto | null>(null);
+  const [commentsErrors, setCommentsErrors] = useState<Record<number, string | null>>({});
+  const [pendingLikes, setPendingLikes] = useState<Record<number, boolean>>({});
+  const [likeErrors, setLikeErrors] = useState<Record<number, string | null>>({});
   const [checklistDismissed, setChecklistDismissed] = useState(() => {
     try {
       return localStorage.getItem(`${SETUP_CHECKLIST_KEY}_${club.id}`) === 'true';
@@ -54,51 +58,56 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
   }, [club.id]);
 
   const handleLikeToggle = async (postId: number) => {
-    setPosts((current) =>
-      current.map((post) =>
-        post.id === postId
-          ? { ...post, isLikedByMe: !post.isLikedByMe, likeCount: post.isLikedByMe ? post.likeCount - 1 : post.likeCount + 1 }
-          : post
-      )
-    );
-
-    if (selectedPost?.id === postId) {
-      setSelectedPost((prev) =>
-        prev ? { ...prev, isLikedByMe: !prev.isLikedByMe, likeCount: prev.isLikedByMe ? prev.likeCount - 1 : prev.likeCount + 1 } : null
-      );
-    }
+    if (pendingLikes[postId]) return;
+    const currentPost = posts.find((post) => post.id === postId) ?? (selectedPost?.id === postId ? selectedPost : null);
+    if (!currentPost) return;
+    const previous = currentPost.isLikedByMe;
+    const desired = !previous;
+    const applyState = (liked: boolean) => {
+      const update = (post: FeedPostDto) => post.id !== postId || post.isLikedByMe === liked ? post : {
+        ...post,
+        isLikedByMe: liked,
+        likeCount: Math.max(0, post.likeCount + (liked ? 1 : -1)),
+      };
+      setPosts((current) => current.map(update));
+      setSelectedPost((current) => current ? update(current) : null);
+    };
+    setPendingLikes((current) => ({ ...current, [postId]: true }));
+    setLikeErrors((current) => ({ ...current, [postId]: null }));
+    applyState(desired);
 
     try {
-      await apiClient.post(`/posts/${postId}/like`);
-    } catch {
-      // Keep optimistic UI.
+      const response = await apiClient.put<{ isLiked: boolean }>(`/posts/${postId}/like`, { liked: desired });
+      applyState(response.data.isLiked);
+    } catch (error) {
+      applyState(previous);
+      setLikeErrors((current) => ({ ...current, [postId]: extractApiErrorMessage(error, 'Like could not be saved. Your previous choice was restored.') }));
+    } finally {
+      setPendingLikes((current) => ({ ...current, [postId]: false }));
+    }
+  };
+
+  const loadComments = async (postId: number) => {
+    setCommentsErrors((current) => ({ ...current, [postId]: null }));
+    try {
+      const response = await apiClient.get<CommentDto[]>(`/posts/${postId}/comments`);
+      setCommentsData((prev) => ({ ...prev, [postId]: response.data }));
+    } catch (error) {
+      setCommentsErrors((current) => ({ ...current, [postId]: extractApiErrorMessage(error, 'Comments could not load.') }));
     }
   };
 
   const toggleComments = async (postId: number) => {
     const isOpen = openComments[postId];
     setOpenComments((prev) => ({ ...prev, [postId]: !isOpen }));
-    if (!isOpen && !commentsData[postId]) {
-      try {
-        const response = await apiClient.get<CommentDto[]>(`/posts/${postId}/comments`);
-        setCommentsData((prev) => ({ ...prev, [postId]: response.data }));
-      } catch (error) {
-        console.error(error);
-      }
-    }
+    if (!isOpen && !commentsData[postId]) await loadComments(postId);
   };
 
   const submitComment = async (postId: number, content: string) => {
-    try {
-      const response = await apiClient.post<CommentDto>(`/posts/${postId}/comments`, { content });
-      setCommentsData((prev) => ({ ...prev, [postId]: [...(prev[postId] || []), response.data] }));
-      setPosts((current) => current.map((post) => (post.id === postId ? { ...post, commentCount: post.commentCount + 1 } : post)));
-      if (selectedPost?.id === postId) {
-        setSelectedPost((prev) => (prev ? { ...prev, commentCount: prev.commentCount + 1 } : null));
-      }
-    } catch (error) {
-      console.error('Failed to post comment', error);
-    }
+    const response = await apiClient.post<CommentDto>(`/posts/${postId}/comments`, { content });
+    setCommentsData((prev) => ({ ...prev, [postId]: [...(prev[postId] || []), response.data] }));
+    setPosts((current) => current.map((post) => (post.id === postId ? { ...post, commentCount: post.commentCount + 1 } : post)));
+    setSelectedPost((current) => current?.id === postId ? { ...current, commentCount: current.commentCount + 1 } : current);
   };
 
   if (loading) {
@@ -199,6 +208,10 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
           onLikeToggle={handleLikeToggle}
           onToggleComments={toggleComments}
           onSubmitComment={submitComment}
+          pendingLikes={pendingLikes}
+          likeErrors={likeErrors}
+          commentsErrors={commentsErrors}
+          onRetryComments={(postId) => void loadComments(postId)}
           onSelectPost={(post) => {
             setSelectedPost(post);
             if (!commentsData[post.id]) {
@@ -216,6 +229,8 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
         commentsData={selectedPost ? commentsData[selectedPost.id] : undefined}
         onSubmitComment={submitComment}
         onLikeToggle={handleLikeToggle}
+        likePending={selectedPost ? pendingLikes[selectedPost.id] === true : false}
+        likeError={selectedPost ? likeErrors[selectedPost.id] : null}
       />
     </div>
   );

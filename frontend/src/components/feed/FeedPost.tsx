@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Heart, MessageCircle, MoreHorizontal, Send, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 export interface CommentDto {
     id: number;
@@ -31,10 +32,14 @@ interface FeedPostProps {
     post: FeedPostDto;
     isCommentsOpen: boolean;
     commentsData?: CommentDto[];
-    onLikeToggle: (postId: number) => void;
+    onLikeToggle: (postId: number) => void | Promise<void>;
     onToggleComments: (postId: number) => void;
-    onSubmitComment: (postId: number, content: string) => void;
+    onSubmitComment: (postId: number, content: string) => void | Promise<void>;
     onImageClick: () => void;
+    likePending?: boolean;
+    likeError?: string | null;
+    commentsError?: string | null;
+    onRetryComments?: (postId: number) => void;
     compact?: boolean;
 }
 
@@ -46,10 +51,16 @@ export const FeedPost = ({
     onToggleComments,
     onSubmitComment,
     onImageClick,
+    likePending = false,
+    likeError = null,
+    commentsError = null,
+    onRetryComments,
     compact = false
 }: FeedPostProps) => {
     const [commentInput, setCommentInput] = useState('');
     const [shareFeedback, setShareFeedback] = useState('');
+    const [commentPending, setCommentPending] = useState(false);
+    const [commentError, setCommentError] = useState('');
 
     const formatTime = (dateString: string) =>
         new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -63,33 +74,43 @@ export const FeedPost = ({
             ? `/profile/${post.authorId}`
             : null;
 
-    const handleCommentSubmit = () => {
-        if (!commentInput.trim()) return;
-        onSubmitComment(post.id, commentInput);
-        setCommentInput('');
+    const handleCommentSubmit = async () => {
+        const submittedContent = commentInput.trim();
+        if (!submittedContent || commentPending) return;
+        setCommentPending(true);
+        setCommentError('');
+        try {
+            await onSubmitComment(post.id, submittedContent);
+            setCommentInput((current) => current.trim() === submittedContent ? '' : current);
+        } catch (error) {
+            setCommentError(extractApiErrorMessage(error, 'Comment could not be posted. Your draft is still here.'));
+        } finally {
+            setCommentPending(false);
+        }
     };
 
     const handleShare = async () => {
         const shareTitle = post.clubName || post.authorName || 'Talanti post';
         const shareText = `${shareTitle}\n\n${post.content}`.trim();
-        const shareUrl = window.location.href;
+        const shareUrl = new URL(`/posts/${post.id}`, window.location.origin).toString();
+        setShareFeedback('');
 
         try {
             if (navigator.share) {
                 await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
+                setShareFeedback('Post shared.');
                 return;
             }
             if (navigator.clipboard?.writeText) {
-                await navigator.clipboard.writeText(`${shareText}\n\n${shareUrl}`);
-                setShareFeedback('Copied to clipboard.');
-                setTimeout(() => setShareFeedback(''), 2000);
+                await navigator.clipboard.writeText(shareUrl);
+                setShareFeedback('Post link copied.');
                 return;
             }
-        } catch (error) {
-            console.error('Share failed', error);
+        } catch {
+            setShareFeedback('Sharing was cancelled or did not work.');
             return;
         }
-        console.warn('Share API and clipboard unavailable on this device.');
+        setShareFeedback('Sharing is unavailable on this device.');
     };
 
     const mediaList = post.mediaUrls && post.mediaUrls.length > 0 ? post.mediaUrls : post.image ? [post.image] : [];
@@ -190,7 +211,8 @@ export const FeedPost = ({
                     active={post.isLikedByMe}
                     icon={<Heart className={`h-4 w-4 ${post.isLikedByMe ? 'fill-current' : ''}`} />}
                     label="Like"
-                    onClick={() => onLikeToggle(post.id)}
+                    onClick={() => void onLikeToggle(post.id)}
+                    disabled={likePending}
                 />
                 <ActionButton
                     active={isCommentsOpen}
@@ -207,13 +229,20 @@ export const FeedPost = ({
             </div>
 
             {shareFeedback && (
-                <div className="px-4 pb-1 text-xs font-medium text-[var(--feed-accent)]">{shareFeedback}</div>
+                <div aria-live="polite" className="px-4 pb-1 text-xs font-medium text-[var(--feed-accent)]">{shareFeedback}</div>
             )}
+
+            {likeError && <div role="alert" className="px-4 pb-2 text-xs font-medium text-rose-400">{likeError}</div>}
 
             {isCommentsOpen && (
                 <div className="border-t border-[var(--feed-card-border)] bg-[var(--feed-surface)] px-4 py-3">
                     <div className="mb-3 flex max-h-60 flex-col gap-3 overflow-y-auto">
-                        {!commentsData ? (
+                        {commentsError ? (
+                            <div role="alert" className="flex items-center justify-between gap-3 text-xs text-rose-400">
+                                <span>{commentsError}</span>
+                                {onRetryComments && <button type="button" onClick={() => onRetryComments(post.id)} className="font-semibold underline">Retry</button>}
+                            </div>
+                        ) : !commentsData ? (
                             <div className="text-xs text-[var(--feed-text-muted)]">Loading comments...</div>
                         ) : commentsData.length === 0 ? (
                             <div className="text-xs text-[var(--feed-text-muted)]">No comments yet</div>
@@ -244,14 +273,23 @@ export const FeedPost = ({
                             type="text"
                             placeholder="Write a comment..."
                             value={commentInput}
-                            onChange={(event) => setCommentInput(event.target.value)}
-                            onKeyDown={(event) => event.key === 'Enter' && handleCommentSubmit()}
+                            onChange={(event) => {
+                                setCommentInput(event.target.value);
+                                setCommentError('');
+                            }}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter') {
+                                    event.preventDefault();
+                                    void handleCommentSubmit();
+                                }
+                            }}
                             className="flex-1 rounded-full border border-[var(--feed-card-border)] bg-[var(--feed-input-bg)] px-4 py-2.5 text-sm text-[var(--feed-text-primary)] outline-none placeholder:text-[var(--feed-text-placeholder)] focus:border-[var(--feed-accent)]"
                         />
-                        <button type="button" onClick={handleCommentSubmit} disabled={!commentInput.trim()} className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--feed-accent)] text-[var(--feed-accent-contrast)] transition-colors hover:bg-[var(--feed-accent-hover)] disabled:opacity-40">
+                        <button type="button" aria-label="Post comment" onClick={() => void handleCommentSubmit()} disabled={!commentInput.trim() || commentPending} className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--feed-accent)] text-[var(--feed-accent-contrast)] transition-colors hover:bg-[var(--feed-accent-hover)] disabled:opacity-40">
                             <Send className="h-4 w-4" />
                         </button>
                     </div>
+                    {commentError && <p role="alert" className="mt-2 text-xs font-medium text-rose-400">{commentError}</p>}
                 </div>
             )}
         </article>
@@ -262,17 +300,20 @@ const ActionButton = ({
     active,
     icon,
     label,
-    onClick
+    onClick,
+    disabled = false
 }: {
     active: boolean;
     icon: ReactNode;
     label: string;
     onClick: () => void;
+    disabled?: boolean;
 }) => (
     <button
         type="button"
         onClick={onClick}
-        className={`flex flex-1 items-center justify-center gap-2 border-r border-[var(--feed-card-border)] px-4 py-3.5 text-sm font-semibold transition-colors last:border-r-0 ${
+        disabled={disabled}
+        className={`flex flex-1 items-center justify-center gap-2 border-r border-[var(--feed-card-border)] px-4 py-3.5 text-sm font-semibold transition-colors last:border-r-0 disabled:cursor-wait disabled:opacity-60 ${
             active ? 'bg-[var(--feed-accent-soft-bg)] text-[var(--feed-accent)]' : 'text-[var(--feed-text-muted)] hover:bg-[var(--feed-hover-bg)] hover:text-[var(--feed-text-secondary)]'
         }`}
     >

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { FeedPage } from '../../pages/FeedPage';
@@ -8,6 +8,7 @@ vi.mock('../../api/axiosConfig', () => ({
     apiClient: {
         get: vi.fn(),
         post: vi.fn(),
+        put: vi.fn(),
     },
 }));
 
@@ -24,8 +25,18 @@ vi.mock('../../components/feed/PostComposer', () => ({
 }));
 
 vi.mock('../../components/feed/FeedList', () => ({
-    FeedList: ({ posts, emptyState }: { posts: FeedPostDto[]; emptyState: React.ReactNode }) =>
-        posts.length === 0 ? <>{emptyState}</> : <div data-testid="feed-list">{posts.length} posts</div>,
+    FeedList: ({ posts, emptyState, onLikeToggle, likeErrors }: {
+        posts: FeedPostDto[];
+        emptyState: React.ReactNode;
+        onLikeToggle: (postId: number) => Promise<void>;
+        likeErrors: Record<number, string | null>;
+    }) => posts.length === 0 ? <>{emptyState}</> : (
+        <div data-testid="feed-list">
+            <span data-testid="like-state">{posts[0].isLikedByMe ? 'liked' : 'not-liked'}</span>
+            <button type="button" onClick={() => void onLikeToggle(posts[0].id)}>Toggle like</button>
+            {likeErrors[posts[0].id] && <span role="alert">{likeErrors[posts[0].id]}</span>}
+        </div>
+    ),
 }));
 
 vi.mock('../../components/PostTheaterModal', () => ({
@@ -132,6 +143,22 @@ describe('FeedPage', () => {
             expect(screen.getByRole('heading', { name: 'Home' })).toBeInTheDocument();
             expect(screen.getByRole('link', { name: /For You/i })).toHaveAttribute('href', '/home');
             expect(screen.getByRole('link', { name: /Following/i })).toHaveAttribute('href', '/home?view=following');
+        });
+
+        it('restores the previous like state and reports a failed save', async () => {
+            const user = userEvent.setup();
+            (apiClient.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+                data: { content: [{ id: 1, isLikedByMe: false, likeCount: 3 }] },
+            });
+            (apiClient.put as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('offline'));
+            renderPage();
+
+            await screen.findByTestId('feed-list');
+            await user.click(screen.getByRole('button', { name: 'Toggle like' }));
+
+            await waitFor(() => expect(screen.getByTestId('like-state')).toHaveTextContent('not-liked'));
+            expect(screen.getByRole('alert')).toHaveTextContent('previous choice was restored');
+            expect(apiClient.put).toHaveBeenCalledWith('/posts/1/like', { liked: true });
         });
     });
 

@@ -32,6 +32,7 @@ export const PostComposer = ({
   const [content, setContent] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadedMediaId, setUploadedMediaId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(!compact);
   const [submitError, setSubmitError] = useState(false);
@@ -48,6 +49,7 @@ export const PostComposer = ({
 
   const clearFile = () => {
     setSelectedFile(null);
+    setUploadedMediaId(null);
     setPreviewUrl((current) => {
       if (current) URL.revokeObjectURL(current);
       return null;
@@ -94,6 +96,7 @@ export const PostComposer = ({
 
     expandComposer();
     setSelectedFile(file);
+    setUploadedMediaId(null);
     setPreviewUrl((current) => {
       if (current) URL.revokeObjectURL(current);
       return URL.createObjectURL(file);
@@ -107,14 +110,17 @@ export const PostComposer = ({
 
     try {
       const mediaIds: number[] = [];
-      if (selectedFile) {
+      let mediaId = uploadedMediaId;
+      if (selectedFile && mediaId == null) {
         const formData = new FormData();
         formData.append('file', selectedFile);
         const mediaResponse = await apiClient.post('/media/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        mediaIds.push(mediaResponse.data.id);
+        mediaId = mediaResponse.data.id;
+        setUploadedMediaId(mediaId);
       }
+      if (mediaId != null) mediaIds.push(mediaId);
 
       await apiClient.post('/posts', {
         content,

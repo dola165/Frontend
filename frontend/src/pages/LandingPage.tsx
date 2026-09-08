@@ -80,11 +80,6 @@ const landingAudiences = [
         body: 'Keep players, squads, training, matches, tryouts, and tournaments in one working space.'
     },
     {
-        icon: BriefcaseBusiness,
-        title: 'Agents',
-        body: 'Manage represented players, build club relationships, and share availability when the time is right.'
-    },
-    {
         icon: HeartHandshake,
         title: 'Fans & supporters',
         body: 'Follow clubs, see the story behind them, and support the campaigns and stores that keep them moving.'
@@ -205,7 +200,7 @@ export const LandingPage = () => {
             label: 'Find your starting point',
             description: 'See how each football role can use GrassKickZ.',
             icon: UsersRound,
-            keywords: ['players', 'coaches', 'agents', 'fans'],
+            keywords: ['players', 'coaches', 'fans'],
             onSelect: () => scrollTo('landing-audiences')
         },
         {

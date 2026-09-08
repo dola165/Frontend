@@ -6,7 +6,6 @@ import {
     ArrowLeft,
     BarChart3,
     BellRing,
-    Briefcase,
     Building2,
     Camera,
     Film,
@@ -24,14 +23,12 @@ import {
     Weight
 } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
-import { respondToRepresentationConsent } from '../features/agents/api';
 import { FeedPost, type FeedPostDto, type CommentDto } from '../components/feed/FeedPost';
 import { PostComposer } from '../components/feed/PostComposer';
 import { PostTheaterModal } from '../components/PostTheaterModal';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { getStoredUserId, setStoredUserId } from '../utils/authStorage';
 import { StatusBadge } from '../components/ui/StatusBadge';
-import { useAuth } from '../context/AuthContext';
 
 interface CareerHistoryDto {
     id: number;
@@ -56,9 +53,6 @@ interface UserProfile {
     availabilityStatus?: string | null;
     heightCm?: number | null;
     weightKg?: number | null;
-    agencyName?: string | null;
-    fifaLicenseNumber?: string | null;
-    agentVerified?: boolean | null;
     followerCount: number;
     followingCount: number;
     isFollowedByMe: boolean;
@@ -150,7 +144,6 @@ const CareerEntryCard = ({ entry }: { entry: CareerHistoryDto }) => (
 
 export const UserProfilePage = () => {
     const { t } = useTranslation();
-    const { user } = useAuth();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -167,23 +160,8 @@ export const UserProfilePage = () => {
     const [currentUserId, setCurrentUserId] = useState<string | null>(getStoredUserId());
     const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
     const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
-    const [agentRep, setAgentRep] = useState<{ agencyName: string; agentUserId: number; agentVerified: boolean; representationId?: number | null; minorConsentStatus?: string | null } | null>(null);
-    const [consentBusy, setConsentBusy] = useState(false);
     const [followedClubs, setFollowedClubs] = useState<FollowedClubBrief[]>([]);
     const [followedClubsLoading, setFollowedClubsLoading] = useState(false);
-
-    const handleRepresentationConsent = async (accept: boolean) => {
-        if (!agentRep?.representationId) return;
-        setConsentBusy(true);
-        try {
-            await respondToRepresentationConsent(agentRep.representationId, accept);
-            void fetchProfile();
-        } catch (err) {
-            console.error('Representation consent failed', err);
-        } finally {
-            setConsentBusy(false);
-        }
-    };
 
     const activeTab = normalizeTab(searchParams.get('tab'));
     const isMyProfile = profile != null && String(profile.id) === currentUserId;
@@ -225,25 +203,13 @@ export const UserProfilePage = () => {
         }
 
         try {
-            const [userRes, postsRes, repRes] = await Promise.all([
+            const [userRes, postsRes] = await Promise.all([
                 apiClient.get(`/users/${id}`),
-                apiClient.get(`/posts/user/${id}`).catch(() => ({ data: { posts: [] } })),
-                apiClient.get(`/agents/players/${id}/representation`).catch(() => ({ data: null }))
+                apiClient.get(`/posts/user/${id}`).catch(() => ({ data: { posts: [] } }))
             ]);
 
             setProfile(userRes.data);
             setPosts(postsRes.data?.posts || []);
-            if (repRes.data) {
-                setAgentRep({
-                    agencyName: repRes.data.agencyName || repRes.data.fullName || 'Unknown Agent',
-                    agentUserId: repRes.data.agentUserId || repRes.data.playerUserId,
-                    agentVerified: repRes.data.agentVerified || false,
-                    representationId: repRes.data.representationId ?? null,
-                    minorConsentStatus: repRes.data.minorConsentStatus ?? null
-                });
-            } else {
-                setAgentRep(null);
-            }
         } catch (err) {
             console.error('Failed to fetch user profile', err);
         } finally {
@@ -661,78 +627,6 @@ export const UserProfilePage = () => {
                                 </div>
                             </div>
                         )}
-                        {agentRep && (
-                            <div className="flex items-center gap-3 pt-3 border-t border-[color:var(--club-theme-border-subtle)]">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-violet-soft)]">
-                                    <Briefcase className="h-4 w-4 text-[color:var(--club-tone-violet)]" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    {user?.role === 'AGENT' ? (
-                                        <a href={`/agent/${agentRep.agentUserId}`} className="text-xs font-semibold text-[color:var(--club-tone-violet)] hover:underline">
-                                            {agentRep.agencyName}
-                                            {agentRep.agentVerified && <span className="ml-1 text-[10px] text-[color:var(--club-tone-green)]">✓</span>}
-                                        </a>
-                                    ) : (
-                                        <span className="text-xs font-semibold text-[color:var(--club-tone-violet)]">
-                                            {agentRep.agencyName}
-                                            {agentRep.agentVerified && <span className="ml-1 text-[10px] text-[color:var(--club-tone-green)]">✓</span>}
-                                        </span>
-                                    )}
-                                    <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">{t('minors.profile.representedBy')}</p>
-                                </div>
-                                {isMyProfile && agentRep.representationId != null && agentRep.minorConsentStatus === 'PENDING' && (
-                                    <div className="flex shrink-0 items-center gap-1">
-                                        <button
-                                            type="button"
-                                            disabled={consentBusy}
-                                            onClick={() => void handleRepresentationConsent(true)}
-                                            className="rounded-full border border-[#16a34a] bg-[#16a34a]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#16a34a] hover:bg-[#16a34a]/20 disabled:opacity-50"
-                                        >
-                                            {t('minors.profile.accept')}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            disabled={consentBusy}
-                                            onClick={() => void handleRepresentationConsent(false)}
-                                            className="rounded-full border border-[color:var(--state-danger)]/30 bg-[color:var(--state-danger-soft)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-[color:var(--state-danger)] disabled:opacity-50"
-                                        >
-                                            {t('minors.profile.decline')}
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Agent profile details */}
-            {profile.role === 'AGENT' && (
-                <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] p-5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)] mb-3">Agency Profile</p>
-                    <div className="space-y-3">
-                        {profile.agencyName && (
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-blue-soft)]">
-                                    <Building2 className="h-4 w-4 text-[color:var(--club-tone-blue)]" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-semibold text-[color:var(--club-theme-text-primary)]">{profile.agencyName}</p>
-                                    <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">Agency</p>
-                                </div>
-                            </div>
-                        )}
-                        {profile.fifaLicenseNumber && (
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-green-soft)]">
-                                    <ShieldCheck className="h-4 w-4 text-[color:var(--club-tone-green)]" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-semibold text-[color:var(--club-theme-text-primary)]">{profile.fifaLicenseNumber}</p>
-                                    <p className="text-[10px] text-[color:var(--club-theme-text-muted)]">License</p>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
             )}
@@ -904,23 +798,16 @@ export const UserProfilePage = () => {
 
                                     <div className="mt-2 flex flex-wrap items-center gap-2">
                                         <StatusBadge tone="neutral">{profile.role}</StatusBadge>
-                                        {profile.agentVerified && <StatusBadge tone="success">Verified</StatusBadge>}
                                         {profile.availabilityStatus && <StatusBadge tone="info">{profile.availabilityStatus}</StatusBadge>}
                                     </div>
 
-                                    {(profile.position || profile.secondaryPosition || profile.agencyName) && (
+                                    {(profile.position || profile.secondaryPosition) && (
                                         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] font-semibold  text-[color:var(--club-theme-text-secondary)]">
                                             {profile.position && <span>{profile.position}</span>}
                                             {profile.secondaryPosition && (
                                                 <>
                                                     <span className="h-1 w-1 rounded-full bg-[color:var(--club-divider-dot)]" />
                                                     <span>{profile.secondaryPosition}</span>
-                                                </>
-                                            )}
-                                            {profile.agencyName && (
-                                                <>
-                                                    <span className="h-1 w-1 rounded-full bg-[color:var(--club-divider-dot)]" />
-                                                    <span>{profile.agencyName}</span>
                                                 </>
                                             )}
                                         </div>

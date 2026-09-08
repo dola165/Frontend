@@ -6,7 +6,6 @@ import {
     CheckCircle2,
     CreditCard,
     Crown,
-    Handshake,
     LayoutDashboard,
     Menu,
     PanelRight,
@@ -86,7 +85,6 @@ import { SquadsTab } from '../components/workspace/tabs/SquadsTab';
 import { PlayerCardsTab } from '../components/workspace/tabs/PlayerCardsTab';
 import { TryoutsTab } from '../components/workspace/tabs/TryoutsTab';
 import { InboxTab } from '../components/workspace/tabs/InboxTab';
-import { AgentEngagementsTab } from '../components/workspace/tabs/AgentEngagementsTab';
 import { fetchClubSchedule, type ScheduleEventOccurrence } from '../features/schedule/api';
 import { parseWorkspaceTab, type WorkspaceTab, type TabItem, type UserSearchDto, type TryoutApplicantDto } from '../components/workspace/types';
 
@@ -765,9 +763,6 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         if (canManageTryouts) {
             items.push({ id: 'tryouts', label: 'Tryouts', icon: CheckCircle2, badge: tryoutApplicants.length > 0 ? String(tryoutApplicants.length) : null });
         }
-        if (canManageLeadership) {
-            items.push({ id: 'engagements', label: 'Agents', icon: Handshake });
-        }
         return items;
     }, [canManageLeadership, canManageOperations, canManageTryouts, overview, tryoutApplicants.length]);
 
@@ -1025,10 +1020,6 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                     pendingKey={pendingKey}
                                     onTryoutStatus={handleTryoutStatus}
                                 />
-                            )}
-
-                            {activeTab === 'engagements' && (
-                                <AgentEngagementsTab clubId={clubId} />
                             )}
 
                             {activeTab === 'inbox' && (

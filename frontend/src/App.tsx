@@ -34,10 +34,6 @@ import { BrowseTournamentsPage } from './pages/BrowseTournamentsPage';
 import { CreateOrganizationPage } from './pages/CreateOrganizationPage';
 import { CreateClubPage } from './pages/CreateClubPage';
 import ClubWorkspacePage from './pages/ClubWorkspacePage';
-import { AgentDashboardPage } from './pages/AgentDashboardPage';
-import { AgentProfilePage } from './pages/AgentProfilePage';
-import { MarketplacePage } from './pages/MarketplacePage';
-import { NeedsBoardPage } from './pages/NeedsBoardPage';
 import { StorePage } from './pages/StorePage';
 import { ClubStorePage } from './pages/ClubStorePage';
 import { FollowedClubsPage } from './pages/FollowedClubsPage';
@@ -108,25 +104,6 @@ const SystemAdminRoute = ({ children }: { children: JSX.Element }) => {
     }
 
     if (user?.role !== 'SYSTEM_ADMIN') {
-        return <Navigate to="/feed" replace />;
-    }
-
-    return children;
-};
-
-const AgentOnlyRoute = ({ children }: { children: JSX.Element }) => {
-    const location = useLocation();
-    const { isBootstrapping, isAuthenticated, user } = useAuth();
-
-    if (isBootstrapping) {
-        return <PageBootSpinner label="Checking Access" />;
-    }
-
-    if (!isAuthenticated) {
-        return <Navigate to={buildLoginRedirectPath(location.pathname, location.search, location.hash)} replace />;
-    }
-
-    if (user?.role !== 'AGENT') {
         return <Navigate to="/feed" replace />;
     }
 
@@ -328,10 +305,9 @@ function MainLayout() {
             <Route path="/organizations/create" element={<OrganizerOnlyRoute><CreateOrganizationPage /></OrganizerOnlyRoute>} />
             <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
             <Route path="/profile/:id" element={<UserProfilePage />} />
-            <Route path="/agent/dashboard" element={<AgentOnlyRoute><AgentDashboardPage /></AgentOnlyRoute>} />
-            <Route path="/agent/:id" element={<AgentOnlyRoute><AgentProfilePage /></AgentOnlyRoute>} />
-            <Route path="/marketplace" element={<AgentOnlyRoute><MarketplacePage /></AgentOnlyRoute>} />
-            <Route path="/needs" element={<AgentOnlyRoute><NeedsBoardPage /></AgentOnlyRoute>} />
+            <Route path="/agent/*" element={<Navigate to="/clubs" replace />} />
+            <Route path="/marketplace" element={<Navigate to="/clubs" replace />} />
+            <Route path="/needs" element={<Navigate to="/clubs" replace />} />
             <Route path="/store" element={<StorePage />} />
             <Route path="/jobs" element={<JobsDirectoryPage />} />
             <Route path="/campaigns" element={<OpportunityDirectoryPage type="campaigns" />} />

@@ -21,7 +21,6 @@ import {
     ShieldCheck,
     ShoppingBag,
     Sun,
-    Target,
     Trophy,
     User,
     UsersRound,
@@ -49,8 +48,7 @@ interface TopNavProps {
 const labelKey = (id: string): string => {
     const keys: Record<string, string> = {
         home: 'nav.feed', map: 'nav.map', clubs: 'nav.clubs', 'my-club': 'nav.myClub',
-        calendar: 'nav.schedule', messages: 'nav.messages', marketplace: 'nav.marketplace',
-        needs: 'nav.clubNeeds', notifications: 'nav.notifications', 'agent-dashboard': 'nav.agentHub',
+        calendar: 'nav.schedule', messages: 'nav.messages', notifications: 'nav.notifications',
         tournaments: 'nav.tournaments', people: 'nav.people', 'clubs-following': 'nav.followedClubs',
         store: 'nav.store', jobs: 'nav.jobs', campaigns: 'nav.campaigns'
     };
@@ -64,14 +62,6 @@ const primaryLinks = [
     { id: 'my-club', path: '/my-club', label: 'My Club', icon: Building2, authRequired: true },
     { id: 'calendar', path: '/calendar', label: 'Schedule', icon: CalendarDays, authRequired: true },
     { id: 'tournaments', path: '/tournaments', label: 'Tournaments', icon: Trophy, authRequired: false },
-];
-
-// Agent-cut (P1 W1): Marketplace + Club Needs are AGENT-only surfaces. The seeded
-// AGENT demo account (zviad@) keeps full access; other roles never see the links.
-const agentOnlyLinks = [
-    { id: 'marketplace', path: '/marketplace', label: 'Marketplace', icon: ShoppingBag, authRequired: false },
-    { id: 'needs', path: '/needs', label: 'Club Needs', icon: Target, authRequired: false },
-    { id: 'agent-dashboard', path: '/agent/dashboard', label: 'Agent Hub', icon: ShieldCheck, authRequired: true },
 ];
 
 export const TopNav = ({
@@ -133,10 +123,7 @@ export const TopNav = ({
         ? lightNavigation ? 'border-[#16a34a]/45 bg-[#dcfce7] text-[#166534]' : 'border-[#22c55e]/45 bg-[#354038] text-[#86efac]'
         : lightNavigation ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'border-white/[0.07] bg-[#292d34] text-[#f1f3f5] hover:bg-[#363b44] hover:text-white'}`;
     const menuItemClass = `flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${lightNavigation ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-[#d4d4d8] hover:bg-white/[0.06] hover:text-white'}`;
-    const visibleLinks = [
-        ...primaryLinks.filter(item => !item.authRequired || !!user),
-        ...(user?.role === 'AGENT' ? agentOnlyLinks : [])
-    ];
+    const visibleLinks = primaryLinks.filter(item => !item.authRequired || !!user);
     const mobileLinks = [
         ...visibleLinks,
         { id: 'messages', path: '/messages', label: 'Messages', icon: MessageSquare, authRequired: true },

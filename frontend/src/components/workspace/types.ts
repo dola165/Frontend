@@ -1,10 +1,10 @@
 import type { LucideIcon } from 'lucide-react';
 
-export type WorkspaceTab = 'overview' | 'personnel' | 'players' | 'invites' | 'applications' | 'roles' | 'jobs' | 'store' | 'settings' | 'squads' | 'player-cards' | 'tryouts' | 'engagements' | 'inbox';
+export type WorkspaceTab = 'overview' | 'personnel' | 'players' | 'invites' | 'applications' | 'roles' | 'jobs' | 'store' | 'settings' | 'squads' | 'player-cards' | 'tryouts' | 'inbox';
 
 export const WORKSPACE_TAB_IDS: readonly WorkspaceTab[] = [
     'overview', 'personnel', 'players', 'invites', 'applications', 'roles', 'jobs',
-    'store', 'settings', 'squads', 'player-cards', 'tryouts', 'engagements', 'inbox',
+    'store', 'settings', 'squads', 'player-cards', 'tryouts', 'inbox',
 ];
 
 export const parseWorkspaceTab = (value: string | null): WorkspaceTab | null => (

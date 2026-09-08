@@ -47,11 +47,6 @@ type Account = {
         weightKg?: number | null;
         availabilityStatus?: string | null;
     } | null;
-    agentProfile?: {
-        agencyName?: string | null;
-        fifaLicenseNumber?: string | null;
-        verified: boolean;
-    } | null;
     linkedAccounts: Array<{ provider: string; linkedAt?: string | null }>;
     sessionsSupported: boolean;
     sessionRevocationSupported: boolean;
@@ -81,8 +76,6 @@ type ProfileForm = {
     heightCm: string;
     weightKg: string;
     availabilityStatus: string;
-    agencyName: string;
-    fifaLicenseNumber: string;
 };
 
 const tabItems: EntityTabItem[] = [
@@ -116,9 +109,7 @@ const buildForm = (account: Account): ProfileForm => ({
     preferredFoot: account.playerProfile?.preferredFoot ?? '',
     heightCm: account.playerProfile?.heightCm != null ? String(account.playerProfile.heightCm) : '',
     weightKg: account.playerProfile?.weightKg != null ? String(account.playerProfile.weightKg) : '',
-    availabilityStatus: account.playerProfile?.availabilityStatus ?? 'AVAILABLE',
-    agencyName: account.agentProfile?.agencyName ?? '',
-    fifaLicenseNumber: account.agentProfile?.fifaLicenseNumber ?? ''
+    availabilityStatus: account.playerProfile?.availabilityStatus ?? 'AVAILABLE'
 });
 const sessionTone = (status: 'ACTIVE' | 'REVOKED' | 'EXPIRED') =>
     status === 'ACTIVE'
@@ -333,9 +324,7 @@ export const AccountPage = () => {
                 preferredFoot: account.role === 'PLAYER' ? trimToUndefined(form.preferredFoot) : undefined,
                 heightCm: account.role === 'PLAYER' && form.heightCm.trim() ? Number(form.heightCm) : undefined,
                 weightKg: account.role === 'PLAYER' && form.weightKg.trim() ? Number(form.weightKg) : undefined,
-                availabilityStatus: account.role === 'PLAYER' ? trimToUndefined(form.availabilityStatus) : undefined,
-                agencyName: account.role === 'AGENT' ? trimToUndefined(form.agencyName) : undefined,
-                fifaLicenseNumber: account.role === 'AGENT' ? trimToUndefined(form.fifaLicenseNumber) : undefined
+                availabilityStatus: account.role === 'PLAYER' ? trimToUndefined(form.availabilityStatus) : undefined
             });
             await loadAccount();
             await bootstrapSession();
@@ -740,16 +729,6 @@ export const AccountPage = () => {
                                 </div>
                             )}
 
-                            {account.role === 'AGENT' && (
-                                <div className="mt-5 grid gap-4 md:grid-cols-2">
-                                    <Field label="Agency Name">
-                                        <input value={form.agencyName} onChange={(event) => updateForm('agencyName', event.target.value)} className={inputClass} />
-                                    </Field>
-                                    <Field label="License Number">
-                                        <input value={form.fifaLicenseNumber} onChange={(event) => updateForm('fifaLicenseNumber', event.target.value)} className={inputClass} />
-                                    </Field>
-                                </div>
-                            )}
                         </Section>
 
                         <div className="flex flex-col gap-5">

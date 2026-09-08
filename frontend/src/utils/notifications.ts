@@ -83,7 +83,6 @@ const normalizeManagementPath = (notification: NotificationItem, path: string) =
             case 'CLUB_INVITATION_ACCEPTED':
             case 'CLUB_INVITATION_DECLINED': return 'invites';
             case 'TRIALIST_OVERDUE': return 'players';
-            case 'AGENT_ENGAGEMENT_RECEIVED': return 'engagements';
             default: return 'personnel';
         }
     };
@@ -118,10 +117,11 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
         return '/account';
     }
 
-    // Agent engagement requests are handled in the workspace's Agents tab.
-    // Override stale Inbox/legacy links written before that tab was restored.
-    if (notification.type === 'AGENT_ENGAGEMENT_RECEIVED' && notification.clubId != null) {
-        return `/clubs/${notification.clubId}/workspace?tab=engagements`;
+    // Legacy agent notifications remain readable while the feature is frozen,
+    // but cannot reopen the retired workspace or API surface.
+    if (notification.type === 'AGENT_ENGAGEMENT_RECEIVED'
+        || notification.type === 'MARKETPLACE_LISTING_CREATED') {
+        return '/notifications';
     }
 
     if (notification.linkPath) {
@@ -174,8 +174,9 @@ export const notificationActionLabel = (notification: NotificationItem) => {
     if (notification.type === 'CLUB_CHALLENGE_RECEIVED') {
         return 'Open club';
     }
-    if (notification.type === 'AGENT_ENGAGEMENT_RECEIVED') {
-        return 'Review agent request';
+    if (notification.type === 'AGENT_ENGAGEMENT_RECEIVED'
+        || notification.type === 'MARKETPLACE_LISTING_CREATED') {
+        return null;
     }
     if (notification.linkPath || notification.clubId != null) {
         return 'Open destination';

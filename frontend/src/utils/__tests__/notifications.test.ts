@@ -72,20 +72,28 @@ describe('buildNotificationDestination — Aug 17 deep-link audit (P2.5)', () =>
         expect(destination).toBe('/clubs/42');
     });
 
-    it('routes agent engagement notifications to the Agents workspace tab, including stale Inbox links', () => {
+    it('contains legacy agent engagement notifications on the notifications page', () => {
         const destination = buildNotificationDestination(notification({
             type: 'AGENT_ENGAGEMENT_RECEIVED',
             clubId: 42,
             linkPath: '/clubs/42/workspace?tab=inbox',
         }));
-        expect(destination).toBe('/clubs/42/workspace?tab=engagements');
+        expect(destination).toBe('/notifications');
     });
 
-    it('uses an agent-specific action label', () => {
+    it('does not offer an action into the frozen agent feature', () => {
         expect(notificationActionLabel(notification({
             type: 'AGENT_ENGAGEMENT_RECEIVED',
             clubId: 42,
-        }))).toBe('Review agent request');
+        }))).toBeNull();
+        expect(buildNotificationDestination(notification({
+            type: 'MARKETPLACE_LISTING_CREATED',
+            linkPath: '/marketplace',
+        }))).toBe('/notifications');
+        expect(notificationActionLabel(notification({
+            type: 'MARKETPLACE_LISTING_CREATED',
+            linkPath: '/marketplace',
+        }))).toBeNull();
     });
 
     it('uses the type-based workspace mapping when no linkPath is present', () => {

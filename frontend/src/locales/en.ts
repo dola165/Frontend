@@ -383,7 +383,7 @@ const en = {
   business: {
     opportunitiesKicker: 'Club workspace',
     opportunitiesTitle: 'Club opportunities',
-    opportunitiesDescription: 'Campaigns, jobs, volunteering and the official club store in one place.',
+    opportunitiesDescription: 'Find coaching, operational and volunteering roles at this club.',
     campaigns: 'Fundraising & campaigns',
     campaignsDescription: 'Support club projects and grassroots work.',
     jobsAndVolunteering: 'Jobs & volunteering',

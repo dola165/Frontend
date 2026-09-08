@@ -47,6 +47,44 @@ const renderTopNav = (user: { id: number; username: string; role: string } | nul
 );
 
 describe('TopNav secondary navigation', () => {
+    it('supports keyboard opening, arrow navigation, Escape and focus return', async () => {
+        const user = userEvent.setup();
+        renderTopNav(null);
+        const trigger = screen.getByRole('button', { name: 'Explore' });
+        trigger.focus();
+        await user.keyboard('{Enter}');
+        const first = screen.getByRole('menuitem', { name: 'Tournaments — Preview' });
+        const last = screen.getByRole('menuitem', { name: 'Jobs & volunteering — Preview' });
+        expect(first).toHaveFocus();
+        await user.keyboard('{ArrowDown}');
+        expect(last).toHaveFocus();
+        await user.keyboard('{ArrowDown}');
+        expect(first).toHaveFocus();
+        await user.keyboard('{End}');
+        expect(last).toHaveFocus();
+        await user.keyboard('{Home}');
+        expect(first).toHaveFocus();
+        await user.keyboard('{Escape}');
+        expect(screen.queryByRole('menu', { name: 'Explore' })).not.toBeInTheDocument();
+        expect(trigger).toHaveFocus();
+        await user.keyboard('{ArrowUp}');
+        expect(screen.getByRole('menuitem', { name: 'Jobs & volunteering — Preview' })).toHaveFocus();
+        await user.tab();
+        expect(screen.queryByRole('menu', { name: 'Explore' })).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'nav.signIn' })).toHaveFocus();
+    });
+
+    it('closes after choosing a destination and can reopen on that destination', async () => {
+        const user = userEvent.setup();
+        renderTopNav(null);
+        await user.click(screen.getByRole('button', { name: 'Explore' }));
+        await user.keyboard('{Enter}');
+        expect(screen.queryByRole('menu', { name: 'Explore' })).not.toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Explore' }));
+        await user.click(screen.getByRole('menuitem', { name: 'Tournaments — Preview' }));
+        expect(screen.queryByRole('menu', { name: 'Explore' })).not.toBeInTheDocument();
+    });
+
     it('gives guests an Explore menu with public preview destinations', async () => {
         const user = userEvent.setup();
         renderTopNav(null);

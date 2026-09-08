@@ -28,6 +28,8 @@ export const PostPage = () => {
     const postRequestRef = useRef(0);
     const commentsRequestRef = useRef(0);
     const likeRequestRef = useRef(0);
+    const visitRef = useRef(0);
+    const knownCommentIdsRef = useRef(new Set<number>());
     currentPostIdRef.current = postId;
     const destination = `/posts/${postId ?? ''}`;
 
@@ -53,6 +55,8 @@ export const PostPage = () => {
     }, [postId]);
 
     useEffect(() => {
+        const visit = ++visitRef.current;
+        knownCommentIdsRef.current.clear();
         ++commentsRequestRef.current;
         ++likeRequestRef.current;
         setPost(null);
@@ -71,6 +75,7 @@ export const PostPage = () => {
             return;
         }
         void loadPost();
+        return () => { visitRef.current = visit + 1; };
     }, [loadPost, postId]);
 
     const loadComments = async () => {
@@ -81,6 +86,7 @@ export const PostPage = () => {
         try {
             const response = await apiClient.get<CommentDto[]>(`/posts/${requestedPostId}/comments`);
             if (requestId !== commentsRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
+            response.data.forEach((comment) => knownCommentIdsRef.current.add(comment.id));
             setComments(response.data);
         } catch (error) {
             if (requestId !== commentsRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
@@ -143,9 +149,14 @@ export const PostPage = () => {
             return;
         }
         const requestedPostId = postId;
+        const visit = visitRef.current;
         const response = await apiClient.post<CommentDto>(`/posts/${requestedPostId}/comments`, { content });
-        if (currentPostIdRef.current !== requestedPostId) return;
-        setComments((current) => [...(current || []), response.data]);
+        if (visit !== visitRef.current || currentPostIdRef.current !== requestedPostId) return;
+        const alreadyCounted = knownCommentIdsRef.current.has(response.data.id);
+        knownCommentIdsRef.current.add(response.data.id);
+        setComments((current) => current?.some((comment) => comment.id === response.data.id)
+            ? current : [...(current || []), response.data]);
+        if (alreadyCounted) return;
         setPost((current) => current && String(current.id) === requestedPostId
             ? { ...current, commentCount: current.commentCount + 1 }
             : current);
@@ -173,7 +184,7 @@ export const PostPage = () => {
     return post && String(post.id) === postId ? (
         <div className="mx-auto w-full max-w-[680px]">
             <FeedPost
-                key={post.id}
+                key={`post-${post.id}`}
                 post={post}
                 isCommentsOpen={commentsOpen}
                 commentsData={comments}
@@ -187,7 +198,7 @@ export const PostPage = () => {
                 onRetryComments={() => void loadComments()}
             />
             <PostTheaterModal
-                key={post.id}
+                key={`viewer-${post.id}`}
                 isOpen={mediaViewerOpen}
                 post={post}
                 onClose={() => setMediaViewerOpen(false)}

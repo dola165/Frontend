@@ -18,6 +18,7 @@ import { useAuth } from '../../context/AuthContext';
 const renderPage = (initialEntry = '/posts/42') => render(
     <MemoryRouter initialEntries={[initialEntry]}>
         <Link to="/posts/2">Open post 2</Link>
+        <Link to="/posts/1">Return post 1</Link>
         <Routes><Route path="/posts/:postId" element={<PostPage />} /></Routes>
     </MemoryRouter>
 );
@@ -52,6 +53,36 @@ describe('PostPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({ isAuthenticated: false });
+    });
+
+    it('ignores a saved comment response from an earlier visit to the same post', async () => {
+        const user = userEvent.setup();
+        vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true } as ReturnType<typeof useAuth>);
+        const submitted = deferred<{ data: ReturnType<typeof comment> }>();
+        const saved = comment(99, 'Saved exactly once');
+        let onServer = false;
+        vi.mocked(apiClient.post).mockReturnValue(submitted.promise);
+        vi.mocked(apiClient.get).mockImplementation(async (url) => ({
+            data: String(url).endsWith('/comments') ? (onServer ? [saved] : []) : {
+                ...post(Number(String(url).split('/').at(-1)), `Post ${url}`),
+                commentCount: onServer ? 1 : 0,
+            },
+        }));
+        renderPage('/posts/1');
+        await screen.findByText('Post /posts/1');
+        await user.click(screen.getByRole('button', { name: 'Comment' }));
+        await user.type(screen.getByRole('textbox'), saved.content);
+        await user.click(screen.getByRole('button', { name: 'Post comment' }));
+        await user.click(screen.getByRole('link', { name: 'Open post 2' }));
+        await screen.findByText('Post /posts/2');
+        onServer = true;
+        await user.click(screen.getByRole('link', { name: 'Return post 1' }));
+        await screen.findByText('Post /posts/1');
+        await user.click(screen.getByRole('button', { name: 'Comment' }));
+        expect(await screen.findByText(saved.content)).toBeInTheDocument();
+        await act(async () => submitted.resolve({ data: saved }));
+        expect(screen.getAllByText(saved.content)).toHaveLength(1);
+        expect(screen.getByText('1 comments')).toBeInTheDocument();
     });
 
     it('renders the exact public post returned by the single-post endpoint', async () => {

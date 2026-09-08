@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -66,7 +66,7 @@ export const TopNav = ({
     const mobileSearchTriggerRef = useRef<HTMLButtonElement | null>(null);
     const hadMobileSearchOpen = useRef(false);
     const hadMenuOpen = useRef(false);
-    const hadExploreOpen = useRef(false);
+    const exploreInitialFocus = useRef<'first' | 'last'>('first');
     const menuOpen = openMenuLocationKey === location.key;
     const exploreMenuOpen = openExploreLocationKey === location.key;
     const lightNavigation = themePreference === 'light';
@@ -84,6 +84,8 @@ export const TopNav = ({
 
     useEffect(() => {
         if (!exploreMenuOpen) return;
+        const items = exploreMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+        (exploreInitialFocus.current === 'last' ? items?.[items.length - 1] : items?.[0])?.focus();
         const handleOutsideClick = (event: MouseEvent) => {
             if (exploreMenuRef.current && !exploreMenuRef.current.contains(event.target as Node)) {
                 setOpenExploreLocationKey(null);
@@ -107,12 +109,44 @@ export const TopNav = ({
         hadMenuOpen.current = menuOpen;
     }, [exploreMenuOpen, menuOpen]);
 
-    useEffect(() => {
-        if (hadExploreOpen.current && !exploreMenuOpen && !menuOpen) {
-            exploreTriggerRef.current?.focus();
+    const handleExploreKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === 'Escape' || (event.key === 'Tab' && exploreMenuOpen)) {
+            event.preventDefault();
+            event.stopPropagation();
+            const trigger = exploreTriggerRef.current;
+            if (event.key === 'Tab' && trigger) {
+                const candidates = Array.from(document.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, [tabindex]'))
+                    .filter((element) => {
+                        if (element.tabIndex < 0 || element.matches(':disabled') || (element !== trigger && exploreMenuRef.current?.contains(element))) return false;
+                        for (let ancestor: HTMLElement | null = element; ancestor; ancestor = ancestor.parentElement) {
+                            const style = getComputedStyle(ancestor);
+                            if (ancestor.hidden || ancestor.inert || style.display === 'none' || style.visibility === 'hidden') return false;
+                        }
+                        return true;
+                    });
+                const next = candidates[candidates.indexOf(trigger) + (event.shiftKey ? -1 : 1)];
+                (next ?? trigger).focus();
+            } else {
+                trigger?.focus();
+            }
+            setOpenExploreLocationKey(null);
+            return;
         }
-        hadExploreOpen.current = exploreMenuOpen;
-    }, [exploreMenuOpen, menuOpen]);
+        if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        if (!exploreMenuOpen) {
+            exploreInitialFocus.current = event.key === 'ArrowUp' || event.key === 'End' ? 'last' : 'first';
+            setOpenMenuLocationKey(null);
+            setOpenExploreLocationKey(location.key);
+            return;
+        }
+        const items = Array.from(exploreMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+        if (!items.length) return;
+        const index = items.indexOf(document.activeElement as HTMLElement);
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+            : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+        items[next].focus();
+    };
 
     const iconActionClass = (active = false) => `inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16a34a] ${active
         ? lightNavigation ? 'border-[#16a34a]/45 bg-[#dcfce7] text-[#166534]' : 'border-[#22c55e]/45 bg-[#354038] text-[#86efac]'
@@ -170,10 +204,14 @@ export const TopNav = ({
                                 <Search className="h-5 w-5" />
                             </button>
                         )}
-                        <div ref={exploreMenuRef} className="relative">
+                        <div ref={exploreMenuRef} className="relative" onKeyDown={handleExploreKeyDown}
+                            onBlur={(event) => {
+                                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpenExploreLocationKey(null);
+                            }}>
                             <button
                                 type="button"
                                 onClick={() => {
+                                    exploreInitialFocus.current = 'first';
                                     setOpenMenuLocationKey(null);
                                     setOpenExploreLocationKey(exploreMenuOpen ? null : location.key);
                                 }}
@@ -195,7 +233,9 @@ export const TopNav = ({
                                     {visibleSecondaryLinks.map((item) => {
                                         const Icon = item.icon;
                                         return (
-                                            <Link key={`${item.id}-explore`} to={item.path} role="menuitem" aria-label={item.preview ? `${t(item.translationKey, item.label)} — ${t('nav.preview')}` : undefined} className={`${menuItemClass} ${activeKey === item.id ? lightNavigation ? 'bg-[#dcfce7] text-[#166534]' : 'bg-white/[0.07] text-white' : ''}`}>
+                                            <Link key={`${item.id}-explore`} to={item.path} role="menuitem" tabIndex={-1}
+                                                onClick={() => { setOpenExploreLocationKey(null); exploreTriggerRef.current?.focus(); }}
+                                                aria-label={item.preview ? `${t(item.translationKey, item.label)} — ${t('nav.preview')}` : undefined} className={`${menuItemClass} ${activeKey === item.id ? lightNavigation ? 'bg-[#dcfce7] text-[#166534]' : 'bg-white/[0.07] text-white' : ''}`}>
                                                 <Icon className="h-4 w-4 shrink-0 text-[#16a34a]" />
                                                 <span className="min-w-0 flex-1">{t(item.translationKey, item.label)}</span>
                                                 {item.preview ? <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${lightNavigation ? 'border-amber-600/30 text-amber-700' : 'border-amber-400/30 text-amber-300'}`}>{t('nav.preview')}</span> : null}

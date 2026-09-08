@@ -383,7 +383,7 @@ const ka = {
   business: {
     opportunitiesKicker: 'კლუბის workspace',
     opportunitiesTitle: 'კლუბის შესაძლებლობები',
-    opportunitiesDescription: 'კამპანიები, ვაკანსიები, მოხალისეობა და კლუბის ოფიციალური მაღაზია ერთ სივრცეში.',
+    opportunitiesDescription: 'იპოვეთ სამწვრთნელო, საოპერაციო და მოხალისეობრივი როლები ამ კლუბში.',
     campaigns: 'ფონდების მოზიდვა და კამპანიები',
     campaignsDescription: 'მხარი დაუჭირეთ კლუბის პროექტებსა და grassroots ინიციატივებს.',
     jobsAndVolunteering: 'ვაკანსიები და მოხალისეობა',

@@ -103,6 +103,7 @@ describe('ApplicationsTab — phase A3 triage', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Accept (1)' }));
         fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
         await waitFor(() => expect(props.onBulkDecide).toHaveBeenCalled());
+        fireEvent.keyDown(document, { key: 'Escape' });
         await waitFor(() => expect(screen.getByRole('button', { name: 'Accept (1)' })).toBeInTheDocument());
     });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Ban,
@@ -24,6 +24,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { cancelScheduleEvent } from '../../features/schedule/api';
 import type { DayOfWeek, ScheduleEventType, ScheduleEventUpsertInput, ScheduleVisibility } from '../../features/schedule/api';
 import { extractApiErrorMessage } from '../../utils/apiError';
+import { useDialogFocus } from '../workspace/useDialogFocus';
 
 export type ModalSurface = 'MY_SCHEDULE' | 'CLUB_SCHEDULE';
 export type ModalMode = 'create' | 'edit';
@@ -112,6 +113,10 @@ export const EventCreationModal = ({
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [cancelling, setCancelling] = useState(false);
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const titleInputRef = useRef<HTMLInputElement>(null);
+    const titleId = useId();
+    const descriptionId = useId();
 
     useEffect(() => {
         if (!isOpen) return;
@@ -236,11 +241,26 @@ export const EventCreationModal = ({
     };
 
     const handleBackdropClick = () => {
+        if (submitting || cancelling) return;
         if ((form.title.trim() || form.eventType)) {
             setShowDiscardConfirm(true);
             return;
         }
         onClose();
+    };
+
+    useDialogFocus(isOpen, dialogRef, handleBackdropClick, titleInputRef);
+
+    const handleDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key !== 'Enter' || event.nativeEvent.isComposing || submitting || cancelling) return;
+        const target = event.target as HTMLElement;
+        if (target.matches('button, textarea, select, [role="button"]')) return;
+        event.preventDefault();
+        if (step < 2) {
+            if (canGoNext) setStep((current) => Math.min(2, current + 1));
+        } else {
+            void handleSave();
+        }
     };
 
     if (!isOpen) return null;
@@ -252,21 +272,27 @@ export const EventCreationModal = ({
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={handleBackdropClick}>
             <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
+                aria-describedby={descriptionId}
                 className="flex max-h-[90vh] w-full max-w-[600px] flex-col overflow-hidden rounded-[var(--fc-radius)] border border-[var(--fc-border)] bg-[var(--fc-card-bg)] shadow-2xl"
                 style={{ animation: 'schedule-scale-in 200ms ease-out' }}
                 onClick={(e) => e.stopPropagation()}
+                onKeyDown={handleDialogKeyDown}
             >
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4 border-b border-[var(--fc-border)] px-5 py-4">
                     <div className="min-w-0">
-                        <p className="text-[10px] font-bold  text-[var(--fc-text-muted)]">
+                        <p id={descriptionId} className="text-[10px] font-bold  text-[var(--fc-text-muted)]">
                             {mode === 'create' ? t('schedule.event.newEvent') : t('schedule.event.editEvent')} — {t('schedule.event.stepOf', { current: step + 1, total: 3 })}
                         </p>
-                        <h2 className="mt-1 text-lg font-semibold text-[var(--fc-text-primary)]">
+                        <h2 id={titleId} className="mt-1 text-lg font-semibold text-[var(--fc-text-primary)]">
                             {step === 0 ? t('schedule.event.whatKind') : step === 1 ? t('schedule.event.whenIsIt') : t('schedule.event.whoCanSee')}
                         </h2>
                     </div>
-                    <button type="button" onClick={onClose} disabled={submitting}
+                    <button type="button" onClick={handleBackdropClick} disabled={submitting || cancelling} aria-label="Close event editor"
                         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--fc-radius)] text-[var(--fc-text-muted)] transition-colors hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)]">
                         <X className="h-4 w-4" />
                     </button>
@@ -330,10 +356,9 @@ export const EventCreationModal = ({
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.eventName')}</label>
-                                <input type="text" value={form.title} onChange={(e) => update('title', e.target.value)}
-                                    maxLength={140} placeholder={isStanding ? 'e.g. Senior Training' : 'e.g. Senior Training'} className={inputClass} autoFocus
-                                    onKeyDown={(e) => { if (e.key === 'Enter' && canGoNext) setStep(1); }} />
+                                <label htmlFor="event-title" className="text-xs font-medium text-[var(--fc-text-secondary)]">{t('schedule.event.eventName')}</label>
+                                <input ref={titleInputRef} id="event-title" type="text" value={form.title} onChange={(e) => update('title', e.target.value)}
+                                    maxLength={140} placeholder="e.g. Senior Training" className={inputClass} />
                             </div>
                             {errorMessage && <ErrorBanner message={errorMessage} />}
                         </div>

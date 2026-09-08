@@ -271,6 +271,7 @@ export const FeedPost = ({
                     <div className="flex gap-2">
                         <input
                             type="text"
+                            aria-label={`Write a comment on ${displayAuthorName}'s post`}
                             placeholder="Write a comment..."
                             value={commentInput}
                             onChange={(event) => {

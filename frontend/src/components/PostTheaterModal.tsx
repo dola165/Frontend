@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { X, Heart, MessageCircle, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { FeedPostDto, CommentDto } from './feed/FeedPost';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { useDialogFocus } from './workspace/useDialogFocus';
 
 interface PostTheaterModalProps {
     isOpen: boolean;
@@ -29,6 +30,10 @@ export const PostTheaterModal = ({
     const [currentIndex, setCurrentIndex] = useState(0);
     const [commentPending, setCommentPending] = useState(false);
     const [commentError, setCommentError] = useState('');
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const closeRef = useRef<HTMLButtonElement>(null);
+    const titleId = useId();
+    useDialogFocus(isOpen && post !== null, dialogRef, onClose, closeRef);
 
     if (!isOpen || !post) return null;
 
@@ -68,12 +73,12 @@ export const PostTheaterModal = ({
     const authorAvatarUrl = resolveMediaUrl(post.authorAvatarUrl);
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 p-2 backdrop-blur-sm sm:p-6">
-            <button onClick={onClose} className="absolute top-4 left-4 z-50 rounded-full bg-white/10 p-2 text-white backdrop-blur-md transition-colors hover:bg-red-500">
+        <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 p-2 backdrop-blur-sm sm:p-6" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+            <button ref={closeRef} type="button" onClick={onClose} aria-label="Close post viewer" className="absolute top-4 left-4 z-50 rounded-full bg-white/10 p-2 text-white backdrop-blur-md transition-colors hover:bg-red-500">
                 <X className="h-6 w-6" />
             </button>
 
-            <div className="flex h-full w-full max-w-[1400px] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0d1117] shadow-2xl lg:flex-row">
+            <div className="flex h-full w-full max-w-[1400px] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0d1117] shadow-2xl lg:flex-row" onClick={(event) => event.stopPropagation()}>
                 <div className="group relative flex h-[40vh] flex-1 items-center justify-center overflow-hidden bg-black lg:h-full">
                     {currentMediaUrl && (
                         <div
@@ -92,10 +97,10 @@ export const PostTheaterModal = ({
 
                     {mediaList.length > 1 && (
                         <>
-                            <button onClick={handlePrev} className="absolute left-4 z-20 rounded-full bg-black/50 p-3 text-white opacity-0 backdrop-blur-md transition-opacity hover:bg-black/80 group-hover:opacity-100">
+                            <button type="button" onClick={handlePrev} aria-label="Previous post media" className="absolute left-4 z-20 rounded-full bg-black/50 p-3 text-white opacity-0 backdrop-blur-md transition-opacity hover:bg-black/80 group-hover:opacity-100 focus:opacity-100">
                                 <ChevronLeft className="h-6 w-6" />
                             </button>
-                            <button onClick={handleNext} className="absolute right-4 z-20 rounded-full bg-black/50 p-3 text-white opacity-0 backdrop-blur-md transition-opacity hover:bg-black/80 group-hover:opacity-100">
+                            <button type="button" onClick={handleNext} aria-label="Next post media" className="absolute right-4 z-20 rounded-full bg-black/50 p-3 text-white opacity-0 backdrop-blur-md transition-opacity hover:bg-black/80 group-hover:opacity-100 focus:opacity-100">
                                 <ChevronRight className="h-6 w-6" />
                             </button>
                             <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-md">
@@ -116,7 +121,7 @@ export const PostTheaterModal = ({
                                 )}
                             </div>
                             <div>
-                                <h4 className="font-semibold text-[#f1f5f9]">{post.clubName || post.authorName}</h4>
+                                <h2 id={titleId} className="font-semibold text-[#f1f5f9]">Post by {post.clubName || post.authorName}</h2>
                                 <p className="text-xs text-[#64748b]">{formatTime(post.createdAt)}</p>
                             </div>
                         </div>
@@ -126,10 +131,10 @@ export const PostTheaterModal = ({
                     <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] px-5 py-3">
                         <span className="text-xs font-medium text-[#64748b]">{post.likeCount} likes &middot; {post.commentCount} comments</span>
                         <div className="flex gap-2">
-                            <button onClick={() => void onLikeToggle(post.id)} disabled={likePending} className={`rounded-full p-2 transition-colors disabled:cursor-wait disabled:opacity-60 ${post.isLikedByMe ? 'bg-[#16a34a]/15 text-[#16a34a]' : 'bg-[#1a2030] text-[#64748b] hover:text-[#16a34a]'}`}>
+                            <button type="button" aria-label={post.isLikedByMe ? 'Unlike post' : 'Like post'} onClick={() => void onLikeToggle(post.id)} disabled={likePending} className={`rounded-full p-2 transition-colors disabled:cursor-wait disabled:opacity-60 ${post.isLikedByMe ? 'bg-[#16a34a]/15 text-[#16a34a]' : 'bg-[#1a2030] text-[#64748b] hover:text-[#16a34a]'}`}>
                                 <Heart className={`h-5 w-5 ${post.isLikedByMe ? 'fill-current' : ''}`} />
                             </button>
-                            <button className="rounded-full bg-[#1a2030] p-2 text-[#64748b] transition-colors hover:text-[#16a34a]">
+                            <button type="button" aria-label="Focus comment input" onClick={() => document.getElementById(`post-theater-comment-${post.id}`)?.focus()} className="rounded-full bg-[#1a2030] p-2 text-[#64748b] transition-colors hover:text-[#16a34a]">
                                 <MessageCircle className="h-5 w-5" />
                             </button>
                         </div>
@@ -165,7 +170,9 @@ export const PostTheaterModal = ({
                     <div className="shrink-0 border-t border-white/[0.06] bg-[#0d1117] p-4">
                         <div className="relative flex gap-2">
                             <input
+                                id={`post-theater-comment-${post.id}`}
                                 type="text"
+                                aria-label={`Write a comment on ${post.clubName || post.authorName}'s post`}
                                 placeholder="Write a comment..."
                                 value={commentInput}
                                 onChange={(e) => {

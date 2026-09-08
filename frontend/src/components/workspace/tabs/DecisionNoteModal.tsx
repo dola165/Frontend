@@ -40,7 +40,7 @@ export const DecisionNoteModal = ({
     return (
         <div className="fixed inset-0 z-[1200] flex items-center justify-center">
             <div className="theme-overlay absolute inset-0" onClick={onClose} />
-            <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="decision-note-title" aria-describedby="decision-note-subtitle" className="relative z-10 mx-4 w-full max-w-md border border-[var(--fc-border)] bg-[var(--fc-page-bg)] shadow-2xl">
+            <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="decision-note-title" aria-describedby="decision-note-subtitle" className="relative z-10 mx-4 max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto border border-[var(--fc-border)] bg-[var(--fc-page-bg)] shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-[#ffffff0d] px-5 py-4">
                     <div className="flex items-center gap-3">

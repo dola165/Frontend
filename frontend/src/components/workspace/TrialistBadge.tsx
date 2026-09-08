@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useId, useRef, useState, useEffect } from 'react';
 import { Check, X } from 'lucide-react';
 
 export interface TrialistBadgeProps {
@@ -14,7 +14,7 @@ export interface TrialistBadgeProps {
 
 const OVERDUE_THRESHOLD_DAYS = 14;
 
-export function getTrialistDays(joinedAt?: string | null): number | null {
+function getTrialistDays(joinedAt?: string | null): number | null {
     if (!joinedAt) return null;
     return Math.floor((Date.now() - new Date(joinedAt).getTime()) / 86_400_000);
 }
@@ -27,29 +27,37 @@ export const TrialistBadge = ({
     className = '',
 }: TrialistBadgeProps) => {
     const days = getTrialistDays(joinedAt);
-    if (days === null) return null;
-
     const hasActions = !!onApprove || !!onRelease;
-    const isOverdue = days > OVERDUE_THRESHOLD_DAYS;
+    const isOverdue = days !== null && days > OVERDUE_THRESHOLD_DAYS;
 
     const colorClasses = isOverdue
         ? 'bg-red-950 text-red-400 border-red-800'
         : 'bg-amber-950 text-amber-400 border-amber-800';
 
     // ── popover state (only used when actions are provided) ──
-    const [open, setOpen] = useState(false);
-    const badgeRef = useRef<HTMLButtonElement>(null);
+    const [openFor, setOpenFor] = useState<string | null>(null);
+    const open = days !== null && hasActions && openFor === joinedAt;
+    const containerRef = useRef<HTMLSpanElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const menuId = useId();
 
     useEffect(() => {
         if (!open) return;
         const handler = (e: PointerEvent) => {
-            if (badgeRef.current && !badgeRef.current.contains(e.target as Node)) {
-                setOpen(false);
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+                setOpenFor(null);
             }
         };
         document.addEventListener('pointerdown', handler);
-        return () => document.removeEventListener('pointerdown', handler);
+        const focusTimer = window.setTimeout(() => menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus(), 0);
+        return () => {
+            window.clearTimeout(focusTimer);
+            document.removeEventListener('pointerdown', handler);
+        };
     }, [open]);
+
+    if (days === null) return null;
 
     if (!hasActions) {
         return (
@@ -62,20 +70,51 @@ export const TrialistBadge = ({
     }
 
     return (
-        <span className={`relative ${className}`} ref={badgeRef}>
+        <span className={`relative ${className}`} ref={containerRef}>
             <button
+                ref={triggerRef}
                 type="button"
-                onClick={() => setOpen((prev) => !prev)}
+                onClick={() => setOpenFor(open ? null : joinedAt ?? null)}
+                aria-label={`${days} days as trialist. Open actions`}
+                aria-haspopup="menu"
+                aria-expanded={open}
+                aria-controls={open ? menuId : undefined}
                 className={`inline-flex items-center rounded-t-full rounded-b-sm px-2 py-0.5 text-[11px] font-semibold cursor-pointer hover:opacity-80 transition-opacity border ${colorClasses}`}
             >
                 {days}d
             </button>
             {open && (
-                <div className="absolute left-0 top-full mt-1 z-30 min-w-[170px] rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-1">
+                <div
+                    ref={menuRef}
+                    id={menuId}
+                    role="menu"
+                    aria-label="Trialist actions"
+                    onKeyDown={(event) => {
+                        const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+                        const index = items.indexOf(document.activeElement as HTMLButtonElement);
+                        if (event.key === 'Escape') {
+                            event.preventDefault();
+                            setOpenFor(null);
+                            triggerRef.current?.focus();
+                        } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                            event.preventDefault();
+                            const direction = event.key === 'ArrowDown' ? 1 : -1;
+                            items[(index + direction + items.length) % items.length]?.focus();
+                        } else if (event.key === 'Home') {
+                            event.preventDefault();
+                            items[0]?.focus();
+                        } else if (event.key === 'End') {
+                            event.preventDefault();
+                            items.at(-1)?.focus();
+                        }
+                    }}
+                    className="absolute right-0 top-full z-30 mt-1 w-max min-w-[170px] max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-1 shadow-xl"
+                >
                     {onApprove && (
                         <button
                             type="button"
-                            onClick={() => { onApprove(); setOpen(false); }}
+                            role="menuitem"
+                            onClick={() => { onApprove(); setOpenFor(null); }}
                             className="flex w-full items-center gap-2 rounded px-3 py-2 text-xs font-medium text-[var(--fc-accent)] hover:bg-[var(--fc-accent-soft)] transition-colors"
                         >
                             <Check className="h-3.5 w-3.5" />
@@ -85,7 +124,8 @@ export const TrialistBadge = ({
                     {onRelease && (
                         <button
                             type="button"
-                            onClick={() => { onRelease(); setOpen(false); }}
+                            role="menuitem"
+                            onClick={() => { onRelease(); setOpenFor(null); }}
                             className="flex w-full items-center gap-2 rounded px-3 py-2 text-xs font-medium text-[var(--fc-state-danger)] hover:bg-[var(--fc-state-danger-soft)] transition-colors"
                         >
                             <X className="h-3.5 w-3.5" />

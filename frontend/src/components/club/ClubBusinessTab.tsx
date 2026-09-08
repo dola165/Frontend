@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, BriefcaseBusiness, Check, HeartHandshake, Loader2, ShoppingBag, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BriefcaseBusiness, Check, Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import {
@@ -24,8 +24,7 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 
 /**
  * Club "Opportunities" tab (docs/MAP_SEARCH_AND_CLUB_JOBS_PLAN.md item 5):
- * the club's campaign, store and job destinations plus the job postings and
- * per-job applications pipeline.
+ * the club's job postings and per-job applications pipeline.
  * Access mirrors the backend: viewing applications requires the job's creator
  * or an OWNER/CLUB_ADMIN; applying is open to authenticated non-creators.
  */
@@ -104,9 +103,6 @@ export const ClubBusinessTab = ({
 
     const selectedJob = jobs.find((job) => job.id === selectedJobId) ?? null;
     const openJobCount = jobs.filter((job) => job.status !== 'CLOSED').length;
-    const clubOpportunities = club.opportunities ?? [];
-    const campaignCount = clubOpportunities.filter((opportunity) => opportunity.type === 'FUNDRAISING').length;
-    const volunteerCount = clubOpportunities.filter((opportunity) => opportunity.type === 'JOB' || opportunity.type === 'VOLUNTEER').length;
 
     const handleApply = async () => {
         if (!applyingJob) return;
@@ -281,30 +277,14 @@ export const ClubBusinessTab = ({
                     <p className="mt-1 max-w-2xl text-sm leading-6 text-[#a1a1aa]">{t('business.opportunitiesDescription')}</p>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-3">
-                    <Link
-                        to="/campaigns"
-                        className="group rounded-xl border border-[#16a34a]/40 bg-[#0f1117] p-4 transition-colors hover:border-[#16a34a] hover:bg-[#16a34a]/5"
-                    >
-                        <div className="flex items-start justify-between gap-3">
-                            <HeartHandshake className="h-5 w-5 text-[#16a34a]" />
-                            <span className="text-sm font-bold text-[#16a34a]">{campaignCount}</span>
-                        </div>
-                        <h4 className="mt-3 text-sm font-bold text-[#f4f4f5]">{t('business.campaigns')}</h4>
-                        <p className="mt-1 text-xs leading-5 text-[#a1a1aa]">{t('business.campaignsDescription')}</p>
-                        <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#16a34a]">
-                            {t('business.explore')}
-                            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                        </span>
-                    </Link>
-
+                <div className="grid gap-3">
                     <a
                         href="#club-open-roles"
                         className="group rounded-xl border border-[#a855f7]/40 bg-[#0f1117] p-4 transition-colors hover:border-[#a855f7] hover:bg-[#a855f7]/5"
                     >
                         <div className="flex items-start justify-between gap-3">
                             <BriefcaseBusiness className="h-5 w-5 text-[#a855f7]" />
-                            <span className="text-sm font-bold text-[#a855f7]">{openJobCount + volunteerCount}</span>
+                            <span className="text-sm font-bold text-[#a855f7]">{openJobCount}</span>
                         </div>
                         <h4 className="mt-3 text-sm font-bold text-[#f4f4f5]">{t('business.jobsAndVolunteering')}</h4>
                         <p className="mt-1 text-xs leading-5 text-[#a1a1aa]">{t('business.jobsAndVolunteeringDescription')}</p>
@@ -314,21 +294,6 @@ export const ClubBusinessTab = ({
                         </span>
                     </a>
 
-                    <Link
-                        to={`/clubs/${club.id}/store`}
-                        className="group rounded-xl border border-[#d4a853]/50 bg-[#0f1117] p-4 transition-colors hover:border-[#d4a853] hover:bg-[#d4a853]/5"
-                    >
-                        <div className="flex items-start justify-between gap-3">
-                            <ShoppingBag className="h-5 w-5 text-[#d4a853]" />
-                            <span className="text-xs font-semibold text-[#d4a853]">{t('business.clubStoreBadge')}</span>
-                        </div>
-                        <h4 className="mt-3 text-sm font-bold text-[#f4f4f5]">{t('business.clubStore')}</h4>
-                        <p className="mt-1 text-xs leading-5 text-[#a1a1aa]">{t('business.clubStoreDescription')}</p>
-                        <span className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#d4a853]">
-                            {t('business.explore')}
-                            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                        </span>
-                    </Link>
                 </div>
             </section>
 

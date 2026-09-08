@@ -1,6 +1,6 @@
-import { Briefcase, Building2, CalendarDays, Camera, Flag, Phone, Trophy, Users, UsersRound, Video, Warehouse } from 'lucide-react';
+import { Briefcase, Building2, CalendarDays, Camera, Phone, Users, UsersRound } from 'lucide-react';
 
-export type ClubNavigationTab = 'overview' | 'people' | 'facilities' | 'honours' | 'teams' | 'schedule' | 'pictures' | 'videos' | 'events' | 'business' | 'contact';
+export type ClubNavigationTab = 'overview' | 'people' | 'teams' | 'schedule' | 'media' | 'business' | 'contact';
 
 export type ClubNavigationAccent = 'blue' | 'violet';
 
@@ -35,19 +35,6 @@ export const clubNavigationItems: ClubNavigationItem[] = [
         toneClassName: 'club-tone-green'
     },
     {
-        id: 'facilities',
-        icon: Warehouse,
-        label: 'Facilities',
-        toneClassName: 'club-tone-cyan'
-    },
-    {
-        id: 'honours',
-        icon: Trophy,
-        label: 'Honours',
-        badge: (club) => club.honours?.length ?? null,
-        toneClassName: 'club-tone-blue'
-    },
-    {
         id: 'teams',
         icon: Users,
         label: 'Teams',
@@ -60,26 +47,12 @@ export const clubNavigationItems: ClubNavigationItem[] = [
         toneClassName: 'club-tone-blue'
     },
     {
-        id: 'pictures',
+        id: 'media',
         icon: Camera,
-        label: 'Pictures',
+        label: 'Media',
         toneClassName: 'club-tone-green',
         accent: 'blue',
         section: 'media'
-    },
-    {
-        id: 'videos',
-        icon: Video,
-        label: 'Videos',
-        toneClassName: 'club-tone-green',
-        accent: 'blue',
-        section: 'media'
-    },
-    {
-        id: 'events',
-        icon: Flag,
-        label: 'Events',
-        toneClassName: 'club-tone-blue'
     },
     {
         id: 'business',

@@ -1,4 +1,4 @@
-import { ArrowRight, Briefcase, HeartHandshake, ShoppingBag } from 'lucide-react';
+import { ArrowRight, Briefcase } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { ClubOpportunity, ClubProfile } from '../../pages/ClubProfilePage';
 
@@ -13,17 +13,9 @@ const orderedTypes: Array<{
     types: ClubOpportunity['type'][];
     label: string;
     toneClassName: string;
-    icon: typeof HeartHandshake;
+    icon: typeof Briefcase;
     href: string;
 }> = [
-    {
-        key: 'FUNDRAISING',
-        types: ['FUNDRAISING'],
-        label: 'Fundraising / Campaigns',
-        toneClassName: 'club-tone-green',
-        icon: HeartHandshake,
-        href: '/campaigns'
-    },
     {
         key: 'JOBS',
         types: ['JOB', 'VOLUNTEER'],
@@ -93,37 +85,11 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                             );
                         })}
 
-                        {opportunities.length === 0 && (
+                        {groupedCounts.every((entry) => entry.count === 0) && (
                             <div className="rounded-[4px] border border-dashed border-[#ffffff0d] px-4 py-5 text-sm text-[#a1a1aa]">
-                                No live business requests are published yet.
+                                No open roles are published yet.
                             </div>
                         )}
-
-                        {/* Store — Official Club Merchandise (internal store, always visible) */}
-                        <div className="border-t border-[color:var(--club-theme-border-subtle)] pt-3 mt-1">
-                            <Link
-                                to={`/clubs/${club.id}/store`}
-                                className="block rounded-[4px] border px-3.5 py-3.5 transition-colors hover:bg-[rgba(212,168,83,0.08)]"
-                                style={{
-                                    background: 'rgba(10,10,12,0.6)',
-                                    borderColor: '#d4a853',
-                                }}
-                            >
-                                <div className="flex items-center justify-between gap-3">
-                                    <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#d4a853' }}>
-                                        <ShoppingBag className="h-4 w-4" />
-                                        Official Club Store
-                                    </span>
-                                </div>
-                                <p className="mt-1.5 text-xs text-[#a1a1aa] leading-relaxed">
-                                    Official kit, training gear, and equipment. All purchases support your club directly.
-                                </p>
-                                <div className="mt-2.5 inline-flex w-full items-center justify-between rounded-[4px] border px-3 py-2 text-xs font-semibold" style={{ borderColor: 'rgba(212,168,83,0.3)', color: '#d4a853' }}>
-                                    Explore store
-                                    <ArrowRight className="h-3 w-3" />
-                                </div>
-                            </Link>
-                        </div>
 
                     </div>
 

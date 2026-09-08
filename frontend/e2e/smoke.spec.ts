@@ -88,15 +88,12 @@ test.describe('Talanti smoke flows — leader', () => {
         await expect(page.getByRole('heading', { name: /issue challenge/i })).toBeVisible();
     });
 
-    test('store catalog loads and quick-view offers a contact order CTA', async ({ page }) => {
+    test('contained store links explain the demo boundary and recover', async ({ page }) => {
         test.skip(!leaderEmail || !leaderPassword, 'Seeded leader credentials are required for this smoke flow.');
 
         await page.goto('/store');
-        await expect(page.getByRole('heading', { name: /^store$/i })).toBeVisible();
-        const ticketName = mockMode ? 'Matchday Ticket' : 'Matchday Ticket — U16 Derby';
-        await expect(page.getByText(ticketName, { exact: true }).first()).toBeVisible();
-        await page.getByText(ticketName, { exact: true }).first().click();
-        await expect(page.getByRole('link', { name: /order via whatsapp/i })).toBeVisible();
+        await expect(page.getByRole('heading', { name: /club store is outside this demo/i })).toBeVisible();
+        await expect(page.getByRole('link', { name: /browse clubs/i })).toHaveAttribute('href', '/clubs');
     });
 
     test('organizer sees the full map category set', async ({ page }) => {

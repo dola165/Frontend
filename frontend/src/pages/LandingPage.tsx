@@ -6,7 +6,6 @@ import {
     CalendarDays,
     CircleDot,
     Compass,
-    HeartHandshake,
     Loader2,
     LogIn,
     MapPin,
@@ -80,9 +79,9 @@ const landingAudiences = [
         body: 'Keep players, squads, training, matches, tryouts, and tournaments in one working space.'
     },
     {
-        icon: HeartHandshake,
+        icon: UsersRound,
         title: 'Fans & supporters',
-        body: 'Follow clubs, see the story behind them, and support the campaigns and stores that keep them moving.'
+        body: 'Follow clubs, see the story behind them, and stay connected to the people around the game.'
     }
 ] as const;
 
@@ -104,7 +103,7 @@ const landingCapabilities = [
     {
         icon: BriefcaseBusiness,
         title: 'Find ways to help',
-        body: 'Browse roles, volunteer opportunities, campaigns, and club stores when you are ready to get involved.',
+        body: 'Preview real roles and volunteer opportunities published by clubs when you are ready to get involved.',
         tone: 'text-[#facc15]',
         background: 'bg-[#facc15]/10'
     },
@@ -165,27 +164,19 @@ export const LandingPage = () => {
         },
         {
             id: 'tournaments',
-            label: 'Browse tournaments',
-            description: 'See competitions and upcoming football events.',
+            label: 'Preview tournaments',
+            description: 'Explore the current competition preview.',
             icon: Trophy,
             keywords: ['competitions', 'events'],
             onSelect: () => navigate('/tournaments')
         },
         {
             id: 'jobs',
-            label: 'Browse jobs and volunteering',
-            description: 'Find roles around the football community.',
+            label: 'Preview jobs and volunteering',
+            description: 'Explore roles published by football clubs.',
             icon: BriefcaseBusiness,
             keywords: ['work', 'volunteer', 'opportunities'],
             onSelect: () => navigate('/jobs')
-        },
-        {
-            id: 'campaigns',
-            label: 'Open campaigns',
-            description: 'Support football fundraising and grassroots projects.',
-            icon: HeartHandshake,
-            keywords: ['fundraising', 'support'],
-            onSelect: () => navigate('/campaigns')
         },
         {
             id: 'how-it-works',

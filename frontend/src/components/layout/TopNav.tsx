@@ -2,13 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-    Bell,
-    BriefcaseBusiness,
-    Building2,
-    CalendarDays,
     Check,
-    HeartHandshake,
-    Home,
     LogOut,
     Menu,
     MessageSquare,
@@ -17,19 +11,15 @@ import {
     PanelTopClose,
     PanelTopOpen,
     Settings,
-    Shield,
     ShieldCheck,
-    ShoppingBag,
     Sun,
-    Trophy,
     User,
-    UsersRound,
     Search,
     X
 } from 'lucide-react';
 import { GlobalSearchBar } from '../search/GlobalSearchBar';
 import { NotificationBell } from '../notifications/NotificationBell';
-import { resolveNavigationKey } from './navigation';
+import { primaryProductNavigation, resolveNavigationKey, secondaryProductNavigation } from './navigation';
 import { GrasskickzLogo } from './GrasskickzLogo';
 import { AppPageFrame } from './AppPageShell';
 import type { ThemePreference } from '../../theme';
@@ -44,25 +34,6 @@ interface TopNavProps {
     collapsed?: boolean;
     onCollapsedChange?: (collapsed: boolean) => void;
 }
-
-const labelKey = (id: string): string => {
-    const keys: Record<string, string> = {
-        home: 'nav.feed', map: 'nav.map', clubs: 'nav.clubs', 'my-club': 'nav.myClub',
-        calendar: 'nav.schedule', messages: 'nav.messages', notifications: 'nav.notifications',
-        tournaments: 'nav.tournaments', people: 'nav.people', 'clubs-following': 'nav.followedClubs',
-        store: 'nav.store', jobs: 'nav.jobs', campaigns: 'nav.campaigns'
-    };
-    return keys[id] || id;
-};
-
-const primaryLinks = [
-    { id: 'home', path: '/home', label: 'Home', icon: Home, authRequired: true },
-    { id: 'map', path: '/map', label: 'Map', icon: MapPinned, authRequired: true },
-    { id: 'clubs', path: '/clubs', label: 'Clubs', icon: Shield, authRequired: false },
-    { id: 'my-club', path: '/my-club', label: 'My Club', icon: Building2, authRequired: true },
-    { id: 'calendar', path: '/calendar', label: 'Schedule', icon: CalendarDays, authRequired: true },
-    { id: 'tournaments', path: '/tournaments', label: 'Tournaments', icon: Trophy, authRequired: false },
-];
 
 export const TopNav = ({
     user,
@@ -123,16 +94,10 @@ export const TopNav = ({
         ? lightNavigation ? 'border-[#16a34a]/45 bg-[#dcfce7] text-[#166534]' : 'border-[#22c55e]/45 bg-[#354038] text-[#86efac]'
         : lightNavigation ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'border-white/[0.07] bg-[#292d34] text-[#f1f3f5] hover:bg-[#363b44] hover:text-white'}`;
     const menuItemClass = `flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${lightNavigation ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-[#d4d4d8] hover:bg-white/[0.06] hover:text-white'}`;
-    const visibleLinks = primaryLinks.filter(item => !item.authRequired || !!user);
+    const visibleLinks = primaryProductNavigation.filter(item => !item.authRequired || !!user);
     const mobileLinks = [
         ...visibleLinks,
-        { id: 'messages', path: '/messages', label: 'Messages', icon: MessageSquare, authRequired: true },
-        { id: 'notifications', path: '/notifications', label: 'Notifications', icon: Bell, authRequired: true },
-        { id: 'people', path: '/people', label: 'People', icon: UsersRound, authRequired: true },
-        { id: 'clubs-following', path: '/clubs/following', label: 'Followed clubs', icon: Shield, authRequired: true },
-        { id: 'store', path: '/store', label: 'Store', icon: ShoppingBag, authRequired: false },
-        { id: 'jobs', path: '/jobs', label: 'Jobs & volunteering', icon: BriefcaseBusiness, authRequired: false },
-        { id: 'campaigns', path: '/campaigns', label: 'Campaigns', icon: HeartHandshake, authRequired: false }
+        ...secondaryProductNavigation,
     ].filter(item => !item.authRequired || !!user);
 
     if (collapsible && collapsed) {
@@ -233,7 +198,8 @@ export const TopNav = ({
                                                     return (
                                                         <Link key={`${item.id}-mobile`} to={item.path} role="menuitem" className={menuItemClass}>
                                                             <Icon className="h-4 w-4 text-[#16a34a]" />
-                                                            {t(labelKey(item.id), item.label)}
+                                                            <span className="min-w-0 flex-1">{t(item.translationKey, item.label)}</span>
+                                                            {item.preview ? <span className="rounded-full border border-amber-400/30 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-300">Preview</span> : null}
                                                         </Link>
                                                     );
                                                 })}
@@ -346,7 +312,8 @@ export const TopNav = ({
                                     }`}
                                 >
                                     <Icon className={`h-4 w-4 ${active ? 'text-[#16a34a]' : ''}`} />
-                                    {t(labelKey(item.id), item.label)}
+                                    {t(item.translationKey, item.label)}
+                                    {item.preview ? <span className="rounded-full border border-amber-400/30 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-300">Preview</span> : null}
                                 </Link>
                             );
                         })}

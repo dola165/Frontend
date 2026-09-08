@@ -34,14 +34,12 @@ import { BrowseTournamentsPage } from './pages/BrowseTournamentsPage';
 import { CreateOrganizationPage } from './pages/CreateOrganizationPage';
 import { CreateClubPage } from './pages/CreateClubPage';
 import ClubWorkspacePage from './pages/ClubWorkspacePage';
-import { StorePage } from './pages/StorePage';
-import { ClubStorePage } from './pages/ClubStorePage';
 import { FollowedClubsPage } from './pages/FollowedClubsPage';
-import { OpportunityDirectoryPage } from './pages/OpportunityDirectoryPage';
 import { JobsDirectoryPage } from './pages/JobsDirectoryPage';
 import { PeoplePage } from './pages/PeoplePage';
 import { PostPage } from './pages/PostPage';
 import { PublicWorldMapPage } from './pages/PublicWorldMapPage';
+import { RouteRecoveryPage } from './pages/RouteRecoveryPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { buildLoginRedirectPath, requiredAccountStep, resolvePostAuthRedirect } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
@@ -308,14 +306,14 @@ function MainLayout() {
             <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
             <Route path="/profile/:id" element={<UserProfilePage />} />
             <Route path="/posts/:postId" element={<PostPage />} />
-            <Route path="/agent/*" element={<Navigate to="/clubs" replace />} />
-            <Route path="/marketplace" element={<Navigate to="/clubs" replace />} />
-            <Route path="/needs" element={<Navigate to="/clubs" replace />} />
-            <Route path="/store" element={<StorePage />} />
+            <Route path="/agent/*" element={<RouteRecoveryPage feature="Agent tools" />} />
+            <Route path="/marketplace" element={<RouteRecoveryPage feature="The marketplace" />} />
+            <Route path="/needs" element={<RouteRecoveryPage feature="Player needs" />} />
+            <Route path="/store" element={<RouteRecoveryPage feature="The club store" />} />
             <Route path="/jobs" element={<JobsDirectoryPage />} />
-            <Route path="/campaigns" element={<OpportunityDirectoryPage type="campaigns" />} />
+            <Route path="/campaigns" element={<RouteRecoveryPage feature="Campaigns and fundraising" />} />
             <Route path="/people" element={<ProtectedRoute><PeoplePage /></ProtectedRoute>} />
-            <Route path="/clubs/:id/store" element={<ClubStorePage />} />
+            <Route path="/clubs/:id/store" element={<RouteRecoveryPage feature="The club store" />} />
             <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage darkMode={darkMode} /></ProtectedRoute>} />
             <Route path="/clubs/:id" element={<ClubProfilePage />} />
@@ -324,6 +322,7 @@ function MainLayout() {
             <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
             <Route path="/dob" element={<ProtectedRoute><DobGatePage /></ProtectedRoute>} />
             <Route path="/set-password" element={<ProtectedRoute><SetPasswordPage /></ProtectedRoute>} />
+            <Route path="*" element={<RouteRecoveryPage />} />
         </Routes>
     );
 
@@ -384,6 +383,7 @@ function MainLayout() {
                             <Routes>
                                 <Route path="/home" element={<ProtectedRoute><FeedPage user={user} /></ProtectedRoute>} />
                                 <Route path="/feed" element={<Navigate to={`/home${location.search}`} replace />} />
+                                <Route path="*" element={<RouteRecoveryPage />} />
                             </Routes>
                         </main>
 

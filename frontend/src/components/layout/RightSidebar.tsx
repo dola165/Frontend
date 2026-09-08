@@ -2,47 +2,26 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
     BriefcaseBusiness,
-    DollarSign,
+    Building2,
     ExternalLink,
-    HeartHandshake,
     MessageCircle,
     Minus,
     Send,
-    ShoppingBag,
     X
 } from 'lucide-react';
 import { chatApi, type ChatMessageResponse, type ConversationDto, type ParticipantInfo } from '../../api/chat';
-import { fetchStoreCatalogPage } from '../../features/store/api';
 import { useChatWebSocket } from '../../hooks/useChatWebSocket';
 import { getStoredUserId } from '../../utils/authStorage';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
-
-type DiscoveryTab = 'store' | 'jobs' | 'campaigns';
 
 interface ContactConversation {
     conversation: ConversationDto;
     participant: ParticipantInfo;
 }
 
-const discoveryTabs: Array<{
-    id: DiscoveryTab;
-    label: string;
-    subtitle: string;
-    path: string;
-    icon: typeof ShoppingBag;
-    accent: string;
-    border: string;
-    soft: string;
-}> = [
-    { id: 'campaigns', label: 'Fundraising / Campaigns', subtitle: 'Support club and grassroots projects', path: '/campaigns', icon: HeartHandshake, accent: 'text-emerald-400', border: 'border-emerald-500/55', soft: 'bg-emerald-500/[0.07]' },
-    { id: 'jobs', label: 'Jobs & Volunteering', subtitle: 'Roles around the football community', path: '/jobs', icon: BriefcaseBusiness, accent: 'text-fuchsia-300', border: 'border-fuchsia-400/45', soft: 'bg-fuchsia-400/[0.06]' },
-    { id: 'store', label: 'Club Store', subtitle: 'Kits, training gear and equipment', path: '/store', icon: ShoppingBag, accent: 'text-amber-300', border: 'border-amber-400/60', soft: 'bg-amber-400/[0.06]' }
-];
-
 const formatMessageTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 export const RightSidebar = () => {
-    const [storeCount, setStoreCount] = useState(0);
     const [conversations, setConversations] = useState<ConversationDto[]>([]);
     const [quickChat, setQuickChat] = useState<ContactConversation | null>(null);
     const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
@@ -59,12 +38,11 @@ export const RightSidebar = () => {
 
     useEffect(() => {
         let active = true;
-        Promise.all([
-            fetchStoreCatalogPage(0, 3).catch(() => ({ content: [], totalElements: 0 })),
-            chatApi.getConversations(0, 8).then((response) => response.data).catch(() => ({ content: [], pageNumber: 0, pageSize: 8, totalElements: 0 }))
-        ]).then(([catalog, conversationPage]) => {
+        chatApi.getConversations(0, 8)
+        .then((response) => response.data)
+        .catch(() => ({ content: [], pageNumber: 0, pageSize: 8, totalElements: 0 }))
+        .then((conversationPage) => {
             if (!active) return;
-            setStoreCount(catalog.totalElements ?? catalog.content?.length ?? 0);
             setConversations(conversationPage.content ?? []);
         });
         return () => {
@@ -125,31 +103,21 @@ export const RightSidebar = () => {
         <>
             <aside className="hidden xl:block">
                 <div className="sticky top-[calc(var(--app-header-height)+20px)] space-y-5">
-                    <section className="overflow-hidden rounded-xl border border-white/10 bg-[#090b0e] shadow-[var(--feed-shadow-panel)]" aria-labelledby="opportunities-heading">
+                    <section className="overflow-hidden rounded-xl border border-white/10 bg-[#090b0e] shadow-[var(--feed-shadow-panel)]" aria-labelledby="discover-heading">
                         <div className="flex items-center gap-2 border-b border-white/[0.08] px-4 py-4">
-                            <DollarSign className="h-4 w-4 text-emerald-400" />
-                            <h2 id="opportunities-heading" className="text-xs font-bold text-emerald-400">Opportunities</h2>
+                            <Building2 className="h-4 w-4 text-emerald-400" />
+                            <h2 id="discover-heading" className="text-xs font-bold text-emerald-400">Explore football</h2>
                         </div>
 
-                        <div className="space-y-2.5 p-3" aria-label="Opportunities">
-                            {discoveryTabs.map((tab) => {
-                                const Icon = tab.icon;
-                                const count = tab.id === 'store' ? storeCount : 0;
-                                return (
-                                    <Link
-                                        key={tab.id}
-                                        to={tab.path}
-                                        className={`block w-full rounded-md border px-3 py-3 text-left transition-colors ${tab.border} ${tab.soft} hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60`}
-                                    >
-                                        <span className="flex items-center gap-2">
-                                            <Icon className={`h-4 w-4 ${tab.accent}`} />
-                                            <span className={`min-w-0 flex-1 text-xs font-bold ${tab.accent}`}>{tab.label}</span>
-                                            <span className={`text-xs font-bold ${tab.accent}`}>{count}</span>
-                                        </span>
-                                        <span className="mt-1.5 block truncate text-[11px] text-[#a1a1aa]">{tab.subtitle}</span>
-                                    </Link>
-                                );
-                            })}
+                        <div className="space-y-2.5 p-3" aria-label="Supported destinations">
+                            <Link to="/clubs" className="block rounded-md border border-emerald-500/45 bg-emerald-500/[0.06] px-3 py-3 transition-colors hover:brightness-110">
+                                <span className="flex items-center gap-2 text-xs font-bold text-emerald-300"><Building2 className="h-4 w-4" />Browse clubs</span>
+                                <span className="mt-1.5 block text-[11px] text-[#a1a1aa]">Find clubs, teams and public profiles</span>
+                            </Link>
+                            <Link to="/jobs" className="block rounded-md border border-fuchsia-400/40 bg-fuchsia-400/[0.06] px-3 py-3 transition-colors hover:brightness-110">
+                                <span className="flex items-center gap-2 text-xs font-bold text-fuchsia-300"><BriefcaseBusiness className="h-4 w-4" /><span className="flex-1">Jobs & volunteering</span><span className="rounded-full border border-amber-400/30 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-amber-300">Preview</span></span>
+                                <span className="mt-1.5 block text-[11px] text-[#a1a1aa]">Roles published by football clubs</span>
+                            </Link>
                         </div>
                     </section>
 

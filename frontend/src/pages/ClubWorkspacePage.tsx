@@ -11,7 +11,6 @@ import {
     PanelRight,
     Settings,
     ShieldCheck,
-    ShoppingBag,
     UserPlus,
     Users,
     X
@@ -80,7 +79,6 @@ import { ApplicationsTab, type ApplicationFilters } from '../components/workspac
 import { RolesTab } from '../components/workspace/tabs/RolesTab';
 import { JobsTab } from '../components/workspace/tabs/JobsTab';
 import { SettingsTab } from '../components/workspace/tabs/SettingsTab';
-import { StoreTab } from '../components/workspace/tabs/StoreTab';
 import { SquadsTab } from '../components/workspace/tabs/SquadsTab';
 import { PlayerCardsTab } from '../components/workspace/tabs/PlayerCardsTab';
 import { TryoutsTab } from '../components/workspace/tabs/TryoutsTab';
@@ -757,7 +755,6 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
             items.push({ id: 'jobs', label: 'Jobs', icon: Briefcase });
         }
         if (canManageLeadership) {
-            items.push({ id: 'store', label: 'Store', icon: ShoppingBag });
             items.push({ id: 'settings', label: 'Settings', icon: Settings });
         }
         if (canManageOperations) {
@@ -989,10 +986,6 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                     currentUserId={currentUserId}
                                     canReviewAllApplications={canManageLeadership}
                                 />
-                            )}
-
-                            {activeTab === 'store' && (
-                                <StoreTab clubId={clubId} pendingKey={pendingKey} />
                             )}
 
                             {activeTab === 'settings' && (

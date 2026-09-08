@@ -183,46 +183,29 @@ test('Home keeps a readable social layout and preserves the legacy feed link', a
     await expect(page.getByRole('menuitem', { name: /sign out/i })).toBeVisible();
 });
 
-test('club stores expose scoped filters, collections, and the global Store', async ({ page }) => {
+test('legacy store links explain the supported surface and recover to the club', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/clubs/1/store');
-    await expect(page.getByRole('heading', { name: 'Creekside FC' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Collections' })).toBeVisible();
-    await expect(page.getByRole('button', { name: /open global store/i })).toBeVisible();
-
-    await page.getByRole('button', { name: /kits & footwear/i }).click();
-    await expect(page.getByText('1 product', { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: /home kit/i })).toBeVisible();
-    await expect(page.getByRole('heading', { name: /academy scarf/i })).toHaveCount(0);
-
-    await page.getByPlaceholder(/search this club store/i).fill('not-a-real-product');
-    await expect(page.getByText(/no products match these filters/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /club store is outside this demo/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /back to club/i })).toHaveAttribute('href', '/clubs/1');
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/clubs/1/store');
     const mobileMetrics = await page.evaluate(() => ({
         viewportWidth: window.innerWidth,
         documentWidth: document.documentElement.scrollWidth
     }));
     expect(mobileMetrics.documentWidth).toBeLessThanOrEqual(mobileMetrics.viewportWidth + 1);
-    await expect(page.getByRole('button', { name: /open global store/i })).toBeVisible();
-    await page.getByRole('button', { name: /open global store/i }).click();
-    await expect(page).toHaveURL(/\/store$/);
-    await expect(page.getByRole('heading', { name: /^Store$/i })).toBeVisible();
-    await page.getByRole('link', { name: /^Jobs$/i }).click();
-    await expect(page).toHaveURL(/\/jobs$/);
-    await expect(page.getByRole('heading', { name: /jobs & volunteer opportunities/i })).toBeVisible();
 });
 
-test('Jobs uses football filters while Campaigns stays honestly deferred', async ({ page }) => {
+test('Jobs uses football filters while campaigns recover to supported journeys', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/jobs');
     await expect(page.getByRole('heading', { name: /jobs & volunteer opportunities/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /location and club/i })).toHaveAttribute('aria-expanded', 'true');
     await page.getByRole('combobox', { name: 'Country' }).selectOption({ label: 'United Kingdom' });
     await page.getByRole('combobox', { name: 'City' }).selectOption({ label: 'Bristol' });
-    await page.getByRole('radio', { name: /media & communications/i }).check({ force: true });
-    await page.getByRole('radio', { name: /^volunteering$/i }).check({ force: true });
+    await page.getByRole('button', { name: 'Media & communications', exact: true }).click();
+    await page.getByRole('button', { name: /^volunteering$/i }).click();
     await expect(page.getByRole('button', { name: /volunteer social media coordinator/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /goalkeeper coach/i })).toHaveCount(0);
 
@@ -233,11 +216,10 @@ test('Jobs uses football filters while Campaigns stays honestly deferred', async
     }));
     expect(mobileMetrics.documentWidth).toBeLessThanOrEqual(mobileMetrics.viewportWidth + 1);
 
-    await page.getByRole('link', { name: /^Campaigns$/i }).click();
+    await page.goto('/campaigns');
     await expect(page).toHaveURL(/\/campaigns$/);
-    await expect(page.getByRole('heading', { name: /^Campaigns$/i })).toBeVisible();
-    await expect(page.getByText(/fundraiser data remains intentionally disconnected/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /location and club/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /campaigns and fundraising is outside this demo/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /browse clubs/i })).toBeVisible();
 });
 
 test('discovery filters are prominent and the product canvas follows light mode', async ({ page }) => {

@@ -16,11 +16,8 @@ import { ClubMessageModal, buildClubCommunicationOptions, openClubCommunication 
 import { TabTeams } from '../components/club/tabs/TabTeams';
 import { TabOverview } from '../components/club/tabs/TabOverview';
 import { TabPeople } from '../components/club/tabs/TabPeople';
-import { TabFacilities } from '../components/club/tabs/TabFacilities';
-import { TabHonours } from '../components/club/tabs/TabHonours';
 import { TabCalendar } from '../components/club/tabs/TabCalendar';
 import { TabMedia } from '../components/club/tabs/TabMedia';
-import { TabEvents } from '../components/club/tabs/TabEvents';
 import { TabContact } from '../components/club/tabs/TabContact';
 import { ClubBusinessTab } from '../components/club/ClubBusinessTab';
 import {
@@ -99,8 +96,8 @@ const normalizeManagementTab = (value: string | null): ClubManagementTab | null 
         : null;
 
 const normalizeTab = (value: string | null): ClubTab => {
-    if (value === 'media') return 'pictures'; // legacy URL alias
-    return value === 'people' || value === 'facilities' || value === 'honours' || value === 'teams' || value === 'schedule' || value === 'pictures' || value === 'videos' || value === 'events' || value === 'business' || value === 'contact'
+    if (value === 'pictures' || value === 'videos') return 'media';
+    return value === 'people' || value === 'teams' || value === 'schedule' || value === 'media' || value === 'business' || value === 'contact'
         ? value
         : 'overview';
 };
@@ -386,13 +383,9 @@ export const ClubProfilePage = () => {
 
                         {activeTab === 'overview' && <TabOverview club={club} isOwnClubAdmin={isOwnClubAdmin} onOpenManageClub={(tab) => openManageClub(tab)} />}
                         {activeTab === 'people' && <TabPeople clubId={club.id} clubName={club.name} isOwnClubAdmin={isOwnClubAdmin} />}
-                        {activeTab === 'facilities' && <TabFacilities club={club} isOwnClubAdmin={isOwnClubAdmin} />}
-                        {activeTab === 'honours' && <TabHonours club={club} />}
                         {activeTab === 'teams' && <TabTeams clubId={club.id} refreshKey={squadsRefreshKey} />}
                         {activeTab === 'schedule' && <TabCalendar clubId={club.id} isOwnClubAdmin={isOwnClubAdmin} />}
-                        {activeTab === 'pictures' && <TabMedia clubId={club.id} mediaType="pictures" />}
-                        {activeTab === 'videos' && <TabMedia clubId={club.id} mediaType="videos" />}
-                        {activeTab === 'events' && <TabEvents clubId={club.id} />}
+                        {activeTab === 'media' && <div className="space-y-5"><TabMedia clubId={club.id} mediaType="pictures" /><TabMedia clubId={club.id} mediaType="videos" /></div>}
                         {activeTab === 'business' && (
                             <ClubBusinessTab
                                 club={club}

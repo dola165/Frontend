@@ -49,6 +49,18 @@ const SidebarContent = ({
     const resolvedClubLogoUrl = resolveMediaUrl(clubLogoUrl);
     const [clubLogoFailedUrl, setClubLogoFailedUrl] = useState<string | null>(null);
     useDialogFocus(mobileOpen, sidebarRef, onClose, closeRef);
+    const groupedTabs = [
+        { label: 'Club', ids: ['overview', 'settings'] },
+        { label: 'People', ids: ['personnel', 'players', 'invites', 'applications', 'roles', 'inbox'] },
+        { label: 'Football', ids: ['squads', 'player-cards', 'tryouts'] },
+        { label: 'Opportunities', ids: ['jobs'] },
+    ].map((group) => ({
+        ...group,
+        tabs: [
+            ...tabs,
+            { id: 'inbox' as const, label: t('clubWorkspace.inbox'), icon: BellRing, badge: unreadInboxCount > 0 ? String(unreadInboxCount) : null },
+        ].filter((tab) => group.ids.includes(tab.id)),
+    })).filter((group) => group.tabs.length > 0);
 
     return <>
     {mobileOpen && <button type="button" aria-label={t('clubWorkspace.closeNavigation')} onClick={onClose} className="workspace-sidebar-backdrop" />}
@@ -87,66 +99,34 @@ const SidebarContent = ({
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-            {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                    <button
-                        key={tab.id}
-                        type="button"
-                        aria-current={isActive ? 'page' : undefined}
-                        onClick={() => { onTabChange(tab.id); onClose(); }}
-                        className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors ${
-                            isActive
-                                ? 'bg-[var(--fc-accent-soft)] text-[var(--fc-accent)] border-l-[3px] border-[var(--fc-accent)]'
-                                : 'text-[var(--fc-text-secondary)] hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)] border-l-[3px] border-transparent'
-                        }`}
-                    >
-                        <span className="flex items-center gap-2.5">
-                            <Icon className="h-4 w-4" />
-                            {tab.label}
-                        </span>
-                        {tab.badge && (
-                            <span className={`rounded-xl px-1.5 py-0.5 text-[11px] font-semibold ${
-                                isActive
-                                    ? 'bg-[var(--fc-accent-soft)] text-[var(--fc-accent)]'
-                                    : 'bg-[var(--fc-surface-hover)] text-[var(--fc-text-muted)]'
-                            }`}>
-                                {tab.badge}
-                            </span>
-                        )}
-                    </button>
-                );
-            })}
-
-            <div className="my-2 border-t border-[var(--fc-border)]" />
-
-            {/* Inbox */}
-            <button
-                type="button"
-                aria-current={activeTab === 'inbox' ? 'page' : undefined}
-                onClick={() => { onTabChange('inbox'); onClose(); }}
-                className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors ${
-                    activeTab === 'inbox'
-                        ? 'bg-[var(--fc-accent-soft)] text-[var(--fc-accent)] border-l-[3px] border-[var(--fc-accent)]'
-                        : 'text-[var(--fc-text-secondary)] hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)] border-l-[3px] border-transparent'
-                }`}
-            >
-                <span className="flex items-center gap-2.5">
-                    <BellRing className="h-4 w-4" />
-                    {t('clubWorkspace.inbox')}
-                </span>
-                {unreadInboxCount > 0 && (
-                    <span className={`rounded-xl px-1.5 py-0.5 text-[11px] font-semibold ${
-                        activeTab === 'inbox'
-                            ? 'bg-[var(--fc-accent-soft)] text-[var(--fc-accent)]'
-                            : 'bg-[var(--fc-surface-hover)] text-[var(--fc-text-muted)]'
-                    }`}>
-                        {String(unreadInboxCount)}
-                    </span>
-                )}
-            </button>
+        <nav className="flex-1 space-y-4 overflow-y-auto p-2">
+            {groupedTabs.map((group) => (
+                <section key={group.label} aria-label={group.label}>
+                    <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--fc-text-muted)]">{group.label}</p>
+                    <div className="space-y-0.5">
+                        {group.tabs.map((tab) => {
+                            const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    aria-current={isActive ? 'page' : undefined}
+                                    onClick={() => { onTabChange(tab.id); onClose(); }}
+                                    className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors ${
+                                        isActive
+                                            ? 'border-l-[3px] border-[var(--fc-accent)] bg-[var(--fc-accent-soft)] text-[var(--fc-accent)]'
+                                            : 'border-l-[3px] border-transparent text-[var(--fc-text-secondary)] hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)]'
+                                    }`}
+                                >
+                                    <span className="flex items-center gap-2.5"><Icon className="h-4 w-4" />{tab.label}</span>
+                                    {tab.badge ? <span className="rounded-xl bg-[var(--fc-surface-hover)] px-1.5 py-0.5 text-[11px] font-semibold">{tab.badge}</span> : null}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </section>
+            ))}
         </nav>
     </aside>
     </>;

@@ -255,7 +255,7 @@ export const TournamentDetailPage = () => {
     const registrationRange = formatTournamentDateRange(tournament.registrationOpensAt, tournament.registrationClosesAt, i18n.language);
     const organizerName = tournament.organizerName ?? t('tournaments.public.organizerFallback');
     const hostName = tournament.hostClubName ?? t('tournaments.public.hostFallback');
-    const visibleFixtures = tournament.fixtures.slice(0, 4);
+    const visibleFixtures = tournament.fixtures;
 
     const actionContent = (() => {
         if (isStaff) {
@@ -355,6 +355,7 @@ export const TournamentDetailPage = () => {
                             {t('tournaments.public.backToTournaments')}
                         </Link>
                         <div className="flex flex-wrap justify-end gap-2 rounded-2xl border border-white/10 bg-black/35 p-1.5 shadow-lg shadow-black/10 backdrop-blur-md">
+                            <span className="inline-flex items-center rounded-full border border-amber-300/25 bg-amber-300/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200">Preview</span>
                             <TournamentStatusBadge status={tournament.status} />
                             <TournamentScopeBadge scope={tournament.participantScope} />
                             <RegistrationPolicyBadge policy={tournament.registrationPolicy} />
@@ -373,6 +374,11 @@ export const TournamentDetailPage = () => {
                     </div>
                 </div>
             </TournamentVisual>
+
+            <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/[0.06] px-5 py-4 text-sm leading-6 text-amber-100/80">
+                <p className="font-bold text-amber-100">Public tournament preview</p>
+                <p className="mt-1">This page shows every published participant, fixture, and result. Public standings and brackets will be added later.</p>
+            </div>
 
             <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
                 <main className="space-y-6">
@@ -404,7 +410,7 @@ export const TournamentDetailPage = () => {
                     <Section icon={<UsersRound className="h-5 w-5" />} title={t('tournaments.public.entriesTitle')} eyebrow={t('tournaments.public.entryCount', { count: visibleEntries.length })}>
                         {visibleEntries.length > 0 ? (
                             <div className="grid gap-3 sm:grid-cols-2">
-                                {visibleEntries.slice(0, 8).map((entry) => (
+                                {visibleEntries.map((entry) => (
                                     <div key={entry.id} className="rounded-xl border border-white/[0.06] bg-white/[0.025] p-3.5">
                                         <TournamentIdentity name={entryDisplayName(entry)} subtitle={entry.squadName && entry.clubName ? entry.clubName : t(`tournaments.public.entryStatus.${entry.status.toLowerCase()}`)} />
                                     </div>
@@ -430,7 +436,10 @@ export const TournamentDetailPage = () => {
                                                 {fixture.homeLabel || t('tournaments.public.toBeDecided')} <span className="mx-2 text-zinc-600">vs</span> {fixture.awayLabel || t('tournaments.public.toBeDecided')}
                                             </p>
                                         </div>
-                                        <p className="text-xs text-zinc-500">{formatTournamentDate(fixture.scheduledAt, i18n.language) || t('tournaments.public.kickoffToBeConfirmed')}</p>
+                                        <div className="text-right">
+                                            {fixture.homeScore != null && fixture.awayScore != null ? <p className="text-sm font-bold text-zinc-200">{fixture.homeScore} – {fixture.awayScore}</p> : null}
+                                            <p className="text-xs text-zinc-500">{formatTournamentDate(fixture.scheduledAt, i18n.language) || t('tournaments.public.kickoffToBeConfirmed')}</p>
+                                        </div>
                                     </div>
                                 ))}
                             </div>

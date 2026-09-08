@@ -61,8 +61,7 @@ export const CreateClubPage = () => {
     whatsappNumber: '',
     facebookMessengerUrl: '',
     preferredCommunicationMethod: null as ClubCommunicationMethod | null,
-    category: '',
-    organizationId: ''
+    category: ''
   });
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -107,8 +106,7 @@ export const CreateClubPage = () => {
         preferredCommunicationMethod: formData.preferredCommunicationMethod,
         latitude: selectedLocation?.lat ?? null,
         longitude: selectedLocation?.lng ?? null,
-        category: formData.category || undefined,
-        organizationId: formData.organizationId.trim() ? Number(formData.organizationId) : null
+        category: formData.category || undefined
       });
 
       navigate(`/clubs/${response.data.id}`);
@@ -422,20 +420,6 @@ export const CreateClubPage = () => {
                       value={formData.facebookMessengerUrl}
                       onChange={(e) => updateField('facebookMessengerUrl', e.target.value)}
                       placeholder={t('createClub.messengerPlaceholder')}
-                      className="w-full bg-[#16181d] border border-[#ffffff0d] rounded-xl px-4 py-3 outline-none focus:border-[#16a34a] font-medium text-sm text-[#f4f4f5] transition-colors"
-                    />
-                  </div>
-
-                  {/* Organization link */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-widest text-[#a1a1aa]">Organization ID (optional)</label>
-                    <p className="text-xs text-[#71717a]">Only if you own an organization — links this club to it</p>
-                    <input
-                      type="number"
-                      min={1}
-                      value={formData.organizationId}
-                      onChange={(e) => updateField('organizationId', e.target.value)}
-                      placeholder="e.g. 42"
                       className="w-full bg-[#16181d] border border-[#ffffff0d] rounded-xl px-4 py-3 outline-none focus:border-[#16a34a] font-medium text-sm text-[#f4f4f5] transition-colors"
                     />
                   </div>

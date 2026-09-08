@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { apiClient } from '../api/axiosConfig';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { clearAuthFlow, completedAuthDestination, getAuthFlow, requiredAccountStep } from '../utils/authRedirect';
 
 /**
  * First-login password change for card-activated accounts
@@ -13,6 +15,7 @@ import { ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
 export const SetPasswordPage = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
+    const { bootstrapSession } = useAuth();
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -35,7 +38,17 @@ export const SetPasswordPage = () => {
         setError('');
         try {
             await apiClient.post('/auth/change-password', { currentPassword, newPassword });
-            navigate('/feed', { replace: true });
+            const refreshedUser = await bootstrapSession();
+            if (!refreshedUser) throw new Error('Session could not be refreshed after password change.');
+            const requiredStep = requiredAccountStep(refreshedUser);
+            if (requiredStep) {
+                navigate(requiredStep, { replace: true });
+                return;
+            }
+            const flow = getAuthFlow();
+            const destination = completedAuthDestination(refreshedUser, flow.nextPath, flow.newAccount);
+            clearAuthFlow();
+            navigate(destination, { replace: true });
         } catch (err) {
             console.error(err);
             setError(extractApiErrorMessage(err, t('minors.setPassword.failed')));

@@ -98,6 +98,11 @@ test('Home keeps a readable social layout and preserves the legacy feed link', a
         { width: 1280, height: 720, leftRail: true, rightRail: true },
         { width: 1366, height: 768, leftRail: true, rightRail: true },
         { width: 1920, height: 1080, leftRail: true, rightRail: true },
+        // Zoom-equivalent CSS viewports for a 1920px monitor at 80% and 67%.
+        // The shared page maximum should keep the feed aligned with the nav
+        // instead of allowing the rails to drift to the browser edges.
+        { width: 2400, height: 1080, leftRail: true, rightRail: true },
+        { width: 2866, height: 1080, leftRail: true, rightRail: true },
         { width: 390, height: 844, leftRail: false, rightRail: false }
     ] as const;
 
@@ -115,6 +120,8 @@ test('Home keeps a readable social layout and preserves the legacy feed link', a
 
         const metrics = await page.evaluate(() => {
             const main = document.querySelector<HTMLElement>('main')?.getBoundingClientRect();
+            const feedGrid = document.querySelector<HTMLElement>('.feed-home-grid')?.getBoundingClientRect();
+            const navFrame = document.querySelector<HTMLElement>('#app-top-navigation [data-layout-frame="wide"]')?.getBoundingClientRect();
             const asides = Array.from(document.querySelectorAll<HTMLElement>('aside')).map((aside) => ({
                 display: getComputedStyle(aside).display,
                 width: aside.getBoundingClientRect().width,
@@ -128,6 +135,10 @@ test('Home keeps a readable social layout and preserves the legacy feed link', a
                 viewportWidth: window.innerWidth,
                 documentWidth: document.documentElement.scrollWidth,
                 mainWidth: main?.width ?? 0,
+                feedGridLeft: feedGrid?.left ?? -1,
+                feedGridRight: feedGrid?.right ?? -1,
+                navFrameLeft: navFrame?.left ?? -1,
+                navFrameRight: navFrame?.right ?? -1,
                 leftRailVisible: asides[0]?.display !== 'none' && asides[0]?.width > 0,
                 rightRailVisible: asides[1]?.display !== 'none' && asides[1]?.width > 0,
                 leftRailLeft: asides[0]?.left ?? -1,
@@ -146,12 +157,16 @@ test('Home keeps a readable social layout and preserves the legacy feed link', a
         if (viewport.width >= 1024) {
             expect(metrics.mainWidth).toBeGreaterThanOrEqual(640);
             expect(metrics.mainWidth).toBeLessThanOrEqual(681);
-            expect(metrics.leftRailLeft).toBeLessThanOrEqual(32);
+            expect(metrics.leftRailLeft).toBeGreaterThanOrEqual(metrics.navFrameLeft - 1);
+            expect(metrics.leftRailLeft).toBeLessThanOrEqual(metrics.navFrameRight);
+            expect(metrics.feedGridLeft).toBeGreaterThanOrEqual(metrics.navFrameLeft - 1);
+            expect(metrics.feedGridRight).toBeLessThanOrEqual(metrics.navFrameRight + 1);
         } else {
             expect(metrics.mainWidth).toBeGreaterThanOrEqual(viewport.width - 48);
         }
         if (viewport.rightRail) {
-            expect(viewport.width - metrics.rightRailRight).toBeLessThanOrEqual(32);
+            expect(metrics.rightRailRight).toBeLessThanOrEqual(metrics.navFrameRight + 1);
+            expect(metrics.rightRailRight).toBeGreaterThanOrEqual(metrics.navFrameLeft);
         }
     }
 
@@ -164,7 +179,7 @@ test('Home keeps a readable social layout and preserves the legacy feed link', a
     });
     await page.getByRole('button', { name: /open menu/i }).click();
     await expect(page.getByRole('menuitem', { name: /account settings/i })).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: /light mode|dark mode/i })).toBeVisible();
+    await expect(page.getByRole('menuitemradio', { name: /^light mode/i })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: /sign out/i })).toBeVisible();
 });
 
@@ -239,7 +254,7 @@ test('discovery filters are prominent and the product canvas follows light mode'
     await page.evaluate(() => localStorage.setItem('theme', 'dark'));
     await page.reload();
     await page.getByRole('button', { name: /open menu/i }).click();
-    await page.getByRole('menuitem', { name: /light mode/i }).click();
+    await page.getByRole('menuitemradio', { name: /^light mode/i }).click();
     await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(false);
 
     await expect.poll(() => page.evaluate(() => {
@@ -249,12 +264,128 @@ test('discovery filters are prominent and the product canvas follows light mode'
     })).toBe(true);
 });
 
+test('club directory switches views and shares one responsive filter state', async ({ page }) => {
+    test.skip(!mockMode, 'requires the deterministic mock session');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/clubs');
+    await expect(page.getByRole('heading', { name: /club directory/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /grid view/i })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('section[aria-label="Club results"] article')).toHaveCount(4);
+    const firstClubLinks = page.locator('section[aria-label="Club results"] article').first().locator('a[href^="/clubs/"]');
+    await expect(firstClubLinks).toHaveCount(3);
+    const firstClubHref = await firstClubLinks.first().getAttribute('href');
+    expect(firstClubHref).toMatch(/\/clubs\/\d+/);
+    for (let linkIndex = 1; linkIndex < 3; linkIndex += 1) {
+        await expect(firstClubLinks.nth(linkIndex)).toHaveAttribute('href', firstClubHref ?? '');
+    }
+
+    await page.getByRole('button', { name: /list view/i }).click();
+    await expect(page.getByRole('button', { name: /list view/i })).toHaveAttribute('aria-pressed', 'true');
+    await page.reload();
+    await expect(page.getByRole('button', { name: /list view/i })).toHaveAttribute('aria-pressed', 'true');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByRole('button', { name: /open filters/i })).toBeVisible();
+    await expect(page.getByRole('complementary', { name: /filters/i })).toHaveCount(0);
+    await page.getByRole('button', { name: /open filters/i }).click();
+    const filterDialog = page.getByRole('dialog', { name: /filters/i });
+    await expect(filterDialog).toBeVisible();
+    await filterDialog.getByRole('button', { name: 'ACADEMY', exact: true }).click();
+    await expect.poll(() => new URL(page.url()).searchParams.getAll('type')).toEqual(['ACADEMY']);
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('button', { name: /open filters/i })).toBeFocused();
+    await expect(filterDialog).toHaveCount(0);
+    await page.getByRole('button', { name: /remove filter academy/i }).click();
+    await expect.poll(() => new URL(page.url()).searchParams.getAll('type')).toEqual([]);
+});
+
+test('landing map keeps filters outside the canvas until requested', async ({ page }) => {
+    test.skip(!mockMode, 'requires the deterministic mock session');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+
+    const toolbar = page.getByRole('region', { name: /map search and filters/i });
+    const filterPanel = page.getByRole('complementary', { name: /simple map filters/i });
+    await expect(toolbar).toBeVisible();
+    await expect(page.locator('.map-canvas-frame')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.querySelector<HTMLElement>('.maplibregl-canvas')?.getBoundingClientRect().height ?? 0)).toBeGreaterThan(0);
+    await expect(page.getByRole('button', { name: /open filters/i })).toBeVisible();
+    await expect(filterPanel).toBeHidden();
+
+    await page.getByRole('button', { name: /open filters/i }).click();
+    await expect(filterPanel).toBeVisible();
+    const desktopPlacement = await page.evaluate(() => {
+        const panel = document.querySelector<HTMLElement>('#landing-map-filter-panel')?.getBoundingClientRect();
+        const canvas = document.querySelector<HTMLElement>('.map-canvas-frame')?.getBoundingClientRect();
+        const canvasElement = document.querySelector<HTMLElement>('.map-canvas-frame');
+        const panelElement = document.querySelector<HTMLElement>('#landing-map-filter-panel');
+        return {
+            panelBottom: panel?.bottom ?? -1,
+            canvasTop: canvas?.top ?? null,
+            panelInsideCanvas: Boolean(canvasElement && panelElement && canvasElement.contains(panelElement))
+        };
+    });
+    expect(desktopPlacement.panelInsideCanvas).toBe(false);
+    if (desktopPlacement.canvasTop != null) {
+        expect(desktopPlacement.panelBottom).toBeLessThanOrEqual(desktopPlacement.canvasTop + 1);
+    }
+
+    await filterPanel.getByRole('button', { name: /close filters/i }).click();
+    await expect(filterPanel).toBeHidden();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole('button', { name: /open filters/i }).click();
+    await expect(filterPanel).toBeVisible();
+    await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector<HTMLElement>('#landing-map-filter-panel')!).position)).toBe('fixed');
+    await filterPanel.getByRole('button', { name: /close filters/i }).click();
+    await expect(filterPanel).toBeHidden();
+});
+
 test('Followed Clubs opens its own focused directory', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/clubs/following');
-    await expect(page.getByRole('heading', { name: /followed clubs/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Followed clubs', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: /browse more clubs/i })).toBeVisible();
     await expect(page).toHaveURL(/\/clubs\/following$/);
+});
+
+test('mobile navigation exposes search and destinations hidden from desktop rails', async ({ page }) => {
+    test.skip(!mockMode, 'requires the deterministic mock session');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/home');
+
+    await expect(page.getByRole('button', { name: /open search/i })).toBeVisible();
+    await page.getByRole('button', { name: /open search/i }).click();
+    await expect(page.getByRole('textbox', { name: /global search/i })).toBeFocused();
+    await page.getByRole('button', { name: /close search/i }).click();
+    await expect(page.getByRole('button', { name: /open search/i })).toBeFocused();
+
+    await page.getByRole('button', { name: /open menu/i }).click();
+    const menu = page.getByRole('menu');
+    await expect(menu.getByRole('group', { name: /explore grasskickz/i })).toBeVisible();
+    for (const label of ['People', 'Followed clubs', 'Store', 'Jobs & volunteering', 'Campaigns']) {
+        await expect(menu.getByRole('menuitem', { name: label, exact: true })).toBeVisible();
+    }
+    await page.getByRole('button', { name: /close menu/i }).click();
+    await expect(page.getByRole('button', { name: /open menu/i })).toBeFocused();
+    const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(documentWidth).toBeLessThanOrEqual(390);
+});
+
+test('anonymous mobile visitors keep public navigation and search usable', async ({ page }) => {
+    test.skip(!mockMode, 'requires the deterministic mock session');
+    await page.evaluate(() => {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('userId');
+    });
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/clubs');
+    await expect(page.getByRole('heading', { name: /club directory/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /open search/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /^clubs$/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /^tournaments$/i })).toBeVisible();
+    const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(documentWidth).toBeLessThanOrEqual(375);
 });
 
 test('Recent contacts open a quick chat without leaving Home', async ({ page }) => {

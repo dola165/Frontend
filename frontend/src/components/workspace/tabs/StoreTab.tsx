@@ -98,11 +98,12 @@ export const StoreTab = ({ clubId, pendingKey }: StoreTabProps) => {
                             >
                                 {product.active ? 'Hide' : 'Show'}
                             </button>
-                            <button type="button" onClick={() => setEditing(product)} className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
+                            <button type="button" onClick={() => setEditing(product)} aria-label={`Edit ${product.name}`} className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
                                 <Pencil className="h-3.5 w-3.5" />
                             </button>
                             <button
                                 type="button"
+                                aria-label={`Delete ${product.name}`}
                                 onClick={() => void (async () => {
                                     await deleteStoreProduct(clubId, product.id);
                                     await load();
@@ -192,7 +193,7 @@ const StoreProductForm = ({
         <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-4">
             <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-[var(--fc-text-primary)]">{product ? 'Edit product' : 'New product'}</p>
-                <button type="button" onClick={onCancel} className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
+                <button type="button" onClick={onCancel} aria-label="Close product editor" className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
                     <X className="h-4 w-4" />
                 </button>
             </div>

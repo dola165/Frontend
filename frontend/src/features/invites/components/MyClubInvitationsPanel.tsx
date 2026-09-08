@@ -118,8 +118,8 @@ export const MyClubInvitationsPanel = ({ onInvitationAccepted }: MyClubInvitatio
     return (
         <EntitySection
             eyebrow="Invitations"
-            title="Club Invites"
-            description="Review incoming club invites here before you create a club or join one."
+            title="Club invitations"
+            description="When a club invites you, you can review and respond here."
             actions={(
                 <StatusBadge tone={orderedInvitations.some((invite) => invite.status === 'PENDING') ? 'info' : 'neutral'}>
                     {orderedInvitations.filter((invite) => invite.status === 'PENDING').length} pending
@@ -151,7 +151,7 @@ export const MyClubInvitationsPanel = ({ onInvitationAccepted }: MyClubInvitatio
                 <div className="px-4 py-10 text-center">
                     <Inbox className="mx-auto h-8 w-8 text-[#a1a1aa]" />
                     <p className="mt-4 text-sm leading-6 text-[#a1a1aa]">
-                        No club invitations are waiting for this account right now.
+                        You do not have any club invitations right now.
                     </p>
                 </div>
             ) : (

@@ -39,7 +39,7 @@ type SearchResult = UserResult | ClubResult | TournamentResult;
 const DEBOUNCE_MS = 250;
 const MIN_QUERY_LENGTH = 2;
 
-export const GlobalSearchBar = ({ light = false }: { light?: boolean }) => {
+export const GlobalSearchBar = ({ light = false, mobile = false }: { light?: boolean; mobile?: boolean }) => {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -52,6 +52,10 @@ export const GlobalSearchBar = ({ light = false }: { light?: boolean }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (mobile) inputRef.current?.focus();
+  }, [mobile]);
 
   // Debounce the query
   useEffect(() => {
@@ -241,7 +245,7 @@ export const GlobalSearchBar = ({ light = false }: { light?: boolean }) => {
   };
 
   return (
-    <div ref={containerRef} className="relative hidden min-w-0 max-w-xl flex-1 lg:flex">
+    <div ref={containerRef} className={mobile ? 'relative flex min-w-0 flex-1' : 'relative hidden min-w-0 max-w-xl flex-1 lg:flex'}>
       <div className="relative w-full">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" />
         <input

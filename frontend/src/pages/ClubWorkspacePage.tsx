@@ -8,6 +8,8 @@ import {
     Crown,
     Handshake,
     LayoutDashboard,
+    Menu,
+    PanelRight,
     Settings,
     ShieldCheck,
     ShoppingBag,
@@ -19,6 +21,7 @@ import { apiClient } from '../api/axiosConfig';
 import {
     clubRoleLabel,
     canManageClubOperations,
+    canManagePlayerStatuses,
     canReviewTryouts,
     isLeadershipRole,
     isLegacyAgentMembershipRole,
@@ -37,6 +40,7 @@ import {
     createClubInvitation,
     declineClubApplication,
     fetchClubApplications,
+    fetchAllClubJobs,
     fetchClubPlayers,
     fetchClubManagementOverview,
     leaveClubMembership,
@@ -46,7 +50,8 @@ import {
     sendParentalConsentEmail,
     updateClubPlayerStatus,
     transferClubOwnership,
-    updateClubMemberRole
+    updateClubMemberRole,
+    type ClubJob
 } from '../features/clubs/api';
 import {
     fetchNotifications,
@@ -82,7 +87,13 @@ import { PlayerCardsTab } from '../components/workspace/tabs/PlayerCardsTab';
 import { TryoutsTab } from '../components/workspace/tabs/TryoutsTab';
 import { InboxTab } from '../components/workspace/tabs/InboxTab';
 import { AgentEngagementsTab } from '../components/workspace/tabs/AgentEngagementsTab';
-import type { WorkspaceTab, TabItem, UserSearchDto, TryoutApplicantDto } from '../components/workspace/types';
+import { fetchClubSchedule, type ScheduleEventOccurrence } from '../features/schedule/api';
+import { parseWorkspaceTab, type WorkspaceTab, type TabItem, type UserSearchDto, type TryoutApplicantDto } from '../components/workspace/types';
+
+const toScheduleDateTime = (value: Date) => {
+    const pad = (part: number) => String(part).padStart(2, '0');
+    return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}:00`;
+};
 
 // ── page ──
 
@@ -95,17 +106,11 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     const currentUserId = Number(getStoredUserId() || 0) || null;
 
     // ── tab state ──
-    const initialTab = (searchParams.get('tab') as WorkspaceTab) || 'overview';
+    const initialTab = parseWorkspaceTab(searchParams.get('tab')) ?? 'overview';
     const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialTab);
 
-    useEffect(() => {
-        const urlTab = searchParams.get('tab') as WorkspaceTab | null;
-        if (urlTab && urlTab !== activeTab) {
-            setActiveTab(urlTab);
-        }
-    }, [searchParams]);
-
     const switchTab = (tab: WorkspaceTab) => {
+        if (overview && !allowedTabIds.has(tab)) return;
         setActiveTab(tab);
         const next = new URLSearchParams(searchParams);
         if (tab === 'overview') {
@@ -126,20 +131,38 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     const [overview, setOverview] = useState<ClubManagementOverview | null>(null);
     const [overviewLoading, setOverviewLoading] = useState(true);
     const [overviewError, setOverviewError] = useState<string | null>(null);
+    const overviewRequestRef = useRef(0);
+    const [clubName, setClubName] = useState<string | null>(null);
+    const [clubLogoUrl, setClubLogoUrl] = useState<string | null>(null);
+    const clubSummaryRequestRef = useRef(0);
+    const [upcomingEvents, setUpcomingEvents] = useState<ScheduleEventOccurrence[]>([]);
+    const [scheduleLoading, setScheduleLoading] = useState(true);
+    const [scheduleError, setScheduleError] = useState<string | null>(null);
+    const scheduleRequestRef = useRef(0);
+    const [workspaceNavOpen, setWorkspaceNavOpen] = useState(false);
+    const [contextOpen, setContextOpen] = useState(false);
     const [tryoutApplicants, setTryoutApplicants] = useState<TryoutApplicantDto[]>([]);
     const [tryoutsLoading, setTryoutsLoading] = useState(false);
+    const tryoutsRequestRef = useRef(0);
+    const tryoutsCacheRef = useRef<{ key: string; loadedAt: number }>({ key: '', loadedAt: 0 });
 
     // Phase A3 — dedicated applications list with filters + bulk decisions.
     const [applicationsList, setApplicationsList] = useState<ClubMembershipApplication[]>([]);
     const [applicationsLoading, setApplicationsLoading] = useState(false);
     const [applicationsError, setApplicationsError] = useState<string | null>(null);
-    const [applicationsFilters, setApplicationsFilters] = useState<ApplicationFilters>({ position: '', ageGroup: '', status: 'PENDING' });
+    const [applicationsFilters, setApplicationsFilters] = useState<ApplicationFilters>({ position: '', ageGroup: '', status: 'PENDING', jobId: '' });
+    const applicationsRequestRef = useRef(0);
+    const applicationsCacheRef = useRef<{ key: string; loadedAt: number }>({ key: '', loadedAt: 0 });
+    const [workspaceJobs, setWorkspaceJobs] = useState<ClubJob[]>([]);
+    const jobsRequestRef = useRef(0);
 
     const [playerStatusFilter, setPlayerStatusFilter] = useState<'ALL' | PlayerAffiliationStatus>('ALL');
     const [playerPage, setPlayerPage] = useState(0);
     const [playerDirectory, setPlayerDirectory] = useState<PageResult<ClubPlayerAffiliation> | null>(null);
     const [playerLoading, setPlayerLoading] = useState(false);
     const [playerError, setPlayerError] = useState<string | null>(null);
+    const playersRequestRef = useRef(0);
+    const playersCacheRef = useRef<{ key: string; loadedAt: number }>({ key: '', loadedAt: 0 });
     // Phase A1 — trialists filter defaults on the first time trialists exist.
     const trialistAutoSelectRef = useRef(false);
     const [promoteTarget, setPromoteTarget] = useState<ClubPlayerAffiliation | null>(null);
@@ -169,6 +192,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     const [inboxTotalElements, setInboxTotalElements] = useState(0);
     const [inboxLoading, setInboxLoading] = useState(true);
     const [inboxLoadingMore, setInboxLoadingMore] = useState(false);
+    const [inboxError, setInboxError] = useState<string | null>(null);
     const [inboxBusyId, setInboxBusyId] = useState<number | null>(null);
     const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
     const inboxActiveRef = useRef(true);
@@ -177,8 +201,14 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     const currentRole: string | null = overview?.currentUserRole ?? null;
     const canManageLeadership = isLeadershipRole(currentRole);
     const canManageOperations = canManageClubOperations(currentRole);
+    const canChangePlayerStatus = canManagePlayerStatuses(currentRole);
     const canManageTryouts = canReviewTryouts(currentRole);
     const isOwner = currentRole === 'OWNER';
+    const tryoutPendingCount = useMemo(
+        () => tryoutApplicants.filter((applicant) => applicant.status === 'PENDING' || applicant.status === 'SHORTLISTED').length,
+        [tryoutApplicants]
+    );
+    const authoritativeTryoutPendingCount = overview?.pendingTryoutCount ?? tryoutPendingCount;
 
     const invitedUserIds = useMemo(() => new Set(overview?.pendingInvitations.map((i) => i.userId) || []), [overview]);
     const transferCandidates = useMemo(
@@ -190,27 +220,70 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     // ── data loading ──
 
     const loadOverview = async () => {
+        const requestId = ++overviewRequestRef.current;
         setOverviewLoading(true);
         setOverviewError(null);
         try {
             const response = await fetchClubManagementOverview(clubId);
+            if (requestId !== overviewRequestRef.current) return;
             setOverview(response);
             if (response.assignableInviteRoles.length > 0 && !response.assignableInviteRoles.includes(selectedInviteRole)) {
                 setSelectedInviteRole(response.assignableInviteRoles[0]);
             }
         } catch (error) {
+            if (requestId !== overviewRequestRef.current) return;
             setOverviewError(extractApiErrorMessage(error, 'Failed to load club management data.'));
         } finally {
-            setOverviewLoading(false);
+            if (requestId === overviewRequestRef.current) setOverviewLoading(false);
         }
     };
 
-    const loadPlayers = async () => {
+    const loadClubSummary = useCallback(async () => {
+        const requestId = ++clubSummaryRequestRef.current;
+        try {
+            const response = await apiClient.get<{ name?: string; logoUrl?: string | null }>(`/clubs/${clubId}`);
+            if (requestId !== clubSummaryRequestRef.current) return;
+            setClubName(response.data.name ?? null);
+            setClubLogoUrl(response.data.logoUrl ?? null);
+        } catch {
+            // The management overview remains usable if the public club summary is unavailable.
+        }
+    }, [clubId]);
+
+    const loadUpcomingSchedule = useCallback(async () => {
+        const requestId = ++scheduleRequestRef.current;
+        setScheduleLoading(true);
+        setScheduleError(null);
+        const from = new Date();
+        const to = new Date(from);
+        to.setDate(to.getDate() + 7);
+        try {
+            const events = await fetchClubSchedule(clubId, toScheduleDateTime(from), toScheduleDateTime(to));
+            if (requestId !== scheduleRequestRef.current) return;
+            const now = Date.now();
+            setUpcomingEvents(events
+                .filter((event) => event.status?.toUpperCase() !== 'CANCELLED' && new Date(event.endsAt).getTime() >= now)
+                .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()));
+        } catch (error) {
+            if (requestId !== scheduleRequestRef.current) return;
+            setUpcomingEvents([]);
+            setScheduleError(extractApiErrorMessage(error, 'Failed to load upcoming schedule.'));
+        } finally {
+            if (requestId === scheduleRequestRef.current) setScheduleLoading(false);
+        }
+    }, [clubId]);
+
+    const loadPlayers = async (force = false) => {
+        const cacheKey = `${clubId}:${playerStatusFilter}:${playerPage}`;
+        if (!force && playerDirectory && playersCacheRef.current.key === cacheKey && Date.now() - playersCacheRef.current.loadedAt < 30_000) return;
+        const requestId = ++playersRequestRef.current;
         setPlayerLoading(true);
         setPlayerError(null);
         try {
             const response = await fetchClubPlayers(clubId, playerStatusFilter === 'ALL' ? null : playerStatusFilter, playerPage, 20);
+            if (requestId !== playersRequestRef.current) return;
             setPlayerDirectory(response);
+            playersCacheRef.current = { key: cacheKey, loadedAt: Date.now() };
             // Phase A1 — default the filter to TRIALIST once, when any exist.
             if (!trialistAutoSelectRef.current
                 && playerStatusFilter === 'ALL'
@@ -219,25 +292,34 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                 setPlayerStatusFilter('TRIALIST');
             }
         } catch (error) {
+            if (requestId !== playersRequestRef.current) return;
             setPlayerError(extractApiErrorMessage(error, 'Failed to load player affiliations.'));
         } finally {
-            setPlayerLoading(false);
+            if (requestId === playersRequestRef.current) setPlayerLoading(false);
         }
     };
 
-    const loadTryouts = async () => {
+    const loadTryouts = async (force = false) => {
+        const cacheKey = String(clubId);
+        if (!force && tryoutApplicants.length > 0 && tryoutsCacheRef.current.key === cacheKey && Date.now() - tryoutsCacheRef.current.loadedAt < 30_000) return;
+        const requestId = ++tryoutsRequestRef.current;
         setTryoutsLoading(true);
         try {
             const response = await apiClient.get<TryoutApplicantDto[]>(`/admin/tryouts/clubs/${clubId}/applications`);
+            if (requestId !== tryoutsRequestRef.current) return;
             setTryoutApplicants(response.data || []);
+            tryoutsCacheRef.current = { key: cacheKey, loadedAt: Date.now() };
         } catch {
             // non-critical
         } finally {
-            setTryoutsLoading(false);
+            if (requestId === tryoutsRequestRef.current) setTryoutsLoading(false);
         }
     };
 
-    const loadApplications = async () => {
+    const loadApplications = async (force = false) => {
+        const cacheKey = `${clubId}:${applicationsFilters.position}:${applicationsFilters.ageGroup}:${applicationsFilters.status}:${applicationsFilters.jobId}`;
+        if (!force && applicationsList.length > 0 && applicationsCacheRef.current.key === cacheKey && Date.now() - applicationsCacheRef.current.loadedAt < 30_000) return;
+        const requestId = ++applicationsRequestRef.current;
         setApplicationsLoading(true);
         setApplicationsError(null);
         try {
@@ -245,18 +327,59 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                 position: applicationsFilters.position || null,
                 ageGroup: applicationsFilters.ageGroup || null,
                 status: applicationsFilters.status || null,
+                jobId: applicationsFilters.jobId ? Number(applicationsFilters.jobId) : null,
             });
+            if (requestId !== applicationsRequestRef.current) return;
             setApplicationsList(response);
+            applicationsCacheRef.current = { key: cacheKey, loadedAt: Date.now() };
         } catch (error) {
+            if (requestId !== applicationsRequestRef.current) return;
             setApplicationsError(extractApiErrorMessage(error, 'Failed to load applications.'));
         } finally {
-            setApplicationsLoading(false);
+            if (requestId === applicationsRequestRef.current) setApplicationsLoading(false);
         }
     };
 
-    useEffect(() => { void loadOverview(); void loadTryouts(); }, [clubId]);
-    useEffect(() => { void loadPlayers(); }, [clubId, playerPage, playerStatusFilter]);
-    useEffect(() => { void loadApplications(); }, [clubId, applicationsFilters]);
+    const loadWorkspaceJobs = useCallback(async () => {
+        const requestId = ++jobsRequestRef.current;
+        try {
+            const jobs = await fetchAllClubJobs(clubId);
+            if (requestId === jobsRequestRef.current) setWorkspaceJobs(jobs);
+        } catch {
+            if (requestId === jobsRequestRef.current) setWorkspaceJobs([]);
+        }
+    }, [clubId]);
+
+    useEffect(() => {
+        void loadOverview();
+        void loadClubSummary();
+        void loadUpcomingSchedule();
+    }, [clubId, loadClubSummary, loadUpcomingSchedule]);
+    useEffect(() => {
+        if (activeTab === 'players') void loadPlayers();
+    }, [activeTab, clubId, playerPage, playerStatusFilter]);
+    useEffect(() => {
+        // Player cards are trialist affiliations, but page 0 of a large player
+        // directory can contain only active players. Use the authoritative
+        // overview count so card-backed players are visible without requiring
+        // the manager to discover the filter manually.
+        if (activeTab !== 'players' || playerStatusFilter !== 'ALL' || trialistAutoSelectRef.current) return;
+        if ((overview?.trialistCount ?? 0) > 0) {
+            trialistAutoSelectRef.current = true;
+            setPlayerStatusFilter('TRIALIST');
+            setPlayerPage(0);
+        }
+    }, [activeTab, overview?.trialistCount, playerStatusFilter]);
+    useEffect(() => {
+        if (activeTab === 'applications') void loadApplications();
+    }, [activeTab, clubId, applicationsFilters]);
+    useEffect(() => {
+        if (activeTab === 'tryouts') void loadTryouts();
+    }, [activeTab, clubId]);
+
+    useEffect(() => {
+        if (activeTab === 'applications') void loadWorkspaceJobs();
+    }, [activeTab, loadWorkspaceJobs]);
 
     useEffect(() => {
         if (activeTab !== 'invites') return;
@@ -280,6 +403,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     const PAGE_SIZE = 20;
 
     const loadInbox = useCallback(async (page: number, append: boolean) => {
+        setInboxError(null);
         if (page === 0 && !append) setInboxLoading(true);
         else setInboxLoadingMore(true);
         try {
@@ -289,8 +413,8 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                 setInboxTotalElements(response.totalElements);
                 setInboxNotifications(prev => append ? [...prev, ...response.content] : response.content);
             }
-        } catch {
-            // non-critical
+        } catch (error) {
+            if (inboxActiveRef.current) setInboxError(extractApiErrorMessage(error, 'Could not load club inbox.'));
         } finally {
             if (inboxActiveRef.current) {
                 setInboxLoading(false);
@@ -313,8 +437,21 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         setInboxPage(0);
         setInboxNotifications([]);
         void loadInbox(0, false);
+    }, [activeTab, clubId, loadInbox]);
+
+    useEffect(() => {
         void loadInboxUnreadCount();
-    }, [activeTab, clubId, loadInbox, loadInboxUnreadCount]);
+    }, [loadInboxUnreadCount]);
+
+    useEffect(() => {
+        const closeOverlays = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') return;
+            setWorkspaceNavOpen(false);
+            setContextOpen(false);
+        };
+        window.addEventListener('keydown', closeOverlays);
+        return () => window.removeEventListener('keydown', closeOverlays);
+    }, []);
 
     useEffect(() => {
         const unsubscribe = subscribeNotificationsChanged(() => {
@@ -372,7 +509,9 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     };
 
     const handleAcceptApplication = (applicationId: number) => {
-        const target = overview?.pendingApplications.find((a) => a.id === applicationId) ?? null;
+        const target = applicationsList.find((a) => a.id === applicationId)
+            ?? overview?.pendingApplications.find((a) => a.id === applicationId)
+            ?? null;
         setAcceptTarget(target);
     };
 
@@ -380,9 +519,11 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         if (!acceptTarget) return;
         const target = acceptTarget;
         await runAction(`accept-${target.id}`, async () => {
-            await acceptClubApplication(clubId, target.id, message);
-            await Promise.all([loadOverview(), loadApplications()]);
-            setSuccessMessage('Application accepted.');
+            const result = await acceptClubApplication(clubId, target.id, message);
+            await Promise.all([loadOverview(), loadApplications(true)]);
+            setSuccessMessage(result.activeElsewhere
+                ? 'Application accepted as a trialist. Warning: this player is still active at another club.'
+                : 'Application accepted.');
             setAcceptTarget(null);
         });
     };
@@ -398,7 +539,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         const target = declineTarget;
         await runAction(`decline-${target.id}`, async () => {
             await declineClubApplication(clubId, target.id, message);
-            await Promise.all([loadOverview(), loadApplications()]);
+            await Promise.all([loadOverview(), loadApplications(true)]);
             setSuccessMessage('Application declined.');
             setDeclineTarget(null);
         });
@@ -413,7 +554,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                 { message: message ?? null },
                 { params: { status: 'REJECTED' } }
             );
-            await loadTryouts();
+            await loadTryouts(true);
             setSuccessMessage('Tryout declined.');
             setTryoutDeclineTarget(null);
         });
@@ -429,11 +570,12 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         let completed = false;
         await runAction(`bulk-${action}`, async () => {
             const response = await bulkDecideClubApplications(clubId, { applicationIds, action, message });
-            await Promise.all([loadOverview(), loadApplications()]);
+            await Promise.all([loadOverview(), loadApplications(true)]);
             const decided = response.results.filter((r) => r.status === action).length;
             const skipped = response.results.filter((r) => r.status === 'SKIPPED').length;
+            const warnings = response.results.filter((r) => r.status === action && !!r.reason).length;
             setSuccessMessage(
-                `${decided} application(s) ${action === 'ACCEPT' ? 'accepted' : 'declined'}${skipped > 0 ? `, ${skipped} skipped` : ''}.`
+                `${decided} application(s) ${action === 'ACCEPT' ? 'accepted' : 'declined'}${skipped > 0 ? `, ${skipped} skipped` : ''}${warnings > 0 ? `, ${warnings} active-elsewhere warning${warnings === 1 ? '' : 's'}` : ''}.`
             );
             completed = true;
         });
@@ -441,6 +583,10 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     };
 
     const handlePlayerStatusChange = async (userId: number, status: PlayerAffiliationStatus, playerName?: string) => {
+        if (!canChangePlayerStatus) {
+            setErrorMessage('Only club owners and admins can change player status.');
+            return;
+        }
         if (status === 'PAST' || status === 'REMOVED') {
             pendingStatusRef.current = { userId, status, playerName };
             setReleaseMessage('');
@@ -451,9 +597,13 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     };
 
     const executeStatusChange = async (userId: number, status: PlayerAffiliationStatus, message?: string | null) => {
+        if (!canChangePlayerStatus) {
+            setErrorMessage('Only club owners and admins can change player status.');
+            return;
+        }
         await runAction(`player-${userId}-${status}`, async () => {
             await updateClubPlayerStatus(clubId, userId, status, undefined, message);
-            await Promise.all([loadOverview(), loadPlayers()]);
+            await Promise.all([loadOverview(), loadPlayers(true)]);
             setSuccessMessage(`Player status updated to ${status}.`);
         });
     };
@@ -469,19 +619,28 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
 
     const handlePromoteConfirm = async (squadId: number, trialEndsOn: string | null) => {
         if (!promoteTarget) return;
+        if (!canChangePlayerStatus) {
+            setErrorMessage('Only club owners and admins can promote players.');
+            setPromoteTarget(null);
+            return;
+        }
         const target = promoteTarget;
         await runAction(`promote-${target.userId}`, async () => {
             await promoteClubPlayer(clubId, target.userId, { squadId, trialEndsOn });
-            await Promise.all([loadOverview(), loadPlayers()]);
+            await Promise.all([loadOverview(), loadPlayers(true)]);
             setSuccessMessage(`${target.fullName || target.username || 'Player'} promoted to active.`);
             setPromoteTarget(null);
         });
     };
 
     const handleTrialEndsChange = async (userId: number, trialEndsOn: string) => {
+        if (!canChangePlayerStatus) {
+            setErrorMessage('Only club owners and admins can change trial dates.');
+            return;
+        }
         await runAction(`trial-ends-${userId}`, async () => {
             await updateClubPlayerStatus(clubId, userId, 'TRIALIST', trialEndsOn || null);
-            await loadPlayers();
+            await loadPlayers(true);
             setSuccessMessage('Trial deadline updated.');
         });
     };
@@ -532,7 +691,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                 { message: message ?? null },
                 { params: { status: 'ACCEPTED' } }
             );
-            await loadTryouts();
+            await loadTryouts(true);
             setSuccessMessage('Tryout accepted.');
             setTryoutAcceptTarget(null);
         });
@@ -583,7 +742,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         if (canManageOperations) {
             items.push({ id: 'players', label: 'Players', icon: Users, badge: overview ? String((overview.activePlayerCount || 0) + (overview.trialistCount || 0)) : null });
         }
-        if (canManageLeadership) {
+        if (canManageOperations) {
             items.push({ id: 'invites', label: 'Invites', icon: UserPlus, badge: overview && overview.pendingInvitations.length > 0 ? String(overview.pendingInvitations.length) : null });
         }
         if (canManageOperations) {
@@ -591,7 +750,11 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         }
         if (canManageLeadership) {
             items.push({ id: 'roles', label: 'Roles', icon: Crown });
+        }
+        if (canManageOperations) {
             items.push({ id: 'jobs', label: 'Jobs', icon: Briefcase });
+        }
+        if (canManageLeadership) {
             items.push({ id: 'store', label: 'Store', icon: ShoppingBag });
             items.push({ id: 'settings', label: 'Settings', icon: Settings });
         }
@@ -607,6 +770,30 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         }
         return items;
     }, [canManageLeadership, canManageOperations, canManageTryouts, overview, tryoutApplicants.length]);
+
+    const allowedTabIds = useMemo(() => new Set<WorkspaceTab>([
+        ...tabs.map((tab) => tab.id),
+        'inbox',
+    ]), [tabs]);
+
+    useEffect(() => {
+        // A stale or hand-edited URL must not expose a tab outside the current
+        // role. Wait for the overview so a valid deep link is not rejected
+        // while the role is still loading.
+        if (!overview) return;
+        const requestedTab = parseWorkspaceTab(searchParams.get('tab'));
+        const nextTab = requestedTab && allowedTabIds.has(requestedTab) ? requestedTab : 'overview';
+        if (nextTab !== activeTab) {
+            setActiveTab(nextTab);
+        }
+
+        const nextParams = new URLSearchParams(searchParams);
+        if (nextTab === 'overview') nextParams.delete('tab');
+        else nextParams.set('tab', nextTab);
+        if (nextParams.toString() !== searchParams.toString()) {
+            setSearchParams(nextParams, { replace: true });
+        }
+    }, [activeTab, allowedTabIds, overview, searchParams, setSearchParams]);
 
     const totalPlayerPages = playerDirectory ? Math.max(1, Math.ceil(playerDirectory.totalElements / Math.max(playerDirectory.pageSize, 1))) : 1;
     const totalSearchPages = searchResults ? Math.max(1, Math.ceil(searchResults.totalElements / Math.max(searchResults.pageSize, 1))) : 1;
@@ -633,21 +820,39 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                 activeTab={activeTab}
                 tabs={tabs}
                 unreadInboxCount={inboxUnreadCount}
+                clubName={clubName}
+                clubLogoUrl={clubLogoUrl}
+                mobileOpen={workspaceNavOpen}
                 onTabChange={switchTab}
                 onNavigate={navigate}
+                onClose={() => setWorkspaceNavOpen(false)}
             />
 
             {/* ── main content ── */}
-            <main className="flex-1 overflow-y-auto">
-                <div className="sticky top-0 z-10 space-y-2 px-6 pt-4">
+            <main className="workspace-page-main min-w-0 flex-1 overflow-y-auto">
+                <div className="workspace-mobile-bar sticky top-0 z-20 items-center justify-between gap-3 border-b border-[var(--fc-border)] bg-[var(--fc-page-bg)] px-4 py-3">
+                    <button type="button" onClick={() => setWorkspaceNavOpen(true)} aria-expanded={workspaceNavOpen} aria-controls="workspace-navigation" className="inline-flex items-center gap-2 rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-xs font-semibold text-[var(--fc-text-primary)] hover:bg-[var(--fc-surface-hover)]">
+                        <Menu className="h-4 w-4" />
+                        {t('clubWorkspace.menu')}
+                    </button>
+                    <div className="min-w-0 flex-1 text-center">
+                        <p className="truncate text-sm font-semibold text-[var(--fc-text-primary)]">{clubName || `Club #${clubId}`}</p>
+                        <p className="truncate text-[11px] text-[var(--fc-text-muted)]">{activeTab === 'overview' ? 'Club workspace' : tabs.find((tab) => tab.id === activeTab)?.label || 'Workspace'}</p>
+                    </div>
+                    <button type="button" onClick={() => setContextOpen(true)} aria-expanded={contextOpen} aria-controls="workspace-context" className="inline-flex items-center gap-2 rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-xs font-semibold text-[var(--fc-text-primary)]" aria-label={t('clubWorkspace.openContext')}>
+                        <PanelRight className="h-4 w-4" />
+                        {t('clubWorkspace.context')}
+                    </button>
+                </div>
+                <div className="workspace-alert-stack sticky top-0 z-10 space-y-2 px-6 pt-4">
                     {errorMessage && (
-                        <div className="rounded-xl border border-[var(--fc-state-danger-soft)] bg-[var(--fc-state-danger-soft)] px-4 py-2.5 text-sm flex items-center justify-between">
+                        <div role="alert" aria-live="assertive" className="rounded-xl border border-[var(--fc-state-danger-soft)] bg-[var(--fc-state-danger-soft)] px-4 py-2.5 text-sm flex items-center justify-between">
                             <span className="font-medium text-[var(--fc-text-primary)]">{errorMessage}</span>
                             <button type="button" onClick={() => setErrorMessage(null)} className="text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]"><X className="h-4 w-4" /></button>
                         </div>
                     )}
                     {successMessage && (
-                        <div className="rounded-xl border border-[var(--fc-accent-soft)] bg-[var(--fc-accent-soft)] px-4 py-2.5 text-sm flex items-center justify-between">
+                        <div role="status" aria-live="polite" className="rounded-xl border border-[var(--fc-accent-soft)] bg-[var(--fc-accent-soft)] px-4 py-2.5 text-sm flex items-center justify-between">
                             <span className="font-medium text-[var(--fc-text-primary)]">{successMessage}</span>
                             <button type="button" onClick={() => setSuccessMessage(null)} className="text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]"><X className="h-4 w-4" /></button>
                         </div>
@@ -662,14 +867,30 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                     ) : (
                         <div className="space-y-4">
                             {activeTab === 'overview' && (
-                                <OverviewTab overview={overview} clubId={clubId} onTabChange={switchTab} overdueTrialistCount={overdueTrialistCount} />
+                                <OverviewTab
+                                    overview={overview}
+                                    clubId={clubId}
+                                    onTabChange={switchTab}
+                                    overdueTrialistCount={overdueTrialistCount}
+                                    canManageLeadership={canManageLeadership}
+                                    canManageOperations={canManageOperations}
+                                    upcomingEvents={upcomingEvents}
+                                    scheduleLoading={scheduleLoading}
+                                    scheduleError={scheduleError}
+                                    tryoutPendingCount={tryoutPendingCount}
+                                    unreadInboxCount={inboxUnreadCount}
+                                    onOpenSchedule={() => { setContextOpen(false); navigate(`/calendar?clubId=${clubId}`); }}
+                                    onRetrySchedule={() => { void loadUpcomingSchedule(); }}
+                                />
                             )}
 
                             {activeTab === 'personnel' && (
                                 <PersonnelTab
+                                    clubId={clubId}
                                     overview={overview}
                                     currentUserId={currentUserId}
                                     currentRole={currentRole}
+                                    canManageLeadership={canManageLeadership}
                                     pendingKey={pendingKey}
                                     confirmingRemovalUserId={confirmingRemovalUserId}
                                     onRoleChange={handleRoleChange}
@@ -684,13 +905,24 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                     playerLoading={playerLoading}
                                     playerError={playerError}
                                     playerStatusFilter={playerStatusFilter}
+                                    playerCounts={overview ? {
+                                        ACTIVE: overview.activePlayerCount,
+                                        TRIALIST: overview.trialistCount,
+                                        PAST: overview.pastPlayerCount ?? 0,
+                                        REMOVED: overview.removedPlayerCount ?? 0,
+                                        ALL: overview.activePlayerCount
+                                            + overview.trialistCount
+                                            + (overview.pastPlayerCount ?? 0)
+                                            + (overview.removedPlayerCount ?? 0),
+                                    } : undefined}
                                     pendingKey={pendingKey}
+                                    canManagePlayerStatuses={canChangePlayerStatus}
                                     totalPlayerPages={totalPlayerPages}
                                     onStatusFilterChange={(f) => { setPlayerStatusFilter(f); setPlayerPage(0); }}
                                     onPlayerStatusChange={handlePlayerStatusChange}
                                     onPromotePlayer={setPromoteTarget}
                                     onTrialEndsChange={handleTrialEndsChange}
-                                    onRetry={() => { void loadPlayers(); }}
+                                    onRetry={() => { void loadPlayers(true); }}
                                     onPageChange={setPlayerPage}
                                     onMessagePlayer={(userId) => navigate(`/messages?chatWith=${userId}`)}
                                     onSendConsentEmail={handleSendConsentEmail}
@@ -722,13 +954,14 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                     applications={applicationsList}
                                     applicationsLoading={applicationsLoading}
                                     applicationsError={applicationsError}
+                                    jobs={workspaceJobs}
                                     filters={applicationsFilters}
                                     bulkPending={!!pendingKey && pendingKey.startsWith('bulk-')}
                                     onFiltersChange={(f) => setApplicationsFilters(f)}
                                     onAcceptApplication={handleAcceptApplication}
                                     onDeclineApplication={handleDeclineApplication}
                                     onBulkDecide={handleBulkDecide}
-                                    onRetry={() => { void loadApplications(); }}
+                                    onRetry={() => { void loadApplications(true); }}
                                 />
                             )}
 
@@ -751,7 +984,12 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                             )}
 
                             {activeTab === 'jobs' && (
-                                <JobsTab clubId={clubId} pendingKey={pendingKey} />
+                                <JobsTab
+                                    clubId={clubId}
+                                    pendingKey={pendingKey}
+                                    currentUserId={currentUserId}
+                                    canReviewAllApplications={canManageLeadership}
+                                />
                             )}
 
                             {activeTab === 'store' && (
@@ -801,9 +1039,11 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                     busyId={inboxBusyId}
                                     hasMore={inboxHasMore}
                                     unreadCount={inboxUnreadCount}
+                                    error={inboxError}
                                     onOpen={handleInboxOpen}
                                     onLoadMore={handleInboxLoadMore}
                                     onMarkAllRead={handleInboxMarkAllRead}
+                                    onRetry={() => { void loadInbox(0, false); }}
                                 />
                             )}
                         </div>
@@ -816,8 +1056,16 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                 overview={overview}
                 playerDirectory={playerDirectory}
                 tryoutApplicants={tryoutApplicants}
+                pendingTryoutCount={authoritativeTryoutPendingCount}
+                upcomingEvents={upcomingEvents}
+                scheduleLoading={scheduleLoading}
+                scheduleError={scheduleError}
                 currentRole={currentRole}
                 onTabChange={switchTab}
+                onOpenSchedule={() => { setContextOpen(false); navigate(`/calendar?clubId=${clubId}`); }}
+                onRetrySchedule={() => { void loadUpcomingSchedule(); }}
+                mobileOpen={contextOpen}
+                onClose={() => setContextOpen(false)}
             />
         </div>
         {promoteTarget && (

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, Loader2, ShieldCheck, X } from 'lucide-react';
 import { apiClient } from '../../../api/axiosConfig';
 import type { ClubPlayerAffiliation } from '../../../features/clubs/domain';
+import { useDialogFocus } from '../useDialogFocus';
 
 interface SquadOption {
     id: number;
@@ -33,6 +34,8 @@ export const PromotePlayerModal = ({
     const [squadsLoading, setSquadsLoading] = useState(true);
     const [selectedSquadId, setSelectedSquadId] = useState<number | null>(null);
     const [trialEndsOn, setTrialEndsOn] = useState<string>(player?.trialEndsOn ?? '');
+    const dialogRef = useRef<HTMLDivElement>(null);
+    useDialogFocus(Boolean(player), dialogRef, onClose);
 
     useEffect(() => {
         let cancelled = false;
@@ -64,19 +67,19 @@ export const PromotePlayerModal = ({
     return (
         <div className="fixed inset-0 z-[1200] flex items-center justify-center">
             <div className="theme-overlay absolute inset-0" onClick={onClose} />
-            <div className="relative z-10 mx-4 w-full max-w-md border border-[#ffffff0d] bg-[#0f1117] shadow-2xl">
+            <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="promote-player-title" aria-describedby="promote-player-description" className="relative z-10 mx-4 w-full max-w-md border border-[var(--fc-border)] bg-[var(--fc-page-bg)] shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-[#ffffff0d] px-5 py-4">
                     <div className="flex items-center gap-3">
-                        <ShieldCheck className="h-5 w-5 text-[#16a34a]" />
+                        <ShieldCheck className="h-5 w-5 text-[var(--fc-accent)]" />
                         <div>
-                            <h2 className="text-sm font-semibold text-[#f4f4f5]">{t('trialists.promoteTitle')}</h2>
-                            <p className="mt-0.5 text-[11px] font-medium text-[#a1a1aa]">
+                            <h2 id="promote-player-title" className="text-sm font-semibold text-[var(--fc-text-primary)]">{t('trialists.promoteTitle')}</h2>
+                            <p id="promote-player-description" className="mt-0.5 text-[11px] font-medium text-[var(--fc-text-secondary)]">
                                 {playerName} · {t('trialists.promoteDescription')}
                             </p>
                         </div>
                     </div>
-                    <button type="button" onClick={onClose} className="p-1 text-[#a1a1aa] hover:text-[#f4f4f5]">
+                    <button type="button" onClick={onClose} aria-label={t('trialists.close')} className="p-1 text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]">
                         <X className="h-4 w-4" />
                     </button>
                 </div>

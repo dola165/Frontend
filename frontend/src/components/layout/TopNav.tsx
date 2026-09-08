@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+    Bell,
+    BriefcaseBusiness,
     Building2,
     CalendarDays,
     Check,
+    HeartHandshake,
     Home,
     LogOut,
     Menu,
@@ -20,7 +23,10 @@ import {
     Sun,
     Target,
     Trophy,
-    User
+    User,
+    UsersRound,
+    Search,
+    X
 } from 'lucide-react';
 import { GlobalSearchBar } from '../search/GlobalSearchBar';
 import { NotificationBell } from '../notifications/NotificationBell';
@@ -45,13 +51,15 @@ const labelKey = (id: string): string => {
         home: 'nav.feed', map: 'nav.map', clubs: 'nav.clubs', 'my-club': 'nav.myClub',
         calendar: 'nav.schedule', messages: 'nav.messages', marketplace: 'nav.marketplace',
         needs: 'nav.clubNeeds', notifications: 'nav.notifications', 'agent-dashboard': 'nav.agentHub',
-        tournaments: 'nav.tournaments'
+        tournaments: 'nav.tournaments', people: 'nav.people', 'clubs-following': 'nav.followedClubs',
+        store: 'nav.store', jobs: 'nav.jobs', campaigns: 'nav.campaigns'
     };
     return keys[id] || id;
 };
 
 const primaryLinks = [
     { id: 'home', path: '/home', label: 'Home', icon: Home, authRequired: true },
+    { id: 'map', path: '/map', label: 'Map', icon: MapPinned, authRequired: true },
     { id: 'clubs', path: '/clubs', label: 'Clubs', icon: Shield, authRequired: false },
     { id: 'my-club', path: '/my-club', label: 'My Club', icon: Building2, authRequired: true },
     { id: 'calendar', path: '/calendar', label: 'Schedule', icon: CalendarDays, authRequired: true },
@@ -87,7 +95,12 @@ export const TopNav = ({
     const isGeorgian = currentLanguage.startsWith('ka');
     const switchLanguage = () => void i18n.changeLanguage(isGeorgian ? 'en' : 'ka');
     const [openMenuLocationKey, setOpenMenuLocationKey] = useState<string | null>(null);
+    const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
+    const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
+    const mobileSearchTriggerRef = useRef<HTMLButtonElement | null>(null);
+    const hadMobileSearchOpen = useRef(false);
+    const hadMenuOpen = useRef(false);
     const menuOpen = openMenuLocationKey === location.key;
     const lightNavigation = themePreference === 'light';
 
@@ -102,10 +115,38 @@ export const TopNav = ({
         return () => document.removeEventListener('mousedown', handleOutsideClick);
     }, [menuOpen]);
 
+    useEffect(() => {
+        if (hadMobileSearchOpen.current && !mobileSearchOpen) {
+            mobileSearchTriggerRef.current?.focus();
+        }
+        hadMobileSearchOpen.current = mobileSearchOpen;
+    }, [mobileSearchOpen]);
+
+    useEffect(() => {
+        if (hadMenuOpen.current && !menuOpen) {
+            menuTriggerRef.current?.focus();
+        }
+        hadMenuOpen.current = menuOpen;
+    }, [menuOpen]);
+
     const iconActionClass = (active = false) => `inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16a34a] ${active
         ? lightNavigation ? 'border-[#16a34a]/45 bg-[#dcfce7] text-[#166534]' : 'border-[#22c55e]/45 bg-[#354038] text-[#86efac]'
         : lightNavigation ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'border-white/[0.07] bg-[#292d34] text-[#f1f3f5] hover:bg-[#363b44] hover:text-white'}`;
     const menuItemClass = `flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${lightNavigation ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-[#d4d4d8] hover:bg-white/[0.06] hover:text-white'}`;
+    const visibleLinks = [
+        ...primaryLinks.filter(item => !item.authRequired || !!user),
+        ...(user?.role === 'AGENT' ? agentOnlyLinks : [])
+    ];
+    const mobileLinks = [
+        ...visibleLinks,
+        { id: 'messages', path: '/messages', label: 'Messages', icon: MessageSquare, authRequired: true },
+        { id: 'notifications', path: '/notifications', label: 'Notifications', icon: Bell, authRequired: true },
+        { id: 'people', path: '/people', label: 'People', icon: UsersRound, authRequired: true },
+        { id: 'clubs-following', path: '/clubs/following', label: 'Followed clubs', icon: Shield, authRequired: true },
+        { id: 'store', path: '/store', label: 'Store', icon: ShoppingBag, authRequired: false },
+        { id: 'jobs', path: '/jobs', label: 'Jobs & volunteering', icon: BriefcaseBusiness, authRequired: false },
+        { id: 'campaigns', path: '/campaigns', label: 'Campaigns', icon: HeartHandshake, authRequired: false }
+    ].filter(item => !item.authRequired || !!user);
 
     if (collapsible && collapsed) {
         return (
@@ -137,6 +178,20 @@ export const TopNav = ({
                     <GlobalSearchBar light={lightNavigation} />
 
                     <div className="flex shrink-0 items-center gap-1 sm:gap-2.5">
+                        {!mobileSearchOpen && (
+                            <button
+                                type="button"
+                                onClick={() => setMobileSearchOpen(true)}
+                                className={`${iconActionClass()} lg:hidden`}
+                                ref={mobileSearchTriggerRef}
+                                aria-label={t('search.open')}
+                                title={t('search.open')}
+                                aria-expanded={mobileSearchOpen}
+                                aria-controls="mobile-global-search"
+                            >
+                                <Search className="h-5 w-5" />
+                            </button>
+                        )}
                         {user ? (
                             <>
                                 <Link
@@ -172,16 +227,30 @@ export const TopNav = ({
                                         type="button"
                                         onClick={() => setOpenMenuLocationKey(menuOpen ? null : location.key)}
                                         className={iconActionClass()}
+                                        ref={menuTriggerRef}
                                         aria-label={menuOpen ? t('nav.closeMenu') : t('nav.openMenu')}
                                         title={t('nav.menu')}
                                         aria-expanded={menuOpen}
                                         aria-haspopup="menu"
+                                        aria-controls="account-navigation-menu"
                                     >
                                         <Menu className="h-5 w-5" />
                                     </button>
 
                                     {menuOpen && (
-                                        <div role="menu" className={`absolute right-0 top-11 z-[150] w-72 overflow-hidden rounded-2xl border p-2 shadow-2xl ${lightNavigation ? 'border-slate-200 bg-white' : 'border-white/10 bg-[#16181d]'}`}>
+                                        <div id="account-navigation-menu" role="menu" className={`absolute right-0 top-11 z-[150] max-h-[min(80dvh,40rem)] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-2xl border p-2 shadow-2xl ${lightNavigation ? 'border-slate-200 bg-white' : 'border-white/10 bg-[#16181d]'}`}>
+                                            <div className={`mb-2 border-b px-1 pb-2 lg:hidden ${lightNavigation ? 'border-slate-200' : 'border-white/[0.07]'}`} role="group" aria-label={t('nav.mobileNavigation')}>
+                                                <p className={`px-2 pb-1.5 text-[10px] font-black uppercase tracking-[0.16em] ${lightNavigation ? 'text-slate-500' : 'text-[#71717a]'}`}>{t('nav.mobileNavigation')}</p>
+                                                {mobileLinks.map((item) => {
+                                                    const Icon = item.icon;
+                                                    return (
+                                                        <Link key={`${item.id}-mobile`} to={item.path} role="menuitem" className={menuItemClass}>
+                                                            <Icon className="h-4 w-4 text-[#16a34a]" />
+                                                            {t(labelKey(item.id), item.label)}
+                                                        </Link>
+                                                    );
+                                                })}
+                                            </div>
                                             <div className={`border-b px-3 pb-3 pt-2 ${lightNavigation ? 'border-slate-200' : 'border-white/[0.07]'}`}>
                                                 <p className={`truncate text-sm font-semibold ${lightNavigation ? 'text-slate-900' : 'text-[#f4f4f5]'}`}>{user.fullName || user.username}</p>
                                                 <p className={`mt-0.5 text-[11px] ${lightNavigation ? 'text-slate-500' : 'text-[#71717a]'}`}>{t('nav.menuDescription')}</p>
@@ -275,13 +344,7 @@ export const TopNav = ({
 
                 <div className={`scrollbar-hide overflow-x-auto border-t ${lightNavigation ? 'border-slate-200' : 'border-[#ffffff0d]'}`}>
                     <div className="flex min-w-max items-stretch gap-1 px-1">
-                        {(() => {
-                            // Filter links by auth status and role
-                            const visibleLinks = [
-                                ...primaryLinks.filter(item => !item.authRequired || !!user),
-                                ...(user?.role === 'AGENT' ? agentOnlyLinks : [])
-                            ];
-                            return visibleLinks.map((item) => {
+                        {visibleLinks.map((item) => {
                             const active = activeKey === item.id;
                             const Icon = item.icon;
 
@@ -299,10 +362,27 @@ export const TopNav = ({
                                     {t(labelKey(item.id), item.label)}
                                 </Link>
                             );
-                            });
-                        })()}
+                        })}
                     </div>
                 </div>
+                {mobileSearchOpen && (
+                    <div className={`flex items-center gap-2 border-t py-2 lg:hidden ${lightNavigation ? 'border-slate-200' : 'border-[#ffffff0d]'}`}>
+                        <div id="mobile-global-search" className="min-w-0 flex-1">
+                            <GlobalSearchBar light={lightNavigation} mobile />
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMobileSearchOpen(false);
+                            }}
+                            className={iconActionClass()}
+                            aria-label={t('search.close')}
+                            title={t('search.close')}
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
+                )}
             </AppPageFrame>
         </nav>
     );

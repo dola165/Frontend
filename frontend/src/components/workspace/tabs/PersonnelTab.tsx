@@ -1,16 +1,19 @@
 import { useCallback, useMemo, useState } from 'react';
-import { UserMinus } from 'lucide-react';
+import { ExternalLink, Loader2, Pencil, UserMinus, X } from 'lucide-react';
 import type { ClubManagedMember, ClubManagementOverview, ClubMembershipRole } from '../../../features/clubs/domain';
 import { clubRoleLabel, isLegacyAgentMembershipRole } from '../../../features/clubs/domain';
+import { updateClubStaffProfile } from '../../../features/clubs/api';
 import { DataTable, EmptyState, Pill, SectionHeader } from '../helpers';
 import type { SortState } from '../helpers';
 import { UserIdentityCell } from '../UserIdentityCell';
 import { OverflowActions } from '../../ui/OverflowActions';
 
 interface PersonnelTabProps {
+    clubId: number;
     overview: ClubManagementOverview | null;
     currentUserId: number | null;
     currentRole: string | null;
+    canManageLeadership: boolean;
     pendingKey: string | null;
     confirmingRemovalUserId: number | null;
     onRoleChange: (userId: number, role: ClubMembershipRole) => Promise<void>;
@@ -19,7 +22,7 @@ interface PersonnelTabProps {
 }
 
 export const PersonnelTab = ({
-    overview, currentUserId, currentRole, pendingKey,
+    clubId, overview, currentUserId, currentRole, canManageLeadership, pendingKey,
     onRoleChange, onRemoveMember
 }: PersonnelTabProps) => {
     const canRemoveMember = (member: ClubManagedMember) => {
@@ -37,6 +40,41 @@ export const PersonnelTab = ({
     };
 
     const [sort, setSort] = useState<SortState | null>(null);
+    const [editingProfile, setEditingProfile] = useState<ClubManagedMember | null>(null);
+    const [profileTitle, setProfileTitle] = useState('');
+    const [profileBio, setProfileBio] = useState('');
+    const [profileQualifications, setProfileQualifications] = useState('');
+    const [profilePublic, setProfilePublic] = useState(true);
+    const [profileSaving, setProfileSaving] = useState(false);
+    const [profileError, setProfileError] = useState<string | null>(null);
+
+    const beginProfileEdit = (member: ClubManagedMember) => {
+        setEditingProfile(member);
+        setProfileTitle(member.publicTitle || clubRoleLabel(member.role));
+        setProfileBio(member.clubBio || '');
+        setProfileQualifications(member.qualifications || '');
+        setProfilePublic(member.isPublic !== false);
+        setProfileError(null);
+    };
+
+    const saveProfile = async () => {
+        if (!editingProfile) return;
+        setProfileSaving(true);
+        setProfileError(null);
+        try {
+            await updateClubStaffProfile(clubId, editingProfile.userId, {
+                publicTitle: profileTitle.trim() || null,
+                clubBio: profileBio.trim() || null,
+                qualifications: profileQualifications.trim() || null,
+                isPublic: profilePublic,
+            });
+            setEditingProfile(null);
+        } catch (error) {
+            setProfileError(error instanceof Error ? error.message : 'Could not save the public profile.');
+        } finally {
+            setProfileSaving(false);
+        }
+    };
 
     const handleSort = useCallback((col: number) => {
         setSort(prev =>
@@ -84,7 +122,14 @@ export const PersonnelTab = ({
                             return (
                                 <tr key={member.userId} className="group h-11 hover:bg-[var(--fc-surface-hover)] transition-colors">
                                     <td className="px-4">
-                                        <UserIdentityCell avatarUrl={member.avatarUrl} fullName={member.fullName} username={member.username} />
+                                        <div className="flex min-w-0 items-center gap-2">
+                                            <UserIdentityCell avatarUrl={member.avatarUrl} fullName={member.fullName} username={member.username} />
+                                            {canManageLeadership && !isLegacyAgentMembershipRole(member.role) && (
+                                                <button type="button" onClick={() => beginProfileEdit(member)} className="rounded-lg p-1.5 text-[var(--fc-text-muted)] hover:text-[var(--fc-accent)]" title="Edit public staff profile" aria-label={`Edit public profile for ${member.fullName || member.username}`}>
+                                                    <Pencil className="h-3.5 w-3.5" />
+                                                </button>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-4">
                                         {member.roleEditable ? (
@@ -114,7 +159,7 @@ export const PersonnelTab = ({
                                     </td>
                                     <td className="px-4 w-12">
                                         {canRemoveMember(member) && (
-                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                                                 <OverflowActions
                                                     triggerIcon="vertical"
                                                     label="Staff actions"
@@ -129,6 +174,30 @@ export const PersonnelTab = ({
                             );
                         })}
                     </DataTable>
+                </div>
+            )}
+            {editingProfile && (
+                <div className="rounded-xl border border-[var(--fc-accent-border)] bg-[var(--fc-card-bg)] p-4">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-sm font-semibold text-[var(--fc-text-primary)]">Public People profile</p>
+                            <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">Publish how {editingProfile.fullName || editingProfile.username} appears on the club’s public People tab.</p>
+                        </div>
+                        <button type="button" onClick={() => setEditingProfile(null)} className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]" aria-label="Close profile editor"><X className="h-4 w-4" /></button>
+                    </div>
+                    {profileError && <p className="mt-3 text-xs font-semibold text-[var(--fc-state-danger)]">{profileError}</p>}
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <label className="grid gap-1 text-xs font-semibold text-[var(--fc-text-secondary)]">Public title<input value={profileTitle} onChange={(e) => setProfileTitle(e.target.value)} maxLength={100} className="rounded-lg border border-[var(--fc-border)] bg-[var(--fc-page-bg)] px-3 py-2 text-sm text-[var(--fc-text-primary)] outline-none" /></label>
+                        <label className="grid gap-1 text-xs font-semibold text-[var(--fc-text-secondary)]">Qualifications<input value={profileQualifications} onChange={(e) => setProfileQualifications(e.target.value)} maxLength={2000} className="rounded-lg border border-[var(--fc-border)] bg-[var(--fc-page-bg)] px-3 py-2 text-sm text-[var(--fc-text-primary)] outline-none" /></label>
+                        <label className="grid gap-1 text-xs font-semibold text-[var(--fc-text-secondary)] sm:col-span-2">Club biography<textarea value={profileBio} onChange={(e) => setProfileBio(e.target.value)} maxLength={5000} rows={4} className="rounded-lg border border-[var(--fc-border)] bg-[var(--fc-page-bg)] px-3 py-2 text-sm text-[var(--fc-text-primary)] outline-none" /></label>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                        <label className="flex items-center gap-2 text-xs font-semibold text-[var(--fc-text-secondary)]"><input type="checkbox" checked={profilePublic} onChange={(e) => setProfilePublic(e.target.checked)} className="accent-[#16a34a]" /> Visible on public People tab</label>
+                        <div className="flex gap-2">
+                            <a href={`/clubs/${clubId}?tab=people`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--fc-border)] px-3 py-2 text-xs font-semibold text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]"><ExternalLink className="h-3.5 w-3.5" /> Preview</a>
+                            <button type="button" onClick={() => void saveProfile()} disabled={profileSaving} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--fc-accent)] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">{profileSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Save profile</button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

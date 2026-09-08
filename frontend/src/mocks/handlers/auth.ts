@@ -71,7 +71,9 @@ export const authHandlers: HttpHandler[] = [
       fullName: body.fullName,
       role: (body.role as 'PLAYER' | 'FAN' | 'ORGANIZER' | 'COACH' | 'ADMIN') ?? 'PLAYER',
       dob: body.dateOfBirth,
-      profileComplete: false,
+      profileComplete: true,
+      onboardingRequired: false,
+      emailVerified: true,
     });
     users().set(newUser.id, newUser);
 
@@ -109,13 +111,22 @@ export const authHandlers: HttpHandler[] = [
     const email = body.token ? `google-${body.token.substring(0, 8)}@test.dev` : 'google@test.dev';
 
     let user = [...users().values()].find((u) => u.email === email);
+    const newAccount = !user;
     if (!user) {
-      user = createUser({ email, password: '', username: email.split('@')[0], role: body.role ?? 'PLAYER' });
+      user = createUser({
+        email,
+        password: '',
+        username: email.split('@')[0],
+        fullName: 'Google User',
+        role: body.role ?? 'PLAYER',
+        profileComplete: false,
+        onboardingRequired: true,
+      });
       users().set(user.id, user);
     }
 
     currentUserId(user.id);
-    return HttpResponse.json({ accessToken: makeToken(user.id, user.role ?? 'PLAYER') });
+    return HttpResponse.json({ accessToken: makeToken(user.id, user.role ?? 'PLAYER'), newAccount });
   }),
 
   // -- forgot password --

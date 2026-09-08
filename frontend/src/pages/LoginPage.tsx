@@ -7,7 +7,16 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { QrLoginSection } from '../components/auth/QrLoginSection';
 import { extractApiErrorCode, extractApiErrorMessage } from '../utils/apiError';
-import { resolvePostAuthRedirect } from '../utils/authRedirect';
+import {
+    buildSignupPath,
+    clearAuthFlow,
+    completedAuthDestination,
+    getAuthFlow,
+    publicContinuationPath,
+    rememberAuthFlow,
+    requiredAccountStep,
+    resolvePostAuthRedirect,
+} from '../utils/authRedirect';
 import { AuthSplitShell } from '../components/auth/AuthSplitShell';
 import { GrasskickzLogo } from '../components/layout/GrasskickzLogo';
 import {
@@ -38,7 +47,7 @@ export const LoginPage = () => {
     const location = useLocation();
     const { t } = useTranslation();
     const { loginWithAccessToken } = useAuth();
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState(() => getAuthFlow().email ?? '');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -47,7 +56,27 @@ export const LoginPage = () => {
     const [emailNotVerified, setEmailNotVerified] = useState(false);
     const [isResendingVerification, setIsResendingVerification] = useState(false);
     const [resendConfirmation, setResendConfirmation] = useState<string | null>(null);
-    const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '/feed');
+    const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '/home');
+
+    const navigateAfterLogin = (
+        authenticatedUser: Awaited<ReturnType<typeof loginWithAccessToken>>,
+        mustChangePassword = false,
+        newAccount?: boolean,
+    ) => {
+        rememberAuthFlow({ nextPath, ...(newAccount === undefined ? {} : { newAccount }) });
+        const requiredStep = requiredAccountStep({
+            ...authenticatedUser,
+            mustChangePassword: mustChangePassword || authenticatedUser.mustChangePassword,
+        });
+        if (requiredStep) {
+            navigate(requiredStep, { replace: true });
+            return;
+        }
+        const flow = getAuthFlow();
+        const destination = completedAuthDestination(authenticatedUser, nextPath, flow.newAccount);
+        clearAuthFlow();
+        navigate(destination, { replace: true });
+    };
 
     const clearFieldError = (field: 'email' | 'password') =>
         setFieldErrors((prev) => {
@@ -85,12 +114,7 @@ export const LoginPage = () => {
         try {
             const res = await apiClient.post('/auth/login', { email: email.trim(), password });
             const authenticatedUser = await loginWithAccessToken(res.data.accessToken);
-            if (res.data.mustChangePassword) {
-                // Card-activated account: the kid must set their own password first.
-                navigate('/set-password');
-            } else {
-                navigate(authenticatedUser.profileComplete ? nextPath : '/onboarding');
-            }
+            navigateAfterLogin(authenticatedUser, res.data.mustChangePassword === true);
         } catch (err) {
             console.error(err);
             setError(extractApiErrorMessage(err, t('auth.login.errInvalid')));
@@ -105,6 +129,7 @@ export const LoginPage = () => {
         try {
             const res = await apiClient.post<{ message?: string }>('/auth/resend-verification', {
                 email: email.trim(),
+                continuationPath: publicContinuationPath(nextPath),
             });
             setError('');
             setEmailNotVerified(false);
@@ -119,16 +144,12 @@ export const LoginPage = () => {
     const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
         setIsLoading(true);
         try {
-            const res = await apiClient.post('/auth/google', {
+            const res = await apiClient.post<{ accessToken: string; newAccount?: boolean }>('/auth/google', {
                 token: credentialResponse.credential,
             });
 
             const authenticatedUser = await loginWithAccessToken(res.data.accessToken);
-            if (!authenticatedUser.profileComplete) {
-                navigate('/onboarding');
-            } else {
-                navigate(nextPath);
-            }
+            navigateAfterLogin(authenticatedUser, false, res.data.newAccount === true);
         } catch (err) {
             console.error('Google Auth Failed', err);
             setError(extractApiErrorMessage(err, t('auth.common.googleFailed')));
@@ -143,7 +164,7 @@ export const LoginPage = () => {
         try {
             const res = await apiClient.post('/auth/login', { email: mockEmail, password: mockPassword });
             const authenticatedUser = await loginWithAccessToken(res.data.accessToken);
-            navigate(authenticatedUser.profileComplete ? nextPath : '/onboarding');
+            navigateAfterLogin(authenticatedUser);
         } catch (err) {
             setError(extractApiErrorMessage(err, 'Mock login failed.'));
         } finally {
@@ -169,7 +190,7 @@ export const LoginPage = () => {
             footer={
                 <>
                     {t('auth.login.notYet')}{' '}
-                    <Link to="/signup" className="text-[#16a34a] hover:underline ml-1">
+                    <Link to={buildSignupPath(nextPath)} className="text-[#16a34a] hover:underline ml-1">
                         {t('auth.login.goRegister')}
                     </Link>
                 </>

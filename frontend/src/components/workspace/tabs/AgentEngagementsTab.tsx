@@ -5,6 +5,7 @@ import { fetchClubAgentEngagements, respondToEngagement } from '../../../feature
 import type { AgentEngagement } from '../../../features/agents/domain';
 import { EmptyState, PageSpinner, SectionHeader } from '../helpers';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { DecisionNoteModal } from './DecisionNoteModal';
 
 interface AgentEngagementsTabProps {
     clubId: number;
@@ -32,6 +33,7 @@ export const AgentEngagementsTab = ({ clubId }: AgentEngagementsTabProps) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [pendingId, setPendingId] = useState<number | null>(null);
+    const [decisionTarget, setDecisionTarget] = useState<{ engagement: AgentEngagement; decision: 'ACTIVE' | 'DECLINED' } | null>(null);
 
     const loadEngagements = async () => {
         try {
@@ -51,10 +53,11 @@ export const AgentEngagementsTab = ({ clubId }: AgentEngagementsTabProps) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [clubId]);
 
-    const handleRespond = async (engagementId: number, decision: string) => {
+    const handleRespond = async (engagementId: number, decision: string, notes?: string | null) => {
         try {
             setPendingId(engagementId);
-            await respondToEngagement(engagementId, clubId, decision);
+            await respondToEngagement(engagementId, clubId, decision, notes ?? undefined);
+            setDecisionTarget(null);
             await loadEngagements();
         } catch (err) {
             setError(extractApiErrorMessage(err));
@@ -118,6 +121,8 @@ export const AgentEngagementsTab = ({ clubId }: AgentEngagementsTabProps) => {
                                 <div className="min-w-0">
                                     <p className="text-sm font-medium text-[#f4f4f5] truncate">{eng.agentName}</p>
                                     <p className="text-xs text-[#a1a1aa] truncate">{eng.agencyName || 'Independent Agent'}</p>
+                                    {eng.notes && <p className="mt-2 max-w-xl text-xs leading-5 text-[#a1a1aa]">Request: {eng.notes}</p>}
+                                    {eng.responseNotes && <p className="mt-1 max-w-xl text-xs leading-5 text-[#a1a1aa]">Club response: {eng.responseNotes}</p>}
                                 </div>
                             </div>
 
@@ -131,7 +136,7 @@ export const AgentEngagementsTab = ({ clubId }: AgentEngagementsTabProps) => {
                                         <button
                                             type="button"
                                             disabled={pendingId === eng.engagementId}
-                                            onClick={() => { void handleRespond(eng.engagementId, 'ACTIVE'); }}
+                                            onClick={() => setDecisionTarget({ engagement: eng, decision: 'ACTIVE' })}
                                             className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium rounded-[4px] bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition-colors disabled:opacity-50"
                                         >
                                             <Check className="h-3 w-3" />
@@ -140,7 +145,7 @@ export const AgentEngagementsTab = ({ clubId }: AgentEngagementsTabProps) => {
                                         <button
                                             type="button"
                                             disabled={pendingId === eng.engagementId}
-                                            onClick={() => { void handleRespond(eng.engagementId, 'DECLINED'); }}
+                                            onClick={() => setDecisionTarget({ engagement: eng, decision: 'DECLINED' })}
                                             className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium rounded-[4px] bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-colors disabled:opacity-50"
                                         >
                                             <X className="h-3 w-3" />
@@ -163,6 +168,17 @@ export const AgentEngagementsTab = ({ clubId }: AgentEngagementsTabProps) => {
                         </div>
                     ))}
                 </div>
+            )}
+            {decisionTarget && (
+                <DecisionNoteModal
+                    title={decisionTarget.decision === 'ACTIVE' ? 'Accept agent engagement?' : 'Decline agent engagement?'}
+                    subtitle={decisionTarget.engagement.agentName}
+                    saving={pendingId === decisionTarget.engagement.engagementId}
+                    danger={decisionTarget.decision === 'DECLINED'}
+                    confirmLabel={decisionTarget.decision === 'ACTIVE' ? 'Accept engagement' : 'Decline engagement'}
+                    onClose={() => setDecisionTarget(null)}
+                    onConfirm={(notes) => void handleRespond(decisionTarget.engagement.engagementId, decisionTarget.decision, notes)}
+                />
             )}
         </div>
     );

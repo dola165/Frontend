@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { avatarLetter } from './helpers';
+import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 
 interface AvatarCellProps {
     avatarUrl?: string | null;
@@ -35,11 +36,12 @@ const colorForName = (name: string) => {
 export const AvatarCell = ({ avatarUrl, fallback, size = 'md' }: AvatarCellProps) => {
     const [imgError, setImgError] = useState(false);
     const palette = colorForName(fallback);
+    const resolvedAvatarUrl = resolveMediaUrl(avatarUrl);
 
-    if (avatarUrl && !imgError) {
+    if (resolvedAvatarUrl && !imgError) {
         return (
             <img
-                src={avatarUrl}
+                src={resolvedAvatarUrl}
                 alt=""
                 className={`${sizeClasses[size]} shrink-0 rounded-full object-cover`}
                 onError={() => setImgError(true)}

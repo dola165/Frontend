@@ -1,15 +1,19 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Briefcase, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Briefcase, Check, Eye, Loader2, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
 import {
-    createClubJob, deleteClubJob, fetchAllClubJobs, updateClubJob,
+    acceptClubApplication, createClubJob, declineClubApplication, deleteClubJob, fetchAllClubJobs, fetchJobApplications, updateClubJob,
     type ClubJob, type ClubJobCategory, type ClubJobEngagementType, type ClubJobPayload
 } from '../../../features/clubs/api';
+import type { ClubMembershipApplication } from '../../../features/clubs/domain';
 import { ErrorBlock, PageSpinner, Pill, SectionHeader } from '../helpers';
+import { DecisionNoteModal } from './DecisionNoteModal';
 
 interface JobsTabProps {
     clubId: number;
     pendingKey: string | null;
+    currentUserId: number | null;
+    canReviewAllApplications: boolean;
 }
 
 const AGE_GROUPS = ['U8', 'U10', 'U12', 'U14', 'U16', 'U18', 'Senior'];
@@ -36,13 +40,21 @@ const ENGAGEMENT_TYPES: Array<{ value: ClubJobEngagementType; label: string }> =
  * Workspace Jobs tab (WEB_APP_MASTER_PLAN.md §4.2, Phase 2):
  * create/edit/close club job postings; candidates arrive in the Applications tab.
  */
-export const JobsTab = ({ clubId, pendingKey }: JobsTabProps) => {
+export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplications }: JobsTabProps) => {
     const { t } = useTranslation();
     const [jobs, setJobs] = useState<ClubJob[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [editing, setEditing] = useState<ClubJob | 'new' | null>(null);
     const [saving, setSaving] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
+    const [query, setQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
+    const [selectedJob, setSelectedJob] = useState<ClubJob | null>(null);
+    const [jobApplications, setJobApplications] = useState<ClubMembershipApplication[]>([]);
+    const [applicationsLoading, setApplicationsLoading] = useState(false);
+    const [applicationsError, setApplicationsError] = useState<string | null>(null);
+    const [applicationDecision, setApplicationDecision] = useState<{ application: ClubMembershipApplication; accept: boolean } | null>(null);
+    const [applicationPendingId, setApplicationPendingId] = useState<number | null>(null);
 
     const load = useCallback(async () => {
         setError(null);
@@ -55,8 +67,114 @@ export const JobsTab = ({ clubId, pendingKey }: JobsTabProps) => {
 
     useEffect(() => { void load(); }, [load]);
 
+    const visibleJobs = useMemo(() => {
+        const normalized = query.trim().toLowerCase();
+        return (jobs ?? []).filter((job) => {
+            const statusMatches = statusFilter === 'ALL' || job.status === statusFilter;
+            const queryMatches = !normalized
+                || job.title.toLowerCase().includes(normalized)
+                || (job.category ?? '').toLowerCase().includes(normalized)
+                || (job.engagementType ?? '').toLowerCase().includes(normalized);
+            return statusMatches && queryMatches;
+        });
+    }, [jobs, query, statusFilter]);
+
+    const canReviewJob = (job: ClubJob) => canReviewAllApplications || job.createdBy === currentUserId;
+
+    const openApplicants = async (job: ClubJob) => {
+        setSelectedJob(job);
+        setApplicationsLoading(true);
+        setApplicationsError(null);
+        try {
+            setJobApplications(await fetchJobApplications(clubId, job.id));
+        } catch (error) {
+            setJobApplications([]);
+            setApplicationsError(error instanceof Error ? error.message : 'Could not load applicants.');
+        } finally {
+            setApplicationsLoading(false);
+        }
+    };
+
+    const handleApplicationDecision = async (message: string | null) => {
+        if (!selectedJob || !applicationDecision) return;
+        const { application, accept } = applicationDecision;
+        setApplicationPendingId(application.id);
+        try {
+            if (accept) await acceptClubApplication(clubId, application.id, message);
+            else await declineClubApplication(clubId, application.id, message);
+            setApplicationDecision(null);
+            setJobApplications(await fetchJobApplications(clubId, selectedJob.id));
+            await load();
+        } catch (error) {
+            setApplicationsError(error instanceof Error ? error.message : 'Could not update this application.');
+        } finally {
+            setApplicationPendingId(null);
+        }
+    };
+
     if (jobs == null) {
         return error ? <ErrorBlock message={error} onRetry={() => void load()} /> : <PageSpinner />;
+    }
+
+    if (selectedJob) {
+        return (
+            <div className="space-y-4">
+                <button type="button" onClick={() => { setSelectedJob(null); setJobApplications([]); setApplicationsError(null); }} className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]">
+                    <ArrowLeft className="h-4 w-4" /> Back to job postings
+                </button>
+                <SectionHeader
+                    eyebrow="Applicants"
+                    title={selectedJob.title}
+                    description={selectedJob.status === 'OPEN' ? 'Review applicants and decide who moves forward.' : 'This posting is closed. Existing applications remain available for review.'}
+                />
+                {applicationsError && <ErrorBlock message={applicationsError} onRetry={() => void openApplicants(selectedJob)} />}
+                {applicationsLoading ? <PageSpinner /> : jobApplications.length === 0 ? (
+                    <p className="text-sm text-[var(--fc-text-secondary)]">No applications have been submitted for this posting.</p>
+                ) : (
+                    <div className="space-y-2">
+                        {jobApplications.map((application) => {
+                            const decided = application.status !== 'PENDING';
+                            return (
+                                <article key={application.id} className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-4">
+                                    <div className="flex flex-wrap items-start gap-3">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--fc-accent-soft)] text-sm font-bold text-[var(--fc-accent)]">
+                                            {application.avatarUrl ? <img src={application.avatarUrl} alt="" className="h-full w-full object-cover" /> : (application.fullName || application.username).slice(0, 1).toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm font-semibold text-[var(--fc-text-primary)]">{application.fullName || application.username}</p>
+                                            <p className="mt-0.5 text-xs text-[var(--fc-text-secondary)]">{[application.position, application.ageGroup, application.currentClubName].filter(Boolean).join(' · ') || application.role}</p>
+                                        </div>
+                                        <Pill label={application.status} tone={application.status === 'PENDING' ? 'warning' : application.status === 'ACCEPTED' ? 'success' : 'neutral'} />
+                                    </div>
+                                    {application.message && <p className="mt-3 text-sm leading-6 text-[var(--fc-text-secondary)]">{application.message}</p>}
+                                    {canReviewJob(selectedJob) && !decided && (
+                                        <div className="mt-3 flex flex-wrap justify-end gap-2">
+                                            <button type="button" disabled={applicationPendingId === application.id} onClick={() => setApplicationDecision({ application, accept: false })} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--fc-border)] px-3 py-1.5 text-xs font-semibold text-[var(--fc-text-secondary)] hover:text-[var(--fc-state-danger)] disabled:opacity-50">
+                                                <X className="h-3.5 w-3.5" /> Decline
+                                            </button>
+                                            <button type="button" disabled={applicationPendingId === application.id} onClick={() => setApplicationDecision({ application, accept: true })} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--fc-accent)] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
+                                                <Check className="h-3.5 w-3.5" /> Accept
+                                            </button>
+                                        </div>
+                                    )}
+                                </article>
+                            );
+                        })}
+                    </div>
+                )}
+                {applicationDecision && (
+                    <DecisionNoteModal
+                        title={applicationDecision.accept ? 'Accept applicant?' : 'Decline applicant?'}
+                        subtitle={applicationDecision.application.fullName || applicationDecision.application.username}
+                        saving={applicationPendingId === applicationDecision.application.id}
+                        danger={!applicationDecision.accept}
+                        confirmLabel={applicationDecision.accept ? 'Accept applicant' : 'Decline applicant'}
+                        onClose={() => setApplicationDecision(null)}
+                        onConfirm={(message) => void handleApplicationDecision(message)}
+                    />
+                )}
+            </div>
+        );
     }
 
     return (
@@ -76,11 +194,23 @@ export const JobsTab = ({ clubId, pendingKey }: JobsTabProps) => {
                 }
             />
 
-            {jobs.length === 0 ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-3">
+                <label className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-[var(--fc-border)] bg-[var(--fc-page-bg)] px-3 py-2">
+                    <Search className="h-4 w-4 text-[var(--fc-text-muted)]" />
+                    <span className="sr-only">Search job postings</span>
+                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search postings" className="min-w-0 flex-1 bg-transparent text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)]" />
+                </label>
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="rounded-lg border border-[var(--fc-border)] bg-[var(--fc-page-bg)] px-3 py-2 text-xs font-semibold text-[var(--fc-text-primary)]">
+                    <option value="ALL">All statuses</option><option value="OPEN">Open</option><option value="CLOSED">Closed</option>
+                </select>
+                <span className="text-xs text-[var(--fc-text-muted)]">{visibleJobs.length} posting{visibleJobs.length === 1 ? '' : 's'}</span>
+            </div>
+
+            {visibleJobs.length === 0 ? (
                 <p className="text-sm text-[var(--fc-text-secondary)]">{t('jobs.empty')}</p>
             ) : (
                 <div className="space-y-1.5">
-                    {jobs.map((job) => (
+                    {visibleJobs.map((job) => (
                         <div key={job.id} className="flex items-center gap-4 rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
                             <Briefcase className="h-4 w-4 shrink-0 text-[var(--fc-text-muted)]" />
                             <div className="min-w-0 flex-1">
@@ -89,8 +219,16 @@ export const JobsTab = ({ clubId, pendingKey }: JobsTabProps) => {
                                     {[JOB_CATEGORIES.find((item) => item.value === job.category)?.label, ENGAGEMENT_TYPES.find((item) => item.value === job.engagementType)?.label, job.ageGroup, job.level].filter(Boolean).join(' · ') || '—'}
                                 </p>
                             </div>
+                            <span className="inline-flex shrink-0 items-center gap-1 text-xs text-[var(--fc-text-secondary)]" title="Pending applications">
+                                <Users className="h-3.5 w-3.5" /> {job.applicationCount ?? 0}
+                            </span>
                             <Pill label={job.status ?? 'OPEN'} tone={job.status === 'OPEN' ? 'success' : 'neutral'} />
                             {job.requiredRole && <Pill label={job.requiredRole} tone="neutral" />}
+                            {canReviewJob(job) && (
+                                <button type="button" onClick={() => void openApplicants(job)} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--fc-border)] px-2.5 py-1.5 text-xs font-semibold text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]">
+                                    <Eye className="h-3.5 w-3.5" /> View applicants
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 disabled={pendingKey === `job-${job.id}`}
@@ -104,11 +242,12 @@ export const JobsTab = ({ clubId, pendingKey }: JobsTabProps) => {
                             >
                                 {job.status === 'OPEN' ? t('jobs.close') : t('jobs.reopen')}
                             </button>
-                            <button type="button" onClick={() => setEditing(job)} className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
+                            <button type="button" onClick={() => setEditing(job)} aria-label={`Edit ${job.title}`} className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
                                 <Pencil className="h-3.5 w-3.5" />
                             </button>
                             <button
                                 type="button"
+                                aria-label={`Delete ${job.title}`}
                                 onClick={() => void (async () => {
                                     await deleteClubJob(clubId, job.id);
                                     await load();
@@ -177,7 +316,7 @@ const JobForm = ({
         <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-4">
             <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-[var(--fc-text-primary)]">{job ? t('jobs.editPosting') : t('jobs.newPosting')}</p>
-                <button type="button" onClick={onCancel} className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
+                <button type="button" onClick={onCancel} aria-label="Close job editor" className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
                     <X className="h-4 w-4" />
                 </button>
             </div>

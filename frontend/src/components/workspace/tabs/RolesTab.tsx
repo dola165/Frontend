@@ -84,7 +84,7 @@ export const RolesTab = ({
                                     </td>
                                     <td className="px-4"><Pill label={clubRoleLabel(member.role)} /></td>
                                     <td className="px-4 w-12">
-                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                                             <OverflowActions
                                                 triggerIcon="vertical"
                                                 label="Transfer ownership"

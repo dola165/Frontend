@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Ban, Loader2, Search, UserPlus } from 'lucide-react';
-import { clubInviteStatusLabel, clubRoleLabel, type ClubMembershipRole, type ClubManagementOverview } from '../../../features/clubs/domain';
+import { clubInviteStatusLabel, clubRoleLabel, type ClubMembershipInvite, type ClubMembershipRole, type ClubManagementOverview } from '../../../features/clubs/domain';
 import type { PageResult } from '../../../features/clubs/domain';
 import { DataTable, EmptyState, formatMetaTime, Pill, SectionHeader } from '../helpers';
 import type { SortState } from '../helpers';
@@ -33,6 +33,7 @@ export const InvitesTab = ({
 }: InvitesTabProps) => {
     const [searchSort, setSearchSort] = useState<SortState | null>(null);
     const [inviteSort, setInviteSort] = useState<SortState | null>(null);
+    const canCreateInvites = (overview?.assignableInviteRoles.length ?? 0) > 0;
 
     const handleSearchSort = useCallback((col: number) => {
         setSearchSort(prev =>
@@ -58,7 +59,7 @@ export const InvitesTab = ({
         }
     };
 
-    const getInviteSortValue = (inv: any, col: number): string | number | null => {
+    const getInviteSortValue = (inv: ClubMembershipInvite, col: number): string | number | null => {
         switch (col) {
             case 0: return (inv.fullName || inv.username || '').toLowerCase();
             case 1: return inv.role;
@@ -81,7 +82,7 @@ export const InvitesTab = ({
             return searchSort.direction === 'desc' ? -cmp : cmp;
         });
         return data;
-    }, [searchResults?.content, searchSort]);
+    }, [searchResults, searchSort]);
 
     const sortedInvitations = useMemo(() => {
         if (!inviteSort || !overview) return overview?.pendingInvitations ?? [];
@@ -96,11 +97,11 @@ export const InvitesTab = ({
             return inviteSort.direction === 'desc' ? -cmp : cmp;
         });
         return data;
-    }, [overview?.pendingInvitations, inviteSort]);
+    }, [overview, inviteSort]);
 
     return (
         <div className="space-y-6">
-            <div className="space-y-4">
+            {canCreateInvites ? <div className="space-y-4">
                 <SectionHeader eyebrow="Invites" title="Invite Members" description="Search users and invite them to join with a specific club role." />
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                     <div className="flex-1 relative">
@@ -178,7 +179,11 @@ export const InvitesTab = ({
                 ) : (
                     <EmptyState message="No users matched this search." />
                 )}
-            </div>
+            </div> : (
+                <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
+                    <SectionHeader eyebrow="Invites" title="Review Invitations" description="You can review and cancel pending invitations, but only club leadership can create new staff invitations." />
+                </div>
+            )}
 
             <div className="space-y-4">
                 <SectionHeader eyebrow="Pending" title="Sent Invitations" />
@@ -201,7 +206,7 @@ export const InvitesTab = ({
                                         </div>
                                     </td>
                                     <td className="px-4 w-12">
-                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                                             <OverflowActions
                                                 triggerIcon="vertical"
                                                 label="Invitation actions"

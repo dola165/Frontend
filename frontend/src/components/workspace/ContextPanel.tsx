@@ -1,36 +1,88 @@
+import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { CalendarDays, ChevronRight, Clock3, MapPin, X } from 'lucide-react';
 import type { ClubManagementOverview, ClubPlayerAffiliation, PageResult } from '../../features/clubs/domain';
+import type { ScheduleEventOccurrence } from '../../features/schedule/api';
 import type { WorkspaceTab, TryoutApplicantDto } from './types';
+import { useDialogFocus } from './useDialogFocus';
 
 interface ContextPanelProps {
  activeTab: WorkspaceTab;
  overview: ClubManagementOverview | null;
  playerDirectory: PageResult<ClubPlayerAffiliation> | null;
  tryoutApplicants: TryoutApplicantDto[];
+ pendingTryoutCount: number;
+ upcomingEvents: ScheduleEventOccurrence[];
+ scheduleLoading: boolean;
+ scheduleError: string | null;
  currentRole: string | null;
  onTabChange: (tab: WorkspaceTab) => void;
+ onOpenSchedule: () => void;
+ onRetrySchedule: () => void;
+ mobileOpen: boolean;
+ onClose: () => void;
 }
 
-export const ContextPanel = ({
- activeTab, overview, playerDirectory, tryoutApplicants, currentRole, onTabChange,
-}: ContextPanelProps) => (
- <aside className="w-[280px] shrink-0 border-l border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] overflow-y-auto">
+export const ContextPanel = (props: ContextPanelProps) => {
+ const {
+ activeTab, overview, playerDirectory, tryoutApplicants, pendingTryoutCount, upcomingEvents, scheduleLoading, scheduleError,
+ currentRole, onTabChange, onOpenSchedule, onRetrySchedule, mobileOpen, onClose,
+ } = props;
+ const { t } = useTranslation();
+ const panelRef = useRef<HTMLElement>(null);
+ const closeRef = useRef<HTMLButtonElement>(null);
+ useDialogFocus(mobileOpen, panelRef, onClose, closeRef);
+
+ return (
+ <>
+ {mobileOpen && <button type="button" aria-label={t('clubWorkspace.closeContext')} onClick={onClose} className="workspace-context-backdrop" />}
+ <aside ref={panelRef} id="workspace-context" role={mobileOpen ? 'dialog' : undefined} aria-modal={mobileOpen ? true : undefined} aria-label="Club workspace context" className={`workspace-context-panel w-[280px] shrink-0 border-l border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] overflow-y-auto ${mobileOpen ? 'is-open' : ''}`}>
   <div className="p-4">
-   <p className="text-xs font-semibold text-[var(--fc-text-muted)] uppercase tracking-wider">Context</p>
+   <div className="flex items-center justify-between gap-2">
+    <p className="text-xs font-semibold text-[var(--fc-text-muted)] uppercase tracking-wider">{t('clubWorkspace.context')}</p>
+    <button ref={closeRef} type="button" onClick={onClose} aria-label={t('clubWorkspace.closeContext')} className="workspace-mobile-only rounded-lg p-1.5 text-[var(--fc-text-muted)] hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)]">
+     <X className="h-4 w-4" />
+    </button>
+   </div>
 
    {/* ── overview ── */}
    {activeTab === 'overview' && (
     <div className="mt-3 space-y-3">
      <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-3">
-      <p className="text-xs font-semibold text-[var(--fc-text-primary)]">This Week</p>
-      <p className="mt-2 text-xs text-[var(--fc-text-muted)]">Schedule view coming soon. Check the calendar tab for upcoming events.</p>
+      <div className="flex items-center justify-between gap-2">
+       <p className="text-xs font-semibold text-[var(--fc-text-primary)]">Next 7 days</p>
+       <CalendarDays className="h-4 w-4 text-[var(--fc-accent)]" />
+      </div>
+      {scheduleLoading ? (
+       <p className="mt-2 text-xs text-[var(--fc-text-muted)]">Loading schedule…</p>
+      ) : scheduleError ? (
+       <>
+        <p className="mt-2 text-xs text-[var(--fc-text-secondary)]">Schedule unavailable right now.</p>
+        <button type="button" onClick={onRetrySchedule} className="mt-2 text-xs font-semibold text-[var(--fc-accent)] hover:underline">Retry</button>
+       </>
+      ) : upcomingEvents.length === 0 ? (
+       <p className="mt-2 text-xs text-[var(--fc-text-muted)]">No club events scheduled in the next 7 days.</p>
+      ) : (
+       <div className="mt-2 space-y-2">
+        {upcomingEvents.slice(0, 3).map((event) => (
+         <button key={`${event.eventId}-${event.occurrenceId}`} type="button" onClick={onOpenSchedule} className="block w-full rounded-lg border border-[var(--fc-border)] p-2 text-left hover:bg-[var(--fc-surface-hover)]">
+          <p className="truncate text-xs font-semibold text-[var(--fc-text-primary)]">{event.title}</p>
+          <p className="mt-1 flex items-center gap-1 text-[11px] text-[var(--fc-text-secondary)]"><Clock3 className="h-3 w-3" />{new Date(event.startsAt).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+          {event.locationName && <p className="mt-1 flex items-center gap-1 truncate text-[11px] text-[var(--fc-text-muted)]"><MapPin className="h-3 w-3 shrink-0" />{event.locationName}</p>}
+         </button>
+        ))}
+       </div>
+      )}
+      <button type="button" onClick={onOpenSchedule} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[var(--fc-accent)] hover:underline">Open calendar <ChevronRight className="h-3.5 w-3.5" /></button>
      </div>
      {overview && (
       <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-3">
        <p className="text-xs font-semibold text-[var(--fc-text-primary)]">Quick Stats</p>
        <div className="mt-2 space-y-1.5 text-xs text-[var(--fc-text-secondary)]">
         <p>{overview.members.length} staff member{overview.members.length !== 1 ? 's' : ''}</p>
-        <p>{overview.activePlayerCount} active player{overview.activePlayerCount !== 1 ? 's' : ''}</p>
-        <p>{overview.trialistCount} trialist{overview.trialistCount !== 1 ? 's' : ''}</p>
+       <p>{overview.activePlayerCount} active player{overview.activePlayerCount !== 1 ? 's' : ''}</p>
+       <p>{overview.trialistCount} trialist{overview.trialistCount !== 1 ? 's' : ''}</p>
+       <p>{overview.pendingApplications.length + overview.pendingInvitations.length} pending application/invitation{overview.pendingApplications.length + overview.pendingInvitations.length !== 1 ? 's' : ''}</p>
        </div>
       </div>
      )}
@@ -42,9 +94,9 @@ export const ContextPanel = ({
     <div className="mt-3 space-y-3">
      {/* Awaiting Decision */}
      <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-3">
-      <p className="text-xs font-semibold text-[var(--fc-text-primary)]">Awaiting Decision</p>
+      <p className="text-xs font-semibold text-[var(--fc-text-primary)]">Awaiting Decision <span className="font-normal text-[var(--fc-text-muted)]">(all)</span></p>
       <p className="mt-1 text-2xl font-semibold text-amber-500">
-       {playerDirectory?.content.filter((p) => p.status === 'TRIALIST').length ?? overview?.trialistCount ?? 0}
+       {overview?.trialistCount ?? 0}
       </p>
       <p className="text-xs text-[var(--fc-text-secondary)]">players pending</p>
       {playerDirectory && playerDirectory.content.filter((p) => p.status === 'TRIALIST').slice(0, 5).map((p) => (
@@ -55,21 +107,21 @@ export const ContextPanel = ({
         <span className="flex-1 text-xs font-medium text-[var(--fc-text-primary)] truncate">{p.fullName || p.username}</span>
         <button
          type="button"
-         onClick={() => onTabChange('players')}
+         onClick={() => { onTabChange('players'); onClose(); }}
          className="text-xs font-semibold text-[#16a34a] hover:underline shrink-0"
         >
-         Accept
+         Review
         </button>
        </div>
       ))}
-      {(!playerDirectory || playerDirectory.content.filter((p) => p.status === 'TRIALIST').length === 0) && (
+      {(!overview || overview.trialistCount === 0) && (
        <p className="mt-2 text-xs text-[var(--fc-text-muted)]">No players awaiting decision.</p>
       )}
      </div>
 
      {/* Active Squad */}
      <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-3">
-      <p className="text-xs font-semibold text-[var(--fc-text-primary)]">Active Squad</p>
+      <p className="text-xs font-semibold text-[var(--fc-text-primary)]">Active Squad <span className="font-normal text-[var(--fc-text-muted)]">(current page)</span></p>
       {(() => {
        const activePlayers = playerDirectory?.content.filter((p) => p.status === 'ACTIVE') ?? [];
        const posCounts: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
@@ -90,7 +142,7 @@ export const ContextPanel = ({
        return (
         <>
          {activePlayers.length === 0 && (
-          <p className="mt-1 text-xs text-[var(--fc-text-muted)]">No active players</p>
+          <p className="mt-1 text-xs text-[var(--fc-text-muted)]">No active players on this page.</p>
          )}
          {(Object.keys(posCounts) as (keyof typeof posCounts)[]).map((pos) => (
           <div key={pos} className="mt-2">
@@ -154,7 +206,7 @@ export const ContextPanel = ({
      </div>
      <button
       type="button"
-      onClick={() => onTabChange('invites')}
+      onClick={() => { onTabChange('invites'); onClose(); }}
       className="w-full rounded-xl border border-[var(--fc-accent-border)] bg-[var(--fc-accent-soft)] px-3 py-2 text-xs font-semibold text-[var(--fc-accent)] hover:opacity-80 transition-opacity"
      >
       Invite Staff Members
@@ -174,8 +226,10 @@ export const ContextPanel = ({
      </div>
      <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-3">
       <p className="text-xs font-semibold text-[var(--fc-text-primary)]">Tips</p>
-      <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">
-       Search for users by name or username. Select a role before sending the invitation. Invited users receive a notification.
+       <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">
+       {overview?.assignableInviteRoles.length
+        ? 'Search for users by name or username, then select a role before sending an invitation.'
+        : 'You can review and cancel pending invitations. New invitations are managed by club leadership.'}
       </p>
      </div>
     </div>
@@ -239,8 +293,8 @@ export const ContextPanel = ({
     <div className="mt-3 space-y-3">
      <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-3">
       <p className="text-xs font-semibold text-[var(--fc-text-primary)]">Applicant Stats</p>
-      <p className="mt-1 text-2xl font-semibold text-[var(--fc-accent)]">{tryoutApplicants.length}</p>
-      <p className="text-xs text-[var(--fc-text-secondary)]">total applicants</p>
+      <p className="mt-1 text-2xl font-semibold text-[var(--fc-accent)]">{pendingTryoutCount}</p>
+      <p className="text-xs text-[var(--fc-text-secondary)]">awaiting decision</p>
      </div>
      {tryoutApplicants.length > 0 && (
       <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-3">
@@ -277,4 +331,6 @@ export const ContextPanel = ({
    )}
   </div>
  </aside>
-);
+ </>
+ );
+};

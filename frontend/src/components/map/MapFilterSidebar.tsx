@@ -87,11 +87,11 @@ interface MapFilterSidebarProps {
     placeSearch: string;
     onPlaceSearchChange: (value: string) => void;
     onClose: () => void;
-    /** Role-gated entity types (WEB_APP_MASTER_PLAN.md §3.3): restricted viewers only get CLUB + TRYOUT. */
+    /** Role-gated entity types (WEB_APP_MASTER_PLAN.md §3.3): restricted viewers only get CLUB; staff may also get MATCH + TOURNAMENT. */
     allowedEntityTypes: MapEntityType[];
     /** Used to distinguish a changed draft from the filters currently painted on the map. */
     appliedFilters: MapFilters;
-    viewerMode: 'player' | 'staff';
+    viewerMode: 'guest' | 'player' | 'staff';
     onBackToSimple?: () => void;
 }
 
@@ -542,7 +542,11 @@ export const MapFilterSidebar = ({
                                         <div>
                                             <h2 className="truncate text-lg font-black uppercase tracking-[0.08em] text-white">Advanced filters</h2>
                                             <p className="mt-0.5 text-xs text-[#edf3f0]/80">
-                                                {viewerMode === 'player' ? 'Fine-tune your club search' : 'Scout clubs, matches and tournaments'}
+                                                {viewerMode === 'guest'
+                                                    ? 'Public club discovery'
+                                                    : viewerMode === 'player'
+                                                        ? 'Fine-tune your club search'
+                                                        : 'Scout clubs, matches and tournaments'}
                                             </p>
                                         </div>
                                         <MapHelpHint
@@ -579,7 +583,7 @@ export const MapFilterSidebar = ({
                         <div className="mb-2 flex items-center justify-between gap-3">
                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 dark:text-slate-100">Show on map</p>
                             <span className="border-l-2 border-[#4a796b] pl-2 text-[9px] font-black uppercase tracking-[0.14em] text-[#315f53] dark:text-[#78a394]">
-                                {viewerMode === 'player' ? 'Player discovery' : 'Staff operations'}
+                                {viewerMode === 'guest' ? 'Public clubs' : viewerMode === 'player' ? 'Player discovery' : 'Staff operations'}
                             </span>
                         </div>
                         <div className="grid grid-cols-2 border-l border-t border-slate-400 dark:border-white/25">

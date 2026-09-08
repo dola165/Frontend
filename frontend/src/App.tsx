@@ -44,8 +44,9 @@ import { FollowedClubsPage } from './pages/FollowedClubsPage';
 import { OpportunityDirectoryPage } from './pages/OpportunityDirectoryPage';
 import { JobsDirectoryPage } from './pages/JobsDirectoryPage';
 import { PeoplePage } from './pages/PeoplePage';
+import { PublicWorldMapPage } from './pages/PublicWorldMapPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { buildLoginRedirectPath, resolvePostAuthRedirect } from './utils/authRedirect';
+import { buildLoginRedirectPath, requiredAccountStep, resolvePostAuthRedirect } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
 import { isThemePreference, type ThemePreference } from './theme';
 
@@ -81,14 +82,14 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 const GuestOnlyRoute = ({ children }: { children: JSX.Element }) => {
     const location = useLocation();
     const { isBootstrapping, isAuthenticated, user } = useAuth();
-    const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '/feed');
+    const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '/home');
 
     if (isBootstrapping) {
         return <PageBootSpinner label="Checking Access" />;
     }
 
     if (isAuthenticated) {
-        return <Navigate to={user?.profileComplete ? nextPath : '/onboarding'} replace />;
+        return <Navigate to={requiredAccountStep(user) ?? nextPath} replace />;
     }
 
     return children;
@@ -211,16 +212,16 @@ function MainLayout() {
             return;
         }
 
-        // Aug 17 fail-safe: any authenticated user without a DOB must complete
-        // the DOB gate before anything else — closing the tab mid-gate can no
-        // longer leave a no-DOB account treated as an adult (mirrors backend
-        // MinorPolicy). Setting the DOB lifts the gate on the next bootstrap.
-        if (!user.dob && location.pathname !== '/dob' && location.pathname !== '/oauth2/callback' && location.pathname !== '/set-password') {
-            navigate('/dob', { replace: true });
+        if (authRoutePaths.has(location.pathname) || location.pathname === '/oauth2/callback') {
             return;
         }
 
-        if (!user.profileComplete && location.pathname !== '/onboarding' && location.pathname !== '/oauth2/callback' && location.pathname !== '/dob' && location.pathname !== '/set-password') {
+        if (user.mustChangePassword && location.pathname !== '/set-password') {
+            navigate('/set-password', { replace: true });
+            return;
+        }
+
+        if (!user.mustChangePassword && user.onboardingRequired && location.pathname !== '/onboarding') {
             navigate('/onboarding', { replace: true });
         }
     }, [location.pathname, navigate, status, user]);
@@ -271,6 +272,7 @@ function MainLayout() {
     };
 
     const isLandingPage = location.pathname === '/';
+    const isPublicWorldMap = location.pathname === '/world';
     const isAuthPage = authRoutePaths.has(location.pathname) || location.pathname === '/oauth2/callback';
     const isHomeFeed = location.pathname === '/home' || location.pathname === '/feed';
     const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads|\/workspace|\/store)?$/.test(location.pathname);
@@ -281,7 +283,7 @@ function MainLayout() {
         /^\/clubs\/\d+$/.test(location.pathname) ||
         /^\/profile\/\d+$/.test(location.pathname);
     const isFullScreenPage =
-        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/tournaments', '/tournaments/setup', '/marketplace', '/needs', '/store', '/jobs', '/campaigns', '/people'].includes(location.pathname) ||
+        ['/map', '/world', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/tournaments', '/tournaments/setup', '/marketplace', '/needs', '/store', '/jobs', '/campaigns', '/people'].includes(location.pathname) ||
         location.pathname.startsWith('/profile') ||
         location.pathname.startsWith('/organizations') ||
         location.pathname.startsWith('/tournaments/') ||
@@ -291,7 +293,7 @@ function MainLayout() {
     // W6 — one shell: browse/list/destination pages share a single App-level
     // frame (app-page-shell + AppPageFrame, one max-width); the map, chat,
     // schedule and the management workspaces stay full-width canvases.
-    const canvasWorkspacePages = new Set(['/map', '/calendar', '/messages', '/onboarding', '/dob', '/set-password']);
+    const canvasWorkspacePages = new Set(['/map', '/world', '/calendar', '/messages', '/onboarding', '/dob', '/set-password']);
     const isImmersiveCanvasPage =
         canvasWorkspacePages.has(location.pathname) ||
         /^\/clubs\/\d+\/workspace$/.test(location.pathname) ||
@@ -304,7 +306,7 @@ function MainLayout() {
     // collapsed state to that key makes it route-visit-local without an effect:
     // navigate away (or revisit later) and navigation is immediately visible.
     const isTopNavCollapsed = isCollapsibleNavWorkspace && collapsedNavLocationKey === location.key;
-    const hasProductNavigation = !isLandingPage && !isAuthPage;
+    const hasProductNavigation = !isLandingPage && !isAuthPage && !isPublicWorldMap;
     const activeHeaderHeight = hasProductNavigation && !isTopNavCollapsed
         ? 'var(--app-header-height)'
         : '0px';
@@ -312,6 +314,7 @@ function MainLayout() {
     const fullScreenRoutes = (
         <Routes>
             <Route path="/map" element={<ProtectedRoute><MapPage darkMode={themePreference === 'dark'} /></ProtectedRoute>} />
+            <Route path="/world" element={<PublicWorldMapPage />} />
             <Route path="/clubs" element={<BrowseClubsPage />} />
             <Route path="/clubs/following" element={<ProtectedRoute><FollowedClubsPage /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute><CalendarPage user={user} darkMode={darkMode} setDarkMode={(value) => setThemePreference(value ? 'dark' : 'light')} /></ProtectedRoute>} />
@@ -380,7 +383,7 @@ function MainLayout() {
                 isImmersiveCanvasPage ? (
                     <main
                         className={`relative w-full ${isBoundedCanvasPage ? 'overflow-hidden' : 'overflow-y-auto'}`}
-                        style={isTopNavCollapsed
+                        style={isTopNavCollapsed || isPublicWorldMap
                             ? { minHeight: '100dvh', height: '100dvh' }
                             : { minHeight: 'calc(100dvh - var(--app-header-height))', height: 'calc(100dvh - var(--app-header-height))' }}
                     >
@@ -395,7 +398,7 @@ function MainLayout() {
                 )
             ) : (
                 <div className={isHomeFeed ? 'feed-home-shell min-h-[calc(100dvh-var(--app-header-height))]' : ''}>
-                    <div className={`grid grid-cols-1 gap-6 px-4 pb-10 pt-6 sm:px-6 ${isHomeFeed ? 'feed-home-grid w-full lg:grid-cols-[240px_minmax(0,680px)] lg:justify-between xl:grid-cols-[220px_minmax(0,680px)_280px] 2xl:grid-cols-[300px_minmax(0,680px)_300px]' : 'mx-auto max-w-[1480px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[220px_minmax(0,720px)_280px]'}`}>
+                    <div className={`grid grid-cols-1 gap-6 pb-10 pt-6 ${isHomeFeed ? 'feed-home-grid mx-auto w-full max-w-[var(--app-page-max-width)] px-[var(--app-page-gutter)] lg:grid-cols-[240px_minmax(0,680px)] lg:justify-between xl:grid-cols-[220px_minmax(0,680px)_280px] 2xl:grid-cols-[300px_minmax(0,680px)_300px]' : 'mx-auto max-w-[1480px] px-4 sm:px-6 lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[220px_minmax(0,720px)_280px]'}`}>
                             <LeftSidebar user={user} />
 
                         <main className="min-w-0">

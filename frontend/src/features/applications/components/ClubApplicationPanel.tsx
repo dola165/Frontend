@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ClipboardCheck, Loader2, Sparkles, UserPlus, XCircle } from 'lucide-react';
+import { CheckCircle2, ClipboardCheck, Loader2, Sparkles, UserPlus, X, XCircle } from 'lucide-react';
 import { cancelClubApplication, createClubApplication, selfRegisterClubPlayer } from '../../clubs/api';
 import {
   clubApplicationStatusLabel,
@@ -24,6 +24,7 @@ interface ClubApplicationPanelProps {
   pendingApplicationRole?: ClubMembershipRole | null;
   onOpenInvites: () => void;
   onSignIn: () => void;
+  onClose: () => void;
   onStateChange: (nextState: {
     relationshipState: ClubRelationshipState;
     playerAffiliationStatus?: PlayerAffiliationStatus | null;
@@ -43,6 +44,7 @@ export const ClubApplicationPanel = ({
   pendingApplicationRole,
   onOpenInvites,
   onSignIn,
+  onClose,
   onStateChange
 }: ClubApplicationPanelProps) => {
   const { t } = useTranslation();
@@ -61,12 +63,7 @@ export const ClubApplicationPanel = ({
     try {
       if (playerJoinPolicy === 'OPEN_TRIAL') {
         await selfRegisterClubPlayer(clubId);
-        onStateChange({
-          relationshipState: 'TRIALIST',
-          playerAffiliationStatus: 'TRIALIST',
-          pendingApplicationId: null,
-          pendingApplicationRole: null
-        });
+        onStateChange({ relationshipState: 'TRIALIST', playerAffiliationStatus: 'TRIALIST', pendingApplicationId: null, pendingApplicationRole: null });
         setSuccessMessage(t('apply.canTrain', { clubName }));
         return;
       }
@@ -75,12 +72,7 @@ export const ClubApplicationPanel = ({
         position: playerPosition || null,
         ageGroup: playerAgeGroup || null,
       });
-      onStateChange({
-        relationshipState: 'APPLIED',
-        playerAffiliationStatus: null,
-        pendingApplicationId: response.applicationId,
-        pendingApplicationRole: 'PLAYER'
-      });
+      onStateChange({ relationshipState: 'APPLIED', playerAffiliationStatus: null, pendingApplicationId: response.applicationId, pendingApplicationRole: 'PLAYER' });
       setSuccessMessage(t('apply.requestSent', { clubName }));
     } catch (error) {
       setErrorMessage(extractApiErrorMessage(error, t('apply.submitFailed')));
@@ -90,22 +82,14 @@ export const ClubApplicationPanel = ({
   };
 
   const handleCancel = async () => {
-    if (!pendingApplicationId) {
-      return;
-    }
-
+    if (!pendingApplicationId) return;
     setPendingKey('cancel');
     setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
       await cancelClubApplication(clubId, pendingApplicationId);
-      onStateChange({
-        relationshipState: 'NONE',
-        playerAffiliationStatus: null,
-        pendingApplicationId: null,
-        pendingApplicationRole: null
-      });
+      onStateChange({ relationshipState: 'NONE', playerAffiliationStatus: null, pendingApplicationId: null, pendingApplicationRole: null });
       setSuccessMessage(t('apply.cancelled'));
     } catch (error) {
       setErrorMessage(extractApiErrorMessage(error, t('apply.cancelFailed')));
@@ -119,178 +103,92 @@ export const ClubApplicationPanel = ({
     : playerJoinPolicy === 'APPLICATION_REQUIRED'
       ? t('apply.requestToJoin')
       : t('apply.inviteOnlyHeadline');
-
   const playerDescription = playerJoinPolicy === 'OPEN_TRIAL'
     ? t('apply.joinTrainingDescription')
     : playerJoinPolicy === 'APPLICATION_REQUIRED'
       ? t('apply.requestDescription')
       : t('apply.inviteOnlyDescription');
+  const controlClass = 'w-full rounded-xl border border-[color:var(--theme-border-strong)] bg-[color:var(--theme-page)] px-3 py-2.5 text-sm font-medium text-[color:var(--text-primary)] outline-none transition focus:border-[#16a34a] focus:ring-2 focus:ring-[#16a34a]/15';
 
   return (
-    <section className="theme-surface theme-border rounded-xl border px-5 py-4 ">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-600">
-            <ClipboardCheck className="h-3.5 w-3.5" />
-            {t('apply.clubEntry')}
+    <section role="dialog" aria-modal="true" aria-labelledby="club-entry-title" className="overflow-hidden rounded-2xl border border-[color:var(--theme-border-strong)] bg-[color:var(--theme-surface)] text-[color:var(--text-primary)] shadow-[0_28px_90px_rgba(0,0,0,0.55)]">
+      <header className="flex items-start justify-between gap-4 border-b border-[color:var(--theme-border)] px-5 py-5 sm:px-6">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#16a34a]/25 bg-[#16a34a]/10 text-[#3ddc78]">
+            <ClipboardCheck className="h-5 w-5" />
           </div>
-          <h3 className="mt-4 text-lg font-semibold uppercase tracking-tight text-slate-900">
-            {t('apply.connectWith', { clubName })}
-          </h3>
-          <p className="mt-2 text-sm font-medium text-slate-600">
-            {t('apply.policyNote')}
-          </p>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#3ddc78]">{t('apply.clubEntry')}</p>
+            <h2 id="club-entry-title" className="mt-1 truncate text-xl font-bold tracking-tight sm:text-2xl">{clubName}</h2>
+          </div>
         </div>
+        <button type="button" onClick={onClose} aria-label="Close" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[color:var(--theme-border)] text-[color:var(--text-secondary)] transition hover:bg-[color:var(--theme-surface-inset)] hover:text-[color:var(--text-primary)]">
+          <X className="h-4 w-4" />
+        </button>
+      </header>
 
-        {(relationshipState === 'APPLIED' || relationshipState === 'TRIALIST' || relationshipState === 'ACTIVE') && (
-          <StatusBadge tone="info">{relationshipState}</StatusBadge>
-        )}
-      </div>
+      <div className="p-5 sm:p-6">
+        <p className="max-w-xl text-sm leading-6 text-[color:var(--text-secondary)]">{t('apply.policyNote')}</p>
 
-      {errorMessage && (
-        <div className="mt-4 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-700">
-          {errorMessage}
-        </div>
-      )}
+        {errorMessage && <div className="mt-4 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-300">{errorMessage}</div>}
+        {successMessage && <div className="mt-4 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-300">{successMessage}</div>}
 
-      {successMessage && (
-        <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-700">
-          {successMessage}
-        </div>
-      )}
-
-      {!isAuthenticated ? (
-        <div className="mt-5 rounded-xl border border-slate-300 bg-slate-50 px-4 py-4">
-          <p className="text-sm font-medium text-slate-600">
-            {t('apply.signInPrompt')}
-          </p>
-          <button
-            type="button"
-            onClick={onSignIn}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 bg-emerald-600 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white shadow-[4px_4px_0px_0px_#020617] transition-all hover:bg-emerald-500 active:translate-y-0.5 active:shadow-none"
-          >
-            {t('apply.signInToContinue')}
-          </button>
-        </div>
-      ) : relationshipState === 'INVITED' ? (
-        <div className="mt-5 rounded-xl border border-sky-500/20 bg-sky-500/10 px-4 py-4">
-          <div className="flex flex-wrap items-center gap-2">
+        {!isAuthenticated ? (
+          <div className="mt-5 rounded-xl border border-[color:var(--theme-border)] bg-[color:var(--theme-surface-inset)] p-4 sm:p-5">
+            <p className="text-sm leading-6 text-[color:var(--text-secondary)]">{t('apply.signInPrompt')}</p>
+            <button type="button" onClick={onSignIn} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#16a34a] px-5 text-sm font-bold text-white transition hover:bg-[#22b955]">{t('apply.signInToContinue')}</button>
+          </div>
+        ) : relationshipState === 'INVITED' ? (
+          <div className="mt-5 rounded-xl border border-sky-500/25 bg-sky-500/10 p-4 sm:p-5">
             <StatusBadge tone="info">{t('apply.invited')}</StatusBadge>
-            <p className="text-sm font-semibold text-sky-800">
-              {t('apply.invitedNote')}
-            </p>
+            <p className="mt-3 text-sm leading-6 text-sky-200">{t('apply.invitedNote')}</p>
+            <button type="button" onClick={onOpenInvites} className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-xl bg-sky-500 px-5 text-sm font-bold text-white transition hover:bg-sky-400">{t('apply.reviewInvite')}</button>
           </div>
-          <button
-            type="button"
-            onClick={onOpenInvites}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-900 bg-slate-200 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-900 shadow-[4px_4px_0px_0px_#020617] transition-all hover:bg-slate-300 active:translate-y-0.5 active:shadow-none"
-          >
-            {t('apply.reviewInvite')}
-          </button>
-        </div>
-      ) : relationshipState === 'APPLIED' && pendingApplicationId ? (
-        <div className="mt-5 rounded-xl border border-slate-300 bg-slate-50 px-4 py-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge tone="info">{clubApplicationStatusLabel('PENDING')}</StatusBadge>
-            {pendingApplicationRole && (
-              <StatusBadge tone="neutral">{clubRoleLabel(pendingApplicationRole)}</StatusBadge>
-            )}
-          </div>
-          <p className="mt-3 text-sm font-medium text-slate-600">
-            {t('apply.pendingNote')}
-          </p>
-          <button
-            type="button"
-            onClick={() => void handleCancel()}
-            disabled={pendingKey === 'cancel'}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-700 transition-colors hover:bg-rose-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {pendingKey === 'cancel' ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-            {t('apply.cancelRequest')}
-          </button>
-        </div>
-      ) : playerAffiliationStatus === 'TRIALIST' || relationshipState === 'TRIALIST' ? (
-        <div className="mt-5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge tone="success">{t('apply.trialist')}</StatusBadge>
-            <p className="text-sm font-semibold text-emerald-800">
-              {t('apply.trialistNote')}
-            </p>
-          </div>
-        </div>
-      ) : playerAffiliationStatus === 'ACTIVE' || relationshipState === 'ACTIVE' ? (
-        <div className="mt-5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge tone="success">{t('apply.activePlayer')}</StatusBadge>
-            <p className="text-sm font-semibold text-emerald-800">
-              {t('apply.activePlayerNote')}
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          <div className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-4">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-emerald-500" />
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('apply.playerRoute')}</p>
+        ) : relationshipState === 'APPLIED' && pendingApplicationId ? (
+          <div className="mt-5 rounded-xl border border-amber-500/25 bg-amber-500/10 p-4 sm:p-5">
+            <div className="flex flex-wrap gap-2">
+              <StatusBadge tone="info">{clubApplicationStatusLabel('PENDING')}</StatusBadge>
+              {pendingApplicationRole && <StatusBadge tone="neutral">{clubRoleLabel(pendingApplicationRole)}</StatusBadge>}
             </div>
-            <h4 className="mt-4 text-base font-semibold uppercase tracking-tight text-slate-900">{playerHeadline}</h4>
-            <p className="mt-2 text-sm font-medium text-slate-600">{playerDescription}</p>
+            <p className="mt-3 text-sm leading-6 text-amber-100">{t('apply.pendingNote')}</p>
+            <button type="button" onClick={() => void handleCancel()} disabled={pendingKey === 'cancel'} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-5 text-sm font-bold text-rose-300 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60">
+              {pendingKey === 'cancel' ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />} {t('apply.cancelRequest')}
+            </button>
+          </div>
+        ) : playerAffiliationStatus === 'TRIALIST' || relationshipState === 'TRIALIST' ? (
+          <div className="mt-5 flex gap-3 rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-4 sm:p-5">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+            <div><p className="font-bold text-emerald-300">{t('apply.trialist')}</p><p className="mt-1 text-sm leading-6 text-emerald-100/80">{t('apply.trialistNote')}</p></div>
+          </div>
+        ) : playerAffiliationStatus === 'ACTIVE' || relationshipState === 'ACTIVE' ? (
+          <div className="mt-5 flex gap-3 rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-4 sm:p-5">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+            <div><p className="font-bold text-emerald-300">{t('apply.activePlayer')}</p><p className="mt-1 text-sm leading-6 text-emerald-100/80">{t('apply.activePlayerNote')}</p></div>
+          </div>
+        ) : (
+          <div className="mt-5 rounded-xl border border-[color:var(--theme-border)] bg-[color:var(--theme-surface-inset)] p-4 sm:p-5">
+            <div className="flex items-center gap-2 text-[#3ddc78]"><Sparkles className="h-4 w-4" /><p className="text-[10px] font-bold uppercase tracking-[0.18em]">{t('apply.playerRoute')}</p></div>
+            <h3 className="mt-3 text-xl font-bold tracking-tight">{playerHeadline}</h3>
+            <p className="mt-2 text-sm leading-6 text-[color:var(--text-secondary)]">{playerDescription}</p>
 
             {playerJoinPolicy === 'APPLICATION_REQUIRED' && (
-              <div className="mt-4 space-y-3">
+              <div className="mt-5 space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t('apply.preferredPosition')}</label>
-                    <select
-                      value={playerPosition}
-                      onChange={(event) => setPlayerPosition(event.target.value)}
-                      className="theme-surface-muted theme-border w-full rounded-xl border px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500"
-                    >
-                      {['GOALKEEPER', 'DEFENDER', 'MIDFIELDER', 'FORWARD'].map((p) => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">{t('apply.ageGroup')}</label>
-                    <select
-                      value={playerAgeGroup}
-                      onChange={(event) => setPlayerAgeGroup(event.target.value)}
-                      className="theme-surface-muted theme-border w-full rounded-xl border px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500"
-                    >
-                      <option value="">{t('apply.notSure')}</option>
-                      {['U8', 'U10', 'U12', 'U14', 'U16', 'U18', 'Senior'].map((g) => (
-                        <option key={g} value={g}>{g}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <label className="space-y-1.5"><span className="text-xs font-bold text-[color:var(--text-secondary)]">{t('apply.preferredPosition')}</span><select value={playerPosition} onChange={(event) => setPlayerPosition(event.target.value)} className={controlClass}>{['GOALKEEPER', 'DEFENDER', 'MIDFIELDER', 'FORWARD'].map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
+                  <label className="space-y-1.5"><span className="text-xs font-bold text-[color:var(--text-secondary)]">{t('apply.ageGroup')}</span><select value={playerAgeGroup} onChange={(event) => setPlayerAgeGroup(event.target.value)} className={controlClass}><option value="">{t('apply.notSure')}</option>{['U8', 'U10', 'U12', 'U14', 'U16', 'U18', 'Senior'].map((g) => <option key={g} value={g}>{g}</option>)}</select></label>
                 </div>
-                <textarea
-                  value={playerMessage}
-                  onChange={(event) => setPlayerMessage(event.target.value)}
-                  rows={4}
-                  maxLength={2000}
-                  placeholder={t('apply.aboutYou')}
-                  className="theme-surface-muted theme-border w-full rounded-xl border px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-emerald-500"
-                />
+                <textarea value={playerMessage} onChange={(event) => setPlayerMessage(event.target.value)} rows={4} maxLength={2000} placeholder={t('apply.aboutYou')} className={`${controlClass} resize-none placeholder:text-[color:var(--text-muted)]`} />
               </div>
             )}
 
-            {playerJoinPolicy === 'INVITE_ONLY' ? null : (
-              <button
-                type="button"
-                onClick={() => void handlePlayerAction()}
-                disabled={pendingKey === 'player'}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 bg-emerald-600 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white shadow-[4px_4px_0px_0px_#020617] transition-all hover:bg-emerald-500 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {pendingKey === 'player' ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-                {playerJoinPolicy === 'OPEN_TRIAL' ? t('apply.joinTrainingCta') : t('apply.requestEntryCta')}
+            {playerJoinPolicy !== 'INVITE_ONLY' && (
+              <button type="button" onClick={() => void handlePlayerAction()} disabled={pendingKey === 'player'} className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#16a34a] px-5 text-sm font-bold text-white shadow-[0_10px_28px_rgba(22,163,74,0.22)] transition hover:bg-[#22b955] disabled:cursor-not-allowed disabled:opacity-70">
+                {pendingKey === 'player' ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} {playerJoinPolicy === 'OPEN_TRIAL' ? t('apply.joinTrainingCta') : t('apply.requestEntryCta')}
               </button>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   );
 };

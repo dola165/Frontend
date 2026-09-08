@@ -84,15 +84,32 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
 
     const loadSquads = useCallback(async () => {
         setSquadsLoading(true);
+        const [squadsResult, cardsResult] = await Promise.allSettled([
+            apiClient.get<SquadDto[]>(`/clubs/${clubId}/squads`),
+            fetchPlayerCards(clubId),
+        ]);
         try {
-            const response = await apiClient.get<SquadDto[]>(`/clubs/${clubId}/squads`);
-            const list = response.data || [];
+            const list = squadsResult.status === 'fulfilled' ? (squadsResult.value.data || []) : [];
+            const nextCards = cardsResult.status === 'fulfilled' ? cardsResult.value : [];
             setSquads(list);
-            setSelectedSquadId(prev => prev ?? list[0]?.id ?? null);
-        } catch {
-            // non-critical
+            setCards(nextCards);
+            // Make card-backed players discoverable immediately: a club with
+            // cards assigned to a youth squad should open on that squad rather
+            // than an empty first-team roster. Manual selection is unchanged.
+            const firstCardSquadId = nextCards.find((card) =>
+                card.squadId != null && list.some((squad) => squad.id === card.squadId)
+            )?.squadId ?? null;
+            setSelectedSquadId(prev => prev ?? firstCardSquadId ?? list[0]?.id ?? null);
         } finally {
             setSquadsLoading(false);
+        }
+    }, [clubId]);
+
+    const loadCards = useCallback(async () => {
+        try {
+            setCards(await fetchPlayerCards(clubId));
+        } catch {
+            // Cards are optional context for the roster pencil.
         }
     }, [clubId]);
 
@@ -117,16 +134,6 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
             setRosterGroups([]);
         }
     }, [selectedSquadId, loadRoster]);
-
-    const loadCards = useCallback(async () => {
-        try {
-            setCards(await fetchPlayerCards(clubId));
-        } catch {
-            // cards are optional context for the roster pencil — non-critical
-        }
-    }, [clubId]);
-
-    useEffect(() => { void loadCards(); }, [loadCards]);
 
     // ── actions ──
 

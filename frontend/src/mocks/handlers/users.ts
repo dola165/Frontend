@@ -5,6 +5,11 @@ import { isMinor, isUnder13 } from '../../utils/age';
 
 const API = '*/api';
 
+const makeToken = (userId: number, role: string) => {
+  const payload = { sub: userId, role, iat: Date.now() };
+  return `mock-jwt.${btoa(JSON.stringify(payload))}.mock-sig`;
+};
+
 export const userHandlers: HttpHandler[] = [
 
   // -- GET /users/me (returns Map<String, Object>) --
@@ -14,8 +19,7 @@ export const userHandlers: HttpHandler[] = [
     let uid = currentUserId();
 
     // Role-aware E2E contexts restore only localStorage. Rehydrate the mock
-    // session from its access token so a new page does not fall back to the
-    // seed's default player regardless of the role that logged in.
+    // session from its access token after a new page loads.
     if (authorization?.startsWith('Bearer mock-jwt.')) {
       try {
         const payload = JSON.parse(atob(authorization.split('.')[1])) as { sub?: number };
@@ -37,6 +41,41 @@ export const userHandlers: HttpHandler[] = [
       id: u.id, username: u.username, role: u.role, fullName: u.fullName,
       name: u.name, avatarUrl: u.avatarUrl, profileComplete: u.profileComplete,
       bio: u.bio, position: u.position, email: u.email, dob: u.dob ?? null,
+      onboardingRequired: u.onboardingRequired, mustChangePassword: u.mustChangePassword,
+      emailVerified: u.emailVerified,
+    });
+  }),
+
+  // -- PUT /users/me/onboarding (required first-use fields are saved together) --
+  http.put(`${API}/users/me/onboarding`, async ({ request }) => {
+    await simulateLatency();
+    const uid = currentUserId();
+    if (uid == null) return HttpResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const body = (await request.json()) as { fullName?: string; role?: string; dateOfBirth?: string };
+    if (!body.fullName?.trim() || !body.dateOfBirth || !body.role) {
+      return HttpResponse.json({ error: 'Name, role, and date of birth are required.' }, { status: 400 });
+    }
+    if (isUnder13(body.dateOfBirth)) {
+      return HttpResponse.json({ error: 'You must be at least 13 years old.' }, { status: 400 });
+    }
+
+    const u = users().get(uid)!;
+    if (u.dob && u.dob !== body.dateOfBirth) {
+      return HttpResponse.json({ error: 'Date of birth is locked after registration.' }, { status: 409 });
+    }
+    u.fullName = body.fullName.trim();
+    u.role = body.role;
+    u.dob = body.dateOfBirth;
+    u.profileComplete = true;
+    u.onboardingRequired = false;
+
+    return HttpResponse.json({
+      id: u.id, username: u.username, email: u.email, role: u.role,
+      fullName: u.fullName, name: u.fullName, dob: u.dob,
+      profileComplete: true, onboardingRequired: false,
+      mustChangePassword: u.mustChangePassword, emailVerified: u.emailVerified,
+      accessToken: makeToken(u.id, u.role ?? 'PLAYER'),
     });
   }),
 
@@ -76,6 +115,8 @@ export const userHandlers: HttpHandler[] = [
     if (body.fullName != null) u.fullName = body.fullName as string;
     if (body.bio != null) u.bio = body.bio as string;
     if (body.position != null) u.position = body.position as string;
+    u.profileComplete = true;
+    u.onboardingRequired = false;
 
     return HttpResponse.json({ message: 'Profile completed successfully' });
   }),

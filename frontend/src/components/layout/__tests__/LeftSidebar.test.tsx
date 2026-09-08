@@ -13,7 +13,8 @@ describe('LeftSidebar', () => {
         expect(screen.getByRole('link', { name: /Alex Morgan.*View your profile/ })).toHaveAttribute('href', '/profile/9');
         expect(screen.getByRole('link', { name: /Following.*People you keep up with/ })).toHaveAttribute('href', '/people');
         expect(screen.getByRole('link', { name: /Followed clubs.*Clubs you keep up with/ })).toHaveAttribute('href', '/clubs/following');
-        expect(screen.getByRole('link', { name: /My club.*Your football home/ })).toHaveAttribute('href', '/my-club');
+        expect(screen.getByRole('link', { name: /Map.*Find football near you/ })).toHaveAttribute('href', '/map');
+        expect(screen.queryByRole('link', { name: /My club.*Your football home/ })).not.toBeInTheDocument();
         expect(screen.queryByRole('link', { name: /Events/ })).not.toBeInTheDocument();
         expect(screen.queryByRole('link', { name: /Jobs & volunteering/ })).not.toBeInTheDocument();
     });

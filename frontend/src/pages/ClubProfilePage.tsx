@@ -6,7 +6,6 @@ import { apiClient } from '../api/axiosConfig';
 import { ClubHero } from '../components/club/ClubHero';
 import { ClubProfileInfoPanel } from '../components/club/ClubProfileInfoPanel';
 import { ClubOpportunities } from '../components/club/ClubOpportunities';
-import { ClubJobsPanel } from '../components/club/ClubJobsPanel';
 import { ClubProfileStickyHeader } from '../components/club/ClubProfileStickyHeader';
 import type { ClubNavigationTab } from '../components/club/clubNavigation';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
@@ -99,10 +98,12 @@ const normalizeManagementTab = (value: string | null): ClubManagementTab | null 
         ? value
         : null;
 
-const normalizeTab = (value: string | null): ClubTab =>
-    value === 'people' || value === 'facilities' || value === 'honours' || value === 'teams' || value === 'schedule' || value === 'media' || value === 'events' || value === 'business' || value === 'contact'
+const normalizeTab = (value: string | null): ClubTab => {
+    if (value === 'media') return 'pictures'; // legacy URL alias
+    return value === 'people' || value === 'facilities' || value === 'honours' || value === 'teams' || value === 'schedule' || value === 'pictures' || value === 'videos' || value === 'events' || value === 'business' || value === 'contact'
         ? value
         : 'overview';
+};
 
 export const ClubProfilePage = () => {
     const { id } = useParams<{ id: string }>();
@@ -370,8 +371,10 @@ export const ClubProfilePage = () => {
                 club={club}
             />
 
-            <div className="w-full pb-10 pt-4">
-                <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(260px,340px)_minmax(0,1fr)_minmax(260px,320px)] xl:items-start">
+            <div className="club-profile-frame mx-auto w-full pb-10 pt-4">
+                <div
+                    className={`club-profile-main-grid ${activeTab === 'business' ? 'club-profile-main-grid--business' : ''} mt-6 grid gap-4 xl:items-start`}
+                >
                     <div className="hidden xl:block xl:sticky xl:top-[14px]">
                         <ClubProfileInfoPanel club={club} />
                     </div>
@@ -387,7 +390,8 @@ export const ClubProfilePage = () => {
                         {activeTab === 'honours' && <TabHonours club={club} />}
                         {activeTab === 'teams' && <TabTeams clubId={club.id} refreshKey={squadsRefreshKey} />}
                         {activeTab === 'schedule' && <TabCalendar clubId={club.id} isOwnClubAdmin={isOwnClubAdmin} />}
-                        {activeTab === 'media' && <TabMedia clubId={club.id} />}
+                        {activeTab === 'pictures' && <TabMedia clubId={club.id} mediaType="pictures" />}
+                        {activeTab === 'videos' && <TabMedia clubId={club.id} mediaType="videos" />}
                         {activeTab === 'events' && <TabEvents clubId={club.id} />}
                         {activeTab === 'business' && (
                             <ClubBusinessTab
@@ -404,18 +408,15 @@ export const ClubProfilePage = () => {
                         {activeTab === 'contact' && <TabContact club={club} />}
                     </div>
 
-                    <div className="hidden xl:block xl:sticky xl:top-[14px]">
-                        {activeTab === 'overview' && (
+                    {activeTab !== 'business' && (
+                        <div className="hidden xl:block xl:sticky xl:top-[14px]">
                             <ClubOpportunities
                                 club={club}
                                 onOpenModule={() => setActiveTab('business')}
                                 showOpportunityBoard
                             />
-                        )}
-                        {activeTab === 'overview' && (
-                            <ClubJobsPanel clubId={club.id} isAuthenticated={status === 'authenticated'} />
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -457,9 +458,9 @@ export const ClubProfilePage = () => {
             )}
 
             {isApplyModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsApplyModalOpen(false)} />
-                    <div className="relative z-10 w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl">
+                    <div className="relative z-10 max-h-[90dvh] w-full max-w-xl overflow-y-auto rounded-2xl">
                         <ClubApplicationPanel
                             clubId={club.id}
                             clubName={club.name}
@@ -471,6 +472,7 @@ export const ClubProfilePage = () => {
                             pendingApplicationRole={club.pendingApplicationRole ?? null}
                             onOpenInvites={() => navigate('/my-club')}
                             onSignIn={() => navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash))}
+                            onClose={() => setIsApplyModalOpen(false)}
                             onStateChange={(nextState) => {
                                 setClub((current) => current ? {
                                     ...current,

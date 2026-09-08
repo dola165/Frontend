@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, Loader2, MessageSquareText, X } from 'lucide-react';
+import { useDialogFocus } from '../useDialogFocus';
 
 interface DecisionNoteModalProps {
     title: string;
@@ -29,6 +30,9 @@ export const DecisionNoteModal = ({
 }: DecisionNoteModalProps) => {
     const { t } = useTranslation();
     const [note, setNote] = useState('');
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const noteRef = useRef<HTMLTextAreaElement>(null);
+    useDialogFocus(true, dialogRef, onClose, noteRef);
 
     const trimmed = note.trim();
     const confirm = () => onConfirm(trimmed.length > 0 ? trimmed : null);
@@ -36,17 +40,17 @@ export const DecisionNoteModal = ({
     return (
         <div className="fixed inset-0 z-[1200] flex items-center justify-center">
             <div className="theme-overlay absolute inset-0" onClick={onClose} />
-            <div className="relative z-10 mx-4 w-full max-w-md border border-[#ffffff0d] bg-[#0f1117] shadow-2xl">
+            <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="decision-note-title" aria-describedby="decision-note-subtitle" className="relative z-10 mx-4 w-full max-w-md border border-[var(--fc-border)] bg-[var(--fc-page-bg)] shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-[#ffffff0d] px-5 py-4">
                     <div className="flex items-center gap-3">
-                        <MessageSquareText className="h-5 w-5 text-[#16a34a]" />
+                        <MessageSquareText className="h-5 w-5 text-[var(--fc-accent)]" />
                         <div>
-                            <h2 className="text-sm font-semibold text-[#f4f4f5]">{title}</h2>
-                            <p className="mt-0.5 text-[11px] font-medium text-[#a1a1aa]">{subtitle}</p>
+                            <h2 id="decision-note-title" className="text-sm font-semibold text-[var(--fc-text-primary)]">{title}</h2>
+                            <p id="decision-note-subtitle" className="mt-0.5 text-[11px] font-medium text-[var(--fc-text-secondary)]">{subtitle}</p>
                         </div>
                     </div>
-                    <button type="button" onClick={onClose} className="p-1 text-[#a1a1aa] hover:text-[#f4f4f5]">
+                    <button type="button" onClick={onClose} aria-label={t('decisions.close')} className="p-1 text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]">
                         <X className="h-4 w-4" />
                     </button>
                 </div>
@@ -54,37 +58,38 @@ export const DecisionNoteModal = ({
                 {/* Note */}
                 <div className="px-5 py-4">
                     <div className="mb-1.5 flex items-center justify-between">
-                        <label htmlFor="decision-note" className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa]">
+                        <label htmlFor="decision-note" className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--fc-text-secondary)]">
                             {t('decisions.noteLabel')}
                         </label>
                         <button
                             type="button"
                             onClick={() => setNote(t(templateKey))}
-                            className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#16a34a] hover:underline"
+                            className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--fc-accent)] hover:underline"
                         >
                             {t('decisions.templateChip')}
                         </button>
                     </div>
                     <textarea
+                        ref={noteRef}
                         id="decision-note"
                         value={note}
                         maxLength={MAX_NOTE_LENGTH}
                         onChange={(e) => setNote(e.target.value)}
                         placeholder={t('decisions.notePlaceholder')}
                         rows={4}
-                        className="w-full resize-none rounded-lg border border-[#ffffff0d] bg-elevated px-3 py-2 text-sm text-[#f4f4f5] outline-none placeholder:text-[#a1a1aa] focus:border-[#16a34a]"
+                        className="w-full resize-none rounded-lg border border-[var(--fc-border)] bg-elevated px-3 py-2 text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)] focus:border-[var(--fc-accent)]"
                     />
-                    <p className="mt-1 text-right text-[10px] font-medium text-[#a1a1aa]">
+                    <p className="mt-1 text-right text-[10px] font-medium text-[var(--fc-text-muted)]">
                         {t('decisions.charCount', { count: note.length })}
                     </p>
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-2 border-t border-[#ffffff0d] px-5 py-3">
+                <div className="flex items-center justify-end gap-2 border-t border-[var(--fc-border)] px-5 py-3">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="border border-[#ffffff0d] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa] hover:text-[#f4f4f5]"
+                        className="border border-[var(--fc-border)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]"
                     >
                         {t('decisions.cancel')}
                     </button>

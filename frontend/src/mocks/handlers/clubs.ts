@@ -390,6 +390,7 @@ export const clubHandlers: HttpHandler[] = [
       assignableStaffRoles: ['CLUB_ADMIN', 'COACH'],
       activePlayerCount: c.memberCount,
       trialistCount: 3,
+      pendingTryoutCount: 0,
       members: [],
       pendingInvitations: [],
       pendingApplications: [],

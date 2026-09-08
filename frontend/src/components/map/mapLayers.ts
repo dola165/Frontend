@@ -1,9 +1,10 @@
 // Pure config for the map point layers (no React).
-// Basemap: OpenFreeMap positron in BOTH light and dark mode — the single
-// reliable style URL (the old VersaTiles fiord dark style is dead/404; dark
-// mode is a CSS "dusk" filter on the canvas, see index.css .map-dusk).
+// Basemap: OpenFreeMap positron is the shared light foundation. The explicit
+// dark URL below is kept as a resilient fallback when client-side recoloring
+// cannot be fetched (for example while the landing page is offline).
 // TILTED keeps the keyed MapTiler style.
 export const MAP_STYLE_DEFAULT = 'https://tiles.openfreemap.org/styles/positron';
+export const MAP_STYLE_DARK = 'https://tiles.openfreemap.org/styles/dark';
 // Google-Maps-inspired marker set: calm blue cluster/select accent, warm
 // multi-hue data colors that stay distinguishable on the light basemap.
 export const MAP_ENTITY_COLORS: Record<string, string> = {

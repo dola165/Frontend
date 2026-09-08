@@ -21,6 +21,10 @@ export interface ClubManagedMember {
     avatarUrl?: string | null;
     role: LegacyClubMembershipRole;
     roleEditable: boolean;
+    publicTitle?: string | null;
+    clubBio?: string | null;
+    qualifications?: string | null;
+    isPublic?: boolean;
 }
 
 export interface ClubMembershipInvite {
@@ -83,6 +87,10 @@ export interface BulkApplicationDecisionResult {
 
 export interface BulkApplicationDecisionResponse {
     results: BulkApplicationDecisionResult[];
+}
+
+export interface ClubApplicationAcceptResult {
+    activeElsewhere: boolean;
 }
 
 // Phase A4 — player club journey
@@ -149,7 +157,10 @@ export interface ClubManagementOverview {
     assignableStaffRoles: Exclude<ClubMembershipRole, 'PLAYER'>[];
     activePlayerCount: number;
     trialistCount: number;
+    pastPlayerCount?: number;
+    removedPlayerCount?: number;
     overdueTrialistCount: number;
+    pendingTryoutCount: number;
     members: ClubManagedMember[];
     pendingInvitations: ClubMembershipInvite[];
     pendingApplications: ClubMembershipApplication[];
@@ -247,6 +258,10 @@ export const isLeadershipRole = (role?: string | null): role is ClubMembershipRo
 
 export const canManageClubOperations = (role?: string | null): role is ClubMembershipRole =>
     isLeadershipRole(role) || role === 'COACH';
+
+/** Player-affiliation status changes are owner/admin decisions. */
+export const canManagePlayerStatuses = (role?: string | null): role is ClubMembershipRole =>
+    isLeadershipRole(role);
 
 export const canReviewTryouts = (role?: string | null): role is ClubMembershipRole =>
     canManageClubOperations(role);

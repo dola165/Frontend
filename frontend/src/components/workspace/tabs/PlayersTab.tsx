@@ -16,7 +16,9 @@ interface PlayersTabProps {
     playerLoading: boolean;
     playerError: string | null;
     playerStatusFilter: 'ALL' | PlayerAffiliationStatus;
+    playerCounts?: Partial<Record<'ALL' | PlayerAffiliationStatus, number>>;
     pendingKey: string | null;
+    canManagePlayerStatuses: boolean;
     totalPlayerPages: number;
     onStatusFilterChange: (filter: 'ALL' | PlayerAffiliationStatus) => void;
     onPlayerStatusChange: (userId: number, status: PlayerAffiliationStatus, playerName?: string) => Promise<void>;
@@ -42,12 +44,13 @@ const posTone = (pos?: string | null): 'success' | 'info' | 'warning' | 'danger'
 };
 
 const FILTERS = ['ALL', 'TRIALIST', 'ACTIVE', 'PAST', 'REMOVED'] as const;
+type PlayerFilter = typeof FILTERS[number];
 
 // ── component ──
 
 export const PlayersTab = ({
-    playerDirectory, playerLoading, playerError, playerStatusFilter,
-    pendingKey, totalPlayerPages, onStatusFilterChange, onPlayerStatusChange, onPromotePlayer, onTrialEndsChange,
+    playerDirectory, playerLoading, playerError, playerStatusFilter, playerCounts,
+    pendingKey, canManagePlayerStatuses, totalPlayerPages, onStatusFilterChange, onPlayerStatusChange, onPromotePlayer, onTrialEndsChange,
     onRetry, onPageChange, onMessagePlayer, onSendConsentEmail, onTabChange,
 }: PlayersTabProps) => {
     const { t } = useTranslation();
@@ -58,15 +61,20 @@ export const PlayersTab = ({
     const [consentEmailFor, setConsentEmailFor] = useState<number | null>(null);
     const [consentEmailValue, setConsentEmailValue] = useState('');
 
-    // counts per filter
+    // Counts must represent the whole affiliation set, not just the current
+    // paginated page. Fall back to the page while the overview is unavailable.
     const counts = useMemo(() => {
-        const map: Record<string, number> = { ALL: allPlayers.length };
-        for (const s of FILTERS) {
-            if (s === 'ALL') continue;
-            map[s] = allPlayers.filter((p) => p.status === s).length;
-        }
+        const fallback: Record<PlayerFilter, number> = {
+            ALL: allPlayers.length,
+            TRIALIST: allPlayers.filter((p) => p.status === 'TRIALIST').length,
+            ACTIVE: allPlayers.filter((p) => p.status === 'ACTIVE').length,
+            PAST: allPlayers.filter((p) => p.status === 'PAST').length,
+            REMOVED: allPlayers.filter((p) => p.status === 'REMOVED').length,
+        };
+        const map = {} as Record<PlayerFilter, number>;
+        for (const status of FILTERS) map[status] = playerCounts?.[status] ?? fallback[status];
         return map;
-    }, [allPlayers]);
+    }, [allPlayers, playerCounts]);
 
     // client-side search
     const filteredPlayers = useMemo(() => {
@@ -279,8 +287,8 @@ export const PlayersTab = ({
                                             <TrialistBadge
                                                 joinedAt={player.joinedAt}
                                                 approveLabel={t('trialists.promote')}
-                                                onApprove={() => onPromotePlayer(player)}
-                                                onRelease={() => void onPlayerStatusChange(player.userId, 'REMOVED', player.fullName || undefined)}
+                                                onApprove={canManagePlayerStatuses ? () => onPromotePlayer(player) : undefined}
+                                                onRelease={canManagePlayerStatuses ? () => void onPlayerStatusChange(player.userId, 'REMOVED', player.fullName || undefined) : undefined}
                                             />
                                         )}
                                     </span>
@@ -394,8 +402,10 @@ export const PlayersTab = ({
                                                 type="date"
                                                 value={player.trialEndsOn ?? ''}
                                                 onChange={(e) => void onTrialEndsChange(player.userId, e.target.value)}
+                                                disabled={!canManagePlayerStatuses}
                                                 aria-label={`${t('trialists.trialEnds')} ${player.fullName || player.username}`}
-                                                className="w-full rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2 py-1 text-xs text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)]"
+                                                title={canManagePlayerStatuses ? undefined : 'Only club owners and admins can change player status or trial dates.'}
+                                                className="w-full rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2 py-1 text-xs text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)] disabled:cursor-not-allowed disabled:opacity-60"
                                             />
                                         ) : (
                                             <span className="text-xs text-[var(--fc-text-muted)]">—</span>
@@ -413,24 +423,32 @@ export const PlayersTab = ({
                                             <span className="text-xs text-[var(--fc-text-muted)]">—</span>
                                         ) : isTrialist ? (
                                             <>
-                                                <button
-                                                    type="button"
-                                                    disabled={pendingKey === `player-${player.userId}-ACTIVE`}
-                                                    onClick={() => onPromotePlayer(player)}
-                                                    className="inline-flex items-center gap-1 rounded-xl bg-[#16a34a] px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
-                                                >
-                                                    <Check className="h-3 w-3" />
-                                                    {t('trialists.promote')}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled={pendingKey === `player-${player.userId}-REMOVED`}
-                                                    onClick={() => void onPlayerStatusChange(player.userId, 'REMOVED', player.fullName || undefined)}
-                                                    className="inline-flex items-center gap-1 rounded-xl border border-[var(--fc-state-danger)] px-2.5 py-1 text-xs font-semibold text-[var(--fc-state-danger)] hover:bg-[var(--fc-state-danger-soft)] disabled:opacity-50 transition-colors"
-                                                >
-                                                    <X className="h-3 w-3" />
-                                                    {t('trialists.release')}
-                                                </button>
+                                                {canManagePlayerStatuses ? (
+                                                    <>
+                                                        <button
+                                                            type="button"
+                                                            disabled={pendingKey === `player-${player.userId}-ACTIVE`}
+                                                            onClick={() => onPromotePlayer(player)}
+                                                            className="inline-flex items-center gap-1 rounded-xl bg-[#16a34a] px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+                                                        >
+                                                            <Check className="h-3 w-3" />
+                                                            {t('trialists.promote')}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            disabled={pendingKey === `player-${player.userId}-REMOVED`}
+                                                            onClick={() => void onPlayerStatusChange(player.userId, 'REMOVED', player.fullName || undefined)}
+                                                            className="inline-flex items-center gap-1 rounded-xl border border-[var(--fc-state-danger)] px-2.5 py-1 text-xs font-semibold text-[var(--fc-state-danger)] hover:bg-[var(--fc-state-danger-soft)] disabled:opacity-50 transition-colors"
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                            {t('trialists.release')}
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--fc-text-muted)]" title="Only club owners and admins can finalize player status.">
+                                                        Review only
+                                                    </span>
+                                                )}
                                             </>
                                         ) : (
                                             <>
@@ -438,13 +456,14 @@ export const PlayersTab = ({
                                                     <button
                                                         type="button"
                                                         onClick={() => onMessagePlayer(player.userId, player.fullName || undefined)}
-                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-[var(--fc-text-muted)] hover:text-[var(--fc-accent)] hover:bg-[var(--fc-accent-soft)] opacity-0 group-hover:opacity-100 transition-all"
+                                                        aria-label={`Message ${player.fullName || player.username}`}
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-[var(--fc-text-muted)] hover:text-[var(--fc-accent)] hover:bg-[var(--fc-accent-soft)] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all"
                                                         title={`Message ${player.fullName || player.username}`}
                                                     >
                                                         <MessageSquare className="h-4 w-4" />
                                                     </button>
                                                 )}
-                                                <OverflowActions
+                                                {canManagePlayerStatuses && <OverflowActions
                                                     triggerIcon="vertical"
                                                     label="Player actions"
                                                     items={(() => {
@@ -489,7 +508,7 @@ export const PlayersTab = ({
                                                         }
                                                         return items;
                                                     })()}
-                                                />
+                                                />}
                                             </>
                                         )}
                                     </span>

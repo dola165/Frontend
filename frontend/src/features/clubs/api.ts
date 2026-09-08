@@ -9,6 +9,7 @@ import type {
     ClubMembershipContext,
     ClubMembershipRole,
     ClubPlayerAffiliation,
+    ClubApplicationAcceptResult,
     MyClubInvitation,
     MyClubMembership,
     PageResult,
@@ -83,13 +84,14 @@ export const fetchPendingClubApplications = async (clubId: number) => {
 /** Phase A3 — applications list with optional position/ageGroup/status filters. */
 export const fetchClubApplications = async (
     clubId: number,
-    filters?: { position?: string | null; ageGroup?: string | null; status?: string | null }
+    filters?: { position?: string | null; ageGroup?: string | null; status?: string | null; jobId?: number | null }
 ) => {
     const response = await apiClient.get<ClubMembershipApplication[]>(`/clubs/${clubId}/management/applications`, {
         params: {
             position: filters?.position || undefined,
             ageGroup: filters?.ageGroup || undefined,
             status: filters?.status || undefined,
+            jobId: filters?.jobId || undefined,
         },
     });
     return response.data;
@@ -205,6 +207,18 @@ export const fetchOpenJobDirectory = async () => {
     return response.data;
 };
 
+export interface ClubStaffProfilePayload {
+    publicTitle?: string | null;
+    clubBio?: string | null;
+    qualifications?: string | null;
+    displayOrder?: number;
+    isPublic?: boolean;
+}
+
+export const updateClubStaffProfile = async (clubId: number, staffUserId: number, payload: ClubStaffProfilePayload) => {
+    await apiClient.put(`/clubs/${clubId}/management/staff/${staffUserId}/profile`, payload);
+};
+
 export const fetchClubJobs = async (clubId: number) => {
     const response = await apiClient.get<ClubJob[]>(`/clubs/${clubId}/jobs`);
     return response.data;
@@ -251,9 +265,10 @@ export const cancelClubApplication = async (clubId: number, applicationId: numbe
 };
 
 export const acceptClubApplication = async (clubId: number, applicationId: number, message?: string | null) => {
-    await apiClient.post(`/clubs/${clubId}/management/applications/${applicationId}/accept`, {
+    const response = await apiClient.post<ClubApplicationAcceptResult>(`/clubs/${clubId}/management/applications/${applicationId}/accept`, {
         message: message ?? null,
     });
+    return response.data;
 };
 
 export const declineClubApplication = async (clubId: number, applicationId: number, message?: string | null) => {

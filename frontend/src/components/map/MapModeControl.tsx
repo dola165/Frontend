@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Circle, Globe2, Map as MapIcon } from 'lucide-react';
-import type { MapMode } from '../../pages/MapPage';
+import type { MapMode } from './MapExperience';
 
 interface MapModeControlProps {
     mode: MapMode;
@@ -42,7 +42,7 @@ export const MapModeControl = ({
     return (
         <>
             {/* Positioning (bottom-left, shifted right of the open drawer) is owned
-                by the wrapper in MapPage — this component only paints the pill. */}
+                by the route wrapper — this component only paints the pill. */}
             <div className="map-mode-toggle">
                 {MODES.map(({ id, label, icon: Icon }) => (
                     <button

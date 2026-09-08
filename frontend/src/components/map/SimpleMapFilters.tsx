@@ -17,10 +17,14 @@ import type { ClubCategory, MapFilters, MapGender, MapLevel } from './MapFilterS
 
 interface SimpleMapFiltersProps {
     isVisible: boolean;
+    /** Render the drawer inside an embedding surface (for example the landing-page map). */
+    embedded?: boolean;
+    /** Use a compact horizontal filter strip instead of the full side drawer. */
+    layout?: 'side' | 'top' | 'external';
     draftFilters: MapFilters;
     appliedFilters: MapFilters;
     onDraftChange: (filters: MapFilters) => void;
-    onApply: () => void;
+    onApply: () => void | Promise<void>;
     onReset: () => void;
     applying: boolean;
     resultCount: number | null;
@@ -28,7 +32,13 @@ interface SimpleMapFiltersProps {
     onSearchChange: (value: string) => void;
     onPlaceSearchChange: (value: string) => void;
     allowedEntityTypes: MapEntityType[];
-    viewerMode: 'player' | 'staff';
+    viewerMode: 'guest' | 'player' | 'staff';
+    showAdvancedFilters?: boolean;
+    showPlayerFitFilters?: boolean;
+    /** Hide optional fields when a composed guest surface needs a very small strip. */
+    showSearchField?: boolean;
+    showVerificationFilter?: boolean;
+    showDescription?: boolean;
     onOpenAdvanced: () => void;
     onClose: () => void;
 }
@@ -57,6 +67,8 @@ const selectClassName = 'h-10 w-full border-0 border-b border-[var(--map-panel-b
 
 export const SimpleMapFilters = ({
     isVisible,
+    embedded = false,
+    layout = 'side',
     draftFilters,
     appliedFilters,
     onDraftChange,
@@ -69,6 +81,11 @@ export const SimpleMapFilters = ({
     onPlaceSearchChange,
     allowedEntityTypes,
     viewerMode,
+    showAdvancedFilters = true,
+    showPlayerFitFilters = true,
+    showSearchField = true,
+    showVerificationFilter = true,
+    showDescription = true,
     onOpenAdvanced,
     onClose
 }: SimpleMapFiltersProps) => {
@@ -82,6 +99,30 @@ export const SimpleMapFilters = ({
     const cityValue = draftFilters.clubs.city;
     const selectedCountry = findIsoCountry(countryValue);
     const hasPendingChanges = JSON.stringify(draftFilters) !== JSON.stringify(appliedFilters);
+    const isTopLayout = layout === 'top';
+    const isExternalLayout = layout === 'external';
+    const backdropPosition = isExternalLayout
+        ? 'fixed inset-0'
+        : embedded ? 'absolute inset-0' : 'fixed inset-x-0 bottom-0 top-[var(--app-active-header-height)]';
+    const railPosition = isTopLayout
+        ? 'absolute inset-x-4 top-4'
+        : isExternalLayout
+            ? 'fixed inset-x-0 bottom-0 sm:relative sm:inset-auto'
+        : embedded
+            ? 'absolute inset-y-0 left-0'
+            : 'fixed bottom-0 left-0 top-[var(--app-active-header-height)]';
+    const backdropVisibility = isExternalLayout
+        ? `sm:hidden ${isVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`
+        : isTopLayout
+        ? 'pointer-events-none opacity-0'
+        : isVisible
+            ? 'pointer-events-auto opacity-100'
+            : 'pointer-events-none opacity-0';
+    const railVisibility = isExternalLayout
+        ? (isVisible ? 'translate-y-0 opacity-100' : 'hidden')
+        : isTopLayout
+        ? (isVisible ? 'translate-y-0 opacity-100' : '-translate-y-[calc(100%+1rem)] opacity-0 pointer-events-none')
+        : (isVisible ? 'translate-x-0' : '-translate-x-full');
 
     useEffect(() => {
         document.documentElement.style.setProperty('--map-filter-w', '332px');
@@ -188,28 +229,35 @@ export const SimpleMapFilters = ({
     return (
         <>
             <div
-                className={`map-modal-backdrop fixed inset-x-0 bottom-0 top-[var(--app-active-header-height)] z-[1080] bg-slate-950/30 backdrop-blur-[2px] transition-opacity ${isVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`}
+                className={`map-modal-backdrop ${backdropPosition} z-[1080] bg-slate-950/30 backdrop-blur-[2px] transition-opacity ${backdropVisibility}`}
                 onClick={onClose}
             />
             <aside
+                id={isExternalLayout ? 'landing-map-filter-panel' : undefined}
                 aria-label="Simple map filters"
                 data-visible={isVisible}
-                className={`map-simple-rail pointer-events-auto fixed bottom-0 left-0 top-[var(--app-active-header-height)] z-[1100] flex w-[min(92vw,332px)] flex-col border-r border-[var(--map-panel-border)] bg-[var(--map-panel-bg)] shadow-[var(--map-shadow-strong)] transition-[transform,top] duration-200 ${isVisible ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`map-simple-rail ${isTopLayout ? 'map-simple-rail--top' : ''} ${isExternalLayout ? 'map-simple-rail--external w-full rounded-t-3xl border-t sm:max-h-[420px] sm:rounded-2xl sm:border' : ''} pointer-events-auto ${railPosition} z-[1100] flex flex-col ${isTopLayout ? 'w-auto rounded-2xl border' : isExternalLayout ? '' : 'w-[min(92vw,332px)] border-r'} border-[var(--map-panel-border)] bg-[var(--map-panel-bg)] shadow-[var(--map-shadow-strong)] transition-[transform,top,opacity] duration-200 ${railVisibility}`}
             >
-                <header className="shrink-0 border-b border-[var(--map-panel-border)] px-5 pb-4 pt-5">
+                <header className={`shrink-0 border-b border-[var(--map-panel-border)] ${isTopLayout ? 'px-4 py-2.5' : isExternalLayout ? 'px-4 py-3 sm:px-5 sm:py-4' : 'px-5 pb-4 pt-5'}`}>
                     <div className="flex items-start justify-between gap-3">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">Simple filters</p>
-                            <h2 className="mt-2 text-xl font-black text-[var(--text-primary)]">Find football near you</h2>
-                            <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
-                                {viewerMode === 'player' ? 'Choose what matters. We will keep the rest out of the way.' : 'Browse clubs, fixtures and tournaments from one place.'}
-                            </p>
+                            <h2 className={`${isTopLayout ? 'mt-0.5 text-base' : 'mt-2 text-xl'} font-black text-[var(--text-primary)]`}>Find football near you</h2>
+                            {showDescription && (
+                                <p className={`mt-1 text-xs leading-5 text-[var(--text-secondary)] ${isTopLayout ? 'hidden sm:block' : ''}`}>
+                                    {viewerMode === 'guest'
+                                        ? 'Explore public football clubs and locations before you create an account.'
+                                        : viewerMode === 'player'
+                                            ? 'Choose what matters. We will keep the rest out of the way.'
+                                            : 'Browse clubs, fixtures and tournaments from one place.'}
+                                </p>
+                            )}
                         </div>
-                        <button type="button" onClick={onClose} aria-label="Close filters" className="map-wide-hidden map-icon-button h-8 w-8 shrink-0">
+                        <button type="button" onClick={onClose} aria-label="Close filters" className={`${isTopLayout || isExternalLayout ? '' : 'map-wide-hidden'} map-icon-button h-8 w-8 shrink-0`}>
                             <X className="h-4 w-4" />
                         </button>
                     </div>
-                    <div className="mt-4 flex items-center justify-between border-l-2 border-[var(--map-panel-border)] pl-3">
+                    <div className={`${isTopLayout ? 'mt-1' : 'mt-4'} flex items-center justify-between border-l-2 border-[var(--map-panel-border)] pl-3`}>
                         <span className="text-xs font-semibold text-[var(--text-secondary)]">
                             {applying ? 'Updating the map…' : hasPendingChanges ? 'Changes ready' : `${resultCount ?? 0} results in range`}
                         </span>
@@ -217,8 +265,8 @@ export const SimpleMapFilters = ({
                     </div>
                 </header>
 
-                <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto px-5 py-5">
-                    <div className="space-y-6">
+                <div className={`scrollbar-hide min-h-0 flex-1 overflow-y-auto ${isTopLayout ? 'px-4 py-3' : 'px-5 py-5'}`}>
+                    <div className={isTopLayout ? `grid grid-cols-2 items-end gap-x-4 gap-y-3 sm:grid-cols-4 ${showSearchField ? 'xl:grid-cols-8' : 'xl:grid-cols-7'}` : 'space-y-6'}>
                         {allowedEntityTypes.length > 1 && (
                             <fieldset>
                                 <legend className="map-simple-label">Show on map</legend>
@@ -308,21 +356,23 @@ export const SimpleMapFilters = ({
                             )}
                         </div>
 
-                        <label>
-                            <span className="map-simple-label">Street, address or club name</span>
-                            <span className="map-simple-line">
-                                <Search className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-                                <input
-                                    value={searchValue}
-                                    onChange={(event) => onSearchChange(event.target.value)}
-                                    placeholder="Optional result filter"
-                                    className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
-                                />
-                            </span>
-                            <span className="mt-1.5 block text-[10px] leading-4 text-[var(--text-muted)]">Country and city move the search centre. This line filters club names and saved addresses.</span>
-                        </label>
+                        {showSearchField && (
+                            <label>
+                                <span className="map-simple-label">Street, address or club name</span>
+                                <span className="map-simple-line">
+                                    <Search className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+                                    <input
+                                        value={searchValue}
+                                        onChange={(event) => onSearchChange(event.target.value)}
+                                        placeholder="Optional result filter"
+                                        className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+                                    />
+                                </span>
+                                <span className="mt-1.5 block text-[10px] leading-4 text-[var(--text-muted)]">Country and city move the search centre. This line filters club names and saved addresses.</span>
+                            </label>
+                        )}
 
-                        <div className="space-y-5">
+                        <div className={isTopLayout ? 'grid grid-cols-2 gap-x-4 gap-y-3 sm:col-span-2 sm:grid-cols-4 xl:contents' : 'space-y-5'}>
                             <label>
                                 <span className="map-simple-label">Club type</span>
                                 <select value={draftFilters.clubs.categories[0] ?? ''} onChange={(event) => setSingleClubFilter('categories', event.target.value)} className={selectClassName}>
@@ -370,16 +420,22 @@ export const SimpleMapFilters = ({
                             <div className="mt-1.5 flex justify-between text-[10px] text-[var(--text-muted)]"><span>5 km</span><span>400 km</span></div>
                         </div>
 
-                        <div className="space-y-1">
-                            <label className="map-simple-check">
-                                <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[var(--text-muted)]" />Verified clubs only</span>
-                                <input type="checkbox" checked={draftFilters.clubs.officialOnly} onChange={() => updateFilters((current) => ({ ...current, clubs: { ...current.clubs, officialOnly: !current.clubs.officialOnly } }))} />
-                            </label>
-                            <label className="map-simple-check">
-                                <span className="flex items-center gap-2"><Building2 className="h-4 w-4 text-[var(--text-muted)]" />Accepting players</span>
-                                <input type="checkbox" checked={draftFilters.clubs.openTryoutsOnly} onChange={() => updateFilters((current) => ({ ...current, clubs: { ...current.clubs, openTryoutsOnly: !current.clubs.openTryoutsOnly } }))} />
-                            </label>
-                        </div>
+                        {(showVerificationFilter || showPlayerFitFilters) && (
+                            <div className="space-y-1">
+                                {showVerificationFilter && (
+                                    <label className="map-simple-check">
+                                        <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[var(--text-muted)]" />Verified clubs only</span>
+                                        <input type="checkbox" checked={draftFilters.clubs.officialOnly} onChange={() => updateFilters((current) => ({ ...current, clubs: { ...current.clubs, officialOnly: !current.clubs.officialOnly } }))} />
+                                    </label>
+                                )}
+                                {showPlayerFitFilters && (
+                                    <label className="map-simple-check">
+                                        <span className="flex items-center gap-2"><Building2 className="h-4 w-4 text-[var(--text-muted)]" />Accepting players</span>
+                                        <input type="checkbox" checked={draftFilters.clubs.openTryoutsOnly} onChange={() => updateFilters((current) => ({ ...current, clubs: { ...current.clubs, openTryoutsOnly: !current.clubs.openTryoutsOnly } }))} />
+                                    </label>
+                                )}
+                            </div>
+                        )}
 
                         {(draftFilters.clubs.categories.length > 1 || draftFilters.clubs.ageGroups.length > 1 || draftFilters.clubs.genders.length > 1 || draftFilters.clubs.levels.length > 1 || draftFilters.positions.length > 0) && (
                             <p className="border-l-2 border-violet-500 pl-3 text-xs leading-5 text-[var(--text-secondary)]">Some advanced choices are still active. Open Advanced to review every selected value.</p>
@@ -395,10 +451,12 @@ export const SimpleMapFilters = ({
                         </button>
                         <button type="button" onClick={onReset} aria-label="Reset map filters" className="map-simple-reset"><RotateCcw className="h-4 w-4" /></button>
                     </div>
-                    <button type="button" onClick={onOpenAdvanced} className="mt-3 flex w-full items-center justify-between border-t border-[var(--map-panel-border)] pt-3 text-xs font-bold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
-                        <span className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4" />Open advanced filters</span>
-                        <span aria-hidden>→</span>
-                    </button>
+                    {showAdvancedFilters && (
+                        <button type="button" onClick={onOpenAdvanced} className="mt-3 flex w-full items-center justify-between border-t border-[var(--map-panel-border)] pt-3 text-xs font-bold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
+                            <span className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4" />Open advanced filters</span>
+                            <span aria-hidden>→</span>
+                        </button>
+                    )}
                 </footer>
             </aside>
         </>

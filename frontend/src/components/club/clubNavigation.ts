@@ -1,6 +1,8 @@
-import { Briefcase, Building2, CalendarDays, Camera, Flag, Phone, Trophy, Users, UsersRound, Warehouse } from 'lucide-react';
+import { Briefcase, Building2, CalendarDays, Camera, Flag, Phone, Trophy, Users, UsersRound, Video, Warehouse } from 'lucide-react';
 
-export type ClubNavigationTab = 'overview' | 'people' | 'facilities' | 'honours' | 'teams' | 'schedule' | 'media' | 'events' | 'business' | 'contact';
+export type ClubNavigationTab = 'overview' | 'people' | 'facilities' | 'honours' | 'teams' | 'schedule' | 'pictures' | 'videos' | 'events' | 'business' | 'contact';
+
+export type ClubNavigationAccent = 'blue' | 'violet';
 
 export interface ClubNavigationClubSummary {
     honours?: Array<unknown>;
@@ -13,6 +15,10 @@ export interface ClubNavigationItem {
     icon: typeof Building2;
     badge?: (club: ClubNavigationClubSummary) => number | null;
     toneClassName: string;
+    /** Inactive-state accent tint: 'blue' for the media tabs, 'violet' for the jobs tab. */
+    accent?: ClubNavigationAccent;
+    /** Layout section: media tabs sit between the main group and the side (contact) group. */
+    section?: 'main' | 'media' | 'side';
 }
 
 export const clubNavigationItems: ClubNavigationItem[] = [
@@ -25,7 +31,7 @@ export const clubNavigationItems: ClubNavigationItem[] = [
     {
         id: 'people',
         icon: UsersRound,
-        label: 'People',
+        label: 'Management',
         toneClassName: 'club-tone-green'
     },
     {
@@ -54,10 +60,20 @@ export const clubNavigationItems: ClubNavigationItem[] = [
         toneClassName: 'club-tone-blue'
     },
     {
-        id: 'media',
+        id: 'pictures',
         icon: Camera,
-        label: 'Media',
-        toneClassName: 'club-tone-green'
+        label: 'Pictures',
+        toneClassName: 'club-tone-green',
+        accent: 'blue',
+        section: 'media'
+    },
+    {
+        id: 'videos',
+        icon: Video,
+        label: 'Videos',
+        toneClassName: 'club-tone-green',
+        accent: 'blue',
+        section: 'media'
     },
     {
         id: 'events',
@@ -68,13 +84,15 @@ export const clubNavigationItems: ClubNavigationItem[] = [
     {
         id: 'business',
         icon: Briefcase,
-        label: 'Business',
-        toneClassName: 'club-tone-green'
+        label: 'Opportunities',
+        toneClassName: 'club-tone-green',
+        accent: 'violet'
     },
     {
         id: 'contact',
         icon: Phone,
         label: 'Contact',
-        toneClassName: 'club-tone-cyan'
+        toneClassName: 'club-tone-cyan',
+        section: 'side'
     }
 ];

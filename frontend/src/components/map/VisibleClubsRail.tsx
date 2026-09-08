@@ -21,6 +21,8 @@ export interface VisibleClubListItem {
 
 interface VisibleClubsRailProps {
     isVisible: boolean;
+    /** Render the rail inside an embedding surface (for example the landing-page map). */
+    embedded?: boolean;
     clubs: VisibleClubListItem[];
     selectedKey: string | null;
     loading: boolean;
@@ -40,6 +42,7 @@ const initialsFor = (name: string) => name
 
 export const VisibleClubsRail = ({
     isVisible,
+    embedded = false,
     clubs,
     selectedKey,
     loading,
@@ -49,6 +52,8 @@ export const VisibleClubsRail = ({
     onClose
 }: VisibleClubsRailProps) => {
     const scrollBodyRef = useRef<HTMLDivElement | null>(null);
+    const backdropPosition = embedded ? 'absolute inset-0' : 'fixed inset-x-0 bottom-0 top-[var(--app-active-header-height)]';
+    const railPosition = embedded ? 'absolute inset-y-0 right-0' : 'fixed bottom-0 right-0 top-[var(--app-active-header-height)]';
 
     useEffect(() => {
         if (!selectedKey || !isVisible) return;
@@ -59,13 +64,13 @@ export const VisibleClubsRail = ({
     return (
         <>
             <div
-                className={`map-modal-backdrop fixed inset-x-0 bottom-0 top-[var(--app-active-header-height)] z-[1070] bg-slate-950/25 backdrop-blur-[1px] transition-opacity ${isVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`}
+                className={`map-modal-backdrop ${backdropPosition} z-[1070] bg-slate-950/25 backdrop-blur-[1px] transition-opacity ${isVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`}
                 onClick={onClose}
             />
             <aside
                 aria-label="Clubs visible on the map"
                 data-visible={isVisible}
-                className={`map-club-rail pointer-events-auto fixed bottom-0 right-0 top-[var(--app-active-header-height)] z-[1090] flex w-[min(94vw,360px)] flex-col border-l border-[var(--map-panel-border)] bg-[var(--map-panel-bg)] shadow-[var(--map-shadow-strong)] transition-transform duration-200 ${isVisible ? 'translate-x-0' : 'translate-x-full'}`}
+                className={`map-club-rail pointer-events-auto ${railPosition} z-[1090] flex w-[min(94vw,360px)] flex-col border-l border-[var(--map-panel-border)] bg-[var(--map-panel-bg)] shadow-[var(--map-shadow-strong)] transition-transform duration-200 ${isVisible ? 'translate-x-0' : 'translate-x-full'}`}
             >
                 <header className="shrink-0 border-b border-[var(--map-panel-border)] px-5 pb-4 pt-5">
                     <div className="flex items-start justify-between gap-3">

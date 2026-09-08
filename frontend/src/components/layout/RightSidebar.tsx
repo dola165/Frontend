@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    ArrowRight,
     BriefcaseBusiness,
     DollarSign,
     ExternalLink,
@@ -43,7 +42,6 @@ const discoveryTabs: Array<{
 const formatMessageTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 export const RightSidebar = () => {
-    const [activeTab, setActiveTab] = useState<DiscoveryTab>('store');
     const [storeCount, setStoreCount] = useState(0);
     const [conversations, setConversations] = useState<ConversationDto[]>([]);
     const [quickChat, setQuickChat] = useState<ContactConversation | null>(null);
@@ -123,8 +121,6 @@ export const RightSidebar = () => {
         if (sent) setMessageInput('');
     };
 
-    const activeDiscovery = discoveryTabs.find((tab) => tab.id === activeTab) ?? discoveryTabs[2];
-
     return (
         <>
             <aside className="hidden xl:block">
@@ -135,19 +131,15 @@ export const RightSidebar = () => {
                             <h2 id="opportunities-heading" className="text-xs font-bold text-emerald-400">Opportunities</h2>
                         </div>
 
-                        <div className="space-y-2.5 p-3" role="tablist" aria-label="Opportunities">
+                        <div className="space-y-2.5 p-3" aria-label="Opportunities">
                             {discoveryTabs.map((tab) => {
                                 const Icon = tab.icon;
-                                const active = tab.id === activeTab;
                                 const count = tab.id === 'store' ? storeCount : 0;
                                 return (
-                                    <button
+                                    <Link
                                         key={tab.id}
-                                        type="button"
-                                        role="tab"
-                                        aria-selected={active}
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={`w-full rounded-md border px-3 py-3 text-left transition-colors ${tab.border} ${active ? tab.soft : 'bg-transparent hover:bg-white/[0.03]'}`}
+                                        to={tab.path}
+                                        className={`block w-full rounded-md border px-3 py-3 text-left transition-colors ${tab.border} ${tab.soft} hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60`}
                                     >
                                         <span className="flex items-center gap-2">
                                             <Icon className={`h-4 w-4 ${tab.accent}`} />
@@ -155,16 +147,9 @@ export const RightSidebar = () => {
                                             <span className={`text-xs font-bold ${tab.accent}`}>{count}</span>
                                         </span>
                                         <span className="mt-1.5 block truncate text-[11px] text-[#a1a1aa]">{tab.subtitle}</span>
-                                    </button>
+                                    </Link>
                                 );
                             })}
-                        </div>
-
-                        <div role="tabpanel" className="border-t border-white/[0.08] p-3">
-                            <Link to={activeDiscovery.path} className={`flex items-center justify-between rounded-md border px-3 py-2.5 text-xs font-bold transition-colors hover:bg-white/[0.04] ${activeDiscovery.border} ${activeDiscovery.accent}`}>
-                                Open {activeDiscovery.label}
-                                <ArrowRight className="h-3.5 w-3.5" />
-                            </Link>
                         </div>
                     </section>
 

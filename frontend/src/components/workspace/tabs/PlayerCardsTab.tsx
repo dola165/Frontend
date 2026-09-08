@@ -5,7 +5,8 @@ import { apiClient } from '../../../api/axiosConfig';
 import { fetchPlayerCards, deletePlayerCard, type PlayerCard } from '../../../features/clubs/api';
 import { PlayerCardModal } from '../../squads/PlayerCardModal';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
-import { SectionHeader, EmptyState } from '../helpers';
+import { SectionHeader, EmptyState, ErrorBlock } from '../helpers';
+import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 
 interface SquadDto {
     id: number;
@@ -35,22 +36,25 @@ export const PlayerCardsTab = ({ clubId, setParentError, setParentSuccess }: Pla
     const [editingCard, setEditingCard] = useState<PlayerCard | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<PlayerCard | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
-        try {
-            setCards(await fetchPlayerCards(clubId));
-        } catch {
+        setLoadError(null);
+        const [cardsResult, squadsResult] = await Promise.allSettled([
+            fetchPlayerCards(clubId),
+            apiClient.get<SquadDto[]>(`/clubs/${clubId}/squads`),
+        ]);
+        if (cardsResult.status === 'fulfilled') {
+            setCards(cardsResult.value);
+        } else {
+            setLoadError(cardsResult.reason instanceof Error ? cardsResult.reason.message : 'Could not load player cards.');
             setCards([]);
         }
-        try {
-            const response = await apiClient.get<SquadDto[]>(`/clubs/${clubId}/squads`);
-            setSquads(response.data || []);
-        } catch {
-            // squad names are display-only
-        } finally {
-            setLoading(false);
+        if (squadsResult.status === 'fulfilled') {
+            setSquads(squadsResult.value.data || []);
         }
+        setLoading(false);
     }, [clubId]);
 
     useEffect(() => { void load(); }, [load]);
@@ -114,6 +118,8 @@ export const PlayerCardsTab = ({ clubId, setParentError, setParentSuccess }: Pla
                 <div className="flex justify-center py-10">
                     <Loader2 className="h-6 w-6 animate-spin text-[var(--fc-text-muted)]" />
                 </div>
+            ) : loadError ? (
+                <ErrorBlock message={loadError} onRetry={() => void load()} />
             ) : cards.length === 0 ? (
                 <EmptyState message={t('minors.playerCard.noCards')} />
             ) : (
@@ -136,8 +142,8 @@ export const PlayerCardsTab = ({ clubId, setParentError, setParentSuccess }: Pla
                                 <tr key={card.id} className="border-b border-[var(--fc-border)] last:border-b-0">
                                     <td className="px-4 py-3">
                                         <span className="inline-flex items-center gap-2">
-                                            {card.photoUrl && (
-                                                <img src={card.photoUrl} alt={card.fullName ?? ''} className="h-7 w-7 rounded-full object-cover" />
+                                            {resolveMediaUrl(card.photoUrl) && (
+                                                <img src={resolveMediaUrl(card.photoUrl)} alt={card.fullName ?? ''} className="h-7 w-7 rounded-full object-cover" />
                                             )}
                                             <span className="text-sm font-semibold text-[var(--fc-text-primary)]">{card.fullName}</span>
                                         </span>

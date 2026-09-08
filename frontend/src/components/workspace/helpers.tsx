@@ -51,8 +51,9 @@ export const DataTable = ({
     };
 
     return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+        <div className="workspace-data-table-wrap overflow-x-auto">
+            <p className="workspace-mobile-only px-4 py-2 text-[11px] font-medium text-[var(--fc-text-muted)]">Swipe sideways to see all columns.</p>
+            <table className="w-full min-w-[640px] text-left text-sm">
                 <thead>
                     <tr className="border-b border-[var(--fc-border)]">
                         {columns.map((col, i) => {

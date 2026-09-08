@@ -14,7 +14,7 @@ vi.mock('../../context/AuthContext', () => ({
 }));
 
 vi.mock('../../utils/apiError', () => ({
-    extractApiErrorMessage: vi.fn((_err: unknown) => 'Something went wrong.'),
+    extractApiErrorMessage: vi.fn(() => 'Something went wrong.'),
 }));
 
 vi.mock('../../features/clubs/api', () => ({
@@ -65,6 +65,8 @@ const renderPage = () =>
         </MemoryRouter>
     );
 
+const getPolicyBadges = (label: string) => screen.getAllByText(label).filter((element) => element.tagName === 'SPAN');
+
 describe('BrowseClubsPage joinPolicy badges', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -84,9 +86,7 @@ describe('BrowseClubsPage joinPolicy badges', () => {
             data: [makeClub({ joinPolicy: 'OPEN_TRIAL' })],
         });
         renderPage();
-        // The page currently renders the joinPolicy badge twice (duplicated block in
-        // BrowseClubsPage lines 438-455); findAllByText stays valid either way. W7b owns the dedupe.
-        const badges = await screen.findAllByText('OPEN TRIAL');
+        const badges = await screen.findAllByText('OPEN TRIAL').then(() => getPolicyBadges('OPEN TRIAL'));
         expect(badges.length).toBeGreaterThan(0);
         badges.forEach((badge) => expect(badge.className).toMatch(/emerald/));
     });
@@ -96,7 +96,7 @@ describe('BrowseClubsPage joinPolicy badges', () => {
             data: [makeClub({ joinPolicy: 'APPLICATION_REQUIRED' })],
         });
         renderPage();
-        const badges = await screen.findAllByText('APPLICATION REQUIRED');
+        const badges = await screen.findAllByText('APPLICATION REQUIRED').then(() => getPolicyBadges('APPLICATION REQUIRED'));
         expect(badges.length).toBeGreaterThan(0);
         badges.forEach((badge) => expect(badge.className).toMatch(/amber/));
     });
@@ -106,7 +106,7 @@ describe('BrowseClubsPage joinPolicy badges', () => {
             data: [makeClub({ joinPolicy: 'INVITE_ONLY' })],
         });
         renderPage();
-        const badges = await screen.findAllByText('INVITE ONLY');
+        const badges = await screen.findAllByText('INVITE ONLY').then(() => getPolicyBadges('INVITE ONLY'));
         expect(badges.length).toBeGreaterThan(0);
         badges.forEach((badge) => expect(badge.className).toMatch(/violet/));
     });
@@ -117,9 +117,9 @@ describe('BrowseClubsPage joinPolicy badges', () => {
         });
         renderPage();
         await screen.findByText('Test Club');
-        expect(screen.queryByText('OPEN TRIAL')).not.toBeInTheDocument();
-        expect(screen.queryByText('APPLICATION REQUIRED')).not.toBeInTheDocument();
-        expect(screen.queryByText('INVITE ONLY')).not.toBeInTheDocument();
+        expect(getPolicyBadges('OPEN TRIAL')).toHaveLength(0);
+        expect(getPolicyBadges('APPLICATION REQUIRED')).toHaveLength(0);
+        expect(getPolicyBadges('INVITE ONLY')).toHaveLength(0);
     });
 
     it('renders multiple clubs with mixed join policies', async () => {
@@ -131,8 +131,8 @@ describe('BrowseClubsPage joinPolicy badges', () => {
             ],
         });
         renderPage();
-        expect((await screen.findAllByText('OPEN TRIAL')).length).toBeGreaterThan(0);
-        expect(screen.getAllByText('INVITE ONLY').length).toBeGreaterThan(0);
+        expect((await screen.findAllByText('OPEN TRIAL').then(() => getPolicyBadges('OPEN TRIAL'))).length).toBeGreaterThan(0);
+        expect(getPolicyBadges('INVITE ONLY').length).toBeGreaterThan(0);
         // Gamma has no badge, but all three club names are rendered
         expect(screen.getByText('Alpha')).toBeInTheDocument();
         expect(screen.getByText('Beta')).toBeInTheDocument();

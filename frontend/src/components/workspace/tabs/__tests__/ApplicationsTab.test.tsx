@@ -28,7 +28,7 @@ const declined: ClubMembershipApplication = {
     currentClubName: null, careerHistoryCount: null, isMinor: false, currentConsentStatus: null,
 };
 
-const baseFilters: ApplicationFilters = { position: '', ageGroup: '', status: 'PENDING' };
+const baseFilters: ApplicationFilters = { position: '', ageGroup: '', status: 'PENDING', jobId: '' };
 
 const renderTab = (overrides: Partial<Parameters<typeof ApplicationsTab>[0]> = {}) => {
     const props = {

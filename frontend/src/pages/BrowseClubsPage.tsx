@@ -1,48 +1,31 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Building2, Check, Clock, Filter, Loader2, MapPin, Plus, Search, Send, ShieldCheck, UserPlus, Users, X } from 'lucide-react';
+import { ArrowRight, Building2, Loader2, MapPin, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../api/axiosConfig';
 import { createClubApplication, fetchMyClubMembershipContext, selfRegisterClubPlayer } from '../features/clubs/api';
 import { PaginationBar } from '../components/ui/PaginationBar';
 import type { ClubMembershipContext } from '../features/clubs/domain';
-import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { useAuth } from '../context/AuthContext';
 import { buildLoginRedirectPath } from '../utils/authRedirect';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { ClubDirectoryFilters } from '../components/discovery/ClubDirectoryFilters';
+import { ClubDirectoryToolbar, type ClubDirectoryFilterChip, type ClubDirectoryView } from '../components/discovery/ClubDirectoryToolbar';
+import { ClubDirectoryCard } from '../components/discovery/ClubDirectoryCard';
+import { ClubDirectoryResult } from '../components/discovery/ClubDirectoryResult';
+import { DirectoryFilterDrawer } from '../components/discovery/DirectoryFilterDrawer';
+import type { ClubDirectoryPageResult, ClubProfile } from '../components/discovery/clubDirectoryTypes';
 
-interface ClubProfile {
-    id: number;
-    name: string;
-    description: string;
-    type: string;
-    isOfficial: boolean;
-    followerCount: number;
-    memberCount: number;
-    isFollowedByMe: boolean;
-    addressText?: string;
-    cityName?: string;
-    countryName?: string;
-    logoUrl?: string;
-    joinPolicy?: 'OPEN_TRIAL' | 'APPLICATION_REQUIRED' | 'INVITE_ONLY';
-    relationshipState?: 'NONE' | 'INVITED' | 'APPLIED' | 'TRIALIST' | 'ACTIVE' | 'LEFT' | 'REMOVED';
-}
+const CLUB_DIRECTORY_VIEW_STORAGE_KEY = 'club-directory-view';
 
-interface PageResult<T> {
-    content: T[];
-    pageNumber: number;
-    pageSize: number;
-    totalElements: number;
-    totalPages: number;
-}
-
-const CLUB_TYPES = ['PROFESSIONAL', 'GRASSROOTS', 'ACADEMY'] as const;
-const JOIN_POLICIES = ['OPEN_TRIAL', 'APPLICATION_REQUIRED', 'INVITE_ONLY'] as const;
-const SORT_OPTIONS = [
-    { value: 'NEWEST', label: 'Newest' },
-    { value: 'NAME', label: 'Name A–Z' },
-    { value: 'MEMBER_COUNT', label: 'Most Members' }
-] as const;
+const readClubDirectoryView = (): ClubDirectoryView => {
+    if (typeof window === 'undefined') return 'grid';
+    try {
+        return window.localStorage.getItem(CLUB_DIRECTORY_VIEW_STORAGE_KEY) === 'list' ? 'list' : 'grid';
+    } catch {
+        return 'grid';
+    }
+};
 
 export const BrowseClubsPage = () => {
     const navigate = useNavigate();
@@ -60,10 +43,14 @@ export const BrowseClubsPage = () => {
     const [sort, setSort] = useState(searchParams.get('sort') || 'NEWEST');
     const [page, setPage] = useState(Number(searchParams.get('page')) || 0);
     const [pageSize, setPageSize] = useState(12);
-    const [showFilters, setShowFilters] = useState(false);
+    const [view, setView] = useState<ClubDirectoryView>(readClubDirectoryView);
+    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+    const mobileFilterTriggerRef = useRef<HTMLButtonElement | null>(null);
+    const mobileFilterCloseRef = useRef<HTMLButtonElement | null>(null);
+    const hadMobileFiltersOpen = useRef(false);
 
     // Data state
-    const [pageResult, setPageResult] = useState<PageResult<ClubProfile> | null>(null);
+    const [pageResult, setPageResult] = useState<ClubDirectoryPageResult<ClubProfile> | null>(null);
     const [clubs, setClubs] = useState<ClubProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [membershipContext, setMembershipContext] = useState<ClubMembershipContext | null>(null);
@@ -106,7 +93,7 @@ export const BrowseClubsPage = () => {
                     : Promise.resolve(null);
 
             const [clubsResponse, membershipResponse] = await Promise.all([
-                apiClient.get<PageResult<ClubProfile>>(`/clubs?${queryParams.toString()}`),
+                apiClient.get<ClubDirectoryPageResult<ClubProfile>>(`/clubs?${queryParams.toString()}`),
                 membershipPromise
             ]);
 
@@ -127,7 +114,7 @@ export const BrowseClubsPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [status, search, selectedTypes, selectedPolicies, city, country, sort, page, pageSize]);
+    }, [status, search, selectedTypes, selectedPolicies, city, country, sort, page, pageSize, buildQueryParams, setSearchParams]);
 
     // Sync URL → local state on browser back/forward navigation
     useEffect(() => {
@@ -153,6 +140,37 @@ export const BrowseClubsPage = () => {
     useEffect(() => {
         void loadClubs();
     }, [loadClubs]);
+
+    useEffect(() => {
+        try {
+            window.localStorage.setItem(CLUB_DIRECTORY_VIEW_STORAGE_KEY, view);
+        } catch {
+            // Storage may be unavailable in private browsing; the in-memory preference still works.
+        }
+    }, [view]);
+
+    useEffect(() => {
+        if (!mobileFiltersOpen) return;
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setMobileFiltersOpen(false);
+        };
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [mobileFiltersOpen]);
+
+    useEffect(() => {
+        if (mobileFiltersOpen) {
+            mobileFilterCloseRef.current?.focus();
+        } else if (hadMobileFiltersOpen.current) {
+            mobileFilterTriggerRef.current?.focus();
+        }
+        hadMobileFiltersOpen.current = mobileFiltersOpen;
+    }, [mobileFiltersOpen]);
 
     const showActionMessage = (text: string, type: 'success' | 'error') => {
         setActionMessage(text);
@@ -251,7 +269,25 @@ export const BrowseClubsPage = () => {
         setPage(0);
     };
 
-    const hasActiveFilters = search || selectedTypes.length > 0 || selectedPolicies.length > 0 || city || country || sort !== 'NEWEST';
+    const hasActiveFilters = Boolean(search || selectedTypes.length > 0 || selectedPolicies.length > 0 || city || country || sort !== 'NEWEST');
+    const activeFilterChips: ClubDirectoryFilterChip[] = [
+        ...(search ? [{ id: 'search', label: `“${search}”` }] : []),
+        ...selectedTypes.map((type) => ({ id: `type:${type}`, label: type.replace('_', ' ') })),
+        ...selectedPolicies.map((policy) => ({ id: `joinPolicy:${policy}`, label: policy.replace(/_/g, ' ') })),
+        ...(city ? [{ id: 'city', label: city }] : []),
+        ...(country ? [{ id: 'country', label: country }] : [])
+    ];
+
+    const removeFilter = (id: string) => {
+        const [kind, ...parts] = id.split(':');
+        const value = parts.join(':');
+        if (kind === 'search') setSearch('');
+        if (kind === 'type') setSelectedTypes((current) => current.filter((item) => item !== value));
+        if (kind === 'joinPolicy') setSelectedPolicies((current) => current.filter((item) => item !== value));
+        if (kind === 'city') setCity('');
+        if (kind === 'country') setCountry('');
+        setPage(0);
+    };
 
     const totalPages = pageResult?.totalPages ?? 0;
 
@@ -326,194 +362,121 @@ export const BrowseClubsPage = () => {
                     </div>
                 )}
 
-                {/* Filter Bar */}
-                <div className="rounded-xl bg-[#16181d] border border-[#ffffff0d]">
-                    <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-                        {/* Search */}
-                        <div className="flex min-w-[200px] flex-1 items-center gap-2 border border-[#ffffff0d] bg-[#0f1117] px-3 py-2">
-                            <Search className="h-4 w-4 text-[#a1a1aa] shrink-0" />
-                            <input type="text" value={search} onChange={(e) => handleSearchChange(e.target.value)}
-                                placeholder="Search clubs..." className="flex-1 bg-transparent text-sm text-[#f4f4f5] placeholder:text-[#a1a1aa] focus:outline-none" />
-                            {search && (
-                                <button type="button" onClick={() => handleSearchChange('')} className="text-[#a1a1aa] hover:text-[#f4f4f5]">
-                                    <X className="h-3.5 w-3.5" /></button>
-                            )}
-                        </div>
+                <ClubDirectoryToolbar
+                    search={search}
+                    sort={sort}
+                    resultCount={pageResult?.totalElements ?? clubs.length}
+                    view={view}
+                    hasActiveFilters={hasActiveFilters}
+                    filtersOpen={mobileFiltersOpen}
+                    activeFilterChips={activeFilterChips}
+                    filterButtonRef={mobileFilterTriggerRef}
+                    onSearchChange={handleSearchChange}
+                    onSortChange={handleSortChange}
+                    onClearFilters={clearFilters}
+                    onRemoveFilter={removeFilter}
+                    onOpenFilters={() => setMobileFiltersOpen(true)}
+                    onViewChange={setView}
+                />
 
-                        {/* Sort */}
-                        <select value={sort} onChange={(e) => handleSortChange(e.target.value)}
-                            className="rounded-xl border border-[#ffffff0d] bg-[#16181d] px-3 py-1.5 text-sm font-medium text-[#f4f4f5] focus:outline-none">
-                            {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
+                <div className="grid gap-6 xl:grid-cols-[260px_minmax(0,1fr)] xl:items-start">
+                    <aside className="hidden xl:sticky xl:top-[calc(var(--app-active-header-height)+4rem)] xl:block" aria-label={t('browseClubs.filters')}>
+                        <ClubDirectoryFilters
+                            selectedTypes={selectedTypes}
+                            selectedPolicies={selectedPolicies}
+                            city={city}
+                            country={country}
+                            hasActiveFilters={hasActiveFilters}
+                            variant="rail"
+                            onCityChange={handleCityChange}
+                            onCountryChange={handleCountryChange}
+                            onToggleType={toggleType}
+                            onTogglePolicy={togglePolicy}
+                            onClearFilters={clearFilters}
+                        />
+                    </aside>
 
-                        {/* Filter Toggle */}
-                        <button type="button" onClick={() => setShowFilters(!showFilters)}
-                            className={`inline-flex items-center gap-2 border px-3 py-2 text-[11px] font-medium ${showFilters || hasActiveFilters ? 'border-[#16a34a] bg-[#16a34a]/10 text-[#16a34a]' : 'border-[#ffffff0d] bg-[#0f1117] text-[#f4f4f5]'}`}>
-                            <Filter className="h-3.5 w-3.5" />
-                            Filters
-                            {hasActiveFilters && <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#16a34a] text-[9px] text-white">!</span>}
-                        </button>
-
-                        {hasActiveFilters && (
-                            <button type="button" onClick={clearFilters}
-                                className="text-[11px] font-medium text-[#a1a1aa] hover:text-[#f4f4f5]">
-                                <X className="h-3.5 w-3.5 inline mr-1" />Clear
-                            </button>
+                    <section aria-label={t('browseClubs.results')} className={`min-w-0 ${view === 'grid' && !loading && clubs.length > 0 ? '' : 'rounded-xl border border-[#ffffff0d] bg-[#16181d]'}`}>
+                        {view === 'list' && (
+                            <div className="hidden border-b border-[#ffffff0d] px-4 py-3 text-[11px] font-medium text-[#a1a1aa] lg:grid lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1.6fr)_150px_170px_180px] lg:gap-4">
+                                <span>Club</span>
+                                <span>Description</span>
+                                <span>Location</span>
+                                <span>Structure</span>
+                                <span>Actions</span>
+                            </div>
                         )}
-                    </div>
 
-                    {/* Expanded Filter Row */}
-                    {showFilters && (
-                        <div className="border-t border-[#ffffff0d] px-4 py-4 space-y-4">
-                            {/* Club Type */}
-                            <div>
-                                <span className="text-[10px] font-medium text-[#a1a1aa]">Club Type</span>
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                    {CLUB_TYPES.map((type) => (
-                                        <button key={type} type="button" onClick={() => toggleType(type)}
-                                            className={`px-3 py-1.5 text-[11px] font-medium border ${selectedTypes.includes(type) ? 'bg-[#16a34a]/10 border-[#16a34a] text-[#16a34a]' : 'border-[#ffffff0d] text-[#a1a1aa]'}`}>
-                                            {type.replace('_', ' ')}</button>
-                                    ))}
+                        {loading ? (
+                            <div className="flex justify-center py-10"><Loader2 className="h-7 w-7 animate-spin text-[#16a34a]" /></div>
+                        ) : clubs.length === 0 ? (
+                            <div className="px-4 py-12 text-center">
+                                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#ffffff0d] bg-[#0f1117]">
+                                    <Building2 className="h-6 w-6 text-[#16a34a]" />
                                 </div>
+                                <p className="mt-4 text-sm font-semibold text-[#a1a1aa]">
+                                    {hasActiveFilters ? t('browseClubs.emptyFiltered') : t('browseClubs.empty')}
+                                </p>
+                                <Link to="/map" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+                                    <MapPin className="h-4 w-4" />
+                                    {t('browseClubs.exploreMap')}
+                                </Link>
                             </div>
-
-                            {/* Join Policy */}
-                            <div>
-                                <span className="text-[10px] font-medium text-[#a1a1aa]">Join Policy</span>
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                    {JOIN_POLICIES.map((policy) => (
-                                        <button key={policy} type="button" onClick={() => togglePolicy(policy)}
-                                            className={`px-3 py-1.5 text-[11px] font-medium border ${selectedPolicies.includes(policy) ? 'bg-[#16a34a]/10 border-[#16a34a] text-[#16a34a]' : 'border-[#ffffff0d] text-[#a1a1aa]'}`}>
-                                            {policy.replace(/_/g, ' ')}</button>
-                                    ))}
-                                </div>
+                        ) : view === 'grid' ? (
+                            <div className="club-directory-card-grid mx-auto grid w-full max-w-[1800px] gap-4">
+                                {clubs.map((club) => (
+                                    <ClubDirectoryCard
+                                        key={club.id}
+                                        club={club}
+                                        authStatus={status}
+                                        joiningClubId={joiningClubId}
+                                        applyingClubId={applyingClubId}
+                                        onJoin={handleJoinClub}
+                                        onApply={handleApplyClub}
+                                        onFollowToggle={handleFollowToggle}
+                                    />
+                                ))}
                             </div>
-
-                            {/* Location */}
-                            <div className="flex flex-wrap gap-3">
-                                <div className="flex items-center gap-2 border border-[#ffffff0d] bg-[#0f1117] px-3 py-2 min-w-[140px]">
-                                    <MapPin className="h-4 w-4 text-[#a1a1aa] shrink-0" />
-                                    <input type="text" value={city} onChange={(e) => handleCityChange(e.target.value)}
-                                        placeholder="City..." className="flex-1 bg-transparent text-sm text-[#f4f4f5] placeholder:text-[#a1a1aa] focus:outline-none w-24" />
-                                </div>
-                                <div className="flex items-center gap-2 border border-[#ffffff0d] bg-[#0f1117] px-3 py-2 min-w-[140px]">
-                                    <span className="text-[10px] font-medium text-[#a1a1aa] shrink-0">CC</span>
-                                    <input type="text" value={country} onChange={(e) => handleCountryChange(e.target.value)}
-                                        placeholder="Country..." className="flex-1 bg-transparent text-sm text-[#f4f4f5] placeholder:text-[#a1a1aa] focus:outline-none w-24" />
-                                </div>
+                        ) : (
+                            <div className="divide-y divide-[#ffffff0d]">
+                                {clubs.map((club) => (
+                                    <ClubDirectoryResult
+                                        key={club.id}
+                                        club={club}
+                                        authStatus={status}
+                                        joiningClubId={joiningClubId}
+                                        applyingClubId={applyingClubId}
+                                        onJoin={handleJoinClub}
+                                        onApply={handleApplyClub}
+                                        onFollowToggle={handleFollowToggle}
+                                    />
+                                ))}
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </section>
                 </div>
 
-                {/* Club Table */}
-                <section className="rounded-xl bg-[#16181d] border border-[#ffffff0d]">
-                    <div className="hidden border-b border-[#ffffff0d] px-4 py-3 text-[11px] font-medium text-[#a1a1aa] lg:grid lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1.6fr)_150px_170px_180px] lg:gap-4">
-                        <span>Club</span>
-                        <span>Description</span>
-                        <span>Location</span>
-                        <span>Structure</span>
-                        <span>Actions</span>
-                    </div>
-
-                    {loading ? (
-                        <div className="flex justify-center py-10"><Loader2 className="h-7 w-7 animate-spin text-[#16a34a]" /></div>
-                    ) : clubs.length === 0 ? (
-                        <div className="px-4 py-12 text-center">
-                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#ffffff0d] bg-[#0f1117]">
-                                <Building2 className="h-6 w-6 text-[#16a34a]" />
-                            </div>
-                            <p className="mt-4 text-sm font-semibold text-[#a1a1aa]">
-                                {hasActiveFilters ? t('browseClubs.emptyFiltered') : t('browseClubs.empty')}
-                            </p>
-                            <Link to="/map" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
-                                <MapPin className="h-4 w-4" />
-                                {t('browseClubs.exploreMap')}
-                            </Link>
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-[#ffffff0d]">
-                            {(Array.isArray(clubs) ? clubs : []).map((club) => {
-                                const logoUrl = resolveMediaUrl(club.logoUrl);
-                                return (
-                                    <article key={club.id} className="grid gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1.6fr)_150px_170px_180px] lg:items-center">
-                                        <div className="min-w-0">
-                                            <div className="flex items-start gap-3">
-                                                <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-[#ffffff0d] bg-[#0f1117] text-sm font-semibold text-[#f4f4f5]">
-                                                    {logoUrl ? <img src={logoUrl} alt={`${club.name} logo`} className="h-full w-full object-cover" /> : club.name.substring(0, 2).toUpperCase()}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <Link to={`/clubs/${club.id}`} className="truncate text-sm text-[#f4f4f5] font-semibold hover:text-[#16a34a]">{club.name}</Link>
-                                                        {club.isOfficial && <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#16a34a]"><ShieldCheck className="h-3.5 w-3.5" />Official</span>}
-                                                        {club.joinPolicy && (
-                                                            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-medium ${
-                                                                club.joinPolicy === 'OPEN_TRIAL' ? 'bg-emerald-500/10 text-emerald-400'
-                                                                : club.joinPolicy === 'APPLICATION_REQUIRED' ? 'bg-amber-500/10 text-amber-400'
-                                                                : 'bg-violet-500/10 text-violet-400'}`}>
-                                                                {club.joinPolicy.replace(/_/g, ' ')}</span>
-                                                        )}
-                                                    </div>
-                                                    <p className="mt-1 text-[11px] font-medium text-[#a1a1aa]">{club.type}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <p className="text-sm leading-6 text-[#a1a1aa]">{club.description || 'No club summary provided yet.'}</p>
-
-                                        <div className="text-sm text-[#a1a1aa]">
-                                            <div className="inline-flex items-center gap-1.5">
-                                                <MapPin className="h-3.5 w-3.5 text-[#16a34a]" />
-                                                <span>{club.cityName || club.addressText?.split(',')[0] || 'Location pending'}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-[#a1a1aa]">
-                                            <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-[#16a34a]" />{club.memberCount} members</span>
-                                            <span>{club.followerCount} followers</span>
-                                        </div>
-
-                                        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                                            {status === 'authenticated' && club.relationshipState === 'NONE' && club.joinPolicy === 'OPEN_TRIAL' && (
-                                                <button type="button" onClick={() => handleJoinClub(club.id)} disabled={joiningClubId === club.id}
-                                                    className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-medium bg-[#16a34a] text-white disabled:opacity-60">
-                                                    {joiningClubId === club.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}Join</button>
-                                            )}
-                                            {status === 'authenticated' && club.relationshipState === 'NONE' && club.joinPolicy === 'APPLICATION_REQUIRED' && (
-                                                <button type="button" onClick={() => handleApplyClub(club.id)} disabled={applyingClubId === club.id}
-                                                    className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-medium bg-[#16a34a] text-white disabled:opacity-60">
-                                                    {applyingClubId === club.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}Apply</button>
-                                            )}
-                                            {status === 'authenticated' && club.relationshipState === 'ACTIVE' && (
-                                                <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium bg-emerald-500/10 text-emerald-400"><Check className="h-3 w-3" />Member</span>
-                                            )}
-                                            {status === 'authenticated' && club.relationshipState === 'APPLIED' && (
-                                                <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium bg-amber-500/10 text-amber-400"><Clock className="h-3 w-3" />Pending</span>
-                                            )}
-                                            {status === 'authenticated' && club.relationshipState === 'INVITED' && (
-                                                <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium bg-sky-500/10 text-sky-400">Invited</span>
-                                            )}
-                                            {status === 'authenticated' && club.relationshipState === 'TRIALIST' && (
-                                                <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium bg-violet-500/10 text-violet-400">Trialist</span>
-                                            )}
-
-                                            <button type="button" onClick={(event) => handleFollowToggle(event, club.id)}
-                                                className={`inline-flex items-center gap-2 border px-3 py-2 text-[11px] font-medium rounded-xl ${
-                                                    club.isFollowedByMe
-                                                        ? 'border-[#16a34a] bg-[#16a34a]/10 text-[#16a34a]'
-                                                        : 'border-[#ffffff0d] bg-[#0f1117] text-[#f4f4f5]'
-                                                }`}>
-                                                {club.isFollowedByMe ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}{club.isFollowedByMe ? 'Following' : 'Follow'}</button>
-
-                                            <Link to={`/clubs/${club.id}`}
-                                                className="inline-flex items-center gap-2 rounded-xl px-2.5 py-1 text-xs font-medium text-[#16a34a]">Open <ArrowRight className="h-3.5 w-3.5" /></Link>
-                                        </div>
-                                    </article>
-                                );
-                            })}
-                        </div>
-                    )}
-                </section>
+                <DirectoryFilterDrawer
+                    open={mobileFiltersOpen}
+                    title={t('browseClubs.filters')}
+                    closeLabel={t('browseClubs.closeFilters')}
+                    closeRef={mobileFilterCloseRef}
+                    onClose={() => setMobileFiltersOpen(false)}
+                >
+                    <ClubDirectoryFilters
+                        selectedTypes={selectedTypes}
+                        selectedPolicies={selectedPolicies}
+                        city={city}
+                        country={country}
+                        hasActiveFilters={hasActiveFilters}
+                        variant="drawer"
+                        onCityChange={handleCityChange}
+                        onCountryChange={handleCountryChange}
+                        onToggleType={toggleType}
+                        onTogglePolicy={togglePolicy}
+                        onClearFilters={clearFilters}
+                    />
+                </DirectoryFilterDrawer>
 
                 <PaginationBar
                     page={page}

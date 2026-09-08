@@ -1,5 +1,5 @@
 import { createUser, createClub, createPost, createComment, resetFactoryCounters } from './factories';
-import { users, clubs, posts, comments, currentUserId, followedClubIds, events, nextEventId, resetStore, products, playerCards, jobs, type StoreProduct, type StorePlayerCard } from './store';
+import { users, clubs, posts, comments, followedClubIds, events, nextEventId, resetStore, products, playerCards, jobs, type StoreProduct, type StorePlayerCard } from './store';
 import { resetIds } from './ids';
 import { conversations as chatConversations, messages as chatMessages, resetChatStore } from './chatStore';
 
@@ -166,9 +166,6 @@ export const seed = () => {
   addComments(p9.id, u1.id, u4.id, u5.id, u3.id);
   addComments(p2.id, u2.id);
   addComments(p7.id, u1.id);
-
-  // -- login as player by default --
-  currentUserId(u1.id);
 
   // -- auto-follow owned club so the following feed has content --
   followedClubIds().add(c1.id);

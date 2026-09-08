@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Building2, Shield, UsersRound } from 'lucide-react';
+import { MapPinned, Shield, UsersRound } from 'lucide-react';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 
 interface LeftSidebarProps {
@@ -31,11 +31,11 @@ const socialLinks = [
         iconClass: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300'
     },
     {
-        to: '/my-club',
-        label: 'My club',
-        description: 'Your football home',
-        icon: Building2,
-        iconClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-300'
+        to: '/map',
+        label: 'Map',
+        description: 'Find football near you',
+        icon: MapPinned,
+        iconClass: 'bg-sky-500/15 text-sky-600 dark:text-sky-300'
     }
 ] as const;
 

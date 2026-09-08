@@ -4,11 +4,12 @@ import { toast } from 'sonner';
 import { apiClient } from '../../../api/axiosConfig';
 import { createTryout, deleteTryout, updateTryout, type TryoutDto } from '../../../api/tryouts';
 import { extractApiErrorMessage } from '../../../utils/apiError';
-import { DataTable, EmptyState, PageSpinner, SectionHeader } from '../helpers';
+import { DataTable, EmptyState, ErrorBlock, PageSpinner, Pill, SectionHeader } from '../helpers';
 import type { SortState } from '../helpers';
 import { UserIdentityCell } from '../UserIdentityCell';
 import { StatusCell } from '../StatusCell';
 import { OverflowActions } from '../../ui/OverflowActions';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import type { TryoutApplicantDto } from '../types';
 
 interface TryoutsTabProps {
@@ -39,22 +40,51 @@ const formatTryoutDate = (value: string): string => {
     return Number.isNaN(date.getTime()) ? value : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 };
 
+const lifecycleFor = (tryout: TryoutDto): 'OPEN' | 'CLOSED' | 'EXPIRED' => {
+    const now = Date.now();
+    const deadline = tryout.deadline ? new Date(tryout.deadline).getTime() : null;
+    const date = new Date(tryout.tryoutDate).getTime();
+    if (deadline != null && !Number.isNaN(deadline) && deadline < now) return 'EXPIRED';
+    if (!Number.isNaN(date) && date < now) return 'CLOSED';
+    return 'OPEN';
+};
+
 export const TryoutsTab = ({ clubId, tryoutApplicants, tryoutsLoading, pendingKey, onTryoutStatus }: TryoutsTabProps) => {
     const [sort, setSort] = useState<SortState | null>(null);
     const [tryouts, setTryouts] = useState<TryoutDto[] | null>(null);
     const [editing, setEditing] = useState<TryoutDto | 'new' | null>(null);
     const [saving, setSaving] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<TryoutDto | null>(null);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [tryoutsError, setTryoutsError] = useState<string | null>(null);
 
     const loadTryouts = useCallback(async () => {
+        setTryoutsError(null);
         try {
             const response = await apiClient.get<{ content: TryoutDto[] }>('/tryouts', { params: { clubId } });
             setTryouts(response.data.content);
         } catch (error) {
-            toast.error(extractApiErrorMessage(error, TRYOUT_ACTION_FAILED));
+            const message = extractApiErrorMessage(error, TRYOUT_ACTION_FAILED);
+            setTryoutsError(message);
+            toast.error(message);
         }
     }, [clubId]);
 
     useEffect(() => { void loadTryouts(); }, [loadTryouts]);
+
+    const handleDelete = async () => {
+        if (!deleteTarget) return;
+        setDeletingId(deleteTarget.id);
+        try {
+            await deleteTryout(deleteTarget.id);
+            setDeleteTarget(null);
+            await loadTryouts();
+        } catch (error) {
+            toast.error(extractApiErrorMessage(error, TRYOUT_ACTION_FAILED));
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     const handleSort = useCallback((col: number) => {
         setSort(prev =>
@@ -107,6 +137,7 @@ export const TryoutsTab = ({ clubId, tryoutApplicants, tryoutsLoading, pendingKe
             />
 
             {tryouts == null ? (
+                tryoutsError ? <ErrorBlock message={tryoutsError} onRetry={() => void loadTryouts()} /> :
                 <PageSpinner />
             ) : tryouts.length === 0 ? (
                 <p className="text-sm text-[var(--fc-text-secondary)]">No tryouts posted yet.</p>
@@ -120,6 +151,7 @@ export const TryoutsTab = ({ clubId, tryoutApplicants, tryoutsLoading, pendingKe
                                     {[formatTryoutDate(tryout.tryoutDate), tryout.position, tryout.ageGroup].filter(Boolean).join(' · ') || '—'}
                                 </p>
                             </div>
+                            <Pill label={lifecycleFor(tryout)} tone={lifecycleFor(tryout) === 'OPEN' ? 'success' : lifecycleFor(tryout) === 'EXPIRED' ? 'danger' : 'neutral'} />
                             <button
                                 type="button"
                                 onClick={() => setEditing(tryout)}
@@ -131,16 +163,9 @@ export const TryoutsTab = ({ clubId, tryoutApplicants, tryoutsLoading, pendingKe
                             <button
                                 type="button"
                                 aria-label={`Delete ${tryout.title}`}
-                                onClick={() => void (async () => {
-                                    if (!window.confirm(`Delete tryout "${tryout.title}"?`)) return;
-                                    try {
-                                        await deleteTryout(tryout.id);
-                                        await loadTryouts();
-                                    } catch (error) {
-                                        toast.error(extractApiErrorMessage(error, TRYOUT_ACTION_FAILED));
-                                    }
-                                })()}
-                                className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-state-danger)]"
+                                onClick={() => setDeleteTarget(tryout)}
+                                disabled={deletingId === tryout.id}
+                                className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-state-danger)] disabled:opacity-50"
                             >
                                 <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -189,23 +214,39 @@ export const TryoutsTab = ({ clubId, tryoutApplicants, tryoutsLoading, pendingKe
                                 <td className="px-4 text-xs text-[var(--fc-text-secondary)]">{app.position || '—'}</td>
                                 <td className="px-4 text-xs text-[var(--fc-text-secondary)]">{app.ageGroup || '—'}</td>
                                 <td className="px-4"><StatusCell label={app.status} tone="info" /></td>
-                                <td className="px-4 w-12">
-                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <td className="px-4 w-12">
+                            <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                                {(() => {
+                                    const canDecide = app.status === 'PENDING' || app.status === 'SHORTLISTED';
+                                    return canDecide ? (
                                         <OverflowActions
                                             triggerIcon="vertical"
                                             label="Tryout actions"
                                             items={[
-                                                { id: 'accept', label: 'Accept', description: 'Approve tryout application', icon: <Check className="h-3.5 w-3.5" />, tone: 'positive', disabled: pendingKey === `tryout-${app.id}-ACCEPTED`, onSelect: () => onTryoutStatus(app.id, 'ACCEPTED') },
-                                                { id: 'decline', label: 'Decline', description: 'Reject tryout application with a kind note (phase A6)', icon: <X className="h-3.5 w-3.5" />, tone: 'danger', divider: true, disabled: pendingKey === `tryout-${app.id}-REJECTED`, onSelect: () => onTryoutStatus(app.id, 'REJECTED') },
+                                                { id: 'accept', label: 'Accept', description: 'Approve tryout application', icon: <Check className="h-3.5 w-3.5" />, tone: 'positive', disabled: !canDecide || pendingKey === `tryout-${app.id}-ACCEPTED`, onSelect: () => onTryoutStatus(app.id, 'ACCEPTED') },
+                                                { id: 'decline', label: 'Decline', description: 'Reject tryout application with a kind note (phase A6)', icon: <X className="h-3.5 w-3.5" />, tone: 'danger', divider: true, disabled: !canDecide || pendingKey === `tryout-${app.id}-REJECTED`, onSelect: () => onTryoutStatus(app.id, 'REJECTED') },
                                             ]}
                                         />
-                                    </div>
-                                </td>
+                                    ) : <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--fc-text-muted)]">Decision complete</span>;
+                                })()}
+                            </div>
+                        </td>
                             </tr>
                         ))}
                     </DataTable>
                 </div>
             )}
+
+            <ConfirmDialog
+                open={deleteTarget !== null}
+                title="Delete tryout"
+                message={deleteTarget ? `Delete “${deleteTarget.title}”? Applicants will no longer be able to apply.` : ''}
+                confirmLabel={deletingId ? 'Deleting…' : 'Delete tryout'}
+                cancelLabel="Keep tryout"
+                variant="danger"
+                onConfirm={() => void handleDelete()}
+                onCancel={() => { if (!deletingId) setDeleteTarget(null); }}
+            />
         </div>
     );
 };
@@ -231,7 +272,7 @@ const TryoutForm = ({
         <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-4">
             <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-[var(--fc-text-primary)]">{tryout ? 'Edit tryout' : 'New tryout'}</p>
-                <button type="button" onClick={onCancel} className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
+                <button type="button" onClick={onCancel} aria-label="Close tryout editor" className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
                     <X className="h-4 w-4" />
                 </button>
             </div>

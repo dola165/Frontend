@@ -29,6 +29,7 @@ export const SettingsTab = ({ clubId, pendingKey }: SettingsTabProps) => {
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [pendingPolicy, setPendingPolicy] = useState<PlayerJoinPolicy | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -54,6 +55,7 @@ export const SettingsTab = ({ clubId, pendingKey }: SettingsTabProps) => {
         try {
             await updateClubSettings(clubId, next);
             setSaved(true);
+            setPendingPolicy(null);
         } catch {
             setError(t('settings.saveFailed'));
             setPolicy(null);
@@ -61,6 +63,13 @@ export const SettingsTab = ({ clubId, pendingKey }: SettingsTabProps) => {
         } finally {
             setSaving(false);
         }
+    };
+
+    const impactCopy = (next: PlayerJoinPolicy) => {
+        if (next === policy) return null;
+        if (next === 'OPEN_TRIAL') return 'Anyone can start a trial immediately. Existing applications and invitations remain unchanged.';
+        if (next === 'APPLICATION_REQUIRED') return 'New players must submit an application. Existing pending applications remain reviewable.';
+        return 'New players can only join through an invitation. Existing applications are not deleted, but they will no longer accept new self-service submissions.';
     };
 
     if (loading) return <PageSpinner />;
@@ -81,7 +90,9 @@ export const SettingsTab = ({ clubId, pendingKey }: SettingsTabProps) => {
                         key={option.value}
                         type="button"
                         disabled={saving || pendingKey != null}
-                        onClick={() => void save(option.value)}
+                        onClick={() => {
+                            if (option.value !== policy) setPendingPolicy(option.value);
+                        }}
                         className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${
                             policy === option.value
                                 ? 'border-[#16a34a] bg-[#16a34a]/10'
@@ -96,6 +107,15 @@ export const SettingsTab = ({ clubId, pendingKey }: SettingsTabProps) => {
                     </button>
                 ))}
             </div>
+            {pendingPolicy && impactCopy(pendingPolicy) && (
+                <div className="rounded-xl border border-[var(--fc-state-warning-soft)] bg-[var(--fc-state-warning-soft)] px-4 py-3 text-xs leading-5 text-[var(--fc-text-secondary)]" role="status">
+                    <p><span className="font-semibold text-[var(--fc-text-primary)]">Before you change this:</span> {impactCopy(pendingPolicy)}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        <button type="button" onClick={() => setPendingPolicy(null)} className="rounded-lg border border-[var(--fc-border)] px-3 py-1.5 text-xs font-semibold text-[var(--fc-text-secondary)]">Keep current policy</button>
+                        <button type="button" onClick={() => void save(pendingPolicy)} disabled={saving} className="rounded-lg bg-[var(--fc-accent)] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">Confirm change</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

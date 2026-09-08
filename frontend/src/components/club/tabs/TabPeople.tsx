@@ -12,6 +12,7 @@ interface ClubStaffMember {
     avatarUrl?: string | null;
     role: string;
     bio?: string | null;
+    title?: string | null;
 }
 
 interface TabPeopleProps {
@@ -66,7 +67,7 @@ const StaffCard = ({ member, featured }: { member: ClubStaffMember; featured?: b
                 <div className="min-w-0">
                     <p className="truncate text-sm font-bold text-[color:var(--club-theme-text-primary)]">{displayName}</p>
                     <span className={`mt-1.5 inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${chipClass}`}>
-                        {t(publicClubTitleKey(member.role))}
+                        {member.title?.trim() ? member.title.trim() : t(publicClubTitleKey(member.role))}
                     </span>
                 </div>
             </div>

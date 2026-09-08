@@ -1,6 +1,7 @@
 import { Check, GripVertical, Loader2, X } from 'lucide-react';
 import { type SquadRosterGroup, type SquadRosterPlayer } from './SquadRosterTable';
 import { TrialistBadge } from '../workspace/TrialistBadge';
+import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 
 interface SquadRosterGridProps {
     groups: SquadRosterGroup[];
@@ -37,9 +38,9 @@ const PlayerCard = ({
             {/* image area */}
             <div className="relative h-24 w-full bg-[rgba(255,255,255,0.03)]">
                 <div className="flex h-full w-full items-center justify-center overflow-hidden">
-                    {player.photoUrl ? (
+                    {resolveMediaUrl(player.photoUrl) ? (
                         <img
-                            src={player.photoUrl}
+                            src={resolveMediaUrl(player.photoUrl)}
                             alt={player.name}
                             className="h-full w-full object-cover"
                         />

@@ -12,8 +12,11 @@ export const resetFactoryCounters = () => {
   commentIdCounter = 200;
 };
 
-export const createUser = (overrides: Partial<StoreUser> & { email: string; password: string }): StoreUser => ({
-  id: overrides.id ?? userIdCounter++,
+export const createUser = (overrides: Partial<StoreUser> & { email: string; password: string }): StoreUser => {
+  const id = overrides.id ?? userIdCounter++;
+  userIdCounter = Math.max(userIdCounter, id + 1);
+  return {
+  id,
   email: overrides.email,
   password: overrides.password,
   username: overrides.username ?? `user_${userIdCounter}`,
@@ -23,9 +26,13 @@ export const createUser = (overrides: Partial<StoreUser> & { email: string; pass
   avatarUrl: overrides.avatarUrl ?? undefined,
   dob: overrides.dob ?? null,
   profileComplete: overrides.profileComplete ?? true,
+  onboardingRequired: overrides.onboardingRequired ?? !(overrides.profileComplete ?? true),
+  mustChangePassword: overrides.mustChangePassword ?? false,
+  emailVerified: overrides.emailVerified ?? true,
   bio: overrides.bio,
   position: overrides.position,
-});
+  };
+};
 
 export const createClub = (overrides: Partial<StoreClub> & { name: string; ownerId: number }): StoreClub => ({
   id: overrides.id ?? clubIdCounter++,

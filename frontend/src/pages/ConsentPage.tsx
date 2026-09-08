@@ -7,6 +7,7 @@ import { activatePlayerCard } from '../features/clubs/api';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { isUnder13, todayIso } from '../utils/age';
 import { ShieldCheck, Loader2, AlertCircle, Check, Copy } from 'lucide-react';
+import { buildLoginPath, buildSignupPath } from '../utils/authRedirect';
 
 type Stage =
     | { kind: 'loading' }
@@ -113,13 +114,13 @@ export const ConsentPage = () => {
                                 {t('minors.consent.signInPrompt')}
                             </p>
                             <Link
-                                to={`/signup?next=/consent?token=${encodeURIComponent(token)}`}
+                                to={buildSignupPath(`/consent?token=${encodeURIComponent(token)}`)}
                                 className="w-full border border-[#16a34a] bg-[#16a34a] px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-white"
                             >
                                 {t('minors.consent.createParent')}
                             </Link>
                             <Link
-                                to={`/login?next=/consent?token=${encodeURIComponent(token)}`}
+                                to={buildLoginPath(`/consent?token=${encodeURIComponent(token)}`)}
                                 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#16a34a] hover:underline"
                             >
                                 {t('minors.consent.haveAccount')}

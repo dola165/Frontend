@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, ShieldAlert, X } from 'lucide-react';
 import type { ClubMembershipApplication } from '../../../features/clubs/domain';
+import type { ClubJob } from '../../../features/clubs/api';
 import { clubRoleLabel } from '../../../features/clubs/domain';
 import { DataTable, EmptyState, ErrorBlock, formatMetaTime, PageSpinner, Pill, SectionHeader } from '../helpers';
 import type { SortState } from '../helpers';
@@ -23,12 +24,14 @@ export interface ApplicationFilters {
     position: string;
     ageGroup: string;
     status: string;
+    jobId: string;
 }
 
 interface ApplicationsTabProps {
     applications: ClubMembershipApplication[];
     applicationsLoading: boolean;
     applicationsError: string | null;
+    jobs?: ClubJob[];
     filters: ApplicationFilters;
     bulkPending: boolean;
     onFiltersChange: (filters: ApplicationFilters) => void;
@@ -40,7 +43,7 @@ interface ApplicationsTabProps {
 }
 
 export const ApplicationsTab = ({
-    applications, applicationsLoading, applicationsError, filters, bulkPending,
+    applications, applicationsLoading, applicationsError, filters, bulkPending, jobs = [],
     onFiltersChange, onAcceptApplication, onDeclineApplication, onBulkDecide, onRetry,
 }: ApplicationsTabProps) => {
     const { t } = useTranslation();
@@ -48,9 +51,14 @@ export const ApplicationsTab = ({
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [bulkAction, setBulkAction] = useState<'ACCEPT' | 'DECLINE' | null>(null);
 
+    const filteredApplications = useMemo(
+        () => filters.jobId ? applications.filter((application) => String(application.jobId ?? '') === filters.jobId) : applications,
+        [applications, filters.jobId]
+    );
+
     const pendingIds = useMemo(
-        () => applications.filter((a) => a.status === 'PENDING').map((a) => a.id),
-        [applications]
+        () => filteredApplications.filter((a) => a.status === 'PENDING').map((a) => a.id),
+        [filteredApplications]
     );
 
     const handleSort = useCallback((col: number) => {
@@ -72,8 +80,8 @@ export const ApplicationsTab = ({
     };
 
     const sortedApplications = useMemo(() => {
-        if (!sort) return applications;
-        const data = [...applications];
+        if (!sort) return filteredApplications;
+        const data = [...filteredApplications];
         data.sort((a, b) => {
             const aVal = getAppSortValue(a, sort.column);
             const bVal = getAppSortValue(b, sort.column);
@@ -84,7 +92,7 @@ export const ApplicationsTab = ({
             return sort.direction === 'desc' ? -cmp : cmp;
         });
         return data;
-    }, [applications, sort]);
+    }, [filteredApplications, sort]);
 
     const toggleSelect = (id: number) => {
         setSelected(prev => {
@@ -132,6 +140,17 @@ export const ApplicationsTab = ({
                     >
                         <option value="">{t('applications.allPositions')}</option>
                         {POSITION_OPTIONS.map((p) => <option key={p} value={p}>{p.replaceAll('_', ' ')}</option>)}
+                    </select>
+                </label>
+                <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--fc-text-secondary)]">
+                    Job
+                    <select
+                        value={filters.jobId}
+                        onChange={(e) => onFiltersChange({ ...filters, jobId: e.target.value })}
+                        className="max-w-[220px] rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2 py-1.5 text-xs text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)]"
+                    >
+                        <option value="">All applications</option>
+                        {jobs.map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}
                     </select>
                 </label>
                 <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--fc-text-secondary)]">
@@ -208,7 +227,7 @@ export const ApplicationsTab = ({
                 <PageSpinner />
             ) : applicationsError && applications.length === 0 ? (
                 <ErrorBlock message={applicationsError} onRetry={onRetry} />
-            ) : applications.length === 0 ? (
+            ) : filteredApplications.length === 0 ? (
                 <EmptyState message="No applications match the current filters." />
             ) : (
                 <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
@@ -253,7 +272,7 @@ export const ApplicationsTab = ({
                                     </td>
                                     <td className="px-4 text-xs text-[var(--fc-text-secondary)]">{formatMetaTime(app.createdAt) || 'Recently'}</td>
                                     <td className="px-4 w-12">
-                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                                             <OverflowActions
                                                 triggerIcon="vertical"
                                                 label="Application actions"

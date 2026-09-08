@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
     apiClient,
     ensureCsrfToken,
@@ -18,12 +18,16 @@ export type AuthStatus = 'bootstrapping' | 'authenticated' | 'anonymous';
 export interface AuthUser {
     id: number;
     username?: string;
+    email?: string;
     role?: string;
     fullName?: string;
     name?: string;
     avatarUrl?: string;
     dob?: string | null;
     profileComplete: boolean;
+    onboardingRequired: boolean;
+    mustChangePassword: boolean;
+    emailVerified: boolean;
 }
 
 interface AuthContextValue {
@@ -41,12 +45,16 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const normalizeAuthUser = (payload: Record<string, unknown>) => ({
     id: Number(payload.id),
     username: typeof payload.username === 'string' ? payload.username : undefined,
+    email: typeof payload.email === 'string' ? payload.email : undefined,
     role: typeof payload.role === 'string' ? payload.role : undefined,
     fullName: typeof payload.fullName === 'string' ? payload.fullName : undefined,
     name: typeof payload.name === 'string' ? payload.name : undefined,
     avatarUrl: typeof payload.avatarUrl === 'string' ? payload.avatarUrl : undefined,
     dob: typeof payload.dob === 'string' ? payload.dob : null,
-    profileComplete: Boolean(payload.profileComplete)
+    profileComplete: Boolean(payload.profileComplete),
+    onboardingRequired: payload.onboardingRequired === true || payload.profileComplete === false,
+    mustChangePassword: payload.mustChangePassword === true,
+    emailVerified: payload.emailVerified === true,
 } satisfies AuthUser);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -54,27 +62,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<AuthUser | null>(null);
     const bootstrapPromiseRef = useRef<Promise<AuthUser | null> | null>(null);
 
-    const applyAuthenticatedState = (nextUser: AuthUser) => {
+    const applyAuthenticatedState = useCallback((nextUser: AuthUser) => {
         setUser(nextUser);
         setStatus('authenticated');
         setStoredUserId(nextUser.id);
         setStoredUser(nextUser);
-    };
+    }, []);
 
-    const clearSession = () => {
+    const clearSession = useCallback(() => {
         clearStoredAuth();
         setUser(null);
         setStatus('anonymous');
-    };
+    }, []);
 
-    const fetchCurrentUser = async () => {
+    const fetchCurrentUser = useCallback(async () => {
         const response = await apiClient.get<Record<string, unknown>>('/users/me');
         const normalizedUser = normalizeAuthUser(response.data);
         applyAuthenticatedState(normalizedUser);
         return normalizedUser;
-    };
+    }, [applyAuthenticatedState]);
 
-    const bootstrapSession = async () => {
+    const bootstrapSession = useCallback(async () => {
         if (bootstrapPromiseRef.current) {
             return bootstrapPromiseRef.current;
         }
@@ -112,9 +120,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         bootstrapPromiseRef.current = bootstrapTask;
         return bootstrapTask;
-    };
+    }, [clearSession, fetchCurrentUser]);
 
-    const loginWithAccessToken = async (accessToken: string) => {
+    const loginWithAccessToken = useCallback(async (accessToken: string) => {
         setStoredAccessToken(accessToken);
         setStatus('bootstrapping');
 
@@ -125,9 +133,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             clearSession();
             throw error;
         }
-    };
+    }, [clearSession, fetchCurrentUser]);
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         try {
             await ensureCsrfToken().catch(() => undefined);
             await apiClient.post('/auth/logout');
@@ -136,7 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } finally {
             clearSession();
         }
-    };
+    }, [clearSession]);
 
     useEffect(() => {
         setAuthFailureHandler(() => {
@@ -148,7 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return () => {
             setAuthFailureHandler(null);
         };
-    }, []);
+    }, [bootstrapSession, clearSession]);
 
     return (
         <AuthContext.Provider value={{

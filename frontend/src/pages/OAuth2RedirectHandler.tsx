@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { clearAuthFlow, completedAuthDestination, getAuthFlow, requiredAccountStep } from '../utils/authRedirect';
 
 export const OAuth2RedirectHandler = () => {
     const navigate = useNavigate();
@@ -21,11 +22,15 @@ export const OAuth2RedirectHandler = () => {
                     return;
                 }
 
-                if (!authenticatedUser.profileComplete) {
-                    navigate('/onboarding');
-                } else {
-                    navigate('/feed');
+                const requiredStep = requiredAccountStep(authenticatedUser);
+                if (requiredStep) {
+                    navigate(requiredStep, { replace: true });
+                    return;
                 }
+                const flow = getAuthFlow();
+                const destination = completedAuthDestination(authenticatedUser, flow.nextPath);
+                clearAuthFlow();
+                navigate(destination, { replace: true });
             } catch (err) {
                 console.error("OAuth2 Session initialization failed:", err);
                 if (active) {

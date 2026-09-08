@@ -1,4 +1,6 @@
+import { useRef } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { useDialogFocus } from '../workspace/useDialogFocus';
 
 interface ConfirmDialogProps {
     open: boolean;
@@ -30,6 +32,9 @@ export function ConfirmDialog({
     onConfirm,
     onCancel,
 }: ConfirmDialogProps) {
+    const dialogRef = useRef<HTMLDivElement>(null);
+    useDialogFocus(open, dialogRef, onCancel);
+
     if (!open) return null;
 
     const accentColor =
@@ -43,7 +48,12 @@ export function ConfirmDialog({
             onClick={onCancel}
         >
             <div
-                className="rounded-[6px] border border-[#ffffff0d] bg-[#16181d] p-6 max-w-md w-full shadow-2xl"
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="confirm-dialog-title"
+                aria-describedby="confirm-dialog-message"
+                className="rounded-[6px] border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-6 max-w-md w-full shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-start gap-4">
@@ -54,17 +64,17 @@ export function ConfirmDialog({
                         <AlertTriangle size={22} style={{ color: accentColor }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold text-[#f4f4f5] mb-2">
+                        <h3 id="confirm-dialog-title" className="text-base font-semibold text-[var(--fc-text-primary)] mb-2">
                             {title}
                         </h3>
-                        <p className="text-sm text-[#a1a1aa] leading-relaxed">
+                        <p id="confirm-dialog-message" className="text-sm text-[var(--fc-text-secondary)] leading-relaxed">
                             {message}
                         </p>
                     </div>
                 </div>
                 {noteField && (
                     <div className="mt-4">
-                        <label htmlFor="confirm-dialog-note" className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa]">
+                        <label htmlFor="confirm-dialog-note" className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--fc-text-secondary)]">
                             {noteField.label}
                         </label>
                         <textarea
@@ -74,15 +84,15 @@ export function ConfirmDialog({
                             onChange={(e) => noteField.onChange(e.target.value)}
                             placeholder={noteField.placeholder}
                             rows={3}
-                            className="w-full resize-none rounded-lg border border-[#ffffff0d] bg-[#0f1117] px-3 py-2 text-sm text-[#f4f4f5] outline-none placeholder:text-[#a1a1aa] focus:border-[var(--fc-accent)]"
+                            className="w-full resize-none rounded-lg border border-[var(--fc-border)] bg-[var(--fc-page-bg)] px-3 py-2 text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)] focus:border-[var(--fc-accent)]"
                         />
                     </div>
                 )}
                 <div className="flex justify-end gap-3 mt-6">
                     <button
                         onClick={onCancel}
-                        className="px-4 py-2 text-sm rounded-[6px] border border-[#ffffff0d] text-[#a1a1aa]
-                                   hover:bg-[rgba(255,255,255,0.04)] hover:text-[#f4f4f5] transition-colors"
+                        className="px-4 py-2 text-sm rounded-[6px] border border-[var(--fc-border)] text-[var(--fc-text-secondary)]
+                                   hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)] transition-colors"
                     >
                         {cancelLabel}
                     </button>

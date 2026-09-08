@@ -50,6 +50,7 @@ const renderTab = (overrides: Partial<Parameters<typeof PlayersTab>[0]> = {}) =>
         playerError: null,
         playerStatusFilter: 'ALL' as const,
         pendingKey: null,
+        canManagePlayerStatuses: true,
         totalPlayerPages: 1,
         onStatusFilterChange: vi.fn(),
         onPlayerStatusChange: vi.fn(),
@@ -100,10 +101,29 @@ describe('PlayersTab — phase A1 trialist actions', () => {
         expect(screen.getByText(/No one on trial/)).toBeInTheDocument();
     });
 
+    it('keeps filter counts tied to the full affiliation set, not the current page', () => {
+        renderTab({
+            playerDirectory: makeDirectory([trialist]),
+            playerStatusFilter: 'TRIALIST',
+            playerCounts: { ALL: 86, TRIALIST: 2, ACTIVE: 84, PAST: 0, REMOVED: 0 },
+        });
+        expect(screen.getByRole('button', { name: /All\s*\(86\)/ })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /TRIALIST\s*\(2\)/ })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /ACTIVE\s*\(84\)/ })).toBeInTheDocument();
+    });
+
     it('does not render Promote/Release for active players', () => {
         renderTab({ playerDirectory: makeDirectory([active]) });
         expect(screen.queryByRole('button', { name: 'Promote' })).toBeNull();
         expect(screen.queryByRole('button', { name: 'Release' })).toBeNull();
+    });
+
+    it('keeps player status controls review-only for non-leadership roles', () => {
+        renderTab({ canManagePlayerStatuses: false });
+        expect(screen.queryByRole('button', { name: 'Promote' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Release' })).toBeNull();
+        expect(screen.getAllByText('Review only').length).toBeGreaterThan(0);
+        expect(screen.getByLabelText(`Trial ends ${trialist.fullName}`)).toBeDisabled();
     });
 
     it('phase A5: offers Send consent on a consent-flagged trialist and captures the parent email inline', () => {

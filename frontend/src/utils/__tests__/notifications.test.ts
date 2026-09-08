@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildNotificationDestination } from '../notifications';
+import { buildNotificationDestination, notificationActionLabel } from '../notifications';
 import type { NotificationItem } from '../../types/notifications';
 
 const notification = (overrides: Partial<NotificationItem>): NotificationItem => ({
@@ -70,6 +70,22 @@ describe('buildNotificationDestination — Aug 17 deep-link audit (P2.5)', () =>
             linkPath: null
         }));
         expect(destination).toBe('/clubs/42');
+    });
+
+    it('routes agent engagement notifications to the Agents workspace tab, including stale Inbox links', () => {
+        const destination = buildNotificationDestination(notification({
+            type: 'AGENT_ENGAGEMENT_RECEIVED',
+            clubId: 42,
+            linkPath: '/clubs/42/workspace?tab=inbox',
+        }));
+        expect(destination).toBe('/clubs/42/workspace?tab=engagements');
+    });
+
+    it('uses an agent-specific action label', () => {
+        expect(notificationActionLabel(notification({
+            type: 'AGENT_ENGAGEMENT_RECEIVED',
+            clubId: 42,
+        }))).toBe('Review agent request');
     });
 
     it('uses the type-based workspace mapping when no linkPath is present', () => {

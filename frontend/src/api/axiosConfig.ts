@@ -20,6 +20,11 @@ const authUtilityClient = axios.create({
 });
 
 let authFailureHandler: (() => void) | null = null;
+export type AccountRestriction = 'PASSWORD_CHANGE_REQUIRED' | 'DOB_REQUIRED' | 'ONBOARDING_REQUIRED';
+let accountRestrictionHandler: ((code: AccountRestriction) => void) | null = null;
+export const setAccountRestrictionHandler = (handler: typeof accountRestrictionHandler) => {
+    accountRestrictionHandler = handler;
+};
 
 export const setAuthFailureHandler = (handler: (() => void) | null) => {
     authFailureHandler = handler;
@@ -105,6 +110,12 @@ const shouldSkipAuthRetry = (url?: string) => {
 apiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
+        const code = error.response?.data?.code;
+        if (error.response?.status === 403 && (code === 'PASSWORD_CHANGE_REQUIRED'
+            || code === 'DOB_REQUIRED' || code === 'ONBOARDING_REQUIRED')) {
+            accountRestrictionHandler?.(code);
+            return Promise.reject(error);
+        }
         const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
 
         if (!originalRequest || shouldSkipAuthRetry(originalRequest.url)) {

@@ -3,6 +3,7 @@ import {
     apiClient,
     ensureCsrfToken,
     refreshAccessToken,
+    setAccountRestrictionHandler,
     setAuthFailureHandler
 } from '../api/axiosConfig';
 import {
@@ -150,11 +151,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setAuthFailureHandler(() => {
             clearSession();
         });
+        setAccountRestrictionHandler((code) => {
+            setUser(current => current ? {
+                ...current,
+                mustChangePassword: code === 'PASSWORD_CHANGE_REQUIRED',
+                ...(code !== 'PASSWORD_CHANGE_REQUIRED' ? { onboardingRequired: true, profileComplete: false } : {}),
+            } : current);
+        });
 
         void bootstrapSession();
 
         return () => {
             setAuthFailureHandler(null);
+            setAccountRestrictionHandler(null);
         };
     }, [bootstrapSession, clearSession]);
 

@@ -15,6 +15,21 @@ beforeEach(() => {
 afterEach(() => server.resetHandlers());
 
 describe('refresh coordination', () => {
+    it.each(['PASSWORD_CHANGE_REQUIRED', 'DOB_REQUIRED', 'ONBOARDING_REQUIRED'])(
+        'routes %s to account completion without refreshing or deleting the session', async code => {
+            localStorage.setItem('accessToken', 'restricted-session');
+            server.use(http.get('*/protected', () => HttpResponse.json({ code }, { status: 403 })));
+            const { apiClient, setAccountRestrictionHandler, setAuthFailureHandler } = await import('../axiosConfig');
+            const onRestriction = vi.fn();
+            const onFailure = vi.fn();
+            setAccountRestrictionHandler(onRestriction);
+            setAuthFailureHandler(onFailure);
+            await expect(apiClient.get('/protected')).rejects.toMatchObject({ response: { status: 403 } });
+            expect(onRestriction).toHaveBeenCalledWith(code);
+            expect(onFailure).not.toHaveBeenCalled();
+            expect(localStorage.getItem('accessToken')).toBe('restricted-session');
+        },
+    );
     it('shares refresh between direct callers and simultaneous rejected API requests', async () => {
         let refreshes = 0;
         server.use(

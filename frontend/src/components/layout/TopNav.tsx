@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
     Check,
+    Compass,
     LogOut,
     Menu,
     MessageSquare,
@@ -56,13 +57,18 @@ export const TopNav = ({
     const isGeorgian = currentLanguage.startsWith('ka');
     const switchLanguage = () => void i18n.changeLanguage(isGeorgian ? 'en' : 'ka');
     const [openMenuLocationKey, setOpenMenuLocationKey] = useState<string | null>(null);
+    const [openExploreLocationKey, setOpenExploreLocationKey] = useState<string | null>(null);
     const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
     const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
+    const exploreMenuRef = useRef<HTMLDivElement | null>(null);
+    const exploreTriggerRef = useRef<HTMLButtonElement | null>(null);
     const mobileSearchTriggerRef = useRef<HTMLButtonElement | null>(null);
     const hadMobileSearchOpen = useRef(false);
     const hadMenuOpen = useRef(false);
+    const hadExploreOpen = useRef(false);
     const menuOpen = openMenuLocationKey === location.key;
+    const exploreMenuOpen = openExploreLocationKey === location.key;
     const lightNavigation = themePreference === 'light';
 
     useEffect(() => {
@@ -77,6 +83,17 @@ export const TopNav = ({
     }, [menuOpen]);
 
     useEffect(() => {
+        if (!exploreMenuOpen) return;
+        const handleOutsideClick = (event: MouseEvent) => {
+            if (exploreMenuRef.current && !exploreMenuRef.current.contains(event.target as Node)) {
+                setOpenExploreLocationKey(null);
+            }
+        };
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, [exploreMenuOpen]);
+
+    useEffect(() => {
         if (hadMobileSearchOpen.current && !mobileSearchOpen) {
             mobileSearchTriggerRef.current?.focus();
         }
@@ -84,21 +101,30 @@ export const TopNav = ({
     }, [mobileSearchOpen]);
 
     useEffect(() => {
-        if (hadMenuOpen.current && !menuOpen) {
+        if (hadMenuOpen.current && !menuOpen && !exploreMenuOpen) {
             menuTriggerRef.current?.focus();
         }
         hadMenuOpen.current = menuOpen;
-    }, [menuOpen]);
+    }, [exploreMenuOpen, menuOpen]);
+
+    useEffect(() => {
+        if (hadExploreOpen.current && !exploreMenuOpen && !menuOpen) {
+            exploreTriggerRef.current?.focus();
+        }
+        hadExploreOpen.current = exploreMenuOpen;
+    }, [exploreMenuOpen, menuOpen]);
 
     const iconActionClass = (active = false) => `inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16a34a] ${active
         ? lightNavigation ? 'border-[#16a34a]/45 bg-[#dcfce7] text-[#166534]' : 'border-[#22c55e]/45 bg-[#354038] text-[#86efac]'
         : lightNavigation ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'border-white/[0.07] bg-[#292d34] text-[#f1f3f5] hover:bg-[#363b44] hover:text-white'}`;
     const menuItemClass = `flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${lightNavigation ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-[#d4d4d8] hover:bg-white/[0.06] hover:text-white'}`;
     const visibleLinks = primaryProductNavigation.filter(item => !item.authRequired || !!user);
+    const visibleSecondaryLinks = secondaryProductNavigation.filter(item => !item.authRequired || !!user);
     const mobileLinks = [
         ...visibleLinks,
-        ...secondaryProductNavigation,
-    ].filter(item => !item.authRequired || !!user);
+        ...visibleSecondaryLinks,
+    ];
+    const secondaryActive = visibleSecondaryLinks.some((item) => item.id === activeKey);
 
     if (collapsible && collapsed) {
         return (
@@ -144,11 +170,46 @@ export const TopNav = ({
                                 <Search className="h-5 w-5" />
                             </button>
                         )}
+                        <div ref={exploreMenuRef} className="relative">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setOpenMenuLocationKey(null);
+                                    setOpenExploreLocationKey(exploreMenuOpen ? null : location.key);
+                                }}
+                                className={`${iconActionClass(secondaryActive)} w-auto gap-2 px-2.5 sm:px-3`}
+                                ref={exploreTriggerRef}
+                                aria-label={t('nav.explore')}
+                                title={t('nav.explore')}
+                                aria-expanded={exploreMenuOpen}
+                                aria-haspopup="menu"
+                                aria-controls="explore-navigation-menu"
+                            >
+                                <Compass className="h-5 w-5" />
+                                <span className="hidden text-xs font-semibold sm:inline">{t('nav.explore')}</span>
+                            </button>
+
+                            {exploreMenuOpen && (
+                                <div id="explore-navigation-menu" role="menu" aria-label={t('nav.explore')} className={`fixed left-4 right-4 top-[3.5rem] z-[150] max-h-[min(80dvh,40rem)] overflow-y-auto rounded-2xl border p-2 shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-11 sm:w-80 ${lightNavigation ? 'border-slate-200 bg-white' : 'border-white/10 bg-[#16181d]'}`}>
+                                    <p className={`px-3 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.16em] ${lightNavigation ? 'text-slate-500' : 'text-[#71717a]'}`}>{t('nav.mobileNavigation')}</p>
+                                    {visibleSecondaryLinks.map((item) => {
+                                        const Icon = item.icon;
+                                        return (
+                                            <Link key={`${item.id}-explore`} to={item.path} role="menuitem" aria-label={item.preview ? `${t(item.translationKey, item.label)} — ${t('nav.preview')}` : undefined} className={`${menuItemClass} ${activeKey === item.id ? lightNavigation ? 'bg-[#dcfce7] text-[#166534]' : 'bg-white/[0.07] text-white' : ''}`}>
+                                                <Icon className="h-4 w-4 shrink-0 text-[#16a34a]" />
+                                                <span className="min-w-0 flex-1">{t(item.translationKey, item.label)}</span>
+                                                {item.preview ? <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${lightNavigation ? 'border-amber-600/30 text-amber-700' : 'border-amber-400/30 text-amber-300'}`}>{t('nav.preview')}</span> : null}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
                         {user ? (
                             <>
                                 <Link
                                     to="/map"
-                                    className={`world-nav-button inline-flex h-10 items-center rounded-full p-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1117] ${activeKey === 'map' ? 'world-nav-button--active' : ''}`}
+                                    className={`world-nav-button hidden h-10 items-center rounded-full p-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1117] sm:inline-flex ${activeKey === 'map' ? 'world-nav-button--active' : ''}`}
                                     aria-label="GrassKickZ World map"
                                     title="GrassKickZ World"
                                 >
@@ -159,13 +220,15 @@ export const TopNav = ({
                                         <img src="/brand/grasskickz-world-mark.png" alt="" className="h-8 w-6 shrink-0 object-contain" />
                                     </span>
                                 </Link>
-                                <Link to="/messages" className={iconActionClass(activeKey === 'messages')} aria-label={t('nav.messages')} title={t('nav.messages')}>
-                                    <MessageSquare className="h-5 w-5" />
-                                </Link>
-                                <NotificationBell enabled light={lightNavigation} />
+                                <span className="hidden md:inline-flex">
+                                    <Link to="/messages" className={iconActionClass(activeKey === 'messages')} aria-label={t('nav.messages')} title={t('nav.messages')}>
+                                        <MessageSquare className="h-5 w-5" />
+                                    </Link>
+                                </span>
+                                <span className="hidden md:block"><NotificationBell enabled light={lightNavigation} /></span>
                                 <Link
                                     to={`/profile/${user.id}`}
-                                    className={`inline-flex h-10 min-w-10 items-center justify-center rounded-full border px-2.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16a34a] ${activeKey === 'profile'
+                                    className={`hidden h-10 min-w-10 items-center justify-center rounded-full border px-2.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16a34a] sm:inline-flex ${activeKey === 'profile'
                                         ? lightNavigation ? 'border-[#16a34a]/45 bg-[#dcfce7] text-[#166534]' : 'border-[#22c55e]/45 bg-[#354038] text-[#f4f4f5]'
                                         : lightNavigation ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100' : 'border-white/[0.07] bg-[#292d34] text-[#f4f4f5] hover:bg-[#363b44]'}`}
                                     aria-label={t('nav.profile')}
@@ -177,7 +240,10 @@ export const TopNav = ({
                                 <div ref={menuRef} className="relative">
                                     <button
                                         type="button"
-                                        onClick={() => setOpenMenuLocationKey(menuOpen ? null : location.key)}
+                                        onClick={() => {
+                                            setOpenExploreLocationKey(null);
+                                            setOpenMenuLocationKey(menuOpen ? null : location.key);
+                                        }}
                                         className={iconActionClass()}
                                         ref={menuTriggerRef}
                                         aria-label={menuOpen ? t('nav.closeMenu') : t('nav.openMenu')}
@@ -196,10 +262,10 @@ export const TopNav = ({
                                                 {mobileLinks.map((item) => {
                                                     const Icon = item.icon;
                                                     return (
-                                                        <Link key={`${item.id}-mobile`} to={item.path} role="menuitem" className={menuItemClass}>
+                                                        <Link key={`${item.id}-mobile`} to={item.path} role="menuitem" aria-label={item.preview ? `${t(item.translationKey, item.label)} — ${t('nav.preview')}` : undefined} className={menuItemClass}>
                                                             <Icon className="h-4 w-4 text-[#16a34a]" />
                                                             <span className="min-w-0 flex-1">{t(item.translationKey, item.label)}</span>
-                                                            {item.preview ? <span className="rounded-full border border-amber-400/30 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-300">Preview</span> : null}
+                                                            {item.preview ? <span className="rounded-full border border-amber-400/30 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-300">{t('nav.preview')}</span> : null}
                                                         </Link>
                                                     );
                                                 })}
@@ -271,10 +337,12 @@ export const TopNav = ({
                                 </Link>
                                 <Link
                                     to="/signup"
-                                    className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-[#22c55e]"
+                                    aria-label={t('nav.account')}
+                                    title={t('nav.account')}
+                                    className="inline-flex h-10 min-w-10 items-center justify-center gap-2 rounded-full bg-[#16a34a] px-2.5 text-xs font-semibold text-black transition-colors hover:bg-[#22c55e] sm:px-4"
                                 >
                                     <User className="h-3.5 w-3.5" />
-                                    {t('nav.account')}
+                                    <span className="hidden sm:inline">{t('nav.account')}</span>
                                 </Link>
                             </>
                         )}
@@ -313,7 +381,7 @@ export const TopNav = ({
                                 >
                                     <Icon className={`h-4 w-4 ${active ? 'text-[#16a34a]' : ''}`} />
                                     {t(item.translationKey, item.label)}
-                                    {item.preview ? <span className="rounded-full border border-amber-400/30 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-300">Preview</span> : null}
+                                    {item.preview ? <span className="rounded-full border border-amber-400/30 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-300">{t('nav.preview')}</span> : null}
                                 </Link>
                             );
                         })}

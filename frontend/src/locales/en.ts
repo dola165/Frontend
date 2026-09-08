@@ -34,6 +34,8 @@ const en = {
     useEnglish: 'Use English',
     useGeorgian: 'Use Georgian',
     mobileNavigation: 'Explore GrassKickZ',
+    explore: 'Explore',
+    preview: 'Preview',
     people: 'People',
     followedClubs: 'Followed clubs',
     jobs: 'Jobs & volunteering',

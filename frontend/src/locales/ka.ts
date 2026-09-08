@@ -34,6 +34,8 @@ const ka = {
     useEnglish: 'ინგლისურის გამოყენება',
     useGeorgian: 'ქართულის გამოყენება',
     mobileNavigation: 'GrassKickZ-ის დათვალიერება',
+    explore: 'დათვალიერება',
+    preview: 'საცდელი',
     people: 'ხალხი',
     followedClubs: 'მიყოლილი კლუბები',
     jobs: 'ვაკანსიები და მოხალისეობა',

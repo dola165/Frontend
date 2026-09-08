@@ -29,17 +29,49 @@ export const ensureCsrfToken = async () => {
     await authUtilityClient.get('/auth/csrf');
 };
 
-export const refreshAccessToken = async () => {
+const requestFreshAccessToken = async () => {
     await ensureCsrfToken().catch(() => undefined);
-    const refreshResponse = await authUtilityClient.post<{ accessToken?: string }>('/auth/refresh', {});
-    const newAccessToken = refreshResponse.data?.accessToken;
-
-    if (!newAccessToken) {
-        throw new Error('Refresh response did not include an access token.');
+    for (let attempt = 0; ; attempt++) {
+        try {
+            const response = await authUtilityClient.post<{ accessToken?: string }>('/auth/refresh', {});
+            const token = response.data?.accessToken;
+            if (!token) {
+                throw new Error('Refresh response did not include an access token.');
+            }
+            setStoredAccessToken(token);
+            return token;
+        } catch (error) {
+            // A simultaneous request won rotation. Give its Set-Cookie time to arrive,
+            // then retry using the shared HttpOnly cookie; never reuse a token body.
+            if (!axios.isAxiosError(error) || error.response?.status !== 409
+                || error.response.data?.code !== 'REFRESH_ALREADY_ROTATED' || attempt >= 2) {
+                throw error;
+            }
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
     }
+};
 
-    setStoredAccessToken(newAccessToken);
-    return newAccessToken;
+let refreshPromise: Promise<string> | null = null;
+
+export const refreshAccessToken = (): Promise<string> => {
+    if (refreshPromise) return refreshPromise;
+
+    const previousToken = getStoredAccessToken();
+    const refresh = async () => {
+        const currentToken = getStoredAccessToken();
+        // Another tab completed refresh while we waited for the origin-wide lock.
+        if (currentToken && currentToken !== previousToken) return currentToken;
+        return requestFreshAccessToken();
+    };
+    const task = (async () => {
+        if (typeof navigator !== 'undefined' && navigator.locks) {
+            return await navigator.locks.request('grasskickz-session-refresh', refresh);
+        }
+        return refresh();
+    })();
+    refreshPromise = task.finally(() => { refreshPromise = null; });
+    return refreshPromise;
 };
 
 export const buildWebSocketUrl = (path: string) => {
@@ -55,25 +87,6 @@ apiClient.interceptors.request.use((config) => {
     }
     return config;
 }, (error) => Promise.reject(error));
-
-let isRefreshing = false;
-type RefreshQueueEntry = {
-    resolve: (token: string | null) => void;
-    reject: (error: unknown) => void;
-};
-
-let failedQueue: RefreshQueueEntry[] = [];
-
-const processQueue = (error: unknown, token: string | null = null) => {
-    failedQueue.forEach(prom => {
-        if (error) {
-            prom.reject(error);
-        } else {
-            prom.resolve(token);
-        }
-    });
-    failedQueue = [];
-};
 
 const shouldSkipAuthRetry = (url?: string) => {
     if (!url) {
@@ -100,36 +113,20 @@ apiClient.interceptors.response.use(
 
         if (error.response?.status === 401 && !originalRequest._retry) {
 
-            if (isRefreshing) {
-                return new Promise(function(resolve, reject) {
-                    failedQueue.push({ resolve, reject });
-                }).then(token => {
-                    originalRequest.headers = originalRequest.headers ?? {};
-                    originalRequest.headers.Authorization = 'Bearer ' + token;
-                    return apiClient(originalRequest);
-                }).catch(err => {
-                    return Promise.reject(err);
-                });
-            }
-
             originalRequest._retry = true;
-            isRefreshing = true;
 
             try {
                 const newAccessToken = await refreshAccessToken();
                 originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
-                processQueue(null, newAccessToken);
-
                 return apiClient(originalRequest);
 
             } catch (refreshError) {
-                processQueue(refreshError, null);
-                clearStoredAuth();
-                authFailureHandler?.();
+                if (axios.isAxiosError(refreshError) && refreshError.response?.status === 401) {
+                    clearStoredAuth();
+                    authFailureHandler?.();
+                }
                 return Promise.reject(refreshError);
-            } finally {
-                isRefreshing = false;
             }
         }
 

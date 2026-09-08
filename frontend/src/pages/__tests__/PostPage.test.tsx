@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { PostPage } from '../PostPage';
 
 vi.mock('../../api/axiosConfig', () => ({
@@ -15,11 +15,38 @@ vi.mock('../../context/AuthContext', () => ({
 import { apiClient } from '../../api/axiosConfig';
 import { useAuth } from '../../context/AuthContext';
 
-const renderPage = () => render(
-    <MemoryRouter initialEntries={['/posts/42']}>
+const renderPage = (initialEntry = '/posts/42') => render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+        <Link to="/posts/2">Open post 2</Link>
         <Routes><Route path="/posts/:postId" element={<PostPage />} /></Routes>
     </MemoryRouter>
 );
+
+const post = (id: number, content: string) => ({
+    id,
+    authorId: 7,
+    authorName: 'Jordan Lee',
+    content,
+    createdAt: '2026-09-08T08:00:00Z',
+    likeCount: 0,
+    commentCount: 1,
+    isLikedByMe: false,
+});
+
+const comment = (id: number, content: string) => ({
+    id,
+    authorName: 'Casey',
+    content,
+    createdAt: '2026-09-08T09:00:00Z',
+});
+
+const deferred = <T,>() => {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((resolvePromise) => {
+        resolve = resolvePromise;
+    });
+    return { promise, resolve };
+};
 
 describe('PostPage', () => {
     beforeEach(() => {
@@ -93,5 +120,75 @@ describe('PostPage', () => {
         expect(screen.getByText('5 / 5')).toBeInTheDocument();
         const video = document.querySelector('video[controls]');
         expect(video).toHaveAttribute('src', 'http://localhost:8080/uploads/five.mp4');
+    });
+
+    it('clears comments and loads the new post comments after route navigation', async () => {
+        const user = userEvent.setup();
+        (apiClient.get as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+            if (url === '/posts/1') return Promise.resolve({ data: post(1, 'First post') });
+            if (url === '/posts/1/comments') return Promise.resolve({ data: [comment(11, 'First post comment')] });
+            if (url === '/posts/2') return Promise.resolve({ data: post(2, 'Second post') });
+            if (url === '/posts/2/comments') return Promise.resolve({ data: [comment(22, 'Second post comment')] });
+            return Promise.reject(new Error(`Unexpected request: ${url}`));
+        });
+
+        renderPage('/posts/1');
+        expect(await screen.findByText('First post')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Comment' }));
+        expect(await screen.findByText('First post comment')).toBeInTheDocument();
+        await user.type(screen.getByRole('textbox', { name: "Write a comment on Jordan Lee's post" }), 'Draft for first post');
+
+        await user.click(screen.getByRole('link', { name: 'Open post 2' }));
+        expect(await screen.findByText('Second post')).toBeInTheDocument();
+        expect(screen.queryByText('First post comment')).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'Comment' }));
+        expect(await screen.findByText('Second post comment')).toBeInTheDocument();
+        expect(screen.getByRole('textbox', { name: "Write a comment on Jordan Lee's post" })).toHaveValue('');
+        expect(apiClient.get).toHaveBeenCalledWith('/posts/2/comments');
+    });
+
+    it('ignores an older post response that arrives after the new route loads', async () => {
+        const user = userEvent.setup();
+        const firstResponse = deferred<{ data: ReturnType<typeof post> }>();
+        const secondResponse = deferred<{ data: ReturnType<typeof post> }>();
+        (apiClient.get as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+            if (url === '/posts/1') return firstResponse.promise;
+            if (url === '/posts/2') return secondResponse.promise;
+            return Promise.reject(new Error(`Unexpected request: ${url}`));
+        });
+
+        renderPage('/posts/1');
+        await user.click(screen.getByRole('link', { name: 'Open post 2' }));
+        await act(async () => secondResponse.resolve({ data: post(2, 'Second post') }));
+        expect(await screen.findByText('Second post')).toBeInTheDocument();
+
+        await act(async () => firstResponse.resolve({ data: post(1, 'Stale first post') }));
+        expect(screen.queryByText('Stale first post')).not.toBeInTheDocument();
+        expect(screen.getByText('Second post')).toBeInTheDocument();
+    });
+
+    it('ignores old comments that arrive after comments for the new route', async () => {
+        const user = userEvent.setup();
+        const firstComments = deferred<{ data: ReturnType<typeof comment>[] }>();
+        (apiClient.get as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+            if (url === '/posts/1') return Promise.resolve({ data: post(1, 'First post') });
+            if (url === '/posts/1/comments') return firstComments.promise;
+            if (url === '/posts/2') return Promise.resolve({ data: post(2, 'Second post') });
+            if (url === '/posts/2/comments') return Promise.resolve({ data: [comment(22, 'Current comment')] });
+            return Promise.reject(new Error(`Unexpected request: ${url}`));
+        });
+
+        renderPage('/posts/1');
+        expect(await screen.findByText('First post')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Comment' }));
+        await user.click(screen.getByRole('link', { name: 'Open post 2' }));
+        expect(await screen.findByText('Second post')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Comment' }));
+        expect(await screen.findByText('Current comment')).toBeInTheDocument();
+
+        await act(async () => firstComments.resolve({ data: [comment(11, 'Stale comment')] }));
+        expect(screen.queryByText('Stale comment')).not.toBeInTheDocument();
+        expect(screen.getByText('Current comment')).toBeInTheDocument();
     });
 });

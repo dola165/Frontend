@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
@@ -23,40 +23,64 @@ export const PostPage = () => {
     const [loading, setLoading] = useState(true);
     const [unavailable, setUnavailable] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
+    const currentPostIdRef = useRef(postId);
+    const postRequestRef = useRef(0);
+    const commentsRequestRef = useRef(0);
+    const likeRequestRef = useRef(0);
+    currentPostIdRef.current = postId;
     const destination = `/posts/${postId ?? ''}`;
 
     const loadPost = useCallback(async () => {
+        const requestedPostId = postId;
+        const requestId = ++postRequestRef.current;
         setLoading(true);
         setUnavailable(false);
         setLoadError(null);
         try {
-            const response = await apiClient.get<FeedPostDto>(`/posts/${postId}`);
+            const response = await apiClient.get<FeedPostDto>(`/posts/${requestedPostId}`);
+            if (requestId !== postRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
             setPost(response.data);
         } catch (error) {
+            if (requestId !== postRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
             const status = (error as { response?: { status?: number } }).response?.status;
             if (status === 404) setUnavailable(true);
             else setLoadError(extractApiErrorMessage(error, 'The post could not load.'));
             setPost(null);
         } finally {
-            setLoading(false);
+            if (requestId === postRequestRef.current && currentPostIdRef.current === requestedPostId) setLoading(false);
         }
     }, [postId]);
 
     useEffect(() => {
+        ++commentsRequestRef.current;
+        ++likeRequestRef.current;
+        setPost(null);
+        setComments(undefined);
+        setCommentsOpen(false);
+        setMediaViewerOpen(false);
+        setCommentsError(null);
+        setLikePending(false);
+        setLikeError(null);
         if (!postId || !/^\d+$/.test(postId)) {
+            ++postRequestRef.current;
             setLoading(false);
             setUnavailable(true);
+            setLoadError(null);
             return;
         }
         void loadPost();
     }, [loadPost, postId]);
 
     const loadComments = async () => {
+        const requestedPostId = postId;
+        const requestId = ++commentsRequestRef.current;
         setCommentsError(null);
         try {
-            const response = await apiClient.get<CommentDto[]>(`/posts/${postId}/comments`);
+            const response = await apiClient.get<CommentDto[]>(`/posts/${requestedPostId}/comments`);
+            if (requestId !== commentsRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
             setComments(response.data);
         } catch (error) {
+            if (requestId !== commentsRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
             setCommentsError(extractApiErrorMessage(error, 'Comments could not load.'));
         }
     };
@@ -80,6 +104,8 @@ export const PostPage = () => {
             return;
         }
         if (!post || likePending) return;
+        const requestedPostId = postId;
+        const requestId = ++likeRequestRef.current;
         const previous = post.isLikedByMe;
         const desired = !previous;
         setLikePending(true);
@@ -87,20 +113,22 @@ export const PostPage = () => {
         setPost({ ...post, isLikedByMe: desired, likeCount: Math.max(0, post.likeCount + (desired ? 1 : -1)) });
         try {
             const response = await apiClient.put<{ isLiked: boolean }>(`/posts/${post.id}/like`, { liked: desired });
-            setPost((current) => current ? {
+            if (requestId !== likeRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
+            setPost((current) => current?.id === post.id ? {
                 ...current,
                 likeCount: current.likeCount + (current.isLikedByMe === response.data.isLiked ? 0 : response.data.isLiked ? 1 : -1),
                 isLikedByMe: response.data.isLiked,
             } : current);
         } catch (error) {
-            setPost((current) => current ? {
+            if (requestId !== likeRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
+            setPost((current) => current?.id === post.id ? {
                 ...current,
                 likeCount: Math.max(0, current.likeCount + (current.isLikedByMe === previous ? 0 : previous ? 1 : -1)),
                 isLikedByMe: previous,
             } : current);
             setLikeError(extractApiErrorMessage(error, 'Like could not be saved. Your previous choice was restored.'));
         } finally {
-            setLikePending(false);
+            if (requestId === likeRequestRef.current && currentPostIdRef.current === requestedPostId) setLikePending(false);
         }
     };
 
@@ -109,9 +137,13 @@ export const PostPage = () => {
             requireSignIn();
             return;
         }
-        const response = await apiClient.post<CommentDto>(`/posts/${postId}/comments`, { content });
+        const requestedPostId = postId;
+        const response = await apiClient.post<CommentDto>(`/posts/${requestedPostId}/comments`, { content });
+        if (currentPostIdRef.current !== requestedPostId) return;
         setComments((current) => [...(current || []), response.data]);
-        setPost((current) => current ? { ...current, commentCount: current.commentCount + 1 } : current);
+        setPost((current) => current && String(current.id) === requestedPostId
+            ? { ...current, commentCount: current.commentCount + 1 }
+            : current);
     };
 
     if (loading) return <div className="mx-auto w-full max-w-[680px]"><SkeletonCard lines={5} /></div>;
@@ -133,9 +165,10 @@ export const PostPage = () => {
         );
     }
 
-    return post ? (
+    return post && String(post.id) === postId ? (
         <div className="mx-auto w-full max-w-[680px]">
             <FeedPost
+                key={post.id}
                 post={post}
                 isCommentsOpen={commentsOpen}
                 commentsData={comments}
@@ -149,6 +182,7 @@ export const PostPage = () => {
                 onRetryComments={() => void loadComments()}
             />
             <PostTheaterModal
+                key={post.id}
                 isOpen={mediaViewerOpen}
                 post={post}
                 onClose={() => setMediaViewerOpen(false)}

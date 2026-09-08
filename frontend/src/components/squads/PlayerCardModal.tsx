@@ -42,6 +42,7 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
     const [error, setError] = useState<string | null>(null);
 
     const currentYear = new Date().getFullYear();
+    const needsConsent = birthYear ? currentYear - Number(birthYear) < 18 : false;
     const under13 = birthYear ? currentYear - Number(birthYear) < 13 : false;
 
     // Prefill when opening in edit mode.
@@ -96,7 +97,7 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
                     ? {
                         position: position || null,
                         jerseyNumber: jerseyNumber ? Number(jerseyNumber) : null,
-                        ...(squadId != null ? { squadId } : {}),
+                        ...(squadId != null && squadId !== card.squadId ? { squadId } : {}),
                     }
                     : {
                         fullName: fullName.trim(),
@@ -105,8 +106,8 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
                         jerseyNumber: jerseyNumber ? Number(jerseyNumber) : null,
                         // U13 rule: never send a photo for an under-13 card.
                         photoUrl: under13 ? null : photoUrl,
-                        parentEmail: parentEmail.trim() || null,
-                        ...(squadId != null ? { squadId } : {}),
+                        ...(card.claimed ? {} : { parentEmail: parentEmail.trim() || null }),
+                        ...(squadId != null && squadId !== card.squadId ? { squadId } : {}),
                     };
                 await updatePlayerCard(clubId, card.id, payload);
                 onCardUpdated?.();
@@ -118,7 +119,7 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
                     jerseyNumber: jerseyNumber ? Number(jerseyNumber) : null,
                     photoUrl: under13 ? null : photoUrl,
                     parentEmail: parentEmail.trim() || null,
-                    ...(squadId != null ? { squadId } : {}),
+                    ...(squadId != null && !needsConsent ? { squadId } : {}),
                 });
                 onCardCreated?.();
             }
@@ -163,6 +164,11 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
                     </button>
                 </div>
 
+                {!editing && squadId != null && needsConsent && (
+                    <p className="px-6 py-3 text-sm text-[var(--fc-text-secondary)]" role="status">
+                        {t('minors.playerCard.consentBeforeSquad')}
+                    </p>
+                )}
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-5 py-5">
                     {error && (
                         <div className="border border-[color:var(--state-danger)] bg-[color:var(--state-danger-soft)] px-3 py-2 text-xs font-semibold text-[color:var(--state-danger)]">
@@ -238,7 +244,7 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
                             type="email"
                             value={parentEmail}
                             onChange={(e) => setParentEmail(e.target.value)}
-                            disabled={personalDetailsLocked}
+                            disabled={personalDetailsLocked || card?.claimed === true}
                             className={inputClass}
                             placeholder={t('minors.playerCard.parentEmailPlaceholder')}
                         />

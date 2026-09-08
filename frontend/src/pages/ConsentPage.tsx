@@ -5,7 +5,7 @@ import { apiClient } from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import { activatePlayerCard } from '../features/clubs/api';
 import { extractApiErrorMessage } from '../utils/apiError';
-import { isUnder13, todayIso } from '../utils/age';
+import { ageFromDob, todayIso } from '../utils/age';
 import { ShieldCheck, Loader2, AlertCircle, Check, Copy } from 'lucide-react';
 import { buildLoginPath, buildSignupPath } from '../utils/authRedirect';
 
@@ -22,7 +22,7 @@ type Stage =
 /**
  * Parental-consent magic-link landing (WEB_APP_MASTER_PLAN.md §2.1, Sprint 3).
  * Confirming doubles as the claim path: it links the confirmer as the guardian
- * of the kid's Player Card, then offers activation when the kid is 13+.
+ * of the kid's Player Card, then offers activation only when the server confirms eligibility.
  */
 export const ConsentPage = () => {
     const [searchParams] = useSearchParams();
@@ -34,6 +34,7 @@ export const ConsentPage = () => {
     const [childDob, setChildDob] = useState('');
     const [childEmail, setChildEmail] = useState('');
     const [copied, setCopied] = useState(false);
+    const [activationError, setActivationError] = useState<string | null>(null);
 
     useEffect(() => {
         if (isBootstrapping) return;
@@ -51,13 +52,12 @@ export const ConsentPage = () => {
             const cardId = res.data?.cardId as number | undefined;
             if (!accept) {
                 setStage({ kind: 'done-declined' });
-            } else if (cardId) {
+            } else if (cardId && res.data?.activationEligible === true) {
                 setStage({ kind: 'activate', cardId });
             } else {
                 setStage({ kind: 'done-accepted' });
             }
         } catch (err) {
-            console.error(err);
             setStage({ kind: 'error', message: extractApiErrorMessage(err, t('minors.consent.failed')) });
         } finally {
             setBusy(false);
@@ -66,8 +66,9 @@ export const ConsentPage = () => {
 
     const handleActivate = async (e: React.FormEvent, cardId: number) => {
         e.preventDefault();
-        if (!childDob || isUnder13(childDob)) {
-            setStage({ kind: 'error', message: t('minors.consent.activationAge') });
+        setActivationError(null);
+        if (!childDob || !Number.isFinite(ageFromDob(childDob)) || ageFromDob(childDob) < 13 || ageFromDob(childDob) >= 18) {
+            setActivationError(t('minors.consent.activationAge'));
             return;
         }
         setBusy(true);
@@ -75,8 +76,7 @@ export const ConsentPage = () => {
             const creds = await activatePlayerCard(cardId, childDob, childEmail.trim());
             setStage({ kind: 'credentials', username: creds.username, tempPassword: creds.tempPassword });
         } catch (err) {
-            console.error(err);
-            setStage({ kind: 'error', message: extractApiErrorMessage(err, t('minors.consent.activationFailed')) });
+            setActivationError(extractApiErrorMessage(err, t('minors.consent.activationFailed')));
         } finally {
             setBusy(false);
         }
@@ -159,9 +159,11 @@ export const ConsentPage = () => {
                             <p className="text-sm font-semibold text-[#f4f4f5]">
                                 {t('minors.consent.cardPrompt')}
                             </p>
+                            {activationError && <p role="alert" className="text-sm text-[color:var(--state-danger)]">{activationError}</p>}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.consent.childDob')}</label>
+                                <label htmlFor="consent-child-dob" className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.consent.childDob')}</label>
                                 <input
+                                    id="consent-child-dob"
                                     type="date"
                                     value={childDob}
                                     max={todayIso()}
@@ -171,8 +173,9 @@ export const ConsentPage = () => {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.consent.childEmail')}</label>
+                                <label htmlFor="consent-child-email" className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.consent.childEmail')}</label>
                                 <input
+                                    id="consent-child-email"
                                     type="email"
                                     value={childEmail}
                                     onChange={(e) => setChildEmail(e.target.value)}

@@ -27,7 +27,7 @@ interface PlayersTabProps {
     onRetry: () => void;
     onPageChange: (page: number) => void;
     onMessagePlayer?: (userId: number, playerName?: string) => void;
-    onSendConsentEmail?: (userId: number, parentEmail?: string | null) => void;
+    onSendConsentEmail?: (userId: number, parentEmail?: string | null) => Promise<boolean> | void;
     onTabChange: (tab: WorkspaceTab) => void;
 }
 
@@ -308,6 +308,7 @@ export const PlayersTab = ({
                                                 {player.parentEmail && isCurrent && onSendConsentEmail && (
                                                     <button
                                                         type="button"
+                                                        disabled={pendingKey === `consent-${player.userId}`}
                                                         title={t('minors.playersTab.resendTo', { email: player.parentEmail })}
                                                         onClick={() => onSendConsentEmail(player.userId, player.parentEmail)}
                                                         className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#16a34a] hover:underline"
@@ -316,12 +317,13 @@ export const PlayersTab = ({
                                                     </button>
                                                 )}
                                             </>
-                                        ) : player.parentalConsentStatus === 'PENDING' ? (
+                                        ) : (player.parentalConsentStatus === 'PENDING' || player.parentalConsentStatus === 'EXPIRED') ? (
                                             <>
-                                                <Pill label={t('minors.playersTab.consentPending')} tone="warning" />
+                                                <Pill label={t(player.parentalConsentStatus === 'EXPIRED' ? 'minors.playersTab.consentExpired' : 'minors.playersTab.consentPending')} tone="warning" />
                                                 {player.parentEmail && isCurrent && onSendConsentEmail && (
                                                     <button
                                                         type="button"
+                                                        disabled={pendingKey === `consent-${player.userId}`}
                                                         title={t('minors.playersTab.resendTo', { email: player.parentEmail })}
                                                         onClick={() => onSendConsentEmail(player.userId, player.parentEmail)}
                                                         className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#16a34a] hover:underline"
@@ -333,6 +335,7 @@ export const PlayersTab = ({
                                         ) : consentNeedsSending && consentEmailFor !== player.userId ? (
                                             <button
                                                 type="button"
+                                                disabled={pendingKey === `consent-${player.userId}`}
                                                 onClick={() => {
                                                     if (player.parentEmail) {
                                                         void onSendConsentEmail?.(player.userId, player.parentEmail);
@@ -357,11 +360,13 @@ export const PlayersTab = ({
                                                 />
                                                 <button
                                                     type="button"
-                                                    disabled={!consentEmailValue.trim()}
-                                                    onClick={() => {
-                                                        void onSendConsentEmail?.(player.userId, consentEmailValue.trim());
-                                                        setConsentEmailFor(null);
-                                                        setConsentEmailValue('');
+                                                    disabled={!consentEmailValue.trim() || pendingKey === `consent-${player.userId}`}
+                                                    onClick={async () => {
+                                                        const sent = await onSendConsentEmail?.(player.userId, consentEmailValue.trim());
+                                                        if (sent !== false) {
+                                                            setConsentEmailFor(null);
+                                                            setConsentEmailValue('');
+                                                        }
                                                     }}
                                                     className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#16a34a] hover:underline disabled:opacity-50"
                                                 >

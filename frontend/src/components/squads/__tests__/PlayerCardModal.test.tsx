@@ -67,3 +67,27 @@ describe('PlayerCardModal activated-account authority', () => {
         expect(onClose).toHaveBeenCalledOnce();
     });
 });
+
+
+describe('PlayerCardModal participation consent', () => {
+    it.each([12, 14, 16, 18])('creates an age-%s card with the appropriate squad behavior', async (age) => {
+        vi.clearAllMocks();
+        vi.mocked(createPlayerCard).mockResolvedValue({ ...activatedCard, registered: false });
+        render(<PlayerCardModal clubId={7} squadId={11} isOpen onClose={vi.fn()} />);
+        fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'New Player' } });
+        fireEvent.change(screen.getByLabelText('Birth Year'), { target: { value: String(new Date().getFullYear() - age) } });
+        if (age < 18) expect(screen.getByRole('status')).toHaveTextContent('Create the card first.');
+        fireEvent.click(screen.getByRole('button', { name: 'Create Card' }));
+        await waitFor(() => expect(createPlayerCard).toHaveBeenCalledOnce());
+        expect(vi.mocked(createPlayerCard).mock.calls[0][1].squadId).toBe(age < 18 ? undefined : 11);
+    });
+
+    it('protects the parent contact of a claimed dormant card', async () => {
+        vi.clearAllMocks();
+        render(<PlayerCardModal clubId={7} isOpen card={{ ...activatedCard, registered: false }} onClose={vi.fn()} />);
+        expect(screen.getByLabelText('Parent / Guardian Email')).toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: 'Save Card' }));
+        await waitFor(() => expect(updatePlayerCard).toHaveBeenCalledOnce());
+        expect(vi.mocked(updatePlayerCard).mock.calls[0][2]).not.toHaveProperty('parentEmail');
+    });
+});

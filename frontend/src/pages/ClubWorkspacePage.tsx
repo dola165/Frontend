@@ -607,10 +607,14 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     };
 
     const handleSendConsentEmail = async (userId: number, parentEmail?: string | null) => {
+        let sent = false;
         await runAction(`consent-${userId}`, async () => {
             await sendParentalConsentEmail(clubId, userId, parentEmail);
-            setSuccessMessage('Consent email queued to the parent.');
+            sent = true;
+            setSuccessMessage('Consent email sent. Waiting for the parent’s response.');
+            await loadPlayers(true);
         });
+        return sent;
     };
 
     // ── phase A1: promote + trial deadline ──

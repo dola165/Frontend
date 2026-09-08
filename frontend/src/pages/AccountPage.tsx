@@ -20,7 +20,7 @@ import { apiClient } from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
-import { isUnder13, todayIso } from '../utils/age';
+import { ageFromDob, todayIso } from '../utils/age';
 import { activatePlayerCard, fetchMyPlayerCards, type PlayerCard } from '../features/clubs/api';
 import { ClubJourneyPanel } from '../features/journey/components/ClubJourneyPanel';
 import { EntityTabs, type EntityTabItem } from '../components/layout/EntityTabs';
@@ -259,7 +259,7 @@ export const AccountPage = () => {
     const submitActivation = async (e: FormEvent) => {
         e.preventDefault();
         if (!activatingCard) return;
-        if (!childDob || isUnder13(childDob)) {
+        if (!childDob || !Number.isFinite(ageFromDob(childDob)) || ageFromDob(childDob) < 13 || ageFromDob(childDob) >= 18) {
             setActivationError(t('minors.account.childTooYoung'));
             return;
         }
@@ -526,7 +526,9 @@ export const AccountPage = () => {
                                             {card.registered ? t('minors.account.accountActive') : t('minors.account.awaitingActivation')}
                                         </p>
                                     </div>
-                                    {!card.registered && (
+                                    {!card.registered && card.birthYear != null
+                                        && new Date().getFullYear() - card.birthYear >= 13
+                                        && new Date().getFullYear() - card.birthYear < 18 && (
                                         <button
                                             type="button"
                                             onClick={() => setActivatingCard(card)}

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '../../../../i18n';
 import { PlayersTab } from '../PlayersTab';
 import type { ClubPlayerAffiliation, PageResult } from '../../../../features/clubs/domain';
@@ -136,5 +136,29 @@ describe('PlayersTab — phase A1 trialist actions', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Send' }));
 
         expect(onSendConsentEmail).toHaveBeenCalledWith(7, 'parent@example.com');
+    });
+});
+
+
+describe('PlayersTab consent delivery states', () => {
+    it('keeps the entered email after a failed send and clears it only after success', async () => {
+        const send = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+        renderTab({ playerDirectory: makeDirectory([trialist]), onSendConsentEmail: send });
+        fireEvent.click(screen.getByRole('button', { name: 'Send consent' }));
+        fireEvent.change(screen.getByLabelText('Parent email Giorgi Trialist'), { target: { value: 'parent@example.com' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+        await waitFor(() => expect(send).toHaveBeenCalledOnce());
+        expect(screen.getByLabelText('Parent email Giorgi Trialist')).toHaveValue('parent@example.com');
+        fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+        await waitFor(() => expect(screen.queryByLabelText('Parent email Giorgi Trialist')).not.toBeInTheDocument());
+        expect(send).toHaveBeenNthCalledWith(2, 7, 'parent@example.com');
+    });
+
+    it.each(['PENDING', 'DECLINED', 'EXPIRED'])('offers resend for %s', (status) => {
+        const send = vi.fn();
+        renderTab({ playerDirectory: makeDirectory([{ ...trialist, parentalConsentStatus: status, parentEmail: 'parent@example.com' }]), onSendConsentEmail: send });
+        if (status === 'EXPIRED') expect(screen.getByText('Consent link expired')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Resend' }));
+        expect(send).toHaveBeenCalledWith(7, 'parent@example.com');
     });
 });

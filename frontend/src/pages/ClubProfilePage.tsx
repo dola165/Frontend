@@ -7,7 +7,7 @@ import { ClubHero } from '../components/club/ClubHero';
 import { ClubProfileInfoPanel } from '../components/club/ClubProfileInfoPanel';
 import { ClubOpportunities } from '../components/club/ClubOpportunities';
 import { ClubProfileStickyHeader } from '../components/club/ClubProfileStickyHeader';
-import type { ClubNavigationTab } from '../components/club/clubNavigation';
+import { normalizeClubNavigationTab, type ClubNavigationTab } from '../components/club/clubNavigation';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { MatchInviteModal, type MatchChallengePayload } from '../components/club/MatchInviteModal';
@@ -15,6 +15,7 @@ import { ClubManagementModal, type ClubManagementTab } from '../components/club/
 import { ClubMessageModal, buildClubCommunicationOptions, openClubCommunication } from '../components/club/ClubMessageModal';
 import { TabTeams } from '../components/club/tabs/TabTeams';
 import { TabOverview } from '../components/club/tabs/TabOverview';
+import { TabHonours } from '../components/club/tabs/TabHonours';
 import { TabPeople } from '../components/club/tabs/TabPeople';
 import { TabCalendar } from '../components/club/tabs/TabCalendar';
 import { TabMedia } from '../components/club/tabs/TabMedia';
@@ -95,13 +96,6 @@ const normalizeManagementTab = (value: string | null): ClubManagementTab | null 
         ? value
         : null;
 
-const normalizeTab = (value: string | null): ClubTab => {
-    if (value === 'pictures' || value === 'videos') return 'media';
-    return value === 'people' || value === 'teams' || value === 'schedule' || value === 'media' || value === 'business' || value === 'contact'
-        ? value
-        : 'overview';
-};
-
 export const ClubProfilePage = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -121,7 +115,7 @@ export const ClubProfilePage = () => {
     const [isDissolveDialogOpen, setIsDissolveDialogOpen] = useState(false);
     const [isDissolving, setIsDissolving] = useState(false);
 
-    const activeTab = normalizeTab(searchParams.get('tab'));
+    const activeTab = normalizeClubNavigationTab(searchParams.get('tab'));
     const requestedManagementTab = useMemo(() => normalizeManagementTab(searchParams.get('managementTab')), [searchParams]);
 
     const fetchClubData = async () => {
@@ -381,7 +375,12 @@ export const ClubProfilePage = () => {
                             <ClubProfileInfoPanel club={club} />
                         </div>
 
-                        {activeTab === 'overview' && <TabOverview club={club} isOwnClubAdmin={isOwnClubAdmin} onOpenManageClub={(tab) => openManageClub(tab)} />}
+                        {activeTab === 'overview' && (
+                            <div className="space-y-5">
+                                <TabOverview club={club} isOwnClubAdmin={isOwnClubAdmin} onOpenManageClub={(tab) => openManageClub(tab)} />
+                                <TabHonours club={club} />
+                            </div>
+                        )}
                         {activeTab === 'people' && <TabPeople clubId={club.id} clubName={club.name} isOwnClubAdmin={isOwnClubAdmin} />}
                         {activeTab === 'teams' && <TabTeams clubId={club.id} refreshKey={squadsRefreshKey} />}
                         {activeTab === 'schedule' && <TabCalendar clubId={club.id} isOwnClubAdmin={isOwnClubAdmin} />}

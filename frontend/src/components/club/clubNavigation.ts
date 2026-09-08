@@ -69,3 +69,12 @@ export const clubNavigationItems: ClubNavigationItem[] = [
         section: 'side'
     }
 ];
+
+export const normalizeClubNavigationTab = (value: string | null): ClubNavigationTab => {
+    if (value === 'pictures' || value === 'videos') return 'media';
+    if (value === 'events') return 'schedule';
+    if (value === 'honours') return 'overview';
+    return clubNavigationItems.some((item) => item.id === value)
+        ? value as ClubNavigationTab
+        : 'overview';
+};

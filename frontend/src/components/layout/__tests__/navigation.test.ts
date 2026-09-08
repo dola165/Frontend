@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clubNavigationItems } from '../../club/clubNavigation';
+import { clubNavigationItems, normalizeClubNavigationTab } from '../../club/clubNavigation';
 import { primaryProductNavigation, resolveNavigationKey, secondaryProductNavigation } from '../navigation';
 
 describe('supported product navigation', () => {
@@ -30,5 +30,13 @@ describe('supported product navigation', () => {
         expect(clubNavigationItems.map((item) => item.id)).toEqual([
             'overview', 'people', 'teams', 'schedule', 'media', 'business', 'contact',
         ]);
+    });
+
+    it('maps legacy club links to their retained destinations', () => {
+        expect(normalizeClubNavigationTab('honours')).toBe('overview');
+        expect(normalizeClubNavigationTab('events')).toBe('schedule');
+        expect(normalizeClubNavigationTab('pictures')).toBe('media');
+        expect(normalizeClubNavigationTab('videos')).toBe('media');
+        expect(normalizeClubNavigationTab('facilities')).toBe('overview');
     });
 });

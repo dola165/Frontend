@@ -30,6 +30,7 @@ const POSITIONS = [
 export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreated, card, onCardUpdated }: PlayerCardModalProps) => {
     const { t } = useTranslation();
     const editing = card != null;
+    const personalDetailsLocked = editing && card?.registered === true;
     const [fullName, setFullName] = useState('');
     const [birthYear, setBirthYear] = useState('');
     const [position, setPosition] = useState('GOALKEEPER');
@@ -78,39 +79,53 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!fullName.trim()) {
+        if (!personalDetailsLocked && !fullName.trim()) {
             setError(t('minors.playerCard.nameRequired'));
             return;
         }
         const year = Number(birthYear);
-        if (!year || year < currentYear - 100 || year > currentYear - 4) {
+        if (!personalDetailsLocked && (!year || year < currentYear - 100 || year > currentYear - 4)) {
             setError(t('minors.playerCard.birthYearInvalid'));
             return;
         }
         setSaving(true);
         setError(null);
         try {
-            const payload = {
-                fullName: fullName.trim(),
-                birthYear: year,
-                position: position || null,
-                jerseyNumber: jerseyNumber ? Number(jerseyNumber) : null,
-                // U13 rule: never send a photo for an under-13 card — the
-                // server rejects it, and on a flip it strips the stored one.
-                photoUrl: under13 ? null : photoUrl,
-                parentEmail: parentEmail.trim() || null,
-                ...(squadId != null ? { squadId } : {}),
-            };
             if (editing && card) {
+                const payload = personalDetailsLocked
+                    ? {
+                        position: position || null,
+                        jerseyNumber: jerseyNumber ? Number(jerseyNumber) : null,
+                        ...(squadId != null ? { squadId } : {}),
+                    }
+                    : {
+                        fullName: fullName.trim(),
+                        birthYear: year,
+                        position: position || null,
+                        jerseyNumber: jerseyNumber ? Number(jerseyNumber) : null,
+                        // U13 rule: never send a photo for an under-13 card.
+                        photoUrl: under13 ? null : photoUrl,
+                        parentEmail: parentEmail.trim() || null,
+                        ...(squadId != null ? { squadId } : {}),
+                    };
                 await updatePlayerCard(clubId, card.id, payload);
                 onCardUpdated?.();
             } else {
-                await createPlayerCard(clubId, payload);
+                await createPlayerCard(clubId, {
+                    fullName: fullName.trim(),
+                    birthYear: year,
+                    position: position || null,
+                    jerseyNumber: jerseyNumber ? Number(jerseyNumber) : null,
+                    photoUrl: under13 ? null : photoUrl,
+                    parentEmail: parentEmail.trim() || null,
+                    ...(squadId != null ? { squadId } : {}),
+                });
                 onCardCreated?.();
             }
             onClose();
         } catch (err: unknown) {
-            const apiMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            const apiData = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+            const apiMessage = apiData?.message ?? apiData?.error;
             const errMessage = err instanceof Error ? err.message : undefined;
             setError(apiMessage ?? errMessage ?? t('minors.playerCard.failed'));
         } finally {
@@ -132,10 +147,14 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
                         <Plus className="h-5 w-5 text-[#16a34a]" />
                         <div>
                             <h2 className="text-sm font-semibold  text-[#f4f4f5]">
-                                {editing ? t('minors.playerCard.editTitle') : t('minors.playerCard.title')}
+                                {personalDetailsLocked
+                                    ? t('minors.playerCard.editRosterTitle')
+                                    : editing ? t('minors.playerCard.editTitle') : t('minors.playerCard.title')}
                             </h2>
                             <p className="mt-0.5 text-[11px] font-medium text-[#a1a1aa]">
-                                {t('minors.playerCard.subtitle')}
+                                {personalDetailsLocked
+                                    ? t('minors.playerCard.activatedSubtitle')
+                                    : t('minors.playerCard.subtitle')}
                             </p>
                         </div>
                     </div>
@@ -151,13 +170,21 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
                         </div>
                     )}
 
+                    {personalDetailsLocked && (
+                        <div className="border border-[var(--fc-accent-border)] bg-[var(--fc-accent-soft)] px-3 py-2 text-xs font-medium text-[var(--fc-text-secondary)]">
+                            {t('minors.playerCard.activatedEditHint')}
+                        </div>
+                    )}
+
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.playerCard.fullName')}</label>
+                        <label htmlFor="player-card-full-name" className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.playerCard.fullName')}</label>
                         <input
+                            id="player-card-full-name"
                             type="text"
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
-                            required
+                            required={!personalDetailsLocked}
+                            disabled={personalDetailsLocked}
                             maxLength={120}
                             className={inputClass}
                             placeholder={t('minors.playerCard.namePlaceholder')}
@@ -166,21 +193,24 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
 
                     <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.playerCard.birthYear')}</label>
+                            <label htmlFor="player-card-birth-year" className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.playerCard.birthYear')}</label>
                             <input
+                                id="player-card-birth-year"
                                 type="number"
                                 min={currentYear - 100}
                                 max={currentYear - 4}
                                 value={birthYear}
                                 onChange={(e) => setBirthYear(e.target.value)}
-                                required
+                                required={!personalDetailsLocked}
+                                disabled={personalDetailsLocked}
                                 className={inputClass}
                                 placeholder={t('minors.playerCard.yearPlaceholder')}
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.playerCard.jerseyNumber')}</label>
+                            <label htmlFor="player-card-jersey-number" className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.playerCard.jerseyNumber')}</label>
                             <input
+                                id="player-card-jersey-number"
                                 type="number"
                                 min={1}
                                 max={99}
@@ -193,8 +223,8 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.playerCard.position')}</label>
-                        <select value={position} onChange={(e) => setPosition(e.target.value)} className={inputClass}>
+                        <label htmlFor="player-card-position" className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.playerCard.position')}</label>
+                        <select id="player-card-position" value={position} onChange={(e) => setPosition(e.target.value)} className={inputClass}>
                             {POSITIONS.map((p) => (
                                 <option key={p} value={p}>{p}</option>
                             ))}
@@ -202,11 +232,13 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.playerCard.parentEmail')}</label>
+                        <label htmlFor="player-card-parent-email" className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.playerCard.parentEmail')}</label>
                         <input
+                            id="player-card-parent-email"
                             type="email"
                             value={parentEmail}
                             onChange={(e) => setParentEmail(e.target.value)}
+                            disabled={personalDetailsLocked}
                             className={inputClass}
                             placeholder={t('minors.playerCard.parentEmailPlaceholder')}
                         />
@@ -215,7 +247,11 @@ export const PlayerCardModal = ({ clubId, squadId, isOpen, onClose, onCardCreate
 
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.playerCard.photo')}</label>
-                        {under13 ? (
+                        {personalDetailsLocked ? (
+                            <p className="text-[10px] font-semibold text-[var(--fc-text-muted)]">
+                                {t('minors.playerCard.activatedPhotoHint')}
+                            </p>
+                        ) : under13 ? (
                             <p className="text-[10px] font-semibold  text-[color:var(--state-danger)]">
                                 {editing && photoUrl
                                     ? t('minors.playerCard.photoRemovedOnFlip')

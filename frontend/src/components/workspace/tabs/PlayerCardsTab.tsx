@@ -67,7 +67,10 @@ export const PlayerCardsTab = ({ clubId, setParentError, setParentSuccess }: Pla
         setDeletingId(deleteTarget.id);
         try {
             await deletePlayerCard(clubId, deleteTarget.id);
-            setParentSuccess(t('minors.playerCard.deleted', { name: deleteTarget.fullName ?? '' }));
+            setParentSuccess(t(
+                deleteTarget.registered ? 'minors.playerCard.removed' : 'minors.playerCard.deleted',
+                { name: deleteTarget.fullName ?? '' },
+            ));
             setDeleteTarget(null);
             await load();
         } catch (err: unknown) {
@@ -85,7 +88,7 @@ export const PlayerCardsTab = ({ clubId, setParentError, setParentSuccess }: Pla
             <SectionHeader
                 eyebrow="Player Cards"
                 title="Player Cards"
-                description="Roster entries for players without a GrassKickZ account. Fix typos, correct birth years, or remove a card entirely — the roster updates everywhere."
+                description="Manage account-free player cards and the club-local roster details of players who later activate their account."
             />
 
             {/* Toolbar: create + squad picker */}
@@ -191,7 +194,7 @@ export const PlayerCardsTab = ({ clubId, setParentError, setParentSuccess }: Pla
                                                 onClick={() => setDeleteTarget(card)}
                                                 disabled={deletingId === card.id}
                                                 className="rounded-xl p-1.5 text-[var(--fc-text-muted)] hover:text-[var(--fc-state-danger)] disabled:opacity-50 transition-colors"
-                                                title={t('minors.playerCard.delete')}
+                                                title={t(card.registered ? 'minors.playerCard.remove' : 'minors.playerCard.delete')}
                                             >
                                                 {deletingId === card.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                                             </button>
@@ -231,9 +234,12 @@ export const PlayerCardsTab = ({ clubId, setParentError, setParentSuccess }: Pla
             {/* Delete confirm */}
             <ConfirmDialog
                 open={deleteTarget != null}
-                title={t('minors.playerCard.delete')}
-                message={deleteTarget ? t('minors.playerCard.deleteConfirm', { name: deleteTarget.fullName ?? '' }) : ''}
-                confirmLabel={t('minors.playerCard.delete')}
+                title={t(deleteTarget?.registered ? 'minors.playerCard.remove' : 'minors.playerCard.delete')}
+                message={deleteTarget ? t(
+                    deleteTarget.registered ? 'minors.playerCard.removeConfirm' : 'minors.playerCard.deleteConfirm',
+                    { name: deleteTarget.fullName ?? '' },
+                ) : ''}
+                confirmLabel={t(deleteTarget?.registered ? 'minors.playerCard.remove' : 'minors.playerCard.delete')}
                 variant="danger"
                 onConfirm={handleDelete}
                 onCancel={() => setDeleteTarget(null)}

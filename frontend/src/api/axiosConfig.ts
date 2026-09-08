@@ -1,9 +1,11 @@
 import axios from 'axios';
 import type { InternalAxiosRequestConfig } from 'axios';
 import { clearStoredAuth, getStoredAccessToken, setStoredAccessToken } from '../utils/authStorage';
+import { buildWebSocketUrlFromBase, resolveDeploymentUrls } from './deploymentUrls';
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
-export const API_ORIGIN = API_BASE_URL.replace(/\/api$/, '');
+const browserOrigin = typeof window === 'undefined' ? 'http://localhost' : window.location.origin;
+export const DEPLOYMENT_URLS = resolveDeploymentUrls(import.meta.env.VITE_API_BASE_URL, browserOrigin);
+export const API_BASE_URL = DEPLOYMENT_URLS.apiBaseUrl;
 
 export const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -80,9 +82,7 @@ export const refreshAccessToken = (): Promise<string> => {
 };
 
 export const buildWebSocketUrl = (path: string) => {
-    const url = new URL(path, `${API_ORIGIN}/`);
-    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-    return url.toString();
+    return buildWebSocketUrlFromBase(DEPLOYMENT_URLS.serviceBaseUrl, path);
 };
 
 apiClient.interceptors.request.use((config) => {

@@ -1,6 +1,7 @@
-import { API_ORIGIN } from '../api/axiosConfig';
+import { DEPLOYMENT_URLS } from '../api/axiosConfig';
+import { buildServiceUrl } from '../api/deploymentUrls';
 
-export const resolveMediaUrl = (value?: string | null) => {
+export const resolveMediaUrlFromBase = (value: string | null | undefined, mediaBaseUrl: string) => {
     if (!value) return undefined;
 
     const trimmed = value.trim();
@@ -8,15 +9,23 @@ export const resolveMediaUrl = (value?: string | null) => {
         return undefined;
     }
 
-    if (
-        trimmed.startsWith('http://')
-        || trimmed.startsWith('https://')
-        || trimmed.startsWith('data:')
-        || trimmed.startsWith('blob:')
-    ) {
+    if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
         return trimmed;
     }
 
-    const normalizedPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-    return new URL(normalizedPath, API_ORIGIN).toString();
+    try {
+        const absolute = new URL(trimmed);
+        return absolute.protocol === 'http:' || absolute.protocol === 'https:'
+            ? absolute.toString()
+            : undefined;
+    } catch {
+        try {
+            return buildServiceUrl(mediaBaseUrl, trimmed).toString();
+        } catch {
+            return undefined;
+        }
+    }
 };
+
+export const resolveMediaUrl = (value?: string | null) =>
+    resolveMediaUrlFromBase(value, DEPLOYMENT_URLS.mediaBaseUrl);

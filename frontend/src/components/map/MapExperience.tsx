@@ -24,7 +24,7 @@ import {
     X
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { apiClient, API_ORIGIN } from '../../api/axiosConfig';
+import { apiClient } from '../../api/axiosConfig';
 import { fetchNearbyMap, geocodePlace, type MapMarkerDto } from '../../api/map';
 import { applyToTryout } from '../../api/tryouts';
 import { MapHelpHint } from './MapHelpHint';
@@ -56,6 +56,7 @@ import { createScheduleChallenge, type ScheduleEventOccurrence } from '../../fea
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { usePersistedState } from '../../utils/usePersistedState';
 import { findIsoCountry } from '../../data/isoCountries';
+import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 
 // Map v2 (WEB_APP_MASTER_PLAN.md §3): three user-selectable modes. Wave 1 of
 // the redesign renders the point data as GPU cluster layers over the
@@ -687,12 +688,6 @@ const MatchResponseModal = ({
         </div>
     </div>
 );
-
-const resolveMediaUrl = (path?: string | null) => {
-    if (!path) return undefined;
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    return `${API_ORIGIN}${path}`;
-};
 
 const buildGoogleMapsDirectionsUrl = (lat?: number | null, lng?: number | null) => {
     if (lat == null || lng == null) return undefined;

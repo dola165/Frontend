@@ -82,7 +82,8 @@ export const TournamentDetailPage = () => {
 
     const id = Number(tournamentId);
     const isStaff = tournament?.staffAssignments?.some((assignment) => assignment.userId === user?.id && assignment.status === 'ACTIVE');
-    const userEntry = tournament?.entries?.find((entry) => entry.userId === user?.id);
+    const userEntry = user?.id == null ? undefined : tournament?.entries?.find((entry) =>
+        entry.userId === user.id && !['WITHDRAWN', 'REJECTED'].includes(entry.status));
     const isRegistered = userEntry != null;
     const visibleEntries = tournament?.entries?.filter((entry) => publicEntryStatuses.has(entry.status)) ?? [];
     const fixtureCount = tournament?.fixtures?.length ?? 0;
@@ -200,9 +201,11 @@ export const TournamentDetailPage = () => {
         if (!window.confirm(t('tournaments.public.withdrawConfirm'))) return;
         setWithdrawing(true);
         try {
-            await apiClient.post(`/tournaments/${id}/entries/${userEntry.id}/withdraw`);
+            const response = await apiClient.post<TournamentDetail>(`/tournaments/${id}/entries/${userEntry.id}/withdraw`, {});
             setMessage({ text: t('tournaments.public.withdrawSuccess'), type: 'success' });
-            await refreshTournament();
+            // A successful withdrawal can remove the viewer's last private-tournament entitlement.
+            setTournament(response.status === 204 ? null : response.data);
+            setError(null);
         } catch (err) {
             setMessage({ text: extractApiErrorMessage(err, t('tournaments.public.withdrawFailed')), type: 'error' });
         } finally {
@@ -233,8 +236,10 @@ export const TournamentDetailPage = () => {
                 <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-zinc-500">
                     <Trophy className="h-8 w-8" />
                 </span>
-                <h1 className="mt-5 text-2xl font-bold text-zinc-100">{t('tournaments.public.notFoundTitle')}</h1>
-                <p className="mt-2 max-w-md text-sm text-zinc-500">{error ?? t('tournaments.public.notFoundDescription')}</p>
+                <h1 className="mt-5 text-2xl font-bold text-zinc-100">{!error && message?.type === 'success' ? message.text : t('tournaments.public.notFoundTitle')}</h1>
+                {error || message?.type !== 'success' ? (
+                    <p className="mt-2 max-w-md text-sm text-zinc-500">{error ?? t('tournaments.public.notFoundDescription')}</p>
+                ) : null}
                 <div className="mt-6 flex flex-wrap justify-center gap-3">
                     {error ? (
                         <button type="button" onClick={() => void loadTournament()} className="inline-flex items-center gap-2 rounded-xl border border-white/[0.1] px-4 py-2.5 text-sm font-bold text-zinc-200 transition hover:bg-white/[0.05]">

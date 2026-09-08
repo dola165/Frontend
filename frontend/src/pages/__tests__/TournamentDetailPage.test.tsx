@@ -4,6 +4,12 @@ import { MemoryRouter } from 'react-router-dom';
 import '../../i18n';
 import { TournamentDetailPage } from '../../pages/TournamentDetailPage';
 import type { TournamentDetail } from '../../features/tournaments/domain';
+import { apiClient } from '../../api/axiosConfig';
+
+vi.mock('../../api/axiosConfig', async (importOriginal) => ({
+    ...await importOriginal<typeof import('../../api/axiosConfig')>(),
+    apiClient: { get: vi.fn(), post: vi.fn() },
+}));
 
 const mockNavigate = vi.fn();
 
@@ -66,6 +72,7 @@ const renderPage = () =>
 describe('TournamentDetailPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.mocked(apiClient.get).mockResolvedValue({ data: null });
         (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
             isAuthenticated: true,
             user: { id: 1, profileComplete: true },
@@ -119,7 +126,7 @@ describe('TournamentDetailPage', () => {
     it('hides register button when user is already registered', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue({
             ...mockTournament,
-            entries: [{ id: 1, userId: 1, status: 'ACTIVE' } as any],
+            entries: [{ id: 1, userId: 1, status: 'ACTIVE' } as TournamentDetail['entries'][number]],
         });
         renderPage();
         expect(await screen.findByText('Registered')).toBeInTheDocument();
@@ -152,7 +159,7 @@ describe('TournamentDetailPage', () => {
         const user = userEvent.setup();
         (fetchTournament as ReturnType<typeof vi.fn>)
             .mockResolvedValueOnce(mockTournament)
-            .mockResolvedValueOnce({ ...mockTournament, entries: [{ id: 1, userId: 1, status: 'ACTIVE' } as any] });
+            .mockResolvedValueOnce({ ...mockTournament, entries: [{ id: 1, userId: 1, status: 'ACTIVE' } as TournamentDetail['entries'][number]] });
         (registerPlayer as ReturnType<typeof vi.fn>).mockResolvedValue({});
         renderPage();
         const btn = await screen.findByText('Register');
@@ -174,7 +181,7 @@ describe('TournamentDetailPage', () => {
     it('shows workspace link for staff members', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue({
             ...mockTournament,
-            staffAssignments: [{ userId: 1, role: 'ORGANIZER', status: 'ACTIVE' } as any],
+            staffAssignments: [{ userId: 1, role: 'ORGANIZER', status: 'ACTIVE' } as TournamentDetail['staffAssignments'][number]],
         });
         renderPage();
         expect(await screen.findByRole('link', { name: /Open workspace/ })).toHaveAttribute('href', '/tournaments/42/workspace');
@@ -190,8 +197,8 @@ describe('TournamentDetailPage', () => {
     it('renders participant counts', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue({
             ...mockTournament,
-            entries: [{ id: 1, status: 'APPROVED' } as any, { id: 2, status: 'APPROVED' } as any],
-            fixtures: [{ id: 10 } as any],
+            entries: [{ id: 1, status: 'APPROVED' } as TournamentDetail['entries'][number], { id: 2, status: 'APPROVED' } as TournamentDetail['entries'][number]],
+            fixtures: [{ id: 10 } as TournamentDetail['fixtures'][number]],
         });
         renderPage();
         expect((await screen.findAllByText(/2 entries/)).length).toBeGreaterThan(0);
@@ -220,6 +227,37 @@ describe('TournamentDetailPage', () => {
         await screen.findByText('Spring Cup');
         expect(screen.getByText('Competition rules')).toBeInTheDocument();
         expect(screen.getByText('The organizer has not published competition rules yet.')).toBeInTheDocument();
+    });
+
+    afterEach(() => vi.restoreAllMocks());
+
+    it('acknowledges withdrawal that removes private access and clears the private page', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
+        vi.mocked(fetchTournament).mockResolvedValue({
+            ...mockTournament, visibility: 'PRIVATE',
+            entries: [{ id: 7, userId: 1, status: 'ACTIVE' } as TournamentDetail['entries'][number]],
+        });
+        vi.mocked(apiClient.post).mockResolvedValue({ status: 204, data: '' });
+        renderPage();
+        await userEvent.click(await screen.findByRole('button', { name: 'Withdraw entry' }));
+        expect(await screen.findByRole('heading', { name: 'Successfully withdrawn from the tournament.' })).toBeInTheDocument();
+        expect(apiClient.post).toHaveBeenCalledWith('/tournaments/42/entries/7/withdraw', {});
+        expect(fetchTournament).toHaveBeenCalledTimes(1);
+        expect(screen.queryByText('Spring Cup')).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Back to tournaments' })).toBeInTheDocument();
+    });
+
+    it('uses the protected withdrawal response when public viewing access remains', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
+        vi.mocked(fetchTournament).mockResolvedValue({ ...mockTournament,
+            entries: [{ id: 7, userId: 1, status: 'ACTIVE' } as TournamentDetail['entries'][number]] });
+        vi.mocked(apiClient.post).mockResolvedValue({ status: 200, data: { ...mockTournament,
+            entries: [{ id: 7, userId: 1, status: 'WITHDRAWN' }] } });
+        renderPage();
+        await userEvent.click(await screen.findByRole('button', { name: 'Withdraw entry' }));
+        expect(await screen.findByRole('button', { name: 'Register' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Withdraw entry' })).not.toBeInTheDocument();
+        expect(fetchTournament).toHaveBeenCalledTimes(1);
     });
 
     it('renders the tournament banner fallback when no image is available', async () => {

@@ -147,7 +147,12 @@ export const FeedPost = ({
         const count = mediaList.length;
 
         return (
-            <div className="cursor-pointer overflow-hidden border-y border-[var(--feed-card-border)]" onClick={onImageClick}>
+            <button
+                type="button"
+                aria-label={`Open media from ${displayAuthorName}'s post`}
+                className="block w-full cursor-pointer overflow-hidden border-y border-[var(--feed-card-border)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--feed-accent)]"
+                onClick={onImageClick}
+            >
                 {count === 1 && (
                     <div className={`relative flex w-full items-center justify-center overflow-hidden bg-black ${compact ? 'max-h-[32vh]' : 'max-h-[56vh]'}`}>
                         <MediaItem url={mediaList[0]} className={`relative z-10 w-full object-contain ${compact ? 'max-h-[32vh]' : 'max-h-[56vh]'}`} />
@@ -177,7 +182,7 @@ export const FeedPost = ({
                         </div>
                     </div>
                 )}
-            </div>
+            </button>
         );
     };
 

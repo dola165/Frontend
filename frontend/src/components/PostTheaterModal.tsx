@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { X, Heart, MessageCircle, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { FeedPostDto, CommentDto } from './feed/FeedPost';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
@@ -34,6 +34,10 @@ export const PostTheaterModal = ({
     const closeRef = useRef<HTMLButtonElement>(null);
     const titleId = useId();
     useDialogFocus(isOpen && post !== null, dialogRef, onClose, closeRef);
+
+    useEffect(() => {
+        if (isOpen) setCurrentIndex(0);
+    }, [isOpen, post?.id]);
 
     if (!isOpen || !post) return null;
 

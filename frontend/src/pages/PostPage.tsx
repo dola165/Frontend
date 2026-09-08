@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { FeedPost, type CommentDto, type FeedPostDto } from '../components/feed/FeedPost';
+import { PostTheaterModal } from '../components/PostTheaterModal';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { useAuth } from '../context/AuthContext';
 import { buildLoginPath } from '../utils/authRedirect';
@@ -15,6 +16,7 @@ export const PostPage = () => {
     const [post, setPost] = useState<FeedPostDto | null>(null);
     const [comments, setComments] = useState<CommentDto[] | undefined>();
     const [commentsOpen, setCommentsOpen] = useState(false);
+    const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
     const [commentsError, setCommentsError] = useState<string | null>(null);
     const [likePending, setLikePending] = useState(false);
     const [likeError, setLikeError] = useState<string | null>(null);
@@ -63,6 +65,11 @@ export const PostPage = () => {
         const nextOpen = !commentsOpen;
         setCommentsOpen(nextOpen);
         if (nextOpen && !comments) await loadComments();
+    };
+
+    const openMediaViewer = () => {
+        setMediaViewerOpen(true);
+        if (!comments) void loadComments();
     };
 
     const requireSignIn = () => navigate(buildLoginPath(destination));
@@ -135,11 +142,21 @@ export const PostPage = () => {
                 onLikeToggle={toggleLike}
                 onToggleComments={() => void toggleComments()}
                 onSubmitComment={submitComment}
-                onImageClick={() => undefined}
+                onImageClick={openMediaViewer}
                 likePending={likePending}
                 likeError={likeError}
                 commentsError={commentsError}
                 onRetryComments={() => void loadComments()}
+            />
+            <PostTheaterModal
+                isOpen={mediaViewerOpen}
+                post={post}
+                onClose={() => setMediaViewerOpen(false)}
+                commentsData={comments}
+                onSubmitComment={submitComment}
+                onLikeToggle={toggleLike}
+                likePending={likePending}
+                likeError={likeError}
             />
         </div>
     ) : null;

@@ -22,9 +22,15 @@ function formatTime(iso: string | null): string {
 }
 
 function getDisplayName(conv: ConversationDto, currentUserId: number): string {
-    if (conv.contextType === 'GROUP') return conv.name || 'Group';
+    if (conv.contextType !== 'DIRECT') {
+        return conv.name || (conv.contextType === 'MATCH_CHALLENGE' ? 'Match Chat' : 'Group');
+    }
     const other = conv.participants.find((p) => p.userId !== currentUserId);
     return other?.displayName || 'Unknown';
+}
+
+function isSharedConversation(conv: ConversationDto): boolean {
+    return conv.contextType !== 'DIRECT';
 }
 
 function getAvatarLetter(conv: ConversationDto, currentUserId: number): string {
@@ -514,7 +520,7 @@ export const MessagingPage = () => {
                         conversations.map((conv) => {
                             const isActive = conv.id === activeConvId;
                             const fromMe = isLastMessageFromMe(conv);
-                            const showSenderPreview = conv.contextType === 'GROUP' && conv.lastMessage && conv.lastMessageSenderName;
+                            const showSenderPreview = isSharedConversation(conv) && conv.lastMessage && conv.lastMessageSenderName;
 
                             return (
                                 <button
@@ -528,7 +534,7 @@ export const MessagingPage = () => {
                                 >
                                     {/* Avatar */}
                                     <div className="w-11 h-11 rounded-full bg-[var(--chat-accent)]/15 flex items-center justify-center text-[var(--chat-accent)] font-bold text-sm shrink-0 relative">
-                                        {conv.contextType === 'GROUP' ? (
+                                        {isSharedConversation(conv) ? (
                                             <Users className="w-5 h-5" />
                                         ) : conv.participants[0]?.profilePictureUrl ? (
                                             <img
@@ -605,7 +611,7 @@ export const MessagingPage = () => {
                                 className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-80 transition-opacity"
                             >
                                 <div className="w-9 h-9 rounded-full bg-[var(--chat-accent)]/15 flex items-center justify-center text-[var(--chat-accent)] font-bold text-sm shrink-0">
-                                    {activeConv.contextType === 'GROUP' ? (
+                                    {isSharedConversation(activeConv) ? (
                                         <Users className="w-4 h-4" />
                                     ) : (
                                         getAvatarLetter(activeConv, currentUserId)
@@ -616,7 +622,7 @@ export const MessagingPage = () => {
                                         {getDisplayName(activeConv, currentUserId)}
                                     </h3>
                                     <p className="text-[11px] text-[var(--chat-text-muted)]">
-                                        {activeConv.contextType === 'GROUP'
+                                        {isSharedConversation(activeConv)
                                             ? `${activeConv.participantCount} members`
                                             : activeConv.participants[0]?.displayName || ''}
                                     </p>
@@ -656,7 +662,7 @@ export const MessagingPage = () => {
                                             key={msg.id}
                                             className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                                         >
-                                            {!isMe && activeConv.contextType === 'GROUP' && (
+                                            {!isMe && isSharedConversation(activeConv) && (
                                                 <span className="text-[11px] font-semibold text-[var(--chat-text-secondary)] ml-1 mb-0.5">
                                                     {msg.senderName}
                                                 </span>
@@ -751,7 +757,11 @@ export const MessagingPage = () => {
                             <X className="w-4 h-4" />
                         </button>
                         <h2 className="font-semibold text-[var(--chat-text-primary)] text-sm">
-                            {activeConv.contextType === 'GROUP' ? 'Group Settings' : 'Conversation Info'}
+                            {activeConv.contextType === 'GROUP'
+                                ? 'Group Settings'
+                                : activeConv.contextType === 'MATCH_CHALLENGE'
+                                    ? 'Match Chat Info'
+                                    : 'Conversation Info'}
                         </h2>
                     </div>
 
@@ -1055,7 +1065,11 @@ export const MessagingPage = () => {
                             }}
                             className="w-full py-2 px-4 rounded-full border border-red-500/30 text-red-500 text-sm font-semibold hover:bg-red-500/10 transition-colors"
                         >
-                            Leave {activeConv.contextType === 'GROUP' ? 'Group' : 'Conversation'}
+                            Leave {activeConv.contextType === 'GROUP'
+                                ? 'Group'
+                                : activeConv.contextType === 'MATCH_CHALLENGE'
+                                    ? 'Match Chat'
+                                    : 'Conversation'}
                         </button>
                     </div>
                 </aside>

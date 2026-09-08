@@ -12,7 +12,7 @@ export interface ParticipantInfo {
 export interface ConversationDto {
     id: number;
     name: string | null;
-    contextType: 'DIRECT' | 'GROUP';
+    contextType: 'DIRECT' | 'GROUP' | 'MATCH_CHALLENGE';
     contextId: number | null;
     lastMessage: string | null;
     lastMessageSenderId: number | null;
@@ -85,7 +85,6 @@ export const chatApi = {
     createConversation(data: {
         contextType: 'DIRECT' | 'GROUP';
         name?: string;
-        contextId?: number;
         participantIds: number[];
     }) {
         return apiClient.post<ConversationDto>('/chat/conversations', data);

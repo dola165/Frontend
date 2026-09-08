@@ -212,6 +212,9 @@ export const UserProfilePage = () => {
             setPosts(postsRes.data?.posts || []);
         } catch (err) {
             console.error('Failed to fetch user profile', err);
+            setProfile(null);
+            setPosts([]);
+            setCommentsData({});
         } finally {
             if (showLoading) {
                 setLoading(false);
@@ -500,9 +503,9 @@ export const UserProfilePage = () => {
         <div className="flex flex-col gap-4">
             {profile.isPrivate && !isMyProfile && (
                 <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-4 py-3">
-                    <p className="text-sm font-semibold text-[color:var(--club-theme-text-primary)]">This player's profile is private.</p>
+                    <p className="text-sm font-semibold text-[color:var(--club-theme-text-primary)]">This profile is private.</p>
                     <p className="mt-1 text-xs text-[color:var(--club-theme-text-muted)]">
-                        Young players are protected by default — only identity details are shown.
+                        Only basic identity details are shown. Photos, personal details, and personal posts are private.
                     </p>
                 </div>
             )}

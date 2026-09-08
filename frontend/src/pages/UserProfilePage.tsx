@@ -162,6 +162,7 @@ export const UserProfilePage = () => {
     const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
     const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
     const [commentsErrors, setCommentsErrors] = useState<Record<number, string | null>>({});
+    const [commentsLoading, setCommentsLoading] = useState<Record<number, boolean>>({});
     const [pendingLikes, setPendingLikes] = useState<Record<number, boolean>>({});
     const [likeErrors, setLikeErrors] = useState<Record<number, string | null>>({});
     const [followedClubs, setFollowedClubs] = useState<FollowedClubBrief[]>([]);
@@ -191,12 +192,15 @@ export const UserProfilePage = () => {
     const loadComments = async (postId: number, force = false) => {
         if (commentsData[postId] && !force) return;
 
+        setCommentsLoading((current) => ({ ...current, [postId]: true }));
         setCommentsErrors((current) => ({ ...current, [postId]: null }));
         try {
             const res = await apiClient.get<CommentDto[]>(`/posts/${postId}/comments`);
             setCommentsData((prev) => ({ ...prev, [postId]: res.data }));
         } catch (err) {
             setCommentsErrors((current) => ({ ...current, [postId]: extractApiErrorMessage(err, 'Comments could not load.') }));
+        } finally {
+            setCommentsLoading((current) => ({ ...current, [postId]: false }));
         }
     };
 
@@ -1051,6 +1055,9 @@ export const UserProfilePage = () => {
                 onLikeToggle={handleLikeToggle}
                 likePending={selectedPost ? pendingLikes[selectedPost.id] === true : false}
                 likeError={selectedPost ? likeErrors[selectedPost.id] : null}
+                commentsLoading={selectedPost ? commentsLoading[selectedPost.id] === true : false}
+                commentsError={selectedPost ? commentsErrors[selectedPost.id] : null}
+                onRetryComments={(postId) => void loadComments(postId, true)}
             />
         </div>
     );

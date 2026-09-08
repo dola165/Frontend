@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { FeedPage } from '../../pages/FeedPage';
@@ -10,6 +10,7 @@ vi.mock('../../api/axiosConfig', () => ({
         post: vi.fn(),
         put: vi.fn(),
     },
+    DEPLOYMENT_URLS: { mediaBaseUrl: 'http://localhost:8080' },
 }));
 
 vi.mock('../../components/ui/SkeletonCard', () => ({
@@ -25,22 +26,20 @@ vi.mock('../../components/feed/PostComposer', () => ({
 }));
 
 vi.mock('../../components/feed/FeedList', () => ({
-    FeedList: ({ posts, emptyState, onLikeToggle, likeErrors }: {
+    FeedList: ({ posts, emptyState, onLikeToggle, likeErrors, onSelectPost }: {
         posts: FeedPostDto[];
         emptyState: React.ReactNode;
         onLikeToggle: (postId: number) => Promise<void>;
         likeErrors: Record<number, string | null>;
+        onSelectPost: (post: FeedPostDto) => void;
     }) => posts.length === 0 ? <>{emptyState}</> : (
         <div data-testid="feed-list">
             <span data-testid="like-state">{posts[0].isLikedByMe ? 'liked' : 'not-liked'}</span>
             <button type="button" onClick={() => void onLikeToggle(posts[0].id)}>Toggle like</button>
+            <button type="button" onClick={() => onSelectPost(posts[0])}>Open media</button>
             {likeErrors[posts[0].id] && <span role="alert">{likeErrors[posts[0].id]}</span>}
         </div>
     ),
-}));
-
-vi.mock('../../components/PostTheaterModal', () => ({
-    PostTheaterModal: () => <div data-testid="theater-modal" />,
 }));
 
 import { apiClient } from '../../api/axiosConfig';
@@ -51,6 +50,16 @@ const renderPage = () =>
             <FeedPage />
         </MemoryRouter>
     );
+
+const deferred = <T,>() => {
+    let resolve!: (value: T) => void;
+    let reject!: (reason: unknown) => void;
+    const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+        resolve = resolvePromise;
+        reject = rejectPromise;
+    });
+    return { promise, resolve, reject };
+};
 
 describe('FeedPage', () => {
     beforeEach(() => {
@@ -159,6 +168,45 @@ describe('FeedPage', () => {
             await waitFor(() => expect(screen.getByTestId('like-state')).toHaveTextContent('not-liked'));
             expect(screen.getByRole('alert')).toHaveTextContent('previous choice was restored');
             expect(apiClient.put).toHaveBeenCalledWith('/posts/1/like', { liked: true });
+        });
+
+        it('replaces media-viewer loading feedback with an error and retries comments', async () => {
+            const user = userEvent.setup();
+            const firstComments = deferred<{ data: [] }>();
+            let commentAttempts = 0;
+            (apiClient.get as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+                if (url === '/posts/feed/for-you') {
+                    return Promise.resolve({ data: { content: [{
+                        id: 1,
+                        authorName: 'Jordan Lee',
+                        content: 'Training photo',
+                        createdAt: '2026-09-08T08:00:00Z',
+                        likeCount: 0,
+                        commentCount: 0,
+                        isLikedByMe: false,
+                        mediaUrls: ['/uploads/training.jpg'],
+                    }] } });
+                }
+                if (url === '/posts/1/comments') {
+                    commentAttempts += 1;
+                    return commentAttempts === 1 ? firstComments.promise : Promise.resolve({ data: [] });
+                }
+                return Promise.reject(new Error(`Unexpected request: ${url}`));
+            });
+            renderPage();
+
+            await screen.findByTestId('feed-list');
+            await user.click(screen.getByRole('button', { name: 'Open media' }));
+            expect(await screen.findByRole('dialog', { name: 'Post by Jordan Lee' })).toBeInTheDocument();
+            expect(screen.getByText('Loading comments...')).toBeInTheDocument();
+
+            await act(async () => firstComments.reject(new Error('offline')));
+            expect(await screen.findByRole('alert')).toHaveTextContent('Comments could not load.');
+            expect(screen.queryByText('Loading comments...')).not.toBeInTheDocument();
+
+            await user.click(screen.getByRole('button', { name: 'Retry comments' }));
+            expect(await screen.findByText('No comments yet.')).toBeInTheDocument();
+            expect(commentAttempts).toBe(2);
         });
     });
 

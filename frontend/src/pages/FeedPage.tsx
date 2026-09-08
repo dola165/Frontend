@@ -28,6 +28,7 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
  const [pendingLikes, setPendingLikes] = useState<Record<number, boolean>>({});
  const [likeErrors, setLikeErrors] = useState<Record<number, string | null>>({});
  const [commentsErrors, setCommentsErrors] = useState<Record<number, string | null>>({});
+ const [commentsLoading, setCommentsLoading] = useState<Record<number, boolean>>({});
  const feedView = resolveFeedView(searchParams.get('view'));
  const isFollowingView = feedView === 'following';
  const feedEndpoint = isFollowingView ? '/posts/feed/following' : '/posts/feed/for-you';
@@ -57,6 +58,7 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
   setOpenComments({});
   setCommentsData({});
   setCommentsErrors({});
+  setCommentsLoading({});
   setLikeErrors({});
   setSelectedPost(null);
 
@@ -106,12 +108,15 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
  };
 
  const loadComments = async (postId: number) => {
+  setCommentsLoading((current) => ({ ...current, [postId]: true }));
   setCommentsErrors((current) => ({ ...current, [postId]: null }));
   try {
    const response = await apiClient.get<CommentDto[]>(`/posts/${postId}/comments`);
    setCommentsData((current) => ({ ...current, [postId]: response.data }));
   } catch (error) {
    setCommentsErrors((current) => ({ ...current, [postId]: extractApiErrorMessage(error, 'Comments could not load.') }));
+  } finally {
+   setCommentsLoading((current) => ({ ...current, [postId]: false }));
   }
  };
 
@@ -232,6 +237,9 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
     onLikeToggle={handleLikeToggle}
     likePending={selectedPost ? pendingLikes[selectedPost.id] === true : false}
     likeError={selectedPost ? likeErrors[selectedPost.id] : null}
+    commentsLoading={selectedPost ? commentsLoading[selectedPost.id] === true : false}
+    commentsError={selectedPost ? commentsErrors[selectedPost.id] : null}
+    onRetryComments={(postId) => void loadComments(postId)}
    />
   </div>
  );

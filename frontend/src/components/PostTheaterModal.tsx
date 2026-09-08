@@ -14,6 +14,9 @@ interface PostTheaterModalProps {
     onLikeToggle: (postId: number) => void | Promise<void>;
     likePending?: boolean;
     likeError?: string | null;
+    commentsLoading?: boolean;
+    commentsError?: string | null;
+    onRetryComments?: (postId: number) => void;
 }
 
 export const PostTheaterModal = ({
@@ -24,7 +27,10 @@ export const PostTheaterModal = ({
     onSubmitComment,
     onLikeToggle,
     likePending = false,
-    likeError = null
+    likeError = null,
+    commentsLoading = false,
+    commentsError = null,
+    onRetryComments
 }: PostTheaterModalProps) => {
     const [commentInput, setCommentInput] = useState("");
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -145,8 +151,26 @@ export const PostTheaterModal = ({
                     </div>
 
                     <div className="flex-1 space-y-4 overflow-y-auto p-5">
-                        {!commentsData ? (
+                        {commentsError ? (
+                            <div role="alert" className="flex flex-col items-center gap-3 py-10 text-center">
+                                <span className="text-xs font-medium text-rose-400">{commentsError}</span>
+                                {onRetryComments && (
+                                    <button type="button" onClick={() => onRetryComments(post.id)} className="rounded-full border border-rose-400/30 px-4 py-2 text-xs font-semibold text-rose-300 transition-colors hover:bg-rose-400/10">
+                                        Retry comments
+                                    </button>
+                                )}
+                            </div>
+                        ) : commentsLoading ? (
                             <div className="flex justify-center py-10"><span className="text-xs font-medium text-[#64748b]">Loading comments...</span></div>
+                        ) : !commentsData ? (
+                            <div className="flex flex-col items-center gap-3 py-10 text-center">
+                                <span className="text-xs font-medium text-[#64748b]">Comments are unavailable.</span>
+                                {onRetryComments && (
+                                    <button type="button" onClick={() => onRetryComments(post.id)} className="rounded-full border border-white/10 px-4 py-2 text-xs font-semibold text-[#94a3b8] transition-colors hover:bg-white/5 hover:text-white">
+                                        Load comments
+                                    </button>
+                                )}
+                            </div>
                         ) : commentsData.length === 0 ? (
                             <div className="flex justify-center py-10"><span className="text-xs font-medium text-[#64748b]">No comments yet.</span></div>
                         ) : (

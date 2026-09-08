@@ -24,6 +24,7 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
   const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
   const [selectedPost, setSelectedPost] = useState<FeedPostDto | null>(null);
   const [commentsErrors, setCommentsErrors] = useState<Record<number, string | null>>({});
+  const [commentsLoading, setCommentsLoading] = useState<Record<number, boolean>>({});
   const [pendingLikes, setPendingLikes] = useState<Record<number, boolean>>({});
   const [likeErrors, setLikeErrors] = useState<Record<number, string | null>>({});
   const [checklistDismissed, setChecklistDismissed] = useState(() => {
@@ -88,12 +89,15 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
   };
 
   const loadComments = async (postId: number) => {
+    setCommentsLoading((current) => ({ ...current, [postId]: true }));
     setCommentsErrors((current) => ({ ...current, [postId]: null }));
     try {
       const response = await apiClient.get<CommentDto[]>(`/posts/${postId}/comments`);
       setCommentsData((prev) => ({ ...prev, [postId]: response.data }));
     } catch (error) {
       setCommentsErrors((current) => ({ ...current, [postId]: extractApiErrorMessage(error, 'Comments could not load.') }));
+    } finally {
+      setCommentsLoading((current) => ({ ...current, [postId]: false }));
     }
   };
 
@@ -231,6 +235,9 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
         onLikeToggle={handleLikeToggle}
         likePending={selectedPost ? pendingLikes[selectedPost.id] === true : false}
         likeError={selectedPost ? likeErrors[selectedPost.id] : null}
+        commentsLoading={selectedPost ? commentsLoading[selectedPost.id] === true : false}
+        commentsError={selectedPost ? commentsErrors[selectedPost.id] : null}
+        onRetryComments={(postId) => void loadComments(postId)}
       />
     </div>
   );

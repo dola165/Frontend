@@ -18,6 +18,7 @@ export const PostPage = () => {
     const [commentsOpen, setCommentsOpen] = useState(false);
     const [mediaViewerOpen, setMediaViewerOpen] = useState(false);
     const [commentsError, setCommentsError] = useState<string | null>(null);
+    const [commentsLoading, setCommentsLoading] = useState(false);
     const [likePending, setLikePending] = useState(false);
     const [likeError, setLikeError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -59,6 +60,7 @@ export const PostPage = () => {
         setCommentsOpen(false);
         setMediaViewerOpen(false);
         setCommentsError(null);
+        setCommentsLoading(false);
         setLikePending(false);
         setLikeError(null);
         if (!postId || !/^\d+$/.test(postId)) {
@@ -74,6 +76,7 @@ export const PostPage = () => {
     const loadComments = async () => {
         const requestedPostId = postId;
         const requestId = ++commentsRequestRef.current;
+        setCommentsLoading(true);
         setCommentsError(null);
         try {
             const response = await apiClient.get<CommentDto[]>(`/posts/${requestedPostId}/comments`);
@@ -82,6 +85,8 @@ export const PostPage = () => {
         } catch (error) {
             if (requestId !== commentsRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
             setCommentsError(extractApiErrorMessage(error, 'Comments could not load.'));
+        } finally {
+            if (requestId === commentsRequestRef.current && currentPostIdRef.current === requestedPostId) setCommentsLoading(false);
         }
     };
 
@@ -191,6 +196,9 @@ export const PostPage = () => {
                 onLikeToggle={toggleLike}
                 likePending={likePending}
                 likeError={likeError}
+                commentsLoading={commentsLoading}
+                commentsError={commentsError}
+                onRetryComments={() => void loadComments()}
             />
         </div>
     ) : null;

@@ -187,11 +187,11 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
                     <p className="store-eyebrow">Work in football</p>
                     <h1>
                         {fixedClubId
-                            ? `${clubName ?? 'Club'} opportunities`
+                            ? 'Jobs & volunteering'
                             : 'Jobs & volunteer opportunities'}
                     </h1>
                     <p className="store-subtitle">
-                        Find your place in football. Explore paid roles and volunteering.
+                        {fixedClubId ? `Open roles at ${clubName ?? 'this club'}. Explore paid roles and volunteering.` : 'Find your place in football. Explore paid roles and volunteering.'}
                     </p>
                 </div>
                 <button

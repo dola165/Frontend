@@ -1,3 +1,4 @@
+import { clubViewerRole } from '../components/club/clubViewerRole';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
@@ -184,7 +185,7 @@ export const ClubProfilePage = () => {
     }, [id, club, myClubId, status]);
 
     const isViewingOwnClub = myClubId !== null && myClubId === Number(id);
-    const ownClubRole = club?.myRole ?? myClubRole ?? null;
+    const ownClubRole = clubViewerRole(Number(id), club?.myRole, myClubId, myClubRole);
     const debugMode = searchParams.get('debug') === 'true';
     const isOwnClubAdmin = isViewingOwnClub && canManageClubOperations(ownClubRole);
     const canManageOwnClub = isViewingOwnClub && canManageClubOperations(ownClubRole);
@@ -369,14 +370,14 @@ export const ClubProfilePage = () => {
                 <div
                     className={`club-profile-main-grid ${activeTab === 'business' ? 'club-profile-main-grid--business' : ''} mt-6 grid gap-4 xl:items-start`}
                 >
-                    <div className="hidden xl:block xl:sticky xl:top-[14px]">
+                    {activeTab !== 'business' && <div className="hidden xl:block xl:sticky xl:top-[14px]">
                         <ClubProfileInfoPanel club={club} />
-                    </div>
+                    </div>}
 
                     <div className="min-w-0">
-                        <div className="mb-6 xl:hidden">
+                        {activeTab !== 'business' && <div className="mb-6 xl:hidden">
                             <ClubProfileInfoPanel club={club} />
-                        </div>
+                        </div>}
 
                         {activeTab === 'overview' && (
                             <div className="space-y-5">

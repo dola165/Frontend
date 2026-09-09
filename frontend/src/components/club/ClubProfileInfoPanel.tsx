@@ -114,7 +114,6 @@ export const ClubProfileInfoPanel = ({ club }: ClubProfileInfoPanelProps) => {
                     >
                         <p className="text-[13px] font-semibold leading-5 text-[color:var(--club-theme-text-primary)]">{nextEventLabel}</p>
                         <div className="mt-2.5 flex flex-wrap gap-2">
-                            <Tag>{club.opportunities?.length ?? 0} active opportunities</Tag>
                             <Tag>{club.statusLabel || (club.isOfficial ? 'Verified' : 'Under review')}</Tag>
                             <Tag>{trustCount > 0 ? `${trustCount} trust links` : 'Trust building'}</Tag>
                         </div>

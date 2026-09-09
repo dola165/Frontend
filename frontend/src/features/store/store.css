@@ -194,3 +194,27 @@
 .opportunity-hub-actions { display:flex; flex-wrap:wrap; gap:10px; padding:0; margin-bottom:16px; }
 @media (max-width:1000px) { .club-opportunity-choices { grid-template-columns:1fr; } }
 @media (max-width:600px) { .club-opportunities-hub { padding:16px; } .store-detail-top { flex-wrap:wrap; } .opportunity-navigation { width:100%; } .opportunity-nav-button { flex:1 1 180px; } }
+
+/* Opportunities owns the full content width; no nested profile information sidebar. */
+.club-profile-main-grid.club-profile-main-grid--business { grid-template-columns:minmax(0,1fr); max-width:1440px; margin-left:auto; margin-right:auto; }
+.opportunity-overview-tools { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:22px; --op-accent:#047857; --op-border:#04785766; --op-soft:#04785712; }
+.dark .opportunity-overview-tools { --op-accent:#34d399; --op-border:#34d39966; --op-soft:#34d39912; }
+.opportunity-overview-tools p { color:var(--text-secondary); font-size:13px; }
+.opportunity-overview-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; align-items:stretch; }
+.store-page.opportunity-overview-card { width:100%; margin:0; padding:20px; border:1px solid var(--op-border); border-radius:12px; display:flex; flex-direction:column; gap:20px; min-width:0; background:var(--theme-page); }
+.opportunity-overview-card header { color:var(--op-accent); display:grid; gap:10px; }
+.opportunity-overview-card h3 { font-size:19px; font-weight:700; }
+.opportunity-overview-card header span { font-size:12px; }
+.opportunity-preview-list { display:grid; gap:16px; }
+.opportunity-overview-card h4 { font-size:14px; font-weight:650; overflow-wrap:anywhere; }
+.opportunity-overview-card p { font-size:12px; line-height:1.7; color:var(--text-secondary); overflow-wrap:anywhere; }
+.opportunity-product-preview { display:flex; align-items:center; gap:12px; padding-bottom:14px; border-bottom:1px solid var(--theme-border); }
+.opportunity-product-preview img,.opportunity-photo-placeholder { width:72px; height:88px; object-fit:cover; border-radius:8px; flex-shrink:0; background:var(--theme-surface); }
+.opportunity-photo-placeholder { display:grid; place-items:center; color:var(--op-accent); }
+.opportunity-product-preview strong { display:block; margin:5px 0; font-size:13px; color:var(--op-accent); }
+.opportunity-campaign-preview,.opportunity-job-preview { display:grid; gap:8px; padding-bottom:16px; border-bottom:1px solid var(--theme-border); }
+.opportunity-overview-card a:hover h4 { color:var(--op-accent); text-decoration:underline; }
+.opportunity-overview-card footer { margin-top:auto; display:grid; gap:12px; }
+.opportunity-manage-link { color:var(--op-accent); font-size:12px; text-decoration:underline; min-height:32px; display:flex; align-items:center; }
+.opportunity-preview-empty { padding:18px 0; }
+@media(max-width:1050px) { .opportunity-overview-grid { grid-template-columns:1fr; } }

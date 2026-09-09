@@ -220,8 +220,8 @@ export const updateClubStaffProfile = async (clubId: number, staffUserId: number
     await apiClient.put(`/clubs/${clubId}/management/staff/${staffUserId}/profile`, payload);
 };
 
-export const fetchClubJobs = async (clubId: number) => {
-    const response = await apiClient.get<ClubJob[]>(`/clubs/${clubId}/jobs`);
+export const fetchClubJobs = async (clubId: number, signal?: AbortSignal) => {
+    const response = await apiClient.get<ClubJob[]>(`/clubs/${clubId}/jobs`, { signal });
     return response.data;
 };
 

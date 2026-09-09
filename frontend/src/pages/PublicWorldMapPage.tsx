@@ -20,7 +20,6 @@ export const PublicWorldMapPage = () => {
             <MapExperience
                 darkMode={false}
                 context="guest"
-                allowedEntityTypes={['CLUB']}
                 mapTheme={mapTheme}
             />
 

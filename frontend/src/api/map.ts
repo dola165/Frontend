@@ -36,6 +36,8 @@ export interface MapPageResult {
     page: number;
     size: number;
     totalElements: number;
+    resultsLimited?: boolean;
+    perTypeLimit?: number;
 }
 
 export interface NearbyMapParams {
@@ -57,7 +59,7 @@ export interface NearbyMapParams {
     size?: number;
 }
 
-export const fetchNearbyMap = async (params: NearbyMapParams): Promise<MapPageResult> => {
+export const fetchNearbyMap = async (params: NearbyMapParams, signal?: AbortSignal): Promise<MapPageResult> => {
     const searchParams = new URLSearchParams();
 
     searchParams.set('lat', String(params.lat));
@@ -94,7 +96,7 @@ export const fetchNearbyMap = async (params: NearbyMapParams): Promise<MapPageRe
     if (params.page != null) searchParams.set('page', String(params.page));
     if (params.size != null) searchParams.set('size', String(params.size));
 
-    const response = await apiClient.get<MapPageResult>(`/map/nearby?${searchParams.toString()}`);
+    const response = await apiClient.get<MapPageResult>(`/map/nearby?${searchParams.toString()}`, { signal });
     return response.data;
 };
 
@@ -122,4 +124,17 @@ export const geocodePlace = async (q: string, options: GeocodeOptions = {}): Pro
     if (options.type) searchParams.set('type', options.type);
     const response = await apiClient.get<GeocodeResult[]>(`/map/geocode?${searchParams.toString()}`);
     return response.data;
+};
+
+/** Load the whole bounded pool, so local sorting/filtering never sees only page one. */
+export const fetchMapDiscovery = async (params: NearbyMapParams, signal?: AbortSignal): Promise<MapPageResult> => {
+    const first = await fetchNearbyMap({ ...params, page: 0, size: 100 }, signal);
+    const markers = new Map(first.content.map(marker => [`${marker.entityType}:${marker.entityId}`, marker]));
+    let limited = first.resultsLimited ?? false;
+    for (let page = 1; page < Math.min(4, Math.ceil(first.totalElements / 100)); page++) {
+        const next = await fetchNearbyMap({ ...params, page, size: 100 }, signal);
+        next.content.forEach(marker => markers.set(`${marker.entityType}:${marker.entityId}`, marker));
+        limited ||= next.resultsLimited ?? false;
+    }
+    return { ...first, content: [...markers.values()], resultsLimited: limited };
 };

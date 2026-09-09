@@ -246,7 +246,7 @@ export const SimpleMapFilters = ({
                             {showDescription && (
                                 <p className={`mt-1 text-xs leading-5 text-[var(--text-secondary)] ${isTopLayout ? 'hidden sm:block' : ''}`}>
                                     {viewerMode === 'guest'
-                                        ? 'Explore public football clubs and locations before you create an account.'
+                                        ? 'Browse public clubs, matches and tournaments before you create an account.'
                                         : viewerMode === 'player'
                                             ? 'Choose what matters. We will keep the rest out of the way.'
                                             : 'Browse clubs, fixtures and tournaments from one place.'}
@@ -259,7 +259,7 @@ export const SimpleMapFilters = ({
                     </div>
                     <div className={`${isTopLayout ? 'mt-1' : 'mt-4'} flex items-center justify-between border-l-2 border-[var(--map-panel-border)] pl-3`}>
                         <span className="text-xs font-semibold text-[var(--text-secondary)]">
-                            {applying ? 'Updating the map…' : hasPendingChanges ? 'Changes ready' : `${resultCount ?? 0} results in range`}
+                            {applying ? 'Updating the map…' : hasPendingChanges ? 'Changes ready' : `${resultCount ?? 0} loaded results`}
                         </span>
                         {hasPendingChanges && <span className="h-2 w-2 rounded-full bg-amber-500" aria-label="Unapplied filter changes" />}
                     </div>

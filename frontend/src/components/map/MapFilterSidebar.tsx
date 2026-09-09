@@ -543,9 +543,9 @@ export const MapFilterSidebar = ({
                                             <h2 className="truncate text-lg font-black uppercase tracking-[0.08em] text-white">Advanced filters</h2>
                                             <p className="mt-0.5 text-xs text-[#edf3f0]/80">
                                                 {viewerMode === 'guest'
-                                                    ? 'Public club discovery'
+                                                    ? 'Public football discovery'
                                                     : viewerMode === 'player'
-                                                        ? 'Fine-tune your club search'
+                                                        ? 'Fine-tune your football search'
                                                         : 'Scout clubs, matches and tournaments'}
                                             </p>
                                         </div>
@@ -565,7 +565,7 @@ export const MapFilterSidebar = ({
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#d7e5e0]/70">Search status</p>
                                 <p className="mt-0.5 text-sm font-bold text-white">
-                                    {hasPendingChanges ? 'Changes ready to apply' : resultCount == null ? 'Ready' : `${resultCount} opportunities found`}
+                                    {hasPendingChanges ? 'Changes ready to apply' : resultCount == null ? 'Ready' : `${resultCount} loaded results`}
                                 </p>
                             </div>
                             <button
@@ -583,7 +583,7 @@ export const MapFilterSidebar = ({
                         <div className="mb-2 flex items-center justify-between gap-3">
                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 dark:text-slate-100">Show on map</p>
                             <span className="border-l-2 border-[#4a796b] pl-2 text-[9px] font-black uppercase tracking-[0.14em] text-[#315f53] dark:text-[#78a394]">
-                                {viewerMode === 'guest' ? 'Public clubs' : viewerMode === 'player' ? 'Player discovery' : 'Staff operations'}
+                                {viewerMode === 'guest' ? 'Public football' : viewerMode === 'player' ? 'Player discovery' : 'Staff operations'}
                             </span>
                         </div>
                         <div className="grid grid-cols-2 border-l border-t border-slate-400 dark:border-white/25">
@@ -1231,7 +1231,7 @@ export const MapFilterSidebar = ({
                                 Reset
                             </button>
                             {resultCount != null && (
-                                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{resultCount} opportunities</p>
+                                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{resultCount} loaded results</p>
                             )}
                         </div>
                         <button

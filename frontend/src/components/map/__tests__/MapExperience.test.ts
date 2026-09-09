@@ -72,34 +72,13 @@ describe('resolveMapExperienceOptions', () => {
 });
 
 describe('resolveMapExperienceEntityTypes', () => {
-    it('never widens a guest surface even when a caller passes staff types', () => {
-        expect(resolveMapExperienceEntityTypes({
-            context: 'guest',
-            hasStaffAccess: true,
-            allowedEntityTypes: ['MATCH', 'TOURNAMENT']
-        })).toEqual(['CLUB']);
+    it('offers the same public types without needing an account role or membership', () => {
+        expect(resolveMapExperienceEntityTypes({})).toEqual(['CLUB', 'MATCH', 'TOURNAMENT']);
     });
-
-    it('keeps restricted authenticated viewers on clubs', () => {
-        expect(resolveMapExperienceEntityTypes({
-            context: 'authenticated',
-            hasStaffAccess: false
-        })).toEqual(['CLUB']);
+    it('supports a narrower club-only landing composition', () => {
+        expect(resolveMapExperienceEntityTypes({ allowedEntityTypes: ['CLUB'] })).toEqual(['CLUB']);
     });
-
-    it('supports a narrower allowlist for staff surfaces', () => {
-        expect(resolveMapExperienceEntityTypes({
-            context: 'authenticated',
-            hasStaffAccess: true,
-            allowedEntityTypes: ['MATCH']
-        })).toEqual(['MATCH']);
-    });
-
-    it('fails closed to clubs when an explicit allowlist has no safe overlap', () => {
-        expect(resolveMapExperienceEntityTypes({
-            context: 'authenticated',
-            hasStaffAccess: true,
-            allowedEntityTypes: []
-        })).toEqual(['CLUB']);
+    it('honors an empty allowlist instead of silently returning clubs', () => {
+        expect(resolveMapExperienceEntityTypes({ allowedEntityTypes: [] })).toEqual([]);
     });
 });

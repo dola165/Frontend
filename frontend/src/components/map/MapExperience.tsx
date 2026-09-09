@@ -25,15 +25,15 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../api/axiosConfig';
-import { fetchNearbyMap, geocodePlace, type MapMarkerDto } from '../../api/map';
+import { fetchMapDiscovery, geocodePlace, type MapMarkerDto } from '../../api/map';
 import { applyToTryout } from '../../api/tryouts';
 import { MapHelpHint } from './MapHelpHint';
 import { MapModeControl } from './MapModeControl';
 import { MapLegend } from './MapLegend';
 import { MapFilterSidebar, defaultMapFilters, type MapEntityType, type MapFilters } from './MapFilterSidebar';
 import { SimpleMapFilters } from './SimpleMapFilters';
-import { VisibleClubsRail, type VisibleClubListItem } from './VisibleClubsRail';
-import { hasFullMapAccess } from './mapAccess';
+import { MapResultsList } from './MapResultsList';
+
 import {
     LAYER_CLUSTER_COUNT,
     LAYER_CLUSTERS,
@@ -89,8 +89,8 @@ export type MapMode = 'flat' | 'globe' | 'tilted';
 
 /**
  * Rendering context for the shared map surface. The authenticated route keeps
- * the existing role-aware behavior; the guest context is intentionally narrow
- * and powers the public map on the landing page.
+ * membership-based action controls; public discovery is the same for guests.
+ * The landing composition can explicitly narrow its types.
  */
 export type MapExperienceContext = 'authenticated' | 'guest';
 
@@ -101,7 +101,7 @@ export interface MapExperienceProps {
     embedded?: boolean;
     /** Position the simple filter surface beside the map, over it, or outside it. */
     filterLayout?: 'side' | 'top' | 'external';
-    /** Optional product-level allowlist layered on top of role access. */
+    /** Optional narrower product surface, such as the club-only landing preview. */
     allowedEntityTypes?: MapEntityType[];
     /** Override the inherited app theme. Guest maps default to a light canvas unless the composed surface opts into dark. */
     mapTheme?: 'inherit' | 'light' | 'dark';
@@ -301,24 +301,12 @@ export const resolveMapExperienceOptions = ({
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const resolveMapExperienceEntityTypes = ({
-    context,
-    hasStaffAccess,
     allowedEntityTypes
 }: {
-    context: MapExperienceContext;
-    hasStaffAccess: boolean;
     allowedEntityTypes?: MapEntityType[];
-}): MapEntityType[] => {
-    const roleAllowedTypes: MapEntityType[] = context === 'authenticated' && hasStaffAccess ? ALL_MAP_TYPES : ['CLUB'];
-    if (context === 'guest') {
-        return ['CLUB'];
-    }
-    if (allowedEntityTypes === undefined) {
-        return roleAllowedTypes;
-    }
-    const intersection = roleAllowedTypes.filter((type) => allowedEntityTypes.includes(type));
-    return intersection.length > 0 ? intersection : ['CLUB'];
-};
+}): MapEntityType[] => allowedEntityTypes === undefined
+    ? ALL_MAP_TYPES
+    : ALL_MAP_TYPES.filter(type => allowedEntityTypes.includes(type));
 
 // Initial load applies only the Club type; MATCH/TOURNAMENT are opt-in via the
 // filter chips. Reset still restores every viewer-allowed type.
@@ -367,9 +355,9 @@ const getTimeWindow = (value?: string | null) => {
 const buildMapMarkerRecord = (marker: MapMarkerDto): DiscoveryRecord => {
     const entityType = marker.entityType as DiscoveryRecord['entityType'];
     const matchSubtype = marker.eventSubtype === 'FRIENDLY' ? 'FRIENDLY' as const :
-        marker.eventSubtype === 'COMPETITIVE' ? 'COMPETITIVE' as const : null;
+        marker.eventSubtype === 'MATCH' || marker.eventSubtype === 'COMPETITIVE' ? 'COMPETITIVE' as const : null;
     const challengeState = marker.status === 'OPEN' ? 'OPEN' as const :
-        marker.status === 'PENDING' ? 'PENDING' as const : null;
+        marker.status === 'PENDING' ? 'PENDING' as const : marker.status === 'CONFIRMED' ? 'CONFIRMED' as const : null;
     const city = marker.cityName || null;
     const country = marker.countryName || null;
 
@@ -1082,7 +1070,7 @@ export const MapExperience = ({
     showBackControl
 }: MapExperienceProps) => {
     const navigate = useNavigate();
-    const { status, user } = useAuth();
+    const { status } = useAuth();
     const { t } = useTranslation();
     const experienceOptions = resolveMapExperienceOptions({
         darkMode,
@@ -1133,6 +1121,10 @@ export const MapExperience = ({
     const [loading, setLoading] = useState(true);
     const [initialLoad, setInitialLoad] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [mapUnavailable, setMapUnavailable] = useState(false);
+    const [mapAttempt, setMapAttempt] = useState(0);
+    const [reload, setReload] = useState(0);
+    const [resultsLimited, setResultsLimited] = useState(false);
     const [mapMarkers, setMapMarkers] = useState<MapMarkerDto[]>([]);
     const [resultCount, setResultCount] = useState<number | null>(null);
     const [membership, setMembership] = useState<{ clubId?: number | null; clubName?: string | null; myRole?: string | null } | null>(null);
@@ -1172,30 +1164,15 @@ export const MapExperience = ({
         }
     }, []);
 
-    // Restricted viewers (anonymous, PLAYER, FAN) only get CLUB.
-    // Staff account roles and club staff memberships additionally get MATCH +
-    // TOURNAMENT. Account-level COACH access must not depend on the optional
-    // membership-context request succeeding. The backend re-clamps server-side.
-    const roleHasStaffMapAccess = useMemo(
-        () => hasFullMapAccess(user?.role, membership?.myRole),
-        [user?.role, membership?.myRole]
-    );
-    const hasStaffMapAccess = context === 'authenticated' && roleHasStaffMapAccess;
+    // Membership affects actions and optional shortcuts, never public discovery.
+    const hasStaffMapAccess = context === 'authenticated' && isLeadershipRole(membership?.myRole);
     const mapViewerMode: 'guest' | 'player' | 'staff' = context === 'guest'
-        ? 'guest'
-        : hasStaffMapAccess
-            ? 'staff'
-            : 'player';
+        ? 'guest' : hasStaffMapAccess ? 'staff' : 'player';
     // Guest maps never need to wait for or react to session bootstrap. Keeping
     // this scope stable prevents a second public fetch when AuthProvider moves
     // from bootstrapping to anonymous.
     const mapAuthScope = context === 'guest' ? 'guest' : status;
-    const viewerAllowedTypes = useMemo<MapEntityType[]>(() => {
-        // Guest surfaces are deliberately club-only even when an already
-        // authenticated user happens to view them. A caller-provided allowlist
-        // can narrow the authenticated route but never widen role access.
-        return resolveMapExperienceEntityTypes({ context, hasStaffAccess: hasStaffMapAccess, allowedEntityTypes });
-    }, [allowedEntityTypes, context, hasStaffMapAccess]);
+    const viewerAllowedTypes = useMemo(() => resolveMapExperienceEntityTypes({ allowedEntityTypes }), [allowedEntityTypes]);
 
     useEffect(() => {
         const clamp = (current: MapFilters): MapFilters => {
@@ -1221,10 +1198,14 @@ export const MapExperience = ({
 
     useEffect(() => {
         let active = true;
+        const controller = new AbortController();
 
         const load = async () => {
             setLoading(true);
             setError(null);
+            setMapMarkers([]);
+            setResultCount(null);
+            setSelectedKey(null);
 
             try {
                 const membershipPromise =
@@ -1232,82 +1213,37 @@ export const MapExperience = ({
                         ? fetchMyClubMembershipContext().catch(() => null)
                         : Promise.resolve(null);
 
-                // One spatial call for every selected type — clubs included. The
-                // server applies ST_DWithin radius + filters; nothing is refetched
-                // until the committed inputs change (Apply / amber button / clamp).
-                const types = committedFilters.entityType;
-                const isTryoutSelected = types.includes('TRYOUT');
-                const isMatchSelected = types.includes('MATCH');
-                const activeDateWindow = isTryoutSelected ? committedFilters.tryouts.dateWindow :
-                    isMatchSelected ? committedFilters.matches.dateWindow : null;
-                let dateFrom: string | undefined;
-                let dateTo: string | undefined;
-                if (activeDateWindow && activeDateWindow !== 'ANY' && types.length > 0) {
+                // Keep each type's filters separate: club criteria must not narrow fixtures.
+                const mapPromise = Promise.all(committedFilters.entityType.map(type => {
+                    const section = type === 'MATCH' ? committedFilters.matches
+                        : type === 'TRYOUT' ? committedFilters.tryouts : committedFilters.clubs;
+                    const dateWindow = 'dateWindow' in section ? section.dateWindow : 'ANY';
                     const now = new Date();
-                    dateFrom = toIsoWindow(now);
-                    const days = activeDateWindow === 'NEXT_7_DAYS' ? 7 : activeDateWindow === 'NEXT_30_DAYS' ? 30 : 90;
-                    dateTo = toIsoWindow(new Date(now.getTime() + days * 24 * 60 * 60 * 1000));
-                }
-
-                // Club attribute filters (plan doc item 2): union the club-section
-                // values with the tryout/match values. Club gender chips are mapped
-                // to the stored squads tokens (Boys/Men→MALE, Girls/Women→FEMALE,
-                // Mixed→MIXED); the server canonicalizes the rest.
-                const clubGenderTokens = committedFilters.clubs.genders.map((g) => {
-                    switch (g) {
-                        case 'Boys':
-                        case 'Men': return 'MALE';
-                        case 'Girls':
-                        case 'Women': return 'FEMALE';
-                        case 'Mixed': return 'MIXED';
-                    }
-                });
-                const serverAgeGroups = [
-                    ...(isTryoutSelected ? committedFilters.tryouts.ageGroups : []),
-                    ...(isMatchSelected ? committedFilters.matches.ageGroups : []),
-                    ...(types.includes('CLUB') ? committedFilters.clubs.ageGroups : [])
-                ];
-                const serverGender = [
-                    ...(isTryoutSelected ? committedFilters.tryouts.genders : []),
-                    ...(isMatchSelected ? committedFilters.matches.genders : []),
-                    ...clubGenderTokens
-                ];
-                const serverLevel = [
-                    ...(isMatchSelected ? committedFilters.matches.levels : []),
-                    ...(types.includes('CLUB') ? committedFilters.clubs.levels : [])
-                ];
-                const serverCategories = types.includes('CLUB') && committedFilters.clubs.categories.length > 0
-                    ? committedFilters.clubs.categories : undefined;
-
-                const cities = [
-                    ...(types.includes('CLUB') && committedFilters.clubs.city ? [committedFilters.clubs.city] : []),
-                    ...(types.includes('TRYOUT') && committedFilters.tryouts.city ? [committedFilters.tryouts.city] : []),
-                    ...(types.includes('MATCH') && committedFilters.matches.city ? [committedFilters.matches.city] : [])
-                ];
-                const countries = [
-                    ...(types.includes('CLUB') && committedFilters.clubs.country ? [committedFilters.clubs.country] : []),
-                    ...(types.includes('TRYOUT') && committedFilters.tryouts.country ? [committedFilters.tryouts.country] : []),
-                    ...(types.includes('MATCH') && committedFilters.matches.country ? [committedFilters.matches.country] : [])
-                ];
-
-                const mapPromise = fetchNearbyMap({
-                    lat: queryCenter[0],
-                    lng: queryCenter[1],
-                    radius: committedFilters.distanceKm,
-                    type: types,
-                    cities: cities.length > 0 ? [...new Set(cities)] : undefined,
-                    countries: countries.length > 0 ? [...new Set(countries)] : undefined,
-                    query: committedSearch || undefined,
-                    dateFrom,
-                    dateTo,
-                    ageGroups: serverAgeGroups.length > 0 ? serverAgeGroups : undefined,
-                    gender: serverGender.length > 0 ? serverGender : undefined,
-                    level: serverLevel.length > 0 ? serverLevel : undefined,
-                    category: serverCategories,
-                    positions: committedFilters.positions.length > 0 ? committedFilters.positions : undefined,
-                    page: 0,
-                    size: 100
-                });
+                    const days = dateWindow === 'NEXT_7_DAYS' ? 7 : dateWindow === 'NEXT_30_DAYS' ? 30 : 90;
+                    const gender = type === 'TOURNAMENT' ? [] : section.genders.map(value => {
+                        switch (value) {
+                            case 'Boys': case 'Men': return 'MALE';
+                            case 'Girls': case 'Women': return 'FEMALE';
+                            case 'Mixed': return 'MIXED';
+                        }
+                    });
+                    return fetchMapDiscovery({
+                        lat: queryCenter[0], lng: queryCenter[1], radius: committedFilters.distanceKm,
+                        type: [type], query: committedSearch || undefined,
+                        cities: section.city ? [section.city] : undefined,
+                        countries: section.country ? [section.country] : undefined,
+                        gender: gender.length ? gender : undefined,
+                        ageGroups: type !== 'TOURNAMENT' && section.ageGroups.length ? section.ageGroups : undefined,
+                        level: type !== 'TOURNAMENT' && 'levels' in section && section.levels.length ? section.levels : undefined,
+                        category: type === 'CLUB' ? committedFilters.clubs.categories : undefined,
+                        positions: type === 'CLUB' || type === 'TRYOUT' ? committedFilters.positions : undefined,
+                        dateFrom: dateWindow !== 'ANY' ? toIsoWindow(now) : undefined,
+                        dateTo: dateWindow !== 'ANY' ? toIsoWindow(new Date(now.getTime() + days * 86400000)) : undefined
+                    }, controller.signal);
+                })).then(pages => ({
+                    content: pages.flatMap(page => page.content),
+                    resultsLimited: pages.some(page => page.resultsLimited)
+                }));
 
                 const [membershipContext, mapData] = await Promise.all([
                     membershipPromise,
@@ -1317,7 +1253,8 @@ export const MapExperience = ({
                 if (!active) return;
 
                 setMapMarkers(mapData.content);
-                setResultCount(mapData.totalElements);
+                setResultCount(mapData.content.length);
+                setResultsLimited(mapData.resultsLimited ?? false);
                 setMembership(membershipContext);
                 setInitialLoad(false);
             } catch (requestError) {
@@ -1325,15 +1262,16 @@ export const MapExperience = ({
                 console.error('Failed to load map discovery data', requestError);
                 setError('Unable to load map discovery data.');
             } finally {
-                if (active) setLoading(false);
+                if (active) { setLoading(false); setInitialLoad(false); }
             }
         };
 
         void load();
         return () => {
             active = false;
+            controller.abort();
         };
-    }, [context, mapAuthScope, committedFilters, committedSearch, queryCenter]);
+    }, [context, mapAuthScope, committedFilters, committedSearch, queryCenter, reload]);
 
     const allRecords = useMemo(
         // Treat the allowlist as a client-side defence in depth as well as a
@@ -1379,17 +1317,16 @@ export const MapExperience = ({
     }, [allRecords, draftSearch]);
 
     const filteredRecords = useMemo(() => {
-        const query = normalizeText(committedSearch);
-
         return allRecords.filter((record) => {
             // Type filtering handled server-side; client only filters what server can't
-            if (query && !record.searchText.includes(query)) return false;
 
             if (record.entityType === 'CLUB') {
                 if (committedFilters.clubs.officialOnly && !record.official) return false;
                 if (committedFilters.clubs.openTryoutsOnly && record.joinPolicy === 'INVITE_ONLY') return false;
                 return true;
             }
+
+            if (record.entityType === 'TOURNAMENT') return true;
 
             // Time-of-day filter (server doesn't handle this)
             const timeWindows = record.entityType === 'TRYOUT' ? committedFilters.tryouts.timeWindows : committedFilters.matches.timeWindows;
@@ -1398,17 +1335,6 @@ export const MapExperience = ({
                 if (!window || !timeWindows.includes(window)) return false;
             }
 
-            // Age/level/gender from extracted text (server doesn't extract these)
-            const selectedGenders = record.entityType === 'TRYOUT' ? committedFilters.tryouts.genders : committedFilters.matches.genders;
-            if (selectedGenders.length > 0 && !record.genders.some((gender) => selectedGenders.includes(gender))) return false;
-
-            // Level filter only applies to matches (tryouts don't have a level dimension)
-            if (record.entityType === 'MATCH' && committedFilters.matches.levels.length > 0
-                && (!record.level || !committedFilters.matches.levels.includes(record.level))) return false;
-
-            const selectedAges = record.entityType === 'TRYOUT' ? committedFilters.tryouts.ageGroups : committedFilters.matches.ageGroups;
-            if (selectedAges.length > 0 && !record.ageGroups.some((ageGroup) => selectedAges.includes(ageGroup))) return false;
-
             if (record.entityType === 'MATCH') {
                 if (record.matchSubtype && committedFilters.matches.subtypes.length > 0 && !committedFilters.matches.subtypes.includes(record.matchSubtype)) return false;
             }
@@ -1416,7 +1342,7 @@ export const MapExperience = ({
             // Server already filtered by gender/age/level/date for MATCH and TRYOUT
             return true;
         });
-    }, [allRecords, committedSearch, committedFilters]);
+    }, [allRecords, committedFilters]);
 
     const sortedRecords = useMemo(() => {
         const records = [...filteredRecords];
@@ -1444,7 +1370,7 @@ export const MapExperience = ({
             return rightScore - leftScore || timestampFor(left) - timestampFor(right) || distanceFor(left) - distanceFor(right);
         };
 
-        return records.sort(compareBySort);
+        return records.sort((left, right) => compareBySort(left, right) || left.title.localeCompare(right.title) || left.key.localeCompare(right.key));
     }, [filteredRecords, committedFilters.sortBy]);
 
     // Server-side ST_DWithin already applied the committed radius — keep only the
@@ -1720,24 +1646,7 @@ export const MapExperience = ({
     ) : null;
 
     const hasSelectedResult = Boolean(selectedRecord && (selectedRecord.entityType !== 'CLUB' || !isClubRailOpen));
-    const visibleClubs = useMemo<VisibleClubListItem[]>(() => mapRecords
-        .filter((record) => record.entityType === 'CLUB' && record.clubId != null)
-        .map((record) => ({
-            key: record.key,
-            clubId: record.clubId as number,
-            name: record.title,
-            logoUrl: record.rawMapMarker?.logoUrl ?? null,
-            typeLabel: record.typeLabel,
-            city: record.city,
-            country: record.country,
-            address: record.locationName ?? record.description,
-            official: record.official,
-            memberCount: record.memberCount,
-            distanceKm: record.distanceKm,
-            ageGroups: record.ageGroups,
-            level: record.level
-        })), [mapRecords]);
-    const toolbarCount = `${mapRecords.length} visible`;
+    const toolbarCount = loading ? 'Searching...' : `${mapRecords.length} shown within ${committedFilters.distanceKm} km`;
     const toolbarTopClass = filterLayout === 'top' && isFilterOpen ? 'top-[24rem] xl:top-[12rem]' : 'top-4';
     const toolbarLeftClass = filterLayout === 'top'
         ? 'xl:left-4'
@@ -1824,9 +1733,11 @@ export const MapExperience = ({
                 </div>
             )}
             <div className={isExternalFilterLayout ? 'relative min-h-0 flex-none h-[560px] sm:h-[620px] lg:h-[700px]' : 'contents'}>
-            {!initialLoad && !error && (
+            {!initialLoad && !error && !mapUnavailable && (
                 <div className="map-canvas-frame absolute inset-0 z-0 overflow-hidden border-0 rounded-none">
                     <MapGL
+                        key={mapAttempt}
+                        onError={() => { setMapUnavailable(true); setIsClubRailOpen(true); setIsFilterOpen(false); }}
                         ref={mapRef}
                         initialViewState={{
                             latitude: DEFAULT_CENTER[0],
@@ -2011,6 +1922,12 @@ export const MapExperience = ({
                     </div>
                 </div>
             )}
+            {mapUnavailable && !error && (
+                <div role="status" className="absolute bottom-4 left-4 z-[1050] max-w-[min(90vw,320px)] rounded-xl bg-[var(--map-panel-bg)] p-4 text-sm text-[var(--text-primary)] shadow-lg">
+                    The map could not load. You can still browse the results list.
+                    <button type="button" className="block mt-2 underline" onClick={() => { setMapUnavailable(false); setMapAttempt(value => value + 1); }}>Retry map</button>
+                </div>
+            )}
             {initialLoad && (
                 <div className="absolute inset-0 z-[5] flex items-center justify-center bg-[var(--map-workspace-bg)]">
                     <div className="flex flex-col items-center gap-3 text-center">
@@ -2029,7 +1946,7 @@ export const MapExperience = ({
             )}
             {error && (
                 <div className="absolute inset-0 z-[5] flex items-center justify-center bg-[var(--map-workspace-bg)] px-6">
-                    <div className="max-w-md rounded-2xl border border-slate-200 bg-white px-6 py-6 text-center text-sm leading-6 text-slate-600 shadow-xl backdrop-blur-md dark:border-white/10 dark:bg-[#0d1016]/95 dark:text-slate-400">{error}</div>
+                    <div className="max-w-md rounded-2xl border border-slate-200 bg-white px-6 py-6 text-center text-sm leading-6 text-slate-600 shadow-xl backdrop-blur-md dark:border-white/10 dark:bg-[#0d1016]/95 dark:text-slate-400" role="alert">{error}<button type="button" className="block mx-auto mt-3 underline" onClick={() => setReload(value => value + 1)}>Retry search</button></div>
                 </div>
             )}
             {!initialLoad && !loading && !error && mapRecords.length === 0 && (
@@ -2054,13 +1971,14 @@ export const MapExperience = ({
             <div className="pointer-events-none flex h-full min-h-0">
                 {!isExternalFilterLayout && filterSurface}
 
-                <VisibleClubsRail
-                    isVisible={isClubRailOpen && !hasSelectedResult}
+                <MapResultsList
+                    darkMode={mapDarkMode}
+                    isVisible={isClubRailOpen && !hasSelectedResult && !error}
                     embedded={embedded}
-                    clubs={visibleClubs}
+                    records={sortedRecords}
                     selectedKey={selectedKey}
+                    resultsLimited={resultsLimited}
                     loading={loading}
-                    clubsEnabled={committedFilters.entityType.includes('CLUB')}
                     radiusKm={committedFilters.distanceKm}
                     onSelect={(key) => {
                         const record = allRecordsRef.current.find((entry) => entry.key === key);
@@ -2111,7 +2029,7 @@ export const MapExperience = ({
                                             });
                                         }}
                                         className={`inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-full px-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100 ${isClubRailOpen ? 'bg-[var(--accent-primary-soft)] text-[var(--accent-primary)]' : ''}`}
-                                        aria-label="Toggle visible clubs"
+                                        aria-label="Toggle nearby results"
                                     >
                                         <Building2 className="h-4 w-4" />
                                         <span className="hidden sm:inline text-[11px] font-bold">Browse area</span>

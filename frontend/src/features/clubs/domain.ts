@@ -21,6 +21,7 @@ export interface ClubManagedMember {
     avatarUrl?: string | null;
     role: LegacyClubMembershipRole;
     roleEditable: boolean;
+    ownershipTransferEligible?: boolean;
     publicTitle?: string | null;
     clubBio?: string | null;
     qualifications?: string | null;

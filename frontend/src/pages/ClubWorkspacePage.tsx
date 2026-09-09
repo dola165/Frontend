@@ -22,7 +22,6 @@ import {
     canManagePlayerStatuses,
     canReviewTryouts,
     isLeadershipRole,
-    isLegacyAgentMembershipRole,
     type ClubManagedMember,
     type ClubManagementOverview,
     type ClubMembershipApplication,
@@ -207,10 +206,6 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     const authoritativeTryoutPendingCount = overview?.pendingTryoutCount ?? tryoutPendingCount;
 
     const invitedUserIds = useMemo(() => new Set(overview?.pendingInvitations.map((i) => i.userId) || []), [overview]);
-    const transferCandidates = useMemo(
-        () => (overview?.members || []).filter((m) => isOwner && m.userId !== currentUserId && m.role !== 'OWNER' && !isLegacyAgentMembershipRole(m.role)),
-        [overview, isOwner, currentUserId]
-    );
     const overdueTrialistCount = overview?.overdueTrialistCount ?? 0;
 
     // ── data loading ──
@@ -970,7 +965,6 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                     confirmingOwnershipTransferUserId={confirmingOwnershipTransferUserId}
                                     confirmingSelfLeave={confirmingSelfLeave}
                                     isOwner={isOwner}
-                                    transferCandidates={transferCandidates}
                                     onConfirmOwnershipTransfer={setConfirmingOwnershipTransferUserId}
                                     onTransferOwnership={handleTransferOwnership}
                                     onConfirmSelfLeave={setConfirmingSelfLeave}

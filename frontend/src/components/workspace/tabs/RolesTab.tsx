@@ -13,7 +13,6 @@ interface RolesTabProps {
     confirmingOwnershipTransferUserId: number | null;
     confirmingSelfLeave: boolean;
     isOwner: boolean;
-    transferCandidates: ClubManagedMember[];
     onConfirmOwnershipTransfer: (userId: number | null) => void;
     onTransferOwnership: (member: ClubManagedMember) => Promise<void>;
     onConfirmSelfLeave: (v: boolean) => void;
@@ -22,11 +21,16 @@ interface RolesTabProps {
 }
 
 export const RolesTab = ({
-    overview, pendingKey,
+    overview, pendingKey, currentUserId,
     confirmingSelfLeave, isOwner,
-    transferCandidates, onTransferOwnership,
+    onTransferOwnership,
     onConfirmSelfLeave, onLeaveClub, onOpenJobs
-}: RolesTabProps) => (
+}: RolesTabProps) => {
+    const transferCandidates = overview.members.filter((member) =>
+        member.ownershipTransferEligible === true && member.userId !== currentUserId
+        && (member.role === 'CLUB_ADMIN' || member.role === 'COACH'));
+
+    return (
     <div className="space-y-4">
         <SectionHeader
             eyebrow="Roles"
@@ -126,4 +130,5 @@ export const RolesTab = ({
             </div>
         </div>
     </div>
-);
+    );
+};

@@ -34,6 +34,8 @@ vi.mock('../../components/feed/FeedList', () => ({
         onSelectPost: (post: FeedPostDto) => void;
     }) => posts.length === 0 ? <>{emptyState}</> : (
         <div data-testid="feed-list">
+            <span data-testid="post-ids">{posts.map(post => post.id).join(',')}</span>
+            <span data-testid="like-count">{posts[0].likeCount}</span>
             <span data-testid="like-state">{posts[0].isLikedByMe ? 'liked' : 'not-liked'}</span>
             <button type="button" onClick={() => void onLikeToggle(posts[0].id)}>Toggle like</button>
             <button type="button" onClick={() => onSelectPost(posts[0])}>Open media</button>
@@ -208,6 +210,75 @@ describe('FeedPage', () => {
             expect(await screen.findByText('No comments yet.')).toBeInTheDocument();
             expect(commentAttempts).toBe(2);
         });
+    });
+
+    it('loads three pages with timestamp cursors, deduplicates overlap, and announces the end', async () => {
+        const user = userEvent.setup();
+        const post = (id: number) => ({ id, createdAt: '2026-01-01T12:00:00', content: String(id) });
+        vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { posts: [post(5), post(4)], nextCursor: 4 } })
+            .mockResolvedValueOnce({ data: { posts: [post(4), post(3), post(2)], nextCursor: 2 } })
+            .mockResolvedValueOnce({ data: { posts: [post(1)], nextCursor: null } });
+        renderPage();
+        await user.click(await screen.findByRole('button', { name: 'Load more posts' }));
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('5,4,3,2');
+        expect(apiClient.get).toHaveBeenLastCalledWith('/posts/feed/for-you', expect.objectContaining({ params: { limit: 20, cursor: 4, cursorTime: '2026-01-01T12:00:00' } }));
+        await user.click(screen.getByRole('button', { name: 'Load more posts' }));
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('5,4,3,2,1');
+        expect(screen.getByRole('status')).toHaveTextContent('all caught up');
+        expect(screen.queryByRole('button', { name: 'Load more posts' })).not.toBeInTheDocument();
+    });
+
+    it('treats omitted API counts and like state as zero and false, including failed-like rollback', async () => {
+        const user = userEvent.setup();
+        vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { posts: [{ id: 1 }], nextCursor: null } });
+        vi.mocked(apiClient.put).mockRejectedValueOnce(new Error('offline'));
+        renderPage();
+        expect(await screen.findByTestId('like-count')).toHaveTextContent('0');
+        await user.click(screen.getByRole('button', { name: 'Toggle like' }));
+        await waitFor(() => expect(screen.getByTestId('like-state')).toHaveTextContent('not-liked'));
+        expect(screen.getByTestId('like-count')).toHaveTextContent('0');
+    });
+
+    it('retains loaded posts and retries the same failed page', async () => {
+        const user = userEvent.setup();
+        vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { posts: [{ id: 5, createdAt: '2026-01-01T12:00:00' }], nextCursor: 5 } })
+            .mockRejectedValueOnce(new Error('offline'))
+            .mockResolvedValueOnce({ data: { posts: [{ id: 4 }], nextCursor: null } });
+        renderPage();
+        await user.click(await screen.findByRole('button', { name: 'Load more posts' }));
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('5');
+        expect(screen.getByRole('alert')).toHaveTextContent('Older posts could not load');
+        await user.click(screen.getByRole('button', { name: 'Retry older posts' }));
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('5,4');
+        expect(vi.mocked(apiClient.get).mock.calls[1][1]?.params).toEqual(vi.mocked(apiClient.get).mock.calls[2][1]?.params);
+    });
+
+    it.each(['resolve', 'reject'] as const)('ignores a late %s from the previous view', async outcome => {
+        const user = userEvent.setup();
+        const old = deferred<{ data: { posts: { id: number }[] } }>();
+        vi.mocked(apiClient.get).mockReturnValueOnce(old.promise)
+            .mockResolvedValueOnce({ data: { posts: [{ id: 90 }], nextCursor: null } });
+        renderPage();
+        await user.click(screen.getByRole('link', { name: /Following/i }));
+        expect(await screen.findByTestId('post-ids')).toHaveTextContent('90');
+        await act(async () => { if (outcome === 'resolve') old.resolve({ data: { posts: [{ id: 1 }] } }); else old.reject(new Error('late error')); });
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('90');
+        expect(screen.queryByText('Home could not load')).not.toBeInTheDocument();
+    });
+
+    it('discards an in-flight older page on refresh and does not request it twice', async () => {
+        const user = userEvent.setup();
+        const old = deferred<{ data: { posts: { id: number }[]; nextCursor: null } }>();
+        vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { posts: [{ id: 5, createdAt: '2026-01-01T12:00:00' }], nextCursor: 5 } })
+            .mockReturnValueOnce(old.promise)
+            .mockResolvedValueOnce({ data: { posts: [{ id: 6 }], nextCursor: null } });
+        renderPage();
+        await user.dblClick(await screen.findByRole('button', { name: 'Load more posts' }));
+        expect(apiClient.get).toHaveBeenCalledTimes(2);
+        await user.click(screen.getByRole('button', { name: 'Refresh feed' }));
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('6');
+        await act(async () => old.resolve({ data: { posts: [{ id: 4 }], nextCursor: null } }));
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('6');
     });
 
     describe('PostComposer', () => {

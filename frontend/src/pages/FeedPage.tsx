@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Compass, Megaphone, RefreshCw, Search, Sparkles, Users } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
@@ -22,6 +22,12 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
  const [posts, setPosts] = useState<FeedPostDto[]>([]);
  const [loading, setLoading] = useState(true);
  const [loadError, setLoadError] = useState(false);
+ const [loadingMore, setLoadingMore] = useState(false);
+ const [moreError, setMoreError] = useState(false);
+ const [nextPage, setNextPage] = useState<{ cursor: number; cursorTime?: string } | null>(null);
+ const requestVersion = useRef(0);
+ const requestController = useRef<AbortController | null>(null);
+ const morePending = useRef(false);
  const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
  const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
  const [selectedPost, setSelectedPost] = useState<FeedPostDto | null>(null);
@@ -32,6 +38,9 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
  const feedView = resolveFeedView(searchParams.get('view'));
  const isFollowingView = feedView === 'following';
  const feedEndpoint = isFollowingView ? '/posts/feed/following' : '/posts/feed/for-you';
+
+ const activeEndpoint = useRef(feedEndpoint);
+ activeEndpoint.current = feedEndpoint;
 
  const feedMeta = isFollowingView
   ? {
@@ -44,7 +53,7 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
   }
   : {
    emptyTitle: 'Your Home is ready',
-   emptyText: "Your recommendations will grow as you follow clubs, people and competitions. Start with a few useful places.",
+   emptyText: "Discover public posts from clubs and people you do not follow yet. Start with a few useful places.",
    emptyGuides: [
     { label: 'Find Clubs', to: '/clubs' },
     { label: 'Browse Map', to: '/map' },
@@ -52,31 +61,67 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
    ]
   };
 
- const loadFeed = useCallback(async () => {
-  setLoading(true);
-  setLoadError(false);
-  setOpenComments({});
-  setCommentsData({});
-  setCommentsErrors({});
-  setCommentsLoading({});
-  setLikeErrors({});
-  setSelectedPost(null);
-
-  try {
-   const response = await apiClient.get(feedEndpoint);
-   setPosts(response.data.content || response.data.posts || response.data || []);
-  } catch (error) {
-   console.error('Failed to load feed', error);
-   setLoadError(true);
+ const loadFeed = useCallback(async (more = false) => {
+  if (more && (morePending.current || !nextPage)) return;
+  if (!more) {
+   requestVersion.current++;
+   requestController.current?.abort();
+   morePending.current = false;
+   setLoading(true);
+   setLoadingMore(false);
+   setLoadError(false);
+   setNextPage(null);
    setPosts([]);
-  } finally {
-   setLoading(false);
+   setOpenComments({});
+   setCommentsData({});
+   setCommentsErrors({});
+   setCommentsLoading({});
+   setLikeErrors({});
+   setSelectedPost(null);
+  } else {
+   morePending.current = true;
+   setLoadingMore(true);
   }
- }, [feedEndpoint]);
+  setMoreError(false);
+  const version = requestVersion.current;
+  const controller = new AbortController();
+  requestController.current = controller;
+  const current = () => !controller.signal.aborted && requestVersion.current === version && activeEndpoint.current === feedEndpoint;
+  try {
+   const response = await apiClient.get(feedEndpoint, { params: { limit: 20, ...(more ? nextPage : {}) }, signal: controller.signal });
+   if (!current()) return;
+   const raw: FeedPostDto[] = response.data.posts ?? response.data.content ?? [];
+   if (!Array.isArray(raw)) throw new Error('Invalid feed page');
+   // Kotlin omits default zero/false values; retain truthful counts and like rollback.
+   const batch = raw.map(post => ({ ...post, likeCount: post.likeCount ?? 0,
+    commentCount: post.commentCount ?? 0, isLikedByMe: post.isLikedByMe ?? false }));
+   const cursor: number | null = response.data.nextCursor ?? null;
+   const boundary = batch.find(post => post.id === cursor);
+   if (cursor !== null && (!Number.isSafeInteger(cursor) || !boundary || (more && cursor === nextPage?.cursor))) throw new Error('Invalid feed cursor');
+   setPosts(existing => more ? [...existing, ...batch.filter(post => !existing.some(item => item.id === post.id))] : batch);
+   setNextPage(cursor === null ? null : { cursor, cursorTime: boundary?.createdAt });
+  } catch {
+   if (!current()) return;
+   if (more) setMoreError(true);
+   else setLoadError(true);
+  } finally {
+   if (current()) {
+    morePending.current = false;
+    setLoading(false);
+    setLoadingMore(false);
+   }
+  }
+ }, [feedEndpoint, nextPage]);
 
+ // Pagination state does not restart the first page. A view change invalidates
+ // old successes AND failures, even if an adapter ignores AbortSignal.
  useEffect(() => {
   void loadFeed();
- }, [loadFeed]);
+  const lifecycle = requestVersion;
+  const request = requestController;
+  return () => { lifecycle.current++; request.current?.abort(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, [feedEndpoint]);
 
  const applyLikeState = (postId: number, isLiked: boolean) => {
   const updatePost = (post: FeedPostDto) => post.id !== postId || post.isLikedByMe === isLiked
@@ -146,7 +191,7 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
     compact
     authorName={user?.fullName || user?.username || 'You'}
     avatarUrl={user?.avatarUrl}
-    onPostCreated={loadFeed}
+    onPostCreated={() => void loadFeed()}
    />
 
    <nav aria-label="Home posts" className="grid grid-cols-2 border-b border-[var(--feed-divider)] bg-transparent px-1">
@@ -183,13 +228,17 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
      </div>
     </div>
    )}
+   <div className="flex items-center justify-between gap-3 px-1 text-xs text-[var(--feed-text-secondary)]">
+    <p>{isFollowingView ? 'Latest posts from people and clubs you follow.' : 'Discover public posts from beyond your follows.'} Newest first.</p>
+    <button type="button" onClick={() => void loadFeed()} disabled={loading} className="shrink-0 rounded px-2 py-2 hover:underline disabled:opacity-50">Refresh feed</button>
+   </div>
    {loading ? (
     <div className="flex flex-col gap-3" aria-label="Loading Home posts">
      <SkeletonCard lines={4} />
      <SkeletonCard lines={3} />
      <SkeletonCard lines={5} />
     </div>
-   ) : <FeedList
+   ) : !loadError && <FeedList
     posts={posts}
     openComments={openComments}
     commentsData={commentsData}
@@ -227,6 +276,14 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
     )}
     className="gap-3"
    />}
+
+   {!loading && !loadError && posts.length > 0 && <div className="py-4 text-center">
+    {moreError && <p role="alert" className="mb-3 text-sm text-amber-400">Older posts could not load. Retry, or refresh the feed to start again.</p>}
+    {nextPage ? <button type="button" disabled={loadingMore} onClick={() => void loadFeed(true)}
+     className="rounded-full border border-[var(--feed-card-border)] px-5 py-2 text-sm text-[var(--feed-text-primary)] disabled:opacity-50">
+     {loadingMore ? 'Loading more posts…' : moreError ? 'Retry older posts' : 'Load more posts'}
+    </button> : <p role="status" className="text-sm text-[var(--feed-text-secondary)]">You’re all caught up. Refresh to check for new posts.</p>}
+   </div>}
 
    <PostTheaterModal
     isOpen={!!selectedPost}

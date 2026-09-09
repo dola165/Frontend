@@ -1,5 +1,5 @@
 import { http, HttpHandler, HttpResponse } from 'msw';
-import { users, currentUserId } from '../data/store';
+import { users, currentUserId, followedUserIds } from '../data/store';
 import { simulateLatency, paginate } from '../utils';
 import { isMinor, isUnder13 } from '../../utils/age';
 
@@ -194,9 +194,12 @@ export const userHandlers: HttpHandler[] = [
   }),
 
   // -- POST /users/:id/follow (returns { following: boolean }) --
-  http.post(`${API}/users/:userId/follow`, async () => {
+  http.post(`${API}/users/:userId/follow`, async ({ params }) => {
     await simulateLatency();
-    return HttpResponse.json({ following: true });
+    if (currentUserId() === null) return HttpResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const id = Number(params.userId);
+    if (followedUserIds().has(id)) followedUserIds().delete(id); else followedUserIds().add(id);
+    return HttpResponse.json({ following: followedUserIds().has(id) });
   }),
 
   // -- POST /users/:id/mute --

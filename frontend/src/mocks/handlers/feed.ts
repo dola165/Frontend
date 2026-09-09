@@ -1,5 +1,5 @@
 import { http, HttpHandler, HttpResponse } from 'msw';
-import { posts, comments, users, clubs, currentUserId, followedClubIds } from '../data/store';
+import { posts, comments, users, clubs, currentUserId, followedClubIds, followedUserIds } from '../data/store';
 import { createComment } from '../data/factories';
 import { simulateLatency } from '../utils';
 
@@ -35,93 +35,44 @@ const enrichComment = (c: ReturnType<typeof comments> extends Map<number, infer 
   };
 };
 
-// Returns FeedResponseDto-shaped object with cursor-based pagination
-const feedResponse = (cursor?: number | null, limit = 20) => {
-  const sorted = [...posts().values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const items = cursor != null ? sorted.filter((p) => p.id < cursor) : sorted;
+// The demo uses the same timestamp/ID cursor and lookahead as the real feed.
+const feedResponse = (request: Request, scope: 'discovery' | 'following' | 'user' | 'club', id?: number) => {
+  const url = new URL(request.url);
+  const cursor = url.searchParams.has('cursor') ? Number(url.searchParams.get('cursor')) : null;
+  const cursorTime = url.searchParams.get('cursorTime');
+  const chronological = scope === 'discovery' || scope === 'following';
+  const limit = Number(url.searchParams.get('limit') ?? 20);
+  if (!Number.isInteger(limit) || limit < 1 || limit > 50 || (cursor !== null && (!Number.isSafeInteger(cursor) || cursor < 1)) || (cursorTime && (cursor === null || !Number.isFinite(Date.parse(cursorTime)))))
+    return HttpResponse.json({ error: 'Invalid feed cursor or limit' }, { status: 400 });
+  const boundary = cursorTime ?? (cursor !== null ? posts().get(cursor)?.createdAt : null);
+  if (chronological && cursor !== null && !boundary) return HttpResponse.json({ error: 'Feed cursor expired. Refresh the feed.' }, { status: 400 });
+  const uid = currentUserId();
+  const following = (post: ReturnType<typeof posts> extends Map<number, infer T> ? T : never) =>
+    followedUserIds().has(post.authorId) || (post.clubId !== null && followedClubIds().has(post.clubId));
+  const sorted = [...posts().values()].filter(post => {
+    if (scope === 'user') return post.authorId === id;
+    if (scope === 'club') return post.clubId === id;
+    if (scope === 'following') return uid !== null && post.authorId !== uid && following(post);
+    return uid === null || (post.authorId !== uid && !following(post));
+  }).sort((a, b) => (chronological ? Date.parse(b.createdAt) - Date.parse(a.createdAt) : 0) || b.id - a.id);
+  const items = cursor === null ? sorted : sorted.filter(post =>
+    chronological ? Date.parse(post.createdAt) < Date.parse(boundary!) || (Date.parse(post.createdAt) === Date.parse(boundary!) && post.id < cursor) : post.id < cursor);
   const page = items.slice(0, limit);
-  return {
-    posts: page.map(enrichPost),
-    nextCursor: page.length === limit ? page[page.length - 1]?.id ?? null : null,
-    hasMore: items.length > limit,
-  };
+  return HttpResponse.json({ posts: page.map(enrichPost), nextCursor: (chronological ? items.length > limit : page.length === limit) ? page.at(-1)!.id : null });
 };
 
 export const feedHandlers: HttpHandler[] = [
-
-  // -- GET /posts/feed (global, cursor-based) --
-  http.get(`${API}/posts/feed`, async ({ request }) => {
-    await simulateLatency();
-    const url = new URL(request.url);
-    const cursor = url.searchParams.get('cursor') ? Number(url.searchParams.get('cursor')) : null;
-    const limit = Number(url.searchParams.get('limit') ?? 20);
-    return HttpResponse.json(feedResponse(cursor, limit));
-  }),
-
-  // -- GET /posts/feed/for-you --
-  http.get(`${API}/posts/feed/for-you`, async ({ request }) => {
-    await simulateLatency();
-    const url = new URL(request.url);
-    const cursor = url.searchParams.get('cursor') ? Number(url.searchParams.get('cursor')) : null;
-    const limit = Number(url.searchParams.get('limit') ?? 20);
-    return HttpResponse.json(feedResponse(cursor, limit));
-  }),
-
-  // -- GET /posts/feed/following --
+  ...['/posts/feed', '/posts/feed/for-you'].map(path => http.get(`${API}${path}`, async ({ request }) => {
+    await simulateLatency(); return feedResponse(request, 'discovery');
+  })),
   http.get(`${API}/posts/feed/following`, async ({ request }) => {
-    await simulateLatency();
-    const url = new URL(request.url);
-    const cursor = url.searchParams.get('cursor') ? Number(url.searchParams.get('cursor')) : null;
-    const limit = Number(url.searchParams.get('limit') ?? 20);
-    const followed = followedClubIds();
-    const sorted = [...posts().values()]
-      .filter((p) => p.clubId != null && followed.has(p.clubId))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    const items = cursor != null ? sorted.filter((p) => p.id < cursor) : sorted;
-    const page = items.slice(0, limit);
-    return HttpResponse.json({
-      posts: page.map(enrichPost),
-      nextCursor: page.length === limit ? page[page.length - 1]?.id ?? null : null,
-      hasMore: items.length > limit,
-    });
+    await simulateLatency(); return feedResponse(request, 'following');
   }),
-
-  // -- GET /posts/user/{userId} --
-  http.get(`${API}/posts/user/:userId`, async ({ params, request }) => {
-    await simulateLatency();
-    const url = new URL(request.url);
-    const cursor = url.searchParams.get('cursor') ? Number(url.searchParams.get('cursor')) : null;
-    const limit = Number(url.searchParams.get('limit') ?? 20);
-
-    const sorted = [...posts().values()]
-      .filter((p) => p.authorId === Number(params.userId))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    const items = cursor != null ? sorted.filter((p) => p.id < cursor) : sorted;
-    const page = items.slice(0, limit);
-    return HttpResponse.json({
-      posts: page.map(enrichPost),
-      nextCursor: page.length === limit ? page[page.length - 1]?.id ?? null : null,
-      hasMore: items.length > limit,
-    });
+  http.get(`${API}/posts/user/:userId`, async ({ request, params }) => {
+    await simulateLatency(); return feedResponse(request, 'user', Number(params.userId));
   }),
-
-  // -- GET /posts/club/{clubId} --
-  http.get(`${API}/posts/club/:clubId`, async ({ params, request }) => {
-    await simulateLatency();
-    const url = new URL(request.url);
-    const cursor = url.searchParams.get('cursor') ? Number(url.searchParams.get('cursor')) : null;
-    const limit = Number(url.searchParams.get('limit') ?? 20);
-
-    const sorted = [...posts().values()]
-      .filter((p) => p.clubId === Number(params.clubId))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    const items = cursor != null ? sorted.filter((p) => p.id < cursor) : sorted;
-    const page = items.slice(0, limit);
-    return HttpResponse.json({
-      posts: page.map(enrichPost),
-      nextCursor: page.length === limit ? page[page.length - 1]?.id ?? null : null,
-      hasMore: items.length > limit,
-    });
+  http.get(`${API}/posts/club/:clubId`, async ({ request, params }) => {
+    await simulateLatency(); return feedResponse(request, 'club', Number(params.clubId));
   }),
 
   // -- POST /posts (returns { message, postId }) --

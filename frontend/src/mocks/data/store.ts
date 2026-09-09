@@ -134,6 +134,8 @@ let _jobs: Map<number, StoreJob> | null = null;
 let _products: Map<number, StoreProduct> | null = null;
 let _playerCards: Map<number, StorePlayerCard> | null = null;
 let _currentUserId: number | null = null;
+const _followedUserIds = new Set<number>();
+export const followedUserIds = () => _followedUserIds;
 let _followedClubIds: Set<number> | null = null;
 let _nextEventId = 100;
 
@@ -160,5 +162,6 @@ export const resetStore = () => {
   _playerCards = null;
   _currentUserId = null;
   _followedClubIds = null;
+  _followedUserIds.clear();
   _nextEventId = 100;
 };

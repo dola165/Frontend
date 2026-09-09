@@ -1,0 +1,9 @@
+<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Club opportunities verification</title></head><body><div id="root"></div><script type="module">
+import React from 'react';import {createRoot} from 'react-dom/client';import {MemoryRouter,Routes,Route,useSearchParams} from 'react-router-dom';
+import {ClubBusinessTab} from '/src/components/club/ClubBusinessTab.tsx';import {ClubProfileStickyHeader} from '/src/components/club/ClubProfileStickyHeader.tsx';
+import {StorePage} from '/src/pages/StorePage.tsx';import {StoreProductPage} from '/src/pages/StoreProductPage.tsx';import {CampaignsPage} from '/src/pages/CampaignsPage.tsx';import {CampaignDetailPage} from '/src/pages/CampaignDetailPage.tsx';import '/src/index.css';
+const e=React.createElement;function Club(){const [params,setParams]=useSearchParams();return e('main',{className:'p-6'},e('h1',{className:'text-3xl font-bold mb-6'},'Alpha FC'),e(ClubProfileStickyHeader,{activeTab:params.get('tab')||'overview',onTabChange:tab=>setParams({tab}),club:{}}),params.get('tab')==='business'?e('div',{className:'mt-6'},e(ClubBusinessTab,{club:{id:10,name:'Alpha FC'},ownClubRole:null,isAuthenticated:false})):e('p',null,'Club overview'));}
+createRoot(document.getElementById('root')).render(e(MemoryRouter,{initialEntries:[new URLSearchParams(location.search).get('path')||'/clubs/10?tab=business']},e(Routes,null,
+e(Route,{path:'/clubs/:id',element:e(Club)}),e(Route,{path:'/clubs/:id/store',element:e(StorePage)}),e(Route,{path:'/store',element:e(StorePage)}),e(Route,{path:'/store/products/:id',element:e(StoreProductPage)}),e(Route,{path:'/campaigns',element:e(CampaignsPage)}),e(Route,{path:'/clubs/:id/campaigns',element:e(CampaignsPage)}),e(Route,{path:'/campaigns/:id',element:e(CampaignDetailPage)})
+)));
+</script></body></html>

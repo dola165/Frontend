@@ -78,7 +78,7 @@ describe('Jobs browsing and application recovery', () => {
             'href',
             '/jobs/1',
         );
-        expect(screen.getByRole('link', { name: 'Browse all opportunities' })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: 'Browse all jobs & volunteering' })).toHaveAttribute(
             'href',
             '/jobs',
         );

@@ -1,3 +1,4 @@
+import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
 import {useEffect,useState} from 'react';
 import {Link,useParams,useSearchParams} from 'react-router-dom';
 import {fetchStoreCatalog,formatStorePrice,type StoreProduct} from '../features/store/api';
@@ -43,7 +44,7 @@ export const StorePage = () => {
             <div><p className="store-eyebrow">Support the clubs you love</p><h1>{clubId ? `${clubName || 'Club'} store` : 'Store'}</h1><p className="store-subtitle">{clubId ? 'Products from this club.' : 'Discover kit, gear and more from football clubs.'}</p></div>
             <Link className="store-cart-link" to="/store/cart"><ShoppingBag size={18}/>Open cart</Link>
         </header>
-        {clubId && <nav className="store-scope-links" aria-label="Store scope"><Link to={`/clubs/${clubId}`}>Back to club</Link><Link to="/store">Browse all stores</Link></nav>}
+        {clubId && <OpportunityNavigation section="store" clubId={clubId}/>}
         <p className="store-notice"><span className="store-notice-dot"/>Browse and prepare your cart. Online checkout is not available yet.</p>
         <div className="store-toolbar">
             <label className="store-search"><Search size={18}/><span className="sr-only">Search</span><input value={params.get('query') ?? ''} maxLength={100} onChange={e => change('query', e.target.value)} placeholder="Search products or clubs"/></label>

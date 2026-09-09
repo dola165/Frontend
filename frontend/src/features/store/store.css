@@ -170,3 +170,27 @@
 
 .store-cart-page { max-width: 850px; }
 .store-cart-page section { border-color: var(--op-border); background: var(--op-soft); }
+
+/* Visible, predictable exits for all three opportunity journeys. */
+.opportunity-navigation { display:flex; flex-wrap:wrap; gap:10px; margin: 16px 0 22px; }
+.store-detail-top .opportunity-navigation { margin:0; }
+.opportunity-nav-button { display:inline-flex; align-items:center; justify-content:center; gap:9px; min-height:44px; padding:10px 16px; border:1px solid var(--op-border); border-radius:10px; background:var(--op-soft); color:var(--op-accent); font-size:13px; font-weight:650; line-height:1.4; text-decoration:none; }
+.opportunity-nav-button:hover { border-color:var(--op-accent); background:var(--theme-surface-strong); }
+.opportunity-nav-button svg { flex-shrink:0; }
+.club-opportunities-hub { padding:24px; border:1px solid var(--theme-border); border-radius:14px; background:var(--theme-surface); color:var(--text-primary); }
+.club-opportunity-choices { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.club-opportunity-choice { display:flex; flex-direction:column; gap:14px; padding:22px; border:1px solid var(--op-border); border-radius:12px; background:var(--op-soft); color:var(--op-accent); min-width:0; }
+.opportunity-tone-store { --op-accent:#047857; --op-border:#04785766; --op-soft:#04785712; }
+.opportunity-tone-campaigns { --op-accent:#92400e; --op-border:#b4530966; --op-soft:#b4530910; }
+.opportunity-tone-jobs { --op-accent:#a21caf; --op-border:#a21caf66; --op-soft:#a21caf12; }
+.dark .opportunity-tone-store { --op-accent:#34d399; --op-border:#34d39966; --op-soft:#34d39912; }
+.dark .opportunity-tone-campaigns { --op-accent:#fbbf24; --op-border:#fbbf2466; --op-soft:#fbbf2412; }
+.dark .opportunity-tone-jobs { --op-accent:#e879f9; --op-border:#e879f966; --op-soft:#e879f912; }
+.club-opportunity-choice h3 { font-size:18px; font-weight:700; }
+.club-opportunity-choice p { color:var(--text-secondary); font-size:13px; line-height:1.7; }
+.club-opportunity-choice span { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:auto; padding-top:12px; font-size:13px; font-weight:650; }
+.club-opportunity-choice:hover { border-color:var(--op-accent); }
+.club-opportunity-choice:focus-visible { outline:2px solid var(--op-accent); outline-offset:4px; }
+.opportunity-hub-actions { display:flex; flex-wrap:wrap; gap:10px; padding:0; margin-bottom:16px; }
+@media (max-width:1000px) { .club-opportunity-choices { grid-template-columns:1fr; } }
+@media (max-width:600px) { .club-opportunities-hub { padding:16px; } .store-detail-top { flex-wrap:wrap; } .opportunity-navigation { width:100%; } .opportunity-nav-button { flex:1 1 180px; } }

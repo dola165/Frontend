@@ -1,3 +1,4 @@
+import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { HeartHandshake, Search, SlidersHorizontal, X } from 'lucide-react';
@@ -156,12 +157,7 @@ export const CampaignsPage = () => {
                     Refresh
                 </button>
             </header>
-            {clubId && (
-                <nav className="store-scope-links" aria-label="Campaign scope">
-                    <Link to={`/clubs/${clubId}`}>Back to club</Link>
-                    <Link to="/campaigns">Browse all campaigns</Link>
-                </nav>
-            )}
+            {clubId && <OpportunityNavigation section="campaigns" clubId={clubId}/>}
             <p className="store-notice">
                 <span className="store-notice-dot" />
                 Discover projects and contact the clubs behind them. Online contributions are not available

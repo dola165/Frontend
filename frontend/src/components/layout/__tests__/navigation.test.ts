@@ -28,7 +28,7 @@ describe('supported product navigation', () => {
 
     it('keeps the public club menu aligned with the supported club features', () => {
         expect(clubNavigationItems.map((item) => item.id)).toEqual([
-            'overview', 'people', 'teams', 'schedule', 'media', 'store', 'campaigns', 'business', 'contact',
+            'overview', 'people', 'teams', 'schedule', 'media', 'business', 'contact',
         ]);
     });
 

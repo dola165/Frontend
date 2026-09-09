@@ -49,7 +49,7 @@ it('keeps all three club opportunity entry points scoped to that club',()=>{
  render(<MemoryRouter><ClubOpportunities club={{id:10} as ClubProfile}/></MemoryRouter>);
  expect(screen.getByRole('link',{name:/Fundraising & campaigns/})).toHaveAttribute('href','/clubs/10/campaigns');
  expect(screen.getByRole('link',{name:/Store/})).toHaveAttribute('href','/clubs/10/store');
- expect(screen.getByRole('link',{name:/Jobs & volunteering/})).toHaveAttribute('href','/clubs/10?tab=business');
+ expect(screen.getByRole('link',{name:/Jobs & volunteering/})).toHaveAttribute('href','/clubs/10?tab=business&opportunity=jobs');
 });
 it('makes Store, Campaigns and Jobs reachable in the workspace navigation',()=>{
  const onTabChange=vi.fn();render(<WorkspaceSidebar clubId={10} overview={null} activeTab="campaigns" tabs={[{id:'store',label:'Store',icon:ShoppingBag},{id:'campaigns',label:'Campaigns',icon:HeartHandshake},{id:'jobs',label:'Jobs & volunteering',icon:Briefcase}]} unreadInboxCount={0} mobileOpen={false} onTabChange={onTabChange} onNavigate={vi.fn()} onClose={vi.fn()}/>);

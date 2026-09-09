@@ -1507,7 +1507,7 @@
     }
 
     .club-profile-main-grid--business {
-      grid-template-columns: minmax(340px, 390px) minmax(0, 720px);
+      grid-template-columns: minmax(280px, 320px) minmax(0, 1120px);
       justify-content: center;
     }
   }

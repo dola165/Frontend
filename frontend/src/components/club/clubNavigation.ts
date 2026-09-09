@@ -1,4 +1,4 @@
-import { ShoppingBag, HeartHandshake, Briefcase, Building2, CalendarDays, Camera, Phone, Users, UsersRound } from 'lucide-react';
+import { LayoutGrid, Building2, CalendarDays, Camera, Phone, Users, UsersRound } from 'lucide-react';
 
 export type ClubNavigationTab = 'overview' | 'people' | 'teams' | 'schedule' | 'media' | 'business' | 'contact' | 'store' | 'campaigns';
 
@@ -54,14 +54,11 @@ export const clubNavigationItems: ClubNavigationItem[] = [
         accent: 'blue',
         section: 'media'
     },
-    { id: 'store', icon: ShoppingBag, label: 'Store', toneClassName: 'club-tone-green' },
-    { id: 'campaigns', icon: HeartHandshake, label: 'Campaigns', toneClassName: 'club-tone-amber', accent: 'amber' },
     {
         id: 'business',
-        icon: Briefcase,
-        label: 'Jobs & volunteering',
-        toneClassName: 'club-tone-green',
-        accent: 'violet'
+        icon: LayoutGrid,
+        label: 'Opportunities',
+        toneClassName: 'club-tone-green'
     },
     {
         id: 'contact',

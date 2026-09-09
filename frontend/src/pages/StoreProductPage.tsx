@@ -1,3 +1,4 @@
+import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
 import {useEffect,useState} from 'react';
 import {Link,useParams} from 'react-router-dom';
 import {fetchStoreProduct,formatStorePrice,type StoreProduct} from '../features/store/api';
@@ -25,7 +26,7 @@ export const StoreProductPage=()=>{
         } catch (error) { setFeedback(error instanceof Error ? error.message : 'The cart could not be saved.'); }
     };
     return <main className="store-page store-detail-page">
-        <div className="store-detail-top"><nav aria-label="Breadcrumb" className="store-breadcrumb"><Link to="/store" aria-label="Browse all stores">Store</Link>{product?.clubId && <><ChevronRight size={14}/><Link to={`/clubs/${product.clubId}/store`}>{product.clubName} store</Link></>}</nav><Link className="store-cart-link" to="/store/cart"><ShoppingBag size={18}/>Open cart</Link></div>
+        <div className="store-detail-top"><OpportunityNavigation section="store" clubId={product?.clubId} detail/><Link className="store-cart-link" to="/store/cart"><ShoppingBag size={18}/>Open cart</Link></div>
         {loading ? <p role="status">Loading product...</p> : error ? <div role="alert" className="store-empty">{error} <button className="underline" onClick={() => setReload(n => n + 1)}>Retry</button></div> : product && <div className="store-detail-grid">
             <section className="store-gallery" aria-label="Product photos">
                 <div className="store-main-photo">{product.images?.length ? <img src={resolveMediaUrl(product.images[photo] ?? product.images[0])} alt={`${product.name} - photo ${photo + 1}`}/> : <span><ShoppingBag size={40}/>No product photo</span>}</div>

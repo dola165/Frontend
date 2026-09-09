@@ -1,3 +1,4 @@
+import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { HeartHandshake, Building2 } from 'lucide-react';
@@ -53,12 +54,7 @@ function CampaignDetail({ id }: { id: number }) {
     const link = `${window.location.origin}/campaigns/${id}`;
     return (
         <main className="store-page campaigns-page">
-            <nav className="store-breadcrumb store-detail-top" aria-label="Breadcrumb">
-                <Link to="/campaigns">All campaigns</Link>
-                {campaign && (
-                    <Link to={`/clubs/${campaign.clubId}/campaigns`}>{campaign.clubName} campaigns</Link>
-                )}
-            </nav>
+            <OpportunityNavigation section="campaigns" clubId={campaign?.clubId} detail/>
             {loading ? (
                 <p role="status">Loading campaign...</p>
             ) : error ? (

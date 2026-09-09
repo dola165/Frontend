@@ -1,3 +1,4 @@
+import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowRight, Building2 } from 'lucide-react';
@@ -107,12 +108,7 @@ function JobDetail({ id }: { id: number }) {
     };
     return (
         <main className="store-page jobs-page jobs-detail">
-            <nav className="store-breadcrumb store-detail-top" aria-label="Breadcrumb">
-                <Link to="/jobs">All opportunities</Link>
-                {job?.clubId && (
-                    <Link to={`/clubs/${job.clubId}?tab=business`}>{job.clubName} opportunities</Link>
-                )}
-            </nav>
+            <OpportunityNavigation section="jobs" clubId={job?.clubId} detail/>
             {loading ? (
                 <p role="status">Loading opportunity...</p>
             ) : error ? (
@@ -123,7 +119,7 @@ function JobDetail({ id }: { id: number }) {
             ) : (
                 job && (
                     <article className="jobs-detail-content">
-                        <Link className="store-seller" to={`/clubs/${job.clubId}?tab=business`}>
+                        <Link className="store-seller" to={`/clubs/${job.clubId}?tab=business&opportunity=jobs`}>
                             <Building2 size={25} />
                             <span>
                                 <small>Opportunity from</small>

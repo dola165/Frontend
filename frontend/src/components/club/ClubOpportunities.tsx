@@ -13,7 +13,7 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
     const entries = [
         { label: 'Store', description: 'Shop products from this club', icon: ShoppingBag, tone: 'club-tone-green', href: `/clubs/${club.id}/store` },
         { label: 'Fundraising & campaigns', description: "Discover this club's projects", icon: HeartHandshake, tone: 'club-tone-amber', href: `/clubs/${club.id}/campaigns` },
-        { label: 'Jobs & volunteering', description: 'See opportunities at this club', icon: Briefcase, tone: 'club-tone-violet', href: `/clubs/${club.id}?tab=business` },
+        { label: 'Jobs & volunteering', description: 'See opportunities at this club', icon: Briefcase, tone: 'club-tone-violet', href: `/clubs/${club.id}?tab=business&opportunity=jobs` },
     ];
     return (
         <aside className="flex flex-col gap-4 lg:sticky lg:top-[calc(var(--app-header-height)+14px)]">
@@ -27,7 +27,7 @@ export const ClubOpportunities = ({ club, onOpenModule, showOpportunityBoard = t
                         </Link>
                     ))}
                 </div>
-                {onOpenModule && <button type="button" onClick={onOpenModule} className="flex w-full justify-between border-t border-[color:var(--club-theme-border-subtle)] px-4 py-3 text-xs text-[color:var(--club-theme-text-secondary)]">View club roles<ArrowRight className="h-3.5 w-3.5" /></button>}
+                {onOpenModule && <button type="button" onClick={onOpenModule} className="flex w-full justify-between border-t border-[color:var(--club-theme-border-subtle)] px-4 py-3 text-xs text-[color:var(--club-theme-text-secondary)]">View all club opportunities<ArrowRight className="h-3.5 w-3.5" /></button>}
             </section>
         </aside>
     );

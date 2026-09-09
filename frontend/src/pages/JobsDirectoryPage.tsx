@@ -1,3 +1,4 @@
+import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { BriefcaseBusiness, Search, SlidersHorizontal, X, ArrowRight, Building2 } from 'lucide-react';
@@ -201,11 +202,7 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
                     Refresh
                 </button>
             </header>
-            {fixedClubId && (
-                <nav className="store-scope-links">
-                    <Link to="/jobs">Browse all opportunities</Link>
-                </nav>
-            )}
+            {fixedClubId && <OpportunityNavigation section="jobs" clubId={fixedClubId}/>}
             <div className="store-toolbar">
                 <label className="store-search">
                     <Search size={18} />

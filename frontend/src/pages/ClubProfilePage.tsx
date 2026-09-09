@@ -292,8 +292,10 @@ export const ClubProfilePage = () => {
         try {
             await dissolveClub(club.id);
             setIsDissolveDialogOpen(false);
+            setMyClubId(null);
+            setMyClubRole(null);
             toast.success('Club dissolved');
-            navigate('/clubs');
+            navigate('/clubs', { replace: true });
         } catch (error) {
             toast.error(extractApiErrorMessage(error, 'Failed to dissolve club'));
         } finally {
@@ -483,10 +485,10 @@ export const ClubProfilePage = () => {
                 open={isDissolveDialogOpen}
                 variant="danger"
                 title="Dissolve this club?"
-                message="Dissolving is permanent. Members and followers will be notified and the club will be removed from browse, map and search."
-                confirmLabel="Dissolve Club"
+                message="Dissolving is permanent. Club memberships end, pending invitations and applications close, and recruitment stops. Accounts and club history are preserved. Members and followers will be notified. Finish or cancel tournaments the club hosts or organizes, and withdraw its unfinished entries before continuing."
+                confirmLabel={isDissolving ? 'Dissolving…' : 'Dissolve Club'}
                 onConfirm={() => void handleDissolveConfirm()}
-                onCancel={() => setIsDissolveDialogOpen(false)}
+                onCancel={() => { if (!isDissolving) setIsDissolveDialogOpen(false); }}
             />
         </div>
     );

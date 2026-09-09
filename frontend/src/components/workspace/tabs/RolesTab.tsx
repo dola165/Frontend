@@ -71,7 +71,7 @@ export const RolesTab = ({
 
         {isOwner && (
             <div className="space-y-4">
-                <SectionHeader eyebrow="Ownership" title="Transfer Ownership" description="Hand over club ownership to an eligible member." />
+                <SectionHeader eyebrow="Ownership" title="Transfer Ownership" description="Transfer ownership to an active organizer on your staff who has completed account setup. You will remain a club admin." />
                 {transferCandidates.length === 0 ? (
                     <EmptyState message="No eligible members available for ownership transfer." />
                 ) : (

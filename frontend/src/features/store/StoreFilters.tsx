@@ -1,3 +1,4 @@
+import { SlidersHorizontal } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { fetchStoreLocations, STORE_CATEGORIES, type StoreLocation } from './api';
 
@@ -26,7 +27,7 @@ export function StoreFilters({ clubId, params, currency, change, reset }: {
     const countries = [...new Set(locations.map(item => item.country))];
     const cities = [...new Set(locations.filter(item => item.country === country).map(item => item.city).filter((value): value is string => !!value))];
     return <form className="store-filter-form" onSubmit={event => event.preventDefault()}>
-        <div className="store-filter-title"><h2>Filter products</h2><button type="button" onClick={reset}>Reset filters</button></div>
+        <div className="store-filter-title"><h2><SlidersHorizontal size={15}/>Filter products</h2><button type="button" onClick={reset}>Reset filters</button></div>
         <details open><summary>Category</summary><label className="store-field"><span className="sr-only">Category</span>
             <select value={params.get('category') ?? ''} onChange={e => change('category', e.target.value)}>
                 <option value="">All categories</option>{STORE_CATEGORIES.map(category => <option key={category} value={category}>{categoryLabel(category)}</option>)}

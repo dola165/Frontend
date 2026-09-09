@@ -2,8 +2,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { BriefcaseBusiness, ShoppingBag } from 'lucide-react';
 
 const destinations = [
-    { path: '/store', label: 'Store', icon: ShoppingBag, activeClass: 'border-emerald-400/50 text-emerald-300' },
-    { path: '/jobs', label: 'Jobs & volunteering', icon: BriefcaseBusiness, activeClass: 'border-fuchsia-400/50 bg-fuchsia-400/[0.07] text-fuchsia-300' },
+    { path: '/store', label: 'Store', icon: ShoppingBag, activeClass: 'border-emerald-600/50 bg-emerald-600/[0.07] text-emerald-700 dark:border-emerald-400/50 dark:text-emerald-300' },
+    { path: '/jobs', label: 'Jobs & volunteering', icon: BriefcaseBusiness, activeClass: 'border-fuchsia-600/50 bg-fuchsia-600/[0.07] text-fuchsia-700 dark:border-fuchsia-400/50 dark:text-fuchsia-300' },
 ];
 
 export const DiscoverySectionTabs = () => {
@@ -18,7 +18,7 @@ export const DiscoverySectionTabs = () => {
                     <Link key={destination.path} to={destination.path} className={`inline-flex h-10 items-center gap-2 rounded-lg border px-4 text-xs font-bold transition-colors ${active ? destination.activeClass : 'border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] text-[color:var(--text-secondary)] hover:bg-[color:var(--theme-surface-strong)] hover:text-[color:var(--text-primary)]'}`} aria-current={active ? 'page' : undefined}>
                         <Icon className="h-4 w-4" />
                         {destination.label}
-                        {destination.path === '/jobs' && <span className="rounded-full border border-amber-400/30 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-amber-300">Preview</span>}
+                        {destination.path === '/jobs' && <span className="rounded-full border border-amber-400/30 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-amber-700 dark:text-amber-300">Preview</span>}
                     </Link>
                 );
             })}

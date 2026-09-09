@@ -203,8 +203,8 @@ export interface ClubJobPayload {
     status?: 'OPEN' | 'CLOSED';
 }
 
-export const fetchOpenJobDirectory = async () => {
-    const response = await apiClient.get<ClubJob[]>('/jobs');
+export const fetchOpenJobDirectory = async (signal?: AbortSignal) => {
+    const response = await apiClient.get<ClubJob[]>('/jobs', {signal});
     return response.data;
 };
 
@@ -396,3 +396,8 @@ export const activatePlayerCard = async (cardId: number, dateOfBirth: string, em
     );
     return response.data;
 };
+
+export const fetchPublicJob = async (id: number, signal?: AbortSignal) => (await apiClient.get<ClubJob>(`/jobs/${id}`, {signal})).data;
+export interface MyJobApplication { id: number; clubId: number; status: string; }
+export const fetchMyJobApplication = async (id: number, signal?: AbortSignal): Promise<MyJobApplication | null> =>
+    (await apiClient.get<MyJobApplication | null>(`/jobs/${id}/application`, {signal})).data || null;

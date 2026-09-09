@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Briefcase, Check, Eye, Loader2, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
 import {
     acceptClubApplication, createClubJob, declineClubApplication, deleteClubJob, fetchAllClubJobs, fetchJobApplications, updateClubJob,
     type ClubJob, type ClubJobCategory, type ClubJobEngagementType, type ClubJobPayload
 } from '../../../features/clubs/api';
+import { extractApiErrorMessage } from '../../../utils/apiError';
 import type { ClubMembershipApplication } from '../../../features/clubs/domain';
 import { ErrorBlock, PageSpinner, Pill, SectionHeader } from '../helpers';
 import { DecisionNoteModal } from './DecisionNoteModal';
@@ -47,6 +48,9 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
     const [editing, setEditing] = useState<ClubJob | 'new' | null>(null);
     const [saving, setSaving] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
+    const [jobBusy, setJobBusy] = useState(false);
+    const [deleteId, setDeleteId] = useState<number | null>(null);
+    const applicantRequest = useRef(0);
     const [query, setQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
     const [selectedJob, setSelectedJob] = useState<ClubJob | null>(null);
@@ -82,31 +86,35 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
     const canReviewJob = (job: ClubJob) => canReviewAllApplications || job.createdBy === currentUserId;
 
     const openApplicants = async (job: ClubJob) => {
+        const request = ++applicantRequest.current;
         setSelectedJob(job);
+        setJobApplications([]);
         setApplicationsLoading(true);
         setApplicationsError(null);
         try {
-            setJobApplications(await fetchJobApplications(clubId, job.id));
+            const result = await fetchJobApplications(clubId, job.id);
+            if(request === applicantRequest.current) setJobApplications(result);
         } catch (error) {
-            setJobApplications([]);
-            setApplicationsError(error instanceof Error ? error.message : 'Could not load applicants.');
+            if(request === applicantRequest.current) {setJobApplications([]);setApplicationsError(extractApiErrorMessage(error, 'Could not load applicants.'));}
         } finally {
-            setApplicationsLoading(false);
+            if(request === applicantRequest.current) setApplicationsLoading(false);
         }
     };
 
     const handleApplicationDecision = async (message: string | null) => {
-        if (!selectedJob || !applicationDecision) return;
+        if (!selectedJob || !applicationDecision || applicationPendingId !== null) return;
         const { application, accept } = applicationDecision;
         setApplicationPendingId(application.id);
         try {
             if (accept) await acceptClubApplication(clubId, application.id, message);
             else await declineClubApplication(clubId, application.id, message);
             setApplicationDecision(null);
-            setJobApplications(await fetchJobApplications(clubId, selectedJob.id));
+            setJobApplications(current => current.map(item => item.id === application.id ? {...item, status: accept ? 'ACCEPTED' : 'DECLINED'} : item));
+            try { setJobApplications(await fetchJobApplications(clubId, selectedJob.id)); }
+            catch { setApplicationsError('Decision saved, but the refreshed applicant list could not load. Please reload applicants.'); }
             await load();
         } catch (error) {
-            setApplicationsError(error instanceof Error ? error.message : 'Could not update this application.');
+            setApplicationsError(extractApiErrorMessage(error, 'Could not update this application.'));
         } finally {
             setApplicationPendingId(null);
         }
@@ -119,7 +127,7 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
     if (selectedJob) {
         return (
             <div className="space-y-4">
-                <button type="button" onClick={() => { setSelectedJob(null); setJobApplications([]); setApplicationsError(null); }} className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]">
+                <button type="button" disabled={applicationPendingId !== null} onClick={() => { applicantRequest.current++; setSelectedJob(null); setJobApplications([]); setApplicationsError(null); setApplicationDecision(null); }} className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]">
                     <ArrowLeft className="h-4 w-4" /> Back to job postings
                 </button>
                 <SectionHeader
@@ -187,7 +195,7 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
                     <button
                         type="button"
                         onClick={() => setEditing('new')}
-                        className="inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
+                        className="inline-flex items-center gap-2 rounded-xl bg-fuchsia-700 px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
                     >
                         <Plus className="h-3.5 w-3.5" /> {t('jobs.postJob')}
                     </button>
@@ -211,7 +219,7 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
             ) : (
                 <div className="space-y-1.5">
                     {visibleJobs.map((job) => (
-                        <div key={job.id} className="flex items-center gap-4 rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
+                        <div key={job.id} className="flex flex-wrap items-center gap-4 rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
                             <Briefcase className="h-4 w-4 shrink-0 text-[var(--fc-text-muted)]" />
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-semibold text-[var(--fc-text-primary)]">{job.title}</p>
@@ -231,27 +239,26 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
                             )}
                             <button
                                 type="button"
-                                disabled={pendingKey === `job-${job.id}`}
+                                disabled={jobBusy || saving || !!editing || pendingKey === `job-${job.id}`}
                                 onClick={() => void (async () => {
+                                    setJobBusy(true);setError(null);
                                     try {
                                         await updateClubJob(clubId, job.id, { status: job.status === 'OPEN' ? 'CLOSED' : 'OPEN' });
                                         await load();
-                                    } catch { /* surfaced by reload */ }
+                                    } catch (error) { setError(extractApiErrorMessage(error, 'Could not change this posting.')); } finally {setJobBusy(false);}
                                 })()}
                                 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-50"
                             >
                                 {job.status === 'OPEN' ? t('jobs.close') : t('jobs.reopen')}
                             </button>
-                            <button type="button" onClick={() => setEditing(job)} aria-label={`Edit ${job.title}`} className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
+                            <button type="button" disabled={jobBusy || saving} onClick={() => setEditing(job)} aria-label={`Edit ${job.title}`} className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
                                 <Pencil className="h-3.5 w-3.5" />
                             </button>
                             <button
                                 type="button"
                                 aria-label={`Delete ${job.title}`}
-                                onClick={() => void (async () => {
-                                    await deleteClubJob(clubId, job.id);
-                                    await load();
-                                })()}
+                                disabled={jobBusy || saving || !!editing}
+                                onClick={() => setDeleteId(job.id)}
                                 className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-state-danger)]"
                             >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -261,14 +268,23 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
                 </div>
             )}
 
+            {error && <p role="alert">{error} <button className="underline" onClick={() => void load()}>Reload jobs</button></p>}
+            {deleteId !== null && <div role="group" aria-label="Confirm delete job"><p>Delete this posting? A posting with applications must be closed instead.</p><button disabled={jobBusy} onClick={async () => {
+                setJobBusy(true);setError(null);
+                try {await deleteClubJob(clubId,deleteId);setDeleteId(null);await load();}
+                catch(error) {setError(extractApiErrorMessage(error,'Could not delete this posting.'));}
+                finally {setJobBusy(false);}
+            }}>Confirm delete</button><button className="ml-4" disabled={jobBusy} onClick={() => setDeleteId(null)}>Keep posting</button></div>}
             {editing && (
                 <JobForm
+                    key={editing === 'new' ? 'new' : editing.id}
                     clubId={clubId}
                     job={editing === 'new' ? null : editing}
                     saving={saving}
                     formError={formError}
                     onCancel={() => { setEditing(null); setFormError(null); }}
                     onSubmit={async (payload) => {
+                        if (saving) return;
                         setSaving(true);
                         setFormError(null);
                         try {
@@ -279,8 +295,8 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
                             }
                             setEditing(null);
                             await load();
-                        } catch {
-                            setFormError(t('jobs.saveFailed'));
+                        } catch (error) {
+                            setFormError(extractApiErrorMessage(error, t('jobs.saveFailed')));
                         } finally {
                             setSaving(false);
                         }
@@ -310,24 +326,24 @@ const JobForm = ({
     const [category, setCategory] = useState<ClubJobCategory>(job?.category ?? 'OTHER');
     const [engagementType, setEngagementType] = useState<ClubJobEngagementType>(job?.engagementType ?? 'UNSPECIFIED');
 
-    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-2 text-sm font-semibold text-[#f4f4f5] focus:border-[#16a34a] outline-none';
+    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-2 text-sm font-semibold text-[var(--fc-text-primary)] focus:border-fuchsia-500 outline-none';
 
     return (
         <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-4">
             <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-[var(--fc-text-primary)]">{job ? t('jobs.editPosting') : t('jobs.newPosting')}</p>
-                <button type="button" onClick={onCancel} aria-label="Close job editor" className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
+                <button type="button" disabled={saving} onClick={onCancel} aria-label="Close job editor" className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
                     <X className="h-4 w-4" />
                 </button>
             </div>
             {formError && <p className="mt-2 text-xs font-semibold text-[var(--fc-state-danger)]">{formError}</p>}
             <form
-                onSubmit={(e) => { e.preventDefault(); void onSubmit({ title: title.trim(), description: description || null, ageGroup: ageGroup || null, level: level || null, requiredRole: requiredRole || null, category, engagementType }); }}
+                onSubmit={(e) => { e.preventDefault(); void onSubmit({ title: title.trim(), description, ageGroup, level, requiredRole, category, engagementType }); }}
                 className="mt-3 grid gap-3"
             >
-                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120}
+                <input aria-label="Job title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120}
                     placeholder={t('jobs.titlePlaceholder')} className={inputClass} />
-                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={2000}
+                <textarea aria-label="Job description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={2000}
                     placeholder={t('jobs.descriptionPlaceholder')} className={inputClass} />
                 <div className="grid gap-3 sm:grid-cols-2">
                     <label className="grid gap-1">
@@ -343,6 +359,7 @@ const JobForm = ({
                         </select>
                     </label>
                 </div>
+                <p className="text-xs text-[var(--fc-text-secondary)]">Player and coach openings use in-app applications. Other roles direct visitors to your club contact details; keep those details up to date.</p>
                 <div className="grid gap-3 sm:grid-cols-3">
                     <select value={ageGroup} onChange={(e) => setAgeGroup(e.target.value)} className={inputClass}>
                         <option value="">{t('jobs.ageGroupAny')}</option>
@@ -352,13 +369,13 @@ const JobForm = ({
                         <option value="">{t('jobs.levelAny')}</option>
                         {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
                     </select>
-                    <select value={requiredRole} onChange={(e) => setRequiredRole(e.target.value)} aria-label="Required role" className={inputClass}>
-                        <option value="">No restriction</option>
-                        {REQUIRED_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                    <select value={requiredRole} onChange={(e) => setRequiredRole(e.target.value)} aria-label="Application route" className={inputClass}>
+                        <option value="">Contact club (other roles)</option>
+                        {REQUIRED_ROLES.map((r) => <option key={r} value={r}>{r === 'CLUB_ADMIN' ? 'Club admin (contact club)' : `${r.charAt(0)}${r.slice(1).toLowerCase()} application`}</option>)}
                     </select>
                 </div>
                 <button type="submit" disabled={saving}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50">
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-fuchsia-700 px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50">
                     {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t('jobs.save')}
                 </button>
             </form>

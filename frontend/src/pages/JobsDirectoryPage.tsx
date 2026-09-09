@@ -1,260 +1,476 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, BriefcaseBusiness, Building2, CalendarClock, HeartHandshake, Loader2, MapPin } from 'lucide-react';
+import { BriefcaseBusiness, Search, SlidersHorizontal, X, ArrowRight, Building2 } from 'lucide-react';
 import { DiscoverySectionTabs } from '../components/discovery/DiscoverySectionTabs';
-import { ClubLocationFilter } from '../components/discovery/ClubLocationFilter';
-import { EMPTY_CLUB_REGION, type ClubRegionSelection } from '../components/discovery/clubLocationTypes';
-import { DirectoryChoiceList, DirectoryFilterSection, DirectoryFilterShell, type DirectoryFilterChip } from '../components/discovery/DirectoryFilterShell';
-import { DirectoryFilterDrawer } from '../components/discovery/DirectoryFilterDrawer';
-import { DirectoryToolbar, type DirectorySortOption } from '../components/discovery/DirectoryToolbar';
-import { fetchOpenJobDirectory, type ClubJob, type ClubJobCategory, type ClubJobEngagementType } from '../features/clubs/api';
+import { fetchOpenJobDirectory, type ClubJob } from '../features/clubs/api';
+import {
+    CATEGORIES,
+    ENGAGEMENTS,
+    POSTED_OPTIONS,
+    labelForCategory,
+    labelForEngagement,
+    locationLabel,
+    relativeDate,
+} from '../features/clubs/jobLabels';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
+import '../features/store/store.css';
 
-type PostedWindow = 'ALL' | '7D' | '30D';
-type JobSort = 'NEWEST' | 'OLDEST';
-
-const CATEGORIES: Array<{ value: 'ALL' | ClubJobCategory; label: string }> = [
-    { value: 'ALL', label: 'All football roles' },
-    { value: 'COACHING', label: 'Coaching' },
-    { value: 'FOOTBALL_OPERATIONS', label: 'Football operations' },
-    { value: 'ADMINISTRATION', label: 'Administration' },
-    { value: 'MEDIA_COMMUNICATIONS', label: 'Media & communications' },
-    { value: 'FACILITIES', label: 'Facilities & maintenance' },
-    { value: 'MEDICAL', label: 'Medical & wellbeing' },
-    { value: 'MATCHDAY', label: 'Matchday staff' },
-    { value: 'OTHER', label: 'Other club roles' }
-];
-
-const ENGAGEMENTS: Array<{ value: 'ALL' | ClubJobEngagementType; label: string }> = [
-    { value: 'ALL', label: 'Paid and volunteer' },
-    { value: 'PAID', label: 'Paid roles' },
-    { value: 'VOLUNTEER', label: 'Volunteering' },
-    { value: 'FLEXIBLE', label: 'Paid or volunteer' },
-    { value: 'UNSPECIFIED', label: 'Not specified' }
-];
-
-const POSTED_OPTIONS = [
-    { value: 'ALL', label: 'Any posting date' },
-    { value: '7D', label: 'Past 7 days' },
-    { value: '30D', label: 'Past 30 days' }
-] as const;
-
-const SORT_OPTIONS: readonly DirectorySortOption[] = [
-    { value: 'NEWEST', label: 'Most recent' },
-    { value: 'OLDEST', label: 'Oldest first' }
-];
-
-const labelForCategory = (value?: string | null) => CATEGORIES.find((item) => item.value === value)?.label ?? 'Other club role';
-const labelForEngagement = (value?: string | null) => ENGAGEMENTS.find((item) => item.value === value)?.label ?? 'Not specified';
-const locationLabel = (job: ClubJob) => [job.clubCityName, job.clubCountryName].filter(Boolean).join(', ') || 'Location not specified';
-
-const relativeDate = (value?: string | null) => {
-    if (!value) return 'Recently posted';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'Recently posted';
-    const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / 86_400_000));
-    if (days === 0) return 'Posted today';
-    if (days === 1) return 'Posted yesterday';
-    return `Posted ${days} days ago`;
+const filterNames: Record<string, string> = {
+    search: 'Search',
+    category: 'Football role',
+    engagement: 'Engagement',
+    posted: 'Posted',
+    ageGroup: 'Team age group',
+    level: 'Experience',
+    country: 'Country',
+    city: 'City',
+    clubId: 'Club',
+};
+const readChoice = (value: string | null, options: readonly { value: string }[]) =>
+    options.some((o) => o.value === value) ? value! : 'ALL';
+const timestamp = (value?: string | null) => {
+    const n = Date.parse(value ?? '');
+    return Number.isFinite(n) ? n : 0;
 };
 
-const readRegion = (params: URLSearchParams): ClubRegionSelection => ({
-    country: params.get('country') || null,
-    city: params.get('city') || null,
-    clubId: params.get('clubId') ? Number(params.get('clubId')) : null
-});
-
-export const JobsDirectoryPage = () => {
-    const [searchParams, setSearchParams] = useSearchParams();
+export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: number; clubName?: string }) => {
+    const [params, setParams] = useSearchParams();
     const [jobs, setJobs] = useState<ClubJob[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [search, setSearch] = useState(searchParams.get('search') || '');
-    const [category, setCategory] = useState<'ALL' | ClubJobCategory>((searchParams.get('category') as ClubJobCategory | null) ?? 'ALL');
-    const [engagement, setEngagement] = useState<'ALL' | ClubJobEngagementType>((searchParams.get('engagement') as ClubJobEngagementType | null) ?? 'ALL');
-    const [posted, setPosted] = useState<PostedWindow>((searchParams.get('posted') as PostedWindow | null) ?? 'ALL');
-    const [ageGroup, setAgeGroup] = useState(searchParams.get('ageGroup') || 'ALL');
-    const [level, setLevel] = useState(searchParams.get('level') || 'ALL');
-    const [sort, setSort] = useState<JobSort>((searchParams.get('sort') as JobSort | null) ?? 'NEWEST');
-    const [region, setRegion] = useState<ClubRegionSelection>(() => readRegion(searchParams));
-    const [selectedId, setSelectedId] = useState<number | null>(null);
-    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-    const mobileFilterTriggerRef = useRef<HTMLButtonElement | null>(null);
-    const mobileFilterCloseRef = useRef<HTMLButtonElement | null>(null);
-    const hadMobileFiltersOpen = useRef(false);
-
-    const load = useCallback(async () => {
+    const [loading, setLoading] = useState(true),
+        [error, setError] = useState(''),
+        [reload, setReload] = useState(0);
+    const [filtersOpen, setFiltersOpen] = useState(false);
+    const [asOf, setAsOf] = useState(() => Date.now());
+    const trigger = useRef<HTMLButtonElement>(null);
+    useEffect(() => {
+        const controller = new AbortController();
+        let active = true;
+        // Refresh from the source; old requests cannot replace a newer retry.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true);
-        setError(null);
-        try {
-            const result = await fetchOpenJobDirectory();
-            setJobs(result);
-            setSelectedId((current) => current != null && result.some((job) => job.id === current) ? current : result[0]?.id ?? null);
-        } catch {
-            setJobs([]);
-            setError('Could not load club opportunities. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { void load(); }, [load]);
-
-    // Keep local controls aligned with browser back/forward navigation.
-    useEffect(() => {
-        const urlSearch = searchParams.get('search') || '';
-        const urlCategory = searchParams.get('category') || 'ALL';
-        const urlEngagement = searchParams.get('engagement') || 'ALL';
-        const urlPosted = searchParams.get('posted') || 'ALL';
-        const urlAgeGroup = searchParams.get('ageGroup') || 'ALL';
-        const urlLevel = searchParams.get('level') || 'ALL';
-        const urlSort = searchParams.get('sort') || 'NEWEST';
-        const urlRegion = readRegion(searchParams);
-        if (urlSearch !== search) setSearch(urlSearch);
-        if (urlCategory !== category) setCategory(urlCategory as 'ALL' | ClubJobCategory);
-        if (urlEngagement !== engagement) setEngagement(urlEngagement as 'ALL' | ClubJobEngagementType);
-        if (urlPosted !== posted) setPosted(urlPosted as PostedWindow);
-        if (urlAgeGroup !== ageGroup) setAgeGroup(urlAgeGroup);
-        if (urlLevel !== level) setLevel(urlLevel);
-        if (urlSort !== sort) setSort(urlSort as JobSort);
-        if (urlRegion.country !== region.country || urlRegion.city !== region.city || urlRegion.clubId !== region.clubId) setRegion(urlRegion);
-        // State-to-URL synchronization below prevents loops after these updates.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams]);
-
-    useEffect(() => {
-        const next = new URLSearchParams();
-        if (search.trim()) next.set('search', search.trim());
-        if (category !== 'ALL') next.set('category', category);
-        if (engagement !== 'ALL') next.set('engagement', engagement);
-        if (posted !== 'ALL') next.set('posted', posted);
-        if (ageGroup !== 'ALL') next.set('ageGroup', ageGroup);
-        if (level !== 'ALL') next.set('level', level);
-        if (sort !== 'NEWEST') next.set('sort', sort);
-        if (region.country) next.set('country', region.country);
-        if (region.city) next.set('city', region.city);
-        if (region.clubId != null) next.set('clubId', String(region.clubId));
-        setSearchParams(next, { replace: true });
-    }, [ageGroup, category, engagement, level, posted, region, search, setSearchParams, sort]);
-
-    useEffect(() => {
-        if (!mobileFiltersOpen) return;
-        const handleKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobileFiltersOpen(false); };
-        const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        document.addEventListener('keydown', handleKeyDown);
-        return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', handleKeyDown); };
-    }, [mobileFiltersOpen]);
-
-    useEffect(() => {
-        if (mobileFiltersOpen) mobileFilterCloseRef.current?.focus();
-        else if (hadMobileFiltersOpen.current) mobileFilterTriggerRef.current?.focus();
-        hadMobileFiltersOpen.current = mobileFiltersOpen;
-    }, [mobileFiltersOpen]);
-
-    const locationItems = useMemo(() => jobs.flatMap((job) => job.clubId == null ? [] : [{ clubId: job.clubId, clubName: job.clubName ?? 'Club', cityName: job.clubCityName, countryName: job.clubCountryName }]), [jobs]);
-    const ageOptions = useMemo(() => Array.from(new Set(jobs.map((job) => job.ageGroup).filter((value): value is string => Boolean(value)))).sort(), [jobs]);
-    const levelOptions = useMemo(() => Array.from(new Set(jobs.map((job) => job.level).filter((value): value is string => Boolean(value)))).sort(), [jobs]);
-
-    const filtered = useMemo(() => {
-        const query = search.trim().toLowerCase();
-        const now = Date.now();
-        const next = jobs.filter((job) => {
+        setError('');
+        setAsOf(Date.now());
+        void fetchOpenJobDirectory(controller.signal)
+            .then((data) => {
+                if (active) setJobs(data);
+            })
+            .catch(() => {
+                if (active) {
+                    setJobs([]);
+                    setError('Could not load opportunities. Please try again.');
+                }
+            })
+            .finally(() => {
+                if (active) setLoading(false);
+            });
+        return () => {
+            active = false;
+            controller.abort();
+        };
+    }, [reload]);
+    const change = (key: string, value: string) =>
+        setParams((current) => {
+            const next = new URLSearchParams(current);
+            if (value && value !== 'ALL') next.set(key, value);
+            else next.delete(key);
+            if (key !== 'page' && key !== 'job') next.delete('page');
+            if (key !== 'job') next.delete('job');
+            if (key === 'country') {
+                next.delete('city');
+                next.delete('clubId');
+            }
+            if (key === 'city') next.delete('clubId');
+            return next;
+        });
+    const reset = () =>
+        setParams((current) => {
+            const next = new URLSearchParams(current);
+            [...Object.keys(filterNames), 'page', 'sort', 'job'].forEach((key) => next.delete(key));
+            return next;
+        });
+    const category = readChoice(params.get('category'), CATEGORIES),
+        engagement = readChoice(params.get('engagement'), ENGAGEMENTS),
+        posted = readChoice(params.get('posted'), POSTED_OPTIONS);
+    const search = params.get('search') ?? '',
+        country = params.get('country') ?? '',
+        city = params.get('city') ?? '';
+    const clubFilter = fixedClubId ?? (params.get('clubId') ? Number(params.get('clubId')) : undefined);
+    const scope = fixedClubId ? jobs.filter((job) => job.clubId === fixedClubId) : jobs;
+    const countries = [
+        ...new Set(scope.map((job) => job.clubCountryName).filter((v): v is string => !!v)),
+    ].sort();
+    const cities = [
+        ...new Set(
+            scope
+                .filter((job) => job.clubCountryName === country)
+                .map((job) => job.clubCityName)
+                .filter((v): v is string => !!v),
+        ),
+    ].sort();
+    const clubs = [
+        ...new Map(
+            scope
+                .filter(
+                    (job) =>
+                        (!country || job.clubCountryName === country) && (!city || job.clubCityName === city),
+                )
+                .map((job) => [job.clubId, job]),
+        ).values(),
+    ];
+    const ageOptions = [...new Set(scope.map((job) => job.ageGroup).filter((v): v is string => !!v))].sort();
+    const levels = [...new Set(scope.map((job) => job.level).filter((v): v is string => !!v))].sort();
+    const filtered = scope
+        .filter((job) => {
             if (category !== 'ALL' && job.category !== category) return false;
             if (engagement !== 'ALL' && (job.engagementType ?? 'UNSPECIFIED') !== engagement) return false;
-            if (posted !== 'ALL') {
-                if (!job.createdAt) return false;
-                const createdAt = new Date(job.createdAt).getTime();
-                if (Number.isNaN(createdAt) || now - createdAt > (posted === '7D' ? 7 : 30) * 86_400_000) return false;
-            }
-            if (ageGroup !== 'ALL' && job.ageGroup !== ageGroup) return false;
-            if (level !== 'ALL' && job.level !== level) return false;
-            if (region.country && job.clubCountryName !== region.country) return false;
-            if (region.city && job.clubCityName !== region.city) return false;
-            if (region.clubId != null && job.clubId !== region.clubId) return false;
-            if (query) {
-                const haystack = `${job.title} ${job.description ?? ''} ${job.clubName ?? ''} ${labelForCategory(job.category)}`.toLowerCase();
-                if (!haystack.includes(query)) return false;
-            }
-            return true;
-        });
-        return [...next].sort((a, b) => {
-            const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return sort === 'OLDEST' ? aTime - bTime : bTime - aTime;
-        });
-    }, [ageGroup, category, engagement, jobs, level, posted, region, search, sort]);
-
-    const selected = filtered.find((job) => job.id === selectedId) ?? filtered[0] ?? null;
-    const hasFilters = Boolean(search.trim() || category !== 'ALL' || engagement !== 'ALL' || posted !== 'ALL' || ageGroup !== 'ALL' || level !== 'ALL' || region.country || region.city || region.clubId != null);
-
-    const clearFilters = () => {
-        setSearch('');
-        setCategory('ALL');
-        setEngagement('ALL');
-        setPosted('ALL');
-        setAgeGroup('ALL');
-        setLevel('ALL');
-        setSort('NEWEST');
-        setRegion(EMPTY_CLUB_REGION);
-    };
-
-    const activeFilterChips: DirectoryFilterChip[] = [
-        ...(search.trim() ? [{ id: 'search', label: `“${search.trim()}”` }] : []),
-        ...(category !== 'ALL' ? [{ id: 'category', label: labelForCategory(category) }] : []),
-        ...(engagement !== 'ALL' ? [{ id: 'engagement', label: labelForEngagement(engagement) }] : []),
-        ...(posted !== 'ALL' ? [{ id: 'posted', label: POSTED_OPTIONS.find((option) => option.value === posted)?.label ?? posted }] : []),
-        ...(ageGroup !== 'ALL' ? [{ id: 'ageGroup', label: ageGroup }] : []),
-        ...(level !== 'ALL' ? [{ id: 'level', label: level }] : []),
-        ...(region.country ? [{ id: 'country', label: region.country }] : []),
-        ...(region.city ? [{ id: 'city', label: region.city }] : []),
-        ...(region.clubId != null ? [{ id: 'club', label: 'Club selected' }] : [])
-    ];
-
-    const removeFilter = (id: string) => {
-        if (id === 'search') setSearch('');
-        if (id === 'category') setCategory('ALL');
-        if (id === 'engagement') setEngagement('ALL');
-        if (id === 'posted') setPosted('ALL');
-        if (id === 'ageGroup') setAgeGroup('ALL');
-        if (id === 'level') setLevel('ALL');
-        if (id === 'country') setRegion(EMPTY_CLUB_REGION);
-        if (id === 'city') setRegion((current) => ({ ...current, city: null, clubId: null }));
-        if (id === 'club') setRegion((current) => ({ ...current, clubId: null }));
-    };
-
-    const renderFilters = (variant: 'rail' | 'drawer') => (
-        <DirectoryFilterShell title="Filter jobs" description="Narrow the directory by role, opportunity type, date and location." accent="violet" variant={variant} hasActiveFilters={hasFilters} clearLabel="Clear all" onClear={clearFilters}>
-            <div className="space-y-5 p-4">
-                <DirectoryFilterSection title="Football role" className="px-0 py-0"><DirectoryChoiceList options={CATEGORIES} selectedValues={[category]} onToggle={(value) => setCategory(value as 'ALL' | ClubJobCategory)} accent="violet" variant="row" /></DirectoryFilterSection>
-                <DirectoryFilterSection title="Payment and engagement" separated className="px-0 py-0"><DirectoryChoiceList options={ENGAGEMENTS} selectedValues={[engagement]} onToggle={(value) => setEngagement(value as 'ALL' | ClubJobEngagementType)} accent="violet" variant="row" /></DirectoryFilterSection>
-                <DirectoryFilterSection title="Posted" separated className="px-0 py-0"><DirectoryChoiceList options={POSTED_OPTIONS} selectedValues={[posted]} onToggle={(value) => setPosted(value as PostedWindow)} accent="violet" variant="pill" /></DirectoryFilterSection>
-                {ageOptions.length > 0 && <DirectoryFilterSection title="Age group" separated className="px-0 py-0"><DirectoryChoiceList options={[{ value: 'ALL', label: 'Any age group' }, ...ageOptions.map((value) => ({ value, label: value }))]} selectedValues={[ageGroup]} onToggle={setAgeGroup} accent="violet" variant="pill" /></DirectoryFilterSection>}
-                {levelOptions.length > 0 && <DirectoryFilterSection title="Level" separated className="px-0 py-0"><DirectoryChoiceList options={[{ value: 'ALL', label: 'Any level' }, ...levelOptions.map((value) => ({ value, label: value }))]} selectedValues={[level]} onToggle={setLevel} accent="violet" variant="pill" /></DirectoryFilterSection>}
-                <DirectoryFilterSection title="Location and club" separated className="px-0 py-0"><ClubLocationFilter items={locationItems} value={region} onChange={setRegion} label="Location and club" defaultOpen className="border-0 bg-transparent p-0 shadow-none" /></DirectoryFilterSection>
-            </div>
-        </DirectoryFilterShell>
+            if (
+                posted !== 'ALL' &&
+                (!timestamp(job.createdAt) ||
+                    asOf - timestamp(job.createdAt) > (posted === '7D' ? 7 : 30) * 86400000)
+            )
+                return false;
+            if (params.get('ageGroup') && job.ageGroup !== params.get('ageGroup')) return false;
+            if (params.get('level') && job.level !== params.get('level')) return false;
+            if ((country && country !== job.clubCountryName) || (city && city !== job.clubCityName))
+                return false;
+            if (clubFilter !== undefined && job.clubId !== clubFilter) return false;
+            return (
+                !search.trim() ||
+                `${job.title} ${job.description ?? ''} ${job.clubName ?? ''} ${labelForCategory(job.category)}`
+                    .toLowerCase()
+                    .includes(search.trim().toLowerCase())
+            );
+        })
+        .sort((a, b) =>
+            params.get('sort') === 'OLDEST'
+                ? timestamp(a.createdAt) - timestamp(b.createdAt) || a.id - b.id
+                : timestamp(b.createdAt) - timestamp(a.createdAt) || b.id - a.id,
+        );
+    const page = Math.min(
+        Math.max(0, Math.floor(Number(params.get('page')) || 0)),
+        Math.max(0, Math.ceil(filtered.length / 12) - 1),
     );
-
+    const visible = filtered.slice(page * 12, page * 12 + 12);
+    const selected = visible.find((job) => job.id === Number(params.get('job'))) ?? visible[0];
+    const chips = Object.entries(filterNames).filter(
+        ([key]) => !!params.get(key) && params.get(key) !== 'ALL',
+    );
+    const chipValue = (key: string) => {
+        const value = params.get(key);
+        if (key === 'category') return labelForCategory(value);
+        if (key === 'engagement') return labelForEngagement(value);
+        if (key === 'posted') return POSTED_OPTIONS.find((option) => option.value === value)?.label ?? value;
+        if (key === 'clubId')
+            return jobs.find((job) => job.clubId === Number(value))?.clubName ?? 'Unavailable club';
+        return value;
+    };
+    const choices = (key: string, options: readonly { value: string; label: string }[], value: string) =>
+        options.map((option) => (
+            <button
+                key={option.value}
+                type="button"
+                className="opportunity-choice"
+                aria-pressed={value === option.value}
+                onClick={() => change(key, option.value)}
+            >
+                <span aria-hidden="true" />
+                {option.label}
+            </button>
+        ));
+    const Surface = fixedClubId ? 'section' : 'main';
     return (
-        <div className="min-h-[calc(100dvh-var(--app-header-height))] bg-transparent text-[color:var(--text-primary)]">
-            <DiscoverySectionTabs />
-            <header className="border-b border-[color:var(--theme-border)] pb-6 pt-1">
-                <div className="flex flex-wrap items-end justify-between gap-4">
-                    <div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-fuchsia-300">Work in football</p><h1 className="mt-1 text-2xl font-bold tracking-tight">Jobs & volunteer opportunities</h1><p className="mt-1 max-w-2xl text-sm text-[color:var(--text-secondary)]">Real openings published by clubs through their GrassKickZ workspace.</p></div>
+        <Surface className={`store-page jobs-page ${fixedClubId ? 'jobs-embedded' : ''}`}>
+            {!fixedClubId && <DiscoverySectionTabs />}
+            <header className="store-heading">
+                <div>
+                    <p className="store-eyebrow">Work in football</p>
+                    <h1>
+                        {fixedClubId
+                            ? `${clubName ?? 'Club'} opportunities`
+                            : 'Jobs & volunteer opportunities'}
+                    </h1>
+                    <p className="store-subtitle">
+                        Find your place in football. Explore paid roles and volunteering.
+                    </p>
                 </div>
-                <DirectoryToolbar search={search} searchLabel="Search jobs" searchPlaceholder="Job title, club or skill" resultCount={!loading && !error ? filtered.length : undefined} resultLabel={(count) => `${count} ${count === 1 ? 'opportunity' : 'opportunities'}`} sort={sort} sortLabel="Sort opportunities" sortOptions={SORT_OPTIONS} hasActiveFilters={hasFilters} filtersOpen={mobileFiltersOpen} filterLabel="Filters" activeFilterChips={activeFilterChips} filterButtonRef={mobileFilterTriggerRef} accent="violet" onSearchChange={setSearch} onSortChange={(value) => setSort(value as JobSort)} onClearFilters={clearFilters} onRemoveFilter={removeFilter} onOpenFilters={() => setMobileFiltersOpen(true)} />
+                <button
+                    className="store-cart-link"
+                    onClick={() => setReload((n) => n + 1)}
+                    disabled={loading}
+                >
+                    Refresh
+                </button>
             </header>
-
-            <div className="grid gap-5 py-5 xl:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[280px_minmax(0,1fr)_350px]">
-                <aside aria-label="Job filters" className="hidden xl:block">{renderFilters('rail')}</aside>
-                <main className="min-w-0">
-                    {loading ? <div className="flex min-h-72 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-fuchsia-300" /></div> : error ? <div className="flex min-h-72 flex-col items-center justify-center border-y border-white/[0.08] text-center"><p className="text-sm text-rose-300">{error}</p><button type="button" onClick={() => void load()} className="mt-3 text-xs font-semibold text-fuchsia-200">Try again</button></div> : filtered.length === 0 ? <div className="flex min-h-72 flex-col items-center justify-center border-y border-white/[0.08] text-center"><BriefcaseBusiness className="h-7 w-7 text-[#71717a]" /><h2 className="mt-3 text-base font-bold">No roles match these filters</h2><p className="mt-1 text-sm text-[#8b8d94]">Try another location, role or opportunity type.</p></div> : <div className="divide-y divide-[color:var(--theme-border)] overflow-hidden rounded-xl border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]">{filtered.map((job) => { const active = selected?.id === job.id; const logo = resolveMediaUrl(job.clubLogoUrl); return <button key={job.id} type="button" onClick={() => setSelectedId(job.id)} className={`group flex w-full gap-4 px-4 py-4 text-left transition-colors ${active ? 'bg-fuchsia-400/10' : 'hover:bg-[color:var(--theme-surface-inset)]'}`}><span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[color:var(--theme-border)] bg-[color:var(--theme-surface-strong)]">{logo ? <img src={logo} alt="" className="h-full w-full object-cover" /> : <Building2 className="h-5 w-5 text-[#8b8d94]" />}</span><span className="min-w-0 flex-1"><span className="flex items-start justify-between gap-3"><span><span className="block text-sm font-bold group-hover:text-fuchsia-200">{job.title}</span><span className="mt-0.5 block text-xs font-semibold text-[color:var(--text-secondary)]">{job.clubName ?? 'Football club'}</span></span><ArrowRight className="mt-1 h-4 w-4 shrink-0 text-[#52525b] group-hover:text-fuchsia-200" /></span><span className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[color:var(--text-secondary)]"><span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{locationLabel(job)}</span><span className="inline-flex items-center gap-1">{job.engagementType === 'VOLUNTEER' ? <HeartHandshake className="h-3 w-3" /> : <BriefcaseBusiness className="h-3 w-3" />}{labelForEngagement(job.engagementType)}</span><span className="inline-flex items-center gap-1"><CalendarClock className="h-3 w-3" />{relativeDate(job.createdAt)}</span></span><span className="mt-2 block text-xs text-[color:var(--text-secondary)]">{labelForCategory(job.category)}{job.ageGroup ? ` · ${job.ageGroup}` : ''}{job.level ? ` · ${job.level.toLowerCase()}` : ''}</span></span></button>; })}</div>}
-                </main>
-                <aside className="hidden 2xl:block">{selected && <div className="sticky top-[calc(var(--app-header-height)+20px)] overflow-hidden rounded-xl border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]"><div className="border-b border-[color:var(--theme-border)] px-5 py-5"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-fuchsia-200">Selected opportunity</p><h2 className="mt-2 text-xl font-bold leading-tight">{selected.title}</h2><p className="mt-2 text-sm font-semibold">{selected.clubName ?? 'Football club'}</p><p className="mt-1 text-xs text-[color:var(--text-secondary)]">{locationLabel(selected)}</p></div><div className="px-5 py-5"><div className="flex flex-wrap gap-2 text-[11px] font-semibold text-[color:var(--text-secondary)]"><span className="border border-[color:var(--theme-border)] px-2 py-1">{labelForCategory(selected.category)}</span><span className="border border-[color:var(--theme-border)] px-2 py-1">{labelForEngagement(selected.engagementType)}</span></div><p className="mt-5 whitespace-pre-line text-sm leading-6 text-[color:var(--text-secondary)]">{selected.description || 'The club has not added a full description yet.'}</p>{selected.clubId != null && <Link to={`/clubs/${selected.clubId}`} className="mt-6 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-fuchsia-600 px-4 text-xs font-bold text-white transition-colors hover:bg-fuchsia-500">View club and opportunity <ArrowRight className="h-3.5 w-3.5" /></Link>}</div></div>}</aside>
+            {fixedClubId && (
+                <nav className="store-scope-links">
+                    <Link to="/jobs">Browse all opportunities</Link>
+                </nav>
+            )}
+            <div className="store-toolbar">
+                <label className="store-search">
+                    <Search size={18} />
+                    <span className="sr-only">Search jobs</span>
+                    <input
+                        maxLength={100}
+                        value={search}
+                        onChange={(e) => change('search', e.target.value)}
+                        placeholder="Job title, club or skill"
+                    />
+                </label>
+                <label className="store-sort">
+                    Sort opportunities
+                    <select
+                        value={params.get('sort') === 'OLDEST' ? 'OLDEST' : 'NEWEST'}
+                        onChange={(e) => change('sort', e.target.value)}
+                    >
+                        <option value="NEWEST">Most recent</option>
+                        <option value="OLDEST">Oldest first</option>
+                    </select>
+                </label>
+                <button
+                    ref={trigger}
+                    className="store-filter-toggle"
+                    aria-expanded={filtersOpen}
+                    aria-controls="job-filters"
+                    onClick={() => setFiltersOpen((v) => !v)}
+                >
+                    <SlidersHorizontal size={16} />
+                    {filtersOpen ? 'Hide filters' : 'Filters'}
+                </button>
             </div>
-
-            <DirectoryFilterDrawer open={mobileFiltersOpen} title="Job filters" closeLabel="Close filters" closeRef={mobileFilterCloseRef} onClose={() => setMobileFiltersOpen(false)}>{renderFilters('drawer')}</DirectoryFilterDrawer>
-        </div>
+            {!!chips.length && (
+                <div className="store-filter-chips" aria-label="Selected job filters">
+                    {chips.map(([key, label]) => (
+                        <button
+                            key={key}
+                            aria-label={`Remove ${label} filter`}
+                            onClick={() => change(key, '')}
+                        >
+                            {label}: {chipValue(key)}
+                            <X size={13} />
+                        </button>
+                    ))}
+                </div>
+            )}
+            <div className="store-catalog-layout">
+                <aside
+                    id="job-filters"
+                    className={`store-filter-panel ${filtersOpen ? 'is-open' : ''}`}
+                    aria-label="Job filters"
+                >
+                    <div className="store-filter-form">
+                        <div className="store-filter-title">
+                            <h2>
+                                <SlidersHorizontal size={15} />
+                                Filter jobs
+                            </h2>
+                            <button onClick={reset}>Reset filters</button>
+                        </div>
+                        <details open>
+                            <summary>Football role</summary>
+                            {choices('category', CATEGORIES, category)}
+                        </details>
+                        <details open>
+                            <summary>Payment & engagement</summary>
+                            {choices('engagement', ENGAGEMENTS, engagement)}
+                        </details>
+                        <details open={posted !== 'ALL'}>
+                            <summary>Posting date</summary>
+                            {choices('posted', POSTED_OPTIONS, posted)}
+                        </details>
+                        <details open={!!params.get('ageGroup') || !!params.get('level')}>
+                            <summary>Team & experience</summary>
+                            <div className="store-filter-fields">
+                                {[
+                                    ['ageGroup', 'Team age group', ageOptions],
+                                    ['level', 'Experience', levels],
+                                ].map(([key, label, options]) => (
+                                    <label className="store-field" key={key as string}>
+                                        {label as string}
+                                        <select
+                                            value={params.get(key as string) ?? ''}
+                                            onChange={(e) => change(key as string, e.target.value)}
+                                        >
+                                            <option value="">Any</option>
+                                            {(options as string[]).map((v) => (
+                                                <option key={v}>{v}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                ))}
+                            </div>
+                        </details>
+                        <details open={!!country || !!city || !!params.get('clubId')}>
+                            <summary>Club location</summary>
+                            <div className="store-filter-fields">
+                                <label className="store-field">
+                                    Country
+                                    <select
+                                        value={country}
+                                        onChange={(e) => change('country', e.target.value)}
+                                    >
+                                        <option value="">All countries</option>
+                                        {country && !countries.includes(country) && (
+                                            <option>{country}</option>
+                                        )}
+                                        {countries.map((v) => (
+                                            <option key={v}>{v}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <label className="store-field">
+                                    City
+                                    <select
+                                        disabled={!country}
+                                        value={city}
+                                        onChange={(e) => change('city', e.target.value)}
+                                    >
+                                        <option value="">
+                                            {country ? 'All cities' : 'Choose a country first'}
+                                        </option>
+                                        {city && !cities.includes(city) && <option>{city}</option>}
+                                        {cities.map((v) => (
+                                            <option key={v}>{v}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                                {!fixedClubId && (
+                                    <label className="store-field">
+                                        Club
+                                        <select
+                                            value={params.get('clubId') ?? ''}
+                                            onChange={(e) => change('clubId', e.target.value)}
+                                        >
+                                            <option value="">All clubs</option>
+                                            {clubs.map((job) => (
+                                                <option key={job.clubId} value={job.clubId ?? ''}>
+                                                    {job.clubName}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                )}
+                            </div>
+                        </details>
+                    </div>
+                    <button
+                        className="store-filter-done"
+                        onClick={() => {
+                            setFiltersOpen(false);
+                            trigger.current?.focus();
+                        }}
+                    >
+                        Show opportunities
+                    </button>
+                </aside>
+                <section className="store-results" aria-label="Opportunities" aria-busy={loading}>
+                    {loading ? (
+                        <p role="status">Loading opportunities...</p>
+                    ) : error ? (
+                        <div role="alert" className="store-empty">
+                            {error}
+                            <button onClick={() => setReload((n) => n + 1)}>Try again</button>
+                        </div>
+                    ) : (
+                        <>
+                            <p className="store-result-count" role="status">
+                                {filtered.length} {filtered.length === 1 ? 'opportunity' : 'opportunities'}
+                            </p>
+                            <div className="jobs-results-layout">
+                                <div>
+                                    {!visible.length ? (
+                                        <div className="store-empty">
+                                            <BriefcaseBusiness size={30} />
+                                            <h2>No roles match these filters</h2>
+                                            <button onClick={reset}>Clear search and filters</button>
+                                        </div>
+                                    ) : (
+                                        <div className="jobs-list">
+                                            {visible.map((job) => (
+                                                <article
+                                                    key={job.id}
+                                                    className={`job-row ${selected?.id === job.id ? 'is-selected' : ''}`}
+                                                >
+                                                    <Link className="job-row-main" to={`/jobs/${job.id}`}>
+                                                        {job.clubLogoUrl ? (
+                                                            <img
+                                                                className="job-logo"
+                                                                src={resolveMediaUrl(job.clubLogoUrl)}
+                                                                alt=""
+                                                            />
+                                                        ) : (
+                                                            <Building2 className="job-logo" />
+                                                        )}
+                                                        <span className="job-body">
+                                                            <h2>{job.title}</h2>
+                                                            <span className="job-club">{job.clubName}</span>
+                                                            <span className="job-meta">
+                                                                <span>{locationLabel(job)}</span>
+                                                                <span>
+                                                                    {labelForEngagement(job.engagementType)}
+                                                                </span>
+                                                                <span>{relativeDate(job.createdAt)}</span>
+                                                            </span>
+                                                        </span>
+                                                    </Link>
+                                                    <div className="job-row-actions">
+                                                        <Link to={`/jobs/${job.id}`}>
+                                                            View opportunity <ArrowRight size={13} />
+                                                        </Link>
+                                                        <button
+                                                            className="job-preview-trigger"
+                                                            aria-label={`Preview ${job.title}`}
+                                                            aria-pressed={selected?.id === job.id}
+                                                            onClick={() => change('job', String(job.id))}
+                                                        >
+                                                            Preview
+                                                        </button>
+                                                    </div>
+                                                </article>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {filtered.length > 12 && (
+                                        <nav className="store-pagination" aria-label="Opportunity pages">
+                                            <button
+                                                disabled={page === 0}
+                                                onClick={() => change('page', String(page - 1))}
+                                            >
+                                                Previous
+                                            </button>
+                                            <span>
+                                                Page {page + 1} of {Math.ceil(filtered.length / 12)}
+                                            </span>
+                                            <button
+                                                disabled={(page + 1) * 12 >= filtered.length}
+                                                onClick={() => change('page', String(page + 1))}
+                                            >
+                                                Next
+                                            </button>
+                                        </nav>
+                                    )}
+                                </div>
+                                {selected && (
+                                    <aside className="job-preview" aria-label="Selected opportunity">
+                                        <p className="store-eyebrow">Selected opportunity</p>
+                                        <h2>{selected.title}</h2>
+                                        <p>{selected.clubName}</p>
+                                        <p>{locationLabel(selected)}</p>
+                                        <p>{labelForEngagement(selected.engagementType)}</p>
+                                        <p className="job-description">
+                                            {selected.description ||
+                                                'The club has not added a description yet.'}
+                                        </p>
+                                        <Link className="job-action" to={`/jobs/${selected.id}`}>
+                                            View opportunity <ArrowRight size={15} />
+                                        </Link>
+                                    </aside>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </section>
+            </div>
+        </Surface>
     );
 };

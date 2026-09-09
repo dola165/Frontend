@@ -1,3 +1,4 @@
+import { JobDetailPage } from './pages/JobDetailPage';
 import { StorePage } from './pages/StorePage';
 import { ClubStorePage } from './pages/ClubStorePage';
 import { StoreProductPage } from './pages/StoreProductPage';
@@ -267,6 +268,7 @@ function MainLayout() {
         location.pathname.startsWith('/profile') ||
         location.pathname.startsWith('/posts/') ||
         location.pathname.startsWith('/store/') ||
+        location.pathname.startsWith('/jobs/') ||
         location.pathname.startsWith('/organizations') ||
         location.pathname.startsWith('/tournaments/') ||
         location.pathname.startsWith('/agent') ||
@@ -318,6 +320,7 @@ function MainLayout() {
             <Route path="/store/products/:id" element={<StoreProductPage />} />
             <Route path="/store/cart" element={<StoreCartPage />} />
             <Route path="/jobs" element={<JobsDirectoryPage />} />
+            <Route path="/jobs/:id" element={<JobDetailPage />} />
             <Route path="/campaigns" element={<RouteRecoveryPage feature="Campaigns and fundraising" />} />
             <Route path="/people" element={<ProtectedRoute><PeoplePage /></ProtectedRoute>} />
             <Route path="/clubs/:id/store" element={<ClubStorePage />} />

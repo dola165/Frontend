@@ -53,6 +53,14 @@ export const chatHandlers: HttpHandler[] = [
     }),
 
     // -- GET /chat/conversations/:id/messages ----------------------------
+    http.get(`${API}/chat/conversations/:convId`, ({ params }) => {
+        const uid = currentUserId();
+        if (uid == null) return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const conversation = conversations().get(Number(params.convId));
+        if (!conversation || !isParticipant(conversation.id, uid)) return HttpResponse.json({ message: 'Conversation unavailable' }, { status: 404 });
+        return HttpResponse.json(conversation);
+    }),
+
     http.get(`${API}/chat/conversations/:convId/messages`, async ({ request, params }) => {
         await simulateLatency();
         const uid = currentUserId();

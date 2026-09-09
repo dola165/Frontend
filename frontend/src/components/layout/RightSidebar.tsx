@@ -10,7 +10,7 @@ import {
     X
 } from 'lucide-react';
 import { chatApi, type ChatMessageResponse, type ConversationDto, type ParticipantInfo } from '../../api/chat';
-import { useChatWebSocket } from '../../hooks/useChatWebSocket';
+import { useChatWebSocket, mergeMessages } from '../../hooks/useChatWebSocket';
 import { getStoredUserId } from '../../utils/authStorage';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 
@@ -26,15 +26,17 @@ export const RightSidebar = () => {
     const [quickChat, setQuickChat] = useState<ContactConversation | null>(null);
     const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
     const [messageInput, setMessageInput] = useState('');
-    const [messagesLoading, setMessagesLoading] = useState(false);
     const [minimized, setMinimized] = useState(false);
     const messageEndRef = useRef<HTMLDivElement | null>(null);
     const currentUserId = Number(getStoredUserId() || 0);
 
     const handleIncomingMessage = useCallback((message: ChatMessageResponse) => {
-        setMessages((current) => current.some((item) => item.id === message.id) ? current : [...current, message]);
+        setMessages((current) => mergeMessages(current, [message]));
     }, []);
-    const { connected, setActiveConversation, sendMessage } = useChatWebSocket(handleIncomingMessage);
+    const clearUnavailable = useCallback(() => setMessages([]), []);
+    const { setActiveConversation, sendMessage, loading: messagesLoading, error: deliveryError, sending } = useChatWebSocket(handleIncomingMessage, clearUnavailable, true);
+    const draftRef = useRef<Record<number, string>>({});
+    const activeId = useRef<number | null>(null);
 
     useEffect(() => {
         let active = true;
@@ -54,7 +56,7 @@ export const RightSidebar = () => {
         messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, minimized]);
 
-    useEffect(() => () => setActiveConversation(null), [setActiveConversation]);
+    useEffect(() => () => { void setActiveConversation(null); }, [setActiveConversation]);
 
     const contacts = useMemo(() => {
         const seen = new Set<number>();
@@ -66,37 +68,35 @@ export const RightSidebar = () => {
         }).slice(0, 6);
     }, [conversations, currentUserId]);
 
-    const openQuickChat = async (contact: ContactConversation) => {
+    const openQuickChat = (contact: ContactConversation) => {
+        if (activeId.current !== null) draftRef.current[activeId.current] = messageInput;
+        activeId.current = contact.conversation.id;
+        setMessageInput(draftRef.current[contact.conversation.id] ?? '');
         setQuickChat(contact);
         setMinimized(false);
         setMessages([]);
-        setMessagesLoading(true);
-        setActiveConversation(contact.conversation.id);
-        try {
-            const response = await chatApi.getMessages(contact.conversation.id, 0, 30);
-            setMessages([...response.data.content].reverse());
-            await chatApi.markAsRead(contact.conversation.id).catch(() => undefined);
-        } catch (error) {
-            console.error('Failed to load quick chat', error);
-        } finally {
-            setMessagesLoading(false);
-        }
+        void setActiveConversation(contact.conversation.id);
     };
 
     const closeQuickChat = () => {
+        if (activeId.current !== null) draftRef.current[activeId.current] = messageInput;
+        activeId.current = null;
         setQuickChat(null);
         setMessages([]);
         setMessageInput('');
-        setActiveConversation(null);
+        void setActiveConversation(null);
     };
 
     const submitQuickMessage = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (!quickChat || !messageInput.trim() || !connected) return;
+        if (!quickChat || !messageInput.trim() || sending) return;
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}') as { fullName?: string; username?: string };
         const content = messageInput.trim();
         const sent = await sendMessage(quickChat.conversation.id, content, storedUser.fullName || storedUser.username || 'Me');
-        if (sent) setMessageInput('');
+        if (sent) {
+            draftRef.current[quickChat.conversation.id] = '';
+            if (activeId.current === quickChat.conversation.id) setMessageInput(current => current.trim() === content ? '' : current);
+        }
     };
 
     return (
@@ -194,9 +194,10 @@ export const RightSidebar = () => {
                                 })}
                                 <div ref={messageEndRef} />
                             </div>
+                            {deliveryError && <p role="alert" className="px-3 text-xs text-amber-300">{deliveryError}</p>}
                             <form onSubmit={(event) => void submitQuickMessage(event)} className="flex items-center gap-2 border-t border-white/[0.08] bg-[#202328] p-3">
-                                <input value={messageInput} onChange={(event) => setMessageInput(event.target.value)} disabled={!connected} placeholder={connected ? 'Write a message…' : 'Connecting…'} className="min-w-0 flex-1 rounded-full border border-white/[0.08] bg-[#30343b] px-3 py-2 text-xs text-white outline-none placeholder:text-[#8b8d94] focus:border-emerald-500/60" />
-                                <button type="submit" disabled={!connected || !messageInput.trim()} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white transition-colors hover:bg-emerald-500 disabled:opacity-40" aria-label="Send message">
+                                <input value={messageInput} onChange={(event) => setMessageInput(event.target.value)} disabled={sending} placeholder={sending ? 'Sending...' : 'Write a message...'} className="min-w-0 flex-1 rounded-full border border-white/[0.08] bg-[#30343b] px-3 py-2 text-xs text-white outline-none placeholder:text-[#8b8d94] focus:border-emerald-500/60" />
+                                <button type="submit" disabled={sending || !messageInput.trim()} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white transition-colors hover:bg-emerald-500 disabled:opacity-40" aria-label="Send message">
                                     <Send className="h-4 w-4" />
                                 </button>
                             </form>

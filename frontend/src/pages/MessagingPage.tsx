@@ -1,14 +1,13 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Client } from '@stomp/stompjs';
-import { MessageSquare, Plus, Users, Info, X, Send, Circle, Search, Loader2, Crown, Ban, UserMinus, UserPlus, ChevronDown, ChevronUp, CheckCheck, Check } from 'lucide-react';
+import { useChatWebSocket, mergeMessages } from '../hooks/useChatWebSocket';
+import { subscribeNotificationsChanged } from '../utils/notifications';
+import { MessageSquare, Plus, Users, Info, X, Send, Circle, Search, Loader2, Crown, Ban, UserMinus, UserPlus, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { SkeletonMessageRow } from '../components/ui/SkeletonCard';
-import { buildWebSocketUrl } from '../api/axiosConfig';
-import { getStoredAccessToken, getStoredUserId } from '../utils/authStorage';
+import { getStoredUserId } from '../utils/authStorage';
 import { chatApi, type ConversationDto, type ChatMessageResponse, type InviteSuggestion, type UserSearchResult } from '../api/chat';
 import { NewChatModal } from '../components/chat/NewChatModal';
 
-const IS_MOCK_MODE = import.meta.env.VITE_ENABLE_MOCKS === 'true';
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -42,49 +41,44 @@ function getAvatarLetter(conv: ConversationDto, currentUserId: number): string {
 
 export const MessagingPage = () => {
     const currentUserId = Number(getStoredUserId() || 0);
-    const token = getStoredAccessToken();
     const [searchParams, setSearchParams] = useSearchParams();
 
     const [conversations, setConversations] = useState<ConversationDto[]>([]);
     const [activeConvId, setActiveConvId] = useState<number | null>(null);
     const [messages, setMessages] = useState<Record<number, ChatMessageResponse[]>>({});
     const [input, setInput] = useState('');
-    const [connected, setConnected] = useState(false);
     const [showNewChat, setShowNewChat] = useState(false);
     const [showInfo, setShowInfo] = useState(false);
-    const [loadingMessages, setLoadingMessages] = useState(false);
     const [sidebarLoading, setSidebarLoading] = useState(true);
 
-    // Handle ?chatWith= param — open direct chat with a specific user
-    useEffect(() => {
-        const chatWithUserId = searchParams.get('chatWith');
-        if (!chatWithUserId || !currentUserId || conversations.length === 0) return;
-        const targetId = Number(chatWithUserId);
-        if (Number.isNaN(targetId)) return;
+    const conversationsRef = useRef(conversations);
+    conversationsRef.current = conversations;
 
-        // Find existing direct conversation
-        const existing = conversations.find(
-            (c) => c.contextType === 'DIRECT' && c.participants.some((p) => p.userId === targetId),
+    // Resolve profile links even for an empty inbox or a changed URL on this page.
+    useEffect(() => {
+        const targetId = Number(searchParams.get('chatWith'));
+        if (!Number.isSafeInteger(targetId) || targetId <= 0 || !currentUserId || sidebarLoading) return;
+        let current = true;
+        const existing = conversationsRef.current.find(
+            conversation => conversation.contextType === 'DIRECT' && conversation.participants.some(person => person.userId === targetId),
         );
-        if (existing) {
-            setActiveConvId(existing.id);
+        const open = (conversation: ConversationDto) => {
+            if (!current) return;
+            setConversations(previous => [conversation, ...previous.filter(item => item.id !== conversation.id)]);
+            setActiveConvId(conversation.id);
             const next = new URLSearchParams(searchParams);
             next.delete('chatWith');
+            next.set('conversationId', String(conversation.id));
             setSearchParams(next, { replace: true });
-        } else {
-            // Create a new direct conversation
+        };
+        if (existing) open(existing);
+        else {
             chatApi.createConversation({ contextType: 'DIRECT', participantIds: [targetId] })
-                .then((res) => {
-                    setConversations((prev) => [res.data, ...prev]);
-                    setActiveConvId(res.data.id);
-                    const next = new URLSearchParams(searchParams);
-                    next.delete('chatWith');
-                    setSearchParams(next, { replace: true });
-                })
-                .catch(() => { /* silent */ });
+                .then(response => open(response.data))
+                .catch(() => { if (current) setManagementError('Could not open this conversation. Please try again.'); });
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [conversations.length > 0, currentUserId]);
+        return () => { current = false; };
+    }, [searchParams, currentUserId, sidebarLoading, setSearchParams]);
 
     // Group management state
     const [suggestions, setSuggestions] = useState<InviteSuggestion[]>([]);
@@ -98,8 +92,6 @@ export const MessagingPage = () => {
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
     const peopleSearchRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-    const clientRef = useRef<Client | null>(null);
-    const subRef = useRef<{ unsubscribe: () => void } | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const activeConvRef = useRef<number | null>(null);
 
@@ -117,7 +109,11 @@ export const MessagingPage = () => {
     const loadConversations = useCallback(async () => {
         try {
             const res = await chatApi.getConversations();
-            setConversations(res.data.content);
+            setConversations(previous => {
+                const selected = previous.find(item => item.id === activeConvRef.current);
+                return selected && !res.data.content.some(item => item.id === selected.id)
+                    ? [selected, ...res.data.content] : res.data.content;
+            });
         } catch (e) {
             console.error('Failed to load conversations', e);
         } finally {
@@ -131,163 +127,63 @@ export const MessagingPage = () => {
 
     // ── WebSocket (skipped in mock mode) ────────────────────────────
 
+    const latestPreviewId = useRef<Record<number, number>>({});
+    const handleIncoming = useCallback((message: ChatMessageResponse) => {
+        setMessages(previous => ({ ...previous, [message.conversationId]: mergeMessages(previous[message.conversationId] ?? [], [message]) }));
+        if (message.id <= (latestPreviewId.current[message.conversationId] ?? 0)) return;
+        latestPreviewId.current[message.conversationId] = message.id;
+        setConversations(previous => previous.map(conversation => {
+            if (conversation.id !== message.conversationId || (conversation.lastMessageAt && new Date(conversation.lastMessageAt).getTime() > new Date(message.createdAt).getTime())) return conversation;
+            return { ...conversation, lastMessage: message.content, lastMessageSenderId: message.senderId,
+                lastMessageSenderName: message.senderName, lastMessageAt: message.createdAt, unreadCount: 0 };
+        }).sort((a, b) => new Date(b.lastMessageAt ?? 0).getTime() - new Date(a.lastMessageAt ?? 0).getTime()));
+    }, []);
+    const handleUnavailable = useCallback((id: number) => {
+        setMessages(previous => ({ ...previous, [id]: [] }));
+    }, []);
+    const { connected, setActiveConversation, sendMessage: saveMessage, loading: loadingMessages, error: deliveryError, sending } = useChatWebSocket(handleIncoming, handleUnavailable);
+    const drafts = useRef<Record<number, string>>({});
+    const previousConversation = useRef<number | null>(null);
+
     useEffect(() => {
-        if (!token) return;
+        if (previousConversation.current !== null) drafts.current[previousConversation.current] = input;
+        previousConversation.current = activeConvId;
+        setInput(activeConvId === null ? '' : drafts.current[activeConvId] ?? '');
+        void setActiveConversation(activeConvId);
+        // Draft changes do not restart the subscription.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeConvId, setActiveConversation]);
 
-        if (IS_MOCK_MODE) {
-            setConnected(true);
-            return;
+    useEffect(() => subscribeNotificationsChanged(() => { void loadConversations(); }), [loadConversations]);
+
+    useEffect(() => {
+        const id = Number(searchParams.get('conversationId'));
+        if (!Number.isSafeInteger(id) || id <= 0) return;
+        let current = true;
+        chatApi.getConversation(id).then(response => {
+            if (!current) return;
+            setConversations(previous => [response.data, ...previous.filter(item => item.id !== id)]);
+            setActiveConvId(id);
+        }).catch(() => { if (current) setManagementError('This conversation is no longer available.'); });
+        return () => { current = false; };
+    }, [searchParams]);
+
+    const selectConversation = useCallback((id: number) => {
+        setActiveConvId(id);
+        setShowInfo(false);
+    }, []);
+
+    const sendMessage = useCallback(async (event?: React.FormEvent) => {
+        event?.preventDefault();
+        if (!activeConvId || !input.trim() || sending) return;
+        const id = activeConvId;
+        const draft = input;
+        if (await saveMessage(id, draft)) {
+            drafts.current[id] = '';
+            if (activeConvRef.current === id) setInput(current => current === draft ? '' : current);
+            void loadConversations();
         }
-
-        const client = new Client({
-            brokerURL: buildWebSocketUrl('/ws-chat'),
-            connectHeaders: { Authorization: `Bearer ${token}` },
-            reconnectDelay: 5000,
-            onConnect: () => setConnected(true),
-            onDisconnect: () => setConnected(false),
-            onStompError: () => setConnected(false),
-        });
-
-        client.activate();
-        clientRef.current = client;
-
-        return () => {
-            subRef.current?.unsubscribe();
-            client.deactivate();
-        };
-    }, [token]);
-
-    const subscribeToConv = useCallback(
-        (convId: number) => {
-            if (IS_MOCK_MODE) return;
-
-            subRef.current?.unsubscribe();
-            if (!clientRef.current?.connected) return;
-
-            subRef.current = clientRef.current.subscribe(
-                `/topic/chat.${convId}`,
-                (msg) => {
-                    const parsed = JSON.parse(msg.body) as ChatMessageResponse;
-                    setMessages((prev) => ({
-                        ...prev,
-                        [convId]: [...(prev[convId] || []), parsed],
-                    }));
-
-                    // update sidebar: move this convo to top with latest message
-                    setConversations((prev) => {
-                        const updated = prev.map((c) =>
-                            c.id === convId
-                                ? {
-                                      ...c,
-                                      lastMessage: parsed.content,
-                                      lastMessageSenderId: parsed.senderId,
-                                      lastMessageSenderName: parsed.senderName,
-                                      lastMessageAt: parsed.createdAt,
-                                      unreadCount:
-                                          activeConvRef.current === convId
-                                              ? 0
-                                              : c.unreadCount + 1,
-                                  }
-                                : c,
-                        );
-                        // sort by lastMessageAt desc
-                        updated.sort((a, b) => {
-                            const da = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-                            const db = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-                            return db - da;
-                        });
-                        return updated;
-                    });
-                },
-            );
-        },
-        [],
-    );
-
-    // ── Select conversation ─────────────────────────────────────────
-
-    const selectConversation = useCallback(
-        async (convId: number) => {
-            setActiveConvId(convId);
-            setShowInfo(false);
-
-            // subscribe to WebSocket for this conversation
-            subscribeToConv(convId);
-
-            // lazy-load messages if not already loaded
-            if (!messages[convId]) {
-                setLoadingMessages(true);
-                try {
-                    const res = await chatApi.getMessages(convId);
-                    setMessages((prev) => ({
-                        ...prev,
-                        [convId]: [...res.data.content].reverse(),
-                    }));
-                } catch (e) {
-                    console.error('Failed to load messages', e);
-                } finally {
-                    setLoadingMessages(false);
-                }
-            }
-
-            // mark as read + clear unread in sidebar
-            try {
-                await chatApi.markAsRead(convId);
-                setConversations((prev) =>
-                    prev.map((c) => (c.id === convId ? { ...c, unreadCount: 0 } : c)),
-                );
-            } catch {
-                // silently fail — read receipts are non-critical
-            }
-        },
-        [messages, subscribeToConv],
-    );
-
-    // ── Send message ────────────────────────────────────────────────
-
-    const sendMessage = useCallback(async (e?: React.FormEvent) => {
-        e?.preventDefault();
-        if (!input.trim() || !activeConvId) return;
-
-        if (IS_MOCK_MODE) {
-            const { mockSendMessage } = await import('../mocks/data/chatStore');
-            const user = JSON.parse(localStorage.getItem('grasskickz_user') || '{}');
-            const senderName = user?.fullName || user?.username || 'Me';
-            const msg = mockSendMessage(activeConvId, currentUserId, senderName, input.trim());
-
-            setMessages((prev) => ({
-                ...prev,
-                [activeConvId]: [...(prev[activeConvId] || []), msg],
-            }));
-
-            setConversations((prev) => {
-                const updated = prev.map((c) =>
-                    c.id === activeConvId
-                        ? { ...c, lastMessage: msg.content, lastMessageSenderId: msg.senderId, lastMessageSenderName: msg.senderName, lastMessageAt: msg.createdAt }
-                        : c,
-                );
-                updated.sort((a, b) => {
-                    const da = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-                    const db = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-                    return db - da;
-                });
-                return updated;
-            });
-
-            setInput('');
-            return;
-        }
-
-        if (!clientRef.current?.connected) return;
-
-        clientRef.current.publish({
-            destination: '/app/chat.send',
-            body: JSON.stringify({ conversationId: activeConvId, content: input.trim() }),
-        });
-        setInput('');
-    }, [input, activeConvId, currentUserId]);
-
-    // ── New conversation created ────────────────────────────────────
+    }, [activeConvId, input, sending, saveMessage, loadConversations]);
 
     const handleConversationCreated = useCallback(
         async (convId: number) => {
@@ -493,7 +389,7 @@ export const MessagingPage = () => {
                         fill="currentColor"
                     />
                     <span className="text-[var(--chat-text-muted)]">
-                        {connected ? 'Connected' : 'Connecting...'}
+                        {connected ? 'Live updates connected' : 'Reconnecting live updates'}
                     </span>
                 </div>
 
@@ -506,7 +402,7 @@ export const MessagingPage = () => {
                             <SkeletonMessageRow />
                             <SkeletonMessageRow />
                         </div>
-                    ) : conversations.length === 0 ? (
+                    ) : sidebarLoading ? (
                         <div className="px-4 py-12 text-center">
                             <MessageSquare className="w-8 h-8 mx-auto mb-3 text-[var(--chat-text-muted)]" />
                             <p className="text-sm text-[var(--chat-text-secondary)] font-medium">
@@ -565,11 +461,7 @@ export const MessagingPage = () => {
                                             {/* Delivery status tick */}
                                             {fromMe && conv.lastMessage && (
                                                 <span className="shrink-0">
-                                                    {conv.unreadCount === 0 ? (
-                                                        <CheckCheck className="w-3.5 h-3.5 text-[var(--chat-accent)]" />
-                                                    ) : (
-                                                        <Check className="w-3.5 h-3.5 text-[var(--chat-text-muted)]" />
-                                                    )}
+                                                    <span title="Saved" aria-label="Saved"><Check className="w-3.5 h-3.5 text-[var(--chat-text-muted)]" /></span>
                                                 </span>
                                             )}
 
@@ -642,7 +534,7 @@ export const MessagingPage = () => {
                         </div>
 
                         {/* Messages */}
-                        <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
+                        <div role="log" aria-label="Conversation messages" className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
                             {loadingMessages ? (
                                 <div className="flex items-center justify-center flex-1 gap-2 text-[var(--chat-text-muted)]">
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -688,14 +580,15 @@ export const MessagingPage = () => {
 
                         {/* Input */}
                         <div className="px-4 py-3 bg-[var(--chat-card)] border-t border-[var(--chat-card-border)] shrink-0">
+                            {deliveryError && <p role="alert" className="mb-2 text-sm text-amber-300">{deliveryError}</p>}
                             <form onSubmit={sendMessage} className="flex items-center gap-2">
                                 <input
                                     type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
-                                    disabled={!connected}
+                                    disabled={sending}
                                     placeholder={
-                                        connected ? 'Type a message...' : 'Connecting...'
+                                        sending ? 'Sending...' : 'Type a message...'
                                     }
                                     className="flex-1 bg-[var(--chat-input-bg)] border border-[var(--chat-card-border)] text-[var(--chat-text-primary)] rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--chat-accent)]/40 transition-all disabled:opacity-50 placeholder:text-[var(--chat-text-placeholder)]"
                                 />
@@ -704,7 +597,8 @@ export const MessagingPage = () => {
 
                                 <button
                                     type="submit"
-                                    disabled={!input.trim() || !connected}
+                                    aria-label="Send message"
+                                    disabled={!input.trim() || sending}
                                     className="w-10 h-10 bg-[var(--chat-accent)] hover:bg-[var(--chat-accent-hover)] disabled:opacity-40 text-[var(--chat-accent-contrast)] rounded-full flex items-center justify-center transition-colors shrink-0"
                                 >
                                     <Send className="w-4 h-4 ml-0.5" />
@@ -723,7 +617,7 @@ export const MessagingPage = () => {
                                 Your Messages
                             </h3>
                             <p className="text-sm text-[var(--chat-text-muted)] mt-1 max-w-xs">
-                                {conversations.length === 0
+                                {sidebarLoading
                                     ? 'Start a new chat to begin messaging with other users.'
                                     : 'Select a conversation from the sidebar or start a new one.'}
                             </p>

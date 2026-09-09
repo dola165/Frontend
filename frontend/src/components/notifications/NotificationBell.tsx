@@ -76,18 +76,12 @@ export const NotificationBell = ({ enabled, light = false }: NotificationBellPro
         void refreshUnreadCount();
 
         const unsubscribe = subscribeNotificationsChanged(() => {
-            void refreshUnreadCount();
-            if (isOpen) {
-                void loadPreview();
-            }
+            if (isOpen) void loadPreview();
+            else void refreshUnreadCount();
         });
-
-        const handleFocus = () => void refreshUnreadCount();
-        window.addEventListener('focus', handleFocus);
 
         return () => {
             unsubscribe();
-            window.removeEventListener('focus', handleFocus);
         };
     }, [enabled, isOpen, loadPreview, refreshUnreadCount]);
 

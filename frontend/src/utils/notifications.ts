@@ -6,10 +6,33 @@ export const emitNotificationsChanged = () => {
     window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
 };
 
+let subscribers = 0;
+let refreshTimer: number | undefined;
+const refreshVisibleNotifications = () => {
+    if (document.visibilityState === 'visible' && navigator.onLine) emitNotificationsChanged();
+};
+
 export const subscribeNotificationsChanged = (handler: () => void) => {
     const listener = () => handler();
     window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, listener);
-    return () => window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, listener);
+    if (subscribers++ === 0) {
+        refreshTimer = window.setInterval(refreshVisibleNotifications, 30_000);
+        window.addEventListener('focus', refreshVisibleNotifications);
+        window.addEventListener('online', refreshVisibleNotifications);
+        document.addEventListener('visibilitychange', refreshVisibleNotifications);
+    }
+    let subscribed = true;
+    return () => {
+        if (!subscribed) return;
+        subscribed = false;
+        window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, listener);
+        if (--subscribers === 0) {
+            window.clearInterval(refreshTimer);
+            window.removeEventListener('focus', refreshVisibleNotifications);
+            window.removeEventListener('online', refreshVisibleNotifications);
+            document.removeEventListener('visibilitychange', refreshVisibleNotifications);
+        }
+    };
 };
 
 const parsePositiveNumber = (value?: string | null) => {
@@ -104,6 +127,10 @@ const normalizeManagementPath = (notification: NotificationItem, path: string) =
 };
 
 export const buildNotificationDestination = (notification: NotificationItem) => {
+    if (notification.type === 'NEW_MESSAGE' && notification.entityType === 'conversation' && notification.entityId != null) {
+        return `/messages?conversationId=${notification.entityId}`;
+    }
+
     const outcome = `/notifications?itemId=${notification.id}`;
     const entityId = Number.isSafeInteger(notification.entityId) && (notification.entityId ?? 0) > 0 ? notification.entityId : null;
     // P1 W6 (audit H7): schedule events/challenges live on /calendar. The web

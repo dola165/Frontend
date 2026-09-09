@@ -82,6 +82,18 @@ export const chatApi = {
         );
     },
 
+    getMessagesAfter(conversationId: number, afterId: number) {
+        return apiClient.get<ChatMessageResponse[]>(`/chat/conversations/${conversationId}/messages/after`, { params: { afterId, size: 100 } });
+    },
+
+    sendMessage(conversationId: number, content: string, clientMessageId: string) {
+        return apiClient.post<ChatMessageResponse>(`/chat/conversations/${conversationId}/messages`, { content, clientMessageId });
+    },
+
+    getConversation(conversationId: number) {
+        return apiClient.get<ConversationDto>(`/chat/conversations/${conversationId}`);
+    },
+
     createConversation(data: {
         contextType: 'DIRECT' | 'GROUP';
         name?: string;

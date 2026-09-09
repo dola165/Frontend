@@ -1,225 +1,57 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Building2, ShoppingBag } from 'lucide-react';
-import { PageSpinner } from '../components/workspace/helpers';
-import { EmptyStateCard } from '../components/workspace/EmptyStateCard';
-import { PaginationBar } from '../components/ui/PaginationBar';
-import { ProductCard } from '../components/store/ProductCard';
-import { ProductQuickViewModal } from '../components/store/ProductQuickViewModal';
-import { fetchAllStoreCatalog, STORE_CATEGORIES } from '../features/store/api';
-import type { StoreProduct, StoreProductCategory } from '../features/store/api';
-import { DiscoverySectionTabs } from '../components/discovery/DiscoverySectionTabs';
-import { ClubLocationFilter } from '../components/discovery/ClubLocationFilter';
-import { EMPTY_CLUB_REGION, type ClubRegionSelection } from '../components/discovery/clubLocationTypes';
-import { DirectoryChoiceList, DirectoryFilterSection, DirectoryFilterShell, type DirectoryFilterChip } from '../components/discovery/DirectoryFilterShell';
-import { DirectoryFilterDrawer } from '../components/discovery/DirectoryFilterDrawer';
-import { DirectoryRangeFilter } from '../components/discovery/DirectoryRangeFilter';
-import { DirectoryToolbar, type DirectorySortOption } from '../components/discovery/DirectoryToolbar';
-
-type StoreSort = 'NEWEST' | 'PRICE_LOW' | 'PRICE_HIGH';
-
-const SORT_OPTIONS: readonly DirectorySortOption[] = [
-    { value: 'NEWEST', label: 'Newest' },
-    { value: 'PRICE_LOW', label: 'Price: low to high' },
-    { value: 'PRICE_HIGH', label: 'Price: high to low' }
-];
-
-const readRegion = (params: URLSearchParams): ClubRegionSelection => ({
-    country: params.get('country') || null,
-    city: params.get('city') || null,
-    clubId: params.get('clubId') ? Number(params.get('clubId')) : null
-});
-
-const formatCategory = (category: string) => category.replace(/_/g, ' ');
-
+import {useEffect,useState} from 'react';
+import {Link,useParams,useSearchParams} from 'react-router-dom';
+import {fetchStoreCatalog,formatStorePrice,STORE_CATEGORIES,type StoreProduct} from '../features/store/api';
+import {resolveMediaUrl} from '../utils/resolveMediaUrl';
+import {DiscoverySectionTabs} from '../components/discovery/DiscoverySectionTabs';
+import {apiClient} from '../api/axiosConfig';
+const input='rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-2 text-sm';
 export const StorePage = () => {
-    const { t } = useTranslation();
-    const navigate = useNavigate();
-    const [searchParams, setSearchParams] = useSearchParams();
-    const [products, setProducts] = useState<StoreProduct[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [search, setSearch] = useState(searchParams.get('search') || '');
-    const [categoryFilter, setCategoryFilter] = useState<'ALL' | StoreProductCategory>((searchParams.get('category') as StoreProductCategory | null) ?? 'ALL');
-    const [region, setRegion] = useState<ClubRegionSelection>(() => readRegion(searchParams));
-    const [priceMin, setPriceMin] = useState(Number(searchParams.get('priceMin')) || 0);
-    const [priceMax, setPriceMax] = useState(Number(searchParams.get('priceMax')) || 0);
-    const [size, setSize] = useState(searchParams.get('size') || 'ALL');
-    const [sort, setSort] = useState<StoreSort>((searchParams.get('sort') as StoreSort | null) ?? 'NEWEST');
-    const [selected, setSelected] = useState<StoreProduct | null>(null);
-    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-    const mobileFilterTriggerRef = useRef<HTMLButtonElement | null>(null);
-    const mobileFilterCloseRef = useRef<HTMLButtonElement | null>(null);
-    const hadMobileFiltersOpen = useRef(false);
-    const [page, setPage] = useState(Number(searchParams.get('page')) || 0);
-    const [pageSize, setPageSize] = useState(12);
-
-    const load = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            setProducts(await fetchAllStoreCatalog());
-        } catch (err) {
-            console.error('Failed to load store catalog', err);
-            setError('Could not load the store catalog.');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { void load(); }, [load]);
-
-    const catalogPriceMax = useMemo(() => {
-        const prices = products.map((product) => product.price).filter((price): price is number => price != null && Number.isFinite(price));
-        return prices.length > 0 ? Math.max(1, Math.ceil(Math.max(...prices) / 10) * 10) : 0;
-    }, [products]);
-    const effectivePriceMax = priceMax > 0 ? Math.min(priceMax, catalogPriceMax || priceMax) : catalogPriceMax;
-
-    // Keep local controls aligned with browser back/forward navigation.
-    useEffect(() => {
-        const urlSearch = searchParams.get('search') || '';
-        const urlCategory = searchParams.get('category') || 'ALL';
-        const urlRegion = readRegion(searchParams);
-        const urlPriceMin = Number(searchParams.get('priceMin')) || 0;
-        const urlPriceMax = Number(searchParams.get('priceMax')) || 0;
-        const urlSize = searchParams.get('size') || 'ALL';
-        const urlSort = searchParams.get('sort') || 'NEWEST';
-        const urlPage = Number(searchParams.get('page')) || 0;
-        if (urlSearch !== search) setSearch(urlSearch);
-        if (urlCategory !== categoryFilter) setCategoryFilter(urlCategory as 'ALL' | StoreProductCategory);
-        if (urlPriceMin !== priceMin) setPriceMin(urlPriceMin);
-        if (urlPriceMax !== priceMax) setPriceMax(urlPriceMax);
-        if (urlSize !== size) setSize(urlSize);
-        if (urlSort !== sort) setSort(urlSort as StoreSort);
-        if (urlPage !== page) setPage(urlPage);
-        if (urlRegion.country !== region.country || urlRegion.city !== region.city || urlRegion.clubId !== region.clubId) setRegion(urlRegion);
-        // State-to-URL synchronization below prevents loops after these updates.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams]);
-
-    useEffect(() => {
-        const next = new URLSearchParams();
-        if (search.trim()) next.set('search', search.trim());
-        if (categoryFilter !== 'ALL') next.set('category', categoryFilter);
-        if (region.country) next.set('country', region.country);
-        if (region.city) next.set('city', region.city);
-        if (region.clubId != null) next.set('clubId', String(region.clubId));
-        if (priceMin > 0) next.set('priceMin', String(priceMin));
-        if (priceMax > 0 && catalogPriceMax > 0 && priceMax < catalogPriceMax) next.set('priceMax', String(priceMax));
-        if (size !== 'ALL') next.set('size', size);
-        if (sort !== 'NEWEST') next.set('sort', sort);
-        if (page > 0) next.set('page', String(page));
-        setSearchParams(next, { replace: true });
-    }, [categoryFilter, catalogPriceMax, page, priceMax, priceMin, region, search, setSearchParams, size, sort]);
-
-    useEffect(() => {
-        if (!mobileFiltersOpen) return;
-        const handleKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobileFiltersOpen(false); };
-        const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        document.addEventListener('keydown', handleKeyDown);
-        return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', handleKeyDown); };
-    }, [mobileFiltersOpen]);
-
-    useEffect(() => {
-        if (mobileFiltersOpen) mobileFilterCloseRef.current?.focus();
-        else if (hadMobileFiltersOpen.current) mobileFilterTriggerRef.current?.focus();
-        hadMobileFiltersOpen.current = mobileFiltersOpen;
-    }, [mobileFiltersOpen]);
-
-    const filtered = useMemo(() => {
-        const query = search.trim().toLowerCase();
-        const next = products.filter((product) => {
-            if (product.active === false) return false;
-            if (categoryFilter !== 'ALL' && product.category !== categoryFilter) return false;
-            if ((priceMin > 0 || (effectivePriceMax > 0 && effectivePriceMax < catalogPriceMax)) && (product.price == null || product.price < priceMin || product.price > effectivePriceMax)) return false;
-            if (size !== 'ALL' && !(product.sizes ?? []).includes(size)) return false;
-            if (region.country && product.clubCountryName !== region.country) return false;
-            if (region.city && product.clubCityName !== region.city) return false;
-            if (region.clubId != null && product.clubId !== region.clubId) return false;
-            if (query) {
-                const haystack = `${product.name ?? ''} ${product.description ?? ''} ${product.clubName ?? ''}`.toLowerCase();
-                if (!haystack.includes(query)) return false;
-            }
-            return true;
-        });
-        return [...next].sort((a, b) => {
-            if (sort === 'PRICE_LOW') return (a.price ?? Number.POSITIVE_INFINITY) - (b.price ?? Number.POSITIVE_INFINITY);
-            if (sort === 'PRICE_HIGH') return (b.price ?? Number.NEGATIVE_INFINITY) - (a.price ?? Number.NEGATIVE_INFINITY);
-            return (b.createdAt ? new Date(b.createdAt).getTime() : 0) - (a.createdAt ? new Date(a.createdAt).getTime() : 0);
-        });
-    }, [categoryFilter, catalogPriceMax, effectivePriceMax, priceMin, products, region, search, size, sort]);
-
-    useEffect(() => { if (page > 0 && page >= Math.ceil(filtered.length / pageSize)) setPage(0); }, [filtered.length, page, pageSize]);
-
-    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-    const visible = filtered.slice(page * pageSize, (page + 1) * pageSize);
-    const hasActiveFilters = Boolean(search.trim() || categoryFilter !== 'ALL' || priceMin > 0 || (effectivePriceMax > 0 && effectivePriceMax < catalogPriceMax) || size !== 'ALL' || region.country || region.city || region.clubId != null);
-
-    const clearFilters = () => {
-        setSearch('');
-        setCategoryFilter('ALL');
-        setRegion(EMPTY_CLUB_REGION);
-        setPriceMin(0);
-        setPriceMax(0);
-        setSize('ALL');
-        setSort('NEWEST');
-        setPage(0);
-    };
-
-    const activeFilterChips: DirectoryFilterChip[] = [
-        ...(search.trim() ? [{ id: 'search', label: `“${search.trim()}”` }] : []),
-        ...(categoryFilter !== 'ALL' ? [{ id: 'category', label: formatCategory(categoryFilter) }] : []),
-        ...(priceMin > 0 || (effectivePriceMax > 0 && effectivePriceMax < catalogPriceMax) ? [{ id: 'price', label: `${priceMin}–${effectivePriceMax} ₾` }] : []),
-        ...(size !== 'ALL' ? [{ id: 'size', label: `Size ${size}` }] : []),
-        ...(region.country ? [{ id: 'country', label: region.country }] : []),
-        ...(region.city ? [{ id: 'city', label: region.city }] : []),
-        ...(region.clubId != null ? [{ id: 'club', label: 'Club selected' }] : [])
-    ];
-
-    const removeFilter = (id: string) => {
-        if (id === 'search') setSearch('');
-        if (id === 'category') setCategoryFilter('ALL');
-        if (id === 'price') { setPriceMin(0); setPriceMax(0); }
-        if (id === 'size') setSize('ALL');
-        if (id === 'country') setRegion(EMPTY_CLUB_REGION);
-        if (id === 'city') setRegion((current) => ({ ...current, city: null, clubId: null }));
-        if (id === 'club') setRegion((current) => ({ ...current, clubId: null }));
-        setPage(0);
-    };
-
-    const renderFilters = (variant: 'rail' | 'drawer') => (
-        <DirectoryFilterShell title="Filter store" description="Browse merchandise by product, price, size and club." accent="amber" variant={variant} hasActiveFilters={hasActiveFilters} clearLabel="Clear all" onClear={clearFilters}>
-            <div className="space-y-5 p-4">
-                <DirectoryFilterSection title="Product category" className="px-0 py-0">
-                    <DirectoryChoiceList options={[{ value: 'ALL', label: 'All products' }, ...STORE_CATEGORIES.map((value) => ({ value, label: formatCategory(value) }))]} selectedValues={[categoryFilter]} onToggle={(value) => { setCategoryFilter(value as 'ALL' | StoreProductCategory); setPage(0); }} accent="amber" variant="pill" />
-                </DirectoryFilterSection>
-                {catalogPriceMax > 0 && <DirectoryFilterSection title="Price range" separated className="px-0 py-0"><DirectoryRangeFilter min={0} max={catalogPriceMax} lowerValue={priceMin} upperValue={effectivePriceMax} step={1} lowerLabel="Minimum" upperLabel="Maximum" valueFormatter={(value) => `${value} ₾`} accent="amber" onChange={(lower, upper) => { setPriceMin(lower); setPriceMax(upper >= catalogPriceMax ? 0 : upper); setPage(0); }} /></DirectoryFilterSection>}
-                {Array.from(new Set(products.flatMap((product) => product.sizes ?? []))).length > 0 && <DirectoryFilterSection title="Size available" separated className="px-0 py-0"><DirectoryChoiceList options={[{ value: 'ALL', label: 'Any size' }, ...Array.from(new Set(products.flatMap((product) => product.sizes ?? []))).sort().map((value) => ({ value, label: value }))]} selectedValues={[size]} onToggle={(value) => { setSize(value); setPage(0); }} accent="amber" variant="pill" /></DirectoryFilterSection>}
-                <DirectoryFilterSection title="Location and club" separated className="px-0 py-0"><ClubLocationFilter items={products.flatMap((product) => product.clubId == null ? [] : [{ clubId: product.clubId, clubName: product.clubName ?? 'Club', cityName: product.clubCityName, countryName: product.clubCountryName }])} value={region} onChange={(value) => { setRegion(value); setPage(0); }} label="Filter by club" defaultOpen className="border-0 bg-transparent p-0 shadow-none" /></DirectoryFilterSection>
-            </div>
-        </DirectoryFilterShell>
-    );
-
-    return (
-        <div className="min-h-[calc(100dvh-var(--app-header-height))] bg-[#0f1117] text-[color:var(--text-primary)]">
-            <DiscoverySectionTabs />
-            <header className="border-b border-[color:var(--theme-border)] pb-6 pt-1">
-                <h1 className="text-2xl font-bold tracking-tight text-[color:var(--text-primary)]">{t('store.title')}</h1>
-                <p className="mt-1 text-sm text-[color:var(--text-secondary)]">{t('store.subtitle')}</p>
-                <DirectoryToolbar search={search} searchLabel={t('store.search')} searchPlaceholder={t('store.search')} resultCount={!loading && !error ? filtered.length : undefined} resultLabel={(count) => `${count} ${count === 1 ? 'product' : 'products'}`} sort={sort} sortLabel="Sort products" sortOptions={SORT_OPTIONS} hasActiveFilters={hasActiveFilters} filtersOpen={mobileFiltersOpen} filterLabel="Filters" activeFilterChips={activeFilterChips} filterButtonRef={mobileFilterTriggerRef} accent="amber" onSearchChange={(value) => { setSearch(value); setPage(0); }} onSortChange={(value) => { setSort(value as StoreSort); setPage(0); }} onClearFilters={clearFilters} onRemoveFilter={removeFilter} onOpenFilters={() => setMobileFiltersOpen(true)} />
-            </header>
-
-            <div className="grid gap-5 py-5 xl:grid-cols-[280px_minmax(0,1fr)] xl:items-start">
-                <aside aria-label="Store filters" className="hidden xl:block">{renderFilters('rail')}</aside>
-                <main className="min-w-0">
-                    {loading ? <PageSpinner /> : error ? <p className="py-10 text-center text-sm text-[#d4737a]">{error}</p> : filtered.length === 0 ? <EmptyStateCard icon={ShoppingBag} title={t('store.emptyTitle')} description={t('store.emptyDescription')} actionLabel={t('store.emptyCta')} actionIcon={Building2} onAction={() => navigate('/clubs')} /> : <><div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{visible.map((product) => <ProductCard key={product.id} product={product} onOpen={setSelected} showClub />)}</div><PaginationBar page={page} totalPages={totalPages} totalElements={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(newSize) => { setPageSize(newSize); setPage(0); }} /></>}
-                </main>
-            </div>
-
-            <DirectoryFilterDrawer open={mobileFiltersOpen} title="Store filters" closeLabel="Close filters" closeRef={mobileFilterCloseRef} onClose={() => setMobileFiltersOpen(false)}>{renderFilters('drawer')}</DirectoryFilterDrawer>
-            <ProductQuickViewModal product={selected} onClose={() => setSelected(null)} />
-        </div>
-    );
+    const {id}=useParams(); const clubId=id ? Number(id):undefined;
+    const [params,setParams]=useSearchParams();
+    const [products,setProducts]=useState<StoreProduct[]>([]),[total,setTotal]=useState(0);
+    const [loading,setLoading]=useState(true),[error,setError]=useState(''),[reload,setReload]=useState(0),[clubName,setClubName]=useState('');
+    const query=params.toString();
+    const page=Math.min(1000000,Math.max(0,Math.floor(Number(params.get('page'))||0)));
+    const currency=['GEL','EUR','GBP','USD'].includes(params.get('currency')??'') ? params.get('currency')!:'GEL';
+    const change=(name:string,value:string)=>setParams(current=>{const next=new URLSearchParams(current);if(value)next.set(name,value);else next.delete(name);if(name!=='page')next.delete('page');return next;});
+    useEffect(()=>{
+        const controller=new AbortController(); let active=true;
+        // Clear the previous route/search while synchronizing with the next API request.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setLoading(true);setError('');setProducts([]);setClubName('');
+        const search=new URLSearchParams(query);
+        const requestedPage=Math.min(1000000,Math.max(0,Math.floor(Number(search.get('page'))||0)));
+        const n=(key:string)=>search.get(key) && Number.isFinite(Number(search.get(key))) ? Number(search.get(key)):undefined;
+        if(clubId!==undefined && (!Number.isSafeInteger(clubId)||clubId<1)){setError('This club could not be found.');setLoading(false);return;}
+        const clubRequest=clubId ? apiClient.get<{name:string}>(`/clubs/${clubId}`,{signal:controller.signal}).then(r=>r.data.name):Promise.resolve('');
+        void Promise.all([fetchStoreCatalog({page:requestedPage,size:12,clubId,query:search.get('query')||undefined,
+            category:search.get('category')||undefined,currency,country:search.get('country')||undefined,city:search.get('city')||undefined,
+            variant:search.get('variant')||undefined,minPrice:n('minPrice'),maxPrice:n('maxPrice'),sort:search.get('sort')||'NEWEST'},controller.signal),clubRequest])
+            .then(([data,name])=>{if(active){setProducts(data.content??[]);setTotal(data.totalElements??0);setClubName(name);}})
+            .catch(()=>{if(active)setError('The store could not load. Please try again.');})
+            .finally(()=>{if(active)setLoading(false);});
+        return()=>{active=false;controller.abort();};
+    },[query,clubId,currency,reload]);
+    return <main className="mx-auto max-w-7xl space-y-6 p-4 text-[var(--text-primary)] sm:p-6">
+        <DiscoverySectionTabs/>
+        <header className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-3xl font-bold">{clubId ? `${clubName||'Club'} store`:'Store'}</h1><p className="mt-2 text-[var(--text-secondary)]">{clubId?'Products from this club.':'Browse products from football clubs across the platform.'}</p></div><Link className="rounded-lg border px-4 py-2 font-semibold" to="/store/cart">Open cart</Link></header>
+        {clubId && <nav className="flex gap-4 text-sm underline"><Link to={`/clubs/${clubId}`}>Back to club</Link><Link to="/store">Browse all stores</Link></nav>}
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-sm">Browse and prepare your cart. Online checkout is not available yet.</p>
+        <form className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4" onSubmit={e=>e.preventDefault()}>
+            <label className="grid gap-1 text-sm">Search<input className={input} value={params.get('query')??''} maxLength={100} onChange={e=>change('query',e.target.value)} placeholder="Product or club"/></label>
+            <label className="grid gap-1 text-sm">Category<select className={input} value={params.get('category')??''} onChange={e=>change('category',e.target.value)}><option value="">All categories</option>{STORE_CATEGORIES.map(c=><option key={c} value={c}>{c.replaceAll('_',' ')}</option>)}</select></label>
+            <label className="grid gap-1 text-sm">Currency<select className={input} value={currency} onChange={e=>change('currency',e.target.value)}>{['GEL','EUR','GBP','USD'].map(c=><option key={c}>{c}</option>)}</select></label>
+            <label className="grid gap-1 text-sm">Sort<select className={input} value={params.get('sort')??'NEWEST'} onChange={e=>change('sort',e.target.value)}><option value="NEWEST">Newest</option><option value="PRICE_LOW">Price: low to high</option><option value="PRICE_HIGH">Price: high to low</option></select></label>
+            <details className="sm:col-span-3 lg:col-span-4"><summary className="cursor-pointer text-sm underline">More filters</summary><div className="mt-3 grid gap-3 sm:grid-cols-3">{[['country','Country'],['city','City'],['variant','Available size / variant'],['minPrice','Minimum price'],['maxPrice','Maximum price']].map(([key,label])=><label key={key} className="grid gap-1 text-sm">{label}<input className={input} value={params.get(key)??''} onChange={e=>change(key,e.target.value)} type={key.endsWith('Price')?'number':'text'} min="0" step="0.01" maxLength={key==='variant'?40:100}/></label>)}</div></details>
+            <button type="button" className={input} onClick={()=>setParams({})}>Reset filters</button>
+        </form>
+        {loading ? <p role="status">Loading products...</p> : error ? <div role="alert">{error} <button className="underline" onClick={()=>setReload(n=>n+1)}>Retry</button></div> : <>
+            <p role="status" className="text-sm text-[var(--text-secondary)]">{total} products matching this search</p>
+            {products.length===0 ? <p>No products on this page. Change the filters or return to the first page.</p> : <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{products.map(product=><article key={product.id} className="overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)]">
+                <Link to={`/store/products/${product.id}`} className="block"><div className="flex aspect-[4/3] items-center justify-center bg-black/10">{product.images?.[0]?<img src={resolveMediaUrl(product.images[0])} alt={product.name??'Product'} className="h-full w-full object-cover"/>:<span className="text-[var(--text-secondary)]">No product photo</span>}</div><div className="space-y-2 p-4"><h2 className="text-lg font-bold">{product.name}</h2><p className="font-semibold">{formatStorePrice(product.price??0,product.currency)}</p><p className="text-sm">{product.variants?.some(v=>v.stock>0)?'In stock':'Out of stock'}</p></div></Link>
+                <Link className="mx-4 mb-4 inline-block text-sm underline" to={`/clubs/${product.clubId}/store`}>{product.clubName}</Link>
+            </article>)}</div>}
+            <nav aria-label="Store pages" className="flex items-center gap-4"><button disabled={page===0} className="rounded border px-3 py-2 disabled:opacity-40" onClick={()=>change('page',String(Math.max(0,page-1)))}>Previous</button><span>Page {page+1} of {Math.max(1,Math.ceil(total/12))}</span><button disabled={(page+1)*12>=total} className="rounded border px-3 py-2 disabled:opacity-40" onClick={()=>change('page',String(page+1))}>Next</button></nav>
+        </>}
+    </main>;
 };

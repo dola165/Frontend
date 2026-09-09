@@ -1,3 +1,4 @@
+import { StoreTab } from '../components/workspace/tabs/StoreTab';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +11,7 @@ import {
     Menu,
     PanelRight,
     Settings,
+    ShoppingBag,
     ShieldCheck,
     UserPlus,
     Users,
@@ -753,6 +755,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
             items.push({ id: 'jobs', label: 'Jobs', icon: Briefcase });
         }
         if (canManageLeadership) {
+            items.push({ id: 'store', label: 'Store', icon: ShoppingBag });
             items.push({ id: 'settings', label: 'Settings', icon: Settings });
         }
         if (canManageOperations) {
@@ -988,6 +991,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                 />
                             )}
 
+                            {activeTab === 'store' && canManageLeadership && <StoreTab key={clubId} clubId={clubId} />}
                             {activeTab === 'settings' && (
                                 <SettingsTab clubId={clubId} pendingKey={pendingKey} />
                             )}

@@ -1,5 +1,6 @@
 import {
     Bell,
+    ShoppingBag,
     BriefcaseBusiness,
     Building2,
     CalendarDays,
@@ -22,6 +23,7 @@ export type NavigationKey =
     | 'notifications'
     | 'people'
     | 'clubs-following'
+    | 'store'
     | 'jobs'
     | 'tournaments'
     | 'profile'
@@ -50,6 +52,7 @@ export const primaryProductNavigation: ProductNavigationItem[] = [
 ];
 
 export const secondaryProductNavigation: ProductNavigationItem[] = [
+    { id: 'store', path: '/store', label: 'Store', translationKey: 'nav.store', icon: ShoppingBag, authRequired: false },
     { id: 'messages', path: '/messages', label: 'Messages', translationKey: 'nav.messages', icon: MessageSquare, authRequired: true },
     { id: 'notifications', path: '/notifications', label: 'Notifications', translationKey: 'nav.notifications', icon: Bell, authRequired: true },
     { id: 'people', path: '/people', label: 'People', translationKey: 'nav.people', icon: UsersRound, authRequired: true },
@@ -76,6 +79,7 @@ export const resolveNavigationKey = (pathname: string, myClubId: number | null) 
     if (pathname === '/admin') return 'admin';
     if (pathname === '/marketplace') return 'marketplace';
     if (pathname === '/needs') return 'needs';
+    if (pathname === '/store' || pathname.startsWith('/store/')) return 'store';
     if (pathname === '/jobs') return 'jobs';
     if (pathname.startsWith('/profile/')) return 'profile';
 

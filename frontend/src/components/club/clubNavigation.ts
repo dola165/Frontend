@@ -1,6 +1,6 @@
-import { Briefcase, Building2, CalendarDays, Camera, Phone, Users, UsersRound } from 'lucide-react';
+import { ShoppingBag, Briefcase, Building2, CalendarDays, Camera, Phone, Users, UsersRound } from 'lucide-react';
 
-export type ClubNavigationTab = 'overview' | 'people' | 'teams' | 'schedule' | 'media' | 'business' | 'contact';
+export type ClubNavigationTab = 'overview' | 'people' | 'teams' | 'schedule' | 'media' | 'business' | 'contact' | 'store';
 
 export type ClubNavigationAccent = 'blue' | 'violet';
 
@@ -54,6 +54,7 @@ export const clubNavigationItems: ClubNavigationItem[] = [
         accent: 'blue',
         section: 'media'
     },
+    { id: 'store', icon: ShoppingBag, label: 'Store', toneClassName: 'club-tone-green' },
     {
         id: 'business',
         icon: Briefcase,

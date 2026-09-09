@@ -213,7 +213,8 @@ export const ClubProfilePage = () => {
         setSearchParams(nextSearchParams, { replace: true });
     };
 
-    const setActiveTab = (tab: ClubTab) => updateSearchParam('tab', tab === 'overview' ? null : tab);
+    const setActiveTab = (tab: ClubTab) => tab === 'store' ? navigate(`/clubs/${id}/store`) : updateSearchParam('tab', tab === 'overview' ? null : tab);
+    useEffect(() => { if (searchParams.get('tab') === 'store' && id) navigate(`/clubs/${id}/store`, { replace: true }); }, [searchParams, id, navigate]);
 
     const openManageClub = (tab?: ClubManagementTab | null) => {
         const nextSearchParams = new URLSearchParams(searchParams);

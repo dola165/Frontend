@@ -1,3 +1,7 @@
+import { StorePage } from './pages/StorePage';
+import { ClubStorePage } from './pages/ClubStorePage';
+import { StoreProductPage } from './pages/StoreProductPage';
+import { StoreCartPage } from './pages/StoreCartPage';
 import { useEffect, useState, type CSSProperties, type JSX } from 'react';
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { TopNav } from './components/layout/TopNav';
@@ -262,6 +266,7 @@ function MainLayout() {
         ['/map', '/world', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/tournaments', '/tournaments/setup', '/marketplace', '/needs', '/store', '/jobs', '/campaigns', '/people'].includes(location.pathname) ||
         location.pathname.startsWith('/profile') ||
         location.pathname.startsWith('/posts/') ||
+        location.pathname.startsWith('/store/') ||
         location.pathname.startsWith('/organizations') ||
         location.pathname.startsWith('/tournaments/') ||
         location.pathname.startsWith('/agent') ||
@@ -309,11 +314,13 @@ function MainLayout() {
             <Route path="/agent/*" element={<RouteRecoveryPage feature="Agent tools" />} />
             <Route path="/marketplace" element={<RouteRecoveryPage feature="The marketplace" />} />
             <Route path="/needs" element={<RouteRecoveryPage feature="Player needs" />} />
-            <Route path="/store" element={<RouteRecoveryPage feature="The club store" />} />
+            <Route path="/store" element={<StorePage />} />
+            <Route path="/store/products/:id" element={<StoreProductPage />} />
+            <Route path="/store/cart" element={<StoreCartPage />} />
             <Route path="/jobs" element={<JobsDirectoryPage />} />
             <Route path="/campaigns" element={<RouteRecoveryPage feature="Campaigns and fundraising" />} />
             <Route path="/people" element={<ProtectedRoute><PeoplePage /></ProtectedRoute>} />
-            <Route path="/clubs/:id/store" element={<RouteRecoveryPage feature="The club store" />} />
+            <Route path="/clubs/:id/store" element={<ClubStorePage />} />
             <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage darkMode={darkMode} /></ProtectedRoute>} />
             <Route path="/clubs/:id" element={<ClubProfilePage />} />

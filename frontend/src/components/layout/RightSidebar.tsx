@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
     BriefcaseBusiness,
     Building2,
+    ShoppingBag,
     ExternalLink,
     MessageCircle,
     Minus,
@@ -108,13 +109,13 @@ export const RightSidebar = () => {
                     <section className="overflow-hidden rounded-xl border border-white/10 bg-[#090b0e] shadow-[var(--feed-shadow-panel)]" aria-labelledby="discover-heading">
                         <div className="flex items-center gap-2 border-b border-white/[0.08] px-4 py-4">
                             <Building2 className="h-4 w-4 text-emerald-400" />
-                            <h2 id="discover-heading" className="text-xs font-bold text-emerald-400">Explore football</h2>
+                            <h2 id="discover-heading" className="text-xs font-bold text-emerald-400">Opportunities</h2>
                         </div>
 
                         <div className="space-y-2.5 p-3" aria-label="Supported destinations">
-                            <Link to="/clubs" className="block rounded-md border border-emerald-500/45 bg-emerald-500/[0.06] px-3 py-3 transition-colors hover:brightness-110">
-                                <span className="flex items-center gap-2 text-xs font-bold text-emerald-300"><Building2 className="h-4 w-4" />Browse clubs</span>
-                                <span className="mt-1.5 block text-[11px] text-[#a1a1aa]">Find clubs, teams and public profiles</span>
+                            <Link to="/store" className="block rounded-md border border-emerald-500/45 bg-emerald-500/[0.06] px-3 py-3 transition-colors hover:brightness-110">
+                                <span className="flex items-center gap-2 text-xs font-bold text-emerald-300"><ShoppingBag className="h-4 w-4" />Store</span>
+                                <span className="mt-1.5 block text-[11px] text-[#a1a1aa]">Browse club merchandise</span>
                             </Link>
                             <Link to="/jobs" className="block rounded-md border border-fuchsia-400/40 bg-fuchsia-400/[0.06] px-3 py-3 transition-colors hover:brightness-110">
                                 <span className="flex items-center gap-2 text-xs font-bold text-fuchsia-300"><BriefcaseBusiness className="h-4 w-4" /><span className="flex-1">Jobs & volunteering</span><span className="rounded-full border border-amber-400/30 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-amber-300">Preview</span></span>

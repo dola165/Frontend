@@ -7,7 +7,7 @@ describe('supported product navigation', () => {
         const destinations = [...primaryProductNavigation, ...secondaryProductNavigation];
         const paths = destinations.map((item) => item.path);
 
-        expect(paths).not.toContain('/store');
+        expect(paths).toContain('/store');
         expect(paths).not.toContain('/campaigns');
         expect(paths).not.toContain('/marketplace');
         expect(paths).not.toContain('/agent');
@@ -28,7 +28,7 @@ describe('supported product navigation', () => {
 
     it('keeps the public club menu focused on seven destinations', () => {
         expect(clubNavigationItems.map((item) => item.id)).toEqual([
-            'overview', 'people', 'teams', 'schedule', 'media', 'business', 'contact',
+            'overview', 'people', 'teams', 'schedule', 'media', 'store', 'business', 'contact',
         ]);
     });
 

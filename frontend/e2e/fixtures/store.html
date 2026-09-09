@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><title>Store verification</title><meta name="viewport" content="width=device-width, initial-scale=1"/></head>
+<body><div id="root"></div><script type="module">
+import React from 'react'; import {createRoot} from 'react-dom/client';
+import {MemoryRouter, Routes, Route, Link} from 'react-router-dom';
+import {StoreTab} from '/src/components/workspace/tabs/StoreTab.tsx';
+import {StorePage} from '/src/pages/StorePage.tsx';
+import {StoreProductPage} from '/src/pages/StoreProductPage.tsx';
+import {StoreCartPage} from '/src/pages/StoreCartPage.tsx';
+import '/src/index.css';
+const e=React.createElement, club=Number(new URLSearchParams(location.search).get('club'));
+createRoot(document.getElementById('root')).render(e(MemoryRouter,{initialEntries:[new URLSearchParams(location.search).get('path')||'/workspace']},
+ e(React.Fragment,null,e(Link,{to:'/workspace'},'Manage Store'),e(Routes,null,
+  e(Route,{path:'/workspace',element:e('main',{className:'mx-auto max-w-5xl p-6'},e(StoreTab,{clubId:club}))}),
+  e(Route,{path:'/store',element:e(StorePage)}),e(Route,{path:'/clubs/:id/store',element:e(StorePage)}),
+  e(Route,{path:'/store/products/:id',element:e(StoreProductPage)}),e(Route,{path:'/store/cart',element:e(StoreCartPage)})
+ ))));
+</script></body></html>

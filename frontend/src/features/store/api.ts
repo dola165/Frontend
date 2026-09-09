@@ -1,8 +1,7 @@
 import { apiClient } from '../../api/axiosConfig';
 
 // ── Club store (WEB_APP_MASTER_PLAN.md §4.1, Phase 3) ──
-// Catalog-only: no payments. The order CTA opens the club's contact channels
-// carried on the product DTO (clubWhatsappNumber / clubEmail).
+// Shared catalog and stock. Checkout is unavailable until a provider is integrated.
 
 export type StoreProductCategory =
     | 'SHIRT'
@@ -21,6 +20,9 @@ export const STORE_CATEGORIES: StoreProductCategory[] = [
 
 export interface StoreProduct {
     id: number;
+    currency?: string;
+    version?: number;
+    variants?: StoreVariant[];
     clubId?: number | null;
     clubName?: string | null;
     clubLogoUrl?: string | null;
@@ -38,7 +40,12 @@ export interface StoreProduct {
     clubCountryName?: string | null;
 }
 
+export interface StoreVariant { id?: number; label: string; stock: number; }
+
 export interface StoreProductPayload {
+    currency?: string;
+    variants?: StoreVariant[];
+    version?: number;
     name?: string;
     description?: string | null;
     price?: number;
@@ -90,3 +97,16 @@ export const updateStoreProduct = async (clubId: number, productId: number, payl
 export const deleteStoreProduct = async (clubId: number, productId: number) => {
     await apiClient.delete(`/clubs/${clubId}/store/products/${productId}`);
 };
+
+export interface StoreCatalogParams { page?: number; size?: number; clubId?: number; query?: string; category?: string; currency?: string; country?: string; city?: string; variant?: string; minPrice?: number; maxPrice?: number; sort?: string; }
+export const fetchStoreCatalog = async (params: StoreCatalogParams, signal?: AbortSignal) =>
+    (await apiClient.get<{content: StoreProduct[]; totalElements: number}>('/store/products', {params,signal})).data;
+export const fetchStoreProduct = async (id: number, signal?: AbortSignal) =>
+    (await apiClient.get<StoreProduct>(`/store/products/${id}`, {signal})).data;
+export interface CartQuote { clubId: number; clubName: string; currency: string; lines: Array<{variantId:number;quantity:number;productId:number;name:string;variant:string;unitAmount:number;lineAmount:number}>; subtotal: number; checkoutEnabled: boolean; message: string; }
+export const fetchCartQuote = async (items: Array<{variantId:number;quantity:number}>, signal?: AbortSignal) => {
+    const params = new URLSearchParams();
+    items.forEach(item=>params.append('item',`${item.variantId}:${item.quantity}`));
+    return (await apiClient.get<CartQuote>(`/store/cart/quote?${params}`,{signal})).data;
+};
+export const formatStorePrice = (price: number, currency = 'GEL') => new Intl.NumberFormat('en-GB',{style:'currency',currency}).format(price);

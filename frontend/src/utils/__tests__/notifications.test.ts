@@ -19,6 +19,23 @@ const notification = (overrides: Partial<NotificationItem>): NotificationItem =>
 });
 
 describe('buildNotificationDestination — Aug 17 deep-link audit (P2.5)', () => {
+    it('selects the exact application using typed identity instead of a stale destination', () => {
+        expect(buildNotificationDestination(notification({ type: 'CLUB_APPLICATION_RECEIVED', clubId: 5, entityType: 'club_membership_application', entityId: 81, linkPath: '/account' })))
+            .toBe('/clubs/5/workspace?tab=applications&applicationId=81');
+        expect(buildNotificationDestination(notification({ type: 'TRYOUT_APPLICATION_RECEIVED', clubId: 5, entityType: 'tryout_application', entityId: 82 })))
+            .toBe('/clubs/5/workspace?tab=tryouts&applicationId=82');
+    });
+    it('shows a recorded outcome when a schedule identity is missing or has the wrong type', () => {
+        expect(buildNotificationDestination(notification({ type: 'SCHEDULE_EVENT_CANCELLED', entityType: 'post', entityId: 42 }))).toBe('/notifications?itemId=1');
+        expect(buildNotificationDestination(notification({ type: 'SCHEDULE_EVENT_CANCELLED' }))).toBe('/notifications?itemId=1');
+    });
+    it.each(['https://evil.example', '//evil.example', '/\\evil.example', '/%2f%2fevil.example', 'javascript:alert(1)'])('rejects unsafe stored destinations: %s', linkPath => {
+        expect(buildNotificationDestination(notification({ type: 'OTHER', linkPath }))).toBe('/notifications?itemId=1');
+    });
+    it('opens the exact announcement post and the recorded closure outcome', () => {
+        expect(buildNotificationDestination(notification({ type: 'CLUB_ANNOUNCEMENT', entityType: 'post', entityId: 91, linkPath: '/clubs/5' }))).toBe('/posts/91');
+        expect(buildNotificationDestination(notification({ type: 'CLUB_DISSOLVED', entityType: 'club', entityId: 5, linkPath: '/clubs' }))).toBe('/notifications?itemId=1');
+    });
     it('rewrites the legacy ?manageClub=1&managementTab= query format to a workspace tab', () => {
         const destination = buildNotificationDestination(notification({
             type: 'CLUB_APPLICATION_RECEIVED',
@@ -113,8 +130,8 @@ describe('buildNotificationDestination — P1 W6 deep-link sweep (H7 + W4 types)
                 type,
                 scope: 'CLUB',
                 clubId: 7,
-                linkPath: '/clubs/7/schedule'
-            }))).toBe('/calendar');
+                entityType: 'schedule_event', entityId: 21, linkPath: '/clubs/7/schedule'
+            }))).toBe('/calendar?eventId=21');
         }
     });
 
@@ -123,9 +140,9 @@ describe('buildNotificationDestination — P1 W6 deep-link sweep (H7 + W4 types)
             expect(buildNotificationDestination(notification({
                 type,
                 scope: 'CLUB',
-                clubId: 9,
+                clubId: 9, entityType: 'schedule_event', entityId: 21,
                 linkPath: null
-            }))).toBe('/calendar');
+            }))).toBe('/calendar?eventId=21');
         }
     });
 
@@ -163,6 +180,6 @@ describe('buildNotificationDestination — P1 W6 deep-link sweep (H7 + W4 types)
             clubId: 6,
             entityId: 12,
             linkPath: null
-        }))).toBe('/clubs/6/squads?squad=12');
+        }))).toBe('/notifications?itemId=1');
     });
 });

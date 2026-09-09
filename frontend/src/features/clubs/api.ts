@@ -84,7 +84,7 @@ export const fetchPendingClubApplications = async (clubId: number) => {
 /** Phase A3 — applications list with optional position/ageGroup/status filters. */
 export const fetchClubApplications = async (
     clubId: number,
-    filters?: { position?: string | null; ageGroup?: string | null; status?: string | null; jobId?: number | null }
+    filters?: { position?: string | null; ageGroup?: string | null; status?: string | null; jobId?: number | null; applicationId?: number | null }
 ) => {
     const response = await apiClient.get<ClubMembershipApplication[]>(`/clubs/${clubId}/management/applications`, {
         params: {
@@ -92,6 +92,7 @@ export const fetchClubApplications = async (
             ageGroup: filters?.ageGroup || undefined,
             status: filters?.status || undefined,
             jobId: filters?.jobId || undefined,
+            applicationId: filters?.applicationId || undefined,
         },
     });
     return response.data;

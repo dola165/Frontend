@@ -146,6 +146,9 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     const [applicationsLoading, setApplicationsLoading] = useState(false);
     const [applicationsError, setApplicationsError] = useState<string | null>(null);
     const [applicationsFilters, setApplicationsFilters] = useState<ApplicationFilters>({ position: '', ageGroup: '', status: 'PENDING', jobId: '' });
+    const rawApplicationId = searchParams.get('applicationId');
+    const focusedApplicationId = rawApplicationId && /^[1-9]\d*$/.test(rawApplicationId) && Number.isSafeInteger(Number(rawApplicationId)) ? Number(rawApplicationId) : null;
+    const clearApplicationFocus = () => { const next = new URLSearchParams(searchParams); next.delete('applicationId'); setSearchParams(next); };
     const applicationsRequestRef = useRef(0);
     const applicationsCacheRef = useRef<{ key: string; loadedAt: number }>({ key: '', loadedAt: 0 });
     const [workspaceJobs, setWorkspaceJobs] = useState<ClubJob[]>([]);
@@ -308,13 +311,13 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     };
 
     const loadApplications = async (force = false) => {
-        const cacheKey = `${clubId}:${applicationsFilters.position}:${applicationsFilters.ageGroup}:${applicationsFilters.status}:${applicationsFilters.jobId}`;
+        const cacheKey = `${clubId}:${focusedApplicationId}:${applicationsFilters.position}:${applicationsFilters.ageGroup}:${applicationsFilters.status}:${applicationsFilters.jobId}`;
         if (!force && applicationsList.length > 0 && applicationsCacheRef.current.key === cacheKey && Date.now() - applicationsCacheRef.current.loadedAt < 30_000) return;
         const requestId = ++applicationsRequestRef.current;
         setApplicationsLoading(true);
         setApplicationsError(null);
         try {
-            const response = await fetchClubApplications(clubId, {
+            const response = await fetchClubApplications(clubId, focusedApplicationId != null ? { applicationId: focusedApplicationId } : {
                 position: applicationsFilters.position || null,
                 ageGroup: applicationsFilters.ageGroup || null,
                 status: applicationsFilters.status || null,
@@ -363,7 +366,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     }, [activeTab, overview?.trialistCount, playerStatusFilter]);
     useEffect(() => {
         if (activeTab === 'applications') void loadApplications();
-    }, [activeTab, clubId, applicationsFilters]);
+    }, [activeTab, clubId, applicationsFilters, focusedApplicationId]);
     useEffect(() => {
         if (activeTab === 'tryouts') void loadTryouts();
     }, [activeTab, clubId]);
@@ -941,19 +944,22 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                             )}
 
                             {activeTab === 'applications' && (
+                                <>
+                                {focusedApplicationId != null && <p className="p-3" role="status">Showing the application from your notification. <button type="button" className="underline" onClick={clearApplicationFocus}>Show all applications</button></p>}
                                 <ApplicationsTab
-                                    applications={applicationsList}
+                                    applications={focusedApplicationId != null ? applicationsList.filter(a => a.id === focusedApplicationId) : applicationsList}
                                     applicationsLoading={applicationsLoading}
                                     applicationsError={applicationsError}
                                     jobs={workspaceJobs}
-                                    filters={applicationsFilters}
+                                    filters={focusedApplicationId != null ? { position: '', ageGroup: '', status: '', jobId: '' } : applicationsFilters}
                                     bulkPending={!!pendingKey && pendingKey.startsWith('bulk-')}
-                                    onFiltersChange={(f) => setApplicationsFilters(f)}
+                                    onFiltersChange={(f) => { clearApplicationFocus(); setApplicationsFilters(f); }}
                                     onAcceptApplication={handleAcceptApplication}
                                     onDeclineApplication={handleDeclineApplication}
                                     onBulkDecide={handleBulkDecide}
                                     onRetry={() => { void loadApplications(true); }}
                                 />
+                                </>
                             )}
 
                             {activeTab === 'roles' && overview && (
@@ -1004,13 +1010,16 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                             )}
 
                             {activeTab === 'tryouts' && (
+                                <>
+                                {focusedApplicationId != null && <p className="p-3" role="status">{!tryoutsLoading && !tryoutApplicants.some(a => a.id === focusedApplicationId) ? 'This application is unavailable or you no longer have access.' : 'Showing the application from your notification.'} <button type="button" className="underline" onClick={clearApplicationFocus}>Show all applications</button></p>}
                                 <TryoutsTab
                                     clubId={clubId}
-                                    tryoutApplicants={tryoutApplicants}
+                                    tryoutApplicants={focusedApplicationId != null ? tryoutApplicants.filter(a => a.id === focusedApplicationId) : tryoutApplicants}
                                     tryoutsLoading={tryoutsLoading}
                                     pendingKey={pendingKey}
                                     onTryoutStatus={handleTryoutStatus}
                                 />
+                                </>
                             )}
 
                             {activeTab === 'inbox' && (

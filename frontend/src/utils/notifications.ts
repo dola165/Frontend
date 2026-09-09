@@ -104,11 +104,27 @@ const normalizeManagementPath = (notification: NotificationItem, path: string) =
 };
 
 export const buildNotificationDestination = (notification: NotificationItem) => {
+    const outcome = `/notifications?itemId=${notification.id}`;
+    const entityId = Number.isSafeInteger(notification.entityId) && (notification.entityId ?? 0) > 0 ? notification.entityId : null;
     // P1 W6 (audit H7): schedule events/challenges live on /calendar. The web
     // app has no /clubs/{id}/schedule route, so any schedule-type notification
     // (including stale rows written before the backend fix) lands there.
     if (notification.type.startsWith('SCHEDULE_EVENT_') || notification.type.startsWith('SCHEDULE_CHALLENGE_')) {
-        return '/calendar';
+        return notification.entityType === 'schedule_event' && entityId != null
+            ? `/calendar?eventId=${entityId}` : outcome;
+    }
+
+    if (notification.type === 'CLUB_DISSOLVED'
+        || notification.type.startsWith('TRYOUT_APPLICATION_') && notification.type !== 'TRYOUT_APPLICATION_RECEIVED'
+        || ['CLUB_APPLICATION_ACCEPTED', 'CLUB_APPLICATION_DECLINED', 'MEMBERSHIP_ENDED', 'SQUAD_ASSIGNMENT', 'CLUB_ROLE_CHANGED'].includes(notification.type)) return outcome;
+
+    if (notification.type === 'CLUB_ANNOUNCEMENT' && notification.entityType === 'post' && entityId != null) return `/posts/${entityId}`;
+
+    if (notification.clubId != null && entityId != null
+        && ((notification.type === 'CLUB_APPLICATION_RECEIVED' && notification.entityType === 'club_membership_application')
+            || (notification.type === 'TRYOUT_APPLICATION_RECEIVED' && notification.entityType === 'tryout_application'))) {
+        const tab = notification.type === 'CLUB_APPLICATION_RECEIVED' ? 'applications' : 'tryouts';
+        return `/clubs/${notification.clubId}/workspace?tab=${tab}&applicationId=${entityId}`;
     }
 
     // P1 W4/W6: the player-journey membership notifications land on /account
@@ -125,7 +141,11 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
     }
 
     if (notification.linkPath) {
-        return normalizeManagementPath(notification, notification.linkPath);
+        // Only local app paths are navigation targets; never trust stored URLs.
+        const path = notification.linkPath;
+        if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\')
+            || Array.from(path).some(char => char.charCodeAt(0) <= 32) || /%2f|%5c/i.test(path)) return outcome;
+        return normalizeManagementPath(notification, path);
     }
 
     if (notification.clubId != null) {
@@ -156,6 +176,11 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
 };
 
 export const notificationActionLabel = (notification: NotificationItem) => {
+    if (notification.type.startsWith('SCHEDULE_')) return 'View event';
+    if (notification.type === 'CLUB_DISSOLVED' || notification.type === 'MEMBERSHIP_ENDED'
+        || notification.type === 'SQUAD_ASSIGNMENT' || notification.type === 'CLUB_ROLE_CHANGED'
+        || notification.type.startsWith('TRYOUT_APPLICATION_') && notification.type !== 'TRYOUT_APPLICATION_RECEIVED'
+        || ['CLUB_APPLICATION_ACCEPTED', 'CLUB_APPLICATION_DECLINED'].includes(notification.type)) return 'View update';
     if (notification.type === 'CLUB_APPLICATION_RECEIVED') {
         return 'Review applications';
     }

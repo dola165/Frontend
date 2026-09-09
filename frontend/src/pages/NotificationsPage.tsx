@@ -8,6 +8,7 @@ import {
     markNotificationAsRead
 } from '../api/notifications';
 import { NotificationListItem } from '../components/notifications/NotificationListItem';
+import { NotificationTarget } from '../components/notifications/NotificationTarget';
 import type { NotificationItem, NotificationListScope } from '../types/notifications';
 import { extractApiErrorMessage } from '../utils/apiError';
 import {
@@ -276,6 +277,9 @@ export const NotificationsPage = () => {
     return (
         <div className="theme-page min-h-full [--accent-primary:#3f7666] [--accent-primary-soft:rgba(63,118,102,0.10)] dark:[--accent-primary:#5f927f] dark:[--accent-primary-soft:rgba(95,146,127,0.16)]">
             <div className="flex w-full flex-col gap-6">
+                {searchParams.has('itemId') && <NotificationTarget kind="outcome" id={searchParams.get('itemId') ?? ''} onClose={() => {
+                    const next = new URLSearchParams(searchParams); next.delete('itemId'); setSearchParams(next);
+                }} />}
                 <header className="border-b theme-border pb-6">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                         <div className="max-w-3xl">

@@ -37,6 +37,7 @@ import {
     type ScheduleEventUpsertInput,
 } from '../features/schedule/api';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { NotificationTarget } from '../components/notifications/NotificationTarget';
 
 interface CalendarPageProps {
     user: { id?: number; username?: string; fullName?: string; role?: string } | null;
@@ -414,6 +415,9 @@ export const CalendarPage = (props: CalendarPageProps) => {
 
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden" style={{ backgroundColor: 'var(--fc-page-bg)', color: 'var(--fc-text-primary)' }}>
+            {searchParams.has('eventId') && <NotificationTarget kind="event" id={searchParams.get('eventId') ?? ''} onClose={() => {
+                const next = new URLSearchParams(searchParams); next.delete('eventId'); setSearchParams(next);
+            }} />}
             <ScheduleWorkspaceHeader
                 workspaceSurface={surface} canOpenClubSchedule={canClub}
                 rangeLabel={fmtRange(vm, cursor)} scheduleBusy={busy}

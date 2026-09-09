@@ -79,7 +79,7 @@ describe('ApplicationsTab — phase A3 triage', () => {
         fireEvent.click(screen.getByLabelText('Select Nika Goalkeeper'));
         fireEvent.click(screen.getByRole('button', { name: 'Accept (2)' }));
 
-        const textarea = screen.getByLabelText(/Note to the player/) as HTMLTextAreaElement;
+        const textarea = screen.getByLabelText(/Message to the applicant/) as HTMLTextAreaElement;
         fireEvent.change(textarea, { target: { value: 'Thursday 18:00, pitch 2.' } });
         fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
 
@@ -95,6 +95,8 @@ describe('ApplicationsTab — phase A3 triage', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Decline (1)' }));
         expect(screen.getByRole('button', { name: 'Decline' })).toBeInTheDocument();
         expect(screen.getByText('Decline applications')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Use template' }));
+        expect(screen.getByLabelText(/Message to the applicant/)).toHaveValue('Thank you for applying. We will not be proceeding with this application.');
     });
 
     it('keeps the selection when the bulk request fails', async () => {

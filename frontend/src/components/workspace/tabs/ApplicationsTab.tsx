@@ -127,7 +127,7 @@ export const ApplicationsTab = ({
 
     return (
         <div className="space-y-4">
-            <SectionHeader eyebrow="Applications" title="Membership Requests" description="Review and act on membership applications — filter, see each applicant at a glance, and decide in bulk." />
+            <SectionHeader eyebrow="Applications" title="Club and Job Applications" description="Review applications you can manage. Accepting an existing staff member for a job keeps their current permissions." />
 
             {/* Phase A3 filter bar */}
             <div className="flex flex-wrap items-center gap-2">
@@ -277,7 +277,7 @@ export const ApplicationsTab = ({
                                                 triggerIcon="vertical"
                                                 label="Application actions"
                                                 items={[
-                                                    { id: 'accept', label: 'Accept', description: 'Approve membership request', icon: <Check className="h-3.5 w-3.5" />, tone: 'positive', disabled: !isPending, onSelect: () => onAcceptApplication(app.id) },
+                                                    { id: 'accept', label: 'Accept', description: app.jobId ? 'Accept job application' : 'Accept membership request', icon: <Check className="h-3.5 w-3.5" />, tone: 'positive', disabled: !isPending, onSelect: () => onAcceptApplication(app.id) },
                                                     { id: 'decline', label: 'Decline', description: 'Reject this application with a kind note (phase A6)', icon: <X className="h-3.5 w-3.5" />, tone: 'danger', divider: true, disabled: !isPending, onSelect: () => onDeclineApplication(app.id) },
                                                 ]}
                                             />
@@ -293,7 +293,8 @@ export const ApplicationsTab = ({
             {bulkAction && (
                 <DecisionNoteModal
                     title={bulkAction === 'ACCEPT' ? t('applications.acceptTitle') : t('applications.declineTitle')}
-                    subtitle={t('applications.subtitle')}
+                    subtitle={t(bulkAction === 'ACCEPT' ? 'decisions.bulkAcceptSubtitle' : 'applications.subtitle')}
+                    templateKey={bulkAction === 'ACCEPT' ? 'decisions.staffTemplate' : 'decisions.declineApplicationTemplate'}
                     saving={bulkPending}
                     confirmLabel={bulkAction === 'ACCEPT' ? t('decisions.accept') : t('applications.declineConfirm')}
                     danger={bulkAction === 'DECLINE'}

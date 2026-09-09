@@ -1068,7 +1068,8 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         {acceptTarget && (
             <DecisionNoteModal
                 title={t('decisions.acceptTitle')}
-                subtitle={t('decisions.acceptSubtitle', { name: acceptTarget.fullName || acceptTarget.username })}
+                subtitle={t(acceptTarget.role === 'PLAYER' ? 'decisions.acceptSubtitle' : 'decisions.staffAcceptSubtitle', { name: acceptTarget.fullName || acceptTarget.username })}
+                templateKey={acceptTarget.role === 'PLAYER' ? 'decisions.template' : 'decisions.staffTemplate'}
                 saving={!!pendingKey && pendingKey.startsWith('accept-')}
                 onClose={() => setAcceptTarget(null)}
                 onConfirm={(message) => void handleAcceptConfirm(message)}
@@ -1090,7 +1091,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                 saving={!!pendingKey && pendingKey.startsWith('decline-')}
                 confirmLabel={t('applications.declineConfirm')}
                 danger
-                templateKey="decisions.declineTemplate"
+                templateKey={declineTarget.role === 'PLAYER' ? 'decisions.declineTemplate' : 'decisions.declineApplicationTemplate'}
                 onClose={() => setDeclineTarget(null)}
                 onConfirm={(message) => void handleDeclineConfirm(message)}
             />

@@ -10,6 +10,7 @@ vi.mock('../../utils/authStorage', () => ({ getStoredAccessToken: () => 'token',
 vi.mock('../../api/chat', () => ({ chatApi: { getConversations: vi.fn(), getMessages: vi.fn(), getMessagesAfter: vi.fn(), markAsRead: vi.fn() } }));
 let observer: { callback: IntersectionObserverCallback; elements: Element[] };
 beforeEach(() => {
+    Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: vi.fn(() => document.querySelector('[data-chat-message-content]') ?? document.querySelector('[data-chat-message-id]')) });
     vi.clearAllMocks();
     Element.prototype.scrollIntoView = vi.fn();
     vi.spyOn(document, 'hasFocus').mockReturnValue(true);

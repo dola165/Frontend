@@ -29,13 +29,22 @@ function Chat({ id = 7, enabled = true, messages = [message(10)] }: { id?: numbe
 const tick = () => act(async () => { await vi.advanceTimersByTimeAsync(210); });
 
 beforeEach(() => {
+    Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: vi.fn((x: number) =>
+        [...document.querySelectorAll<HTMLElement>('[data-chat-message-id]')].find(element => {
+            const rect = element.getBoundingClientRect();
+            return x >= rect.left && x <= rect.right;
+        }) ?? null) });
     vi.useFakeTimers();
     vi.clearAllMocks();
     observers.length = 0;
     vi.stubGlobal('IntersectionObserver', FakeObserver);
     vi.spyOn(document, 'hasFocus').mockReturnValue(true);
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
-    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ top: 0, bottom: 100, left: 0, right: 100, width: 100, height: 100 } as DOMRect);
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+        const index = this.hasAttribute('data-chat-message-id') ? [...this.parentElement!.children].indexOf(this) : 0;
+        const left = index * 120, width = this.hasAttribute('data-chat-message-id') ? 100 : 1000;
+        return { top: 0, bottom: 100, left, right: left + width, width, height: 100 } as DOMRect;
+    });
     vi.mocked(chatApi.markAsRead).mockResolvedValue({} as never);
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
@@ -123,4 +132,31 @@ it('only refreshes badges after the captured read request succeeds, even if a ne
     await act(async () => { confirm({} as never); });
     expect(chatApi.markAsRead).toHaveBeenCalledExactlyOnceWith(7, [10]);
     expect(emitNotificationsChanged).toHaveBeenCalledTimes(1);
+});
+
+it('rejects a queued read when an opaque overlay opens, then retries immediately after dismissal', async () => {
+    render(<Chat />);
+    observers.at(-1)?.show([10]);
+    const cover = document.createElement('div');
+    document.body.append(cover);
+    vi.mocked(document.elementFromPoint).mockReturnValue(cover);
+    await tick();
+    expect(chatApi.markAsRead).not.toHaveBeenCalled();
+    vi.mocked(document.elementFromPoint).mockReturnValue(document.querySelector('[data-chat-message-id]'));
+    cover.remove();
+    await tick();
+    expect(chatApi.markAsRead).toHaveBeenCalledExactlyOnceWith(7, [10]);
+});
+
+it('leaves arriving messages unread while the conversation is isolated behind a dialog', async () => {
+    const view = render(<Chat />);
+    view.container.setAttribute('inert', '');
+    observers.at(-1)?.show([10]);
+    view.rerender(<Chat messages={[message(10), message(11)]} />);
+    observers.at(-1)?.show([10, 11]);
+    await tick();
+    expect(chatApi.markAsRead).not.toHaveBeenCalled();
+    view.container.removeAttribute('inert');
+    await tick();
+    expect(chatApi.markAsRead).toHaveBeenCalledExactlyOnceWith(7, [10, 11]);
 });

@@ -82,6 +82,10 @@ export const chatApi = {
         );
     },
 
+    getMessagesBefore(conversationId: number, beforeId: number) {
+        return apiClient.get<ChatMessageResponse[]>(`/chat/conversations/${conversationId}/messages/before`, { params: { beforeId, size: 50 } });
+    },
+
     getMessagesAfter(conversationId: number, afterId: number) {
         return apiClient.get<ChatMessageResponse[]>(`/chat/conversations/${conversationId}/messages/after`, { params: { afterId, size: 100 } });
     },

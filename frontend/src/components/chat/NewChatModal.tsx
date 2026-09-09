@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, X, Loader2, Users, Check, ArrowLeft, UserPlus, MessageCircle } from 'lucide-react';
 import { chatApi, type UserSearchResult } from '../../api/chat';
+import { useDialogFocus } from '../workspace/useDialogFocus';
 import { getStoredUserId } from '../../utils/authStorage';
 
 interface NewChatModalProps {
@@ -23,9 +24,12 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
     const [loading, setLoading] = useState(false);
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const dialogRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const nameInputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useDialogFocus(open, dialogRef, onClose, inputRef);
 
     const currentUserId = Number(getStoredUserId() || 0);
 
@@ -47,7 +51,6 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
             setResults([]);
             setSelectedUsers([]);
             setError(null);
-            setTimeout(() => inputRef.current?.focus(), 150);
         }
     }, [open]);
 
@@ -168,7 +171,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                 onClick={onClose}
             />
 
-            <div className="theme-surface theme-border relative z-10 w-full max-w-[420px] overflow-hidden rounded-xl border shadow-2xl">
+            <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="New Chat" className="theme-surface theme-border relative z-10 w-full max-w-[420px] overflow-hidden rounded-xl border shadow-2xl">
 
                 {/* ── Header ──────────────────────────────────────── */}
                 <div className="flex items-center gap-3 bg-[#16a34a] px-5 h-14">

@@ -2,6 +2,8 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useChatWebSocket, mergeMessages } from '../hooks/useChatWebSocket';
 import { useChatReadReceipts } from '../hooks/useChatReadReceipts';
+import { useChatScroll } from '../hooks/useChatScroll';
+import { OlderMessages } from '../components/chat/OlderMessages';
 import { subscribeNotificationsChanged } from '../utils/notifications';
 import { MessageSquare, Plus, Users, Info, X, Send, Circle, Search, Loader2, Crown, Ban, UserMinus, UserPlus, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { SkeletonMessageRow } from '../components/ui/SkeletonCard';
@@ -93,7 +95,6 @@ export const MessagingPage = () => {
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
     const peopleSearchRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-    const messagesEndRef = useRef<HTMLDivElement>(null);
     const messageViewportRef = useRef<HTMLDivElement>(null);
     const activeConvRef = useRef<number | null>(null);
 
@@ -137,12 +138,7 @@ export const MessagingPage = () => {
     const handleUnavailable = useCallback((id: number) => {
         setMessages(previous => ({ ...previous, [id]: [] }));
     }, []);
-    const { connected, setActiveConversation, sendMessage: saveMessage, loading: loadingMessages, error: deliveryError, sending } = useChatWebSocket(handleIncoming, handleUnavailable);
-    useEffect(() => {
-        // Scroll after loaded bubbles replace the spinner; avoid sweeping unseen
-        // bubbles through the viewport during a long animated history scroll.
-        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
-    }, [messages, activeConvId, loadingMessages]);
+    const { connected, setActiveConversation, sendMessage: saveMessage, loading: loadingMessages, error: deliveryError, sending, loadOlder, hasOlder, loadingOlder, historyError } = useChatWebSocket(handleIncoming, handleUnavailable);
     const drafts = useRef<Record<number, string>>({});
     const previousConversation = useRef<number | null>(null);
 
@@ -198,7 +194,8 @@ export const MessagingPage = () => {
 
     const activeConv = conversations.find((c) => c.id === activeConvId) || null;
     const activeMessages = activeConvId ? messages[activeConvId] || [] : [];
-    useChatReadReceipts(activeConvId, !!activeConv && !loadingMessages, activeMessages, messageViewportRef);
+    useChatScroll(messageViewportRef, activeConvId, !!activeConv && !loadingMessages);
+    useChatReadReceipts(activeConvId, !!activeConv && !loadingMessages && !showNewChat, activeMessages, messageViewportRef);
 
     // Derive recent contacts from existing conversations (other participants, deduplicated)
     const recentContacts = useMemo(() => {
@@ -536,7 +533,8 @@ export const MessagingPage = () => {
                         </div>
 
                         {/* Messages */}
-                        <div ref={messageViewportRef} role="log" aria-label="Conversation messages" className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
+                        <div ref={messageViewportRef} role="log" aria-label="Conversation messages" style={{ overflowAnchor: 'none' }} className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
+                            {!loadingMessages && <OlderMessages available={hasOlder} loading={loadingOlder} error={historyError} onLoad={loadOlder} />}
                             {loadingMessages ? (
                                 <div className="flex items-center justify-center flex-1 gap-2 text-[var(--chat-text-muted)]">
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -569,7 +567,7 @@ export const MessagingPage = () => {
                                                         : 'bg-[var(--chat-bubble-other)] text-[var(--chat-bubble-other-text)] rounded-bl-sm border border-[var(--chat-card-border)]'
                                                 }`}
                                             >
-                                                <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                                                <p data-chat-message-content className="whitespace-pre-wrap break-words">{msg.content}</p>
                                             </div>
                                             <span className="text-[10px] text-[var(--chat-text-muted)] mt-0.5 mx-1">
                                                 {formatTime(msg.createdAt)}
@@ -578,7 +576,6 @@ export const MessagingPage = () => {
                                     );
                                 })
                             )}
-                            <div ref={messagesEndRef} />
                         </div>
 
                         {/* Input */}

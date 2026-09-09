@@ -22,7 +22,7 @@ vi.mock('@stomp/stompjs', () => ({ Client: class {
 } }));
 vi.mock('../api/axiosConfig', () => ({ buildWebSocketUrl: () => 'ws://localhost/ws-chat' }));
 vi.mock('../utils/authStorage', () => ({ getStoredAccessToken: () => state.token, getStoredUserId: () => '1' }));
-vi.mock('../api/chat', () => ({ chatApi: { getMessages: vi.fn(), getMessagesAfter: vi.fn(), markAsRead: vi.fn(), sendMessage: vi.fn() } }));
+vi.mock('../api/chat', () => ({ chatApi: { getMessages: vi.fn(), getMessagesAfter: vi.fn(), getMessagesBefore: vi.fn(), markAsRead: vi.fn(), sendMessage: vi.fn() } }));
 const message = (id: number, conversationId = 7): ChatMessageResponse => ({ id, conversationId, senderId: 2, senderName: 'Peer', content: `message ${id}`, createdAt: '2026-09-09T12:00:00' });
 const response = (items: ChatMessageResponse[]) => ({ data: { content: items } });
 const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; };
@@ -32,11 +32,91 @@ beforeEach(() => {
     state.token = 'first-token';
     vi.mocked(chatApi.getMessages).mockResolvedValue(response([]) as never);
     vi.mocked(chatApi.getMessagesAfter).mockResolvedValue({ data: [] } as never);
+    vi.mocked(chatApi.getMessagesBefore).mockResolvedValue({ data: [] } as never);
     vi.mocked(chatApi.markAsRead).mockResolvedValue({} as never);
 });
 afterEach(() => { vi.useRealTimers(); });
 
 describe('reliable chat transport', () => {
+    it('loads multiple older pages without changing the forward recovery cursor or marking history read', async () => {
+        vi.mocked(chatApi.getMessages).mockResolvedValue(response(Array.from({ length: 50 }, (_, i) => message(i + 56))) as never);
+        vi.mocked(chatApi.getMessagesBefore)
+            .mockResolvedValueOnce({ data: Array.from({ length: 50 }, (_, i) => message(i + 6)) } as never)
+            .mockResolvedValueOnce({ data: Array.from({ length: 5 }, (_, i) => message(i + 1)) } as never);
+        let received: ChatMessageResponse[] = [];
+        const { result } = renderHook(() => useChatWebSocket(item => { received = mergeMessages(received, [item]); }));
+        await act(async () => { await result.current.setActiveConversation(7); });
+        expect(result.current.hasOlder).toBe(true);
+        await act(async () => { await result.current.loadOlder(); });
+        expect(chatApi.getMessagesBefore).toHaveBeenLastCalledWith(7, 56);
+        expect(result.current.hasOlder).toBe(true);
+        vi.mocked(chatApi.getMessagesAfter).mockResolvedValueOnce({ data: [message(106)] } as never);
+        await act(async () => { await result.current.catchUp(); });
+        expect(chatApi.getMessagesAfter).toHaveBeenLastCalledWith(7, 105);
+        await act(async () => { await result.current.loadOlder(); });
+        expect(chatApi.getMessagesBefore).toHaveBeenLastCalledWith(7, 6);
+        expect(result.current.hasOlder).toBe(false);
+        expect(received.map(item => item.id)).toEqual(Array.from({ length: 106 }, (_, i) => i + 1));
+        expect(chatApi.markAsRead).not.toHaveBeenCalled();
+    });
+
+    it('retries a failed older page with the same cursor and suppresses simultaneous loads', async () => {
+        vi.mocked(chatApi.getMessages).mockResolvedValue(response(Array.from({ length: 50 }, (_, i) => message(i + 51))) as never);
+        const pending = deferred<{ data: ChatMessageResponse[] }>();
+        vi.mocked(chatApi.getMessagesBefore).mockRejectedValueOnce(new Error('offline')).mockReturnValueOnce(pending.promise as never);
+        const { result } = renderHook(() => useChatWebSocket(vi.fn()));
+        await act(async () => { await result.current.setActiveConversation(7); await result.current.loadOlder(); });
+        expect(result.current.historyError).toContain('try again');
+        act(() => { void result.current.loadOlder(); void result.current.loadOlder(); });
+        expect(chatApi.getMessagesBefore).toHaveBeenCalledTimes(2);
+        expect(chatApi.getMessagesBefore).toHaveBeenLastCalledWith(7, 51);
+        await act(async () => { pending.resolve({ data: [] }); });
+        expect(result.current.historyError).toBeNull();
+        expect(result.current.loadingOlder).toBe(false);
+    });
+
+    it('ignores an older page when selection changes and preserves cached history state on return', async () => {
+        vi.mocked(chatApi.getMessages).mockResolvedValueOnce(response(Array.from({ length: 50 }, (_, i) => message(i + 51))) as never).mockResolvedValueOnce(response([]) as never);
+        const pending = deferred<{ data: ChatMessageResponse[] }>();
+        vi.mocked(chatApi.getMessagesBefore).mockReturnValueOnce(pending.promise as never);
+        const incoming = vi.fn();
+        const { result } = renderHook(() => useChatWebSocket(incoming));
+        await act(async () => { await result.current.setActiveConversation(7); });
+        act(() => { void result.current.loadOlder(); });
+        await act(async () => { await result.current.setActiveConversation(8); });
+        await act(async () => { pending.resolve({ data: [message(1)] }); });
+        expect(incoming).toHaveBeenCalledTimes(50);
+        expect(result.current.hasOlder).toBe(false);
+        await act(async () => { await result.current.setActiveConversation(7); });
+        expect(result.current.hasOlder).toBe(true);
+    });
+
+    it('clears history when access to an older page has been revoked', async () => {
+        vi.mocked(chatApi.getMessages).mockResolvedValue(response(Array.from({ length: 50 }, (_, i) => message(i + 51))) as never);
+        vi.mocked(chatApi.getMessagesBefore).mockRejectedValueOnce({ response: { status: 403 } });
+        const unavailable = vi.fn();
+        const { result } = renderHook(() => useChatWebSocket(vi.fn(), unavailable));
+        await act(async () => { await result.current.setActiveConversation(7); await result.current.loadOlder(); });
+        expect(unavailable).toHaveBeenCalledWith(7);
+        expect(result.current.hasOlder).toBe(false);
+    });
+
+    it('discards an older response still in flight when forward recovery discovers revocation', async () => {
+        vi.mocked(chatApi.getMessages).mockResolvedValue(response(Array.from({ length: 50 }, (_, i) => message(i + 51))) as never);
+        const pending = deferred<{ data: ChatMessageResponse[] }>();
+        vi.mocked(chatApi.getMessagesBefore).mockReturnValueOnce(pending.promise as never);
+        const incoming = vi.fn();
+        const { result } = renderHook(() => useChatWebSocket(incoming, vi.fn()));
+        await act(async () => { await result.current.setActiveConversation(7); });
+        act(() => { void result.current.loadOlder(); });
+        vi.mocked(chatApi.getMessagesAfter).mockRejectedValueOnce({ response: { status: 403 } });
+        await act(async () => { await result.current.catchUp(); });
+        await act(async () => { pending.resolve({ data: [message(1)] }); });
+        expect(incoming).toHaveBeenCalledTimes(50);
+        expect(result.current.loadingOlder).toBe(false);
+        expect(result.current.hasOlder).toBe(false);
+    });
+
     it('subscribes when selection precedes CONNECT and resubscribes with fresh credentials', async () => {
         const { result, unmount } = renderHook(() => useChatWebSocket(vi.fn()));
         await act(async () => { await result.current.setActiveConversation(7); });

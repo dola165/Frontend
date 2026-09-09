@@ -76,12 +76,32 @@ export const chatHandlers: HttpHandler[] = [
         const size = Number(url.searchParams.get('size') ?? 50);
 
         const msgs = messages().get(convId) || [];
-        // Return in reverse chronological order (newest last) for the frontend
-        // The frontend reverses them so they display oldest-first
-        const sorted = [...msgs].sort((a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        );
+        const sorted = [...msgs].sort((a, b) => b.id - a.id);
         return HttpResponse.json(paginate(sorted, page, size));
+    }),
+
+    http.get(`${API}/chat/conversations/:convId/messages/before`, async ({ request, params }) => {
+        await simulateLatency();
+        const uid = currentUserId(), convId = Number(params.convId);
+        if (uid == null) return HttpResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        if (!isParticipant(convId, uid)) return HttpResponse.json({ error: 'Not a participant' }, { status: 403 });
+        const url = new URL(request.url), before = Number(url.searchParams.get('beforeId'));
+        const size = Number(url.searchParams.get('size') ?? 50);
+        if (!Number.isSafeInteger(before) || before <= 0 || !Number.isInteger(size) || size < 1 || size > 100)
+            return HttpResponse.json({ error: 'Invalid history cursor or size' }, { status: 400 });
+        return HttpResponse.json([...(messages().get(convId) ?? [])].filter(message => message.id < before).sort((a, b) => b.id - a.id).slice(0, size));
+    }),
+
+    http.get(`${API}/chat/conversations/:convId/messages/after`, async ({ request, params }) => {
+        await simulateLatency();
+        const uid = currentUserId(), convId = Number(params.convId);
+        if (uid == null) return HttpResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        if (!isParticipant(convId, uid)) return HttpResponse.json({ error: 'Not a participant' }, { status: 403 });
+        const url = new URL(request.url), after = Number(url.searchParams.get('afterId'));
+        const size = Number(url.searchParams.get('size') ?? 100);
+        if (!Number.isSafeInteger(after) || after < 0 || !Number.isInteger(size) || size < 1 || size > 100)
+            return HttpResponse.json({ error: 'Invalid history cursor or size' }, { status: 400 });
+        return HttpResponse.json([...(messages().get(convId) ?? [])].filter(message => message.id > after).sort((a, b) => a.id - b.id).slice(0, size));
     }),
 
     // -- POST /chat/conversations — create -------------------------------

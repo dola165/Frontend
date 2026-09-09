@@ -15,6 +15,11 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
     const [refreshError, setRefreshError] = useState<string | null>(null);
     const [sendError, setSendError] = useState<string | null>(null);
     const [sending, setSending] = useState(false);
+    const [hasOlder, setHasOlder] = useState(false);
+    const [loadingOlder, setLoadingOlder] = useState(false);
+    const [historyError, setHistoryError] = useState<string | null>(null);
+    const history = useRef<Record<number, { oldest: number; hasOlder: boolean }>>({});
+    const olderFlights = useRef(new Set<string>());
     const clientRef = useRef<Client | null>(null);
     const subRef = useRef<{ unsubscribe: () => void } | null>(null);
     const activeRef = useRef<number | null>(null);
@@ -39,15 +44,17 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
         const current = () => version === generation.current && activeRef.current === id;
         setLoading(cursor.current[id] === undefined);
         try {
-            if (cursor.current[id] === undefined || IS_MOCK_MODE) {
+            if (cursor.current[id] === undefined) {
                 const response = await chatApi.getMessages(id);
                 if (!current()) return;
                 const messages = mergeMessages([], response.data.content);
                 messages.forEach(message => onMessageRef.current(message));
                 cursor.current[id] = messages.at(-1)?.id ?? 0;
+                history.current[id] = { oldest: messages[0]?.id ?? 0, hasOlder: messages.length === 50 };
+                setHasOlder(history.current[id].hasOlder);
             }
             // Bound each pass; subsequent ticks resume from the last confirmed page.
-            for (let page = 0; !IS_MOCK_MODE && page < 10; page++) {
+            for (let page = 0; page < 10; page++) {
                 const response = await chatApi.getMessagesAfter(id, cursor.current[id]);
                 if (!current()) return;
                 const batch = response.data;
@@ -62,7 +69,13 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
             if (!current()) return;
             const status = (cause as { response?: { status?: number } }).response?.status;
             if (status === 401 || status === 403 || status === 404) {
+                // Discard any concurrent recovery/history response after access is denied.
+                generation.current++;
+                setLoading(false);
+                setLoadingOlder(false);
                 delete cursor.current[id];
+                delete history.current[id];
+                setHasOlder(false);
                 unavailableRef.current?.(id);
                 subRef.current?.unsubscribe();
                 subRef.current = null;
@@ -71,6 +84,45 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
         } finally {
             inFlight.current.delete(flight);
             if (current()) setLoading(false);
+        }
+    }, []);
+
+    const loadOlder = useCallback(async () => {
+        const id = activeRef.current;
+        if (id === null || !history.current[id]?.hasOlder) return;
+        const version = generation.current;
+        const flight = `${id}:${version}`;
+        if (olderFlights.current.has(flight)) return;
+        olderFlights.current.add(flight);
+        const current = () => version === generation.current && activeRef.current === id;
+        setLoadingOlder(true);
+        setHistoryError(null);
+        try {
+            const response = await chatApi.getMessagesBefore(id, history.current[id].oldest);
+            if (!current()) return;
+            const batch = mergeMessages([], response.data);
+            batch.forEach(message => onMessageRef.current(message));
+            history.current[id] = { oldest: batch[0]?.id ?? history.current[id].oldest, hasOlder: batch.length === 50 };
+            setHasOlder(history.current[id].hasOlder);
+        } catch (cause) {
+            if (!current()) return;
+            const status = (cause as { response?: { status?: number } }).response?.status;
+            if (status === 401 || status === 403 || status === 404) {
+                // Discard any concurrent recovery/history response after access is denied.
+                generation.current++;
+                setLoading(false);
+                setLoadingOlder(false);
+                delete cursor.current[id];
+                delete history.current[id];
+                setHasOlder(false);
+                unavailableRef.current?.(id);
+                subRef.current?.unsubscribe();
+                subRef.current = null;
+            }
+            setHistoryError('Could not load older messages. Please try again.');
+        } finally {
+            olderFlights.current.delete(flight);
+            if (current()) setLoadingOlder(false);
         }
     }, []);
 
@@ -132,7 +184,13 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
         setRefreshError(null);
         setSendError(null);
         setLoading(false);
-        if (id !== null && freshHistoryOnSelect) delete cursor.current[id];
+        setLoadingOlder(false);
+        setHistoryError(null);
+        if (id !== null && freshHistoryOnSelect) {
+            delete cursor.current[id];
+            delete history.current[id];
+        }
+        setHasOlder(id !== null && !!history.current[id]?.hasOlder);
         subscribe();
         return catchUp();
     }, [catchUp, subscribe, freshHistoryOnSelect]);
@@ -164,5 +222,6 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
         }
     }, []);
 
-    return { connected, setActiveConversation, sendMessage, loading, error: sendError ?? refreshError, sending, catchUp } as const;
+    return { connected, setActiveConversation, sendMessage, loading, error: sendError ?? refreshError, sending, catchUp,
+        loadOlder, hasOlder, loadingOlder, historyError } as const;
 }

@@ -12,6 +12,8 @@ import {
 import { chatApi, type ChatMessageResponse, type ConversationDto, type ParticipantInfo } from '../../api/chat';
 import { useChatWebSocket, mergeMessages } from '../../hooks/useChatWebSocket';
 import { useChatReadReceipts } from '../../hooks/useChatReadReceipts';
+import { useChatScroll } from '../../hooks/useChatScroll';
+import { OlderMessages } from '../../components/chat/OlderMessages';
 import { getStoredUserId } from '../../utils/authStorage';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 
@@ -28,7 +30,6 @@ export const RightSidebar = () => {
     const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
     const [messageInput, setMessageInput] = useState('');
     const [minimized, setMinimized] = useState(false);
-    const messageEndRef = useRef<HTMLDivElement | null>(null);
     const messageViewportRef = useRef<HTMLDivElement | null>(null);
     const currentUserId = Number(getStoredUserId() || 0);
 
@@ -36,7 +37,8 @@ export const RightSidebar = () => {
         setMessages((current) => mergeMessages(current, [message]));
     }, []);
     const clearUnavailable = useCallback(() => setMessages([]), []);
-    const { setActiveConversation, sendMessage, loading: messagesLoading, error: deliveryError, sending } = useChatWebSocket(handleIncomingMessage, clearUnavailable, true);
+    const { setActiveConversation, sendMessage, loading: messagesLoading, error: deliveryError, sending, loadOlder, hasOlder, loadingOlder, historyError } = useChatWebSocket(handleIncomingMessage, clearUnavailable, true);
+    useChatScroll(messageViewportRef, quickChat?.conversation.id ?? null, !minimized && !messagesLoading);
     useChatReadReceipts(quickChat?.conversation.id ?? null, !minimized && !messagesLoading, messages, messageViewportRef);
     const draftRef = useRef<Record<number, string>>({});
     const activeId = useRef<number | null>(null);
@@ -55,9 +57,6 @@ export const RightSidebar = () => {
         };
     }, []);
 
-    useEffect(() => {
-        messageEndRef.current?.scrollIntoView({ behavior: 'instant' });
-    }, [messages, minimized, messagesLoading]);
 
     useEffect(() => () => { void setActiveConversation(null); }, [setActiveConversation]);
 
@@ -166,7 +165,7 @@ export const RightSidebar = () => {
                         <button type="button" onClick={() => setMinimized((value) => !value)} className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-white">
                             {quickChat.participant.displayName}
                         </button>
-                        <Link to={`/messages?chatWith=${quickChat.participant.userId}`} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#a1a1aa] hover:bg-white/[0.06] hover:text-white" aria-label="Open full conversation" title="Open full conversation">
+                        <Link to={`/messages?conversationId=${quickChat.conversation.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#a1a1aa] hover:bg-white/[0.06] hover:text-white" aria-label="Open full conversation" title="Open full conversation">
                             <ExternalLink className="h-4 w-4" />
                         </Link>
                         <button type="button" onClick={() => setMinimized((value) => !value)} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[#a1a1aa] hover:bg-white/[0.06] hover:text-white" aria-label={minimized ? 'Restore chat' : 'Minimize chat'}>
@@ -179,7 +178,8 @@ export const RightSidebar = () => {
 
                     {!minimized && (
                         <>
-                            <div ref={messageViewportRef} role="log" aria-label="Quick chat messages" className="flex h-64 flex-col gap-2 overflow-y-auto bg-[#181a1f] px-3 py-3">
+                            <div ref={messageViewportRef} style={{ overflowAnchor: 'none' }} role="log" aria-label="Quick chat messages" className="flex h-64 flex-col gap-2 overflow-y-auto bg-[#181a1f] px-3 py-3">
+                                {!messagesLoading && <OlderMessages available={hasOlder} loading={loadingOlder} error={historyError} onLoad={loadOlder} />}
                                 {messagesLoading ? (
                                     <p className="my-auto text-center text-xs text-[#71717a]">Loading conversation…</p>
                                 ) : messages.length === 0 ? (
@@ -188,14 +188,13 @@ export const RightSidebar = () => {
                                     const mine = message.senderId === currentUserId;
                                     return (
                                         <div key={message.id} data-chat-message-id={message.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
-                                            <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-xs leading-5 ${mine ? 'rounded-br-sm bg-emerald-600 text-white' : 'rounded-bl-sm bg-[#30343b] text-[#f4f4f5]'}`}>
+                                            <div data-chat-message-content className={`max-w-[82%] rounded-2xl px-3 py-2 text-xs leading-5 ${mine ? 'rounded-br-sm bg-emerald-600 text-white' : 'rounded-bl-sm bg-[#30343b] text-[#f4f4f5]'}`}>
                                                 {message.content}
                                             </div>
                                             <span className="mt-0.5 px-1 text-[9px] text-[#71717a]">{formatMessageTime(message.createdAt)}</span>
                                         </div>
                                     );
                                 })}
-                                <div ref={messageEndRef} />
                             </div>
                             {deliveryError && <p role="alert" className="px-3 text-xs text-amber-300">{deliveryError}</p>}
                             <form onSubmit={(event) => void submitQuickMessage(event)} className="flex items-center gap-2 border-t border-white/[0.08] bg-[#202328] p-3">

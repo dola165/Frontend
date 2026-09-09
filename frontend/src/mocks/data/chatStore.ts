@@ -7,6 +7,7 @@ let _messages: Map<number, ChatMessageResponse[]> | null = null; // convId → m
 let _suggestions: Map<number, InviteSuggestion> | null = null;
 let _blocks: Map<string, boolean> | null = null; // key: "convId_userId"
 let _nextMsgId = 1000;
+const readMessageIds = new Map<string, Set<number>>();
 
 export const conversations = () => { if (!_conversations) _conversations = new Map(); return _conversations; };
 export const messages = () => { if (!_messages) _messages = new Map(); return _messages; };
@@ -22,6 +23,19 @@ export function resetChatStore() {
     _suggestions = null;
     _blocks = null;
     _nextMsgId = 1000;
+    readMessageIds.clear();
+}
+
+export function markMockMessagesRead(conversationId: number, userId: number, ids: number[]) {
+    const conversation = conversations().get(conversationId);
+    if (!conversation) return;
+    const incoming = (messages().get(conversationId) ?? []).filter(message => message.senderId !== userId);
+    const key = `${conversationId}:${userId}`;
+    // Seed fixtures supply an unread count rather than individual read receipts.
+    const read = readMessageIds.get(key) ?? new Set(incoming.slice(0, Math.max(0, incoming.length - conversation.unreadCount)).map(message => message.id));
+    ids.forEach(id => read.add(id));
+    readMessageIds.set(key, read);
+    conversation.unreadCount = incoming.filter(message => !read.has(message.id)).length;
 }
 
 // ── Helper: build a display name for a conversation ───────────────────

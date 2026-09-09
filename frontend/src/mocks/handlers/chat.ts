@@ -1,6 +1,6 @@
 import { http, HttpHandler, HttpResponse } from 'msw';
 import { users, currentUserId } from '../data/store';
-import { conversations, messages, suggestions, blocks, blockKey } from '../data/chatStore';
+import { conversations, messages, suggestions, blocks, blockKey, markMockMessagesRead } from '../data/chatStore';
 import { simulateLatency, paginate } from '../utils';
 import type { ConversationDto, ParticipantInfo } from '../../api/chat';
 
@@ -252,17 +252,21 @@ export const chatHandlers: HttpHandler[] = [
     }),
 
     // -- POST /chat/conversations/:id/read — mark read --------------------
-    http.post(`${API}/chat/conversations/:convId/read`, async ({ params }) => {
+    http.post(`${API}/chat/conversations/:convId/read`, async ({ params, request }) => {
         await simulateLatency();
         const uid = currentUserId();
         if (uid == null) return HttpResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         const convId = Number(params.convId);
         const conv = conversations().get(convId);
-        if (conv) {
-            conv.unreadCount = 0;
-            conversations().set(convId, conv);
+        if (!conv?.participants.some(participant => participant.userId === uid)) return HttpResponse.json({ error: 'Forbidden' }, { status: 403 });
+        const body = await request.json().catch(() => null) as { messageIds?: number[] } | null;
+        const ids = body?.messageIds;
+        const stored = messages().get(convId) ?? [];
+        if (!Array.isArray(ids) || !ids.length || ids.length > 100 || ids.some(id => !Number.isSafeInteger(id) || id <= 0 || !stored.some(message => message.id === id))) {
+            return HttpResponse.json({ error: 'Provide displayed message IDs' }, { status: 400 });
         }
+        markMockMessagesRead(convId, uid, ids);
 
         return HttpResponse.json({ message: 'Marked as read' }, { status: 200 });
     }),

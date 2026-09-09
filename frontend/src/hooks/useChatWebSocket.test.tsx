@@ -79,6 +79,18 @@ describe('reliable chat transport', () => {
         await act(async () => { await result.current.setActiveConversation(7); });
         expect(chatApi.getMessagesAfter).toHaveBeenNthCalledWith(2, 7, 101);
         expect(incoming).toHaveBeenCalledTimes(102);
+        expect(chatApi.markAsRead).not.toHaveBeenCalled();
+    });
+
+    it('keeps unread state after the bounded recovery pass, including messages not yet recovered', async () => {
+        vi.mocked(chatApi.getMessages).mockResolvedValue(response([message(1)]) as never);
+        vi.mocked(chatApi.getMessagesAfter).mockImplementation(async (_id, after) => ({ data: Array.from({ length: 100 }, (_, index) => message(after + index + 1)) }) as never);
+        const incoming = vi.fn();
+        const { result } = renderHook(() => useChatWebSocket(incoming));
+        await act(async () => { await result.current.setActiveConversation(7); });
+        expect(chatApi.getMessagesAfter).toHaveBeenCalledTimes(10);
+        expect(incoming).toHaveBeenCalledTimes(1001);
+        expect(chatApi.markAsRead).not.toHaveBeenCalled();
     });
 
     it('ignores a history response from a previously selected conversation', async () => {

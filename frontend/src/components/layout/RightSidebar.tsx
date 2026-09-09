@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { chatApi, type ChatMessageResponse, type ConversationDto, type ParticipantInfo } from '../../api/chat';
 import { useChatWebSocket, mergeMessages } from '../../hooks/useChatWebSocket';
+import { useChatReadReceipts } from '../../hooks/useChatReadReceipts';
 import { getStoredUserId } from '../../utils/authStorage';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 
@@ -28,6 +29,7 @@ export const RightSidebar = () => {
     const [messageInput, setMessageInput] = useState('');
     const [minimized, setMinimized] = useState(false);
     const messageEndRef = useRef<HTMLDivElement | null>(null);
+    const messageViewportRef = useRef<HTMLDivElement | null>(null);
     const currentUserId = Number(getStoredUserId() || 0);
 
     const handleIncomingMessage = useCallback((message: ChatMessageResponse) => {
@@ -35,6 +37,7 @@ export const RightSidebar = () => {
     }, []);
     const clearUnavailable = useCallback(() => setMessages([]), []);
     const { setActiveConversation, sendMessage, loading: messagesLoading, error: deliveryError, sending } = useChatWebSocket(handleIncomingMessage, clearUnavailable, true);
+    useChatReadReceipts(quickChat?.conversation.id ?? null, !minimized && !messagesLoading, messages, messageViewportRef);
     const draftRef = useRef<Record<number, string>>({});
     const activeId = useRef<number | null>(null);
 
@@ -53,8 +56,8 @@ export const RightSidebar = () => {
     }, []);
 
     useEffect(() => {
-        messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, minimized]);
+        messageEndRef.current?.scrollIntoView({ behavior: 'instant' });
+    }, [messages, minimized, messagesLoading]);
 
     useEffect(() => () => { void setActiveConversation(null); }, [setActiveConversation]);
 
@@ -176,7 +179,7 @@ export const RightSidebar = () => {
 
                     {!minimized && (
                         <>
-                            <div className="flex h-64 flex-col gap-2 overflow-y-auto bg-[#181a1f] px-3 py-3">
+                            <div ref={messageViewportRef} role="log" aria-label="Quick chat messages" className="flex h-64 flex-col gap-2 overflow-y-auto bg-[#181a1f] px-3 py-3">
                                 {messagesLoading ? (
                                     <p className="my-auto text-center text-xs text-[#71717a]">Loading conversation…</p>
                                 ) : messages.length === 0 ? (
@@ -184,7 +187,7 @@ export const RightSidebar = () => {
                                 ) : messages.map((message) => {
                                     const mine = message.senderId === currentUserId;
                                     return (
-                                        <div key={message.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
+                                        <div key={message.id} data-chat-message-id={message.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
                                             <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-xs leading-5 ${mine ? 'rounded-br-sm bg-emerald-600 text-white' : 'rounded-bl-sm bg-[#30343b] text-[#f4f4f5]'}`}>
                                                 {message.content}
                                             </div>

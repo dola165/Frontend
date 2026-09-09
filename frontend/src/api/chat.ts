@@ -118,8 +118,8 @@ export const chatApi = {
         return apiClient.delete(`/chat/conversations/${conversationId}/leave`);
     },
 
-    markAsRead(conversationId: number) {
-        return apiClient.post(`/chat/conversations/${conversationId}/read`);
+    markAsRead(conversationId: number, messageIds: number[]) {
+        return apiClient.post(`/chat/conversations/${conversationId}/read`, { messageIds });
     },
 
     searchUsers(query: string, page = 0, size = 10) {

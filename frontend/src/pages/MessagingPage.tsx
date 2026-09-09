@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useChatWebSocket, mergeMessages } from '../hooks/useChatWebSocket';
+import { useChatReadReceipts } from '../hooks/useChatReadReceipts';
 import { subscribeNotificationsChanged } from '../utils/notifications';
 import { MessageSquare, Plus, Users, Info, X, Send, Circle, Search, Loader2, Crown, Ban, UserMinus, UserPlus, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { SkeletonMessageRow } from '../components/ui/SkeletonCard';
@@ -93,16 +94,11 @@ export const MessagingPage = () => {
     const peopleSearchRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messageViewportRef = useRef<HTMLDivElement>(null);
     const activeConvRef = useRef<number | null>(null);
 
     // keep activeConvRef in sync
     activeConvRef.current = activeConvId;
-
-    // ── Auto-scroll ─────────────────────────────────────────────────
-
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, activeConvId]);
 
     // ── Load conversations ──────────────────────────────────────────
 
@@ -135,13 +131,18 @@ export const MessagingPage = () => {
         setConversations(previous => previous.map(conversation => {
             if (conversation.id !== message.conversationId || (conversation.lastMessageAt && new Date(conversation.lastMessageAt).getTime() > new Date(message.createdAt).getTime())) return conversation;
             return { ...conversation, lastMessage: message.content, lastMessageSenderId: message.senderId,
-                lastMessageSenderName: message.senderName, lastMessageAt: message.createdAt, unreadCount: 0 };
+                lastMessageSenderName: message.senderName, lastMessageAt: message.createdAt };
         }).sort((a, b) => new Date(b.lastMessageAt ?? 0).getTime() - new Date(a.lastMessageAt ?? 0).getTime()));
     }, []);
     const handleUnavailable = useCallback((id: number) => {
         setMessages(previous => ({ ...previous, [id]: [] }));
     }, []);
     const { connected, setActiveConversation, sendMessage: saveMessage, loading: loadingMessages, error: deliveryError, sending } = useChatWebSocket(handleIncoming, handleUnavailable);
+    useEffect(() => {
+        // Scroll after loaded bubbles replace the spinner; avoid sweeping unseen
+        // bubbles through the viewport during a long animated history scroll.
+        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+    }, [messages, activeConvId, loadingMessages]);
     const drafts = useRef<Record<number, string>>({});
     const previousConversation = useRef<number | null>(null);
 
@@ -197,6 +198,7 @@ export const MessagingPage = () => {
 
     const activeConv = conversations.find((c) => c.id === activeConvId) || null;
     const activeMessages = activeConvId ? messages[activeConvId] || [] : [];
+    useChatReadReceipts(activeConvId, !!activeConv && !loadingMessages, activeMessages, messageViewportRef);
 
     // Derive recent contacts from existing conversations (other participants, deduplicated)
     const recentContacts = useMemo(() => {
@@ -534,7 +536,7 @@ export const MessagingPage = () => {
                         </div>
 
                         {/* Messages */}
-                        <div role="log" aria-label="Conversation messages" className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
+                        <div ref={messageViewportRef} role="log" aria-label="Conversation messages" className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
                             {loadingMessages ? (
                                 <div className="flex items-center justify-center flex-1 gap-2 text-[var(--chat-text-muted)]">
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -552,6 +554,7 @@ export const MessagingPage = () => {
                                     return (
                                         <div
                                             key={msg.id}
+                                            data-chat-message-id={msg.id}
                                             className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                                         >
                                             {!isMe && isSharedConversation(activeConv) && (

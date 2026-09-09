@@ -57,7 +57,6 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
             }
             if (current()) {
                 setRefreshError(null);
-                await chatApi.markAsRead(id).catch(() => undefined);
             }
         } catch (cause) {
             if (!current()) return;

@@ -2,15 +2,16 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StorePage } from '../../../pages/StorePage';
+import { StoreProductPage } from '../../../pages/StoreProductPage';
 import { StoreCartPage } from '../../../pages/StoreCartPage';
 import { StoreTab } from '../../../components/workspace/tabs/StoreTab';
 import { addCartItem, readCart, saveCart } from '../cart';
 import * as api from '../api';
-vi.mock('../api', async original => ({ ...await original<typeof import('../api')>(), fetchStoreCatalog: vi.fn(), fetchAllClubStoreProducts: vi.fn(), updateStoreProduct: vi.fn(), fetchCartQuote: vi.fn() }));
-vi.mock('../../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(async () => ({data: {name: 'Alpha FC'}})) } }));
+vi.mock('../api', async original => ({ ...await original<typeof import('../api')>(), fetchStoreLocations: vi.fn(), fetchStoreProduct: vi.fn(), fetchStoreCatalog: vi.fn(), fetchAllClubStoreProducts: vi.fn(), updateStoreProduct: vi.fn(), fetchCartQuote: vi.fn() }));
+vi.mock('../../../api/axiosConfig', () => ({ DEPLOYMENT_URLS: {mediaBaseUrl: 'http://localhost:8080'}, apiClient: { get: vi.fn(async () => ({data: {name: 'Alpha FC'}})) } }));
 const product = {id: 1, clubId: 10, clubName: 'Alpha FC', name: 'Home shirt', price: 12.34, currency: 'GEL', version: 3, active: true, variants: [{id: 7, label: 'M', stock: 5}]};
 const item = {variantId:7,quantity:2,productId:1,name:'Home shirt',variant:'M',clubId:10,currency:'GEL'};
-beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); });
+beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); vi.mocked(api.fetchStoreLocations).mockResolvedValue([]); });
 describe('Store safety and recovery', () => {
     it('keeps a saved cart when a different club or too many items are added', () => {
         addCartItem(item);
@@ -67,6 +68,33 @@ describe('Store safety and recovery', () => {
         await screen.findByRole('heading',{name:'New search'});
         await act(async () => resolve({content:[product],totalElements:1}));
         expect(screen.queryByRole('heading',{name:'Home shirt'})).not.toBeInTheDocument();
+    });
+    it('uses complete location choices and clears a dependent city when country changes', async () => {
+        vi.mocked(api.fetchStoreLocations).mockResolvedValue([{country:'Georgia',city:'Tbilisi'},{country:'France',city:'Paris'}]);
+        vi.mocked(api.fetchStoreCatalog).mockResolvedValue({content:[],totalElements:0});
+        render(<MemoryRouter initialEntries={['/store?country=Georgia&city=Tbilisi']}><StorePage/></MemoryRouter>);
+        await waitFor(() => expect(screen.getByLabelText('Country')).not.toBeDisabled());
+        expect(screen.getByRole('option',{name:'France'})).toBeInTheDocument();
+        fireEvent.change(screen.getByLabelText('Country'),{target:{value:'France'}});
+        expect(screen.getByLabelText('City')).toHaveValue('');
+        expect(screen.getByRole('option',{name:'Paris'})).toBeInTheDocument();
+        expect(screen.queryByRole('button',{name:'Remove City filter'})).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button',{name:'Remove Country filter'}));
+        expect(screen.getByLabelText('City')).toBeDisabled();
+    });
+    it('switches gallery photos and sizes without allowing an unavailable variant into the cart', async () => {
+        vi.mocked(api.fetchStoreProduct).mockResolvedValue({...product, images:['/uploads/first.jpg','/uploads/second.jpg'], variants:[{id:7,label:'M',stock:5},{id:8,label:'L',stock:2},{id:9,label:'XL',stock:0}]});
+        render(<MemoryRouter initialEntries={['/store/products/1']}><Routes><Route path="/store/products/:id" element={<StoreProductPage/>}/></Routes></MemoryRouter>);
+        await screen.findByRole('heading',{name:'Home shirt'});
+        fireEvent.click(screen.getByRole('button',{name:'View photo 2'}));
+        expect(screen.getByRole('img',{name:'Home shirt - photo 2'})).toHaveAttribute('src',expect.stringContaining('second.jpg'));
+        expect(screen.queryByRole('img',{name:'Home shirt - photo 1'})).not.toBeInTheDocument();
+        fireEvent.change(screen.getByLabelText('Quantity'),{target:{value:'5'}});
+        fireEvent.click(screen.getByRole('button',{name:'L'}));
+        expect(screen.getByLabelText('Quantity')).toHaveValue(1);
+        expect(screen.getByRole('button',{name:'XL - out of stock'})).toBeDisabled();
+        fireEvent.click(screen.getByRole('button',{name:'Add to cart'}));
+        expect(readCart()[0]).toEqual(expect.objectContaining({variantId:8,quantity:1}));
     });
     it('removes an obsolete quote on failed recheck while retaining the cart', async () => {
         saveCart([item]);

@@ -110,3 +110,7 @@ export const fetchCartQuote = async (items: Array<{variantId:number;quantity:num
     return (await apiClient.get<CartQuote>(`/store/cart/quote?${params}`,{signal})).data;
 };
 export const formatStorePrice = (price: number, currency = 'GEL') => new Intl.NumberFormat('en-GB',{style:'currency',currency}).format(price);
+
+export interface StoreLocation { country: string; city: string | null; }
+export const fetchStoreLocations = async (clubId?: number, signal?: AbortSignal): Promise<StoreLocation[]> =>
+    (await apiClient.get<StoreLocation[]>('/store/locations', { params: { clubId }, signal })).data;

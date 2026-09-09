@@ -3,30 +3,45 @@ import {Link,useParams} from 'react-router-dom';
 import {fetchStoreProduct,formatStorePrice,type StoreProduct} from '../features/store/api';
 import {addCartItem} from '../features/store/cart';
 import {resolveMediaUrl} from '../utils/resolveMediaUrl';
+import { ShoppingBag, ChevronRight, Shield } from 'lucide-react';
+import '../features/store/store.css';
 export const StoreProductPage=()=>{
     const {id}=useParams();const [product,setProduct]=useState<StoreProduct|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(true),[reload,setReload]=useState(0);
+    const [photo, setPhoto] = useState(0);
     const [variantId,setVariantId]=useState(0),[quantity,setQuantity]=useState(1),[feedback,setFeedback]=useState('');
     // Reset obsolete product/quote data before synchronizing with the next request.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    useEffect(()=>{let active=true;const controller=new AbortController();setProduct(null);setError('');setLoading(true);setFeedback('');setQuantity(1);
+    useEffect(()=>{let active=true;const controller=new AbortController();setProduct(null);setError('');setLoading(true);setFeedback('');setQuantity(1);setPhoto(0);
         void fetchStoreProduct(Number(id),controller.signal).then(data=>{if(active){setProduct(data);setVariantId(data.variants?.find(v=>v.stock>0)?.id??data.variants?.[0]?.id??0);}})
             .catch(()=>{if(active)setError('This product is unavailable or could not be loaded.');}).finally(()=>{if(active)setLoading(false);});
         return()=>{active=false;controller.abort();};},[id,reload]);
     const variant=product?.variants?.find(v=>v.id===variantId);
-    return <main className="mx-auto max-w-5xl space-y-5 p-4 text-[var(--text-primary)] sm:p-6">
-        <nav className="flex flex-wrap gap-4 underline"><Link to="/store">Browse all stores</Link>{product?.clubId&&<Link to={`/clubs/${product.clubId}/store`}>{product.clubName} store</Link>}<Link to="/store/cart">Open cart</Link></nav>
-        {loading?<p role="status">Loading product...</p>:error?<div role="alert">{error} <button className="underline" onClick={()=>setReload(n=>n+1)}>Retry</button></div>:product&&<div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-3">{product.images?.length?product.images.map((url,i)=><img key={url} src={resolveMediaUrl(url)} alt={`${product.name} - photo ${i+1}`} className="w-full rounded-xl object-cover"/>):<div className="flex aspect-square items-center justify-center rounded-xl bg-black/10">No product photo</div>}</div>
-            <section className="space-y-5"><h1 className="text-3xl font-bold">{product.name}</h1><p className="text-xl font-semibold">{formatStorePrice(product.price??0,product.currency)}</p><p className="whitespace-pre-wrap">{product.description}</p>
-                <label className="grid gap-2">Size / variant<select className="rounded border bg-[var(--theme-surface)] p-3" value={variantId} onChange={e=>{setVariantId(Number(e.target.value));setFeedback('');}}>{product.variants?.map(v=><option key={v.id} value={v.id}>{v.label} - {v.stock>0?`${v.stock} available`:'out of stock'}</option>)}</select></label>
-                <label className="grid gap-2">Quantity<input className="w-28 rounded border bg-[var(--theme-surface)] p-3" type="number" min={1} max={Math.min(99,variant?.stock??0)} value={quantity} onChange={e=>setQuantity(Number(e.target.value))}/></label>
-                <button type="button" disabled={!variant?.stock || !Number.isInteger(quantity) || quantity<1 || quantity>Math.min(99,variant.stock)} className="rounded-xl bg-emerald-700 px-5 py-3 font-bold text-white disabled:opacity-40" onClick={()=>{
-                    if(!variant?.id || !product.clubId)return;
-                    try{addCartItem({variantId:variant.id,quantity,productId:product.id,name:product.name??'Product',variant:variant.label,clubId:product.clubId,currency:product.currency??'GEL'});setFeedback('Added to your cart. Stock and prices are checked again when you open it.');}
-                    catch(e){setFeedback(e instanceof Error?e.message:'The cart could not be saved.');}
-                }}>Add to cart</button>
-                {feedback&&<p role="status">{feedback}</p>}
-                <p className="rounded-xl border border-amber-500/30 p-3 text-sm">Online checkout is not available yet. Adding an item does not reserve stock or place an order.</p>
-            </section></div>}
+    const chooseVariant = (id: number) => { setVariantId(id); setQuantity(1); setFeedback(''); };
+    const add = () => {
+        if (!product || !variant?.id || !product.clubId || !Number.isInteger(quantity) || quantity < 1 || quantity > Math.min(99, variant.stock)) return;
+        try {
+            addCartItem({ variantId: variant.id, quantity, productId: product.id, name: product.name ?? 'Product', variant: variant.label, clubId: product.clubId, currency: product.currency ?? 'GEL' });
+            setFeedback('Added to your cart. Stock and prices are checked again when you open it.');
+        } catch (error) { setFeedback(error instanceof Error ? error.message : 'The cart could not be saved.'); }
+    };
+    return <main className="store-page store-detail-page">
+        <div className="store-detail-top"><nav aria-label="Breadcrumb" className="store-breadcrumb"><Link to="/store" aria-label="Browse all stores">Store</Link>{product?.clubId && <><ChevronRight size={14}/><Link to={`/clubs/${product.clubId}/store`}>{product.clubName} store</Link></>}</nav><Link className="store-cart-link" to="/store/cart"><ShoppingBag size={18}/>Open cart</Link></div>
+        {loading ? <p role="status">Loading product...</p> : error ? <div role="alert" className="store-empty">{error} <button className="underline" onClick={() => setReload(n => n + 1)}>Retry</button></div> : product && <div className="store-detail-grid">
+            <section className="store-gallery" aria-label="Product photos">
+                <div className="store-main-photo">{product.images?.length ? <img src={resolveMediaUrl(product.images[photo] ?? product.images[0])} alt={`${product.name} - photo ${photo + 1}`}/> : <span><ShoppingBag size={40}/>No product photo</span>}</div>
+                {(product.images?.length ?? 0) > 1 && <div className="store-thumbnails">{product.images!.map((url, index) => <button key={`${url}-${index}`} aria-label={`View photo ${index + 1}`} aria-pressed={photo === index} onClick={() => setPhoto(index)}><img src={resolveMediaUrl(url)} alt=""/></button>)}</div>}
+            </section>
+            <section className="store-product-summary">
+                <Link className="store-seller" to={`/clubs/${product.clubId}/store`}>{product.clubLogoUrl ? <img src={resolveMediaUrl(product.clubLogoUrl)} alt=""/> : <Shield size={22}/>}<span><small>From the club</small><strong>{product.clubName}</strong></span><ChevronRight size={16}/></Link>
+                <div><h1>{product.name}</h1><p className="store-detail-price">{formatStorePrice(product.price ?? 0, product.currency)}</p><p className={`store-stock-state ${variant?.stock ? 'available' : ''}`}>{variant?.stock ? `${variant.stock} available in ${variant.label}` : 'Out of stock'} </p></div>
+                <p className="store-description">{product.description}</p>
+                {(product.variants?.length ?? 0) <= 8 ? <fieldset className="store-size-group"><legend>Size / variant</legend><div>{product.variants?.map(v => <button key={v.id} type="button" aria-label={v.stock ? v.label : `${v.label} - out of stock`} aria-pressed={variantId === v.id && v.stock > 0} disabled={!v.stock} title={!v.stock ? `${v.label} - out of stock` : `${v.stock} available`} onClick={() => chooseVariant(v.id ?? 0)}>{v.label}{!v.stock && <span className="sr-only"> - out of stock</span>}</button>)}</div></fieldset> : <label className="store-field">Size / variant<select value={variantId} onChange={e => chooseVariant(Number(e.target.value))}>{product.variants?.map(v => <option key={v.id} value={v.id} disabled={!v.stock}>{v.label}{!v.stock ? ' - out of stock' : ''}</option>)}</select></label>}
+                <div className="store-purchase-row"><label className="store-field">Quantity<input type="number" min={1} max={Math.max(1, Math.min(99, variant?.stock ?? 0))} disabled={!variant?.stock} value={quantity} onChange={e => { setQuantity(Number(e.target.value)); setFeedback(''); }}/></label>
+                    <button className="store-add-button" disabled={!variant?.stock || !Number.isInteger(quantity) || quantity < 1 || quantity > Math.min(99, variant.stock)} onClick={add}><ShoppingBag size={18}/>Add to cart</button>
+                </div>
+                {feedback && <p role="status" className="store-feedback">{feedback}</p>}
+                <p className="store-notice">Online checkout is not available yet. Adding an item does not reserve stock or place an order.</p>
+            </section>
+        </div>}
     </main>;
 };

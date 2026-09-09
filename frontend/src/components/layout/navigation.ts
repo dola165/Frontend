@@ -1,6 +1,7 @@
 import {
     Bell,
     ShoppingBag,
+    HeartHandshake,
     BriefcaseBusiness,
     Building2,
     CalendarDays,
@@ -24,6 +25,7 @@ export type NavigationKey =
     | 'people'
     | 'clubs-following'
     | 'store'
+    | 'campaigns'
     | 'jobs'
     | 'tournaments'
     | 'profile'
@@ -53,6 +55,7 @@ export const primaryProductNavigation: ProductNavigationItem[] = [
 
 export const secondaryProductNavigation: ProductNavigationItem[] = [
     { id: 'store', path: '/store', label: 'Store', translationKey: 'nav.store', icon: ShoppingBag, authRequired: false },
+    { id: 'campaigns', path: '/campaigns', label: 'Fundraising & campaigns', translationKey: 'nav.campaigns', icon: HeartHandshake, authRequired: false },
     { id: 'messages', path: '/messages', label: 'Messages', translationKey: 'nav.messages', icon: MessageSquare, authRequired: true },
     { id: 'notifications', path: '/notifications', label: 'Notifications', translationKey: 'nav.notifications', icon: Bell, authRequired: true },
     { id: 'people', path: '/people', label: 'People', translationKey: 'nav.people', icon: UsersRound, authRequired: true },
@@ -80,6 +83,7 @@ export const resolveNavigationKey = (pathname: string, myClubId: number | null) 
     if (pathname === '/marketplace') return 'marketplace';
     if (pathname === '/needs') return 'needs';
     if (pathname === '/store' || pathname.startsWith('/store/')) return 'store';
+    if (pathname === '/campaigns' || pathname.startsWith('/campaigns/')) return 'campaigns';
     if (pathname === '/jobs') return 'jobs';
     if (pathname.startsWith('/profile/')) return 'profile';
 

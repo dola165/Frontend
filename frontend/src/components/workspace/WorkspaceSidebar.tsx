@@ -53,7 +53,7 @@ const SidebarContent = ({
         { label: 'Club', ids: ['overview', 'settings'] },
         { label: 'People', ids: ['personnel', 'players', 'invites', 'applications', 'roles', 'inbox'] },
         { label: 'Football', ids: ['squads', 'player-cards', 'tryouts'] },
-        { label: 'Opportunities', ids: ['jobs'] },
+        { label: 'Opportunities', ids: ['store', 'campaigns', 'jobs'] },
     ].map((group) => ({
         ...group,
         tabs: [

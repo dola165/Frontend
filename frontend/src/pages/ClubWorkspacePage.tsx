@@ -1,3 +1,4 @@
+import {CampaignsTab} from '../components/workspace/tabs/CampaignsTab';
 import { StoreTab } from '../components/workspace/tabs/StoreTab';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -12,6 +13,7 @@ import {
     PanelRight,
     Settings,
     ShoppingBag,
+    HeartHandshake,
     ShieldCheck,
     UserPlus,
     Users,
@@ -756,6 +758,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         }
         if (canManageLeadership) {
             items.push({ id: 'store', label: 'Store', icon: ShoppingBag });
+            items.push({ id: 'campaigns', label: 'Campaigns', icon: HeartHandshake });
             items.push({ id: 'settings', label: 'Settings', icon: Settings });
         }
         if (canManageOperations) {
@@ -992,6 +995,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                             )}
 
                             {activeTab === 'store' && canManageLeadership && <StoreTab key={clubId} clubId={clubId} />}
+                            {activeTab === 'campaigns' && canManageLeadership && <CampaignsTab key={clubId} clubId={clubId} />}
                             {activeTab === 'settings' && (
                                 <SettingsTab clubId={clubId} pendingKey={pendingKey} />
                             )}

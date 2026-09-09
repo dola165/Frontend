@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BriefcaseBusiness, ShoppingBag } from 'lucide-react';
+import { BriefcaseBusiness, ShoppingBag, HeartHandshake } from 'lucide-react';
 
 const destinations = [
     { path: '/store', label: 'Store', icon: ShoppingBag, activeClass: 'border-emerald-600/50 bg-emerald-600/[0.07] text-emerald-700 dark:border-emerald-400/50 dark:text-emerald-300' },
+    { path: '/campaigns', label: 'Fundraising & campaigns', icon: HeartHandshake, activeClass: 'border-amber-600/50 bg-amber-600/[0.07] text-amber-800 dark:border-amber-400/50 dark:text-amber-300' },
     { path: '/jobs', label: 'Jobs & volunteering', icon: BriefcaseBusiness, activeClass: 'border-fuchsia-600/50 bg-fuchsia-600/[0.07] text-fuchsia-700 dark:border-fuchsia-400/50 dark:text-fuchsia-300' },
 ];
 
@@ -13,7 +14,7 @@ export const DiscoverySectionTabs = () => {
         <nav aria-label="Opportunities" className="mb-5 flex flex-wrap items-center gap-2 border-b border-[color:var(--theme-border)] pb-4">
             {destinations.map((destination) => {
                 const Icon = destination.icon;
-                const active = location.pathname === destination.path;
+                const active = location.pathname === destination.path || location.pathname.startsWith(destination.path + '/') || location.pathname.endsWith(destination.path);
                 return (
                     <Link key={destination.path} to={destination.path} className={`inline-flex h-10 items-center gap-2 rounded-lg border px-4 text-xs font-bold transition-colors ${active ? destination.activeClass : 'border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] text-[color:var(--text-secondary)] hover:bg-[color:var(--theme-surface-strong)] hover:text-[color:var(--text-primary)]'}`} aria-current={active ? 'page' : undefined}>
                         <Icon className="h-4 w-4" />

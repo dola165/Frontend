@@ -1575,6 +1575,12 @@
     transform: translateY(-1px);
   }
 
+  .club-tone-amber {
+    --club-item-accent: #fbbf24;
+    --club-item-accent-soft: rgba(251, 191, 36, 0.12);
+    --club-item-accent-border: rgba(251, 191, 36, 0.3);
+  }
+
   .club-tone-green {
     --club-item-accent: var(--club-tone-green);
     --club-item-accent-soft: var(--club-tone-green-soft);

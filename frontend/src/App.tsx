@@ -1,3 +1,5 @@
+import {CampaignsPage} from './pages/CampaignsPage';
+import {CampaignDetailPage} from './pages/CampaignDetailPage';
 import { JobDetailPage } from './pages/JobDetailPage';
 import { StorePage } from './pages/StorePage';
 import { ClubStorePage } from './pages/ClubStorePage';
@@ -256,7 +258,7 @@ function MainLayout() {
     const isPublicWorldMap = location.pathname === '/world';
     const isAuthPage = authRoutePaths.has(location.pathname) || location.pathname === '/oauth2/callback';
     const isHomeFeed = location.pathname === '/home' || location.pathname === '/feed';
-    const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads|\/workspace|\/store)?$/.test(location.pathname);
+    const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads|\/workspace|\/store|\/campaigns)?$/.test(location.pathname);
     // Public destination pages with full-bleed heroes (banner + tab bars) render
     // edge-to-edge; everything else keeps the bounded wide frame.
     const isBleedDestinationPage =
@@ -269,6 +271,7 @@ function MainLayout() {
         location.pathname.startsWith('/posts/') ||
         location.pathname.startsWith('/store/') ||
         location.pathname.startsWith('/jobs/') ||
+        location.pathname.startsWith('/campaigns/') ||
         location.pathname.startsWith('/organizations') ||
         location.pathname.startsWith('/tournaments/') ||
         location.pathname.startsWith('/agent') ||
@@ -321,7 +324,9 @@ function MainLayout() {
             <Route path="/store/cart" element={<StoreCartPage />} />
             <Route path="/jobs" element={<JobsDirectoryPage />} />
             <Route path="/jobs/:id" element={<JobDetailPage />} />
-            <Route path="/campaigns" element={<RouteRecoveryPage feature="Campaigns and fundraising" />} />
+            <Route path="/campaigns" element={<CampaignsPage />} />
+            <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
+            <Route path="/clubs/:id/campaigns" element={<CampaignsPage />} />
             <Route path="/people" element={<ProtectedRoute><PeoplePage /></ProtectedRoute>} />
             <Route path="/clubs/:id/store" element={<ClubStorePage />} />
             <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />

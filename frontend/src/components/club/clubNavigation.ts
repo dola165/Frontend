@@ -1,8 +1,8 @@
-import { ShoppingBag, Briefcase, Building2, CalendarDays, Camera, Phone, Users, UsersRound } from 'lucide-react';
+import { ShoppingBag, HeartHandshake, Briefcase, Building2, CalendarDays, Camera, Phone, Users, UsersRound } from 'lucide-react';
 
-export type ClubNavigationTab = 'overview' | 'people' | 'teams' | 'schedule' | 'media' | 'business' | 'contact' | 'store';
+export type ClubNavigationTab = 'overview' | 'people' | 'teams' | 'schedule' | 'media' | 'business' | 'contact' | 'store' | 'campaigns';
 
-export type ClubNavigationAccent = 'blue' | 'violet';
+export type ClubNavigationAccent = 'blue' | 'violet' | 'amber';
 
 export interface ClubNavigationClubSummary {
     honours?: Array<unknown>;
@@ -55,10 +55,11 @@ export const clubNavigationItems: ClubNavigationItem[] = [
         section: 'media'
     },
     { id: 'store', icon: ShoppingBag, label: 'Store', toneClassName: 'club-tone-green' },
+    { id: 'campaigns', icon: HeartHandshake, label: 'Campaigns', toneClassName: 'club-tone-amber', accent: 'amber' },
     {
         id: 'business',
         icon: Briefcase,
-        label: 'Opportunities',
+        label: 'Jobs & volunteering',
         toneClassName: 'club-tone-green',
         accent: 'violet'
     },

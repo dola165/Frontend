@@ -24,7 +24,9 @@ export const ClubProfileStickyHeader = ({
         const isActive = item.id === activeTab;
         const badge = item.badge?.(club) ?? null;
 
-        const inactiveClassName = item.accent === 'blue'
+        const inactiveClassName = item.accent === 'amber'
+            ? 'border-transparent bg-amber-400/[0.08] text-[color:var(--club-theme-text-secondary)] hover:bg-amber-400/[0.14]'
+            : item.accent === 'blue'
             ? // media tabs: very slight light-blue tint vs the transparent rest
               'border-transparent bg-[rgba(92,173,255,0.07)] text-[color:var(--club-theme-text-secondary)] hover:bg-[rgba(92,173,255,0.13)] hover:text-[color:var(--club-theme-text-primary)]'
             : item.accent === 'violet'
@@ -34,7 +36,9 @@ export const ClubProfileStickyHeader = ({
 
         const iconClassName = isActive
             ? 'text-[color:var(--club-tone-green)]'
-            : item.accent === 'violet'
+            : item.accent === 'amber'
+                ? 'text-amber-300'
+                : item.accent === 'violet'
                 ? 'text-[color:var(--club-tone-violet)]'
                 : 'text-[color:var(--club-theme-text-secondary)]';
 

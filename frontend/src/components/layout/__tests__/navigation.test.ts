@@ -8,7 +8,7 @@ describe('supported product navigation', () => {
         const paths = destinations.map((item) => item.path);
 
         expect(paths).toContain('/store');
-        expect(paths).not.toContain('/campaigns');
+        expect(paths).toContain('/campaigns');
         expect(paths).not.toContain('/marketplace');
         expect(paths).not.toContain('/agent');
     });
@@ -26,9 +26,9 @@ describe('supported product navigation', () => {
         expect(resolveNavigationKey('/tournaments/42', null)).toBe('tournaments');
     });
 
-    it('keeps the public club menu focused on seven destinations', () => {
+    it('keeps the public club menu aligned with the supported club features', () => {
         expect(clubNavigationItems.map((item) => item.id)).toEqual([
-            'overview', 'people', 'teams', 'schedule', 'media', 'store', 'business', 'contact',
+            'overview', 'people', 'teams', 'schedule', 'media', 'store', 'campaigns', 'business', 'contact',
         ]);
     });
 

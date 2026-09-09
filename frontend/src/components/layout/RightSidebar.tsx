@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
     BriefcaseBusiness,
     Building2,
-    ShoppingBag,
+    ShoppingBag, HeartHandshake,
     ExternalLink,
     MessageCircle,
     Minus,
@@ -116,6 +116,10 @@ export const RightSidebar = () => {
                             <Link to="/store" className="block rounded-md border border-emerald-500/45 bg-emerald-500/[0.06] px-3 py-3 transition-colors hover:brightness-110">
                                 <span className="flex items-center gap-2 text-xs font-bold text-emerald-300"><ShoppingBag className="h-4 w-4" />Store</span>
                                 <span className="mt-1.5 block text-[11px] text-[#a1a1aa]">Browse club merchandise</span>
+                            </Link>
+                            <Link to="/campaigns" className="block rounded-md border border-amber-400/40 bg-amber-400/[0.06] px-3 py-3 transition-colors hover:brightness-110">
+                                <span className="flex items-center gap-2 text-xs font-bold text-amber-300"><HeartHandshake className="h-4 w-4" />Fundraising & campaigns</span>
+                                <span className="mt-1.5 block text-[11px] text-[#a1a1aa]">Support club projects and grassroots football</span>
                             </Link>
                             <Link to="/jobs" className="block rounded-md border border-fuchsia-400/40 bg-fuchsia-400/[0.06] px-3 py-3 transition-colors hover:brightness-110">
                                 <span className="flex items-center gap-2 text-xs font-bold text-fuchsia-300"><BriefcaseBusiness className="h-4 w-4" /><span className="flex-1">Jobs & volunteering</span><span className="rounded-full border border-amber-400/30 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-amber-300">Preview</span></span>

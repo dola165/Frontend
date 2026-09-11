@@ -1,9 +1,10 @@
+import { OpportunityLink } from '../ui/OpportunityLink';
+import { formatTime } from '../../utils/formatting';
+import { MediaImage } from '../ui/MediaImage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    BriefcaseBusiness,
     Building2,
-    ShoppingBag, HeartHandshake,
     ExternalLink,
     MessageCircle,
     Minus,
@@ -23,7 +24,7 @@ interface ContactConversation {
     participant: ParticipantInfo;
 }
 
-const formatMessageTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const formatMessageTime = (iso: string) => formatTime(iso);
 
 export const RightSidebar = () => {
     const [conversations, setConversations] = useState<ConversationDto[]>([]);
@@ -106,25 +107,16 @@ export const RightSidebar = () => {
         <>
             <aside className="hidden xl:block">
                 <div className="sticky top-[calc(var(--app-header-height)+20px)] space-y-5">
-                    <section className="overflow-hidden rounded-xl border border-white/10 bg-[#090b0e] shadow-[var(--feed-shadow-panel)]" aria-labelledby="discover-heading">
+                    <section className="overflow-hidden rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-surface)] shadow-[var(--feed-shadow-panel)]" aria-labelledby="discover-heading">
                         <div className="flex items-center gap-2 border-b border-white/[0.08] px-4 py-4">
-                            <Building2 className="h-4 w-4 text-emerald-400" />
-                            <h2 id="discover-heading" className="text-xs font-bold text-emerald-400">Opportunities</h2>
+                            <Building2 className="h-4 w-4 text-[var(--feed-text-primary)]" />
+                            <h2 id="discover-heading" className="text-xs font-bold text-[var(--feed-text-primary)]">Opportunities</h2>
                         </div>
 
                         <div className="space-y-2.5 p-3" aria-label="Supported destinations">
-                            <Link to="/store" className="block rounded-md border border-emerald-500/45 bg-emerald-500/[0.06] px-3 py-3 transition-colors hover:brightness-110">
-                                <span className="flex items-center gap-2 text-xs font-bold text-emerald-300"><ShoppingBag className="h-4 w-4" />Store</span>
-                                <span className="mt-1.5 block text-[11px] text-[#a1a1aa]">Browse club merchandise</span>
-                            </Link>
-                            <Link to="/campaigns" className="block rounded-md border border-amber-400/40 bg-amber-400/[0.06] px-3 py-3 transition-colors hover:brightness-110">
-                                <span className="flex items-center gap-2 text-xs font-bold text-amber-300"><HeartHandshake className="h-4 w-4" />Fundraising & campaigns</span>
-                                <span className="mt-1.5 block text-[11px] text-[#a1a1aa]">Support club projects and grassroots football</span>
-                            </Link>
-                            <Link to="/jobs" className="block rounded-md border border-fuchsia-400/40 bg-fuchsia-400/[0.06] px-3 py-3 transition-colors hover:brightness-110">
-                                <span className="flex items-center gap-2 text-xs font-bold text-fuchsia-300"><BriefcaseBusiness className="h-4 w-4" /><span className="flex-1">Jobs & volunteering</span><span className="rounded-full border border-amber-400/30 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-amber-300">Preview</span></span>
-                                <span className="mt-1.5 block text-[11px] text-[#a1a1aa]">Roles published by football clubs</span>
-                            </Link>
+                            <OpportunityLink kind="store" to="/store" description="Browse club merchandise" />
+                            <OpportunityLink kind="campaigns" to="/campaigns" description="Support club projects and grassroots football" />
+                            <OpportunityLink kind="jobs" to="/jobs" description="Roles published by football clubs" preview />
                         </div>
                     </section>
 
@@ -140,7 +132,7 @@ export const RightSidebar = () => {
                                         <button key={contact.conversation.id} type="button" onClick={() => void openQuickChat(contact)} className="feed-side-link recent-contact-link w-full text-left">
                                             <span className="flex min-w-0 items-center gap-3">
                                                 <span className="feed-side-link__visual feed-side-link__visual--avatar">
-                                                    {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : contact.participant.displayName.substring(0, 2).toUpperCase()}
+                                                    {avatarUrl ? <MediaImage src={avatarUrl} alt="" className="h-full w-full object-cover" /> : contact.participant.displayName.substring(0, 2).toUpperCase()}
                                                 </span>
                                                 <span className="feed-side-link__title">{contact.participant.displayName}</span>
                                             </span>
@@ -164,7 +156,7 @@ export const RightSidebar = () => {
                     <header className="flex h-12 items-center gap-2 border-b border-white/[0.08] px-3">
                         <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[#30343b] text-[10px] font-bold text-white">
                             {resolveMediaUrl(quickChat.participant.profilePictureUrl)
-                                ? <img src={resolveMediaUrl(quickChat.participant.profilePictureUrl) ?? ''} alt="" className="h-full w-full object-cover" />
+                                ? <MediaImage src={resolveMediaUrl(quickChat.participant.profilePictureUrl) ?? ''} alt="" className="h-full w-full object-cover" />
                                 : quickChat.participant.displayName.substring(0, 2).toUpperCase()}
                         </span>
                         <button type="button" onClick={() => setMinimized((value) => !value)} className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-white">

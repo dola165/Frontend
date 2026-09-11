@@ -1,3 +1,5 @@
+import { useFilterDisclosure } from '../hooks/useFilterDisclosure';
+import { MediaImage } from '../components/ui/MediaImage';
 import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
@@ -40,6 +42,7 @@ export const CampaignsPage = () => {
         [locationError, setLocationError] = useState('');
     const [filtersOpen, setFiltersOpen] = useState(false),
         trigger = useRef<HTMLButtonElement>(null);
+    useFilterDisclosure(filtersOpen, () => setFiltersOpen(false), trigger);
     const query = params.toString(),
         page = Math.min(10000, Math.max(0, Math.floor(Number(params.get('page')) || 0)));
     const change = (key: string, value: string) =>
@@ -364,7 +367,7 @@ export const CampaignsPage = () => {
                                                 className="campaign-cover"
                                             >
                                                 {c.images[0] ? (
-                                                    <img
+                                                    <MediaImage
                                                         src={resolveMediaUrl(c.images[0])}
                                                         alt=""
                                                         loading="lazy"

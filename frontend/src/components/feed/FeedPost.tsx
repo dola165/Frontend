@@ -1,3 +1,5 @@
+import { formatDate } from '../../utils/formatting';
+import { MediaImage } from '../ui/MediaImage';
 import { useState, type ReactNode } from 'react';
 import { Heart, MessageCircle, MoreHorizontal, Send, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -63,7 +65,7 @@ export const FeedPost = ({
     const [commentError, setCommentError] = useState('');
 
     const formatTime = (dateString: string) =>
-        new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        formatDate(dateString, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
     const initials = (post.clubName || post.authorName).substring(0, 2).toUpperCase();
     const authorAvatarUrl = resolveMediaUrl(post.authorAvatarUrl);
@@ -90,7 +92,7 @@ export const FeedPost = ({
     };
 
     const handleShare = async () => {
-        const shareTitle = post.clubName || post.authorName || 'Talanti post';
+        const shareTitle = post.clubName || post.authorName || 'GrassKickZ post';
         const shareText = `${shareTitle}\n\n${post.content}`.trim();
         const shareUrl = new URL(`/posts/${post.id}`, window.location.origin).toString();
         setShareFeedback('');
@@ -117,7 +119,7 @@ export const FeedPost = ({
     const authorIdentity = (
         <>
             <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--feed-layer-bg)] font-semibold text-[var(--feed-text-secondary)] ring-2 ring-transparent transition-all group-hover/author:ring-[var(--feed-accent-border)] ${compact ? 'h-11 w-11 text-sm' : 'h-12 w-12 text-base'}`}>
-                {authorAvatarUrl ? <img src={authorAvatarUrl} alt={displayAuthorName} className="h-full w-full object-cover" /> : initials}
+                {authorAvatarUrl ? <MediaImage src={authorAvatarUrl} alt={displayAuthorName} className="h-full w-full object-cover" /> : initials}
             </div>
             <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -141,7 +143,7 @@ export const FeedPost = ({
         const MediaItem = ({ url, className }: { url: string; className: string }) => {
             const finalUrl = resolveMediaUrl(url);
             const isVideo = finalUrl?.match(/\.(mp4|mov|webm)$/i);
-            return isVideo ? <video src={finalUrl} className={`object-cover ${className}`} /> : <img src={finalUrl} alt="Post media" className={`object-cover ${className}`} />;
+            return isVideo ? <video src={finalUrl} className={`object-cover ${className}`} /> : <MediaImage src={finalUrl} alt="Post media" className={`object-cover ${className}`} />;
         };
 
         const count = mediaList.length;
@@ -256,7 +258,7 @@ export const FeedPost = ({
                                 <div key={comment.id} className="flex gap-3">
                                     <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--feed-layer-bg)] text-xs font-semibold text-[var(--feed-text-secondary)]">
                                         {resolveMediaUrl(comment.authorAvatarUrl) ? (
-                                            <img src={resolveMediaUrl(comment.authorAvatarUrl)} alt={comment.authorName} className="h-full w-full object-cover" />
+                                            <MediaImage src={resolveMediaUrl(comment.authorAvatarUrl)} alt={comment.authorName} className="h-full w-full object-cover" />
                                         ) : (
                                             comment.authorName.substring(0, 2).toUpperCase()
                                         )}

@@ -19,6 +19,7 @@ import { TabOverview } from '../components/club/tabs/TabOverview';
 import { TabHonours } from '../components/club/tabs/TabHonours';
 import { TabPeople } from '../components/club/tabs/TabPeople';
 import { TabCalendar } from '../components/club/tabs/TabCalendar';
+import { TabEvents } from '../components/club/tabs/TabEvents';
 import { TabMedia } from '../components/club/tabs/TabMedia';
 import { TabContact } from '../components/club/tabs/TabContact';
 import { ClubBusinessTab } from '../components/club/ClubBusinessTab';
@@ -353,7 +354,6 @@ export const ClubProfilePage = () => {
                 onOpenCalendar={() => setActiveTab('schedule')}
                 onOpenManageClub={() => openManageClub()}
                 onOpenWorkspace={isOwnClubAdmin ? openWorkspace : undefined}
-                onDissolveClub={canDissolveClub ? () => setIsDissolveDialogOpen(true) : undefined}
                 onOpenChallengeModal={() => setIsChallengeModalOpen(true)}
                 onOpenMessage={handleOpenMessage}
                 onOpenApply={() => setIsApplyModalOpen(true)}
@@ -375,19 +375,22 @@ export const ClubProfilePage = () => {
                     </div>}
 
                     <div className="min-w-0">
-                        {activeTab !== 'business' && <div className="mb-6 xl:hidden">
+                        {activeTab !== 'business' && <details className="mb-5 rounded-xl border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-surface)] xl:hidden">
+                            <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-[color:var(--club-theme-text-primary)]">Club information & contact</summary>
                             <ClubProfileInfoPanel club={club} />
-                        </div>}
+                        </details>}
 
                         {activeTab === 'overview' && (
                             <div className="space-y-5">
                                 <TabOverview club={club} isOwnClubAdmin={isOwnClubAdmin} onOpenManageClub={(tab) => openManageClub(tab)} />
-                                <TabHonours club={club} />
+
                             </div>
                         )}
+                        {activeTab === 'honours' && <TabHonours club={club} />}
                         {activeTab === 'people' && <TabPeople clubId={club.id} clubName={club.name} isOwnClubAdmin={isOwnClubAdmin} />}
                         {activeTab === 'teams' && <TabTeams clubId={club.id} refreshKey={squadsRefreshKey} />}
                         {activeTab === 'schedule' && <TabCalendar clubId={club.id} isOwnClubAdmin={isOwnClubAdmin} />}
+                        {activeTab === 'events' && <TabEvents clubId={club.id} isOwnClubAdmin={isOwnClubAdmin} />}
                         {activeTab === 'media' && <div className="space-y-5"><TabMedia clubId={club.id} mediaType="pictures" /><TabMedia clubId={club.id} mediaType="videos" /></div>}
                         {activeTab === 'business' && (
                             <ClubBusinessTab
@@ -434,6 +437,7 @@ export const ClubProfilePage = () => {
                     initialTab={requestedManagementTab}
                     debugMode={debugMode}
                     onClose={closeManageClub}
+                    onDissolveClub={canDissolveClub ? () => { closeManageClub(); setIsDissolveDialogOpen(true); } : undefined}
                     onSquadCreated={() => setSquadsRefreshKey((current) => current + 1)}
                     onDataChanged={() => {
                         void fetchClubData();
@@ -490,7 +494,12 @@ export const ClubProfilePage = () => {
                 message="Dissolving is permanent. Club memberships end, pending invitations and applications close, and recruitment stops. Accounts and club history are preserved. Members and followers will be notified. Finish or cancel tournaments the club hosts or organizes, and withdraw its unfinished entries before continuing."
                 confirmLabel={isDissolving ? 'Dissolving…' : 'Dissolve Club'}
                 onConfirm={() => void handleDissolveConfirm()}
-                onCancel={() => { if (!isDissolving) setIsDissolveDialogOpen(false); }}
+                onCancel={() => {
+                    if (isDissolving) return;
+                    setIsDissolveDialogOpen(false);
+                    // The settings dialog was closed before confirmation; return to its stable trigger.
+                    requestAnimationFrame(() => document.getElementById('club-settings-trigger')?.focus());
+                }}
             />
         </div>
     );

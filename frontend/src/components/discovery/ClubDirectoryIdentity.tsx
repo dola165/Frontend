@@ -1,3 +1,4 @@
+import { MediaImage } from '../ui/MediaImage';
 import { Link } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
@@ -19,7 +20,7 @@ export const ClubDirectoryIdentity = ({ club, variant = 'list' }: ClubDirectoryI
             {isCard && (
                 <Link to={`/clubs/${club.id}`} aria-label={`Open ${club.name}`} className="group block rounded-t-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16a34a] focus-visible:ring-inset">
                     <div className="relative h-24 overflow-hidden rounded-t-xl border-b border-[#ffffff1f]" style={{ backgroundColor: accentStyle.backgroundColor }}>
-                        {logoUrl && <img src={logoUrl} alt="" aria-hidden="true" className="absolute right-4 bottom-1 h-20 w-20 object-contain opacity-35 transition-transform group-hover:scale-105" />}
+                        {logoUrl && <MediaImage src={logoUrl} alt="" aria-hidden="true" className="absolute right-4 bottom-1 h-20 w-20 object-contain opacity-35 transition-transform group-hover:scale-105" />}
                         <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${accentStyle.backgroundColor} 0%, ${accentStyle.borderColor} 100%)`, opacity: 0.82 }} />
                         <div className="absolute inset-x-3 top-3 flex items-center justify-between gap-2">
                             {club.isOfficial ? <span className="rounded-full bg-black/25 px-2 py-1 text-[9px] font-semibold text-white">Official</span> : <span />}
@@ -39,7 +40,7 @@ export const ClubDirectoryIdentity = ({ club, variant = 'list' }: ClubDirectoryI
                             className="flex h-12 w-12 items-center justify-center rounded-lg border border-[#ffffff0d] bg-[#0f1117] text-sm font-semibold text-[#f4f4f5]"
                             style={logoUrl ? undefined : accentStyle}
                         >
-                            {logoUrl ? <img src={logoUrl} alt={`${club.name} logo`} className="h-full w-full rounded-lg object-cover" /> : club.name.substring(0, 2).toUpperCase()}
+                            {logoUrl ? <MediaImage src={logoUrl} alt={`${club.name} logo`} className="h-full w-full rounded-lg object-cover" /> : club.name.substring(0, 2).toUpperCase()}
                         </div>
                     </Link>}
                 <div className="min-w-0">

@@ -1,6 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EventCreationModal, type EventCreationFormValues } from '../EventCreationModal';
+import { apiClient } from '../../../api/axiosConfig';
+
+vi.mock('../../../api/axiosConfig', () => ({ apiClient: { get: vi.fn() } }));
 
 vi.mock('../../MiniMap', () => ({ MiniMap: () => <div data-testid="mini-map" /> }));
 
@@ -35,6 +38,20 @@ const renderModal = (onClose = vi.fn()) => {
 };
 
 describe('EventCreationModal keyboard behavior', () => {
+    it('saves training with the selected squad and preserves the assignment on edit', async () => {
+        vi.mocked(apiClient.get).mockResolvedValue({ data: [{ id: 16, name: 'U16' }, { id: 17, name: 'First team' }] });
+        const user = userEvent.setup(); const onSubmit = vi.fn().mockResolvedValue(undefined);
+        render(<EventCreationModal isOpen mode="edit" surface="CLUB_SCHEDULE" clubId={701} targetEventClubId={701}
+            initialValues={{ ...initialValues, eventType: 'TRAINING', title: 'Evening training', hostSquadId: 16 }}
+            subjectLabel="Club" onClose={vi.fn()} onSubmit={onSubmit} />);
+        await screen.findByRole('option', { name: 'U16' });
+        expect(screen.getByRole('combobox', { name: 'Squad' })).toHaveValue('16');
+        await user.selectOptions(screen.getByRole('combobox', { name: 'Squad' }), '17');
+        await user.click(screen.getByRole('button', { name: /continue/i }));
+        await user.click(screen.getByRole('button', { name: /continue/i }));
+        await user.click(screen.getByRole('button', { name: /save.?event/i }));
+        await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ eventType: 'TRAINING', hostSquadId: 17 }), expect.anything()));
+    });
     it('exposes a named dialog, focuses the title and closes a pristine form with Escape', async () => {
         const user = userEvent.setup();
         const onClose = renderModal();

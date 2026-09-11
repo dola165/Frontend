@@ -3,7 +3,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { useChatWebSocket, mergeMessages } from './useChatWebSocket';
 import { chatApi, type ChatMessageResponse } from '../api/chat';
 
-const state = vi.hoisted(() => ({ client: null as unknown as FakeClient, token: 'first-token' }));
+const state = vi.hoisted(() => ({ client: null as unknown as FakeClient, token: 'first-token', sessionId: 'session-A' }));
 type Frame = { body: string };
 type Options = { beforeConnect: () => void; onConnect: () => void; onWebSocketClose: () => void };
 class FakeClient {
@@ -21,7 +21,7 @@ vi.mock('@stomp/stompjs', () => ({ Client: class {
     constructor(options: Options) { return new FakeClient(options); }
 } }));
 vi.mock('../api/axiosConfig', () => ({ buildWebSocketUrl: () => 'ws://localhost/ws-chat' }));
-vi.mock('../utils/authStorage', () => ({ getStoredAccessToken: () => state.token, getStoredUserId: () => '1' }));
+vi.mock('../utils/authStorage', () => ({ getStoredAccessToken: () => state.token, getStoredUserId: () => '1', getAuthSessionId: () => state.sessionId, isCurrentAuthSession: (id: string) => id === state.sessionId }));
 vi.mock('../api/chat', () => ({ chatApi: { getMessages: vi.fn(), getMessagesAfter: vi.fn(), getMessagesBefore: vi.fn(), markAsRead: vi.fn(), sendMessage: vi.fn() } }));
 const message = (id: number, conversationId = 7): ChatMessageResponse => ({ id, conversationId, senderId: 2, senderName: 'Peer', content: `message ${id}`, createdAt: '2026-09-09T12:00:00' });
 const response = (items: ChatMessageResponse[]) => ({ data: { content: items } });
@@ -30,6 +30,7 @@ const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = n
 beforeEach(() => {
     vi.clearAllMocks();
     state.token = 'first-token';
+    state.sessionId = 'session-A';
     vi.mocked(chatApi.getMessages).mockResolvedValue(response([]) as never);
     vi.mocked(chatApi.getMessagesAfter).mockResolvedValue({ data: [] } as never);
     vi.mocked(chatApi.getMessagesBefore).mockResolvedValue({ data: [] } as never);
@@ -38,6 +39,16 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe('reliable chat transport', () => {
+    it.each(['beforeConnect', 'onConnect'] as const)('retires the old socket at %s after another tab changes accounts', async phase => {
+        const { result } = renderHook(() => useChatWebSocket(vi.fn()));
+        await act(async () => { await result.current.setActiveConversation(7); });
+        state.sessionId = 'session-B'; state.token = 'B-token';
+        act(() => { state.client.connected = true; state.client.options[phase](); });
+        expect(state.client.deactivate).toHaveBeenCalled();
+        expect(state.client.connectHeaders).not.toEqual({ Authorization: 'Bearer B-token' });
+        expect(state.client.subscribe).not.toHaveBeenCalled();
+    });
+
     it('loads multiple older pages without changing the forward recovery cursor or marking history read', async () => {
         vi.mocked(chatApi.getMessages).mockResolvedValue(response(Array.from({ length: 50 }, (_, i) => message(i + 56))) as never);
         vi.mocked(chatApi.getMessagesBefore)

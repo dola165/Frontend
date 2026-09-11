@@ -1,3 +1,4 @@
+import { MediaImage } from './ui/MediaImage';
 import { useEffect, useId, useRef, useState } from 'react';
 import { X, Heart, MessageCircle, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { FeedPostDto, CommentDto } from './feed/FeedPost';
@@ -91,9 +92,8 @@ export const PostTheaterModal = ({
             <div className="flex h-full w-full max-w-[1400px] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0d1117] shadow-2xl lg:flex-row" onClick={(event) => event.stopPropagation()}>
                 <div className="group relative flex h-[40vh] flex-1 items-center justify-center overflow-hidden bg-black lg:h-full">
                     {currentMediaUrl && (
-                        <div
-                            className="absolute inset-0 scale-110 bg-cover bg-center opacity-30 blur-2xl transition-all duration-300"
-                            style={{ backgroundImage: `url(${currentMediaUrl})` }}
+                        <MediaImage alt="" aria-hidden="true" src={currentMediaUrl}
+                            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-2xl transition-all duration-300"
                         />
                     )}
 
@@ -101,7 +101,7 @@ export const PostTheaterModal = ({
                         isVideo ? (
                             <video src={currentMediaUrl} controls autoPlay className="relative z-10 max-h-full max-w-full object-contain drop-shadow-2xl" />
                         ) : (
-                            <img src={currentMediaUrl} alt="Theater mode media" className="relative z-10 max-h-full max-w-full object-contain drop-shadow-2xl" />
+                            <MediaImage src={currentMediaUrl} alt="Theater mode media" className="relative z-10 max-h-full max-w-full object-contain drop-shadow-2xl" />
                         )
                     )}
 
@@ -125,7 +125,7 @@ export const PostTheaterModal = ({
                         <div className="mb-4 flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#16a34a] text-sm font-semibold text-black ">
                                 {authorAvatarUrl ? (
-                                    <img src={authorAvatarUrl} alt={post.clubName || post.authorName} className="h-full w-full object-cover" />
+                                    <MediaImage src={authorAvatarUrl} alt={post.clubName || post.authorName} className="h-full w-full object-cover" />
                                 ) : (
                                     (post.clubName || post.authorName).substring(0, 2).toUpperCase()
                                 )}
@@ -178,7 +178,7 @@ export const PostTheaterModal = ({
                                 <div key={comment.id} className="flex gap-3">
                                     <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#1a2030] text-xs font-semibold text-[#94a3b8]">
                                         {resolveMediaUrl(comment.authorAvatarUrl) ? (
-                                            <img src={resolveMediaUrl(comment.authorAvatarUrl)} alt={comment.authorName} className="h-full w-full object-cover" />
+                                            <MediaImage src={resolveMediaUrl(comment.authorAvatarUrl)} alt={comment.authorName} className="h-full w-full object-cover" />
                                         ) : (
                                             comment.authorName.substring(0, 2).toUpperCase()
                                         )}

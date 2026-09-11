@@ -1,3 +1,5 @@
+import { formatDate, formatDateTime } from '../utils/formatting';
+import { MediaImage } from '../components/ui/MediaImage';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -97,7 +99,7 @@ const btnSecondaryClass = 'inline-flex items-center gap-2 rounded-xl border bord
 const normalizeTab = (value: string | null): Tab =>
     value === 'security' || value === 'sessions' || value === 'accounts' || value === 'danger' ? value : 'profile';
 const trimToUndefined = (value: string) => value.trim() || undefined;
-const fmt = (value?: string | null) => (value ? new Date(value).toLocaleString() : null);
+const fmt = (value?: string | null) => (value ? formatDateTime(value) : null);
 const providerLabel = (provider: string) => (provider === 'google' ? 'Google' : provider.charAt(0).toUpperCase() + provider.slice(1));
 const buildForm = (account: Account): ProfileForm => ({
     fullName: account.fullName ?? '',
@@ -434,7 +436,7 @@ export const AccountPage = () => {
 
                             <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
                                 <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[16px] border-2 border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] text-xl font-bold text-[color:var(--fc-text-primary)]">
-                                    {avatarPreview ? <img src={avatarPreview} alt={account.displayName} className="h-full w-full object-cover" /> : initials}
+                                    {avatarPreview ? <MediaImage src={avatarPreview} alt={account.displayName} className="h-full w-full object-cover" /> : initials}
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold text-[color:var(--fc-text-primary)]">{account.displayName}</h2>
@@ -568,7 +570,7 @@ export const AccountPage = () => {
                                         <div className="min-w-0">
                                             <p className="text-sm font-semibold text-[color:var(--fc-text-primary)]">{app.tryoutTitle}</p>
                                             <p className="text-xs text-[color:var(--fc-text-secondary)]">
-                                                Applied {new Date(app.appliedAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                Applied {formatDate(app.appliedAt, { year: 'numeric', month: 'short', day: 'numeric' })}
                                             </p>
                                         </div>
                                         <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${tryoutStatusStyle(app.status)}`}>
@@ -741,7 +743,7 @@ export const AccountPage = () => {
                             <Section title="Profile Assets" description="Banner and avatar media for your public profile.">
                                 <div className="relative h-32 overflow-hidden rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)]">
                                     {bannerPreview ? (
-                                        <img src={bannerPreview} alt="Account banner" className="h-full w-full object-cover" />
+                                        <MediaImage src={bannerPreview} alt="Account banner" className="h-full w-full object-cover" />
                                     ) : (
                                         <div className="flex h-full w-full items-center justify-center">
                                             <ImageIcon className="h-8 w-8 text-[color:var(--fc-text-secondary)]" />
@@ -760,7 +762,7 @@ export const AccountPage = () => {
 
                                 <div className="mt-4 flex items-center gap-4">
                                     <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[14px] border-2 border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] text-xl font-bold text-[color:var(--fc-text-primary)]">
-                                        {avatarPreview ? <img src={avatarPreview} alt={account.displayName} className="h-full w-full object-cover" /> : initials}
+                                        {avatarPreview ? <MediaImage src={avatarPreview} alt={account.displayName} className="h-full w-full object-cover" /> : initials}
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <button

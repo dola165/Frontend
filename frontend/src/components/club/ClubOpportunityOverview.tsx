@@ -1,3 +1,4 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BriefcaseBusiness, HeartHandshake, ShoppingBag } from 'lucide-react';
@@ -43,7 +44,7 @@ export const ClubOpportunityOverview = ({ clubId, role }: { clubId: number; role
                 <header><ShoppingBag size={24}/><h3>Store</h3><span>{count(products, 'published products')}</span></header>
                 {state(products, 'products')}
                 {!products.loading && !products.failed && (products.total ? <div className="opportunity-preview-list">{products.items.map(product => <Link key={product.id} className="opportunity-product-preview" to={`/store/products/${product.id}`}>
-                    {product.images?.[0] ? <img src={resolveMediaUrl(product.images[0])} alt=""/> : <span className="opportunity-photo-placeholder"><ShoppingBag size={24}/></span>}
+                    {product.images?.[0] ? <MediaImage src={resolveMediaUrl(product.images[0])} alt=""/> : <span className="opportunity-photo-placeholder"><ShoppingBag size={24}/></span>}
                     <div><h4>{product.name}</h4><strong>{formatStorePrice(product.price ?? 0, product.currency)}</strong><p>{product.variants?.some(v => v.stock > 0) ? 'Available in selected sizes / variants' : 'Out of stock'}</p></div>
                 </Link>)}</div> : <p className="opportunity-preview-empty">This club has not published any products yet.</p>)}
                 <footer><p>Online checkout is not available yet. You can browse products and prepare a cart.</p><Link className="opportunity-nav-button" to={`/clubs/${clubId}/store`}>Open club store<ArrowRight size={16}/></Link>{isLeadershipRole(role) && <Link to={`/clubs/${clubId}/workspace?tab=store`} className="opportunity-manage-link">Manage products</Link>}</footer>

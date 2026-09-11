@@ -195,13 +195,11 @@ describe('BrowseTournamentsPage', () => {
         expect(screen.getByText(/Page 1 of 3/)).toBeInTheDocument();
     });
 
-    // reason: BrowseTournamentsPage renders <PaginationBar> unconditionally (and PaginationBar always
-    // shows "Page 1 of 1"), so the hide-on-single-page behavior no longer exists in the UI.
-    it.skip('hides pagination for single-page results', async () => {
+    it('shows the single page without implying more results', async () => {
         (fetchTournaments as ReturnType<typeof vi.fn>).mockResolvedValue(pageResult([makeTournament()], 1));
         renderPage();
         await screen.findByText('Summer Showdown');
-        expect(screen.queryByText(/Page/)).not.toBeInTheDocument();
+        expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
     });
 
     it('shows scope and visibility chips on cards', async () => {
@@ -235,9 +233,7 @@ describe('BrowseTournamentsPage', () => {
         expect(await screen.findByRole('link', { name: 'Create tournament' })).toHaveAttribute('href', '/tournaments/setup');
     });
 
-    // reason: BrowseTournamentsPage now always renders the header "Create Tournament" link regardless
-    // of auth (gating moved to /tournaments/setup); the hide-when-unauthenticated behavior was removed.
-    it.skip('hides Create Event link when not authenticated', async () => {
+    it('hides tournament creation when not authenticated', async () => {
         (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
             isAuthenticated: false,
             user: null,
@@ -245,6 +241,6 @@ describe('BrowseTournamentsPage', () => {
         (fetchTournaments as ReturnType<typeof vi.fn>).mockResolvedValue(pageResult([]));
         renderPage();
         await screen.findByText('No tournaments found');
-        expect(screen.queryByText('Create Event')).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Create tournament' })).not.toBeInTheDocument();
     });
 });

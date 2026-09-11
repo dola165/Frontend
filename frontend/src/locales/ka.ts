@@ -1,6 +1,7 @@
 const ka = {
   app: {
     name: 'GrassKickZ',
+    loadingPage: 'გვერდი იტვირთება…',
   },
   nav: {
     feed: 'მთავარი',

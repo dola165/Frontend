@@ -1,3 +1,5 @@
+import { useFilterDisclosure } from '../hooks/useFilterDisclosure';
+import { MediaImage } from '../components/ui/MediaImage';
 import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -43,6 +45,7 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [asOf, setAsOf] = useState(() => Date.now());
     const trigger = useRef<HTMLButtonElement>(null);
+    useFilterDisclosure(filtersOpen, () => setFiltersOpen(false), trigger);
     useEffect(() => {
         const controller = new AbortController();
         let active = true;
@@ -390,7 +393,7 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
                                                 >
                                                     <Link className="job-row-main" to={`/jobs/${job.id}`}>
                                                         {job.clubLogoUrl ? (
-                                                            <img
+                                                            <MediaImage
                                                                 className="job-logo"
                                                                 src={resolveMediaUrl(job.clubLogoUrl)}
                                                                 alt=""

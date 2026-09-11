@@ -1,3 +1,4 @@
+import { MediaImage } from '../components/ui/MediaImage';
 import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -82,7 +83,7 @@ function CampaignDetail({ id }: { id: number }) {
                             <div className="campaign-gallery">
                                 <div className="store-main-photo">
                                     {campaign.images[photo] ? (
-                                        <img
+                                        <MediaImage
                                             src={resolveMediaUrl(campaign.images[photo])}
                                             alt={`${campaign.title} — photo ${photo + 1}`}
                                         />
@@ -99,7 +100,7 @@ function CampaignDetail({ id }: { id: number }) {
                                                 aria-pressed={photo === index}
                                                 onClick={() => setPhoto(index)}
                                             >
-                                                <img src={resolveMediaUrl(url)} alt="" />
+                                                <MediaImage src={resolveMediaUrl(url)} alt="" />
                                             </button>
                                         ))}
                                     </div>

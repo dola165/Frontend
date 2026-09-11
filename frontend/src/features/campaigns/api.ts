@@ -1,3 +1,4 @@
+import { formatDate, formatMoney } from '../../utils/formatting';
 import { apiClient } from '../../api/axiosConfig';
 export const CAMPAIGN_CATEGORIES = [
     { value: 'EQUIPMENT', label: 'Equipment & kit' },
@@ -118,11 +119,5 @@ export const campaignPhase = (value: string) =>
         CLOSED: 'Closed',
         ARCHIVED: 'Archived',
     })[value] ?? value;
-export const campaignMoney = (value: number, currency: string) =>
-    new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
-export const campaignDate = (value: string) =>
-    new Date(value.length === 10 ? value + 'T12:00:00' : value).toLocaleDateString(undefined, {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-    });
+export const campaignMoney = formatMoney;
+export const campaignDate = (value: string) => formatDate(value);

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useDialogFocus } from '../workspace/useDialogFocus';
 import { useNavigate } from 'react-router-dom';
 import {
     ArrowRight,
@@ -31,6 +32,7 @@ interface ClubManagementModalProps {
     initialTab?: ClubManagementTab | null;
     debugMode?: boolean;
     onClose: () => void;
+    onDissolveClub?: () => void;
     onSquadCreated?: () => void;
     onDataChanged?: () => void;
     onMembershipLeft?: () => Promise<void> | void;
@@ -55,9 +57,7 @@ export const ClubManagementModal = ({
     currentRole: currentRoleProp,
     debugMode: debugModeProp = false,
     onClose,
-    onSquadCreated: _onSquadCreated,
-    onDataChanged: _onDataChanged,
-    onMembershipLeft: _onMembershipLeft
+    onDissolveClub,
 }: ClubManagementModalProps) => {
     const navigate = useNavigate();
 
@@ -94,6 +94,7 @@ export const ClubManagementModal = ({
 
     // ── drag ──
     const modalRef = useRef<HTMLDivElement>(null);
+    useDialogFocus(true, modalRef, onClose);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
     const [dragging, setDragging] = useState(false);
     const dragStart = useRef({ x: 0, y: 0, left: 0, top: 0 });
@@ -162,7 +163,7 @@ export const ClubManagementModal = ({
     // ── no-access guard ──
     if (!effectiveRole && !debugActive && !overviewLoading) {
         return (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 p-4" style={{ pointerEvents: 'none' } as React.CSSProperties}>
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 p-4" style={{ pointerEvents: 'auto' } as React.CSSProperties}>
                 <div className="w-full max-w-md rounded-[2px] border border-[#ffffff0d] bg-[#0d0d10] p-8 text-center shadow-2xl" style={{ pointerEvents: 'auto' } as React.CSSProperties}>
                     <Settings className="mx-auto h-10 w-10 text-[#71717a]" />
                     <h2 className="mt-4 text-lg font-semibold text-[#f4f4f5]">No Club Access</h2>
@@ -181,10 +182,11 @@ export const ClubManagementModal = ({
     }
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 p-4" style={{ pointerEvents: 'none' } as React.CSSProperties}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 p-4" style={{ pointerEvents: 'auto' } as React.CSSProperties}>
             <div
                 ref={modalRef}
-                className="w-full max-w-lg rounded-[2px] border border-[#ffffff0d] bg-[#0d0d10] shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
+                role="dialog" aria-modal="true" aria-label={`${clubName} settings`}
+                className="max-h-[85dvh] overflow-y-auto w-full max-w-lg rounded-2xl border border-[#ffffff0d] bg-[#0d0d10] shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
                 style={{ pointerEvents: 'auto', transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`, userSelect: dragging ? 'none' : undefined } as React.CSSProperties}
             >
                 {/* header + drag handle */}
@@ -192,7 +194,7 @@ export const ClubManagementModal = ({
                     <div>
                         <div className="flex items-center gap-2">
                             <GripHorizontal className="h-3.5 w-3.5 text-[#71717a]" />
-                            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#00ff6e]">Control Center</span>
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#00ff6e]">Club settings & tools</span>
                         </div>
                         <h2 className="mt-1.5 text-base font-semibold text-[#f4f4f5]">{clubName}</h2>
                         <p className="mt-0.5 text-[11px] text-[#71717a]">
@@ -268,6 +270,12 @@ export const ClubManagementModal = ({
                         </button>
                     )}
                 </div>
+
+                {onDissolveClub && <details className="mx-5 mb-5 rounded-xl border border-rose-500/20 p-4">
+                    <summary className="cursor-pointer text-sm font-semibold text-[#a1a1aa]">Advanced club settings</summary>
+                    <p className="mt-3 text-xs leading-5 text-[#a1a1aa]">Dissolving ends club operations permanently. Review the consequences before continuing.</p>
+                    <button type="button" onClick={onDissolveClub} className="mt-3 rounded-lg border border-rose-500/30 px-4 py-2.5 text-sm font-semibold text-rose-400">Dissolve Club</button>
+                </details>}
 
                 {/* footer */}
                 <div className="border-t border-[#ffffff0d] px-5 py-3 flex justify-end">

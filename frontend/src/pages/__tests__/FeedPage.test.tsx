@@ -107,7 +107,7 @@ describe('FeedPage', () => {
     });
 
     describe('empty state', () => {
-        it('shows "For You" empty state with guide links when on default view', async () => {
+        it('shows "Discover" empty state with guide links when on default view', async () => {
             (apiClient.get as ReturnType<typeof vi.fn>).mockResolvedValue({
                 data: { content: [] },
             });
@@ -115,7 +115,7 @@ describe('FeedPage', () => {
             expect(await screen.findByText('Your Home is ready')).toBeInTheDocument();
             expect(screen.getByText('Find Clubs')).toBeInTheDocument();
             expect(screen.getByText('Browse Map')).toBeInTheDocument();
-            expect(screen.getByText('Discover Events')).toBeInTheDocument();
+            expect(screen.getByText('Your schedule')).toBeInTheDocument();
         });
 
         it('shows "Following" empty state with correct guides when on following view', async () => {
@@ -140,7 +140,7 @@ describe('FeedPage', () => {
             await screen.findByText('Your Home is ready');
             expect(screen.getByText('Find Clubs').closest('a')).toHaveAttribute('href', '/clubs');
             expect(screen.getByText('Browse Map').closest('a')).toHaveAttribute('href', '/map');
-            expect(screen.getByText('Discover Events').closest('a')).toHaveAttribute('href', '/tournaments');
+            expect(screen.getByText('Your schedule').closest('a')).toHaveAttribute('href', '/calendar');
         });
     });
 
@@ -152,7 +152,7 @@ describe('FeedPage', () => {
             renderPage();
             await screen.findByTestId('feed-list');
             expect(screen.getByRole('heading', { name: 'Home' })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /For You/i })).toHaveAttribute('href', '/home');
+            expect(screen.getByRole('link', { name: /Discover/i })).toHaveAttribute('href', '/home');
             expect(screen.getByRole('link', { name: /Following/i })).toHaveAttribute('href', '/home?view=following');
         });
 
@@ -279,6 +279,41 @@ describe('FeedPage', () => {
         expect(screen.getByTestId('post-ids')).toHaveTextContent('6');
         await act(async () => old.resolve({ data: { posts: [{ id: 4 }], nextCursor: null } }));
         expect(screen.getByTestId('post-ids')).toHaveTextContent('6');
+    });
+
+    it('keeps posts and composer mounted while switching feeds, with one request per switch', async () => {
+        const user = userEvent.setup();
+        const following = deferred<{ data: { posts: { id: number }[] } }>();
+        vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { posts: [{ id: 1 }] } })
+            .mockReturnValueOnce(following.promise)
+            .mockResolvedValueOnce({ data: { posts: [{ id: 3 }] } });
+        renderPage();
+        const list = await screen.findByTestId('feed-list');
+        const composer = screen.getByTestId('post-composer');
+        await user.click(screen.getByRole('link', { name: /Following/i }));
+        expect(screen.getByTestId('feed-list')).toBe(list);
+        expect(screen.queryByTestId('skeleton-card')).not.toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveTextContent('Loading Following posts');
+        expect(screen.getByRole('region', { name: 'Feed results' })).toHaveAttribute('aria-busy', 'true');
+        await act(async () => following.resolve({ data: { posts: [{ id: 2 }] } }));
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('2');
+        await user.click(screen.getByRole('link', { name: /Discover/i }));
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('3');
+        expect(screen.getByTestId('post-composer')).toBe(composer);
+        expect(apiClient.get).toHaveBeenCalledTimes(3);
+    });
+
+    it('does not flash initial skeletons again when switching away from an empty feed', async () => {
+        const user = userEvent.setup();
+        const next = deferred<{ data: { posts: { id: number }[] } }>();
+        vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { posts: [] } }).mockReturnValueOnce(next.promise);
+        renderPage();
+        await screen.findByText('Your Home is ready');
+        await user.click(screen.getByRole('link', { name: /Following/i }));
+        expect(screen.queryByTestId('skeleton-card')).not.toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveTextContent('Loading Following posts');
+        await act(async () => next.resolve({ data: { posts: [{ id: 1 }] } }));
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('1');
     });
 
     describe('PostComposer', () => {

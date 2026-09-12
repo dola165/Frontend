@@ -1,6 +1,8 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BriefcaseBusiness, HeartHandshake, ShoppingBag } from 'lucide-react';
+import { clubOpportunityReturnState } from '../discovery/opportunityReturnContext';
 import { fetchStoreCatalog, formatStorePrice, type StoreProduct } from '../../features/store/api';
 import { fetchCampaigns, campaignDate, type Campaign } from '../../features/campaigns/api';
 import { CampaignProgress } from '../../features/campaigns/CampaignProgress';
@@ -42,8 +44,8 @@ export const ClubOpportunityOverview = ({ clubId, role }: { clubId: number; role
             <section className="store-page opportunity-overview-card" aria-label="Club store preview">
                 <header><ShoppingBag size={24}/><h3>Store</h3><span>{count(products, 'published products')}</span></header>
                 {state(products, 'products')}
-                {!products.loading && !products.failed && (products.total ? <div className="opportunity-preview-list">{products.items.map(product => <Link key={product.id} className="opportunity-product-preview" to={`/store/products/${product.id}`}>
-                    {product.images?.[0] ? <img src={resolveMediaUrl(product.images[0])} alt=""/> : <span className="opportunity-photo-placeholder"><ShoppingBag size={24}/></span>}
+                {!products.loading && !products.failed && (products.total ? <div className="opportunity-preview-list">{products.items.map(product => <Link key={product.id} className="opportunity-product-preview" to={`/store/products/${product.id}`} state={clubOpportunityReturnState('store', clubId)}>
+                    {product.images?.[0] ? <MediaImage src={resolveMediaUrl(product.images[0])} alt=""/> : <span className="opportunity-photo-placeholder"><ShoppingBag size={24}/></span>}
                     <div><h4>{product.name}</h4><strong>{formatStorePrice(product.price ?? 0, product.currency)}</strong><p>{product.variants?.some(v => v.stock > 0) ? 'Available in selected sizes / variants' : 'Out of stock'}</p></div>
                 </Link>)}</div> : <p className="opportunity-preview-empty">This club has not published any products yet.</p>)}
                 <footer><p>Online checkout is not available yet. You can browse products and prepare a cart.</p><Link className="opportunity-nav-button" to={`/clubs/${clubId}/store`}>Open club store<ArrowRight size={16}/></Link>{isLeadershipRole(role) && <Link to={`/clubs/${clubId}/workspace?tab=store`} className="opportunity-manage-link">Manage products</Link>}</footer>
@@ -52,14 +54,14 @@ export const ClubOpportunityOverview = ({ clubId, role }: { clubId: number; role
                 <header><HeartHandshake size={24}/><h3>Fundraising & campaigns</h3><span>{count(campaigns, 'active campaigns')}</span></header>
                 {state(campaigns, 'campaigns')}
                 {!campaigns.loading && !campaigns.failed && (campaigns.total ? <div className="opportunity-preview-list">{campaigns.items.map(campaign => <article key={campaign.id} className="opportunity-campaign-preview">
-                    <Link to={`/campaigns/${campaign.id}`}><h4>{campaign.title}</h4></Link><p>{campaign.summary}</p><CampaignProgress campaign={campaign} compact/>{campaign.endsOn && <p>Ends {campaignDate(campaign.endsOn)}</p>}
+                    <Link to={`/campaigns/${campaign.id}`} state={clubOpportunityReturnState('campaigns', clubId)}><h4>{campaign.title}</h4></Link><p>{campaign.summary}</p><CampaignProgress campaign={campaign} compact/>{campaign.endsOn && <p>Ends {campaignDate(campaign.endsOn)}</p>}
                 </article>)}</div> : <p className="opportunity-preview-empty">No campaigns are active right now. Open the section to explore past and upcoming projects.</p>)}
                 <footer><p>Reported funds are the club's own figures, unverified by GrassKickZ. Online contributions are not available yet.</p><Link className="opportunity-nav-button" to={`/clubs/${clubId}/campaigns?state=ALL`}>Open club campaigns<ArrowRight size={16}/></Link>{isLeadershipRole(role) && <Link to={`/clubs/${clubId}/workspace?tab=campaigns`} className="opportunity-manage-link">Manage campaigns</Link>}</footer>
             </section>
             <section className="store-page jobs-page opportunity-overview-card" aria-label="Club jobs preview">
                 <header><BriefcaseBusiness size={24}/><h3>Jobs & volunteering</h3><span>{count(jobs, 'open roles')}</span></header>
                 {state(jobs, 'roles')}
-                {!jobs.loading && !jobs.failed && (jobs.total ? <div className="opportunity-preview-list">{jobs.items.map(job => <Link key={job.id} to={`/jobs/${job.id}`} className="opportunity-job-preview"><h4>{job.title}</h4><p>{labelForCategory(job.category)} · {labelForEngagement(job.engagementType)}</p>{job.ageGroup && <p>Team: {job.ageGroup}</p>}<p>{job.requiredRole === 'PLAYER' || job.requiredRole === 'COACH' ? 'Apply through GrassKickZ' : 'Contact the club to apply'}</p></Link>)}</div> : <p className="opportunity-preview-empty">No open roles have been published. Check back for new opportunities.</p>)}
+                {!jobs.loading && !jobs.failed && (jobs.total ? <div className="opportunity-preview-list">{jobs.items.map(job => <Link key={job.id} to={`/jobs/${job.id}`} state={clubOpportunityReturnState('jobs', clubId)} className="opportunity-job-preview"><h4>{job.title}</h4><p>{labelForCategory(job.category)} · {labelForEngagement(job.engagementType)}</p>{job.ageGroup && <p>Team: {job.ageGroup}</p>}<p>{job.requiredRole === 'PLAYER' || job.requiredRole === 'COACH' ? 'Apply through GrassKickZ' : 'Contact the club to apply'}</p></Link>)}</div> : <p className="opportunity-preview-empty">No open roles have been published. Check back for new opportunities.</p>)}
                 <footer><p>Explore paid roles and volunteering. Each opening explains how to apply.</p><Link className="opportunity-nav-button" to={`/clubs/${clubId}?tab=business&opportunity=jobs`}>View club jobs & volunteering<ArrowRight size={16}/></Link>{canManageClubOperations(role) && <Link to={`/clubs/${clubId}/workspace?tab=jobs`} className="opportunity-manage-link">Manage jobs and applications</Link>}</footer>
             </section>
         </div>

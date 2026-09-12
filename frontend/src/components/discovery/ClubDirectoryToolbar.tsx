@@ -47,7 +47,7 @@ export const ClubDirectoryToolbar = ({
     const { t } = useTranslation();
 
     return (
-        <div className="sticky top-[var(--app-active-header-height)] z-20 -mx-1 rounded-xl border border-[#ffffff0d] bg-[#0f1117]/95 p-2 shadow-lg backdrop-blur-xl sm:-mx-2 sm:p-3">
+        <div className="club-directory-toolbar sticky top-[var(--app-active-header-height)] z-20 rounded-xl border border-[#ffffff0d] bg-[#0f1117]/95 p-2 shadow-lg backdrop-blur-xl sm:p-3">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <div className="flex min-w-[min(100%,15rem)] flex-1 items-center gap-2 rounded-lg border border-[#ffffff0d] bg-[#16181d] px-3 py-2 min-h-11">
                     <Search className="h-4 w-4 shrink-0 text-[#a1a1aa]" />

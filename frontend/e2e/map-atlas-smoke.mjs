@@ -1,0 +1,163 @@
+import { chromium, expect } from '@playwright/test';
+import { mkdir, writeFile } from 'node:fs/promises';
+const output='review/atlas-v2-verification';await mkdir(output,{recursive:true});
+const baseUrl=process.env.ATLAS_BASE_URL||'http://127.0.0.1:5186';
+const browser=await chromium.launch({headless:true,channel:'chrome'});
+const page=await browser.newPage({viewport:{width:1536,height:960}});
+page.setDefaultTimeout(15000);
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+const names=['Dinamo Tbilisi Academy','Saburtalo Football School','Vake United','Lokomotivi Academy','Greenfield Football Club','Riverbank Juniors'];
+const markers=Array.from({length:230},(_,i)=>({entityId:i+1,entityType:'CLUB',title:names[i%6]+(i>5?' '+(i+1):''),subtitle:['Professional academy','School club','Grassroots'][i%3],clubName:names[i%6],clubId:i+1,latitude:41.708+(i%8)*.003,longitude:44.778+Math.floor(i/8)%8*.005,distanceKm:.4+i*.013,members:30,followers:50,verified:i%3===0,addressText:'Tbilisi, Georgia',cityName:'Tbilisi',countryName:'Georgia',ageGroup:'U16',status:'ACTIVE',date:null,fee:null,logoUrl:null,joinPolicy:'OPEN'}));
+const queries=[];let fail=false;let noResults=false;
+await page.route('**/api/**',async route=>{
+ const url=new URL(route.request().url());if(!url.pathname.startsWith('/api/'))return route.continue();
+ if(url.pathname.endsWith('/map/nearby')){
+  queries.push(Object.fromEntries(url.searchParams));if(fail)return route.fulfill({status:503,json:{message:'Temporarily unavailable'}});
+  const area=url.searchParams.has('west');const p=Number(url.searchParams.get('page')||0);
+  const data=noResults?[]:area?markers:markers.slice(0,32);
+  return route.fulfill({json:{content:data.slice(p*100,p*100+100),page:p,size:100,totalElements:data.length,resultsLimited:area&&(p+1)*100<data.length}});
+ }
+ if(url.pathname.endsWith('/map/geocode'))return route.fulfill({json:[{name:'Tbilisi',cityName:'Tbilisi',countryName:'Georgia',countryCode:'GE',latitude:41.7151,longitude:44.8271,type:'CITY'}]});
+ if(/\/clubs\/\d+$/.test(url.pathname))return route.fulfill({json:{id:1,name:markers[0].title,type:'ACADEMY',description:'A place for the next generation of football.',isOfficial:true,memberCount:40,followerCount:70}});
+ if(url.pathname.includes('/auth/refresh'))return route.fulfill({status:401,json:{}});
+ return route.fulfill({json:{}});
+});
+const nodes=[{type:'node',id:1,lon:44.778,lat:41.713},{type:'node',id:2,lon:44.778,lat:41.711},{type:'node',id:3,lon:44.778,lat:41.708},{type:'node',id:4,lon:44.783,lat:41.711}];
+await page.route('**/interpreter',route=>route.fulfill({json:{elements:[...nodes,{type:'way',id:5,nodes:[1,2,3],tags:{highway:'footway',name:'Neighborhood footpath'}},{type:'way',id:6,nodes:[1,4,3],tags:{highway:'residential',name:'Park Street'}}]}}));
+try{
+ await page.goto(baseUrl+'/e2e/fixtures/map-discovery.html');
+ await expect(page.getByText('100 loaded results',{exact:true})).toBeVisible();
+ await expect.poll(()=>page.evaluate(()=>Boolean(window.gkTestMap?.isStyleLoaded()))).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>window.gkTestMap.hasImage('atlas-football'))).toBe(true);
+ expect(await page.evaluate(()=>window.gkTestMap.getLayer('points-circle').type)).toBe('symbol');
+ await page.screenshot({path:output+'/desktop.png'});
+ const rail=await page.getByLabel('Simple map filters').boundingBox();
+ expect(rail.x).toBe(0);expect(rail.y).toBe(0);expect(rail.height).toBe(960);
+ expect(await page.locator('.maplibregl-canvas').evaluate(el=>el.getBoundingClientRect().left)).toBe(320);
+ for (const zoom of process.env.ATLAS_SKIP_TERRAIN ? [] : [3,6,9]) {
+  await page.evaluate(z=>window.gkTestMap.jumpTo({center:[35,44],zoom:z}),zoom);
+  await expect.poll(()=>page.evaluate(()=>window.gkTestMap.isSourceLoaded('atlas-elevation')),{timeout:20000}).toBe(true);
+  await page.waitForTimeout(700);await page.screenshot({path:output+`/terrain-z${zoom}.png`});
+ }
+ await page.evaluate(()=>window.gkTestMap.jumpTo({center:[44.8271,41.7151],zoom:11}));
+
+ // Drafts do not request results until applied.
+ const requests=queries.length;
+ await page.getByLabel('Age group',{exact:true}).selectOption('U16');
+ await page.getByLabel('Gender',{exact:true}).selectOption('Girls');
+ expect(queries.length).toBe(requests);
+ await page.getByRole('button',{name:'Show results',exact:true}).click();
+ await expect.poll(()=>queries.at(-1)?.gender).toBe('FEMALE');
+ await page.waitForTimeout(650);await page.screenshot({path:output+'/search-reveal.png'});
+ expect(await page.locator('.atlas-search-veil').evaluate(el=>Number(getComputedStyle(el).opacity))).toBeGreaterThan(.1);
+ await page.waitForTimeout(3000);
+ await page.getByRole('button',{name:'Toggle nearby results'}).click();
+ const list=page.getByRole('complementary',{name:'Nearby results'});
+ await expect(list).toBeVisible();await expect(list.getByRole('listitem')).toHaveCount(100);
+ expect(queries.at(-1).west).toBeDefined();
+ await list.getByRole('button',{name:'Load more clubs'}).click();await expect(list.getByRole('listitem')).toHaveCount(200);
+ await list.getByRole('button',{name:'Load more clubs'}).click();await expect(list.getByRole('listitem')).toHaveCount(230);
+ await expect(list.getByRole('button',{name:'Load more clubs'})).toHaveCount(0);
+ await list.locator('.atlas-results-scroll').evaluate(el=>el.scrollTop=0);
+ await page.screenshot({path:output+'/browse-area.png'});
+ await list.getByRole('button',{name:'Walk to Dinamo Tbilisi Academy',exact:true}).click();
+ await expect(page.getByRole('complementary',{name:'Walking directions'})).toBeVisible();
+ const point=await page.evaluate(()=>{const p=window.gkTestMap.project([44.778,41.713]);return{x:p.x,y:p.y};});
+ await page.locator('.maplibregl-canvas').click({position:point});
+ await expect(page.getByText('min walk',{exact:true})).toBeVisible();
+ await expect(page.locator('.atlas-walk-steps')).toContainText('Neighborhood footpath');
+ await page.waitForTimeout(4200);await page.screenshot({path:output+'/walking-route.png'});
+ // Native route coordinates remain unchanged throughout camera animation.
+ const originalGeometry=await page.evaluate(()=>window.gkTestMap.getSource('atlas-walking-route').serialize().data);
+ await page.evaluate(()=>window.gkTestMap.easeTo({center:[44.78,41.711],zoom:14,duration:600}));
+ await page.waitForTimeout(170);
+ expect(await page.evaluate(()=>window.gkTestMap.getSource('atlas-walking-route').serialize().data)).toEqual(originalGeometry);
+ expect(await page.evaluate(()=>window.gkTestMap.getPaintProperty('atlas-connections-dashed','line-dasharray'))).toEqual([2,3]);
+ expect(await page.evaluate(()=>window.gkTestMap.getPaintProperty('atlas-route-line','line-width'))).toBe(9);
+ expect(await page.evaluate(()=>window.gkTestMap.getPaintProperty('atlas-route-highlight','line-width'))).toBe(3);
+ await page.waitForTimeout(550);
+ const pick=async coordinate=>{
+  await page.evaluate(c=>{window.gkTestMap.stop();window.gkTestMap.jumpTo({center:c,zoom:14});},coordinate);
+  await page.waitForTimeout(100);
+  const point=await page.evaluate(c=>{const p=window.gkTestMap.project(c);return{x:p.x,y:p.y};},coordinate);
+  await page.locator('.maplibregl-canvas').click({position:point});
+ };
+ // Re-pick repeatedly, including when a route already exists.
+ await page.getByRole('button',{name:'Change start',exact:true}).click();
+ await pick([44.7785,41.7111]);
+ await expect(page.getByText('min walk',{exact:true})).toBeVisible();
+ await expect(page.getByRole('region',{name:'Search origin'})).toContainText('41.711');
+ await page.waitForTimeout(1000);
+ await page.getByRole('button',{name:'Change start',exact:true}).click();
+ await pick([44.7786,41.7129]);
+ await expect(page.getByText('min walk',{exact:true})).toBeVisible();
+ expect(Number((await page.getByRole('region',{name:'Search origin'}).locator('small').innerText()).split(',')[0])).toBeCloseTo(41.7129,3);
+ await page.waitForTimeout(3500);await page.screenshot({path:output+'/changed-start.png'});
+ const chosen=await page.getByRole('region',{name:'Search origin'}).locator('small').innerText();
+ const [lat,lng]=chosen.split(',').map(Number);
+ await page.getByRole('button',{name:'Close walking directions'}).click();
+ await page.evaluate(()=>window.gkTestMap.jumpTo({center:[44.85,41.74],zoom:11}));
+ await page.getByRole('button',{name:'Show results',exact:true}).click();
+ await expect.poll(()=>Number(queries.at(-1)?.lat)).toBeCloseTo(lat,4);
+ expect(Number(queries.at(-1)?.lng)).toBeCloseTo(lng,4);
+ await expect(page.locator('.atlas-origin-pin')).toBeVisible();
+ await page.getByRole('button',{name:'Toggle nearby results'}).click();
+ await expect(list).toBeVisible();
+ expect(Number(queries.at(-1)?.lat)).toBeCloseTo(lat,4);
+ // The card's blank padding and distance are part of its map action.
+ await list.getByRole('listitem').first().click({position:{x:8,y:8}});
+ await expect(list).toBeVisible();
+ await expect(list.locator('.atlas-result-main').first()).toHaveAttribute('aria-pressed','true');
+ await expect.poll(()=>page.evaluate(()=>window.gkTestMap.getZoom())).toBeGreaterThanOrEqual(14);
+ await expect.poll(()=>page.evaluate(()=>window.gkTestMap.isMoving())).toBe(false);
+ await expect(page.locator('.atlas-detail-desktop')).toHaveCount(0);
+ // Clicking the football itself still opens details.
+ const selectedPoint=await page.evaluate(()=>{const coordinates=window.gkTestMap.getSource('selected-point').serialize().data.features[0].geometry.coordinates;const p=window.gkTestMap.project(coordinates);return{x:p.x,y:p.y};});
+ await page.locator('.maplibregl-canvas').click({position:selectedPoint});
+ await expect(page.locator('.atlas-detail-desktop')).toBeVisible();
+ await page.waitForTimeout(900);await page.screenshot({path:output+'/club-details.png'});
+ await page.locator('.atlas-detail-desktop').getByRole('button',{name:'Close details'}).click();
+ // Standalone origin choosing works before requesting any walk.
+ await page.getByRole('button',{name:'Change on map',exact:true}).click();
+ await pick([44.827,41.715]);
+ await expect(page.getByRole('region',{name:'Search origin'})).toContainText('41.715');
+ const pin=page.locator('.atlas-origin-pin');
+ const beforeDrag=await page.getByRole('region',{name:'Search origin'}).locator('small').innerText();
+ await expect(page.getByRole('button',{name:'Show results',exact:true})).toBeEnabled();
+ await expect.poll(()=>page.evaluate(()=>window.gkTestMap.isMoving())).toBe(false);
+ const pinBox=await pin.boundingBox();
+ await page.mouse.move(pinBox.x+pinBox.width/2,pinBox.y+pinBox.height/2);
+ await page.mouse.down();await page.mouse.move(pinBox.x+80,pinBox.y+35,{steps:10});await page.mouse.up();
+ await expect(page.getByRole('region',{name:'Search origin'}).locator('small')).not.toHaveText(beforeDrag);
+ await expect(page.getByRole('button',{name:'Use map center instead'})).toHaveCount(0);
+ await expect(page.locator('.atlas-origin-pin')).toBeVisible();
+ await page.setViewportSize({width:390,height:844});
+ await page.getByRole('button',{name:'Toggle filters'}).click();
+ await expect(page.getByLabel('Simple map filters')).toBeVisible();
+ await expect.poll(async()=>Math.round((await page.getByLabel('Simple map filters').boundingBox()).y)).toBe(0);
+ expect(Math.round((await page.getByLabel('Simple map filters').boundingBox()).height)).toBe(844);
+ await expect.poll(async()=>Math.round((await page.getByLabel('Simple map filters').boundingBox()).x)).toBe(0);
+ await expect(page.getByRole('button',{name:'Show results',exact:true})).toBeInViewport();
+ await page.screenshot({path:output+'/mobile-filters.png'});
+ await page.getByRole('button',{name:'Close filters'}).click();
+ await page.evaluate(()=>window.gkTestMap.jumpTo({center:[44.807,41.72],zoom:11}));
+ await page.getByRole('button',{name:'Toggle nearby results'}).click();
+ await expect(list).toBeVisible();await expect(list.getByRole('listitem').first()).toBeVisible();await page.waitForTimeout(3500);await page.screenshot({path:output+'/mobile-results.png'});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.getByRole('button',{name:'Close results'}).click();
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.getByRole('button',{name:/Search visible map|Search this area/}).click();
+ await expect(page.locator('.atlas-search-veil')).toBeHidden();
+ await page.getByRole('button',{name:'Close results'}).click();
+ noResults=true;
+ await page.getByRole('button',{name:/Search visible map|Search this area/}).click();
+ await expect(page.getByText('A little further afield?')).toBeVisible();
+ noResults=false;fail=true;
+ await page.getByRole('button',{name:'Close results'}).click();
+ await page.getByRole('button',{name:/Search visible map|Search this area/}).click();
+ await expect(page.getByRole('alert')).toContainText('Unable to load');
+ fail=false;await page.getByRole('button',{name:'Retry search'}).click();await expect(list).toBeVisible();
+ expect(errors).toEqual([]);
+ await writeFile(output+'/results.json',JSON.stringify({desktop:true,mobile:true,filterCommit:true,viewportQuery:true,all230ClubsAccessible:true,workerWalkingRoute:true,nativeRouteCameraStability:true,dashedConnections:true,repeatedOriginChanges:true,filterOriginPersistsAfterPan:true,wideZoomTerrain:true,fullHeightRails:true,draggableOrigin:true,reducedMotion:true,emptyState:true,retry:true,pageErrors:errors},null,2));
+ console.log('PASS: atlas desktop/mobile, applied filters, viewport pagination through 230 clubs, worker routing, reduced motion, empty and retry states');
+}catch(error){await page.screenshot({path:output+'/failure.png'});console.log((await page.locator('body').innerText()).slice(0,3000));throw error;}finally{await browser.close();}

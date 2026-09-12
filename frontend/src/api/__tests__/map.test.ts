@@ -25,6 +25,14 @@ describe('fetchNearbyMap', () => {
         expect(params.getAll('positions')).toEqual(['GOALKEEPER', 'CENTER_BACK']);
     });
 
+    it('loads a neighborhood page with a continuation instead of capping the club directory', async () => {
+        get.mockResolvedValueOnce({ data: { content: Array.from({ length: 100 }, (_, i) => ({ entityId: i, entityType: 'CLUB' })), totalElements: 320, resultsLimited: true } });
+        const result = await fetchMapDiscovery({ lat: 41, lng: 44, type: ['CLUB'], bounds: { west: 43.9, south: 40.9, east: 44.1, north: 41.1 } });
+        expect(result.nextPage).toBe(1); expect(get).toHaveBeenCalledTimes(1);
+        const params = new URL('http://local' + get.mock.calls[0][0]).searchParams;
+        expect(params.get('west')).toBe('43.9'); expect(params.get('north')).toBe('41.1');
+    });
+
     it('loads every bounded page, preserves type identity and removes repeated markers', async () => {
         get.mockResolvedValueOnce({ data: { content: [{ entityId: 1, entityType: 'CLUB' }], totalElements: 201, resultsLimited: true } })
             .mockResolvedValueOnce({ data: { content: [{ entityId: 1, entityType: 'MATCH' }], totalElements: 201 } })

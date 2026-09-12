@@ -1,22 +1,31 @@
+import './map-atlas.css';
+import { MapCommandBar } from './MapCommandBar';
+import { MapSearchLayer } from './MapSearchLayer';
+import { MapWalkingPanel } from './MapWalkingPanel';
+import { MapViewControls } from './MapViewControls';
+import { MapFootballMarkers, FOOTBALL_IMAGE } from './MapFootballMarkers';
+import { loadWalkingRoute } from './walkingRoutes';
+import { containsPoint, searchRank, coverageBounds, coverageLabel, type SearchCoverage, type MapBounds } from './areaSearch';
+import type { Coordinate, WalkingRoute } from './walkingGraph';
+import { distanceKm as geographicDistanceKm } from './walkingGraph';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import MapGL, { Layer, Source, GeolocateControl, NavigationControl, useMap, type MapRef } from 'react-map-gl/maplibre';
+import MapGL, { Layer, Source, NavigationControl, useMap, type MapRef } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { MapGeoJSONFeature, MapMouseEvent, StyleSpecification } from 'maplibre-gl';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-    ArrowLeft,
     Building2,
     Check,
     ChevronLeft,
     Clock,
     ExternalLink,
+    Footprints,
+    Crosshair,
     Loader2,
     LocateFixed,
     MapPin,
-    Menu,
     Navigation,
-    RefreshCw,
     Search,
     ShieldCheck,
     SlidersHorizontal,
@@ -25,7 +34,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../api/axiosConfig';
-import { fetchMapDiscovery, geocodePlace, type MapMarkerDto } from '../../api/map';
+import { fetchMapDiscovery, fetchNearbyMap, geocodePlace, type NearbyMapParams, type MapMarkerDto } from '../../api/map';
 import { applyToTryout } from '../../api/tryouts';
 import { MapHelpHint } from './MapHelpHint';
 import { MapModeControl } from './MapModeControl';
@@ -39,15 +48,10 @@ import {
     LAYER_CLUSTERS,
     LAYER_POINT_HALO,
     LAYER_POINTS,
-    MAP_CLUSTER_IMAGE,
-    MAP_SELECTED_PIN_IMAGE,
-    MAP_PIN_ASSETS,
     MAP_POINTS_SOURCE_ID,
     MAP_STYLE_DEFAULT,
-    MAP_STYLE_DARK,
     buildPointsFeatureCollection,
-    withDarkPaints,
-    withVividPaints
+    withHeritagePaints
 } from './mapLayers';
 import { useAuth } from '../../context/AuthContext';
 import { fetchMyClubMembershipContext } from '../../features/clubs/api';
@@ -58,31 +62,26 @@ import { usePersistedState } from '../../utils/usePersistedState';
 import { findIsoCountry } from '../../data/isoCountries';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 
-// Map v2 (WEB_APP_MASTER_PLAN.md §3): three user-selectable modes. Wave 1 of
-// the redesign renders the point data as GPU cluster layers over the
-// dark-matter basemap; TILTED still mirrors Android's MapTiler streets + tilt.
-const STYLE_TILTED = (key: string) => `https://api.maptiler.com/maps/streets-v2/style.json?key=${key}`;
+// All projection modes share the warm, unsaturated basemap.
+
 const MAPTILER_API_KEY = import.meta.env.VITE_MAPTILER_API_KEY as string | undefined;
 
-// Vivid positron: fetch the stock style ONCE, recolor it with withVividPaints,
-// and memoize the style OBJECT at module level so remounts and mode switches
-// never refetch. On any fetch/transform failure the caller falls back to the
-// plain positron URL string — the map must never go blank.
-let vividStylePromise: Promise<StyleSpecification> | null = null;
-const getVividStyle = (): Promise<StyleSpecification> => {
-    if (!vividStylePromise) {
-        vividStylePromise = fetch(MAP_STYLE_DEFAULT)
+// Cache the recolored style across remounts; retry on a later mount after failure.
+let heritageStylePromise: Promise<StyleSpecification> | null = null;
+const getHeritageStyle = (): Promise<StyleSpecification> => {
+    if (!heritageStylePromise) {
+        heritageStylePromise = fetch(MAP_STYLE_DEFAULT)
             .then((response) => {
                 if (!response.ok) throw new Error(`positron fetch failed: ${response.status}`);
                 return response.json() as Promise<Record<string, unknown>>;
             })
-            .then((style) => withVividPaints(style) as StyleSpecification)
+            .then((style) => withHeritagePaints(style) as StyleSpecification)
             .catch((styleError: unknown) => {
-                vividStylePromise = null; // allow a fresh attempt on the next mount
+                heritageStylePromise = null; // allow a fresh attempt on the next mount
                 throw styleError;
             });
     }
-    return vividStylePromise;
+    return heritageStylePromise;
 };
 
 export type MapMode = 'flat' | 'globe' | 'tilted';
@@ -103,7 +102,7 @@ export interface MapExperienceProps {
     filterLayout?: 'side' | 'top' | 'external';
     /** Optional narrower product surface, such as the club-only landing preview. */
     allowedEntityTypes?: MapEntityType[];
-    /** Override the inherited app theme. Guest maps default to a light canvas unless the composed surface opts into dark. */
+    /** Retained for caller compatibility. All map surfaces currently use the daylight palette. */
     mapTheme?: 'inherit' | 'light' | 'dark';
     /** Guest maps hide controls that depend on an authenticated account. */
     showAdvancedFilters?: boolean;
@@ -285,15 +284,13 @@ export interface MapExperienceResolvedOptions {
  */
 // eslint-disable-next-line react-refresh/only-export-components
 export const resolveMapExperienceOptions = ({
-    darkMode,
     context = 'authenticated',
-    mapTheme = 'inherit',
     showAdvancedFilters,
     showModeControl,
     showBackControl
 }: Pick<MapExperienceProps, 'darkMode' | 'context' | 'mapTheme' | 'showAdvancedFilters' | 'showModeControl' | 'showBackControl'>): MapExperienceResolvedOptions => ({
     context,
-    mapDarkMode: mapTheme === 'light' ? false : mapTheme === 'dark' ? true : context === 'guest' ? false : darkMode,
+    mapDarkMode: false,
     showAdvancedFilters: context === 'guest' ? false : showAdvancedFilters ?? true,
     showModeControl: context === 'guest' ? false : showModeControl ?? true,
     showBackControl: context === 'guest' ? false : showBackControl ?? true
@@ -424,22 +421,13 @@ const getJoinPolicyLabel = (value?: string | null) => {
     }
 };
 
-// Great-circle distance in km — drives the fetch-on-move drift check.
-const haversineKm = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLng = ((lng2 - lng1) * Math.PI) / 180;
-    const a = Math.sin(dLat / 2) ** 2
-        + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-    return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
-};
 
 function MapFocusController({ target, onSettled }: { target: { center: [number, number]; zoom?: number } | null; onSettled: () => void }) {
     const { current: map } = useMap();
 
     useEffect(() => {
         if (!target || !map) return;
-        map.flyTo({ center: [target.center[1], target.center[0]], zoom: target.zoom, duration: 350 });
+        map.flyTo({ center: [target.center[1], target.center[0]], zoom: target.zoom, duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 700 });
         onSettled();
     }, [map, onSettled, target]);
 
@@ -479,53 +467,6 @@ function MapSizeGuard({ layoutSignature }: { layoutSignature: string }) {
     return null;
 }
 
-function MapPinAssetController({ onReady }: { onReady: (ready: boolean) => void }) {
-    const { current: map } = useMap();
-
-    useEffect(() => {
-        if (!map) return;
-        let active = true;
-        let installing = false;
-
-        const installAssets = async () => {
-            if (installing || !map.isStyleLoaded()) return;
-            installing = true;
-            try {
-                const missingAssets = MAP_PIN_ASSETS.filter((asset) => !map.hasImage(asset.id));
-                if (missingAssets.length > 0) onReady(false);
-                for (const asset of missingAssets) {
-                    if (map.hasImage(asset.id)) continue;
-                    const response = await map.loadImage(asset.url);
-                    if (active && !map.hasImage(asset.id)) {
-                        map.addImage(asset.id, response.data);
-                    }
-                }
-                if (active && MAP_PIN_ASSETS.every((asset) => map.hasImage(asset.id))) {
-                    onReady(true);
-                }
-            } catch (assetError) {
-                console.warn('Football map pin assets could not be loaded', assetError);
-            } finally {
-                installing = false;
-            }
-        };
-
-        const onStyleData = () => void installAssets();
-        void installAssets();
-        map.on('styledata', onStyleData);
-        map.on('load', onStyleData);
-        map.on('idle', onStyleData);
-        return () => {
-            active = false;
-            map.off('styledata', onStyleData);
-            map.off('load', onStyleData);
-            map.off('idle', onStyleData);
-        };
-    }, [map, onReady]);
-
-    return null;
-}
-
 // GPU-layer click handling (Wave 1): binds the map 'click' event once and reads
 // the handlers through refs so they stay fresh without rebinding on re-render.
 function MapClickController({
@@ -548,8 +489,9 @@ function MapClickController({
         if (!map) return;
         const onClick = (event: MapMouseEvent) => {
             // Layers can be briefly missing mid-style-switch — never query then.
-            if (!map.getLayer(LAYER_POINTS) || !map.getLayer(LAYER_CLUSTERS)) return;
-            const features = map.queryRenderedFeatures(event.point, { layers: [LAYER_POINTS, LAYER_CLUSTERS] });
+            const layers = ['selected-point-pin', LAYER_POINTS, LAYER_CLUSTERS].filter(id => map.getLayer(id));
+            if (!layers.length) return;
+            const features = map.queryRenderedFeatures(event.point, { layers });
             if (features.length === 0) return;
             const feature = features[0];
             if (feature.properties?.cluster) {
@@ -722,6 +664,7 @@ const DiscoveryDetailPanel = ({
     canRespond,
     onRespond,
     onOpenClub,
+    onWalk,
     onClose
 }: {
     record: DiscoveryRecord;
@@ -729,6 +672,7 @@ const DiscoveryDetailPanel = ({
     canRespond: boolean;
     onRespond: () => void;
     onOpenClub: () => void;
+    onWalk: () => void;
     onClose: () => void;
 }) => {
     const [detailsOpen, setDetailsOpen] = useState(false);
@@ -810,54 +754,22 @@ const DiscoveryDetailPanel = ({
 
     return (
     <div className="map-details-panel flex h-full flex-col" style={{ backgroundColor: 'var(--map-panel-bg)' }}>
-        {/* ── Banner with translucent overlay + overlapping logo ── */}
-        <div className="relative shrink-0">
-            {bannerUrl ? (
-                <div className="relative h-40 w-full overflow-hidden bg-slate-200 dark:bg-[#16181d]">
-                    <img src={bannerUrl} alt="" className="h-full w-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/55" />
-                </div>
-            ) : (
-                <div className="relative h-28 w-full overflow-hidden bg-gradient-to-br from-emerald-700 via-emerald-600 to-emerald-950">
-                    <div className="absolute inset-4 rounded-[50%] border border-white/20" />
-                    <div className="absolute bottom-0 left-1/2 top-0 w-px bg-white/20" />
-                    <div className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/20" />
-                </div>
-            )}
-
-            <span className="absolute left-4 top-4 inline-flex items-center rounded-full border border-white/25 bg-black/45 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.16em] text-white backdrop-blur-md">
-                {getRecordTypeLabel(record)}
-            </span>
-            <button type="button" onClick={onClose} className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white backdrop-blur-md transition-colors hover:bg-black/65" aria-label="Close details">
-                <X className="h-4 w-4" />
-            </button>
-
-            {/* Logo — upper half sits inside the banner zone, lower half below */}
-            {logoUrl && (
-                <div className="absolute left-5 bottom-0 translate-y-1/2">
-                    <div className="h-[84px] w-[84px] overflow-hidden rounded-xl bg-slate-200 dark:bg-[#16181d]">
-                        <img src={logoUrl} alt="" className="h-full w-full object-cover" />
-                    </div>
-                </div>
-            )}
-        </div>
-
-        {/* ── Header: name + type (left-padded to make room for overlapping logo) ── */}
-        <div className={`shrink-0 px-5 pt-4 pb-3 ${logoUrl ? 'pl-[120px]' : ''}`}>
-            <h2 className="text-[18px] font-bold text-slate-800 dark:text-slate-100 leading-tight line-clamp-2">
-                {record.title}
-            </h2>
-            <p className="mt-0.5 text-[13px] text-slate-500 dark:text-slate-400">{typeSubtitle}</p>
-            {record.clubName && record.entityType !== 'CLUB' && (
-                <p className="mt-0.5 text-[13px] font-medium text-slate-500 dark:text-slate-400 truncate">{record.clubName}</p>
-            )}
-            <div className="mt-2 flex flex-wrap gap-1.5">
-                {(clubProfile?.isOfficial ?? record.official) && <span className="map-pill map-pill--accent"><ShieldCheck className="mr-1 h-3 w-3" />Verified</span>}
+        <header className="atlas-detail-header">
+            <div className="atlas-panel-topline"><span className="atlas-eyebrow"><Building2 size={14} /> DISCOVER A TEAM</span><button type="button" onClick={onClose} aria-label="Close details"><X size={18} /></button></div>
+            {bannerUrl && <img src={bannerUrl} alt="" className="atlas-detail-banner" />}
+            <div className="atlas-detail-identity">
+                <span className="atlas-detail-logo">{logoUrl ? <img src={logoUrl} alt="" /> : <Building2 size={28} />}</span>
+                <span className="atlas-eyebrow">{typeSubtitle.replaceAll('_', ' ')}</span>
+            </div>
+            <h2>{record.title}<span>.</span></h2>
+            {record.clubName && record.entityType !== 'CLUB' && <p>{record.clubName}</p>}
+            <div className="atlas-detail-badges">
+                {(clubProfile?.isOfficial ?? record.official) && <span className="map-pill map-pill--accent"><ShieldCheck size={12} />Verified</span>}
                 {joinPolicyLabel && <span className="map-pill">{joinPolicyLabel}</span>}
                 {tryoutPosition && <span className="map-pill">{tryoutPosition}</span>}
-                {record.entityType === 'TRYOUT' && record.ageGroups.map((ageGroup) => <span key={ageGroup} className="map-pill">{ageGroup}</span>)}
+                {record.entityType === 'TRYOUT' && record.ageGroups.map(age => <span key={age} className="map-pill">{age}</span>)}
             </div>
-        </div>
+        </header>
 
         {/* ── Info rows ───────────────────────────── */}
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -974,7 +886,7 @@ const DiscoveryDetailPanel = ({
         </div>
 
         {/* ── Footer: secondary then primary ───────── */}
-        <div className="shrink-0 border-t border-[var(--map-panel-border)] px-4 py-3.5 space-y-2.5">
+        <div className="atlas-detail-footer shrink-0 border-t border-[var(--map-panel-border)] px-4 py-3.5 space-y-2.5">
             {/* Secondary action chips */}
             {secondaryActions.length > 0 && (
                 <div className="flex flex-wrap items-center justify-center gap-2">
@@ -1005,6 +917,7 @@ const DiscoveryDetailPanel = ({
                 </div>
             )}
 
+            <button type="button" onClick={onWalk} className="atlas-detail-walk"><Footprints size={17} />Walking route<span>Explore paths →</span></button>
             {/* Primary button */}
             <button
                 type="button"
@@ -1096,17 +1009,17 @@ export const MapExperience = ({
     const [placeSearch, setPlaceSearch] = useState('');
     const [filterMode, setFilterMode] = useState<'simple' | 'advanced'>('simple');
     const isExternalFilterLayout = filterLayout === 'external';
-    const [isFilterOpen, setIsFilterOpen] = useState(() => !isExternalFilterLayout && (filterLayout === 'top' || window.innerWidth >= 1440));
+    const [isFilterOpen, setIsFilterOpen] = useState(() => !isExternalFilterLayout && (filterLayout === 'top' || window.innerWidth >= 1100));
     const [isClubRailOpen, setIsClubRailOpen] = useState(false);
-    const [viewportCenter, setViewportCenter] = useState<[number, number]>(DEFAULT_CENTER);
+    const [showDetails, setShowDetails] = useState(false);
 
     useEffect(() => {
         if (filterLayout === 'top' || filterLayout === 'external') {
             return;
         }
-        let wasWide = window.innerWidth >= 1440;
+        let wasWide = window.innerWidth >= 1100;
         const handleResize = () => {
-            const isWide = window.innerWidth >= 1440;
+            const isWide = window.innerWidth >= 1100;
             if (isWide === wasWide) return;
             wasWide = isWide;
             setIsFilterOpen(isWide);
@@ -1114,9 +1027,44 @@ export const MapExperience = ({
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, [filterLayout]);
-    // The anchor the last fetch used — a geocoded place when one was resolved,
-    // otherwise the viewport center at Apply time.
+    // Search coverage is separate from the start used for distances and walks.
+    const [areaBounds, setAreaBounds] = useState<MapBounds | null>({ west: 44.6, south: 41.55, east: 45.05, north: 41.87 });
+    const [draftCoverage, setDraftCoverage] = useState<SearchCoverage>('area');
+    const [committedCoverage, setCommittedCoverage] = useState<SearchCoverage>('area');
+    const [locating, setLocating] = useState(false);
+    const [locationError, setLocationError] = useState<string | null>(null);
+    const locationRequest = useRef(0);
+    const commitRequest = useRef(0);
+    const [resolvingPlace, setResolvingPlace] = useState(false);
+    useEffect(() => () => { locationRequest.current++; commitRequest.current++; }, []);
+    const [areaMoved, setAreaMoved] = useState(false);
+    const [searchSequence, setSearchSequence] = useState(0);
+    const [searchOrigin, setSearchOrigin] = useState<Coordinate>([DEFAULT_CENTER[1], DEFAULT_CENTER[0]]);
+    const [walkingTarget, setWalkingTarget] = useState<DiscoveryRecord | null>(null);
+    const [walkingOrigin, setWalkingOrigin] = useState<Coordinate | null>(null);
+    const [walkingRoute, setWalkingRoute] = useState<WalkingRoute | null>(null);
+    const [walkingLoading, setWalkingLoading] = useState(false);
+    const [walkingError, setWalkingError] = useState<string | null>(null);
+    const [pickingOrigin, setPickingOrigin] = useState(false);
+    const walkingRequest = useRef<AbortController | null>(null);
+    useEffect(() => () => walkingRequest.current?.abort(), []);
     const [queryCenter, setQueryCenter] = useState<[number, number]>(DEFAULT_CENTER);
+    useEffect(() => {
+        let active = true;
+        const request = locationRequest.current;
+        if (navigator.permissions && navigator.geolocation) void navigator.permissions.query({ name: 'geolocation' }).then(permission => {
+            if (!active || permission.state !== 'granted' || request !== locationRequest.current) return;
+            navigator.geolocation.getCurrentPosition(position => {
+                if (!active || request !== locationRequest.current) return;
+                setWalkingOrigin([position.coords.longitude, position.coords.latitude]);
+                setSearchOrigin([position.coords.longitude, position.coords.latitude]);
+                setQueryCenter([position.coords.latitude, position.coords.longitude]);
+                setAreaBounds(null); setDraftCoverage('radius'); setCommittedCoverage('radius');
+                setFocusTarget({ center: [position.coords.latitude, position.coords.longitude], zoom: 12 });
+            }, () => { /* The explicit location button offers retry and a map fallback. */ }, { maximumAge: 60000, timeout: 10000 });
+        }).catch(() => undefined);
+        return () => { active = false; };
+    }, []);
     const [focusTarget, setFocusTarget] = useState<{ center: [number, number]; zoom?: number } | null>(null);
     const [loading, setLoading] = useState(true);
     const [initialLoad, setInitialLoad] = useState(true);
@@ -1124,45 +1072,37 @@ export const MapExperience = ({
     const [mapUnavailable, setMapUnavailable] = useState(false);
     const [mapAttempt, setMapAttempt] = useState(0);
     const [reload, setReload] = useState(0);
+    const [nextClubPage, setNextClubPage] = useState<number | undefined>();
+    const [loadingMore, setLoadingMore] = useState(false);
+    const clubSearchParams = useRef<NearbyMapParams | null>(null);
+    const moreRequest = useRef<AbortController | null>(null);
+    useEffect(() => () => moreRequest.current?.abort(), []);
     const [resultsLimited, setResultsLimited] = useState(false);
     const [mapMarkers, setMapMarkers] = useState<MapMarkerDto[]>([]);
-    const [resultCount, setResultCount] = useState<number | null>(null);
     const [membership, setMembership] = useState<{ clubId?: number | null; clubName?: string | null; myRole?: string | null } | null>(null);
     const [mapMode, setMapMode] = usePersistedState<MapMode>('map.mapMode', 'flat');
     const effectiveMapMode: MapMode = context === 'guest' ? 'flat' : mapMode;
     // FLAT/GLOBE render the recolored positron OBJECT; while it loads (or if the
     // fetch/transform fails) this stays null and we pass the plain URL instead.
-    const [vividStyle, setVividStyle] = useState<StyleSpecification | null>(null);
+    const [heritageStyle, setHeritageStyle] = useState<StyleSpecification | null>(null);
     useEffect(() => {
-        if (effectiveMapMode === 'tilted') return;
         let active = true;
-        getVividStyle()
+        getHeritageStyle()
             .then((style) => {
-                if (active) setVividStyle(style);
+                if (active) setHeritageStyle(style);
             })
             .catch((styleError: unknown) => {
-                console.warn('Vivid positron style unavailable — falling back to plain positron URL', styleError);
+                console.warn('Warm map style unavailable — falling back to plain positron URL', styleError);
             });
         return () => {
             active = false;
         };
     }, [effectiveMapMode]);
-    const darkMapStyle = useMemo(
-        () => vividStyle ? withDarkPaints(vividStyle) as StyleSpecification : null,
-        [vividStyle]
-    );
 
     const [modeWarningDismissed, setModeWarningDismissed] = usePersistedState<boolean>('map.modeWarningDismissed', false);
     const [pendingMode, setPendingMode] = useState<MapMode | null>(null);
-    // Raw maplibre instance (cluster zoom-in) + fetch-on-move debounce timer.
+    // Map instance for viewport queries and route fitting.
     const mapRef = useRef<MapRef | null>(null);
-    const [pinAssetsReady, setPinAssetsReady] = useState(false);
-    const queryCenterTimerRef = useRef<number | null>(null);
-    useEffect(() => () => {
-        if (queryCenterTimerRef.current != null) {
-            window.clearTimeout(queryCenterTimerRef.current);
-        }
-    }, []);
 
     // Membership affects actions and optional shortcuts, never public discovery.
     const hasStaffMapAccess = context === 'authenticated' && isLeadershipRole(membership?.myRole);
@@ -1202,10 +1142,8 @@ export const MapExperience = ({
 
         const load = async () => {
             setLoading(true);
+            moreRequest.current?.abort(); setLoadingMore(false); setNextClubPage(undefined);
             setError(null);
-            setMapMarkers([]);
-            setResultCount(null);
-            setSelectedKey(null);
 
             try {
                 const membershipPromise =
@@ -1227,8 +1165,9 @@ export const MapExperience = ({
                             case 'Mixed': return 'MIXED';
                         }
                     });
-                    return fetchMapDiscovery({
+                    const params: NearbyMapParams = {
                         lat: queryCenter[0], lng: queryCenter[1], radius: committedFilters.distanceKm,
+                        bounds: coverageBounds(committedCoverage, areaBounds),
                         type: [type], query: committedSearch || undefined,
                         cities: section.city ? [section.city] : undefined,
                         countries: section.country ? [section.country] : undefined,
@@ -1239,10 +1178,13 @@ export const MapExperience = ({
                         positions: type === 'CLUB' || type === 'TRYOUT' ? committedFilters.positions : undefined,
                         dateFrom: dateWindow !== 'ANY' ? toIsoWindow(now) : undefined,
                         dateTo: dateWindow !== 'ANY' ? toIsoWindow(new Date(now.getTime() + days * 86400000)) : undefined
-                    }, controller.signal);
+                    };
+                    if (type === 'CLUB') clubSearchParams.current = params;
+                    return fetchMapDiscovery(params, controller.signal);
                 })).then(pages => ({
                     content: pages.flatMap(page => page.content),
-                    resultsLimited: pages.some(page => page.resultsLimited)
+                    resultsLimited: pages.some(page => page.resultsLimited),
+                    nextPage: pages.find(page => page.nextPage != null)?.nextPage
                 }));
 
                 const [membershipContext, mapData] = await Promise.all([
@@ -1253,7 +1195,7 @@ export const MapExperience = ({
                 if (!active) return;
 
                 setMapMarkers(mapData.content);
-                setResultCount(mapData.content.length);
+                setNextClubPage(mapData.nextPage);
                 setResultsLimited(mapData.resultsLimited ?? false);
                 setMembership(membershipContext);
                 setInitialLoad(false);
@@ -1271,7 +1213,21 @@ export const MapExperience = ({
             active = false;
             controller.abort();
         };
-    }, [context, mapAuthScope, committedFilters, committedSearch, queryCenter, reload]);
+    }, [context, mapAuthScope, committedFilters, committedSearch, queryCenter, areaBounds, committedCoverage, reload]);
+
+    const loadMoreClubs = async () => {
+        if (nextClubPage == null || !clubSearchParams.current || loadingMore) return;
+        moreRequest.current?.abort(); const controller = new AbortController(); moreRequest.current = controller;
+        setLoadingMore(true);
+        try {
+            const page = await fetchNearbyMap({ ...clubSearchParams.current, page: nextClubPage, size: 100 }, controller.signal);
+            if (controller.signal.aborted) return;
+            setMapMarkers(current => [...new Map([...current, ...page.content].map(marker => [marker.entityType + ':' + marker.entityId, marker])).values()]);
+            const hasNext = (nextClubPage + 1) * 100 < page.totalElements;
+            setNextClubPage(hasNext ? nextClubPage + 1 : undefined); setResultsLimited(hasNext);
+        } catch (error) { if (!controller.signal.aborted) toast.error(extractApiErrorMessage(error, 'Could not load more clubs. Try again.')); }
+        finally { if (!controller.signal.aborted) setLoadingMore(false); }
+    };
 
     const allRecords = useMemo(
         // Treat the allowlist as a client-side defence in depth as well as a
@@ -1290,12 +1246,12 @@ export const MapExperience = ({
         }
 
         const deduped = new Map<string, SearchSuggestion>();
-        for (const record of allRecords) {
-            if (!record.searchText.includes(query)) {
+        for (const record of [...allRecords].sort((a, b) => searchRank(b.title, query) - searchRank(a.title, query))) {
+            if (!searchRank(record.searchText, query)) {
                 continue;
             }
 
-            const label = record.locationName ?? record.title;
+            const label = record.title;
             const suggestion: SearchSuggestion = {
                 id: record.key,
                 label,
@@ -1318,6 +1274,7 @@ export const MapExperience = ({
 
     const filteredRecords = useMemo(() => {
         return allRecords.filter((record) => {
+            if (committedCoverage === 'area' && areaBounds && record.latitude != null && record.longitude != null && !containsPoint(areaBounds, record.latitude, record.longitude)) return false;
             // Type filtering handled server-side; client only filters what server can't
 
             if (record.entityType === 'CLUB') {
@@ -1342,11 +1299,13 @@ export const MapExperience = ({
             // Server already filtered by gender/age/level/date for MATCH and TRYOUT
             return true;
         });
-    }, [allRecords, committedFilters]);
+    }, [allRecords, committedFilters, areaBounds, committedCoverage]);
 
     const sortedRecords = useMemo(() => {
-        const records = [...filteredRecords];
-        // Server-computed geodesic distance from the query center (ST_Distance).
+        // Moving the start updates displayed distances immediately, before the
+        // next filter commit fetches the new radius from the server.
+        const records = filteredRecords.map(record => walkingOrigin && record.longitude != null && record.latitude != null
+            ? { ...record, distanceKm: geographicDistanceKm(walkingOrigin, [record.longitude, record.latitude]) } : record);
         const distanceFor = (record: DiscoveryRecord) => record.distanceKm ?? Number.POSITIVE_INFINITY;
         const timestampFor = (record: DiscoveryRecord) => {
             if (!record.startsAt) return Number.MAX_SAFE_INTEGER;
@@ -1365,13 +1324,15 @@ export const MapExperience = ({
                 return left.title.localeCompare(right.title);
             }
 
+            const matchRank = searchRank(right.title, committedSearch) - searchRank(left.title, committedSearch);
+            if (matchRank) return matchRank;
             const leftScore = Number(left.official) + Number(left.challengeState === 'OPEN');
             const rightScore = Number(right.official) + Number(right.challengeState === 'OPEN');
             return rightScore - leftScore || timestampFor(left) - timestampFor(right) || distanceFor(left) - distanceFor(right);
         };
 
         return records.sort((left, right) => compareBySort(left, right) || left.title.localeCompare(right.title) || left.key.localeCompare(right.key));
-    }, [filteredRecords, committedFilters.sortBy]);
+    }, [filteredRecords, committedFilters.sortBy, committedSearch, walkingOrigin]);
 
     // Server-side ST_DWithin already applied the committed radius — keep only the
     // lat/lng guard here (markers without a pin never render).
@@ -1394,6 +1355,7 @@ export const MapExperience = ({
     );
 
     const radiusVignette = useMemo(() => {
+        if (committedCoverage !== 'radius') return null;
         const maxRadius = 400;
         if (committedFilters.distanceKm >= maxRadius) return null;
 
@@ -1441,7 +1403,7 @@ export const MapExperience = ({
                 ],
             },
         };
-    }, [committedFilters.distanceKm, queryCenter]);
+    }, [committedFilters.distanceKm, queryCenter, committedCoverage]);
 
     const selectedRecord = useMemo(() => sortedRecords.find((record) => record.key === selectedKey) ?? null, [sortedRecords, selectedKey]);
     // Selection ring source: a single-point collection (or an empty one) built
@@ -1460,7 +1422,7 @@ export const MapExperience = ({
         ),
         [selectedRecord]
     );
-    const layoutSignature = `${selectedRecord?.entityType ?? 'none'}:${isFilterOpen}:${filterMode}:${isClubRailOpen}`;
+    const layoutSignature = `${selectedRecord?.entityType ?? 'none'}:${isFilterOpen}:${filterMode}:${isClubRailOpen}:${Boolean(walkingTarget)}`;
 
     useEffect(() => {
         if (selectedRecord?.clubId == null || clubProfiles[selectedRecord.clubId]) {
@@ -1490,11 +1452,25 @@ export const MapExperience = ({
     const handleFocusSettled = useCallback(() => setFocusTarget(null), []);
 
     const selectRecord = useCallback((record: DiscoveryRecord) => {
+        walkingRequest.current?.abort(); setWalkingTarget(null); setWalkingRoute(null); setPickingOrigin(false); setWalkingLoading(false);
         setSelectedKey(record.key);
+        setShowDetails(true);
+        setIsClubRailOpen(false);
+        if (window.innerWidth < 1100) setIsFilterOpen(false);
         if (record.latitude != null && record.longitude != null) {
-            setFocusTarget({ center: [record.latitude, record.longitude] });
+            setFocusTarget({ center: [record.latitude, record.longitude], zoom: Math.max(14, mapRef.current?.getZoom() ?? 0) });
         }
     }, []);
+
+    const focusResult = (record: DiscoveryRecord) => {
+        walkingRequest.current?.abort(); setWalkingTarget(null); setWalkingRoute(null); setPickingOrigin(false); setWalkingLoading(false);
+        setSelectedKey(record.key); setShowDetails(false);
+        setIsClubRailOpen(window.innerWidth >= 1100);
+        if (window.innerWidth < 1100) setIsFilterOpen(false);
+        if (record.latitude != null && record.longitude != null) {
+            setFocusTarget({ center: [record.latitude, record.longitude], zoom: Math.max(14, mapRef.current?.getZoom() ?? 0) });
+        }
+    };
 
     // The click controller binds map events once, so point clicks resolve the
     // record through a ref instead of closing over a changing list.
@@ -1537,70 +1513,165 @@ export const MapExperience = ({
     );
 
     const handleSuggestionPick = (suggestion: SearchSuggestion) => {
-        // Commit the picked text — the fetch effect refires on committedSearch
-        // and narrows results server-side; the client filter follows.
-        setDraftSearch(suggestion.label);
-        setCommittedSearch(suggestion.label);
-        if (suggestion.center) {
-            setViewportCenter(suggestion.center);
-            setFocusTarget({ center: suggestion.center });
+        setDraftSearch('');
+        const record = allRecords.find(entry => entry.key === suggestion.recordKey);
+        if (record) selectRecord(record);
+    };
+
+    const captureArea = useCallback((): MapBounds | null => {
+        const bounds = mapRef.current?.getBounds();
+        if (!bounds) return null;
+        const wrap = (n: number) => ((n + 180) % 360 + 360) % 360 - 180;
+        return { west: bounds.getEast() - bounds.getWest() >= 360 ? -180 : wrap(bounds.getWest()),
+            east: bounds.getEast() - bounds.getWest() >= 360 ? 180 : wrap(bounds.getEast()),
+            south: Math.max(-90, bounds.getSouth()), north: Math.min(90, bounds.getNorth()) };
+    }, []);
+    const browseArea = async () => {
+        const bounds = captureArea();
+        if (!bounds) return;
+        const committed = await commitAndFetch({ coverage: 'area', bounds });
+        if (!committed) return;
+        setSelectedKey(null); setIsClubRailOpen(true);
+        if (window.innerWidth < 1100) setIsFilterOpen(false);
+        // Opening a dock shrinks the canvas. Keep the searched geography visible.
+        if (!isClubRailOpen && window.innerWidth >= 1100) requestAnimationFrame(() => requestAnimationFrame(() => {
+            mapRef.current?.resize();
+            mapRef.current?.fitBounds([[bounds.west, bounds.south], [bounds.east < bounds.west ? bounds.east + 360 : bounds.east, bounds.north]],
+                { padding: 24, duration: 0 });
+        }));
+    };
+    const openResults = () => {
+        walkingRequest.current?.abort(); setWalkingTarget(null); setWalkingRoute(null); setPickingOrigin(false); setWalkingLoading(false);
+        setSelectedKey(null); setIsClubRailOpen(!isClubRailOpen);
+        if (window.innerWidth < 1100) setIsFilterOpen(false);
+    };
+
+    const calculateWalk = async (origin: Coordinate, target = walkingTarget) => {
+        if (!target || target.latitude == null || target.longitude == null) return;
+        walkingRequest.current?.abort();
+        const request = new AbortController(); walkingRequest.current = request;
+        setWalkingOrigin(origin); setWalkingLoading(true); setWalkingError(null); setWalkingRoute(null); setPickingOrigin(false);
+        setSearchOrigin(origin); setSearchSequence(n => n + 1);
+        try {
+            const route = await loadWalkingRoute(origin, [target.longitude, target.latitude], request.signal);
+            if (request.signal.aborted) return;
+            setWalkingRoute(route); setSearchSequence(n => n + 1);
+            const fullPath = [origin, ...route.coordinates, [target.longitude, target.latitude]];
+            const lngs = fullPath.map(c => c[0]); const lats = fullPath.map(c => c[1]);
+            const wide = window.innerWidth >= 1100;
+            mapRef.current?.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+                { padding: { top: 110, bottom: wide ? 110 : 360, left: 50, right: 50 },
+                    duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 800, maxZoom: 16 });
+        } catch (error) {
+            if (!request.signal.aborted) setWalkingError(error instanceof Error ? error.message : 'Walking route unavailable.');
+        } finally { if (!request.signal.aborted) setWalkingLoading(false); }
+    };
+    const startWalking = (record: DiscoveryRecord) => {
+        walkingRequest.current?.abort(); setWalkingLoading(false); setWalkingTarget(record); setWalkingRoute(null);
+        setWalkingError(null); setSelectedKey(null); setIsClubRailOpen(false);
+        if (window.innerWidth < 1100) setIsFilterOpen(false);
+        setPickingOrigin(!walkingOrigin);
+        if (walkingOrigin) void calculateWalk(walkingOrigin, record);
+    };
+    const chooseOrigin = (origin: Coordinate) => {
+        commitRequest.current++; setResolvingPlace(false);
+        locationRequest.current++; setLocating(false); setLocationError(null);
+        setWalkingOrigin(origin); setSearchOrigin(origin); setPickingOrigin(false);
+        setQueryCenter([origin[1], origin[0]]);
+        if (walkingTarget) void calculateWalk(origin);
+    };
+    const locateOrigin = () => {
+        if (!navigator.geolocation) { setLocationError('Location is unavailable. Choose a point on the map.'); return; }
+        const request = ++locationRequest.current;
+        setLocating(true); setLocationError(null);
+        navigator.geolocation.getCurrentPosition(position => {
+            if (request !== locationRequest.current) return;
+            const origin: Coordinate = [position.coords.longitude, position.coords.latitude];
+            chooseOrigin(origin);
+            // Looking at another country should not be undone by a location update.
+            if (!draftFilters.clubs.country && !draftFilters.clubs.city && !walkingTarget) setFocusTarget({ center: [origin[1], origin[0]], zoom: 12 });
+        }, error => {
+            if (request !== locationRequest.current) return;
+            setLocating(false);
+            setLocationError(error.code === 1 ? 'Location access is off. Allow it in your browser or choose on the map.' : 'Could not get your location. Try again or choose on the map.');
+        }, { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true });
+    };
+    const beginPickingOrigin = () => {
+        locationRequest.current++; setLocating(false); setLocationError(null);
+        walkingRequest.current?.abort(); setWalkingLoading(false); setWalkingError(null);
+        setPickingOrigin(true);
+        if (window.innerWidth < 1100) setIsFilterOpen(false);
+    };
+    const changeDraftFilters = (filters: MapFilters) => {
+        commitRequest.current++; setResolvingPlace(false);
+        const regionChanged = filters.clubs.country !== draftFilters.clubs.country || filters.clubs.city !== draftFilters.clubs.city;
+        if (regionChanged) {
+            locationRequest.current++; setLocating(false);
+            setDraftCoverage(filters.clubs.country || filters.clubs.city ? 'region' : 'area');
         }
-        if (suggestion.recordKey) {
-            const record = allRecords.find((entry) => entry.key === suggestion.recordKey);
-            if (record) {
-                selectRecord(record);
-            }
-        }
+        else if (filters.distanceKm !== draftFilters.distanceKm) setDraftCoverage('radius');
+        setDraftFilters(filters);
     };
 
     // W7b — zero-results empty state: widen the committed radius to the slider
     // max and refetch in place (the fetch effect refires on committedFilters).
     const widenRadius = useCallback(() => {
+        if (!walkingOrigin) {
+            setDraftCoverage('radius'); setDraftFilters(current => ({ ...current, distanceKm: 400 }));
+            setLocationError('Choose your location to expand the search around it.'); setIsFilterOpen(true);
+            return;
+        }
+        setAreaBounds(null); setDraftCoverage('radius'); setCommittedCoverage('radius');
         setDraftFilters((current) => ({ ...current, distanceKm: 400 }));
         setCommittedFilters((current) => ({ ...current, distanceKm: 400 }));
-    }, []);
+    }, [walkingOrigin]);
 
-    // Single commit path (plan items 1+4): geocode the place text when present
-    // (empty/error aborts the whole commit and leaves the draft intact), then
-    // commit the draft — the fetch effect refires on the committed inputs.
+    // Every search action commits the same coverage/filters/anchor tuple.
+    // Applying other filters preserves the searched area until explicitly changed.
     const commitAndFetch = useCallback(
-        async (opts: { center?: [number, number]; zoom?: number; fly?: boolean } = {}): Promise<boolean> => {
-            let center = opts.center ?? viewportCenter;
+        async (opts: { center?: [number, number]; zoom?: number; fly?: boolean; coverage?: SearchCoverage; bounds?: MapBounds } = {}): Promise<boolean> => {
+            const request = ++commitRequest.current;
+            const coverage = opts.coverage ?? draftCoverage;
+            const country = draftFilters.clubs.country.trim();
+            const city = draftFilters.clubs.city.trim();
+            const place = city || country || placeSearch.trim();
+            const regionChanged = country !== committedFilters.clubs.country || city !== committedFilters.clubs.city;
+            let center: [number, number] = walkingOrigin ? [walkingOrigin[1], walkingOrigin[0]] : opts.center ?? queryCenter;
+            let regionCenter: [number, number] | undefined;
             let zoom = opts.zoom;
-
-            const selectedCountry = draftFilters.clubs.country.trim();
-            const selectedCity = draftFilters.clubs.city.trim();
-            const place = selectedCity || selectedCountry || placeSearch.trim();
-            if (place) {
+            let bounds = coverage === 'area' ? opts.bounds ?? areaBounds ?? captureArea() : null;
+            if (coverage === 'region' && !place) return false;
+            if (coverage === 'radius' && !walkingOrigin) {
+                setLocationError('Use my location or choose a point to search within a radius.');
+                setIsFilterOpen(true); return false;
+            }
+            if (coverage === 'area' && !bounds) return false;
+            if (place && (regionChanged || coverage === 'region' || (!walkingOrigin && coverage === 'radius'))) {
+                setResolvingPlace(true);
                 try {
-                    const countryCode = findIsoCountry(selectedCountry)?.code;
-                    const results = await geocodePlace(place, {
-                        countryCode,
-                        type: selectedCity ? 'CITY' : selectedCountry ? 'COUNTRY' : undefined
-                    });
-                    if (results.length === 0) {
-                        toast.error(`No place found for "${place}"`);
-                        return false;
-                    }
+                    const results = await geocodePlace(place, { countryCode: findIsoCountry(country)?.code, type: city ? 'CITY' : country ? 'COUNTRY' : undefined });
+                    if (request !== commitRequest.current) return false;
                     const top = results[0];
-                    center = [top.latitude, top.longitude];
+                    if (!top) { toast.error(`No place found for "${place}"`); return false; }
+                    regionCenter = [top.latitude, top.longitude];
+                    if (!walkingOrigin) center = regionCenter;
                     zoom = top.type === 'CITY' ? 11.5 : 5.5;
-                    toast.success(`Flew to ${top.name}`);
-                } catch (placeError) {
-                    toast.error(extractApiErrorMessage(placeError, 'Could not resolve that place.'));
+                } catch (error) {
+                    if (request === commitRequest.current) toast.error(extractApiErrorMessage(error, 'Could not resolve that place.'));
                     return false;
-                }
+                } finally { if (request === commitRequest.current) setResolvingPlace(false); }
             }
-
-            setCommittedFilters(draftFilters);
-            setCommittedSearch(draftSearch.trim());
-            setQueryCenter(center);
-            if (opts.fly || zoom != null) {
-                setFocusTarget({ center, zoom });
-            }
+            if (request !== commitRequest.current) return false;
+            if (coverage !== 'area') bounds = null;
+            setAreaBounds(bounds); setAreaMoved(false); setDraftCoverage(coverage); setCommittedCoverage(coverage);
+            walkingRequest.current?.abort(); setWalkingTarget(null); setWalkingRoute(null); setPickingOrigin(false); setWalkingLoading(false);
+            setSearchOrigin(walkingOrigin ?? [center[1], center[0]]);
+            setSearchSequence(n => n + 1); setReload(n => n + 1);
+            setCommittedFilters(draftFilters); setCommittedSearch(draftSearch.trim()); setQueryCenter(center);
+            if (coverage !== 'area' && (opts.fly || regionChanged)) setFocusTarget({ center: regionCenter ?? center, zoom });
             return true;
         },
-        [draftFilters, draftSearch, placeSearch, viewportCenter]
+        [draftCoverage, draftFilters, draftSearch, placeSearch, queryCenter, walkingOrigin, committedFilters, areaBounds, captureArea]
     );
 
     const submitResponse = async () => {
@@ -1641,20 +1712,20 @@ export const MapExperience = ({
                 setResponseError(null);
             }}
             onOpenClub={() => openClubProfile(selectedRecord)}
+            onWalk={() => startWalking(selectedRecord)}
             onClose={() => setSelectedKey(null)}
         />
     ) : null;
 
-    const hasSelectedResult = Boolean(selectedRecord && (selectedRecord.entityType !== 'CLUB' || !isClubRailOpen));
-    const toolbarCount = loading ? 'Searching...' : `${mapRecords.length} shown within ${committedFilters.distanceKm} km`;
-    const toolbarTopClass = filterLayout === 'top' && isFilterOpen ? 'top-[24rem] xl:top-[12rem]' : 'top-4';
-    const toolbarLeftClass = filterLayout === 'top'
-        ? 'xl:left-4'
-        : isExternalFilterLayout
-            ? 'xl:left-4'
-        : isFilterOpen
-            ? 'xl:left-[calc(var(--map-filter-w,380px)_+_16px)]'
-            : 'xl:left-4';
+    const hasSelectedResult = Boolean(selectedRecord && showDetails);
+    const resultCount = sortedRecords.length;
+    const coverageSummary = coverageLabel(committedCoverage, committedFilters.distanceKm, committedFilters.clubs.city || committedFilters.clubs.country);
+    const toolbarCount = loading ? 'Searching...' : `${resultCount} results · ${coverageSummary}`;
+    const toolbarLeftClass = isFilterOpen && filterLayout === 'side' ? 'atlas-mode-offset' : '';
+    const appliedChips = [committedFilters.clubs.country, committedFilters.clubs.city,
+        ...committedFilters.clubs.categories.map(c => c.replaceAll('_', ' ').toLowerCase()),
+        ...committedFilters.clubs.ageGroups, ...committedFilters.clubs.genders, ...committedFilters.clubs.levels,
+        committedFilters.clubs.officialOnly ? 'Verified' : '', committedSearch].filter(Boolean);
     const hasActiveExternalFilters = Boolean(draftSearch) || JSON.stringify(draftFilters) !== JSON.stringify(initialMapFilters);
     const filterSurface = filterMode === 'simple' || !canUseAdvancedFilters ? (
         <SimpleMapFilters
@@ -1663,7 +1734,7 @@ export const MapExperience = ({
             layout={filterLayout}
             draftFilters={draftFilters}
             appliedFilters={committedFilters}
-            onDraftChange={setDraftFilters}
+            onDraftChange={changeDraftFilters}
             onApply={async () => {
                 const committed = await commitAndFetch({ fly: true });
                 if (committed && context === 'guest' && (filterLayout === 'top' || filterLayout === 'external')) {
@@ -1674,14 +1745,20 @@ export const MapExperience = ({
                 setDraftFilters({ ...defaultMapFilters, entityType: [...viewerAllowedTypes] });
                 setDraftSearch('');
                 setPlaceSearch('');
+                setDraftCoverage('area');
             }}
-            applying={loading}
+            applying={loading || resolvingPlace}
             resultCount={resultCount}
             searchValue={draftSearch}
             onSearchChange={setDraftSearch}
             onPlaceSearchChange={setPlaceSearch}
             allowedEntityTypes={viewerAllowedTypes}
             viewerMode={mapViewerMode}
+            originLabel={walkingOrigin ? `${walkingOrigin[1].toFixed(5)}, ${walkingOrigin[0].toFixed(5)}` : undefined}
+            onPickOrigin={beginPickingOrigin}
+            onLocate={locateOrigin} locating={locating} locationError={locationError}
+            coverage={draftCoverage} appliedCoverage={committedCoverage} coverageSummary={coverageSummary}
+            onCoverageChange={coverage => { locationRequest.current++; setLocating(false); commitRequest.current++; setResolvingPlace(false); setDraftCoverage(coverage); }}
             showAdvancedFilters={canUseAdvancedFilters}
             showPlayerFitFilters={context !== 'guest'}
             showSearchField={!(context === 'guest' && (filterLayout === 'top' || filterLayout === 'external'))}
@@ -1697,14 +1774,15 @@ export const MapExperience = ({
             isVisible={isFilterOpen}
             draftFilters={draftFilters}
             appliedFilters={committedFilters}
-            onDraftChange={setDraftFilters}
+            onDraftChange={changeDraftFilters}
             onApply={() => void commitAndFetch({ fly: true })}
             onResetAll={() => {
                 setDraftFilters({ ...defaultMapFilters, entityType: [...viewerAllowedTypes] });
                 setDraftSearch('');
                 setPlaceSearch('');
+                setDraftCoverage('area');
             }}
-            applying={loading}
+            applying={loading || resolvingPlace}
             resultCount={resultCount}
             placeSearch={placeSearch}
             onPlaceSearchChange={setPlaceSearch}
@@ -1716,7 +1794,7 @@ export const MapExperience = ({
     );
 
     return (
-        <div className={`map-page-shell club-page-shell map-workspace h-full min-h-0 w-full overflow-hidden map-design-futuristic relative ${isExternalFilterLayout ? 'flex flex-col' : ''} ${embedded ? 'map-experience-embedded' : ''} ${mapDarkMode ? 'map-force-dark' : 'map-force-light'} ${(isClubRailOpen && !hasSelectedResult) || hasSelectedResult ? 'map-right-rail-visible' : ''}`}>
+        <div className={`map-page-shell club-page-shell map-workspace h-full min-h-0 w-full overflow-hidden map-atlas relative ${isExternalFilterLayout ? 'flex flex-col' : ''} ${isFilterOpen && filterLayout === 'side' ? 'atlas-left-open' : ''} ${pickingOrigin ? 'atlas-picking-origin' : ''} ${embedded ? 'map-experience-embedded' : ''} ${mapDarkMode ? 'map-force-dark' : 'map-force-light'} ${(isClubRailOpen && !hasSelectedResult) || hasSelectedResult || walkingTarget ? 'map-right-rail-visible' : ''}`}>
             {isExternalFilterLayout && (
                 <div className="relative z-[1400] shrink-0">
                     <ExternalMapFilterToolbar
@@ -1733,11 +1811,16 @@ export const MapExperience = ({
                 </div>
             )}
             <div className={isExternalFilterLayout ? 'relative min-h-0 flex-none h-[560px] sm:h-[620px] lg:h-[700px]' : 'contents'}>
-            {!initialLoad && !error && !mapUnavailable && (
+            {!initialLoad && !mapUnavailable && (
                 <div className="map-canvas-frame absolute inset-0 z-0 overflow-hidden border-0 rounded-none">
                     <MapGL
                         key={mapAttempt}
-                        onError={() => { setMapUnavailable(true); setIsClubRailOpen(true); setIsFilterOpen(false); }}
+                        onError={event => {
+                            // A transient tile/glyph failure must not destroy an otherwise usable map.
+                            if (!event.target.getStyle()?.layers?.length) {
+                                setMapUnavailable(true); setIsClubRailOpen(true); setIsFilterOpen(false);
+                            }
+                        }}
                         ref={mapRef}
                         initialViewState={{
                             latitude: DEFAULT_CENTER[0],
@@ -1748,16 +1831,13 @@ export const MapExperience = ({
                         }}
                         style={{ width: '100%', height: '100%' }}
                         attributionControl={{ compact: true }}
-                        // TILTED keeps the keyed MapTiler style; FLAT/GLOBE use the
-                        // vivid-recolored positron OBJECT (plain URL until it loads or
-                        // on failure). Dark appearance uses a separately repainted
-                        // style so pins and labels retain their intended colours.
-                        mapStyle={effectiveMapMode === 'tilted' && MAPTILER_API_KEY
-                            ? STYLE_TILTED(MAPTILER_API_KEY)
-                            : mapDarkMode
-                                ? darkMapStyle ?? MAP_STYLE_DARK
-                                : vividStyle ?? MAP_STYLE_DEFAULT}
+                        mapStyle={heritageStyle ?? MAP_STYLE_DEFAULT}
+                        cursor={pickingOrigin ? 'crosshair' : 'grab'}
+                        onClick={(event) => {
+                            if (pickingOrigin) chooseOrigin([event.lngLat.lng, event.lngLat.lat]);
+                        }}
                         onLoad={(evt) => {
+                            if (committedCoverage === 'area') { const bounds = captureArea(); if (bounds) setAreaBounds(bounds); }
                             // MapLibre v5: drive the projection imperatively (react-map-gl 8
                             // does not forward a projection prop).
                             try {
@@ -1772,32 +1852,18 @@ export const MapExperience = ({
                             }
                         }}
                         onMoveEnd={(evt) => {
-                            const center = evt.target.getCenter();
-                            const nextCenter: [number, number] = [Number(center.lat.toFixed(6)), Number(center.lng.toFixed(6))];
-                            setViewportCenter(nextCenter);
-
-                            // Fetch-on-move (Wave 1): panning beyond 40% of the committed
-                            // radius silently re-anchors the query center after a short
-                            // debounce — committed filters stay untouched, so this is the
-                            // same fetch path as "Search this area" without the button.
-                            const driftKm = haversineKm(nextCenter[0], nextCenter[1], queryCenter[0], queryCenter[1]);
-                            if (driftKm > committedFilters.distanceKm * 0.4) {
-                                if (queryCenterTimerRef.current != null) {
-                                    window.clearTimeout(queryCenterTimerRef.current);
-                                }
-                                queryCenterTimerRef.current = window.setTimeout(() => {
-                                    queryCenterTimerRef.current = null;
-                                    setQueryCenter(nextCenter);
-                                }, 600);
-                            }
+                            if (evt.originalEvent) setAreaMoved(true);
                         }}
                     >
+                        <MapSearchLayer sequence={searchSequence} origin={walkingOrigin ?? searchOrigin}
+                            targets={mapRecords.map(record => [record.longitude!, record.latitude!] as Coordinate)}
+                            destination={walkingTarget?.longitude != null && walkingTarget.latitude != null ? [walkingTarget.longitude, walkingTarget.latitude] : undefined}
+                            route={walkingRoute} showOrigin={Boolean(walkingOrigin)} onOriginChange={chooseOrigin} />
                         <MapFocusController target={focusTarget} onSettled={handleFocusSettled} />
                         <MapSizeGuard layoutSignature={layoutSignature} />
-                        <MapPinAssetController onReady={setPinAssetsReady} />
                         <MapClickController
-                            onPointClick={handleMapPointClick}
-                            onClusterClick={handleMapClusterClick}
+                            onPointClick={pickingOrigin ? () => undefined : handleMapPointClick}
+                            onClusterClick={pickingOrigin ? () => undefined : handleMapClusterClick}
                         />
                         {radiusVignette && (
                             <Source id="radius-vignette" type="geojson" data={radiusVignette}>
@@ -1813,14 +1879,11 @@ export const MapExperience = ({
                                 />
                             </Source>
                         )}
-                        <NavigationControl position="bottom-right" />
-                        <MapLegend types={viewerAllowedTypes} />
-                        <GeolocateControl
-                            position="bottom-right"
-                            positionOptions={{ enableHighAccuracy: true }}
-                            trackUserLocation={true}
-                        />
-                        {pinAssetsReady && <Source
+                        <NavigationControl position="bottom-right" visualizePitch />
+                        <MapViewControls />
+                        <MapFootballMarkers />
+                        <MapLegend types={committedFilters.entityType} />
+                        <Source
                             id={MAP_POINTS_SOURCE_ID}
                             type="geojson"
                             data={pointsFeatureCollection}
@@ -1832,22 +1895,19 @@ export const MapExperience = ({
                                 id={LAYER_CLUSTERS}
                                 type="symbol"
                                 filter={['has', 'point_count']}
-                                layout={{
-                                    'icon-image': MAP_CLUSTER_IMAGE,
-                                    'icon-size': ['step', ['get', 'point_count'], 0.105, 10, 0.125, 30, 0.145],
-                                    'icon-allow-overlap': true,
-                                    'icon-ignore-placement': true
-                                }}
+                                layout={{ 'icon-image': FOOTBALL_IMAGE, 'icon-size': ['step', ['get', 'point_count'], .68, 10, .8, 50, .94],
+                                    'icon-allow-overlap': true, 'icon-ignore-placement': true }}
                             />
                             <Layer
                                 id={LAYER_CLUSTER_COUNT}
                                 type="symbol"
                                 filter={['has', 'point_count']}
-                                layout={{ 'text-field': ['get', 'point_count_abbreviated'], 'text-size': 12 }}
+                                layout={{ 'text-field': ['get', 'point_count_abbreviated'], 'text-size': 12,
+                                    'text-allow-overlap': true, 'text-ignore-placement': true,
+                                    // OpenFreeMap serves Noto Sans, not MapLibre's implicit Open Sans stack.
+                                    'text-font': ['Noto Sans Regular'] }}
                                 paint={{
-                                    'text-color': '#111827',
-                                    'text-halo-color': '#ffffff',
-                                    'text-halo-width': 1
+                                    'text-color': '#ffffff', 'text-halo-color': '#173029', 'text-halo-width': 2
                                 }}
                             />
                             <Layer
@@ -1865,29 +1925,18 @@ export const MapExperience = ({
                                 id={LAYER_POINTS}
                                 type="symbol"
                                 filter={['!', ['has', 'point_count']]}
-                                layout={{
-                                    'icon-image': ['get', 'icon'],
-                                    'icon-size': ['interpolate', ['linear'], ['zoom'], 4, 0.075, 12, 0.11],
-                                    'icon-anchor': 'bottom',
-                                    'icon-allow-overlap': true,
-                                    'icon-ignore-placement': true
-                                }}
+                                layout={{ 'icon-image': FOOTBALL_IMAGE, 'icon-size': ['interpolate', ['linear'], ['zoom'], 4, .4, 14, .55],
+                                    'icon-allow-overlap': true, 'icon-ignore-placement': true }}
                             />
-                        </Source>}
+                        </Source>
                         <Source id="selected-point" type="geojson" data={selectedFeatureCollection}>
-                            {pinAssetsReady && <Layer
-                                id="selected-point-pin"
-                                type="symbol"
-                                layout={{
-                                    'icon-image': MAP_SELECTED_PIN_IMAGE,
-                                    'icon-size': ['interpolate', ['linear'], ['zoom'], 4, 0.09, 12, 0.14],
-                                    'icon-anchor': 'bottom',
-                                    'icon-allow-overlap': true,
-                                    'icon-ignore-placement': true
-                                }}
-                            />}
+                            <Layer id="selected-point-halo" type="circle"
+                                paint={{ 'circle-radius': 23, 'circle-color': '#c5f76b', 'circle-stroke-color': '#1a5538', 'circle-stroke-width': 2 }} />
+                            <Layer id="selected-point-pin" type="symbol"
+                                layout={{ 'icon-image': FOOTBALL_IMAGE, 'icon-size': .68, 'icon-allow-overlap': true, 'icon-ignore-placement': true }} />
                         </Source>
                     </MapGL>
+                    {searchSequence > 0 && <div key={searchSequence} className="atlas-search-veil" aria-hidden="true" />}
                 </div>
             )}
             {/* Mode switcher: rendered OUTSIDE <MapGL> (it needs no map context) so it
@@ -1979,10 +2028,15 @@ export const MapExperience = ({
                     selectedKey={selectedKey}
                     resultsLimited={resultsLimited}
                     loading={loading}
-                    radiusKm={committedFilters.distanceKm}
+                    coverageSummary={coverageSummary}
+                    areaSearch={committedCoverage === 'area'}
+                    hasOrigin={Boolean(walkingOrigin)}
+                    onLoadMore={nextClubPage == null ? undefined : () => void loadMoreClubs()}
+                    loadingMore={loadingMore}
+                    onWalk={key => { const record = allRecords.find(r => r.key === key); if (record) startWalking(record); }}
                     onSelect={(key) => {
                         const record = allRecordsRef.current.find((entry) => entry.key === key);
-                        if (record) selectRecord(record);
+                        if (record) focusResult(record);
                     }}
                     onClose={() => setIsClubRailOpen(false)}
                 />
@@ -1990,123 +2044,21 @@ export const MapExperience = ({
                 <div className="map-main-column flex min-w-0 flex-1 flex-col">
                     <div className="flex min-h-0 flex-1">
                         <section className="pointer-events-none relative min-h-0 min-w-0 flex-1">
-                            <div
-                                    className={`pointer-events-none absolute ${toolbarTopClass} z-[650] left-4 transition-[left,top] duration-200 ${toolbarLeftClass}`}
-                            >
-                                <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-2 py-1.5 shadow-lg backdrop-blur-md dark:border-white/10 dark:bg-[#0d1016]/95">
-                                    {canUseBackControl && (
-                                        <button
-                                            type="button"
-                                            onClick={() => navigate(-1)}
-                                            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100"
-                                            aria-label="Back"
-                                            title="Back"
-                                        >
-                                            <ArrowLeft className="h-4 w-4" />
-                                        </button>
-                                    )}
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsFilterOpen((current) => {
-                                            const next = !current;
-                                            if (next && window.innerWidth < 1440) setIsClubRailOpen(false);
-                                            return next;
-                                        })}
-                                        className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100 ${isExternalFilterLayout ? 'hidden' : ''}`}
-                                        aria-label="Toggle filters"
-                                    >
-                                        <Menu className="h-4 w-4" />
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setSelectedKey(null);
-                                            setIsClubRailOpen((current) => {
-                                                const next = !current;
-                                                if (next && window.innerWidth < 1440) setIsFilterOpen(false);
-                                                return next;
-                                            });
-                                        }}
-                                        className={`inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-full px-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100 ${isClubRailOpen ? 'bg-[var(--accent-primary-soft)] text-[var(--accent-primary)]' : ''}`}
-                                        aria-label="Toggle nearby results"
-                                    >
-                                        <Building2 className="h-4 w-4" />
-                                        <span className="hidden sm:inline text-[11px] font-bold">Browse area</span>
-                                    </button>
-
-                                    <div className={`relative w-[150px] sm:w-[240px] ${isExternalFilterLayout ? 'hidden' : ''}`}>
-                                        <div className="flex min-h-[34px] items-center gap-2 rounded-full border border-slate-200 bg-white px-3 transition-colors focus-within:border-emerald-700 dark:border-white/10 dark:bg-white/5 dark:focus-within:border-emerald-400">
-                                            <Search className="h-3.5 w-3.5 text-slate-400 shrink-0 dark:text-slate-500" />
-                                            <input
-                                                type="text"
-                                                value={draftSearch}
-                                                onChange={(event) => setDraftSearch(event.target.value)}
-                                                onKeyDown={(event) => {
-                                                    if (event.key === 'Enter' && suggestions[0]) {
-                                                        handleSuggestionPick(suggestions[0]);
-                                                    }
-                                                }}
-                                                placeholder="Search..."
-                                                className="w-full border-0 bg-transparent text-xs font-semibold text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
-                                            />
-                                            {draftSearch && (
-                                                <button type="button" onClick={() => setDraftSearch('')} className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-500 dark:hover:bg-white/10 dark:hover:text-slate-200">
-                                                    <X className="h-3.5 w-3.5" />
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {suggestions.length > 0 && (
-                                            <div className="absolute inset-x-0 top-[calc(100%+10px)] z-[1200] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-white/10 dark:bg-[#0d1016]/95">
-                                                {suggestions.map((suggestion) => (
-                                                    <button
-                                                        key={suggestion.id}
-                                                        type="button"
-                                                        onClick={() => handleSuggestionPick(suggestion)}
-                                                        className="flex w-full items-center justify-between gap-2.5 border-b border-slate-100 px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-slate-50 dark:border-white/5 dark:hover:bg-white/5"
-                                                    >
-                                                        <div className="min-w-0">
-                                                            <p className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">{suggestion.label}</p>
-                                                            <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{suggestion.meta}</p>
-                                                        </div>
-                                                        <LocateFixed className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <span className="hidden min-h-[28px] shrink-0 items-center justify-center rounded-full bg-slate-100 px-2.5 text-[11px] font-bold text-slate-600 dark:bg-white/10 dark:text-slate-400 sm:inline-flex">{toolbarCount}</span>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => void commitAndFetch({ center: viewportCenter })}
-                                        className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-emerald-700 hover:text-emerald-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:border-emerald-400 dark:hover:text-emerald-400"
-                                        title="Search this area"
-                                    >
-                                        <RefreshCw className={`h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400 ${loading ? 'animate-spin' : ''}`} />
-                                        <span className="hidden sm:inline">Search this area</span>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setViewportCenter(DEFAULT_CENTER);
-                                            setQueryCenter(DEFAULT_CENTER);
-                                            setFocusTarget({ center: DEFAULT_CENTER });
-                                            setSelectedKey(null);
-                                        }}
-                                        className="hidden shrink-0 items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:border-white/20 dark:hover:text-slate-100 sm:inline-flex"
-                                    >
-                                        <Navigation className="h-3.5 w-3.5" />
-                                        <span className="hidden sm:inline">Reset view</span>
-                                    </button>
-                                </div>
+                            <MapCommandBar search={draftSearch} onSearch={setDraftSearch}
+                                onSubmit={() => void commitAndFetch()} onClear={() => setDraftSearch('')}
+                                suggestions={suggestions} onSuggestion={handleSuggestionPick}
+                                filtersOpen={isFilterOpen} onFilters={() => { setIsFilterOpen(!isFilterOpen); if (window.innerWidth < 1100) setIsClubRailOpen(false); }}
+                                resultsOpen={isClubRailOpen} onResults={openResults}
+                                count={resultCount} loading={loading} onBack={canUseBackControl ? () => navigate(-1) : undefined}
+                                external={isExternalFilterLayout} filterOffset={isFilterOpen && filterLayout === 'side'} chips={appliedChips} />
+                            <div className={'atlas-area-action ' + (isFilterOpen && filterLayout === 'side' ? 'atlas-area-action--offset' : '')}>
+                                <span><span className="atlas-live-dot" />{coverageSummary}</span>
+                                <button disabled={loading || resolvingPlace} onClick={() => void browseArea()}><Crosshair size={17} />{loading ? 'Searching…' : areaMoved ? 'Search this area' : 'Search visible map'}<span aria-hidden="true">↗</span></button>
+                                <small>{committedCoverage === 'area' ? `${resultCount} results in the searched area` : 'Switch to clubs in the visible map'}</small>
                             </div>
 
                             {hasSelectedResult && (
-                                <aside className="pointer-events-auto absolute inset-y-0 right-0 z-[620] hidden w-[400px] overflow-hidden border-l border-slate-200 bg-white dark:border-white/10 dark:bg-[#0d1016] xl:block">
+                                <aside className="atlas-detail-desktop pointer-events-auto absolute inset-y-0 right-0 z-[620] hidden w-[400px] overflow-hidden">
                                     {panelContent}
                                 </aside>
                             )}
@@ -2116,11 +2068,28 @@ export const MapExperience = ({
             </div>
 
             {selectedRecord && hasSelectedResult && (
-                <div className={`pointer-events-auto ${embedded ? 'absolute' : 'fixed'} inset-x-4 bottom-4 top-auto z-[1200] max-h-[72vh] overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur-md dark:border-white/10 dark:bg-[#0d1016]/95 xl:hidden`}>
+                <div className="atlas-detail-mobile pointer-events-auto">
                     {panelContent}
                 </div>
             )}
 
+            {walkingTarget && <MapWalkingPanel title={walkingTarget.title} route={walkingRoute} loading={walkingLoading}
+                picking={pickingOrigin} error={walkingError}
+                directionsUrl={'https://www.google.com/maps/dir/?api=1&destination=' + walkingTarget.latitude + ',' + walkingTarget.longitude + '&travelmode=walking' + (walkingOrigin ? '&origin=' + walkingOrigin[1] + ',' + walkingOrigin[0] : '')}
+                onPick={beginPickingOrigin}
+                onLocate={() => {
+                    if (!navigator.geolocation) { setWalkingError('Location is unavailable. Choose a start on the map.'); return; }
+                    walkingRequest.current?.abort();
+                    const request = new AbortController(); walkingRequest.current = request;
+                    setWalkingLoading(true); setWalkingError(null);
+                    navigator.geolocation.getCurrentPosition(position => {
+                        if (!request.signal.aborted) void calculateWalk([position.coords.longitude, position.coords.latitude]);
+                    }, () => {
+                        if (!request.signal.aborted) { setWalkingLoading(false); setWalkingError('Your location is unavailable. Choose a start on the map.'); }
+                    }, { timeout: 10000, enableHighAccuracy: true });
+                }}
+                onClose={() => { walkingRequest.current?.abort(); setWalkingTarget(null); setWalkingRoute(null); setPickingOrigin(false); setWalkingLoading(false); }} />}
+            {pickingOrigin && <div role="status" className="atlas-pick-hint"><Crosshair size={18} />Choose your starting point on the map<button onClick={() => setPickingOrigin(false)} aria-label="Cancel picking start"><X size={16} /></button></div>}
             {responseModalRecord && (
                 <MatchResponseModal
                     record={responseModalRecord}

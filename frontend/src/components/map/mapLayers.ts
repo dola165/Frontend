@@ -11,6 +11,63 @@ export const MAP_ENTITY_COLORS: Record<string, string> = {
   CLUB: '#15803d', TRYOUT: '#d97706', MATCH: '#e11d48', TOURNAMENT: '#4f46e5'
 };
 export const MAP_ACCENT = '#047857';
+/** Unsaturated Browns inspiration: warm mineral ground, sage vegetation, deep estuary water. */
+export const withHeritagePaints = <T extends MapStyleObject>(style: T): T => {
+    const result = structuredClone(style);
+    for (const layer of result.layers ?? []) {
+        const paint = layer.paint ?? (layer.paint = {});
+        const id = layer.id.toLowerCase();
+        if (layer.type === 'background') paint['background-color'] = '#e9e2d8';
+        if (layer.type === 'fill') {
+            paint['fill-color'] = /water/.test(id) ? '#506a6b'
+                : /building/.test(id) ? '#c8bbab'
+                : /ice|glacier/.test(id) ? '#fffef8'
+                : /wood|forest/.test(id) ? '#a5b899'
+                : /park|grass|garden|pitch|landcover/.test(id) ? '#b9c8aa'
+                : /sand/.test(id) ? '#e6d9bd'
+                : /residential/.test(id) ? '#f5f1e9' : '#e4dbce';
+            // Positron hides woods below z10, despite generalized woods being available.
+            if (/wood|forest/.test(id)) layer.minzoom = 0;
+            if (/water|park|grass|wood|forest/.test(id)) paint['fill-opacity'] = 1;
+            if (/building/.test(id)) { paint['fill-opacity'] = .65; paint['fill-outline-color'] = '#b8aa97'; }
+        }
+        if (layer.type === 'line') {
+            paint['line-color'] = /water/.test(id) ? '#506a6b' : /boundary/.test(id) ? '#a99b8b'
+                : /casing/.test(id) ? '#b9a68e' : /motorway|trunk/.test(id) ? '#ad9576'
+                : /path|track/.test(id) ? '#9eaa82' : /rail/.test(id) ? '#aea698' : '#ffffff';
+        }
+        if (layer.type === 'symbol') {
+            if (paint['text-color'] !== undefined) paint['text-color'] = /water/.test(id) ? '#e4eeea' : /park/.test(id) ? '#4d6546' : '#5b594e';
+            if (paint['text-halo-color'] !== undefined) paint['text-halo-color'] = /water/.test(id) ? '#506a6b' : '#f0ebe2';
+            if (paint['text-halo-width'] !== undefined) paint['text-halo-width'] = 1.3;
+        }
+    }
+    // Real DEM elevation provides continuous regional relief even where vector
+    // landcover is sparse. A shared source keeps the two terrain layers economical.
+    result.sources = { ...(result.sources as Record<string, unknown> ?? {}), 'atlas-elevation': {
+        type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+        encoding: 'terrarium', tileSize: 256, maxzoom: 12,
+        attribution: '<a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md">Terrain: Mapzen / USGS / GMTED2010 / SRTM</a>'
+    } };
+    const layers = result.layers ?? [];
+    const terrain: MapStyleLayer[] = [
+        { id: 'atlas-elevation-colors', type: 'color-relief', source: 'atlas-elevation', paint: {
+            'color-relief-color': ['interpolate', ['linear'], ['elevation'],
+                -500, '#d6dfc5', 0, '#ced9bb', 350, '#bdc9aa', 800, '#c4c4a5',
+                1400, '#c4b697', 2200, '#b39b7e', 3200, '#d6c8b7', 4300, '#faf9f1', 6500, '#ffffff'],
+            'color-relief-opacity': ['interpolate', ['linear'], ['zoom'], 0, .65, 7, .62, 10, .34, 13, .12, 16, .06]
+        } },
+        { id: 'atlas-hillshade', type: 'hillshade', source: 'atlas-elevation', paint: {
+            'hillshade-shadow-color': '#81654d', 'hillshade-highlight-color': '#ffffff',
+            'hillshade-accent-color': '#a38b68', 'hillshade-illumination-anchor': 'map',
+            'hillshade-exaggeration': ['interpolate', ['linear'], ['zoom'], 0, .5, 6, .7, 10, .55, 14, .24]
+        } }
+    ];
+    // Under water/parks/roads: relief never tints lakes, labels or streets.
+    layers.splice(Math.max(0, layers.findIndex(layer => layer.type !== 'background')), 0, ...terrain);
+    result.layers = layers;
+    return result;
+};
 export const MAP_LOCATION_PIN_IMAGE = 'grasskickz-football-location-pin';
 export const MAP_SELECTED_PIN_IMAGE = 'grasskickz-football-location-pin-selected';
 export const MAP_CLUSTER_IMAGE = 'grasskickz-football-cluster';
@@ -59,10 +116,13 @@ export const LAYER_POINTS = 'points-circle';
 type MapStyleLayer = {
     id: string;
     type?: string;
+    minzoom?: number;
+    source?: string;
     paint?: Record<string, unknown>;
 };
 type MapStyleObject = {
     layers?: MapStyleLayer[];
+    sources?: Record<string, unknown>;
     [key: string]: unknown;
 };
 

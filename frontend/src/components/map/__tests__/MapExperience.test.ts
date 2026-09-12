@@ -15,17 +15,17 @@ describe('resolveMapExperienceOptions', () => {
         });
     });
 
-    it('keeps authenticated defaults compatible with the existing route', () => {
+    it('keeps authenticated maps in daylight while retaining account controls', () => {
         expect(resolveMapExperienceOptions({ darkMode: true })).toEqual({
             context: 'authenticated',
-            mapDarkMode: true,
+            mapDarkMode: false,
             showAdvancedFilters: true,
             showModeControl: true,
             showBackControl: true
         });
     });
 
-    it('allows an explicit theme/control override for an authenticated composed surface', () => {
+    it('keeps legacy theme overrides in daylight while honoring control options', () => {
         expect(resolveMapExperienceOptions({
             darkMode: false,
             context: 'authenticated',
@@ -35,7 +35,7 @@ describe('resolveMapExperienceOptions', () => {
             showBackControl: true
         })).toEqual({
             context: 'authenticated',
-            mapDarkMode: true,
+            mapDarkMode: false,
             showAdvancedFilters: true,
             showModeControl: true,
             showBackControl: true
@@ -56,14 +56,14 @@ describe('resolveMapExperienceOptions', () => {
         });
     });
 
-    it('allows the landing composition to force a dark map without changing guest controls', () => {
+    it('keeps the landing map in daylight even when the composition requests dark', () => {
         expect(resolveMapExperienceOptions({
             darkMode: false,
             context: 'guest',
             mapTheme: 'dark'
         })).toEqual({
             context: 'guest',
-            mapDarkMode: true,
+            mapDarkMode: false,
             showAdvancedFilters: false,
             showModeControl: false,
             showBackControl: false

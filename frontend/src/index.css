@@ -2776,7 +2776,7 @@
   }
 
   @media (max-width: 639px) {
-    .map-simple-rail,
+    .map-simple-rail:not(.map-atlas .map-simple-rail),
     .map-advanced-rail,
     .map-club-rail {
       top: auto !important;
@@ -2788,7 +2788,7 @@
       transform: translateY(105%) !important;
     }
 
-    .map-simple-rail[data-visible='true'],
+    .map-simple-rail[data-visible='true']:not(.map-atlas .map-simple-rail),
     .map-advanced-rail[data-visible='true'],
     .map-club-rail[data-visible='true'] {
       transform: translateY(0) !important;

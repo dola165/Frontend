@@ -2,7 +2,7 @@
 <body><div id="root"></div><script type="module">
 import React from 'react';
 import {createRoot} from 'react-dom/client';
-import {MemoryRouter} from 'react-router-dom';
+import {MemoryRouter,useLocation} from 'react-router-dom';
 import {AuthProvider} from '/src/context/AuthContext.tsx';
 import {MapExperience} from '/src/components/map/MapExperience.tsx';
 import '/src/i18n.ts';
@@ -10,6 +10,7 @@ import '/src/index.css';
 import maplibregl from 'maplibre-gl';
 const originalOn = maplibregl.Map.prototype.on;
 maplibregl.Map.prototype.on = function(...args) { window.gkTestMap = this; return originalOn.apply(this,args); };
+function RouteProbe(){ window.gkTestLocation=useLocation().pathname; return null; }
 createRoot(document.getElementById('root')).render(React.createElement(MemoryRouter,null,
-  React.createElement(AuthProvider,null,React.createElement(MapExperience,{darkMode:false,context:'guest'}))));
+  React.createElement(AuthProvider,null,React.createElement(RouteProbe),React.createElement(MapExperience,{darkMode:false,context:'guest'}))));
 </script></body></html>

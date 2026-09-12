@@ -1,4 +1,5 @@
 import { apiClient } from './axiosConfig';
+import type { MapBounds } from '../components/map/areaSearch';
 
 // CLUB_NEED remains in the wire type for older clients; the current map API
 // accepts it for compatibility but intentionally returns no markers.
@@ -32,6 +33,7 @@ export interface MapMarkerDto {
 }
 
 export interface MapPageResult {
+    nextPage?: number;
     content: MapMarkerDto[];
     page: number;
     size: number;
@@ -41,6 +43,7 @@ export interface MapPageResult {
 }
 
 export interface NearbyMapParams {
+    bounds?: MapBounds;
     lat: number;
     lng: number;
     radius?: number;
@@ -64,6 +67,7 @@ export const fetchNearbyMap = async (params: NearbyMapParams, signal?: AbortSign
 
     searchParams.set('lat', String(params.lat));
     searchParams.set('lng', String(params.lng));
+    if (params.bounds) Object.entries(params.bounds).forEach(([key, value]) => searchParams.set(key, String(value)));
     if (params.radius != null) searchParams.set('radius', String(params.radius));
 
     if (params.type && params.type.length > 0) {
@@ -129,6 +133,9 @@ export const geocodePlace = async (q: string, options: GeocodeOptions = {}): Pro
 /** Load the whole bounded pool, so local sorting/filtering never sees only page one. */
 export const fetchMapDiscovery = async (params: NearbyMapParams, signal?: AbortSignal): Promise<MapPageResult> => {
     const first = await fetchNearbyMap({ ...params, page: 0, size: 100 }, signal);
+    if (params.bounds && params.type?.length === 1 && params.type[0] === 'CLUB') {
+        return { ...first, nextPage: first.totalElements > first.content.length ? 1 : undefined };
+    }
     const markers = new Map(first.content.map(marker => [`${marker.entityType}:${marker.entityId}`, marker]));
     let limited = first.resultsLimited ?? false;
     for (let page = 1; page < Math.min(4, Math.ceil(first.totalElements / 100)); page++) {
@@ -136,5 +143,5 @@ export const fetchMapDiscovery = async (params: NearbyMapParams, signal?: AbortS
         next.content.forEach(marker => markers.set(`${marker.entityType}:${marker.entityId}`, marker));
         limited ||= next.resultsLimited ?? false;
     }
-    return { ...first, content: [...markers.values()], resultsLimited: limited };
+    return { ...first, content: [...markers.values()], resultsLimited: limited || first.totalElements > markers.size };
 };

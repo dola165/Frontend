@@ -2,10 +2,26 @@ import { describe, expect, it } from 'vitest';
 import {
     MAP_LOCATION_PIN_IMAGE,
     buildPointsFeatureCollection,
-    withDarkPaints
+    withDarkPaints,
+    withHeritagePaints
 } from '../mapLayers';
 
 describe('map layer styling', () => {
+    it('keeps real relief and woods available at world zoom without recoloring water or mutating the source', () => {
+        const original = { version: 8, sources: { openmaptiles: { type: 'vector' } }, layers: [
+            { id: 'background', type: 'background', paint: { 'background-color': '#eee' } },
+            { id: 'water', type: 'fill', paint: { 'fill-color': '#aaa' } },
+            { id: 'landcover_wood', type: 'fill', minzoom: 10, paint: { 'fill-opacity': 0 } },
+            { id: 'landcover_glacier', type: 'fill', paint: { 'fill-color': '#fff' } }
+        ] };
+        const result = withHeritagePaints(original);
+        expect(result.layers.find(l => l.id === 'landcover_wood')?.minzoom).toBe(0);
+        expect(result.layers.find(l => l.id === 'landcover_glacier')?.paint['fill-color']).toBe('#fffef8');
+        expect(result.layers.findIndex(l => l.id === 'atlas-hillshade')).toBeLessThan(result.layers.findIndex(l => l.id === 'water'));
+        expect(result.sources).toHaveProperty('atlas-elevation.encoding', 'terrarium');
+        expect(original.layers[2].minzoom).toBe(10);
+        expect(original.sources).not.toHaveProperty('atlas-elevation');
+    });
     it('uses the normal football pin for unselected point features', () => {
         const collection = buildPointsFeatureCollection([{
             key: 'CLUB:1',

@@ -4,7 +4,6 @@ import {
     ChevronDown,
     Loader2,
     MapPin,
-    Navigation,
     RotateCcw,
     Search,
     ShieldCheck,
@@ -15,7 +14,6 @@ import {
 import { geocodePlace, type GeocodeResult, type MapEntityType } from '../../api/map';
 import { ISO_COUNTRIES, findIsoCountry, type IsoCountry } from '../../data/isoCountries';
 import type { ClubCategory, MapFilters, MapGender, MapLevel } from './MapFilterSidebar';
-import type { SearchCoverage } from './areaSearch';
 
 interface SimpleMapFiltersProps {
     isVisible: boolean;
@@ -43,15 +41,6 @@ interface SimpleMapFiltersProps {
     showDescription?: boolean;
     onOpenAdvanced: () => void;
     onClose: () => void;
-    originLabel?: string;
-    onPickOrigin?: () => void;
-    onLocate?: () => void;
-    locating?: boolean;
-    locationError?: string | null;
-    coverage?: SearchCoverage;
-    appliedCoverage?: SearchCoverage;
-    coverageSummary?: string;
-    onCoverageChange?: (coverage: SearchCoverage) => void;
 }
 
 const ENTITY_OPTIONS: Array<{ value: MapEntityType; label: string; icon: typeof Building2 }> = [
@@ -97,16 +86,7 @@ export const SimpleMapFilters = ({
     showVerificationFilter = true,
     showDescription = true,
     onOpenAdvanced,
-    onClose,
-    originLabel,
-    onPickOrigin,
-    onLocate,
-    locating,
-    locationError,
-    coverage = 'radius',
-    appliedCoverage = 'radius',
-    coverageSummary,
-    onCoverageChange
+    onClose
 }: SimpleMapFiltersProps) => {
     const [countryOpen, setCountryOpen] = useState(false);
     const [cityOpen, setCityOpen] = useState(false);
@@ -117,7 +97,7 @@ export const SimpleMapFilters = ({
     const countryValue = draftFilters.clubs.country;
     const cityValue = draftFilters.clubs.city;
     const selectedCountry = findIsoCountry(countryValue);
-    const hasPendingChanges = coverage !== appliedCoverage || JSON.stringify(draftFilters) !== JSON.stringify(appliedFilters);
+    const hasPendingChanges = JSON.stringify(draftFilters) !== JSON.stringify(appliedFilters);
     const isTopLayout = layout === 'top';
     const isExternalLayout = layout === 'external';
     const backdropPosition = isExternalLayout
@@ -281,7 +261,6 @@ export const SimpleMapFilters = ({
                         </span>
                         {hasPendingChanges && <span className="h-2 w-2 rounded-full bg-amber-500" aria-label="Unapplied filter changes" />}
                     </div>
-                    {coverageSummary && <p className="atlas-coverage-summary">{coverageSummary}</p>}
                 </header>
 
                 <div className={`scrollbar-hide min-h-0 flex-1 overflow-y-auto ${isTopLayout ? 'px-4 py-3' : 'px-5 py-5'}`}>
@@ -312,13 +291,6 @@ export const SimpleMapFilters = ({
                             </fieldset>
                         )}
 
-                        {onPickOrigin && <section className="atlas-search-from" aria-label="Search origin">
-                            <span className="map-simple-label">02 / Search from</span>
-                            <div><MapPin size={17} /><p><strong>{originLabel ? 'Your starting location' : 'Choose your location'}</strong><small>{originLabel || 'For nearby clubs, distances and walking routes.'}</small></p></div>
-                            <div className="atlas-origin-choices"><button type="button" onClick={onLocate} disabled={locating}>{locating ? <Loader2 size={13} className="animate-spin" /> : <Navigation size={13} />}{locating ? 'Locating…' : 'Use my location'}</button><button type="button" onClick={onPickOrigin}>{originLabel ? 'Change on map' : 'Choose on map'}</button></div>
-                            {locationError && <p className="atlas-location-error" role="status">{locationError}</p>}
-                            {(countryValue || cityValue) && <small className="atlas-origin-region-note">Country/city chooses where to browse. Your location stays available for distances and walks.</small>}
-                        </section>}
                         <div ref={countryBoxRef} className="relative">
                             <label className="map-simple-label" htmlFor="map-country">Country</label>
                             <div className="map-simple-line">
@@ -434,14 +406,9 @@ export const SimpleMapFilters = ({
                             </label>
                         </div>
 
-                        <div className="atlas-coverage-settings">
-                            {onCoverageChange && <fieldset className="atlas-coverage-choice"><legend className="map-simple-label">Search coverage</legend>
-                                <div>{([['radius', 'Within radius'], ['area', 'Visible map'], ...((countryValue || cityValue) ? [['region', cityValue ? 'Whole city' : 'Whole country']] : [])] as [SearchCoverage, string][]).map(([value, label]) => <button key={value} type="button" aria-pressed={coverage === value} onClick={() => onCoverageChange(value)}>{label}</button>)}</div>
-                            </fieldset>}
-                            {coverage !== 'radius' && <p className="atlas-coverage-explanation">{coverage === 'area' ? 'Only clubs in the searched map area. Show results keeps this area; Search visible map updates it.' : `Browse all of ${cityValue || countryValue}. Your starting point does not limit this region.`}</p>}
-                            <div className={coverage !== 'radius' ? 'atlas-radius-inactive' : ''}>
+                        <div>
                             <div className="flex items-center justify-between">
-                                <label className="map-simple-label" htmlFor="map-search-radius">{coverage === 'radius' ? 'Search radius' : 'Saved radius · inactive'}</label>
+                                <label className="map-simple-label" htmlFor="map-search-radius">Search radius</label>
                                 <span className="text-xs font-black text-[var(--text-primary)]">{draftFilters.distanceKm} km</span>
                             </div>
                             <input
@@ -450,13 +417,11 @@ export const SimpleMapFilters = ({
                                 min={1}
                                 max={400}
                                 step={1}
-                                disabled={coverage !== 'radius'}
                                 value={draftFilters.distanceKm}
                                 onChange={(event) => updateFilters((current) => ({ ...current, distanceKm: Number(event.target.value) }))}
                                 className="map-simple-range mt-3 w-full"
                             />
-                            <div className="atlas-radius-presets">{[1, 5, 15, 50, 100, 400].map(km => <button key={km} type="button" disabled={coverage !== 'radius'} aria-pressed={draftFilters.distanceKm === km} onClick={() => updateFilters(current => ({ ...current, distanceKm: km }))}>{km} km</button>)}</div>
-                            </div>
+                            <div className="atlas-radius-presets">{[1, 5, 15, 50, 100].map(km => <button key={km} type="button" aria-pressed={draftFilters.distanceKm === km} onClick={() => updateFilters(current => ({ ...current, distanceKm: km }))}>{km} km</button>)}</div>
                         </div>
 
                         {(showVerificationFilter || showPlayerFitFilters) && (

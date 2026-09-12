@@ -1,3 +1,5 @@
+import { formatDate, formatTime as formatClockTime } from '../utils/formatting';
+import { MediaImage } from '../components/ui/MediaImage';
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useChatWebSocket, mergeMessages } from '../hooks/useChatWebSocket';
@@ -19,8 +21,8 @@ function formatTime(iso: string | null): string {
     const d = new Date(iso);
     const now = new Date();
     const isToday = d.toDateString() === now.toDateString();
-    if (isToday) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    if (isToday) return formatClockTime(d);
+    return formatDate(d, { month: 'short', day: 'numeric' });
 }
 
 function getDisplayName(conv: ConversationDto, currentUserId: number): string {
@@ -432,7 +434,7 @@ export const MessagingPage = () => {
                                         {isSharedConversation(conv) ? (
                                             <Users className="w-5 h-5" />
                                         ) : conv.participants[0]?.profilePictureUrl ? (
-                                            <img
+                                            <MediaImage
                                                 src={conv.participants[0].profilePictureUrl}
                                                 alt=""
                                                 className="w-full h-full rounded-full object-cover"
@@ -697,7 +699,7 @@ export const MessagingPage = () => {
                                             >
                                                 <div className="w-9 h-9 rounded-full bg-[var(--chat-accent)]/15 flex items-center justify-center text-[var(--chat-accent)] font-bold text-xs shrink-0">
                                                     {p.profilePictureUrl ? (
-                                                        <img
+                                                        <MediaImage
                                                             src={p.profilePictureUrl}
                                                             alt=""
                                                             className="w-full h-full rounded-full object-cover"

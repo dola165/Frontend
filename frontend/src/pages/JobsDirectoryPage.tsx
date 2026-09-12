@@ -1,6 +1,9 @@
+import { useFilterDisclosure } from '../hooks/useFilterDisclosure';
+import { MediaImage } from '../components/ui/MediaImage';
 import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
+import { opportunityReturnState } from '../components/discovery/opportunityReturnContext';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { BriefcaseBusiness, Search, SlidersHorizontal, X, ArrowRight, Building2 } from 'lucide-react';
 import { DiscoverySectionTabs } from '../components/discovery/DiscoverySectionTabs';
 import { fetchOpenJobDirectory, type ClubJob } from '../features/clubs/api';
@@ -35,6 +38,7 @@ const timestamp = (value?: string | null) => {
 };
 
 export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: number; clubName?: string }) => {
+    const location = useLocation();
     const [params, setParams] = useSearchParams();
     const [jobs, setJobs] = useState<ClubJob[]>([]);
     const [loading, setLoading] = useState(true),
@@ -43,6 +47,7 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [asOf, setAsOf] = useState(() => Date.now());
     const trigger = useRef<HTMLButtonElement>(null);
+    useFilterDisclosure(filtersOpen, () => setFiltersOpen(false), trigger);
     useEffect(() => {
         const controller = new AbortController();
         let active = true;
@@ -388,9 +393,9 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
                                                     key={job.id}
                                                     className={`job-row ${selected?.id === job.id ? 'is-selected' : ''}`}
                                                 >
-                                                    <Link className="job-row-main" to={`/jobs/${job.id}`}>
+                                                    <Link className="job-row-main" to={`/jobs/${job.id}`} state={opportunityReturnState('jobs', location)}>
                                                         {job.clubLogoUrl ? (
-                                                            <img
+                                                            <MediaImage
                                                                 className="job-logo"
                                                                 src={resolveMediaUrl(job.clubLogoUrl)}
                                                                 alt=""
@@ -411,7 +416,7 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
                                                         </span>
                                                     </Link>
                                                     <div className="job-row-actions">
-                                                        <Link to={`/jobs/${job.id}`}>
+                                                        <Link to={`/jobs/${job.id}`} state={opportunityReturnState('jobs', location)}>
                                                             View opportunity <ArrowRight size={13} />
                                                         </Link>
                                                         <button
@@ -458,7 +463,7 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
                                             {selected.description ||
                                                 'The club has not added a description yet.'}
                                         </p>
-                                        <Link className="job-action" to={`/jobs/${selected.id}`}>
+                                        <Link className="job-action" to={`/jobs/${selected.id}`} state={opportunityReturnState('jobs', location)}>
                                             View opportunity <ArrowRight size={15} />
                                         </Link>
                                     </aside>

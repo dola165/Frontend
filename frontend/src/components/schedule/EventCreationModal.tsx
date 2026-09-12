@@ -25,6 +25,7 @@ import { cancelScheduleEvent } from '../../features/schedule/api';
 import type { DayOfWeek, ScheduleEventType, ScheduleEventUpsertInput, ScheduleVisibility } from '../../features/schedule/api';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useDialogFocus } from '../workspace/useDialogFocus';
+import { apiClient } from '../../api/axiosConfig';
 
 export type ModalSurface = 'MY_SCHEDULE' | 'CLUB_SCHEDULE';
 export type ModalMode = 'create' | 'edit';
@@ -42,6 +43,7 @@ export interface EventCreationFormValues {
     visibility: ScheduleVisibility;
     publishAt: string;
     description?: string;
+    hostSquadId?: number | null;
     recurrenceDays?: DayOfWeek[];
     recurrenceStartDate?: string;
     recurrenceEndDate?: string;
@@ -101,7 +103,7 @@ const gDow = (ds: string): DayOfWeek => {
 };
 
 export const EventCreationModal = ({
-    isOpen, mode, surface, initialValues, targetEventId, canManageSchedule = false,
+    isOpen, mode, surface, clubId, initialValues, targetEventId, canManageSchedule = false,
     targetEventClubId = null, targetEventStartsAt = null, onCancelled, onClose, onSubmit
 }: EventCreationModalProps) => {
     const { t } = useTranslation();
@@ -113,6 +115,8 @@ export const EventCreationModal = ({
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [cancelling, setCancelling] = useState(false);
+    const [squads, setSquads] = useState<{ clubId: number; items: { id: number; name: string }[] } | null>(null);
+    const [squadError, setSquadError] = useState(false);
     const dialogRef = useRef<HTMLDivElement>(null);
     const titleInputRef = useRef<HTMLInputElement>(null);
     const titleId = useId();
@@ -131,6 +135,15 @@ export const EventCreationModal = ({
     const isClub = surface === 'CLUB_SCHEDULE';
     const isStanding = creationMode === 'recurring';
     const isTraining = form.eventType === 'TRAINING';
+    const squadClubId = mode === 'edit' ? targetEventClubId : clubId;
+    useEffect(() => {
+        if (!isOpen || !isClub || !squadClubId) return;
+        const controller = new AbortController();
+        apiClient.get(`/clubs/${squadClubId}/squads`, { signal: controller.signal }).then(response => {
+            if (!controller.signal.aborted) { setSquads({ clubId: squadClubId, items: response.data }); setSquadError(false); }
+        }).catch(() => { if (!controller.signal.aborted) setSquadError(true); });
+        return () => controller.abort();
+    }, [isOpen, isClub, squadClubId]);
 
     // Cancel event: edit mode only, club-owned future events, manager viewing.
     const targetStartMs = targetEventStartsAt ? new Date(targetEventStartsAt).getTime() : NaN;
@@ -202,6 +215,7 @@ export const EventCreationModal = ({
             title: form.title.trim(),
             description: form.description?.trim() || null,
             eventType: eType,
+            hostSquadId: isClub && ['TRAINING', 'MATCH', 'FRIENDLY'].includes(eType) ? form.hostSquadId ?? null : null,
             startsAt: recur ? bdt(form.recurrenceStartDate!, form.recurrenceStartTime!) : bdt(form.date, form.startTime),
             endsAt: recur ? bdt(form.recurrenceStartDate!, form.recurrenceEndTime!) : bdt(form.date, form.endTime),
             visibility: isClub ? form.visibility : 'PRIVATE',
@@ -360,6 +374,14 @@ export const EventCreationModal = ({
                                 <input ref={titleInputRef} id="event-title" type="text" value={form.title} onChange={(e) => update('title', e.target.value)}
                                     maxLength={140} placeholder="e.g. Senior Training" className={inputClass} />
                             </div>
+                            {isClub && (isTraining || form.eventType === 'MATCH' || form.eventType === 'FRIENDLY') && <label className="grid gap-1.5 text-xs text-[var(--fc-text-secondary)]">Squad
+                                <select aria-label="Squad" className={inputClass} value={form.hostSquadId ?? ''} onChange={e => update('hostSquadId', e.target.value ? Number(e.target.value) : null)}>
+                                    <option value="">No squad assigned</option>
+                                    {form.hostSquadId && !(squads?.clubId === squadClubId && squads.items.some(s => s.id === form.hostSquadId)) && <option value={form.hostSquadId}>Current squad</option>}
+                                    {squads?.clubId === squadClubId && squads.items.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                                {squadError && <span>Squads could not load. Your current assignment is preserved; reopen the editor to retry.</span>}
+                            </label>}
                             {errorMessage && <ErrorBanner message={errorMessage} />}
                         </div>
                     )}

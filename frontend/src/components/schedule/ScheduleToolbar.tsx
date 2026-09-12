@@ -44,7 +44,7 @@ export const ScheduleToolbar = ({
     };
 
     return (
-        <div className="flex items-center justify-between gap-3 border-b border-[var(--fc-border)] px-4 py-2">
+        <div className="schedule-toolbar flex items-center justify-between gap-3 border-b border-[var(--fc-border)] px-4 py-2">
             <div className="flex items-center gap-4">
                 <span className="text-xs font-semibold text-[var(--fc-text-primary)]">{workspaceLabel}</span>
                 <span className="text-xs text-[var(--fc-text-secondary)]">{rangeLabel}</span>
@@ -70,6 +70,7 @@ export const ScheduleToolbar = ({
                         <button
                             key={opt.value}
                             type="button"
+                            aria-pressed={viewMode === opt.value}
                             onClick={() => onViewModeChange(opt.value)}
                             className={`rounded-[4px] px-3 py-1 text-xs font-semibold transition-all ${
                                 viewMode === opt.value

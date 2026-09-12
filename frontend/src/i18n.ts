@@ -13,6 +13,8 @@ i18n
       ka: { translation: ka },
     },
     fallbackLng: 'en',
+    supportedLngs: ['en', 'ka'],
+    load: 'languageOnly',
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],

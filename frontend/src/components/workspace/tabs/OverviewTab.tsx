@@ -1,3 +1,4 @@
+import { appLocale } from '../../../utils/formatting';
 import { BellRing, CalendarDays, CheckCircle2, ClipboardList, Inbox, Send, ShieldCheck, Trophy, UserCheck, UserPlus, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { ClubManagementOverview } from '../../../features/clubs/domain';
@@ -181,7 +182,7 @@ export const OverviewTab = ({
                         {upcomingEvents.slice(0, 3).map((event) => (
                             <button key={`${event.eventId}-${event.occurrenceId}`} type="button" onClick={onOpenSchedule} className="rounded-lg border border-[var(--fc-border)] px-3 py-2 text-left hover:bg-[var(--fc-surface-hover)]">
                                 <p className="truncate text-sm font-semibold text-[var(--fc-text-primary)]">{event.title}</p>
-                                <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">{new Date(event.startsAt).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+                                <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">{new Date(event.startsAt).toLocaleString(appLocale(), { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
                                 {event.locationName && <p className="mt-1 truncate text-xs text-[var(--fc-text-muted)]">{event.locationName}</p>}
                             </button>
                         ))}

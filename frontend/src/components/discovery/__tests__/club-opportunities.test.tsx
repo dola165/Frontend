@@ -24,8 +24,21 @@ it('offers three scoped choices and opens Jobs inside the club area', () => {
 });
 it.each(['store','campaigns','jobs'] as const)('provides explicit %s return and general routes on direct entry', section => {
  render(<MemoryRouter><OpportunityNavigation section={section} clubId={10} detail/></MemoryRouter>);
- expect(screen.getByRole('link',{name:/Back to club/})).toHaveAttribute('href',section==='jobs'?'/clubs/10?tab=business&opportunity=jobs':`/clubs/10/${section}`);
+ expect(screen.getByRole('link',{name:`Back to ${section}`})).toHaveAttribute('href',section==='jobs'?'/clubs/10?tab=business&opportunity=jobs':`/clubs/10/${section}`);
  expect(screen.getByRole('link',{name:/Browse all/})).toHaveAttribute('href',`/${section}`);
+});
+it('returns to a filtered global list while Browse all stays unfiltered', () => {
+ render(<MemoryRouter initialEntries={[{pathname:'/jobs/1',state:{opportunityReturn:{section:'jobs',pathname:'/jobs',search:'?country=Georgia&page=2'}}}]}><OpportunityNavigation section="jobs" detail/></MemoryRouter>);
+ expect(screen.getByRole('link',{name:'Back to jobs'})).toHaveAttribute('href','/jobs?country=Georgia&page=2');
+ expect(screen.getByRole('link',{name:'Browse all jobs & volunteering'})).toHaveAttribute('href','/jobs');
+});
+it('returns to the originating club list with its filters', () => {
+ render(<MemoryRouter initialEntries={[{pathname:'/store/products/1',state:{opportunityReturn:{section:'store',pathname:'/clubs/10/store',search:'?query=shirt&page=1'}}}]}><OpportunityNavigation section="store" clubId={10} detail/></MemoryRouter>);
+ expect(screen.getByRole('link',{name:'Back to store'})).toHaveAttribute('href','/clubs/10/store?query=shirt&page=1');
+});
+it('rejects an external return path and uses the deterministic club fallback', () => {
+ render(<MemoryRouter initialEntries={[{pathname:'/campaigns/1',state:{opportunityReturn:{section:'campaigns',pathname:'https://example.com/phish',search:''}}}]}><OpportunityNavigation section="campaigns" clubId={10} detail/></MemoryRouter>);
+ expect(screen.getByRole('link',{name:'Back to campaigns'})).toHaveAttribute('href','/clubs/10/campaigns');
 });
 it('preserves club scope when switching discovery sections',()=>{
  render(<MemoryRouter initialEntries={['/clubs/10/store']}><DiscoverySectionTabs/></MemoryRouter>);

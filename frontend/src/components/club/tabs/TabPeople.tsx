@@ -1,3 +1,4 @@
+import { MediaImage } from '../../ui/MediaImage';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -59,7 +60,7 @@ const StaffCard = ({ member, featured }: { member: ClubStaffMember; featured?: b
             <div className="relative flex items-center gap-4">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-base)] text-lg font-bold text-[color:var(--club-theme-text-primary)] ring-1 ring-white/[0.04]">
                     {avatarUrl ? (
-                        <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+                        <MediaImage src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
                     ) : (
                         initialsFrom(displayName)
                     )}

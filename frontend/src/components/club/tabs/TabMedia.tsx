@@ -1,3 +1,4 @@
+import { MediaImage } from '../../ui/MediaImage';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Camera, Loader2, PlayCircle, Video } from 'lucide-react';
 import { apiClient } from '../../../api/axiosConfig';
@@ -50,14 +51,14 @@ export const TabMedia = ({ clubId, mediaType }: { clubId: number; mediaType: Clu
 
     if (mediaItems.length === 0) {
         return (
-            <section className="rounded-[24px] border border-[color:var(--club-theme-border-subtle)] bg-[rgba(12,18,27,0.96)] px-5 py-14 text-center shadow-[0_18px_32px_rgba(2,6,12,0.22)]">
+            <section className="rounded-[24px] border border-[color:var(--club-theme-border-subtle)] bg-[var(--club-card)] px-5 py-14 text-center shadow-[0_18px_32px_rgba(2,6,12,0.22)]">
                 {isVideos ? (
                     <Video className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-secondary)]" />
                 ) : (
                     <Camera className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-secondary)]" />
                 )}
                 <h3 className="mt-4 text-xl font-semibold tracking-[-0.03em] text-[color:var(--club-theme-text-primary)]">
-                    {isVideos ? 'No videos published yet' : 'No pictures published yet'}
+                    {isVideos ? 'No videos published yet' : 'No photos published yet'}
                 </h3>
                 <p className="mt-2 text-sm text-[color:var(--club-theme-text-secondary)]">
                     {isVideos
@@ -69,16 +70,16 @@ export const TabMedia = ({ clubId, mediaType }: { clubId: number; mediaType: Clu
     }
 
     return (
-        <section className="rounded-[24px] border border-[color:var(--club-theme-border-subtle)] bg-[rgba(12,18,27,0.96)] p-5 shadow-[0_18px_32px_rgba(2,6,12,0.22)]">
+        <section className="rounded-[24px] border border-[color:var(--club-theme-border-subtle)] bg-[var(--club-card)] p-5 shadow-[0_18px_32px_rgba(2,6,12,0.22)]">
             <div className="mb-5 flex items-end justify-between gap-4">
                 <div>
-                    <p className="text-[11px] font-semibold  text-[color:var(--club-tone-green)]">{isVideos ? 'Videos' : 'Pictures'}</p>
+                    <p className="text-[11px] font-semibold  text-[color:var(--club-tone-green)]">{isVideos ? 'Videos' : 'Photos'}</p>
                     <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[color:var(--club-theme-text-primary)]">
-                        {isVideos ? 'Club videos' : 'Club pictures'}
+                        {isVideos ? 'Club videos' : 'Club photos'}
                     </h2>
                 </div>
                 <p className="text-[11px] font-semibold  text-[color:var(--club-theme-text-secondary)]">
-                    {mediaItems.length} {isVideos ? 'videos' : 'pictures'}
+                    {mediaItems.length} {isVideos ? 'videos' : 'photos'}
                 </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -92,7 +93,7 @@ export const TabMedia = ({ clubId, mediaType }: { clubId: number; mediaType: Clu
                                 {isVideo ? (
                                     <video src={finalUrl} className="h-full w-full object-cover" />
                                 ) : (
-                                    <img src={finalUrl || ''} alt={item.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+                                    <MediaImage src={finalUrl || ''} alt={item.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
                                 )}
                                 {isVideo ? (
                                     <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/54 px-2.5 py-1 text-[10px] font-semibold  text-white">

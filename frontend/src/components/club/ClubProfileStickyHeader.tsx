@@ -47,6 +47,7 @@ export const ClubProfileStickyHeader = ({
                 key={item.id}
                 type="button"
                 onClick={() => onTabChange(item.id)}
+                aria-current={isActive ? 'page' : undefined}
                 className={`inline-flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-left text-[12px] font-semibold transition-all ${
                     isActive
                         ? 'border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green-soft)] text-[color:var(--club-theme-text-primary)]'
@@ -69,13 +70,13 @@ export const ClubProfileStickyHeader = ({
     };
 
     return (
-        <div className="border-b border-[color:var(--club-theme-border-subtle)] bg-[rgba(5,9,16,0.96)]">
+        <div className="border-b border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-surface)]">
             <div className="club-profile-frame mx-auto w-full overflow-x-auto">
                 <div className="flex min-w-max items-stretch gap-2 py-3">
                     {mainItems.map(renderItem)}
 
                     {mediaItems.length > 0 && (
-                        <div className="ml-8 flex items-stretch gap-2">
+                        <div className="ml-2 flex items-stretch gap-2">
                             {mediaItems.map(renderItem)}
                         </div>
                     )}

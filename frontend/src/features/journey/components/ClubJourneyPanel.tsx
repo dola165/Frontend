@@ -1,3 +1,4 @@
+import { formatDate } from '../../../utils/formatting';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -227,7 +228,7 @@ export const ClubJourneyPanel = () => {
                             </div>
                             <p className="mt-0.5 text-[11px] text-[var(--fc-text-secondary)]">
                                 {tryout.status}
-                                {tryout.tryoutDate ? ` · ${new Date(tryout.tryoutDate).toLocaleDateString()}` : ''}
+                                {tryout.tryoutDate ? ` · ${formatDate(tryout.tryoutDate)}` : ''}
                             </p>
                             {tryout.decisionMessage && (
                                 <p className="mt-1.5 text-xs leading-5 text-[var(--fc-text-secondary)]">{tryout.decisionMessage}</p>

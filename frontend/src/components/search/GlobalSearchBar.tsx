@@ -1,3 +1,4 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -308,7 +309,7 @@ export const GlobalSearchBar = ({ light = false, mobile = false }: { light?: boo
                   >
                     <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${light ? 'bg-slate-100' : 'bg-[#1a1c22]'}`}>
                       {r.type === 'user' && r.avatarUrl ? (
-                        <img src={r.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+                        <MediaImage src={r.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
                       ) : (
                         getResultIcon(r)
                       )}

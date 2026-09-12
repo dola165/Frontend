@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'public/mockServiceWorker.js', 'review']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -19,5 +19,10 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+  },
+  { files: ['e2e/**/*fixture.tsx'], rules: { 'react-refresh/only-export-components': 'off' } },
+  {
+    files: ['src/components/club/ClubMessageModal.tsx', 'src/components/schedule/CalendarTutorial.tsx', 'src/components/workspace/helpers.tsx', 'src/context/AuthContext.tsx'],
+    rules: { 'react-refresh/only-export-components': ['error', { allowConstantExport: true, allowExportNames: ['buildClubCommunicationOptions', 'openClubCommunication', 'isTutorialCompleted', 'avatarLetter', 'formatMetaTime', 'useAuth'] }] },
   },
 ])

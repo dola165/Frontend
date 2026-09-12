@@ -1,3 +1,4 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -178,8 +179,8 @@ export const TopNav = ({
     }
 
     return (
-        <nav id="app-top-navigation" className={`sticky top-0 z-[1500] border-b backdrop-blur-xl ${lightNavigation ? 'top-nav-light border-slate-200 bg-[#f8fafc]' : 'top-nav-force-dark border-[#ffffff0d] bg-[#0f1117]'}`}>
-            <AppPageFrame className="flex flex-col">
+        <nav id="app-top-navigation" className={`sticky top-0 z-[1500] border-b backdrop-blur-xl ${lightNavigation ? 'top-nav-light border-slate-200 bg-[#f8fafc]' : 'top-nav-force-dark border-[#33414d] bg-[#10151b]'}`}>
+            <AppPageFrame className="relative flex flex-col">
                 <div className="flex h-[56px] items-center justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-3">
                         <Link to={user ? '/home' : '/'} className="shrink-0">
@@ -204,7 +205,7 @@ export const TopNav = ({
                                 <Search className="h-5 w-5" />
                             </button>
                         )}
-                        <div ref={exploreMenuRef} className="relative" onKeyDown={handleExploreKeyDown}
+                        <div ref={exploreMenuRef} className="relative lg:absolute lg:bottom-0 lg:right-4 lg:z-10" onKeyDown={handleExploreKeyDown}
                             onBlur={(event) => {
                                 if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpenExploreLocationKey(null);
                             }}>
@@ -215,7 +216,7 @@ export const TopNav = ({
                                     setOpenMenuLocationKey(null);
                                     setOpenExploreLocationKey(exploreMenuOpen ? null : location.key);
                                 }}
-                                className={`${iconActionClass(secondaryActive)} w-auto gap-2 px-2.5 sm:px-3`}
+                                className={`${iconActionClass(secondaryActive)} w-auto gap-2 px-2.5 sm:px-3 lg:h-10 lg:rounded-none lg:border-transparent lg:bg-transparent`}
                                 ref={exploreTriggerRef}
                                 aria-label={t('nav.explore')}
                                 title={t('nav.explore')}
@@ -255,9 +256,9 @@ export const TopNav = ({
                                 >
                                     <span className="world-nav-button__inner flex h-full items-center gap-2 rounded-full px-2.5">
                                         <span className="hidden h-8 w-[94px] overflow-hidden sm:block">
-                                            <img src="/brand/grasskickz-world-wordmark.png" alt="GrassKickZ World" className="h-full w-full object-cover object-center" />
+                                            <MediaImage src="/brand/grasskickz-world-wordmark.png" alt="GrassKickZ World" className="h-full w-full object-cover object-center" />
                                         </span>
-                                        <img src="/brand/grasskickz-world-mark.png" alt="" className="h-8 w-6 shrink-0 object-contain" />
+                                        <MediaImage src="/brand/grasskickz-world-mark.png" alt="" className="h-8 w-6 shrink-0 object-contain" />
                                     </span>
                                 </Link>
                                 <span className="hidden md:inline-flex">
@@ -369,6 +370,11 @@ export const TopNav = ({
                             </>
                         ) : (
                             <>
+                                <button type="button" onClick={switchLanguage} className={iconActionClass()}
+                                    aria-label={isGeorgian ? t('nav.useEnglish') : t('nav.useGeorgian')}
+                                    title={t('nav.language')}>
+                                    <span className="text-xs font-semibold">{isGeorgian ? 'EN' : 'GE'}</span>
+                                </button>
                                 <Link
                                     to="/login"
                                     className="hidden rounded-xl px-3 py-2 text-xs font-semibold text-[#a1a1aa] transition-colors hover:bg-[#1a1c22] hover:text-[#f4f4f5] sm:inline-flex"
@@ -403,7 +409,7 @@ export const TopNav = ({
                     </div>
                 </div>
 
-                <div className={`scrollbar-hide overflow-x-auto border-t ${lightNavigation ? 'border-slate-200' : 'border-[#ffffff0d]'}`}>
+                <div className={`scrollbar-hide overflow-x-auto border-t lg:mr-32 ${lightNavigation ? 'border-slate-200' : 'border-[#ffffff0d]'}`}>
                     <div className="flex min-w-max items-stretch gap-1 px-1">
                         {visibleLinks.map((item) => {
                             const active = activeKey === item.id;
@@ -415,11 +421,11 @@ export const TopNav = ({
                                     to={item.path}
                                     className={`inline-flex h-10 items-center gap-2 border-b-[3px] px-3 text-xs font-semibold transition-colors ${
                                         active
-                                            ? 'border-[#16a34a] text-[#16a34a]'
+                                            ? lightNavigation ? 'border-[#137b46] text-[#137b46]' : 'border-[#00e676] text-[#00e676]'
                                             : lightNavigation ? 'border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-950' : 'border-transparent text-[#a1a1aa] hover:bg-[#1a1c22] hover:text-[#f4f4f5]'
                                     }`}
                                 >
-                                    <Icon className={`h-4 w-4 ${active ? 'text-[#16a34a]' : ''}`} />
+                                    <Icon className={`h-4 w-4 ${active ? 'text-current' : ''}`} />
                                     {t(item.translationKey, item.label)}
                                     {item.preview ? <span className="rounded-full border border-amber-400/30 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-300">{t('nav.preview')}</span> : null}
                                 </Link>

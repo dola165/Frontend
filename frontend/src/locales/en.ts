@@ -1,6 +1,7 @@
 const en = {
   app: {
     name: 'GrassKickZ',
+    loadingPage: 'Loading page…',
   },
   nav: {
     feed: 'Home',

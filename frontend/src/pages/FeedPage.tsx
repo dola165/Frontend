@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Compass, Megaphone, RefreshCw, Search, Sparkles, Users } from 'lucide-react';
+import { AlertTriangle, Compass, Megaphone, RefreshCw, Search, Users } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { FeedList } from '../components/feed/FeedList';
@@ -21,6 +21,7 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
  const [searchParams] = useSearchParams();
  const [posts, setPosts] = useState<FeedPostDto[]>([]);
  const [loading, setLoading] = useState(true);
+ const [hasLoaded, setHasLoaded] = useState(false);
  const [loadError, setLoadError] = useState(false);
  const [loadingMore, setLoadingMore] = useState(false);
  const [moreError, setMoreError] = useState(false);
@@ -57,7 +58,7 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
    emptyGuides: [
     { label: 'Find Clubs', to: '/clubs' },
     { label: 'Browse Map', to: '/map' },
-    { label: 'Discover Events', to: '/tournaments' }
+    { label: 'Your schedule', to: '/calendar' }
    ]
   };
 
@@ -71,7 +72,6 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
    setLoadingMore(false);
    setLoadError(false);
    setNextPage(null);
-   setPosts([]);
    setOpenComments({});
    setCommentsData({});
    setCommentsErrors({});
@@ -106,6 +106,7 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
    else setLoadError(true);
   } finally {
    if (current()) {
+    setHasLoaded(true);
     morePending.current = false;
     setLoading(false);
     setLoadingMore(false);
@@ -194,19 +195,24 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
     onPostCreated={() => void loadFeed()}
    />
 
-   <nav aria-label="Home posts" className="grid grid-cols-2 border-b border-[var(--feed-divider)] bg-transparent px-1">
+   <nav aria-label="Home posts" className="grid grid-cols-[1fr_1fr_auto] border-b border-[var(--feed-divider)] bg-transparent px-1">
     <Link
      to="/home"
+     aria-current={!isFollowingView ? 'page' : undefined}
+     title="Discover public posts from beyond your follows, newest first"
      className={`inline-flex min-h-11 items-center justify-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors ${!isFollowingView ? 'border-[var(--feed-accent)] text-[var(--feed-text-primary)]' : 'border-transparent text-[var(--feed-text-muted)] hover:text-[var(--feed-text-primary)]'}`}
     >
-     <Sparkles className="h-4 w-4" /> For You
+     <Compass className="h-4 w-4" /> Discover
     </Link>
     <Link
      to="/home?view=following"
+     aria-current={isFollowingView ? 'page' : undefined}
+     title="Latest posts from people and clubs you follow"
      className={`inline-flex min-h-11 items-center justify-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors ${isFollowingView ? 'border-[var(--feed-accent)] text-[var(--feed-text-primary)]' : 'border-transparent text-[var(--feed-text-muted)] hover:text-[var(--feed-text-primary)]'}`}
     >
      <Users className="h-4 w-4" /> Following
     </Link>
+    <button type="button" onClick={() => void loadFeed()} disabled={loading} aria-label="Refresh feed" title="Refresh feed" className="m-1 flex h-10 w-10 items-center justify-center rounded-full text-[var(--feed-text-secondary)] hover:bg-[var(--feed-hover-bg)] disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></button>
    </nav>
 
    {loadError && (
@@ -228,11 +234,12 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
      </div>
     </div>
    )}
-   <div className="flex items-center justify-between gap-3 px-1 text-xs text-[var(--feed-text-secondary)]">
-    <p>{isFollowingView ? 'Latest posts from people and clubs you follow.' : 'Discover public posts from beyond your follows.'} Newest first.</p>
-    <button type="button" onClick={() => void loadFeed()} disabled={loading} className="shrink-0 rounded px-2 py-2 hover:underline disabled:opacity-50">Refresh feed</button>
-   </div>
-   {loading ? (
+   <section aria-label="Feed results" aria-busy={loading} className="relative">
+   {loading && hasLoaded && <div role="status" className="absolute inset-x-0 top-2 z-10 mx-auto w-fit rounded-full bg-[color:var(--theme-surface)] px-3 py-2 text-sm shadow">
+    Loading {isFollowingView ? 'Following' : 'Discover'} posts…
+   </div>}
+   <div inert={loading} className={loading && posts.length > 0 ? 'opacity-50' : ''}>
+   {loading && !hasLoaded ? (
     <div className="flex flex-col gap-3" aria-label="Loading Home posts">
      <SkeletonCard lines={4} />
      <SkeletonCard lines={3} />
@@ -256,7 +263,7 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
      }
     }}
     emptyState={(
-     <div className="rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] px-5 py-12 text-center">
+     <div className={`rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] px-5 py-12 text-center ${loading ? 'invisible' : ''}`}>
       <Megaphone className="mx-auto h-10 w-10 text-[var(--feed-icon-muted)]" />
       <h3 className="mt-4 text-lg font-semibold text-[var(--feed-text-primary)]">{feedMeta.emptyTitle}</h3>
       <p className="mt-2 max-w-md mx-auto text-sm leading-6 text-[var(--feed-text-secondary)]">{feedMeta.emptyText}</p>
@@ -277,6 +284,8 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
     className="gap-3"
    />}
 
+   </div>
+   </section>
    {!loading && !loadError && posts.length > 0 && <div className="py-4 text-center">
     {moreError && <p role="alert" className="mb-3 text-sm text-amber-400">Older posts could not load. Retry, or refresh the feed to start again.</p>}
     {nextPage ? <button type="button" disabled={loadingMore} onClick={() => void loadFeed(true)}

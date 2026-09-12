@@ -1,3 +1,4 @@
+import { MediaImage } from '../../ui/MediaImage';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
@@ -146,7 +147,7 @@ export const PlayerCardsTab = ({ clubId, setParentError, setParentSuccess }: Pla
                                     <td className="px-4 py-3">
                                         <span className="inline-flex items-center gap-2">
                                             {resolveMediaUrl(card.photoUrl) && (
-                                                <img src={resolveMediaUrl(card.photoUrl)} alt={card.fullName ?? ''} className="h-7 w-7 rounded-full object-cover" />
+                                                <MediaImage src={resolveMediaUrl(card.photoUrl)} alt={card.fullName ?? ''} className="h-7 w-7 rounded-full object-cover" />
                                             )}
                                             <span className="text-sm font-semibold text-[var(--fc-text-primary)]">{card.fullName}</span>
                                         </span>

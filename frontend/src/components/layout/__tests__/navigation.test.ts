@@ -28,13 +28,13 @@ describe('supported product navigation', () => {
 
     it('keeps the public club menu aligned with the supported club features', () => {
         expect(clubNavigationItems.map((item) => item.id)).toEqual([
-            'overview', 'people', 'teams', 'schedule', 'media', 'business', 'contact',
+            'overview', 'people', 'teams', 'schedule', 'events', 'honours', 'media', 'business', 'contact',
         ]);
     });
 
     it('maps legacy club links to their retained destinations', () => {
-        expect(normalizeClubNavigationTab('honours')).toBe('overview');
-        expect(normalizeClubNavigationTab('events')).toBe('schedule');
+        expect(normalizeClubNavigationTab('honours')).toBe('honours');
+        expect(normalizeClubNavigationTab('events')).toBe('events');
         expect(normalizeClubNavigationTab('pictures')).toBe('media');
         expect(normalizeClubNavigationTab('videos')).toBe('media');
         expect(normalizeClubNavigationTab('facilities')).toBe('overview');

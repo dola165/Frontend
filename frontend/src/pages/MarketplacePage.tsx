@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Search, Users, Link2, ShieldCheck, X } from 'lucide-react';
@@ -80,7 +81,8 @@ export const MarketplacePage = () => {
             setInterestListing(null);
             setInterestMessage('');
             navigate(`/messages?chatWith=${player.agentUserId}`);
-        } catch (err: any) {
+        } catch (caught) {
+            const err = axios.isAxiosError<{ message?: string }>(caught) ? caught : undefined;
             if (err?.response?.status === 409) {
                 alert('Your club has already expressed interest in this player.');
             }

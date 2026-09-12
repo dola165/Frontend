@@ -35,6 +35,7 @@ export const ScheduleWorkspaceHeader = ({
                     <button
                         type="button"
                         onClick={() => onSelectSurface('CLUB_SCHEDULE')}
+                        aria-pressed={workspaceSurface === 'CLUB_SCHEDULE'}
                         disabled={!canOpenClubSchedule}
                         className={`inline-flex items-center gap-1.5 rounded-[4px] px-3 py-1.5 text-xs font-semibold transition-all ${
                             workspaceSurface === 'CLUB_SCHEDULE'
@@ -48,6 +49,7 @@ export const ScheduleWorkspaceHeader = ({
                     <button
                         type="button"
                         onClick={() => onSelectSurface('MY_SCHEDULE')}
+                        aria-pressed={workspaceSurface === 'MY_SCHEDULE'}
                         className={`inline-flex items-center gap-1.5 rounded-[4px] px-3 py-1.5 text-xs font-semibold transition-all ${
                             workspaceSurface === 'MY_SCHEDULE'
                                 ? 'bg-[var(--fc-accent)] text-white'

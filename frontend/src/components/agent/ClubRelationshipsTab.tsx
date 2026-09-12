@@ -1,3 +1,5 @@
+import axios from 'axios';
+import { MediaImage } from '../ui/MediaImage';
 import { useEffect, useRef, useState } from 'react';
 import { Building2, Plus, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -93,7 +95,8 @@ export const ClubRelationshipsTab = () => {
             setSubmitError(null);
             toast.success(`Engagement request sent to ${selectedClub.name}`);
             loadEngagements();
-        } catch (err: any) {
+        } catch (caught) {
+            const err = axios.isAxiosError<{ message?: string }>(caught) ? caught : undefined;
             const msg = err?.response?.data?.message || err?.message || 'Failed to initiate engagement.';
             setSubmitError(msg);
             toast.error(msg);
@@ -162,7 +165,7 @@ export const ClubRelationshipsTab = () => {
                         >
                             <div className="w-8 h-8 rounded-xl bg-[rgba(255,255,255,0.06)] flex items-center justify-center shrink-0">
                                 {eng.clubLogoUrl ? (
-                                    <img src={eng.clubLogoUrl} alt="" className="w-6 h-6 rounded object-cover" />
+                                    <MediaImage src={eng.clubLogoUrl} alt="" className="w-6 h-6 rounded object-cover" />
                                 ) : (
                                     <Building2 className="w-4 h-4 text-[#71717a]" />
                                 )}
@@ -198,7 +201,7 @@ export const ClubRelationshipsTab = () => {
                                     <div className="flex items-center gap-3 px-3 py-2 rounded-xl border border-[#16a34a]/30 bg-[#16a34a]/5">
                                         <div className="w-8 h-8 rounded-xl bg-[rgba(255,255,255,0.08)] flex items-center justify-center shrink-0 overflow-hidden">
                                             {selectedClub.logoUrl ? (
-                                                <img src={selectedClub.logoUrl} alt="" className="w-6 h-6 rounded object-cover" />
+                                                <MediaImage src={selectedClub.logoUrl} alt="" className="w-6 h-6 rounded object-cover" />
                                             ) : (
                                                 <Building2 className="w-4 h-4 text-[#16a34a]" />
                                             )}
@@ -257,7 +260,7 @@ export const ClubRelationshipsTab = () => {
                                                 >
                                                     <div className="w-8 h-8 rounded-xl bg-[rgba(255,255,255,0.06)] flex items-center justify-center shrink-0 overflow-hidden">
                                                         {club.logoUrl ? (
-                                                            <img src={club.logoUrl} alt="" className="w-5 h-5 rounded object-cover" />
+                                                            <MediaImage src={club.logoUrl} alt="" className="w-5 h-5 rounded object-cover" />
                                                         ) : (
                                                             <Building2 className="w-3.5 h-3.5 text-[#71717a]" />
                                                         )}

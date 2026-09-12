@@ -1,3 +1,6 @@
+import { ConnectionsDialog } from '../components/profile/ConnectionsDialog';
+import { formatDate } from '../utils/formatting';
+import { MediaImage } from '../components/ui/MediaImage';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -100,7 +103,7 @@ const timeAgo = (iso: string, t: (key: string, options?: Record<string, unknown>
     if (hours < 24) return t('userProfile.hoursAgo', { count: hours });
     const days = Math.floor(hours / 24);
     if (days < 7) return t('userProfile.daysAgo', { count: days });
-    return new Date(iso).toLocaleDateString();
+    return formatDate(iso);
 };
 
 const StatCard = ({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: string | number }) => (
@@ -168,6 +171,12 @@ export const UserProfilePage = () => {
     const [followedClubs, setFollowedClubs] = useState<FollowedClubBrief[]>([]);
     const [followedClubsLoading, setFollowedClubsLoading] = useState(false);
 
+    const connections = searchParams.get('connections');
+    const setConnections = (kind: 'followers' | 'following' | null) => {
+        const params = new URLSearchParams(searchParams);
+        if (kind) params.set('connections', kind); else params.delete('connections');
+        setSearchParams(params, { replace: true, preventScrollReset: true });
+    };
     const activeTab = normalizeTab(searchParams.get('tab'));
     const isMyProfile = profile != null && String(profile.id) === currentUserId;
 
@@ -424,7 +433,7 @@ export const UserProfilePage = () => {
                         {entry.kind === 'video' ? (
                             <video src={mediaUrl} className="h-full w-full object-cover" />
                         ) : (
-                            <img src={mediaUrl} alt="Profile media" className="h-full w-full object-cover" />
+                            <MediaImage src={mediaUrl} alt="Profile media" className="h-full w-full object-cover" />
                         )}
                         <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/40 flex items-center justify-center">
                             <span className="opacity-0 group-hover:opacity-100 text-[10px] font-semibold text-white uppercase tracking-[0.08em] transition-opacity">
@@ -545,7 +554,7 @@ export const UserProfilePage = () => {
                                     <li key={club.id}>
                                         <Link to={`/clubs/${club.id}`} className="group flex items-center gap-2.5">
                                             <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-base)] text-[10px] font-bold text-[color:var(--club-theme-text-primary)]">
-                                                {clubLogoUrl ? <img src={clubLogoUrl} alt="" className="h-full w-full object-cover" /> : club.name.substring(0, 2).toUpperCase()}
+                                                {clubLogoUrl ? <MediaImage src={clubLogoUrl} alt="" className="h-full w-full object-cover" /> : club.name.substring(0, 2).toUpperCase()}
                                             </span>
                                             <span className="min-w-0">
                                                 <span className="block truncate text-xs font-semibold text-[color:var(--club-theme-text-primary)] group-hover:underline">{club.name}</span>
@@ -715,6 +724,7 @@ export const UserProfilePage = () => {
 
     return (
         <div className="club-page-shell min-h-full bg-[color:var(--club-theme-base)]">
+            {(connections === 'followers' || connections === 'following') && (!profile.isPrivate || isMyProfile) && <ConnectionsDialog key={`${profile.id}-${connections}`} userId={profile.id} kind={connections} showFollowingStatus={connections === 'following' && isMyProfile} onClose={() => setConnections(null)} />}
             {/* Error toast */}
             {profileError && (
                 <div className="mt-4 flex w-full items-center gap-3 rounded-[4px] border border-[color:var(--state-danger)]/30 bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
@@ -725,9 +735,9 @@ export const UserProfilePage = () => {
             {/* ===== HERO SECTION ===== */}
             <section className="border-b border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-band)]">
                 {/* Banner area */}
-                <div className="relative h-[240px] sm:h-[300px] lg:h-[360px] overflow-hidden">
+                <div className={`relative overflow-hidden ${bannerUrl ? 'h-[200px] sm:h-[240px]' : 'h-[120px] sm:h-[150px]'}`}>
                     {bannerUrl ? (
-                        <img src={bannerUrl} alt={`${displayName} banner`} className="h-full w-full object-cover object-top" />
+                        <MediaImage src={bannerUrl} alt={`${displayName} banner`} className="h-full w-full object-cover object-top" />
                     ) : (
                         <div className="h-full w-full bg-[color:var(--club-theme-surface)]" />
                     )}
@@ -765,8 +775,8 @@ export const UserProfilePage = () => {
                 </div>
 
                 {/* Hero content area */}
-                <div className="bg-[#050910]">
-                    <div className="relative w-full py-6 lg:py-8">
+                <div className="bg-[color:var(--club-theme-surface)]">
+                    <div className="club-profile-frame mx-auto relative w-full py-6 lg:py-8">
                         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                             {/* Left: Avatar + Identity */}
                             <div className="flex flex-col gap-6 lg:flex-row lg:items-end">
@@ -774,7 +784,7 @@ export const UserProfilePage = () => {
                                 <div className="relative -mt-[76px] shrink-0 sm:-mt-[96px] lg:-mt-[112px]">
                                     <div className="h-24 w-24 sm:h-28 sm:w-28 lg:h-36 lg:w-36 overflow-hidden rounded-xl border-[5px] border-[color:var(--club-band)] bg-[rgba(6,11,18,0.92)] shadow-[0_18px_44px_rgba(2,6,12,0.35)]">
                                         {avatarUrl ? (
-                                            <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+                                            <MediaImage src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
                                         ) : (
                                             <div className="flex h-full w-full items-center justify-center text-2xl font-semibold uppercase text-[color:var(--club-theme-text-primary)]">
                                                 {initials}
@@ -820,11 +830,13 @@ export const UserProfilePage = () => {
                                     )}
 
                                     <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
-                                        <span className="font-bold text-[color:var(--club-theme-text-primary)]">{profile.followerCount}</span>
-                                        <span className="text-[color:var(--club-theme-text-secondary)]">{t('userProfile.followers')}</span>
+                                        <button type="button" onClick={() => setConnections('followers')} disabled={profile.isPrivate && !isMyProfile} className="rounded-md px-1 py-2 hover:underline focus-visible:outline-2 focus-visible:outline-emerald-500 disabled:cursor-default disabled:no-underline" title={profile.isPrivate && !isMyProfile ? 'Connections are private' : undefined}>
+                                            <strong>{profile.followerCount}</strong> <span className="text-[color:var(--club-theme-text-secondary)]">{t('userProfile.followers')}</span>
+                                        </button>
                                         <span className="h-1 w-1 rounded-full bg-[color:var(--club-divider-dot)]" />
-                                        <span className="font-bold text-[color:var(--club-theme-text-primary)]">{profile.followingCount}</span>
-                                        <span className="text-[color:var(--club-theme-text-secondary)]">{t('userProfile.following')}</span>
+                                        <button type="button" onClick={() => setConnections('following')} disabled={profile.isPrivate && !isMyProfile} className="rounded-md px-1 py-2 hover:underline focus-visible:outline-2 focus-visible:outline-emerald-500 disabled:cursor-default disabled:no-underline" title={profile.isPrivate && !isMyProfile ? 'Connections are private' : undefined}>
+                                            <strong>{profile.followingCount}</strong> <span className="text-[color:var(--club-theme-text-secondary)]">{t('userProfile.following')}</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -880,8 +892,8 @@ export const UserProfilePage = () => {
             </section>
 
             {/* ===== STICKY TAB BAR ===== */}
-            <div className="border-b border-[color:var(--club-theme-border-subtle)] bg-[rgba(5,9,16,0.96)]">
-                <div className="w-full overflow-x-auto">
+            <div className="border-b border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-surface)]">
+                <div className="club-profile-frame mx-auto w-full overflow-x-auto">
                     <div className="flex min-w-max items-stretch gap-2.5 py-3">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
@@ -907,7 +919,7 @@ export const UserProfilePage = () => {
             </div>
 
             {/* ===== CONTENT GRID ===== */}
-            <div className="w-full pb-10 pt-4">
+            <div className="club-profile-frame mx-auto w-full pb-10 pt-4">
                 <div className="grid gap-4 xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)_minmax(260px,320px)] xl:items-start">
                     {/* LEFT PANEL — profile info */}
                     <div className="hidden xl:block xl:sticky xl:top-[14px]">
@@ -917,9 +929,10 @@ export const UserProfilePage = () => {
                     {/* CENTER — tab content */}
                     <div className="min-w-0">
                         {/* Mobile: profile info shown above content */}
-                        <div className="mb-6 xl:hidden">
+                        <details className="mb-5 rounded-xl border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-surface)] xl:hidden">
+                            <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-[color:var(--club-theme-text-primary)]">Profile details & clubs</summary>
                             {leftPanel}
-                        </div>
+                        </details>
 
                         <div className="mx-auto flex w-full max-w-[760px] flex-col gap-4">
                             {/* Tab: About me — bio + posts */}

@@ -1,3 +1,4 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useState } from 'react';
 import { avatarLetter } from './helpers';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
@@ -40,7 +41,7 @@ export const AvatarCell = ({ avatarUrl, fallback, size = 'md' }: AvatarCellProps
 
     if (resolvedAvatarUrl && !imgError) {
         return (
-            <img
+            <MediaImage
                 src={resolvedAvatarUrl}
                 alt=""
                 className={`${sizeClasses[size]} shrink-0 rounded-full object-cover`}

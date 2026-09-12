@@ -1,6 +1,7 @@
 const en = {
   app: {
     name: 'GrassKickZ',
+    loadingPage: 'Loading page…',
   },
   nav: {
     feed: 'Home',
@@ -34,7 +35,7 @@ const en = {
     useEnglish: 'Use English',
     useGeorgian: 'Use Georgian',
     mobileNavigation: 'Explore GrassKickZ',
-    explore: 'Explore',
+    explore: 'Shortcuts',
     preview: 'Preview',
     people: 'People',
     followedClubs: 'Followed clubs',

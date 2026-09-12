@@ -1,3 +1,4 @@
+import { appLocale } from '../../utils/formatting';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { CalendarDays, ExternalLink, Globe, MapPin, Phone, ShieldCheck } from 'lucide-react';
 import { apiClient } from '../../api/axiosConfig';
@@ -13,7 +14,11 @@ export const ClubProfileInfoPanel = ({ club }: ClubProfileInfoPanelProps) => {
     const whatsappHref = toWhatsappHref(club.whatsappNumber);
     const publicLinks = buildClubProfileLinks(club);
     const trustCount = club.trustedByClubs.length;
-    const [nextEventLabel, setNextEventLabel] = useState('Checking schedule');
+    const [nextEventState, setNextEventState] = useState<{clubId:number; event?:{title:string; startsAt:string}; status:string} | null>(null);
+    const nextEventLabel = nextEventState?.clubId !== club.id ? 'Checking schedule'
+        : nextEventState.event ? `${nextEventState.event.title} | ${new Date(nextEventState.event.startsAt).toLocaleString(appLocale(), {
+            month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'
+        })}` : nextEventState.status;
 
     useEffect(() => {
         let active = true;
@@ -28,21 +33,15 @@ export const ClubProfileInfoPanel = ({ club }: ClubProfileInfoPanelProps) => {
                     .find((item) => new Date(item.startsAt).getTime() >= Date.now());
 
                 if (!nextItem) {
-                    setNextEventLabel('No event scheduled');
+                    setNextEventState({clubId:club.id, status:'No event scheduled'});
                     return;
                 }
 
-                const dateLabel = new Date(nextItem.startsAt).toLocaleString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                setNextEventLabel(`${nextItem.title} | ${dateLabel}`);
+                setNextEventState({clubId:club.id, event:{title:nextItem.title, startsAt:nextItem.startsAt}, status:''});
             })
             .catch(() => {
                 if (active) {
-                    setNextEventLabel('Schedule unavailable');
+                    setNextEventState({clubId:club.id, status:'Schedule unavailable'});
                 }
             });
 

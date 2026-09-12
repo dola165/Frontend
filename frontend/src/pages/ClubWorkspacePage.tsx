@@ -67,7 +67,8 @@ import {
     buildNotificationDestination
 } from '../utils/notifications';
 import { extractApiErrorMessage } from '../utils/apiError';
-import { getStoredUserId } from '../utils/authStorage';
+import { getStoredUserId, isCurrentAuthSession, type AuthSessionId } from '../utils/authStorage';
+import { useAuth } from '../context/AuthContext';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { ErrorBlock, PageSpinner } from '../components/workspace/helpers';
 import { WorkspaceSidebar } from '../components/workspace/WorkspaceSidebar';
@@ -97,6 +98,14 @@ const toScheduleDateTime = (value: Date) => {
 // ── page ──
 
 export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
+    const { id } = useParams();
+    const { isAuthenticated, sessionId } = useAuth();
+    if (!isAuthenticated) return null;
+    // A new club/account must establish access afresh and must not inherit inbox state.
+    return <ClubWorkspaceSession key={`${sessionId}:${id}`} darkMode={darkMode} sessionId={sessionId} />;
+}
+
+function ClubWorkspaceSession({ darkMode, sessionId }: { darkMode: boolean; sessionId: AuthSessionId }) {
     const { t } = useTranslation();
     const { id: clubIdParam } = useParams<{ id: string }>();
     const clubId = Number(clubIdParam);
@@ -199,6 +208,16 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
     const inboxActiveRef = useRef(true);
     useEffect(() => { inboxActiveRef.current = true; return () => { inboxActiveRef.current = false; }; }, []);
+    const inboxRequests = useRef(new Set<AbortController>());
+    const canReadInbox = overview !== null && overviewError === null
+        && ['OWNER', 'CLUB_ADMIN', 'COACH'].includes(overview.currentUserRole ?? '');
+    useEffect(() => {
+        const requests = inboxRequests.current;
+        return () => {
+            requests.forEach(controller => controller.abort());
+            requests.clear();
+        };
+    }, [canReadInbox]);
 
     const currentRole: string | null = overview?.currentUserRole ?? null;
     const canManageLeadership = isLeadershipRole(currentRole);
@@ -401,34 +420,42 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     const PAGE_SIZE = 20;
 
     const loadInbox = useCallback(async (page: number, append: boolean) => {
+        if (!canReadInbox || !isCurrentAuthSession(sessionId) || !inboxActiveRef.current) return;
+        const controller = new AbortController();
+        inboxRequests.current.add(controller);
         setInboxError(null);
         if (page === 0 && !append) setInboxLoading(true);
         else setInboxLoadingMore(true);
         try {
-            const response = await fetchNotifications({ page, size: PAGE_SIZE, scope: 'club', clubId });
-            if (inboxActiveRef.current) {
+            const response = await fetchNotifications({ page, size: PAGE_SIZE, scope: 'club', clubId }, { signal: controller.signal, _authSessionId: sessionId });
+            if (!controller.signal.aborted && inboxActiveRef.current && isCurrentAuthSession(sessionId)) {
                 setInboxPage(response.pageNumber);
                 setInboxTotalElements(response.totalElements);
                 setInboxNotifications(prev => append ? [...prev, ...response.content] : response.content);
             }
         } catch (error) {
-            if (inboxActiveRef.current) setInboxError(extractApiErrorMessage(error, 'Could not load club inbox.'));
+            if (!controller.signal.aborted && inboxActiveRef.current && isCurrentAuthSession(sessionId)) setInboxError(extractApiErrorMessage(error, 'Could not load club inbox.'));
         } finally {
-            if (inboxActiveRef.current) {
+            inboxRequests.current.delete(controller);
+            if (!controller.signal.aborted && inboxActiveRef.current && isCurrentAuthSession(sessionId)) {
                 setInboxLoading(false);
                 setInboxLoadingMore(false);
             }
         }
-    }, [clubId]);
+    }, [clubId, canReadInbox, sessionId]);
 
     const loadInboxUnreadCount = useCallback(async () => {
+        if (!canReadInbox || !isCurrentAuthSession(sessionId) || !inboxActiveRef.current) return;
+        const controller = new AbortController();
+        inboxRequests.current.add(controller);
         try {
-            const response = await fetchUnreadNotificationCount({ scope: 'club', clubId });
-            if (inboxActiveRef.current) {
+            const response = await fetchUnreadNotificationCount({ scope: 'club', clubId }, { signal: controller.signal, _authSessionId: sessionId });
+            if (!controller.signal.aborted && inboxActiveRef.current && isCurrentAuthSession(sessionId)) {
                 setInboxUnreadCount(response.unreadCount);
             }
         } catch { /* silent */ }
-    }, [clubId]);
+        finally { inboxRequests.current.delete(controller); }
+    }, [clubId, canReadInbox, sessionId]);
 
     useEffect(() => {
         if (activeTab !== 'inbox') return;

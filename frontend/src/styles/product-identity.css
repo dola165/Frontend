@@ -1,0 +1,130 @@
+/* Product contract: near-black canvas, neutral surfaces, semantic neon accents.
+   This stylesheet owns shared presentation; map tiles/styles remain separate. */
+.dark {
+  --gk-canvas: #070809;
+  --gk-surface: #101113;
+  --gk-raised: #191b1f;
+  --gk-border: #2c2f35;
+  --bg-base: var(--gk-canvas);
+  --bg-surface: var(--gk-surface);
+  --bg-elevated: var(--gk-raised);
+  --bg-inset: #0b0c0e;
+  --text-primary: #f4f5f7;
+  --text-secondary: #bdc1cb;
+  --text-muted: #979eab;
+  --border-subtle: var(--gk-border);
+  --border-strong: #454953;
+  --accent-primary: #00e676;
+  --accent-primary-soft: #00e67616;
+  --app-shell-base: var(--gk-canvas);
+  --app-shell-surface: var(--gk-surface);
+  --app-shell-elevated: var(--gk-raised);
+  --app-shell-inset: #0b0c0e;
+  --app-text-secondary: var(--text-secondary);
+  --app-text-muted: var(--text-muted);
+  --fc-page-bg: var(--gk-canvas);
+  --fc-sidebar-bg: var(--gk-surface);
+  --fc-card-bg: var(--gk-raised);
+  --fc-border: var(--gk-border);
+  --fc-text-secondary: var(--text-secondary);
+  --fc-text-muted: var(--text-muted);
+  --fc-radius: 10px;
+  --workspace-zone-highlight: transparent;
+}
+.dark .feed-home-shell,
+.dark .club-page-shell:not(.map-page-shell) {
+  --feed-bg: var(--gk-canvas);
+  --feed-surface: var(--gk-surface);
+  --feed-card: var(--gk-surface);
+  --feed-card-soft: var(--gk-raised);
+  --feed-card-muted: var(--gk-surface);
+  --feed-layer-bg: var(--gk-raised);
+  --feed-input-bg: #0b0c0e;
+  --feed-nav-surface: var(--gk-canvas);
+  --feed-visual-bg: var(--gk-raised);
+  --feed-card-border: var(--gk-border);
+  --feed-text-primary: var(--text-primary);
+  --feed-text-secondary: var(--text-secondary);
+  --feed-text-muted: var(--text-muted);
+  --feed-text-placeholder: var(--text-muted);
+  --club-theme-base: var(--gk-canvas);
+  --club-theme-surface: var(--gk-surface);
+  --club-theme-elevated: var(--gk-raised);
+  --club-theme-text-secondary: var(--text-secondary);
+  --club-theme-text-muted: var(--text-muted);
+  --club-theme-border-subtle: var(--gk-border);
+  --club-band: var(--gk-surface);
+  --club-card: var(--gk-surface);
+}
+.dark .top-nav-force-dark { background: #0b0c0e; border-color: var(--gk-border); }
+.dark .top-nav-force-dark button:not([role]) { box-shadow: none; }
+.dark .landing-stadium { background: var(--gk-canvas); }
+.dark .landing-stadium [class~="bg-[#1c252e]"] { background: var(--gk-surface); }
+.dark .landing-stadium [class~="border-[#33414d]"] { border-color: var(--gk-border); }
+.dark .opportunity-link {
+  background: linear-gradient(115deg, color-mix(in srgb, var(--opportunity-color) 14%, #08090b), #08090b 90%);
+  border-color: color-mix(in srgb, var(--opportunity-color) 78%, transparent);
+  box-shadow: inset 3px 0 var(--opportunity-color), 0 0 12px color-mix(in srgb, var(--opportunity-color) 9%, transparent);
+}
+.dark .opportunity-link:hover {
+  background: color-mix(in srgb, var(--opportunity-color) 17%, #08090b);
+  box-shadow: inset 3px 0 var(--opportunity-color), 0 0 16px color-mix(in srgb, var(--opportunity-color) 16%, transparent);
+}
+.opportunity-link { min-height: 76px; }
+.opportunity-link__description { color: var(--text-secondary); }
+.home-opportunity-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.home-opportunity-strip .opportunity-link { padding: 12px; }
+.workspace-shortcut { border: 1px solid var(--theme-border); border-radius: 12px; margin-bottom: 8px; }
+.workspace-shortcut .home-shortcut-icon { background: var(--accent-primary-soft); }
+.workspace-shortcut-group { margin-bottom: 8px; border: 1px solid var(--theme-border); border-radius: 12px; }
+.feed-home-grid { gap: 24px; }
+/* Let secondary rails give way before making the feed uncomfortable to read. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .feed-home-grid { grid-template-columns: 210px minmax(0, 680px); justify-content: center; }
+}
+@media (min-width: 1280px) {
+  .feed-home-grid { grid-template-columns: 200px minmax(0, 680px) 260px; justify-content: center; }
+  .home-opportunity-strip { display: none; }
+}
+@media (max-width: 639px) {
+  :root { --app-page-gutter: 12px; }
+  .feed-home-grid { padding-top: 12px; }
+  .home-opportunity-strip { grid-template-columns: 1fr; gap: 6px; }
+  .home-opportunity-strip .opportunity-link { min-height: 44px; padding: 10px 12px; }
+  .home-opportunity-strip .opportunity-link__description { display: none; }
+  .feed-home-shell article > div[class*="px-6"], .feed-home-shell article > div[class*="px-5"] { padding-left: 16px; padding-right: 16px; }
+}
+/* Bounded viewport breaks canvas/parent resize feedback. Zoom only changes geography. */
+.landing-map-viewport {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  height: clamp(420px, 68dvh, 680px);
+  max-height: 680px;
+  overflow: hidden;
+  contain: size layout;
+}
+.landing-map-viewport > .map-experience-embedded { position: absolute; inset: 0; height: 100%; min-height: 0; max-height: 100%; }
+.landing-content-frame > * { min-width: 0; }
+@media (max-width: 639px) { .landing-map-viewport { height: 520px; max-height: 75dvh; } }
+.workspace-page-shell { max-width: 1800px; margin-inline: auto; }
+@media (max-width: 1439px) {
+  .workspace-mobile-bar { display: flex; width: 100%; }
+  .workspace-sidebar, .workspace-context-panel, .workspace-sidebar-backdrop, .workspace-context-backdrop { top: var(--app-active-header-height); }
+}
+/* Calendar: tools wrap; filters become an explicit drawer; timeline scroll stays internal. */
+.schedule-page-shell { min-width: 0; }
+.schedule-page-shell > header > div,
+.schedule-page-shell > header > div > div { min-width: 0; flex-wrap: wrap; gap: 12px; }
+.schedule-toolbar { flex-wrap: wrap; }
+.schedule-toolbar > div { min-width: 0; flex-wrap: wrap; }
+.schedule-filter-toggle { display: none; }
+@media (max-width: 899px) {
+  .schedule-filter-toggle { display: inline-flex; }
+  .schedule-filter-rail { display: none; }
+  .schedule-filter-rail.is-open { display: block; position: absolute; inset: 0 auto 0 0; z-index: 80; width: min(85vw, 300px) !important; box-shadow: 12px 0 36px #0008; }
+  .schedule-rail-resizer { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .opportunity-link, .world-nav-button, .world-nav-button::before { animation: none; transition: none; }
+}

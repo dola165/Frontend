@@ -170,6 +170,7 @@ export const createClubApplication = async (
 // ── Club jobs (WEB_APP_MASTER_PLAN.md §4.2, Phase 2) ──
 
 export interface ClubJob {
+    version?: number;
     id: number;
     clubId?: number | null;
     title: string;
@@ -193,6 +194,7 @@ export type ClubJobCategory = 'COACHING' | 'FOOTBALL_OPERATIONS' | 'ADMINISTRATI
 export type ClubJobEngagementType = 'PAID' | 'VOLUNTEER' | 'FLEXIBLE' | 'UNSPECIFIED';
 
 export interface ClubJobPayload {
+    version?: number;
     title?: string;
     description?: string | null;
     ageGroup?: string | null;
@@ -240,8 +242,8 @@ export const updateClubJob = async (clubId: number, jobId: number, payload: Club
     return response.data;
 };
 
-export const deleteClubJob = async (clubId: number, jobId: number) => {
-    await apiClient.delete(`/clubs/${clubId}/jobs/${jobId}`);
+export const deleteClubJob = async (clubId: number, jobId: number, version: number | undefined) => {
+    await apiClient.delete(`/clubs/${clubId}/jobs/${jobId}`, { params: { version } });
 };
 
 /** Per-job application list (item 5) — job creator or club owner/admin only. */

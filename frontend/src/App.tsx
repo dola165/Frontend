@@ -1,63 +1,71 @@
-import {CampaignsPage} from './pages/CampaignsPage';
-import {CampaignDetailPage} from './pages/CampaignDetailPage';
-import { JobDetailPage } from './pages/JobDetailPage';
-import { StorePage } from './pages/StorePage';
-import { ClubStorePage } from './pages/ClubStorePage';
-import { StoreProductPage } from './pages/StoreProductPage';
-import { StoreCartPage } from './pages/StoreCartPage';
-import { useEffect, useState, type CSSProperties, type JSX } from 'react';
+import { useTranslation } from 'react-i18next';
+import { lazy, useEffect, useState, type CSSProperties, type JSX } from 'react';
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { TopNav } from './components/layout/TopNav';
 import { LeftSidebar } from './components/layout/LeftSidebar';
 import { RightSidebar } from './components/layout/RightSidebar';
 import { AppPageFrame } from './components/layout/AppPageShell';
-import { ClubProfilePage } from './pages/ClubProfilePage';
-import { UserProfilePage } from './pages/UserProfilePage';
-import { MapPage } from './pages/MapPage';
-import { FeedPage } from './pages/FeedPage';
-import { LandingPage } from './pages/LandingPage';
-import { BrowseClubsPage } from './pages/BrowseClubsPage';
-import { MessagingPage } from './pages/MessagingPage';
-import { MyClubPage } from './pages/MyClubPage';
-import { CalendarPage } from './pages/CalendarPage';
-import { ClubSquadsPage } from './pages/ClubSquadsPage';
-import { NotificationsPage } from './pages/NotificationsPage';
-import { OnboardingPage } from './pages/OnboardingPage';
-import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { DobGatePage } from './pages/DobGatePage';
-import { ConsentPage } from './pages/ConsentPage';
-import { SetPasswordPage } from './pages/SetPasswordPage';
-import { OAuth2RedirectHandler } from './pages/OAuth2RedirectHandler';
-import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
-import { ResetPasswordPage } from './pages/ResetPasswordPage';
-import { VerifyEmailPage } from './pages/VerifyEmailPage';
-import { AccountPage } from './pages/AccountPage';
-import { AdminPage } from './pages/AdminPage';
-import { TournamentSetupPage } from './pages/TournamentSetupPage';
-import { TournamentWorkspacePage } from './pages/TournamentWorkspacePage';
-import { TournamentDetailPage } from './pages/TournamentDetailPage';
-import { BrowseTournamentsPage } from './pages/BrowseTournamentsPage';
-import { CreateOrganizationPage } from './pages/CreateOrganizationPage';
-import { CreateClubPage } from './pages/CreateClubPage';
-import ClubWorkspacePage from './pages/ClubWorkspacePage';
-import { FollowedClubsPage } from './pages/FollowedClubsPage';
-import { JobsDirectoryPage } from './pages/JobsDirectoryPage';
-import { PeoplePage } from './pages/PeoplePage';
-import { PostPage } from './pages/PostPage';
-import { PublicWorldMapPage } from './pages/PublicWorldMapPage';
-import { RouteRecoveryPage } from './pages/RouteRecoveryPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthSessionBoundary } from './context/AuthSessionBoundary';
 import { buildLoginRedirectPath, requiredAccountStep, resolvePostAuthRedirect } from './utils/authRedirect';
-import { fetchMyClubMembershipContext } from './features/clubs/api';
+import { fetchMyClubMembershipContext, fetchMyClubMemberships } from './features/clubs/api';
+import { canManageClubOperations } from './features/clubs/domain';
+import type { ManagedClubLink } from './components/layout/WorkspaceShortcuts';
 import { isThemePreference, type ThemePreference } from './theme';
+
+import { RouteViewport } from './components/layout/RouteViewport';
+import { RouteMetadata } from './components/layout/RouteMetadata';
+import { LoginPage } from './pages/LoginPage';
+
+const CampaignsPage = lazy(() => import('./pages/CampaignsPage').then(module => ({default: module.CampaignsPage})));
+const CampaignDetailPage = lazy(() => import('./pages/CampaignDetailPage').then(module => ({default: module.CampaignDetailPage})));
+const JobDetailPage = lazy(() => import('./pages/JobDetailPage').then(module => ({default: module.JobDetailPage})));
+const StorePage = lazy(() => import('./pages/StorePage').then(module => ({default: module.StorePage})));
+const ClubStorePage = lazy(() => import('./pages/ClubStorePage').then(module => ({default: module.ClubStorePage})));
+const StoreProductPage = lazy(() => import('./pages/StoreProductPage').then(module => ({default: module.StoreProductPage})));
+const StoreCartPage = lazy(() => import('./pages/StoreCartPage').then(module => ({default: module.StoreCartPage})));
+const ClubProfilePage = lazy(() => import('./pages/ClubProfilePage').then(module => ({default: module.ClubProfilePage})));
+const UserProfilePage = lazy(() => import('./pages/UserProfilePage').then(module => ({default: module.UserProfilePage})));
+const MapPage = lazy(() => import('./pages/MapPage').then(module => ({default: module.MapPage})));
+const FeedPage = lazy(() => import('./pages/FeedPage').then(module => ({default: module.FeedPage})));
+const LandingPage = lazy(() => import('./pages/LandingPage').then(module => ({default: module.LandingPage})));
+const BrowseClubsPage = lazy(() => import('./pages/BrowseClubsPage').then(module => ({default: module.BrowseClubsPage})));
+const MessagingPage = lazy(() => import('./pages/MessagingPage').then(module => ({default: module.MessagingPage})));
+const MyClubPage = lazy(() => import('./pages/MyClubPage').then(module => ({default: module.MyClubPage})));
+const CalendarPage = lazy(() => import('./pages/CalendarPage').then(module => ({default: module.CalendarPage})));
+const ClubSquadsPage = lazy(() => import('./pages/ClubSquadsPage').then(module => ({default: module.ClubSquadsPage})));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(module => ({default: module.NotificationsPage})));
+const OnboardingPage = lazy(() => import('./pages/OnboardingPage').then(module => ({default: module.OnboardingPage})));
+const RegisterPage = lazy(() => import('./pages/RegisterPage').then(module => ({default: module.RegisterPage})));
+const DobGatePage = lazy(() => import('./pages/DobGatePage').then(module => ({default: module.DobGatePage})));
+const ConsentPage = lazy(() => import('./pages/ConsentPage').then(module => ({default: module.ConsentPage})));
+const SetPasswordPage = lazy(() => import('./pages/SetPasswordPage').then(module => ({default: module.SetPasswordPage})));
+const OAuth2RedirectHandler = lazy(() => import('./pages/OAuth2RedirectHandler').then(module => ({default: module.OAuth2RedirectHandler})));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage').then(module => ({default: module.ForgotPasswordPage})));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then(module => ({default: module.ResetPasswordPage})));
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(module => ({default: module.VerifyEmailPage})));
+const AccountPage = lazy(() => import('./pages/AccountPage').then(module => ({default: module.AccountPage})));
+const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({default: module.AdminPage})));
+const TournamentSetupPage = lazy(() => import('./pages/TournamentSetupPage').then(module => ({default: module.TournamentSetupPage})));
+const TournamentWorkspacePage = lazy(() => import('./pages/TournamentWorkspacePage').then(module => ({default: module.TournamentWorkspacePage})));
+const TournamentDetailPage = lazy(() => import('./pages/TournamentDetailPage').then(module => ({default: module.TournamentDetailPage})));
+const BrowseTournamentsPage = lazy(() => import('./pages/BrowseTournamentsPage').then(module => ({default: module.BrowseTournamentsPage})));
+const CreateOrganizationPage = lazy(() => import('./pages/CreateOrganizationPage').then(module => ({default: module.CreateOrganizationPage})));
+const CreateClubPage = lazy(() => import('./pages/CreateClubPage').then(module => ({default: module.CreateClubPage})));
+const ClubWorkspacePage = lazy(() => import('./pages/ClubWorkspacePage').then(module => ({default: module.default})));
+const FollowedClubsPage = lazy(() => import('./pages/FollowedClubsPage').then(module => ({default: module.FollowedClubsPage})));
+const JobsDirectoryPage = lazy(() => import('./pages/JobsDirectoryPage').then(module => ({default: module.JobsDirectoryPage})));
+const PeoplePage = lazy(() => import('./pages/PeoplePage').then(module => ({default: module.PeoplePage})));
+const PostPage = lazy(() => import('./pages/PostPage').then(module => ({default: module.PostPage})));
+const PublicWorldMapPage = lazy(() => import('./pages/PublicWorldMapPage').then(module => ({default: module.PublicWorldMapPage})));
+const RouteRecoveryPage = lazy(() => import('./pages/RouteRecoveryPage').then(module => ({default: module.RouteRecoveryPage})));
 
 const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/consent']);
 const boundedCanvasPages = new Set(['/map', '/messages', '/calendar']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
     <div className="flex min-h-screen items-center justify-center bg-[#0f1117]">
-        <div className="flex flex-col items-center gap-4 text-center">
+        <div role="status" className="flex flex-col items-center gap-4 text-center">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#16a34a] border-t-transparent"></div>
             <p className="text-sm font-medium text-[#a1a1aa]">
                 {label}
@@ -174,10 +182,13 @@ const ClubCreateRoute = ({ children }: { children: JSX.Element }) => {
 };
 
 function MainLayout() {
+    // Re-render presentation on language changes without remounting page state.
+    useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
     const { status, user, logout } = useAuth();
     const [myClubId, setMyClubId] = useState<number | null>(null);
+    const [managedClubs, setManagedClubs] = useState<ManagedClubLink[]>([]);
     const [collapsedNavLocationKey, setCollapsedNavLocationKey] = useState<string | null>(null);
     const [themePreference, setThemePreference] = useState<ThemePreference>(() => {
         const savedPreference = localStorage.getItem('theme-preference');
@@ -242,6 +253,9 @@ function MainLayout() {
                     setMyClubId(null);
                 }
             });
+        void fetchMyClubMemberships().then(memberships => {
+            if (active) setManagedClubs(memberships.filter(m => m.status === 'ACTIVE' && canManageClubOperations(m.role)));
+        }).catch(() => { if (active) setManagedClubs([]); });
 
         return () => {
             active = false;
@@ -250,6 +264,7 @@ function MainLayout() {
 
     const handleLogout = async () => {
         setMyClubId(null);
+        setManagedClubs([]);
         await logout();
         navigate('/login', { replace: true });
     };
@@ -299,7 +314,7 @@ function MainLayout() {
         : '0px';
 
     const fullScreenRoutes = (
-        <Routes>
+        <RouteViewport><Routes>
             <Route path="/map" element={<ProtectedRoute><MapPage darkMode={themePreference === 'dark'} /></ProtectedRoute>} />
             <Route path="/world" element={<PublicWorldMapPage />} />
             <Route path="/clubs" element={<BrowseClubsPage />} />
@@ -338,7 +353,7 @@ function MainLayout() {
             <Route path="/dob" element={<ProtectedRoute><DobGatePage /></ProtectedRoute>} />
             <Route path="/set-password" element={<ProtectedRoute><SetPasswordPage /></ProtectedRoute>} />
             <Route path="*" element={<RouteRecoveryPage />} />
-        </Routes>
+        </Routes></RouteViewport>
     );
 
     return (
@@ -346,10 +361,12 @@ function MainLayout() {
             className={`${hasProductNavigation ? 'product-app-shell' : ''} min-h-screen bg-[color:var(--theme-page)] text-[color:var(--text-primary)] transition-colors duration-200`}
             style={{ '--app-active-header-height': activeHeaderHeight } as CSSProperties}
         >
+            <RouteMetadata />
             {hasProductNavigation && (
                 <TopNav
                     user={user}
                     myClubId={myClubId}
+                    managedClubs={managedClubs}
                     themePreference={themePreference}
                     setThemePreference={setThemePreference}
                     handleLogout={handleLogout}
@@ -361,7 +378,7 @@ function MainLayout() {
 
             {isLandingPage || isAuthPage ? (
                 <main>
-                    <Routes>
+                    <RouteViewport><Routes>
                         <Route path="/" element={<LandingPage />} />
                         <Route path="/login" element={<GuestOnlyRoute><LoginPage /></GuestOnlyRoute>} />
                         <Route path="/signup" element={<GuestOnlyRoute><RegisterPage /></GuestOnlyRoute>} />
@@ -370,7 +387,7 @@ function MainLayout() {
                         <Route path="/verify-email" element={<VerifyEmailPage />} />
                         <Route path="/consent" element={<ConsentPage />} />
                         <Route path="/oauth2/callback" element={<OAuth2RedirectHandler />} />
-                    </Routes>
+                    </Routes></RouteViewport>
                 </main>
             ) : isFullScreenPage ? (
                 isImmersiveCanvasPage ? (
@@ -392,14 +409,14 @@ function MainLayout() {
             ) : (
                 <div className={isHomeFeed ? 'feed-home-shell min-h-[calc(100dvh-var(--app-header-height))]' : ''}>
                     <div className={`grid grid-cols-1 gap-6 pb-10 pt-6 ${isHomeFeed ? 'feed-home-grid mx-auto w-full max-w-[var(--app-page-max-width)] px-[var(--app-page-gutter)] lg:grid-cols-[240px_minmax(0,680px)] lg:justify-between xl:grid-cols-[220px_minmax(0,680px)_280px] 2xl:grid-cols-[300px_minmax(0,680px)_300px]' : 'mx-auto max-w-[1480px] px-4 sm:px-6 lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[220px_minmax(0,720px)_280px]'}`}>
-                            <LeftSidebar user={user} />
+                            <LeftSidebar user={user} managedClubs={managedClubs} />
 
                         <main className="min-w-0">
-                            <Routes>
-                                <Route path="/home" element={<ProtectedRoute><FeedPage user={user} /></ProtectedRoute>} />
+                            <RouteViewport><Routes>
+                                <Route path="/home" element={<ProtectedRoute><FeedPage user={user} managedClubs={managedClubs} /></ProtectedRoute>} />
                                 <Route path="/feed" element={<Navigate to={`/home${location.search}`} replace />} />
                                 <Route path="*" element={<RouteRecoveryPage />} />
-                            </Routes>
+                            </Routes></RouteViewport>
                         </main>
 
                         <RightSidebar />
@@ -415,7 +432,7 @@ export default function App() {
     return (
         <Router>
             <AuthProvider>
-                <MainLayout />
+                <AuthSessionBoundary><MainLayout /></AuthSessionBoundary>
             </AuthProvider>
         </Router>
     );

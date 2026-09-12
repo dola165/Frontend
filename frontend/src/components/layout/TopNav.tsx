@@ -1,16 +1,17 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
     Check,
-    Compass,
+    LayoutGrid,
     LogOut,
     Menu,
     MessageSquare,
     MapPinned,
     Moon,
-    PanelTopClose,
-    PanelTopOpen,
+    ChevronUp,
+    ChevronDown,
     Settings,
     ShieldCheck,
     Sun,
@@ -24,8 +25,10 @@ import { primaryProductNavigation, resolveNavigationKey, secondaryProductNavigat
 import { GrasskickzLogo } from './GrasskickzLogo';
 import { AppPageFrame } from './AppPageShell';
 import type { ThemePreference } from '../../theme';
+import type { ManagedClubLink } from './WorkspaceShortcuts';
 
 interface TopNavProps {
+    managedClubs?: ManagedClubLink[];
     user: { id?: number; username?: string; fullName?: string; role?: string } | null;
     myClubId: number | null;
     themePreference: ThemePreference;
@@ -39,6 +42,7 @@ interface TopNavProps {
 export const TopNav = ({
     user,
     myClubId,
+    managedClubs = [],
     themePreference,
     setThemePreference,
     handleLogout,
@@ -153,7 +157,10 @@ export const TopNav = ({
         : lightNavigation ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'border-white/[0.07] bg-[#292d34] text-[#f1f3f5] hover:bg-[#363b44] hover:text-white'}`;
     const menuItemClass = `flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${lightNavigation ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-[#d4d4d8] hover:bg-white/[0.06] hover:text-white'}`;
     const visibleLinks = primaryProductNavigation.filter(item => !item.authRequired || !!user);
-    const visibleSecondaryLinks = secondaryProductNavigation.filter(item => !item.authRequired || !!user);
+    const visibleSecondaryLinks = [
+        ...managedClubs.map(club => ({ id: `workspace-${club.clubId}`, path: `/clubs/${club.clubId}/workspace`, label: `Workspace — ${club.clubName}`, translationKey: `workspaceShortcut.${club.clubId}`, icon: LayoutGrid, authRequired: true, preview: false })),
+        ...secondaryProductNavigation.filter(item => !item.authRequired || !!user),
+    ];
     const mobileLinks = [
         ...visibleLinks,
         ...visibleSecondaryLinks,
@@ -171,15 +178,15 @@ export const TopNav = ({
                 aria-controls="app-top-navigation"
                 aria-expanded="false"
             >
-                <PanelTopOpen className="h-4 w-4 text-[#16a34a]" />
-                <span className="hidden sm:inline">{t('nav.showNavigation')}</span>
+                <ChevronDown className="h-4 w-4 text-[#16a34a]" />
+                <span>{t('nav.showNavigation')}</span>
             </button>
         );
     }
 
     return (
-        <nav id="app-top-navigation" className={`sticky top-0 z-[1500] border-b backdrop-blur-xl ${lightNavigation ? 'top-nav-light border-slate-200 bg-[#f8fafc]' : 'top-nav-force-dark border-[#ffffff0d] bg-[#0f1117]'}`}>
-            <AppPageFrame className="flex flex-col">
+        <nav id="app-top-navigation" className={`sticky top-0 z-[1500] border-b backdrop-blur-xl ${lightNavigation ? 'top-nav-light border-slate-200 bg-[#f8fafc]' : 'top-nav-force-dark border-[#33414d] bg-[#10151b]'}`}>
+            <AppPageFrame className="relative flex flex-col">
                 <div className="flex h-[56px] items-center justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-3">
                         <Link to={user ? '/home' : '/'} className="shrink-0">
@@ -215,7 +222,7 @@ export const TopNav = ({
                                     setOpenMenuLocationKey(null);
                                     setOpenExploreLocationKey(exploreMenuOpen ? null : location.key);
                                 }}
-                                className={`${iconActionClass(secondaryActive)} w-auto gap-2 px-2.5 sm:px-3`}
+                                className={`${iconActionClass(secondaryActive)} !w-auto gap-2 px-2.5 sm:px-3`}
                                 ref={exploreTriggerRef}
                                 aria-label={t('nav.explore')}
                                 title={t('nav.explore')}
@@ -223,7 +230,7 @@ export const TopNav = ({
                                 aria-haspopup="menu"
                                 aria-controls="explore-navigation-menu"
                             >
-                                <Compass className="h-5 w-5" />
+                                <LayoutGrid className="h-5 w-5" />
                                 <span className="hidden text-xs font-semibold sm:inline">{t('nav.explore')}</span>
                             </button>
 
@@ -255,9 +262,9 @@ export const TopNav = ({
                                 >
                                     <span className="world-nav-button__inner flex h-full items-center gap-2 rounded-full px-2.5">
                                         <span className="hidden h-8 w-[94px] overflow-hidden sm:block">
-                                            <img src="/brand/grasskickz-world-wordmark.png" alt="GrassKickZ World" className="h-full w-full object-cover object-center" />
+                                            <MediaImage src="/brand/grasskickz-world-wordmark.png" alt="GrassKickZ World" className="h-full w-full object-cover object-center" />
                                         </span>
-                                        <img src="/brand/grasskickz-world-mark.png" alt="" className="h-8 w-6 shrink-0 object-contain" />
+                                        <MediaImage src="/brand/grasskickz-world-mark.png" alt="" className="h-8 w-6 shrink-0 object-contain" />
                                     </span>
                                 </Link>
                                 <span className="hidden md:inline-flex">
@@ -369,6 +376,11 @@ export const TopNav = ({
                             </>
                         ) : (
                             <>
+                                <button type="button" onClick={switchLanguage} className={iconActionClass()}
+                                    aria-label={isGeorgian ? t('nav.useEnglish') : t('nav.useGeorgian')}
+                                    title={t('nav.language')}>
+                                    <span className="text-xs font-semibold">{isGeorgian ? 'EN' : 'GE'}</span>
+                                </button>
                                 <Link
                                     to="/login"
                                     className="hidden rounded-xl px-3 py-2 text-xs font-semibold text-[#a1a1aa] transition-colors hover:bg-[#1a1c22] hover:text-[#f4f4f5] sm:inline-flex"
@@ -387,24 +399,11 @@ export const TopNav = ({
                             </>
                         )}
 
-                        {collapsible && (
-                            <button
-                                type="button"
-                                onClick={() => onCollapsedChange?.(true)}
-                                className={iconActionClass()}
-                                aria-label={t('nav.hideNavigation')}
-                                title={t('nav.hideNavigation')}
-                                aria-controls="app-top-navigation"
-                                aria-expanded="true"
-                            >
-                                <PanelTopClose className="h-4 w-4" />
-                            </button>
-                        )}
                     </div>
                 </div>
 
-                <div className={`scrollbar-hide overflow-x-auto border-t ${lightNavigation ? 'border-slate-200' : 'border-[#ffffff0d]'}`}>
-                    <div className="flex min-w-max items-stretch gap-1 px-1">
+                <div className={`flex min-w-0 items-center border-t ${lightNavigation ? 'border-slate-200' : 'border-[#ffffff0d]'}`}>
+                    <div className="scrollbar-hide flex min-w-0 flex-1 items-stretch gap-1 overflow-x-auto px-1">
                         {visibleLinks.map((item) => {
                             const active = activeKey === item.id;
                             const Icon = item.icon;
@@ -413,19 +412,27 @@ export const TopNav = ({
                                 <Link
                                     key={item.path}
                                     to={item.path}
-                                    className={`inline-flex h-10 items-center gap-2 border-b-[3px] px-3 text-xs font-semibold transition-colors ${
+                                    className={`inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap border-b-[3px] px-3 text-xs font-semibold transition-colors ${
                                         active
-                                            ? 'border-[#16a34a] text-[#16a34a]'
+                                            ? lightNavigation ? 'border-[#137b46] text-[#137b46]' : 'border-[#00e676] text-[#00e676]'
                                             : lightNavigation ? 'border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-950' : 'border-transparent text-[#a1a1aa] hover:bg-[#1a1c22] hover:text-[#f4f4f5]'
                                     }`}
                                 >
-                                    <Icon className={`h-4 w-4 ${active ? 'text-[#16a34a]' : ''}`} />
+                                    <Icon className={`h-4 w-4 ${active ? 'text-current' : ''}`} />
                                     {t(item.translationKey, item.label)}
                                     {item.preview ? <span className="rounded-full border border-amber-400/30 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-amber-300">{t('nav.preview')}</span> : null}
                                 </Link>
                             );
                         })}
                     </div>
+                    {collapsible && (
+                        <button type="button" onClick={() => onCollapsedChange?.(true)}
+                            className="nav-hide-control inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--theme-surface-strong)] focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]"
+                            aria-label={t('nav.hideNavigation')} title={t('nav.hideNavigation')}
+                            aria-controls="app-top-navigation" aria-expanded="true">
+                            <ChevronUp className="h-4 w-4" /><span className="hidden sm:inline">{t('nav.hideNavigation')}</span>
+                        </button>
+                    )}
                 </div>
                 {mobileSearchOpen && (
                     <div className={`flex items-center gap-2 border-t py-2 lg:hidden ${lightNavigation ? 'border-slate-200' : 'border-[#ffffff0d]'}`}>

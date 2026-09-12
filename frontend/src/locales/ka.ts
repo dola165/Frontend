@@ -1,6 +1,7 @@
 const ka = {
   app: {
     name: 'GrassKickZ',
+    loadingPage: 'გვერდი იტვირთება…',
   },
   nav: {
     feed: 'მთავარი',
@@ -34,7 +35,7 @@ const ka = {
     useEnglish: 'ინგლისურის გამოყენება',
     useGeorgian: 'ქართულის გამოყენება',
     mobileNavigation: 'GrassKickZ-ის დათვალიერება',
-    explore: 'დათვალიერება',
+    explore: 'სწრაფი ბმულები',
     preview: 'საცდელი',
     people: 'ხალხი',
     followedClubs: 'მიყოლილი კლუბები',

@@ -9,7 +9,7 @@ export const TabContact = ({ club }: { club: ClubProfile }) => {
     const links = buildClubProfileLinks(club);
 
     return (
-        <section className="rounded-[24px] border border-[color:var(--club-theme-border-subtle)] bg-[rgba(12,18,27,0.96)] p-5 shadow-[0_18px_32px_rgba(2,6,12,0.22)]">
+        <section className="rounded-[24px] border border-[color:var(--club-theme-border-subtle)] bg-[var(--club-card)] p-5 shadow-[0_18px_32px_rgba(2,6,12,0.22)]">
             <div className="mb-5">
                 <p className="text-[11px] font-semibold  text-[color:var(--club-tone-green)]">Contact</p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[color:var(--club-theme-text-primary)]">Reach club staff</h2>

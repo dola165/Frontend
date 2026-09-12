@@ -1,3 +1,4 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, X, Loader2, Users, Check, ArrowLeft, UserPlus, MessageCircle } from 'lucide-react';
 import { chatApi, type UserSearchResult } from '../../api/chat';
@@ -372,7 +373,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                     >
                                         <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm shrink-0 bg-[#16a34a]-soft text-[#16a34a]">
                                             {user.avatarUrl ? (
-                                                <img
+                                                <MediaImage
                                                     src={user.avatarUrl}
                                                     alt=""
                                                     className="w-full h-full rounded-full object-cover"
@@ -420,7 +421,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                         >
                                             <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0 bg-[#16a34a]-soft text-[#16a34a]">
                                                 {user.avatarUrl ? (
-                                                    <img
+                                                    <MediaImage
                                                         src={user.avatarUrl}
                                                         alt=""
                                                         className="w-full h-full rounded-full object-cover"

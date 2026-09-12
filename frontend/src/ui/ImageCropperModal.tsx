@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import Cropper from 'react-easy-crop';
+import Cropper, { type Area, type Point } from 'react-easy-crop';
 import { X, Check, Loader2 } from 'lucide-react';
 
 interface ImageCropperModalProps {
@@ -8,20 +8,20 @@ interface ImageCropperModalProps {
     aspectRatio: number; // e.g., 1 for square (logo), 3 for banner (1200x400)
     title: string;
     onClose: () => void;
-    onCropComplete: (croppedAreaPixels: any) => void;
+    onCropComplete: (croppedAreaPixels: Area) => void;
     isProcessing?: boolean;
 }
 
 export const ImageCropperModal = ({ isOpen, imageUrl, aspectRatio, title, onClose, onCropComplete, isProcessing }: ImageCropperModalProps) => {
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
-    const [croppedPixels, setCroppedPixels] = useState(null);
+    const [croppedPixels, setCroppedPixels] = useState<Area | null>(null);
 
-    const onCropChange = useCallback((crop: any) => setCrop(crop), []);
+    const onCropChange = useCallback((crop: Point) => setCrop(crop), []);
     const onZoomChange = useCallback((zoom: number) => setZoom(zoom), []);
 
     // We just save the pixel coordinates when the user stops dragging
-    const onCropCompleteInternal = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
+    const onCropCompleteInternal = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
         setCroppedPixels(croppedAreaPixels);
     }, []);
 
@@ -73,7 +73,7 @@ export const ImageCropperModal = ({ isOpen, imageUrl, aspectRatio, title, onClos
                             Cancel
                         </button>
                         <button
-                            onClick={() => onCropComplete(croppedPixels)}
+                            onClick={() => { if (croppedPixels) onCropComplete(croppedPixels); }}
                             disabled={!croppedPixels || isProcessing}
                             className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded font-semibold uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                         >

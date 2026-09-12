@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Building2, Loader2, MapPin, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -30,18 +30,26 @@ const readClubDirectoryView = (): ClubDirectoryView => {
 export const BrowseClubsPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { status } = useAuth();
+    const { status, user } = useAuth();
     const { t } = useTranslation();
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [urlSearchParams, setSearchParams] = useSearchParams();
+    // Inputs need an immediate draft because router navigation runs in a transition.
+    // A committed navigation (including back/forward) replaces that draft.
+    const [filterDraft, setFilterDraft] = useState({ key: location.key, params: urlSearchParams });
+    const searchParams = filterDraft.key === location.key ? filterDraft.params : urlSearchParams;
+    if (filterDraft.key !== location.key) {
+        setFilterDraft({ key: location.key, params: urlSearchParams });
+    }
 
-    // Filter state (synced to URL)
-    const [search, setSearch] = useState(searchParams.get('search') || '');
-    const [selectedTypes, setSelectedTypes] = useState<string[]>(searchParams.getAll('type'));
-    const [selectedPolicies, setSelectedPolicies] = useState<string[]>(searchParams.getAll('joinPolicy'));
-    const [city, setCity] = useState(searchParams.get('city') || '');
-    const [country, setCountry] = useState(searchParams.get('country') || '');
-    const [sort, setSort] = useState(searchParams.get('sort') || 'NEWEST');
-    const [page, setPage] = useState(Number(searchParams.get('page')) || 0);
+    // Only user actions write filters. Responses never navigate or restore filters.
+    const search = searchParams.get('search') || '';
+    const selectedTypes = searchParams.getAll('type');
+    const selectedPolicies = searchParams.getAll('joinPolicy');
+    const city = searchParams.get('city') || '';
+    const country = searchParams.get('country') || '';
+    const sort = searchParams.get('sort') || 'NEWEST';
+    const requestedPage = Number(searchParams.get('page'));
+    const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 0;
     const [pageSize, setPageSize] = useState(12);
     const [view, setView] = useState<ClubDirectoryView>(readClubDirectoryView);
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -60,86 +68,72 @@ export const BrowseClubsPage = () => {
     const [actionMessage, setActionMessage] = useState<string | null>(null);
     const [actionMessageType, setActionMessageType] = useState<'success' | 'error'>('success');
 
-    const buildQueryParams = useCallback((overrides?: Record<string, string>) => {
-        const params = new URLSearchParams();
-        if (search) params.set('search', search);
-        selectedTypes.forEach((t) => params.append('type', t));
-        selectedPolicies.forEach((p) => params.append('joinPolicy', p));
-        if (city) params.set('city', city);
-        if (country) params.set('country', country);
-        if (sort !== 'NEWEST') params.set('sort', sort);
-        if (page > 0) params.set('page', String(page));
-        if (overrides) Object.entries(overrides).forEach(([k, v]) => { if (v) params.set(k, v); else params.delete(k); });
-        return params;
-    }, [search, selectedTypes, selectedPolicies, city, country, sort, page]);
-
-    const loadClubs = useCallback(async () => {
-        setLoading(true);
-        setErrorMessage(null);
-        try {
-            const queryParams = new URLSearchParams();
-            selectedTypes.forEach((t) => queryParams.append('type', t));
-            selectedPolicies.forEach((p) => queryParams.append('joinPolicy', p));
-            if (search) queryParams.set('search', search);
-            if (city) queryParams.set('city', city);
-            if (country) queryParams.set('country', country);
-            if (sort !== 'NEWEST') queryParams.set('sort', sort);
-            queryParams.set('page', String(page));
-            queryParams.set('size', String(pageSize));
-
-            const membershipPromise =
-                status === 'authenticated'
-                    ? fetchMyClubMembershipContext().catch(() => null)
-                    : Promise.resolve(null);
-
-            const [clubsResponse, membershipResponse] = await Promise.all([
-                apiClient.get<ClubDirectoryPageResult<ClubProfile>>(`/clubs?${queryParams.toString()}`),
-                membershipPromise
-            ]);
-
-            const result = clubsResponse.data;
-            // Handle both PageResult and legacy List response formats
-            const isPageResult = result && typeof result === 'object' && Array.isArray(result.content);
-            setPageResult(isPageResult ? result : null);
-            setClubs(isPageResult ? result.content : Array.isArray(result) ? result : []);
-            setMembershipContext(membershipResponse);
-
-            // Sync URL
-            setSearchParams(buildQueryParams(), { replace: true });
-        } catch (error) {
-            setClubs([]);
-            setPageResult(null);
-            setMembershipContext(null);
-            setErrorMessage(extractApiErrorMessage(error, 'Failed to load the club directory.'));
-        } finally {
-            setLoading(false);
-        }
-    }, [status, search, selectedTypes, selectedPolicies, city, country, sort, page, pageSize, buildQueryParams, setSearchParams]);
-
-    // Sync URL → local state on browser back/forward navigation
-    useEffect(() => {
-        const urlSearch = searchParams.get('search') || '';
-        const urlTypes = searchParams.getAll('type');
-        const urlPolicies = searchParams.getAll('joinPolicy');
-        const urlCity = searchParams.get('city') || '';
-        const urlCountry = searchParams.get('country') || '';
-        const urlSort = searchParams.get('sort') || 'NEWEST';
-        const urlPage = Number(searchParams.get('page')) || 0;
-
-        // Only update if URL differs from current state (prevents loops)
-        if (urlSearch !== search) setSearch(urlSearch);
-        if (urlTypes.length !== selectedTypes.length || !urlTypes.every(t => selectedTypes.includes(t))) setSelectedTypes(urlTypes);
-        if (urlPolicies.length !== selectedPolicies.length || !urlPolicies.every(p => selectedPolicies.includes(p))) setSelectedPolicies(urlPolicies);
-        if (urlCity !== city) setCity(urlCity);
-        if (urlCountry !== country) setCountry(urlCountry);
-        if (urlSort !== sort) setSort(urlSort);
-        if (urlPage !== page) setPage(urlPage);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams]);
+    const queryParams = new URLSearchParams();
+    selectedTypes.forEach(type => queryParams.append('type', type));
+    selectedPolicies.forEach(policy => queryParams.append('joinPolicy', policy));
+    if (search) queryParams.set('search', search);
+    if (city) queryParams.set('city', city);
+    if (country) queryParams.set('country', country);
+    if (sort !== 'NEWEST') queryParams.set('sort', sort);
+    queryParams.set('page', String(page));
+    queryParams.set('size', String(pageSize));
+    const query = queryParams.toString();
 
     useEffect(() => {
+        const controller = new AbortController();
+        const loadClubs = async () => {
+            setLoading(true);
+            setErrorMessage(null);
+            try {
+                const response = await apiClient.get<ClubDirectoryPageResult<ClubProfile>>('/clubs?' + query, { signal: controller.signal });
+                // Also guard adapters that finish even after cancellation.
+                if (controller.signal.aborted) return;
+                const result = response.data;
+                const isPageResult = result && typeof result === 'object' && Array.isArray(result.content);
+                setPageResult(isPageResult ? result : null);
+                setClubs(isPageResult ? result.content : Array.isArray(result) ? result : []);
+            } catch (error) {
+                if (controller.signal.aborted) return;
+                setClubs([]);
+                setPageResult(null);
+                setErrorMessage(extractApiErrorMessage(error, 'Failed to load the club directory.'));
+            } finally {
+                if (!controller.signal.aborted) setLoading(false);
+            }
+        };
         void loadClubs();
-    }, [loadClubs]);
+        return () => controller.abort();
+    }, [query, status, user?.id]);
+
+    // Membership is independent of directory filters and must not delay results.
+    useEffect(() => {
+        let active = true;
+        setMembershipContext(null);
+        if (status === 'authenticated') {
+            void fetchMyClubMembershipContext().then(context => {
+                if (active) setMembershipContext(context);
+            }).catch(() => { /* Keep the workspace unavailable if membership cannot load. */ });
+        }
+        return () => { active = false; };
+    }, [status, user?.id]);
+
+    const updateFilters = (update: (params: URLSearchParams) => void, resetPage = true) => {
+        const next = new URLSearchParams(searchParams);
+        if (resetPage) next.delete('page');
+        update(next);
+        if (next.toString() !== searchParams.toString()) {
+            setFilterDraft({ key: location.key, params: next });
+            setSearchParams(next, { replace: true, preventScrollReset: true });
+        }
+    };
+    const setFilter = (key: string, value: string) => updateFilters(params => {
+        if (value) params.set(key, value);
+        else params.delete(key);
+    });
+    const setPage = (value: number) => updateFilters(params => {
+        if (value > 0) params.set('page', String(value));
+        else params.delete('page');
+    }, false);
 
     useEffect(() => {
         try {
@@ -244,30 +238,21 @@ export const BrowseClubsPage = () => {
         }
     };
 
-    const toggleType = (type: string) => {
-        setSelectedTypes((prev) => prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]);
-        setPage(0);
-    };
-
-    const togglePolicy = (policy: string) => {
-        setSelectedPolicies((prev) => prev.includes(policy) ? prev.filter((p) => p !== policy) : [...prev, policy]);
-        setPage(0);
-    };
-
-    const handleSearchChange = (value: string) => { setSearch(value); setPage(0); };
-    const handleCityChange = (value: string) => { setCity(value); setPage(0); };
-    const handleCountryChange = (value: string) => { setCountry(value); setPage(0); };
-    const handleSortChange = (value: string) => { setSort(value); setPage(0); };
-
-    const clearFilters = () => {
-        setSearch('');
-        setSelectedTypes([]);
-        setSelectedPolicies([]);
-        setCity('');
-        setCountry('');
-        setSort('NEWEST');
-        setPage(0);
-    };
+    const toggleFilter = (key: string, value: string) => updateFilters(params => {
+        const values = params.getAll(key);
+        params.delete(key);
+        (values.includes(value) ? values.filter(item => item !== value) : [...values, value])
+            .forEach(item => params.append(key, item));
+    });
+    const toggleType = (type: string) => toggleFilter('type', type);
+    const togglePolicy = (policy: string) => toggleFilter('joinPolicy', policy);
+    const handleSearchChange = (value: string) => setFilter('search', value);
+    const handleCityChange = (value: string) => setFilter('city', value);
+    const handleCountryChange = (value: string) => setFilter('country', value);
+    const handleSortChange = (value: string) => setFilter('sort', value === 'NEWEST' ? '' : value);
+    const clearFilters = () => updateFilters(params => {
+        ['search', 'type', 'joinPolicy', 'city', 'country', 'sort'].forEach(key => params.delete(key));
+    });
 
     const hasActiveFilters = Boolean(search || selectedTypes.length > 0 || selectedPolicies.length > 0 || city || country || sort !== 'NEWEST');
     const activeFilterChips: ClubDirectoryFilterChip[] = [
@@ -281,23 +266,16 @@ export const BrowseClubsPage = () => {
     const removeFilter = (id: string) => {
         const [kind, ...parts] = id.split(':');
         const value = parts.join(':');
-        if (kind === 'search') setSearch('');
-        if (kind === 'type') setSelectedTypes((current) => current.filter((item) => item !== value));
-        if (kind === 'joinPolicy') setSelectedPolicies((current) => current.filter((item) => item !== value));
-        if (kind === 'city') setCity('');
-        if (kind === 'country') setCountry('');
-        setPage(0);
+        if (kind === 'type' || kind === 'joinPolicy') {
+            updateFilters(params => {
+                const values = params.getAll(kind).filter(item => item !== value);
+                params.delete(kind);
+                values.forEach(item => params.append(kind, item));
+            });
+        } else setFilter(kind, '');
     };
 
     const totalPages = pageResult?.totalPages ?? 0;
-
-    if (loading && clubs.length === 0) {
-        return (
-            <div className="flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center bg-transparent">
-                <Loader2 className="h-9 w-9 animate-spin text-[#16a34a]" />
-            </div>
-        );
-    }
 
     return (
         <div className="min-h-full bg-transparent px-[var(--app-page-gutter)] py-6 text-[color:var(--text-primary)]">
@@ -396,7 +374,7 @@ export const BrowseClubsPage = () => {
                         />
                     </aside>
 
-                    <section aria-label={t('browseClubs.results')} className={`min-w-0 ${view === 'grid' && !loading && clubs.length > 0 ? '' : 'rounded-xl border border-[#ffffff0d] bg-[#16181d]'}`}>
+                    <section aria-label={t('browseClubs.results')} aria-busy={loading} className={`relative min-w-0 ${view === 'grid' && clubs.length > 0 ? '' : 'rounded-xl border border-[#ffffff0d] bg-[#16181d]'}`}>
                         {view === 'list' && (
                             <div className="hidden border-b border-[#ffffff0d] px-4 py-3 text-[11px] font-medium text-[#a1a1aa] lg:grid lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1.6fr)_150px_170px_180px] lg:gap-4">
                                 <span>Club</span>
@@ -407,52 +385,55 @@ export const BrowseClubsPage = () => {
                             </div>
                         )}
 
-                        {loading ? (
-                            <div className="flex justify-center py-10"><Loader2 className="h-7 w-7 animate-spin text-[#16a34a]" /></div>
-                        ) : clubs.length === 0 ? (
-                            <div className="px-4 py-12 text-center">
-                                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#ffffff0d] bg-[#0f1117]">
-                                    <Building2 className="h-6 w-6 text-[#16a34a]" />
+                        {loading && <div role="status" className="absolute inset-x-0 top-2 z-10 mx-auto flex w-fit items-center gap-2 rounded-full bg-[color:var(--theme-surface)] px-3 py-2 text-sm shadow">
+                            <Loader2 className="h-4 w-4 animate-spin text-[#16a34a]" />Loading clubs…
+                        </div>}
+                        <div inert={loading} className={loading ? 'min-h-40 opacity-50' : ''}>
+                            {clubs.length === 0 ? (
+                                <div className={`px-4 py-12 text-center ${loading ? 'invisible' : ''}`}>
+                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#ffffff0d] bg-[#0f1117]">
+                                        <Building2 className="h-6 w-6 text-[#16a34a]" />
+                                    </div>
+                                    <p className="mt-4 text-sm font-semibold text-[#a1a1aa]">
+                                        {hasActiveFilters ? t('browseClubs.emptyFiltered') : t('browseClubs.empty')}
+                                    </p>
+                                    <Link to="/map" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+                                        <MapPin className="h-4 w-4" />
+                                        {t('browseClubs.exploreMap')}
+                                    </Link>
                                 </div>
-                                <p className="mt-4 text-sm font-semibold text-[#a1a1aa]">
-                                    {hasActiveFilters ? t('browseClubs.emptyFiltered') : t('browseClubs.empty')}
-                                </p>
-                                <Link to="/map" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
-                                    <MapPin className="h-4 w-4" />
-                                    {t('browseClubs.exploreMap')}
-                                </Link>
-                            </div>
-                        ) : view === 'grid' ? (
-                            <div className="club-directory-card-grid mx-auto grid w-full max-w-[1800px] gap-4">
-                                {clubs.map((club) => (
-                                    <ClubDirectoryCard
-                                        key={club.id}
-                                        club={club}
-                                        authStatus={status}
-                                        joiningClubId={joiningClubId}
-                                        applyingClubId={applyingClubId}
-                                        onJoin={handleJoinClub}
-                                        onApply={handleApplyClub}
-                                        onFollowToggle={handleFollowToggle}
-                                    />
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-[#ffffff0d]">
-                                {clubs.map((club) => (
-                                    <ClubDirectoryResult
-                                        key={club.id}
-                                        club={club}
-                                        authStatus={status}
-                                        joiningClubId={joiningClubId}
-                                        applyingClubId={applyingClubId}
-                                        onJoin={handleJoinClub}
-                                        onApply={handleApplyClub}
-                                        onFollowToggle={handleFollowToggle}
-                                    />
-                                ))}
-                            </div>
-                        )}
+                            ) : view === 'grid' ? (
+                                <div className="club-directory-card-grid mx-auto grid w-full max-w-[1800px] gap-4">
+                                    {clubs.map((club) => (
+                                        <ClubDirectoryCard
+                                            key={club.id}
+                                            club={club}
+                                            authStatus={status}
+                                            joiningClubId={joiningClubId}
+                                            applyingClubId={applyingClubId}
+                                            onJoin={handleJoinClub}
+                                            onApply={handleApplyClub}
+                                            onFollowToggle={handleFollowToggle}
+                                        />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-[#ffffff0d]">
+                                    {clubs.map((club) => (
+                                        <ClubDirectoryResult
+                                            key={club.id}
+                                            club={club}
+                                            authStatus={status}
+                                            joiningClubId={joiningClubId}
+                                            applyingClubId={applyingClubId}
+                                            onJoin={handleJoinClub}
+                                            onApply={handleApplyClub}
+                                            onFollowToggle={handleFollowToggle}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </section>
                 </div>
 

@@ -1,3 +1,4 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, BellRing, X } from 'lucide-react';
@@ -82,7 +83,7 @@ const SidebarContent = ({
             </div>
             <div className="mt-3 flex min-w-0 items-center gap-2.5">
                 {resolvedClubLogoUrl && clubLogoFailedUrl !== resolvedClubLogoUrl ? (
-                    <img src={resolvedClubLogoUrl} alt="" className="h-8 w-8 shrink-0 rounded-lg object-cover" onError={() => setClubLogoFailedUrl(resolvedClubLogoUrl)} />
+                    <MediaImage src={resolvedClubLogoUrl} alt="" className="h-8 w-8 shrink-0 rounded-lg object-cover" onError={() => setClubLogoFailedUrl(resolvedClubLogoUrl)} />
                 ) : (
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--fc-accent-soft)] text-xs font-bold text-[var(--fc-accent)]">
                         {(clubName || 'C').charAt(0).toUpperCase()}

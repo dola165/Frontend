@@ -1,4 +1,4 @@
-import { apiClient } from './axiosConfig';
+import { apiClient, type AuthSessionRequestConfig } from './axiosConfig';
 
 // ── Types (mirrors backend DTOs) ─────────────────────────────────
 
@@ -69,8 +69,9 @@ export interface PageParams {
 // ── API functions ────────────────────────────────────────────────
 
 export const chatApi = {
-    getConversations(page = 0, size = 20) {
+    getConversations(page = 0, size = 20, config?: AuthSessionRequestConfig) {
         return apiClient.get<PageResult<ConversationDto>>('/chat/conversations', {
+            ...config,
             params: { page, size },
         });
     },

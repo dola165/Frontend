@@ -1,3 +1,4 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import MapGL, { Layer, Source, GeolocateControl, NavigationControl, useMap, type MapRef } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -814,7 +815,7 @@ const DiscoveryDetailPanel = ({
         <div className="relative shrink-0">
             {bannerUrl ? (
                 <div className="relative h-40 w-full overflow-hidden bg-slate-200 dark:bg-[#16181d]">
-                    <img src={bannerUrl} alt="" className="h-full w-full object-cover" />
+                    <MediaImage src={bannerUrl} alt="" className="h-full w-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/55" />
                 </div>
             ) : (
@@ -836,7 +837,7 @@ const DiscoveryDetailPanel = ({
             {logoUrl && (
                 <div className="absolute left-5 bottom-0 translate-y-1/2">
                     <div className="h-[84px] w-[84px] overflow-hidden rounded-xl bg-slate-200 dark:bg-[#16181d]">
-                        <img src={logoUrl} alt="" className="h-full w-full object-cover" />
+                        <MediaImage src={logoUrl} alt="" className="h-full w-full object-cover" />
                     </div>
                 </div>
             )}
@@ -1843,7 +1844,9 @@ export const MapExperience = ({
                                 id={LAYER_CLUSTER_COUNT}
                                 type="symbol"
                                 filter={['has', 'point_count']}
-                                layout={{ 'text-field': ['get', 'point_count_abbreviated'], 'text-size': 12 }}
+                                layout={{ 'text-field': ['get', 'point_count_abbreviated'], 'text-size': 12,
+                                    // OpenFreeMap serves Noto Sans, not MapLibre's implicit Open Sans stack.
+                                    ...(effectiveMapMode === 'tilted' && MAPTILER_API_KEY ? {} : { 'text-font': ['Noto Sans Regular'] }) }}
                                 paint={{
                                     'text-color': '#111827',
                                     'text-halo-color': '#ffffff',

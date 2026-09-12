@@ -1,3 +1,5 @@
+import { formatDate } from '../../utils/formatting';
+import { MediaImage } from '../ui/MediaImage';
 import { useState, type ReactNode } from 'react';
 import { Heart, MessageCircle, MoreHorizontal, Send, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -43,6 +45,16 @@ interface FeedPostProps {
     compact?: boolean;
 }
 
+// Keep this component identity stable. Defining it inside FeedPost remounts every
+// image on likes, comments and draft edits, discarding authenticated blob URLs.
+const PostMediaItem = ({ url, className, fit = 'cover' }: { url: string; className: string; fit?: 'cover' | 'contain' }) => {
+    const finalUrl = resolveMediaUrl(url);
+    const isVideo = finalUrl?.match(/\.(mp4|mov|webm)(?:\?|$)/i);
+    return isVideo
+        ? <video src={finalUrl} className={className} style={{ objectFit: fit }} preload="metadata" />
+        : <MediaImage src={finalUrl} alt="Post media" className={className} style={{ objectFit: fit }} />;
+};
+
 export const FeedPost = ({
     post,
     isCommentsOpen,
@@ -63,7 +75,7 @@ export const FeedPost = ({
     const [commentError, setCommentError] = useState('');
 
     const formatTime = (dateString: string) =>
-        new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        formatDate(dateString, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
     const initials = (post.clubName || post.authorName).substring(0, 2).toUpperCase();
     const authorAvatarUrl = resolveMediaUrl(post.authorAvatarUrl);
@@ -90,7 +102,7 @@ export const FeedPost = ({
     };
 
     const handleShare = async () => {
-        const shareTitle = post.clubName || post.authorName || 'Talanti post';
+        const shareTitle = post.clubName || post.authorName || 'GrassKickZ post';
         const shareText = `${shareTitle}\n\n${post.content}`.trim();
         const shareUrl = new URL(`/posts/${post.id}`, window.location.origin).toString();
         setShareFeedback('');
@@ -117,7 +129,7 @@ export const FeedPost = ({
     const authorIdentity = (
         <>
             <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--feed-layer-bg)] font-semibold text-[var(--feed-text-secondary)] ring-2 ring-transparent transition-all group-hover/author:ring-[var(--feed-accent-border)] ${compact ? 'h-11 w-11 text-sm' : 'h-12 w-12 text-base'}`}>
-                {authorAvatarUrl ? <img src={authorAvatarUrl} alt={displayAuthorName} className="h-full w-full object-cover" /> : initials}
+                {authorAvatarUrl ? <MediaImage src={authorAvatarUrl} alt={displayAuthorName} className="h-full w-full object-cover" /> : initials}
             </div>
             <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -138,12 +150,6 @@ export const FeedPost = ({
     const renderMediaGrid = () => {
         if (mediaList.length === 0) return null;
 
-        const MediaItem = ({ url, className }: { url: string; className: string }) => {
-            const finalUrl = resolveMediaUrl(url);
-            const isVideo = finalUrl?.match(/\.(mp4|mov|webm)$/i);
-            return isVideo ? <video src={finalUrl} className={`object-cover ${className}`} /> : <img src={finalUrl} alt="Post media" className={`object-cover ${className}`} />;
-        };
-
         const count = mediaList.length;
 
         return (
@@ -154,30 +160,30 @@ export const FeedPost = ({
                 onClick={onImageClick}
             >
                 {count === 1 && (
-                    <div className={`relative flex w-full items-center justify-center overflow-hidden bg-black ${compact ? 'max-h-[32vh]' : 'max-h-[56vh]'}`}>
-                        <MediaItem url={mediaList[0]} className={`relative z-10 w-full object-contain ${compact ? 'max-h-[32vh]' : 'max-h-[56vh]'}`} />
+                    <div className={`relative flex w-full items-center justify-center overflow-hidden bg-black ${compact ? 'h-[clamp(180px,32dvh,320px)]' : 'h-[clamp(240px,50dvh,520px)]'}`}>
+                        <PostMediaItem url={mediaList[0]} fit="contain" className="relative z-10 h-full w-full" />
                     </div>
                 )}
                 {count === 2 && (
                     <div className="grid grid-cols-2 gap-px bg-[var(--feed-bg)]">
-                        <MediaItem url={mediaList[0]} className={`w-full bg-black ${compact ? 'h-32' : 'h-56'}`} />
-                        <MediaItem url={mediaList[1]} className={`w-full bg-black ${compact ? 'h-32' : 'h-56'}`} />
+                        <PostMediaItem url={mediaList[0]} className={`w-full bg-black ${compact ? 'h-32' : 'h-56'}`} />
+                        <PostMediaItem url={mediaList[1]} className={`w-full bg-black ${compact ? 'h-32' : 'h-56'}`} />
                     </div>
                 )}
                 {count === 3 && (
                     <div className="grid grid-cols-2 gap-px bg-[var(--feed-bg)]">
-                        <MediaItem url={mediaList[0]} className={`col-span-2 w-full bg-black ${compact ? 'h-40' : 'h-64'}`} />
-                        <MediaItem url={mediaList[1]} className={`w-full bg-black ${compact ? 'h-24' : 'h-32'}`} />
-                        <MediaItem url={mediaList[2]} className={`w-full bg-black ${compact ? 'h-24' : 'h-32'}`} />
+                        <PostMediaItem url={mediaList[0]} className={`col-span-2 w-full bg-black ${compact ? 'h-40' : 'h-64'}`} />
+                        <PostMediaItem url={mediaList[1]} className={`w-full bg-black ${compact ? 'h-24' : 'h-32'}`} />
+                        <PostMediaItem url={mediaList[2]} className={`w-full bg-black ${compact ? 'h-24' : 'h-32'}`} />
                     </div>
                 )}
                 {count >= 4 && (
                     <div className="grid grid-cols-2 gap-px bg-[var(--feed-bg)]">
-                        <MediaItem url={mediaList[0]} className={`w-full bg-black ${compact ? 'h-28' : 'h-40'}`} />
-                        <MediaItem url={mediaList[1]} className={`w-full bg-black ${compact ? 'h-28' : 'h-40'}`} />
-                        <MediaItem url={mediaList[2]} className={`w-full bg-black ${compact ? 'h-28' : 'h-40'}`} />
+                        <PostMediaItem url={mediaList[0]} className={`w-full bg-black ${compact ? 'h-28' : 'h-40'}`} />
+                        <PostMediaItem url={mediaList[1]} className={`w-full bg-black ${compact ? 'h-28' : 'h-40'}`} />
+                        <PostMediaItem url={mediaList[2]} className={`w-full bg-black ${compact ? 'h-28' : 'h-40'}`} />
                         <div className={`relative w-full ${compact ? 'h-28' : 'h-40'}`}>
-                            <MediaItem url={mediaList[3]} className="h-full w-full bg-black" />
+                            <PostMediaItem url={mediaList[3]} className="h-full w-full bg-black" />
                             {count > 4 && <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-2xl font-bold text-white">+{count - 4}</div>}
                         </div>
                     </div>
@@ -256,7 +262,7 @@ export const FeedPost = ({
                                 <div key={comment.id} className="flex gap-3">
                                     <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--feed-layer-bg)] text-xs font-semibold text-[var(--feed-text-secondary)]">
                                         {resolveMediaUrl(comment.authorAvatarUrl) ? (
-                                            <img src={resolveMediaUrl(comment.authorAvatarUrl)} alt={comment.authorName} className="h-full w-full object-cover" />
+                                            <MediaImage src={resolveMediaUrl(comment.authorAvatarUrl)} alt={comment.authorName} className="h-full w-full object-cover" />
                                         ) : (
                                             comment.authorName.substring(0, 2).toUpperCase()
                                         )}

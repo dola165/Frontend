@@ -62,6 +62,7 @@ export interface ScheduleWorkspaceEvent {
     mapEligible: boolean;
     appearsOnMap: boolean;
     opponentClubId?: number | null;
+    hostSquadId?: number | null;
     conflictingEventIds: number[];
     conflict?: ConflictInfo | null;
     challenge?: ChallengeInfo | null;

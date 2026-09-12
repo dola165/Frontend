@@ -1,3 +1,5 @@
+import type { Area } from 'react-easy-crop';
+import { MediaImage } from '../ui/MediaImage';
 import { useRef, useState } from 'react';
 import {
     CalendarDays,
@@ -11,7 +13,6 @@ import {
     Settings,
     ShieldCheck,
     Swords,
-    Trash2,
     Users
 } from 'lucide-react';
 import { apiClient } from '../../api/axiosConfig';
@@ -35,7 +36,6 @@ interface ClubHeroProps {
     onOpenManageClub: () => void;
     onOpenCalendar: () => void;
     onOpenWorkspace?: () => void;
-    onDissolveClub?: () => void;
     onOpenChallengeModal: () => void;
     onOpenMessage: () => void;
     onOpenApply?: () => void;
@@ -55,7 +55,6 @@ export const ClubHero = ({
     onOpenManageClub,
     onOpenCalendar,
     onOpenWorkspace,
-    onDissolveClub,
     onOpenChallengeModal,
     onOpenMessage,
     onOpenApply,
@@ -73,7 +72,7 @@ export const ClubHero = ({
         if (event.target) event.target.value = '';
     };
 
-    const handleCropComplete = async (croppedAreaPixels: any) => {
+    const handleCropComplete = async (croppedAreaPixels: Area) => {
         if (!cropperModal || !club?.id) return;
         setUploading(cropperModal.type);
         const type = cropperModal.type;
@@ -113,9 +112,9 @@ export const ClubHero = ({
     const challengeActionClassName = 'inline-flex items-center gap-2 rounded-full border border-[rgba(255,158,88,0.3)] bg-[color:var(--club-accent-orange-soft)] px-5 py-3 text-[11px] font-semibold  text-[color:var(--club-accent-orange)] transition-colors hover:bg-[rgba(255,158,88,0.18)]';
     return (
         <section className="border-b border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-band)]">
-            <div className="relative h-[240px] overflow-hidden sm:h-[300px] lg:h-[360px]">
+            <div className={`relative overflow-hidden ${bannerUrl ? 'h-[200px] sm:h-[260px]' : 'h-[120px] sm:h-[150px]'}`}>
                 {bannerUrl ? (
-                    <img src={bannerUrl} alt="Club banner" className="h-full w-full object-cover object-top" />
+                    <MediaImage src={bannerUrl} alt="Club banner" className="h-full w-full object-cover object-top" />
                 ) : (
                     <div className="club-banner-fallback h-full w-full" />
                 )}
@@ -139,12 +138,12 @@ export const ClubHero = ({
                 )}
             </div>
 
-            <PageHeroSection className="bg-[#050910]" frameClassName="club-page-frame relative py-8 lg:py-10">
+            <PageHeroSection className="bg-[color:var(--club-theme-surface)]" frameClassName="club-page-frame relative py-8 lg:py-10">
                 <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-end">
-                        <div className="relative -mt-[76px] shrink-0 sm:-mt-[96px] lg:-mt-[112px]">
-                            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border-[5px] border-[color:var(--club-band)] bg-[rgba(6,11,18,0.92)] text-2xl font-semibold uppercase text-[color:var(--club-theme-text-primary)] shadow-[0_18px_44px_rgba(2,6,12,0.35)] sm:h-28 sm:w-28 lg:h-36 lg:w-36">
-                                {logoUrl ? <img src={logoUrl} alt="Club logo" className="h-full w-full object-cover" /> : (club?.name ?? 'CL').substring(0, 2).toUpperCase()}
+                        <div className="relative -mt-[76px] self-start shrink-0 sm:-mt-[96px] lg:-mt-[112px]">
+                            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border-[5px] border-[color:var(--club-band)] bg-[color:var(--club-theme-elevated)] text-2xl font-semibold uppercase text-[color:var(--club-theme-text-primary)] shadow-[0_18px_44px_rgba(2,6,12,0.35)] sm:h-28 sm:w-28 lg:h-36 lg:w-36">
+                                {logoUrl ? <MediaImage src={logoUrl} alt="Club logo" className="h-full w-full object-cover" /> : (club?.name ?? 'CL').substring(0, 2).toUpperCase()}
                             </div>
                             {club?.isOfficial ? (
                                 <div className="absolute -bottom-1 -right-1 inline-flex h-10 w-10 items-center justify-center rounded-full border-4 border-[color:var(--club-band)] bg-[color:var(--club-tone-green)] text-[#021108]">
@@ -209,26 +208,17 @@ export const ClubHero = ({
                                         Schedule
                                     </button>
                                 )}
-                                <button type="button" onClick={onOpenManageClub} className={systemActionClassName}>
+                                <button id="club-settings-trigger" type="button" onClick={onOpenManageClub} className={systemActionClassName}>
                                     <Settings className="h-4 w-4 text-[color:var(--club-tone-blue)]" />
-                                    Manage Club
+                                    Club settings
                                 </button>
                                 {onOpenWorkspace && (
                                     <button type="button" onClick={onOpenWorkspace} className={systemActionClassName}>
                                         <Settings className="h-4 w-4 text-[color:var(--club-tone-blue)]" />
-                                        Workspace
+                                        Open workspace
                                     </button>
                                 )}
-                                {onDissolveClub && (
-                                    <button
-                                        type="button"
-                                        onClick={onDissolveClub}
-                                        className={`${systemActionClassName} text-red-400 hover:text-red-300`}
-                                    >
-                                        <Trash2 className="h-4 w-4 text-red-400" />
-                                        Dissolve Club
-                                    </button>
-                                )}
+
                             </>
                         ) : showExternalVisitorActions ? (
                             <>

@@ -1,3 +1,6 @@
+import { CommerceDraftScope, CommerceDraftNotice } from '../CommerceDraftScope';
+import { useCommerceDraftState, useClearCommerceForm } from '../commerceDraftState';
+import { MediaImage } from '../../ui/MediaImage';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../../../api/axiosConfig';
@@ -21,15 +24,17 @@ import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import '../../../features/store/store.css';
 import '../../../features/campaigns/campaigns.css';
 const button = 'store-cart-link';
-export const CampaignsTab = ({ clubId }: { clubId: number }) => {
+const CampaignsTabContent = ({ clubId }: { clubId: number }) => {
+    const clearForm = useClearCommerceForm();
+    const [actionError, setActionError] = useCommerceDraftState('actionError', '');
     const [items, setItems] = useState<Campaign[] | null>(null),
         [error, setError] = useState(''),
-        [message, setMessage] = useState(''),
-        [reload, setReload] = useState(0);
-    const [editing, setEditing] = useState<Campaign | 'new' | null>(null),
-        [updates, setUpdates] = useState<Campaign | null>(null),
-        [busy, setBusy] = useState(false),
-        [formError, setFormError] = useState('');
+        [message, setMessage] = useCommerceDraftState("message", ''),
+        [reload, setReload] = useCommerceDraftState("reload", 0);
+    const [editing, setEditing] = useCommerceDraftState<Campaign | 'new' | null>("editing", null),
+        [updates, setUpdates] = useCommerceDraftState<Campaign | null>("updates", null),
+        [busy, setBusy] = useCommerceDraftState("busy", false),
+        [formError, setFormError] = useCommerceDraftState("formError", '');
     const [confirm, setConfirm] = useState<{ campaign: Campaign; status: CampaignState } | null>(null),
         [showArchived, setShowArchived] = useState(false);
     const active = useRef(true);
@@ -62,6 +67,7 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
     const transition = async (campaign: Campaign, status: CampaignState) => {
         if (busy) return;
         setBusy(true);
+        setActionError('');
         setError('');
         setMessage('');
         try {
@@ -69,12 +75,13 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
             if (active.current) {
                 replace(result);
                 setConfirm(null);
-                setMessage(`Campaign ${status === 'PUBLISHED' ? 'published' : status.toLowerCase()}.`);
             }
+            setMessage(`Campaign ${status === 'PUBLISHED' ? 'published' : status.toLowerCase()}.`);
+            setReload(n => n + 1);
         } catch (e) {
-            if (active.current) setError(extractApiErrorMessage(e, 'The campaign could not be changed.'));
+            setActionError(extractApiErrorMessage(e, 'The campaign could not be changed.'));
         } finally {
-            if (active.current) setBusy(false);
+            setBusy(false);
         }
     };
     return (
@@ -110,7 +117,7 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
                 <button
                     className={button}
                     disabled={busy || !!editing || !!updates}
-                    onClick={() => setReload((n) => n + 1)}
+                    onClick={() => { setActionError(''); setReload((n) => n + 1); }}
                 >
                     Refresh campaigns
                 </button>
@@ -123,7 +130,7 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
                     Include archived
                 </label>
             </div>
-            {error && <p role="alert">{error}</p>}
+            {(error || actionError) && <p role="alert">{error || actionError}</p>}
             {message && <p role="status">{message}</p>}
             {!items ? (
                 !error && <p role="status">Loading campaigns...</p>
@@ -210,7 +217,7 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
                                                                 ),
                                                             );
                                                     } finally {
-                                                        if (active.current) setBusy(false);
+                                                        setBusy(false);
                                                     }
                                                 }}
                                             >
@@ -261,7 +268,7 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
                     campaign={editing === 'new' ? null : editing}
                     saving={busy}
                     error={formError}
-                    onCancel={() => setEditing(null)}
+                    onCancel={() => { clearForm(); setEditing(null); }}
                     onSubmit={async (input) => {
                         if (busy) return;
                         setBusy(true);
@@ -275,14 +282,13 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
                             if (active.current) {
                                 if (editing === 'new') setItems((current) => [saved, ...(current ?? [])]);
                                 else replace(saved);
-                                setEditing(null);
-                                setMessage('Campaign saved.');
                             }
+                            clearForm(); setEditing(null);
+                            setMessage('Campaign saved.'); setReload(n => n + 1);
                         } catch (e) {
-                            if (active.current)
-                                setFormError(extractApiErrorMessage(e, 'Could not save the campaign.'));
+                            setFormError(extractApiErrorMessage(e, 'Could not save the campaign.'));
                         } finally {
-                            if (active.current) setBusy(false);
+                            setBusy(false);
                         }
                     }}
                 />
@@ -293,7 +299,7 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
                     campaign={updates}
                     saving={busy}
                     error={formError}
-                    onCancel={() => setUpdates(null)}
+                    onCancel={() => { clearForm(); setUpdates(null); }}
                     onSubmit={async (title, body) => {
                         if (busy) return;
                         setBusy(true);
@@ -303,14 +309,13 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
                             const saved = await postCampaignUpdate(clubId, updates, title, body);
                             if (active.current) {
                                 replace(saved);
-                                setUpdates(null);
-                                setMessage('Campaign update published.');
                             }
+                            clearForm(); setUpdates(null);
+                            setMessage('Campaign update published.'); setReload(n => n + 1);
                         } catch (e) {
-                            if (active.current)
-                                setFormError(extractApiErrorMessage(e, 'The update could not be published.'));
+                            setFormError(extractApiErrorMessage(e, 'The update could not be published.'));
                         } finally {
-                            if (active.current) setBusy(false);
+                            setBusy(false);
                         }
                     }}
                 />
@@ -331,21 +336,21 @@ export const CampaignForm = ({
     onCancel: () => void;
     onSubmit: (input: CampaignInput) => Promise<void>;
 }) => {
-    const [title, setTitle] = useState(campaign?.title ?? ''),
-        [summary, setSummary] = useState(campaign?.summary ?? ''),
-        [description, setDescription] = useState(campaign?.description ?? ''),
-        [beneficiary, setBeneficiary] = useState(campaign?.beneficiary ?? ''),
-        [useOfFunds, setUseOfFunds] = useState(campaign?.useOfFunds ?? '');
-    const [category, setCategory] = useState(campaign?.category ?? 'COMMUNITY'),
-        [currency, setCurrency] = useState(campaign?.currency ?? 'GEL'),
-        [goal, setGoal] = useState(campaign?.goalAmount?.toString() ?? ''),
-        [reported, setReported] = useState(campaign?.reportedAmount?.toString() ?? ''),
-        [note, setNote] = useState(campaign?.reportedNote ?? '');
-    const [start, setStart] = useState(campaign?.startsOn ?? ''),
-        [end, setEnd] = useState(campaign?.endsOn ?? ''),
-        [images, setImages] = useState(campaign?.images ?? []),
-        [uploading, setUploading] = useState(false),
-        [uploadError, setUploadError] = useState(''),
+    const [title, setTitle] = useCommerceDraftState("form:title", campaign?.title ?? ''),
+        [summary, setSummary] = useCommerceDraftState("form:summary", campaign?.summary ?? ''),
+        [description, setDescription] = useCommerceDraftState("form:description", campaign?.description ?? ''),
+        [beneficiary, setBeneficiary] = useCommerceDraftState("form:beneficiary", campaign?.beneficiary ?? ''),
+        [useOfFunds, setUseOfFunds] = useCommerceDraftState("form:useOfFunds", campaign?.useOfFunds ?? '');
+    const [category, setCategory] = useCommerceDraftState("form:category", campaign?.category ?? 'COMMUNITY'),
+        [currency, setCurrency] = useCommerceDraftState("form:currency", campaign?.currency ?? 'GEL'),
+        [goal, setGoal] = useCommerceDraftState("form:goal", campaign?.goalAmount?.toString() ?? ''),
+        [reported, setReported] = useCommerceDraftState("form:reported", campaign?.reportedAmount?.toString() ?? ''),
+        [note, setNote] = useCommerceDraftState("form:note", campaign?.reportedNote ?? '');
+    const [start, setStart] = useCommerceDraftState("form:start", campaign?.startsOn ?? ''),
+        [end, setEnd] = useCommerceDraftState("form:end", campaign?.endsOn ?? ''),
+        [images, setImages] = useCommerceDraftState("form:images", campaign?.images ?? []),
+        [uploading, setUploading] = useCommerceDraftState("form:uploading", false),
+        [uploadError, setUploadError] = useCommerceDraftState("form:uploadError", ''),
         [discard, setDiscard] = useState(false);
     return (
         <form
@@ -508,7 +513,7 @@ export const CampaignForm = ({
                 <div className="campaign-actions">
                     {images.map((url, index) => (
                         <div key={index}>
-                            <img
+                            <MediaImage
                                 className="h-24 w-36 object-cover rounded"
                                 src={resolveMediaUrl(url)}
                                 alt={`Campaign photo ${index + 1}`}
@@ -577,7 +582,7 @@ export const CampaignForm = ({
                         <button type="button" className={button} onClick={() => setDiscard(false)}>
                             Keep editing
                         </button>
-                        <button type="button" className={button} onClick={onCancel}>
+                        <button type="button" className={button} disabled={saving || uploading} onClick={() => { if (!saving && !uploading) onCancel(); }}>
                             Discard edits
                         </button>
                     </div>
@@ -599,8 +604,8 @@ function CampaignUpdateForm({
     onCancel: () => void;
     onSubmit: (title: string, body: string) => Promise<void>;
 }) {
-    const [title, setTitle] = useState(''),
-        [body, setBody] = useState(''),
+    const [title, setTitle] = useCommerceDraftState('form:updateTitle', ''),
+        [body, setBody] = useCommerceDraftState('form:updateBody', ''),
         [discard, setDiscard] = useState(false);
     return (
         <section className="campaign-editor space-y-4">
@@ -660,7 +665,7 @@ function CampaignUpdateForm({
                         <button type="button" className={button} onClick={() => setDiscard(false)}>
                             Keep writing
                         </button>
-                        <button type="button" className={button} onClick={onCancel}>
+                        <button type="button" className={button} disabled={saving} onClick={() => { if (!saving) onCancel(); }}>
                             Discard update
                         </button>
                     </div>
@@ -669,3 +674,5 @@ function CampaignUpdateForm({
         </section>
     );
 }
+
+export const CampaignsTab = (props: Parameters<typeof CampaignsTabContent>[0]) => <CommerceDraftScope clubId={props.clubId} feature="CampaignsTab"><CommerceDraftNotice/><CampaignsTabContent {...props}/></CommerceDraftScope>;

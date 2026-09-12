@@ -35,6 +35,8 @@ export const sanitizeAuthRedirect = (value?: string | null) => {
     if (!trimmed.startsWith('/')
         || trimmed.startsWith('//')
         || trimmed.includes('\\')
+        // Redirects containing control characters must be rejected.
+        // eslint-disable-next-line no-control-regex
         || /[\u0000-\u001f\u007f]/.test(trimmed)) {
         return null;
     }

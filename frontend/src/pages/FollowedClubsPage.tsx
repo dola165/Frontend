@@ -1,3 +1,4 @@
+import { MediaImage } from '../components/ui/MediaImage';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Check, Loader2, MapPin, Search, Shield, Users } from 'lucide-react';
@@ -109,7 +110,7 @@ export const FollowedClubsPage = () => {
                             <article key={club.id} className="flex flex-col gap-4 border-b border-white/[0.07] p-4 last:border-b-0 sm:flex-row sm:items-center">
                                 <Link to={`/clubs/${club.id}`} className="flex min-w-0 flex-1 items-center gap-4">
                                     <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#24272d] text-sm font-bold text-[#d4d4d8] ring-1 ring-white/[0.08]">
-                                        {logoUrl ? <img src={logoUrl} alt="" className="h-full w-full object-cover" /> : initialsFrom(club.name)}
+                                        {logoUrl ? <MediaImage src={logoUrl} alt="" className="h-full w-full object-cover" /> : initialsFrom(club.name)}
                                     </span>
                                     <span className="min-w-0">
                                         <span className="flex items-center gap-2">

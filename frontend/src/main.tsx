@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './i18n';
 import App from './App';
 import './index.css';
+import './styles/product-identity.css';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';

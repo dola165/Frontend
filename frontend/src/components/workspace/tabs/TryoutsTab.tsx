@@ -1,3 +1,4 @@
+import { appLocale } from '../../../utils/formatting';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -37,7 +38,7 @@ const toLocalInput = (value: string | null): string => (value ? value.slice(0, 1
 
 const formatTryoutDate = (value: string): string => {
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? value : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleString(appLocale(), { dateStyle: 'medium', timeStyle: 'short' });
 };
 
 const lifecycleFor = (tryout: TryoutDto): 'OPEN' | 'CLOSED' | 'EXPIRED' => {

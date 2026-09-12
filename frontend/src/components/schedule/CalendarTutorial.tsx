@@ -53,6 +53,8 @@ const Spotlight = ({ step, stepIndex, total, onNext, onBack, onSkip, onClose }: 
     }, [step.target]);
 
     useEffect(() => {
+        // Measure the external DOM before the first animation frame.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         updateRect();
         const onFrame = () => { updateRect(); rafRef.current = requestAnimationFrame(onFrame); };
         rafRef.current = requestAnimationFrame(onFrame);

@@ -1,3 +1,4 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useState, type ReactNode } from 'react';
 import { Building2, ShieldCheck, Trophy, UserRound, UsersRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -82,7 +83,7 @@ export const TournamentVisual = ({
                     </div>
                 </div>
             ) : (
-                <img
+                <MediaImage
                     src={resolvedUrl}
                     alt=""
                     className={`absolute inset-0 h-full w-full object-cover ${imageClassName}`.trim()}

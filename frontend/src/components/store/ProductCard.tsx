@@ -1,3 +1,4 @@
+import { MediaImage } from '../ui/MediaImage';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ShoppingBag } from 'lucide-react';
@@ -24,7 +25,7 @@ export const ProductCard = ({ product, onOpen, showClub }: ProductCardProps) => 
             <div className="relative aspect-square bg-[rgba(255,255,255,0.04)] flex items-center justify-center">
                 <ShoppingBag className="h-10 w-10 text-[#3f3f46]" />
                 {cover && (
-                    <img
+                    <MediaImage
                         src={cover}
                         alt={product.name ?? 'Product'}
                         className="absolute inset-0 h-full w-full object-cover"
@@ -68,7 +69,7 @@ export const ProductCard = ({ product, onOpen, showClub }: ProductCardProps) => 
                 {showClub && product.clubName && (
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#ffffff0d]">
                         {product.clubLogoUrl ? (
-                            <img
+                            <MediaImage
                                 src={resolveMediaUrl(product.clubLogoUrl)}
                                 alt=""
                                 className="h-5 w-5 rounded-full object-cover"

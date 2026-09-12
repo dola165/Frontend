@@ -53,12 +53,12 @@ describe('TopNav secondary navigation', () => {
         const trigger = screen.getByRole('button', { name: 'Explore' });
         trigger.focus();
         await user.keyboard('{Enter}');
-        const first = screen.getByRole('menuitem', { name: 'Tournaments — Preview' });
+        const first = screen.getByRole('menuitem', { name: 'Store' });
         const last = screen.getByRole('menuitem', { name: 'Jobs & volunteering — Preview' });
         expect(first).toHaveFocus();
         await user.keyboard('{ArrowDown}');
-        expect(last).toHaveFocus();
-        await user.keyboard('{ArrowDown}');
+        expect(screen.getByRole('menuitem', { name: 'Fundraising & campaigns' })).toHaveFocus();
+        await user.keyboard('{ArrowUp}');
         expect(first).toHaveFocus();
         await user.keyboard('{End}');
         expect(last).toHaveFocus();
@@ -71,6 +71,8 @@ describe('TopNav secondary navigation', () => {
         expect(screen.getByRole('menuitem', { name: 'Jobs & volunteering — Preview' })).toHaveFocus();
         await user.tab();
         expect(screen.queryByRole('menu', { name: 'Explore' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'nav.useGeorgian' })).toHaveFocus();
+        await user.tab();
         expect(screen.getByRole('link', { name: 'nav.signIn' })).toHaveFocus();
     });
 

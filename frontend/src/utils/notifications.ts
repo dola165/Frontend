@@ -1,3 +1,4 @@
+import { appLocale, formatDate } from './formatting';
 import type { NotificationItem, NotificationListScope, NotificationScope } from '../types/notifications';
 
 const NOTIFICATIONS_CHANGED_EVENT = 'talanti:notifications-changed';
@@ -246,7 +247,7 @@ export const formatNotificationTime = (timestamp: string) => {
     const minuteMs = 60_000;
     const hourMs = 60 * minuteMs;
     const dayMs = 24 * hourMs;
-    const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+    const rtf = new Intl.RelativeTimeFormat(appLocale(), { numeric: 'auto' });
 
     if (Math.abs(diffMs) < hourMs) {
         return rtf.format(Math.round(diffMs / minuteMs), 'minute');
@@ -258,7 +259,7 @@ export const formatNotificationTime = (timestamp: string) => {
         return rtf.format(Math.round(diffMs / dayMs), 'day');
     }
 
-    return parsed.toLocaleString(undefined, {
+    return formatDate(parsed, {
         month: 'short',
         day: 'numeric',
         hour: 'numeric',

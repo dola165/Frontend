@@ -1,3 +1,4 @@
+import { MediaImage } from '../../ui/MediaImage';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Handshake, MessageCircle, X } from 'lucide-react';
@@ -113,7 +114,7 @@ export const AgentEngagementsTab = ({ clubId }: AgentEngagementsTabProps) => {
                             <div className="flex items-center gap-3 min-w-0">
                                 <div className="h-10 w-10 rounded-full bg-[#ffffff0d] flex items-center justify-center text-sm font-semibold text-[var(--fc-text-secondary)] shrink-0 overflow-hidden">
                                     {eng.agentAvatarUrl ? (
-                                        <img src={eng.agentAvatarUrl} alt={eng.agentName} className="h-full w-full object-cover" />
+                                        <MediaImage src={eng.agentAvatarUrl} alt={eng.agentName} className="h-full w-full object-cover" />
                                     ) : (
                                         (eng.agentName || 'A').charAt(0).toUpperCase()
                                     )}

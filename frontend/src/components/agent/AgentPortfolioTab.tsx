@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useState, useCallback } from 'react';
 import { UserPlus, Users, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -57,7 +58,8 @@ export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
             setSelectedPlayer(null);
             toast.success('Player added to portfolio');
             onRefresh();
-        } catch (err: any) {
+        } catch (caught) {
+            const err = axios.isAxiosError<{ message?: string }>(caught) ? caught : undefined;
             setAddError(err?.response?.data?.message || err?.message || 'Failed to add player.');
             toast.error('Failed to add player.');
         } finally {

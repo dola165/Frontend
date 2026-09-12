@@ -41,13 +41,15 @@ export const QrLoginSection = ({ onBack }: Props) => {
     return () => { cancelled = true; };
   }, []);
 
+  const activeSession = state.kind === 'active' ? state : null;
+
   // Poll loop
   useEffect(() => {
-    if (state.kind !== 'active') return;
+    if (!activeSession) return;
     let failures = 0;
 
     pollRef.current = setInterval(async () => {
-      const s = state as Extract<QrState, { kind: 'active' }>;
+      const s = activeSession;
       try {
         const result = await pollQrStatus(s.sessionCode, s.pollToken);
         if (result.status === 'CONFIRMED' && result.accessToken && !navigatingRef.current) {
@@ -66,14 +68,14 @@ export const QrLoginSection = ({ onBack }: Props) => {
     }, 2500);
 
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [state.kind === 'active' ? (state as any).sessionCode : null]);
+  }, [activeSession, loginWithAccessToken]);
 
   // Countdown
   const [countdown, setCountdown] = useState(0);
   useEffect(() => {
-    if (state.kind !== 'active') return;
+    if (!activeSession) return;
     const tick = () => {
-      const remaining = Math.max(0, Math.ceil(((state as any).expiresAt - Date.now()) / 1000));
+      const remaining = Math.max(0, Math.ceil((activeSession.expiresAt - Date.now()) / 1000));
       setCountdown(remaining);
       if (remaining <= 0) {
         setState({ kind: 'expired' });
@@ -83,7 +85,7 @@ export const QrLoginSection = ({ onBack }: Props) => {
     tick();
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, [state.kind === 'active' ? (state as any).expiresAt : null]);
+  }, [activeSession]);
 
   const handleRetry = () => {
     if (pollRef.current) clearInterval(pollRef.current);

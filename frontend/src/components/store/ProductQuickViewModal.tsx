@@ -1,3 +1,4 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -34,7 +35,7 @@ export const ProductQuickViewModal = ({ product, onClose }: ProductQuickViewModa
                 <div>
                     <div className="aspect-square bg-[rgba(255,255,255,0.04)] flex items-center justify-center">
                         {images.length > 0 ? (
-                            <img
+                            <MediaImage
                                 src={resolveMediaUrl(images[activeImage])}
                                 alt={product.name ?? 'Product'}
                                 className="h-full w-full object-cover"
@@ -53,7 +54,7 @@ export const ProductQuickViewModal = ({ product, onClose }: ProductQuickViewModa
                                         activeImage === index ? 'border-[#16a34a]' : 'border-transparent'
                                     }`}
                                 >
-                                    <img src={resolveMediaUrl(image)} alt="" className="h-full w-full object-cover" />
+                                    <MediaImage src={resolveMediaUrl(image)} alt="" className="h-full w-full object-cover" />
                                 </button>
                             ))}
                         </div>

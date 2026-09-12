@@ -1,3 +1,4 @@
+import { MediaImage } from '../components/ui/MediaImage';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, UserRoundSearch, UsersRound } from 'lucide-react';
@@ -114,7 +115,7 @@ export const PeoplePage = () => {
                                         className="group flex min-w-0 items-center gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--theme-surface-strong)] p-4 shadow-[var(--shadow-panel)] transition-all hover:-translate-y-0.5 hover:border-[var(--accent-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                                     >
                                         <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--accent-primary-soft)] text-sm font-bold text-[var(--accent-primary)] ring-1 ring-[var(--border-subtle)]">
-                                            {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initialsFrom(person)}
+                                            {avatarUrl ? <MediaImage src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initialsFrom(person)}
                                         </span>
                                         <span className="min-w-0">
                                             <span className="block truncate text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-primary)]">{displayName}</span>

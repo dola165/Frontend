@@ -1,3 +1,4 @@
+let qrPollCount = 0;
 import { http, HttpHandler, HttpResponse } from 'msw';
 import { users, currentUserId } from '../data/store';
 import { createUser } from '../data/factories';
@@ -201,12 +202,12 @@ export const authHandlers: HttpHandler[] = [
   // QR status (auto-confirms after ~5 polls for demo)
   http.get(`${API}/auth/qr/status/:code`, async () => {
     await simulateLatency();
-    const prev = (typeof globalThis !== 'undefined' && (globalThis as any).__qrPollCount) || 0;
+    const prev = qrPollCount;
     const count = prev + 1;
-    if (typeof globalThis !== 'undefined') (globalThis as any).__qrPollCount = count;
+    qrPollCount = count;
 
     if (count >= 5) {
-      if (typeof globalThis !== 'undefined') (globalThis as any).__qrPollCount = 0;
+      qrPollCount = 0;
       const token = makeToken(currentUserId() ?? 1, 'PLAYER');
       return HttpResponse.json({ status: 'CONFIRMED', accessToken: token, expiresIn: 900 });
     }

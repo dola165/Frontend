@@ -10,7 +10,7 @@ beforeEach(() => {
     vi.resetModules();
     localStorage.clear();
     Object.defineProperty(navigator, 'locks', { configurable: true, value: undefined });
-    server.use(http.get('*/auth/csrf', () => HttpResponse.json({})));
+    server.use(http.get('*/auth/csrf', () => HttpResponse.json({ headerName: 'X-XSRF-TOKEN', token: 'masked-request-token' })));
 });
 afterEach(() => server.resetHandlers());
 
@@ -33,7 +33,8 @@ describe('refresh coordination', () => {
     it('shares refresh between direct callers and simultaneous rejected API requests', async () => {
         let refreshes = 0;
         server.use(
-            http.post('*/auth/refresh', async () => {
+            http.post('*/auth/refresh', async ({ request }) => {
+                expect(request.headers.get('X-XSRF-TOKEN')).toBe('masked-request-token');
                 refreshes++;
                 await delay(100);
                 return HttpResponse.json({ accessToken: 'new-token' });
@@ -47,12 +48,12 @@ describe('refresh coordination', () => {
         const results = await Promise.all([direct, apiClient.get('/protected'), apiClient.get('/protected')]);
         expect(results[0]).toBe('new-token');
         expect(refreshes).toBe(1);
-        expect(localStorage.getItem('accessToken')).toBe('new-token');
+        expect((await import('../../utils/authStorage')).getStoredAccessToken()).toBe('new-token');
     });
 
     it('serializes independent tab modules and reuses the token published by the winner', async () => {
         let tail: Promise<unknown> = Promise.resolve();
-        const requestLock = vi.fn((_name: string, callback: () => Promise<string>) => {
+        const requestLock = vi.fn((_name: string, _options: LockOptions, callback: () => Promise<string>) => {
             const result = tail.then(callback);
             tail = result.catch(() => undefined);
             return result;

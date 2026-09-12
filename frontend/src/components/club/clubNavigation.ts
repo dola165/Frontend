@@ -1,6 +1,6 @@
-import { LayoutGrid, Building2, CalendarDays, Camera, Phone, Users, UsersRound } from 'lucide-react';
+import { HeartHandshake, Trophy, Building2, CalendarDays, Megaphone, Camera, Phone, Users, UsersRound } from 'lucide-react';
 
-export type ClubNavigationTab = 'overview' | 'people' | 'teams' | 'schedule' | 'media' | 'business' | 'contact' | 'store' | 'campaigns';
+export type ClubNavigationTab = 'overview' | 'honours' | 'people' | 'teams' | 'schedule' | 'events' | 'media' | 'business' | 'contact' | 'store' | 'campaigns';
 
 export type ClubNavigationAccent = 'blue' | 'violet' | 'amber';
 
@@ -47,18 +47,31 @@ export const clubNavigationItems: ClubNavigationItem[] = [
         toneClassName: 'club-tone-blue'
     },
     {
+        id: 'events',
+        icon: Megaphone,
+        label: 'Events',
+        toneClassName: 'club-tone-amber'
+    },
+    {
+        id: 'honours',
+        icon: Trophy,
+        label: 'Honours',
+        toneClassName: 'club-tone-amber'
+    },
+    {
         id: 'media',
         icon: Camera,
-        label: 'Media',
+        label: 'Photos & videos',
         toneClassName: 'club-tone-green',
         accent: 'blue',
         section: 'media'
     },
     {
         id: 'business',
-        icon: LayoutGrid,
+        icon: HeartHandshake,
         label: 'Opportunities',
-        toneClassName: 'club-tone-green'
+        toneClassName: 'club-tone-violet',
+        accent: 'violet'
     },
     {
         id: 'contact',
@@ -71,8 +84,6 @@ export const clubNavigationItems: ClubNavigationItem[] = [
 
 export const normalizeClubNavigationTab = (value: string | null): ClubNavigationTab => {
     if (value === 'pictures' || value === 'videos') return 'media';
-    if (value === 'events') return 'schedule';
-    if (value === 'honours') return 'overview';
     return clubNavigationItems.some((item) => item.id === value)
         ? value as ClubNavigationTab
         : 'overview';

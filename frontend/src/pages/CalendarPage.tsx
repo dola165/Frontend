@@ -1,15 +1,19 @@
+import { formatDate } from '../utils/formatting';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
     ArrowLeft,
     CalendarDays,
     Loader2,
     TriangleAlert,
+    SlidersHorizontal,
+    X,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { EventCreationModal, type EventCreationFormValues, type ModalSurface } from '../components/schedule/EventCreationModal';
 import { PastEventModal } from '../components/schedule/PastEventModal';
 import { ScheduleGrid } from '../components/schedule/ScheduleGrid';
 import { ScheduleToolbar } from '../components/schedule/ScheduleToolbar';
+import { useDialogFocus } from '../components/workspace/useDialogFocus';
 import { ScheduleWorkspaceHeader } from '../components/schedule/ScheduleWorkspaceHeader';
 import { StandingSchedule } from '../components/schedule/StandingSchedule';
 import { CalendarTutorial, isTutorialCompleted } from '../components/schedule/CalendarTutorial';
@@ -80,11 +84,11 @@ const ix = (ev: SEvent, rs: Date, re: Date) => {
     return es <= re && ee >= rs;
 };
 const fmtRange = (vm: WorkspaceView, cd: Date) => {
-    if (vm === 'month') return cd.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-    if (vm === 'day') return cd.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    if (vm === 'month') return formatDate(cd, { month: 'long', year: 'numeric' });
+    if (vm === 'day') return formatDate(cd, { weekday: 'long', month: 'long', day: 'numeric' });
     const ws = sow(cd), we = addD(ws, 6);
-    if (ws.getMonth() === we.getMonth()) return `${ws.toLocaleDateString(undefined, { month: 'long' })} ${ws.getDate()} – ${we.getDate()}, ${we.getFullYear()}`;
-    return `${ws.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${we.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    if (ws.getMonth() === we.getMonth()) return `${formatDate(ws, { month: 'long' })} ${ws.getDate()} – ${we.getDate()}, ${we.getFullYear()}`;
+    return `${formatDate(ws, { month: 'short', day: 'numeric' })} – ${formatDate(we, { month: 'short', day: 'numeric', year: 'numeric' })}`;
 };
 const step = (vm: WorkspaceView, cd: Date, delta: number) => {
     const d = cDate(cd);
@@ -116,7 +120,7 @@ const toWE = (ev: ScheduleEventOccurrence, owner: string): SEvent => {
         publishAt: ev.publishAt, recurring: ev.recurring, recurrence: ev.recurrence,
         recurrenceLabel: null, ownerLabel: owner,
         mapEligible: me, appearsOnMap: Boolean(ev.publicNow && me),
-        opponentClubId: ev.opponentClubId, conflictingEventIds: ev.conflictingEventIds ?? [],
+        opponentClubId: ev.opponentClubId, hostSquadId: ev.challengerSquadId, conflictingEventIds: ev.conflictingEventIds ?? [],
         conflict: null, challenge: null
     };
 };
@@ -145,7 +149,7 @@ const toUpsert = (ev: SEvent): ScheduleEventUpsertInput => ({
     locationLat: ev.locationLat ?? null,
     locationLng: ev.locationLng ?? null,
     opponentClubId: ev.opponentClubId ?? null,
-    hostSquadId: null,
+    hostSquadId: ev.hostSquadId ?? null,
     recurrence: ev.recurring && ev.recurrence ? {
         frequency: 'WEEKLY',
         intervalValue: ev.recurrence.intervalValue ?? 1,
@@ -162,6 +166,7 @@ export const CalendarPage = (props: CalendarPageProps) => {
     void props; // Props kept for API symmetry — the page reads auth via context.
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
+    const requestedPersonalSchedule = searchParams.get('scope') === 'personal';
     const colRef = useRef<HTMLDivElement | null>(null);
     const [ctx, setCtx] = useState<ClubMembershipContext | null>(null);
     const [ctxOk, setCtxOk] = useState(false);
@@ -171,6 +176,15 @@ export const CalendarPage = (props: CalendarPageProps) => {
     const [actN, setActN] = useState<Notice | null>(null);
     const [surface, setSurface] = useState<WorkspaceSurface>('MY_SCHEDULE');
     const [vm, setVm] = useState<WorkspaceView>('week');
+    const [filtersOpen, setFiltersOpen] = useState(false);
+    const filterPanelRef = useRef<HTMLElement>(null);
+    useDialogFocus(filtersOpen, filterPanelRef, () => setFiltersOpen(false));
+    useEffect(() => {
+        const wide = window.matchMedia('(min-width: 900px)');
+        const closeOnWideScreen = () => { if (wide.matches) setFiltersOpen(false); };
+        wide.addEventListener('change', closeOnWideScreen);
+        return () => wide.removeEventListener('change', closeOnWideScreen);
+    }, []);
     const [cursor, setCursor] = useState(() => new Date());
     const [etypes, setEtypes] = useState<ScheduleEventType[]>(EVENT_TYPES);
     const [pubOnly, setPubOnly] = useState(false);
@@ -205,12 +219,12 @@ export const CalendarPage = (props: CalendarPageProps) => {
                 const c = await fetchMyClubMembershipContext();
                 if (!a) return;
                 setCtx(c);
-                setSurface(c?.clubId && canManageClubOperations(c?.myRole) ? 'CLUB_SCHEDULE' : 'MY_SCHEDULE');
+                setSurface(!requestedPersonalSchedule && c?.clubId && canManageClubOperations(c?.myRole) ? 'CLUB_SCHEDULE' : 'MY_SCHEDULE');
             } catch (e) { if (a) { setCtx(null); setSurface('MY_SCHEDULE'); setLoadN(extractApiErrorMessage(e, 'Membership unavailable.')); } }
             finally { if (a) setCtxOk(true); }
         })();
         return () => { a = false; };
-    }, []);
+    }, [requestedPersonalSchedule]);
 
     useEffect(() => { localStorage.setItem('talanti:schedule-left-rail', String(Math.round(railW))); }, [railW]);
 
@@ -328,6 +342,7 @@ export const CalendarPage = (props: CalendarPageProps) => {
             visibility: event.visibility === 'CLUB_ONLY' ? 'PRIVATE' : event.visibility,
             publishAt: event.publishAt ? inpDt(parseD(event.publishAt)) : '',
             description: event.description ?? '',
+            hostSquadId: event.hostSquadId ?? null,
             recurrenceDays: rc ? recOrder.filter((d) => rc.daysOfWeek.includes(d)) : [gDow(s)],
             recurrenceStartDate: rc?.startDate ?? inpDate(s),
             recurrenceEndDate: rc?.endDate ?? '',
@@ -414,7 +429,7 @@ export const CalendarPage = (props: CalendarPageProps) => {
     }
 
     return (
-        <div className="flex h-full min-h-0 flex-col overflow-hidden" style={{ backgroundColor: 'var(--fc-page-bg)', color: 'var(--fc-text-primary)' }}>
+        <div className="schedule-page-shell flex h-full min-h-0 flex-col overflow-hidden" style={{ backgroundColor: 'var(--fc-page-bg)', color: 'var(--fc-text-primary)' }}>
             {searchParams.has('eventId') && <NotificationTarget kind="event" id={searchParams.get('eventId') ?? ''} onClose={() => {
                 const next = new URLSearchParams(searchParams); next.delete('eventId'); setSearchParams(next);
             }} />}
@@ -432,9 +447,12 @@ export const CalendarPage = (props: CalendarPageProps) => {
                 }}
             />
 
-            <div className="flex min-h-0 flex-1">
-                <div ref={colRef} className="flex min-h-0 flex-1">
-                    <aside className="min-h-0 overflow-y-auto border-r border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] px-2.5 py-3" style={{ width: railW, flexShrink: 0 }}>
+            <button type="button" onClick={() => setFiltersOpen(true)} aria-expanded={filtersOpen} aria-controls="schedule-filters" className="schedule-filter-toggle items-center gap-2 border-b border-[var(--fc-border)] px-4 py-2 text-sm"><SlidersHorizontal className="h-4 w-4" />Calendar filters</button>
+            <div className="relative flex min-h-0 min-w-0 flex-1">
+                <div ref={colRef} className="flex min-h-0 min-w-0 flex-1">
+                    {filtersOpen && <button type="button" aria-label="Close calendar filters" onClick={() => setFiltersOpen(false)} className="absolute inset-0 z-70 bg-black/60" />}
+                    <aside ref={filterPanelRef} id="schedule-filters" role={filtersOpen ? 'dialog' : undefined} aria-modal={filtersOpen ? true : undefined} aria-label="Calendar filters" className={`schedule-filter-rail min-h-0 overflow-y-auto border-r border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] px-2.5 py-3 ${filtersOpen ? 'is-open' : ''}`} style={{ width: railW, flexShrink: 0 }}>
+                        {filtersOpen && <button type="button" onClick={() => setFiltersOpen(false)} aria-label="Close calendar filters" className="flex items-center gap-2 px-2 py-3 text-sm"><X className="h-4 w-4" />Close filters</button>}
                         <div className="flex flex-col gap-4">
                             {/* Back navigation */}
                             <button type="button"
@@ -485,7 +503,7 @@ export const CalendarPage = (props: CalendarPageProps) => {
                     <div role="separator" aria-orientation="vertical" aria-label="Resize sidebar" tabIndex={0}
                         onPointerDown={(e) => setResizing({ sx: e.clientX, sw: railW })}
                         onDoubleClick={() => setRailW(DEFAULT_LEFT)}
-                        className="w-[12px] shrink-0 cursor-col-resize transition-colors hover:bg-[var(--fc-border)]"
+                        className="schedule-rail-resizer w-[12px] shrink-0 cursor-col-resize transition-colors hover:bg-[var(--fc-border)]"
                         style={{ backgroundColor: resizing ? 'var(--fc-accent-border)' : undefined }} />
 
                     <section className="flex min-h-0 flex-1 flex-col overflow-hidden">

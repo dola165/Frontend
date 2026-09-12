@@ -1,15 +1,20 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { RightSidebar } from './RightSidebar';
 import { chatApi } from '../../api/chat';
 
+const auth = vi.hoisted(() => ({ isAuthenticated: true, sessionId: 'session-A' }));
+vi.mock('../../context/AuthContext', () => ({ useAuth: () => auth }));
+
 vi.mock('@stomp/stompjs', () => ({ Client: class { activate() {} deactivate() {} connected = false; } }));
 vi.mock('../../api/axiosConfig', () => ({ buildWebSocketUrl: () => 'ws://localhost/ws-chat', DEPLOYMENT_URLS: { mediaBaseUrl: 'http://localhost' } }));
-vi.mock('../../utils/authStorage', () => ({ getStoredAccessToken: () => 'token', getStoredUserId: () => '1' }));
+vi.mock('../../utils/authStorage', () => ({ getStoredAccessToken: () => 'token', getStoredUserId: () => '1', getAuthSessionId: () => 'session-A', isCurrentAuthSession: (id: string) => id === 'session-A' }));
 vi.mock('../../api/chat', () => ({ chatApi: { getConversations: vi.fn(), getMessages: vi.fn(), getMessagesAfter: vi.fn(), markAsRead: vi.fn() } }));
 let observer: { callback: IntersectionObserverCallback; elements: Element[] };
 beforeEach(() => {
+    auth.isAuthenticated = true;
+    auth.sessionId = 'session-A';
     Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: vi.fn(() => document.querySelector('[data-chat-message-content]') ?? document.querySelector('[data-chat-message-id]')) });
     vi.clearAllMocks();
     Element.prototype.scrollIntoView = vi.fn();
@@ -30,10 +35,33 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
+it('does not request conversations while anonymous or bootstrapping', () => {
+    auth.isAuthenticated = false;
+    render(<MemoryRouter><RightSidebar /></MemoryRouter>);
+    expect(chatApi.getConversations).not.toHaveBeenCalled();
+});
+
+it('aborts and discards old conversations on logout and account replacement', async () => {
+    const view = render(<MemoryRouter><RightSidebar /></MemoryRouter>);
+    await screen.findByRole('button', { name: /Peer/ });
+    const firstSignal = vi.mocked(chatApi.getConversations).mock.calls[0][2]!.signal!;
+    auth.isAuthenticated = false;
+    view.rerender(<MemoryRouter><RightSidebar /></MemoryRouter>);
+    expect(firstSignal.aborted).toBe(true);
+    expect(screen.queryByRole('button', { name: /Peer/ })).not.toBeInTheDocument();
+    expect(chatApi.getConversations).toHaveBeenCalledTimes(1);
+    auth.isAuthenticated = true;
+    auth.sessionId = 'session-B';
+    view.rerender(<MemoryRouter><RightSidebar /></MemoryRouter>);
+    expect(chatApi.getConversations).toHaveBeenLastCalledWith(0, 8, expect.objectContaining({ _authSessionId: 'session-B' }));
+    expect(screen.queryByRole('button', { name: /Peer/ })).not.toBeInTheDocument();
+});
+
 it('minimizing quick chat cancels a pending read; recovery stays unread until restoration', async () => {
     render(<MemoryRouter><RightSidebar /></MemoryRouter>);
     fireEvent.click(await screen.findByRole('button', { name: /Peer/ }));
     await screen.findByText('Unread message');
+    await waitFor(() => expect(observer?.elements.length).toBeGreaterThan(0));
     vi.useFakeTimers();
     observer.callback(observer.elements.map(target => ({ target, isIntersecting: true })) as IntersectionObserverEntry[], {} as IntersectionObserver);
     fireEvent.click(screen.getByRole('button', { name: 'Minimize chat' }));

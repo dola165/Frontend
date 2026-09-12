@@ -1,3 +1,4 @@
+import type { ImgHTMLAttributes } from 'react';
 import {ShoppingBag,HeartHandshake,Briefcase} from 'lucide-react';
 import {WorkspaceSidebar} from '../../../components/workspace/WorkspaceSidebar';
 import {ClubOpportunities} from '../../../components/club/ClubOpportunities';
@@ -55,3 +56,6 @@ it('makes Store, Campaigns and Jobs reachable in the workspace navigation',()=>{
  const onTabChange=vi.fn();render(<WorkspaceSidebar clubId={10} overview={null} activeTab="campaigns" tabs={[{id:'store',label:'Store',icon:ShoppingBag},{id:'campaigns',label:'Campaigns',icon:HeartHandshake},{id:'jobs',label:'Jobs & volunteering',icon:Briefcase}]} unreadInboxCount={0} mobileOpen={false} onTabChange={onTabChange} onNavigate={vi.fn()} onClose={vi.fn()}/>);
  for(const [name,id] of [['Store','store'],['Campaigns','campaigns'],['Jobs & volunteering','jobs']]) {fireEvent.click(screen.getByRole('button',{name}));expect(onTabChange).toHaveBeenLastCalledWith(id);}
 });
+
+// These suites test gallery selection; authenticated byte delivery has its own component and HTTP coverage.
+vi.mock('../../../components/ui/MediaImage', () => ({ MediaImage: (props: ImgHTMLAttributes<HTMLImageElement>) => <img {...props} /> }));

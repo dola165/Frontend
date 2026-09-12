@@ -1,3 +1,5 @@
+import axios from 'axios';
+import { MediaImage } from '../ui/MediaImage';
 import { useCallback, useEffect, useState } from 'react';
 import { Loader2, Plus, Search, UserPlus, X } from 'lucide-react';
 import { addPlayerToSquad, batchAddPlayersToSquad, fetchClubPlayers, type AddSquadPlayerPayload } from '../../features/clubs/api';
@@ -36,7 +38,7 @@ export const AddPlayerToSquadModal = ({ clubId, squadId, isOpen, onClose, onPlay
         setError(null);
         try {
             const result = await fetchClubPlayers(clubId, undefined, pageNum, 30);
-            const mapped: PlayerOption[] = result.content.map((p: any) => ({
+            const mapped: PlayerOption[] = result.content.map((p) => ({
                 userId: p.userId,
                 fullName: p.fullName || '',
                 username: p.username || '',
@@ -107,7 +109,8 @@ export const AddPlayerToSquadModal = ({ clubId, squadId, isOpen, onClose, onPlay
             }
             onPlayersAdded();
             onClose();
-        } catch (err: any) {
+        } catch (caught) {
+            const err = axios.isAxiosError<{ message?: string }>(caught) ? caught : undefined;
             const message = err?.response?.data?.message || err?.message || 'Failed to add players.';
             setError(message);
         } finally {
@@ -191,7 +194,7 @@ export const AddPlayerToSquadModal = ({ clubId, squadId, isOpen, onClose, onPlay
                                     >
                                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-elevated text-xs font-semibold uppercase tracking-[0.12em] text-[#a1a1aa]">
                                             {player.avatarUrl ? (
-                                                <img src={player.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+                                                <MediaImage src={player.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
                                             ) : (
                                                 (player.fullName || player.username).charAt(0).toUpperCase()
                                             )}

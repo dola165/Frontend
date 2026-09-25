@@ -1,0 +1,3 @@
+.club-approaches-panel textarea, .club-approaches-panel input { min-width: 0; }
+.club-approach-card { border-inline-start: 3px solid var(--fc-accent); }
+@media (max-width: 640px) { .club-approaches-panel .club-approach-actions { width: 100%; } .club-approaches-panel .club-approach-actions button { flex: 1; } }

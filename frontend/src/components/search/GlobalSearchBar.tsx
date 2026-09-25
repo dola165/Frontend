@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { MediaImage } from '../ui/MediaImage';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Search, User, Building2, Trophy, X } from 'lucide-react';
+import { Loader2, Search, User, Building2, Trophy, X, Sparkles } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { dolaNavigationState, isDolaQuestion } from '../../features/dola/navigation';
 import { apiClient } from '../../api/axiosConfig';
 import { HighlightedText } from './HighlightedText';
 
@@ -40,7 +43,9 @@ const DEBOUNCE_MS = 250;
 const MIN_QUERY_LENGTH = 2;
 
 export const GlobalSearchBar = ({ light = false, mobile = false }: { light?: boolean; mobile?: boolean }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { user, sessionId } = useAuth();
+  const ka = i18n.language?.startsWith('ka');
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -52,6 +57,19 @@ export const GlobalSearchBar = ({ light = false, mobile = false }: { light?: boo
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const canAsk = !!user && !!sessionId && query.trim().length >= MIN_QUERY_LENGTH;
+  const questionIntent = canAsk && isDolaQuestion(query);
+  const currentResults = query.trim() === debouncedQuery ? results : [];
+  const askIndex = questionIntent ? 0 : currentResults.length;
+  const resultOffset = questionIntent ? 1 : 0;
+  const optionCount = currentResults.length + (canAsk ? 1 : 0);
+
+  function openDola() {
+    if (!canAsk) return;
+    navigate('/assistant', { state: dolaNavigationState(query, sessionId) });
+    setQuery(''); setDebouncedQuery(''); setResults([]); setIsOpen(false);
+    inputRef.current?.blur();
+  }
 
   useEffect(() => {
     if (mobile) inputRef.current?.focus();
@@ -150,7 +168,7 @@ export const GlobalSearchBar = ({ light = false, mobile = false }: { light?: boo
 
         if (cancelled) return;
         setResults(merged);
-        setIsOpen(merged.length > 0);
+        setIsOpen(true);
         setError(
           usersRes.status === 'rejected' &&
           clubsRes.status === 'rejected' &&
@@ -183,28 +201,28 @@ export const GlobalSearchBar = ({ light = false, mobile = false }: { light?: boo
   }, []);
 
   // Keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (!isOpen || results.length === 0) {
-      if (e.key === 'Escape') {
-        setIsOpen(false);
-        inputRef.current?.blur();
-      }
-      return;
-    }
-
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.nativeEvent.isComposing) return;
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % results.length);
+        setIsOpen(true);
+        if (optionCount) setSelectedIndex((prev) => (prev + 1) % optionCount);
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + results.length) % results.length);
+        setIsOpen(true);
+        if (optionCount) setSelectedIndex((prev) => prev <= 0 ? optionCount - 1 : prev - 1);
         break;
       case 'Enter':
         e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < results.length) {
-          const r = results[selectedIndex];
+        if (canAsk && (isOpen && selectedIndex === askIndex || selectedIndex < 0 && questionIntent)) {
+          openDola();
+          break;
+        }
+        if (isOpen && currentResults.length) {
+          const r = currentResults[selectedIndex < 0 ? 0 : selectedIndex - resultOffset];
+          if (!r) break;
           navigate(getResultLink(r));
           setQuery('');
           setIsOpen(false);
@@ -217,7 +235,7 @@ export const GlobalSearchBar = ({ light = false, mobile = false }: { light?: boo
         inputRef.current?.blur();
         break;
     }
-  }, [isOpen, results, selectedIndex, navigate]);
+  };
 
   const getResultLink = (r: SearchResult): string => {
     switch (r.type) {
@@ -252,10 +270,11 @@ export const GlobalSearchBar = ({ light = false, mobile = false }: { light?: boo
           ref={inputRef}
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => { if (results.length > 0) setIsOpen(true); }}
+          onChange={(e) => { setQuery(e.target.value); setSelectedIndex(-1); setIsOpen(e.target.value.trim().length >= MIN_QUERY_LENGTH); }}
+          onFocus={() => { if (query.trim().length >= MIN_QUERY_LENGTH) setIsOpen(true); }}
           onKeyDown={handleKeyDown}
-          placeholder={t('search.placeholder')}
+          placeholder={user ? ka ? 'მოძებნეთ ან ჰკითხეთ Dola-ს…' : 'Search or ask Agent Dola…' : t('search.placeholder')}
+          maxLength={2000}
           className={`w-full rounded-full border py-2 pl-10 pr-9 text-sm outline-none transition-colors placeholder:text-[#71717a] focus:border-[#16a34a] ${light ? 'border-slate-200 bg-white text-slate-900 focus:bg-slate-50' : 'border-[#ffffff0d] bg-[#16181d] text-[#f4f4f5] focus:bg-[#1a1c22]'}`}
           aria-label={t('search.ariaLabel')}
           autoComplete="off"
@@ -281,34 +300,36 @@ export const GlobalSearchBar = ({ light = false, mobile = false }: { light?: boo
       {/* Results dropdown */}
       {isOpen && (
         <div className={`absolute left-0 right-0 top-full z-50 mt-2 max-h-[420px] overflow-y-auto rounded-xl border shadow-2xl ${light ? 'border-slate-200 bg-white' : 'border-[#ffffff0d] bg-[#16181d]'}`}>
+          {canAsk && questionIntent && renderDolaOption()}
           {error ? (
             <div className="px-4 py-6 text-center text-sm text-[#a1a1aa]">
               {t('search.loadFailed')}
             </div>
-          ) : results.length === 0 && debouncedQuery.length >= MIN_QUERY_LENGTH && !isLoading ? (
+          ) : currentResults.length === 0 && debouncedQuery.length >= MIN_QUERY_LENGTH && !isLoading && !questionIntent ? (
             <div className="px-4 py-6 text-center text-sm text-[#a1a1aa]">
               {t('search.noResults', { query: debouncedQuery })}
             </div>
           ) : (
             <ul className="py-2">
-              {results.map((r, idx) => (
+              {currentResults.map((r, idx) => (
                 <li key={`${r.type}-${r.id}`}>
                   <Link
                     to={getResultLink(r)}
+                    aria-label={`${r.type === 'user' ? r.fullName || r.username : r.name} · ${r.type === 'user' ? t('search.person') : r.type === 'club' ? t('search.club') : t('search.event')}`}
                     onClick={() => {
                       setQuery('');
                       setIsOpen(false);
                       setResults([]);
                     }}
                     className={`flex items-start gap-3 px-4 py-2.5 transition-colors ${
-                      idx === selectedIndex
+                      idx + resultOffset === selectedIndex
                         ? light ? 'bg-slate-100' : 'bg-[#1a1c22]'
                         : light ? 'hover:bg-slate-50' : 'hover:bg-[#1a1c22]'
                     }`}
                   >
                     <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${light ? 'bg-slate-100' : 'bg-[#1a1c22]'}`}>
                       {r.type === 'user' && r.avatarUrl ? (
-                        <img src={r.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+                        <MediaImage src={r.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
                       ) : (
                         getResultIcon(r)
                       )}
@@ -344,8 +365,17 @@ export const GlobalSearchBar = ({ light = false, mobile = false }: { light?: boo
               ))}
             </ul>
           )}
+          {canAsk && !questionIntent && renderDolaOption()}
         </div>
       )}
     </div>
   );
+
+  function renderDolaOption() {
+    return <button type="button" onClick={openDola}
+      className={`flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors ${light ? 'border-slate-100 text-emerald-800 hover:bg-emerald-50' : 'border-white/5 text-emerald-200 hover:bg-emerald-400/10'} ${selectedIndex === askIndex ? light ? 'bg-emerald-50' : 'bg-emerald-400/10' : ''}`}>
+      <Sparkles className="h-5 w-5 shrink-0" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{ka ? 'ჰკითხეთ Agent Dola-ს' : 'Ask Agent Dola'}</span><span className="block truncate text-xs opacity-75">{query.trim()}</span></span>
+      {questionIntent && <span className="text-xs opacity-60">↵</span>}
+    </button>;
+  }
 };

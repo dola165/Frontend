@@ -107,9 +107,9 @@ describe('PlayersTab — phase A1 trialist actions', () => {
             playerStatusFilter: 'TRIALIST',
             playerCounts: { ALL: 86, TRIALIST: 2, ACTIVE: 84, PAST: 0, REMOVED: 0 },
         });
-        expect(screen.getByRole('button', { name: /All\s*\(86\)/ })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /TRIALIST\s*\(2\)/ })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /ACTIVE\s*\(84\)/ })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /All players\s*86/ })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /On trial\s*2/ })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Active\s*84/ })).toBeInTheDocument();
     });
 
     it('does not render Promote/Release for active players', () => {

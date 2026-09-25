@@ -1,11 +1,14 @@
 import { ArrowUpRight, Footprints, Loader2, MapPin, Navigation, X } from 'lucide-react';
 import type { WalkingRoute } from './walkingGraph';
+import { useEffect, useRef } from 'react';
 
 export function MapWalkingPanel({ title, route, loading, picking, error, directionsUrl, onPick, onLocate, onClose }: {
     title: string; route: WalkingRoute | null; loading: boolean; picking: boolean; error: string | null;
     directionsUrl: string; onPick: () => void; onLocate: () => void; onClose: () => void;
 }) {
-    return <aside className="atlas-walking-panel" aria-label="Walking directions">
+    const panel = useRef<HTMLElement>(null);
+    useEffect(() => { if (panel.current) panel.current.scrollTop = 0; }, [route, error]);
+    return <aside ref={panel} className="atlas-walking-panel" aria-label="Walking directions">
         <header><span className="atlas-eyebrow"><Footprints size={14} /> WALK TO FOOTBALL</span><button aria-label="Close walking directions" onClick={onClose}><X size={18} /></button></header>
         <h2>{title}</h2>
         {!route && <p>{loading ? 'Exploring nearby streets and footpaths…' : picking ? 'Tap a street on the map to choose your starting point.' : 'Choose where your walk begins.'}</p>}

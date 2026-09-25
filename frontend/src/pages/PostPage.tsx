@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { FeedPost, type CommentDto, type FeedPostDto } from '../components/feed/FeedPost';
 import { PostTheaterModal } from '../components/PostTheaterModal';
@@ -8,9 +8,13 @@ import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { useAuth } from '../context/AuthContext';
 import { buildLoginPath } from '../utils/authRedirect';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { normalizeFeedPost } from '../utils/normalizeFeedPost';
 
 export const PostPage = () => {
     const { postId } = useParams();
+    const [searchParams] = useSearchParams();
+    const requestedMedia = searchParams.get('media');
+    const requestedMediaIndex = requestedMedia !== null && /^[0-9]$/.test(requestedMedia) ? Number(requestedMedia) : null;
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
     const [post, setPost] = useState<FeedPostDto | null>(null);
@@ -42,7 +46,7 @@ export const PostPage = () => {
         try {
             const response = await apiClient.get<FeedPostDto>(`/posts/${requestedPostId}`);
             if (requestId !== postRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
-            setPost(response.data);
+            setPost(normalizeFeedPost(response.data));
         } catch (error) {
             if (requestId !== postRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
             const status = (error as { response?: { status?: number } }).response?.status;
@@ -62,7 +66,7 @@ export const PostPage = () => {
         setPost(null);
         setComments(undefined);
         setCommentsOpen(false);
-        setMediaViewerOpen(false);
+        setMediaViewerOpen(requestedMediaIndex !== null);
         setCommentsError(null);
         setCommentsLoading(false);
         setLikePending(false);
@@ -76,9 +80,9 @@ export const PostPage = () => {
         }
         void loadPost();
         return () => { visitRef.current = visit + 1; };
-    }, [loadPost, postId]);
+    }, [loadPost, postId, requestedMediaIndex]);
 
-    const loadComments = async () => {
+    const loadComments = useCallback(async () => {
         const requestedPostId = postId;
         const requestId = ++commentsRequestRef.current;
         setCommentsLoading(true);
@@ -94,7 +98,11 @@ export const PostPage = () => {
         } finally {
             if (requestId === commentsRequestRef.current && currentPostIdRef.current === requestedPostId) setCommentsLoading(false);
         }
-    };
+    }, [postId]);
+
+    useEffect(() => {
+        if (post && requestedMediaIndex !== null && !comments && !commentsLoading && !commentsError) void loadComments();
+    }, [post, requestedMediaIndex, comments, commentsLoading, commentsError, loadComments]);
 
     const toggleComments = async () => {
         const nextOpen = !commentsOpen;
@@ -202,6 +210,7 @@ export const PostPage = () => {
                 isOpen={mediaViewerOpen}
                 post={post}
                 onClose={() => setMediaViewerOpen(false)}
+                initialMediaIndex={requestedMediaIndex ?? 0}
                 commentsData={comments}
                 onSubmitComment={submitComment}
                 onLikeToggle={toggleLike}

@@ -1,0 +1,129 @@
+@import "../parents/family-theme.css";
+.squad-page{max-width:1320px;margin:0 auto;padding:32px 24px 70px;color:var(--fc-text-primary)}
+.squad-page h1:not(:where(.squad-schedule-workspace *)){font-size:clamp(30px,4vw,44px);letter-spacing:-1.4px;line-height:1.15;margin:10px 0 14px;font-weight:750}.squad-page h2:not(:where(.squad-schedule-workspace *)),.squad-home h2{font-size:24px;font-weight:700;letter-spacing:-.6px;margin:8px 0}.squad-page h3:not(:where(.squad-schedule-workspace *)),.squad-home h3{font-size:17px;font-weight:650;margin:10px 0}.squad-page p:not(:where(.squad-schedule-workspace *)),.squad-home p{line-height:1.6}.squad-page-heading{margin-bottom:36px}.squad-eyebrow{display:flex;align-items:center;gap:8px;color:var(--fc-accent);font-size:11px;letter-spacing:1.6px;font-weight:750}.squad-section-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}.squad-section-heading p,.squad-page-heading p,.squad-channel-intro p{color:var(--fc-text-secondary)}
+.squad-home{margin:24px 0 32px}.squad-home a,.squad-page a{color:inherit;text-decoration:none}.squad-section-heading>a{display:flex;gap:7px;align-items:center;font-size:13px;color:var(--fc-accent)}.squad-space-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:16px}.squad-space-card{padding:24px;background:var(--fc-card-bg);border:1px solid var(--fc-border);border-radius:18px;transition:border-color .2s,transform .2s}.squad-space-card:hover{border-color:var(--fc-accent);transform:translateY(-2px)}.squad-space-top{display:flex;justify-content:space-between;gap:12px;margin-bottom:22px}.squad-space-top>span{color:var(--fc-accent);display:grid;place-items:center;width:42px;height:42px;background:var(--fc-surface-hover);border-radius:13px}.squad-count{display:inline-flex;align-items:center;color:var(--fc-accent);background:var(--fc-surface-hover);font-size:11px;padding:4px 9px;border-radius:20px;align-self:center;white-space:nowrap}.squad-space-card small{color:var(--fc-text-secondary);font-size:11px}.squad-space-card h3{font-size:22px;margin-top:8px}.squad-space-card p{font-size:13px;color:var(--fc-text-secondary)}.squad-space-open{display:flex;align-items:center;justify-content:space-between;margin-top:25px;color:var(--fc-accent);font-size:13px;font-weight:650}
+.squad-back{display:inline-flex;align-items:center;gap:8px;font-size:12px;margin-bottom:28px;color:var(--fc-text-secondary)!important}.squad-room-header{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid var(--fc-border);padding-bottom:26px;margin-bottom:30px}.squad-room-header p{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--fc-text-secondary)}.squad-room-header>a{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--fc-accent);white-space:nowrap}.squad-room-layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:28px}.squad-room-aside{display:flex;flex-direction:column;gap:16px}.squad-panel{padding:22px;background:var(--fc-card-bg);border:1px solid var(--fc-border);border-radius:16px}.squad-panel h3{display:flex;align-items:center;gap:8px}.squad-coach{display:flex;align-items:center;gap:10px;margin-top:18px}.squad-coach>span{display:grid;place-items:center;flex-shrink:0;width:36px;height:36px;border-radius:50%;background:var(--fc-surface-hover);color:var(--fc-accent)}.squad-coach strong,.squad-coach small{display:block;font-size:12px}.squad-coach small{color:var(--fc-text-secondary);font-size:10px;margin-top:4px}.squad-muted{color:var(--fc-text-secondary);font-size:12px!important;line-height:1.6}.squad-room-aside .squad-muted{margin:14px 0}.squad-page button:not(:where(.squad-schedule-workspace *)),.squad-home button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:8px 12px;border-radius:9px;font-size:12px;font-weight:600;background:transparent;border:1px solid var(--fc-border);cursor:pointer;color:inherit}.squad-page button:not(:where(.squad-schedule-workspace *)):hover,.squad-home button:hover{border-color:var(--fc-accent)}.squad-page button:not(:where(.squad-schedule-workspace *)):disabled{opacity:.45;cursor:default}.squad-page button:not(:where(.squad-schedule-workspace *)):focus-visible,.squad-page a:focus-visible,.squad-home a:focus-visible{outline:2px solid var(--fc-accent);outline-offset:3px}.squad-share{border-top:1px solid var(--fc-border);margin-top:20px;padding-top:12px}.squad-share>a{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fc-accent);margin:16px 0}.squad-share>button{width:100%}
+.squad-main{min-width:0}.squad-tabs{display:flex;gap:5px;overflow-x:auto;border-bottom:1px solid var(--fc-border);margin-bottom:24px;padding-bottom:12px}.squad-tabs button{border:0;white-space:nowrap;color:var(--fc-text-secondary)}.squad-tabs button[aria-pressed=true]{color:var(--fc-accent);background:var(--fc-surface-hover)}.squad-channel-intro{margin:0 0 22px}.squad-channel-intro h2{font-size:23px}.squad-channel-intro p{font-size:13px;margin-top:5px}.squad-channel-intro>button{margin-top:16px}.squad-empty{padding:35px 24px;text-align:center;border:1px dashed var(--fc-border);border-radius:16px}.squad-empty>svg{margin:0 auto 15px;color:var(--fc-accent)}.squad-empty p{font-size:13px;color:var(--fc-text-secondary);max-width:480px;margin:10px auto}.squad-error{padding:12px 15px;color:var(--fc-state-danger);background:var(--fc-state-danger-soft);border-radius:10px;font-size:13px;margin:12px 0}.squad-primary{background:var(--fc-accent)!important;color:var(--fc-page-bg)!important;border-color:var(--fc-accent)!important}.squad-danger{color:var(--fc-state-danger)!important}
+.squad-page label:not(:where(.squad-schedule-workspace *)){display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:600}.squad-page input:not(:where(.squad-schedule-workspace *)):not([type=checkbox]),.squad-page textarea:not(:where(.squad-schedule-workspace *)),.squad-page select:not(:where(.squad-schedule-workspace *)){background:var(--fc-page-bg);color:var(--fc-text-primary);border:1px solid var(--fc-border);border-radius:9px;padding:10px 12px;font-size:13px;min-width:0;max-width:100%;outline-offset:2px}.squad-page input:not(:where(.squad-schedule-workspace *)):focus,.squad-page textarea:not(:where(.squad-schedule-workspace *)):focus,.squad-page select:not(:where(.squad-schedule-workspace *)):focus{outline:1px solid var(--fc-accent)}.squad-page textarea:not(:where(.squad-schedule-workspace *)){min-height:95px;resize:vertical;line-height:1.6}.squad-check{display:flex!important;flex-direction:row!important;align-items:flex-start;gap:9px!important;line-height:1.5;font-size:12px;font-weight:400!important}.squad-check input{margin-top:3px;accent-color:var(--fc-accent)}.squad-composer{margin:0 0 22px;display:flex;flex-direction:column;gap:14px}.squad-form-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}.squad-message{background:var(--fc-card-bg);border:1px solid var(--fc-border);border-radius:15px;padding:20px;margin-bottom:12px;overflow-wrap:anywhere}.squad-message header{display:flex;align-items:center;flex-wrap:wrap;gap:10px;font-size:12px}.squad-message time{font-size:10px;color:var(--fc-text-secondary)}.squad-message-body{white-space:pre-wrap;font-size:14px;margin:12px 0}.squad-message footer{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:16px}.squad-message footer>a{font-size:11px;display:flex;gap:5px;align-items:center;color:var(--fc-accent)}.squad-message.is-important{border-left:3px solid var(--fc-accent)}.squad-message.is-mine{background:var(--fc-page-bg)}.squad-ack{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--fc-accent)}.squad-chat-log{max-height:560px;overflow-y:auto;overscroll-behavior:contain;padding-right:7px}.squad-chat-composer{display:flex;flex-direction:row;align-items:flex-end;margin-top:16px}.squad-chat-composer textarea{flex:1;min-height:70px}.squad-chat-composer button{min-height:44px;min-width:44px}.squad-receipts{margin-top:20px;border-top:1px solid var(--fc-border);padding-top:16px;font-size:12px}.squad-receipts p{display:flex;justify-content:space-between;gap:12px;margin:9px 0}.squad-receipts span{color:var(--fc-text-secondary)}.squad-private-layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:20px}.squad-thread-list button{width:100%;justify-content:space-between;margin-bottom:8px;text-align:left}.squad-thread-list button.is-selected{background:var(--fc-surface-hover);border-color:var(--fc-accent)}.squad-thread-list h3{margin:0 0 16px;font-size:14px}.squad-thread-list b{color:var(--fc-accent)}.squad-session{margin:15px 0}.squad-session.is-cancelled{border-left:3px solid var(--fc-state-danger)}.squad-session p{font-size:13px;color:var(--fc-text-secondary)}.squad-session-form{display:flex;flex-direction:column;gap:15px;margin-bottom:20px}.squad-session-form>div{display:grid;grid-template-columns:1fr 1fr;gap:14px}.squad-session form label{margin:18px 0 12px}.squad-session form button{margin-right:10px}.squad-attendance{margin:18px 0}.squad-attendance>div{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--fc-border);padding:12px 0;font-size:13px}.squad-attendance select{max-width:180px}
+@media(max-width:1050px){.squad-room-layout{grid-template-columns:220px minmax(0,1fr);gap:18px}.squad-private-layout{grid-template-columns:1fr}.squad-thread-list{display:flex;gap:8px;flex-wrap:wrap}.squad-thread-list h3{width:100%}.squad-thread-list button{width:auto}.squad-panel{padding:17px}}
+@media(max-width:760px){.squad-page{padding:20px 14px 50px}.squad-room-layout{display:flex;flex-direction:column}.squad-room-aside{order:2;display:grid;grid-template-columns:1fr 1fr}.squad-room-header{align-items:flex-start;flex-direction:column}.squad-tabs{gap:0}.squad-tabs button{padding:9px;font-size:11px}.squad-tabs svg{width:15px}.squad-form-actions{align-items:flex-start;flex-direction:column}.squad-form-actions>button{width:100%}.squad-message{padding:16px}.squad-section-heading{align-items:flex-start;flex-direction:column}.squad-session-form>div{grid-template-columns:1fr}.squad-space-grid{grid-template-columns:1fr}.squad-chat-log{max-height:480px}}
+@media(max-width:430px){.squad-room-aside{grid-template-columns:1fr}.squad-tabs button{gap:4px}.squad-tabs svg{display:none}.squad-attendance>div{align-items:flex-start;flex-direction:column}.squad-attendance select{width:100%;max-width:none}}
+
+/* Neutral surfaces share the same tokens as the academy workspace. */
+.squad-page{max-width:1600px;padding:28px 32px 64px}.squad-primary{background:var(--fc-text-primary)!important;color:var(--fc-card-bg)!important;border-color:var(--fc-text-primary)!important}.squad-tabs button[aria-pressed=true]{color:var(--fc-text-primary);background:var(--fc-surface-hover)}.squad-space-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}.squad-space-card{padding:18px;border-radius:12px}.squad-space-top{margin-bottom:10px}.squad-space-card h3{font-size:18px}.squad-space-open{margin-top:12px}.squad-space-top>span{width:30px;height:30px;background:transparent;color:var(--fc-text-secondary)}
+.family-room-header{margin-bottom:24px;padding-bottom:20px}.family-room-header h1{font-size:32px;margin-bottom:6px}.family-room-actions{display:flex;gap:10px;align-items:center}.family-room-actions a,.family-conversation-back{display:inline-flex;gap:7px;align-items:center;padding:10px 14px;border:1px solid var(--fc-border);border-radius:9px;font-size:13px}.family-room-actions a:first-child{background:var(--fc-text-primary);color:var(--fc-card-bg)}.family-room-layout{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:28px}.family-room-content{min-width:0}.family-room-content>.family-schedule{margin-bottom:28px}.family-room-aside{border-left:1px solid var(--fc-border);padding-left:24px}.family-room-aside h2{font-size:15px;margin:0 0 18px}.family-room-aside details{margin-top:24px;border-top:1px solid var(--fc-border);padding-top:18px}.family-room-aside summary{cursor:pointer;font-size:13px;font-weight:600}.family-room-aside>p{font-size:12px;color:var(--fc-text-secondary);line-height:1.6}.family-room-aside .squad-check{margin-top:16px}.family-room-aside>a{display:inline-block;margin-top:20px;font-size:12px;text-decoration:underline}.family-room .squad-channel-intro{margin-bottom:16px}.family-room .squad-channel-intro h2{font-size:20px}.family-room .squad-channel-intro p{display:none}.family-room .squad-message{background:var(--fc-card-bg);border-radius:10px}.family-room .squad-message.is-important{border-left-color:var(--fc-text-secondary)}.family-room .squad-count{background:var(--fc-surface-hover);color:var(--fc-text-secondary)}.family-room .squad-message footer>a{display:none}.family-conversation-back{margin-bottom:20px}.family-conversation{max-width:900px;margin:0 auto}.family-room .squad-back{margin-bottom:18px}
+@media(max-width:1000px){.family-room-layout{grid-template-columns:minmax(0,1fr)}.family-room-aside{border-left:0;border-top:1px solid var(--fc-border);padding:20px 0 0}.family-room-aside .squad-coach{display:inline-flex;margin-right:24px}.family-room-header{align-items:flex-start;flex-direction:column}}@media(max-width:600px){.squad-page{padding:20px 14px 50px}.family-room-header h1{font-size:28px}.family-room-actions{width:100%}.family-room-actions a{flex:1;justify-content:center}}
+/* Match the academy workspace: clear rails, compact cards and purposeful green. */
+.squad-page.family-room{max-width:1720px;padding-top:24px}
+.squad-page .squad-back{font-size:14px;font-weight:650;padding:10px 16px;border:1px solid var(--fc-accent);border-radius:8px;background:var(--fc-accent-soft);color:var(--fc-accent)!important;margin-bottom:24px}
+.family-room .family-room-actions>a:first-child{background:var(--fc-accent);color:var(--fc-page-bg);border-color:var(--fc-accent)}
+.family-room .family-room-actions>a:last-child{color:var(--fc-accent);border-color:var(--fc-accent)}
+.family-room-layout{grid-template-columns:minmax(0,1fr) 350px;gap:28px}
+.family-room-aside{padding-left:0;border-left:0}
+.family-room-aside>details{background:var(--fc-card-bg);border:1px solid var(--fc-border);border-radius:10px;padding:16px;margin-top:14px}
+.family-room .squad-message.is-important{border-left-color:var(--fc-accent)}
+.family-room .squad-count{color:var(--fc-accent);background:var(--fc-accent-soft)}
+.family-room .squad-message{padding:20px 24px}
+.family-room .squad-channel-intro h2{font-size:24px}
+.family-room-aside .family-schedule{padding:18px;border-radius:10px;border-top:3px solid var(--fc-accent)}
+.family-schedule-compact .family-schedule-heading{align-items:flex-start;flex-direction:column;gap:12px}
+.family-schedule-compact .family-schedule-heading h2{font-size:20px;margin:0 0 6px}
+.family-schedule-agenda{display:flex;flex-direction:column;margin-top:16px}
+.family-schedule-agenda>button{justify-content:flex-start;align-items:flex-start;gap:14px;text-align:left;padding:16px 0;border:0;border-top:1px solid var(--fc-border);border-radius:0;width:100%}
+.family-schedule-agenda>button[aria-pressed=true]{color:var(--fc-accent)}
+.family-agenda-date{font-size:28px;font-weight:750;line-height:1.1;color:var(--fc-accent);min-width:35px}
+.family-schedule-agenda small{display:block;font-size:11px;font-weight:400;color:var(--fc-text-secondary);margin-top:5px}
+.family-schedule-agenda strong{display:block;font-size:13px;line-height:1.5}
+.family-schedule-compact .family-event-detail{padding:12px}
+.family-schedule-compact .family-attendance{flex-direction:column;align-items:stretch}
+@media(max-width:1000px){.family-room-layout{grid-template-columns:minmax(0,1fr) 300px}}
+@media(max-width:760px){.family-room-layout{display:flex;flex-direction:column}.family-room-aside{order:-1;border:0;padding:0}.family-room .squad-message{padding:16px}.squad-page.family-room{padding:20px 14px}.family-room-aside>details{margin-top:10px}}
+.squad-page .squad-primary{background:var(--fc-accent)!important;color:var(--fc-page-bg)!important;border-color:var(--fc-accent)!important}
+.squad-tabs button[aria-pressed=true]{color:var(--fc-accent);background:var(--fc-accent-soft)}
+/* Keep the way back visible at every screen size. */
+.squad-return-nav{display:flex;align-items:center;gap:18px;flex-shrink:0;margin-bottom:18px}
+.squad-return-nav .squad-back{display:inline-flex;margin:0;min-height:46px;font-size:15px;padding:11px 18px;background:var(--fc-accent);color:var(--fc-page-bg)!important}
+.squad-return-nav .squad-inbox-back{display:inline-flex;color:var(--fc-accent)!important;font-size:13px;margin:0}
+.squad-page .squad-back{min-height:46px;font-size:15px;font-weight:700}
+.squad-coach-identity{display:flex;align-items:center;gap:12px;margin-top:18px}
+.squad-coach-identity .squad-coach-avatar{display:flex;align-items:center;justify-content:center;width:44px;height:44px;flex-shrink:0;border-radius:50%;background:var(--fc-accent-soft);border:1px solid var(--fc-accent);color:var(--fc-accent);font-size:17px;font-weight:700}
+.squad-coach-identity small{display:block;color:var(--fc-text-secondary);font-size:12px;margin-bottom:3px}
+.squad-coach-identity strong{display:block;color:var(--fc-text-primary);font-size:16px;font-weight:650;line-height:1.45}
+.family-room-header{background:var(--fc-card-bg);border:1px solid var(--fc-border);border-left:4px solid var(--fc-accent);border-radius:10px;padding:24px 28px}
+.family-room-header h1{font-size:38px}
+.family-room-header .squad-coach-identity{margin-top:20px}
+.family-squad-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px;margin-bottom:24px}
+.family-squad-links>a{padding:24px;min-height:155px;border-left:4px solid var(--fc-accent);justify-content:space-between;align-items:center}
+.family-squad-links .family-squad-identity>small{color:var(--fc-accent);font-weight:700;font-size:12px}
+.family-squad-links .family-squad-identity>strong{font-size:26px;line-height:1.3;display:block;margin-top:6px}
+.family-squad-links .squad-coach-identity{margin-top:18px}
+.family-squad-links .family-squad-open{color:var(--fc-accent);font-size:13px;font-weight:650;white-space:nowrap}
+.squad-space-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))}
+.squad-space-card{padding:26px;border-left:4px solid var(--fc-accent)}
+.squad-space-card h3{font-size:28px}
+.squad-space-card .squad-coach-identity strong{font-size:16px}
+.squad-space-open{font-size:14px;margin-top:22px}
+.squad-announcements .squad-channel-intro{min-height:40px}
+.squad-notifications-link{float:right;display:inline-flex;align-items:center;gap:7px;color:var(--fc-accent)!important;font-size:13px;padding:8px 0 8px 16px}
+.squad-announcements .squad-message{display:grid;grid-template-columns:44px minmax(0,1fr);column-gap:18px;align-items:start}
+.squad-announcements .squad-message>header,.squad-announcements .squad-message>h3,.squad-announcements .squad-message>p,.squad-announcements .squad-message>footer,.squad-announcements .squad-message>.squad-receipts{grid-column:2}
+.squad-announcements .squad-news-bell{grid-column:1;grid-row:1 / span 4;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid var(--fc-border);color:var(--fc-text-secondary);background:var(--fc-surface-hover)}
+.squad-announcements .is-important .squad-news-bell{color:var(--fc-accent);border-color:var(--fc-accent);background:var(--fc-accent-soft)}
+.family-schedule-compact .family-schedule-heading{margin-bottom:8px}
+.family-schedule-compact .family-schedule-agenda{margin-top:4px}
+.family-schedule-compact .family-schedule-agenda>button{display:flex;border:0;border-radius:0;border-bottom:1px solid var(--fc-border);padding:20px 0;gap:16px;justify-content:flex-start;align-items:flex-start}
+.family-schedule-compact .family-agenda-date{min-width:45px;font-size:34px;text-align:center;padding-top:2px}
+.family-schedule-compact .family-agenda-date small{text-transform:uppercase;font-size:11px}
+.family-schedule-compact .family-schedule-agenda strong{font-size:16px}
+.family-schedule-compact .family-schedule-agenda small{font-size:12px;line-height:1.5}
+.family-schedule-compact .family-schedule-agenda .family-next-label{color:var(--fc-accent);font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.06em;margin:0 0 5px}
+.family-schedule-compact .family-browse-dates{width:100%;margin-top:16px;color:var(--fc-accent);border-color:var(--fc-accent);font-weight:650}
+@media(max-width:760px){.squad-return-nav{gap:14px}.squad-return-nav .squad-back{padding:10px 14px;font-size:14px}.family-room-header{padding:20px}.family-room-header h1{font-size:30px}.family-squad-links>a{padding:20px;flex-wrap:wrap;gap:18px}.family-squad-links .family-squad-identity>strong{font-size:24px}.family-squad-links .family-squad-open{width:100%;justify-content:space-between}.squad-announcements .squad-message{grid-template-columns:34px minmax(0,1fr);column-gap:12px}.squad-announcements .squad-news-bell{width:34px;height:34px}.squad-notifications-link{font-size:12px}.squad-coach-identity strong{font-size:15px}}
+/* These also load when Parent Hub is opened directly, before the squad route. */
+.parent-hub .family-squad-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px;margin-bottom:24px}
+.parent-hub .family-squad-links>a{padding:24px;min-height:155px;border-left:4px solid var(--fc-accent);justify-content:space-between;align-items:center}
+.parent-hub .family-squad-identity{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:40px;flex:1;align-items:center}
+.parent-hub .family-squad-identity>small,.parent-hub .family-squad-identity>strong{grid-column:1}
+.parent-hub .family-squad-identity .squad-coach-identity{grid-column:2;grid-row:1 / span 2;margin-top:0}
+.parent-hub .family-squad-links .squad-coach-identity strong{font-size:16px}
+.family-room-aside .family-schedule-compact .family-schedule-agenda>button{display:flex;border:0;border-radius:0;border-bottom:1px solid var(--fc-border);padding:18px 0;gap:14px;justify-content:flex-start;align-items:flex-start;text-align:left}
+.family-room-aside .family-schedule-compact .family-browse-dates{color:var(--fc-accent);border-color:var(--fc-accent)}
+@media(max-width:760px){.parent-hub .family-squad-identity{display:block}.parent-hub .family-squad-identity .squad-coach-identity{margin-top:16px}.parent-hub .family-squad-links>a{padding:20px}.family-room-aside{display:contents}.family-room-aside>.family-schedule{order:-1}.family-room-content{order:0}.family-room-aside>details{order:1}.family-room-aside>a{order:2}}
+
+/* Journey 07 final coach workspace composition. */
+.coach-room { padding-top:20px; }
+.coach-room > .squad-back {
+  min-height:40px;
+  margin-bottom:10px;
+  padding:8px 12px;
+  font-size:13px;
+}
+.coach-room .squad-room-header {
+  align-items:center;
+  margin-bottom:12px;
+  padding:11px 2px 13px;
+  border:0;
+  border-bottom:1px solid var(--fc-border);
+  border-radius:0;
+}
+.coach-room-heading{min-width:0}
+.coach-room-title{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px 18px}
+.coach-room-heading h1{margin:3px 0 0;font-size:clamp(27px,2.4vw,34px)}
+.coach-room-title p{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0;color:var(--fc-text-secondary);font-size:12px}
+.coach-room-title p svg{color:var(--fc-accent)}
+.coach-room-roster{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:8px 11px;border:1px solid var(--fc-border);border-radius:8px;font-size:12px;font-weight:650;white-space:nowrap}
+.coach-room .squad-room-layout{grid-template-columns:minmax(0,1fr) 300px;gap:24px}
+.coach-room .squad-main{grid-column:1}.coach-room .squad-room-aside{grid-column:2}
+.coach-room .squad-tabs{margin-bottom:12px;padding:4px;border:1px solid var(--fc-border);border-radius:10px;background:var(--fc-card-bg)}
+.coach-room .squad-tabs button{flex:1 1 130px;justify-content:center}
+.coach-room .squad-panel{border-radius:12px}.coach-room .squad-room-aside{position:sticky;top:calc(var(--app-active-header-height,100px) + 18px)}
+@media(max-width:1050px){.coach-room .squad-room-layout{grid-template-columns:minmax(0,1fr) 260px}}
+@media(max-width:760px){
+  .coach-room{padding-top:16px}
+  .coach-room .squad-room-header{align-items:flex-start;padding:10px 0 12px}
+  .coach-room .coach-room-roster{width:100%}
+  .coach-room .squad-room-layout{display:flex;flex-direction:column}
+  .coach-room .squad-room-aside{position:static;order:2}
+  .coach-room .squad-main{order:1}
+  .coach-room .squad-tabs button{flex:0 0 auto}
+}

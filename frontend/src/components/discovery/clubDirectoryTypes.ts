@@ -3,6 +3,7 @@ export type ClubJoinPolicy = 'OPEN_TRIAL' | 'APPLICATION_REQUIRED' | 'INVITE_ONL
 export type ClubRelationshipState = 'NONE' | 'INVITED' | 'APPLIED' | 'TRIALIST' | 'ACTIVE' | 'LEFT' | 'REMOVED';
 
 export interface ClubProfile {
+    presentation?: import('../../features/clubs/presentation').ClubPresentation | null;
     id: number;
     name: string;
     description: string;
@@ -27,7 +28,7 @@ export interface ClubDirectoryPageResult<T> {
     totalPages: number;
 }
 
-export const CLUB_TYPES = ['PROFESSIONAL', 'GRASSROOTS', 'ACADEMY'] as const;
+export const CLUB_TYPES = ['PROFESSIONAL', 'SEMI_PROFESSIONAL', 'AMATEUR', 'GRASSROOTS', 'ACADEMY', 'SCHOOL', 'OTHER'] as const;
 export const JOIN_POLICIES = ['OPEN_TRIAL', 'APPLICATION_REQUIRED', 'INVITE_ONLY'] as const;
 export const SORT_OPTIONS = [
     { value: 'NEWEST', label: 'Newest' },

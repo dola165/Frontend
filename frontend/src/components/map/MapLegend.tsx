@@ -1,4 +1,5 @@
 const LEGEND_LABELS: Record<string, string> = {
+    STADIUM: 'Stadium',
     CLUB: 'Club',
     TRYOUT: 'Tryout',
     MATCH: 'Match',

@@ -1,13 +1,19 @@
+import { getHeritageStyle } from './heritageStyle';
 import './map-atlas.css';
+import { useAndroidMapState } from '../../android/useAndroidMapState';
+import { isAndroidApp } from '../../android/bridge';
 import { MapCommandBar } from './MapCommandBar';
+import { EmbeddedMapFilterDialog } from './EmbeddedMapFilterDialog';
 import { MapSearchLayer } from './MapSearchLayer';
 import { MapWalkingPanel } from './MapWalkingPanel';
 import { MapViewControls } from './MapViewControls';
 import { MapFootballMarkers, FOOTBALL_IMAGE } from './MapFootballMarkers';
 import { loadWalkingRoute } from './walkingRoutes';
+import { mapCameraPadding, mapSelectionTarget, type MapFocusTarget } from './mapCamera';
 import { containsPoint, searchRank, coverageBounds, coverageLabel, type SearchCoverage, type MapBounds } from './areaSearch';
 import type { Coordinate, WalkingRoute } from './walkingGraph';
 import { distanceKm as geographicDistanceKm } from './walkingGraph';
+import { MediaImage } from '../ui/MediaImage';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import MapGL, { Layer, Source, NavigationControl, useMap, type MapRef } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -50,11 +56,11 @@ import {
     LAYER_POINTS,
     MAP_POINTS_SOURCE_ID,
     MAP_STYLE_DEFAULT,
-    buildPointsFeatureCollection,
-    withHeritagePaints
+    buildPointsFeatureCollection
 } from './mapLayers';
 import { useAuth } from '../../context/AuthContext';
 import { fetchMyClubMembershipContext } from '../../features/clubs/api';
+import { profileKindLabel, type ClubPresentation } from '../../features/clubs/presentation';
 import { isLeadershipRole } from '../../features/clubs/domain';
 import { createScheduleChallenge, type ScheduleEventOccurrence } from '../../features/schedule/api';
 import { extractApiErrorMessage } from '../../utils/apiError';
@@ -65,24 +71,6 @@ import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 // All projection modes share the warm, unsaturated basemap.
 
 const MAPTILER_API_KEY = import.meta.env.VITE_MAPTILER_API_KEY as string | undefined;
-
-// Cache the recolored style across remounts; retry on a later mount after failure.
-let heritageStylePromise: Promise<StyleSpecification> | null = null;
-const getHeritageStyle = (): Promise<StyleSpecification> => {
-    if (!heritageStylePromise) {
-        heritageStylePromise = fetch(MAP_STYLE_DEFAULT)
-            .then((response) => {
-                if (!response.ok) throw new Error(`positron fetch failed: ${response.status}`);
-                return response.json() as Promise<Record<string, unknown>>;
-            })
-            .then((style) => withHeritagePaints(style) as StyleSpecification)
-            .catch((styleError: unknown) => {
-                heritageStylePromise = null; // allow a fresh attempt on the next mount
-                throw styleError;
-            });
-    }
-    return heritageStylePromise;
-};
 
 export type MapMode = 'flat' | 'globe' | 'tilted';
 
@@ -98,11 +86,13 @@ export interface MapExperienceProps {
     context?: MapExperienceContext;
     /** Keep the map and its drawers contained within a parent surface (used on the landing page). */
     embedded?: boolean;
+    /** Floating, compact controls for the landing page's edge-to-edge map. */
+    compactControls?: boolean;
     /** Position the simple filter surface beside the map, over it, or outside it. */
     filterLayout?: 'side' | 'top' | 'external';
     /** Optional narrower product surface, such as the club-only landing preview. */
     allowedEntityTypes?: MapEntityType[];
-    /** Retained for caller compatibility. All map surfaces currently use the daylight palette. */
+    /** Default discovery stays in daylight; compositions may explicitly request dark cartography. */
     mapTheme?: 'inherit' | 'light' | 'dark';
     /** Guest maps hide controls that depend on an authenticated account. */
     showAdvancedFilters?: boolean;
@@ -135,6 +125,7 @@ interface ClubDirectoryRecord {
 }
 
 interface ClubProfileSummary extends ClubDirectoryRecord {
+    presentation?: ClubPresentation | null;
     bannerUrl?: string | null;
     whatsappNumber?: string | null;
     facebookMessengerUrl?: string | null;
@@ -188,6 +179,7 @@ interface SearchSuggestion {
 }
 
 interface ExternalMapFilterToolbarProps {
+    compact?: boolean;
     draftSearch: string;
     suggestions: SearchSuggestion[];
     toolbarCount: string;
@@ -199,6 +191,7 @@ interface ExternalMapFilterToolbarProps {
 }
 
 const ExternalMapFilterToolbar = ({
+    compact = false,
     draftSearch,
     suggestions,
     toolbarCount,
@@ -211,7 +204,7 @@ const ExternalMapFilterToolbar = ({
     const { t } = useTranslation();
 
     return (
-        <section aria-label={t('map.searchAndFilters')} className="relative z-[1400] shrink-0 border-b border-[var(--map-panel-border)] bg-[var(--map-panel-bg)] px-4 py-3 sm:px-5">
+        <section aria-label={t('map.searchAndFilters')} className={`atlas-external-toolbar ${compact ? 'atlas-toolbar-compact' : ''} relative z-[1400] shrink-0 border-b border-[var(--map-panel-border)] bg-[var(--map-panel-bg)] px-4 py-3 sm:px-5`}>
             <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-2.5">
                 <div className="relative min-w-0 flex-1 basis-[18rem]">
                     <div className="flex min-h-11 items-center gap-2 rounded-xl border border-[var(--map-panel-border)] bg-[var(--map-card-bg)] px-3 transition-colors focus-within:border-[var(--accent-primary)]">
@@ -251,23 +244,25 @@ const ExternalMapFilterToolbar = ({
                 <button
                     type="button"
                     aria-expanded={isFilterOpen}
+                    aria-label={isFilterOpen ? t('map.closeFilters') : t('map.openFilters')}
+                    title={isFilterOpen ? t('map.closeFilters') : t('map.openFilters')}
                     aria-controls="landing-map-filter-panel"
                     onClick={onToggleFilters}
                     className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--accent-primary)] bg-[var(--accent-primary-soft)] px-4 py-2 text-sm font-bold text-[var(--accent-primary)] transition-colors hover:bg-[var(--accent-primary-soft)]"
                 >
                     <SlidersHorizontal className="h-4 w-4" />
-                    {isFilterOpen ? t('map.closeFilters') : t('map.openFilters')}
-                    {hasActiveFilters && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent-primary)] px-1 text-[10px] text-white">!</span>}
+                    {!compact && (isFilterOpen ? t('map.closeFilters') : t('map.openFilters'))}
+                    {!compact && hasActiveFilters && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent-primary)] px-1 text-[10px] text-white">!</span>}
                 </button>
 
-                <span className="ml-auto text-xs font-bold text-[var(--text-secondary)]">{toolbarCount}</span>
+                {!compact && <span className="ml-auto text-xs font-bold text-[var(--text-secondary)]">{toolbarCount}</span>}
             </div>
         </section>
     );
 };
 
 const DEFAULT_CENTER: [number, number] = [41.7151, 44.8271]; // Tbilisi — primary launch/demo market
-const ALL_MAP_TYPES: MapEntityType[] = ['CLUB', 'MATCH', 'TOURNAMENT'];
+const ALL_MAP_TYPES: MapEntityType[] = ['CLUB', 'STADIUM', 'MATCH', 'TOURNAMENT'];
 const CLUB_QUERY_LIMIT = 8;
 
 export interface MapExperienceResolvedOptions {
@@ -285,12 +280,13 @@ export interface MapExperienceResolvedOptions {
 // eslint-disable-next-line react-refresh/only-export-components
 export const resolveMapExperienceOptions = ({
     context = 'authenticated',
+    mapTheme = 'inherit',
     showAdvancedFilters,
     showModeControl,
     showBackControl
 }: Pick<MapExperienceProps, 'darkMode' | 'context' | 'mapTheme' | 'showAdvancedFilters' | 'showModeControl' | 'showBackControl'>): MapExperienceResolvedOptions => ({
     context,
-    mapDarkMode: false,
+    mapDarkMode: mapTheme === 'dark',
     showAdvancedFilters: context === 'guest' ? false : showAdvancedFilters ?? true,
     showModeControl: context === 'guest' ? false : showModeControl ?? true,
     showBackControl: context === 'guest' ? false : showBackControl ?? true
@@ -307,7 +303,7 @@ export const resolveMapExperienceEntityTypes = ({
 
 // Initial load applies only the Club type; MATCH/TOURNAMENT are opt-in via the
 // filter chips. Reset still restores every viewer-allowed type.
-const initialMapFilters: MapFilters = { ...defaultMapFilters, entityType: ['CLUB'] };
+const initialMapFilters: MapFilters = { ...defaultMapFilters, entityType: ['CLUB', 'STADIUM'] };
 
 const dateTimeFormatter = new Intl.DateTimeFormat('en-GB', {
     month: 'short',
@@ -396,6 +392,7 @@ const buildMapMarkerRecord = (marker: MapMarkerDto): DiscoveryRecord => {
 const getRecordTypeLabel = (record: DiscoveryRecord) => {
     switch (record.entityType) {
         case 'CLUB': return 'Club';
+        case 'STADIUM': return 'Stadium';
         case 'TRYOUT': return 'Tryout';
         case 'MATCH': return record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Match';
         case 'TOURNAMENT': return 'Tournament';
@@ -422,12 +419,28 @@ const getJoinPolicyLabel = (value?: string | null) => {
 };
 
 
-function MapFocusController({ target, onSettled }: { target: { center: [number, number]; zoom?: number } | null; onSettled: () => void }) {
+function MapFocusController({ target, onSettled }: { target: MapFocusTarget | null; onSettled: () => void }) {
     const { current: map } = useMap();
 
     useEffect(() => {
         if (!target || !map) return;
-        map.flyTo({ center: [target.center[1], target.center[0]], zoom: target.zoom, duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 700 });
+        // Selecting a result can open a dock and change the map's available width.
+        map.resize();
+        const canvas = map.getContainer();
+        const sheet = window.innerWidth < 1100 ? canvas.closest('.map-atlas')?.querySelector<HTMLElement>('.atlas-detail-dock')?.clientHeight ?? 0 : 0;
+        const padding = mapCameraPadding(canvas.clientWidth, canvas.clientHeight, sheet);
+        const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 500;
+        if (target.bounds) {
+            // Keep the pins and start label clear of the toolbar and actual sheet.
+            // Scale the margins down only when the visible map is very short.
+            const visibleHeight = canvas.clientHeight - sheet;
+            map.fitBounds(target.bounds, { padding: { ...padding,
+                top: Math.min(88, visibleHeight * .55), bottom: sheet + Math.min(48, visibleHeight * .3) },
+                maxZoom: target.zoom, duration });
+        } else {
+            map.flyTo({ center: [target.center[1], target.center[0]], zoom: target.zoom,
+                offset: [0, (padding.top - padding.bottom) / 2], duration });
+        }
         onSettled();
     }, [map, onSettled, target]);
 
@@ -658,7 +671,7 @@ const InfoSection = ({
 
 // ── Main detail panel ────────────────────────────────────────────────
 
-const DiscoveryDetailPanel = ({
+export const DiscoveryDetailPanel = ({
     record,
     clubProfile,
     canRespond,
@@ -701,7 +714,7 @@ const DiscoveryDetailPanel = ({
     };
 
     const directionsUrl = buildGoogleMapsDirectionsUrl(record.latitude, record.longitude);
-    const bannerUrl = resolveMediaUrl(clubProfile?.bannerUrl);
+    const bannerUrl = resolveMediaUrl(record.entityType === 'STADIUM' ? record.rawMapMarker?.logoUrl : clubProfile?.bannerUrl);
     const logoUrl = resolveMediaUrl(clubProfile?.logoUrl);
 
     const contactUrl = buildWhatsAppUrl(clubProfile?.whatsappNumber)
@@ -726,7 +739,7 @@ const DiscoveryDetailPanel = ({
         || undefined;
 
     const typeSubtitle = record.entityType === 'CLUB'
-        ? clubProfile?.type || 'Club'
+        ? (clubProfile?.presentation ? profileKindLabel[clubProfile.presentation.profileKind] : clubProfile?.type || 'Club')
         : getRecordTypeLabel(record);
 
     const description = clubProfile?.description || record.description || undefined;
@@ -753,15 +766,17 @@ const DiscoveryDetailPanel = ({
     ].filter(Boolean) as Array<{ icon: React.ReactNode; label: string; href?: string; onClick?: () => void }>;
 
     return (
-    <div className="map-details-panel flex h-full flex-col" style={{ backgroundColor: 'var(--map-panel-bg)' }}>
+    <div className="map-details-panel flex h-full min-h-0 flex-col" style={{ backgroundColor: 'var(--map-panel-bg)' }}>
+        <div className="atlas-detail-topbar atlas-panel-topline"><span className="atlas-eyebrow"><Building2 size={14} /> CLUB DETAILS</span><button type="button" onClick={onClose} aria-label="Close details"><X size={18} /></button></div>
+        <div className="atlas-detail-scroll min-h-0 flex-1 overflow-y-auto">
         <header className="atlas-detail-header">
-            <div className="atlas-panel-topline"><span className="atlas-eyebrow"><Building2 size={14} /> DISCOVER A TEAM</span><button type="button" onClick={onClose} aria-label="Close details"><X size={18} /></button></div>
-            {bannerUrl && <img src={bannerUrl} alt="" className="atlas-detail-banner" />}
+            {bannerUrl && <MediaImage src={bannerUrl} alt="" className="atlas-detail-banner" />}
             <div className="atlas-detail-identity">
-                <span className="atlas-detail-logo">{logoUrl ? <img src={logoUrl} alt="" /> : <Building2 size={28} />}</span>
+                <span className="atlas-detail-logo">{logoUrl ? <MediaImage src={logoUrl} alt="" /> : <Building2 size={28} />}</span>
                 <span className="atlas-eyebrow">{typeSubtitle.replaceAll('_', ' ')}</span>
             </div>
             <h2>{record.title}<span>.</span></h2>
+            {record.rawMapMarker?.fee && <p className="atlas-training-price">{record.rawMapMarker.fee}</p>}
             {record.clubName && record.entityType !== 'CLUB' && <p>{record.clubName}</p>}
             <div className="atlas-detail-badges">
                 {(clubProfile?.isOfficial ?? record.official) && <span className="map-pill map-pill--accent"><ShieldCheck size={12} />Verified</span>}
@@ -772,7 +787,7 @@ const DiscoveryDetailPanel = ({
         </header>
 
         {/* ── Info rows ───────────────────────────── */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div>
             {/* Quick stats strip */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3 text-[13px] text-slate-500 dark:text-slate-400">
                 {(clubProfile?.memberCount != null || clubProfile?.followerCount != null) && (
@@ -885,8 +900,7 @@ const DiscoveryDetailPanel = ({
             <div className="h-3" />
         </div>
 
-        {/* ── Footer: secondary then primary ───────── */}
-        <div className="atlas-detail-footer shrink-0 border-t border-[var(--map-panel-border)] px-4 py-3.5 space-y-2.5">
+        <div className="atlas-detail-secondary">
             {/* Secondary action chips */}
             {secondaryActions.length > 0 && (
                 <div className="flex flex-wrap items-center justify-center gap-2">
@@ -916,17 +930,22 @@ const DiscoveryDetailPanel = ({
                     )}
                 </div>
             )}
-
-            <button type="button" onClick={onWalk} className="atlas-detail-walk"><Footprints size={17} />Walking route<span>Explore paths →</span></button>
+        </div>
+        </div>
+        {/* Primary actions stay reachable even when the banner and details need scrolling. */}
+        <div className="atlas-detail-footer shrink-0 border-t border-[var(--map-panel-border)] px-4 py-3.5">
+            <div className="atlas-detail-primary-actions">
             {/* Primary button */}
             <button
                 type="button"
                 onClick={onOpenClub}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--map-panel-border)] px-4 py-2.5 text-[14px] font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#16181d] transition-colors"
+                className="atlas-detail-open"
             >
                 <Building2 className="h-4 w-4" />
-                View full profile
+                {record.entityType === 'STADIUM' ? 'View availability' : 'Open club'}
             </button>
+            {record.latitude != null && record.longitude != null && <button type="button" onClick={onWalk} className="atlas-detail-walk"><Footprints size={17} />Walk here</button>}
+            </div>
 
             {record.entityType === 'MATCH' && canRespond && (
                 <button
@@ -975,6 +994,7 @@ export const MapExperience = ({
     darkMode,
     context = 'authenticated',
     embedded = false,
+    compactControls = false,
     filterLayout = 'side',
     allowedEntityTypes,
     mapTheme = 'inherit',
@@ -1002,16 +1022,16 @@ export const MapExperience = ({
     // Draft vs committed split (MAP_SEARCH_AND_CLUB_JOBS_PLAN.md item 4): every
     // control writes to the draft only; a single Apply commits the draft and
     // triggers exactly one fetch. Typing in the toolbar is equally draft-only.
-    const [committedFilters, setCommittedFilters] = useState<MapFilters>(initialMapFilters);
-    const [draftFilters, setDraftFilters] = useState<MapFilters>(initialMapFilters);
-    const [draftSearch, setDraftSearch] = useState('');
-    const [committedSearch, setCommittedSearch] = useState('');
+    const [committedFilters, setCommittedFilters] = useAndroidMapState<MapFilters>('filters', initialMapFilters);
+    const [draftFilters, setDraftFilters] = useAndroidMapState<MapFilters>('draftFilters', initialMapFilters);
+    const [draftSearch, setDraftSearch] = useAndroidMapState('draftSearch', '');
+    const [committedSearch, setCommittedSearch] = useAndroidMapState('search', '');
     const [placeSearch, setPlaceSearch] = useState('');
     const [filterMode, setFilterMode] = useState<'simple' | 'advanced'>('simple');
     const isExternalFilterLayout = filterLayout === 'external';
     const [isFilterOpen, setIsFilterOpen] = useState(() => !isExternalFilterLayout && (filterLayout === 'top' || window.innerWidth >= 1100));
-    const [isClubRailOpen, setIsClubRailOpen] = useState(false);
-    const [showDetails, setShowDetails] = useState(false);
+    const [isClubRailOpen, setIsClubRailOpen] = useAndroidMapState('resultsOpen', false);
+    const [showDetails, setShowDetails] = useAndroidMapState('detailsOpen', false);
 
     useEffect(() => {
         if (filterLayout === 'top' || filterLayout === 'external') {
@@ -1028,9 +1048,10 @@ export const MapExperience = ({
         return () => window.removeEventListener('resize', handleResize);
     }, [filterLayout]);
     // Search coverage is separate from the start used for distances and walks.
-    const [areaBounds, setAreaBounds] = useState<MapBounds | null>({ west: 44.6, south: 41.55, east: 45.05, north: 41.87 });
-    const [draftCoverage, setDraftCoverage] = useState<SearchCoverage>('area');
-    const [committedCoverage, setCommittedCoverage] = useState<SearchCoverage>('area');
+    const [areaBounds, setAreaBounds] = useAndroidMapState<MapBounds | null>('area', { west: 44.6, south: 41.55, east: 45.05, north: 41.87 });
+    const [draftCoverage, setDraftCoverage] = useAndroidMapState<SearchCoverage>('draftCoverage', 'area');
+    const [committedCoverage, setCommittedCoverage] = useAndroidMapState<SearchCoverage>('coverage', 'area');
+    const [savedCamera, setSavedCamera] = useAndroidMapState('camera', { latitude: DEFAULT_CENTER[0], longitude: DEFAULT_CENTER[1], zoom: 11 });
     const [locating, setLocating] = useState(false);
     const [locationError, setLocationError] = useState<string | null>(null);
     const locationRequest = useRef(0);
@@ -1039,7 +1060,7 @@ export const MapExperience = ({
     useEffect(() => () => { locationRequest.current++; commitRequest.current++; }, []);
     const [areaMoved, setAreaMoved] = useState(false);
     const [searchSequence, setSearchSequence] = useState(0);
-    const [searchOrigin, setSearchOrigin] = useState<Coordinate>([DEFAULT_CENTER[1], DEFAULT_CENTER[0]]);
+    const [searchOrigin, setSearchOrigin] = useAndroidMapState<Coordinate>('origin', [DEFAULT_CENTER[1], DEFAULT_CENTER[0]]);
     const [walkingTarget, setWalkingTarget] = useState<DiscoveryRecord | null>(null);
     const [walkingOrigin, setWalkingOrigin] = useState<Coordinate | null>(null);
     const [walkingRoute, setWalkingRoute] = useState<WalkingRoute | null>(null);
@@ -1048,11 +1069,11 @@ export const MapExperience = ({
     const [pickingOrigin, setPickingOrigin] = useState(false);
     const walkingRequest = useRef<AbortController | null>(null);
     useEffect(() => () => walkingRequest.current?.abort(), []);
-    const [queryCenter, setQueryCenter] = useState<[number, number]>(DEFAULT_CENTER);
+    const [queryCenter, setQueryCenter] = useAndroidMapState<[number, number]>('center', DEFAULT_CENTER);
     useEffect(() => {
         let active = true;
         const request = locationRequest.current;
-        if (navigator.permissions && navigator.geolocation) void navigator.permissions.query({ name: 'geolocation' }).then(permission => {
+        if (!isAndroidApp && navigator.permissions && navigator.geolocation) void navigator.permissions.query({ name: 'geolocation' }).then(permission => {
             if (!active || permission.state !== 'granted' || request !== locationRequest.current) return;
             navigator.geolocation.getCurrentPosition(position => {
                 if (!active || request !== locationRequest.current) return;
@@ -1065,7 +1086,7 @@ export const MapExperience = ({
         }).catch(() => undefined);
         return () => { active = false; };
     }, []);
-    const [focusTarget, setFocusTarget] = useState<{ center: [number, number]; zoom?: number } | null>(null);
+    const [focusTarget, setFocusTarget] = useState<MapFocusTarget | null>(null);
     const [loading, setLoading] = useState(true);
     const [initialLoad, setInitialLoad] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -1087,17 +1108,17 @@ export const MapExperience = ({
     const [heritageStyle, setHeritageStyle] = useState<StyleSpecification | null>(null);
     useEffect(() => {
         let active = true;
-        getHeritageStyle()
+        getHeritageStyle(mapDarkMode ? 'dark' : 'light')
             .then((style) => {
                 if (active) setHeritageStyle(style);
             })
             .catch((styleError: unknown) => {
-                console.warn('Warm map style unavailable — falling back to plain positron URL', styleError);
+                console.warn('Map style unavailable — falling back to plain positron URL', styleError);
             });
         return () => {
             active = false;
         };
-    }, [effectiveMapMode]);
+    }, [effectiveMapMode, mapDarkMode]);
 
     const [modeWarningDismissed, setModeWarningDismissed] = usePersistedState<boolean>('map.modeWarningDismissed', false);
     const [pendingMode, setPendingMode] = useState<MapMode | null>(null);
@@ -1129,7 +1150,7 @@ export const MapExperience = ({
             return next === current ? current : next;
         });
     }, [viewerAllowedTypes]);
-    const [selectedKey, setSelectedKey] = useState<string | null>(null);
+    const [selectedKey, setSelectedKey] = useAndroidMapState<string | null>('selected', null);
     const [clubProfiles, setClubProfiles] = useState<Record<number, ClubProfileSummary>>({});
     const [responseModalRecord, setResponseModalRecord] = useState<DiscoveryRecord | null>(null);
     const [responseNote, setResponseNote] = useState('');
@@ -1158,7 +1179,7 @@ export const MapExperience = ({
                     const dateWindow = 'dateWindow' in section ? section.dateWindow : 'ANY';
                     const now = new Date();
                     const days = dateWindow === 'NEXT_7_DAYS' ? 7 : dateWindow === 'NEXT_30_DAYS' ? 30 : 90;
-                    const gender = type === 'TOURNAMENT' ? [] : section.genders.map(value => {
+                    const gender = (type === 'TOURNAMENT' || type === 'STADIUM') ? [] : section.genders.map(value => {
                         switch (value) {
                             case 'Boys': case 'Men': return 'MALE';
                             case 'Girls': case 'Women': return 'FEMALE';
@@ -1172,8 +1193,12 @@ export const MapExperience = ({
                         cities: section.city ? [section.city] : undefined,
                         countries: section.country ? [section.country] : undefined,
                         gender: gender.length ? gender : undefined,
-                        ageGroups: type !== 'TOURNAMENT' && section.ageGroups.length ? section.ageGroups : undefined,
-                        level: type !== 'TOURNAMENT' && 'levels' in section && section.levels.length ? section.levels : undefined,
+                        ageGroups: type !== 'TOURNAMENT' && type !== 'STADIUM' && section.ageGroups.length ? section.ageGroups : undefined,
+                        level: type !== 'TOURNAMENT' && type !== 'STADIUM' && 'levels' in section && section.levels.length ? section.levels : undefined,
+                        trainingMinPrice: type === 'CLUB' && committedFilters.clubs.trainingMinPrice ? Number(committedFilters.clubs.trainingMinPrice) : undefined,
+                        trainingMaxPrice: type === 'CLUB' && committedFilters.clubs.trainingMaxPrice ? Number(committedFilters.clubs.trainingMaxPrice) : undefined,
+                        trainingCurrency: type === 'CLUB' ? committedFilters.clubs.trainingCurrency || 'GEL' : undefined,
+                        trainingPeriod: type === 'CLUB' ? committedFilters.clubs.trainingPeriod || 'MONTH' : undefined,
                         category: type === 'CLUB' ? committedFilters.clubs.categories : undefined,
                         positions: type === 'CLUB' || type === 'TRYOUT' ? committedFilters.positions : undefined,
                         dateFrom: dateWindow !== 'ANY' ? toIsoWindow(now) : undefined,
@@ -1255,7 +1280,7 @@ export const MapExperience = ({
             const suggestion: SearchSuggestion = {
                 id: record.key,
                 label,
-                meta: record.entityType === 'CLUB' ? 'Club location' : `${record.clubName ?? 'Club'} · ${record.entityType === 'TRYOUT' ? 'Tryout' : record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Match'}`,
+                meta: record.entityType === 'STADIUM' ? 'Stadium rental' : record.entityType === 'CLUB' ? 'Club location' : `${record.clubName ?? 'Club'} · ${record.entityType === 'TRYOUT' ? 'Tryout' : record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Match'}`,
                 center: record.latitude != null && record.longitude != null ? [record.latitude, record.longitude] : null,
                 recordKey: record.key
             };
@@ -1283,7 +1308,7 @@ export const MapExperience = ({
                 return true;
             }
 
-            if (record.entityType === 'TOURNAMENT') return true;
+            if (record.entityType === 'TOURNAMENT' || record.entityType === 'STADIUM') return true;
 
             // Time-of-day filter (server doesn't handle this)
             const timeWindows = record.entityType === 'TRYOUT' ? committedFilters.tryouts.timeWindows : committedFilters.matches.timeWindows;
@@ -1458,9 +1483,9 @@ export const MapExperience = ({
         setIsClubRailOpen(false);
         if (window.innerWidth < 1100) setIsFilterOpen(false);
         if (record.latitude != null && record.longitude != null) {
-            setFocusTarget({ center: [record.latitude, record.longitude], zoom: Math.max(14, mapRef.current?.getZoom() ?? 0) });
+            setFocusTarget(mapSelectionTarget([record.longitude, record.latitude], walkingOrigin, mapRef.current?.getZoom() ?? 0));
         }
-    }, []);
+    }, [walkingOrigin, setIsClubRailOpen, setSelectedKey, setShowDetails]);
 
     const focusResult = (record: DiscoveryRecord) => {
         walkingRequest.current?.abort(); setWalkingTarget(null); setWalkingRoute(null); setPickingOrigin(false); setWalkingLoading(false);
@@ -1468,7 +1493,7 @@ export const MapExperience = ({
         setIsClubRailOpen(window.innerWidth >= 1100);
         if (window.innerWidth < 1100) setIsFilterOpen(false);
         if (record.latitude != null && record.longitude != null) {
-            setFocusTarget({ center: [record.latitude, record.longitude], zoom: Math.max(14, mapRef.current?.getZoom() ?? 0) });
+            setFocusTarget(mapSelectionTarget([record.longitude, record.latitude], walkingOrigin, mapRef.current?.getZoom() ?? 0));
         }
     };
 
@@ -1495,7 +1520,9 @@ export const MapExperience = ({
 
     const openClubProfile = useCallback(
         (record: DiscoveryRecord | null) => {
-            if (record?.clubId) {
+            if (record?.entityType === 'STADIUM') {
+                navigate(`/stadiums/${record.rawMapMarker?.entityId}`);
+            } else if (record?.clubId) {
                 navigate(`/clubs/${record.clubId}`);
             }
         },
@@ -1558,10 +1585,12 @@ export const MapExperience = ({
             setWalkingRoute(route); setSearchSequence(n => n + 1);
             const fullPath = [origin, ...route.coordinates, [target.longitude, target.latitude]];
             const lngs = fullPath.map(c => c[0]); const lats = fullPath.map(c => c[1]);
-            const wide = window.innerWidth >= 1100;
+            const canvas = mapRef.current?.getContainer();
+            const height = canvas?.clientHeight ?? window.innerHeight;
+            const width = canvas?.clientWidth ?? window.innerWidth;
             mapRef.current?.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-                { padding: { top: 110, bottom: wide ? 110 : 360, left: 50, right: 50 },
-                    duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 800, maxZoom: 16 });
+                { padding: mapCameraPadding(width, height, window.innerWidth < 1100 ? height * .55 : 0),
+                    duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 500, maxZoom: 16 });
         } catch (error) {
             if (!request.signal.aborted) setWalkingError(error instanceof Error ? error.message : 'Walking route unavailable.');
         } finally { if (!request.signal.aborted) setWalkingLoading(false); }
@@ -1600,7 +1629,7 @@ export const MapExperience = ({
         locationRequest.current++; setLocating(false); setLocationError(null);
         walkingRequest.current?.abort(); setWalkingLoading(false); setWalkingError(null);
         setPickingOrigin(true);
-        if (window.innerWidth < 1100) setIsFilterOpen(false);
+        if (isExternalFilterLayout || window.innerWidth < 1100) setIsFilterOpen(false);
     };
     const changeDraftFilters = (filters: MapFilters) => {
         commitRequest.current++; setResolvingPlace(false);
@@ -1636,6 +1665,10 @@ export const MapExperience = ({
             const city = draftFilters.clubs.city.trim();
             const place = city || country || placeSearch.trim();
             const regionChanged = country !== committedFilters.clubs.country || city !== committedFilters.clubs.city;
+            const min = draftFilters.clubs.trainingMinPrice, max = draftFilters.clubs.trainingMaxPrice;
+            if (draftFilters.entityType.includes('CLUB') && ((min && (!Number.isFinite(Number(min)) || Number(min) < 0)) || (max && (!Number.isFinite(Number(max)) || Number(max) < 0)) || (min && max && Number(min) > Number(max)))) {
+                toast.error('Enter a valid training price range.'); return false;
+            }
             let center: [number, number] = walkingOrigin ? [walkingOrigin[1], walkingOrigin[0]] : opts.center ?? queryCenter;
             let regionCenter: [number, number] | undefined;
             let zoom = opts.zoom;
@@ -1794,10 +1827,11 @@ export const MapExperience = ({
     );
 
     return (
-        <div className={`map-page-shell club-page-shell map-workspace h-full min-h-0 w-full overflow-hidden map-atlas relative ${isExternalFilterLayout ? 'flex flex-col' : ''} ${isFilterOpen && filterLayout === 'side' ? 'atlas-left-open' : ''} ${pickingOrigin ? 'atlas-picking-origin' : ''} ${embedded ? 'map-experience-embedded' : ''} ${mapDarkMode ? 'map-force-dark' : 'map-force-light'} ${(isClubRailOpen && !hasSelectedResult) || hasSelectedResult || walkingTarget ? 'map-right-rail-visible' : ''}`}>
+        <div className={`map-page-shell club-page-shell map-workspace h-full min-h-0 w-full overflow-hidden map-atlas relative ${compactControls ? 'map-controls-compact' : ''} ${isExternalFilterLayout ? 'flex flex-col' : ''} ${isFilterOpen && filterLayout === 'side' ? 'atlas-left-open' : ''} ${pickingOrigin ? 'atlas-picking-origin' : ''} ${embedded ? 'map-experience-embedded' : ''} ${mapDarkMode ? 'map-force-dark' : 'map-force-light'} ${(isClubRailOpen && !hasSelectedResult) || hasSelectedResult || walkingTarget ? 'map-right-rail-visible' : ''}`}>
             {isExternalFilterLayout && (
                 <div className="relative z-[1400] shrink-0">
                     <ExternalMapFilterToolbar
+                        compact={compactControls}
                         draftSearch={draftSearch}
                         suggestions={suggestions}
                         toolbarCount={toolbarCount}
@@ -1807,11 +1841,13 @@ export const MapExperience = ({
                         onSuggestionPick={handleSuggestionPick}
                         onToggleFilters={() => setIsFilterOpen((current) => !current)}
                     />
-                    {filterSurface}
+                    {isFilterOpen && <EmbeddedMapFilterDialog darkMode={mapDarkMode} onClose={() => setIsFilterOpen(false)}>{filterSurface}</EmbeddedMapFilterDialog>}
                 </div>
             )}
             <div className={isExternalFilterLayout ? 'relative min-h-0 flex-none h-[560px] sm:h-[620px] lg:h-[700px]' : 'contents'}>
-            {!initialLoad && !mapUnavailable && (
+            {/* Basemap tiles load independently of account/discovery requests.
+                The saved camera remains the initial view while results arrive. */}
+            {!mapUnavailable && (
                 <div className="map-canvas-frame absolute inset-0 z-0 overflow-hidden border-0 rounded-none">
                     <MapGL
                         key={mapAttempt}
@@ -1823,20 +1859,29 @@ export const MapExperience = ({
                         }}
                         ref={mapRef}
                         initialViewState={{
-                            latitude: DEFAULT_CENTER[0],
-                            longitude: DEFAULT_CENTER[1],
-                            zoom: 11,
+                            latitude: savedCamera.latitude,
+                            longitude: savedCamera.longitude,
+                            zoom: savedCamera.zoom,
                             pitch: effectiveMapMode === 'tilted' ? 45 : 0,
                             bearing: effectiveMapMode === 'tilted' ? -17 : 0
                         }}
                         style={{ width: '100%', height: '100%' }}
+                        pixelRatio={isAndroidApp ? Math.min(window.devicePixelRatio || 1, 2) : undefined}
                         attributionControl={{ compact: true }}
+                        // Embedded discovery must let visitors scroll into the landing story.
+                        scrollZoom={!embedded}
                         mapStyle={heritageStyle ?? MAP_STYLE_DEFAULT}
                         cursor={pickingOrigin ? 'crosshair' : 'grab'}
                         onClick={(event) => {
                             if (pickingOrigin) chooseOrigin([event.lngLat.lng, event.lngLat.lat]);
                         }}
                         onLoad={(evt) => {
+                            if (isAndroidApp || embedded) {
+                                // Keep attribution available through its standard toggle without
+                                // covering the phone's mode and search controls on first load.
+                                const attribution = evt.target.getContainer().querySelector<HTMLDetailsElement>('.maplibregl-ctrl-attrib');
+                                if (attribution?.open) attribution.querySelector<HTMLElement>('summary')?.click();
+                            }
                             if (committedCoverage === 'area') { const bounds = captureArea(); if (bounds) setAreaBounds(bounds); }
                             // MapLibre v5: drive the projection imperatively (react-map-gl 8
                             // does not forward a projection prop).
@@ -1845,13 +1890,12 @@ export const MapExperience = ({
                             } catch {
                                 /* projection unsupported — stay mercator */
                             }
-                            if (effectiveMapMode === 'tilted') {
-                                evt.target.easeTo({ pitch: 45, bearing: -17, duration: 400 });
-                            } else {
-                                evt.target.easeTo({ pitch: 0, bearing: 0, duration: 400 });
-                            }
+                            // initialViewState already sets pitch and bearing. Starting
+                            // another animation here can interrupt an early location
+                            // focus or a gesture made while discovery is still loading.
                         }}
                         onMoveEnd={(evt) => {
+                            if (isAndroidApp) setSavedCamera({ latitude: evt.viewState.latitude, longitude: evt.viewState.longitude, zoom: evt.viewState.zoom });
                             if (evt.originalEvent) setAreaMoved(true);
                         }}
                     >
@@ -1977,25 +2021,17 @@ export const MapExperience = ({
                     <button type="button" className="block mt-2 underline" onClick={() => { setMapUnavailable(false); setMapAttempt(value => value + 1); }}>Retry map</button>
                 </div>
             )}
-            {initialLoad && (
-                <div className="absolute inset-0 z-[5] flex items-center justify-center bg-[var(--map-workspace-bg)]">
-                    <div className="flex flex-col items-center gap-3 text-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-emerald-700" />
-                        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Loading map...</p>
-                    </div>
-                </div>
-            )}
-            {loading && !initialLoad && (
+            {loading && (
                 <div className="map-loading-with-rail absolute top-4 right-4 z-[700] pointer-events-none transition-[right]">
-                    <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-lg backdrop-blur-md dark:border-white/10 dark:bg-[#0d1016]/95">
+                    <div role="status" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-lg dark:border-white/10 dark:bg-[#0d1016]/95">
                         <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-700 dark:text-emerald-400" />
-                        <span className="text-xs text-slate-600 dark:text-slate-400">Updating...</span>
+                        <span className="text-xs text-slate-600 dark:text-slate-400">{initialLoad ? 'Loading nearby results…' : 'Updating...'}</span>
                     </div>
                 </div>
             )}
             {error && (
-                <div className="absolute inset-0 z-[5] flex items-center justify-center bg-[var(--map-workspace-bg)] px-6">
-                    <div className="max-w-md rounded-2xl border border-slate-200 bg-white px-6 py-6 text-center text-sm leading-6 text-slate-600 shadow-xl backdrop-blur-md dark:border-white/10 dark:bg-[#0d1016]/95 dark:text-slate-400" role="alert">{error}<button type="button" className="block mx-auto mt-3 underline" onClick={() => setReload(value => value + 1)}>Retry search</button></div>
+                <div className="pointer-events-none absolute left-1/2 top-24 z-[700] w-[min(88vw,430px)] -translate-x-1/2">
+                    <div className="pointer-events-auto rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center text-sm leading-6 text-slate-600 shadow-lg dark:border-white/10 dark:bg-[#0d1016]/95 dark:text-slate-400" role="alert">{error}<button type="button" className="block mx-auto mt-2 underline" onClick={() => setReload(value => value + 1)}>Retry search</button></div>
                 </div>
             )}
             {!initialLoad && !loading && !error && mapRecords.length === 0 && (
@@ -2051,26 +2087,21 @@ export const MapExperience = ({
                                 resultsOpen={isClubRailOpen} onResults={openResults}
                                 count={resultCount} loading={loading} onBack={canUseBackControl ? () => navigate(-1) : undefined}
                                 external={isExternalFilterLayout} filterOffset={isFilterOpen && filterLayout === 'side'} chips={appliedChips} />
-                            <div className={'atlas-area-action ' + (isFilterOpen && filterLayout === 'side' ? 'atlas-area-action--offset' : '')}>
-                                <span><span className="atlas-live-dot" />{coverageSummary}</span>
+                            {(!compactControls || areaMoved || loading) && <div className={'atlas-area-action ' + (isFilterOpen && filterLayout === 'side' ? 'atlas-area-action--offset' : '')}>
+                                {!compactControls && <span><span className="atlas-live-dot" />{coverageSummary}</span>}
                                 <button disabled={loading || resolvingPlace} onClick={() => void browseArea()}><Crosshair size={17} />{loading ? 'Searching…' : areaMoved ? 'Search this area' : 'Search visible map'}<span aria-hidden="true">↗</span></button>
-                                <small>{committedCoverage === 'area' ? `${resultCount} results in the searched area` : 'Switch to clubs in the visible map'}</small>
-                            </div>
+                                {!compactControls && <small>{committedCoverage === 'area' ? `${resultCount} results in the searched area` : 'Switch to clubs in the visible map'}</small>}
+                            </div>}
 
-                            {hasSelectedResult && (
-                                <aside className="atlas-detail-desktop pointer-events-auto absolute inset-y-0 right-0 z-[620] hidden w-[400px] overflow-hidden">
-                                    {panelContent}
-                                </aside>
-                            )}
                         </section>
                     </div>
                 </div>
             </div>
 
             {selectedRecord && hasSelectedResult && (
-                <div className="atlas-detail-mobile pointer-events-auto">
+                <aside className="atlas-detail-dock pointer-events-auto" aria-label="Selected club details">
                     {panelContent}
-                </div>
+                </aside>
             )}
 
             {walkingTarget && <MapWalkingPanel title={walkingTarget.title} route={walkingRoute} loading={walkingLoading}

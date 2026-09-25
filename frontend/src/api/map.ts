@@ -3,7 +3,7 @@ import type { MapBounds } from '../components/map/areaSearch';
 
 // CLUB_NEED remains in the wire type for older clients; the current map API
 // accepts it for compatibility but intentionally returns no markers.
-export type MapEntityType = 'CLUB' | 'TRYOUT' | 'MATCH' | 'TOURNAMENT' | 'CLUB_NEED';
+export type MapEntityType = 'CLUB' | 'STADIUM' | 'TRYOUT' | 'MATCH' | 'TOURNAMENT' | 'CLUB_NEED';
 
 export interface MapMarkerDto {
     entityId: number;
@@ -43,6 +43,10 @@ export interface MapPageResult {
 }
 
 export interface NearbyMapParams {
+    trainingMinPrice?: number;
+    trainingMaxPrice?: number;
+    trainingCurrency?: string;
+    trainingPeriod?: string;
     bounds?: MapBounds;
     lat: number;
     lng: number;
@@ -65,6 +69,9 @@ export interface NearbyMapParams {
 export const fetchNearbyMap = async (params: NearbyMapParams, signal?: AbortSignal): Promise<MapPageResult> => {
     const searchParams = new URLSearchParams();
 
+    for (const key of ['trainingMinPrice', 'trainingMaxPrice', 'trainingCurrency', 'trainingPeriod'] as const) {
+        if (params[key] != null) searchParams.set(key, String(params[key]));
+    }
     searchParams.set('lat', String(params.lat));
     searchParams.set('lng', String(params.lng));
     if (params.bounds) Object.entries(params.bounds).forEach(([key, value]) => searchParams.set(key, String(value)));

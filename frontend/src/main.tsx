@@ -3,13 +3,25 @@ import ReactDOM from 'react-dom/client';
 import './i18n';
 import App from './App';
 import './index.css';
+import './styles/product-identity.css';
+import './android/android.css';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { installNativeFetch, isAndroidApp, nativeSession } from './android/bridge';
+import { installAndroidPreferences } from './android/preferences';
+import { clearStoredAuth, setStoredAccessToken } from './utils/authStorage';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const IdentityProvider = ({ children }: React.PropsWithChildren) => isAndroidApp ? children : <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{children}</GoogleOAuthProvider>;
 
 async function startApp() {
+  if (isAndroidApp) {
+    installNativeFetch();
+    document.documentElement.classList.add('android-app');
+    const [session] = await Promise.all([nativeSession(), installAndroidPreferences()]);
+    if (session.active) setStoredAccessToken('native-session'); else clearStoredAuth();
+  }
   if (import.meta.env.VITE_ENABLE_MOCKS === 'true') {
     const { worker } = await import('./mocks/browser');
     await worker.start({ onUnhandledRequest: 'warn' });
@@ -18,7 +30,7 @@ async function startApp() {
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <ErrorBoundary>
-        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <IdentityProvider>
           <App />
           <Toaster
             position="bottom-right"
@@ -30,10 +42,15 @@ async function startApp() {
               },
             }}
           />
-        </GoogleOAuthProvider>
+        </IdentityProvider>
       </ErrorBoundary>
     </React.StrictMode>,
   );
 }
 
-startApp();
+startApp().catch(() => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(<main role="alert" style={{ padding: 24 }}>
+    <h1>This screen could not start</h1><p>Close it and try again, or reload it here.</p>
+    <button onClick={() => window.location.reload()}>Try again</button>
+  </main>);
+});

@@ -1,9 +1,11 @@
+import { OpportunityLink } from '../ui/OpportunityLink';
+import { MessageText } from '../chat/MessageText';
+import { formatTime } from '../../utils/formatting';
+import { MediaImage } from '../ui/MediaImage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    BriefcaseBusiness,
     Building2,
-    ShoppingBag, HeartHandshake,
     ExternalLink,
     MessageCircle,
     Minus,
@@ -17,15 +19,23 @@ import { useChatScroll } from '../../hooks/useChatScroll';
 import { OlderMessages } from '../../components/chat/OlderMessages';
 import { getStoredUserId } from '../../utils/authStorage';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
+import { useAuth } from '../../context/AuthContext';
+import { isCurrentAuthSession, type AuthSessionId } from '../../utils/authStorage';
 
 interface ContactConversation {
     conversation: ConversationDto;
     participant: ParticipantInfo;
 }
 
-const formatMessageTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const formatMessageTime = (iso: string) => formatTime(iso);
 
 export const RightSidebar = () => {
+    const { isAuthenticated, sessionId } = useAuth();
+    if (!isAuthenticated) return null;
+    return <AuthenticatedRightSidebar key={sessionId ?? 'legacy'} sessionId={sessionId} />;
+};
+
+const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) => {
     const [conversations, setConversations] = useState<ConversationDto[]>([]);
     const [quickChat, setQuickChat] = useState<ContactConversation | null>(null);
     const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
@@ -45,18 +55,18 @@ export const RightSidebar = () => {
     const activeId = useRef<number | null>(null);
 
     useEffect(() => {
-        let active = true;
-        chatApi.getConversations(0, 8)
+        const controller = new AbortController();
+        chatApi.getConversations(0, 8, { signal: controller.signal, _authSessionId: sessionId })
         .then((response) => response.data)
         .catch(() => ({ content: [], pageNumber: 0, pageSize: 8, totalElements: 0 }))
         .then((conversationPage) => {
-            if (!active) return;
+            if (controller.signal.aborted || !isCurrentAuthSession(sessionId)) return;
             setConversations(conversationPage.content ?? []);
         });
         return () => {
-            active = false;
+            controller.abort();
         };
-    }, []);
+    }, [sessionId]);
 
 
     useEffect(() => () => { void setActiveConversation(null); }, [setActiveConversation]);
@@ -104,29 +114,24 @@ export const RightSidebar = () => {
 
     return (
         <>
-            <aside className="hidden xl:block">
-                <div className="sticky top-[calc(var(--app-header-height)+20px)] space-y-5">
-                    <section className="overflow-hidden rounded-xl border border-white/10 bg-[#090b0e] shadow-[var(--feed-shadow-panel)]" aria-labelledby="discover-heading">
+            <aside className="home-side-rail home-side-rail--right hidden xl:block" aria-label="Opportunities and contacts">
+                <div className="home-side-scroll space-y-5">
+                    <section className="overflow-hidden rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-surface)] shadow-[var(--feed-shadow-panel)]" aria-labelledby="discover-heading">
                         <div className="flex items-center gap-2 border-b border-white/[0.08] px-4 py-4">
-                            <Building2 className="h-4 w-4 text-emerald-400" />
-                            <h2 id="discover-heading" className="text-xs font-bold text-emerald-400">Opportunities</h2>
+                            <Building2 className="h-4 w-4 text-[var(--feed-text-primary)]" />
+                            <h2 id="discover-heading" className="text-xs font-bold text-[var(--feed-text-primary)]">Opportunities</h2>
                         </div>
 
                         <div className="space-y-2.5 p-3" aria-label="Supported destinations">
-                            <Link to="/store" className="block rounded-md border border-emerald-500/45 bg-emerald-500/[0.06] px-3 py-3 transition-colors hover:brightness-110">
-                                <span className="flex items-center gap-2 text-xs font-bold text-emerald-300"><ShoppingBag className="h-4 w-4" />Store</span>
-                                <span className="mt-1.5 block text-[11px] text-[#a1a1aa]">Browse club merchandise</span>
-                            </Link>
-                            <Link to="/campaigns" className="block rounded-md border border-amber-400/40 bg-amber-400/[0.06] px-3 py-3 transition-colors hover:brightness-110">
-                                <span className="flex items-center gap-2 text-xs font-bold text-amber-300"><HeartHandshake className="h-4 w-4" />Fundraising & campaigns</span>
-                                <span className="mt-1.5 block text-[11px] text-[#a1a1aa]">Support club projects and grassroots football</span>
-                            </Link>
-                            <Link to="/jobs" className="block rounded-md border border-fuchsia-400/40 bg-fuchsia-400/[0.06] px-3 py-3 transition-colors hover:brightness-110">
-                                <span className="flex items-center gap-2 text-xs font-bold text-fuchsia-300"><BriefcaseBusiness className="h-4 w-4" /><span className="flex-1">Jobs & volunteering</span><span className="rounded-full border border-amber-400/30 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-amber-300">Preview</span></span>
-                                <span className="mt-1.5 block text-[11px] text-[#a1a1aa]">Roles published by football clubs</span>
-                            </Link>
+                            <OpportunityLink kind="store" to="/store" description="Browse club merchandise" />
+                            <OpportunityLink kind="stadiums" to="/stadiums" description="Find a pitch and reserve your next game" />
+                            <OpportunityLink kind="campaigns" to="/campaigns" description="Support club projects and grassroots football" />
+                            <OpportunityLink kind="jobs" to="/jobs" description="Roles published by football clubs" />
                         </div>
                     </section>
+
+
+
 
                     <section aria-labelledby="contacts-heading" className="border-t border-[var(--feed-card-border)] pt-4">
                         <div className="flex items-center border-b border-[var(--feed-card-border)] px-2 pb-3">
@@ -140,7 +145,7 @@ export const RightSidebar = () => {
                                         <button key={contact.conversation.id} type="button" onClick={() => void openQuickChat(contact)} className="feed-side-link recent-contact-link w-full text-left">
                                             <span className="flex min-w-0 items-center gap-3">
                                                 <span className="feed-side-link__visual feed-side-link__visual--avatar">
-                                                    {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : contact.participant.displayName.substring(0, 2).toUpperCase()}
+                                                    {avatarUrl ? <MediaImage src={avatarUrl} alt="" className="h-full w-full object-cover" /> : contact.participant.displayName.substring(0, 2).toUpperCase()}
                                                 </span>
                                                 <span className="feed-side-link__title">{contact.participant.displayName}</span>
                                             </span>
@@ -159,12 +164,13 @@ export const RightSidebar = () => {
                 </div>
             </aside>
 
+
             {quickChat && (
                 <section aria-label={`Chat with ${quickChat.participant.displayName}`} className="fixed bottom-4 right-4 z-[1300] w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-white/10 bg-[#202328] shadow-2xl">
                     <header className="flex h-12 items-center gap-2 border-b border-white/[0.08] px-3">
                         <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[#30343b] text-[10px] font-bold text-white">
                             {resolveMediaUrl(quickChat.participant.profilePictureUrl)
-                                ? <img src={resolveMediaUrl(quickChat.participant.profilePictureUrl) ?? ''} alt="" className="h-full w-full object-cover" />
+                                ? <MediaImage src={resolveMediaUrl(quickChat.participant.profilePictureUrl) ?? ''} alt="" className="h-full w-full object-cover" />
                                 : quickChat.participant.displayName.substring(0, 2).toUpperCase()}
                         </span>
                         <button type="button" onClick={() => setMinimized((value) => !value)} className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-white">
@@ -194,7 +200,7 @@ export const RightSidebar = () => {
                                     return (
                                         <div key={message.id} data-chat-message-id={message.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
                                             <div data-chat-message-content className={`max-w-[82%] rounded-2xl px-3 py-2 text-xs leading-5 ${mine ? 'rounded-br-sm bg-emerald-600 text-white' : 'rounded-bl-sm bg-[#30343b] text-[#f4f4f5]'}`}>
-                                                {message.content}
+                                                <MessageText text={message.content} />
                                             </div>
                                             <span className="mt-0.5 px-1 text-[9px] text-[#71717a]">{formatMessageTime(message.createdAt)}</span>
                                         </div>

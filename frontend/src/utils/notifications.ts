@@ -1,4 +1,6 @@
+import { appLocale, formatDate } from './formatting';
 import type { NotificationItem, NotificationListScope, NotificationScope } from '../types/notifications';
+import { notificationId, safeNotificationLink, venueBookingDestination } from './notificationDestinations';
 
 const NOTIFICATIONS_CHANGED_EVENT = 'talanti:notifications-changed';
 
@@ -127,12 +129,49 @@ const normalizeManagementPath = (notification: NotificationItem, path: string) =
 };
 
 export const buildNotificationDestination = (notification: NotificationItem) => {
-    if (notification.type === 'NEW_MESSAGE' && notification.entityType === 'conversation' && notification.entityId != null) {
-        return `/messages?conversationId=${notification.entityId}`;
-    }
-
     const outcome = `/notifications?itemId=${notification.id}`;
-    const entityId = Number.isSafeInteger(notification.entityId) && (notification.entityId ?? 0) > 0 ? notification.entityId : null;
+    const entityId = notificationId(notification.entityId);
+    const link = safeNotificationLink(notification.linkPath);
+    const path = link ? link.pathname + link.search + link.hash : null;
+    if (notification.entityType === 'match_result' || notification.entityType === 'match_result_suggestion') {
+        const match = link?.pathname.match(/^\/match-exchange\/([1-9]\d*)$/);
+        const eventId = notificationId(notification.eventId);
+        return entityId && match && (notification.eventId == null || eventId === match[1]) && link?.hash === '#result' ? path! : outcome;
+    }
+    if (notification.type === 'REFEREE_OFFER_UPDATED' || notification.entityType === 'referee_offer') {
+        return notification.entityType === 'referee_offer' && entityId && link?.pathname === '/referees/me'
+            && link.hash === `#offer-${entityId}` ? path! : outcome;
+    }
+    if (notification.type === 'MATCH_COORDINATION_MESSAGE' || notification.entityType === 'match_coordination_message') {
+        // This entity identifies a message, while the destination identifies its match.
+        return notification.entityType === 'match_coordination_message' && entityId
+            && link?.pathname.startsWith('/match-exchange/') && link.hash === '#coordination' ? path! : outcome;
+    }
+    // Explicit Match Exchange intent precedes the legacy broad SCHEDULE_* mapping.
+    if (notification.type === 'MATCH_EXCHANGE_UPDATED' || notification.entityType === 'match_exchange'
+        || notification.linkPath?.startsWith('/match-exchange')) {
+        if (notification.linkPath != null) {
+            const match = link?.pathname.match(/^\/match-exchange\/([1-9]\d*)$/);
+            return match && (entityId == null ? notification.entityId == null : match[1] === entityId) ? path! : outcome;
+        }
+        return notification.entityType === 'match_exchange' && entityId ? `/match-exchange/${entityId}` : outcome;
+    }
+    if (notification.type.startsWith('VENUE_BOOKING_') || notification.entityType === 'venue_booking') {
+        if (!link) return outcome;
+        const venueId = link.pathname.match(/^\/stadiums\/([1-9]\d*)(?:\/manage)?$/)?.[1]
+            ?? (link.pathname === '/notifications' ? link.searchParams.get('venueId') : null);
+        const linkedBooking = link.searchParams.get('bookingId');
+        if (!venueId || (notification.entityId != null && !entityId) || (entityId && linkedBooking && entityId !== linkedBooking)) return outcome;
+        const bookingId = linkedBooking ?? entityId;
+        return bookingId ? venueBookingDestination(venueId, bookingId) : outcome;
+    }
+    if (notification.entityType === 'squad' && link) {
+        const squadId = link.pathname.match(/^\/squads\/([1-9]\d*)$/)?.[1] ?? link.searchParams.get('squadId');
+        if (squadId && notification.entityId != null && squadId !== entityId) return outcome;
+    }
+    if (['NEW_MESSAGE', 'MATCH_CHALLENGE_CHAT_READY'].includes(notification.type) && notification.entityType === 'conversation') {
+        return entityId ? `/messages?conversationId=${entityId}` : outcome;
+    }
     // P1 W6 (audit H7): schedule events/challenges live on /calendar. The web
     // app has no /clubs/{id}/schedule route, so any schedule-type notification
     // (including stale rows written before the backend fix) lands there.
@@ -141,13 +180,15 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
             ? `/calendar?eventId=${entityId}` : outcome;
     }
 
+    if (notification.type === 'TRYOUT_CANCELLED') return notification.linkPath === '/parent' ? '/parent' : '/account';
+
     if (notification.type === 'CLUB_DISSOLVED'
         || notification.type.startsWith('TRYOUT_APPLICATION_') && notification.type !== 'TRYOUT_APPLICATION_RECEIVED'
         || ['CLUB_APPLICATION_ACCEPTED', 'CLUB_APPLICATION_DECLINED', 'MEMBERSHIP_ENDED', 'SQUAD_ASSIGNMENT', 'CLUB_ROLE_CHANGED'].includes(notification.type)) return outcome;
 
     if (notification.type === 'CLUB_ANNOUNCEMENT' && notification.entityType === 'post' && entityId != null) return `/posts/${entityId}`;
 
-    if (notification.clubId != null && entityId != null
+    if (notificationId(notification.clubId) != null && entityId != null
         && ((notification.type === 'CLUB_APPLICATION_RECEIVED' && notification.entityType === 'club_membership_application')
             || (notification.type === 'TRYOUT_APPLICATION_RECEIVED' && notification.entityType === 'tryout_application'))) {
         const tab = notification.type === 'CLUB_APPLICATION_RECEIVED' ? 'applications' : 'tryouts';
@@ -168,11 +209,8 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
     }
 
     if (notification.linkPath) {
-        // Only local app paths are navigation targets; never trust stored URLs.
-        const path = notification.linkPath;
-        if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\')
-            || Array.from(path).some(char => char.charCodeAt(0) <= 32) || /%2f|%5c/i.test(path)) return outcome;
-        return normalizeManagementPath(notification, path);
+        if (!path) return outcome;
+        return normalizeManagementPath(notification, path.replace(/^(\/tournaments\/[1-9]\d*)\/admin(?=[?#]|$)/, '$1/workspace'));
     }
 
     if (notification.clubId != null) {
@@ -203,6 +241,8 @@ export const buildNotificationDestination = (notification: NotificationItem) => 
 };
 
 export const notificationActionLabel = (notification: NotificationItem) => {
+    if (notification.type === 'MATCH_EXCHANGE_UPDATED' || notification.linkPath?.startsWith('/match-exchange/')) return 'View match';
+    if (notification.type.startsWith('VENUE_BOOKING_')) return 'View reservation';
     if (notification.type.startsWith('SCHEDULE_')) return 'View event';
     if (notification.type === 'CLUB_DISSOLVED' || notification.type === 'MEMBERSHIP_ENDED'
         || notification.type === 'SQUAD_ASSIGNMENT' || notification.type === 'CLUB_ROLE_CHANGED'
@@ -246,7 +286,7 @@ export const formatNotificationTime = (timestamp: string) => {
     const minuteMs = 60_000;
     const hourMs = 60 * minuteMs;
     const dayMs = 24 * hourMs;
-    const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+    const rtf = new Intl.RelativeTimeFormat(appLocale(), { numeric: 'auto' });
 
     if (Math.abs(diffMs) < hourMs) {
         return rtf.format(Math.round(diffMs / minuteMs), 'minute');
@@ -258,7 +298,7 @@ export const formatNotificationTime = (timestamp: string) => {
         return rtf.format(Math.round(diffMs / dayMs), 'day');
     }
 
-    return parsed.toLocaleString(undefined, {
+    return formatDate(parsed, {
         month: 'short',
         day: 'numeric',
         hour: 'numeric',

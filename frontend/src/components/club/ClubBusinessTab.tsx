@@ -1,5 +1,6 @@
+import { useClubProfileSearchParams } from '../../features/clubs/clubProfilePreviewContext';
 import { ClubOpportunityOverview } from './ClubOpportunityOverview';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { JobsDirectoryPage } from '../../pages/JobsDirectoryPage';
 import { canManageClubOperations, type ClubMembershipRole } from '../../features/clubs/domain';
@@ -10,7 +11,7 @@ export const ClubBusinessTab = ({ club, ownClubRole, isAuthenticated }: {
     club: ClubProfile; ownClubRole: ClubMembershipRole | null;
     isAuthenticated: boolean; currentUserId?: number | null; onDataChanged?: () => void;
 }) => {
-    const [params] = useSearchParams();
+    const [params] = useClubProfileSearchParams();
     const jobsOpen = params.get('opportunity') === 'jobs';
     return <section className="club-opportunities-hub">
         {!jobsOpen && <header className="mb-6">
@@ -19,7 +20,7 @@ export const ClubBusinessTab = ({ club, ownClubRole, isAuthenticated }: {
         </header>}
         {jobsOpen ? <>
             <div className="store-page jobs-page opportunity-hub-actions">
-                {isAuthenticated && canManageClubOperations(ownClubRole) && <Link className="opportunity-nav-button" to={`/clubs/${club.id}/workspace?tab=jobs`}>Manage jobs and applications<ArrowRight size={17}/></Link>}
+                {isAuthenticated && canManageClubOperations(ownClubRole) && <Link className="opportunity-nav-button" to={`/clubs/${club.id}/workspace?tab=jobs`}>Manage roles and applications<ArrowRight size={17}/></Link>}
             </div>
             <JobsDirectoryPage fixedClubId={club.id} clubName={club.name}/>
         </> : <ClubOpportunityOverview key={club.id} clubId={club.id} role={isAuthenticated ? ownClubRole : null}/>}

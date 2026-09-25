@@ -1,5 +1,9 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { MatchHistoryLink } from '../features/matchHistory/MatchHistoryLink';
+import { ResultSummary } from '../features/matchHistory/ResultSummary';
+import '../features/matchHistory/match-history.css';
+import { isAxiosError } from 'axios';
 import {
     ArrowLeft,
     ArrowRight,
@@ -13,6 +17,8 @@ import {
     LockKeyhole,
     RotateCcw,
     ShieldCheck,
+    Share2,
+    RefreshCw,
     Trophy,
     UserPlus,
     UsersRound,
@@ -20,13 +26,22 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { fetchTournament, registerPlayer, requestEntry } from '../features/tournaments/api';
-import type { TournamentDetail, TournamentEntryDto } from '../features/tournaments/domain';
+import { VenueReservationSummary } from '../features/eventVenues/VenueReservationSummary';
+import type { TournamentDetail, TournamentEntryDto, TournamentTieState } from '../features/tournaments/domain';
 import { useAuth } from '../context/AuthContext';
 import { buildLoginRedirectPath } from '../utils/authRedirect';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { apiClient } from '../api/axiosConfig';
+import { TournamentBracketBoard } from '../features/tournaments/components/TournamentBracketBoard';
+import { StandingsTable } from '../features/tournaments/components/StandingsTable';
+import { TournamentSeriesPanel } from '../features/tournamentSeries/TournamentSeriesPanel';
+import { ExtensionDemoLabel, ExtensionSurface } from '../features/capabilities/ExtensionBoundary';
+import { isExtensionCapabilityAvailable } from '../features/capabilities/extensions';
+import { tournamentPublicCopy } from '../locales/tournamentPublic';
+import { useDialogFocus } from '../components/workspace/useDialogFocus';
+import { TournamentTieBlockerBanner, TournamentTieResolution } from '../features/tournaments/components/TournamentTieResolution';
+import './tournament-public.css';
 import {
-    RegistrationPolicyBadge,
     TournamentIdentity,
     TournamentScopeBadge,
     TournamentStatusBadge,
@@ -57,13 +72,15 @@ const Section = ({ icon, title, eyebrow, children }: { icon: ReactNode; title: s
     </section>
 );
 
-const publicEntryStatuses = new Set(['APPROVED', 'ACTIVE', 'COMPLETED']);
+const publicEntryStatuses = new Set(['APPROVED', 'ACTIVE', 'ELIMINATED', 'COMPLETED']);
 
 const entryDisplayName = (entry: TournamentEntryDto) =>
     entry.squadName ?? entry.clubName ?? entry.displayName ?? 'Participant';
 
 export const TournamentDetailPage = () => {
     const { tournamentId } = useParams<{ tournamentId: string }>();
+    const [searchParams] = useSearchParams();
+    const requestedFixture = Number(searchParams.get('fixtureId')) || null;
     const navigate = useNavigate();
     const { isAuthenticated, user } = useAuth();
     const { t, i18n } = useTranslation();
@@ -79,9 +96,25 @@ export const TournamentDetailPage = () => {
     const [selectedSquadId, setSelectedSquadId] = useState('');
     const [entrySubmitting, setEntrySubmitting] = useState(false);
     const [withdrawing, setWithdrawing] = useState(false);
+    const [activeTab, setActiveTab] = useState<'bracket' | 'matches' | 'teams' | 'about'>(requestedFixture ? 'matches' : 'bracket');
+    const [selectedStageId, setSelectedStageId] = useState<number | null>(null);
+    const [matchFilter, setMatchFilter] = useState<'all' | 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'>('all');
+    const [teamSearch, setTeamSearch] = useState('');
+    const [shareState, setShareState] = useState<'idle' | 'copied' | 'fallback'>('idle');
+    const [refreshing, setRefreshing] = useState(false);
+    const [resultsRevision, setResultsRevision] = useState(0);
+    const [tieState, setTieState] = useState<TournamentTieState | null>(null);
+    const entryDialogRef = useRef<HTMLDivElement>(null);
+    useDialogFocus(showEntryModal, entryDialogRef, () => { if (!entrySubmitting) setShowEntryModal(false); });
+    const copy = tournamentPublicCopy(i18n.language);
+    useEffect(() => {
+        if (requestedFixture && tournament && activeTab === 'matches') document.getElementById(`fixture-${requestedFixture}`)?.scrollIntoView?.({ block: 'center' });
+    }, [requestedFixture, tournament, activeTab]);
 
     const id = Number(tournamentId);
-    const isStaff = tournament?.staffAssignments?.some((assignment) => assignment.userId === user?.id && assignment.status === 'ACTIVE');
+    const activeAssignment = tournament?.staffAssignments?.find((assignment) => assignment.userId === user?.id && assignment.status === 'ACTIVE');
+    const isStaff = activeAssignment != null;
+    const canResolveTies = activeAssignment?.role === 'ADMIN' || activeAssignment?.role === 'STAFF';
     const userEntry = user?.id == null ? undefined : tournament?.entries?.find((entry) =>
         entry.userId === user.id && !['WITHDRAWN', 'REJECTED'].includes(entry.status));
     const isRegistered = userEntry != null;
@@ -141,6 +174,24 @@ export const TournamentDetailPage = () => {
     const refreshTournament = async () => {
         const data = await fetchTournament(id);
         setTournament(data);
+        setResultsRevision(current => current + 1);
+    };
+
+    const refreshResults = async () => {
+        if (refreshing) return;
+        setRefreshing(true);
+        setMessage(null);
+        try {
+            await refreshTournament();
+            setMessage({ text: copy.refreshed, type: 'success' });
+        } catch (err) {
+            if (isAxiosError(err) && [401, 403, 404].includes(err.response?.status ?? 0)) {
+                setTournament(null);
+                setError(extractApiErrorMessage(err, t('tournaments.public.detailLoadFailed')));
+            } else setMessage({ text: extractApiErrorMessage(err, copy.refreshFailed), type: 'error' });
+        } finally {
+            setRefreshing(false);
+        }
     };
 
     const handleRegister = async () => {
@@ -259,8 +310,28 @@ export const TournamentDetailPage = () => {
     const dateRange = formatTournamentDateRange(tournament.startDate, tournament.endDate, i18n.language);
     const registrationRange = formatTournamentDateRange(tournament.registrationOpensAt, tournament.registrationClosesAt, i18n.language);
     const organizerName = tournament.organizerName ?? t('tournaments.public.organizerFallback');
-    const hostName = tournament.hostClubName ?? t('tournaments.public.hostFallback');
-    const visibleFixtures = tournament.fixtures;
+    const stages = [...tournament.stages].sort((a, b) => a.stageOrder - b.stageOrder);
+    const selectedStage = stages.find((stage) => stage.id === selectedStageId)
+        ?? stages.find(stage => stage.id === tournament.fixtures.find(f => f.id === requestedFixture)?.stageId)
+        ?? stages.find((stage) => stage.status === 'ACTIVE') ?? stages[0];
+    const visibleFixtures = tournament.fixtures
+        .filter((fixture) => (!selectedStage || fixture.stageId === selectedStage.id) && (matchFilter === 'all' || fixture.status === matchFilter))
+        .sort((a, b) => (a.scheduledAt ?? '9999').localeCompare(b.scheduledAt ?? '9999') || (a.roundNumber ?? 0) - (b.roundNumber ?? 0) || (a.fixtureOrder ?? 0) - (b.fixtureOrder ?? 0));
+    const filteredEntries = visibleEntries.filter((entry) => [entry.clubName, entry.squadName, entry.displayName].some((value) => value?.toLocaleLowerCase().includes(teamSearch.trim().toLocaleLowerCase())) || !teamSearch.trim());
+    const shareUrl = new URL(`/tournaments/${tournament.id}`, window.location.origin).href;
+    const copyLink = async () => {
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            setShareState('copied');
+        } catch {
+            setShareState('fallback');
+        }
+    };
+    const stageSelector = stages.length > 1 ? (
+        <label className="tp-stage">{copy.stage}<select aria-label={copy.stage} value={selectedStage?.id ?? ''} onChange={(event) => setSelectedStageId(Number(event.target.value))}>
+            {stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}
+        </select></label>
+    ) : null;
 
     const actionContent = (() => {
         if (isStaff) {
@@ -345,154 +416,133 @@ export const TournamentDetailPage = () => {
     })();
 
     return (
-        <div className="min-h-full bg-[#0d1014] pb-8 text-zinc-100 selection:bg-emerald-400/20">
+        <div className="tournament-public-page">
             {message ? (
                 <div role={message.type === 'error' ? 'alert' : 'status'} className={`mb-5 rounded-xl border px-4 py-3 text-sm font-semibold ${message.type === 'success' ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300' : 'border-rose-400/20 bg-rose-400/10 text-rose-300'}`}>
                     {message.text}
                 </div>
             ) : null}
-
-            <TournamentVisual name={tournament.name} imageUrl={tournament.bannerImageUrl} className="min-h-[360px] rounded-3xl border border-white/[0.07] shadow-[0_28px_80px_rgba(0,0,0,0.24)] sm:min-h-[420px]">
-                <div className="flex min-h-[360px] flex-col justify-between p-5 sm:min-h-[420px] sm:p-8 lg:p-10">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                        <Link to="/tournaments" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3.5 py-2 text-xs font-bold text-zinc-200 backdrop-blur-md transition hover:bg-black/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
-                            <ArrowLeft className="h-3.5 w-3.5" />
-                            {t('tournaments.public.backToTournaments')}
-                        </Link>
-                        <div className="flex flex-wrap justify-end gap-2 rounded-2xl border border-white/10 bg-black/35 p-1.5 shadow-lg shadow-black/10 backdrop-blur-md">
-                            <span className="inline-flex items-center rounded-full border border-amber-300/25 bg-amber-300/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200">Preview</span>
+            <TournamentVisual name={tournament.name} imageUrl={tournament.bannerImageUrl} className="tp-hero">
+                <div className="tp-hero-inner">
+                    <div className="tp-hero-top">
+                        <Link to="/tournaments"><ArrowLeft size={15} />{t('tournaments.public.backToTournaments')}</Link>
+                        <div className="tp-hero-actions"><button type="button" className="tp-share" aria-label={refreshing ? copy.refreshing : copy.refresh} disabled={refreshing} onClick={() => void refreshResults()}><RefreshCw size={15} className={refreshing ? 'animate-spin' : undefined} /><span className="tp-refresh-label">{refreshing ? copy.refreshing : copy.refresh}</span></button><button type="button" className="tp-share" onClick={() => void copyLink()}><Share2 size={15} />{shareState === 'copied' ? copy.copied : copy.share}</button></div>
+                    </div>
+                    <div>
+                        <p className="tp-host"><Building2 size={16} />{copy.host} · {organizerName}</p>
+                        <h1 className="tp-title">{tournament.name}</h1>
+                        <p className="tp-description">{tournament.description || t('tournaments.public.noDescription')}</p>
+                        <div className="tp-hero-meta">
+                            <span><CalendarDays size={15} />{dateRange || t('tournaments.public.datesToBeConfirmed')}</span>
+                            <span><UsersRound size={15} />{t('tournaments.public.entryCount', { count: visibleEntries.length })}</span>
+                            <span>{t('tournaments.public.fixtureCount', { count: fixtureCount })}</span>
                             <TournamentStatusBadge status={tournament.status} />
                             <TournamentScopeBadge scope={tournament.participantScope} />
-                            <RegistrationPolicyBadge policy={tournament.registrationPolicy} />
-                        </div>
-                    </div>
-                    <div className="max-w-4xl">
-                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">{t('tournaments.public.competition')}</p>
-                        <h1 className="mt-3 text-3xl font-bold tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl">{tournament.name}</h1>
-                        <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-300 sm:text-base">
-                            {tournament.description || t('tournaments.public.noDescription')}
-                        </p>
-                        <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-zinc-300">
-                            <span className="inline-flex items-center gap-2"><Building2 className="h-4 w-4 text-zinc-500" />{t('tournaments.public.hostedBy', { name: hostName })}</span>
-                            <span className="inline-flex items-center gap-2"><CalendarDays className="h-4 w-4 text-zinc-500" />{dateRange || t('tournaments.public.datesToBeConfirmed')}</span>
                         </div>
                     </div>
                 </div>
             </TournamentVisual>
-
-            <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/[0.06] px-5 py-4 text-sm leading-6 text-amber-100/80">
-                <p className="font-bold text-amber-100">Public tournament preview</p>
-                <p className="mt-1">This page shows every published participant, fixture, and result. Public standings and brackets will be added later.</p>
+            {shareState === 'fallback' ? <label className="tp-share-fallback">{copy.copyFallback}<input readOnly value={shareUrl} onFocus={(event) => event.target.select()} /></label> : null}
+            {shareState === 'copied' ? <span role="status" className="sr-only">{copy.copied}</span> : null}
+            {tournament.championName ? <div className="tp-champion"><Crown size={30} /><div><small>{t('tournaments.public.champion')}</small><strong>{tournament.championName}</strong></div></div> : null}
+            <TournamentTieBlockerBanner state={tieState} tournament={tournament}/>
+            <section className="tp-entry-bar" aria-label={copy.registration}>
+                <div>
+                    <h2>{isStaff ? t('tournaments.public.manageCompetition') : t('tournaments.public.registration')}</h2>
+                    <div className="tp-entry-summary">
+                        <span>{tournamentPolicyText(tournament.registrationPolicy, t)}</span>
+                        <span>{tournamentVisibilityText(tournament.visibility, t)}</span>
+                        <span>{t('tournaments.public.registrationWindow')}: {registrationRange || t('tournaments.public.toBeAnnounced')}</span>
+                    </div>
+                </div>
+                <div>{actionContent}</div>
+            </section>
+            <div className="tp-tabs" role="tablist" aria-label={copy.navigation}>
+                {(['bracket', 'matches', 'teams', 'about'] as const).map((tab, index, tabs) => <button
+                    key={tab} id={`public-tab-${tab}`} type="button" role="tab" aria-selected={activeTab === tab}
+                    aria-controls={`public-panel-${tab}`} tabIndex={activeTab === tab ? 0 : -1}
+                    onClick={() => setActiveTab(tab)} onKeyDown={(event) => {
+                        let target = index;
+                        if (event.key === 'ArrowRight') target = (index + 1) % tabs.length;
+                        else if (event.key === 'ArrowLeft') target = (index + tabs.length - 1) % tabs.length;
+                        else if (event.key === 'Home') target = 0;
+                        else if (event.key === 'End') target = tabs.length - 1;
+                        else return;
+                        event.preventDefault(); setActiveTab(tabs[target]);
+                        document.getElementById(`public-tab-${tabs[target]}`)?.focus();
+                    }}
+                >{tab === 'bracket' ? copy.competition : copy[tab]}</button>)}
             </div>
-
-            <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
-                <main className="space-y-6">
-                    {tournament.championName ? (
-                        <div className="flex flex-col gap-4 overflow-hidden rounded-2xl border border-amber-300/20 bg-[radial-gradient(circle_at_90%_20%,rgba(252,211,77,0.12),transparent_26%),#191813] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-                            <div className="flex items-center gap-4">
-                                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-300/10 text-amber-300"><Crown className="h-6 w-6" /></span>
-                                <div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-300/70">{t('tournaments.public.champion')}</p><p className="mt-1 text-lg font-bold text-amber-50">{tournament.championName}</p></div>
+            <main className="tp-panel" id={`public-panel-${activeTab}`} role="tabpanel" aria-labelledby={`public-tab-${activeTab}`}>
+                {activeTab === 'bracket' ? <>
+                    <TournamentTieResolution tournament={tournament} canResolve={canResolveTies && tournament.status === 'ACTIVE'} canAudit={canResolveTies} enabled={isAuthenticated && tournament.status !== 'PLANNING' && tournament.status !== 'CANCELLED'} refreshKey={resultsRevision} onStateChange={setTieState} onResolved={refreshTournament}/>
+                    {stages.length !== 1 || selectedStage?.stageType !== 'KNOCKOUT' ? <div className="tp-heading"><div><h2>{selectedStage?.stageType !== 'KNOCKOUT' && selectedStage ? t('tournaments.standings.title') : copy.bracket}</h2><p>{copy.bracketHint}</p></div>{stageSelector}</div> : null}
+                    {selectedStage ? <>
+                        {selectedStage.stageType === 'KNOCKOUT' ? <TournamentBracketBoard tournament={tournament} stageId={selectedStage.id} /> : null}
+                        {selectedStage.stageType !== 'KNOCKOUT' ? <StandingsTable key={selectedStage.id} tournamentId={tournament.id} stageId={selectedStage.id} refreshKey={resultsRevision} entryStatuses={new Map(visibleEntries.map((entry) => [entry.id, entry.status]))} advanceCount={selectedStage.advanceCount} /> : null}
+                    </> : tournament.fixtures.length ? <TournamentBracketBoard tournament={tournament} /> : <div className="tp-empty"><Trophy size={28} className="mx-auto mb-3" /><h3>{copy.notDrawn}</h3><p>{copy.notDrawnHint}</p></div>}
+                </> : null}
+                {activeTab === 'matches' ? <>
+                    <div className="tp-heading"><div><h2>{t('tournaments.public.scheduleTitle')}</h2><p>{t('tournaments.public.fixtureCount', { count: visibleFixtures.length })}</p><MatchHistoryLink tournamentId={tournament.id} className="inline-flex items-center gap-2 mt-3" /></div>{stageSelector}</div>
+                    <div className="tp-filter" aria-label={copy.matches}>
+                        {(['all', 'SCHEDULED', 'COMPLETED', 'CANCELLED'] as const).map((filter) => <button key={filter} type="button" aria-pressed={matchFilter === filter} onClick={() => setMatchFilter(filter)}>{filter === 'all' ? copy.allMatches : filter === 'SCHEDULED' ? copy.upcoming : filter === 'COMPLETED' ? copy.results : copy.cancelled}</button>)}
+                    </div>
+                    {visibleFixtures.length ? <div className="tp-match-list">{visibleFixtures.map((fixture) => {
+                        const kickoff = fixture.scheduledAt ? new Date(fixture.scheduledAt) : null;
+                        const kickoffTime = kickoff && !Number.isNaN(kickoff.getTime()) ? kickoff.toLocaleTimeString(i18n.language.startsWith('ka') ? 'ka-GE' : 'en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
+                        return <article key={fixture.id} id={`fixture-${fixture.id}`} className="tp-match" style={fixture.id === requestedFixture ? { outline: '2px solid var(--accent-primary, #36b973)', outlineOffset: 3, scrollMarginTop: 100 } : undefined}>
+                            <div className="tp-match-date"><p>{formatTournamentDate(fixture.scheduledAt, i18n.language) || t('tournaments.public.kickoffToBeConfirmed')}{kickoffTime ? ` · ${kickoffTime}` : ''}</p><p className="tp-match-round">{fixture.stageName || selectedStage?.name}{fixture.roundNumber != null ? ` · ${copy.round} ${fixture.roundNumber}` : ''}</p></div>
+                            <div className="tp-match-teams">
+                                <div className="tp-match-team" data-winner={fixture.homeEntryId != null && fixture.winnerEntryId === fixture.homeEntryId}><span>{fixture.homeLabel || t('tournaments.public.toBeDecided')}</span><strong>{fixture.homeScore ?? '–'}</strong></div>
+                                <div className="tp-match-team" data-winner={fixture.awayEntryId != null && fixture.winnerEntryId === fixture.awayEntryId}><span>{fixture.awayLabel || t('tournaments.public.toBeDecided')}</span><strong>{fixture.awayScore ?? '–'}</strong></div>
                             </div>
-                            <Trophy className="hidden h-16 w-16 text-amber-300/15 sm:block" />
-                        </div>
-                    ) : null}
-
-                    <Section icon={<Trophy className="h-5 w-5" />} title={t('tournaments.public.aboutTitle')} eyebrow={t('tournaments.public.overview')}>
-                        <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-400">
-                            {tournament.description || t('tournaments.public.noDescriptionLong')}
-                        </p>
-                    </Section>
-
-                    <div className="grid gap-6 xl:grid-cols-2">
-                        <Section icon={<Award className="h-5 w-5" />} title={t('tournaments.public.prizesTitle')}>
-                            {tournament.incentives ? <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-400">{tournament.incentives}</p> : <p className="text-sm leading-6 text-zinc-500">{t('tournaments.public.noPrizes')}</p>}
+                            <div className="tp-match-state">{fixture.status ? t(`tournaments.workspace.fixtureStatus.${fixture.status.toLowerCase()}`) : t('tournaments.public.fixture')}</div>
+                            {fixture.status === 'COMPLETED' && <ResultSummary homeScore={fixture.homeScore} awayScore={fixture.awayScore} status={fixture.homeScore != null && fixture.awayScore != null ? 'RECORDED' : (fixture.homeEntryId != null) !== (fixture.awayEntryId != null) ? 'BYE' : 'NONE'} fixtureStatus={fixture.status} compact />}
+                            {isStaff && <Link className="inline-flex items-center gap-1 text-sm" to={`/tournaments/${tournament.id}/workspace?view=schedule&fixtureId=${fixture.id}`}>{i18n.language.startsWith('ka') ? 'მატჩის მართვა' : 'Manage match'} →</Link>}
+                            <VenueReservationSummary value={fixture.venueReservation}/>
+                        </article>;
+                    })}</div> : <div className="tp-empty"><CalendarDays size={26} className="mx-auto mb-3" /><h3>{tournament.fixtures.length ? copy.noMatches : t('tournaments.public.noFixturesTitle')}</h3><p>{t('tournaments.public.noFixturesDescription')}</p></div>}
+                </> : null}
+                {activeTab === 'teams' ? <>
+                    <div className="tp-heading"><div><h2>{copy.teams}</h2><p>{t('tournaments.public.entryCount', { count: visibleEntries.length })}</p></div><input className="tp-search" type="search" aria-label={copy.teamSearch} placeholder={copy.searchHint} value={teamSearch} onChange={(event) => setTeamSearch(event.target.value)} /></div>
+                    {filteredEntries.length ? <div className="tp-team-grid">{filteredEntries.map((entry) => {
+                        const name = entry.clubName || entryDisplayName(entry);
+                        return <article className="tp-team" key={entry.id}>
+                            <div className="tp-team-name"><span className="tp-team-crest" aria-hidden="true">{name.slice(0, 2).toLocaleUpperCase()}</span><div><h3>{entry.clubId ? <Link to={`/clubs/${entry.clubId}`}>{name}</Link> : name}</h3><p>{entry.squadName || (entry.clubId == null && entry.userId == null ? copy.guestTeam : copy.participating)}</p></div></div>
+                            <div className="tp-team-status">{t(`tournaments.public.entryStatus.${entry.status.toLowerCase()}`)}</div>
+                        </article>;
+                    })}</div> : <div className="tp-empty"><UsersRound size={26} className="mx-auto mb-3" /><h3>{teamSearch ? copy.noSearch : t('tournaments.public.noEntriesTitle')}</h3>{!teamSearch ? <p>{t('tournaments.public.noEntriesDescription')}</p> : null}</div>}
+                </> : null}
+                {activeTab === 'about' ? <div className="tp-about-grid">
+                    <div className="tp-about-stack">
+                        <ExtensionSurface capability="tournamentSeries"><TournamentSeriesPanel tournamentId={tournament.id}/></ExtensionSurface>
+                        {isExtensionCapabilityAvailable('volunteerShifts') && <Link to={`/volunteering?tournamentId=${tournament.id}`}>Volunteer at this tournament →<ExtensionDemoLabel capability="volunteerShifts" /></Link>}
+                        <Section icon={<Trophy className="h-5 w-5" />} title={t('tournaments.public.aboutTitle')}>
+                            <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-400">{tournament.description || t('tournaments.public.noDescriptionLong')}</p>
                         </Section>
                         <Section icon={<ShieldCheck className="h-5 w-5" />} title={t('tournaments.public.rulesTitle')}>
-                            {tournament.rules ? <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-400">{tournament.rules}</p> : <p className="text-sm leading-6 text-zinc-500">{t('tournaments.public.noRules')}</p>}
+                            <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-400">{tournament.rules || t('tournaments.public.noRules')}</p>
+                        </Section>
+                        <Section icon={<Award className="h-5 w-5" />} title={t('tournaments.public.prizesTitle')}>
+                            <p className="whitespace-pre-wrap text-sm leading-6 text-zinc-400">{tournament.incentives || t('tournaments.public.noPrizes')}</p>
                         </Section>
                     </div>
-
-                    <Section icon={<UsersRound className="h-5 w-5" />} title={t('tournaments.public.entriesTitle')} eyebrow={t('tournaments.public.entryCount', { count: visibleEntries.length })}>
-                        {visibleEntries.length > 0 ? (
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                {visibleEntries.map((entry) => (
-                                    <div key={entry.id} className="rounded-xl border border-white/[0.06] bg-white/[0.025] p-3.5">
-                                        <TournamentIdentity name={entryDisplayName(entry)} subtitle={entry.squadName && entry.clubName ? entry.clubName : t(`tournaments.public.entryStatus.${entry.status.toLowerCase()}`)} />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="rounded-xl border border-dashed border-white/[0.09] bg-white/[0.02] px-5 py-8 text-center">
-                                <UsersRound className="mx-auto h-7 w-7 text-zinc-700" />
-                                <p className="mt-3 text-sm font-bold text-zinc-300">{t('tournaments.public.noEntriesTitle')}</p>
-                                <p className="mt-1 text-xs leading-5 text-zinc-500">{t('tournaments.public.noEntriesDescription')}</p>
-                            </div>
-                        )}
-                    </Section>
-
-                    <Section icon={<CalendarDays className="h-5 w-5" />} title={t('tournaments.public.scheduleTitle')} eyebrow={t('tournaments.public.fixtureCount', { count: fixtureCount })}>
-                        {visibleFixtures.length > 0 ? (
-                            <div className="space-y-3">
-                                {visibleFixtures.map((fixture) => (
-                                    <div key={fixture.id} className="grid gap-3 rounded-xl border border-white/[0.06] bg-white/[0.025] p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                                        <div className="min-w-0">
-                                            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-600">{fixture.stageName || t('tournaments.public.fixture')}</p>
-                                            <p className="mt-1 truncate text-sm font-bold text-zinc-200">
-                                                {fixture.homeLabel || t('tournaments.public.toBeDecided')} <span className="mx-2 text-zinc-600">vs</span> {fixture.awayLabel || t('tournaments.public.toBeDecided')}
-                                            </p>
-                                        </div>
-                                        <div className="text-right">
-                                            {fixture.homeScore != null && fixture.awayScore != null ? <p className="text-sm font-bold text-zinc-200">{fixture.homeScore} – {fixture.awayScore}</p> : null}
-                                            <p className="text-xs text-zinc-500">{formatTournamentDate(fixture.scheduledAt, i18n.language) || t('tournaments.public.kickoffToBeConfirmed')}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="rounded-xl border border-dashed border-white/[0.09] bg-white/[0.02] px-5 py-8 text-center">
-                                <CalendarDays className="mx-auto h-7 w-7 text-zinc-700" />
-                                <p className="mt-3 text-sm font-bold text-zinc-300">{t('tournaments.public.noFixturesTitle')}</p>
-                                <p className="mt-1 text-xs leading-5 text-zinc-500">{t('tournaments.public.noFixturesDescription')}</p>
-                            </div>
-                        )}
-                    </Section>
-                </main>
-
-                <aside className="space-y-5 lg:sticky lg:top-28">
-                    <section className={`${panelClass} overflow-hidden`}>
-                        <div className="border-b border-white/[0.06] bg-[radial-gradient(circle_at_top_right,rgba(36,190,103,0.12),transparent_36%)] p-5 sm:p-6">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-300">{t('tournaments.public.yourNextStep')}</p>
-                            <h2 className="mt-2 text-lg font-bold text-zinc-100">
-                                {isStaff ? t('tournaments.public.manageCompetition') : t('tournaments.public.joinCompetition')}
-                            </h2>
-                            <p className="mt-2 text-xs leading-5 text-zinc-500">
-                                {isStaff ? t('tournaments.public.workspaceExplanation') : t('tournaments.public.actionExplanation')}
-                            </p>
-                            <div className="mt-5">{actionContent}</div>
-                        </div>
-                        <div className="divide-y divide-white/[0.06] px-5">
-                            <div className="flex items-center justify-between gap-4 py-4"><span className="text-xs text-zinc-500">{t('tournaments.public.registration')}</span><span className="text-right text-xs font-bold text-zinc-300">{tournamentPolicyText(tournament.registrationPolicy, t)}</span></div>
-                            <div className="flex items-center justify-between gap-4 py-4"><span className="text-xs text-zinc-500">{t('tournaments.public.registrationWindow')}</span><span className="text-right text-xs font-bold text-zinc-300">{registrationRange || t('tournaments.public.toBeAnnounced')}</span></div>
-                        </div>
-                    </section>
-
-                    <section className={`${panelClass} p-5 sm:p-6`}>
-                        <h2 className="text-sm font-bold text-zinc-100">{t('tournaments.public.atAGlance')}</h2>
-                        <dl className="mt-4 divide-y divide-white/[0.06]">
-                            <div className="grid grid-cols-[100px_1fr] gap-4 py-3 first:pt-0"><dt className="text-xs text-zinc-500">{t('tournaments.public.scopeLabel')}</dt><dd className="text-right text-xs font-bold text-zinc-300">{tournamentScopeText(tournament.participantScope, t)}</dd></div>
-                            <div className="grid grid-cols-[100px_1fr] gap-4 py-3"><dt className="text-xs text-zinc-500">{t('tournaments.public.visibilityLabel')}</dt><dd className="text-right text-xs font-bold text-zinc-300">{tournamentVisibilityText(tournament.visibility, t)}</dd></div>
-                            <div className="grid grid-cols-[100px_1fr] gap-4 py-3"><dt className="text-xs text-zinc-500">{t('tournaments.public.hostLabel')}</dt><dd className="text-right text-xs font-bold text-zinc-300">{hostName}</dd></div>
-                            <div className="grid grid-cols-[100px_1fr] gap-4 py-3"><dt className="text-xs text-zinc-500">{t('tournaments.public.organizerLabel')}</dt><dd className="text-right text-xs font-bold text-zinc-300">{organizerName}</dd></div>
-                            <div className="grid grid-cols-[100px_1fr] gap-4 py-3"><dt className="text-xs text-zinc-500">{t('tournaments.public.participantsLabel')}</dt><dd className="text-right text-xs font-bold text-zinc-300">{t('tournaments.public.entryCount', { count: visibleEntries.length })}</dd></div>
-                            <div className="grid grid-cols-[100px_1fr] gap-4 py-3 last:pb-0"><dt className="text-xs text-zinc-500">{t('tournaments.public.fixturesLabel')}</dt><dd className="text-right text-xs font-bold text-zinc-300">{fixtureCount}</dd></div>
+                    <Section icon={<Building2 className="h-5 w-5" />} title={copy.host}>
+                        <p className="text-lg font-bold">{organizerName}</p>
+                        <dl className="mt-4 space-y-5 text-xs">
+                            {tournament.hostClubName ? <div><dt className="text-zinc-500">{copy.partnerClub}</dt><dd className="mt-1 font-semibold">{tournament.hostClubId ? <Link to={`/clubs/${tournament.hostClubId}`}>{tournament.hostClubName}</Link> : tournament.hostClubName}</dd></div> : null}
+                            <div><dt className="text-zinc-500">{copy.venue}</dt><dd className="mt-1 font-semibold">{dateRange || t('tournaments.public.datesToBeConfirmed')}</dd></div>
+                            <div><dt className="text-zinc-500">{t('tournaments.public.scopeLabel')}</dt><dd className="mt-1 font-semibold">{tournamentScopeText(tournament.participantScope, t)}</dd></div>
+                            <div><dt className="text-zinc-500">{t('tournaments.public.registration')}</dt><dd className="mt-1 font-semibold">{tournamentPolicyText(tournament.registrationPolicy, t)}</dd></div>
+                            <div><dt className="text-zinc-500">{t('tournaments.public.registrationWindow')}</dt><dd className="mt-1 font-semibold">{registrationRange || t('tournaments.public.toBeAnnounced')}</dd></div>
                         </dl>
-                    </section>
-                </aside>
-            </div>
+                    </Section>
+                </div> : null}
+            </main>
 
             {showEntryModal ? (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={() => !entrySubmitting && setShowEntryModal(false)}>
-                    <div role="dialog" aria-modal="true" aria-labelledby="entry-modal-title" className="w-full max-w-md overflow-hidden rounded-2xl border border-white/[0.09] bg-[#15181c] shadow-[0_30px_100px_rgba(0,0,0,0.55)]" onClick={(event) => event.stopPropagation()}>
+                    <div ref={entryDialogRef} role="dialog" aria-modal="true" aria-labelledby="entry-modal-title" className="tp-entry-dialog w-full max-w-md overflow-hidden rounded-2xl border border-white/[0.09] bg-[#15181c] shadow-[0_30px_100px_rgba(0,0,0,0.55)]" onClick={(event) => event.stopPropagation()}>
                         <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] p-5 sm:p-6">
                             <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-300">{t('tournaments.public.entryRequest')}</p><h2 id="entry-modal-title" className="mt-1 text-lg font-bold text-zinc-100">{t('tournaments.public.requestEntry')}</h2></div>
                             <button type="button" aria-label={t('tournaments.public.close')} disabled={entrySubmitting} onClick={() => setShowEntryModal(false)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] text-zinc-500 transition hover:text-zinc-200 disabled:opacity-40"><X className="h-4 w-4" /></button>

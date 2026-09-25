@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, useRef, type PointerEvent as ReactPointer
 import { Building2, ChevronDown, ChevronRight, Crosshair, Filter, GripVertical, Loader2, MapPin, Navigation, Search, ShieldCheck, SlidersHorizontal, Trophy, Users, X } from 'lucide-react';
 import { type MapEntityType } from '../../api/map';
 export type { MapEntityType };
+import { TrainingPriceFields } from './TrainingPriceFields';
 import { usePersistedState } from '../../utils/usePersistedState';
 import { MapHelpHint } from './MapHelpHint';
 import { MapCountryCityFields } from './MapCountryCityFields';
@@ -32,6 +33,10 @@ export type MapPosition =
 export type ClubCategory = 'PROFESSIONAL_ACADEMY' | 'PRIVATE_ACADEMY' | 'SCHOOL_CLUB' | 'AMATEUR_CLUB' | 'OTHER';
 
 interface ClubFilters {
+    trainingMinPrice?: string;
+    trainingMaxPrice?: string;
+    trainingCurrency?: string;
+    trainingPeriod?: string;
     officialOnly: boolean;
     openTryoutsOnly: boolean;
     city: string;
@@ -142,7 +147,7 @@ const QUICK_AGE_GROUPS = ['U12', 'U14', 'U16', 'U18', 'Senior'];
 // Shared with MapPage; keeping the default beside the filter schema makes drift visible.
 // eslint-disable-next-line react-refresh/only-export-components
 export const defaultMapFilters: MapFilters = {
-    entityType: ['CLUB', 'MATCH', 'TOURNAMENT'],
+    entityType: ['CLUB', 'STADIUM', 'MATCH', 'TOURNAMENT'],
     sortBy: 'RELEVANCE',
     distanceKm: 50,
     positions: [],
@@ -177,6 +182,7 @@ export const defaultMapFilters: MapFilters = {
 };
 
 const ENTITY_LABELS: Record<MapEntityType, string> = {
+    STADIUM: 'Stadiums',
     CLUB: 'Clubs',
     TRYOUT: 'Tryouts',
     MATCH: 'Matches',
@@ -185,6 +191,7 @@ const ENTITY_LABELS: Record<MapEntityType, string> = {
 };
 
 const ENTITY_ICONS: Record<MapEntityType, ReactNode> = {
+    STADIUM: <MapPin className="h-4 w-4" />,
     CLUB: <Building2 className="h-4 w-4" />,
     TRYOUT: <Users className="h-4 w-4" />,
     MATCH: <Trophy className="h-4 w-4" />,
@@ -193,6 +200,7 @@ const ENTITY_ICONS: Record<MapEntityType, ReactNode> = {
 };
 
 const ENTITY_DESCRIPTIONS: Record<MapEntityType, string> = {
+    STADIUM: 'Find a pitch and see available times',
     CLUB: 'Find football clubs near you',
     TRYOUT: 'Discover open tryout sessions',
     MATCH: 'Browse open match challenges',
@@ -212,6 +220,8 @@ const countArrayDelta = (current: string[], initial: string[]) => {
 const countActiveFilters = (filters: MapFilters) => {
     let count = 0;
 
+    if (filters.clubs.trainingMinPrice) count += 1;
+    if (filters.clubs.trainingMaxPrice) count += 1;
     if (filters.sortBy !== defaultMapFilters.sortBy) count += 1;
     if (filters.distanceKm !== defaultMapFilters.distanceKm) count += 1;
     count += countArrayDelta(filters.positions, defaultMapFilters.positions);
@@ -820,6 +830,7 @@ export const MapFilterSidebar = ({
                                 <ChevronDown className={`h-4 w-4 transition-transform ${expanded.advanced ? 'rotate-180' : ''}`} />
                             </button>
 
+                            {draftFilters.entityType.includes('CLUB') && <TrainingPriceFields filters={draftFilters} onChange={onDraftChange} />}
                             {expanded.advanced && <>
                             <RailSection
                                 icon={<MapPin className="h-4 w-4" />}

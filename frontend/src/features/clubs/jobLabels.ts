@@ -12,11 +12,11 @@ export const CATEGORIES: Array<{ value: 'ALL' | ClubJobCategory; label: string }
 ];
 
 export const ENGAGEMENTS: Array<{ value: 'ALL' | ClubJobEngagementType; label: string }> = [
-    { value: 'ALL', label: 'Paid and volunteer' },
-    { value: 'PAID', label: 'Paid roles' },
-    { value: 'VOLUNTEER', label: 'Volunteering' },
-    { value: 'FLEXIBLE', label: 'Paid or volunteer' },
-    { value: 'UNSPECIFIED', label: 'Not specified' },
+    { value: 'ALL', label: 'All engagement types' },
+    { value: 'PAID', label: 'Paid role' },
+    { value: 'VOLUNTEER', label: 'Ongoing volunteer role' },
+    { value: 'FLEXIBLE', label: 'Flexible: paid or volunteer' },
+    { value: 'UNSPECIFIED', label: 'Engagement not specified' },
 ];
 
 export const POSTED_OPTIONS = [
@@ -28,7 +28,22 @@ export const POSTED_OPTIONS = [
 export const labelForCategory = (value?: string | null) =>
     CATEGORIES.find((item) => item.value === value)?.label ?? 'Other club role';
 export const labelForEngagement = (value?: string | null) =>
-    ENGAGEMENTS.find((item) => item.value === value)?.label ?? 'Not specified';
+    ENGAGEMENTS.find((item) => item.value === value)?.label ?? 'Engagement not specified';
+export const supportsInAppApplication = (job: Pick<ClubJob, 'requiredRole'>) =>
+    job.requiredRole === 'PLAYER' || job.requiredRole === 'COACH';
+export const applicationMethodLabel = (job: Pick<ClubJob, 'requiredRole'>) =>
+    supportsInAppApplication(job) ? 'In-app application' : 'Contact the club';
+export const expectedNextStepLabel = (job: Pick<ClubJob, 'requiredRole'>) =>
+    supportsInAppApplication(job)
+        ? 'Send an application for club review'
+        : 'Contact the club to ask how to apply';
+export const eligibilityLabel = (job: Pick<ClubJob, 'ageGroup' | 'level'>) => {
+    const eligibility = [
+        job.ageGroup ? `Age group: ${job.ageGroup}` : null,
+        job.level && job.level !== 'ANY' ? `Experience: ${job.level.toLowerCase()}` : null,
+    ].filter(Boolean);
+    return eligibility.length ? eligibility.join(' · ') : null;
+};
 export const locationLabel = (job: ClubJob) =>
     [job.clubCityName, job.clubCountryName].filter(Boolean).join(', ') || 'Location not specified';
 

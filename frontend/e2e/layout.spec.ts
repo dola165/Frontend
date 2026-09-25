@@ -179,6 +179,7 @@ test('Home keeps a readable social layout and preserves the legacy feed link', a
     });
     await page.getByRole('button', { name: /open menu/i }).click();
     await expect(page.getByRole('menuitem', { name: /account settings/i })).toBeVisible();
+    await page.getByRole('menuitem', { name: /^appearance/i }).click();
     await expect(page.getByRole('menuitemradio', { name: /^light mode/i })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: /sign out/i })).toBeVisible();
 });
@@ -236,6 +237,7 @@ test('discovery filters are prominent and the product canvas follows light mode'
     await page.evaluate(() => localStorage.setItem('theme', 'dark'));
     await page.reload();
     await page.getByRole('button', { name: /open menu/i }).click();
+    await page.getByRole('menuitem', { name: /^appearance/i }).click();
     await page.getByRole('menuitemradio', { name: /^light mode/i }).click();
     await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(false);
 

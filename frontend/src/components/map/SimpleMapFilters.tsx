@@ -1,3 +1,4 @@
+import { TrainingPriceFields } from './TrainingPriceFields';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Building2,
@@ -56,6 +57,7 @@ interface SimpleMapFiltersProps {
 
 const ENTITY_OPTIONS: Array<{ value: MapEntityType; label: string; icon: typeof Building2 }> = [
     { value: 'CLUB', label: 'Clubs', icon: Building2 },
+    { value: 'STADIUM', label: 'Stadiums', icon: MapPin },
     { value: 'MATCH', label: 'Matches', icon: Trophy },
     { value: 'TOURNAMENT', label: 'Tournaments', icon: Trophy }
 ];
@@ -388,13 +390,13 @@ export const SimpleMapFilters = ({
 
                         {showSearchField && (
                             <label>
-                                <span className="map-simple-label">Street, address or club name</span>
+                                <span className="map-simple-label">Name, street or address</span>
                                 <span className="map-simple-line">
                                     <Search className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
                                     <input
                                         value={searchValue}
                                         onChange={(event) => onSearchChange(event.target.value)}
-                                        placeholder="Club name or street…"
+                                        placeholder="Club, stadium or street…"
                                         maxLength={100}
                                         onKeyDown={event => { if (event.key === 'Enter') void onApply(); }}
                                         className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
@@ -433,6 +435,8 @@ export const SimpleMapFilters = ({
                                 </select>
                             </label>
                         </div>
+
+                        {draftFilters.entityType.includes('CLUB') && <TrainingPriceFields filters={draftFilters} onChange={onDraftChange} />}
 
                         <div className="atlas-coverage-settings">
                             {onCoverageChange && <fieldset className="atlas-coverage-choice"><legend className="map-simple-label">Search coverage</legend>

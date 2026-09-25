@@ -12,6 +12,8 @@ const AUTH_FLOW_ROUTES = new Set([
     '/set-password',
 ]);
 
+export const isAuthFlowRoute = (pathname: string) => AUTH_FLOW_ROUTES.has(pathname.toLowerCase());
+
 export interface AuthFlowState {
     nextPath?: string;
     email?: string;
@@ -35,6 +37,8 @@ export const sanitizeAuthRedirect = (value?: string | null) => {
     if (!trimmed.startsWith('/')
         || trimmed.startsWith('//')
         || trimmed.includes('\\')
+        // Redirects containing control characters must be rejected.
+        // eslint-disable-next-line no-control-regex
         || /[\u0000-\u001f\u007f]/.test(trimmed)) {
         return null;
     }
@@ -48,7 +52,7 @@ export const isSensitiveAuthDestination = (value?: string | null) => {
     const destination = sanitizeAuthRedirect(value);
     if (!destination) return false;
     const lower = destination.toLowerCase();
-    return lower.startsWith('/consent') || /[?&]token=/.test(lower);
+    return lower.startsWith('/consent') || lower.startsWith('/join-squad') || /[?&]token=/.test(lower);
 };
 
 export const getAuthFlow = (): AuthFlowState => {
@@ -115,7 +119,10 @@ export const requiredAccountStep = (user?: AuthDestinationUser | null) => {
     return null;
 };
 
-export const firstUseDestination = (role?: string) => role === 'ORGANIZER' ? '/my-club' : '/clubs';
+export const firstUseDestination = (role?: string) => {
+    if (role === 'PARENT') return '/parent';
+    return role === 'ORGANIZER' ? '/my-club' : '/clubs';
+};
 
 export const completedAuthDestination = (
     user: AuthDestinationUser,

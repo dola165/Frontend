@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isAndroidApp } from '../../android/bridge';
 import { useTranslation } from 'react-i18next';
 import { Circle, Globe2, Map as MapIcon } from 'lucide-react';
 import type { MapMode } from './MapExperience';
@@ -44,7 +45,7 @@ export const MapModeControl = ({
             {/* Positioning (bottom-left, shifted right of the open drawer) is owned
                 by the route wrapper — this component only paints the pill. */}
             <div className="map-mode-toggle">
-                {MODES.map(({ id, label, icon: Icon }) => (
+                {MODES.filter(({ id }) => !(isAndroidApp && id === 'tilted' && !tiltedAvailable)).map(({ id, label, icon: Icon }) => (
                     <button
                         key={id}
                         type="button"

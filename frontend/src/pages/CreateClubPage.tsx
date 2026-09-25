@@ -8,13 +8,17 @@ import { extractApiErrorMessage } from '../utils/apiError';
 import { MiniMap } from '../components/MiniMap';
 
 type ClubCommunicationMethod = 'WHATSAPP' | 'FACEBOOK_MESSENGER';
-type ClubType = 'GRASSROOTS' | 'ACADEMY' | 'PROFESSIONAL';
+type ClubType = 'GRASSROOTS' | 'ACADEMY' | 'PROFESSIONAL' | 'SCHOOL' | 'AMATEUR' | 'SEMI_PROFESSIONAL' | 'OTHER';
 type OrgKind = 'CLUB' | 'FAN_CLUB' | 'COMPANY';
-type ClubCategory = 'PROFESSIONAL_ACADEMY' | 'PRIVATE_ACADEMY' | 'SCHOOL_CLUB' | 'AMATEUR_CLUB' | 'OTHER';
+type ClubCategory = 'PROFESSIONAL_ACADEMY' | 'PRIVATE_ACADEMY' | 'SCHOOL_CLUB' | 'AMATEUR_CLUB' | 'OTHER' | 'PROFESSIONAL_CLUB' | 'SEMI_PROFESSIONAL_CLUB' | 'COMMUNITY_CLUB' | 'YOUTH_DEVELOPMENT';
 
 interface CreateClubResponse { id: number; }
 
 const clubTypeOptions: Array<{ value: ClubType; labelKey: string; descriptionKey: string }> = [
+  { value: 'SCHOOL', labelKey: 'School & educational team', descriptionKey: 'School, college and university football.' },
+  { value: 'AMATEUR', labelKey: 'Amateur club', descriptionKey: 'Organised amateur football and local competition.' },
+  { value: 'SEMI_PROFESSIONAL', labelKey: 'Semi-professional club', descriptionKey: 'Clubs combining paid and amateur football operations.' },
+  { value: 'OTHER', labelKey: 'Other football club', descriptionKey: 'Describe your football setting on the club profile.' },
   { value: 'GRASSROOTS', labelKey: 'createClub.typeGrassroots', descriptionKey: 'createClub.typeGrassrootsDesc' },
   { value: 'ACADEMY', labelKey: 'createClub.typeAcademy', descriptionKey: 'createClub.typeAcademyDesc' },
   { value: 'PROFESSIONAL', labelKey: 'createClub.typeProfessional', descriptionKey: 'createClub.typeProfessionalDesc' }
@@ -32,6 +36,10 @@ const orgKindOptions: Array<{ value: OrgKind; labelKey: string; descriptionKey: 
 ];
 
 const clubCategoryOptions: Array<{ value: ClubCategory; label: string }> = [
+  { value: 'PROFESSIONAL_CLUB', label: 'Professional club' },
+  { value: 'SEMI_PROFESSIONAL_CLUB', label: 'Semi-professional club' },
+  { value: 'COMMUNITY_CLUB', label: 'Grassroots / community club' },
+  { value: 'YOUTH_DEVELOPMENT', label: 'Academy / youth development' },
   { value: 'AMATEUR_CLUB', label: 'Amateur Club' },
   { value: 'PROFESSIONAL_ACADEMY', label: 'Professional Academy' },
   { value: 'PRIVATE_ACADEMY', label: 'Private Academy' },

@@ -8,6 +8,8 @@ import { PostTheaterModal } from '../../PostTheaterModal';
 import type { ClubProfile } from '../../../pages/ClubProfilePage';
 import type { ClubManagementTab } from '../../club/ClubManagementModal';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { usePagedProfilePosts } from '../../../hooks/usePagedProfilePosts';
+import { ProfilePostPagination } from '../../profile/ProfilePostPagination';
 
 const SETUP_CHECKLIST_KEY = 'club_setup_checklist_dismissed';
 
@@ -18,8 +20,8 @@ interface TabOverviewProps {
 }
 
 export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverviewProps) => {
-  const [posts, setPosts] = useState<FeedPostDto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const postPages = usePagedProfilePosts(`/posts/club/${club.id}`);
+  const { posts, setPosts, loading } = postPages;
   const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
   const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
   const [selectedPost, setSelectedPost] = useState<FeedPostDto | null>(null);
@@ -42,21 +44,9 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
     } catch { /* localStorage unavailable */ }
   };
 
-  const loadFeed = async () => {
-    setLoading(true);
-    try {
-      const response = await apiClient.get(`/posts/club/${club.id}`);
-      setPosts(response.data.posts || []);
-    } catch (error) {
-      console.error('Failed to load club feed', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    void loadFeed();
-  }, [club.id]);
+    setCommentsData({}); setCommentsErrors({}); setCommentsLoading({}); setOpenComments({}); setPendingLikes({}); setLikeErrors({}); setSelectedPost(null);
+  }, [postPages.pageKey]);
 
   const handleLikeToggle = async (postId: number) => {
     if (pendingLikes[postId]) return;
@@ -124,10 +114,10 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
 
   return (
     <div className="mx-auto flex w-full max-w-[760px] flex-col gap-4">
-      {isOwnClubAdmin && <PostComposer clubId={club.id} authorName={club.name} avatarUrl={club.logoUrl} onPostCreated={loadFeed} compact />}
+      {isOwnClubAdmin && <PostComposer clubId={club.id} authorName={club.name} avatarUrl={club.logoUrl} onPostCreated={postPages.refresh} compact />}
 
       {isOwnClubAdmin && !checklistDismissed && (
-        <div className="relative overflow-hidden rounded-[18px] border-2 border-amber-400/40 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 p-5 shadow-[0_8px_32px_rgba(251,191,36,0.15)]">
+        <div className="relative overflow-hidden rounded-[18px] border-2 border-amber-400/40 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 dark:from-[#28251b] dark:via-[#22231f] dark:to-[#1b2427] p-5 shadow-[0_8px_32px_rgba(251,191,36,0.15)]">
           <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-amber-400/20" />
           <div className="absolute -left-4 -bottom-4 h-16 w-16 rounded-full bg-rose-300/20" />
           <div className="relative">
@@ -137,13 +127,14 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
                   <Sparkles className="h-4 w-4" />
                 </span>
                 <div>
-                  <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-amber-800">Getting Started</h3>
-                  <p className="mt-0.5 text-xs font-medium text-amber-700/70">Follow these steps to set up your club — it only takes a minute!</p>
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-amber-800 dark:text-amber-200">Getting Started</h3>
+                  <p className="mt-0.5 text-xs font-medium text-amber-700/70 dark:text-amber-200/70">Follow these steps to set up your club.</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={dismissChecklist}
+                aria-label="Dismiss club setup tips"
                 className="shrink-0 rounded-full p-1.5 text-amber-500 hover:bg-amber-200/50 hover:text-amber-700 transition-colors"
               >
                 <X className="h-4 w-4" />
@@ -156,14 +147,14 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
                 { step: 3, icon: UserPlus, label: 'Invite staff members', desc: 'Bring in coaches, admins, and players', tab: 'invites' as ClubManagementTab },
                 { step: 4, icon: Megaphone, label: 'Post your first update', desc: 'Share news or welcome message with followers', tab: null }
               ].map((item) => (
-                <div key={item.label} className="flex items-center gap-3 rounded-xl bg-white/70 px-4 py-3  ring-1 ring-amber-200/50 transition-all hover:bg-white hover: hover:ring-amber-300/60">
+                <div key={item.label} className="flex items-center gap-3 rounded-xl bg-white/70 dark:bg-white/5 px-4 py-3  ring-1 ring-amber-200/50 transition-all hover:bg-white dark:hover:bg-white/10 hover: hover:ring-amber-300/60">
                   <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400 text-[11px] font-semibold text-amber-900 shadow-[0_1px_4px_rgba(251,191,36,0.5)]">
                     {item.step}
                   </span>
                   <item.icon className="h-4 w-4 shrink-0 text-amber-600" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-slate-800">{item.label}</p>
-                    <p className="text-[11px] text-slate-500">{item.desc}</p>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-100">{item.label}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-300">{item.desc}</p>
                   </div>
                   {item.tab && onOpenManageClub ? (
                     <button
@@ -180,13 +171,14 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
               ))}
             </div>
             <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-wider text-amber-600/60">
-              You can skip this and set things up later from Manage Club
+              You can skip this and set things up later from Club settings
             </p>
           </div>
         </div>
       )}
 
-      {posts.length === 0 ? (
+      {postPages.error && <ProfilePostPagination {...postPages}/>}
+      {postPages.error ? null : posts.length === 0 ? (
         <div className="flex min-h-[180px] flex-col items-center justify-center gap-4 rounded-[18px] border border-[color:var(--club-theme-border-subtle)] bg-[rgba(12,18,27,0.96)] px-5 py-10 text-center shadow-[0_18px_32px_rgba(2,6,12,0.22)]">
           <Megaphone className="h-8 w-8 text-[color:var(--club-theme-text-secondary)]" />
           <div>
@@ -226,6 +218,7 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
         />
       )}
 
+      {!postPages.error && <ProfilePostPagination {...postPages}/>}
       <PostTheaterModal
         isOpen={!!selectedPost}
         post={selectedPost}

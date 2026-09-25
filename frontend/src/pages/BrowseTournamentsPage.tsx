@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { extractApiErrorMessage } from '../utils/apiError';
-import { fetchTournaments, registerPlayer } from '../features/tournaments/api';
+import { fetchMyOrganizations, fetchTournaments, registerPlayer } from '../features/tournaments/api';
 import { PaginationBar } from '../components/ui/PaginationBar';
 import { TournamentCard } from '../components/tournaments/TournamentCard';
 import { TournamentListCard } from '../components/tournaments/TournamentListCard';
@@ -49,7 +49,21 @@ export const BrowseTournamentsPage = () => {
         }
     });
 
-    const canCreateTournament = isAuthenticated && ['ORGANIZER', 'ADMIN'].includes(user?.role ?? '');
+    const [creationAccess, setCreationAccess] = useState<{ accountId: number; available: boolean } | null>(null);
+    const canCreateTournament = isAuthenticated && creationAccess?.accountId === user?.id && creationAccess?.available === true;
+
+    useEffect(() => {
+        let active = true;
+        const accountId = user?.id;
+        if (!isAuthenticated || accountId == null) return;
+        void fetchMyOrganizations().then(organizations => {
+            if (active) setCreationAccess({ accountId, available: organizations.some(organization => organization.canCreateTournament === true) });
+        }).catch(() => {
+            // Setup remains reachable and provides a retry if access cannot be checked here.
+            if (active) setCreationAccess(null);
+        });
+        return () => { active = false; };
+    }, [isAuthenticated, user?.id]);
 
     const showMessage = (text: string, type: 'success' | 'error') => {
         setMessage(text);
@@ -64,6 +78,7 @@ export const BrowseTournamentsPage = () => {
             const params: Record<string, string> = { page: String(page), size: String(pageSize) };
             if (scopeFilter) params.scope = scopeFilter;
             if (statusFilter) params.status = statusFilter;
+            if (searchQuery.trim()) params.search = searchQuery.trim();
             const result = await fetchTournaments(params);
             setTournaments(result.content);
             setTotalPages(result.totalPages);
@@ -74,7 +89,7 @@ export const BrowseTournamentsPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, pageSize, scopeFilter, statusFilter, t]);
+    }, [page, pageSize, scopeFilter, statusFilter, searchQuery, t]);
 
     useEffect(() => {
         void loadTournaments();
@@ -105,14 +120,6 @@ export const BrowseTournamentsPage = () => {
             setRegisteringId(null);
         }
     };
-
-    const normalizedSearch = searchQuery.trim().toLocaleLowerCase();
-    const displayTournaments = normalizedSearch
-        ? tournaments.filter((tournament) =>
-            [tournament.name, tournament.description, tournament.hostClubName, tournament.organizerName]
-                .filter(Boolean)
-                .some((value) => value!.toLocaleLowerCase().includes(normalizedSearch)))
-        : tournaments;
 
     const hasActiveFilters = Boolean(searchQuery || scopeFilter || statusFilter);
     const clearFilters = () => {
@@ -149,13 +156,13 @@ export const BrowseTournamentsPage = () => {
                                     {t('tournaments.public.availableCompetitions')}
                                 </p>
                             </div>
-                            {canCreateTournament ? (
+                            {isAuthenticated ? (
                                 <Link
                                     to="/tournaments/setup"
                                     className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-xl shadow-emerald-950/30 transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
                                 >
                                     <Trophy className="h-4 w-4" />
-                                    {t('tournaments.public.createTournament')}
+                                    {canCreateTournament ? t('tournaments.public.createTournament') : 'Tournament setup'}
                                 </Link>
                             ) : null}
                         </div>
@@ -180,7 +187,7 @@ export const BrowseTournamentsPage = () => {
                             <input
                                 type="search"
                                 value={searchQuery}
-                                onChange={(event) => setSearchQuery(event.target.value)}
+                                onChange={(event) => { setSearchQuery(event.target.value); setPage(0); }}
                                 placeholder={t('tournaments.public.searchPlaceholder')}
                                 aria-label={t('tournaments.public.searchLabel')}
                                 className={`${inputClass} pl-11`}
@@ -277,7 +284,7 @@ export const BrowseTournamentsPage = () => {
                                 <p className="mt-1 text-xs text-zinc-500" aria-live="polite">
                                     {loading
                                         ? t('tournaments.public.loadingCompetitions')
-                                        : t('tournaments.public.showingResults', { shown: displayTournaments.length, total: totalElements })}
+                                        : t('tournaments.public.showingResults', { shown: tournaments.length, total: totalElements })}
                                 </p>
                             </div>
                         </div>
@@ -297,7 +304,7 @@ export const BrowseTournamentsPage = () => {
                                     </div>
                                 ))}
                             </div>
-                        ) : displayTournaments.length === 0 ? (
+                        ) : tournaments.length === 0 ? (
                             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.1] bg-[#15181c] px-6 py-16 text-center">
                                 <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-zinc-500">
                                     <Trophy className="h-7 w-7" />
@@ -321,7 +328,7 @@ export const BrowseTournamentsPage = () => {
                         ) : (
                             <>
                                 <div className={viewMode === 'grid' ? 'grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 min-[2200px]:grid-cols-5' : 'flex flex-col gap-4'}>
-                                    {displayTournaments.map((tournament) => viewMode === 'grid' ? (
+                                    {tournaments.map((tournament) => viewMode === 'grid' ? (
                                         <TournamentCard
                                             key={tournament.id}
                                             tournament={tournament}

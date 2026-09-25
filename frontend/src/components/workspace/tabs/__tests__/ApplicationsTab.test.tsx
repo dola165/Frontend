@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '../../../../i18n';
 import { ApplicationsTab, type ApplicationFilters } from '../ApplicationsTab';
 import type { ClubMembershipApplication } from '../../../../features/clubs/domain';
@@ -107,5 +107,31 @@ describe('ApplicationsTab — phase A3 triage', () => {
         await waitFor(() => expect(props.onBulkDecide).toHaveBeenCalled());
         fireEvent.keyDown(document, { key: 'Escape' });
         await waitFor(() => expect(screen.getByRole('button', { name: 'Accept (1)' })).toBeInTheDocument());
+    });
+
+    it('reviews the complete message before handing an individual decision to the parent', () => {
+        const props = renderTab();
+        fireEvent.click(screen.getAllByRole('button', { name: 'Review' })[0]);
+        const dialog = screen.getByRole('dialog', { name: 'Luka Trialist' });
+        expect(within(dialog).getByText(pendingA.message!)).toBeInTheDocument();
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Accept' }));
+        expect(props.onAcceptApplication).toHaveBeenCalledWith(501);
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('excludes hidden selections from the confirmed bulk request', async () => {
+        const props = renderTab();
+        fireEvent.click(screen.getByLabelText('Select Luka Trialist'));
+        fireEvent.click(screen.getByLabelText('Select Nika Goalkeeper'));
+        fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'Nika' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Accept (1)' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
+        await waitFor(() => expect(props.onBulkDecide).toHaveBeenCalledWith([502], 'ACCEPT', null));
+    });
+
+    it('sorts applicants by the applicant column despite the leading selection column', () => {
+        renderTab();
+        fireEvent.click(screen.getByRole('button', { name: /Applicant.*⇅/ }));
+        expect(within(screen.getAllByRole('row')[1]).getByText('Adult Coach Candidate')).toBeInTheDocument();
     });
 });

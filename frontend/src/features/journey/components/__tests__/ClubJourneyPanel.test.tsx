@@ -63,7 +63,7 @@ describe('ClubJourneyPanel — phase A4', () => {
         await waitFor(() => expect(screen.getAllByText(/Metro United Academy/).length).toBeGreaterThanOrEqual(1));
         expect(screen.getByText('This intake is full — try again at our next tryouts. Keep training!')).toBeInTheDocument();
         expect(screen.getByText(/U15 Open Tryout/)).toBeInTheDocument();
-        expect(screen.getByText(/Lakeside Athletic · DECLINED/)).toBeInTheDocument();
+        expect(screen.getByText(/Lakeside Athletic · Declined/)).toBeInTheDocument();
     });
 
     it('cancels a pending application and refreshes', async () => {

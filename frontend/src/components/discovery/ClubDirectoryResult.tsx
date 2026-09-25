@@ -29,7 +29,7 @@ export const ClubDirectoryResult = ({
         <article className="grid gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1.6fr)_150px_170px_180px] lg:items-center">
             <ClubDirectoryIdentity club={club} />
 
-            <p className="text-sm leading-6 text-[#a1a1aa]">{club.description || 'No club summary provided yet.'}</p>
+            <div><p className="text-sm leading-6 text-[#a1a1aa]">{club.description || 'No club summary provided yet.'}</p></div>
 
             <div className="text-sm text-[#a1a1aa]">
                 <div className="inline-flex items-center gap-1.5">

@@ -1,4 +1,4 @@
-import { apiClient } from './axiosConfig';
+import { apiClient, type AuthSessionRequestConfig } from './axiosConfig';
 
 // ── Types (mirrors backend DTOs) ─────────────────────────────────
 
@@ -69,8 +69,9 @@ export interface PageParams {
 // ── API functions ────────────────────────────────────────────────
 
 export const chatApi = {
-    getConversations(page = 0, size = 20) {
+    getConversations(page = 0, size = 20, config?: AuthSessionRequestConfig) {
         return apiClient.get<PageResult<ConversationDto>>('/chat/conversations', {
+            ...config,
             params: { page, size },
         });
     },
@@ -96,6 +97,16 @@ export const chatApi = {
 
     getConversation(conversationId: number) {
         return apiClient.get<ConversationDto>(`/chat/conversations/${conversationId}`);
+    },
+
+    async findConversationByContext(contextType: ConversationDto['contextType'], contextId: number, signal?: AbortSignal) {
+        const size = 50;
+        for (let page = 0; ; page += 1) {
+            const response = await apiClient.get<PageResult<ConversationDto>>('/chat/conversations', { params: { page, size }, signal });
+            const found = response.data.content.find(conversation => conversation.contextType === contextType && conversation.contextId === contextId);
+            if (found) return found;
+            if ((page + 1) * size >= response.data.totalElements || response.data.content.length === 0) return null;
+        }
     },
 
     createConversation(data: {

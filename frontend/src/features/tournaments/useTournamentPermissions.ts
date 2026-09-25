@@ -7,16 +7,13 @@ export interface TournamentPermissions {
     isReferee: boolean;
     /** Admin or staff — bracket building, teams, destructive actions. */
     canManage: boolean;
-    /** Admin, staff or referee — score entry during play. */
+    /** Admin or staff — matches the backend tournament operator policy. */
     canScore: boolean;
     /** Admin only — settings incl. the banner. */
     canEditSettings: boolean;
 }
 
-/**
- * P7 access-control groundwork: role derived from the viewer's active staff
- * assignment on the tournament. Full enforcement lands in P8.
- */
+/** Role derived from the viewer's active staff assignment on the tournament. */
 export const useTournamentPermissions = (
     tournament: TournamentDetail | null,
     userId?: number | null,
@@ -34,7 +31,7 @@ export const useTournamentPermissions = (
             isStaff,
             isReferee,
             canManage: isStaff,
-            canScore: isStaff || isReferee,
+            canScore: isStaff,
             canEditSettings: isAdmin,
         };
     }, [tournament, userId]);

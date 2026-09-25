@@ -103,6 +103,26 @@ describe('PostPage', () => {
         expect(apiClient.get).toHaveBeenCalledWith('/posts/42');
     });
 
+    it('starts omitted interaction defaults at zero and updates them after a like and comment', async () => {
+        const user = userEvent.setup();
+        vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true } as ReturnType<typeof useAuth>);
+        vi.mocked(apiClient.get).mockImplementation(async url => ({ data: String(url).endsWith('/comments') ? [] : {
+            id: 42, authorId: 7, authorName: 'Jordan Lee', content: 'A brand new post', createdAt: '2026-09-08T08:00:00Z',
+        } }));
+        vi.mocked(apiClient.put).mockResolvedValue({ data: { isLiked: true } });
+        vi.mocked(apiClient.post).mockResolvedValue({ data: comment(12, 'Great album') });
+        renderPage();
+        expect(await screen.findByText('0 likes')).toBeInTheDocument();
+        expect(screen.getByText('0 comments')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Like' }));
+        expect(await screen.findByText('1 likes')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Comment' }));
+        await user.type(screen.getByRole('textbox'), 'Great album');
+        await user.click(screen.getByRole('button', { name: 'Post comment' }));
+        expect(await screen.findByText('1 comments')).toBeInTheDocument();
+        expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
+    });
+
     it('gives guests a safe unavailable state with a return-aware sign-in link', async () => {
         (apiClient.get as ReturnType<typeof vi.fn>).mockRejectedValue({ response: { status: 404 } });
 

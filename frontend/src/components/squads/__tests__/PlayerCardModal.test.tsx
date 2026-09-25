@@ -9,7 +9,10 @@ vi.mock('../../../features/clubs/api', () => ({
     updatePlayerCard: vi.fn(),
 }));
 
+vi.mock('../../../hooks/useMediaSource', () => ({ useMediaSource: (source?: string) => source }));
+
 vi.mock('../../../api/axiosConfig', () => ({
+    DEPLOYMENT_URLS: { mediaBaseUrl: 'https://media.example.test' },
     apiClient: {
         post: vi.fn(),
     },

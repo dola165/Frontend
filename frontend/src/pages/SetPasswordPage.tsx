@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../api/axiosConfig';
+import { credentialUpdate } from '../api/credentialUpdates';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { clearAuthFlow, completedAuthDestination, getAuthFlow, requiredAccountStep } from '../utils/authRedirect';
+import { assertCurrentAuthSession } from '../utils/authStorage';
 
 /**
  * First-login password change for card-activated accounts
@@ -15,7 +16,9 @@ import { clearAuthFlow, completedAuthDestination, getAuthFlow, requiredAccountSt
 export const SetPasswordPage = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const { bootstrapSession } = useAuth();
+    const { logout, sessionId } = useAuth();
+    const request = useRef<AbortController | null>(null);
+    useEffect(() => () => request.current?.abort(), [sessionId]);
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -24,6 +27,7 @@ export const SetPasswordPage = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (request.current) return;
 
         if (newPassword !== confirmPassword) {
             setError(t('minors.setPassword.mismatch'));
@@ -36,24 +40,18 @@ export const SetPasswordPage = () => {
 
         setIsLoading(true);
         setError('');
+        const controller = new AbortController(); request.current = controller;
         try {
-            await apiClient.post('/auth/change-password', { currentPassword, newPassword });
-            const refreshedUser = await bootstrapSession();
-            if (!refreshedUser) throw new Error('Session could not be refreshed after password change.');
-            const requiredStep = requiredAccountStep(refreshedUser);
-            if (requiredStep) {
-                navigate(requiredStep, { replace: true });
-                return;
-            }
-            const flow = getAuthFlow();
-            const destination = completedAuthDestination(refreshedUser, flow.nextPath, flow.newAccount);
-            clearAuthFlow();
-            navigate(destination, { replace: true });
+            await credentialUpdate(config => apiClient.post('/auth/change-password', { currentPassword, newPassword }, config), response => response, controller.signal);
+            assertCurrentAuthSession(sessionId);
+            setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+            await logout();
+            navigate('/login?passwordChanged=1', { replace: true });
         } catch (err) {
-            console.error(err);
-            setError(extractApiErrorMessage(err, t('minors.setPassword.failed')));
+            if (!controller.signal.aborted) setError(extractApiErrorMessage(err, t('minors.setPassword.failed')));
         } finally {
-            setIsLoading(false);
+            if (request.current === controller) request.current = null;
+            if (!controller.signal.aborted) setIsLoading(false);
         }
     };
 
@@ -68,6 +66,7 @@ export const SetPasswordPage = () => {
                     </div>
                     <h1 className="text-3xl font-semibold uppercase tracking-tight text-[#f4f4f5] mb-2">{t('minors.setPassword.title')}</h1>
                     <p className="text-sm text-[#a1a1aa]">{t('minors.setPassword.subtitle')}</p>
+                    <p className="mt-2 text-sm text-[#a1a1aa]">After saving, sign in again with your new password to continue.</p>
                 </div>
 
                 <div className="theme-surface theme-border border shadow-2xl p-8 rounded-xl">

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { JobsDirectoryPage } from '../JobsDirectoryPage';
 import { JobDetailPage } from '../JobDetailPage';
 import * as api from '../../features/clubs/api';
+import { ROLE_DETAIL_ROUTE_PATHS, ROLE_DIRECTORY_ROUTE_PATHS } from '../../features/roles/routes';
 const auth = vi.hoisted(() => ({ status: 'authenticated', user: { id: 55 } }));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../../features/clubs/api', () => ({
@@ -48,11 +49,12 @@ function directory(path = '/jobs', club?: number) {
         </MemoryRouter>,
     );
 }
-function detail() {
+function detail(path = '/jobs/1') {
     return render(
-        <MemoryRouter initialEntries={['/jobs/1']}>
+        <MemoryRouter initialEntries={[path]}>
             <Routes>
                 <Route path="/jobs/:id" element={<JobDetailPage />} />
+                <Route path="/roles/:id" element={<JobDetailPage />} />
             </Routes>
         </MemoryRouter>,
     );
@@ -73,16 +75,19 @@ describe('Jobs browsing and application recovery', () => {
         ]);
         directory('/clubs/10?tab=business', 10);
         await screen.findByRole('link', { name: /Academy player Alpha FC/ });
+        expect(screen.getByLabelText('Volunteer shifts availability')).toHaveTextContent('Coming later');
+        expect(screen.getByLabelText('Volunteer shifts availability')).toHaveTextContent('Event-shift signup is not available yet.');
+        expect(screen.getByLabelText('Volunteer shifts availability')).toHaveTextContent('do not appear in these role results');
         expect(screen.queryByRole('link', { name: /Other club role/ })).not.toBeInTheDocument();
-        expect(screen.getAllByRole('link', { name: 'View opportunity' })[0]).toHaveAttribute(
+        expect(screen.getAllByRole('link', { name: 'View role' })[0]).toHaveAttribute(
             'href',
             '/jobs/1',
         );
-        expect(screen.getByRole('link', { name: 'Browse all jobs & volunteering' })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: 'Browse all roles' })).toHaveAttribute(
             'href',
             '/jobs',
         );
-        fireEvent.change(screen.getByLabelText('Search jobs'), { target: { value: 'missing' } });
+        fireEvent.change(screen.getByLabelText('Search roles'), { target: { value: 'missing' } });
         fireEvent.click(screen.getByRole('button', { name: 'Clear search and filters' }));
         expect(screen.getByTestId('location')).toHaveTextContent('/clubs/10?tab=business');
     });
@@ -104,12 +109,12 @@ describe('Jobs browsing and application recovery', () => {
             Array.from({ length: 14 }, (_, i) => ({ ...job, id: i + 1, title: `Role ${i + 1}` })),
         );
         directory();
-        await screen.findByText('14 opportunities');
+        await screen.findByText('14 roles');
         fireEvent.click(screen.getByRole('button', { name: 'Next' }));
         expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Preview Role 1' }));
         expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
-        fireEvent.change(screen.getByLabelText('Search jobs'), { target: { value: 'Role 14' } });
+        fireEvent.change(screen.getByLabelText('Search roles'), { target: { value: 'Role 14' } });
         expect(screen.getByRole('button', { name: 'Preview Role 14' })).toBeInTheDocument();
         expect(screen.getByTestId('location')).not.toHaveTextContent('page=');
     });
@@ -137,6 +142,7 @@ describe('Jobs browsing and application recovery', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Send application' }));
         await screen.findByRole('heading', { name: 'Application pending' });
         expect(screen.queryByLabelText('Message to the club')).not.toBeInTheDocument();
+        expect(screen.getByLabelText('Application lifecycle')).toHaveTextContent('never granted automatically');
     });
     it('loads a pending application even when the posting is closed and confirms withdrawal', async () => {
         vi.mocked(api.fetchPublicJob).mockRejectedValue(new Error('closed'));
@@ -153,14 +159,15 @@ describe('Jobs browsing and application recovery', () => {
         vi.mocked(api.fetchMyJobApplication).mockResolvedValue({ id: 77, clubId: 10, status: 'ACCEPTED' });
         detail();
         await screen.findByRole('heading', { name: 'Application accepted' });
+        expect(screen.getByText(/does not grant club administration/)).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Send application' })).not.toBeInTheDocument();
     });
     it('routes other roles to club contacts instead of silently applying as coach', async () => {
         vi.mocked(api.fetchPublicJob).mockResolvedValue({ ...job, requiredRole: 'CLUB_ADMIN' });
         detail();
-        expect(await screen.findByRole('link', { name: 'Open club contact details' })).toHaveAttribute(
+        expect(await screen.findByRole('link', { name: 'Contact Alpha FC about Academy player' })).toHaveAttribute(
             'href',
-            '/clubs/10?tab=contact',
+            '/clubs/10?tab=contact&roleId=1&roleTitle=Academy+player',
         );
         expect(screen.queryByRole('button', { name: 'Send application' })).not.toBeInTheDocument();
         expect(api.createClubApplication).not.toHaveBeenCalled();
@@ -188,5 +195,26 @@ describe('Jobs browsing and application recovery', () => {
             '/login?next=%2Fjobs%2F1',
         );
         expect(api.fetchMyJobApplication).not.toHaveBeenCalled();
+    });
+    it('presents paid, ongoing volunteer and flexible engagement separately from application method', async () => {
+        vi.mocked(api.fetchOpenJobDirectory).mockResolvedValue([
+            job,
+            { ...job, id: 2, title: 'Community coordinator', requiredRole: null, engagementType: 'VOLUNTEER' },
+            { ...job, id: 3, title: 'Analyst', requiredRole: 'COACH', engagementType: 'FLEXIBLE' },
+        ]);
+        directory();
+        await screen.findByRole('link', { name: /Community coordinator/ });
+        expect(screen.getAllByText(/Engagement: Paid role/).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/Engagement: Ongoing volunteer role/).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/Engagement: Flexible: paid or volunteer/).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/Application method: In-app application/).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/Application method: Contact the club/).length).toBeGreaterThan(0);
+    });
+    it('keeps the established jobs routes and exposes safe roles aliases', async () => {
+        expect(ROLE_DIRECTORY_ROUTE_PATHS).toEqual(['/jobs', '/roles']);
+        expect(ROLE_DETAIL_ROUTE_PATHS).toEqual(['/jobs/:id', '/roles/:id']);
+        detail('/roles/1');
+        expect(await screen.findByRole('heading', { name: 'Academy player' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Browse all roles' })).toHaveAttribute('href', '/jobs');
     });
 });

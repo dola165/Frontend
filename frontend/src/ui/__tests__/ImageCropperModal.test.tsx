@@ -1,0 +1,32 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { ImageCropperModal } from '../ImageCropperModal';
+vi.mock('react-easy-crop', () => ({ default: ({ onCropComplete }: { onCropComplete: (area: object, pixels: object) => void }) => <button onClick={() => onCropComplete({}, { x: 0, y: 0, width: 600, height: 200 })}>Position photo</button> }));
+it('provides labelled controls, requires a ready crop, and retains keyboard focus in the dialog', () => {
+    const complete = vi.fn(), close = vi.fn();
+    const { unmount } = render(<ImageCropperModal isOpen imageUrl="blob:one" aspectRatio={3} title="Adjust cover" onClose={close} onCropComplete={complete}/>);
+    expect(screen.getByRole('dialog', { name: 'Adjust cover' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Save photo' })).toBeDisabled();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(screen.getByRole('button', { name: 'Close image cropper' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'Position photo' }));
+    fireEvent.change(screen.getByRole('slider', { name: 'Zoom' }), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save photo' }));
+    expect(complete).toHaveBeenCalledWith({ x: 0, y: 0, width: 600, height: 200 });
+    fireEvent.keyDown(document, { key: 'Escape' }); expect(close).toHaveBeenCalledTimes(1);
+    unmount(); expect(document.body.style.overflow).not.toBe('hidden');
+});
+it('resets for a new image and prevents closing or saving again while processing', () => {
+    const close = vi.fn(), complete = vi.fn();
+    const props = { isOpen: true, imageUrl: 'blob:one', aspectRatio: 1, title: 'Adjust logo', onClose: close, onCropComplete: complete };
+    const { rerender } = render(<ImageCropperModal {...props}/>);
+    fireEvent.click(screen.getByRole('button', { name: 'Position photo' }));
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '3' } });
+    rerender(<ImageCropperModal {...props} imageUrl="blob:two"/>);
+    expect(screen.getByRole('slider')).toHaveValue('1');
+    expect(screen.getByRole('button', { name: 'Save photo' })).toBeDisabled();
+    rerender(<ImageCropperModal {...props} imageUrl="blob:two" isProcessing error="Upload unavailable"/>);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(close).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent('Upload unavailable');
+});

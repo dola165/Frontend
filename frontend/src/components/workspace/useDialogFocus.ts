@@ -17,7 +17,7 @@ let previousBodyOverflow = '';
 
 const focusableElements = (dialog: HTMLElement | null) => dialog
     ? Array.from(dialog.querySelectorAll<FocusableElement>(FOCUSABLE_SELECTOR))
-        .filter((element) => !element.hidden && element.getAttribute('aria-hidden') !== 'true')
+        .filter((element) => !element.hidden && !element.closest('[hidden], [inert]') && element.getAttribute('aria-hidden') !== 'true')
     : [];
 
 const suppressBackground = (dialog: HTMLElement) => {

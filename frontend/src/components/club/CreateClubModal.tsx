@@ -6,7 +6,7 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 import { MiniMap } from '../MiniMap';
 
 type ClubCommunicationMethod = 'WHATSAPP' | 'FACEBOOK_MESSENGER';
-type ClubType = 'GRASSROOTS' | 'ACADEMY' | 'PROFESSIONAL';
+type ClubType = 'GRASSROOTS' | 'ACADEMY' | 'PROFESSIONAL' | 'SCHOOL' | 'AMATEUR' | 'SEMI_PROFESSIONAL' | 'OTHER';
 type OrgKind = 'CLUB' | 'FAN_CLUB' | 'COMPANY';
 
 interface CreateClubModalProps {
@@ -20,6 +20,10 @@ interface CreateClubResponse {
 }
 
 const clubTypeOptions: Array<{ value: ClubType; label: string; description: string }> = [
+    { value: 'SCHOOL', label: 'School & educational team', description: 'School, college and university football programmes.' },
+    { value: 'AMATEUR', label: 'Amateur club', description: 'Organised amateur football and local competition.' },
+    { value: 'SEMI_PROFESSIONAL', label: 'Semi-professional club', description: 'Clubs combining paid and amateur football operations.' },
+    { value: 'OTHER', label: 'Other football club', description: 'Other football settings, with details on the club profile.' },
     { value: 'GRASSROOTS', label: 'Grassroots', description: 'Community-first clubs, local teams, and neighborhood football projects.' },
     { value: 'ACADEMY', label: 'Academy', description: 'Structured player development programs and age-group squads.' },
     { value: 'PROFESSIONAL', label: 'Professional', description: 'Senior competitive clubs with formal football operations.' }

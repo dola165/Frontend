@@ -8,11 +8,11 @@ export const MAP_STYLE_DARK = 'https://tiles.openfreemap.org/styles/dark';
 // Google-Maps-inspired marker set: calm blue cluster/select accent, warm
 // multi-hue data colors that stay distinguishable on the light basemap.
 export const MAP_ENTITY_COLORS: Record<string, string> = {
-  CLUB: '#15803d', TRYOUT: '#d97706', MATCH: '#e11d48', TOURNAMENT: '#4f46e5'
+  STADIUM: '#0e7490', CLUB: '#15803d', TRYOUT: '#d97706', MATCH: '#e11d48', TOURNAMENT: '#4f46e5'
 };
 export const MAP_ACCENT = '#047857';
 /** Unsaturated Browns inspiration: warm mineral ground, sage vegetation, deep estuary water. */
-export const withHeritagePaints = <T extends MapStyleObject>(style: T): T => {
+export const withHeritagePaints = <T extends MapStyleObject>(style: T, { includeTerrain = true } = {}): T => {
     const result = structuredClone(style);
     for (const layer of result.layers ?? []) {
         const paint = layer.paint ?? (layer.paint = {});
@@ -42,6 +42,10 @@ export const withHeritagePaints = <T extends MapStyleObject>(style: T): T => {
             if (paint['text-halo-width'] !== undefined) paint['text-halo-width'] = 1.3;
         }
     }
+    // Phones keep the same streets, labels and palette without fetching and
+    // rendering a second tile set solely for decorative elevation shading.
+    if (!includeTerrain) return result;
+
     // Real DEM elevation provides continuous regional relief even where vector
     // landcover is sparse. A shared source keeps the two terrain layers economical.
     result.sources = { ...(result.sources as Record<string, unknown> ?? {}), 'atlas-elevation': {

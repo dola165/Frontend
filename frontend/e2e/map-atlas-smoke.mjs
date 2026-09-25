@@ -110,13 +110,13 @@ try{
  await expect(list.locator('.atlas-result-main').first()).toHaveAttribute('aria-pressed','true');
  await expect.poll(()=>page.evaluate(()=>window.gkTestMap.getZoom())).toBeGreaterThanOrEqual(14);
  await expect.poll(()=>page.evaluate(()=>window.gkTestMap.isMoving())).toBe(false);
- await expect(page.locator('.atlas-detail-desktop')).toHaveCount(0);
+ await expect(page.locator('.atlas-detail-dock')).toHaveCount(0);
  // Clicking the football itself still opens details.
  const selectedPoint=await page.evaluate(()=>{const coordinates=window.gkTestMap.getSource('selected-point').serialize().data.features[0].geometry.coordinates;const p=window.gkTestMap.project(coordinates);return{x:p.x,y:p.y};});
  await page.locator('.maplibregl-canvas').click({position:selectedPoint});
- await expect(page.locator('.atlas-detail-desktop')).toBeVisible();
+ await expect(page.locator('.atlas-detail-dock')).toBeVisible();
  await page.waitForTimeout(900);await page.screenshot({path:output+'/club-details.png'});
- await page.locator('.atlas-detail-desktop').getByRole('button',{name:'Close details'}).click();
+ await page.locator('.atlas-detail-dock').getByRole('button',{name:'Close details'}).click();
  // Standalone origin choosing works before requesting any walk.
  await page.getByRole('button',{name:'Change on map',exact:true}).click();
  await pick([44.827,41.715]);

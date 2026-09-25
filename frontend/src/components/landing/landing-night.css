@@ -1,0 +1,108 @@
+/* Charcoal surfaces, white type, and small points of colour. */
+.gk-landing { --landing-ink:#f1f2f5; --landing-muted:#939aa7; --landing-green:#b9e6db; --landing-line:#ffffff14; background:#090b0f; color:#f1f2f5; color-scheme:dark; }
+.landing-header,.landing-daylight { background:#0e1015; color:#eef0f4; color-scheme:dark; }
+.landing-header { border-color:#ffffff0e; }
+.landing-header nav { color:#959ca9; }
+.landing-header nav a:hover,.landing-header nav .landing-nav-login { color:#f0f2f6; }
+.landing-header nav .landing-nav-login { border-color:#ffffff1c; }
+.landing-daylight { background:radial-gradient(ellipse at 80% 0,#839fb20a,transparent 60%),#0e1015; }
+.landing-daylight .landing-eyebrow { color:#9db5ba; }
+.landing-daylight .landing-live-dot { background:#83dbb4; box-shadow:0 0 0 3px #83dbb40c; }
+.landing-intro h1>span,.landing-auth h2>span { color:#7ce1b4; }
+.landing-intro>p { color:#8f98a6; }
+.landing-entry-grid { border-color:#ffffff20; background:#14171d; box-shadow:0 20px 65px #0004; }
+.landing-map-card,.landing-auth { background:#14171d; }
+.landing-map-caption,.landing-map-foot { border-color:#ffffff10; }
+.landing-map-caption>span,.landing-map-foot { color:#939dac; }
+.landing-map-caption>span>svg,.landing-map-caption>a,.landing-map-foot>a { color:#c3d5d5; }
+.landing-auth { border-color:#ffffff16; background:linear-gradient(135deg,#181b22,#13161b); }
+.landing-auth h2 { color:#f1f2f6; }
+.landing-auth>p:not(.landing-eyebrow),.landing-auth-note { color:#8f98a6; }
+.landing-auth label { color:#b8c0cd; }
+.landing-auth input { background:#1c2028; color:#f0f3f8; border-color:#ffffff16; }
+.landing-auth input::placeholder { color:#727c8d; }
+.landing-auth input:focus { border-color:#8ab5bd; box-shadow:0 0 0 3px #8ab5bd10; }
+.landing-password-label a { color:#a2acb8; }
+.landing-daylight .landing-button-primary { background:#e9eeef; color:#13191c; }
+.landing-daylight .landing-button-primary:hover { background:#fff; }
+.landing-auth-divider { color:#828b99; }
+.landing-auth-divider::before,.landing-auth-divider::after { background:#ffffff14; }
+.landing-daylight .landing-button-outline { color:#d3dce3; border-color:#ffffff24; }
+.landing-daylight .landing-button-outline:hover { background:#ffffff07; border-color:#ffffff40; }
+.landing-daylight .landing-text-link { color:#b5dcd4; }
+.landing-auth .landing-auth-error { color:#ffb5ac; }
+.landing-scroll-invite,.landing-motion-toggle { color:#929ca9; }
+.landing-scroll-invite>svg { color:#b9cbd0; }
+.landing-scroll-row .landing-scroll-line { background:#ffffff14; }
+.landing-daylight :is(a,button,input):focus-visible { outline-color:#9ee7d0; }
+.gk-landing em { color:#dce1e9; }
+.landing-origin { background:#0b0e13; border-color:#ffffff12; }
+.landing-origin-shade { background:linear-gradient(90deg,#090b0ff0,#090b0f8a 43%,#090b0f05 80%),linear-gradient(0deg,#090b0f,transparent 55%,#090b0f20); }
+.landing-origin h2 em { color:#cbdde0; }
+.landing-origin-image>img { filter:saturate(.45) brightness(.78); }
+.landing-origin .landing-eyebrow { color:#bad6d9; }
+.landing-ground-note { border-color:#8fb6bc; background:#10151cab; }
+.landing-constellation .constellation-pitch { background:repeating-linear-gradient(90deg,#252e38 0,#252e38 70px,#222a34 70px,#222a34 140px); border-color:#a1bccb9c; }
+.constellation-pitch-lines { stroke:#bed5e06b; color:#dbe8ee; }
+.constellation-player { background:#a3efce; border-color:#d1ffe8; box-shadow:0 0 18px #78efbf44; }
+.constellation-player::after { border-color:#a3efce35; }
+.constellation-player i { background:linear-gradient(0deg,#a3efce,transparent); }
+.constellation-center>span { color:#e2edf3; background:linear-gradient(145deg,#6a8393,#2a3844); border-color:#b1ccdb7d; }
+.constellation-halo { background:radial-gradient(ellipse,#7599b424,#657a9508 50%,transparent 70%); }
+.constellation-people>button[aria-selected=true] { border-color:#9cb5c982; background:linear-gradient(125deg,#202c38,#151c25); }
+.constellation-person-icon { color:#bed5df; background:#9abbcf0e; border-color:#9abbcf25; }
+.landing-path-section { background:#0e1117; }
+.role-player-map { border-color:#425160; }
+.role-player-map>svg { background:#28333f; }
+.role-player-radius { color:#c5e1df; background:#20323ceb; border:1px solid #72939440; }
+.landing-final { background:radial-gradient(ellipse at 50% 115%,#425b7938,transparent 68%),#0d1117; }
+.landing-final .landing-button-primary { background:#e6edf2; color:#17202b; }
+.landing-final .landing-button-primary:hover { background:#fff; }
+.landing-final .landing-eyebrow { color:#afc9d7; }
+.landing-footer { background:#090b0f; }
+.landing-football { background:radial-gradient(circle at 32% 23%,#f1f4f8,#b2becd 63%,#374555 93%); color:#253243; }
+.landing-footer nav a:hover { color:#e6eef4; }
+
+/* An opt-in dark map; the regular World map keeps its daylight presentation. */
+.gk-landing .map-page-shell.map-atlas.map-force-dark,.atlas-embedded-filters.map-force-dark {
+  --text-primary:#dbe5eb; --text-secondary:#9baab7; --text-muted:#7e91a1;
+  --accent-primary:#b4d4d5; --accent-primary-soft:#283a40;
+  --map-panel-bg:#161d25; --map-rail-bg:#161d25; --map-workspace-bg:#13191f;
+  --map-card-bg:#1c252f; --map-card-muted:#24313b; --map-panel-border:#34414d;
+  --map-pill-bg:#24343d; --map-shadow-strong:0 16px 60px #0007;
+  background:#13191f; color:#dbe5eb; color-scheme:dark;
+}
+.map-atlas.map-force-dark :is(.atlas-command-bar,.atlas-results,.atlas-walking-panel,.atlas-return,.atlas-command-suggestions,.map-simple-suggestions,.atlas-filter-select,.atlas-search-from,.atlas-origin-choices button,.atlas-coverage-choice button,.atlas-result-card,.atlas-view-controls>button,.map-simple-line) { background:#1b252e; border-color:#3c4b59; color:#c5d4df; }
+.map-atlas.map-force-dark :is(.atlas-command-bar button,.atlas-command-bar b,.atlas-command-bar .atlas-browse-toggle,.atlas-area-action>span,.atlas-area-action>small,.map-icon-button,.atlas-filter-select,.atlas-radius-presets button,.atlas-coverage-choice button,.atlas-origin-choices button) { color:#c4d6df; background:#23313b; }
+.map-atlas.map-force-dark :is(.atlas-command-bar button:hover,.atlas-command-suggestions button:hover,.atlas-command-bar .is-active,.atlas-radius-presets button[aria-pressed=true],.atlas-coverage-choice button[aria-pressed=true]) { background:#344652; color:#f0f6fb; }
+.map-atlas.map-force-dark :is(.atlas-eyebrow,.atlas-filter-title,.atlas-results h2,.map-simple-label,.map-simple-line input,.atlas-coverage-explanation,.atlas-filter-title>span,.atlas-results-summary p,.atlas-results-summary strong,.atlas-results-summary select,.atlas-command-search input,.atlas-command-suggestions strong,.atlas-result-card h3,.atlas-result-card p) { color:#c0cedb; }
+.map-atlas.map-force-dark :is(.atlas-area-action>button,.map-simple-primary) { background:#d6e2e6; color:#1a2933; box-shadow:0 5px 20px #0003; }
+.map-atlas.map-force-dark .atlas-area-action>button>span { color:#325969; }
+.map-atlas.map-force-dark .map-simple-rail { background:#161d25; border-color:#34414d; }
+.map-atlas.map-force-dark :is(.map-simple-rail>header,.map-simple-rail>footer,.atlas-results-summary,.atlas-results-scroll) { border-color:#34414d; background:#161d25; }
+.map-atlas.map-force-dark .map-simple-rail>header p:not(.atlas-eyebrow),.map-atlas.map-force-dark .map-simple-rail>header>div:nth-child(2) span { color:#a1b4bf; }
+.map-atlas.map-force-dark .atlas-command-suggestions button { color:#c9d7e1; border-color:#34414d; }
+.map-atlas.map-force-dark .atlas-search-from strong { color:#d0dfe8; }
+.map-atlas.map-force-dark :is(.atlas-search-from small,.atlas-search-from>div,.atlas-origin-region-note) { color:#9cb2c2; }
+.map-atlas.map-force-dark .map-simple-rail>header .atlas-coverage-summary { background:#293b45; color:#c4d8e3; }
+.map-atlas.map-force-dark :is(.atlas-results>header,.atlas-results>footer,.atlas-view-controls>section,.atlas-map-legend) { background:#1b252e; border-color:#34414d; color:#b3c6d4; }
+.map-atlas.map-force-dark :is(.atlas-view-controls,.atlas-view-controls small,.atlas-map-legend span) { color:#adc5d5; }
+.map-atlas.map-force-dark :is(.atlas-view-controls section>div button,.atlas-view-reset,.atlas-results-heading>button) { background:#2c3e4b; color:#d3e1eb; }
+.map-atlas.map-force-dark .atlas-view-controls input { accent-color:#b3d5e6; }
+.landing-map-viewport .atlas-results>header { padding:12px 16px 0; }
+.landing-map-viewport .atlas-results h2 { font-size:18px; margin-top:9px; }
+.landing-map-viewport .atlas-results-summary { margin-top:0; padding:10px 0; }
+.landing-map-viewport .atlas-results>footer { padding:10px 16px; font-size:9px; }
+.landing-map-viewport .atlas-results-scroll { padding-inline:16px; }
+.landing-map-viewport .atlas-results-scroll li { padding-block:13px; }
+.map-atlas.map-force-dark .atlas-results-scroll li { border-color:#34414d; }
+.map-atlas.map-force-dark .atlas-results-scroll li:has(.atlas-result-main:hover) { background:#253541; }
+.map-atlas.map-force-dark :is(.atlas-result-copy>strong,.atlas-results-empty h3) { color:#dbe5ed; }
+.map-atlas.map-force-dark :is(.atlas-result-type,.atlas-result-address,.atlas-result-footer,.atlas-result-link,.atlas-result-main>svg,.atlas-results-empty) { color:#a2b9ca; }
+.map-atlas.map-force-dark :is(.atlas-result-logo,.atlas-result-logo small,.atlas-result-footer button) { background:#2a3b47; border-color:#405765; color:#c4dbe9; }
+.map-atlas.map-force-dark input::placeholder { color:#8399ab; }
+.map-atlas.map-force-dark .atlas-external-toolbar>div>button>span { color:#15212a; }
+.map-atlas.map-force-dark .maplibregl-ctrl-group { background:#e0e8ed; }
+.map-atlas.map-force-dark .maplibregl-ctrl-attrib { background:#e0e8edf0; color:#253342; }
+.atlas-embedded-filters.map-force-dark { border-color:#3d4d5d; }
+@media(max-width:700px) { .landing-origin-shade { background:linear-gradient(90deg,#090b0fdb,#090b0f30),linear-gradient(0deg,#090b0f,transparent 75%); } }

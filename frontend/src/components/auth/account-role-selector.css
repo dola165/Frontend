@@ -1,0 +1,94 @@
+.account-role-selector {
+    min-width: 0;
+    border: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.account-role-selector legend {
+    padding: 0;
+    color: #f4f4f5;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.account-role-hint,
+.account-role-parent-hint {
+    margin: 5px 0 12px;
+    color: #a1a1aa;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.account-role-options {
+    overflow: hidden;
+    border: 1px solid #ffffff1a;
+    border-radius: 8px;
+}
+
+.account-role-option {
+    display: flex;
+    min-height: 64px;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: background-color 120ms ease;
+}
+
+.account-role-option + .account-role-option {
+    border-top: 1px solid #ffffff12;
+}
+
+.account-role-option:hover {
+    background: #ffffff05;
+}
+
+.account-role-option:has(input:checked) {
+    background: #16a34a14;
+    box-shadow: inset 3px 0 #16a34a;
+}
+
+.account-role-option:has(input:focus-visible) {
+    outline: 2px solid #4ade80;
+    outline-offset: -2px;
+}
+
+.account-role-option input {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    accent-color: #16a34a;
+    color-scheme: dark;
+    cursor: inherit;
+}
+
+.account-role-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.account-role-name {
+    color: #f4f4f5;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.account-role-description {
+    color: #a1a1aa;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.account-role-parent-hint {
+    margin: 10px 0 0;
+}
+
+.account-role-selector:disabled .account-role-option {
+    cursor: wait;
+    opacity: 0.65;
+}

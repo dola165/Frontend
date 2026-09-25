@@ -1,8 +1,8 @@
 export interface AgentPortfolioPlayer {
     representationId: number;
-    playerUserId: number;
-    fullName: string;
-    username: string;
+    playerUserId: number | null;
+    fullName: string | null;
+    username: string | null;
     avatarUrl: string | null;
     position: string | null;
     currentClubName: string | null;
@@ -10,6 +10,8 @@ export interface AgentPortfolioPlayer {
     representationType: string;
     status: string;
     startedAt: string;
+    requiresMinorConsent?: boolean | null;
+    minorConsentStatus?: 'PENDING' | 'ACCEPTED' | 'DECLINED' | null;
 }
 
 export interface AgentDashboardData {
@@ -36,6 +38,18 @@ export interface AgentEngagement {
     agentName: string;
     agencyName: string | null;
     agentAvatarUrl: string | null;
+}
+
+export interface AgentInterest {
+    interestId: number;
+    listingId: number | null;
+    clubId: number;
+    clubName: string;
+    interestedByUserId: number | null;
+    interestedByName: string | null;
+    message: string | null;
+    status: 'EXPRESSED' | 'VIEWED' | 'CONTACTED' | 'DISMISSED';
+    createdAt: string;
 }
 
 export interface PlayerSearchResult {

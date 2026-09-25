@@ -25,7 +25,7 @@ describe('resolveMapExperienceOptions', () => {
         });
     });
 
-    it('keeps legacy theme overrides in daylight while honoring control options', () => {
+    it('honors an explicit dark composition while retaining control options', () => {
         expect(resolveMapExperienceOptions({
             darkMode: false,
             context: 'authenticated',
@@ -35,7 +35,7 @@ describe('resolveMapExperienceOptions', () => {
             showBackControl: true
         })).toEqual({
             context: 'authenticated',
-            mapDarkMode: false,
+            mapDarkMode: true,
             showAdvancedFilters: true,
             showModeControl: true,
             showBackControl: true
@@ -56,14 +56,14 @@ describe('resolveMapExperienceOptions', () => {
         });
     });
 
-    it('keeps the landing map in daylight even when the composition requests dark', () => {
+    it('allows a dark guest map without enabling account-only controls', () => {
         expect(resolveMapExperienceOptions({
             darkMode: false,
             context: 'guest',
             mapTheme: 'dark'
         })).toEqual({
             context: 'guest',
-            mapDarkMode: false,
+            mapDarkMode: true,
             showAdvancedFilters: false,
             showModeControl: false,
             showBackControl: false
@@ -73,7 +73,7 @@ describe('resolveMapExperienceOptions', () => {
 
 describe('resolveMapExperienceEntityTypes', () => {
     it('offers the same public types without needing an account role or membership', () => {
-        expect(resolveMapExperienceEntityTypes({})).toEqual(['CLUB', 'MATCH', 'TOURNAMENT']);
+        expect(resolveMapExperienceEntityTypes({})).toEqual(['CLUB', 'STADIUM', 'MATCH', 'TOURNAMENT']);
     });
     it('supports a narrower club-only landing composition', () => {
         expect(resolveMapExperienceEntityTypes({ allowedEntityTypes: ['CLUB'] })).toEqual(['CLUB']);

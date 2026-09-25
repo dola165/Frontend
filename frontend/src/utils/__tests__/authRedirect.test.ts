@@ -56,5 +56,8 @@ describe('registration destination flow', () => {
         expect(requiredAccountStep({ profileComplete: true })).toBeNull();
         expect(completedAuthDestination({ role: 'ORGANIZER' }, null, true)).toBe('/my-club');
         expect(completedAuthDestination({ role: 'PLAYER' }, null, true)).toBe('/clubs');
+        expect(completedAuthDestination({ role: 'PARENT' }, null, true)).toBe('/parent');
+        expect(completedAuthDestination({ role: 'PARENT' }, '/consent?token=synthetic-consent', true))
+            .toBe('/consent?token=synthetic-consent');
     });
 });

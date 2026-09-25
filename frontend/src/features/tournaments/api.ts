@@ -1,4 +1,5 @@
 import { apiClient } from '../../api/axiosConfig';
+import { buildTournamentTieResolution } from './domain';
 import type {
     AddDraftTeamFakeMemberPayload,
     AddDraftTeamMembersPayload,
@@ -21,6 +22,9 @@ import type {
     TournamentDetail,
     TournamentHostClubOption,
     TournamentInvitationDto,
+    TournamentTieContest,
+    TournamentTieDecision,
+    TournamentTieState,
     TournamentSummary,
     UpdateEntryStatusPayload,
     UpdateDraftTeamPayload,
@@ -231,4 +235,38 @@ export const moveEntry = async (tournamentId: number, fixtureId: number, payload
 export const replaceEntry = async (tournamentId: number, fixtureId: number, payload: ReplaceEntryPayload) => {
     const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/replace-entry`, payload);
     return response.data;
+};
+
+export const addGuestEntry = async (tournamentId: number, name: string) =>
+    (await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/guest-entries`, { name })).data;
+
+export const placeTournamentEntry = async (tournamentId: number, fixtureId: number, entryId: number, slot: 'HOME' | 'AWAY') =>
+    (await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/place-entry`, { entryId, slot })).data;
+
+export const unplaceTournamentEntry = async (tournamentId: number, fixtureId: number, entryId: number, slot: 'HOME' | 'AWAY') =>
+    (await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/unplace-entry`, { entryId, slot })).data;
+
+export const scheduleTournamentFixture = async (tournamentId: number, fixtureId: number, scheduledAt: string | null, locationId: number | null) =>
+    (await apiClient.patch<TournamentDetail>(`/tournaments/${tournamentId}/fixtures/${fixtureId}/schedule`, { scheduledAt, locationId })).data;
+
+export const startTournament = async (tournamentId: number) =>
+    (await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/start`)).data;
+
+export const finishTournament = async (tournamentId: number) =>
+    (await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/complete`)).data;
+
+export const fetchTournamentTieState = async (tournamentId: number) =>
+    (await apiClient.get<TournamentTieState>(`/tournaments/${tournamentId}/tie-state`)).data;
+
+export const fetchTournamentTieHistory = async (tournamentId: number) =>
+    (await apiClient.get<TournamentTieDecision[]>(`/tournaments/${tournamentId}/tie-resolutions`)).data;
+
+export const resolveTournamentTie = async (
+    tournamentId: number,
+    contest: TournamentTieContest,
+    selectedEntryId: number,
+    note: string,
+) => {
+    const payload = buildTournamentTieResolution(contest, selectedEntryId, note);
+    return (await apiClient.post<TournamentTieState>(`/tournaments/${tournamentId}/tie-resolutions`, payload)).data;
 };

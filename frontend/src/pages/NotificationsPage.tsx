@@ -9,6 +9,8 @@ import {
 } from '../api/notifications';
 import { NotificationListItem } from '../components/notifications/NotificationListItem';
 import { NotificationTarget } from '../components/notifications/NotificationTarget';
+import { BookingNotificationTarget } from '../components/notifications/BookingNotificationTarget';
+import { SquadConversationNotificationTarget } from '../components/notifications/SquadConversationNotificationTarget';
 import type { NotificationItem, NotificationListScope } from '../types/notifications';
 import { extractApiErrorMessage } from '../utils/apiError';
 import {
@@ -277,6 +279,12 @@ export const NotificationsPage = () => {
     return (
         <div className="theme-page min-h-full [--accent-primary:#3f7666] [--accent-primary-soft:rgba(63,118,102,0.10)] dark:[--accent-primary:#5f927f] dark:[--accent-primary-soft:rgba(95,146,127,0.16)]">
             <div className="flex w-full flex-col gap-6">
+                {searchParams.has('squadId') && <SquadConversationNotificationTarget key={user?.id} squadId={searchParams.get('squadId') ?? ''} channel={searchParams.get('channel') ?? ''} thread={searchParams.get('thread')} onClose={() => {
+                    const next = new URLSearchParams(searchParams); next.delete('squadId'); next.delete('channel'); next.delete('thread'); setSearchParams(next);
+                }} />}
+                {(searchParams.has('bookingId') || searchParams.has('venueId')) && <BookingNotificationTarget key={user?.id} venueId={searchParams.get('venueId') ?? ''} bookingId={searchParams.get('bookingId') ?? ''} onClose={() => {
+                    const next = new URLSearchParams(searchParams); next.delete('venueId'); next.delete('bookingId'); setSearchParams(next);
+                }} />}
                 {searchParams.has('itemId') && <NotificationTarget kind="outcome" id={searchParams.get('itemId') ?? ''} onClose={() => {
                     const next = new URLSearchParams(searchParams); next.delete('itemId'); setSearchParams(next);
                 }} />}

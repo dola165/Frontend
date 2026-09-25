@@ -1,5 +1,6 @@
 import { http, HttpHandler, HttpResponse } from 'msw';
 import { simulateLatency, paginate } from '../utils';
+import type { TournamentDetail } from '../../features/tournaments/domain';
 
 const API = '*/api';
 
@@ -48,6 +49,10 @@ const ensureDetail = (id: number): MockDetail => {
     }
     return details.get(id)!;
 };
+
+// Shared only with the series mock so division links open the same mutable tournament.
+export const getMockTournament = (id: number) => ensureDetail(id) as unknown as TournamentDetail;
+export const setMockTournament = (value: TournamentDetail) => details.set(value.id, value as unknown as MockDetail);
 
 const findFixture = (detail: MockDetail, fixtureId: number): MockFixture | undefined =>
     detail.fixtures.find((f) => f.id === fixtureId);
@@ -334,6 +339,20 @@ export const tournamentHandlers: HttpHandler[] = [
   }),
 
   // -- FIXTURES --
+  http.patch(`${API}/tournaments/:tournamentId/fixtures/:fixtureId/schedule`, async ({ params, request }) => {
+    await simulateLatency();
+    const detail = ensureDetail(Number(params.tournamentId));
+    const fixture = findFixture(detail, Number(params.fixtureId));
+    if (!fixture) return HttpResponse.json({ message: 'Match not found.' }, { status: 404 });
+    if (!['PLANNING', 'ACTIVE'].includes(detail.status) || fixture.status !== 'SCHEDULED' || fixture.linkedMatchId != null) {
+      return HttpResponse.json({ message: 'This match cannot be rescheduled here.' }, { status: 409 });
+    }
+    const body = await request.json() as { scheduledAt: string | null; locationId: number | null };
+    fixture.scheduledAt = body.scheduledAt;
+    fixture.locationId = body.locationId;
+    return HttpResponse.json(detail);
+  }),
+
   http.patch(`${API}/tournaments/:tournamentId/fixtures/:fixtureId/participants`, async ({ params, request }) => {
     await simulateLatency();
     const detail = ensureDetail(Number(params.tournamentId));

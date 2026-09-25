@@ -1,4 +1,4 @@
-export type OrganizationKind = 'CLUB' | 'COMPANY' | 'SPONSOR' | 'MEDIA' | 'HEALTHCARE' | 'SPORTS_ORG' | 'PARTNER';
+export type OrganizationKind = 'CLUB' | 'COMPANY' | 'SPONSOR' | 'MEDIA' | 'HEALTHCARE' | 'SPORTS_ORG' | 'PARTNER' | 'VENUE' | 'TOURNAMENT_ORGANIZER';
 export type CreatableOrganizationKind = Exclude<OrganizationKind, 'CLUB'>;
 export type TournamentParticipantScope = 'CLUB' | 'SQUAD' | 'PLAYER';
 export type TournamentVisibility = 'PRIVATE' | 'PUBLIC' | 'UNLISTED';
@@ -9,8 +9,10 @@ export type TournamentFixtureStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
 export type TournamentStageStatus = 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 export type TournamentStageType = 'GROUP' | 'KNOCKOUT' | 'ROUND_ROBIN' | 'LEAGUE';
 export type DraftTeamStatus = 'FORMING' | 'LOCKED' | 'PROMOTED' | 'DISBANDED';
+export type TournamentTieStatus = 'UNRESOLVED' | 'RESOLVED';
 
 export interface MyOrganization {
+    capabilities?: import('../organizations/activities/api').OrganizationCapabilities;
     id: number;
     slug: string;
     displayName: string;
@@ -92,6 +94,7 @@ export interface TournamentStageDto {
 }
 
 export interface TournamentFixtureDto {
+    venueReservation?: import('../eventVenues/VenueReservationSummary').VenueReservationSummaryValue | null;
     id: number;
     stageId: number | null;
     stageName: string | null;
@@ -162,6 +165,79 @@ export interface TournamentDetail {
     incentives?: string | null;
     bannerImageUrl?: string | null;
 }
+
+/** Authoritative server view of a tied contender set. Candidate order is presentation-only. */
+export interface TournamentTieContest {
+    key: string;
+    stageId: number;
+    fixtureId: number | null;
+    rank: number | null;
+    candidateEntryIds: number[];
+    sourceRevision: string;
+    ruleContext: string;
+    status: TournamentTieStatus;
+    selectedEntryId: number | null;
+    resolutionId: number | null;
+    consequential: boolean;
+    readyForResolution: boolean;
+}
+
+export interface TournamentTieState {
+    contests: TournamentTieContest[];
+    blocked: boolean;
+    staleStageIds: number[];
+    blockedStageIds: number[];
+}
+
+export interface TournamentTieDecision {
+    id: number;
+    key: string;
+    stageId: number;
+    fixtureId: number | null;
+    candidateEntryIds: number[];
+    selectedEntryId: number;
+    operatorId: number;
+    decidedAt: string;
+    note: string;
+    ruleContext: string;
+    sourceRevision: string;
+    submittedRevision: string;
+    invalidatedAt: string | null;
+    invalidationReason: string | null;
+}
+
+export interface ResolveTournamentTiePayload {
+    key: string;
+    sourceRevision: string;
+    candidateEntryIds: number[];
+    selectedEntryId: number;
+    note: string;
+}
+
+/** Builds a request only from one current server contest; it never ranks or chooses a contender. */
+export const buildTournamentTieResolution = (
+    contest: TournamentTieContest,
+    selectedEntryId: number,
+    note: string,
+): ResolveTournamentTiePayload => {
+    const reason = note.trim();
+    if (contest.status !== 'UNRESOLVED' || !contest.consequential || !contest.readyForResolution) {
+        throw new Error('This tie is not currently available for resolution.');
+    }
+    if (!contest.candidateEntryIds.includes(selectedEntryId)) {
+        throw new Error('Select one of the tied contenders supplied by the server.');
+    }
+    if (!reason || reason.length > 2000) {
+        throw new Error('A reason of 1 to 2000 characters is required.');
+    }
+    return {
+        key: contest.key,
+        sourceRevision: contest.sourceRevision,
+        candidateEntryIds: [...contest.candidateEntryIds],
+        selectedEntryId,
+        note: reason,
+    };
+};
 
 export interface RequestTournamentEntryPayload {
     clubId: number;
@@ -324,6 +400,8 @@ export interface UpdateTournamentPayload {
     endDate?: string | null;
     registrationOpensAt?: string | null;
     registrationClosesAt?: string | null;
+    clearRegistrationOpensAt?: boolean;
+    clearRegistrationClosesAt?: boolean;
     incentives?: string | null;
     bannerImageUrl?: string | null;
 }

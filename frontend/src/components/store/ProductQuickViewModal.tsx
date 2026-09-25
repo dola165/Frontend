@@ -1,3 +1,4 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +12,7 @@ interface ProductQuickViewModalProps {
     onClose: () => void;
 }
 
-/** Quick-view popup — photos, sizes, price, and the contact-out order CTA (§4.1). */
+/** Quick-view popup — photos, sizes, price, and a contact-only enquiry handoff (§4.1). */
 export const ProductQuickViewModal = ({ product, onClose }: ProductQuickViewModalProps) => {
     const { t } = useTranslation();
     const [selectedImage, setSelectedImage] = useState(0);
@@ -23,6 +24,7 @@ export const ProductQuickViewModal = ({ product, onClose }: ProductQuickViewModa
     const activeImage = Math.min(selectedImage, Math.max(0, images.length - 1));
     const whatsappHref = toWhatsappHref(product.clubWhatsappNumber);
     const phoneHref = toPhoneHref(product.clubWhatsappNumber);
+    const enquiry = `Product enquiry: ${product.name ?? 'Product'}${product.sizes?.length ? ` (${product.sizes.join(', ')})` : ''}`;
 
     return (
         <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
@@ -34,7 +36,7 @@ export const ProductQuickViewModal = ({ product, onClose }: ProductQuickViewModa
                 <div>
                     <div className="aspect-square bg-[rgba(255,255,255,0.04)] flex items-center justify-center">
                         {images.length > 0 ? (
-                            <img
+                            <MediaImage
                                 src={resolveMediaUrl(images[activeImage])}
                                 alt={product.name ?? 'Product'}
                                 className="h-full w-full object-cover"
@@ -53,7 +55,7 @@ export const ProductQuickViewModal = ({ product, onClose }: ProductQuickViewModa
                                         activeImage === index ? 'border-[#16a34a]' : 'border-transparent'
                                     }`}
                                 >
-                                    <img src={resolveMediaUrl(image)} alt="" className="h-full w-full object-cover" />
+                                    <MediaImage src={resolveMediaUrl(image)} alt="" className="h-full w-full object-cover" />
                                 </button>
                             ))}
                         </div>
@@ -104,17 +106,18 @@ export const ProductQuickViewModal = ({ product, onClose }: ProductQuickViewModa
                         </div>
                     )}
 
-                    {/* Order CTA — catalog only, contact-out (§4.1) */}
+                    <p className="mt-5 text-xs leading-5 text-[#a1a1aa]">GrassKickZ does not place an order, reserve stock, or take payment. Ask the club to confirm availability and next steps.</p>
+                    {/* Enquiry CTA — catalog only, contact-out (§4.1) */}
                     <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-[#ffffff0d]">
                         {whatsappHref && (
                             <a
-                                href={whatsappHref}
+                                href={`${whatsappHref}?text=${encodeURIComponent(enquiry)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#22c55e] transition-colors"
                             >
                                 <MessageCircle className="h-4 w-4" />
-                                {t('store.orderViaWhatsApp')}
+                                {t('store.askViaWhatsApp', 'Ask via WhatsApp')}
                             </a>
                         )}
                         {phoneHref && (
@@ -128,7 +131,7 @@ export const ProductQuickViewModal = ({ product, onClose }: ProductQuickViewModa
                         )}
                         {product.clubEmail && (
                             <a
-                                href={`mailto:${product.clubEmail}?subject=${encodeURIComponent(`Order: ${product.name ?? ''}`)}`}
+                                href={`mailto:${product.clubEmail}?subject=${encodeURIComponent(enquiry)}&body=${encodeURIComponent(`Hello, I would like to ask about ${product.name ?? 'this product'}. Please confirm availability and how to buy it directly from the club.`)}`}
                                 className="inline-flex items-center gap-2 rounded-xl border border-[#ffffff0d] bg-[#16181d] px-4 py-2 text-sm font-medium text-[#f4f4f5] hover:bg-[#1a1c22] transition-colors"
                             >
                                 <Mail className="h-4 w-4" />

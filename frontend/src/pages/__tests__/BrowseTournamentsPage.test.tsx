@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import '../../i18n';
 import { BrowseTournamentsPage } from '../../pages/BrowseTournamentsPage';
-import type { TournamentSummary } from '../../features/tournaments/domain';
+import type { MyOrganization, TournamentSummary } from '../../features/tournaments/domain';
 
 const mockNavigate = vi.fn();
 
@@ -17,6 +17,7 @@ vi.mock('react-router-dom', async () => {
 
 vi.mock('../../features/tournaments/api', () => ({
     fetchTournaments: vi.fn(),
+    fetchMyOrganizations: vi.fn(),
     registerPlayer: vi.fn(),
 }));
 
@@ -28,7 +29,7 @@ vi.mock('../../utils/apiError', () => ({
     extractApiErrorMessage: vi.fn((_err: unknown, fallback: string) => fallback),
 }));
 
-import { fetchTournaments, registerPlayer } from '../../features/tournaments/api';
+import { fetchMyOrganizations, fetchTournaments, registerPlayer } from '../../features/tournaments/api';
 import { useAuth } from '../../context/AuthContext';
 
 const makeTournament = (overrides: Partial<TournamentSummary> = {}): TournamentSummary => ({
@@ -60,6 +61,7 @@ const renderPage = () =>
 describe('BrowseTournamentsPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.mocked(fetchMyOrganizations).mockResolvedValue([]);
         (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
             isAuthenticated: true,
             user: { id: 1 },
@@ -171,19 +173,20 @@ describe('BrowseTournamentsPage', () => {
         expect(link).toHaveAttribute('href', '/tournaments/1');
     });
 
-    it('filters tournaments by search query', async () => {
+    it('sends search to the server and renders the complete paged result', async () => {
         const user = userEvent.setup();
-        (fetchTournaments as ReturnType<typeof vi.fn>).mockResolvedValue(
-            pageResult([makeTournament(), makeTournament({ id: 2, name: 'Winter Cup' })])
-        );
+        (fetchTournaments as ReturnType<typeof vi.fn>)
+            .mockResolvedValueOnce(pageResult([makeTournament()], 3))
+            .mockResolvedValue(pageResult([makeTournament({ id: 8, name: 'Winter Cup' })], 2));
         renderPage();
         await screen.findByText('Summer Showdown');
 
         const searchInput = screen.getByPlaceholderText('Search by tournament, host, or organizer...');
         await user.type(searchInput, 'winter');
 
-        expect(screen.queryByText('Summer Showdown')).not.toBeInTheDocument();
-        expect(screen.getByText('Winter Cup')).toBeInTheDocument();
+        expect(await screen.findByText('Winter Cup')).toBeInTheDocument();
+        expect(fetchTournaments).toHaveBeenLastCalledWith(expect.objectContaining({ page: '0', size: '12', search: 'winter' }));
+        expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
     });
 
     it('shows pagination when multiple pages exist', async () => {
@@ -195,13 +198,11 @@ describe('BrowseTournamentsPage', () => {
         expect(screen.getByText(/Page 1 of 3/)).toBeInTheDocument();
     });
 
-    // reason: BrowseTournamentsPage renders <PaginationBar> unconditionally (and PaginationBar always
-    // shows "Page 1 of 1"), so the hide-on-single-page behavior no longer exists in the UI.
-    it.skip('hides pagination for single-page results', async () => {
+    it('shows the single page without implying more results', async () => {
         (fetchTournaments as ReturnType<typeof vi.fn>).mockResolvedValue(pageResult([makeTournament()], 1));
         renderPage();
         await screen.findByText('Summer Showdown');
-        expect(screen.queryByText(/Page/)).not.toBeInTheDocument();
+        expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
     });
 
     it('shows scope and visibility chips on cards', async () => {
@@ -225,19 +226,39 @@ describe('BrowseTournamentsPage', () => {
         expect(await screen.findByTestId('tournament-visual-fallback')).toBeInTheDocument();
     });
 
-    it('shows the create action to organizers', async () => {
+    it('shows the create action for server organization capability regardless of account persona', async () => {
         (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
             isAuthenticated: true,
-            user: { id: 2, role: 'ORGANIZER' },
+            user: { id: 2, role: 'PLAYER' },
         });
+        vi.mocked(fetchMyOrganizations).mockResolvedValue([{ id: 9, canCreateTournament: true }] as MyOrganization[]);
         (fetchTournaments as ReturnType<typeof vi.fn>).mockResolvedValue(pageResult([]));
         renderPage();
         expect(await screen.findByRole('link', { name: 'Create tournament' })).toHaveAttribute('href', '/tournaments/setup');
     });
 
-    // reason: BrowseTournamentsPage now always renders the header "Create Tournament" link regardless
-    // of auth (gating moved to /tournaments/setup); the hide-when-unauthenticated behavior was removed.
-    it.skip('hides Create Event link when not authenticated', async () => {
+    it('keeps organizer setup reachable without inventing a creation capability from a persona', async () => {
+        vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true, user: { id: 2, role: 'ORGANIZER' } } as ReturnType<typeof useAuth>);
+        vi.mocked(fetchTournaments).mockResolvedValue(pageResult([]));
+        renderPage();
+        await screen.findByText('No tournaments found');
+        expect(screen.queryByRole('link', { name: 'Create tournament' })).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Tournament setup' })).toHaveAttribute('href', '/tournaments/setup');
+    });
+
+    it('ignores an old account capability response after the account changes', async () => {
+        let finishOld!: (organizations: MyOrganization[]) => void;
+        vi.mocked(fetchMyOrganizations).mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve; })).mockResolvedValue([]);
+        vi.mocked(fetchTournaments).mockResolvedValue(pageResult([]));
+        const view = renderPage();
+        vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true, user: { id: 2, role: 'FAN' } } as ReturnType<typeof useAuth>);
+        view.rerender(<MemoryRouter><BrowseTournamentsPage /></MemoryRouter>);
+        await act(async () => finishOld([{ id: 9, canCreateTournament: true }] as MyOrganization[]));
+        expect(screen.queryByRole('link', { name: 'Create tournament' })).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Tournament setup' })).toBeInTheDocument();
+    });
+
+    it('hides tournament creation when not authenticated', async () => {
         (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
             isAuthenticated: false,
             user: null,
@@ -245,6 +266,7 @@ describe('BrowseTournamentsPage', () => {
         (fetchTournaments as ReturnType<typeof vi.fn>).mockResolvedValue(pageResult([]));
         renderPage();
         await screen.findByText('No tournaments found');
-        expect(screen.queryByText('Create Event')).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Create tournament' })).not.toBeInTheDocument();
+        expect(fetchMyOrganizations).not.toHaveBeenCalled();
     });
 });

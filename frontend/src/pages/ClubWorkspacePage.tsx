@@ -1,4 +1,15 @@
+import { ClubStaffTeam } from '../features/clubOperations/ClubStaffTeam';
+import { WorkspaceOverview } from '../features/clubOperations/WorkspaceOverview';
+import { WorkspaceTools } from '../features/clubOperations/WorkspaceHome';
+import { WorkspaceSquads } from '../features/clubOperations/WorkspaceSquads';
+import { areaFor, canonicalWorkspaceTab, useWorkspaceShortcuts } from '../features/clubOperations/workspaceStructure';
+import { WorkspaceOperations } from '../features/clubOperations/WorkspaceOperations';
+import { useWorkspaceRoles } from '../features/clubOperations/useWorkspaceRoles';
+import { WorkspaceRolesPanel } from '../features/clubOperations/WorkspaceRoleViews';
+import { useClubOperations } from '../features/clubOperations/useClubOperations';
+import { availableOperationTabs, operationModule } from '../features/clubOperations/workspaceNavigation';
 import {CampaignsTab} from '../components/workspace/tabs/CampaignsTab';
+import { ClubApproachesPanel } from '../features/agents/ClubApproachesPanel';
 import { StoreTab } from '../components/workspace/tabs/StoreTab';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -67,7 +78,8 @@ import {
     buildNotificationDestination
 } from '../utils/notifications';
 import { extractApiErrorMessage } from '../utils/apiError';
-import { getStoredUserId } from '../utils/authStorage';
+import { getStoredUserId, isCurrentAuthSession, type AuthSessionId } from '../utils/authStorage';
+import { useAuth } from '../context/AuthContext';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { ErrorBlock, PageSpinner } from '../components/workspace/helpers';
 import { WorkspaceSidebar } from '../components/workspace/WorkspaceSidebar';
@@ -97,28 +109,46 @@ const toScheduleDateTime = (value: Date) => {
 // ── page ──
 
 export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
+    const { id } = useParams();
+    const { isAuthenticated, sessionId } = useAuth();
+    if (!isAuthenticated) return null;
+    // A new club/account must establish access afresh and must not inherit inbox state.
+    return <ClubWorkspaceSession key={`${sessionId}:${id}`} darkMode={darkMode} sessionId={sessionId} />;
+}
+
+function ClubWorkspaceSession({ darkMode, sessionId }: { darkMode: boolean; sessionId: AuthSessionId }) {
     const { t } = useTranslation();
     const { id: clubIdParam } = useParams<{ id: string }>();
     const clubId = Number(clubIdParam);
     const navigate = useNavigate();
+    const operations = useClubOperations(clubId);
+    const [showHiddenSections, setShowHiddenSections] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
     const currentUserId = Number(getStoredUserId() || 0) || null;
+    const workspaceRoles = useWorkspaceRoles(clubId, 'all');
 
     // ── tab state ──
-    const initialTab = parseWorkspaceTab(searchParams.get('tab')) ?? 'overview';
+    const initialTab = canonicalWorkspaceTab(parseWorkspaceTab(searchParams.get('tab'))) ?? 'overview';
     const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialTab);
 
-    const switchTab = (tab: WorkspaceTab) => {
+    const navigateWorkspace = (proceed: () => void) => {
+        const event = new CustomEvent('club-workspace-navigate', { cancelable: true, detail: { proceed } });
+        if (window.dispatchEvent(event)) proceed();
+    };
+    const switchTab = (requested: WorkspaceTab) => navigateWorkspace(() => {
+        const tab=canonicalWorkspaceTab(requested)!;
         if (overview && !allowedTabIds.has(tab)) return;
         setActiveTab(tab);
         const next = new URLSearchParams(searchParams);
+        if (tab !== activeTab) { ['applicationId','record','approach','squad','session','person','kind','q','mine','state','view','playerSearch','position','return'].forEach(key=>next.delete(key)); }
+        next.delete('module');next.delete('role');
         if (tab === 'overview') {
             next.delete('tab');
         } else {
             next.set('tab', tab);
         }
-        setSearchParams(next, { replace: true });
-    };
+        setSearchParams(next);
+    });
 
     // ── theme (driven by global TopNav toggle) ──
 
@@ -199,6 +229,16 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
     const inboxActiveRef = useRef(true);
     useEffect(() => { inboxActiveRef.current = true; return () => { inboxActiveRef.current = false; }; }, []);
+    const inboxRequests = useRef(new Set<AbortController>());
+    const canReadInbox = overview !== null && overviewError === null
+        && ['OWNER', 'CLUB_ADMIN', 'COACH'].includes(overview.currentUserRole ?? '');
+    useEffect(() => {
+        const requests = inboxRequests.current;
+        return () => {
+            requests.forEach(controller => controller.abort());
+            requests.clear();
+        };
+    }, [canReadInbox]);
 
     const currentRole: string | null = overview?.currentUserRole ?? null;
     const canManageLeadership = isLeadershipRole(currentRole);
@@ -401,34 +441,42 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     const PAGE_SIZE = 20;
 
     const loadInbox = useCallback(async (page: number, append: boolean) => {
+        if (!canReadInbox || !isCurrentAuthSession(sessionId) || !inboxActiveRef.current) return;
+        const controller = new AbortController();
+        inboxRequests.current.add(controller);
         setInboxError(null);
         if (page === 0 && !append) setInboxLoading(true);
         else setInboxLoadingMore(true);
         try {
-            const response = await fetchNotifications({ page, size: PAGE_SIZE, scope: 'club', clubId });
-            if (inboxActiveRef.current) {
+            const response = await fetchNotifications({ page, size: PAGE_SIZE, scope: 'club', clubId }, { signal: controller.signal, _authSessionId: sessionId });
+            if (!controller.signal.aborted && inboxActiveRef.current && isCurrentAuthSession(sessionId)) {
                 setInboxPage(response.pageNumber);
                 setInboxTotalElements(response.totalElements);
                 setInboxNotifications(prev => append ? [...prev, ...response.content] : response.content);
             }
         } catch (error) {
-            if (inboxActiveRef.current) setInboxError(extractApiErrorMessage(error, 'Could not load club inbox.'));
+            if (!controller.signal.aborted && inboxActiveRef.current && isCurrentAuthSession(sessionId)) setInboxError(extractApiErrorMessage(error, 'Could not load club inbox.'));
         } finally {
-            if (inboxActiveRef.current) {
+            inboxRequests.current.delete(controller);
+            if (!controller.signal.aborted && inboxActiveRef.current && isCurrentAuthSession(sessionId)) {
                 setInboxLoading(false);
                 setInboxLoadingMore(false);
             }
         }
-    }, [clubId]);
+    }, [clubId, canReadInbox, sessionId]);
 
     const loadInboxUnreadCount = useCallback(async () => {
+        if (!canReadInbox || !isCurrentAuthSession(sessionId) || !inboxActiveRef.current) return;
+        const controller = new AbortController();
+        inboxRequests.current.add(controller);
         try {
-            const response = await fetchUnreadNotificationCount({ scope: 'club', clubId });
-            if (inboxActiveRef.current) {
+            const response = await fetchUnreadNotificationCount({ scope: 'club', clubId }, { signal: controller.signal, _authSessionId: sessionId });
+            if (!controller.signal.aborted && inboxActiveRef.current && isCurrentAuthSession(sessionId)) {
                 setInboxUnreadCount(response.unreadCount);
             }
         } catch { /* silent */ }
-    }, [clubId]);
+        finally { inboxRequests.current.delete(controller); }
+    }, [clubId, canReadInbox, sessionId]);
 
     useEffect(() => {
         if (activeTab !== 'inbox') return;
@@ -736,10 +784,10 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
 
     const tabs = useMemo<TabItem[]>(() => {
         const items: TabItem[] = [
-            { id: 'overview', label: 'Overview', icon: LayoutDashboard }
+            ...(overview || workspaceRoles.data ? [{ id: 'overview' as const, label: 'Overview', icon: LayoutDashboard }] : [])
         ];
-        if (canManageLeadership) {
-            items.push({ id: 'personnel', label: 'Personnel', icon: Users, badge: overview ? String(overview.members.length) : null });
+        if (canManageLeadership || operations.boot?.modules.some(m=>m.id==='STAFF')) {
+            items.push({ id: 'personnel', label: 'Staff', icon: Users, badge: operations.boot ? String(operations.boot.staff.length) : null });
         }
         if (canManageOperations) {
             items.push({ id: 'players', label: 'Players', icon: Users, badge: overview ? String((overview.activePlayerCount || 0) + (overview.trialistCount || 0)) : null });
@@ -751,10 +799,11 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
             items.push({ id: 'applications', label: 'Applications', icon: CheckCircle2, badge: overview && overview.pendingApplications.length > 0 ? String(overview.pendingApplications.length) : null });
         }
         if (canManageLeadership) {
-            items.push({ id: 'roles', label: 'Roles', icon: Crown });
+            items.push({ id: 'roles', label: 'Ownership & access', icon: Crown });
+            items.push({ id: 'club-approaches', label: 'Agent approaches', icon: HeartHandshake });
         }
         if (canManageOperations) {
-            items.push({ id: 'jobs', label: 'Jobs', icon: Briefcase });
+            items.push({ id: 'jobs', label: 'Open roles', icon: Briefcase });
         }
         if (canManageLeadership) {
             items.push({ id: 'store', label: 'Store', icon: ShoppingBag });
@@ -768,21 +817,51 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         if (canManageTryouts) {
             items.push({ id: 'tryouts', label: 'Tryouts', icon: CheckCircle2, badge: tryoutApplicants.length > 0 ? String(tryoutApplicants.length) : null });
         }
+        if (operations.boot) items.push(...availableOperationTabs(operations.boot));
+        if (workspaceRoles.data) {
+            items.push({id:'tools',label:'All tools',icon:LayoutDashboard},{id:'my-role',label:'My responsibilities',icon:UserPlus});
+            if (workspaceRoles.data.squads.length && !canManageOperations) items.push({id:'squads',label:'Squads',icon:ShieldCheck});
+            if (workspaceRoles.data.people.length && !canManageOperations) items.push({id:'my-people',label:'Players',icon:Users});
+            if (workspaceRoles.data.leadership) items.push({id:'role-requests',label:'Staff roles & requests',icon:UserPlus,badge:String(workspaceRoles.data.requests.filter(r=>r.status==='PENDING').length||'')});
+        }
         return items;
-    }, [canManageLeadership, canManageOperations, canManageTryouts, overview, tryoutApplicants.length]);
+    }, [canManageLeadership, canManageOperations, canManageTryouts, overview, tryoutApplicants.length, operations.boot, workspaceRoles.data]);
+    const sidebarTabs = tabs.filter(tab => { const module = operationModule(tab.id); return !module || ['HOME', 'SETTINGS'].includes(module) || showHiddenSections || activeTab === tab.id || operations.boot?.settings.enabled_modules.includes(module); });
+    const selectedOperation = operationModule(activeTab);
+    const shortcuts = useWorkspaceShortcuts(clubId,currentUserId,sidebarTabs);
+    const openWork = (requested:WorkspaceTab,context:Record<string,string>={}) => navigateWorkspace(()=>{
+        const tab=canonicalWorkspaceTab(requested)!;
+        if(!allowedTabIds.has(tab))return;
+        const next=new URLSearchParams();next.set('tab',tab);
+        if(activeTab==='squads' && tab!=='squads'){const back=new URLSearchParams(searchParams);back.set('tab','squads');back.delete('return');if(context.squad)back.set('squad',context.squad);next.set('return',back.toString());}
+        Object.entries(context).forEach(([key,value])=>next.set(key,value));
+        setActiveTab(tab);setSearchParams(next);
+    });
+    const workSquad = searchParams.get('squad')??'';
+    const chooseWorkSquad=(squad:string)=>navigateWorkspace(()=>{const next=new URLSearchParams(searchParams);if(squad)next.set('squad',squad);else next.delete('squad');next.delete('session');next.delete('person');next.delete('record');setSearchParams(next);});
+    const showLegacyContext = !['invites','squads','players','personnel','player-cards'].includes(activeTab) && !selectedOperation && !['tools','my-day','my-people','my-squads','my-role','role-requests','overview', 'applications', 'tryouts', 'store', 'campaigns', 'jobs', 'club-approaches'].includes(activeTab);
 
     const allowedTabIds = useMemo(() => new Set<WorkspaceTab>([
         ...tabs.map((tab) => tab.id),
-        'inbox',
-    ]), [tabs]);
+        ...(canReadInbox ? ['inbox' as const] : []),
+    ]), [tabs, canReadInbox]);
+
+    const openPlayerWorkflow = (status: 'ALL' | PlayerAffiliationStatus = 'TRIALIST') => {
+        if (!allowedTabIds.has('players')) return;
+        trialistAutoSelectRef.current = true;
+        setPlayerStatusFilter(status);
+        setPlayerPage(0);
+        switchTab('players');
+    };
 
     useEffect(() => {
         // A stale or hand-edited URL must not expose a tab outside the current
         // role. Wait for the overview so a valid deep link is not rejected
         // while the role is still loading.
-        if (!overview) return;
-        const requestedTab = parseWorkspaceTab(searchParams.get('tab'));
-        const nextTab = requestedTab && allowedTabIds.has(requestedTab) ? requestedTab : 'overview';
+        if (workspaceRoles.loading || !overview && (overviewLoading || operations.loading || !operations.boot && !workspaceRoles.data)) return;
+        const requestedTab = canonicalWorkspaceTab(parseWorkspaceTab(searchParams.get('tab')));
+        if (requestedTab && operationModule(requestedTab) && operations.loading) return;
+        const nextTab = requestedTab && allowedTabIds.has(requestedTab) ? requestedTab : workspaceRoles.data || overview ? 'overview' : 'actions';
         if (nextTab !== activeTab) {
             setActiveTab(nextTab);
         }
@@ -793,7 +872,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
         if (nextParams.toString() !== searchParams.toString()) {
             setSearchParams(nextParams, { replace: true });
         }
-    }, [activeTab, allowedTabIds, overview, searchParams, setSearchParams]);
+    }, [activeTab, allowedTabIds, overview, overviewLoading, operations.boot, operations.loading, workspaceRoles.loading, workspaceRoles.data, searchParams, setSearchParams]);
 
     const totalPlayerPages = playerDirectory ? Math.max(1, Math.ceil(playerDirectory.totalElements / Math.max(playerDirectory.pageSize, 1))) : 1;
     const totalSearchPages = searchResults ? Math.max(1, Math.ceil(searchResults.totalElements / Math.max(searchResults.pageSize, 1))) : 1;
@@ -813,18 +892,22 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
     }
 
     return (<>
-        <div className={`flex h-[calc(100dvh-var(--app-header-height))] workspace-page-shell ${!darkMode ? 'workspace-light' : ''}`}>
+        <div className={`flex h-[calc(100dvh-var(--app-header-height))] workspace-page-shell club-workspace-shell ${!darkMode ? 'workspace-light' : ''}`}>
             <WorkspaceSidebar
                 clubId={clubId}
                 overview={overview}
                 activeTab={activeTab}
-                tabs={tabs}
+                tabs={sidebarTabs}
+                shortcuts={shortcuts.ids}
+                showHidden={showHiddenSections}
+                onShowHidden={setShowHiddenSections}
+                hasHidden={Boolean(operations.boot?.modules.some(m => !operations.boot?.settings.enabled_modules.includes(m.id)))}
                 unreadInboxCount={inboxUnreadCount}
                 clubName={clubName}
                 clubLogoUrl={clubLogoUrl}
                 mobileOpen={workspaceNavOpen}
                 onTabChange={switchTab}
-                onNavigate={navigate}
+                onNavigate={path => navigateWorkspace(() => navigate(path))}
                 onClose={() => setWorkspaceNavOpen(false)}
             />
 
@@ -839,10 +922,10 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                         <p className="truncate text-sm font-semibold text-[var(--fc-text-primary)]">{clubName || `Club #${clubId}`}</p>
                         <p className="truncate text-[11px] text-[var(--fc-text-muted)]">{activeTab === 'overview' ? 'Club workspace' : tabs.find((tab) => tab.id === activeTab)?.label || 'Workspace'}</p>
                     </div>
-                    <button type="button" onClick={() => setContextOpen(true)} aria-expanded={contextOpen} aria-controls="workspace-context" className="inline-flex items-center gap-2 rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-xs font-semibold text-[var(--fc-text-primary)]" aria-label={t('clubWorkspace.openContext')}>
+                    {showLegacyContext && <button type="button" onClick={() => setContextOpen(true)} aria-expanded={contextOpen} aria-controls="workspace-context" className="inline-flex items-center gap-2 rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-xs font-semibold text-[var(--fc-text-primary)]" aria-label={t('clubWorkspace.openContext')}>
                         <PanelRight className="h-4 w-4" />
                         {t('clubWorkspace.context')}
-                    </button>
+                    </button>}
                 </div>
                 <div className="workspace-alert-stack sticky top-0 z-10 space-y-2 px-6 pt-4">
                     {errorMessage && (
@@ -859,15 +942,29 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                     )}
                 </div>
 
+                <div className="work-breadcrumb"><span><button type="button" onClick={()=>openWork('overview')}>Workspace</button><span aria-hidden>/</span><b>{areaFor(activeTab)?.label??(activeTab==='tools'?'All tools':activeTab==='actions'?'Work queue':activeTab==='inbox'?'Inbox':'Overview')}</b></span>{workspaceRoles.data&&<button type="button" onClick={()=>openWork('my-role')}>My responsibilities</button>}</div>
+                {selectedOperation && workSquad && <button type="button" className="wo-return" onClick={()=>navigateWorkspace(()=>{const back=new URLSearchParams(searchParams.get('return')??'');back.set('tab','squads');back.set('squad',workSquad);back.delete('return');setSearchParams(back);})}>← Back to {workspaceRoles.data?.squads.find(s=>String(s.id)===workSquad)?.name??'squad'}</button>}
                 <div className="px-6 py-5">
-                    {overviewLoading && !overview ? (
+                    {workspaceRoles.error && <p role="alert" className="role-muted">{workspaceRoles.error} <button onClick={workspaceRoles.refresh}>Retry</button></p>}
+                    {workspaceRoles.loading || (overviewLoading && !overview && !operations.boot) || (selectedOperation && operations.loading) ? (
                         <PageSpinner />
-                    ) : overviewError && !overview ? (
+                    ) : overviewError && !overview && !operations.boot && !workspaceRoles.data ? (
                         <ErrorBlock message={overviewError} onRetry={() => { void loadOverview(); }} />
                     ) : (
                         <div className="space-y-4">
-                            {activeTab === 'overview' && (
-                                <OverviewTab
+
+                            {activeTab==='tools'&&<WorkspaceTools tabs={sidebarTabs} shortcuts={shortcuts.ids} onToggle={shortcuts.toggle} onOpen={openWork} showHidden={showHiddenSections} onShowHidden={setShowHiddenSections} hasHidden={Boolean(operations.boot?.modules.some(m=>!operations.boot?.settings.enabled_modules.includes(m.id)))}/>}
+                            {(activeTab==='my-people'||activeTab==='squads'&&!canManageOperations)&&workspaceRoles.data&&<WorkspaceSquads key={activeTab} data={workspaceRoles.data} boot={operations.boot} squad={workSquad} onSquad={chooseWorkSquad} onOpen={openWork} canManage={canManageOperations} playersOnly={activeTab==='my-people'}/>}
+                            {['my-role','role-requests'].includes(activeTab)&&workspaceRoles.data&&<WorkspaceRolesPanel key={activeTab} club={clubId} data={workspaceRoles.data} admin={activeTab==='role-requests'} onChanged={()=>{workspaceRoles.refresh();void operations.refresh();}}/>}
+                            {selectedOperation && operations.boot && <WorkspaceOperations key={`${clubId}-${selectedOperation}-${workSquad}-${searchParams.get('session')??''}-${searchParams.get('person')??''}`} boot={{...operations.boot,peopleBySquad:workspaceRoles.data?.people}} module={selectedOperation} onRefresh={operations.refresh} />}
+                            {selectedOperation && !operations.boot && !operations.loading && <ErrorBlock message={operations.error || 'This section is unavailable for your account.'} onRetry={() => { void operations.refresh(); }} />}
+                            {activeTab === 'overview' && (workspaceRoles.data ? <WorkspaceOverview data={workspaceRoles.data} boot={operations.boot} tabs={sidebarTabs} shortcuts={shortcuts} onOpen={openWork} overviewProps={{
+                                overview, clubId, onTabChange:switchTab, overdueTrialistCount, canManageLeadership, canManageOperations,
+                                upcomingEvents, scheduleLoading, scheduleError, tryoutPendingCount, unreadInboxCount:inboxUnreadCount,
+                                onOpenSchedule:()=>navigate(`/calendar?clubId=${clubId}`),
+                                onOpenScheduleEvent:(event)=>{const date=event.startsAt.slice(0,10);navigate(`/calendar?clubId=${clubId}&date=${date}&eventId=${event.eventId}`);},
+                                onRetrySchedule:()=>{void loadUpcomingSchedule();}, onOpenPlayers:allowedTabIds.has('players')?openPlayerWorkflow:undefined,
+                            }}/> : <OverviewTab
                                     overview={overview}
                                     clubId={clubId}
                                     onTabChange={switchTab}
@@ -880,14 +977,20 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                     tryoutPendingCount={tryoutPendingCount}
                                     unreadInboxCount={inboxUnreadCount}
                                     onOpenSchedule={() => { setContextOpen(false); navigate(`/calendar?clubId=${clubId}`); }}
+                                    onOpenScheduleEvent={(event) => {
+                                        const startsAt = new Date(event.startsAt);
+                                        const date = `${startsAt.getFullYear()}-${String(startsAt.getMonth() + 1).padStart(2, '0')}-${String(startsAt.getDate()).padStart(2, '0')}`;
+                                        setContextOpen(false);
+                                        navigate(`/calendar?clubId=${clubId}&date=${date}&eventId=${event.eventId}`);
+                                    }}
                                     onRetrySchedule={() => { void loadUpcomingSchedule(); }}
-                                />
-                            )}
+                                    onOpenPlayers={allowedTabIds.has('players') ? openPlayerWorkflow : undefined}
+                            />)}
 
-                            {activeTab === 'personnel' && (
-                                <PersonnelTab
+                            {activeTab === 'personnel' && operations.boot && <ClubStaffTeam key={clubId} boot={operations.boot} members={overview?.members} roles={workspaceRoles.data?.catalog} onChanged={()=>{void operations.refresh();}} renderAdministration={canManageLeadership ? member=>(<PersonnelTab
                                     clubId={clubId}
-                                    overview={overview}
+                                    onProfileSaved={loadOverview}
+                                    overview={overview ? {...overview,members:[member]} : null}
                                     currentUserId={currentUserId}
                                     currentRole={currentRole}
                                     canManageLeadership={canManageLeadership}
@@ -896,8 +999,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                     onRoleChange={handleRoleChange}
                                     onRemoveMember={handleRemoveMember}
                                     onConfirmRemoval={setConfirmingRemovalUserId}
-                                />
-                            )}
+                                /> ) : undefined}/>}
 
                             {activeTab === 'players' && (
                                 <PlayersTab
@@ -930,8 +1032,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                 />
                             )}
 
-                            {activeTab === 'invites' && (
-                                <InvitesTab
+                            {activeTab === 'invites' && (operations.boot?.leadership ? <ClubStaffTeam key={clubId} boot={operations.boot} members={overview?.members} roles={workspaceRoles.data?.catalog} mode="invites" onChanged={()=>{void operations.refresh();}}><details className="staff-administration" open={Boolean(overview?.pendingInvitations.length)}><summary>Management invitations{overview?.pendingInvitations.length ? ` · ${overview.pendingInvitations.length} pending` : ''}</summary><p>Use this for club administrators or existing broad coaching access. Specialist appointments above keep access limited to the person’s duties.</p><InvitesTab
                                     overview={overview}
                                     searchQuery={searchQuery}
                                     searchPage={searchPage}
@@ -946,8 +1047,22 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                     onInviteRoleChange={setSelectedInviteRole}
                                     onInvite={handleInvite}
                                     onCancelInvite={handleCancelInvite}
-                                />
-                            )}
+                                /></details></ClubStaffTeam> : <InvitesTab
+                                    overview={overview}
+                                    searchQuery={searchQuery}
+                                    searchPage={searchPage}
+                                    searchResults={searchResults}
+                                    searchLoading={searchLoading}
+                                    selectedInviteRole={selectedInviteRole}
+                                    pendingKey={pendingKey}
+                                    invitedUserIds={invitedUserIds}
+                                    totalSearchPages={totalSearchPages}
+                                    onSearchQueryChange={setSearchQuery}
+                                    onSearchPageChange={setSearchPage}
+                                    onInviteRoleChange={setSelectedInviteRole}
+                                    onInvite={handleInvite}
+                                    onCancelInvite={handleCancelInvite}
+                                /> )}
 
                             {activeTab === 'applications' && (
                                 <>
@@ -964,6 +1079,9 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                     onDeclineApplication={handleDeclineApplication}
                                     onBulkDecide={handleBulkDecide}
                                     onRetry={() => { void loadApplications(true); }}
+                                    onOpenTryouts={allowedTabIds.has('tryouts') ? () => switchTab('tryouts') : undefined}
+                                    onOpenPlayers={allowedTabIds.has('players') ? () => openPlayerWorkflow() : undefined}
+                                    onOpenSquads={allowedTabIds.has('squads') ? () => switchTab('squads') : undefined}
                                 />
                                 </>
                             )}
@@ -985,6 +1103,10 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                 />
                             )}
 
+                            {activeTab === 'club-approaches' && canManageLeadership && (
+                                <ClubApproachesPanel mode="club" clubId={clubId} />
+                            )}
+
                             {activeTab === 'jobs' && (
                                 <JobsTab
                                     clubId={clubId}
@@ -1000,8 +1122,10 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                 <SettingsTab clubId={clubId} pendingKey={pendingKey} />
                             )}
 
-                            {activeTab === 'squads' && (
+                            {activeTab === 'squads' && canManageOperations && (
                                 <SquadsTab
+                                    workspace={workspaceRoles.data?{data:workspaceRoles.data,boot:operations.boot,onOpen:openWork}:undefined}
+                            key={clubId}
                                     clubId={clubId}
                                     overview={overview}
                                     setParentError={setErrorMessage}
@@ -1026,6 +1150,9 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                                     tryoutsLoading={tryoutsLoading}
                                     pendingKey={pendingKey}
                                     onTryoutStatus={handleTryoutStatus}
+                                    onOpenApplications={allowedTabIds.has('applications') ? () => switchTab('applications') : undefined}
+                                    onOpenPlayers={allowedTabIds.has('players') ? () => openPlayerWorkflow() : undefined}
+                                    onOpenSquads={allowedTabIds.has('squads') ? () => switchTab('squads') : undefined}
                                 />
                                 </>
                             )}
@@ -1050,7 +1177,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                 </div>
             </main>
 
-            <ContextPanel
+            {showLegacyContext && <ContextPanel
                 activeTab={activeTab}
                 overview={overview}
                 playerDirectory={playerDirectory}
@@ -1065,7 +1192,7 @@ export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
                 onRetrySchedule={() => { void loadUpcomingSchedule(); }}
                 mobileOpen={contextOpen}
                 onClose={() => setContextOpen(false)}
-            />
+            />}
         </div>
         {promoteTarget && (
             <PromotePlayerModal

@@ -1,3 +1,5 @@
+import { MediaImage } from './ui/MediaImage';
+import { MediaVideo } from './ui/MediaVideo';
 import { useEffect, useId, useRef, useState } from 'react';
 import { X, Heart, MessageCircle, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { FeedPostDto, CommentDto } from './feed/FeedPost';
@@ -17,6 +19,7 @@ interface PostTheaterModalProps {
     commentsLoading?: boolean;
     commentsError?: string | null;
     onRetryComments?: (postId: number) => void;
+    initialMediaIndex?: number;
 }
 
 export const PostTheaterModal = ({
@@ -30,7 +33,8 @@ export const PostTheaterModal = ({
     likeError = null,
     commentsLoading = false,
     commentsError = null,
-    onRetryComments
+    onRetryComments,
+    initialMediaIndex = 0,
 }: PostTheaterModalProps) => {
     const [commentInput, setCommentInput] = useState("");
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -41,9 +45,28 @@ export const PostTheaterModal = ({
     const titleId = useId();
     useDialogFocus(isOpen && post !== null, dialogRef, onClose, closeRef);
 
+    const mediaCount = post?.mediaUrls?.length || (post?.image ? 1 : 0);
     useEffect(() => {
-        if (isOpen) setCurrentIndex(0);
-    }, [isOpen, post?.id]);
+        if (isOpen) setCurrentIndex(Math.max(0, Math.min(initialMediaIndex, mediaCount - 1)));
+    }, [isOpen, post?.id, initialMediaIndex, mediaCount]);
+
+    useEffect(() => {
+        if (!isOpen || mediaCount < 2) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.altKey || event.ctrlKey || event.metaKey ||
+                event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement ||
+                event.target instanceof HTMLVideoElement) return;
+            if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                setCurrentIndex(index => (index + 1) % mediaCount);
+            } else if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                setCurrentIndex(index => (index - 1 + mediaCount) % mediaCount);
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [isOpen, mediaCount]);
 
     if (!isOpen || !post) return null;
 
@@ -79,7 +102,7 @@ export const PostTheaterModal = ({
     };
 
     const currentMediaUrl = resolveMediaUrl(mediaList[currentIndex]);
-    const isVideo = currentMediaUrl?.match(/\.(mp4|mov|webm)$/i);
+    const isVideo = currentMediaUrl?.match(/\.(mp4|mov|webm)(?:\?|$)/i);
     const authorAvatarUrl = resolveMediaUrl(post.authorAvatarUrl);
 
     return (
@@ -89,28 +112,21 @@ export const PostTheaterModal = ({
             </button>
 
             <div className="flex h-full w-full max-w-[1400px] flex-col overflow-hidden rounded-xl border border-white/[0.06] bg-[#0d1117] shadow-2xl lg:flex-row" onClick={(event) => event.stopPropagation()}>
-                <div className="group relative flex h-[40vh] flex-1 items-center justify-center overflow-hidden bg-black lg:h-full">
-                    {currentMediaUrl && (
-                        <div
-                            className="absolute inset-0 scale-110 bg-cover bg-center opacity-30 blur-2xl transition-all duration-300"
-                            style={{ backgroundImage: `url(${currentMediaUrl})` }}
-                        />
-                    )}
-
+                <div className="group relative flex h-[55%] min-h-0 shrink-0 items-center justify-center overflow-hidden bg-black lg:h-full lg:flex-1">
                     {currentMediaUrl && (
                         isVideo ? (
-                            <video src={currentMediaUrl} controls autoPlay className="relative z-10 max-h-full max-w-full object-contain drop-shadow-2xl" />
+                            <MediaVideo key={currentMediaUrl} src={currentMediaUrl} controls preload="metadata" className="relative z-10 h-full w-full object-contain" />
                         ) : (
-                            <img src={currentMediaUrl} alt="Theater mode media" className="relative z-10 max-h-full max-w-full object-contain drop-shadow-2xl" />
+                            <MediaImage src={currentMediaUrl} alt="Post media in viewer" className="relative z-10 h-full w-full object-contain" />
                         )
                     )}
 
                     {mediaList.length > 1 && (
                         <>
-                            <button type="button" onClick={handlePrev} aria-label="Previous post media" className="absolute left-4 z-20 rounded-full bg-black/50 p-3 text-white opacity-0 backdrop-blur-md transition-opacity hover:bg-black/80 group-hover:opacity-100 focus:opacity-100">
+                            <button type="button" onClick={handlePrev} aria-label="Previous post media" className="absolute left-4 z-20 rounded-full bg-black/50 p-3 text-white opacity-100 backdrop-blur-md transition-opacity hover:bg-black/80 lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100">
                                 <ChevronLeft className="h-6 w-6" />
                             </button>
-                            <button type="button" onClick={handleNext} aria-label="Next post media" className="absolute right-4 z-20 rounded-full bg-black/50 p-3 text-white opacity-0 backdrop-blur-md transition-opacity hover:bg-black/80 group-hover:opacity-100 focus:opacity-100">
+                            <button type="button" onClick={handleNext} aria-label="Next post media" className="absolute right-4 z-20 rounded-full bg-black/50 p-3 text-white opacity-100 backdrop-blur-md transition-opacity hover:bg-black/80 lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100">
                                 <ChevronRight className="h-6 w-6" />
                             </button>
                             <div className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-md">
@@ -120,12 +136,12 @@ export const PostTheaterModal = ({
                     )}
                 </div>
 
-                <div className="flex h-[60vh] w-full shrink-0 flex-col border-l border-white/[0.06] bg-[#0d1117] lg:h-full lg:w-[400px] xl:w-[450px]">
+                <div className="post-theater-details flex min-h-0 w-full flex-1 flex-col overflow-y-auto border-l border-white/[0.06] bg-[#0d1117] lg:h-full lg:w-[400px] lg:shrink-0 lg:flex-none lg:overflow-hidden xl:w-[450px]">
                     <div className="shrink-0 border-b border-white/[0.06] p-5">
                         <div className="mb-4 flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#16a34a] text-sm font-semibold text-black ">
                                 {authorAvatarUrl ? (
-                                    <img src={authorAvatarUrl} alt={post.clubName || post.authorName} className="h-full w-full object-cover" />
+                                    <MediaImage src={authorAvatarUrl} alt={post.clubName || post.authorName} className="h-full w-full object-cover" />
                                 ) : (
                                     (post.clubName || post.authorName).substring(0, 2).toUpperCase()
                                 )}
@@ -135,7 +151,7 @@ export const PostTheaterModal = ({
                                 <p className="text-xs text-[#64748b]">{formatTime(post.createdAt)}</p>
                             </div>
                         </div>
-                        <p className="whitespace-pre-line text-sm leading-relaxed text-[#cbd5e1]">{post.content}</p>
+                        <p className="whitespace-pre-line break-words text-sm leading-relaxed text-[#cbd5e1]">{post.content}</p>
                     </div>
 
                     <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] px-5 py-3">
@@ -150,7 +166,7 @@ export const PostTheaterModal = ({
                         </div>
                     </div>
 
-                    <div className="flex-1 space-y-4 overflow-y-auto p-5">
+                    <div className="shrink-0 space-y-4 p-5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
                         {commentsError ? (
                             <div role="alert" className="flex flex-col items-center gap-3 py-10 text-center">
                                 <span className="text-xs font-medium text-rose-400">{commentsError}</span>
@@ -178,7 +194,7 @@ export const PostTheaterModal = ({
                                 <div key={comment.id} className="flex gap-3">
                                     <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#1a2030] text-xs font-semibold text-[#94a3b8]">
                                         {resolveMediaUrl(comment.authorAvatarUrl) ? (
-                                            <img src={resolveMediaUrl(comment.authorAvatarUrl)} alt={comment.authorName} className="h-full w-full object-cover" />
+                                            <MediaImage src={resolveMediaUrl(comment.authorAvatarUrl)} alt={comment.authorName} className="h-full w-full object-cover" />
                                         ) : (
                                             comment.authorName.substring(0, 2).toUpperCase()
                                         )}

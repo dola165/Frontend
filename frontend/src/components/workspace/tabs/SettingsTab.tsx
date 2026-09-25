@@ -5,6 +5,7 @@ import { apiClient } from '../../../api/axiosConfig';
 import { updateClubSettings } from '../../../features/clubs/api';
 import type { PlayerJoinPolicy } from '../../../features/clubs/domain';
 import { ErrorBlock, PageSpinner, SectionHeader } from '../helpers';
+import { ClubPresentationSettings } from './ClubPresentationSettings';
 
 interface SettingsTabProps {
     clubId: number;
@@ -77,6 +78,7 @@ export const SettingsTab = ({ clubId, pendingKey }: SettingsTabProps) => {
 
     return (
         <div className="space-y-4">
+            <ClubPresentationSettings clubId={clubId} />
             <SectionHeader
                 eyebrow={t('settings.title')}
                 title={t('settings.heading')}

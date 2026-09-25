@@ -1,0 +1,34 @@
+[
+  {
+    "file": "pitch-aerial.jpg",
+    "photographer": "Willian Justen de Vasconcellos",
+    "source": "https://unsplash.com/photos/aerial-photography-of-soccer-field-cdWjBaLnpPU",
+    "imageUrl": "https://images.unsplash.com/photo-1520470082789-e347ad8b1944?auto=format&fit=crop&w=1200&q=80",
+    "bytes": 275142,
+    "usage": "Example photography for fictional demo venues; does not depict these locations."
+  },
+  {
+    "file": "pitch-day.jpg",
+    "photographer": "Josh Power",
+    "source": "https://unsplash.com/photos/aerial-photography-of-american-football-stadium-at-daytime-byRCfbkd8AY",
+    "imageUrl": "https://images.unsplash.com/photo-1531085587519-0210270e7cda?auto=format&fit=crop&w=1200&q=80",
+    "bytes": 637831,
+    "usage": "Example photography for fictional demo venues; does not depict these locations."
+  },
+  {
+    "file": "pitch-sun.jpg",
+    "photographer": "Emmanuel Munoz",
+    "source": "https://unsplash.com/photos/soccer-field-with-goalposts-under-a-clear-sky-mikfx6N52o0",
+    "imageUrl": "https://images.unsplash.com/photo-1768902730269-de198a12aaf3?auto=format&fit=crop&w=1200&q=80",
+    "bytes": 131409,
+    "usage": "Example photography for fictional demo venues; does not depict these locations."
+  },
+  {
+    "file": "pitch-indoor.jpg",
+    "photographer": "Pascal Swier",
+    "source": "https://unsplash.com/photos/yellow-and-black-soccer-ball-on-field-otuM-nw-_NY",
+    "imageUrl": "https://images.unsplash.com/photo-1587384474964-3a06ce1ce699?auto=format&fit=crop&w=1200&q=80",
+    "bytes": 150052,
+    "usage": "Example photography for fictional demo venues; does not depict these locations."
+  }
+]

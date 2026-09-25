@@ -8,7 +8,7 @@ import { tournamentEntryStatusText } from '../../../components/tournaments/tourn
 interface Props {
     tournamentId: number;
     stageId: number;
-    refreshKey: number;
+    refreshKey: number | string;
     entryStatuses: Map<number, TournamentEntryStatus>;
     advanceCount?: number | null;
 }
@@ -32,23 +32,28 @@ const sortRows = (rows: GroupStandingsRow[]): GroupStandingsRow[] =>
 
 export const StandingsTable = ({ tournamentId, stageId, refreshKey, entryStatuses, advanceCount }: Props) => {
     const { t } = useTranslation();
-    const [rows, setRows] = useState<GroupStandingsRow[] | null>(null);
+    const [attempt, setAttempt] = useState(0);
+    const requestKey = `${tournamentId}:${stageId}:${refreshKey}:${attempt}`;
+    const [result, setResult] = useState<{ key: string; rows: GroupStandingsRow[] | null; failed: boolean }>({ key: '', rows: null, failed: false });
+    const rows = result.key === requestKey ? result.rows : null;
+    const failed = result.key === requestKey && result.failed;
 
     useEffect(() => {
         let cancelled = false;
         fetchGroupStandings(tournamentId, stageId)
             .then((data) => {
-                if (!cancelled) setRows(data ?? []);
+                if (!cancelled) setResult({ key: requestKey, rows: data ?? [], failed: false });
             })
             .catch(() => {
-                if (!cancelled) setRows([]);
+                if (!cancelled) setResult({ key: requestKey, rows: null, failed: true });
             });
         return () => {
             cancelled = true;
         };
-    }, [tournamentId, stageId, refreshKey]);
+    }, [tournamentId, stageId, requestKey]);
 
-    if (rows === null) return null;
+    if (failed) return <div className="tw-empty" role="alert"><p>{t('tournaments.public.detailLoadFailed')}</p><button className="tw-button" onClick={() => setAttempt(value => value + 1)}>{t('tournaments.public.tryAgain')}</button></div>;
+    if (rows === null) return <div className="tw-empty" role="status"><p>{t('tournaments.workspace.loading')}</p></div>;
 
     return (
         <div className="border-t border-white/[0.08] bg-[#0a0e0b]">

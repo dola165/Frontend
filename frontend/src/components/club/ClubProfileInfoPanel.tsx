@@ -1,8 +1,10 @@
+import { appLocale } from '../../utils/formatting';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { CalendarDays, ExternalLink, Globe, MapPin, Phone, ShieldCheck } from 'lucide-react';
 import { apiClient } from '../../api/axiosConfig';
 import type { ClubProfile } from '../../pages/ClubProfilePage';
 import { buildClubProfileLinks, summarizeClubTrust, toPhoneHref, toWhatsappHref } from './clubProfileInfo';
+import { ClubAffiliations, TrainingPriceHighlight } from './ClubPresentation';
 
 interface ClubProfileInfoPanelProps {
     club: ClubProfile;
@@ -13,7 +15,11 @@ export const ClubProfileInfoPanel = ({ club }: ClubProfileInfoPanelProps) => {
     const whatsappHref = toWhatsappHref(club.whatsappNumber);
     const publicLinks = buildClubProfileLinks(club);
     const trustCount = club.trustedByClubs.length;
-    const [nextEventLabel, setNextEventLabel] = useState('Checking schedule');
+    const [nextEventState, setNextEventState] = useState<{clubId:number; event?:{title:string; startsAt:string}; status:string} | null>(null);
+    const nextEventLabel = nextEventState?.clubId !== club.id ? 'Checking schedule'
+        : nextEventState.event ? `${nextEventState.event.title} | ${new Date(nextEventState.event.startsAt).toLocaleString(appLocale(), {
+            month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'
+        })}` : nextEventState.status;
 
     useEffect(() => {
         let active = true;
@@ -28,21 +34,15 @@ export const ClubProfileInfoPanel = ({ club }: ClubProfileInfoPanelProps) => {
                     .find((item) => new Date(item.startsAt).getTime() >= Date.now());
 
                 if (!nextItem) {
-                    setNextEventLabel('No event scheduled');
+                    setNextEventState({clubId:club.id, status:'No event scheduled'});
                     return;
                 }
 
-                const dateLabel = new Date(nextItem.startsAt).toLocaleString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                setNextEventLabel(`${nextItem.title} | ${dateLabel}`);
+                setNextEventState({clubId:club.id, event:{title:nextItem.title, startsAt:nextItem.startsAt}, status:''});
             })
             .catch(() => {
                 if (active) {
-                    setNextEventLabel('Schedule unavailable');
+                    setNextEventState({clubId:club.id, status:'Schedule unavailable'});
                 }
             });
 
@@ -59,10 +59,11 @@ export const ClubProfileInfoPanel = ({ club }: ClubProfileInfoPanelProps) => {
                 <div className="border-b border-white/6 px-3.5 py-3.5">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--club-theme-text-secondary)]">Club Information</p>
                     <h2 className="mt-2 text-[15px] font-semibold uppercase leading-6 tracking-[0.06em] text-[color:var(--club-theme-text-primary)]">
-                        Contact, public links, and quick facts
+                        At a glance
                     </h2>
                 </div>
 
+                
                 <div className="space-y-4 px-4 py-4 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0">
                     <PanelSection
                         icon={<Phone className="h-4 w-4 text-[color:var(--club-tone-green)]" />}
@@ -102,10 +103,10 @@ export const ClubProfileInfoPanel = ({ club }: ClubProfileInfoPanelProps) => {
                         label="Club Snapshot"
                     >
                         <InfoRow label="Location" value={club.addressText || 'Pending'} multiline />
-                        <InfoRow label="Type" value={club.type || 'Club profile'} />
+                        <InfoRow label="Type" value={({SCHOOL:'School / educational team',GRASSROOTS:'Grassroots / community club',ACADEMY:'Academy / youth development',AMATEUR:'Amateur club',SEMI_PROFESSIONAL:'Semi-professional club',PROFESSIONAL:'Professional club',OTHER:'Football club'} as Record<string,string>)[club.type] || 'Football club'} />
                         <InfoRow label="Founded" value={club.foundedYear ? String(club.foundedYear) : 'Pending'} />
-                        <InfoRow label="Followers" value={String(club.followerCount)} />
-                        <InfoRow label="Members" value={String(club.memberCount)} />
+                        <InfoRow label="Followers" value={String(club.followerCount ?? 0)} />
+                        <InfoRow label="Members" value={String(club.memberCount ?? 0)} />
                     </PanelSection>
 
                     <PanelSection
@@ -129,6 +130,7 @@ export const ClubProfileInfoPanel = ({ club }: ClubProfileInfoPanelProps) => {
                         ) : null}
                     </PanelSection>
                 </div>
+                <div className="px-4 pb-4"><TrainingPriceHighlight clubId={club.id} presentation={club.presentation} />{club.presentation && <ClubAffiliations presentation={club.presentation} compact />}</div>
             </section>
         </aside>
     );

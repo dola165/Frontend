@@ -1,5 +1,6 @@
 import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useLayoutEffect, useRef } from 'react';
 
 export interface EntityTabItem {
     id: string;
@@ -18,8 +19,18 @@ interface EntityTabsProps {
 const baseClassName =
     'group inline-flex min-h-12 items-center gap-2 border-b-2 px-1 text-sm font-semibold  transition-colors';
 
-export const EntityTabs = ({ items, activeId, onChange }: EntityTabsProps) => (
-    <div className="overflow-x-auto border-b border-[#ffffff0d]">
+export const EntityTabs = ({ items, activeId, onChange }: EntityTabsProps) => {
+    const container = useRef<HTMLDivElement>(null);
+    useLayoutEffect(() => {
+        const rail = container.current;
+        const active = rail?.querySelector<HTMLElement>('[aria-current="page"], [aria-pressed="true"]');
+        if (!rail || !active || rail.scrollWidth <= rail.clientWidth) return;
+        const item = active.getBoundingClientRect();
+        const viewport = rail.getBoundingClientRect();
+        if (item.left < viewport.left) rail.scrollLeft -= viewport.left - item.left + 12;
+        else if (item.right > viewport.right) rail.scrollLeft += item.right - viewport.right + 12;
+    }, [activeId]);
+    return <div ref={container} className="entity-tabs overflow-x-auto border-b border-[#ffffff0d]">
         <div className="flex min-w-max items-stretch gap-5">
             {items.map((item) => {
                 const isActive = item.id === activeId;
@@ -61,4 +72,4 @@ export const EntityTabs = ({ items, activeId, onChange }: EntityTabsProps) => (
             })}
         </div>
     </div>
-);
+};

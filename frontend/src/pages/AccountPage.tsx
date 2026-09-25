@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
+import { formatDate, formatDateTime } from '../utils/formatting';
+import { MediaImage } from '../components/ui/MediaImage';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -6,7 +8,6 @@ import {
     BadgeCheck,
     Camera,
     CheckCircle2,
-    Clock3,
     Image as ImageIcon,
     KeyRound,
     Loader2,
@@ -17,7 +18,14 @@ import {
     TriangleAlert
 } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
+import { credentialUpdate } from '../api/credentialUpdates';
 import { useAuth } from '../context/AuthContext';
+import { TwoFactorSettings } from '../features/twoFactor/TwoFactorSettings';
+import { GoogleProviderSettings } from '../features/providers/GoogleProviderSettings';
+import { TryoutCancellationNotice } from '../features/tryouts/TryoutCancellationNotice';
+import type { MyTryoutApplication } from '../api/tryouts';
+import { confirmSecurityNavigation } from '../features/twoFactor/useSecurityNavigationGuard';
+import { isCurrentAuthSession } from '../utils/authStorage';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { ageFromDob, todayIso } from '../utils/age';
@@ -58,13 +66,7 @@ type SessionSummary = {
     revokedCount: number;
     expiredCount: number;
 };
-type TryoutApp = {
-    id: number;
-    tryoutId: number;
-    tryoutTitle: string;
-    status: string;
-    appliedAt: string;
-};
+type TryoutApp = MyTryoutApplication;
 type ProfileForm = {
     fullName: string;
     bio: string;
@@ -97,7 +99,7 @@ const btnSecondaryClass = 'inline-flex items-center gap-2 rounded-xl border bord
 const normalizeTab = (value: string | null): Tab =>
     value === 'security' || value === 'sessions' || value === 'accounts' || value === 'danger' ? value : 'profile';
 const trimToUndefined = (value: string) => value.trim() || undefined;
-const fmt = (value?: string | null) => (value ? new Date(value).toLocaleString() : null);
+const fmt = (value?: string | null) => (value ? formatDateTime(value) : null);
 const providerLabel = (provider: string) => (provider === 'google' ? 'Google' : provider.charAt(0).toUpperCase() + provider.slice(1));
 const buildForm = (account: Account): ProfileForm => ({
     fullName: account.fullName ?? '',
@@ -180,9 +182,13 @@ const DetailRow = ({ label, value }: { label: string; value: ReactNode }) => (
 export const AccountPage = () => {
     const { t } = useTranslation();
     const [searchParams, setSearchParams] = useSearchParams();
-    const { user, bootstrapSession } = useAuth();
+    const { user, sessionId, bootstrapSession, logout } = useAuth();
     const avatarInputRef = useRef<HTMLInputElement>(null);
     const bannerInputRef = useRef<HTMLInputElement>(null);
+    const accountRequest = useRef<AbortController | null>(null);
+    const sessionsRequest = useRef<AbortController | null>(null);
+    const tryoutsRequest = useRef<AbortController | null>(null);
+    const securityExtensions = import.meta.env.DEV || import.meta.env.VITE_ACCOUNT_SECURITY_EXTENSIONS === 'true';
 
     const [account, setAccount] = useState<Account | null>(null);
     const [form, setForm] = useState<ProfileForm | null>(null);
@@ -200,6 +206,8 @@ export const AccountPage = () => {
     const [uploading, setUploading] = useState<'avatar' | 'banner' | null>(null);
     const [tryoutApps, setTryoutApps] = useState<TryoutApp[]>([]);
     const [showTryoutApps, setShowTryoutApps] = useState(false);
+    const [tryoutsLoading, setTryoutsLoading] = useState(false);
+    const [tryoutsError, setTryoutsError] = useState<string | null>(null);
     const [myCards, setMyCards] = useState<PlayerCard[]>([]);
     const [activatingCard, setActivatingCard] = useState<PlayerCard | null>(null);
     const [childDob, setChildDob] = useState('');
@@ -210,51 +218,86 @@ export const AccountPage = () => {
 
     const activeTab = normalizeTab(searchParams.get('tab'));
 
-    const loadAccount = async () => {
-        setLoading(true);
+    const loadAccount = useCallback(async (preserveDraft = false) => {
+        accountRequest.current?.abort();
+        const controller = new AbortController();
+        accountRequest.current = controller;
+        const current = () => !controller.signal.aborted && isCurrentAuthSession(sessionId);
+        if (!preserveDraft) setLoading(true);
         try {
-            const response = await apiClient.get<Account>('/users/me/account');
+            const response = await apiClient.get<Account>('/users/me/account', { signal: controller.signal });
+            if (!current()) return;
+            if (response.data.id !== user?.id) throw new Error('Account details did not match the signed-in account.');
             setAccount(response.data);
-            setForm(buildForm(response.data));
+            if (!preserveDraft) setForm(buildForm(response.data));
             setError(null);
         } catch (requestError) {
-            setError(extractApiErrorMessage(requestError, 'Failed to load your account center.'));
+            if (current()) setError(extractApiErrorMessage(requestError, 'Failed to load your account center.'));
         } finally {
-            setLoading(false);
+            if (current() && !preserveDraft) setLoading(false);
         }
-    };
+    }, [sessionId, user?.id]);
 
-    const loadSessions = async () => {
+    const loadSessions = useCallback(async () => {
+        sessionsRequest.current?.abort();
+        const controller = new AbortController();
+        sessionsRequest.current = controller;
+        const current = () => !controller.signal.aborted && isCurrentAuthSession(sessionId);
         setSessionsLoading(true);
         try {
-            const response = await apiClient.get<SessionSummary>('/auth/sessions');
+            const response = await apiClient.get<SessionSummary>('/auth/sessions', { signal: controller.signal });
+            if (!current()) return;
             setSessions(response.data);
             setSessionsError(null);
         } catch (requestError) {
+            if (!current()) return;
             setSessions(null);
             setSessionsError(extractApiErrorMessage(requestError, 'Failed to load remembered sessions.'));
         } finally {
-            setSessionsLoading(false);
+            if (current()) setSessionsLoading(false);
         }
-    };
+    }, [sessionId]);
 
-    const loadTryoutApplications = async () => {
+    const refreshOverview = useCallback(() => {
+        if (!isCurrentAuthSession(sessionId)) return;
+        // Background metadata refresh must not unmount the authenticator or reset profile drafts.
+        void loadAccount(true);
+        void loadSessions();
+    }, [loadAccount, loadSessions, sessionId]);
+
+    const loadTryoutApplications = useCallback(async () => {
+        tryoutsRequest.current?.abort();
+        const controller = new AbortController();
+        tryoutsRequest.current = controller;
+        const current = () => !controller.signal.aborted && isCurrentAuthSession(sessionId);
+        setTryoutsLoading(true); setTryoutsError(null);
         try {
             const { fetchMyTryoutApplications } = await import('../api/tryouts');
-            const apps = await fetchMyTryoutApplications();
-            setTryoutApps(apps);
+            if (!current()) return;
+            const apps = await fetchMyTryoutApplications(controller.signal);
+            if (current()) setTryoutApps(apps);
         } catch {
-            // Silently ignore — tryout applications are supplementary
+            if (current()) setTryoutsError('Could not load your tryout applications. Please try again.');
+        } finally {
+            if (current()) setTryoutsLoading(false);
         }
-    };
+    }, [sessionId]);
 
     useEffect(() => {
+        let active = true;
+        setAccount(null); setForm(null); setSessions(null);
+        setTryoutApps([]); setShowTryoutApps(false); setTryoutsError(null); setTryoutsLoading(false);
         void loadAccount();
         void loadSessions();
         void fetchMyPlayerCards()
-            .then(setMyCards)
-            .catch(() => setMyCards([]));
-    }, []);
+            .then(cards => { if (active && isCurrentAuthSession(sessionId)) setMyCards(cards); })
+            .catch(() => { if (active && isCurrentAuthSession(sessionId)) setMyCards([]); });
+        return () => {
+            active = false;
+            accountRequest.current?.abort(); sessionsRequest.current?.abort();
+            tryoutsRequest.current?.abort();
+        };
+    }, [loadAccount, loadSessions, sessionId]);
 
     const submitActivation = async (e: FormEvent) => {
         e.preventDefault();
@@ -279,7 +322,7 @@ export const AccountPage = () => {
         if (account && account.role === 'PLAYER') {
             void loadTryoutApplications();
         }
-    }, [account?.role]);
+    }, [account?.role, loadTryoutApplications]);
 
     const bannerPreview = useMemo(
         () =>
@@ -298,7 +341,7 @@ export const AccountPage = () => {
         body.append('file', file);
         setUploading(type);
         try {
-            const response = await apiClient.post<{ url?: string }>('/media/upload', body, { headers: { 'Content-Type': 'multipart/form-data' }, params: { context: type } });
+            const response = await apiClient.post<{ url?: string }>('/media/upload', body, { headers: { 'Content-Type': 'multipart/form-data' }, params: { context: type === 'avatar' ? 'profile' : 'banner' } });
             if (!response.data?.url) throw new Error('Upload did not return a media URL.');
             updateForm(type === 'avatar' ? 'avatarUrl' : 'bannerUrl', response.data.url);
             setMessage(type === 'avatar' ? 'Avatar updated in the draft form.' : 'Banner updated in the draft form.');
@@ -353,19 +396,20 @@ export const AccountPage = () => {
 
     const changePassword = async (event: FormEvent) => {
         event.preventDefault();
+        if (!confirmSecurityNavigation()) return;
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
             setError('New password and confirmation do not match.');
             return;
         }
         setChangingPassword(true);
         try {
-            const response = await apiClient.post<{ message?: string }>('/auth/change-password', {
+            const response = await credentialUpdate(config => apiClient.post<{ message?: string }>('/auth/change-password', {
                 currentPassword: passwordForm.currentPassword,
                 newPassword: passwordForm.newPassword
-            });
+            }, config), response => response);
             setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-            await loadSessions();
-            setMessage(response.data?.message || 'Password changed successfully.');
+            setMessage(response.data?.message || 'Password changed. Sign in again with your new password.');
+            await logout();
         } catch (requestError) {
             setError(extractApiErrorMessage(requestError, 'Failed to change password.'));
         } finally {
@@ -376,7 +420,7 @@ export const AccountPage = () => {
     const revokeOtherSessions = async () => {
         setRevokingSessions(true);
         try {
-            const response = await apiClient.post<{ message?: string }>('/auth/sessions/revoke-others');
+            const response = await credentialUpdate(config => apiClient.post<{ message?: string }>('/auth/sessions/revoke-others', {}, config), response => response);
             await loadSessions();
             setMessage(response.data?.message || 'Other remembered sessions have been signed out.');
         } catch (requestError) {
@@ -434,7 +478,7 @@ export const AccountPage = () => {
 
                             <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
                                 <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[16px] border-2 border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] text-xl font-bold text-[color:var(--fc-text-primary)]">
-                                    {avatarPreview ? <img src={avatarPreview} alt={account.displayName} className="h-full w-full object-cover" /> : initials}
+                                    {avatarPreview ? <MediaImage src={avatarPreview} alt={account.displayName} className="h-full w-full object-cover" /> : initials}
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold text-[color:var(--fc-text-primary)]">{account.displayName}</h2>
@@ -462,7 +506,7 @@ export const AccountPage = () => {
                                 </Link>
                                 <button
                                     type="button"
-                                    onClick={() => setSearchParams({ tab: 'security' })}
+                                    onClick={() => { if (confirmSecurityNavigation()) setSearchParams({ tab: 'security' }); }}
                                     className={btnPrimaryClass + ' justify-center'}
                                 >
                                     Security Controls
@@ -484,6 +528,8 @@ export const AccountPage = () => {
                                         )}
                                     </button>
                                 )}
+                                <Link to="/account/roles" className={btnSecondaryClass}>Football roles</Link>
+                                <Link to="/organizations/create" className={btnSecondaryClass}>My organizations</Link>
                                 {account.role === 'SYSTEM_ADMIN' && (
                                     <Link to="/admin" className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-white/[0.04]">
                                         Admin Panel
@@ -495,7 +541,7 @@ export const AccountPage = () => {
                 </header>
 
                 {/* Tabs */}
-                <EntityTabs items={tabItems} activeId={activeTab} onChange={(tab) => setSearchParams({ tab })} />
+                <EntityTabs items={tabItems} activeId={activeTab} onChange={(tab) => { if (confirmSecurityNavigation()) setSearchParams({ tab }); }} />
 
                 {/* Messages */}
                 {message && (
@@ -512,9 +558,15 @@ export const AccountPage = () => {
                 {/* Linked kids — claimed Player Cards (WEB_APP_MASTER_PLAN.md §2.2) */}
                 {myCards.length > 0 && (
                     <section className={`${surfaceClass} px-5 py-5`}>
-                        <div>
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
                             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--fc-text-muted)]">{t('minors.account.linkedKids')}</p>
                             <h3 className="mt-1 text-base font-semibold text-[color:var(--fc-text-primary)]">{t('minors.account.yourCards')}</h3>
+                            </div>
+                            <Link to="/parent" onClick={(event) => { if (!confirmSecurityNavigation()) event.preventDefault(); }}
+                                className="rounded-xl border border-[var(--fc-border)] px-4 py-2 text-sm font-semibold text-[color:var(--fc-accent)] hover:bg-[color:var(--fc-accent-soft)]">
+                                {t('nav.parentHub', 'Parent Hub')}
+                            </Link>
                         </div>
                         <div className="mt-4 grid gap-2">
                             {myCards.map((card) => (
@@ -559,7 +611,7 @@ export const AccountPage = () => {
                                 Hide
                             </button>
                         </div>
-                        {tryoutApps.length === 0 ? (
+                        {tryoutsLoading ? <p role="status">Loading tryout applications…</p> : tryoutsError ? <p role="alert">{tryoutsError}<button type="button" onClick={() => void loadTryoutApplications()}>Retry</button></p> : tryoutApps.length === 0 ? (
                             <p className="mt-4 text-sm text-[color:var(--fc-text-secondary)]">You haven't applied to any tryouts yet.</p>
                         ) : (
                             <div className="mt-4 grid gap-2">
@@ -567,8 +619,9 @@ export const AccountPage = () => {
                                     <div key={app.id} className="flex items-center justify-between gap-4 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-4 py-3">
                                         <div className="min-w-0">
                                             <p className="text-sm font-semibold text-[color:var(--fc-text-primary)]">{app.tryoutTitle}</p>
+                                            <TryoutCancellationNotice application={app}/>
                                             <p className="text-xs text-[color:var(--fc-text-secondary)]">
-                                                Applied {new Date(app.appliedAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                Applied {formatDate(app.appliedAt, { year: 'numeric', month: 'short', day: 'numeric' })}
                                             </p>
                                         </div>
                                         <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${tryoutStatusStyle(app.status)}`}>
@@ -741,7 +794,7 @@ export const AccountPage = () => {
                             <Section title="Profile Assets" description="Banner and avatar media for your public profile.">
                                 <div className="relative h-32 overflow-hidden rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)]">
                                     {bannerPreview ? (
-                                        <img src={bannerPreview} alt="Account banner" className="h-full w-full object-cover" />
+                                        <MediaImage src={bannerPreview} alt="Account banner" className="h-full w-full object-cover" />
                                     ) : (
                                         <div className="flex h-full w-full items-center justify-center">
                                             <ImageIcon className="h-8 w-8 text-[color:var(--fc-text-secondary)]" />
@@ -755,12 +808,12 @@ export const AccountPage = () => {
                                         {uploading === 'banner' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
                                         Banner
                                     </button>
-                                    <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => void uploadAsset(event, 'banner')} />
+                                    <input ref={bannerInputRef} aria-label="Upload profile banner" type="file" accept="image/*" className="hidden" onChange={(event) => void uploadAsset(event, 'banner')} />
                                 </div>
 
                                 <div className="mt-4 flex items-center gap-4">
                                     <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[14px] border-2 border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] text-xl font-bold text-[color:var(--fc-text-primary)]">
-                                        {avatarPreview ? <img src={avatarPreview} alt={account.displayName} className="h-full w-full object-cover" /> : initials}
+                                        {avatarPreview ? <MediaImage src={avatarPreview} alt={account.displayName} className="h-full w-full object-cover" /> : initials}
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <button
@@ -771,7 +824,7 @@ export const AccountPage = () => {
                                             {uploading === 'avatar' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
                                             Avatar
                                         </button>
-                                        <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => void uploadAsset(event, 'avatar')} />
+                                        <input ref={avatarInputRef} aria-label="Upload profile avatar" type="file" accept="image/*" className="hidden" onChange={(event) => void uploadAsset(event, 'avatar')} />
                                         <p className="text-xs leading-5 text-[color:var(--fc-text-secondary)]">Uploads update the draft immediately. Save to persist.</p>
                                     </div>
                                 </div>
@@ -820,7 +873,7 @@ export const AccountPage = () => {
                                     <div>
                                         <h3 className="text-sm font-semibold text-[color:var(--fc-text-primary)]">Password State</h3>
                                         <p className="mt-2 text-sm leading-6 text-[color:var(--fc-text-secondary)]">
-                                            {account.passwordLoginEnabled ? 'Password sign-in is configured. Changing it revokes remembered refresh sessions across other browsers.' : 'This account currently relies on a linked provider. Use the password reset route for this email when you are ready to add a password.'}
+                                            {account.passwordLoginEnabled ? 'Changing your password signs you out on every device, including this one. Sign in again with your new password afterward.' : 'This account currently relies on a linked provider. Use the password reset route for this email when you are ready to add a password.'}
                                         </p>
                                     </div>
                                 </div>
@@ -849,15 +902,9 @@ export const AccountPage = () => {
                             )}
                         </Section>
 
-                        <Section title="Deferred Controls">
-                            <div className={`${insetClass} flex items-start gap-3 px-4 py-4`}>
-                                <Clock3 className="mt-0.5 h-5 w-5 text-[color:var(--fc-text-muted)]" />
-                                <div>
-                                    <p className="text-sm font-semibold text-[color:var(--fc-text-primary)]">Two-factor authentication stays intentionally deferred for a later phase.</p>
-                                    <p className="mt-2 text-sm leading-6 text-[color:var(--fc-text-secondary)]">The slot remains visible so future security additions land in a stable place without changing the navigation model.</p>
-                                </div>
-                            </div>
-                        </Section>
+                        {securityExtensions && <Section title="Authenticator Security">
+                            <TwoFactorSettings accountId={account.id} passwordLoginEnabled={account.passwordLoginEnabled} onCredentialsChanged={refreshOverview} />
+                        </Section>}
                     </div>
                 )}
 
@@ -881,8 +928,9 @@ export const AccountPage = () => {
                         }
                     >
                         {sessionsError && (
-                            <div className="mb-4 rounded-xl border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--fc-state-danger)]">
+                            <div role="alert" className="mb-4 rounded-xl border border-[color:var(--fc-state-danger)]/30 bg-[color:var(--fc-state-danger)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--fc-state-danger)]">
                                 {sessionsError}
+                                <button type="button" className={`${btnSecondaryClass} ml-3`} disabled={sessionsLoading} onClick={() => void loadSessions()}>Retry sessions</button>
                             </div>
                         )}
 
@@ -894,7 +942,7 @@ export const AccountPage = () => {
                             <div className="flex items-center justify-center py-12">
                                 <Loader2 className="h-6 w-6 animate-spin text-[color:var(--fc-accent)]" />
                             </div>
-                        ) : (
+                        ) : sessions ? (
                             <div className="space-y-4">
                                 <div className="grid gap-3 md:grid-cols-3">
                                     <StatTile label="Active" value={sessions?.activeCount ?? 0} />
@@ -933,7 +981,7 @@ export const AccountPage = () => {
                                     )}
                                 </div>
                             </div>
-                        )}
+                        ) : null}
                     </Section>
                 )}
 
@@ -945,15 +993,12 @@ export const AccountPage = () => {
                             <DetailRow label="External Providers" value={account.linkedAccounts.length > 0 ? `${account.linkedAccounts.length} connected` : 'None'} />
                         </Section>
 
-                        <Section title="Linked Providers" description="Provider visibility stays local to this destination.">
-                            {account.linkedAccounts.length === 0 ? (
-                                <div className={`${insetClass} px-4 py-4 text-sm text-[color:var(--fc-text-secondary)]`}>
-                                    No linked providers are attached to this account yet.
-                                </div>
-                            ) : (
+                        <Section title="Linked Providers" description="Manage the sign-in methods attached to this account.">
+                            {securityExtensions && <GoogleProviderSettings accountId={account.id} onCredentialsChanged={refreshOverview} />}
+                            {account.linkedAccounts.some(linked => !securityExtensions || linked.provider !== 'google') && (
                                 <div className={surfaceClass}>
                                     <div className="divide-y divide-[color:var(--fc-border)]">
-                                        {account.linkedAccounts.map((linked) => (
+                                        {account.linkedAccounts.filter(linked => !securityExtensions || linked.provider !== 'google').map((linked) => (
                                             <article key={`${linked.provider}-${linked.linkedAt || 'current'}`} className="flex items-center justify-between gap-4 px-5 py-4">
                                                 <div>
                                                     <p className="text-sm font-semibold text-[color:var(--fc-text-primary)]">{providerLabel(linked.provider)}</p>
@@ -966,9 +1011,6 @@ export const AccountPage = () => {
                                 </div>
                             )}
 
-                            <div className={`mt-4 ${insetClass} px-4 py-4 text-sm leading-6 text-[color:var(--fc-text-secondary)]`}>
-                                Linking and unlinking flows beyond visibility stay intentionally deferred until the backend surface is broader.
-                            </div>
                         </Section>
                     </div>
                 )}

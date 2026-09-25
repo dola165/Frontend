@@ -44,7 +44,7 @@ try {
  const fixtureRow=list.getByRole('listitem').filter({hasText:'CONFIRMED'});
  await fixtureRow.getByRole('button').focus();
  await page.keyboard.press('Enter');
- await expect(page.getByRole('button',{name:'View full profile'})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Open club'})).toBeVisible();
  await expect(page.getByRole('button',{name:'Respond',exact:true})).toHaveCount(0);
  await page.screenshot({path:path.join(output,'spectator-match.png')});
  console.log('PASS: guests browse public clubs, matches and tournaments; keyboard opens confirmed match, with no staff action');

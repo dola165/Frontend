@@ -46,13 +46,19 @@ try {
   await expect(list).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.gkTestMap.isMoving())).toBe(false);
   const clubPoint = await page.evaluate(() => window.gkTestMap.getSource('selected-point').serialize().data.features[0].geometry.coordinates);
-  expect(await page.evaluate(() => window.gkTestMap.getCenter().lng)).toBeCloseTo(clubPoint[0], 4);
-  expect(await page.evaluate(() => window.gkTestMap.getZoom())).toBeGreaterThanOrEqual(14);
+  const bothPointsVisible = () => page.evaluate(club => {
+    const map = window.gkTestMap, canvas = map.getContainer();
+    return [[44.778, 41.714], club].every(coordinates => {
+      const point = map.project(coordinates);
+      return point.x >= 20 && point.x <= canvas.clientWidth - 20 && point.y >= 20 && point.y <= canvas.clientHeight - 20;
+    });
+  }, clubPoint);
+  expect(await bothPointsVisible()).toBe(true);
   await page.evaluate(() => window.gkTestMap.jumpTo({ center: [44.86, 41.75] }));
   const distanceBox = await firstCard.locator('.atlas-result-footer>span').boundingBox();
   await page.mouse.click(distanceBox.x + distanceBox.width / 2, distanceBox.y + distanceBox.height / 2);
-  await expect.poll(() => page.evaluate(() => window.gkTestMap.getCenter().lng)).toBeCloseTo(clubPoint[0], 4);
   await expect.poll(() => page.evaluate(() => window.gkTestMap.isMoving())).toBe(false);
+  expect(await bothPointsVisible()).toBe(true);
   await firstCard.locator('.atlas-result-main').focus();
   await firstCard.locator('.atlas-result-main').press('Enter');
   await expect(list).toBeVisible();

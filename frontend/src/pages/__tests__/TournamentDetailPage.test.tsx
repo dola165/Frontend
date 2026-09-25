@@ -26,6 +26,10 @@ vi.mock('../../features/tournaments/api', () => ({
     fetchTournament: vi.fn(),
     registerPlayer: vi.fn(),
     requestEntry: vi.fn(),
+    fetchGroupStandings: vi.fn().mockResolvedValue([]),
+    fetchTournamentTieState: vi.fn(),
+    fetchTournamentTieHistory: vi.fn(),
+    resolveTournamentTie: vi.fn(),
 }));
 
 vi.mock('../../context/AuthContext', () => ({
@@ -40,7 +44,7 @@ vi.mock('../../utils/authRedirect', () => ({
     buildLoginRedirectPath: vi.fn(() => '/login?next=%2F'),
 }));
 
-import { fetchTournament, registerPlayer } from '../../features/tournaments/api';
+import { fetchTournament, fetchTournamentTieHistory, fetchTournamentTieState, registerPlayer } from '../../features/tournaments/api';
 import { useAuth } from '../../context/AuthContext';
 
 const mockTournament: TournamentDetail = {
@@ -69,10 +73,18 @@ const renderPage = () =>
         </MemoryRouter>
     );
 
+const publicEntry = (overrides: Partial<TournamentDetail['entries'][number]>): TournamentDetail['entries'][number] => ({
+    id: 1, clubId: null, clubName: null, squadId: null, squadName: null, userId: null, displayName: null,
+    status: 'APPROVED', seed: null, requestedBy: null, decidedBy: null, decidedAt: null, confirmedAt: null,
+    withdrawnAt: null, withdrawalReason: null, ...overrides,
+});
+
 describe('TournamentDetailPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.mocked(apiClient.get).mockResolvedValue({ data: null });
+        vi.mocked(fetchTournamentTieState).mockResolvedValue({ contests: [], blocked: false, staleStageIds: [], blockedStageIds: [] });
+        vi.mocked(fetchTournamentTieHistory).mockResolvedValue([]);
         (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({
             isAuthenticated: true,
             user: { id: 1, profileComplete: true },
@@ -102,7 +114,8 @@ describe('TournamentDetailPage', () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
         renderPage();
         expect(await screen.findByRole('heading', { name: 'Spring Cup', level: 1 })).toBeInTheDocument();
-        expect(screen.getAllByText('A seasonal tournament')).toHaveLength(2);
+        expect(screen.getByText('A seasonal tournament')).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'Competition' })).toHaveAttribute('aria-selected', 'true');
     });
 
     it('shows the Back to Tournaments link', async () => {
@@ -208,14 +221,39 @@ describe('TournamentDetailPage', () => {
     it('renders dates when present', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
         renderPage();
-        expect(await screen.findByText('Entry window')).toBeInTheDocument();
+        expect(await screen.findByText(/Entry window: 1 Jun 2026/)).toBeInTheDocument();
     });
 
     it('renders rules section when present', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
         renderPage();
-        expect(await screen.findByText('Competition rules')).toBeInTheDocument();
+        await userEvent.click(await screen.findByRole('tab', { name: 'About' }));
+        expect(screen.getByText('Competition rules')).toBeInTheDocument();
         expect(screen.getByText('No fouls allowed')).toBeInTheDocument();
+    });
+
+    it('shows an authoritative read-only tie explanation to a non-operator viewer', async () => {
+        vi.mocked(fetchTournament).mockResolvedValue({ ...mockTournament, status: 'ACTIVE', entries: [
+            publicEntry({ id: 21, clubName: 'Riverside' }), publicEntry({ id: 22, clubName: 'Hill FC' }),
+        ], stages: [{ id: 10, parentStageId: null, name: 'Group A', stageType: 'GROUP', stageOrder: 1, status: 'COMPLETED', advanceCount: 1 }] });
+        vi.mocked(fetchTournamentTieState).mockResolvedValue({ blocked: true, staleStageIds: [], blockedStageIds: [], contests: [{
+            key: 'RANK:10:1', stageId: 10, fixtureId: null, rank: 1, candidateEntryIds: [21, 22], sourceRevision: '4:7:9',
+            ruleContext: 'points DESC, goal difference DESC, goals for DESC', status: 'UNRESOLVED', selectedEntryId: null,
+            resolutionId: null, consequential: true, readyForResolution: true,
+        }] });
+        renderPage();
+        expect(await screen.findByText(/Only tournament ADMIN or STAFF/)).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Resolve this tie' })).not.toBeInTheDocument();
+        expect(screen.getByText('Competition progression is blocked')).toBeInTheDocument();
+    });
+
+    it('keeps tournament information while hiding unsupported extension links', async () => {
+        (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
+        renderPage();
+        await userEvent.click(await screen.findByRole('tab', { name: 'About' }));
+        expect(screen.getAllByText('A seasonal tournament').length).toBeGreaterThan(0);
+        expect(screen.queryByRole('link', { name: /Volunteer at this tournament/ })).not.toBeInTheDocument();
+        expect(screen.queryByText(/Competition series/)).not.toBeInTheDocument();
     });
 
     it('shows a useful rules empty state when rules are not present', async () => {
@@ -225,6 +263,7 @@ describe('TournamentDetailPage', () => {
         });
         renderPage();
         await screen.findByText('Spring Cup');
+        await userEvent.click(screen.getByRole('tab', { name: 'About' }));
         expect(screen.getByText('Competition rules')).toBeInTheDocument();
         expect(screen.getByText('The organizer has not published competition rules yet.')).toBeInTheDocument();
     });
@@ -269,7 +308,97 @@ describe('TournamentDetailPage', () => {
     it('renders useful empty states for participants and fixtures', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
         renderPage();
-        expect(await screen.findByText('No confirmed entries yet')).toBeInTheDocument();
+        expect(await screen.findByText('The draw is coming soon')).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('tab', { name: 'Teams' }));
+        expect(screen.getByText('No confirmed entries yet')).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('tab', { name: 'Matches' }));
         expect(screen.getByText('Schedule coming soon')).toBeInTheDocument();
+    });
+
+    it('shows the bracket to visitors without making private requests', async () => {
+        vi.mocked(useAuth).mockReturnValue({ isAuthenticated: false, user: null } as ReturnType<typeof useAuth>);
+        vi.mocked(fetchTournament).mockResolvedValue({ ...mockTournament,
+            organizerName: 'Health Partners', hostClubName: null,
+            stages: [{ id: 3, name: 'Finals', stageType: 'KNOCKOUT', stageOrder: 1, status: 'ACTIVE', parentStageId: null, advanceCount: null }],
+            fixtures: [{ id: 10, stageId: 3, homeEntryId: 1, awayEntryId: 2, homeLabel: 'Blue FC', awayLabel: 'Hill FC', roundNumber: 1, fixtureOrder: 1, status: 'SCHEDULED' } as TournamentDetail['fixtures'][number]],
+        });
+        renderPage();
+        expect(await screen.findByText('Blue FC')).toBeInTheDocument();
+        expect(screen.getByText('Hill FC')).toBeInTheDocument();
+        expect(screen.getByText('Organized by · Health Partners')).toBeInTheDocument();
+        expect(screen.queryByText(/brackets will be added later/)).not.toBeInTheDocument();
+        expect(screen.queryByText('Ready to place')).not.toBeInTheDocument();
+        expect(apiClient.get).not.toHaveBeenCalled();
+        expect(apiClient.post).not.toHaveBeenCalled();
+    });
+
+    it('keeps eliminated teams in the public history while omitting pending entries', async () => {
+        vi.mocked(fetchTournament).mockResolvedValue({ ...mockTournament, entries: [
+            publicEntry({ id: 1, clubId: 4, clubName: 'Eliminated FC', status: 'ELIMINATED' }),
+            publicEntry({ id: 2, displayName: 'Guest club', draftTeamId: 9, status: 'APPROVED' }),
+            publicEntry({ id: 3, clubName: 'Pending FC', status: 'PENDING' }),
+        ] });
+        renderPage();
+        await userEvent.click(await screen.findByRole('tab', { name: 'Teams' }));
+        expect(screen.getByRole('link', { name: 'Eliminated FC' })).toHaveAttribute('href', '/clubs/4');
+        expect(screen.getByText('Guest club')).toBeInTheDocument();
+        expect(screen.queryByText('Pending FC')).not.toBeInTheDocument();
+        await userEvent.type(screen.getByRole('searchbox', { name: 'Search teams' }), 'guest');
+        expect(screen.getByText('Guest club')).toBeInTheDocument();
+        expect(screen.queryByText('Eliminated FC')).not.toBeInTheDocument();
+    });
+
+    it('filters matches by selected stage and completion', async () => {
+        vi.mocked(fetchTournament).mockResolvedValue({ ...mockTournament,
+            stages: [
+                { id: 1, name: 'Opening round', stageType: 'KNOCKOUT', stageOrder: 1, status: 'COMPLETED', parentStageId: null, advanceCount: null },
+                { id: 2, name: 'Final round', stageType: 'KNOCKOUT', stageOrder: 2, status: 'ACTIVE', parentStageId: null, advanceCount: null },
+            ],
+            fixtures: [
+                { id: 1, stageId: 1, homeLabel: 'Early FC', awayLabel: 'First FC', status: 'COMPLETED', homeScore: 2, awayScore: 1 },
+                { id: 2, stageId: 2, homeLabel: 'Final FC', awayLabel: 'Next FC', status: 'SCHEDULED' },
+            ] as TournamentDetail['fixtures'],
+        });
+        renderPage();
+        await userEvent.click(await screen.findByRole('tab', { name: 'Matches' }));
+        expect(screen.getByText('Final FC')).toBeInTheDocument();
+        expect(screen.queryByText('Early FC')).not.toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Results' }));
+        expect(screen.getByText('No matches in this view yet.')).toBeInTheDocument();
+        await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Stage' }), '1');
+        expect(screen.getByText('Early FC')).toBeInTheDocument();
+        expect(screen.queryByText('Final FC')).not.toBeInTheDocument();
+    });
+
+    it('offers a selectable link when clipboard access is unavailable', async () => {
+        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) } });
+        vi.mocked(fetchTournament).mockResolvedValue(mockTournament);
+        renderPage();
+        await userEvent.click(await screen.findByRole('button', { name: 'Copy link' }));
+        expect(await screen.findByRole('textbox', { name: 'Copy this tournament link' })).toHaveValue(`${window.location.origin}/tournaments/42`);
+    });
+
+    it('refreshes results while keeping the selected public tab', async () => {
+        vi.mocked(fetchTournament).mockResolvedValueOnce(mockTournament).mockResolvedValueOnce({
+            ...mockTournament, entries: [publicEntry({ displayName: 'New guest team' })],
+        });
+        renderPage();
+        await userEvent.click(await screen.findByRole('tab', { name: 'Teams' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Refresh results' }));
+        expect(await screen.findByText('New guest team')).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'Teams' })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('status')).toHaveTextContent('Results are up to date.');
+    });
+
+    it('keeps the current public results after a failed refresh and allows retry', async () => {
+        vi.mocked(fetchTournament).mockResolvedValueOnce(mockTournament).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(mockTournament);
+        renderPage();
+        await userEvent.click(await screen.findByRole('tab', { name: 'Matches' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Refresh results' }));
+        expect(await screen.findByRole('alert')).toHaveTextContent('Could not refresh results. Your current view is still here.');
+        expect(screen.getByRole('heading', { name: 'Spring Cup' })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: 'Matches' })).toHaveAttribute('aria-selected', 'true');
+        await userEvent.click(screen.getByRole('button', { name: 'Refresh results' }));
+        expect(await screen.findByRole('status')).toHaveTextContent('Results are up to date.');
     });
 });

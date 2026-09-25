@@ -1,12 +1,16 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { MessagingPage } from './MessagingPage';
 import { chatApi, type ConversationDto } from '../api/chat';
 
+vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ sessionId: 'session-A' }) }));
+vi.mock('../features/squadCommunication/api', () => ({ spaces: vi.fn().mockResolvedValue([]) }));
+
 vi.mock('@stomp/stompjs', () => ({ Client: class { activate() {} deactivate() {} connected = false; } }));
 vi.mock('../api/axiosConfig', () => ({ buildWebSocketUrl: () => 'ws://localhost/ws-chat' }));
-vi.mock('../utils/authStorage', () => ({ getStoredAccessToken: () => 'token', getStoredUserId: () => '1' }));
+vi.mock('../utils/authStorage', () => ({ getStoredAccessToken: () => 'token', getStoredUserId: () => '1', getAuthSessionId: () => 'session-A', isCurrentAuthSession: (id: string) => id === 'session-A' }));
 vi.mock('../components/chat/NewChatModal', () => ({ NewChatModal: () => null }));
 vi.mock('../api/chat', () => ({ chatApi: {
     getConversations: vi.fn(), getConversation: vi.fn(), getMessages: vi.fn(), getMessagesAfter: vi.fn(), markAsRead: vi.fn(), sendMessage: vi.fn(), createConversation: vi.fn(),
@@ -27,11 +31,13 @@ beforeEach(() => {
     vi.mocked(chatApi.markAsRead).mockResolvedValue({} as never);
 });
 it('keeps the draft after a lost acknowledgement and shows it once after retry, even without live connection', async () => {
+    const user = userEvent.setup();
     render(<MemoryRouter initialEntries={['/messages?conversationId=7']}><MessagingPage /></MemoryRouter>);
     const input = await screen.findByPlaceholderText('Type a message...');
-    fireEvent.change(input, { target: { value: 'Keep this draft' } });
+    await screen.findByText('No messages yet. Say hello!');
+    await user.type(input, 'Keep this draft');
     vi.mocked(chatApi.sendMessage).mockRejectedValueOnce(new Error('response lost'));
-    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+    await user.click(screen.getByRole('button', { name: 'Send message' }));
     await screen.findByRole('alert');
     expect(input).toHaveValue('Keep this draft');
     const key = vi.mocked(chatApi.sendMessage).mock.calls[0][2];

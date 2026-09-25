@@ -41,7 +41,7 @@ export const VerifyEmailPage = () => {
   const { status, bootstrapSession } = useAuth();
   const token = searchParams.get('token');
   const pending = searchParams.get('pending') === '1';
-  const requestedDestination = resolvePostAuthRedirect(searchParams.get('next'), '/home');
+  const requestedDestination = resolvePostAuthRedirect(searchParams.get('next'), '');
   const initialFlow = getAuthFlow();
   const [verifyState, setVerifyState] = useState<VerifyState>(token ? 'loading' : pending || initialFlow.awaitingVerification ? 'pending' : 'error');
   const [message, setMessage] = useState(token ? t('auth.verify.verifyingMessage') : pending || initialFlow.awaitingVerification

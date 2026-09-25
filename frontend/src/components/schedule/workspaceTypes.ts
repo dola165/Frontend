@@ -40,6 +40,16 @@ export interface ChallengeInfo {
 }
 
 export interface ScheduleWorkspaceEvent {
+    homeScore?: number | null;
+    awayScore?: number | null;
+    resultStatus?: import('../../features/matchHistory/api').ResultStatus;
+    matchExchangeId?: number | null;
+    canRecordResult?: boolean;
+    resultClubId?: number | null;
+    seriesId?: string | null;
+    responseSummary?: { total: number; going: number; pending: number };
+    origin?: 'CLUB_CALENDAR' | 'PERSONAL_CALENDAR' | 'MATCH_EXCHANGE' | 'SQUAD_SESSION';
+    originId?: number | null;
     id: string;
     eventId: number;
     title: string;
@@ -62,6 +72,8 @@ export interface ScheduleWorkspaceEvent {
     mapEligible: boolean;
     appearsOnMap: boolean;
     opponentClubId?: number | null;
+    hostSquadId?: number | null;
+    hostSquadName?: string | null;
     conflictingEventIds: number[];
     conflict?: ConflictInfo | null;
     challenge?: ChallengeInfo | null;

@@ -1,3 +1,9 @@
+import '../features/squadCommunication/squad-life.css';
+import { MessageText } from '../components/chat/MessageText';
+import { SquadInboxList, SquadInboxConversation } from '../features/squadCommunication/SquadInbox';
+import { useAuth } from '../context/AuthContext';
+import { formatDate, formatTime as formatClockTime } from '../utils/formatting';
+import { MediaImage } from '../components/ui/MediaImage';
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useChatWebSocket, mergeMessages } from '../hooks/useChatWebSocket';
@@ -19,8 +25,8 @@ function formatTime(iso: string | null): string {
     const d = new Date(iso);
     const now = new Date();
     const isToday = d.toDateString() === now.toDateString();
-    if (isToday) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    if (isToday) return formatClockTime(d);
+    return formatDate(d, { month: 'short', day: 'numeric' });
 }
 
 function getDisplayName(conv: ConversationDto, currentUserId: number): string {
@@ -43,9 +49,12 @@ function getAvatarLetter(conv: ConversationDto, currentUserId: number): string {
 // ── Component ──────────────────────────────────────────────────────
 
 export const MessagingPage = () => {
+    const {sessionId} = useAuth();
     const currentUserId = Number(getStoredUserId() || 0);
     const [searchParams, setSearchParams] = useSearchParams();
 
+    const squadParam = Number(searchParams.get('squadId'));
+    const squadId = Number.isSafeInteger(squadParam) && squadParam > 0 ? squadParam : null;
     const [conversations, setConversations] = useState<ConversationDto[]>([]);
     const [activeConvId, setActiveConvId] = useState<number | null>(null);
     const [messages, setMessages] = useState<Record<number, ChatMessageResponse[]>>({});
@@ -155,7 +164,8 @@ export const MessagingPage = () => {
 
     useEffect(() => {
         const id = Number(searchParams.get('conversationId'));
-        if (!Number.isSafeInteger(id) || id <= 0) return;
+        if (squadId || !Number.isSafeInteger(id) || id <= 0) { setActiveConvId(null); setShowInfo(false); return; }
+        if (conversationsRef.current.some(conversation => conversation.id === id)) { setActiveConvId(id); return; }
         let current = true;
         chatApi.getConversation(id).then(response => {
             if (!current) return;
@@ -163,12 +173,13 @@ export const MessagingPage = () => {
             setActiveConvId(id);
         }).catch(() => { if (current) setManagementError('This conversation is no longer available.'); });
         return () => { current = false; };
-    }, [searchParams]);
+    }, [searchParams, squadId]);
 
     const selectConversation = useCallback((id: number) => {
         setActiveConvId(id);
         setShowInfo(false);
-    }, []);
+        setSearchParams({conversationId:String(id)});
+    }, [setSearchParams]);
 
     const sendMessage = useCallback(async (event?: React.FormEvent) => {
         event?.preventDefault();
@@ -192,7 +203,7 @@ export const MessagingPage = () => {
 
     // ── Derived ─────────────────────────────────────────────────────
 
-    const activeConv = conversations.find((c) => c.id === activeConvId) || null;
+    const activeConv = squadId ? null : conversations.find((c) => c.id === activeConvId) || null;
     const activeMessages = activeConvId ? messages[activeConvId] || [] : [];
     useChatScroll(messageViewportRef, activeConvId, !!activeConv && !loadingMessages);
     useChatReadReceipts(activeConvId, !!activeConv && !loadingMessages && !showNewChat, activeMessages, messageViewportRef);
@@ -363,9 +374,9 @@ export const MessagingPage = () => {
     // ── Render ──────────────────────────────────────────────────────
 
     return (
-        <div className="chat-messenger-shell h-full w-full flex overflow-hidden">
+        <div className={`chat-messenger-shell unified-messages ${squadId || activeConv ? 'has-conversation' : ''} h-full w-full flex overflow-hidden`}>
             {/* ── LEFT SIDEBAR ─────────────────────────────────── */}
-            <aside className="w-[320px] shrink-0 border-r border-[var(--chat-card-border)] bg-[var(--chat-sidebar-bg)] flex flex-col">
+            <aside className="messages-sidebar w-[320px] shrink-0 border-r border-[var(--chat-card-border)] bg-[var(--chat-sidebar-bg)] flex flex-col">
                 {/* Header */}
                 <div className="h-14 px-4 border-b border-[var(--chat-card-border)] flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2">
@@ -388,12 +399,14 @@ export const MessagingPage = () => {
                         fill="currentColor"
                     />
                     <span className="text-[var(--chat-text-muted)]">
-                        {connected ? 'Live updates connected' : 'Reconnecting live updates'}
+                        {squadId ? 'Squad messages refresh automatically' : connected ? 'Live updates connected' : 'Reconnecting live updates'}
                     </span>
                 </div>
 
-                {/* Conversation list */}
+                {/* One inbox, with the existing squad membership checks. */}
                 <div className="flex-1 overflow-y-auto">
+                    <SquadInboxList key={sessionId} selected={squadId} />
+                    <h3 className="messages-other-heading">Other conversations</h3>
                     {sidebarLoading ? (
                         <div className="flex flex-col gap-2 px-3 py-2">
                             <SkeletonMessageRow />
@@ -401,11 +414,11 @@ export const MessagingPage = () => {
                             <SkeletonMessageRow />
                             <SkeletonMessageRow />
                         </div>
-                    ) : sidebarLoading ? (
+                    ) : conversations.length === 0 ? (
                         <div className="px-4 py-12 text-center">
                             <MessageSquare className="w-8 h-8 mx-auto mb-3 text-[var(--chat-text-muted)]" />
                             <p className="text-sm text-[var(--chat-text-secondary)] font-medium">
-                                No conversations yet
+                                No other conversations yet
                             </p>
                             <p className="text-xs text-[var(--chat-text-muted)] mt-1">
                                 Start a new chat to begin messaging.
@@ -432,7 +445,7 @@ export const MessagingPage = () => {
                                         {isSharedConversation(conv) ? (
                                             <Users className="w-5 h-5" />
                                         ) : conv.participants[0]?.profilePictureUrl ? (
-                                            <img
+                                            <MediaImage
                                                 src={conv.participants[0].profilePictureUrl}
                                                 alt=""
                                                 className="w-full h-full rounded-full object-cover"
@@ -493,10 +506,11 @@ export const MessagingPage = () => {
 
             {/* ── CHAT WINDOW ──────────────────────────────────── */}
             <section className="flex-1 flex flex-col bg-[var(--chat-surface)] min-w-0">
-                {activeConv ? (
+                {squadId ? <SquadInboxConversation key={`${sessionId}:${squadId}`} id={squadId} /> : activeConv ? (
                     <>
                         {/* Header — clickable to toggle info panel */}
                         <div className="h-14 px-5 bg-[var(--chat-card)] border-b border-[var(--chat-card-border)] flex items-center justify-between shrink-0">
+                            <button className="messages-mobile-back" onClick={() => setSearchParams({})} aria-label="Back to all messages">← Chats</button>
                             <button
                                 onClick={() => setShowInfo(!showInfo)}
                                 className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-80 transition-opacity"
@@ -567,7 +581,7 @@ export const MessagingPage = () => {
                                                         : 'bg-[var(--chat-bubble-other)] text-[var(--chat-bubble-other-text)] rounded-bl-sm border border-[var(--chat-card-border)]'
                                                 }`}
                                             >
-                                                <p data-chat-message-content className="whitespace-pre-wrap break-words">{msg.content}</p>
+                                                <p data-chat-message-content className="whitespace-pre-wrap break-words"><MessageText text={msg.content} /></p>
                                             </div>
                                             <span className="text-[10px] text-[var(--chat-text-muted)] mt-0.5 mx-1">
                                                 {formatTime(msg.createdAt)}
@@ -697,7 +711,7 @@ export const MessagingPage = () => {
                                             >
                                                 <div className="w-9 h-9 rounded-full bg-[var(--chat-accent)]/15 flex items-center justify-center text-[var(--chat-accent)] font-bold text-xs shrink-0">
                                                     {p.profilePictureUrl ? (
-                                                        <img
+                                                        <MediaImage
                                                             src={p.profilePictureUrl}
                                                             alt=""
                                                             className="w-full h-full rounded-full object-cover"

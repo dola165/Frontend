@@ -1,56 +1,49 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Loader2, MessageSquareOff, X } from 'lucide-react';
-import { completeClubEvent, completeClubEventWithResult } from '../../features/schedule/api';
+import { completeClubEvent } from '../../features/schedule/api';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import type { ScheduleWorkspaceEvent } from './workspaceTypes';
+import { useDialogFocus } from '../workspace/useDialogFocus';
+import { ScheduleResult } from '../../features/matchHistory/ScheduleResult';
 
 interface PastEventModalProps {
     event: ScheduleWorkspaceEvent;
     /** Host club id — null for personal events (they have no complete endpoint). */
     clubId: number | null;
     clubName: string;
+    canComplete?: boolean;
+    canRecordResult?: boolean;
     onClose: () => void;
     onCompleted: () => void;
 }
 
 /**
- * Read-only view for past events (WEB_APP_MASTER_PLAN.md §5). The past is
- * never editable — but club events can be COMPLETED here, with a result for
- * matches. Completing a match also tears down its temporary challenge chat
- * (MatchChatOrchestrator) — the hint below makes that visible.
+ * Past event details, completion and authorized, reasoned result recovery.
+ * Exchange fixtures retain their independent confirmation workflow.
  */
-export const PastEventModal = ({ event, clubId, clubName, onClose, onCompleted }: PastEventModalProps) => {
+export const PastEventModal = ({ event, clubId, clubName, canComplete = false, onClose, onCompleted }: PastEventModalProps) => {
     const { t } = useTranslation();
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [homeScore, setHomeScore] = useState('');
-    const [awayScore, setAwayScore] = useState('');
-    const [winner, setWinner] = useState<'home' | 'opponent' | 'draw'>('home');
+    const dialog = useRef<HTMLDivElement>(null);
+    useDialogFocus(true, dialog, () => { if (!busy) onClose(); });
 
     const isMatch = event.eventType === 'MATCH' || event.eventType === 'FRIENDLY';
-    const done = event.status === 'COMPLETED' || event.status === 'CANCELLED';
-    const opponentName = event.challenge?.opponentName ?? t('schedule.past.awayClub');
+    const status = event.status.toUpperCase();
+    const done = status === 'COMPLETED' || status === 'CANCELLED';
     const typeLabel = t(`schedule.event.${event.eventType.toLowerCase()}`);
 
     const start = new Date(event.startsAt);
     const end = new Date(event.endsAt);
     const when = `${start.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · ${start.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
 
-    const complete = async (withResult: boolean) => {
-        if (!clubId) return;
+    const complete = async () => {
+        if (!clubId || !canComplete || busy) return;
         setBusy(true);
         setError(null);
         try {
-            if (withResult) {
-                await completeClubEventWithResult(clubId, event.eventId, {
-                    homeScore: Number(homeScore),
-                    awayScore: Number(awayScore),
-                    winnerClubId: winner === 'home' ? clubId : winner === 'opponent' ? (event.opponentClubId ?? null) : null,
-                });
-            } else {
-                await completeClubEvent(clubId, event.eventId);
-            }
+            await completeClubEvent(clubId, event.eventId);
             onCompleted();
         } catch (err) {
             setError(extractApiErrorMessage(err, t('schedule.past.completeFailed')));
@@ -59,12 +52,11 @@ export const PastEventModal = ({ event, clubId, clubName, onClose, onCompleted }
         }
     };
 
-    const inputClass = 'rounded-xl border border-[#26282d] bg-[#0f1117] px-3 py-2 text-sm text-[#f4f4f5] placeholder:text-[#71717a] focus:border-[#16a34a] outline-none';
-
     return (
-        <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4" onClick={() => { if (!busy) onClose(); }}>
             <div
-                className="w-full max-w-md rounded-xl border border-[#26282d] bg-[#0f1117] p-6"
+                ref={dialog} role="dialog" aria-modal="true" aria-labelledby="past-event-title"
+                className="schedule-past-dialog w-full max-w-md rounded-xl border border-[#26282d] bg-[#0f1117] p-6"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-start justify-between gap-3">
@@ -72,22 +64,23 @@ export const PastEventModal = ({ event, clubId, clubName, onClose, onCompleted }
                         <div className="flex items-center gap-2">
                             <span className="text-[11px] font-semibold uppercase tracking-wide text-[#16a34a]">{typeLabel}</span>
                             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                                event.status === 'COMPLETED'
+                                status === 'COMPLETED'
                                     ? 'bg-emerald-500/10 text-emerald-400'
-                                    : event.status === 'CANCELLED'
+                                    : status === 'CANCELLED'
                                         ? 'bg-red-500/10 text-red-400'
                                         : 'bg-[rgba(255,255,255,0.06)] text-[#a1a1aa]'
                             }`}>
-                                {event.status === 'COMPLETED'
+                                {status === 'COMPLETED'
                                     ? t('schedule.past.completed')
-                                    : event.status === 'CANCELLED'
+                                    : status === 'CANCELLED'
                                         ? t('schedule.past.cancelled')
                                         : t('schedule.past.inThePast')}
                             </span>
                         </div>
-                        <h2 className="mt-2 text-lg font-semibold text-[#f4f4f5]">{event.title}</h2>
+                        <h2 id="past-event-title" className="mt-2 text-lg font-semibold text-[#f4f4f5]">{event.title}</h2>
                     </div>
                     <button
+                        type="button" aria-label="Close past event" disabled={busy}
                         onClick={onClose}
                         className="rounded-full p-1.5 text-[#a1a1aa] hover:bg-[rgba(255,255,255,0.06)] hover:text-[#f4f4f5] transition-colors shrink-0"
                     >
@@ -101,12 +94,13 @@ export const PastEventModal = ({ event, clubId, clubName, onClose, onCompleted }
                     <p className="text-xs text-[#71717a]">{event.ownerLabel}</p>
                 </div>
 
+                {isMatch && <ScheduleResult event={{ ...event, canRecordResult: event.canRecordResult === true }} clubId={clubId} clubName={clubName} onSaved={onCompleted} />}
                 {done ? (
                     <p className="mt-4 flex items-center gap-2 text-sm font-medium text-[#f4f4f5]">
                         <CheckCircle2 className="h-4 w-4 text-[#16a34a]" />
-                        {t('schedule.past.thisEventIs', { status: event.status === 'COMPLETED' ? t('schedule.past.completed').toLowerCase() : t('schedule.past.cancelled').toLowerCase() })}
+                        {t('schedule.past.thisEventIs', { status: status === 'COMPLETED' ? t('schedule.past.completed').toLowerCase() : t('schedule.past.cancelled').toLowerCase() })}
                     </p>
-                ) : clubId ? (
+                ) : clubId && canComplete && !event.matchExchangeId ? (
                     <div className="mt-4 border-t border-[#ffffff0d] pt-4">
                         {event.challenge?.state === 'ACCEPTED' && (
                             <p className="mb-3 flex items-center gap-2 text-xs font-medium text-[#a1a1aa]">
@@ -114,39 +108,20 @@ export const PastEventModal = ({ event, clubId, clubName, onClose, onCompleted }
                                 {t('schedule.past.chatWillClose')}
                             </p>
                         )}
-                        {isMatch && (
-                            <div className="grid grid-cols-2 gap-3 mb-3">
-                                <input
-                                    type="number" min={0} value={homeScore}
-                                    onChange={(e) => setHomeScore(e.target.value)}
-                                    placeholder={t('schedule.past.homeScore', { club: clubName })} className={inputClass}
-                                />
-                                <input
-                                    type="number" min={0} value={awayScore}
-                                    onChange={(e) => setAwayScore(e.target.value)}
-                                    placeholder={t('schedule.past.awayScore', { club: opponentName })} className={inputClass}
-                                />
-                                <select value={winner} onChange={(e) => setWinner(e.target.value as 'home' | 'opponent' | 'draw')} className={`${inputClass} col-span-2`}>
-                                    <option value="home">{t('schedule.past.winner', { club: clubName })}</option>
-                                    <option value="opponent">{t('schedule.past.winner', { club: opponentName })}</option>
-                                    <option value="draw">{t('schedule.past.draw')}</option>
-                                </select>
-                            </div>
-                        )}
                         {error && <p className="mb-3 text-xs font-semibold text-[#ef4444]">{error}</p>}
                         <button
                             type="button"
                             disabled={busy}
-                            onClick={() => void complete(isMatch && Boolean(homeScore || awayScore))}
+                            onClick={() => void complete()}
                             className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#22c55e] disabled:opacity-50"
                         >
                             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                             {isMatch ? t('schedule.past.completeMatch') : t('schedule.past.markCompleted')}
                         </button>
                     </div>
-                ) : (
+                ) : event.matchExchangeId ? null : (
                     <p className="mt-4 text-sm text-[#a1a1aa]">
-                        {t('schedule.past.personalReadOnly')}
+                        {clubId ? 'Only club schedule managers can complete this event.' : t('schedule.past.personalReadOnly')}
                     </p>
                 )}
             </div>

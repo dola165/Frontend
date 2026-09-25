@@ -1,6 +1,9 @@
+import { useFilterDisclosure } from '../hooks/useFilterDisclosure';
+import { MediaImage } from '../components/ui/MediaImage';
 import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
+import { opportunityReturnState } from '../components/discovery/opportunityReturnContext';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { HeartHandshake, Search, SlidersHorizontal, X } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { DiscoverySectionTabs } from '../components/discovery/DiscoverySectionTabs';
@@ -16,6 +19,8 @@ import {
 } from '../features/campaigns/api';
 import { CampaignProgress } from '../features/campaigns/CampaignProgress';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
+import { PaymentPreviewNotice } from '../features/paymentPreview/PaymentPreview';
+import { paymentPreviewEnabled } from '../features/paymentPreview/config';
 import '../features/store/store.css';
 import '../features/campaigns/campaigns.css';
 const filterLabels: Record<string, string> = {
@@ -27,6 +32,7 @@ const filterLabels: Record<string, string> = {
     state: 'Status',
 };
 export const CampaignsPage = () => {
+    const location = useLocation();
     const { id } = useParams(),
         clubId = id ? Number(id) : undefined,
         [params, setParams] = useSearchParams();
@@ -40,6 +46,7 @@ export const CampaignsPage = () => {
         [locationError, setLocationError] = useState('');
     const [filtersOpen, setFiltersOpen] = useState(false),
         trigger = useRef<HTMLButtonElement>(null);
+    useFilterDisclosure(filtersOpen, () => setFiltersOpen(false), trigger);
     const query = params.toString(),
         page = Math.min(10000, Math.max(0, Math.floor(Number(params.get('page')) || 0)));
     const change = (key: string, value: string) =>
@@ -158,11 +165,11 @@ export const CampaignsPage = () => {
                 </button>
             </header>
             {clubId && <OpportunityNavigation section="campaigns" clubId={clubId}/>}
-            <p className="store-notice">
+            <PaymentPreviewNotice campaign />{!paymentPreviewEnabled() && <p className="store-notice">
                 <span className="store-notice-dot" />
                 Discover projects and contact the clubs behind them. Online contributions are not available
                 yet.
-            </p>
+            </p>}
             <div className="store-toolbar">
                 <label className="store-search">
                     <Search size={18} />
@@ -361,10 +368,11 @@ export const CampaignsPage = () => {
                                             <Link
                                                 aria-label={`Open ${c.title}`}
                                                 to={`/campaigns/${c.id}`}
+                                                state={opportunityReturnState('campaigns', location)}
                                                 className="campaign-cover"
                                             >
                                                 {c.images[0] ? (
-                                                    <img
+                                                    <MediaImage
                                                         src={resolveMediaUrl(c.images[0])}
                                                         alt=""
                                                         loading="lazy"
@@ -381,7 +389,7 @@ export const CampaignsPage = () => {
                                                     {campaignCategory(c.category)}
                                                 </p>
                                                 <h2>
-                                                    <Link to={`/campaigns/${c.id}`}>{c.title}</Link>
+                                                    <Link to={`/campaigns/${c.id}`} state={opportunityReturnState('campaigns', location)}>{c.title}</Link>
                                                 </h2>
                                                 <Link
                                                     className="campaign-club"

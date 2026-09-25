@@ -8,35 +8,42 @@ describe('supported product navigation', () => {
         const paths = destinations.map((item) => item.path);
 
         expect(paths).toContain('/store');
+        expect(paths).toContain('/stadiums');
         expect(paths).toContain('/campaigns');
         expect(paths).not.toContain('/marketplace');
         expect(paths).not.toContain('/agent');
     });
 
-    it('labels partial public surfaces as previews', () => {
+    it('does not label released production-backed destinations as previews', () => {
         const destinations = [...primaryProductNavigation, ...secondaryProductNavigation];
 
         expect(primaryProductNavigation.every((item) => !item.preview)).toBe(true);
-        expect(destinations.find((item) => item.path === '/jobs')?.preview).toBe(true);
-        expect(destinations.find((item) => item.path === '/tournaments')?.preview).toBe(true);
+        expect(destinations.find((item) => item.path === '/jobs')?.preview).toBeFalsy();
+        expect(destinations.find((item) => item.path === '/tournaments')?.preview).toBeFalsy();
     });
 
     it('resolves preview routes to their active navigation items', () => {
         expect(resolveNavigationKey('/jobs', null)).toBe('jobs');
+        expect(resolveNavigationKey('/jobs/42', null)).toBe('jobs');
+        expect(resolveNavigationKey('/roles', null)).toBe('jobs');
+        expect(resolveNavigationKey('/roles/42', null)).toBe('jobs');
+        expect(resolveNavigationKey('/stadiums/42/manage', null)).toBe('my-organizations');
         expect(resolveNavigationKey('/tournaments/42', null)).toBe('tournaments');
+        expect(resolveNavigationKey('/parent', null)).toBe('parent-hub');
+        expect(resolveNavigationKey('/demo/commerce', null)).toBe('commerce-demo');
     });
 
     it('keeps the public club menu aligned with the supported club features', () => {
         expect(clubNavigationItems.map((item) => item.id)).toEqual([
-            'overview', 'people', 'teams', 'schedule', 'media', 'business', 'contact',
+            'overview', 'facilities', 'people', 'teams', 'schedule', 'events', 'honours', 'media', 'business', 'contact',
         ]);
     });
 
     it('maps legacy club links to their retained destinations', () => {
-        expect(normalizeClubNavigationTab('honours')).toBe('overview');
-        expect(normalizeClubNavigationTab('events')).toBe('schedule');
+        expect(normalizeClubNavigationTab('honours')).toBe('honours');
+        expect(normalizeClubNavigationTab('events')).toBe('events');
         expect(normalizeClubNavigationTab('pictures')).toBe('media');
         expect(normalizeClubNavigationTab('videos')).toBe('media');
-        expect(normalizeClubNavigationTab('facilities')).toBe('overview');
+        expect(normalizeClubNavigationTab('facilities')).toBe('facilities');
     });
 });

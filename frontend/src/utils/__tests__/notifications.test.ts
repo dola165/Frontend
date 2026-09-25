@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildNotificationDestination, notificationActionLabel } from '../notifications';
 import type { NotificationItem } from '../../types/notifications';
+import destinations from './notification-destinations.json';
 
 const notification = (overrides: Partial<NotificationItem>): NotificationItem => ({
     id: 1,
@@ -16,6 +17,12 @@ const notification = (overrides: Partial<NotificationItem>): NotificationItem =>
     createdAt: new Date().toISOString(),
     linkPath: null,
     ...overrides
+});
+
+describe('web / Android destination contract', () => {
+    it.each(destinations)('$name', ({ notification: input, expected }) => {
+        expect(buildNotificationDestination(notification(input as Partial<NotificationItem>))).toBe(expected);
+    });
 });
 
 describe('buildNotificationDestination — Aug 17 deep-link audit (P2.5)', () => {

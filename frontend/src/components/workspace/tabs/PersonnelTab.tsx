@@ -10,6 +10,7 @@ import { OverflowActions } from '../../ui/OverflowActions';
 
 interface PersonnelTabProps {
     clubId: number;
+    onProfileSaved?: () => Promise<void>;
     overview: ClubManagementOverview | null;
     currentUserId: number | null;
     currentRole: string | null;
@@ -23,7 +24,7 @@ interface PersonnelTabProps {
 
 export const PersonnelTab = ({
     clubId, overview, currentUserId, currentRole, canManageLeadership, pendingKey,
-    onRoleChange, onRemoveMember
+    onRoleChange, onRemoveMember, onProfileSaved
 }: PersonnelTabProps) => {
     const canRemoveMember = (member: ClubManagedMember) => {
         if (!currentUserId || member.userId === currentUserId || member.role === 'OWNER') return false;
@@ -68,6 +69,7 @@ export const PersonnelTab = ({
                 qualifications: profileQualifications.trim() || null,
                 isPublic: profilePublic,
             });
+            await onProfileSaved?.();
             setEditingProfile(null);
         } catch (error) {
             setProfileError(error instanceof Error ? error.message : 'Could not save the public profile.');
@@ -110,12 +112,12 @@ export const PersonnelTab = ({
 
     return (
         <div className="space-y-4">
-            <SectionHeader eyebrow="Personnel" title="Staff Members" description="Manage club staff roles. Player affiliations are managed in the Players tab." />
+            <SectionHeader eyebrow="Personnel" title="Management access" description="Administrative membership and public profile details for this person." />
             {overview && sortedMembers.length === 0 ? (
                 <EmptyState message="No staff members are attached to this club." />
             ) : overview && (
                 <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
-                    <DataTable columns={['Member', 'Role', 'Status', '']} sort={sort} onSort={handleSort}>
+                    <DataTable columns={['Member', 'Management access', 'Status', '']} sort={sort} onSort={handleSort}>
                         {sortedMembers.map((member) => {
                             const isSelf = member.userId === currentUserId;
                             const lockReason = memberLockReason(member);

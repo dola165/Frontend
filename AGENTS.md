@@ -5,6 +5,7 @@
 - Start with `TEAM_HANDOFF.md` and the paired backend's `docs/TEAM_CURRENT_STATE.md` and `docs/TEAM_WORKFLOW.md`.
 - Check the actual branch, commit, local changes and fetched upstream in both repositories before relying on old chat context. Preserve local work; do not blindly reset or pull a dirty checkout.
 - Close tasks with source commits, verification, remaining work and deployment status. GitHub source and the running deployment are separate records.
+- GitHub Actions is off at the user's request (2026-10-08). Do not add or re-enable hosted test, build or CodeQL workflows unless requested. Keep appropriate local verification and deployment safeguards.
 
 - Primary review and demonstration context: use `coach@talanti.ge` and **FC Dinamo Tbilisi Academy** first. This is the user's everyday account and club. Keep Riverside and other accounts for additional role, permission and cross-club checks; do not substitute them for the main usability review.
 

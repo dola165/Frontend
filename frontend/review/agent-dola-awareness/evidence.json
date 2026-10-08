@@ -1,0 +1,32 @@
+[
+  {
+    "name": "desktop",
+    "streaming": true,
+    "navigationPreserved": true,
+    "closedWhileStreaming": true,
+    "refreshRecovery": true,
+    "expiredAfter45Minutes": true,
+    "paidRequests": 2,
+    "errors": []
+  },
+  {
+    "name": "desktop-dark",
+    "streaming": true,
+    "navigationPreserved": true,
+    "closedWhileStreaming": true,
+    "refreshRecovery": true,
+    "expiredAfter45Minutes": true,
+    "paidRequests": 2,
+    "errors": []
+  },
+  {
+    "name": "mobile",
+    "streaming": true,
+    "navigationPreserved": true,
+    "closedWhileStreaming": true,
+    "refreshRecovery": true,
+    "expiredAfter45Minutes": true,
+    "paidRequests": 2,
+    "errors": []
+  }
+]

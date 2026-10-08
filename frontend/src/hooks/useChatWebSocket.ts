@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import { buildWebSocketUrl } from '../api/axiosConfig';
-import { getStoredAccessToken, getStoredUserId } from '../utils/authStorage';
+import { getAuthSessionId, getStoredAccessToken, getStoredUserId, isCurrentAuthSession } from '../utils/authStorage';
 import { chatApi, type ChatMessageResponse } from '../api/chat';
 
 const IS_MOCK_MODE = import.meta.env.VITE_ENABLE_MOCKS === 'true';
@@ -143,11 +143,18 @@ export function useChatWebSocket(onMessage: (msg: ChatMessageResponse) => void, 
     useEffect(() => {
         if (!getStoredAccessToken()) return;
         if (IS_MOCK_MODE) { setConnected(true); return; }
+        const sessionId = getAuthSessionId();
         const client = new Client({
             brokerURL: buildWebSocketUrl('/ws-chat'),
             reconnectDelay: 5000,
-            beforeConnect: () => { client.connectHeaders = { Authorization: `Bearer ${getStoredAccessToken() ?? ''}` }; },
-            onConnect: () => { setConnected(true); subRef.current = null; subscribe(); void catchUp(); },
+            beforeConnect: () => {
+                if (!isCurrentAuthSession(sessionId)) { void client.deactivate(); return; }
+                client.connectHeaders = { Authorization: `Bearer ${getStoredAccessToken(sessionId) ?? ''}` };
+            },
+            onConnect: () => {
+                if (!isCurrentAuthSession(sessionId)) { void client.deactivate(); return; }
+                setConnected(true); subRef.current = null; subscribe(); void catchUp();
+            },
             onDisconnect: () => setConnected(false),
             onWebSocketClose: () => { setConnected(false); subRef.current = null; },
             onStompError: () => setConnected(false),

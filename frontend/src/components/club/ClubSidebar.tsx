@@ -15,8 +15,8 @@ export const ClubSidebar = ({ activeTab, setActiveTab, club, canManageClub, onOp
     <aside className="min-w-0">
         <div className="lg:sticky lg:top-[calc(var(--app-header-height)+18px)]">
             <div className="mb-6 px-1">
-                <p className="text-[11px] font-semibold  text-[#a1a1aa]">Club Navigation</p>
-                <p className="mt-2 text-sm font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">{club.name || 'Club Workspace'}</p>
+                <p className="text-[11px] font-semibold  text-[var(--color-secondary)]">Club Navigation</p>
+                <p className="mt-2 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--color-text)]">{club.name || 'Club Workspace'}</p>
             </div>
 
             <div className="space-y-2.5">
@@ -42,7 +42,7 @@ export const ClubSidebar = ({ activeTab, setActiveTab, club, canManageClub, onOp
                             {badge != null && badge > 0 ? (
                                 <span
                                     className={`club-sidebar-badge rounded-[4px] border px-2.5 py-1 text-[10px] font-semibold  ${
-                                        isActive ? 'club-sidebar-badge--active' : 'border-[#ffffff0d] text-[#a1a1aa]'
+                                        isActive ? 'club-sidebar-badge--active' : 'border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] text-[var(--color-secondary)]'
                                     }`}
                                 >
                                     {badge}
@@ -54,7 +54,7 @@ export const ClubSidebar = ({ activeTab, setActiveTab, club, canManageClub, onOp
             </div>
 
             {canManageClub && onOpenNotifications && (
-                <div className="mt-8 border-t border-[#ffffff0d] pt-5">
+                <div className="mt-8 border-t border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] pt-5">
                     <button
                         type="button"
                         onClick={onOpenNotifications}

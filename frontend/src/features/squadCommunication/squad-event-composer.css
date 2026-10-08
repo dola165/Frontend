@@ -1,0 +1,31 @@
+.squad-event-destination, .squad-event-audience fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.squad-event-destination legend, .squad-event-audience legend { font-size: 14px; font-weight: 650; margin-bottom: 12px; }
+.squad-event-destination > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.squad-event-destination button { display: flex; align-items: flex-start; gap: 12px; min-height: 88px; padding: 15px; text-align: left; border: 1px solid var(--compose-line); border-radius: 8px; background: var(--compose-input); color: var(--compose-text); }
+.squad-event-destination button[aria-pressed=true] { border-color: var(--compose-accent); background: color-mix(in srgb,var(--compose-accent) 7%,var(--compose-bg)); }
+.squad-event-destination button svg { flex-shrink: 0; margin-top: 2px; color: var(--compose-accent); }
+.squad-event-destination strong { display: block; font-size: 14px; }
+.squad-event-destination small, .squad-event-replies small { display: block; margin-top: 5px; color: var(--compose-muted); line-height: 1.6; font-size: 13px; }
+.squad-event-destination > p { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0; color: var(--compose-muted); line-height: 1.65; font-size: 12px; }
+.squad-event-destination > p svg { flex-shrink: 0; margin-top: 3px; }
+.squad-event-destination > a { font-size: 12px; color: var(--compose-accent); line-height: 1.6; }
+.squad-event-audience { display: grid; gap: 22px; }
+.squad-event-audience legend span { display: inline-flex; align-items: center; justify-content: center; margin-left: 8px; min-width: 24px; min-height: 24px; border-radius: 20px; background: color-mix(in srgb,var(--compose-accent) 12%,var(--compose-bg)); color: var(--compose-accent); }
+.squad-event-check { display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 14px; cursor: pointer; }
+.squad-event-check input { width: 18px; height: 18px; min-height: 18px; flex: 0 0 18px; accent-color: var(--compose-accent); }
+.squad-event-roster { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 16px; max-height: 220px; overflow: auto; margin-top: 6px; padding: 6px 12px; border: 1px solid var(--compose-line); border-radius: 8px; }
+.squad-event-replies { padding: 14px 16px; border: 1px solid var(--compose-line); border-radius: 8px; }
+.squad-plan-review { border-top: 1px solid var(--compose-line); padding-top: 20px; }
+.squad-plan-facts { display: flex; flex-wrap: wrap; gap: 12px 22px; }
+.squad-plan-facts > span { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+.squad-plan-facts svg { color: var(--compose-accent); }
+.squad-plan-review p, .squad-plan-review small { display: block; font-size: 13px; line-height: 1.7; color: var(--compose-muted); margin: 12px 0; }
+.squad-plan-review summary { cursor: pointer; font-size: 13px; min-height: 36px; padding-block: 8px; }
+.squad-plan-review ol { max-height: 220px; overflow: auto; padding-left: 24px; font-size: 13px; line-height: 1.9; }
+.squad-plan-review .squad-plan-warning, .squad-plan-error { padding: 12px 14px; border: 1px solid var(--state-warning,var(--color-orange)); color: var(--fc-text-primary); border-radius: 8px; }
+.squad-plan-error button { display: flex; gap: 8px; align-items: center; min-height: 40px; margin-top: 8px; }
+@media(max-width:600px) { .squad-event-destination > div, .squad-event-roster { grid-template-columns: minmax(0,1fr); } .squad-event-destination button { min-height: 76px; } }
+.squad-event-people { border: 1px solid var(--compose-line); border-radius: 8px; padding: 0 14px; }
+.squad-event-people > summary { min-height: 48px; padding-block: 13px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.squad-event-people > summary span { margin-left: 10px; font-size: 12px; font-weight: 400; color: var(--compose-muted); }
+.squad-event-people[open] { padding-bottom: 14px; }

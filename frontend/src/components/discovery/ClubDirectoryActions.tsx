@@ -30,13 +30,13 @@ export const ClubDirectoryActions = ({
         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
             {authStatus === 'authenticated' && club.relationshipState === 'NONE' && club.joinPolicy === 'OPEN_TRIAL' && (
                 <button type="button" onClick={() => onJoin(club.id)} disabled={joiningClubId === club.id}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-medium bg-[#16a34a] text-white disabled:opacity-60 sm:min-h-0">
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-medium bg-[var(--color-accent)] text-[var(--color-on-accent)] disabled:opacity-60 sm:min-h-0">
                     {joiningClubId === club.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}Join
                 </button>
             )}
             {authStatus === 'authenticated' && club.relationshipState === 'NONE' && club.joinPolicy === 'APPLICATION_REQUIRED' && (
                 <button type="button" onClick={() => onApply(club.id)} disabled={applyingClubId === club.id}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-medium bg-[#16a34a] text-white disabled:opacity-60 sm:min-h-0">
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-medium bg-[var(--color-accent)] text-[var(--color-on-accent)] disabled:opacity-60 sm:min-h-0">
                     {applyingClubId === club.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}Apply
                 </button>
             )}
@@ -51,13 +51,13 @@ export const ClubDirectoryActions = ({
             <button type="button" onClick={(event) => onFollowToggle(event, club.id)}
                 className={`inline-flex min-h-11 items-center gap-2 border px-3 py-2 text-[11px] font-medium rounded-xl sm:min-h-0 ${
                     club.isFollowedByMe
-                        ? 'border-[#16a34a] bg-[#16a34a]/10 text-[#16a34a]'
-                        : 'border-[#ffffff0d] bg-[#0f1117] text-[#f4f4f5]'
+                        ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+                        : 'border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] text-[var(--color-text)]'
                 }`}>
                 {club.isFollowedByMe ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}{club.isFollowedByMe ? 'Following' : 'Follow'}
             </button>
 
-            <Link to={`/clubs/${club.id}`} className="inline-flex min-h-11 items-center gap-2 rounded-xl px-2.5 py-1 text-xs font-medium text-[#16a34a] sm:min-h-0">
+            <Link to={`/clubs/${club.id}`} className="inline-flex min-h-11 items-center gap-2 rounded-xl px-2.5 py-1 text-xs font-medium text-[var(--color-accent)] sm:min-h-0">
                 Open <ArrowRight className="h-3.5 w-3.5" />
             </Link>
         </div>

@@ -1,4 +1,6 @@
-import { Loader2, PencilLine } from 'lucide-react';
+import { Check, Loader2, PencilLine } from 'lucide-react';
+import './schedule-workspace.css';
+import { SelectionIndicator } from '../ui/SelectionIndicator';
 
 interface ScheduleToolbarStat {
     label: string;
@@ -34,71 +36,40 @@ export const ScheduleToolbar = ({
     editMode,
     onToggleEditMode,
     canEdit
-}: ScheduleToolbarProps) => {
-    const statToneClass: Record<NonNullable<ScheduleToolbarStat['tone']>, string> = {
-        green: 'schedule-tone-green',
-        blue: 'schedule-tone-blue',
-        purple: 'schedule-tone-purple',
-        pink: 'schedule-tone-pink',
-        neutral: ''
-    };
-
-    return (
-        <div className="flex items-center justify-between gap-3 border-b border-[var(--fc-border)] px-4 py-2">
-            <div className="flex items-center gap-4">
-                <span className="text-xs font-semibold text-[var(--fc-text-primary)]">{workspaceLabel}</span>
-                <span className="text-xs text-[var(--fc-text-secondary)]">{rangeLabel}</span>
-                {canEdit && (
-                    <button
-                        type="button"
-                        onClick={onToggleEditMode}
-                        className={`inline-flex h-8 items-center gap-1.5 rounded-[4px] border px-2.5 text-[11px] font-black uppercase tracking-[0.14em] transition-all ${
-                            editMode
-                                ? 'schedule-tone-green border-[var(--fc-accent)] bg-[var(--fc-accent-soft)] text-[var(--fc-accent)]'
-                                : 'schedule-tone-blue border-[var(--fc-border)] bg-transparent text-[var(--fc-text-muted)] hover:border-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]'
-                        }`}
-                    >
-                        <PencilLine className="h-3.5 w-3.5" />
-                        {editMode ? 'Edit Mode' : 'Edit Mode'}
-                    </button>
-                )}
-            </div>
-
-            <div className="flex items-center gap-3">
-                <div data-tutorial="calendar-view-mode" className="flex rounded-[var(--fc-radius)] border border-[var(--fc-border)] bg-[var(--fc-sidebar-bg)] p-0.5">
-                    {VIEW_OPTIONS.map((opt) => (
-                        <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => onViewModeChange(opt.value)}
-                            className={`rounded-[4px] px-3 py-1 text-xs font-semibold transition-all ${
-                                viewMode === opt.value
-                                    ? 'bg-[var(--fc-accent)] text-white'
-                                    : 'text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]'
-                            }`}
-                        >
-                            {opt.label}
-                        </button>
-                    ))}
-                </div>
-
-                {stats.map((stat) => (
-                    <span
-                        key={`${stat.label}-${stat.value}`}
-                        className={`schedule-inline-chip ${statToneClass[stat.tone ?? 'neutral']}`.trim()}
-                    >
-                        <span className="text-[#a1a1aa]">{stat.label}</span>
-                        <span className="text-[#f4f4f5]">{stat.value}</span>
-                    </span>
+}: ScheduleToolbarProps) => (
+    <div className="schedule-workspace-toolbar" role="group" aria-label={`${workspaceLabel}: ${rangeLabel}`}>
+        <div className="schedule-workspace-toolbar-controls">
+            <div data-tutorial="calendar-view-mode" className="app-selection-rail schedule-workspace-segments schedule-workspace-views" role="group" aria-label="Calendar view">
+                <SelectionIndicator value={viewMode} />
+                {VIEW_OPTIONS.map((option) => (
+                    <button key={option.value} type="button" aria-pressed={viewMode === option.value}
+                        onClick={() => onViewModeChange(option.value)}>{option.label}</button>
                 ))}
-
-                {scheduleBusy ? (
-                    <span className="schedule-inline-chip schedule-tone-blue">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-[#a1a1aa]" />
-                        <span className="text-[#a1a1aa]">Refreshing</span>
-                    </span>
-                ) : null}
             </div>
+            {canEdit && (
+                <button type="button" className="schedule-workspace-button schedule-workspace-edit" onClick={onToggleEditMode}
+                    aria-pressed={editMode}
+                    title={editMode ? 'Finish moving events and return to viewing your schedule' : 'Turn on dragging to move events to another date or time'}>
+                    {editMode ? <Check aria-hidden="true" /> : <PencilLine aria-hidden="true" />}
+                    {editMode ? 'Done editing' : 'Edit schedule'}
+                </button>
+            )}
         </div>
-    );
-};
+        <div className="schedule-workspace-toolbar-summary">
+            {workspaceLabel.toLowerCase() !== 'my schedule' && <span className="schedule-workspace-owner" title={workspaceLabel}>{workspaceLabel}</span>}
+            {stats.map((stat) => (
+                <span key={stat.label} className="schedule-workspace-stat" data-tone={stat.tone ?? 'neutral'}>
+                    <span className="schedule-workspace-stat-dot" aria-hidden="true" />
+                    <strong>{stat.value}</strong>
+                    <span>{stat.label}</span>
+                </span>
+            ))}
+            {scheduleBusy && (
+                <span className="schedule-workspace-refresh" role="status">
+                    <Loader2 aria-hidden="true" className="animate-spin" />
+                    Refreshing
+                </span>
+            )}
+        </div>
+    </div>
+);

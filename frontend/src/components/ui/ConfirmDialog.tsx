@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useDialogFocus } from '../workspace/useDialogFocus';
+import { usePanelMotion } from './usePanelMotion';
 
 interface ConfirmDialogProps {
     open: boolean;
@@ -21,7 +22,11 @@ interface ConfirmDialogProps {
     onCancel: () => void;
 }
 
-export function ConfirmDialog({
+export function ConfirmDialog(props: ConfirmDialogProps) {
+    return props.open ? <ConfirmDialogContent {...props} /> : null;
+}
+
+function ConfirmDialogContent({
     open,
     title,
     message,
@@ -30,21 +35,24 @@ export function ConfirmDialog({
     variant = 'default',
     noteField,
     onConfirm,
-    onCancel,
+    onCancel: finishCancel,
 }: ConfirmDialogProps) {
     const dialogRef = useRef<HTMLDivElement>(null);
+    const motion = usePanelMotion(finishCancel);
+    const onCancel = motion.close;
     useDialogFocus(open, dialogRef, onCancel);
 
     if (!open) return null;
 
     const accentColor =
-        variant === 'danger' ? 'var(--fc-error, #ef4444)'
-        : variant === 'warning' ? 'var(--fc-warning, #f59e0b)'
-        : 'var(--fc-accent, #16a34a)';
+        variant === 'danger' ? 'var(--fc-error, var(--color-danger))'
+        : variant === 'warning' ? 'var(--fc-warning, var(--color-orange))'
+        : 'var(--fc-accent, var(--color-accent))';
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            className="app-motion-portal app-motion-backdrop fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--color-overlay)]/70 p-4"
+            data-closing={motion.closing}
             onClick={onCancel}
         >
             <div
@@ -53,7 +61,8 @@ export function ConfirmDialog({
                 aria-modal="true"
                 aria-labelledby="confirm-dialog-title"
                 aria-describedby="confirm-dialog-message"
-                className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-[6px] border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-6 shadow-2xl"
+                className="app-motion-dialog max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-[6px] border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-6 shadow-2xl"
+                data-closing={motion.closing} onAnimationEnd={motion.onAnimationEnd}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-start gap-4">
@@ -98,7 +107,7 @@ export function ConfirmDialog({
                     </button>
                     <button
                         onClick={onConfirm}
-                        className="px-4 py-2 text-sm font-semibold rounded-[6px] text-white transition-colors"
+                        className="px-4 py-2 text-sm font-semibold rounded-[6px] text-[color:var(--color-text)] transition-colors"
                         style={{ backgroundColor: accentColor }}
                     >
                         {confirmLabel}

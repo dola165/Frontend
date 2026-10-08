@@ -1,10 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BriefcaseBusiness, ShoppingBag, HeartHandshake } from 'lucide-react';
+import { isAndroidApp } from '../../android/bridge';
+import { BriefcaseBusiness, ShoppingBag, HeartHandshake, LandPlot } from 'lucide-react';
 
 const destinations = [
-    { path: '/store', label: 'Store', icon: ShoppingBag, activeClass: 'border-emerald-600/50 bg-emerald-600/[0.07] text-emerald-700 dark:border-emerald-400/50 dark:text-emerald-300' },
-    { path: '/campaigns', label: 'Fundraising & campaigns', icon: HeartHandshake, activeClass: 'border-amber-600/50 bg-amber-600/[0.07] text-amber-800 dark:border-amber-400/50 dark:text-amber-300' },
-    { path: '/jobs', label: 'Jobs & volunteering', icon: BriefcaseBusiness, activeClass: 'border-fuchsia-600/50 bg-fuchsia-600/[0.07] text-fuchsia-700 dark:border-fuchsia-400/50 dark:text-fuchsia-300' },
+    { path: '/stadiums', label: 'Stadiums', icon: LandPlot, activeClass: 'border-[color:var(--color-cyan)]/50 bg-[color:var(--color-cyan)]/[0.07] text-[color:var(--color-cyan)] dark:border-[color:var(--color-cyan)]/50 dark:text-[color:var(--color-cyan)]' },
+    { path: '/store', label: 'Store', icon: ShoppingBag, activeClass: 'border-[color:var(--color-accent)]/50 bg-[color:var(--color-accent)]/[0.07] text-[color:var(--color-accent)] dark:border-[color:var(--color-accent)]/50 dark:text-[color:var(--color-accent)]' },
+    { path: '/campaigns', label: 'Fundraising & campaigns', icon: HeartHandshake, activeClass: 'border-[color:var(--color-warning)]/50 bg-[color:var(--color-warning)]/[0.07] text-[color:var(--color-warning)] dark:border-[color:var(--color-warning)]/50 dark:text-[color:var(--color-warning)]' },
+    { path: '/jobs', label: 'Roles', icon: BriefcaseBusiness, activeClass: 'border-[var(--color-pink)]/50 bg-[var(--color-pink)]/[0.07] text-[var(--color-pink)] dark:border-[var(--color-pink)]/50 dark:text-[var(--color-pink)]' },
 ];
 
 export const DiscoverySectionTabs = () => {
@@ -17,10 +19,10 @@ export const DiscoverySectionTabs = () => {
                 const Icon = destination.icon;
                 const active = location.pathname === destination.path || location.pathname.startsWith(destination.path + '/') || location.pathname.endsWith(destination.path);
                 return (
-                    <Link key={destination.path} to={clubId ? destination.path === '/jobs' ? `/clubs/${clubId}?tab=business&opportunity=jobs` : `/clubs/${clubId}${destination.path}` : destination.path} className={`inline-flex h-10 items-center gap-2 rounded-lg border px-4 text-xs font-bold transition-colors ${active ? destination.activeClass : 'border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] text-[color:var(--text-secondary)] hover:bg-[color:var(--theme-surface-strong)] hover:text-[color:var(--text-primary)]'}`} aria-current={active ? 'page' : undefined}>
+                    <Link key={destination.path} to={clubId && destination.path !== '/stadiums' ? destination.path === '/jobs' ? `/clubs/${clubId}?tab=business&opportunity=jobs` : `/clubs/${clubId}${destination.path}` : destination.path} className={`inline-flex h-10 items-center gap-2 rounded-lg border px-4 text-xs font-bold transition-colors ${active ? destination.activeClass : 'border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] text-[color:var(--text-secondary)] hover:bg-[color:var(--theme-surface-strong)] hover:text-[color:var(--text-primary)]'}`} aria-current={active ? 'page' : undefined}>
                         <Icon className="h-4 w-4" />
                         {destination.label}
-                        {destination.path === '/jobs' && <span className="rounded-full border border-amber-400/30 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-amber-700 dark:text-amber-300">Preview</span>}
+                        {destination.path === '/jobs' && !isAndroidApp && <span className="rounded-full border border-[color:var(--color-warning)]/30 px-1.5 py-0.5 text-[8px] uppercase tracking-wide text-[color:var(--color-warning)] dark:text-[color:var(--color-warning)]">Preview</span>}
                     </Link>
                 );
             })}

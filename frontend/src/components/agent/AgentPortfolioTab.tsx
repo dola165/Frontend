@@ -1,206 +1,106 @@
-import { useState, useCallback } from 'react';
-import { UserPlus, Users, Search } from 'lucide-react';
-import { toast } from 'sonner';
-import type { AgentPortfolioPlayer, PlayerSearchResult } from '../../features/agents/domain';
-import { addPlayerToPortfolio, removePlayerFromPortfolio, searchPlayersForPortfolio } from '../../features/agents/api';
+import { ShieldCheck, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import type { AgentPortfolioPlayer } from '../../features/agents/domain';
 import { SectionHeader } from '../workspace/helpers';
 import { EmptyStateCard } from '../workspace/EmptyStateCard';
 import { UserIdentityCell } from '../workspace/UserIdentityCell';
-import { OverflowActions } from '../ui/OverflowActions';
+import { useAgentCopy, type AgentCopyKey } from '../../features/agents/copy';
 
 interface Props {
     players: AgentPortfolioPlayer[];
-    onRefresh: () => void;
 }
 
-export const AgentPortfolioTab = ({ players, onRefresh }: Props) => {
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<PlayerSearchResult[]>([]);
-    const [searching, setSearching] = useState(false);
-    const [selectedPlayer, setSelectedPlayer] = useState<PlayerSearchResult | null>(null);
-    const [addingPlayer, setAddingPlayer] = useState(false);
-    const [addError, setAddError] = useState<string | null>(null);
-    const [busyId, setBusyId] = useState<number | null>(null);
-
-    // L3: Debounced player search
-    const handleSearch = useCallback(async (query: string) => {
-        setSearchQuery(query);
-        if (query.trim().length < 2) {
-            setSearchResults([]);
-            setSelectedPlayer(null);
-            return;
-        }
-        setSearching(true);
-        try {
-            const results = await searchPlayersForPortfolio(query);
-            setSearchResults(results);
-        } catch {
-            setSearchResults([]);
-        } finally {
-            setSearching(false);
-        }
-    }, []);
-
-    const handleAddPlayer = async () => {
-        if (!selectedPlayer) {
-            setAddError('Please search for and select a player.');
-            return;
-        }
-        setAddingPlayer(true);
-        setAddError(null);
-        try {
-            await addPlayerToPortfolio(selectedPlayer.userId);
-            setShowAddModal(false);
-            setSearchQuery('');
-            setSearchResults([]);
-            setSelectedPlayer(null);
-            toast.success('Player added to portfolio');
-            onRefresh();
-        } catch (err: any) {
-            setAddError(err?.response?.data?.message || err?.message || 'Failed to add player.');
-            toast.error('Failed to add player.');
-        } finally {
-            setAddingPlayer(false);
-        }
+const consentKeys = (player: AgentPortfolioPlayer): { label: AgentCopyKey; detail: AgentCopyKey; tone: string } => {
+    if (player.requiresMinorConsent && player.minorConsentStatus === 'PENDING') {
+        return {
+            label: 'consentPending',
+            tone: 'bg-[var(--fc-state-warning-soft)] text-[var(--fc-state-warning)]',
+            detail: 'consentPendingDetail'
+        };
+    }
+    if (player.requiresMinorConsent && player.minorConsentStatus === 'ACCEPTED') {
+        return {
+            label: 'consentConfirmed',
+            tone: 'bg-[var(--fc-state-success-soft)] text-[var(--fc-state-success)]',
+            detail: player.playerUserId == null
+                ? 'consentConfirmedProtected'
+                : 'consentConfirmedDetail'
+        };
+    }
+    if (player.requiresMinorConsent) {
+        return {
+            label: 'consentNotConfirmed',
+            tone: 'bg-[var(--fc-state-warning-soft)] text-[var(--fc-state-warning)]',
+            detail: 'consentNotConfirmedDetail'
+        };
+    }
+    return {
+        label: 'representationActive',
+        tone: 'bg-[var(--fc-state-info-soft)] text-[var(--fc-state-info)]',
+        detail: 'representationActiveDetail'
     };
+};
 
-    const handleRemove = async (representationId: number) => {
-        setBusyId(representationId);
-        try {
-            await removePlayerFromPortfolio(representationId);
-            toast.success('Player removed from portfolio');
-            onRefresh();
-        } catch (err) {
-            console.error('Failed to remove player', err);
-            toast.error('Failed to remove player.');
-        } finally {
-            setBusyId(null);
-        }
-    };
-
+export const AgentPortfolioTab = ({ players }: Props) => {
+    const { copy, date } = useAgentCopy();
     return (
-        <div>
-            <SectionHeader
-                eyebrow="Portfolio"
-                title="Player Portfolio"
-                description="Players you represent"
-                action={
-                    <button
-                        onClick={() => setShowAddModal(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] transition-colors"
-                    >
-                        <UserPlus className="w-3.5 h-3.5" /> Add Player
-                    </button>
-                }
-            />
+    <section aria-label={copy('playerPortfolio')}>
+        <SectionHeader
+            eyebrow={copy('privateRepresentation')}
+            title={copy('playerPortfolio')}
+            description={copy('portfolioDescription')}
+        />
 
-            {players.length === 0 ? (
-                <EmptyStateCard
-                    icon={Users}
-                    title="No players yet"
-                    description="Add players to your portfolio to manage their representation."
-                    actionLabel="Add Your First Player"
-                    actionIcon={UserPlus}
-                    onAction={() => setShowAddModal(true)}
-                />
-            ) : (
-                <div className="space-y-1.5 mt-4">
-                    {players.map(player => (
-                        <div
+        {players.length === 0 ? (
+            <EmptyStateCard
+                icon={Users}
+                title={copy('noActiveRepresentations')}
+                description={copy('noActiveRepresentationsDetail')}
+            />
+        ) : (
+            <div className="mt-4 grid gap-3">
+                {players.map(player => {
+                    const consent = consentKeys(player);
+                    const detailsAvailable = player.playerUserId != null && player.fullName != null && player.username != null;
+                    return (
+                        <article
                             key={player.representationId}
-                            className="flex items-center gap-4 px-4 py-3 rounded-xl border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)]"
+                            className="rounded-2xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-4"
                         >
-                            <div className="flex-1 min-w-0">
-                                <UserIdentityCell
-                                    avatarUrl={player.avatarUrl}
-                                    fullName={player.fullName}
-                                    username={player.username}
-                                    subtitle={player.currentClubName || 'No current club'}
-                                />
-                            </div>
-                            <div className="hidden sm:block w-24 text-xs text-[#a1a1aa]">
-                                {player.position || '—'}
-                            </div>
-                            <div className="hidden sm:block w-20">
-                                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#16a34a]/10 text-[#16a34a]">
-                                    {player.representationType}
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                                <div className="min-w-0 flex-1">
+                                    {detailsAvailable ? (
+                                        <Link to={`/profile/${player.playerUserId}`} className="hover:underline"><UserIdentityCell
+                                            avatarUrl={player.avatarUrl}
+                                            fullName={player.fullName!}
+                                            username={player.username!}
+                                            subtitle={player.currentClubName || copy('noCurrentClub')}
+                                        /></Link>
+                                    ) : (
+                                        <div>
+                                            <h3 className="font-semibold text-[var(--fc-text-primary)]">{copy('protectedRequest')}</h3>
+                                            <p className="mt-1 text-sm text-[var(--fc-text-muted)]">{copy('protectedRequestDetail')}</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <span className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${consent.tone}`}>
+                                    {copy(consent.label)}
                                 </span>
                             </div>
-                            <div className="w-9">
-                                <OverflowActions
-                                    items={[
-                                        {
-                                            id: 'remove',
-                                            label: 'Remove from Portfolio',
-                                            onSelect: () => handleRemove(player.representationId),
-                                            tone: 'danger',
-                                            disabled: busyId === player.representationId,
-                                            confirm: {
-                                                title: 'Remove Player',
-                                                body: `Remove ${player.fullName} from your portfolio?`
-                                            }
-                                        }
-                                    ]}
-                                />
+                            <div className="mt-4 flex items-start gap-2 rounded-xl bg-[var(--fc-surface-hover)] p-3 text-sm text-[var(--fc-text-secondary)]">
+                                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[var(--fc-accent)]" aria-hidden="true" />
+                                <p>{copy(consent.detail)}</p>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Add Player Modal — L3: name search instead of manual ID entry */}
-            {showAddModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => { setShowAddModal(false); setSearchQuery(''); setSearchResults([]); setSelectedPlayer(null); }}>
-                    <div className="bg-[#16181d] border border-[#26282d] rounded-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-                        <h3 className="text-base font-semibold text-[#f4f4f5] mb-4">Add Player to Portfolio</h3>
-                        <div className="space-y-3">
-                            <div className="relative">
-                                <label className="text-[11px] font-semibold text-[#a1a1aa] block mb-1">Search Player</label>
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#71717a]" />
-                                    <input
-                                        value={searchQuery}
-                                        onChange={e => handleSearch(e.target.value)}
-                                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#26282d] bg-[#0f1117] text-sm text-[#f4f4f5] outline-none focus:border-[#16a34a]"
-                                        placeholder="Search by player name..."
-                                        autoFocus
-                                    />
-                                </div>
-                                {/* Search results dropdown */}
-                                {searching && <p className="text-xs text-[#71717a] mt-1">Searching...</p>}
-                                {!searching && searchResults.length > 0 && (
-                                    <div className="mt-1 border border-[#26282d] rounded-xl bg-[#0f1117] max-h-40 overflow-y-auto">
-                                        {searchResults.map(p => (
-                                            <button
-                                                key={p.userId}
-                                                onClick={() => { setSelectedPlayer(p); setSearchQuery(p.fullName); setSearchResults([]); }}
-                                                className={`w-full text-left px-3 py-2 text-sm hover:bg-[#ffffff0d] flex items-center gap-2 ${selectedPlayer?.userId === p.userId ? 'bg-[#16a34a]/10 text-[#16a34a]' : 'text-[#f4f4f5]'}`}
-                                            >
-                                                <span className="flex-1">{p.fullName}</span>
-                                                {p.position && <span className="text-[11px] text-[#71717a]">{p.position}</span>}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                                {!searching && searchQuery.length >= 2 && searchResults.length === 0 && (
-                                    <p className="text-xs text-[#71717a] mt-1">No players found.</p>
-                                )}
-                            </div>
-                            {selectedPlayer && (
-                                <p className="text-xs text-[#16a34a]">Selected: {selectedPlayer.fullName} @{selectedPlayer.username}</p>
-                            )}
-                            {addError && <p className="text-xs text-[#d4737a]">{addError}</p>}
-                            <div className="flex gap-2 justify-end pt-2">
-                                <button onClick={() => { setShowAddModal(false); setSearchQuery(''); setSearchResults([]); setSelectedPlayer(null); }} className="px-3 py-1.5 rounded-xl border border-[#26282d] text-xs font-semibold text-[#a1a1aa] hover:text-[#f4f4f5]">Cancel</button>
-                                <button onClick={handleAddPlayer} disabled={addingPlayer || !selectedPlayer} className="px-3 py-1.5 rounded-xl bg-[#16a34a] text-white text-xs font-semibold hover:bg-[#15803d] disabled:opacity-50">
-                                    {addingPlayer ? 'Adding...' : 'Add Player'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+                            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+                                <div><dt className="text-xs text-[var(--fc-text-muted)]">{copy('position')}</dt><dd className="mt-1 font-medium text-[var(--fc-text-primary)]">{player.position || copy('notProvided')}</dd></div>
+                                <div><dt className="text-xs text-[var(--fc-text-muted)]">{copy('authority')}</dt><dd className="mt-1 font-medium text-[var(--fc-text-primary)]">{player.representationType.replace(/_/g, ' ')}</dd></div>
+                                <div><dt className="text-xs text-[var(--fc-text-muted)]">{copy('started')}</dt><dd className="mt-1 font-medium text-[var(--fc-text-primary)]">{date(player.startedAt)}</dd></div>
+                            </dl>
+                        </article>
+                    );
+                })}
+            </div>
+        )}
+    </section>
     );
 };

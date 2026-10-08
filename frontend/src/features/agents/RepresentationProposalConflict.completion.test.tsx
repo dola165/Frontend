@@ -1,0 +1,20 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { apiClient } from '../../api/axiosConfig';
+import { RepresentationPanel } from './RepresentationPanel';
+vi.mock('../../api/axiosConfig',()=>({apiClient:{get:vi.fn(),post:vi.fn(),patch:vi.fn()}}));
+vi.mock('../../context/AuthContext',()=>({useAuth:()=>({sessionId:'synthetic-coach-agent',user:{id:7,role:'COACH'}})}));
+it('retains proposed terms and shows the server conflict without claiming that a different proposal was sent',async()=>{
+    vi.mocked(apiClient.get).mockResolvedValue({data:{relevant:true,canRequest:true,alreadyRepresented:false,reason:'',agentId:7,playerId:8,requests:[]}});
+    vi.mocked(apiClient.post).mockRejectedValue({response:{status:409,data:{error:'A different representation proposal already exists. Review the current request before sending another.'}}});
+    render(<MemoryRouter><RepresentationPanel profileId={8} own={false} roles={['PLAYER']}/></MemoryRouter>);
+    fireEvent.click(await screen.findByRole('button',{name:'Offer representation'}));
+    fireEvent.change(screen.getByLabelText('Representation scope'),{target:{value:'LIMITED'}});
+    fireEvent.change(screen.getByLabelText('Your proposal'),{target:{value:'One trial only'}});
+    fireEvent.click(screen.getByRole('button',{name:'Send representation request'}));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Review the current request');
+    expect(screen.getByLabelText('Representation scope')).toHaveValue('LIMITED');
+    expect(screen.getByLabelText('Your proposal')).toHaveValue('One trial only');
+    await waitFor(()=>expect(apiClient.post).toHaveBeenCalledWith('/representation-requests',{agentId:7,playerId:8,representationType:'LIMITED',message:'One trial only'}));
+    expect(apiClient.post).toHaveBeenCalledTimes(1);
+});

@@ -61,6 +61,24 @@ describe('FeedPost author navigation', () => {
 });
 
 describe('FeedPost mutation feedback', () => {
+    it('preserves image elements across likes, comments and draft edits', async () => {
+        const user = userEvent.setup();
+        const post = { ...basePost, mediaUrls: ['https://images.example.test/training.jpg'] };
+        const props = {
+            post, isCommentsOpen: false, onLikeToggle: vi.fn(), onToggleComments: vi.fn(),
+            onSubmitComment: vi.fn(), onImageClick: vi.fn(),
+        };
+        const { rerender } = render(<MemoryRouter><FeedPost {...props} /></MemoryRouter>);
+        const image = screen.getByRole('img', { name: 'Post media' });
+        expect(image).toHaveStyle({ objectFit: 'contain' });
+        rerender(<MemoryRouter><FeedPost {...props} likePending /></MemoryRouter>);
+        expect(screen.getByRole('img', { name: 'Post media' })).toBe(image);
+        rerender(<MemoryRouter><FeedPost {...props} post={{ ...post, likeCount: 4, isLikedByMe: true }} isCommentsOpen commentsData={[]} /></MemoryRouter>);
+        expect(screen.getByRole('img', { name: 'Post media' })).toBe(image);
+        await user.type(screen.getByPlaceholderText('Write a comment...'), 'A steady image');
+        expect(screen.getByRole('img', { name: 'Post media' })).toBe(image);
+    });
+
     it('keeps a comment draft and explains the failure when posting is denied', async () => {
         const user = userEvent.setup();
         renderInteractivePost({ onSubmitComment: vi.fn().mockRejectedValue(new Error('offline')) });
@@ -81,6 +99,9 @@ describe('FeedPost mutation feedback', () => {
         renderInteractivePost();
 
         await user.click(screen.getByRole('button', { name: 'Share' }));
+        expect(screen.getByRole('dialog', { name: 'Share post' })).toBeInTheDocument();
+        expect(writeText).not.toHaveBeenCalled();
+        await user.click(screen.getByRole('button', { name: 'Copy link' }));
 
         expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/posts/1`);
         expect(await screen.findByText('Post link copied.')).toBeInTheDocument();

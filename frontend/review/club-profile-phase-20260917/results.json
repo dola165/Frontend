@@ -1,0 +1,17 @@
+{
+  "checks": [
+    "academy-desktop",
+    "academy-390",
+    "academy-320",
+    "professional-academy-navigation",
+    "professional-desktop",
+    "editor-desktop",
+    "editor-mobile",
+    "saved-price-on-public-profile",
+    "delegated-editor-desktop",
+    "delegated-editor-mobile",
+    "delegated-price-on-public-profile"
+  ],
+  "errors": [],
+  "saves": 2
+}

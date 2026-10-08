@@ -33,18 +33,18 @@ interface Props {
 }
 
 const statusToneBorder: Record<string, string> = {
-    info: 'bg-sky-500/10 text-sky-400 border-sky-500/30',
-    success: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-    danger: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
-    neutral: 'bg-[#16181d] text-[#a1a1aa] border-[#ffffff0d]',
+    info: 'bg-[color:var(--color-info)]/10 text-[color:var(--color-info)] border-[color:var(--color-info)]/30',
+    success: 'bg-[color:var(--color-accent)]/10 text-[color:var(--color-accent)] border-[color:var(--color-accent)]/30',
+    danger: 'bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)] border-[color:var(--color-danger)]/30',
+    neutral: 'bg-[var(--color-surface)] text-[var(--color-secondary)] border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]',
 };
 
 const entryChipStatuses = new Set(['ELIMINATED', 'WAITLISTED', 'COMPLETED']);
 
 const entryChipTones: Record<string, string> = {
-    ELIMINATED: 'border-rose-500/30 bg-rose-500/10 text-rose-400',
-    WAITLISTED: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
-    COMPLETED: 'border-[#ffffff0d] bg-[#16181d] text-[#a1a1aa]',
+    ELIMINATED: 'border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)]',
+    WAITLISTED: 'border-[color:var(--color-warning)]/30 bg-[color:var(--color-warning)]/10 text-[color:var(--color-warning)]',
+    COMPLETED: 'border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] text-[var(--color-secondary)]',
 };
 
 type ModalMode = 'scores' | 'complete' | null;
@@ -56,11 +56,11 @@ const entryLabel = (entry: TournamentEntryDto | undefined): string => {
     return entry.displayName ?? entry.clubName ?? entry.squadName ?? `Entry #${entry.id}`;
 };
 
-const inputClass = 'w-full rounded-xl border border-[#ffffff0d] bg-[#16181d] px-3 py-2.5 text-sm font-semibold text-[#f4f4f5] outline-none placeholder:text-[#a1a1aa] focus:border-[#16a34a]';
+const inputClass = 'w-full rounded-xl border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] px-3 py-2.5 text-sm font-semibold text-[var(--color-text)] outline-none placeholder:text-[var(--color-secondary)] focus:border-[var(--color-accent)]';
 const selectClass = inputClass;
-const btnDefault = 'inline-flex items-center gap-1.5 rounded-xl border border-[#ffffff0d] bg-[#16181d] px-3 py-1.5 text-xs font-semibold text-[#a1a1aa] transition-colors hover:bg-[#1a1c22] disabled:opacity-40';
-const btnDestructive = 'inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-[#16181d] px-3 py-1.5 text-xs font-semibold text-rose-400 transition-colors hover:bg-rose-500/10 disabled:opacity-50';
-const btnPrimary = 'inline-flex items-center gap-1.5 rounded-xl bg-[#16a34a] px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#22c55e] disabled:opacity-50';
+const btnDefault = 'inline-flex items-center gap-1.5 rounded-xl border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-secondary)] transition-colors hover:bg-[var(--color-surface)] disabled:opacity-40';
+const btnDestructive = 'inline-flex items-center gap-1.5 rounded-xl border border-[color:var(--color-danger)]/30 bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[color:var(--color-danger)] transition-colors hover:bg-[color:var(--color-danger)]/10 disabled:opacity-50';
+const btnPrimary = 'inline-flex items-center gap-1.5 rounded-xl bg-[var(--color-accent)] px-4 py-1.5 text-xs font-semibold text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent)] disabled:opacity-50';
 
 export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = canManage, onRefresh }: Props) => {
     const { t } = useTranslation();
@@ -349,35 +349,35 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
                 {entryLabel(home)}
                 {entryChip(fx.homeEntryId)}
                 {fx.winnerEntryId != null && fx.winnerEntryId === fx.homeEntryId && (
-                    <Trophy className="ml-1.5 inline-block h-3.5 w-3.5 text-amber-500" />
+                    <Trophy className="ml-1.5 inline-block h-3.5 w-3.5 text-[color:var(--color-warning)]" />
                 )}
             </>
         ) : (
-            <span className="italic text-[#71717a]">{isKnockout ? (knockoutSlotLabel(fx, 'home') ?? '—') : '—'}</span>
+            <span className="italic text-[var(--color-secondary)]">{isKnockout ? (knockoutSlotLabel(fx, 'home') ?? '—') : '—'}</span>
         );
         const awayCell = fx.awayEntryId != null ? (
             <>
                 {entryLabel(away)}
                 {entryChip(fx.awayEntryId)}
                 {fx.winnerEntryId != null && fx.winnerEntryId === fx.awayEntryId && (
-                    <Trophy className="ml-1.5 inline-block h-3.5 w-3.5 text-amber-500" />
+                    <Trophy className="ml-1.5 inline-block h-3.5 w-3.5 text-[color:var(--color-warning)]" />
                 )}
             </>
         ) : (
-            <span className="italic text-[#71717a]">{isKnockout ? (knockoutSlotLabel(fx, 'away') ?? '—') : '—'}</span>
+            <span className="italic text-[var(--color-secondary)]">{isKnockout ? (knockoutSlotLabel(fx, 'away') ?? '—') : '—'}</span>
         );
         return (
-            <tr key={fx.id} className={`border-b border-[#ffffff0d] transition-colors hover:bg-[#1a1c22] ${isComplete ? 'opacity-70' : ''}`}>
+            <tr key={fx.id} className={`border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] transition-colors hover:bg-[var(--color-surface)] ${isComplete ? 'opacity-70' : ''}`}>
                 {showRound && (
-                    <td className="px-5 py-3 text-xs font-medium text-[#a1a1aa]">
+                    <td className="px-5 py-3 text-xs font-medium text-[var(--color-secondary)]">
                         {fx.roundNumber != null ? `R${fx.roundNumber}` : '—'}
                     </td>
                 )}
-                <td className="px-5 py-3 text-sm font-semibold text-[#f4f4f5]">{homeCell}</td>
-                <td className="px-2 py-3 text-center text-sm font-bold tabular-nums text-[#f4f4f5]">
+                <td className="px-5 py-3 text-sm font-semibold text-[var(--color-text)]">{homeCell}</td>
+                <td className="px-2 py-3 text-center text-sm font-bold tabular-nums text-[var(--color-text)]">
                     {fx.homeScore != null && fx.awayScore != null ? `${fx.homeScore} - ${fx.awayScore}` : '—'}
                 </td>
-                <td className="px-5 py-3 text-sm font-semibold text-[#f4f4f5]">{awayCell}</td>
+                <td className="px-5 py-3 text-sm font-semibold text-[var(--color-text)]">{awayCell}</td>
                 <td className="px-2 py-3 text-center">
                     <span className={`inline-block rounded-xl border px-2.5 py-0.5 text-xs font-semibold ${statusToneBorder[tone] ?? statusToneBorder.neutral}`}>
                         {tournamentFixtureStatusText(fx.status, t)}
@@ -417,13 +417,13 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-[#ffffff0d]">
-                                <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">#</th>
-                                <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">Home</th>
-                                <th className="px-2 py-2.5 text-center text-xs font-semibold text-[#a1a1aa]" style={{ width: 60 }}>Score</th>
-                                <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">Away</th>
-                                <th className="px-2 py-2.5 text-center text-xs font-semibold text-[#a1a1aa]">Status</th>
-                                {canOperateFixtures && <th className="px-5 py-2.5 text-right text-xs font-semibold text-[#a1a1aa]">Actions</th>}
+                            <tr className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]">
+                                <th className="px-5 py-2.5 text-left text-xs font-semibold text-[var(--color-secondary)]">#</th>
+                                <th className="px-5 py-2.5 text-left text-xs font-semibold text-[var(--color-secondary)]">Home</th>
+                                <th className="px-2 py-2.5 text-center text-xs font-semibold text-[var(--color-secondary)]" style={{ width: 60 }}>Score</th>
+                                <th className="px-5 py-2.5 text-left text-xs font-semibold text-[var(--color-secondary)]">Away</th>
+                                <th className="px-2 py-2.5 text-center text-xs font-semibold text-[var(--color-secondary)]">Status</th>
+                                {canOperateFixtures && <th className="px-5 py-2.5 text-right text-xs font-semibold text-[var(--color-secondary)]">Actions</th>}
                             </tr>
                         </thead>
                         <tbody>{stageFixtures.map((fx) => renderFixtureRow(fx, stage, true))}</tbody>
@@ -436,19 +436,19 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
             <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="border-b border-[#ffffff0d]">
-                            <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">Home</th>
-                            <th className="px-2 py-2.5 text-center text-xs font-semibold text-[#a1a1aa]" style={{ width: 60 }}>Score</th>
-                            <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">Away</th>
-                            <th className="px-2 py-2.5 text-center text-xs font-semibold text-[#a1a1aa]">Status</th>
-                            {canOperateFixtures && <th className="px-5 py-2.5 text-right text-xs font-semibold text-[#a1a1aa]">Actions</th>}
+                        <tr className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]">
+                            <th className="px-5 py-2.5 text-left text-xs font-semibold text-[var(--color-secondary)]">Home</th>
+                            <th className="px-2 py-2.5 text-center text-xs font-semibold text-[var(--color-secondary)]" style={{ width: 60 }}>Score</th>
+                            <th className="px-5 py-2.5 text-left text-xs font-semibold text-[var(--color-secondary)]">Away</th>
+                            <th className="px-2 py-2.5 text-center text-xs font-semibold text-[var(--color-secondary)]">Status</th>
+                            {canOperateFixtures && <th className="px-5 py-2.5 text-right text-xs font-semibold text-[var(--color-secondary)]">Actions</th>}
                         </tr>
                     </thead>
                     <tbody>
                         {rounds.map((round) => (
                             <Fragment key={round}>
-                                <tr className="border-b border-[#ffffff0d] bg-[#101318]">
-                                    <td colSpan={canOperateFixtures ? 5 : 4} className="px-5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#a1a1aa]">
+                                <tr className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)]">
+                                    <td colSpan={canOperateFixtures ? 5 : 4} className="px-5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-secondary)]">
                                         {t('tournaments.bracket.round', { number: round })}
                                     </td>
                                 </tr>
@@ -471,40 +471,40 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
     ));
 
     return (
-        <div className="bg-[#0d1210]">
+        <div className="bg-[var(--color-page)]">
             {/* Stats bar */}
-            <div className="grid grid-cols-2 border-b border-white/[0.08] bg-[#111612] sm:grid-cols-4 sm:divide-x sm:divide-white/[0.06]">
-                <div className="border-b border-r border-white/[0.06] px-4 py-4 text-center sm:border-b-0 sm:border-r-0">
-                    <p className="text-2xl font-black tabular-nums text-zinc-100">{fixtures.length}</p>
-                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">{t('tournaments.workspace.metrics.fixtures')}</p>
+            <div className="grid grid-cols-2 border-b border-[color:var(--color-border)]/[0.08] bg-[var(--color-surface)] sm:grid-cols-4 sm:divide-x sm:divide-[color:var(--color-border)]/[0.06]">
+                <div className="border-b border-r border-[color:var(--color-border)]/[0.06] px-4 py-4 text-center sm:border-b-0 sm:border-r-0">
+                    <p className="text-2xl font-black tabular-nums text-[color:var(--color-text)]">{fixtures.length}</p>
+                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[color:var(--color-muted)]">{t('tournaments.workspace.metrics.fixtures')}</p>
                 </div>
-                <div className="border-b border-white/[0.06] px-4 py-4 text-center sm:border-b-0">
-                    <p className="text-2xl font-black tabular-nums text-zinc-100">{stages.length}</p>
-                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">{t('tournaments.workspace.metrics.stages')}</p>
+                <div className="border-b border-[color:var(--color-border)]/[0.06] px-4 py-4 text-center sm:border-b-0">
+                    <p className="text-2xl font-black tabular-nums text-[color:var(--color-text)]">{stages.length}</p>
+                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[color:var(--color-muted)]">{t('tournaments.workspace.metrics.stages')}</p>
                 </div>
-                <div className="border-r border-white/[0.06] px-4 py-4 text-center sm:border-r-0">
-                    <p className="text-2xl font-black tabular-nums text-zinc-100">{tournament.entries?.length ?? 0}</p>
-                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">{t('tournaments.workspace.metrics.entries')}</p>
+                <div className="border-r border-[color:var(--color-border)]/[0.06] px-4 py-4 text-center sm:border-r-0">
+                    <p className="text-2xl font-black tabular-nums text-[color:var(--color-text)]">{tournament.entries?.length ?? 0}</p>
+                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[color:var(--color-muted)]">{t('tournaments.workspace.metrics.entries')}</p>
                 </div>
                 <div className="px-4 py-3 text-center">
-                    <p className="text-lg font-black text-zinc-100">{tournamentScopeText(tournament.participantScope, t)}</p>
-                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">{t('tournaments.workspace.metrics.scope')}</p>
+                    <p className="text-lg font-black text-[color:var(--color-text)]">{tournamentScopeText(tournament.participantScope, t)}</p>
+                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[color:var(--color-muted)]">{t('tournaments.workspace.metrics.scope')}</p>
                 </div>
             </div>
 
             {!canOperateFixtures && (
-                <div className="flex items-center justify-center border-b border-sky-400/15 bg-sky-400/[0.06] px-5 py-2.5 text-xs font-semibold text-sky-200">
+                <div className="flex items-center justify-center border-b border-[color:var(--color-info)]/15 bg-[color:var(--color-info)]/[0.06] px-5 py-2.5 text-xs font-semibold text-[color:var(--color-info)]">
                     {t('tournaments.workspace.readOnlyHint')}
                 </div>
             )}
 
             {/* Champion banner */}
             {(tournament.championEntryId != null || tournament.championName) && (
-                <div className="flex items-center gap-3 border-b border-amber-300/20 bg-gradient-to-r from-amber-300/15 via-amber-300/[0.06] to-transparent px-5 py-4">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-300/20 bg-amber-300/10"><Trophy className="h-5 w-5 shrink-0 text-amber-300" /></span>
-                    <p className="text-sm font-bold text-amber-200">
+                <div className="flex items-center gap-3 border-b border-[color:var(--color-warning)]/20 bg-gradient-to-r from-[color:var(--color-warning)]/15 via-[color:var(--color-warning)]/[0.06] to-transparent px-5 py-4">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[color:var(--color-warning)]/20 bg-[color:var(--color-warning)]/10"><Trophy className="h-5 w-5 shrink-0 text-[color:var(--color-warning)]" /></span>
+                    <p className="text-sm font-bold text-[color:var(--color-warning)]">
                         {t('tournaments.bracket.champion')}
-                        <span className="mx-1.5 text-amber-300/40">&middot;</span>
+                        <span className="mx-1.5 text-[color:var(--color-warning)]/40">&middot;</span>
                         {tournament.championName ?? `Entry #${tournament.championEntryId}`}
                     </p>
                 </div>
@@ -512,10 +512,10 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
 
             {/* Message toast */}
             {message && (
-                <div className={`border-b border-[#ffffff0d] px-4 py-3 text-sm font-semibold ${
+                <div className={`border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-4 py-3 text-sm font-semibold ${
                     messageType === 'success'
-                        ? 'bg-[#16a34a]/10 text-[#16a34a]'
-                        : 'bg-[#ef4444]/10 text-[#ef4444]'
+                        ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+                        : 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
                 }`}>
                     {message}
                 </div>
@@ -525,11 +525,11 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
             {displayStages.map((stage) => {
                 const stageFixtures = fixturesByStage.get(stage.id) ?? [];
                 return (
-                    <section key={stage.id} className="border-b border-white/[0.08] last:border-b-0">
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] bg-[#111612] px-5 py-4">
+                    <section key={stage.id} className="border-b border-[color:var(--color-border)]/[0.08] last:border-b-0">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[color:var(--color-border)]/[0.08] bg-[var(--color-surface)] px-5 py-4">
                             <div>
-                                <p className="text-sm font-bold text-zinc-100">{stage.name}</p>
-                                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{tournamentStageTypeText(stage.stageType, t)} <span className="mx-1 text-zinc-700">/</span> {tournamentStageStatusText(stage.status, t)}</p>
+                                <p className="text-sm font-bold text-[color:var(--color-text)]">{stage.name}</p>
+                                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--color-muted)]">{tournamentStageTypeText(stage.stageType, t)} <span className="mx-1 text-[color:var(--color-text)]">/</span> {tournamentStageStatusText(stage.status, t)}</p>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 {canManage && stage.stageType !== 'KNOCKOUT' && stageFixtures.length === 0 && (
@@ -557,13 +557,13 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
                         </div>
 
                         {stage.stageType !== 'KNOCKOUT' && stageFixtures.length > 0 && (
-                            <p className="border-b border-[#ffffff0d] px-5 py-1.5 text-[11px] text-[#71717a]">
+                            <p className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-5 py-1.5 text-[11px] text-[var(--color-secondary)]">
                                 {t('tournaments.stages.addFixtureHint')}
                             </p>
                         )}
 
                         {stageFixtures.length === 0 && (
-                            <p className="border-b border-[#ffffff0d] px-5 py-8 text-center text-sm text-[#a1a1aa]">
+                            <p className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-5 py-8 text-center text-sm text-[var(--color-secondary)]">
                                 {t('tournaments.bracket.noFixtures')}
                             </p>
                         )}
@@ -588,35 +588,35 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
 
                         {/* Inline fixture creation form */}
                         {fixtureFormStageId === stage.id && (
-                            <div className="border-b border-[#ffffff0d] bg-[#101318] px-5 py-4">
+                            <div className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] px-5 py-4">
                                 <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                                     <label className="flex flex-col gap-1.5">
-                                        <span className="text-xs font-semibold text-[#a1a1aa]">{t('tournaments.bracket.homeEntry')}</span>
+                                        <span className="text-xs font-semibold text-[var(--color-secondary)]">{t('tournaments.bracket.homeEntry')}</span>
                                         <select value={fxHomeEntryId} onChange={(e) => setFxHomeEntryId(e.target.value)} className={selectClass}>
                                             <option value="">—</option>
                                             {entryOptions}
                                         </select>
                                     </label>
                                     <label className="flex flex-col gap-1.5">
-                                        <span className="text-xs font-semibold text-[#a1a1aa]">{t('tournaments.bracket.awayEntry')}</span>
+                                        <span className="text-xs font-semibold text-[var(--color-secondary)]">{t('tournaments.bracket.awayEntry')}</span>
                                         <select value={fxAwayEntryId} onChange={(e) => setFxAwayEntryId(e.target.value)} className={selectClass}>
                                             <option value="">—</option>
                                             {entryOptions}
                                         </select>
                                     </label>
                                     <label className="flex flex-col gap-1.5">
-                                        <span className="text-xs font-semibold text-[#a1a1aa]">{t('tournaments.stages.order')}</span>
+                                        <span className="text-xs font-semibold text-[var(--color-secondary)]">{t('tournaments.stages.order')}</span>
                                         <div className="grid grid-cols-2 gap-2">
                                             <input type="number" min={1} value={fxRoundNumber} onChange={(e) => setFxRoundNumber(e.target.value)} className={inputClass} />
                                             <input type="number" min={1} value={fxOrder} onChange={(e) => setFxOrder(e.target.value)} className={inputClass} />
                                         </div>
                                     </label>
                                     <label className="flex flex-col gap-1.5">
-                                        <span className="text-xs font-semibold text-[#a1a1aa]">{t('tournaments.bracket.scheduledAt')}</span>
+                                        <span className="text-xs font-semibold text-[var(--color-secondary)]">{t('tournaments.bracket.scheduledAt')}</span>
                                         <input type="datetime-local" value={fxScheduledAt} onChange={(e) => setFxScheduledAt(e.target.value)} className={inputClass} />
                                     </label>
                                     <label className="flex flex-col gap-1.5">
-                                        <span className="text-xs font-semibold text-[#a1a1aa]">{t('tournaments.bracket.locationId')}</span>
+                                        <span className="text-xs font-semibold text-[var(--color-secondary)]">{t('tournaments.bracket.locationId')}</span>
                                         <input type="number" min={1} value={fxLocationId} onChange={(e) => setFxLocationId(e.target.value)} className={inputClass} />
                                     </label>
                                 </div>
@@ -645,10 +645,10 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
             })}
 
             {stages.length === 0 && (
-                <div className="flex flex-col items-center justify-center border-b border-white/[0.08] px-6 py-16 text-center">
-                    <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.03]"><Trophy className="h-7 w-7 text-zinc-600" /></span>
-                    <p className="mt-4 text-sm font-bold text-zinc-300">{t('tournaments.stages.empty')}</p>
-                    <p className="mt-1 max-w-md text-xs leading-5 text-zinc-500">{t('tournaments.stages.emptyHint')}</p>
+                <div className="flex flex-col items-center justify-center border-b border-[color:var(--color-border)]/[0.08] px-6 py-16 text-center">
+                    <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[color:var(--color-border)]/[0.08] bg-[color:var(--color-ink)]/[0.03]"><Trophy className="h-7 w-7 text-[color:var(--color-muted)]" /></span>
+                    <p className="mt-4 text-sm font-bold text-[color:var(--color-secondary)]">{t('tournaments.stages.empty')}</p>
+                    <p className="mt-1 max-w-md text-xs leading-5 text-[color:var(--color-muted)]">{t('tournaments.stages.emptyHint')}</p>
                 </div>
             )}
 
@@ -658,19 +658,19 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
                 if (orphanFixtures.length === 0) return null;
                 return (
                     <div>
-                        <div className="border-b border-[#ffffff0d] bg-[#16181d] px-5 py-3">
-                            <p className="text-sm font-semibold text-[#f4f4f5]">Unassigned Fixtures</p>
+                        <div className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] px-5 py-3">
+                            <p className="text-sm font-semibold text-[var(--color-text)]">Unassigned Fixtures</p>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="border-b border-[#ffffff0d]">
-                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">#</th>
-                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">Home</th>
-                                        <th className="px-2 py-2.5 text-center text-xs font-semibold text-[#a1a1aa]" style={{ width: 60 }}>Score</th>
-                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-[#a1a1aa]">Away</th>
-                                        <th className="px-2 py-2.5 text-center text-xs font-semibold text-[#a1a1aa]">Status</th>
-                                        <th className="px-5 py-2.5 text-right text-xs font-semibold text-[#a1a1aa]">Actions</th>
+                                    <tr className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]">
+                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-[var(--color-secondary)]">#</th>
+                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-[var(--color-secondary)]">Home</th>
+                                        <th className="px-2 py-2.5 text-center text-xs font-semibold text-[var(--color-secondary)]" style={{ width: 60 }}>Score</th>
+                                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-[var(--color-secondary)]">Away</th>
+                                        <th className="px-2 py-2.5 text-center text-xs font-semibold text-[var(--color-secondary)]">Status</th>
+                                        <th className="px-5 py-2.5 text-right text-xs font-semibold text-[var(--color-secondary)]">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>{orphanFixtures.map((fx) => renderFixtureRow(fx, undefined, true))}</tbody>
@@ -681,11 +681,11 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
             })()}
 
             {/* New stage form */}
-            {canManage && <div className="border-b border-[#ffffff0d]">
+            {canManage && <div className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]">
                 {!stageFormOpen ? (
                     <button
                         onClick={openStageForm}
-                        className="flex w-full items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-[#a1a1aa] transition-colors hover:bg-[#1a1c22] hover:text-[#f4f4f5]"
+                        className="flex w-full items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-[var(--color-secondary)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
                     >
                         <Plus className="h-4 w-4" />
                         {t('tournaments.stages.newStage')}
@@ -694,11 +694,11 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
                     <div className="px-5 py-4">
                         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                             <label className="flex flex-col gap-1.5">
-                                <span className="text-xs font-semibold text-[#a1a1aa]">{t('tournaments.stages.name')}</span>
+                                <span className="text-xs font-semibold text-[var(--color-secondary)]">{t('tournaments.stages.name')}</span>
                                 <input value={stageName} onChange={(e) => setStageName(e.target.value)} className={inputClass} placeholder="Group A" />
                             </label>
                             <label className="flex flex-col gap-1.5">
-                                <span className="text-xs font-semibold text-[#a1a1aa]">{t('tournaments.stages.type')}</span>
+                                <span className="text-xs font-semibold text-[var(--color-secondary)]">{t('tournaments.stages.type')}</span>
                                 <select value={stageType} onChange={(e) => setStageType(e.target.value as TournamentStageType)} className={selectClass}>
                                     {stageTypeOptions.map((type) => (
                                         <option key={type} value={type}>{tournamentStageTypeText(type, t)}</option>
@@ -706,16 +706,16 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
                                 </select>
                             </label>
                             <label className="flex flex-col gap-1.5">
-                                <span className="text-xs font-semibold text-[#a1a1aa]">{t('tournaments.stages.order')}</span>
+                                <span className="text-xs font-semibold text-[var(--color-secondary)]">{t('tournaments.stages.order')}</span>
                                 <input type="number" min={1} value={stageOrder} onChange={(e) => setStageOrder(e.target.value)} className={inputClass} />
                             </label>
                             <label className="flex flex-col gap-1.5">
-                                <span className="text-xs font-semibold text-[#a1a1aa]">{t('tournaments.stages.advanceCount')}</span>
+                                <span className="text-xs font-semibold text-[var(--color-secondary)]">{t('tournaments.stages.advanceCount')}</span>
                                 <input type="number" min={0} value={advanceCount} onChange={(e) => setAdvanceCount(e.target.value)} className={inputClass} />
                             </label>
                             {stageType === 'KNOCKOUT' && (
                                 <label className="flex flex-col gap-1.5">
-                                    <span className="text-xs font-semibold text-[#a1a1aa]">{t('tournaments.stages.spots')}</span>
+                                    <span className="text-xs font-semibold text-[var(--color-secondary)]">{t('tournaments.stages.spots')}</span>
                                     <select value={bracketSize} onChange={(e) => setBracketSize(e.target.value)} className={selectClass}>
                                         {[4, 8, 16, 32, 64].map((n) => (
                                             <option key={n} value={n}>{n}</option>
@@ -724,7 +724,7 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
                                 </label>
                             )}
                         </div>
-                        <p className="mt-2 text-xs text-[#71717a]">{t('tournaments.stages.advanceCountHint')}</p>
+                        <p className="mt-2 text-xs text-[var(--color-secondary)]">{t('tournaments.stages.advanceCountHint')}</p>
                         <div className="mt-3 flex justify-end gap-3">
                             <button onClick={() => setStageFormOpen(false)} className={btnDefault}>Cancel</button>
                             <button onClick={handleCreateStage} disabled={saving} className={btnPrimary}>
@@ -738,17 +738,17 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
 
             {/* Modal Overlay */}
             {modalMode && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeModal}>
-                    <div className="w-full max-w-md rounded-xl border border-[#ffffff0d] bg-[#16181d] " onClick={(e) => e.stopPropagation()}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--color-overlay)]/40 p-4" onClick={closeModal}>
+                    <div className="w-full max-w-md rounded-xl border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] " onClick={(e) => e.stopPropagation()}>
                         {modalMode === 'scores' && selectedFixture && (
                             <>
-                                <div className="border-b border-[#ffffff0d] bg-[#16181d] px-6 py-4">
-                                    <p className="text-base font-semibold text-[#f4f4f5]">Update Scores</p>
+                                <div className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] px-6 py-4">
+                                    <p className="text-base font-semibold text-[var(--color-text)]">Update Scores</p>
                                 </div>
                                 <div className="space-y-5 p-6">
                                     <div className="grid grid-cols-2 gap-4">
                                         <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-semibold text-[#f4f4f5]">
+                                            <span className="text-sm font-semibold text-[var(--color-text)]">
                                                 {selectedFixture.homeEntryId != null
                                                     ? entryLabel(entriesById.get(selectedFixture.homeEntryId))
                                                     : knockoutSlotLabel(selectedFixture, 'home') ?? '—'}
@@ -756,7 +756,7 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
                                             <input type="number" value={homeScore} onChange={(e) => setHomeScore(e.target.value)} className={inputClass} placeholder="Home" />
                                         </label>
                                         <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-semibold text-[#f4f4f5]">
+                                            <span className="text-sm font-semibold text-[var(--color-text)]">
                                                 {selectedFixture.awayEntryId != null
                                                     ? entryLabel(entriesById.get(selectedFixture.awayEntryId))
                                                     : knockoutSlotLabel(selectedFixture, 'away') ?? '—'}
@@ -777,12 +777,12 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
 
                         {modalMode === 'complete' && selectedFixture && (
                             <>
-                                <div className="border-b border-amber-500/30 bg-amber-500/10 px-6 py-4">
-                                    <p className="text-base font-semibold text-amber-400">Force Complete Fixture</p>
+                                <div className="border-b border-[color:var(--color-warning)]/30 bg-[color:var(--color-warning)]/10 px-6 py-4">
+                                    <p className="text-base font-semibold text-[color:var(--color-warning)]">Force Complete Fixture</p>
                                 </div>
                                 <div className="space-y-5 p-6">
                                     <label className="flex flex-col gap-2">
-                                        <span className="text-sm font-semibold text-[#f4f4f5]">Winner</span>
+                                        <span className="text-sm font-semibold text-[var(--color-text)]">Winner</span>
                                         <select value={winnerEntryId} onChange={(e) => setWinnerEntryId(e.target.value)} className={selectClass}>
                                             {stageById.get(selectedFixture.stageId ?? -1)?.stageType === 'KNOCKOUT' ? (
                                                 <option value="">Select winner...</option>
@@ -799,11 +799,11 @@ export const BracketEditor = ({ tournamentId, tournament, canManage, canScore = 
                                     </label>
                                     <div className="grid grid-cols-2 gap-4">
                                         <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-semibold text-[#f4f4f5]">Home Score</span>
+                                            <span className="text-sm font-semibold text-[var(--color-text)]">Home Score</span>
                                             <input type="number" value={homeScore} onChange={(e) => setHomeScore(e.target.value)} className={inputClass} />
                                         </label>
                                         <label className="flex flex-col gap-2">
-                                            <span className="text-sm font-semibold text-[#f4f4f5]">Away Score</span>
+                                            <span className="text-sm font-semibold text-[var(--color-text)]">Away Score</span>
                                             <input type="number" value={awayScore} onChange={(e) => setAwayScore(e.target.value)} className={inputClass} />
                                         </label>
                                     </div>

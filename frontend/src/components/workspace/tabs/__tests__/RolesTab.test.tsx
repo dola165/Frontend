@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { RolesTab } from '../RolesTab';
 import type { ClubManagedMember, ClubManagementOverview } from '../../../../features/clubs/domain';
+vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ refreshNavigationCapabilities: vi.fn().mockResolvedValue(undefined) }) }));
 
 const member = (userId: number, fullName: string, eligible?: boolean): ClubManagedMember => ({
     userId, fullName, username: `member${userId}`, role: 'COACH', roleEditable: true,

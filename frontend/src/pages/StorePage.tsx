@@ -1,6 +1,9 @@
+import { useFilterDisclosure } from '../hooks/useFilterDisclosure';
+import { MediaImage } from '../components/ui/MediaImage';
 import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
-import {useEffect,useState} from 'react';
-import {Link,useParams,useSearchParams} from 'react-router-dom';
+import { opportunityReturnState } from '../components/discovery/opportunityReturnContext';
+import {useEffect,useRef,useState} from 'react';
+import {Link,useLocation,useParams,useSearchParams} from 'react-router-dom';
 import {fetchStoreCatalog,formatStorePrice,type StoreProduct} from '../features/store/api';
 import {resolveMediaUrl} from '../utils/resolveMediaUrl';
 import {DiscoverySectionTabs} from '../components/discovery/DiscoverySectionTabs';
@@ -8,13 +11,18 @@ import {apiClient} from '../api/axiosConfig';
 import { ShoppingBag, SlidersHorizontal, X, Search } from 'lucide-react';
 import { StoreFilters } from '../features/store/StoreFilters';
 import { filterLabels, categoryLabel } from '../features/store/filterLabels';
+import { PaymentPreviewNotice } from '../features/paymentPreview/PaymentPreview';
+import { paymentPreviewEnabled } from '../features/paymentPreview/config';
 import '../features/store/store.css';
 export const StorePage = () => {
+    const location = useLocation();
     const {id}=useParams(); const clubId=id ? Number(id):undefined;
     const [params,setParams]=useSearchParams();
     const [products,setProducts]=useState<StoreProduct[]>([]),[total,setTotal]=useState(0);
     const [loading,setLoading]=useState(true),[error,setError]=useState(''),[reload,setReload]=useState(0),[clubName,setClubName]=useState('');
     const [filtersOpen, setFiltersOpen] = useState(false);
+    const trigger = useRef<HTMLButtonElement>(null);
+    useFilterDisclosure(filtersOpen, () => setFiltersOpen(false), trigger);
     const query=params.toString();
     const page=Math.min(1000000,Math.max(0,Math.floor(Number(params.get('page'))||0)));
     const currency=['GEL','EUR','GBP','USD'].includes(params.get('currency')??'') ? params.get('currency')!:'GEL';
@@ -45,11 +53,11 @@ export const StorePage = () => {
             <Link className="store-cart-link" to="/store/cart"><ShoppingBag size={18}/>Open cart</Link>
         </header>
         {clubId && <OpportunityNavigation section="store" clubId={clubId}/>}
-        <p className="store-notice"><span className="store-notice-dot"/>Browse and prepare your cart. Online checkout is not available yet.</p>
+        <PaymentPreviewNotice />{!paymentPreviewEnabled() && <p className="store-notice"><span className="store-notice-dot"/>Browse and prepare your cart. Online checkout is not available yet.</p>}
         <div className="store-toolbar">
             <label className="store-search"><Search size={18}/><span className="sr-only">Search</span><input value={params.get('query') ?? ''} maxLength={100} onChange={e => change('query', e.target.value)} placeholder="Search products or clubs"/></label>
             <label className="store-sort">Sort<select value={params.get('sort') ?? 'NEWEST'} onChange={e => change('sort', e.target.value)}><option value="NEWEST">Newest</option><option value="PRICE_LOW">Price: low to high</option><option value="PRICE_HIGH">Price: high to low</option></select></label>
-            <button className="store-filter-toggle" aria-expanded={filtersOpen} aria-controls="store-filters" onClick={() => setFiltersOpen(value => !value)}><SlidersHorizontal size={16}/>{filtersOpen ? 'Hide filters' : 'Filters'}{selected.length > 0 && ` (${selected.length})`}</button>
+            <button ref={trigger} className="store-filter-toggle" aria-expanded={filtersOpen} aria-controls="store-filters" onClick={() => setFiltersOpen(value => !value)}><SlidersHorizontal size={16}/>{filtersOpen ? 'Hide filters' : 'Filters'}{selected.length > 0 && ` (${selected.length})`}</button>
         </div>
         {selected.length > 0 && <div className="store-filter-chips" aria-label="Selected filters">{selected.map(([key, label]) => <button key={key} aria-label={`Remove ${label} filter`} onClick={() => change(key, '')}>{label}: {key === 'category' ? categoryLabel(params.get(key)!) : params.get(key)}<X size={13}/></button>)}</div>}
         <div className="store-catalog-layout">
@@ -58,10 +66,10 @@ export const StorePage = () => {
                 <button className="store-filter-done" onClick={() => {setFiltersOpen(false); document.querySelector<HTMLButtonElement>('.store-filter-toggle')?.focus();}}>Show products</button>
             </aside>
             <section className="store-results" aria-label="Products" aria-busy={loading}>
-                {loading ? <p role="status">Loading products...</p> : error ? <div role="alert" className="store-empty">{error} <button className="underline" onClick={() => setReload(n => n + 1)}>Retry</button></div> : <>
+                {loading ? <p role="status">Loading products...</p> : error ? <div role="alert" className="store-empty">{error} <button className="app-text-action" onClick={() => setReload(n => n + 1)}>Retry</button></div> : <>
                     <p role="status" className="store-result-count">{total} products matching this search</p>
                     {products.length === 0 ? <div className="store-empty"><ShoppingBag size={30}/><h2>No products found</h2><p>Try another search or clear your filters.</p><button onClick={() => setParams({})}>Clear search and filters</button></div> : <div className="store-product-grid">{products.map(product => <article key={product.id} className="store-product-card">
-                        <Link to={`/store/products/${product.id}`} className="store-card-main"><div className="store-card-photo">{product.images?.[0] ? <img loading="lazy" src={resolveMediaUrl(product.images[0])} alt={product.name ?? 'Product'}/> : <span><ShoppingBag size={32}/>No product photo</span>}{!product.variants?.some(v => v.stock > 0) && <span className="store-stock-badge">Out of stock</span>}</div>
+                        <Link to={`/store/products/${product.id}`} state={opportunityReturnState('store', location)} className="store-card-main"><div className="store-card-photo">{product.images?.[0] ? <MediaImage loading="lazy" src={resolveMediaUrl(product.images[0])} alt={product.name ?? 'Product'}/> : <span><ShoppingBag size={32}/>No product photo</span>}{!product.variants?.some(v => v.stock > 0) && <span className="store-stock-badge">Out of stock</span>}</div>
                             <div className="store-card-info"><h2>{product.name}</h2><p>{formatStorePrice(product.price ?? 0, product.currency)}</p></div></Link>
                         <Link className="store-card-club" to={`/clubs/${product.clubId}/store`}>{product.clubName}<span aria-hidden="true"> ↗</span></Link>
                     </article>)}</div>}

@@ -1,0 +1,20 @@
+.introductory-visitors { padding: 20px; border-top: 1px solid var(--fc-border); color: var(--fc-text-primary); }
+.introductory-visitors > h3 { margin: 0; font-size: 16px; font-weight: 700; }
+.introductory-visitors > p { margin: 8px 0 16px; max-width: 70ch; color: var(--fc-text-secondary); font-size: 13px; line-height: 1.6; }
+.introductory-visitors > article { padding: 16px; border: 1px solid var(--fc-border); border-radius: 8px; background: var(--fc-card-bg); overflow-wrap: anywhere; }
+.introductory-visitors > article + article { margin-top: 12px; }
+.introductory-visitors article > strong { font-size: 14px; font-weight: 650; }
+.introductory-visitors article > p { margin: 8px 0; color: var(--fc-text-secondary); font-size: 13px; line-height: 1.6; }
+.introductory-visitors article > p[role=status] { margin-bottom: 0; color: var(--fc-accent); font-weight: 650; }
+.introductory-visitors article > label { display: grid; gap: 8px; margin: 16px 0 10px; font-size: 13px; line-height: 1.5; }
+.introductory-visitors select { width: 100%; max-width: 420px; min-height: 44px; padding: 10px 12px; border: 1px solid var(--fc-border); border-radius: 6px; background: var(--fc-page-bg); color: var(--fc-text-primary); font: inherit; }
+.introductory-visitors button { min-height: 44px; padding: 10px 14px; border: 1px solid var(--fc-border); border-radius: 6px; background: var(--fc-page-bg); color: var(--fc-text-primary); font: inherit; font-size: 13px; cursor: pointer; }
+.introductory-visitors button:disabled, .introductory-visitors select:disabled { opacity: .65; cursor: default; }
+.introductory-visitors button:focus-visible, .introductory-visitors select:focus-visible { outline: 2px solid var(--fc-accent); outline-offset: 3px; }
+.introductory-visitors > p[role=alert] { margin: 16px 0 0; color: var(--fc-text-primary); }
+.introductory-visitors > p[role=alert] button { display: block; margin-top: 10px; }
+@media (max-width: 600px) {
+  .introductory-visitors { padding: 16px; }
+  .introductory-visitors > article { padding: 14px; }
+  .introductory-visitors button { width: 100%; }
+}

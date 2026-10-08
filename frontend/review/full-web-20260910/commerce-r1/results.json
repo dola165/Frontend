@@ -1,0 +1,7 @@
+{
+  "threeWorkspaceDraftsRetained": true,
+  "jobDiscardCancelled": true,
+  "nativeReloadWarning": true,
+  "keyboardAndNarrow": true,
+  "api": "mocked; actual workspace components"
+}

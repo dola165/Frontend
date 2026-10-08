@@ -1,6 +1,8 @@
+import { usePostReactions } from '../hooks/usePostReactions';
+import { reactionFields } from '../components/feed/reactions';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { FeedPost, type CommentDto, type FeedPostDto } from '../components/feed/FeedPost';
 import { PostTheaterModal } from '../components/PostTheaterModal';
@@ -8,9 +10,13 @@ import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { useAuth } from '../context/AuthContext';
 import { buildLoginPath } from '../utils/authRedirect';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { normalizeFeedPost } from '../utils/normalizeFeedPost';
 
 export const PostPage = () => {
     const { postId } = useParams();
+    const [searchParams] = useSearchParams();
+    const requestedMedia = searchParams.get('media');
+    const requestedMediaIndex = requestedMedia !== null && /^[0-9]$/.test(requestedMedia) ? Number(requestedMedia) : null;
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
     const [post, setPost] = useState<FeedPostDto | null>(null);
@@ -42,7 +48,7 @@ export const PostPage = () => {
         try {
             const response = await apiClient.get<FeedPostDto>(`/posts/${requestedPostId}`);
             if (requestId !== postRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
-            setPost(response.data);
+            setPost(normalizeFeedPost(response.data));
         } catch (error) {
             if (requestId !== postRequestRef.current || currentPostIdRef.current !== requestedPostId) return;
             const status = (error as { response?: { status?: number } }).response?.status;
@@ -62,7 +68,7 @@ export const PostPage = () => {
         setPost(null);
         setComments(undefined);
         setCommentsOpen(false);
-        setMediaViewerOpen(false);
+        setMediaViewerOpen(requestedMediaIndex !== null);
         setCommentsError(null);
         setCommentsLoading(false);
         setLikePending(false);
@@ -76,9 +82,9 @@ export const PostPage = () => {
         }
         void loadPost();
         return () => { visitRef.current = visit + 1; };
-    }, [loadPost, postId]);
+    }, [loadPost, postId, requestedMediaIndex]);
 
-    const loadComments = async () => {
+    const loadComments = useCallback(async () => {
         const requestedPostId = postId;
         const requestId = ++commentsRequestRef.current;
         setCommentsLoading(true);
@@ -94,7 +100,11 @@ export const PostPage = () => {
         } finally {
             if (requestId === commentsRequestRef.current && currentPostIdRef.current === requestedPostId) setCommentsLoading(false);
         }
-    };
+    }, [postId]);
+
+    useEffect(() => {
+        if (post && requestedMediaIndex !== null && !comments && !commentsLoading && !commentsError) void loadComments();
+    }, [post, requestedMediaIndex, comments, commentsLoading, commentsError, loadComments]);
 
     const toggleComments = async () => {
         const nextOpen = !commentsOpen;
@@ -108,6 +118,8 @@ export const PostPage = () => {
     };
 
     const requireSignIn = () => navigate(buildLoginPath(destination));
+
+    const reactions = usePostReactions(String(postId), saved => setPost(current => current?.id === saved.id ? reactionFields(current, saved) : current));
 
     const toggleLike = async () => {
         if (!isAuthenticated) {
@@ -167,7 +179,7 @@ export const PostPage = () => {
     if (unavailable || loadError) {
         return (
             <div className="mx-auto w-full max-w-[680px] rounded-2xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] px-6 py-12 text-center">
-                <AlertTriangle className="mx-auto h-10 w-10 text-amber-400" />
+                <AlertTriangle className="mx-auto h-10 w-10 text-[color:var(--color-warning)]" />
                 <h1 className="mt-4 text-xl font-semibold text-[var(--feed-text-primary)]">{unavailable ? 'Post unavailable' : 'Post could not load'}</h1>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--feed-text-secondary)]">
                     {unavailable ? 'This post may be private, deleted, or shared with an account that has access.' : loadError}
@@ -189,11 +201,12 @@ export const PostPage = () => {
                 isCommentsOpen={commentsOpen}
                 commentsData={comments}
                 onLikeToggle={toggleLike}
+                    onReactionChange={(id, reaction) => { if (!isAuthenticated) requireSignIn(); else void reactions.change(id, reaction); }}
                 onToggleComments={() => void toggleComments()}
                 onSubmitComment={submitComment}
                 onImageClick={openMediaViewer}
-                likePending={likePending}
-                likeError={likeError}
+                likePending={likePending || Boolean(post && reactions.pending[post.id])}
+                likeError={(post && reactions.errors[post.id]) || likeError}
                 commentsError={commentsError}
                 onRetryComments={() => void loadComments()}
             />
@@ -202,11 +215,13 @@ export const PostPage = () => {
                 isOpen={mediaViewerOpen}
                 post={post}
                 onClose={() => setMediaViewerOpen(false)}
+                initialMediaIndex={requestedMediaIndex ?? 0}
                 commentsData={comments}
                 onSubmitComment={submitComment}
                 onLikeToggle={toggleLike}
-                likePending={likePending}
-                likeError={likeError}
+                    onReactionChange={(id, reaction) => { if (!isAuthenticated) requireSignIn(); else void reactions.change(id, reaction); }}
+                likePending={likePending || Boolean(post && reactions.pending[post.id])}
+                likeError={(post && reactions.errors[post.id]) || likeError}
                 commentsLoading={commentsLoading}
                 commentsError={commentsError}
                 onRetryComments={() => void loadComments()}

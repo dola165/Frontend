@@ -1,0 +1,59 @@
+{
+  "layouts": [
+    {
+      "width": 390,
+      "height": 550,
+      "longPostCommentsReachable": true,
+      "cropActionsVisible": true,
+      "geometry": {
+        "height": 346,
+        "content": 3970,
+        "right": 381,
+        "bottom": 541
+      },
+      "cropBounds": {
+        "x": 16,
+        "y": 55,
+        "width": 358,
+        "height": 440
+      }
+    },
+    {
+      "width": 360,
+      "height": 430,
+      "longPostCommentsReachable": true,
+      "cropActionsVisible": true,
+      "geometry": {
+        "height": 268,
+        "content": 4471,
+        "right": 351,
+        "bottom": 421
+      },
+      "cropBounds": {
+        "x": 16,
+        "y": 43,
+        "width": 328,
+        "height": 344
+      }
+    },
+    {
+      "width": 800,
+      "height": 240,
+      "longPostCommentsReachable": true,
+      "cropActionsVisible": true,
+      "geometry": {
+        "height": 124,
+        "content": 2014,
+        "right": 775,
+        "bottom": 215
+      },
+      "cropBounds": {
+        "x": 64,
+        "y": 16,
+        "width": 672,
+        "height": 208
+      }
+    }
+  ],
+  "errors": []
+}

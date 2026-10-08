@@ -1,0 +1,111 @@
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import offerJson from './__fixtures__/place_offered.json?raw';
+import sessionJson from './__fixtures__/introduction_assessment.json?raw';
+import opportunitiesJson from './__fixtures__/opportunities.json?raw';
+import type { AdmissionCase, AdmissionHome, OpportunityPage } from '../types';
+import { commandAdmission, fetchAdmissionCase, fetchAdmissionHome, fetchOpportunity, updateAdmissionPlayerCard } from '../api';
+import { OfferResponse, ReasonAction, SessionResponse } from './CaseActions';
+import { AdmissionCasePage } from './AdmissionCasePage';
+import { AdmissionHomePage } from './AdmissionHomePage';
+import { fetchPlayerIdentity, savePlayerIdentity } from '../../joining-contract/api';
+import { OpportunityDetailPage } from './OpportunityDetailPage';
+import { MapAdmissionControls } from './MapAdmissionControls';
+vi.mock('../../joining-contract/api',()=>({fetchPlayerIdentity:vi.fn(),savePlayerIdentity:vi.fn(),uploadPlayerPhoto:vi.fn()}));
+const auth=vi.hoisted(()=>({user:{id:77},sessionId:'lifecycle-session',isAuthenticated:true}));
+vi.mock('../../../context/AuthContext',()=>({useAuth:()=>auth}));
+vi.mock('../../../utils/authStorage',()=>({getAuthSessionId:()=>auth.sessionId,isCurrentAuthSession:(id:string)=>id===auth.sessionId}));
+vi.mock('../../squadCommunication/journeyCopy',()=>({useJourneyCopy:()=>((en:string)=>en)}));
+vi.mock('../../parents/AddChild',()=>({AddChild:()=>null}));
+vi.mock('../api',()=>({fetchLifecycleDates:(id:number)=>Promise.resolve({caseId:id,caseVersion:1,reviewDueAt:null,reviewTimezone:'Asia/Tbilisi',reviewSource:'NONE',reviewOverdue:false,reviewOwner:'Admissions queue',departure:null,seasonCaseId:null,seasonGroupName:null,seasonDestination:null,actions:[]}),commandLifecycleDates:vi.fn(),newAdmissionRequestId:()=>crypto.randomUUID(),commandAdmission:vi.fn(),fetchAdmissionCase:vi.fn(),fetchAdmissionHome:vi.fn(),fetchOpportunity:vi.fn(),updateAdmissionPlayerCard:vi.fn(),reportAdmissionGuardianReview:vi.fn()}));
+const offerCase=()=>JSON.parse(offerJson) as AdmissionCase;
+const introCase=()=>JSON.parse(sessionJson) as AdmissionCase;
+const callbacks=()=>({onChanged:vi.fn(),refresh:vi.fn()});
+beforeEach(()=>{vi.clearAllMocks();sessionStorage.clear();vi.mocked(fetchPlayerIdentity).mockResolvedValue({playerId:77,version:1,fullName:'Synthetic self',dateOfBirth:null,gender:null,photoUrl:null,positions:[],dominantFoot:null,heightCm:null,weightKg:null,canEdit:true,minor:false});vi.mocked(savePlayerIdentity).mockImplementation(async(id,body)=>({...body,playerId:id,version:2,canEdit:true,minor:false}));});
+afterEach(cleanup);
+describe('Admission lifecycle receipts',()=>{
+    const incompleteHome=()=>({participants:[{id:77,name:'Synthetic self',dateOfBirth:null,minor:false,guardian:false,provenance:null}],cases:[],selfCardNeedsDetails:true}) as unknown as AdmissionHome;
+    it('guides a card with unknown gender before requesting a category-specific group',async()=>{
+        const o=(JSON.parse(opportunitiesJson) as OpportunityPage).items[0];o.gender='MALE';o.birthYearFrom=1990;o.birthYearTo=1990;
+        const home=incompleteHome();home.participants[0].dateOfBirth='1990-05-01';home.selfCardNeedsDetails=false;
+        vi.mocked(fetchOpportunity).mockResolvedValue(o);vi.mocked(fetchAdmissionHome).mockResolvedValue(home);
+        render(<MemoryRouter initialEntries={['/admissions/opportunities/'+o.id+'?player=77']}><Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes></MemoryRouter>);
+        expect(await screen.findByText(/This group uses a gender category/)).toBeVisible();
+        expect(screen.getByRole('button',{name:'Request an introduction'})).toBeDisabled();
+        expect(screen.queryByText(/This birth year is outside the published range/)).not.toBeInTheDocument();
+        expect(screen.getByText(/Edit Synthetic self.s reusable card/)).toBeVisible();
+        expect(screen.getByRole('link',{name:'Ask this organization to recommend a group'})).toBeVisible();
+    });
+    it('shows the incomplete self identity without a crash or invented birth year',async()=>{
+        vi.mocked(fetchAdmissionHome).mockResolvedValue(incompleteHome());
+        render(<MemoryRouter><AdmissionHomePage/></MemoryRouter>);
+        expect(await screen.findByRole('button',{name:'Synthetic self · Basic details needed'})).toBeVisible();
+        fireEvent.click(screen.getByRole('button',{name:'Synthetic self · Basic details needed'}));
+        expect(await screen.findAllByLabelText('Date of birth')).toHaveLength(1);
+    });
+    it('keeps a missing-DOB self card outside map age matching',async()=>{
+        vi.mocked(fetchAdmissionHome).mockResolvedValue(incompleteHome());
+        render(<MemoryRouter><MapAdmissionControls playerId={undefined} onPlayer={vi.fn()} includeWaitlist={false} onWaitlist={vi.fn()}/></MemoryRouter>);
+        await screen.findByRole('option',{name:'Anyone'});
+        await waitFor(()=>expect(fetchAdmissionHome).toHaveBeenCalled());
+        expect(screen.queryByRole('option',{name:'Synthetic self'})).not.toBeInTheDocument();
+    });
+    it('completes minimum details and selects the same adult in the chosen opportunity',async()=>{
+        const o=(JSON.parse(opportunitiesJson) as OpportunityPage).items[0];o.birthYearFrom=1990;o.birthYearTo=1990;
+        const home=incompleteHome();vi.mocked(fetchOpportunity).mockResolvedValue(o);vi.mocked(fetchAdmissionHome).mockResolvedValueOnce(home).mockResolvedValue({...home,selfCardNeedsDetails:false,participants:[{...home.participants[0],dateOfBirth:'1990-05-01'}]});
+        vi.mocked(updateAdmissionPlayerCard).mockResolvedValue({...home.participants[0],dateOfBirth:'1990-05-01'});
+        render(<MemoryRouter initialEntries={['/admissions/opportunities/'+o.id]}><Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes></MemoryRouter>);
+        await screen.findByLabelText('Full name');fireEvent.change(screen.getByLabelText('Player card'),{target:{value:'77'}});
+        expect(screen.getByText(/Basic details needed/)).toBeVisible();expect(screen.queryByRole('button',{name:'Request an introduction'})).not.toBeInTheDocument();
+        fireEvent.change(screen.getByLabelText('Player card'),{target:{value:''}});
+        fireEvent.change(screen.getByLabelText('Full name'),{target:{value:'Synthetic self'}});fireEvent.change(screen.getByLabelText('Date of birth'),{target:{value:'1990-05-01'}});fireEvent.click(screen.getByRole('button',{name:'Save player card'}));
+        await waitFor(()=>expect(screen.getByLabelText('Player card')).toHaveValue('77'));
+        expect(savePlayerIdentity).toHaveBeenCalledWith(77,expect.objectContaining({fullName:'Synthetic self',dateOfBirth:'1990-05-01'}),'lifecycle-session');
+    });
+    it('shows the agreed cancellation terms beside the scoped cancellation command',async()=>{
+        const c=offerCase();c.actions=['CANCEL_ENROLLMENT'];c.offer!.terms.cancellation='Notify Dinamo seven days before the final session.';
+        vi.mocked(commandAdmission).mockResolvedValue({...c,stage:'CLOSED',actions:[]});
+        render(<MemoryRouter><ReasonAction admissionCase={c} {...callbacks()} action="CANCEL_ENROLLMENT" label="End this enrollment"/></MemoryRouter>);
+        fireEvent.click(screen.getByText('End this enrollment',{selector:'summary'}));
+        expect(screen.getByText(c.offer!.terms.cancellation)).toBeVisible();
+        expect(screen.getByText(/no refund is assumed/)).toBeVisible();
+        fireEvent.change(screen.getByLabelText('Reason'),{target:{value:'Our timetable changed'}});
+        fireEvent.click(screen.getByRole('button',{name:'End this enrollment'}));
+        await waitFor(()=>expect(commandAdmission).toHaveBeenCalledWith(c.id,expect.objectContaining({action:'CANCEL_ENROLLMENT',expectedVersion:c.version,reason:'Our timetable changed'}),'lifecycle-session'));
+    });
+    it('keeps an ended enrollment receipt without an active schedule promise',async()=>{
+        const c=offerCase();c.stage='CLOSED';c.actions=[];c.previousCaseId=7;
+        c.enrollment={id:33,groupId:c.groupId,groupName:c.groupName,startDate:'2026-10-04',endDate:null,status:'CANCELLED',matchEligibility:'NOT_GRANTED',squadId:1,scheduleDestination:'/squads/1?tab=sessions'};
+        vi.mocked(fetchAdmissionCase).mockResolvedValue(c);
+        render(<MemoryRouter initialEntries={[`/admissions/cases/${c.id}`]}><Routes><Route path="/admissions/cases/:caseId" element={<AdmissionCasePage/>}/></Routes></MemoryRouter>);
+        expect(await screen.findByText('This enrollment is no longer active. Its earlier agreement and the recorded reason remain in this case.')).toBeVisible();
+        expect(screen.queryByRole('link',{name:'Open group schedule'})).not.toBeInTheDocument();
+        expect(screen.getByRole('link',{name:'Earlier linked attempt'})).toHaveAttribute('href','/admissions/cases/7');
+        expect(screen.getByRole('link',{name:'Review a new linked request'})).toHaveAttribute('href',`/admissions/opportunities/${c.groupId}?player=${c.playerId}`);
+    });
+    it('labels a withdrawn offer without offering acceptance',()=>{
+        const c=offerCase();c.offer!.status='WITHDRAWN';c.actions=[];
+        render(<MemoryRouter><OfferResponse admissionCase={c} offer={c.offer!} {...callbacks()}/></MemoryRouter>);
+        expect(screen.getByText('Offer withdrawn by the club')).toBeVisible();
+        expect(screen.queryByRole('button',{name:'Accept this place'})).not.toBeInTheDocument();
+        expect(commandAdmission).not.toHaveBeenCalled();
+    });
+    it('shows changed session details and the renewed consent boundary',()=>{
+        const c=introCase();const s={...c.sessions[0],status:'RECONFIRM_REQUIRED' as const,version:3,cost:'25 GEL for this session',location:{name:'Revised Dinamo pitch',address:'Revised venue address',latitude:41.7,longitude:44.8}};
+        c.actions=['CONFIRM_SESSION'];
+        render(<MemoryRouter><SessionResponse admissionCase={c} session={s} {...callbacks()}/></MemoryRouter>);
+        expect(screen.getByText(/Your introductory seat is held until the response deadline/)).toBeVisible();
+        expect(screen.getByText('Revised Dinamo pitch')).toBeVisible();
+        expect(screen.getByText('25 GEL for this session')).toBeVisible();
+        expect(screen.getByRole('checkbox')).not.toBeChecked();
+        expect(screen.getByRole('button',{name:'Confirm this session'})).toBeDisabled();
+    });
+    it('shows replacement-offer details before accepting the current revision',()=>{
+        const c=offerCase();c.offer!.version=2;c.offer!.terms.charges=[{label:'Revised monthly fee',amount:90,currency:'GEL',frequency:'monthly'}];
+        render(<MemoryRouter><OfferResponse admissionCase={c} offer={c.offer!} {...callbacks()}/></MemoryRouter>);
+        expect(screen.getByText(/A revised group, schedule or price needs your agreement/)).toBeVisible();
+        expect(screen.getByText(/Revised monthly fee/)).toBeVisible();
+        expect(screen.getByRole('checkbox')).not.toBeChecked();
+    });
+});

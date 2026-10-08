@@ -1,261 +1,98 @@
-import { useCallback, useEffect, useState } from 'react';
+import { RecruitmentInbox } from '../../recruitment/RecruitmentApplication';
+import { formatDate } from '../../../utils/formatting';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CalendarDays, Check, ExternalLink, Loader2, Mail, ShieldAlert, X } from 'lucide-react';
-import {
-    acceptClubInvitation,
-    cancelClubApplication,
-    declineClubInvitation,
-    fetchClubJourney,
-} from '../../clubs/api';
+import { ArrowUpRight, CalendarDays, Check, Loader2, Mail, ShieldAlert, Users, X } from 'lucide-react';
+import { acceptClubInvitation, declineClubInvitation, fetchClubJourney } from '../../clubs/api';
 import type { ClubJourney } from '../../clubs/domain';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { recruitmentStatusKey, useRecruitmentCopy } from '../../../locales/recruitmentDesign';
+import '../../../components/squads/squad-design.css';
+import '../../../components/workspace/recruitment/recruitment-design.css';
+import { useAuth } from '../../../context/AuthContext';
+import { OrganizationInvitationInbox } from '../../organizations/setup/OrganizationInvitationInbox';
+import { ClubRelationships } from './ClubRelationships';
 
-/**
- * Phase A4 — the player's club journey: applications, invitations, tryouts,
- * affiliations, and recent decisions in one place. CTAs (cancel application,
- * accept/decline invite) act and refresh the panel.
- */
-export const ClubJourneyPanel = () => {
+/** The player's applications, invitations and club affiliations, with their existing next actions. */
+const ClubJourneyContent = () => {
+    const { refreshNavigationCapabilities } = useAuth();
     const { t } = useTranslation();
+    const r = useRecruitmentCopy();
     const navigate = useNavigate();
     const [journey, setJourney] = useState<ClubJourney | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [busyKey, setBusyKey] = useState<string | null>(null);
+    const actionLock = useRef(false);
 
     const load = useCallback(async () => {
         setError(null);
-        try {
-            setJourney(await fetchClubJourney());
-        } catch (err) {
-            setError(extractApiErrorMessage(err, 'Failed to load your club journey.'));
-        } finally {
-            setLoading(false);
-        }
+        try { setJourney(await fetchClubJourney()); }
+        catch (err) { setError(extractApiErrorMessage(err, 'Failed to load your club journey.')); }
+        finally { setLoading(false); }
     }, []);
-
     useEffect(() => { void load(); }, [load]);
 
     const runAction = async (key: string, action: () => Promise<unknown>) => {
+        if (actionLock.current) return;
+        actionLock.current = true;
         setBusyKey(key);
         setError(null);
-        try {
-            await action();
-            await load();
-        } catch (err) {
-            setError(extractApiErrorMessage(err, 'Request failed.'));
-        } finally {
-            setBusyKey(null);
-        }
+        try { await action(); await load(); await refreshNavigationCapabilities().catch(() => setError('Your response was saved. Reload to refresh your navigation.')); }
+        catch (err) { setError(extractApiErrorMessage(err, 'Request failed.')); }
+        finally { actionLock.current = false; setBusyKey(null); }
+    };
+    const statusLabel = (status: string) => {
+        if (status === 'ACTIVE') return t('journey.member');
+        if (status === 'TRIALIST') return t('journey.onTrial');
+        const key = recruitmentStatusKey(status);
+        return key ? r(key) : status.replaceAll('_', ' ');
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-[#16a34a]" />
-            </div>
-        );
-    }
-
-    if (error && !journey) {
-        return (
-            <div className="py-6 text-center">
-                <p className="text-sm text-[var(--fc-state-danger)]">{error}</p>
-                <button type="button" onClick={() => void load()} className="mt-2 text-xs font-semibold text-[var(--fc-accent)] hover:underline">
-                    {t('journey.retry')}
-                </button>
-            </div>
-        );
-    }
-
+    if (loading) return <div className="flex items-center justify-center py-8" role="status"><Loader2 className="h-6 w-6 animate-spin text-[var(--fc-accent)]" /></div>;
+    if (error && !journey) return <div className="squad-design recruitment-design sd-empty" role="alert"><p>{error}</p><button type="button" className="sd-button" onClick={() => void load()}>{t('journey.retry')}</button></div>;
     if (!journey) return null;
 
-    const trialists = journey.affiliations.filter((a) => a.status === 'TRIALIST');
-    const members = journey.affiliations.filter((a) => a.status === 'ACTIVE');
-    const notAccepted = journey.recentDecisions.filter((d) => d.status === 'DECLINED' || d.status === 'REJECTED');
-
     const pills = [
-        { label: t('journey.pillApplied'), count: journey.applications.filter((a) => a.status === 'PENDING').length, tone: 'info' },
-        { label: t('journey.pillInvited'), count: journey.invitations.length, tone: 'info' },
-        { label: t('journey.pillOnTrial'), count: trialists.length, tone: 'warning' },
-        { label: t('journey.pillMember'), count: members.length, tone: 'success' },
-        { label: t('journey.pillNotAccepted'), count: notAccepted.length, tone: 'neutral' },
+        { label: t('journey.pillApplied'), count: journey.applications.filter((app) => app.status === 'PENDING').length },
+        { label: t('journey.pillInvited'), count: journey.invitations.length },
+        { label: t('journey.pillOnTrial'), count: journey.affiliations.filter((aff) => aff.status === 'TRIALIST').length },
+        { label: t('journey.pillMember'), count: journey.affiliations.filter((aff) => aff.status === 'ACTIVE').length },
+        { label: t('journey.pillNotAccepted'), count: journey.recentDecisions.filter((decision) => decision.status === 'DECLINED' || decision.status === 'REJECTED').length },
     ];
+    const hasActivity = journey.applications.length > 0 || journey.invitations.length > 0 || journey.tryouts.length > 0 || journey.affiliations.length > 0 || journey.recentDecisions.length > 0;
+    const viewClub = (clubId: number) => <button type="button" className="rc-link" onClick={() => navigate(`/clubs/${clubId}`)}>{r('viewClub')}<ArrowUpRight size={13} /></button>;
 
-    const hasActivity = journey.applications.length > 0 || journey.invitations.length > 0
-        || journey.tryouts.length > 0 || journey.affiliations.length > 0 || journey.recentDecisions.length > 0;
+    return <div className="squad-design recruitment-design rc-journey">
+        <header className="sd-heading"><div><span className="sd-eyebrow">{r('recruitment')}</span><h2>{r('journey')}</h2><p>{r('journeyIntro')}</p></div></header>
+        {error && <p role="alert" className="text-xs text-[var(--fc-state-danger)]">{error}</p>}
+        <div className="rc-journey-counts">{pills.map((pill) => <span key={pill.label}>{pill.label} · {pill.count}</span>)}</div>
+        {!hasActivity && <div className="sd-empty"><Users size={28} /><p>{t('journey.empty')}</p><button type="button" className="sd-button" onClick={() => navigate('/map')}>{t('journey.browseClubs')}<ArrowUpRight size={14} /></button></div>}
 
-    return (
-        <div className="flex flex-col gap-4">
-            {error && <p className="text-xs text-[var(--fc-state-danger)]">{error}</p>}
+        {journey.invitations.length > 0 && <section className="rc-journey-section"><h3>{t('journey.invitations')}</h3>{journey.invitations.map((invite) => <article key={invite.inviteId} className="sd-panel rc-journey-card rc-journey-invite">
+            <small>{r('invitationNext')}</small><div className="rc-journey-card-row"><div className="rc-journey-card-main"><h4>{invite.clubName}</h4><p>{t('journey.inviteRole', { role: t('recruitmentDesign.' + invite.role, { defaultValue: invite.role ?? '' }) })}</p>{invite.expiresAt && <p>{r('inviteExpires', { date: formatDate(invite.expiresAt) })}</p>}</div><div className="rc-actions"><button type="button" className="sd-primary" disabled={busyKey != null} onClick={() => void runAction(`invite-accept-${invite.inviteId}`, () => acceptClubInvitation(invite.inviteId))}>{busyKey === `invite-accept-${invite.inviteId}` ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}{t('journey.acceptInvite')}</button><button type="button" className="sd-button" disabled={busyKey != null} onClick={() => void runAction(`invite-decline-${invite.inviteId}`, () => declineClubInvitation(invite.inviteId))}><X size={13} />{t('journey.declineInvite')}</button></div></div><p>{r('invitationHint')}</p>{viewClub(invite.clubId)}
+        </article>)}</section>}
 
-            {/* Status pills */}
-            <div className="flex flex-wrap gap-1.5">
-                {pills.map((pill) => (
-                    <span
-                        key={pill.label}
-                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${
-                            pill.tone === 'success' ? 'border-[var(--fc-state-success)]/40 text-[var(--fc-state-success)]'
-                            : pill.tone === 'warning' ? 'border-[var(--fc-state-warning)]/40 text-[var(--fc-state-warning)]'
-                            : pill.tone === 'info' ? 'border-[var(--fc-accent)]/40 text-[var(--fc-accent)]'
-                            : 'border-[var(--fc-border)] text-[var(--fc-text-secondary)]'
-                        }`}
-                    >
-                        {pill.label} · {pill.count}
-                    </span>
-                ))}
-            </div>
+        {journey.affiliations.length > 0 && <section className="rc-journey-section"><h3>{r('yourClubs')}</h3>{journey.affiliations.map((affiliation) => <article key={`${affiliation.clubId}-${affiliation.status}`} className="sd-panel rc-journey-card">
+            <div className="rc-journey-card-row"><div className="rc-journey-card-main"><h4>{affiliation.clubName}</h4><p>{[affiliation.squadName, affiliation.trialEndsOn ? `${t('journey.trialEnds')} ${formatDate(affiliation.trialEndsOn)}` : null].filter(Boolean).join(' · ')}</p></div><span className="rc-status" data-status={affiliation.status}>{statusLabel(affiliation.status)}</span></div>
+            {(affiliation.status === 'TRIALIST' || affiliation.status === 'ACTIVE') && <p>{r(affiliation.status === 'TRIALIST' ? 'trialHint' : 'activeHint')}</p>}
+            {affiliation.consentStatus === 'PENDING' && <div className="rc-summary"><span className="rc-consent"><ShieldAlert size={13} />{r('consentPending')}</span></div>}
+            {viewClub(affiliation.clubId)}
+        </article>)}</section>}
 
-            {!hasActivity && (
-                <div className="rounded-xl border border-dashed border-[var(--fc-border)] px-4 py-6 text-center">
-                    <p className="text-sm text-[var(--fc-text-secondary)]">{t('journey.empty')}</p>
-                    <button
-                        type="button"
-                        onClick={() => navigate('/map')}
-                        className="mt-2 text-xs font-semibold text-[var(--fc-accent)] hover:underline"
-                    >
-                        {t('journey.browseClubs')}
-                    </button>
-                </div>
-            )}
 
-            {/* Affiliations */}
-            {journey.affiliations.length > 0 && (
-                <div className="space-y-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--fc-text-muted)]">{t('journey.affiliations')}</p>
-                    {journey.affiliations.map((aff) => (
-                        <div key={`${aff.clubId}-${aff.status}`} className="flex items-center gap-2 rounded-xl border border-[var(--fc-border)] px-3 py-2.5">
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-[var(--fc-text-primary)]">{aff.clubName}</p>
-                                <p className="mt-0.5 truncate text-[11px] text-[var(--fc-text-secondary)]">
-                                    {[aff.status === 'ACTIVE' ? t('journey.member') : aff.status === 'TRIALIST' ? t('journey.onTrial') : aff.status,
-                                        aff.squadName, aff.trialEndsOn ? `${t('journey.trialEnds')} ${aff.trialEndsOn}` : null]
-                                        .filter(Boolean).join(' · ')}
-                                </p>
-                            </div>
-                            {aff.consentStatus === 'PENDING' && (
-                                <span title={t('journey.consentPending')}><ShieldAlert className="h-4 w-4 text-[var(--fc-state-warning)]" /></span>
-                            )}
-                            <button
-                                type="button"
-                                onClick={() => navigate(`/clubs/${aff.clubId}`)}
-                                className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-accent)]"
-                                title={t('journey.viewClub')}
-                            >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            )}
 
-            {/* Invitations */}
-            {journey.invitations.length > 0 && (
-                <div className="space-y-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--fc-text-muted)]">{t('journey.invitations')}</p>
-                    {journey.invitations.map((inv) => (
-                        <div key={inv.inviteId} className="flex items-center gap-2 rounded-xl border border-[var(--fc-border)] px-3 py-2.5">
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-[var(--fc-text-primary)]">{inv.clubName}</p>
-                                <p className="mt-0.5 text-[11px] text-[var(--fc-text-secondary)]">{t('journey.inviteRole', { role: inv.role })}</p>
-                            </div>
-                            <button
-                                type="button"
-                                disabled={busyKey === `invite-accept-${inv.inviteId}`}
-                                onClick={() => void runAction(`invite-accept-${inv.inviteId}`, () => acceptClubInvitation(inv.inviteId))}
-                                className="inline-flex items-center gap-1 rounded-lg bg-[#16a34a] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-white hover:opacity-90 disabled:opacity-50"
-                            >
-                                <Check className="h-3 w-3" /> {t('journey.acceptInvite')}
-                            </button>
-                            <button
-                                type="button"
-                                disabled={busyKey === `invite-decline-${inv.inviteId}`}
-                                onClick={() => void runAction(`invite-decline-${inv.inviteId}`, () => declineClubInvitation(inv.inviteId))}
-                                className="inline-flex items-center gap-1 rounded-lg border border-[var(--fc-border)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-50"
-                            >
-                                <X className="h-3 w-3" /> {t('journey.declineInvite')}
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            )}
+        {journey.tryouts.length > 0 && <section className="rc-journey-section"><h3>{t('journey.tryouts')}</h3>{journey.tryouts.map((tryout) => <article key={tryout.tryoutApplicationId} className="sd-panel rc-journey-card">
+            <div className="rc-journey-card-row"><CalendarDays size={18} className="sd-muted" /><div className="rc-journey-card-main"><h4>{tryout.title} · {tryout.clubName}</h4>{tryout.tryoutDate && <p>{formatDate(tryout.tryoutDate)}</p>}</div><span className="rc-status" data-status={tryout.status}>{statusLabel(tryout.status)}</span></div>{tryout.status === 'ACCEPTED' && <p>{r('acceptedTryoutHint')}</p>}{tryout.decisionMessage && <p className="rc-message">{tryout.decisionMessage}</p>}{viewClub(tryout.clubId)}
+        </article>)}</section>}
 
-            {/* Applications */}
-            {journey.applications.length > 0 && (
-                <div className="space-y-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--fc-text-muted)]">{t('journey.applications')}</p>
-                    {journey.applications.map((app) => (
-                        <div key={app.applicationId} className="rounded-xl border border-[var(--fc-border)] px-3 py-2.5">
-                            <div className="flex items-center gap-2">
-                                <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-semibold text-[var(--fc-text-primary)]">{app.clubName}</p>
-                                    <p className="mt-0.5 text-[11px] text-[var(--fc-text-secondary)]">
-                                        {app.status === 'PENDING' ? t('journey.pending') : app.status}
-                                    </p>
-                                </div>
-                                {app.status === 'PENDING' && (
-                                    <button
-                                        type="button"
-                                        disabled={busyKey === `app-cancel-${app.applicationId}`}
-                                        onClick={() => void runAction(`app-cancel-${app.applicationId}`, () => cancelClubApplication(app.clubId, app.applicationId))}
-                                        className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--fc-state-danger)] hover:underline disabled:opacity-50"
-                                    >
-                                        {t('journey.cancelApplication')}
-                                    </button>
-                                )}
-                            </div>
-                            {app.decisionMessage && (
-                                <p className="mt-1.5 text-xs leading-5 text-[var(--fc-text-secondary)]">{app.decisionMessage}</p>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
+        {journey.recentDecisions.length > 0 && <section className="rc-journey-section"><h3>{t('journey.recentDecisions')}</h3>{journey.recentDecisions.slice(0, 5).map((decision, index) => <article key={`${decision.kind}-${decision.clubName}-${index}`} className="sd-panel rc-journey-card"><div className="rc-journey-card-row"><Mail size={16} className="sd-muted" /><div className="rc-journey-card-main"><h4>{decision.clubName} · {statusLabel(decision.status)}</h4>{decision.decidedAt && <p>{formatDate(decision.decidedAt)}</p>}</div></div>{decision.message && <p>{decision.message}</p>}</article>)}</section>}
+    </div>;
+};
 
-            {/* Tryouts */}
-            {journey.tryouts.length > 0 && (
-                <div className="space-y-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--fc-text-muted)]">{t('journey.tryouts')}</p>
-                    {journey.tryouts.map((tryout) => (
-                        <div key={tryout.tryoutApplicationId} className="rounded-xl border border-[var(--fc-border)] px-3 py-2.5">
-                            <div className="flex items-center gap-2">
-                                <CalendarDays className="h-3.5 w-3.5 shrink-0 text-[var(--fc-text-muted)]" />
-                                <p className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--fc-text-primary)]">
-                                    {tryout.title} · {tryout.clubName}
-                                </p>
-                            </div>
-                            <p className="mt-0.5 text-[11px] text-[var(--fc-text-secondary)]">
-                                {tryout.status}
-                                {tryout.tryoutDate ? ` · ${new Date(tryout.tryoutDate).toLocaleDateString()}` : ''}
-                            </p>
-                            {tryout.decisionMessage && (
-                                <p className="mt-1.5 text-xs leading-5 text-[var(--fc-text-secondary)]">{tryout.decisionMessage}</p>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Recent decisions */}
-            {journey.recentDecisions.length > 0 && (
-                <div className="space-y-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--fc-text-muted)]">{t('journey.recentDecisions')}</p>
-                    {journey.recentDecisions.slice(0, 5).map((decision, index) => (
-                        <div key={`${decision.kind}-${decision.clubName}-${index}`} className="flex items-start gap-2 rounded-xl border border-[var(--fc-border)] px-3 py-2">
-                            <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--fc-text-muted)]" />
-                            <div className="min-w-0">
-                                <p className="text-xs font-semibold text-[var(--fc-text-primary)]">
-                                    {decision.clubName} · {decision.status}
-                                </p>
-                                {decision.message && (
-                                    <p className="mt-0.5 text-[11px] leading-4 text-[var(--fc-text-secondary)]">{decision.message}</p>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
+export const ClubJourneyPanel = () => {
+    const { sessionId } = useAuth();
+    const [revision, setRevision] = useState(0);
+    return <><OrganizationInvitationInbox key={`${sessionId}:invitations`} /><ClubRelationships key={`${sessionId}:relationships`} onChanged={() => setRevision(value => value + 1)} /><RecruitmentInbox key={`${sessionId}:recruitment`} onChanged={() => setRevision(value => value + 1)} /><ClubJourneyContent key={`${sessionId}:${revision}`} /></>;
 };

@@ -1,0 +1,51 @@
+/* Use the canonical schedule layout without the old miniature-calendar overrides. */
+.squad-schedule-workspace { min-width: 0; width: 100%; color: var(--fc-text-primary); }
+.squad-schedule-workspace > .schedule-direction { overflow: visible; padding: 20px 0 12px; }
+.squad-schedule-workspace .schedule-direction-context > button {
+    min-height: 40px; padding: 8px 0; border-radius: 6px;
+    background: transparent; color: var(--fc-text-secondary); font-weight: 550;
+}
+.squad-schedule-timezone { color: var(--fc-text-secondary); font-size: 12px; margin: 12px 0 24px; }
+.squad-schedule-notice { color: var(--state-warning); padding: 12px 0; }
+.squad-schedule-overlay { position: fixed; inset: 0; z-index: 1100; display: grid; place-items: center; padding: 20px; background: var(--app-overlay, color-mix(in srgb, var(--color-overlay) 53.33%, transparent)); }
+.squad-schedule-dialog { width: min(560px, 100%); max-height: 90dvh; overflow: auto; padding: 24px; border-radius: 12px; background: var(--fc-card-bg); color: var(--fc-text-primary); border: 1px solid var(--fc-border); }
+.squad-schedule-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.squad-schedule-dialog h2 { font-size: 23px; font-weight: 700; }
+.squad-schedule-dialog p { margin: 12px 0; line-height: 1.6; }
+.squad-schedule-dialog label { display: grid; gap: 8px; margin: 16px 0; }
+.squad-schedule-dialog input, .squad-schedule-dialog select { min-height: 44px; width: 100%; border: 1px solid var(--fc-border); background: var(--fc-page-bg); color: var(--fc-text-primary); border-radius: 6px; padding: 10px; }
+.squad-schedule-dialog button { min-height: 40px; padding: 8px 12px; border: 1px solid var(--fc-border); border-radius: 6px; cursor: pointer; }
+.squad-schedule-dialog :focus-visible { outline: 2px solid var(--fc-accent); outline-offset: 3px; }
+.squad-schedule-dialog button:disabled { opacity: .5; cursor: default; }
+.squad-calendar-page { height: 100%; overflow: auto; padding: 20px 28px; background: var(--fc-page-bg); color: var(--fc-text-primary); }
+.family-room > .squad-schedule-workspace { margin-bottom: 28px; border-bottom: 1px solid var(--fc-border); }
+@media(max-width: 600px) { .squad-calendar-page { padding: 12px 14px; } .squad-schedule-dialog { padding: 18px; } }
+
+.squad-schedule-workspace { --fc-accent-contrast: var(--color-on-accent); }
+
+.squad-schedule-session-action { padding: 10px 14px; min-height: 44px; border: 1px solid var(--fc-border); border-radius: 6px; color: var(--fc-text-primary); background: var(--fc-card-bg); }
+@media(max-width: 600px) { .squad-schedule-workspace .schedule-direction-heading { flex-wrap: wrap; } .squad-schedule-workspace .schedule-direction-heading h1 { max-width: none; } }
+
+.family-room-aside .squad-schedule-link { width: 100%; justify-content: center; margin-bottom: 4px; background: var(--fc-accent); color: var(--feed-accent-contrast) !important; }
+
+.squad-schedule-preview { padding: 20px; border: 1px solid var(--fc-border); border-top: 3px solid var(--fc-accent); border-radius: 10px; background: var(--fc-card-bg); }
+.squad-page .squad-schedule-preview h2 { font-size: 18px; margin: 0 0 6px; letter-spacing: -.3px; }
+.squad-schedule-preview header p, .squad-schedule-preview > p { font-size: 12px; color: var(--fc-text-secondary); }
+.squad-page .squad-schedule-preview .squad-preview-event { display: grid; grid-template-columns: 40px minmax(0,1fr); gap: 14px; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--fc-border); border-radius: 0; padding: 20px 0; background: transparent; color: var(--fc-text-primary); }
+.squad-preview-date { font-size: 30px; line-height: 1.1; color: var(--fc-accent); font-weight: 700; }
+.squad-preview-event small { display: block; margin-top: 6px; font-size: 12px; font-weight: 400; line-height: 1.5; color: var(--fc-text-secondary); }
+.squad-preview-date small { font-size: 10px; text-transform: uppercase; }
+.squad-preview-event strong { font-size: 14px; line-height: 1.5; }
+.squad-preview-event .squad-preview-location { display: flex; gap: 5px; align-items: flex-start; }.squad-preview-location svg { flex-shrink: 0; margin-top: 3px; }
+.squad-preview-event .squad-preview-cancelled { color: var(--state-warning); }
+.squad-schedule-preview footer { margin-top: 16px; }
+.squad-page .squad-schedule-preview .squad-preview-more { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 6px 10px; border: 1px solid var(--fc-border); border-radius: 6px; color: var(--fc-text-secondary); background: transparent; font-size: 12px; font-weight: 550; }
+.squad-page .squad-schedule-preview .squad-preview-more:hover { color: var(--fc-accent); border-color: var(--fc-accent); }
+.squad-preview-more:focus-visible { outline: 2px solid var(--fc-accent); outline-offset: 3px; }
+.squad-schedule-preview .squad-preview-timezone { font-size: 10px; margin: 14px 0 0; }
+.session-next-action.is-compact { padding: 12px 16px; margin: 8px 0 20px; border-radius: 8px; border-left-width: 3px; gap: 16px; }
+.session-next-action.is-compact > div > small { display: none; }
+.session-next-action.is-compact h2 { font-size: 14px; margin: 0 0 4px; }
+.session-next-action.is-compact p { font-size: 12px; margin: 0; }
+.session-next-action.is-compact > button { min-height: 38px; font-size: 12px; padding: 8px 12px; }
+@media(max-width:600px) { .session-next-action.is-compact { display: flex; align-items: center; flex-wrap: wrap; } .session-next-action.is-compact > button { width: auto; } }

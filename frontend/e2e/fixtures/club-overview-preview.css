@@ -1,0 +1,15 @@
+html, body, #root { margin: 0; min-height: 100%; width: 100%; }
+.overview-preview { min-height: 100vh; background: var(--fc-page-bg); color: var(--fc-text-primary); }
+.overview-preview-caption { padding: 9px 24px; color: var(--fc-text-muted); font-size: 10px; letter-spacing: .04em; border-bottom: 1px solid var(--fc-border); }
+.overview-preview-shell { display: grid; grid-template-columns: 210px minmax(0, 1fr); }
+.overview-preview-shell > aside { border-right: 1px solid var(--fc-border); padding: 30px 20px; background: var(--fc-sidebar-bg); }
+.overview-preview-shell > aside > strong { display: block; font-size: 22px; letter-spacing: -.06em; font-weight: 800; }
+.overview-preview-shell > aside > strong > span { color: var(--fc-accent); }
+.overview-preview-shell > aside > small { display: block; margin: 40px 12px 16px; color: var(--fc-text-muted); font-size: 10px; letter-spacing: .1em; }
+.overview-preview-shell nav { display: grid; gap: 4px; font-size: 12px; }
+.overview-preview-shell nav > * { padding: 12px; color: var(--fc-text-secondary); }
+.overview-preview-shell nav > b { color: var(--fc-accent); background: var(--fc-accent-soft); border-left: 2px solid var(--fc-accent); border-radius: 5px; }
+.overview-preview-shell main { min-width: 0; padding: 42px 44px; max-width: 1420px; width: 100%; margin: 0 auto; }
+.overview-preview-shell output { display: block; margin-top: 24px; color: var(--fc-text-muted); font-size: 10px; min-height: 16px; }
+@media (max-width: 1000px) { .overview-preview-shell { grid-template-columns: 170px minmax(0, 1fr); } .overview-preview-shell main { padding: 28px 24px; } }
+@media (max-width: 700px) { .overview-preview-shell { display: block; } .overview-preview-shell > aside { display: none; } .overview-preview-shell main { padding: 26px 16px; } .overview-preview-caption { padding: 8px 16px; font-size: 9px; } }

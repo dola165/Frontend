@@ -107,7 +107,7 @@ describe('FeedPage', () => {
     });
 
     describe('empty state', () => {
-        it('shows "For You" empty state with guide links when on default view', async () => {
+        it('shows "Discover" empty state with guide links when on default view', async () => {
             (apiClient.get as ReturnType<typeof vi.fn>).mockResolvedValue({
                 data: { content: [] },
             });
@@ -115,7 +115,7 @@ describe('FeedPage', () => {
             expect(await screen.findByText('Your Home is ready')).toBeInTheDocument();
             expect(screen.getByText('Find Clubs')).toBeInTheDocument();
             expect(screen.getByText('Browse Map')).toBeInTheDocument();
-            expect(screen.getByText('Discover Events')).toBeInTheDocument();
+            expect(screen.getByText('Your schedule')).toBeInTheDocument();
         });
 
         it('shows "Following" empty state with correct guides when on following view', async () => {
@@ -140,7 +140,7 @@ describe('FeedPage', () => {
             await screen.findByText('Your Home is ready');
             expect(screen.getByText('Find Clubs').closest('a')).toHaveAttribute('href', '/clubs');
             expect(screen.getByText('Browse Map').closest('a')).toHaveAttribute('href', '/map');
-            expect(screen.getByText('Discover Events').closest('a')).toHaveAttribute('href', '/tournaments');
+            expect(screen.getByText('Your schedule').closest('a')).toHaveAttribute('href', '/calendar');
         });
     });
 
@@ -152,7 +152,7 @@ describe('FeedPage', () => {
             renderPage();
             await screen.findByTestId('feed-list');
             expect(screen.getByRole('heading', { name: 'Home' })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /For You/i })).toHaveAttribute('href', '/home');
+            expect(screen.getByRole('link', { name: /Discover/i })).toHaveAttribute('href', '/home');
             expect(screen.getByRole('link', { name: /Following/i })).toHaveAttribute('href', '/home?view=following');
         });
 
@@ -212,20 +212,27 @@ describe('FeedPage', () => {
         });
     });
 
-    it('loads three pages with timestamp cursors, deduplicates overlap, and announces the end', async () => {
+    it('shows one page at a time with timestamp cursors, deduplicates overlap, and navigates back', async () => {
         const user = userEvent.setup();
         const post = (id: number) => ({ id, createdAt: '2026-01-01T12:00:00', content: String(id) });
         vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { posts: [post(5), post(4)], nextCursor: 4 } })
             .mockResolvedValueOnce({ data: { posts: [post(4), post(3), post(2)], nextCursor: 2 } })
-            .mockResolvedValueOnce({ data: { posts: [post(1)], nextCursor: null } });
+            .mockResolvedValueOnce({ data: { posts: [post(1)], nextCursor: null } })
+            .mockResolvedValueOnce({ data: { posts: [post(4), post(3), post(2)], nextCursor: 2 } })
+            .mockResolvedValueOnce({ data: { posts: [post(5), post(4)], nextCursor: 4 } });
         renderPage();
         await user.click(await screen.findByRole('button', { name: 'Load more posts' }));
-        expect(screen.getByTestId('post-ids')).toHaveTextContent('5,4,3,2');
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('3,2');
         expect(apiClient.get).toHaveBeenLastCalledWith('/posts/feed/for-you', expect.objectContaining({ params: { limit: 20, cursor: 4, cursorTime: '2026-01-01T12:00:00' } }));
         await user.click(screen.getByRole('button', { name: 'Load more posts' }));
-        expect(screen.getByTestId('post-ids')).toHaveTextContent('5,4,3,2,1');
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('1');
         expect(screen.getByRole('status')).toHaveTextContent('all caught up');
         expect(screen.queryByRole('button', { name: 'Load more posts' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Back to latest' })).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Newer posts' }));
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('4,3,2');
+        await user.click(screen.getByRole('button', { name: 'Newer posts' }));
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('5,4');
     });
 
     it('treats omitted API counts and like state as zero and false, including failed-like rollback', async () => {
@@ -249,7 +256,7 @@ describe('FeedPage', () => {
         expect(screen.getByTestId('post-ids')).toHaveTextContent('5');
         expect(screen.getByRole('alert')).toHaveTextContent('Older posts could not load');
         await user.click(screen.getByRole('button', { name: 'Retry older posts' }));
-        expect(screen.getByTestId('post-ids')).toHaveTextContent('5,4');
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('4');
         expect(vi.mocked(apiClient.get).mock.calls[1][1]?.params).toEqual(vi.mocked(apiClient.get).mock.calls[2][1]?.params);
     });
 
@@ -279,6 +286,41 @@ describe('FeedPage', () => {
         expect(screen.getByTestId('post-ids')).toHaveTextContent('6');
         await act(async () => old.resolve({ data: { posts: [{ id: 4 }], nextCursor: null } }));
         expect(screen.getByTestId('post-ids')).toHaveTextContent('6');
+    });
+
+    it('keeps posts and composer mounted while switching feeds, with one request per switch', async () => {
+        const user = userEvent.setup();
+        const following = deferred<{ data: { posts: { id: number }[] } }>();
+        vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { posts: [{ id: 1 }] } })
+            .mockReturnValueOnce(following.promise)
+            .mockResolvedValueOnce({ data: { posts: [{ id: 3 }] } });
+        renderPage();
+        const list = await screen.findByTestId('feed-list');
+        const composer = screen.getByTestId('post-composer');
+        await user.click(screen.getByRole('link', { name: /Following/i }));
+        expect(screen.getByTestId('feed-list')).toBe(list);
+        expect(screen.queryByTestId('skeleton-card')).not.toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveTextContent('Loading Following posts');
+        expect(screen.getByRole('region', { name: 'Feed results' })).toHaveAttribute('aria-busy', 'true');
+        await act(async () => following.resolve({ data: { posts: [{ id: 2 }] } }));
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('2');
+        await user.click(screen.getByRole('link', { name: /Discover/i }));
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('3');
+        expect(screen.getByTestId('post-composer')).toBe(composer);
+        expect(apiClient.get).toHaveBeenCalledTimes(3);
+    });
+
+    it('does not flash initial skeletons again when switching away from an empty feed', async () => {
+        const user = userEvent.setup();
+        const next = deferred<{ data: { posts: { id: number }[] } }>();
+        vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { posts: [] } }).mockReturnValueOnce(next.promise);
+        renderPage();
+        await screen.findByText('Your Home is ready');
+        await user.click(screen.getByRole('link', { name: /Following/i }));
+        expect(screen.queryByTestId('skeleton-card')).not.toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveTextContent('Loading Following posts');
+        await act(async () => next.resolve({ data: { posts: [{ id: 1 }] } }));
+        expect(screen.getByTestId('post-ids')).toHaveTextContent('1');
     });
 
     describe('PostComposer', () => {

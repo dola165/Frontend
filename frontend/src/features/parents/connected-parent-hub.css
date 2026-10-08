@@ -1,0 +1,11 @@
+.connected-parent-hub .parent-add-child{margin-bottom:24px}
+.connected-parent-hub .parent-selected-player{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:24px}
+.connected-parent-hub .parent-family-main{display:grid;gap:20px}.connected-parent-hub .parent-child-detail{display:grid;gap:20px}
+.connected-parent-hub .parent-panel h2{margin-bottom:12px}.connected-parent-hub .parent-panel p{line-height:1.6}
+.parent-request-card{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 0;border-top:1px solid var(--fc-border)}
+.parent-request-card h3{font-size:17px;margin:4px 0 8px}.parent-request-card p{margin:8px 0}.parent-request-card .parent-button{flex-shrink:0}
+.parent-club-context{padding:16px 0;border-top:1px solid var(--fc-border)}.parent-club-context h3{font-size:16px}
+.parent-link-code summary{cursor:pointer;font-size:14px;font-weight:650;line-height:1.5}.parent-link-code label{display:grid;gap:8px;margin:16px 0;font-size:13px}.parent-link-code input,.parent-link-code select{min-width:0;width:100%;padding:10px;border:1px solid var(--fc-border);border-radius:8px;background:var(--fc-page-bg);color:var(--fc-text-primary)}.parent-link-code small{display:block;margin-top:14px;color:var(--fc-text-secondary);font-size:12px;line-height:1.6}.parent-code-result input{font-family:monospace;font-size:17px}
+.connected-parent-hub>.family-connections{margin-top:28px}.connected-parent-hub .parent-child-list{flex-wrap:wrap}
+.admission-heading nav>[aria-current=page]{display:inline-flex;align-items:center;gap:7px;padding:8px 0;font-weight:700;color:var(--fc-text-primary)}
+@media(max-width:700px){.connected-parent-hub .parent-selected-player,.parent-request-card{flex-direction:column;align-items:flex-start}.connected-parent-hub .parent-selected-player .parent-header-actions{width:100%}.parent-request-card .parent-button{max-width:100%;white-space:normal}.connected-parent-hub .parent-child-list{display:grid;grid-template-columns:1fr}.connected-parent-hub .parent-child-choice{width:100%}}

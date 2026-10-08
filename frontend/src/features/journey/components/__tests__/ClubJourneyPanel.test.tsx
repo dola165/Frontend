@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '../../../../i18n';
 import { ClubJourneyPanel } from '../ClubJourneyPanel';
+const refreshNavigation = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ refreshNavigationCapabilities: refreshNavigation }) }));
+vi.mock('../ClubRelationships', () => ({ ClubRelationships: () => null }));
+vi.mock('../../../organizations/setup/OrganizationInvitationInbox', () => ({ OrganizationInvitationInbox: () => null }));
 
 vi.mock('react-router-dom', () => ({
     useNavigate: () => vi.fn(),
@@ -63,7 +67,7 @@ describe('ClubJourneyPanel — phase A4', () => {
         await waitFor(() => expect(screen.getAllByText(/Metro United Academy/).length).toBeGreaterThanOrEqual(1));
         expect(screen.getByText('This intake is full — try again at our next tryouts. Keep training!')).toBeInTheDocument();
         expect(screen.getByText(/U15 Open Tryout/)).toBeInTheDocument();
-        expect(screen.getByText(/Lakeside Athletic · DECLINED/)).toBeInTheDocument();
+        expect(screen.getByText(/Lakeside Athletic · Declined/)).toBeInTheDocument();
     });
 
     it('cancels a pending application and refreshes', async () => {
@@ -79,6 +83,7 @@ describe('ClubJourneyPanel — phase A4', () => {
         await waitFor(() => expect(screen.getByText(/Creekside FC/)).toBeInTheDocument());
         fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
         await waitFor(() => expect(acceptClubInvitation).toHaveBeenCalledWith(701));
+        await waitFor(() => expect(refreshNavigation).toHaveBeenCalledOnce());
         expect(fetchClubJourney).toHaveBeenCalledTimes(2);
     });
 

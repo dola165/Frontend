@@ -1,0 +1,4 @@
+export type Receipt = { id: number; targetType: string; reason: string; status: string; outcome: string | null; createdAt: string; resolvedAt: string | null };
+const labels: Record<string, string> = { SPAM: 'Spam', HARASSMENT: 'Harassment', SAFETY: 'Safety concern', IMPERSONATION: 'Impersonation', OTHER: 'Something else', OPEN: 'Awaiting review', RESOLVED: 'Reviewed', DISMISSED: 'Dismissed', NO_ACTION: 'Reviewed without further action', DISMISS: 'Report dismissed', WARN_ACCOUNT: 'Account warning recorded', REMOVE_MESSAGE: 'Message removed', ACCOUNT: 'Account', MESSAGE: 'Message', SUBMITTED: 'Report received', EVIDENCE_VIEWED: 'Evidence reviewed' };
+Object.assign(labels, { POST: 'Post', REMOVE_POST: 'Post removed', POST_CHANGED: 'Post edited since reporting', POST_UNAVAILABLE: 'Post unavailable' });
+export const label = (value: string) => labels[value] ?? value.replaceAll('_', ' ').toLowerCase();

@@ -1,0 +1,11 @@
+.org-portfolio{margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border-subtle)}
+.org-portfolio-heading{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.org-portfolio h2{font-size:1.35rem;font-weight:650}.org-portfolio h3{font-size:1.1rem;font-weight:650;overflow-wrap:anywhere}
+.org-portfolio-help{max-width:72ch;color:var(--text-secondary);margin:.75rem 0 1.25rem;line-height:1.6}
+.org-portfolio-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:1rem}
+.org-portfolio-venue,.org-portfolio-form,.org-portfolio-confirm,.org-portfolio-empty{padding:1.25rem;border:1px solid var(--border-subtle);border-radius:16px;background:var(--bg-elevated);margin-bottom:1rem;min-width:0}
+.org-portfolio-relations{display:grid;gap:.5rem;list-style:none;padding:0;margin:1rem 0;color:var(--text-secondary);font-size:.875rem}
+.org-portfolio-relations li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.5rem}.org-portfolio-relations button{text-decoration:underline}
+.org-portfolio-form fieldset{display:grid;gap:1rem;min-width:0}.org-portfolio-form legend{font-weight:650;margin-bottom:.5rem}.org-portfolio-form label{display:grid;gap:.4rem}
+.org-portfolio-form select{width:100%;min-height:44px;background:var(--bg-base);color:var(--text-primary);border:1px solid var(--border-subtle);border-radius:8px;padding:.6rem}
+.org-portfolio-confirm p{margin:.75rem 0}.org-portfolio button:focus-visible,.org-portfolio a:focus-visible{outline:2px solid var(--org-kind-accent,var(--color-accent));outline-offset:3px}

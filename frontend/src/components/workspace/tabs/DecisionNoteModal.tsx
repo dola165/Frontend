@@ -2,6 +2,9 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, Loader2, MessageSquareText, X } from 'lucide-react';
 import { useDialogFocus } from '../useDialogFocus';
+import { useRecruitmentCopy } from '../../../locales/recruitmentDesign';
+import '../../squads/squad-design.css';
+import '../recruitment/recruitment-design.css';
 
 interface DecisionNoteModalProps {
     title: string;
@@ -29,67 +32,71 @@ export const DecisionNoteModal = ({
     title, subtitle, saving, confirmLabel, danger = false, templateKey = 'decisions.template', onClose, onConfirm,
 }: DecisionNoteModalProps) => {
     const { t } = useTranslation();
+    const r = useRecruitmentCopy();
     const [note, setNote] = useState('');
     const dialogRef = useRef<HTMLDivElement>(null);
     const noteRef = useRef<HTMLTextAreaElement>(null);
-    useDialogFocus(true, dialogRef, onClose, noteRef);
+    const close = () => { if (!saving) onClose(); };
+    useDialogFocus(true, dialogRef, close, noteRef);
 
     const trimmed = note.trim();
-    const confirm = () => onConfirm(trimmed.length > 0 ? trimmed : null);
+    const confirm = () => { if (!saving) onConfirm(trimmed.length > 0 ? trimmed : null); };
 
     return (
-        <div className="fixed inset-0 z-[1200] flex items-center justify-center">
-            <div className="theme-overlay absolute inset-0" onClick={onClose} />
-            <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="decision-note-title" aria-describedby="decision-note-subtitle" className="relative z-10 mx-4 max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto border border-[var(--fc-border)] bg-[var(--fc-page-bg)] shadow-2xl">
+        <div className="squad-design recruitment-design rc-overlay">
+            <div className="rc-backdrop" onClick={close} />
+            <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="decision-note-title" aria-describedby="decision-note-subtitle" className="rc-dialog">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-[#ffffff0d] px-5 py-4">
-                    <div className="flex items-center gap-3">
-                        <MessageSquareText className="h-5 w-5 text-[var(--fc-accent)]" />
+                <div className="rc-dialog-header">
+                    <div className="flex items-start gap-3">
+                        <MessageSquareText className="mt-1 h-5 w-5 shrink-0 text-[var(--fc-accent)]" />
                         <div>
                             <h2 id="decision-note-title" className="text-sm font-semibold text-[var(--fc-text-primary)]">{title}</h2>
                             <p id="decision-note-subtitle" className="mt-0.5 text-[11px] font-medium text-[var(--fc-text-secondary)]">{subtitle}</p>
                         </div>
                     </div>
-                    <button type="button" onClick={onClose} aria-label={t('decisions.close')} className="p-1 text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]">
+                    <button type="button" onClick={close} disabled={saving} aria-label={t('decisions.close')} className="sd-icon-button">
                         <X className="h-4 w-4" />
                     </button>
                 </div>
 
                 {/* Note */}
-                <div className="px-5 py-4">
-                    <div className="mb-1.5 flex items-center justify-between">
-                        <label htmlFor="decision-note" className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--fc-text-secondary)]">
+                <div className="rc-dialog-body">
+                    <div className="rc-note-label">
+                        <label htmlFor="decision-note">
                             {t('decisions.noteLabel')}
                         </label>
                         <button
                             type="button"
+                            disabled={saving}
                             onClick={() => setNote(t(templateKey))}
-                            className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--fc-accent)] hover:underline"
+                            className="rc-link"
                         >
                             {t('decisions.templateChip')}
                         </button>
                     </div>
-                    <textarea
+                    <div className="rc-form-field"><textarea
                         ref={noteRef}
                         id="decision-note"
                         value={note}
+                        disabled={saving}
                         maxLength={MAX_NOTE_LENGTH}
                         onChange={(e) => setNote(e.target.value)}
                         placeholder={t('decisions.notePlaceholder')}
-                        rows={4}
-                        className="w-full resize-none rounded-lg border border-[var(--fc-border)] bg-elevated px-3 py-2 text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)] focus:border-[var(--fc-accent)]"
-                    />
-                    <p className="mt-1 text-right text-[10px] font-medium text-[var(--fc-text-muted)]">
+                        rows={5}
+                    /><small>{r('noteHint')}</small></div>
+                    <p className="rc-note-counter">
                         {t('decisions.charCount', { count: note.length })}
                     </p>
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-2 border-t border-[var(--fc-border)] px-5 py-3">
+                <div className="rc-dialog-footer">
                     <button
                         type="button"
-                        onClick={onClose}
-                        className="border border-[var(--fc-border)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]"
+                        onClick={close}
+                        disabled={saving}
+                        className="sd-button"
                     >
                         {t('decisions.cancel')}
                     </button>
@@ -97,11 +104,7 @@ export const DecisionNoteModal = ({
                         type="button"
                         onClick={confirm}
                         disabled={saving}
-                        className={`inline-flex items-center gap-1.5 border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] disabled:opacity-50 ${
-                            danger
-                                ? 'border-[var(--fc-state-danger)] bg-[var(--fc-state-danger)] text-white hover:opacity-90'
-                                : 'border-[#16a34a] bg-[#16a34a] text-[color:var(--accent-on-primary)] hover:bg-[#16a34a]-hover'
-                        }`}
+                        className={danger ? 'sd-button rc-danger' : 'sd-primary'}
                     >
                         {saving ? (
                             <span className="inline-flex items-center gap-2">

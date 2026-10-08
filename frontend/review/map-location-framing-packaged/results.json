@@ -1,0 +1,75 @@
+{
+  "checks": [
+    {
+      "label": "Browse area without location retains close zoom for cards and markers"
+    },
+    {
+      "label": "Manual location and nearby marker",
+      "width": 856,
+      "bottom": 960,
+      "zoom": 12.917068999626014,
+      "points": [
+        {
+          "x": 32.000000002649095,
+          "y": 691.6056363678641
+        },
+        {
+          "x": 824.0000000006622,
+          "y": 308.3943636169036
+        }
+      ]
+    },
+    {
+      "label": "Nearby result card retains location",
+      "width": 856,
+      "bottom": 960,
+      "zoom": 12.917068999626014,
+      "points": [
+        {
+          "x": 32.000000002649095,
+          "y": 691.6056363685263
+        },
+        {
+          "x": 824.0000000006622,
+          "y": 308.3943636175659
+        }
+      ]
+    },
+    {
+      "label": "Club over 100 km away retains close zoom"
+    },
+    {
+      "label": "GPS location stays above detail sheet at 390x844",
+      "width": 390,
+      "bottom": 320.734375,
+      "zoom": 11.643503926303254,
+      "points": [
+        {
+          "x": 31.200000000037665,
+          "y": 260.7550586829253
+        },
+        {
+          "x": 358.7999999999623,
+          "y": 102.24494131735716
+        }
+      ]
+    },
+    {
+      "label": "GPS location stays above detail sheet at 360x437",
+      "width": 360,
+      "bottom": 166.0625,
+      "zoom": 9.335072809051999,
+      "points": [
+        {
+          "x": 146.93207924444198,
+          "y": 120.00000000002274
+        },
+        {
+          "x": 213.06792075555802,
+          "y": 88.00000000002274
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

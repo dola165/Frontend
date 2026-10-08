@@ -4,6 +4,7 @@ import { clubRoleLabel } from '../../../features/clubs/domain';
 import { DataTable, EmptyState, Pill, SectionHeader } from '../helpers';
 import { UserIdentityCell } from '../UserIdentityCell';
 import { OverflowActions } from '../../ui/OverflowActions';
+import { useAuth } from '../../../context/AuthContext';
 
 interface RolesTabProps {
     overview: ClubManagementOverview;
@@ -26,6 +27,11 @@ export const RolesTab = ({
     onTransferOwnership,
     onConfirmSelfLeave, onLeaveClub, onOpenJobs
 }: RolesTabProps) => {
+    const { refreshNavigationCapabilities } = useAuth();
+    const endStaffMembership = async () => {
+        await onLeaveClub();
+        await refreshNavigationCapabilities().catch(() => undefined);
+    };
     const transferCandidates = overview.members.filter((member) =>
         member.ownershipTransferEligible === true && member.userId !== currentUserId
         && (member.role === 'CLUB_ADMIN' || member.role === 'COACH'));
@@ -41,7 +47,7 @@ export const RolesTab = ({
                     <button
                         type="button"
                         onClick={onOpenJobs}
-                        className="inline-flex items-center gap-2 rounded-xl border border-[#16a34a]/30 bg-[#16a34a]/10 px-3 py-2 text-xs font-semibold text-[#16a34a] hover:bg-[#16a34a]/20"
+                        className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-3 py-2 text-xs font-semibold text-[var(--color-accent)] hover:bg-[var(--color-accent)]/20"
                     >
                         <Briefcase className="h-3.5 w-3.5" /> Looking for a coach?
                     </button>
@@ -110,19 +116,19 @@ export const RolesTab = ({
             <div className="flex items-start gap-3">
                 <LogOut className="mt-0.5 h-4 w-4 shrink-0 text-[var(--fc-state-danger)]" />
                 <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-[var(--fc-text-primary)]">Leave This Club</p>
+                    <p className="text-sm font-semibold text-[var(--fc-text-primary)]">End Staff Membership</p>
                     <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">
-                        {isOwner ? 'Transfer ownership before leaving. The owner cannot leave directly.' : 'This removes your membership and closes your access to club management.'}
+                        {isOwner ? 'Transfer ownership before leaving. The owner cannot leave directly.' : 'This ends your staff access and coaching assignments. Any playing membership and squad places remain.'}
                     </p>
                     {!isOwner && (
                         <div className="mt-3">
                             {confirmingSelfLeave ? (
                                 <div className="flex gap-2">
                                     <button type="button" onClick={() => onConfirmSelfLeave(false)} disabled={pendingKey === 'leave-club'} className="rounded-xl border border-[var(--fc-border)] px-3 py-1.5 text-xs font-medium text-[var(--fc-text-secondary)] disabled:opacity-50">Cancel</button>
-                                    <button type="button" onClick={() => void onLeaveClub()} disabled={pendingKey === 'leave-club'} className="rounded-xl bg-[var(--fc-state-danger)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50">{pendingKey === 'leave-club' ? 'Leaving...' : 'Confirm Leave'}</button>
+                                    <button type="button" onClick={() => void endStaffMembership()} disabled={pendingKey === 'leave-club'} className="rounded-xl bg-[var(--fc-state-danger)] px-3 py-1.5 text-xs font-semibold text-[color:var(--color-text)] hover:opacity-90 disabled:opacity-50">{pendingKey === 'leave-club' ? 'Leaving...' : 'Confirm departure'}</button>
                                 </div>
                             ) : (
-                                <button type="button" onClick={() => onConfirmSelfLeave(true)} className="rounded-xl border border-[var(--fc-state-danger)] px-3 py-1.5 text-xs font-semibold text-[var(--fc-state-danger)] hover:bg-[var(--fc-state-danger)] hover:text-white transition-colors">Leave Club</button>
+                                <button type="button" onClick={() => onConfirmSelfLeave(true)} className="rounded-xl border border-[var(--fc-state-danger)] px-3 py-1.5 text-xs font-semibold text-[var(--fc-state-danger)] hover:bg-[var(--fc-state-danger)] hover:text-[color:var(--color-text)] transition-colors">End Staff Membership</button>
                             )}
                         </div>
                     )}

@@ -1,32 +1,53 @@
+import { useClubEntryEligibility, useEntryCopy } from '../features/applications/clubEntry';
+import { RecruitmentApplication } from '../features/recruitment/RecruitmentApplication';
 import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowRight, Building2 } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, Building2, ClipboardCheck, MapPin, Route } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
-    cancelClubApplication,
     createClubApplication,
     fetchMyJobApplication,
     fetchPublicJob,
     type ClubJob,
     type MyJobApplication,
 } from '../features/clubs/api';
-import {
-    labelForCategory,
-    labelForEngagement,
-    locationLabel,
-    relativeDate,
-} from '../features/clubs/jobLabels';
+import { useJobsOpportunitiesCopy } from '../features/clubs/jobsOpportunitiesCopy';
 import { extractApiErrorMessage } from '../utils/apiError';
 import '../features/store/store.css';
+import '../features/clubs/jobs-opportunities.css';
 
-export const JobDetailPage = () => {
+interface JobDetailPageProps {
+    previewAuth?: { status: 'authenticated' | 'anonymous'; user: { id: number } | null };
+}
+
+export const JobDetailPage = ({ previewAuth }: JobDetailPageProps = {}) => {
     const { id } = useParams();
-    const { user } = useAuth();
-    return <JobDetail key={`${id}:${user?.id ?? 'guest'}`} id={Number(id)} />;
+    if (import.meta.env.DEV && previewAuth)
+        return <JobDetail key={`${id}:${previewAuth.user?.id ?? 'guest'}`} id={Number(id)} {...previewAuth} />;
+    return <AuthenticatedJobDetail id={Number(id)} />;
 };
-function JobDetail({ id }: { id: number }) {
-    const { status, user } = useAuth();
+
+function AuthenticatedJobDetail({ id }: { id: number }) {
+    const { status, user, sessionId } = useAuth();
+    return <JobDetail key={`${id}:${sessionId}:${user?.id ?? 'guest'}`} id={id} status={status} user={user} />;
+}
+
+function JobDetail({ id, status, user }: {
+    id: number;
+    status: 'bootstrapping' | 'authenticated' | 'anonymous';
+    user: { id: number } | null;
+}) {
+    const {
+        language,
+        copy,
+        category: categoryLabel,
+        engagement: engagementLabel,
+        applicationMethod,
+        eligibility,
+        location: jobLocation,
+        relativeDate: jobRelativeDate,
+    } = useJobsOpportunitiesCopy();
     const [job, setJob] = useState<ClubJob | null>(null),
         [error, setError] = useState(''),
         [loading, setLoading] = useState(true),
@@ -36,8 +57,7 @@ function JobDetail({ id }: { id: number }) {
         [checking, setChecking] = useState(true);
     const [message, setMessage] = useState(''),
         [busy, setBusy] = useState(false),
-        [feedback, setFeedback] = useState(''),
-        [withdraw, setWithdraw] = useState(false);
+        [feedback, setFeedback] = useState('');
     useEffect(() => {
         let active = true;
         const controller = new AbortController();
@@ -53,7 +73,7 @@ function JobDetail({ id }: { id: number }) {
                 if (active) setJob(data);
             })
             .catch(() => {
-                if (active) setError('This opportunity has closed, is unavailable, or could not be loaded.');
+                if (active) setError('load');
             })
             .finally(() => {
                 if (active) setLoading(false);
@@ -68,7 +88,7 @@ function JobDetail({ id }: { id: number }) {
                         setApplicationError(
                             extractApiErrorMessage(
                                 error,
-                                'Your application status could not load. Please retry.',
+                                copy('statusLoadError'),
                             ),
                         );
                 })
@@ -80,26 +100,36 @@ function JobDetail({ id }: { id: number }) {
             active = false;
             controller.abort();
         };
-    }, [id, status, user?.id, reload]);
+    }, [copy, id, status, user?.id, reload]);
     const supportedRole =
         job?.requiredRole === 'COACH' || job?.requiredRole === 'PLAYER' ? job.requiredRole : null;
+    const entry = useClubEntryEligibility(job?.clubId ?? 0, supportedRole ?? 'PLAYER', 'JOIN', status === 'authenticated' && !!supportedRole && !(application && ['PENDING', 'OFFERED', 'ACCEPTED', 'EXPIRED'].includes(application.status)), id);
+    const entryCopy = useEntryCopy();
+    const contactHref = job?.clubId
+        ? `/clubs/${job.clubId}?${new URLSearchParams({
+            tab: 'contact',
+            roleId: String(job.id),
+            roleTitle: job.title,
+        }).toString()}`
+        : '/clubs';
     const submit = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (!job?.clubId || !supportedRole || busy) return;
+        if (!job?.clubId || !supportedRole || busy || !entry.allowed) return;
         setBusy(true);
         setFeedback('');
         try {
             const result = await createClubApplication(job.clubId, supportedRole, message.trim() || null, {
                 jobId: id,
-            });
+            }, { _authSessionId: entry.sessionId });
             setApplication({ id: result.applicationId, clubId: job.clubId, status: 'PENDING' });
             setMessage('');
-            setFeedback('Application sent to the club. It is awaiting review.');
+            setFeedback(copy('applicationSent'));
         } catch (error) {
+            entry.reload();
             setFeedback(
                 extractApiErrorMessage(
                     error,
-                    'Your application could not be sent. Your message is still here.',
+                    copy('applicationSendError'),
                 ),
             );
         } finally {
@@ -109,160 +139,91 @@ function JobDetail({ id }: { id: number }) {
     return (
         <main className="store-page jobs-page jobs-detail">
             <OpportunityNavigation section="jobs" clubId={job?.clubId} detail/>
-            {loading ? (
-                <p role="status">Loading opportunity...</p>
-            ) : error ? (
-                <div role="alert" className="store-empty">
-                    {error}
-                    <button onClick={() => setReload((n) => n + 1)}>Retry</button>
-                </div>
-            ) : (
-                job && (
-                    <article className="jobs-detail-content">
-                        <Link className="store-seller" to={`/clubs/${job.clubId}?tab=business&opportunity=jobs`}>
-                            <Building2 size={25} />
-                            <span>
-                                <small>Opportunity from</small>
-                                <strong>{job.clubName}</strong>
-                            </span>
-                            <ArrowRight size={17} />
-                        </Link>
-                        <header>
-                            <p className="store-eyebrow">{labelForCategory(job.category)}</p>
-                            <h1>{job.title}</h1>
-                            <p className="store-subtitle">
-                                {locationLabel(job)} · {labelForEngagement(job.engagementType)} ·{' '}
-                                {relativeDate(job.createdAt)}
-                            </p>
-                        </header>
-                        <div className="store-description">
-                            {job.description || 'The club has not added a full description yet.'}
+            <div className="jobs-detail-layout">
+                <section className="jobs-detail-main">
+                    {loading ? (
+                        <div className="jobs-detail-loading" role="status"><span aria-hidden="true" /><span aria-hidden="true" /><span aria-hidden="true" /><p>{copy('loadingRole')}</p></div>
+                    ) : error ? (
+                        <div role="alert" className="store-empty jobs-empty">
+                            <BriefcaseBusiness size={30} />
+                            <h2>{copy('roleUnavailable')}</h2>
+                            <button onClick={() => setReload((n) => n + 1)}>{copy('tryAgain')}</button>
                         </div>
-                        {(job.ageGroup || job.level) && (
-                            <p className="store-subtitle">
-                                {job.ageGroup && `Team age group: ${job.ageGroup}. `}
-                                {job.level && `Experience: ${job.level.toLowerCase()}.`}
-                            </p>
-                        )}
-                    </article>
-                )
-            )}
-            <section className="job-application mt-6" aria-label="Your application">
-                {checking ? (
-                    <p role="status">Checking your application...</p>
-                ) : applicationError ? (
-                    <div role="alert">
-                        {applicationError}
-                        <button className="underline ml-2" onClick={() => setReload((n) => n + 1)}>
-                            Retry status
-                        </button>
-                    </div>
-                ) : application?.status === 'PENDING' ? (
-                    <>
-                        <h2 className="font-bold">Application pending</h2>
-                        <p>
-                            The club has received your application. You can withdraw it while it is pending.
-                        </p>
-                        {!withdraw ? (
-                            <button className="store-cart-link" onClick={() => setWithdraw(true)}>
-                                Withdraw application
-                            </button>
-                        ) : (
-                            <div>
-                                <p>Withdraw this application?</p>
-                                <button
-                                    className="job-action"
-                                    disabled={busy}
-                                    onClick={async () => {
-                                        setBusy(true);
-                                        setFeedback('');
-                                        try {
-                                            await cancelClubApplication(application.clubId, application.id);
-                                            setApplication({ ...application, status: 'CANCELLED' });
-                                            setWithdraw(false);
-                                            setFeedback('Application withdrawn.');
-                                        } catch (error) {
-                                            setFeedback(
-                                                extractApiErrorMessage(
-                                                    error,
-                                                    'The application could not be withdrawn.',
-                                                ),
-                                            );
-                                        } finally {
-                                            setBusy(false);
-                                        }
-                                    }}
-                                >
-                                    Confirm withdrawal
-                                </button>
-                                <button
-                                    disabled={busy}
-                                    className="ml-4 underline"
-                                    onClick={() => setWithdraw(false)}
-                                >
-                                    Keep application
-                                </button>
-                            </div>
-                        )}
-                    </>
-                ) : application?.status === 'ACCEPTED' ? (
-                    <>
-                        <h2 className="font-bold">Application accepted</h2>
-                        <p>The club has accepted your application. Contact the club about your next steps.</p>
-                    </>
-                ) : (
-                    job && (
+                    ) : job && (
+                        <article className="jobs-detail-content">
+                            <Link className="jobs-detail-club" to={`/clubs/${job.clubId}?tab=business&opportunity=jobs`}>
+                                <span className="jobs-detail-club-icon"><Building2 size={22} /></span>
+                                <span><small>{copy('roleFrom')}</small><strong>{job.clubName}</strong></span>
+                                <ArrowRight size={17} />
+                            </Link>
+                            <header className="jobs-detail-hero">
+                                <div className="job-badges"><span>{categoryLabel(job.category)}</span><span>{engagementLabel(job.engagementType)}</span></div>
+                                <h1>{job.title}</h1>
+                                <p><MapPin size={15} aria-hidden="true" />{jobLocation(job)} · {jobRelativeDate(job.createdAt)}</p>
+                            </header>
+                            <dl className="jobs-detail-facts" aria-label="Role facts">
+                                <div><dt><BriefcaseBusiness aria-hidden="true" />{copy('commitment')}</dt><dd>{copy('ongoingRole')}</dd></div>
+                                <div><dt><ClipboardCheck aria-hidden="true" />{copy('engagementFact')}</dt><dd>{engagementLabel(job.engagementType)}</dd></div>
+                                {eligibility(job) && <div><dt><MapPin aria-hidden="true" />{copy('eligibility')}</dt><dd>{eligibility(job)}</dd></div>}
+                                <div><dt><Route aria-hidden="true" />{copy('applicationMethod')}</dt><dd>{applicationMethod(job)}</dd></div>
+                            </dl>
+                            <section className="jobs-detail-description">
+                                <h2>{copy('aboutRole')}</h2>
+                                <p>{job.description || copy('noDescription')}</p>
+                            </section>
+                        </article>
+                    )}
+                </section>
+                <aside className="job-application" aria-label={copy('yourApplication')}>
+                    <p className="store-eyebrow">{copy('yourApplication')}</p>
+                    {checking ? (
+                        <p role="status">{copy('checkingApplication')}</p>
+                    ) : applicationError ? (
+                        <div role="alert">
+                            {applicationError}
+                            <button className="jobs-text-button" onClick={() => setReload((n) => n + 1)}>{copy('retryStatus')}</button>
+                        </div>
+                    ) : application && ['PENDING','OFFERED','ACCEPTED','EXPIRED'].includes(application.status) ? (
+                        <RecruitmentApplication applicationId={application.id} onChanged={() => setReload(n => n + 1)} />
+                    ) : job && (
                         <>
-                            {application && <p>Previous application: {application.status.toLowerCase()}.</p>}
+                            {application && <RecruitmentApplication applicationId={application.id} />}
                             {supportedRole ? (
                                 status !== 'authenticated' ? (
-                                    <Link
-                                        className="job-action"
-                                        to={`/login?next=${encodeURIComponent(`/jobs/${id}`)}`}
-                                    >
-                                        Sign in to apply
-                                    </Link>
+                                    <Link className="job-action" to={`/login?next=${encodeURIComponent(`/jobs/${id}`)}`}>{copy('signInToApply')}</Link>
+                                ) : entry.loading ? (
+                                    <p role="status">{entryCopy.copy('Checking current eligibility…', 'მიმდინარე უფლებების შემოწმება…')}</p>
+                                ) : entry.error ? (
+                                    <p role="alert">{entryCopy.copy('Eligibility could not load.', 'მოთხოვნის უფლება ვერ შემოწმდა.')} <button type="button" onClick={entry.reload}>{entryCopy.copy('Retry eligibility', 'ხელახლა შემოწმება')}</button></p>
+                                ) : entry.data && !entry.allowed ? (
+                                    <p role="status">{entryCopy.reason(entry.data)} <Link to="/account?tab=profile">{entryCopy.copy('Review account and requests', 'ანგარიშისა და მოთხოვნების ნახვა')}</Link></p>
                                 ) : (
-                                    <form onSubmit={submit} className="grid gap-4">
-                                        <h2 className="font-bold">Apply for this opportunity</h2>
-                                        <p className="store-hint">
-                                            This opening uses the club's {supportedRole.toLowerCase()}{' '}
-                                            application process. Submitting an application does not confirm a
-                                            position.
-                                        </p>
+                                    <form onSubmit={submit} className="jobs-application-form">
+                                        <h2>{copy('applyTitle')}</h2>
+                                        <p>{copy('applyTruth', { role: language === 'ka' ? (supportedRole === 'COACH' ? 'მწვრთნელის' : 'მოთამაშის') : supportedRole.toLowerCase() })}</p>
                                         <label className="store-field">
-                                            Message to the club
-                                            <textarea
-                                                rows={5}
-                                                maxLength={500}
-                                                value={message}
-                                                disabled={busy}
-                                                onChange={(e) => setMessage(e.target.value)}
-                                                placeholder="Introduce yourself and explain your interest."
-                                            />
+                                            {copy('messageToClub')}
+                                            <textarea rows={5} maxLength={500} value={message} disabled={busy} onChange={(e) => setMessage(e.target.value)} placeholder={copy('messagePlaceholder')} />
                                         </label>
-                                        <button className="job-action" disabled={busy}>
-                                            {busy ? 'Sending...' : 'Send application'}
-                                        </button>
+                                        <button className="job-action" disabled={busy || !entry.allowed}>{copy(busy ? 'sending' : 'sendApplication')}</button>
                                     </form>
                                 )
                             ) : (
                                 <>
-                                    <h2 className="font-bold">Contact the club about this opportunity</h2>
-                                    <p className="store-hint">
-                                        In-app applications currently support player and coach openings. For
-                                        this role, use the club's contact details to ask how to apply.
-                                    </p>
-                                    <Link className="job-action" to={`/clubs/${job.clubId}?tab=contact`}>
-                                        Open club contact details
-                                    </Link>
+                                    <h2>{copy('contactTitle')}</h2>
+                                    <p>{copy('contactTruth')}</p>
+                                    <Link className="job-action" to={contactHref}>{copy('contactClub', { club: job.clubName || copy('club'), role: job.title })}</Link>
                                 </>
                             )}
                         </>
-                    )
-                )}
-                {feedback && <p role="status">{feedback}</p>}
-            </section>
+                    )}
+                    {job && supportedRole && <details className="jobs-lifecycle" aria-label="Application lifecycle">
+                        <summary>{copy('lifecycle')}</summary>
+                        <ol><li>Send an application using your relevant football identity.</li><li>The club reviews it and may send an offer.</li><li>Review the responsibility and accept or decline.</li><li>Acceptance starts the listed coaching appointment or a playing trial. Guardian consent and active-player registration remain separate.</li></ol>
+                    </details>}
+                    {feedback && <p className="jobs-application-feedback" role="status">{feedback}</p>}
+                </aside>
+            </div>
         </main>
     );
 }

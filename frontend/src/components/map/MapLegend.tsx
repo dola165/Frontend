@@ -1,4 +1,5 @@
 const LEGEND_LABELS: Record<string, string> = {
+    STADIUM: 'Stadium',
     CLUB: 'Club',
     TRYOUT: 'Tryout',
     MATCH: 'Match',
@@ -19,7 +20,7 @@ export const MapLegend = ({ types }: { types: string[] }) => {
     return (
         <div className="atlas-map-legend">
             {uniqueTypes.map((type) => (
-                <span key={type} className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                <span key={type} className="flex items-center gap-1.5 text-[11px] font-medium text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">
                     <span aria-hidden="true">⚽</span>
                     {LEGEND_LABELS[type] ?? type}
                 </span>

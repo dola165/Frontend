@@ -56,7 +56,7 @@ export const ClubLocationFilter = ({
     }), [locationTree, value.city, value.country]);
 
     const active = value.country != null || value.city != null || value.clubId != null;
-    const inputClass = 'h-11 w-full rounded-lg border border-[color:var(--theme-border-strong)] bg-[color:var(--theme-page)] px-3 text-sm font-medium text-[color:var(--text-primary)] outline-none transition focus:border-[#16a34a] focus:ring-2 focus:ring-[#16a34a]/15 disabled:cursor-not-allowed disabled:opacity-45';
+    const inputClass = 'h-11 w-full rounded-lg border border-[color:var(--theme-border-strong)] bg-[color:var(--theme-page)] px-3 text-sm font-medium text-[color:var(--text-primary)] outline-none transition focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/15 disabled:cursor-not-allowed disabled:opacity-45';
     const selectedClub = clubs.find((club) => club.id === value.clubId)?.name;
     const summary = selectedClub ?? value.city ?? value.country ?? 'Any location';
 
@@ -68,12 +68,12 @@ export const ClubLocationFilter = ({
                 aria-expanded={open}
                 className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border px-3 text-left transition-colors ${
                     open || active
-                        ? 'border-[#16a34a]/45 bg-[#16a34a]/10 text-[#168a4b] dark:text-[#6ee7a0]'
+                        ? 'border-[var(--color-accent)]/45 bg-[var(--color-accent)]/10 text-[var(--color-accent)] dark:text-[var(--color-accent)]'
                         : 'border-[color:var(--theme-border)] bg-[color:var(--theme-page)] text-[color:var(--text-primary)] hover:border-[color:var(--theme-border-strong)]'
                 }`}
             >
                 <span className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#16a34a]/12 text-[#168a4b] dark:text-[#6ee7a0]">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-accent)]/12 text-[var(--color-accent)] dark:text-[var(--color-accent)]">
                         <MapPin className="h-4 w-4" />
                     </span>
                     <span className="min-w-0">

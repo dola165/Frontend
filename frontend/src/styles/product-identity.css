@@ -1,0 +1,109 @@
+/* Product contract: near-black canvas, neutral surfaces, semantic neon accents.
+   This stylesheet owns shared presentation; map tiles/styles remain separate. */
+/* Only the club identity strip: the route's wide-frame reset must not override
+   the same outer frame already used by its tabs, columns and global navigation. */
+.club-identity-frame.app-page-frame {
+  max-width: var(--app-page-max-width);
+  padding-inline: var(--app-page-gutter);
+}
+.dark {
+  --gk-canvas: var(--color-page);
+  --gk-surface: var(--color-surface);
+  --gk-raised: var(--color-elevated);
+  --gk-border: var(--color-border);
+  --gk-text-primary: var(--color-text);
+  --gk-text-secondary: var(--color-secondary);
+  --gk-text-muted: var(--color-muted);
+  --bg-base: var(--gk-canvas);
+  --bg-surface: var(--gk-surface);
+  --bg-elevated: var(--color-elevated);
+  --bg-inset: var(--color-inset);
+  --text-primary: var(--gk-text-primary);
+  --text-secondary: var(--gk-text-secondary);
+  --text-muted: var(--gk-text-muted);
+  --accent-primary: var(--color-accent);
+  --accent-primary-soft: color-mix(in srgb, var(--color-accent) 8.63%, transparent);
+  --app-shell-base: var(--gk-canvas);
+  --app-shell-surface: var(--gk-surface);
+  --app-shell-elevated: var(--color-elevated);
+  --app-shell-inset: var(--color-inset);
+  --app-text-secondary: var(--text-secondary);
+  --app-text-muted: var(--text-muted);
+  --fc-page-bg: var(--gk-canvas);
+  --fc-sidebar-bg: var(--gk-surface);
+  --fc-card-bg: var(--gk-raised);
+  --fc-text-primary: var(--gk-text-primary);
+  --fc-text-secondary: var(--gk-text-secondary);
+  --fc-text-muted: var(--gk-text-muted);
+}
+.dark .feed-home-shell,
+.dark .club-page-shell:not(.map-page-shell) {
+  --feed-bg: var(--gk-canvas);
+  --feed-surface: var(--gk-surface);
+  --feed-card: var(--gk-surface);
+  --feed-card-soft: var(--gk-raised);
+  --feed-card-muted: var(--gk-surface);
+  --feed-layer-bg: var(--gk-raised);
+  --feed-input-bg: var(--color-surface);
+  --feed-nav-surface: var(--gk-canvas);
+  --feed-visual-bg: var(--gk-raised);
+  --feed-text-primary: var(--gk-text-primary);
+  --feed-text-secondary: var(--gk-text-secondary);
+  --feed-text-muted: var(--gk-text-muted);
+  --feed-text-placeholder: var(--gk-text-muted);
+  --club-theme-base: var(--gk-canvas);
+  --club-theme-surface: var(--gk-surface);
+  --club-theme-elevated: var(--color-elevated);
+  /* Club shells map generic text tokens back to club tokens. Use independent
+     canonical values here so those two mappings cannot form a variable cycle. */
+  --club-theme-text-primary: var(--gk-text-primary);
+  --club-theme-text-secondary: var(--gk-text-secondary);
+  --club-theme-text-muted: var(--gk-text-muted);
+  --club-band: var(--gk-surface);
+  --club-card: var(--gk-surface);
+}
+.dark .top-nav-force-dark { background: var(--color-page); }
+.dark .landing-stadium { background: var(--gk-canvas); }
+.dark .opportunity-link {
+  background: linear-gradient(115deg, color-mix(in srgb, var(--opportunity-color) 14%, var(--color-page)), var(--color-page) 90%);
+  border-color: color-mix(in srgb, var(--opportunity-color) 78%, transparent);
+  box-shadow: inset 3px 0 var(--opportunity-color), 0 0 12px color-mix(in srgb, var(--opportunity-color) 9%, transparent);
+}
+.dark .opportunity-link:hover {
+  background: color-mix(in srgb, var(--opportunity-color) 17%, var(--color-page));
+  box-shadow: inset 3px 0 var(--opportunity-color), 0 0 16px color-mix(in srgb, var(--opportunity-color) 16%, transparent);
+}
+.opportunity-link { min-height: 76px; }
+.opportunity-link__description { color: var(--text-secondary); }
+.home-opportunity-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.home-opportunity-strip .opportunity-link { padding: 12px; }
+.workspace-shortcut { border: 1px solid var(--theme-border); border-radius: 12px; margin-bottom: 8px; }
+.workspace-shortcut .home-shortcut-icon { background: var(--accent-primary-soft); }
+.workspace-shortcut-group { margin-bottom: 8px; border: 1px solid var(--theme-border); border-radius: 12px; }
+@media (min-width: 1280px) {
+  .home-opportunity-strip { display: none; }
+}
+@media (max-width: 639px) {
+  .home-opportunity-strip { grid-template-columns: 1fr; gap: 6px; }
+  .home-opportunity-strip .opportunity-link { min-height: 44px; padding: 10px 12px; }
+  .home-opportunity-strip .opportunity-link__description { display: none; }
+}
+/* Bounded viewport breaks canvas/parent resize feedback. Zoom only changes geography. */
+.landing-map-viewport {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  height: clamp(420px, 68dvh, 680px);
+  max-height: 680px;
+  overflow: hidden;
+  contain: size layout;
+}
+.landing-map-viewport > .map-experience-embedded { position: absolute; inset: 0; height: 100%; min-height: 0; max-height: 100%; }
+.landing-content-frame > * { min-width: 0; }
+@media (max-width: 639px) { .landing-map-viewport { height: 520px; max-height: 75dvh; } }
+@media (max-width: 1023px) {
+  .workspace-sidebar, .workspace-context-panel, .workspace-sidebar-backdrop, .workspace-context-backdrop { top: var(--app-active-header-height); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .opportunity-link, .world-nav-button, .world-nav-button::before { animation: none; transition: none; }
+}

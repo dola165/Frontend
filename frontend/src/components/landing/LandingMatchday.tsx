@@ -1,0 +1,28 @@
+import { useState } from 'react';
+import { ArrowRight, ArrowUpRight, CalendarDays, Check, Flag, MapPin, Shield, UsersRound } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { LandingReveal } from './LandingReveal';
+import { LandingLightRails } from './LandingLightField';
+
+const steps = [
+    { title: 'Find your opposition', description: 'Share your squad’s age group, format, level, and proposed time in Match Exchange. Hear from other teams and agree the right fixture.', label: 'An opponent that fits', icon: UsersRound },
+    { title: 'Secure your ground', description: 'Find a suitable pitch and check the exact time. Link a covering reservation to the match, or record a ground arranged directly with its owner.', label: 'A place to play', icon: MapPin },
+    { title: 'Invite the official', description: 'Invite a referee and see their decision. A fixture invitation becomes a commitment when the official accepts.', label: 'The person with the whistle', icon: Flag },
+] as const;
+
+export function LandingMatchday() {
+    const [step, setStep] = useState(0);
+    const [pitch, setPitch] = useState<'whole' | 'halves'>('whole');
+    return <section className="landing-matchday landing-chapter" id="landing-matchday" aria-labelledby="landing-matchday-title"><LandingLightRails /><div className="landing-wrap">
+        <LandingReveal><div className="landing-section-heading"><div><p className="landing-eyebrow">04 / Bring matchday together</p><h2 id="landing-matchday-title">A great game takes<br /><em>more than two teams.</em></h2></div><p>The opposition. The ground. The official.<br />Know what’s agreed, and what’s next.</p></div></LandingReveal>
+        <div className="matchday-flow">
+            <div className="matchday-steps" aria-label="Explore the match arrangements">{steps.map(({ title, description, icon: Icon },index) => <button key={title} type="button" aria-expanded={step === index} aria-controls={`matchday-detail-${index}`} onClick={() => setStep(index)}><span className="matchday-step-number">0{index+1}</span><span><strong>{title}</strong><span id={`matchday-detail-${index}`} hidden={step !== index}>{description}</span></span><Icon size={18} /></button>)}</div>
+            <div className="matchday-scene" aria-hidden="true" data-step={step}><span className="landing-illustration-caption">ONE FRIENDLY, ILLUSTRATED</span><div className="matchday-fixture"><div className="matchday-fixture-top"><span>MATCH EXCHANGE</span><span><CalendarDays size={12} /> SATURDAY · 10:00</span></div><div className="matchday-teams"><span><Shield size={37} /><strong>Your squad</strong></span><i>×</i><span><Shield size={37} /><strong>The away team</strong></span></div><div className="matchday-format">A shared fixture. Both squads in the picture.</div><div className="matchday-agreements">{steps.map(({ label, icon: Icon },index) => <div key={label} className={index <= step ? 'is-agreed' : ''}><Icon size={15} /><span>{label}</span><small>{index <= step ? <><Check size={12} />{index === 0 ? 'Agreed' : index === 1 ? 'Booked' : 'Accepted'}</> : 'To arrange'}</small></div>)}</div></div><div className="matchday-caption">{step === 2 ? 'Now that’s a match worth looking forward to.' : 'One clear picture. Every agreement matters.'}</div></div>
+        </div>
+        <Link className="landing-text-link matchday-flow-link" to="/match-exchange">Explore Match Exchange <ArrowRight size={17} /></Link>
+        <div className="matchday-professionals">
+            <LandingReveal className="landing-professional referee-feature"><div className="landing-feature-tag"><Flag size={15} /> FOR REFEREES</div><h3>Make the call.<br /><em>Own your calendar.</em></h3><p>Bring your experience to the game. Build your referee profile, share your availability, respond to match invitations, and keep your reports and recorded match history together.</p><div className="referee-availability" aria-hidden="true"><div><span>YOUR AVAILABILITY</span><span>YOUR COMMITMENTS</span></div><div className="referee-slots">{['MON','TUE','WED','THU','FRI','SAT','SUN'].map((day,i) => <span key={day} className={i===2||i===5?'available':''}><small>{day}</small><i>{i===5?<Flag size={14}/>:i===2?<Check size={14}/>:'—'}</i></span>)}</div><footer><span><i /> Make time for the game.</span><span>Paid or volunteer</span></footer></div><Link className="landing-text-link" to="/signup">Find your place as an official <ArrowUpRight size={17}/></Link></LandingReveal>
+            <LandingReveal delayMs={80} className="landing-professional venue-feature"><div className="landing-feature-tag"><MapPin size={15} /> FOR VENUE OWNERS & RENTERS</div><h3>Your ground.<br /><em>Every hour accounted for.</em></h3><p>Publish your facilities, hours, and rates. Bring online requests, phone bookings, academy time, and closures into the same calendar. For teams, find a ground and request the time you need.</p><div className="venue-inventory"><div className="venue-pitch-choice" role="group" aria-label="Preview pitch configurations"><button type="button" aria-pressed={pitch==='whole'} onClick={() => setPitch('whole')}>Whole pitch</button><button type="button" aria-pressed={pitch==='halves'} onClick={() => setPitch('halves')}>Two halves</button></div><div className="venue-pitch" data-configuration={pitch} aria-hidden="true"><span><i />{pitch==='whole'?'ONE SHARED PLAYING AREA':'HALF A'}</span><span><i />{pitch==='halves'?'HALF B':''}</span><b /></div><p>{pitch==='whole'?'A whole-pitch booking uses both halves.':'Two halves can be booked independently when available.'}</p></div><Link className="landing-text-link" to="/stadiums">Find your next ground <ArrowUpRight size={17}/></Link></LandingReveal>
+        </div>
+    </div></section>;
+}

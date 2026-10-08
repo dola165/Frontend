@@ -1,0 +1,41 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { FamilyRelationships } from '../FamilyRelationships';
+import { apiClient } from '../../../api/axiosConfig';
+const auth = vi.hoisted(() => ({ sessionId: 'family', refreshNavigationCapabilities: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => auth }));
+vi.mock('../../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(), post: vi.fn() } }));
+vi.mock('../../../utils/authStorage', () => ({ isCurrentAuthSession: (id: string) => id === auth.sessionId }));
+const family = () => ({ children: [{ childId: 70, name: 'Nika', birthYear: 2012, registered: false, clubs: [], codes: [], guardians: [{ id: 12, guardianId: 3, name: 'Parent', provenance: 'LEGACY_CONFIRMED_CONSENT', canRevoke: true, self: true }] }], invitations: [], consentRequests: [], ended: [] });
+const show = () => render(<MemoryRouter><FamilyRelationships onChanged={vi.fn()} /></MemoryRouter>);
+describe('Durable family journeys', () => {
+    beforeEach(() => { vi.clearAllMocks(); auth.sessionId = 'family'; vi.mocked(apiClient.get).mockResolvedValue({ data: family() });vi.mocked(apiClient.post).mockResolvedValue({ data: {} }); });
+    it('keeps compact administration closed until requested but surfaces incoming consent', async () => {
+        const view = render(<MemoryRouter><FamilyRelationships compact onChanged={vi.fn()} /></MemoryRouter>);
+        const toggle = await screen.findByRole('button', { name: /Family connections/ });
+        await screen.findByText('Nika');
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.getByText('Nika')).not.toBeVisible();
+        fireEvent.click(toggle);
+        expect(screen.getByText('Nika')).toBeVisible();
+        view.unmount();
+        vi.mocked(apiClient.get).mockResolvedValue({ data: { ...family(), consentRequests: [{ id: 9, childName: 'Nika', clubName: 'Dinamo', canRespond: true, expiresAt: '2099-01-01' }] } });
+        render(<MemoryRouter><FamilyRelationships compact onChanged={vi.fn()} /></MemoryRouter>);
+        expect(await screen.findByRole('button', { name: 'Review and accept' })).toBeVisible();
+        expect(screen.getByRole('button', { name: /Family connections/ })).toHaveAttribute('aria-expanded', 'true');
+    });
+    it('keeps the family visible without club access and explains how to rejoin', async () => { show();await screen.findByText('Nika');expect(screen.getByText('Born 2012 · No current club')).toBeVisible();expect(screen.getByText(/Find a group or share a linking code/)).toBeVisible();expect(screen.queryByRole('button', { name: 'Create enrollment code' })).not.toBeInTheDocument(); });
+    it('requires deliberate review before revocation and refreshes current capabilities after saving', async () => { show();fireEvent.click(await screen.findByRole('button', { name: 'End my access' }));expect(apiClient.post).not.toHaveBeenCalled();fireEvent.click(screen.getByRole('button', { name: 'Confirm change' }));await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/family/children/70/guardians/12/revoke', {}, { _authSessionId: 'family' }));expect(auth.refreshNavigationCapabilities).toHaveBeenCalled(); });
+    it('keeps an invitation retry available after a rejected save', async () => { vi.mocked(apiClient.post).mockRejectedValueOnce(new Error('Invitation expired'));show();fireEvent.click(await screen.findByRole('button', { name: 'Invite another guardian' }));fireEvent.change(screen.getByLabelText('Guardian’s account email'), { target: { value: 'guardian@example.test' } });fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));await screen.findByRole('alert');expect(screen.getByRole('button', { name: 'Send invitation' })).toBeEnabled();expect(screen.getByLabelText('Guardian’s account email')).toHaveValue('guardian@example.test'); });
+    it('hides unavailable actions for expired and adulthood receipts', async () => { vi.mocked(apiClient.get).mockResolvedValue({ data: { children: [], consentRequests: [], invitations: [{ id: 18, kind: 'ADDITIONAL', status: 'EXPIRED', sent: false, childName: 'Family connection', otherName: 'Parent', canRespond: false, canCancel: false }], ended: [{ id: 2, reason: 'ADULTHOOD' }] } });show();await screen.findByText(/No current family connections/);expect(screen.queryByRole('button', { name: 'Accept invitation' })).not.toBeInTheDocument();fireEvent.click(screen.getByText('Ended family authority · 1'));expect(screen.getByText(/now controls their own account/)).toBeVisible(); });
+    it('reviews playing departure and targets only the displayed child enrollment', async () => {
+        vi.mocked(apiClient.get).mockResolvedValue({ data: { ...family(), children: [{ ...family().children[0], clubs: [{ id: 91, clubId: 7, name: 'FC Dinamo Tbilisi Academy', status: 'TRIALIST', consent: 'CONFIRMED' }] }] } });
+        show(); fireEvent.click(await screen.findByText('Nika'));
+        fireEvent.click(screen.getByRole('button', { name: 'Leave or change club' }));
+        expect(apiClient.post).not.toHaveBeenCalled();
+        expect(screen.getByText(/keeps their identity and family connection/)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Confirm change' }));
+        await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/family/children/70/clubs/7/depart', { affiliationId: 91 }, { _authSessionId: 'family' }));
+    });
+});

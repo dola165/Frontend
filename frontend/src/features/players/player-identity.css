@@ -1,0 +1,12 @@
+.player-identity-editor{display:grid;gap:18px;min-width:0;color:var(--fc-text-primary)}
+.player-identity-editor label{display:grid;gap:7px;font-size:13px;font-weight:600}
+.player-identity-editor input:not([type=checkbox]),.player-identity-editor select{width:100%;min-width:0;padding:10px 12px;border:1px solid var(--fc-border);border-radius:8px;background:var(--fc-page-bg);color:var(--fc-text-primary)}
+.player-identity-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.player-identity-editor fieldset{display:grid;gap:18px;padding:16px;border:1px solid var(--fc-border);border-radius:10px;min-width:0}
+.player-identity-editor legend{padding:0 6px;font-size:13px;font-weight:650}
+.player-identity-positions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.player-identity-positions label{display:flex;align-items:center;gap:9px;font-weight:500}
+.player-identity-positions input{width:18px;height:18px}
+.player-identity-photo{display:flex;align-items:center;gap:16px}.player-identity-photo img{width:72px;height:72px;border-radius:12px;object-fit:cover}.player-identity-photo>div{display:grid;gap:8px;min-width:0}.player-identity-photo small{font-size:12px;font-weight:400;color:var(--fc-text-secondary)}
+.player-identity-editor :focus-visible{outline:2px solid var(--fc-accent);outline-offset:3px}
+@media(max-width:650px){.player-identity-fields,.player-identity-positions{grid-template-columns:1fr}.player-identity-editor fieldset{padding:12px}.player-identity-photo{align-items:flex-start}.player-identity-photo input{font-size:12px}}

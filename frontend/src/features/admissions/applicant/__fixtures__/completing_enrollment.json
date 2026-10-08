@@ -1,0 +1,74 @@
+{
+  "id": 100,
+  "version": 1,
+  "playerId": 101,
+  "playerName": "Synthetic child",
+  "dateOfBirth": "2018-05-01",
+  "organizationId": 1,
+  "organizationName": "FC Dinamo Tbilisi Academy",
+  "clubId": 1,
+  "groupId": 1,
+  "groupName": "Beginner group",
+  "intake": "2026-27",
+  "method": "INTRODUCTION",
+  "stage": "COMPLETING_ENROLLMENT",
+  "responsible": {
+    "id": 10,
+    "name": "Academy coach"
+  },
+  "nextAction": {
+    "code": "COMPLETE_REQUIREMENTS",
+    "owner": "REGISTRATION_STAFF",
+    "label": "Review request and arrange the next step",
+    "dueAt": null
+  },
+  "requirements": [
+    {
+      "id": 1,
+      "kind": "EXTERNAL_REGISTRATION",
+      "owner": "REGISTRATION_STAFF",
+      "status": "PENDING",
+      "evidence": null,
+      "canComplete": false
+    }
+  ],
+  "sessions": [],
+  "offer": {
+    "id": 200,
+    "version": 1,
+    "groupId": 1,
+    "groupName": "Beginner group",
+    "terms": {
+      "feesKnown": true,
+      "charges": [],
+      "cancellation": "Contact admissions to arrange the recorded end date. No refund is implied.",
+      "participation": "Attend agreed sessions with an emergency contact.",
+      "startDate": "2026-10-12",
+      "endDate": null,
+      "affiliationEffect": "NONE",
+      "requirements": []
+    },
+    "location": {
+      "name": "Dinamo Academy training ground",
+      "address": "Tbilisi",
+      "latitude": 41.7151,
+      "longitude": 44.8271
+    },
+    "schedule": "Tuesday and Thursday 17:00\u201318:00",
+    "status": "ACCEPTED",
+    "responseDeadline": "2026-10-11T00:00:00Z",
+    "completionDeadline": "2026-10-18T00:00:00Z"
+  },
+  "enrollment": null,
+  "history": [],
+  "actions": [
+    "MESSAGE",
+    "WITHDRAW"
+  ],
+  "primaryAffiliation": null,
+  "previousCaseId": null,
+  "submittedAt": "2026-10-04T00:00:00Z",
+  "updatedAt": "2026-10-04T00:00:00Z",
+  "assessments": [],
+  "siblingConstraint": null
+}

@@ -1,4 +1,4 @@
-import { apiClient } from './axiosConfig';
+import { apiClient, type AuthSessionRequestConfig } from './axiosConfig';
 import type {
     NotificationBulkReadResult,
     NotificationQueryOptions,
@@ -20,15 +20,17 @@ const buildNotificationParams = (options: NotificationQueryOptions = {}) => {
     };
 };
 
-export const fetchNotifications = async (options: NotificationQueryOptions = {}): Promise<NotificationPageResult> => {
+export const fetchNotifications = async (options: NotificationQueryOptions = {}, config?: AuthSessionRequestConfig): Promise<NotificationPageResult> => {
     const response = await apiClient.get<NotificationPageResult>('/notifications', {
+        ...config,
         params: buildNotificationParams(options)
     });
     return response.data;
 };
 
-export const fetchUnreadNotificationCount = async (options: NotificationQueryOptions = {}): Promise<NotificationUnreadCount> => {
+export const fetchUnreadNotificationCount = async (options: NotificationQueryOptions = {}, config?: AuthSessionRequestConfig): Promise<NotificationUnreadCount> => {
     const response = await apiClient.get<NotificationUnreadCount>('/notifications/unread-count', {
+        ...config,
         params: buildNotificationParams(options)
     });
     return response.data;

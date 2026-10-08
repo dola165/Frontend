@@ -1,0 +1,7 @@
+# Landing page imagery
+
+`after-the-whistle.png` was created with the built-in image_gen tool on 2026-09-13 for the GrassKickZ landing page. It is an illustrative neighborhood football scene, not a photograph of a listed club. The original generated image was copied into this directory without alteration. It is lazy-loaded below the live map and login, with explicit image dimensions.
+
+Final generation prompt:
+
+Use case: photorealistic-natural. Asset type: wide editorial atmosphere image for the below-fold story section of GrassKickZ, a football community platform with a dark forest green website. Create a cinematic, believable photograph of a humble neighborhood football ground just after sunset, not a professional stadium. Horizontal 3:2 composition: worn deep green grass, a chalk touchline sweeping diagonally from lower left toward a simple white goal in the right third, small distant anonymous adult players casually practicing near that goal, warm ivory floodlights, fencing, silhouetted trees and low apartment buildings beyond. Left third mostly open dark grass and evening atmosphere for typography overlay. Camera at standing height from the sideline, natural 35mm lens, subtle film grain, photographic realism, tactile imperfect grass, warm light against cool pine green shadows. Sophisticated sports editorial, quietly human and inviting, not glossy advertising. No text, no logos, no watermark, no UI, no oversized ball, no dramatic fantasy glow. The field should feel like the place where someone's love of football began.

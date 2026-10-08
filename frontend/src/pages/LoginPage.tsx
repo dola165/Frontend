@@ -3,13 +3,15 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { Loader2, AlertCircle, FlaskConical, QrCode } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
+import { isAndroidApp } from '../android/bridge';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { QrLoginSection } from '../components/auth/QrLoginSection';
+import { useSecondFactorLogin } from '../components/auth/useSecondFactorLogin';
+import { SecondFactorPrompt } from '../components/auth/SecondFactorPrompt';
 import { extractApiErrorCode, extractApiErrorMessage } from '../utils/apiError';
 import {
     buildSignupPath,
-    clearAuthFlow,
     completedAuthDestination,
     getAuthFlow,
     publicContinuationPath,
@@ -47,6 +49,7 @@ export const LoginPage = () => {
     const location = useLocation();
     const { t } = useTranslation();
     const { loginWithAccessToken } = useAuth();
+    const secondFactor = useSecondFactorLogin();
     const [email, setEmail] = useState(() => getAuthFlow().email ?? '');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -56,7 +59,7 @@ export const LoginPage = () => {
     const [emailNotVerified, setEmailNotVerified] = useState(false);
     const [isResendingVerification, setIsResendingVerification] = useState(false);
     const [resendConfirmation, setResendConfirmation] = useState<string | null>(null);
-    const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '/home');
+    const nextPath = resolvePostAuthRedirect(new URLSearchParams(location.search).get('next'), '');
 
     const navigateAfterLogin = (
         authenticatedUser: Awaited<ReturnType<typeof loginWithAccessToken>>,
@@ -74,7 +77,6 @@ export const LoginPage = () => {
         }
         const flow = getAuthFlow();
         const destination = completedAuthDestination(authenticatedUser, nextPath, flow.newAccount);
-        clearAuthFlow();
         navigate(destination, { replace: true });
     };
 
@@ -112,11 +114,12 @@ export const LoginPage = () => {
         setResendConfirmation(null);
 
         try {
-            const res = await apiClient.post('/auth/login', { email: email.trim(), password });
-            const authenticatedUser = await loginWithAccessToken(res.data.accessToken);
-            navigateAfterLogin(authenticatedUser, res.data.mustChangePassword === true);
+            const result = await secondFactor.authenticate({ kind: 'password', email: email.trim(), password });
+            if (!result) return;
+            setPassword('');
+            const authenticatedUser = await loginWithAccessToken(result.accessToken);
+            navigateAfterLogin(authenticatedUser, result.mustChangePassword === true);
         } catch (err) {
-            console.error(err);
             setError(extractApiErrorMessage(err, t('auth.login.errInvalid')));
             setEmailNotVerified(extractApiErrorCode(err) === 'EMAIL_NOT_VERIFIED');
         } finally {
@@ -142,16 +145,16 @@ export const LoginPage = () => {
     };
 
     const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
+        if (!credentialResponse.credential) return;
         setIsLoading(true);
+        setError('');
         try {
-            const res = await apiClient.post<{ accessToken: string; newAccount?: boolean }>('/auth/google', {
-                token: credentialResponse.credential,
-            });
-
-            const authenticatedUser = await loginWithAccessToken(res.data.accessToken);
-            navigateAfterLogin(authenticatedUser, false, res.data.newAccount === true);
+            const result = await secondFactor.authenticate({ kind: 'google', token: credentialResponse.credential });
+            if (!result) return;
+            rememberAuthFlow({ nextPath, newAccount: result.newAccount === true });
+            const authenticatedUser = await loginWithAccessToken(result.accessToken);
+            navigateAfterLogin(authenticatedUser, result.mustChangePassword === true, result.newAccount === true);
         } catch (err) {
-            console.error('Google Auth Failed', err);
             setError(extractApiErrorMessage(err, t('auth.common.googleFailed')));
         } finally {
             setIsLoading(false);
@@ -162,8 +165,9 @@ export const LoginPage = () => {
         setIsLoading(true);
         setError('');
         try {
-            const res = await apiClient.post('/auth/login', { email: mockEmail, password: mockPassword });
-            const authenticatedUser = await loginWithAccessToken(res.data.accessToken);
+            const result = await secondFactor.authenticate({ kind: 'password', email: mockEmail, password: mockPassword });
+            if (!result) return;
+            const authenticatedUser = await loginWithAccessToken(result.accessToken);
             navigateAfterLogin(authenticatedUser);
         } catch (err) {
             setError(extractApiErrorMessage(err, 'Mock login failed.'));
@@ -181,22 +185,23 @@ export const LoginPage = () => {
             cardHeader={
                 <div className="mb-6 lg:hidden">
                     <GrasskickzLogo className="mb-6" />
-                    <h1 className="text-2xl font-semibold uppercase tracking-tight text-[#f4f4f5]">
+                    <h1 className="text-2xl font-semibold uppercase tracking-tight text-[var(--color-text)]">
                         {t('auth.login.heroTitle')}
                     </h1>
-                    <p className="mt-2 text-sm text-[#a1a1aa]">{t('auth.login.heroTagline')}</p>
+                    <p className="mt-2 text-sm text-[var(--color-secondary)]">{t('auth.login.heroTagline')}</p>
                 </div>
             }
             footer={
                 <>
                     {t('auth.login.notYet')}{' '}
-                    <Link to={buildSignupPath(nextPath)} className="text-[#16a34a] hover:underline ml-1">
+                    <Link to={buildSignupPath(nextPath)} className="ml-1 app-text-action">
                         {t('auth.login.goRegister')}
                     </Link>
                 </>
             }
         >
-            {showQr ? (
+            {new URLSearchParams(location.search).get('passwordChanged') === '1' && <p role="status" className="mb-4 text-sm text-[var(--color-secondary)]">Sign in with your new password to continue.</p>}
+            {secondFactor.challenge ? <SecondFactorPrompt pending={secondFactor.pending} error={secondFactor.error} onSubmit={code => void secondFactor.submit(code)} onCancel={() => { secondFactor.cancel(); setPassword(''); }} /> : showQr ? (
                 <QrLoginSection onBack={() => setShowQr(false)} />
             ) : (
                 <>
@@ -210,7 +215,7 @@ export const LoginPage = () => {
                                     type="button"
                                     onClick={() => void handleResendLoginVerification()}
                                     disabled={isResendingVerification}
-                                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[color:var(--state-danger)] px-4 py-2 text-xs font-semibold text-[color:var(--state-danger)] transition-colors hover:bg-[color:var(--state-danger)] hover:text-white disabled:opacity-60"
+                                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[color:var(--state-danger)] px-4 py-2 text-xs font-semibold text-[color:var(--state-danger)] transition-colors hover:bg-[color:var(--state-danger)] hover:text-[color:var(--color-text)] disabled:opacity-60"
                                 >
                                     {isResendingVerification ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -223,7 +228,7 @@ export const LoginPage = () => {
                     )}
 
                     {resendConfirmation && (
-                        <div className="mb-6 border border-[#16a34a]/30 bg-[#16a34a]/10 px-4 py-3 text-sm font-semibold text-[#16a34a]">
+                        <div className="mb-6 border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-4 py-3 text-sm font-semibold text-[var(--color-accent)]">
                             {resendConfirmation}
                         </div>
                     )}
@@ -259,7 +264,7 @@ export const LoginPage = () => {
                                 <label htmlFor="auth-login-password" className={authLabelClass}>
                                     {t('auth.login.labelPassword')}
                                 </label>
-                                <Link to="/forgot-password" className="text-[10px] font-semibold text-[#16a34a] hover:underline">
+                                <Link to="/forgot-password" className="text-[10px] font-semibold app-text-action">
                                     {t('auth.login.forgot')}
                                 </Link>
                             </div>
@@ -290,13 +295,13 @@ export const LoginPage = () => {
                         </button>
                     </form>
 
-                    <div className={authDividerClass}>
+                    {!isAndroidApp && <div className={authDividerClass}>
                         <div className={authDividerLineClass}></div>
                         <span className={authDividerLabelClass}>{t('auth.login.orVia')}</span>
                         <div className={authDividerLineClass}></div>
-                    </div>
+                    </div>}
 
-                    <div className="flex flex-col gap-3">
+                    {!isAndroidApp && <div className="flex flex-col gap-3">
                         <button
                             type="button"
                             onClick={() => setShowQr(true)}
@@ -306,7 +311,7 @@ export const LoginPage = () => {
                             {t('auth.login.qr')}
                         </button>
 
-                        <GoogleLogin
+                        {!isAndroidApp && <GoogleLogin
                             theme="filled_black"
                             size="large"
                             width="100%"
@@ -315,8 +320,8 @@ export const LoginPage = () => {
                             onError={() => {
                                 setError(t('auth.common.googleClosed'));
                             }}
-                        />
-                    </div>
+                        />}
+                    </div>}
 
                     {IS_MOCK_MODE && (
                         <>
@@ -342,7 +347,7 @@ export const LoginPage = () => {
                                             {u.label.charAt(0)}
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-[#f4f4f5]">{u.label}</p>
+                                            <p className="text-sm font-semibold text-[var(--color-text)]">{u.label}</p>
                                             <p className="text-[10px] font-semibold accent-muted">{u.role}</p>
                                         </div>
                                     </button>

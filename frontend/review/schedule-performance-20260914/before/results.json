@@ -1,0 +1,411 @@
+{
+  "label": "before",
+  "conditions": {
+    "cpuSlowdown": 4,
+    "api": "Local deterministic fixture; no live data",
+    "assets": "Production build",
+    "viewport": "1440×900"
+  },
+  "samples": [
+    {
+      "load": 0,
+      "sample": 0,
+      "initial": {
+        "constructors": 50,
+        "nodes": 456,
+        "cards": 7
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 93.40000003576279,
+          "dateConstructors": 33,
+          "mainThreadMs": 96.14499999999992
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 150.79999995231628,
+          "dateConstructors": 4,
+          "mainThreadMs": 154.7480000000001
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 62.60000002384186,
+          "dateConstructors": 32,
+          "mainThreadMs": 64.60299999999997
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 55.30000001192093,
+          "dateConstructors": 32,
+          "mainThreadMs": 57.21500000000002
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 103.5,
+          "dateConstructors": 4,
+          "mainThreadMs": 106.4750000000001
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 44.80000001192093,
+          "dateConstructors": 32,
+          "mainThreadMs": 46.317000000000164
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 1238,
+        "visibleHeight": 859,
+        "framesOver32ms": 0,
+        "p95FrameMs": 5.300000011920929
+      },
+      "constructors": 187,
+      "longTasks": [
+        {
+          "start": 121.30000001192093,
+          "ms": 259
+        },
+        {
+          "start": 522.9000000357628,
+          "ms": 84
+        },
+        {
+          "start": 965.7000000476837,
+          "ms": 57
+        },
+        {
+          "start": 1197.2000000476837,
+          "ms": 57
+        },
+        {
+          "start": 1296.5,
+          "ms": 139
+        },
+        {
+          "start": 1587.2000000476837,
+          "ms": 94
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-tvqM9zKU.js"
+      ],
+      "errors": []
+    },
+    {
+      "load": 0,
+      "sample": 1,
+      "initial": {
+        "constructors": 50,
+        "nodes": 456,
+        "cards": 7
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 97.80000001192093,
+          "dateConstructors": 33,
+          "mainThreadMs": 100.68200000000016
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 165.89999997615814,
+          "dateConstructors": 4,
+          "mainThreadMs": 169.875
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 58.80000001192093,
+          "dateConstructors": 32,
+          "mainThreadMs": 61.20300000000012
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 65.5,
+          "dateConstructors": 32,
+          "mainThreadMs": 67.42699999999991
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 103.80000001192093,
+          "dateConstructors": 4,
+          "mainThreadMs": 107.27200000000003
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 59.5,
+          "dateConstructors": 32,
+          "mainThreadMs": 61.19999999999992
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 1238,
+        "visibleHeight": 859,
+        "framesOver32ms": 0,
+        "p95FrameMs": 5.599999964237213
+      },
+      "constructors": 187,
+      "longTasks": [
+        {
+          "start": 120.39999997615814,
+          "ms": 210
+        },
+        {
+          "start": 466.69999998807907,
+          "ms": 79
+        },
+        {
+          "start": 886.8999999761581,
+          "ms": 64
+        },
+        {
+          "start": 1131,
+          "ms": 51
+        },
+        {
+          "start": 1234.3999999761581,
+          "ms": 154
+        },
+        {
+          "start": 1550.3999999761581,
+          "ms": 93
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-tvqM9zKU.js"
+      ],
+      "errors": []
+    },
+    {
+      "load": 210,
+      "sample": 0,
+      "initial": {
+        "constructors": 470,
+        "nodes": 3397,
+        "cards": 217
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 472.80000001192093,
+          "dateConstructors": 453,
+          "mainThreadMs": 475.9610000000003
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 475,
+          "dateConstructors": 4,
+          "mainThreadMs": 477.6769999999999
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 425,
+          "dateConstructors": 452,
+          "mainThreadMs": 426.66799999999984
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 469.39999997615814,
+          "dateConstructors": 452,
+          "mainThreadMs": 471.22600000000017
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 411.5,
+          "dateConstructors": 4,
+          "mainThreadMs": 413.2159999999998
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 507.10000002384186,
+          "dateConstructors": 452,
+          "mainThreadMs": 509.74699999999996
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 5976,
+        "visibleHeight": 859,
+        "framesOver32ms": 3,
+        "p95FrameMs": 13.400000035762787
+      },
+      "constructors": 2287,
+      "longTasks": [
+        {
+          "start": 131.60000002384186,
+          "ms": 222
+        },
+        {
+          "start": 358.60000002384186,
+          "ms": 54
+        },
+        {
+          "start": 499.9000000357628,
+          "ms": 79
+        },
+        {
+          "start": 905.7000000476837,
+          "ms": 335
+        },
+        {
+          "start": 1596.2000000476837,
+          "ms": 252
+        },
+        {
+          "start": 1849,
+          "ms": 220
+        },
+        {
+          "start": 2075.2000000476837,
+          "ms": 420
+        },
+        {
+          "start": 2554.5,
+          "ms": 238
+        },
+        {
+          "start": 2793.2000000476837,
+          "ms": 186
+        },
+        {
+          "start": 2985,
+          "ms": 255
+        },
+        {
+          "start": 3240.800000011921,
+          "ms": 213
+        },
+        {
+          "start": 3459.800000011921,
+          "ms": 371
+        },
+        {
+          "start": 3875.2000000476837,
+          "ms": 317
+        },
+        {
+          "start": 4192.5,
+          "ms": 189
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-tvqM9zKU.js"
+      ],
+      "errors": []
+    },
+    {
+      "load": 210,
+      "sample": 1,
+      "initial": {
+        "constructors": 470,
+        "nodes": 3397,
+        "cards": 217
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 483.5,
+          "dateConstructors": 453,
+          "mainThreadMs": 488.248
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 525.6999999880791,
+          "dateConstructors": 4,
+          "mainThreadMs": 527.0640000000002
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 433,
+          "dateConstructors": 452,
+          "mainThreadMs": 435.8120000000003
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 388.0999999642372,
+          "dateConstructors": 452,
+          "mainThreadMs": 390.0669999999997
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 423.69999998807907,
+          "dateConstructors": 4,
+          "mainThreadMs": 426.291
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 451,
+          "dateConstructors": 452,
+          "mainThreadMs": 453.9479999999996
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 5976,
+        "visibleHeight": 859,
+        "framesOver32ms": 3,
+        "p95FrameMs": 14.600000023841858
+      },
+      "constructors": 2287,
+      "longTasks": [
+        {
+          "start": 122,
+          "ms": 214
+        },
+        {
+          "start": 340.89999997615814,
+          "ms": 53
+        },
+        {
+          "start": 476.89999997615814,
+          "ms": 84
+        },
+        {
+          "start": 891.5999999642372,
+          "ms": 335
+        },
+        {
+          "start": 1577.0999999642372,
+          "ms": 262
+        },
+        {
+          "start": 1839.800000011921,
+          "ms": 220
+        },
+        {
+          "start": 2068.699999988079,
+          "ms": 437
+        },
+        {
+          "start": 2610.5,
+          "ms": 259
+        },
+        {
+          "start": 2869.599999964237,
+          "ms": 173
+        },
+        {
+          "start": 3049.199999988079,
+          "ms": 235
+        },
+        {
+          "start": 3284.199999988079,
+          "ms": 152
+        },
+        {
+          "start": 3444.699999988079,
+          "ms": 387
+        },
+        {
+          "start": 3873.800000011921,
+          "ms": 251
+        },
+        {
+          "start": 4125.5,
+          "ms": 198
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-tvqM9zKU.js"
+      ],
+      "errors": []
+    }
+  ]
+}

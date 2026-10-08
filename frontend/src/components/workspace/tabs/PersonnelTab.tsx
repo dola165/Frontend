@@ -10,6 +10,7 @@ import { OverflowActions } from '../../ui/OverflowActions';
 
 interface PersonnelTabProps {
     clubId: number;
+    onProfileSaved?: () => Promise<void>;
     overview: ClubManagementOverview | null;
     currentUserId: number | null;
     currentRole: string | null;
@@ -23,7 +24,7 @@ interface PersonnelTabProps {
 
 export const PersonnelTab = ({
     clubId, overview, currentUserId, currentRole, canManageLeadership, pendingKey,
-    onRoleChange, onRemoveMember
+    onRoleChange, onRemoveMember, onProfileSaved
 }: PersonnelTabProps) => {
     const canRemoveMember = (member: ClubManagedMember) => {
         if (!currentUserId || member.userId === currentUserId || member.role === 'OWNER') return false;
@@ -68,6 +69,7 @@ export const PersonnelTab = ({
                 qualifications: profileQualifications.trim() || null,
                 isPublic: profilePublic,
             });
+            await onProfileSaved?.();
             setEditingProfile(null);
         } catch (error) {
             setProfileError(error instanceof Error ? error.message : 'Could not save the public profile.');
@@ -110,12 +112,12 @@ export const PersonnelTab = ({
 
     return (
         <div className="space-y-4">
-            <SectionHeader eyebrow="Personnel" title="Staff Members" description="Manage club staff roles. Player affiliations are managed in the Players tab." />
+            <SectionHeader eyebrow="Personnel" title="Management access" description="Administrative membership and public profile details for this person." />
             {overview && sortedMembers.length === 0 ? (
                 <EmptyState message="No staff members are attached to this club." />
             ) : overview && (
                 <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
-                    <DataTable columns={['Member', 'Role', 'Status', '']} sort={sort} onSort={handleSort}>
+                    <DataTable columns={['Member', 'Management access', 'Status', '']} sort={sort} onSort={handleSort}>
                         {sortedMembers.map((member) => {
                             const isSelf = member.userId === currentUserId;
                             const lockReason = memberLockReason(member);
@@ -192,10 +194,10 @@ export const PersonnelTab = ({
                         <label className="grid gap-1 text-xs font-semibold text-[var(--fc-text-secondary)] sm:col-span-2">Club biography<textarea value={profileBio} onChange={(e) => setProfileBio(e.target.value)} maxLength={5000} rows={4} className="rounded-lg border border-[var(--fc-border)] bg-[var(--fc-page-bg)] px-3 py-2 text-sm text-[var(--fc-text-primary)] outline-none" /></label>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                        <label className="flex items-center gap-2 text-xs font-semibold text-[var(--fc-text-secondary)]"><input type="checkbox" checked={profilePublic} onChange={(e) => setProfilePublic(e.target.checked)} className="accent-[#16a34a]" /> Visible on public People tab</label>
+                        <label className="flex items-center gap-2 text-xs font-semibold text-[var(--fc-text-secondary)]"><input type="checkbox" checked={profilePublic} onChange={(e) => setProfilePublic(e.target.checked)} className="accent-[var(--color-accent)]" /> Visible on public People tab</label>
                         <div className="flex gap-2">
                             <a href={`/clubs/${clubId}?tab=people`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--fc-border)] px-3 py-2 text-xs font-semibold text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]"><ExternalLink className="h-3.5 w-3.5" /> Preview</a>
-                            <button type="button" onClick={() => void saveProfile()} disabled={profileSaving} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--fc-accent)] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">{profileSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Save profile</button>
+                            <button type="button" onClick={() => void saveProfile()} disabled={profileSaving} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--fc-accent)] px-3 py-2 text-xs font-semibold text-[color:var(--color-on-accent)] disabled:opacity-50">{profileSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Save profile</button>
                         </div>
                     </div>
                 </div>

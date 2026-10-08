@@ -132,7 +132,7 @@ export const OpportunityDirectoryPage = ({ type }: OpportunityDirectoryPageProps
         <div className="min-h-[calc(100dvh-var(--app-header-height))] bg-transparent text-[color:var(--text-primary)]">
             <DiscoverySectionTabs />
             <header className="border-b border-[color:var(--theme-border)] pb-6 pt-1">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-400">{page.eyebrow}</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--color-accent)]">{page.eyebrow}</p>
                 <h1 className="mt-1 text-2xl font-bold tracking-tight">{page.title}</h1>
                 <p className="mt-1 max-w-2xl text-sm text-[color:var(--text-secondary)]">{page.subtitle}</p>
                 <DirectoryToolbar search={search} searchLabel={page.search} searchPlaceholder={page.search} hasActiveFilters={filtersActive} filtersOpen={mobileFiltersOpen} filterLabel="Filters" activeFilterChips={activeFilterChips} filterButtonRef={mobileFilterTriggerRef} accent="emerald" onSearchChange={setSearch} onClearFilters={clearFilters} onRemoveFilter={removeFilter} onOpenFilters={() => setMobileFiltersOpen(true)} />
@@ -141,7 +141,7 @@ export const OpportunityDirectoryPage = ({ type }: OpportunityDirectoryPageProps
             <div className="mt-5 grid gap-5 py-5 xl:grid-cols-[280px_minmax(0,1fr)]">
                 <aside aria-label="Campaign filters" className="hidden xl:block">{renderFilters('rail')}</aside>
                 <main className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl border border-dashed border-[color:var(--theme-border-strong)] bg-[color:var(--theme-surface)] px-6 text-center">
-                    <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[color:var(--theme-surface-inset)]"><Icon className="h-6 w-6 text-emerald-400" /></span>
+                    <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[color:var(--theme-surface-inset)]"><Icon className="h-6 w-6 text-[color:var(--color-accent)]" /></span>
                     <h2 className="mt-4 text-base font-bold">{type === 'campaigns' ? 'The campaigns directory is ready for listings' : 'The jobs directory is ready for club listings'}</h2>
                     <p className="mt-2 max-w-lg text-sm leading-6 text-[color:var(--text-secondary)]">{type === 'campaigns' ? 'Active campaigns will appear here as clubs publish them. This screen intentionally avoids invented campaign data.' : 'Open jobs will appear here as clubs publish them. The shared filters are ready for the next live listing.'}</p>
                     {type === 'campaigns' && <p className="mt-3 text-xs text-[color:var(--text-muted)]">Fundraiser data remains intentionally disconnected until the next product decision.</p>}

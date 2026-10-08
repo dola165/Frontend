@@ -1,0 +1,185 @@
+/* Shared schedule controls. Tokens follow the existing dark / workspace-light theme. */
+.schedule-workspace-header,
+.schedule-workspace-toolbar,
+.schedule-weekly-training {
+    color: var(--fc-text-primary);
+    font-family: inherit;
+}
+.schedule-workspace-header {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--fc-border);
+    background: var(--fc-page-bg);
+}
+.schedule-workspace-heading,
+.schedule-workspace-period,
+.schedule-workspace-date-nav,
+.schedule-workspace-header-actions,
+.schedule-workspace-toolbar-controls,
+.schedule-workspace-toolbar-summary {
+    display: flex;
+    align-items: center;
+}
+.schedule-workspace-heading { min-width: 0; flex-wrap: wrap; gap: 16px 26px; }
+.schedule-workspace-period { flex-wrap: wrap; gap: 16px; }
+.schedule-workspace-period h1 { margin: 0; font-size: 19px; line-height: 1.35; font-weight: 650; letter-spacing: -.025em; }
+.schedule-workspace-date-nav { gap: 2px; }
+.schedule-workspace-header-actions { flex-shrink: 0; gap: 10px; }
+.schedule-workspace-segments {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    padding: 3px;
+    border: 1px solid var(--fc-border);
+    border-radius: 10px;
+    background: var(--fc-sidebar-bg);
+}
+.schedule-workspace-segments button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 6px 11px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--fc-text-secondary);
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+}
+.schedule-workspace-segments button[aria-pressed="true"] {
+    border-color: var(--fc-border);
+    background: var(--fc-card-bg);
+    color: var(--fc-text-primary);
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--color-shadow) 7.06%, transparent);
+}
+.schedule-workspace-segments button:hover:not(:disabled):not([aria-pressed="true"]) { color: var(--fc-text-primary); background: var(--fc-surface-hover); }
+.schedule-workspace-button,
+.schedule-workspace-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    gap: 7px;
+    min-height: 38px;
+    padding: 8px 13px;
+    border: 1px solid var(--fc-border);
+    border-radius: 9px;
+    background: var(--fc-sidebar-bg);
+    color: var(--fc-text-primary);
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+}
+.schedule-workspace-icon-button { width: 36px; min-height: 36px; padding: 7px; border-color: transparent; background: transparent; color: var(--fc-text-secondary); }
+.schedule-workspace-button:hover:not(:disabled),
+.schedule-workspace-icon-button:hover:not(:disabled) { background: var(--fc-surface-hover); color: var(--fc-text-primary); }
+.schedule-workspace-button svg,
+.schedule-workspace-icon-button svg,
+.schedule-workspace-segments svg { width: 16px; height: 16px; flex-shrink: 0; }
+.schedule-workspace-today { min-height: 34px; padding: 6px 11px; }
+.schedule-workspace-primary { min-height: 40px; padding-inline: 15px; border-color: transparent; background: var(--fc-accent); color: var(--color-on-accent); }
+.schedule-workspace-primary:hover:not(:disabled) { background: var(--fc-accent); color: var(--color-on-accent); filter: brightness(1.08); }
+.schedule-workspace-help { border-color: var(--fc-border); border-radius: 50%; }
+.schedule-workspace-header button:disabled { opacity: .4; cursor: not-allowed; }
+.schedule-workspace-header button:focus-visible,
+.schedule-workspace-toolbar button:focus-visible,
+.schedule-weekly-training button:focus-visible { outline: 2px solid var(--fc-accent); outline-offset: 3px; }
+.schedule-workspace-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    flex: 0 0 auto;
+    gap: 10px 20px;
+    min-height: 64px;
+    padding: 11px 18px;
+    border-bottom: 1px solid var(--fc-border);
+    background: var(--fc-page-bg);
+}
+.schedule-workspace-toolbar-controls { flex-wrap: wrap; gap: 12px; }
+.schedule-workspace-toolbar-summary { justify-content: flex-end; flex-wrap: wrap; gap: 12px; min-width: 0; font-size: 11px; }
+.schedule-workspace-views button { min-width: 60px; min-height: 30px; padding: 5px 10px; }
+.schedule-workspace-edit { border-color: transparent; background: transparent; font-weight: 500; color: var(--fc-text-secondary); }
+.schedule-workspace-edit[aria-pressed="true"] { border-color: var(--fc-accent-border); background: var(--fc-accent-soft); color: var(--fc-accent); }
+.schedule-workspace-owner { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fc-text-secondary); }
+.schedule-workspace-stat,
+.schedule-workspace-refresh { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; color: var(--fc-text-secondary); }
+.schedule-workspace-stat strong { font-weight: 600; color: var(--fc-text-primary); }
+.schedule-workspace-stat-dot { height: 5px; width: 5px; margin-inline-end: 1px; flex-shrink: 0; border-radius: 50%; background: var(--fc-border); }
+.schedule-workspace-stat[data-tone="green"] .schedule-workspace-stat-dot { background: var(--fc-accent); }
+.schedule-workspace-stat[data-tone="blue"] .schedule-workspace-stat-dot { background: var(--state-info, var(--fc-state-info)); }
+.schedule-workspace-stat[data-tone="purple"] .schedule-workspace-stat-dot { background: var(--accent-muted, var(--fc-text-secondary)); }
+.schedule-workspace-stat[data-tone="pink"] .schedule-workspace-stat-dot { background: var(--state-danger, var(--fc-state-danger)); }
+.schedule-workspace-refresh svg { width: 13px; height: 13px; }
+.schedule-weekly-training-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.schedule-weekly-training-heading h2 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 12px; line-height: 1.5; font-weight: 650; }
+.schedule-weekly-training-heading h2 svg { width: 14px; height: 14px; color: var(--fc-text-secondary); }
+.schedule-weekly-training-heading > button { width: 30px; min-height: 30px; border: 1px solid var(--fc-border); border-radius: 8px; }
+.schedule-weekly-training-intro { margin: 3px 0 12px; color: var(--fc-text-secondary); font-size: 10px; line-height: 1.6; }
+.schedule-weekly-training-list { display: flex; flex-direction: column; gap: 9px; }
+.schedule-weekly-training-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--fc-border);
+    border-radius: 10px;
+    background: var(--fc-card-bg);
+    color: var(--fc-text-primary);
+    text-align: start;
+}
+button.schedule-weekly-training-card { cursor: pointer; transition: background .15s, border-color .15s; }
+button.schedule-weekly-training-card:hover { background: var(--fc-surface-hover); border-color: var(--fc-text-muted); }
+.schedule-weekly-training-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; font-size: 12px; line-height: 1.5; }
+.schedule-weekly-training-card-heading strong { font-weight: 600; overflow-wrap: anywhere; }
+.schedule-weekly-training-card-heading svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; color: var(--fc-text-secondary); }
+.schedule-weekly-training-days { font-size: 11px; line-height: 1.5; font-weight: 600; color: var(--fc-text-primary); }
+.schedule-weekly-training-detail { display: flex; align-items: flex-start; gap: 6px; font-size: 10px; line-height: 1.65; color: var(--fc-text-secondary); overflow-wrap: anywhere; }
+.schedule-weekly-training-detail svg { width: 12px; height: 12px; flex-shrink: 0; margin-top: 2px; }
+.schedule-weekly-training-detail span { min-width: 0; }
+.schedule-weekly-training-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 16px 12px; margin-top: 12px; border: 1px dashed var(--fc-border); border-radius: 10px; }
+.schedule-weekly-training-empty-icon { display: inline-flex; padding: 9px; border: 1px solid var(--fc-border); border-radius: 10px; background: var(--fc-card-bg); color: var(--fc-text-secondary); }
+.schedule-weekly-training-empty-icon svg { width: 18px; height: 18px; }
+.schedule-weekly-training-empty h3 { margin: 0; font-size: 12px; line-height: 1.5; font-weight: 600; }
+.schedule-weekly-training-empty p { margin: 0; font-size: 11px; line-height: 1.8; color: var(--fc-text-secondary); }
+.schedule-weekly-training-empty > span:last-child { font-size: 10px; color: var(--fc-text-secondary); line-height: 1.6; }
+.schedule-weekly-training-empty .schedule-workspace-button { width: 100%; font-size: 11px; white-space: normal; padding-inline: 8px; }
+@media (max-width: 1100px) {
+    .schedule-workspace-header { gap: 12px; padding: 14px 16px; }
+    .schedule-workspace-heading { gap: 12px 18px; }
+    .schedule-workspace-period { gap: 10px; }
+    .schedule-workspace-period h1 { font-size: 17px; }
+    .schedule-workspace-toolbar { padding: 10px 14px; }
+}
+@media (max-width: 640px) {
+    .schedule-workspace-header { align-items: flex-start; gap: 10px; padding: 12px; }
+    .schedule-workspace-heading { gap: 12px; }
+    .schedule-workspace-header-actions { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+    .schedule-workspace-segments button { padding-inline: 9px; font-size: 11px; }
+    .schedule-workspace-period { gap: 8px; }
+    .schedule-workspace-toolbar { gap: 10px; padding: 10px 12px; }
+    .schedule-workspace-toolbar-controls { width: 100%; justify-content: space-between; gap: 8px; }
+    .schedule-workspace-toolbar-summary { justify-content: flex-start; }
+    .schedule-workspace-edit { padding-inline: 8px; font-size: 11px; }
+    .schedule-weekly-training-card { padding: 14px; }
+    .schedule-weekly-training-card-heading { font-size: 13px; }
+    .schedule-weekly-training-detail, .schedule-weekly-training-days { font-size: 12px; }
+    .schedule-weekly-training-empty p { font-size: 12px; }
+    .schedule-weekly-training-empty .schedule-workspace-button { min-height: 44px; }
+}

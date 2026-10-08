@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import '../../../i18n';
 import { PlayerCardModal } from '../PlayerCardModal';
+vi.mock('../../../features/parents/FamilyClubEnrollment', () => ({ FamilyClubEnrollment: () => null }));
+vi.mock('../RosterPlayerIdentity', () => ({ RosterPlayerIdentity: ({playerId}: {playerId: number}) => <p>Shared identity {playerId}</p> }));
 import { createPlayerCard, updatePlayerCard, type PlayerCard } from '../../../features/clubs/api';
 
 vi.mock('../../../features/clubs/api', () => ({
@@ -9,7 +12,10 @@ vi.mock('../../../features/clubs/api', () => ({
     updatePlayerCard: vi.fn(),
 }));
 
+vi.mock('../../../hooks/useMediaSource', () => ({ useMediaSource: (source?: string) => source }));
+
 vi.mock('../../../api/axiosConfig', () => ({
+    DEPLOYMENT_URLS: { mediaBaseUrl: 'https://media.example.test' },
     apiClient: {
         post: vi.fn(),
     },
@@ -53,6 +59,7 @@ describe('PlayerCardModal activated-account authority', () => {
         expect(screen.getByLabelText('Birth Year')).toBeDisabled();
         expect(screen.getByLabelText('Parent / Guardian Email')).toBeDisabled();
         expect(screen.queryByText('Upload photo')).not.toBeInTheDocument();
+        expect(screen.getByText('Shared identity 19')).toBeInTheDocument();
 
         fireEvent.change(screen.getByLabelText('Position'), { target: { value: 'WINGER' } });
         fireEvent.change(screen.getByLabelText('Jersey Number'), { target: { value: '7' } });
@@ -70,16 +77,12 @@ describe('PlayerCardModal activated-account authority', () => {
 
 
 describe('PlayerCardModal participation consent', () => {
-    it.each([12, 14, 16, 18])('creates an age-%s card with the appropriate squad behavior', async (age) => {
+    it('takes new players to connected intake rather than creating a duplicate identity or a placement', () => {
         vi.clearAllMocks();
-        vi.mocked(createPlayerCard).mockResolvedValue({ ...activatedCard, registered: false });
-        render(<PlayerCardModal clubId={7} squadId={11} isOpen onClose={vi.fn()} />);
-        fireEvent.change(screen.getByLabelText('Full Name'), { target: { value: 'New Player' } });
-        fireEvent.change(screen.getByLabelText('Birth Year'), { target: { value: String(new Date().getFullYear() - age) } });
-        if (age < 18) expect(screen.getByRole('status')).toHaveTextContent('Create the card first.');
-        fireEvent.click(screen.getByRole('button', { name: 'Create Card' }));
-        await waitFor(() => expect(createPlayerCard).toHaveBeenCalledOnce());
-        expect(vi.mocked(createPlayerCard).mock.calls[0][1].squadId).toBe(age < 18 ? undefined : 11);
+        render(<MemoryRouter><PlayerCardModal clubId={7} squadId={11} isOpen onClose={vi.fn()} /></MemoryRouter>);
+        expect(screen.getByRole('link', {name:'Open player intake'})).toHaveAttribute('href','/clubs/7/workspace?tab=admissions&intake=1&squad=11');
+        expect(screen.queryByLabelText('Full Name')).not.toBeInTheDocument();
+        expect(createPlayerCard).not.toHaveBeenCalled();expect(updatePlayerCard).not.toHaveBeenCalled();
     });
 
     it('protects the parent contact of a claimed dormant card', async () => {

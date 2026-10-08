@@ -1,34 +1,36 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 @import "tailwindcss";
+@import './styles/theme.css';
+@import './styles/actions.css';
 @variant dark (&:is(.dark *));
 
 @layer base {
   :root {
     color-scheme: light;
-    --bg-base: #f4f2ee;
-    --bg-surface: #fbfaf7;
-    --bg-elevated: #ffffff;
-    --bg-inset: #ece8e1;
-    --border-subtle: rgba(21, 28, 24, 0.1);
-    --border-strong: rgba(21, 28, 24, 0.18);
-    --text-primary: #151c18;
-    --text-secondary: #5c665f;
-    --text-muted: #808981;
-    --accent-primary: #206743;
-    --accent-primary-soft: rgba(32, 103, 67, 0.08);
-    --accent-muted: #d76a98;
-    --accent-muted-soft: rgba(215, 106, 152, 0.1);
-    --state-success: #206743;
-    --state-success-soft: rgba(32, 103, 67, 0.12);
-    --state-warning: #9a6c16;
-    --state-warning-soft: rgba(154, 108, 22, 0.14);
-    --state-danger: #b04b73;
-    --state-danger-soft: rgba(176, 75, 115, 0.12);
-    --state-info: #2b6ea3;
-    --state-info-soft: rgba(43, 110, 163, 0.12);
-    --overlay-surface: rgba(15, 23, 20, 0.76);
-    --shadow-panel: 0 16px 34px rgba(15, 23, 20, 0.08);
-    --shadow-float: 0 24px 50px rgba(15, 23, 20, 0.14);
+    --bg-base: var(--color-page);
+    --bg-surface: var(--color-surface);
+    --bg-elevated: var(--color-elevated);
+    --bg-inset: var(--color-inset);
+    --border-subtle: color-mix(in srgb, var(--color-border) 10%, transparent);
+    --border-strong: color-mix(in srgb, var(--color-border) 18%, transparent);
+    --text-primary: var(--color-text);
+    --text-secondary: var(--color-secondary);
+    --text-muted: var(--color-muted);
+    --accent-primary: var(--color-accent);
+    --accent-primary-soft: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    --accent-muted: var(--color-muted);
+    --accent-muted-soft: color-mix(in srgb, var(--color-pink) 10%, transparent);
+    --state-success: var(--color-accent);
+    --state-success-soft: var(--color-accent-soft);
+    --state-warning: var(--color-warning);
+    --state-warning-soft: var(--color-warning-soft);
+    --state-danger: var(--color-danger);
+    --state-danger-soft: var(--color-danger-soft);
+    --state-info: var(--color-info);
+    --state-info-soft: var(--color-info-soft);
+    --overlay-surface: color-mix(in srgb, var(--color-overlay) 76%, transparent);
+    --shadow-panel: 0 16px 34px color-mix(in srgb, var(--color-shadow) 8%, transparent);
+    --shadow-float: 0 24px 50px color-mix(in srgb, var(--color-shadow) 14%, transparent);
     --app-header-height: 100px;
     --app-active-header-height: var(--app-header-height);
     --app-page-gutter: 16px;
@@ -40,43 +42,43 @@
     --theme-surface-inset: var(--bg-inset);
     --theme-border: var(--border-subtle);
     --theme-border-strong: var(--border-strong);
-    --theme-overlay: rgba(15, 23, 20, 0.72);
-    --theme-overlay-strong: rgba(15, 23, 20, 0.88);
+    --theme-overlay: color-mix(in srgb, var(--color-overlay) 72%, transparent);
+    --theme-overlay-strong: color-mix(in srgb, var(--color-overlay) 88%, transparent);
     --theme-shadow: var(--shadow-panel);
-    --app-shell-base: #f4f2ee;
-    --app-shell-surface: #fbfaf7;
-    --app-shell-elevated: #ffffff;
-    --app-shell-inset: #ece8e1;
-    --app-border-subtle: rgba(21, 28, 24, 0.1);
-    --app-border-strong: rgba(21, 28, 24, 0.18);
-    --app-text-primary: #151c18;
-    --app-text-secondary: #5c665f;
-    --app-text-muted: #808981;
-    --app-accent-primary: #206743;
-    --app-accent-primary-soft: rgba(32, 103, 67, 0.08);
-    --app-accent-muted: #d76a98;
-    --app-accent-muted-soft: rgba(215, 106, 152, 0.1);
-    --app-state-success: #206743;
-    --app-state-success-soft: rgba(32, 103, 67, 0.12);
-    --app-state-info: #2b6ea3;
-    --app-state-info-soft: rgba(43, 110, 163, 0.12);
-    --app-theme-overlay: rgba(15, 23, 20, 0.72);
-    --app-theme-overlay-strong: rgba(15, 23, 20, 0.88);
-    --app-shadow-panel: 0 16px 34px rgba(15, 23, 20, 0.08);
-    --app-shadow-float: 0 24px 50px rgba(15, 23, 20, 0.14);
-    --map-workspace-bg: #eef1f4;
-    --map-main-surface: rgba(255, 255, 255, 0.78);
-    --map-rail-bg: rgba(251, 250, 247, 0.94);
-    --map-toolbar-bg: rgba(255, 255, 255, 0.86);
-    --map-panel-bg: rgba(255, 255, 255, 0.9);
-    --map-canvas-bg: #dbe6ee;
-    --map-card-bg: rgba(255, 255, 255, 0.86);
-    --map-card-muted: rgba(244, 246, 248, 0.88);
-    --map-panel-border: rgba(32, 43, 52, 0.12);
-    --map-pill-bg: rgba(255, 255, 255, 0.92);
-    --map-shadow-soft: 0 18px 40px rgba(23, 30, 38, 0.08);
-    --map-shadow-strong: 0 24px 54px rgba(23, 30, 38, 0.14);
-    --workspace-shell-glow: rgba(79, 120, 168, 0.06);
+    --app-shell-base: var(--color-page);
+    --app-shell-surface: var(--color-surface);
+    --app-shell-elevated: var(--color-elevated);
+    --app-shell-inset: var(--color-inset);
+    --app-border-subtle: color-mix(in srgb, var(--color-border) 10%, transparent);
+    --app-border-strong: color-mix(in srgb, var(--color-border) 18%, transparent);
+    --app-text-primary: var(--color-text);
+    --app-text-secondary: var(--color-secondary);
+    --app-text-muted: var(--color-muted);
+    --app-accent-primary: var(--color-accent);
+    --app-accent-primary-soft: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    --app-accent-muted: var(--color-muted);
+    --app-accent-muted-soft: color-mix(in srgb, var(--color-pink) 10%, transparent);
+    --app-state-success: var(--color-accent);
+    --app-state-success-soft: var(--color-accent-soft);
+    --app-state-info: var(--color-info);
+    --app-state-info-soft: var(--color-info-soft);
+    --app-theme-overlay: color-mix(in srgb, var(--color-overlay) 72%, transparent);
+    --app-theme-overlay-strong: color-mix(in srgb, var(--color-overlay) 88%, transparent);
+    --app-shadow-panel: 0 16px 34px color-mix(in srgb, var(--color-shadow) 8%, transparent);
+    --app-shadow-float: 0 24px 50px color-mix(in srgb, var(--color-shadow) 14%, transparent);
+    --map-workspace-bg: var(--color-page);
+    --map-main-surface: color-mix(in srgb, var(--color-surface) 78%, transparent);
+    --map-rail-bg: color-mix(in srgb, var(--color-surface) 94%, transparent);
+    --map-toolbar-bg: color-mix(in srgb, var(--color-surface) 86%, transparent);
+    --map-panel-bg: color-mix(in srgb, var(--color-surface) 90%, transparent);
+    --map-canvas-bg: var(--color-page);
+    --map-card-bg: color-mix(in srgb, var(--color-elevated) 86%, transparent);
+    --map-card-muted: color-mix(in srgb, var(--color-inset) 88%, transparent);
+    --map-panel-border: color-mix(in srgb, var(--color-border) 12%, transparent);
+    --map-pill-bg: color-mix(in srgb, var(--color-inset) 92%, transparent);
+    --map-shadow-soft: 0 18px 40px color-mix(in srgb, var(--color-shadow) 8%, transparent);
+    --map-shadow-strong: 0 24px 54px color-mix(in srgb, var(--color-shadow) 14%, transparent);
+    --workspace-shell-glow: color-mix(in srgb, var(--color-surface) 6%, transparent);
     --workspace-shell-top: var(--bg-base);
     --workspace-shell-bottom: var(--bg-base);
     --workspace-left-bg: var(--bg-surface);
@@ -84,37 +86,37 @@
     --workspace-right-bg: var(--bg-surface);
     --workspace-card-bg: var(--bg-elevated);
     --workspace-card-muted: var(--bg-inset);
-    --workspace-zone-highlight: rgba(127, 147, 176, 0.12);
+    --workspace-zone-highlight: color-mix(in srgb, var(--color-info) 12%, transparent);
     --club-theme-base: var(--bg-base);
     --club-theme-surface: var(--bg-surface);
-    --club-theme-elevated: var(--bg-elevated);
+    --club-theme-elevated: var(--color-elevated);
     --club-theme-inset: var(--bg-inset);
     --club-theme-border-subtle: var(--border-subtle);
     --club-theme-border-strong: var(--border-strong);
     --club-theme-text-primary: var(--text-primary);
     --club-theme-text-secondary: var(--text-secondary);
     --club-theme-text-muted: var(--text-muted);
-    --club-tone-green: #00ff6e;
-    --club-tone-green-soft: rgba(0, 255, 110, 0.12);
-    --club-tone-green-border: rgba(0, 255, 110, 0.3);
-    --club-tone-cyan: #64c6ff;
-    --club-tone-cyan-soft: rgba(100, 198, 255, 0.12);
-    --club-tone-cyan-border: rgba(100, 198, 255, 0.26);
-    --club-tone-blue: #5cadff;
-    --club-tone-blue-soft: rgba(92, 173, 255, 0.12);
-    --club-tone-blue-border: rgba(92, 173, 255, 0.3);
-    --club-accent-orange: #ff9e58;
-    --club-accent-orange-soft: rgba(255, 158, 88, 0.12);
-    --club-tone-purple: #9076ff;
-    --club-tone-purple-soft: rgba(144, 118, 255, 0.14);
-    --club-tone-purple-border: rgba(144, 118, 255, 0.28);
-    --club-tone-violet: #c084ff;
-    --club-tone-violet-soft: rgba(192, 132, 255, 0.12);
-    --club-tone-violet-border: rgba(192, 132, 255, 0.3);
-    --club-tone-pink: #ff6b9d;
-    --club-tone-pink-soft: rgba(255, 107, 157, 0.12);
-    --club-tone-pink-border: rgba(255, 107, 157, 0.3);
-    --club-shell-glow: rgba(0, 200, 83, 0.04);
+    --club-tone-green: var(--color-accent);
+    --club-tone-green-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    --club-tone-green-border: color-mix(in srgb, var(--color-accent) 30%, transparent);
+    --club-tone-cyan: var(--color-cyan);
+    --club-tone-cyan-soft: color-mix(in srgb, var(--color-cyan) 12%, transparent);
+    --club-tone-cyan-border: color-mix(in srgb, var(--color-cyan) 26%, transparent);
+    --club-tone-blue: var(--color-info);
+    --club-tone-blue-soft: color-mix(in srgb, var(--color-info) 12%, transparent);
+    --club-tone-blue-border: color-mix(in srgb, var(--color-info) 30%, transparent);
+    --club-accent-orange: var(--color-orange);
+    --club-accent-orange-soft: color-mix(in srgb, var(--color-orange) 12%, transparent);
+    --club-tone-purple: var(--color-info);
+    --club-tone-purple-soft: color-mix(in srgb, var(--color-info) 14%, transparent);
+    --club-tone-purple-border: color-mix(in srgb, var(--color-border) 28%, transparent);
+    --club-tone-violet: var(--color-purple);
+    --club-tone-violet-soft: color-mix(in srgb, var(--color-purple) 12%, transparent);
+    --club-tone-violet-border: color-mix(in srgb, var(--color-border) 30%, transparent);
+    --club-tone-pink: var(--color-secondary);
+    --club-tone-pink-soft: color-mix(in srgb, var(--color-pink) 12%, transparent);
+    --club-tone-pink-border: color-mix(in srgb, var(--color-pink) 30%, transparent);
+    --club-shell-glow: color-mix(in srgb, var(--color-surface) 4%, transparent);
     --club-shell-top: var(--bg-base);
     --club-shell-bottom: var(--bg-base);
     --club-band: var(--bg-surface);
@@ -122,173 +124,173 @@
     --club-center-bg: var(--bg-elevated);
     --club-right-bg: var(--bg-surface);
     --club-card: var(--bg-elevated);
-    --club-zone-highlight: rgba(32, 103, 67, 0.04);
-    --club-theme-overlay: rgba(6, 6, 8, 0.76);
-    --club-theme-overlay-strong: rgba(6, 6, 8, 0.9);
-    --club-shadow-panel: 0 18px 38px rgba(0, 0, 0, 0.4);
-    --club-shadow-float: 0 28px 70px rgba(0, 0, 0, 0.5);
-    --club-upload-action-bg: rgba(255, 255, 255, 0.82);
-    --club-upload-action-border: rgba(0, 200, 83, 0.2);
-    --club-upload-action-text: #09090b;
-    --club-system-action-bg: #1e293b;
-    --club-system-action-border: rgba(255, 255, 255, 0.1);
-    --club-system-action-text: #f4f4f5;
+    --club-zone-highlight: color-mix(in srgb, var(--color-accent) 4%, transparent);
+    --club-theme-overlay: color-mix(in srgb, var(--color-overlay) 76%, transparent);
+    --club-theme-overlay-strong: color-mix(in srgb, var(--color-overlay) 90%, transparent);
+    --club-shadow-panel: 0 18px 38px color-mix(in srgb, var(--color-shadow) 40%, transparent);
+    --club-shadow-float: 0 28px 70px color-mix(in srgb, var(--color-shadow) 50%, transparent);
+    --club-upload-action-bg: color-mix(in srgb, var(--color-surface) 82%, transparent);
+    --club-upload-action-border: color-mix(in srgb, var(--color-accent) 20%, transparent);
+    --club-upload-action-text: var(--color-on-accent);
+    --club-system-action-bg: var(--color-surface);
+    --club-system-action-border: color-mix(in srgb, var(--color-border) 10%, transparent);
+    --club-system-action-text: var(--color-on-accent);
     --club-system-action-icon: var(--club-tone-blue);
-    --club-divider-dot: rgba(255, 255, 255, 0.2);
+    --club-divider-dot: color-mix(in srgb, var(--color-border) 20%, transparent);
     --club-hero-fallback:
-      radial-gradient(circle at top right, rgba(0, 200, 83, 0.12), transparent 34%),
-      radial-gradient(circle at top left, rgba(0, 200, 83, 0.08), transparent 28%),
-      linear-gradient(135deg, #1a2d1a 0%, #18181b 42%, #09090b 100%);
+      radial-gradient(circle at top right, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 34%),
+      radial-gradient(circle at top left, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 28%),
+      linear-gradient(135deg, var(--color-text) 0%, var(--color-text) 42%, var(--color-text) 100%);
     --club-hero-scrim:
-      linear-gradient(to top, rgba(6, 6, 8, 0.92), rgba(6, 6, 8, 0.26) 60%, transparent);
+      linear-gradient(to top, color-mix(in srgb, var(--color-overlay) 92%, transparent), color-mix(in srgb, var(--color-overlay) 26%, transparent) 60%, transparent);
     /* ── workspace theme ── */
-    --workspace-theme-base: #0d0d12;
-    --workspace-theme-sidebar-bg: #0f0f14;
-    --workspace-theme-text-primary: #f4f4f5;
-    --workspace-theme-text-secondary: #a1a1aa;
-    --workspace-theme-text-muted: #71717a;
-    --workspace-theme-border: rgba(255, 255, 255, 0.06);
-    --workspace-theme-surface: rgba(255, 255, 255, 0.03);
-    --workspace-theme-surface-hover: rgba(255, 255, 255, 0.05);
-    --workspace-accent: #00e865;
-    --workspace-accent-soft: rgba(0, 232, 101, 0.10);
-    --workspace-accent-border: rgba(0, 232, 101, 0.28);
-    --workspace-state-danger: #d4737a;
-    --workspace-state-danger-soft: rgba(212, 115, 122, 0.14);
-    --workspace-state-warning: #c9a05a;
-    --workspace-state-warning-soft: rgba(201, 160, 90, 0.14);
-    --workspace-state-success: #00e865;
-    --workspace-state-success-soft: rgba(0, 232, 101, 0.10);
-    --workspace-state-info: #7db7e6;
-    --workspace-state-info-soft: rgba(125, 183, 230, 0.14);
+    --workspace-theme-base: var(--color-page);
+    --workspace-theme-sidebar-bg: var(--color-surface);
+    --workspace-theme-text-primary: var(--color-text);
+    --workspace-theme-text-secondary: var(--color-secondary);
+    --workspace-theme-text-muted: var(--color-muted);
+    --workspace-theme-border: color-mix(in srgb, var(--color-border) 6%, transparent);
+    --workspace-theme-surface: color-mix(in srgb, var(--color-surface) 3%, transparent);
+    --workspace-theme-surface-hover: color-mix(in srgb, var(--color-inset) 5%, transparent);
+    --workspace-accent: var(--color-accent);
+    --workspace-accent-soft: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    --workspace-accent-border: color-mix(in srgb, var(--color-accent) 28%, transparent);
+    --workspace-state-danger: var(--color-danger);
+    --workspace-state-danger-soft: var(--color-danger-soft);
+    --workspace-state-warning: var(--color-warning);
+    --workspace-state-warning-soft: var(--color-warning-soft);
+    --workspace-state-success: var(--color-accent);
+    --workspace-state-success-soft: var(--color-accent-soft);
+    --workspace-state-info: var(--color-info);
+    --workspace-state-info-soft: var(--color-info-soft);
 
-    /* ── Functional Clarity tokens (dark default) ── */
-    --fc-page-bg: #0f1117;
-    --fc-card-bg: #16181d;
-    --fc-sidebar-bg: #13141a;
-    --fc-surface-hover: #1a1c22;
-    --fc-border: #26282d;
-    --fc-text-primary: #e4e4e7;
-    --fc-text-secondary: #71717a;
-    --fc-text-muted: #52525b;
-    --fc-accent: #16a34a;
-    --fc-accent-soft: rgba(22, 163, 74, 0.10);
-    --fc-accent-border: rgba(22, 163, 74, 0.28);
-    --fc-state-success: #16a34a;
-    --fc-state-success-soft: rgba(22, 163, 74, 0.10);
-    --fc-state-warning: #d97706;
-    --fc-state-warning-soft: rgba(217, 119, 6, 0.10);
-    --fc-state-danger: #ef4444;
-    --fc-state-danger-soft: rgba(239, 68, 68, 0.10);
-    --fc-state-info: #3b82f6;
-    --fc-state-info-soft: rgba(59, 130, 246, 0.10);
+    /* ── Functional Clarity semantic aliases ── */
+    --fc-page-bg: var(--color-page);
+    --fc-card-bg: var(--color-elevated);
+    --fc-sidebar-bg: var(--color-surface);
+    --fc-surface-hover: var(--color-inset);
+    --fc-border: var(--color-border);
+    --fc-text-primary: var(--color-text);
+    --fc-text-secondary: var(--color-secondary);
+    --fc-text-muted: var(--color-muted);
+    --fc-accent: var(--color-accent);
+    --fc-accent-soft: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    --fc-accent-border: color-mix(in srgb, var(--color-accent) 28%, transparent);
+    --fc-state-success: var(--color-accent);
+    --fc-state-success-soft: var(--color-accent-soft);
+    --fc-state-warning: var(--color-warning);
+    --fc-state-warning-soft: var(--color-warning-soft);
+    --fc-state-danger: var(--color-danger);
+    --fc-state-danger-soft: var(--color-danger-soft);
+    --fc-state-info: var(--color-info);
+    --fc-state-info-soft: var(--color-info-soft);
     --fc-radius: 6px;
 
-    --schedule-theme-base: #edf3f8;
-    --schedule-theme-surface: #f7fbff;
-    --schedule-theme-elevated: #ffffff;
-    --schedule-theme-inset: #e8eff6;
-    --schedule-theme-border-subtle: rgba(61, 79, 102, 0.12);
-    --schedule-theme-border-strong: rgba(61, 79, 102, 0.22);
-    --schedule-theme-text-primary: #102132;
-    --schedule-theme-text-secondary: #5b6d80;
-    --schedule-theme-text-muted: #7d8d9d;
-    --schedule-accent-green: #159a72;
-    --schedule-accent-green-soft: rgba(21, 154, 114, 0.12);
-    --schedule-accent-green-border: rgba(21, 154, 114, 0.24);
-    --schedule-accent-pink: #cb587f;
-    --schedule-accent-pink-soft: rgba(203, 88, 127, 0.12);
-    --schedule-accent-pink-border: rgba(203, 88, 127, 0.24);
-    --schedule-accent-blue: #4f78d6;
-    --schedule-accent-blue-soft: rgba(79, 120, 214, 0.12);
-    --schedule-accent-blue-border: rgba(79, 120, 214, 0.24);
-    --schedule-accent-purple: #7a63d2;
-    --schedule-accent-purple-soft: rgba(122, 99, 210, 0.12);
-    --schedule-accent-purple-border: rgba(122, 99, 210, 0.24);
-    --schedule-shell-glow: rgba(79, 120, 168, 0.1);
-    --schedule-shell-top: #f5f8fc;
-    --schedule-shell-bottom: #ecf2f8;
-    --schedule-left-bg: #eef3f8;
-    --schedule-center-bg: #f7fbff;
-    --schedule-right-bg: #eef3f8;
-    --schedule-card: #ffffff;
-    --schedule-card-muted: #f1f5fa;
-    --schedule-board-head: #ecf2f9;
-    --schedule-board-cell: #ffffff;
-    --schedule-board-muted: #edf3f8;
-    --schedule-chip: #edf3fa;
-    --schedule-chip-border: rgba(79, 120, 168, 0.16);
-    --schedule-zone-highlight: rgba(127, 147, 176, 0.14);
-    --schedule-shadow-panel: 0 10px 24px rgba(32, 48, 70, 0.08);
-    --schedule-shadow-float: 0 18px 34px rgba(32, 48, 70, 0.12);
-    --feed-theme-base: #eef3fa;
-    --feed-theme-surface: #f7f9fc;
-    --feed-theme-elevated: #ffffff;
-    --feed-theme-inset: #edf2f8;
-    --feed-theme-border-subtle: rgba(25, 37, 58, 0.08);
-    --feed-theme-border-strong: rgba(25, 37, 58, 0.14);
-    --feed-theme-text-primary: #162234;
-    --feed-theme-text-secondary: #5b6c83;
-    --feed-theme-text-muted: #7c8ba0;
-    --feed-accent-blue: #0066FF;
-    --feed-accent-blue-soft: rgba(0, 102, 255, 0.1);
-    --feed-accent-blue-border: rgba(0, 102, 255, 0.24);
-    --feed-accent-pink: #d76a98;
-    --feed-accent-pink-soft: rgba(215, 106, 152, 0.12);
-    --feed-accent-pink-border: rgba(215, 106, 152, 0.28);
-    --feed-accent-orange: #c98158;
-    --feed-accent-orange-soft: rgba(201, 129, 88, 0.1);
-    --feed-accent-orange-border: rgba(201, 129, 88, 0.22);
-    --feed-accent-contrast: #ffffff;
-    --feed-nav-surface: rgba(241, 245, 251, 0.94);
-    --feed-page-surface: #f4f7fb;
-    --feed-shell-glow: rgba(215, 106, 152, 0.06);
-    --feed-shell-top: #f1f5fb;
-    --feed-shell-bottom: #e7edf7;
+    --schedule-theme-base: var(--color-page);
+    --schedule-theme-surface: var(--color-surface);
+    --schedule-theme-elevated: var(--color-elevated);
+    --schedule-theme-inset: var(--color-inset);
+    --schedule-theme-border-subtle: color-mix(in srgb, var(--color-border) 12%, transparent);
+    --schedule-theme-border-strong: color-mix(in srgb, var(--color-border) 22%, transparent);
+    --schedule-theme-text-primary: var(--color-text);
+    --schedule-theme-text-secondary: var(--color-secondary);
+    --schedule-theme-text-muted: var(--color-muted);
+    --schedule-accent-green: var(--color-accent);
+    --schedule-accent-green-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    --schedule-accent-green-border: color-mix(in srgb, var(--color-accent) 24%, transparent);
+    --schedule-accent-pink: var(--color-secondary);
+    --schedule-accent-pink-soft: color-mix(in srgb, var(--color-pink) 12%, transparent);
+    --schedule-accent-pink-border: color-mix(in srgb, var(--color-pink) 24%, transparent);
+    --schedule-accent-blue: var(--color-info);
+    --schedule-accent-blue-soft: color-mix(in srgb, var(--color-info) 12%, transparent);
+    --schedule-accent-blue-border: color-mix(in srgb, var(--color-info) 24%, transparent);
+    --schedule-accent-purple: var(--color-info);
+    --schedule-accent-purple-soft: color-mix(in srgb, var(--color-info) 12%, transparent);
+    --schedule-accent-purple-border: color-mix(in srgb, var(--color-border) 24%, transparent);
+    --schedule-shell-glow: color-mix(in srgb, var(--color-surface) 10%, transparent);
+    --schedule-shell-top: var(--color-page);
+    --schedule-shell-bottom: var(--color-page);
+    --schedule-left-bg: var(--color-surface);
+    --schedule-center-bg: var(--color-surface);
+    --schedule-right-bg: var(--color-surface);
+    --schedule-card: var(--color-elevated);
+    --schedule-card-muted: var(--color-inset);
+    --schedule-board-head: var(--color-inset);
+    --schedule-board-cell: var(--color-elevated);
+    --schedule-board-muted: var(--color-muted);
+    --schedule-chip: var(--color-inset);
+    --schedule-chip-border: color-mix(in srgb, var(--color-border) 16%, transparent);
+    --schedule-zone-highlight: color-mix(in srgb, var(--color-info) 14%, transparent);
+    --schedule-shadow-panel: 0 10px 24px color-mix(in srgb, var(--color-shadow) 8%, transparent);
+    --schedule-shadow-float: 0 18px 34px color-mix(in srgb, var(--color-shadow) 12%, transparent);
+    --feed-theme-base: var(--color-page);
+    --feed-theme-surface: var(--color-surface);
+    --feed-theme-elevated: var(--color-elevated);
+    --feed-theme-inset: var(--color-inset);
+    --feed-theme-border-subtle: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --feed-theme-border-strong: color-mix(in srgb, var(--color-border) 14%, transparent);
+    --feed-theme-text-primary: var(--color-text);
+    --feed-theme-text-secondary: var(--color-secondary);
+    --feed-theme-text-muted: var(--color-muted);
+    --feed-accent-blue: var(--color-info);
+    --feed-accent-blue-soft: color-mix(in srgb, var(--color-info) 10%, transparent);
+    --feed-accent-blue-border: color-mix(in srgb, var(--color-info) 24%, transparent);
+    --feed-accent-pink: var(--color-secondary);
+    --feed-accent-pink-soft: color-mix(in srgb, var(--color-pink) 12%, transparent);
+    --feed-accent-pink-border: color-mix(in srgb, var(--color-border) 28%, transparent);
+    --feed-accent-orange: var(--color-orange);
+    --feed-accent-orange-soft: color-mix(in srgb, var(--color-orange) 10%, transparent);
+    --feed-accent-orange-border: color-mix(in srgb, var(--color-orange) 22%, transparent);
+    --feed-accent-contrast: var(--color-on-accent);
+    --feed-nav-surface: color-mix(in srgb, var(--color-surface) 94%, transparent);
+    --feed-page-surface: var(--color-page);
+    --feed-shell-glow: color-mix(in srgb, var(--color-surface) 6%, transparent);
+    --feed-shell-top: var(--color-page);
+    --feed-shell-bottom: var(--color-page);
     --feed-left-bg: transparent;
     --feed-center-bg: transparent;
     --feed-right-bg: transparent;
-    --feed-card: rgba(255, 255, 255, 0.92);
-    --feed-card-muted: rgba(244, 247, 251, 0.92);
-    --feed-card-soft: rgba(239, 244, 250, 0.76);
-    --feed-card-border: rgba(25, 37, 58, 0.08);
-    --feed-layer-border: rgba(25, 37, 58, 0.08);
-    --feed-layer-bg: rgba(255, 255, 255, 0.72);
-    --feed-layer-bg-strong: rgba(244, 247, 251, 0.92);
-    --feed-visual-bg: rgba(255, 255, 255, 0.92);
-    --feed-side-divider: rgba(25, 37, 58, 0.08);
-    --feed-divider: rgba(25, 37, 58, 0.08);
-    --feed-shadow-panel: 0 14px 30px rgba(25, 37, 58, 0.08);
-    --feed-shadow-float: 0 22px 44px rgba(25, 37, 58, 0.12);
+    --feed-card: color-mix(in srgb, var(--color-elevated) 92%, transparent);
+    --feed-card-muted: color-mix(in srgb, var(--color-inset) 92%, transparent);
+    --feed-card-soft: color-mix(in srgb, var(--color-elevated) 76%, transparent);
+    --feed-card-border: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --feed-layer-border: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --feed-layer-bg: color-mix(in srgb, var(--color-surface) 72%, transparent);
+    --feed-layer-bg-strong: color-mix(in srgb, var(--color-elevated) 92%, transparent);
+    --feed-visual-bg: color-mix(in srgb, var(--color-surface) 92%, transparent);
+    --feed-side-divider: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --feed-divider: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --feed-shadow-panel: 0 14px 30px color-mix(in srgb, var(--color-shadow) 8%, transparent);
+    --feed-shadow-float: 0 22px 44px color-mix(in srgb, var(--color-shadow) 12%, transparent);
   }
 
   .dark {
     color-scheme: dark;
     /* ---- zinc/slate tiered backgrounds ---- */
-    --bg-base: #09090b;
-    --bg-surface: #18181b;
-    --bg-elevated: #27272a;
-    --bg-inset: #18181b;
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.12);
-    --text-primary: #f4f4f5;
-    --text-secondary: #a1a1aa;
-    --text-muted: #71717a;
-    --accent-primary: #00c853;
-    --accent-primary-soft: rgba(0, 200, 83, 0.08);
-    --accent-muted: #e07da7;
-    --accent-muted-soft: rgba(224, 125, 167, 0.14);
-    --state-success: #00c853;
-    --state-success-soft: rgba(0, 200, 83, 0.1);
-    --state-warning: #d0a85a;
-    --state-warning-soft: rgba(208, 168, 90, 0.16);
-    --state-danger: #ec8daf;
-    --state-danger-soft: rgba(236, 141, 175, 0.14);
-    --state-info: #7db7e6;
-    --state-info-soft: rgba(125, 183, 230, 0.16);
-    --overlay-surface: rgba(6, 6, 8, 0.82);
-    --shadow-panel: 0 16px 36px rgba(0, 0, 0, 0.4);
-    --shadow-float: 0 28px 60px rgba(0, 0, 0, 0.5);
+    --bg-base: var(--color-page);
+    --bg-surface: var(--color-surface);
+    --bg-elevated: var(--color-elevated);
+    --bg-inset: var(--color-inset);
+    --border-subtle: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --border-strong: color-mix(in srgb, var(--color-border) 12%, transparent);
+    --text-primary: var(--color-text);
+    --text-secondary: var(--color-secondary);
+    --text-muted: var(--color-muted);
+    --accent-primary: var(--color-accent);
+    --accent-primary-soft: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    --accent-muted: var(--color-muted);
+    --accent-muted-soft: color-mix(in srgb, var(--color-pink) 14%, transparent);
+    --state-success: var(--color-accent);
+    --state-success-soft: var(--color-accent-soft);
+    --state-warning: var(--color-warning);
+    --state-warning-soft: var(--color-warning-soft);
+    --state-danger: var(--color-danger);
+    --state-danger-soft: var(--color-danger-soft);
+    --state-info: var(--color-info);
+    --state-info-soft: var(--color-info-soft);
+    --overlay-surface: color-mix(in srgb, var(--color-overlay) 82%, transparent);
+    --shadow-panel: 0 16px 36px color-mix(in srgb, var(--color-shadow) 40%, transparent);
+    --shadow-float: 0 28px 60px color-mix(in srgb, var(--color-shadow) 50%, transparent);
     --theme-page: var(--bg-base);
     --theme-surface: var(--bg-surface);
     --theme-surface-muted: var(--bg-surface);
@@ -296,43 +298,43 @@
     --theme-surface-inset: var(--bg-inset);
     --theme-border: var(--border-subtle);
     --theme-border-strong: var(--border-strong);
-    --theme-overlay: rgba(6, 6, 8, 0.8);
-    --theme-overlay-strong: rgba(6, 6, 8, 0.9);
+    --theme-overlay: color-mix(in srgb, var(--color-overlay) 80%, transparent);
+    --theme-overlay-strong: color-mix(in srgb, var(--color-overlay) 90%, transparent);
     --theme-shadow: var(--shadow-panel);
-    --app-shell-base: #09090b;
-    --app-shell-surface: #18181b;
-    --app-shell-elevated: #27272a;
-    --app-shell-inset: #18181b;
-    --app-border-subtle: rgba(255, 255, 255, 0.08);
-    --app-border-strong: rgba(255, 255, 255, 0.12);
-    --app-text-primary: #f4f4f5;
-    --app-text-secondary: #a1a1aa;
-    --app-text-muted: #71717a;
-    --app-accent-primary: #00c853;
-    --app-accent-primary-soft: rgba(0, 200, 83, 0.08);
-    --app-accent-muted: #e07da7;
-    --app-accent-muted-soft: rgba(224, 125, 167, 0.14);
-    --app-state-success: #00c853;
-    --app-state-success-soft: rgba(0, 200, 83, 0.1);
-    --app-state-info: #7db7e6;
-    --app-state-info-soft: rgba(125, 183, 230, 0.16);
-    --app-theme-overlay: rgba(6, 6, 8, 0.8);
-    --app-theme-overlay-strong: rgba(6, 6, 8, 0.9);
-    --app-shadow-panel: 0 16px 36px rgba(0, 0, 0, 0.4);
-    --app-shadow-float: 0 28px 60px rgba(0, 0, 0, 0.5);
-    --map-workspace-bg: #0d1318;
-    --map-main-surface: rgba(18, 24, 29, 0.74);
-    --map-rail-bg: rgba(20, 26, 31, 0.92);
-    --map-toolbar-bg: rgba(24, 31, 36, 0.86);
-    --map-panel-bg: rgba(22, 28, 33, 0.9);
-    --map-canvas-bg: #17242d;
-    --map-card-bg: rgba(28, 36, 42, 0.88);
-    --map-card-muted: rgba(20, 26, 31, 0.9);
-    --map-panel-border: rgba(216, 228, 233, 0.11);
-    --map-pill-bg: rgba(19, 25, 30, 0.94);
-    --map-shadow-soft: 0 18px 42px rgba(0, 0, 0, 0.3);
-    --map-shadow-strong: 0 28px 60px rgba(0, 0, 0, 0.4);
-    --workspace-shell-glow: rgba(0, 200, 83, 0.04);
+    --app-shell-base: var(--color-page);
+    --app-shell-surface: var(--color-surface);
+    --app-shell-elevated: var(--color-elevated);
+    --app-shell-inset: var(--color-inset);
+    --app-border-subtle: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --app-border-strong: color-mix(in srgb, var(--color-border) 12%, transparent);
+    --app-text-primary: var(--color-text);
+    --app-text-secondary: var(--color-secondary);
+    --app-text-muted: var(--color-muted);
+    --app-accent-primary: var(--color-accent);
+    --app-accent-primary-soft: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    --app-accent-muted: var(--color-muted);
+    --app-accent-muted-soft: color-mix(in srgb, var(--color-pink) 14%, transparent);
+    --app-state-success: var(--color-accent);
+    --app-state-success-soft: var(--color-accent-soft);
+    --app-state-info: var(--color-info);
+    --app-state-info-soft: var(--color-info-soft);
+    --app-theme-overlay: color-mix(in srgb, var(--color-overlay) 80%, transparent);
+    --app-theme-overlay-strong: color-mix(in srgb, var(--color-overlay) 90%, transparent);
+    --app-shadow-panel: 0 16px 36px color-mix(in srgb, var(--color-shadow) 40%, transparent);
+    --app-shadow-float: 0 28px 60px color-mix(in srgb, var(--color-shadow) 50%, transparent);
+    --map-workspace-bg: var(--color-page);
+    --map-main-surface: color-mix(in srgb, var(--color-surface) 74%, transparent);
+    --map-rail-bg: color-mix(in srgb, var(--color-surface) 92%, transparent);
+    --map-toolbar-bg: color-mix(in srgb, var(--color-surface) 86%, transparent);
+    --map-panel-bg: color-mix(in srgb, var(--color-surface) 90%, transparent);
+    --map-canvas-bg: var(--color-page);
+    --map-card-bg: color-mix(in srgb, var(--color-elevated) 88%, transparent);
+    --map-card-muted: color-mix(in srgb, var(--color-inset) 90%, transparent);
+    --map-panel-border: color-mix(in srgb, var(--color-border) 11%, transparent);
+    --map-pill-bg: color-mix(in srgb, var(--color-inset) 94%, transparent);
+    --map-shadow-soft: 0 18px 42px color-mix(in srgb, var(--color-shadow) 30%, transparent);
+    --map-shadow-strong: 0 28px 60px color-mix(in srgb, var(--color-shadow) 40%, transparent);
+    --workspace-shell-glow: color-mix(in srgb, var(--color-surface) 4%, transparent);
     --workspace-shell-top: var(--bg-base);
     --workspace-shell-bottom: var(--bg-base);
     --workspace-left-bg: var(--bg-surface);
@@ -340,182 +342,182 @@
     --workspace-right-bg: var(--bg-surface);
     --workspace-card-bg: var(--bg-elevated);
     --workspace-card-muted: var(--bg-inset);
-    --workspace-zone-highlight: rgba(255, 255, 255, 0.04);
-    --club-theme-base: #09090b;
-    --club-theme-surface: #18181b;
-    --club-theme-elevated: #27272a;
-    --club-theme-inset: #18181b;
-    --club-theme-border-subtle: rgba(255, 255, 255, 0.08);
-    --club-theme-border-strong: rgba(255, 255, 255, 0.12);
-    --club-theme-text-primary: #f4f4f5;
-    --club-theme-text-secondary: #a1a1aa;
-    --club-theme-text-muted: #71717a;
-    --club-tone-green: #00ff6e;
-    --club-tone-green-soft: rgba(0, 255, 110, 0.12);
-    --club-tone-green-border: rgba(0, 255, 110, 0.3);
-    --club-tone-cyan: #64c6ff;
-    --club-tone-cyan-soft: rgba(100, 198, 255, 0.12);
-    --club-tone-cyan-border: rgba(100, 198, 255, 0.26);
-    --club-tone-blue: #5cadff;
-    --club-tone-blue-soft: rgba(92, 173, 255, 0.12);
-    --club-tone-blue-border: rgba(92, 173, 255, 0.3);
-    --club-accent-orange: #ff9e58;
-    --club-accent-orange-soft: rgba(255, 158, 88, 0.12);
-    --club-tone-purple: #9076ff;
-    --club-tone-purple-soft: rgba(144, 118, 255, 0.14);
-    --club-tone-purple-border: rgba(144, 118, 255, 0.28);
-    --club-tone-violet: #c084ff;
-    --club-tone-violet-soft: rgba(192, 132, 255, 0.12);
-    --club-tone-violet-border: rgba(192, 132, 255, 0.3);
-    --club-tone-pink: #ff6b9d;
-    --club-tone-pink-soft: rgba(255, 107, 157, 0.12);
-    --club-tone-pink-border: rgba(255, 107, 157, 0.3);
-    --club-shell-glow: rgba(0, 200, 83, 0.04);
-    --club-shell-top: #09090b;
-    --club-shell-bottom: #09090b;
-    --club-band: #0a0a0c;
-    --club-left-bg: #0a0a0c;
-    --club-center-bg: #0f0f13;
-    --club-right-bg: #0a0a0c;
-    --club-card: #0f0f13;
-    --club-zone-highlight: rgba(255, 255, 255, 0.03);
-    --club-theme-overlay: rgba(6, 6, 8, 0.76);
-    --club-theme-overlay-strong: rgba(6, 6, 8, 0.9);
-    --club-shadow-panel: 0 18px 38px rgba(0, 0, 0, 0.4);
-    --club-shadow-float: 0 28px 70px rgba(0, 0, 0, 0.5);
-    --club-upload-action-bg: rgba(9, 9, 11, 0.34);
-    --club-upload-action-border: rgba(255, 255, 255, 0.08);
-    --club-upload-action-text: #f4f4f5;
-    --club-system-action-bg: #1e293b;
-    --club-system-action-border: rgba(255, 255, 255, 0.1);
-    --club-system-action-text: #f4f4f5;
+    --workspace-zone-highlight: color-mix(in srgb, var(--color-text) 4%, transparent);
+    --club-theme-base: var(--color-page);
+    --club-theme-surface: var(--color-surface);
+    --club-theme-elevated: var(--color-elevated);
+    --club-theme-inset: var(--color-inset);
+    --club-theme-border-subtle: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --club-theme-border-strong: color-mix(in srgb, var(--color-border) 12%, transparent);
+    --club-theme-text-primary: var(--color-text);
+    --club-theme-text-secondary: var(--color-secondary);
+    --club-theme-text-muted: var(--color-muted);
+    --club-tone-green: var(--color-accent);
+    --club-tone-green-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    --club-tone-green-border: color-mix(in srgb, var(--color-accent) 30%, transparent);
+    --club-tone-cyan: var(--color-cyan);
+    --club-tone-cyan-soft: color-mix(in srgb, var(--color-cyan) 12%, transparent);
+    --club-tone-cyan-border: color-mix(in srgb, var(--color-cyan) 26%, transparent);
+    --club-tone-blue: var(--color-info);
+    --club-tone-blue-soft: color-mix(in srgb, var(--color-info) 12%, transparent);
+    --club-tone-blue-border: color-mix(in srgb, var(--color-info) 30%, transparent);
+    --club-accent-orange: var(--color-orange);
+    --club-accent-orange-soft: color-mix(in srgb, var(--color-orange) 12%, transparent);
+    --club-tone-purple: var(--color-info);
+    --club-tone-purple-soft: color-mix(in srgb, var(--color-info) 14%, transparent);
+    --club-tone-purple-border: color-mix(in srgb, var(--color-border) 28%, transparent);
+    --club-tone-violet: var(--color-purple);
+    --club-tone-violet-soft: color-mix(in srgb, var(--color-purple) 12%, transparent);
+    --club-tone-violet-border: color-mix(in srgb, var(--color-border) 30%, transparent);
+    --club-tone-pink: var(--color-secondary);
+    --club-tone-pink-soft: color-mix(in srgb, var(--color-pink) 12%, transparent);
+    --club-tone-pink-border: color-mix(in srgb, var(--color-pink) 30%, transparent);
+    --club-shell-glow: color-mix(in srgb, var(--color-surface) 4%, transparent);
+    --club-shell-top: var(--color-page);
+    --club-shell-bottom: var(--color-page);
+    --club-band: var(--color-surface);
+    --club-left-bg: var(--color-surface);
+    --club-center-bg: var(--color-surface);
+    --club-right-bg: var(--color-surface);
+    --club-card: var(--color-elevated);
+    --club-zone-highlight: color-mix(in srgb, var(--color-text) 3%, transparent);
+    --club-theme-overlay: color-mix(in srgb, var(--color-overlay) 76%, transparent);
+    --club-theme-overlay-strong: color-mix(in srgb, var(--color-overlay) 90%, transparent);
+    --club-shadow-panel: 0 18px 38px color-mix(in srgb, var(--color-shadow) 40%, transparent);
+    --club-shadow-float: 0 28px 70px color-mix(in srgb, var(--color-shadow) 50%, transparent);
+    --club-upload-action-bg: color-mix(in srgb, var(--color-surface) 34%, transparent);
+    --club-upload-action-border: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --club-upload-action-text: var(--color-on-accent);
+    --club-system-action-bg: var(--color-surface);
+    --club-system-action-border: color-mix(in srgb, var(--color-border) 10%, transparent);
+    --club-system-action-text: var(--color-on-accent);
     --club-system-action-icon: var(--club-tone-blue);
-    --club-divider-dot: rgba(255, 255, 255, 0.2);
+    --club-divider-dot: color-mix(in srgb, var(--color-border) 20%, transparent);
     --club-hero-fallback:
-      radial-gradient(circle at top right, rgba(0, 200, 83, 0.12), transparent 34%),
-      radial-gradient(circle at top left, rgba(0, 200, 83, 0.08), transparent 28%),
-      linear-gradient(135deg, #1a2d1a 0%, #18181b 42%, #09090b 100%);
+      radial-gradient(circle at top right, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 34%),
+      radial-gradient(circle at top left, color-mix(in srgb, var(--color-accent) 8%, transparent), transparent 28%),
+      linear-gradient(135deg, var(--color-text) 0%, var(--color-text) 42%, var(--color-text) 100%);
     --club-hero-scrim:
-      linear-gradient(to top, rgba(6, 6, 8, 0.92), rgba(6, 6, 8, 0.26) 60%, transparent);
+      linear-gradient(to top, color-mix(in srgb, var(--color-overlay) 92%, transparent), color-mix(in srgb, var(--color-overlay) 26%, transparent) 60%, transparent);
     /* ── workspace theme (dark) ── */
-    --workspace-theme-base: #0d0d12;
-    --workspace-theme-sidebar-bg: #0f0f14;
-    --workspace-theme-text-primary: #f4f4f5;
-    --workspace-theme-text-secondary: #a1a1aa;
-    --workspace-theme-text-muted: #71717a;
-    --workspace-theme-border: rgba(255, 255, 255, 0.06);
-    --workspace-theme-surface: rgba(255, 255, 255, 0.03);
-    --workspace-theme-surface-hover: rgba(255, 255, 255, 0.05);
-    --workspace-accent: #00e865;
-    --workspace-accent-soft: rgba(0, 232, 101, 0.10);
-    --workspace-accent-border: rgba(0, 232, 101, 0.28);
-    --workspace-state-danger: #d4737a;
-    --workspace-state-danger-soft: rgba(212, 115, 122, 0.14);
-    --workspace-state-warning: #c9a05a;
-    --workspace-state-warning-soft: rgba(201, 160, 90, 0.14);
-    --workspace-state-success: #00e865;
-    --workspace-state-success-soft: rgba(0, 232, 101, 0.10);
-    --workspace-state-info: #7db7e6;
-    --workspace-state-info-soft: rgba(125, 183, 230, 0.14);
+    --workspace-theme-base: var(--color-page);
+    --workspace-theme-sidebar-bg: var(--color-surface);
+    --workspace-theme-text-primary: var(--color-text);
+    --workspace-theme-text-secondary: var(--color-secondary);
+    --workspace-theme-text-muted: var(--color-muted);
+    --workspace-theme-border: color-mix(in srgb, var(--color-border) 6%, transparent);
+    --workspace-theme-surface: color-mix(in srgb, var(--color-surface) 3%, transparent);
+    --workspace-theme-surface-hover: color-mix(in srgb, var(--color-inset) 5%, transparent);
+    --workspace-accent: var(--color-accent);
+    --workspace-accent-soft: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    --workspace-accent-border: color-mix(in srgb, var(--color-accent) 28%, transparent);
+    --workspace-state-danger: var(--color-danger);
+    --workspace-state-danger-soft: var(--color-danger-soft);
+    --workspace-state-warning: var(--color-warning);
+    --workspace-state-warning-soft: var(--color-warning-soft);
+    --workspace-state-success: var(--color-accent);
+    --workspace-state-success-soft: var(--color-accent-soft);
+    --workspace-state-info: var(--color-info);
+    --workspace-state-info-soft: var(--color-info-soft);
 
-    /* ── Functional Clarity tokens (dark — same as :root default) ── */
-    --fc-page-bg: #0f1117;
-    --fc-card-bg: #16181d;
-    --fc-sidebar-bg: #13141a;
-    --fc-surface-hover: #1a1c22;
-    --fc-border: #26282d;
-    --fc-text-primary: #e4e4e7;
-    --fc-text-secondary: #71717a;
-    --fc-text-muted: #52525b;
-    --fc-accent: #16a34a;
-    --fc-accent-soft: rgba(22, 163, 74, 0.10);
-    --fc-accent-border: rgba(22, 163, 74, 0.28);
-    --fc-state-success: #16a34a;
-    --fc-state-success-soft: rgba(22, 163, 74, 0.10);
-    --fc-state-warning: #d97706;
-    --fc-state-warning-soft: rgba(217, 119, 6, 0.10);
-    --fc-state-danger: #ef4444;
-    --fc-state-danger-soft: rgba(239, 68, 68, 0.10);
-    --fc-state-info: #3b82f6;
-    --fc-state-info-soft: rgba(59, 130, 246, 0.10);
+    /* ── Functional Clarity semantic aliases ── */
+    --fc-page-bg: var(--color-page);
+    --fc-card-bg: var(--color-elevated);
+    --fc-sidebar-bg: var(--color-surface);
+    --fc-surface-hover: var(--color-inset);
+    --fc-border: var(--color-border);
+    --fc-text-primary: var(--color-text);
+    --fc-text-secondary: var(--color-secondary);
+    --fc-text-muted: var(--color-muted);
+    --fc-accent: var(--color-accent);
+    --fc-accent-soft: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    --fc-accent-border: color-mix(in srgb, var(--color-accent) 28%, transparent);
+    --fc-state-success: var(--color-accent);
+    --fc-state-success-soft: var(--color-accent-soft);
+    --fc-state-warning: var(--color-warning);
+    --fc-state-warning-soft: var(--color-warning-soft);
+    --fc-state-danger: var(--color-danger);
+    --fc-state-danger-soft: var(--color-danger-soft);
+    --fc-state-info: var(--color-info);
+    --fc-state-info-soft: var(--color-info-soft);
     --fc-radius: 6px;
 
-    --schedule-theme-base: #09090b;
-    --schedule-theme-surface: #18181b;
-    --schedule-theme-elevated: #27272a;
-    --schedule-theme-inset: #18181b;
-    --schedule-theme-border-subtle: rgba(255, 255, 255, 0.08);
-    --schedule-theme-border-strong: rgba(255, 255, 255, 0.12);
-    --schedule-theme-text-primary: #f4f4f5;
-    --schedule-theme-text-secondary: #a1a1aa;
-    --schedule-theme-text-muted: #71717a;
-    --schedule-accent-green: #00c853;
-    --schedule-accent-green-soft: rgba(0, 200, 83, 0.1);
-    --schedule-accent-green-border: rgba(0, 200, 83, 0.24);
-    --schedule-accent-pink: #ff4b86;
-    --schedule-accent-pink-soft: rgba(255, 75, 134, 0.12);
-    --schedule-accent-pink-border: rgba(255, 75, 134, 0.26);
-    --schedule-accent-blue: #5478cf;
-    --schedule-accent-blue-soft: rgba(84, 120, 207, 0.12);
-    --schedule-accent-blue-border: rgba(84, 120, 207, 0.26);
-    --schedule-accent-purple: #9076ff;
-    --schedule-accent-purple-soft: rgba(144, 118, 255, 0.12);
-    --schedule-accent-purple-border: rgba(144, 118, 255, 0.26);
-    --schedule-shell-glow: rgba(0, 200, 83, 0.04);
-    --schedule-shell-top: #09090b;
-    --schedule-shell-bottom: #09090b;
-    --schedule-left-bg: #18181b;
-    --schedule-center-bg: #27272a;
-    --schedule-right-bg: #18181b;
-    --schedule-card: #27272a;
-    --schedule-card-muted: #18181b;
-    --schedule-board-head: #27272a;
-    --schedule-board-cell: #18181b;
-    --schedule-board-muted: #18181b;
-    --schedule-chip: #1e293b;
-    --schedule-chip-border: rgba(255, 255, 255, 0.08);
-    --schedule-zone-highlight: rgba(255, 255, 255, 0.04);
-    --schedule-shadow-panel: 0 10px 26px rgba(0, 0, 0, 0.4);
-    --schedule-shadow-float: 0 18px 38px rgba(0, 0, 0, 0.5);
-    --feed-theme-base: #09090b;
-    --feed-theme-surface: #18181b;
-    --feed-theme-elevated: #27272a;
-    --feed-theme-inset: #18181b;
-    --feed-theme-border-subtle: rgba(255, 255, 255, 0.08);
-    --feed-theme-border-strong: rgba(255, 255, 255, 0.12);
-    --feed-theme-text-primary: #f4f4f5;
-    --feed-theme-text-secondary: #a1a1aa;
-    --feed-theme-text-muted: #71717a;
-    --feed-accent-blue: #00c853;
-    --feed-accent-blue-soft: rgba(0, 200, 83, 0.1);
-    --feed-accent-blue-border: rgba(0, 200, 83, 0.24);
-    --feed-accent-pink: #f07aa5;
-    --feed-accent-pink-soft: rgba(240, 122, 165, 0.16);
-    --feed-accent-pink-border: rgba(240, 122, 165, 0.32);
-    --feed-accent-orange: #d48857;
-    --feed-accent-orange-soft: rgba(212, 136, 87, 0.12);
-    --feed-accent-orange-border: rgba(212, 136, 87, 0.24);
-    --feed-accent-contrast: #000000;
-    --feed-nav-surface: #18181b;
-    --feed-page-surface: #09090b;
-    --feed-shell-glow: rgba(0, 200, 83, 0.04);
-    --feed-shell-top: #09090b;
-    --feed-shell-bottom: #09090b;
+    --schedule-theme-base: var(--color-page);
+    --schedule-theme-surface: var(--color-surface);
+    --schedule-theme-elevated: var(--color-elevated);
+    --schedule-theme-inset: var(--color-inset);
+    --schedule-theme-border-subtle: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --schedule-theme-border-strong: color-mix(in srgb, var(--color-border) 12%, transparent);
+    --schedule-theme-text-primary: var(--color-text);
+    --schedule-theme-text-secondary: var(--color-secondary);
+    --schedule-theme-text-muted: var(--color-muted);
+    --schedule-accent-green: var(--color-accent);
+    --schedule-accent-green-soft: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    --schedule-accent-green-border: color-mix(in srgb, var(--color-accent) 24%, transparent);
+    --schedule-accent-pink: var(--color-secondary);
+    --schedule-accent-pink-soft: color-mix(in srgb, var(--color-pink) 12%, transparent);
+    --schedule-accent-pink-border: color-mix(in srgb, var(--color-pink) 26%, transparent);
+    --schedule-accent-blue: var(--color-info);
+    --schedule-accent-blue-soft: color-mix(in srgb, var(--color-info) 12%, transparent);
+    --schedule-accent-blue-border: color-mix(in srgb, var(--color-info) 26%, transparent);
+    --schedule-accent-purple: var(--color-info);
+    --schedule-accent-purple-soft: color-mix(in srgb, var(--color-info) 12%, transparent);
+    --schedule-accent-purple-border: color-mix(in srgb, var(--color-border) 26%, transparent);
+    --schedule-shell-glow: color-mix(in srgb, var(--color-surface) 4%, transparent);
+    --schedule-shell-top: var(--color-page);
+    --schedule-shell-bottom: var(--color-page);
+    --schedule-left-bg: var(--color-surface);
+    --schedule-center-bg: var(--color-surface);
+    --schedule-right-bg: var(--color-surface);
+    --schedule-card: var(--color-elevated);
+    --schedule-card-muted: var(--color-inset);
+    --schedule-board-head: var(--color-inset);
+    --schedule-board-cell: var(--color-elevated);
+    --schedule-board-muted: var(--color-muted);
+    --schedule-chip: var(--color-inset);
+    --schedule-chip-border: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --schedule-zone-highlight: color-mix(in srgb, var(--color-text) 4%, transparent);
+    --schedule-shadow-panel: 0 10px 26px color-mix(in srgb, var(--color-shadow) 40%, transparent);
+    --schedule-shadow-float: 0 18px 38px color-mix(in srgb, var(--color-shadow) 50%, transparent);
+    --feed-theme-base: var(--color-page);
+    --feed-theme-surface: var(--color-surface);
+    --feed-theme-elevated: var(--color-elevated);
+    --feed-theme-inset: var(--color-inset);
+    --feed-theme-border-subtle: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --feed-theme-border-strong: color-mix(in srgb, var(--color-border) 12%, transparent);
+    --feed-theme-text-primary: var(--color-text);
+    --feed-theme-text-secondary: var(--color-secondary);
+    --feed-theme-text-muted: var(--color-muted);
+    --feed-accent-blue: var(--color-accent);
+    --feed-accent-blue-soft: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    --feed-accent-blue-border: color-mix(in srgb, var(--color-accent) 24%, transparent);
+    --feed-accent-pink: var(--color-secondary);
+    --feed-accent-pink-soft: color-mix(in srgb, var(--color-pink) 16%, transparent);
+    --feed-accent-pink-border: color-mix(in srgb, var(--color-border) 32%, transparent);
+    --feed-accent-orange: var(--color-orange);
+    --feed-accent-orange-soft: color-mix(in srgb, var(--color-orange) 12%, transparent);
+    --feed-accent-orange-border: color-mix(in srgb, var(--color-orange) 24%, transparent);
+    --feed-accent-contrast: var(--color-on-accent);
+    --feed-nav-surface: var(--color-surface);
+    --feed-page-surface: var(--color-page);
+    --feed-shell-glow: color-mix(in srgb, var(--color-surface) 4%, transparent);
+    --feed-shell-top: var(--color-page);
+    --feed-shell-bottom: var(--color-page);
     --feed-left-bg: transparent;
     --feed-center-bg: transparent;
     --feed-right-bg: transparent;
-    --feed-card: #27272a;
-    --feed-card-muted: #18181b;
-    --feed-card-soft: #1e293b;
-    --feed-card-border: rgba(255, 255, 255, 0.08);
-    --feed-layer-border: rgba(255, 255, 255, 0.06);
-    --feed-layer-bg: #1e293b;
-    --feed-layer-bg-strong: #27272a;
-    --feed-visual-bg: #1e293b;
-    --feed-side-divider: rgba(255, 255, 255, 0.06);
-    --feed-divider: rgba(255, 255, 255, 0.06);
-    --feed-shadow-panel: 0 14px 30px rgba(0, 0, 0, 0.4);
-    --feed-shadow-float: 0 22px 44px rgba(0, 0, 0, 0.5);
+    --feed-card: var(--color-elevated);
+    --feed-card-muted: var(--color-inset);
+    --feed-card-soft: color-mix(in srgb, var(--color-elevated) 12%, transparent);
+    --feed-card-border: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --feed-layer-border: color-mix(in srgb, var(--color-border) 6%, transparent);
+    --feed-layer-bg: var(--color-surface);
+    --feed-layer-bg-strong: var(--color-elevated);
+    --feed-visual-bg: var(--color-surface);
+    --feed-side-divider: color-mix(in srgb, var(--color-border) 6%, transparent);
+    --feed-divider: color-mix(in srgb, var(--color-border) 6%, transparent);
+    --feed-shadow-panel: 0 14px 30px color-mix(in srgb, var(--color-shadow) 40%, transparent);
+    --feed-shadow-float: 0 22px 44px color-mix(in srgb, var(--color-shadow) 50%, transparent);
   }
 
   html,
@@ -529,7 +531,7 @@
     margin: 0;
     background-color: var(--bg-base);
     color: var(--text-primary);
-    font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    font-family: "Inter", "Segoe UI", sans-serif;
     text-rendering: optimizeLegibility;
   }
 
@@ -566,19 +568,19 @@
 
 @layer utilities {
   .club-directory-card-grid {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
   }
 
   .world-nav-button {
     position: relative;
     isolation: isolate;
     border: 0;
-    background: linear-gradient(110deg, #ff2bd6, #8b5cf6, #258bff, #00f5a0, #ff2bd6);
+    background: linear-gradient(110deg, var(--color-pink), var(--color-purple), var(--color-info), var(--color-accent), var(--color-pink));
     background-size: 300% 100%;
     box-shadow:
-      0 0 8px rgba(255, 43, 214, 0.6),
-      0 0 14px rgba(37, 139, 255, 0.42),
-      0 0 19px rgba(0, 245, 160, 0.22);
+      0 0 8px color-mix(in srgb, var(--color-shadow) 60%, transparent),
+      0 0 14px color-mix(in srgb, var(--color-shadow) 42%, transparent),
+      0 0 19px color-mix(in srgb, var(--color-shadow) 22%, transparent);
     animation: world-neon-shift 5s linear infinite;
     transition: transform 160ms ease, box-shadow 160ms ease;
   }
@@ -588,29 +590,29 @@
      its menus and notification preview do not inherit the Map's light root. */
   .top-nav-force-dark {
     color-scheme: dark;
-    background-color: #0f1117 !important;
-    color: #f4f4f5;
-    --bg-base: #09090b;
-    --bg-surface: #18181b;
-    --bg-elevated: #27272a;
-    --bg-inset: #18181b;
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.12);
-    --text-primary: #f4f4f5;
-    --text-secondary: #a1a1aa;
-    --text-muted: #71717a;
-    --theme-surface: #18181b;
-    --theme-surface-muted: #18181b;
-    --theme-surface-strong: #27272a;
-    --theme-border: rgba(255, 255, 255, 0.08);
-    --theme-border-strong: rgba(255, 255, 255, 0.12);
-    --theme-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+    background-color: var(--color-surface) !important;
+    color: var(--color-text);
+    --bg-base: var(--color-page);
+    --bg-surface: var(--color-surface);
+    --bg-elevated: var(--color-elevated);
+    --bg-inset: var(--color-inset);
+    --border-subtle: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --border-strong: color-mix(in srgb, var(--color-border) 12%, transparent);
+    --text-primary: var(--color-text);
+    --text-secondary: var(--color-secondary);
+    --text-muted: var(--color-muted);
+    --theme-surface: var(--color-surface);
+    --theme-surface-muted: var(--color-inset);
+    --theme-surface-strong: var(--color-elevated);
+    --theme-border: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --theme-border-strong: color-mix(in srgb, var(--color-border) 12%, transparent);
+    --theme-shadow: 0 16px 36px color-mix(in srgb, var(--color-shadow) 40%, transparent);
   }
 
   .top-nav-light {
     color-scheme: light;
-    background-color: #f8fafc !important;
-    color: #151c18;
+    background-color: var(--color-elevated) !important;
+    color: var(--color-text);
   }
 
   .world-nav-button::before {
@@ -628,9 +630,9 @@
   .world-nav-button--active {
     transform: translateY(-1px);
     box-shadow:
-      0 0 10px rgba(255, 43, 214, 0.82),
-      0 0 19px rgba(37, 139, 255, 0.62),
-      0 0 25px rgba(0, 245, 160, 0.38);
+      0 0 10px color-mix(in srgb, var(--color-shadow) 82%, transparent),
+      0 0 19px color-mix(in srgb, var(--color-shadow) 62%, transparent),
+      0 0 25px color-mix(in srgb, var(--color-shadow) 38%, transparent);
   }
 
   .world-nav-button--active {
@@ -638,8 +640,8 @@
   }
 
   .world-nav-button__inner {
-    background: color-mix(in srgb, var(--theme-surface-strong) 84%, #151020 16%);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+    background: color-mix(in srgb, var(--theme-surface-strong) 84%, var(--color-surface) 16%);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-shadow) 16%, transparent);
   }
 
   @keyframes world-neon-shift {
@@ -769,55 +771,6 @@
   /* Legacy destination pages used fixed dark utilities.  Keep their existing
      structure while making every product route inherit the real app canvas and
      colour scheme instead of painting an inset dark rectangle. */
-  .product-app-shell [class~="bg-[#0f1117]"] {
-    background-color: var(--theme-page);
-  }
-
-  .product-app-shell [class~="bg-[#16181d]"],
-  .product-app-shell [class~="bg-[#15171c]"],
-  .product-app-shell [class~="bg-[#17191f]"],
-  .product-app-shell [class~="bg-[#181a1f]"] {
-    background-color: var(--theme-surface);
-  }
-
-  .product-app-shell [class~="bg-[#1b1e23]"],
-  .product-app-shell [class~="bg-[#20232a]"],
-  .product-app-shell [class~="bg-[#24272d]"],
-  .product-app-shell [class~="bg-[#292d34]"] {
-    background-color: var(--theme-surface-strong);
-  }
-
-  .product-app-shell [class~="border-[#ffffff0d]"] {
-    border-color: var(--theme-border);
-  }
-
-  .product-app-shell [class~="border-[#26282d]"] {
-    border-color: var(--theme-border-strong);
-  }
-
-  .product-app-shell [class~="text-[#f4f4f5]"] {
-    color: var(--text-primary);
-  }
-
-  .product-app-shell [class~="text-[#a1a1aa]"] {
-    color: var(--text-secondary);
-  }
-
-  .product-app-shell [class~="text-[#71717a]"] {
-    color: var(--text-muted);
-  }
-
-  .product-app-shell [class~="text-[#d4d4d8]"],
-  .product-app-shell [class~="text-[#e4e4e7]"],
-  .product-app-shell [class~="text-[#f1f3f5]"] {
-    color: var(--text-primary);
-  }
-
-  .product-app-shell [class~="text-[#8b8d94]"],
-  .product-app-shell [class~="text-[#9a9ca3]"],
-  .product-app-shell [class~="text-[#b4b4ba]"] {
-    color: var(--text-secondary);
-  }
 
   .app-page-hero {
     background-color: var(--workspace-left-bg);
@@ -875,8 +828,8 @@
 
   .app-page-column-band {
     background:
-      linear-gradient(180deg, var(--workspace-zone-highlight) 0, rgba(127, 147, 176, 0.06) 56px, transparent 56px),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 112px);
+      linear-gradient(180deg, var(--workspace-zone-highlight) 0, color-mix(in srgb, var(--color-info) 6%, transparent) 56px, transparent 56px),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 1.5%, transparent), transparent 112px);
   }
 
   .app-page-grid {
@@ -911,7 +864,7 @@
 
   .app-center-canvas {
     background:
-      linear-gradient(180deg, var(--workspace-zone-highlight) 0, rgba(127, 147, 176, 0.08) 72px, rgba(255, 255, 255, 0.03) 72px, transparent 136px),
+      linear-gradient(180deg, var(--workspace-zone-highlight) 0, color-mix(in srgb, var(--color-info) 8%, transparent) 72px, color-mix(in srgb, var(--color-ink) 3%, transparent) 72px, transparent 136px),
       var(--workspace-center-bg);
     border: 1px solid var(--border-strong);
     box-shadow: var(--shadow-float);
@@ -919,7 +872,7 @@
 
   .app-right-rail {
     background:
-      linear-gradient(180deg, var(--workspace-zone-highlight) 0, rgba(127, 147, 176, 0.07) 58px, rgba(255, 255, 255, 0.025) 58px, transparent 120px),
+      linear-gradient(180deg, var(--workspace-zone-highlight) 0, color-mix(in srgb, var(--color-info) 7%, transparent) 58px, color-mix(in srgb, var(--color-ink) 2.5%, transparent) 58px, transparent 120px),
       var(--workspace-right-bg);
     border: 1px solid var(--border-subtle);
     box-shadow: var(--shadow-panel);
@@ -941,7 +894,7 @@
   .club-page-shell {
     --bg-base: var(--club-theme-base);
     --bg-surface: var(--club-theme-surface);
-    --bg-elevated: var(--club-theme-elevated);
+    --bg-elevated: var(--color-elevated);
     --bg-inset: var(--club-theme-inset);
     --border-subtle: var(--club-theme-border-subtle);
     --border-strong: var(--club-theme-border-strong);
@@ -952,12 +905,12 @@
     --accent-primary-soft: var(--club-tone-green-soft);
     --accent-muted: var(--club-tone-pink);
     --accent-muted-soft: var(--club-tone-pink-soft);
-    --state-success: var(--club-tone-green);
-    --state-success-soft: var(--club-tone-green-soft);
-    --state-danger: var(--club-tone-pink);
-    --state-danger-soft: var(--club-tone-pink-soft);
-    --state-info: var(--club-tone-blue);
-    --state-info-soft: var(--club-tone-blue-soft);
+    --state-success: var(--color-accent);
+    --state-success-soft: var(--color-accent-soft);
+    --state-danger: var(--color-danger);
+    --state-danger-soft: var(--color-danger-soft);
+    --state-info: var(--color-info);
+    --state-info-soft: var(--color-info-soft);
     --theme-overlay: var(--club-theme-overlay);
     --theme-overlay-strong: var(--club-theme-overlay-strong);
     --shadow-panel: var(--club-shadow-panel);
@@ -973,12 +926,12 @@
     --workspace-zone-highlight: var(--club-zone-highlight);
   }
 
-  /* ---- Workspace page shell: always-dark management surface ---- */
+  /* ---- Workspace page shell: theme-aware management surface ---- */
   .workspace-page-shell {
     /* Remap generic tokens to FC */
     --bg-base: var(--fc-page-bg);
     --bg-surface: var(--fc-card-bg);
-    --bg-elevated: var(--fc-card-bg);
+    --bg-elevated: var(--color-elevated);
     --bg-inset: var(--fc-page-bg);
     --border-subtle: var(--fc-border);
     --border-strong: var(--fc-border);
@@ -987,14 +940,14 @@
     --text-muted: var(--fc-text-muted);
     --accent-primary: var(--fc-accent);
     --accent-primary-soft: var(--fc-accent-soft);
-    --state-success: var(--fc-state-success);
-    --state-success-soft: var(--fc-state-success-soft);
-    --state-danger: var(--fc-state-danger);
-    --state-danger-soft: var(--fc-state-danger-soft);
-    --state-warning: var(--fc-state-warning);
-    --state-warning-soft: var(--fc-state-warning-soft);
-    --state-info: var(--fc-state-info);
-    --state-info-soft: var(--fc-state-info-soft);
+    --state-success: var(--color-accent);
+    --state-success-soft: var(--color-accent-soft);
+    --state-danger: var(--color-danger);
+    --state-danger-soft: var(--color-danger-soft);
+    --state-warning: var(--color-warning);
+    --state-warning-soft: var(--color-warning-soft);
+    --state-info: var(--color-info);
+    --state-info-soft: var(--color-info-soft);
     --shadow-panel: none;
     --shadow-float: none;
 
@@ -1010,86 +963,86 @@
     --workspace-accent: var(--fc-accent);
     --workspace-accent-soft: var(--fc-accent-soft);
     --workspace-accent-border: var(--fc-accent-border);
-    --workspace-state-success: var(--fc-state-success);
-    --workspace-state-success-soft: var(--fc-state-success-soft);
-    --workspace-state-danger: var(--fc-state-danger);
-    --workspace-state-danger-soft: var(--fc-state-danger-soft);
-    --workspace-state-warning: var(--fc-state-warning);
-    --workspace-state-warning-soft: var(--fc-state-warning-soft);
-    --workspace-state-info: var(--fc-state-info);
-    --workspace-state-info-soft: var(--fc-state-info-soft);
+    --workspace-state-success: var(--color-accent);
+    --workspace-state-success-soft: var(--color-accent-soft);
+    --workspace-state-danger: var(--color-danger);
+    --workspace-state-danger-soft: var(--color-danger-soft);
+    --workspace-state-warning: var(--color-warning);
+    --workspace-state-warning-soft: var(--color-warning-soft);
+    --workspace-state-info: var(--color-info);
+    --workspace-state-info-soft: var(--color-info-soft);
 
     font-family: "Inter", "IBM Plex Sans", "Segoe UI", sans-serif;
   }
 
   /* ── Workspace light mode overrides ── */
   .workspace-light {
-    --fc-page-bg: #f4f6f4;
-    --fc-card-bg: #ffffff;
-    --fc-sidebar-bg: #ffffff;
-    --fc-surface-hover: #f9fafb;
-    --fc-border: #e5e7eb;
-    --fc-text-primary: #111827;
-    --fc-text-secondary: #6b7280;
-    --fc-text-muted: #9ca3af;
-    --fc-accent: #16a34a;
-    --fc-accent-soft: rgba(22, 163, 74, 0.08);
-    --fc-accent-border: rgba(22, 163, 74, 0.20);
-    --fc-state-success: #16a34a;
-    --fc-state-success-soft: rgba(22, 163, 74, 0.08);
-    --fc-state-warning: #d97706;
-    --fc-state-warning-soft: rgba(217, 119, 6, 0.08);
-    --fc-state-danger: #dc2626;
-    --fc-state-danger-soft: rgba(220, 38, 38, 0.08);
-    --fc-state-info: #2563eb;
-    --fc-state-info-soft: rgba(37, 99, 235, 0.08);
+    --fc-page-bg: var(--color-page);
+    --fc-card-bg: var(--color-elevated);
+    --fc-sidebar-bg: var(--color-surface);
+    --fc-surface-hover: var(--color-inset);
+    --fc-border: var(--color-border);
+    --fc-text-primary: var(--color-text);
+    --fc-text-secondary: var(--color-secondary);
+    --fc-text-muted: var(--color-muted);
+    --fc-accent: var(--color-accent);
+    --fc-accent-soft: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    --fc-accent-border: color-mix(in srgb, var(--color-accent) 20%, transparent);
+    --fc-state-success: var(--color-accent);
+    --fc-state-success-soft: var(--color-accent-soft);
+    --fc-state-warning: var(--color-warning);
+    --fc-state-warning-soft: var(--color-warning-soft);
+    --fc-state-danger: var(--color-danger);
+    --fc-state-danger-soft: var(--color-danger-soft);
+    --fc-state-info: var(--color-info);
+    --fc-state-info-soft: var(--color-info-soft);
   }
 
   /* ---- Feed home shell: light mode (creamy white) ---- */
   .feed-home-shell {
     /* Accent (green — same in both modes) */
-    --feed-accent: #00c853;
-    --feed-accent-soft: rgba(0, 200, 83, 0.12);
-    --feed-accent-soft-bg: rgba(0, 200, 83, 0.08);
-    --feed-accent-border: rgba(0, 200, 83, 0.28);
-    --feed-accent-hover: #00e676;
-    --feed-accent-contrast: #000000;
+    --feed-accent: var(--color-accent);
+    --feed-accent-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    --feed-accent-soft-bg: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    --feed-accent-border: color-mix(in srgb, var(--color-accent) 28%, transparent);
+    --feed-accent-hover: var(--color-accent);
+    --feed-accent-contrast: var(--color-on-accent);
 
     /* Backgrounds */
-    --feed-bg: #faf9f6;
-    --feed-surface: #f5f2eb;
-    --feed-card: #ffffff;
-    --feed-card-soft: #faf9f6;
-    --feed-card-muted: #f5f2eb;
-    --feed-layer-bg: #f0ede7;
-    --feed-input-bg: #f5f2eb;
-    --feed-nav-surface: #ffffff;
-    --feed-visual-bg: #f0ede7;
+    --feed-bg: var(--color-surface);
+    --feed-surface: var(--color-surface);
+    --feed-card: var(--color-elevated);
+    --feed-card-soft: color-mix(in srgb, var(--color-elevated) 12%, transparent);
+    --feed-card-muted: var(--color-inset);
+    --feed-layer-bg: var(--color-surface);
+    --feed-input-bg: var(--color-surface);
+    --feed-nav-surface: var(--color-surface);
+    --feed-visual-bg: var(--color-surface);
 
     /* Borders & dividers */
-    --feed-card-border: rgba(0, 0, 0, 0.07);
-    --feed-layer-border: rgba(0, 0, 0, 0.06);
-    --feed-divider: rgba(0, 0, 0, 0.06);
-    --feed-side-divider: rgba(0, 0, 0, 0.06);
-    --feed-hover-bg: rgba(0, 0, 0, 0.04);
+    --feed-card-border: color-mix(in srgb, var(--color-border) 7%, transparent);
+    --feed-layer-border: color-mix(in srgb, var(--color-border) 6%, transparent);
+    --feed-divider: color-mix(in srgb, var(--color-border) 6%, transparent);
+    --feed-side-divider: color-mix(in srgb, var(--color-border) 6%, transparent);
+    --feed-hover-bg: color-mix(in srgb, var(--color-inset) 4%, transparent);
 
     /* Text */
-    --feed-text-primary: #1e1b18;
-    --feed-text-secondary: #6b625a;
-    --feed-text-muted: #9c9387;
-    --feed-text-placeholder: #9c9387;
+    --feed-text-primary: var(--color-text);
+    --feed-text-secondary: var(--color-secondary);
+    --feed-text-muted: var(--color-muted);
+    --feed-text-placeholder: var(--color-muted);
 
     /* Shadows */
-    --feed-shadow-panel: 0 1px 3px rgba(0, 0, 0, 0.06);
-    --feed-shadow-float: 0 4px 16px rgba(0, 0, 0, 0.08);
+    --feed-shadow-panel: 0 1px 3px color-mix(in srgb, var(--color-shadow) 6%, transparent);
+    --feed-shadow-float: 0 4px 16px color-mix(in srgb, var(--color-shadow) 8%, transparent);
 
     /* Status */
-    --feed-online: #00c853;
-    --feed-offline: #9c9387;
-    --feed-icon-muted: #9c9387;
+    --feed-online: var(--color-border);
+    --feed-offline: var(--color-border);
+    --feed-icon-muted: var(--color-muted);
 
     /* Sidebar header */
-    --feed-sidebar-header-bg: #00c853;
+    --feed-sidebar-header-bg: var(--color-surface);
 
     color-scheme: light;
     background-color: var(--feed-bg);
@@ -1098,48 +1051,52 @@
 
   /* ---- Feed home shell: dark mode (zinc/slate tiered grey) ---- */
   .dark .feed-home-shell {
-    /* Accent — muted, highlight only */
-    --feed-accent-soft: rgba(0, 200, 83, 0.08);
-    --feed-accent-soft-bg: rgba(0, 200, 83, 0.06);
-    --feed-accent-contrast: #000000;
+    /* Stadium green — bright accents against neutral charcoal. */
+    --feed-accent: var(--color-accent);
+    --feed-accent-hover: var(--color-accent);
+    --feed-accent-border: color-mix(in srgb, var(--color-accent) 42%, transparent);
+    --feed-accent-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
+    --feed-accent-soft-bg: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    --feed-accent-contrast: var(--color-on-accent);
 
     /* Backgrounds — tiered zinc/slate scale */
-    --feed-bg: #09090b;
-    --feed-surface: #18181b;
-    --feed-card: #27272a;
-    --feed-card-soft: #1e293b;
-    --feed-card-muted: #18181b;
-    --feed-layer-bg: #1e293b;
-    --feed-input-bg: #18181b;
-    --feed-nav-surface: #09090b;
-    --feed-visual-bg: #1e293b;
+    --feed-bg: var(--color-surface);
+    --feed-surface: var(--color-surface);
+    --feed-card: var(--color-elevated);
+    --feed-card-soft: color-mix(in srgb, var(--color-elevated) 12%, transparent);
+    --feed-card-muted: var(--color-inset);
+    --feed-layer-bg: var(--color-surface);
+    --feed-input-bg: var(--color-surface);
+    --feed-nav-surface: var(--color-surface);
+    --feed-visual-bg: var(--color-surface);
 
     /* Borders & dividers */
-    --feed-card-border: rgba(255, 255, 255, 0.08);
-    --feed-layer-border: rgba(255, 255, 255, 0.06);
-    --feed-divider: rgba(255, 255, 255, 0.06);
-    --feed-side-divider: rgba(255, 255, 255, 0.06);
-    --feed-hover-bg: rgba(255, 255, 255, 0.05);
+    --feed-card-border: var(--color-border);
+    --feed-layer-border: color-mix(in srgb, var(--color-border) 6%, transparent);
+    --feed-divider: color-mix(in srgb, var(--color-border) 6%, transparent);
+    --feed-side-divider: color-mix(in srgb, var(--color-border) 6%, transparent);
+    --feed-hover-bg: color-mix(in srgb, var(--color-inset) 5%, transparent);
 
     /* Text — zinc scale */
-    --feed-text-primary: #f4f4f5;
-    --feed-text-secondary: #a1a1aa;
-    --feed-text-muted: #71717a;
-    --feed-text-placeholder: #52525b;
+    --feed-text-primary: var(--color-text);
+    --feed-text-secondary: var(--color-secondary);
+    --feed-text-muted: var(--color-muted);
+    --feed-text-placeholder: var(--color-muted);
 
     /* Shadows */
-    --feed-shadow-panel: 0 2px 8px rgba(0, 0, 0, 0.4);
-    --feed-shadow-float: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --feed-shadow-panel: 0 2px 8px color-mix(in srgb, var(--color-shadow) 40%, transparent);
+    --feed-shadow-float: 0 8px 24px color-mix(in srgb, var(--color-shadow) 50%, transparent);
 
     /* Status */
-    --feed-offline: #52525b;
-    --feed-icon-muted: #3f3f46;
+    --feed-offline: var(--color-border);
+    --feed-icon-muted: var(--color-muted);
 
     /* Sidebar header — desaturated, not a green block */
-    --feed-sidebar-header-bg: #1e293b;
+    --feed-sidebar-header-bg: var(--color-surface);
 
     color-scheme: dark;
     background-color: var(--feed-bg);
+    background-image: none;
     color: var(--feed-text-primary);
   }
 
@@ -1304,8 +1261,8 @@
 
   .club-page-columns-band {
     background:
-      linear-gradient(180deg, var(--club-zone-highlight) 0, rgba(127, 147, 176, 0.06) 54px, transparent 54px),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 96px);
+      linear-gradient(180deg, var(--club-zone-highlight) 0, color-mix(in srgb, var(--color-info) 6%, transparent) 54px, transparent 54px),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 1.5%, transparent), transparent 96px);
   }
 
   .club-page-panel {
@@ -1334,7 +1291,7 @@
 
   .club-page-center-zone {
     background:
-      linear-gradient(180deg, rgba(79, 120, 214, 0.14) 0, rgba(79, 120, 214, 0.06) 54px, transparent 118px),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 14%, transparent) 0, color-mix(in srgb, var(--color-info) 6%, transparent) 54px, transparent 118px),
       var(--club-center-bg);
     border: 1px solid var(--border-strong);
     box-shadow: var(--shadow-float);
@@ -1342,7 +1299,7 @@
 
   .club-page-right-zone {
     background:
-      linear-gradient(180deg, var(--club-zone-highlight) 0, rgba(127, 147, 176, 0.07) 58px, rgba(255, 255, 255, 0.025) 58px, transparent 120px),
+      linear-gradient(180deg, var(--club-zone-highlight) 0, color-mix(in srgb, var(--color-info) 7%, transparent) 58px, color-mix(in srgb, var(--color-ink) 2.5%, transparent) 58px, transparent 120px),
       var(--club-right-bg);
     border: 1px solid var(--border-subtle);
     box-shadow: var(--shadow-panel);
@@ -1377,7 +1334,7 @@
   .club-action-button--primary {
     border-color: var(--club-tone-green-border);
     background-color: var(--club-tone-green);
-    color: #ffffff;
+    color: var(--color-on-accent);
   }
 
   .club-action-button--danger {
@@ -1385,7 +1342,7 @@
     background:
       linear-gradient(180deg, var(--club-zone-highlight), transparent 130%),
       var(--club-tone-pink);
-    color: #ffffff;
+    color: var(--color-text);
   }
 
   .club-action-button--soft-danger {
@@ -1516,7 +1473,7 @@
     z-index: 30;
     border-bottom: 1px solid var(--border-subtle);
     background:
-      linear-gradient(180deg, rgba(127, 147, 176, 0.1), rgba(127, 147, 176, 0.04) 100%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 10%, transparent), color-mix(in srgb, var(--color-info) 4%, transparent) 100%),
       color-mix(in srgb, var(--club-left-bg) 82%, var(--club-card));
     box-shadow: var(--shadow-panel);
     backdrop-filter: blur(12px);
@@ -1529,7 +1486,7 @@
   .club-info-panel {
     border: 1px solid color-mix(in srgb, var(--club-tone-blue) 18%, var(--border-subtle));
     background:
-      linear-gradient(180deg, rgba(79, 120, 214, 0.1), rgba(79, 120, 214, 0.03) 130%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 10%, transparent), color-mix(in srgb, var(--color-info) 3%, transparent) 130%),
       color-mix(in srgb, var(--club-card) 92%, var(--club-center-bg));
     box-shadow: var(--shadow-panel);
   }
@@ -1556,15 +1513,15 @@
   .club-feed-post-shell {
     border: 1px solid color-mix(in srgb, var(--club-tone-blue) 22%, var(--border-subtle));
     background:
-      linear-gradient(180deg, rgba(79, 120, 214, 0.18), rgba(79, 120, 214, 0.08) 110%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 18%, transparent), color-mix(in srgb, var(--color-info) 8%, transparent) 110%),
       color-mix(in srgb, var(--club-center-bg) 84%, var(--club-card));
-    box-shadow: 0 10px 24px rgba(32, 48, 70, 0.12);
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--color-shadow) 12%, transparent);
   }
 
   .club-info-link-pill {
     border: 1px solid color-mix(in srgb, var(--club-item-accent-border) 86%, var(--border-subtle));
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 140%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 5%, transparent), transparent 140%),
       color-mix(in srgb, var(--club-card) 92%, var(--club-item-accent-soft));
     transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
   }
@@ -1576,9 +1533,9 @@
   }
 
   .club-tone-amber {
-    --club-item-accent: #fbbf24;
-    --club-item-accent-soft: rgba(251, 191, 36, 0.12);
-    --club-item-accent-border: rgba(251, 191, 36, 0.3);
+    --club-item-accent: var(--color-orange);
+    --club-item-accent-soft: color-mix(in srgb, var(--color-orange) 12%, transparent);
+    --club-item-accent-border: color-mix(in srgb, var(--color-orange) 30%, transparent);
   }
 
   .club-tone-green {
@@ -1626,7 +1583,7 @@
   .tutorial-highlight {
     position: relative;
     z-index: 10001 !important;
-    box-shadow: 0 0 0 4px var(--fc-accent, #16a34a), 0 0 20px rgba(22, 163, 74, 0.35) !important;
+    box-shadow: 0 0 0 4px var(--fc-accent, var(--color-shadow)), 0 0 20px color-mix(in srgb, var(--color-shadow) 35%, transparent) !important;
     border-radius: var(--fc-radius, 6px) !important;
     transition: box-shadow 300ms ease;
   }
@@ -1634,7 +1591,7 @@
   .schedule-page-shell {
     --bg-base: var(--schedule-theme-base);
     --bg-surface: var(--schedule-theme-surface);
-    --bg-elevated: var(--schedule-theme-elevated);
+    --bg-elevated: var(--color-elevated);
     --bg-inset: var(--schedule-theme-inset);
     --border-subtle: var(--schedule-theme-border-subtle);
     --border-strong: var(--schedule-theme-border-strong);
@@ -1645,8 +1602,8 @@
     --accent-primary-soft: var(--schedule-accent-green-soft);
     --accent-muted: var(--schedule-accent-pink);
     --accent-muted-soft: var(--schedule-accent-pink-soft);
-    --state-info: var(--schedule-accent-blue);
-    --state-info-soft: var(--schedule-accent-blue-soft);
+    --state-info: var(--color-info);
+    --state-info-soft: var(--color-info-soft);
     --workspace-shell-glow: var(--schedule-shell-glow);
     --workspace-shell-top: var(--schedule-shell-top);
     --workspace-shell-bottom: var(--schedule-shell-bottom);
@@ -1670,7 +1627,7 @@
   .schedule-workspace-topbar {
     border-bottom: 1px solid var(--border-subtle);
     background:
-      linear-gradient(180deg, rgba(127, 147, 176, 0.06), transparent 88px),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 6%, transparent), transparent 88px),
       var(--schedule-theme-surface);
     box-shadow: var(--shadow-panel);
   }
@@ -1702,7 +1659,7 @@
 
   .schedule-ribbon-tab:hover {
     color: var(--text-primary);
-    background-color: rgba(127, 147, 176, 0.06);
+    background-color: color-mix(in srgb, var(--color-info) 6%, transparent);
   }
 
   .schedule-ribbon-tab[data-active='true'] {
@@ -1710,7 +1667,7 @@
     border-color: var(--border-subtle);
     border-bottom-color: var(--accent-primary);
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 130%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 2%, transparent), transparent 130%),
       var(--schedule-card-muted);
   }
 
@@ -1756,8 +1713,8 @@
 
   .schedule-page-columns-band {
     background:
-      linear-gradient(180deg, var(--schedule-zone-highlight) 0, rgba(127, 147, 176, 0.025) 32px, transparent 32px),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 92px);
+      linear-gradient(180deg, var(--schedule-zone-highlight) 0, color-mix(in srgb, var(--color-info) 2.5%, transparent) 32px, transparent 32px),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 1%, transparent), transparent 92px);
   }
 
   .schedule-page-left-zone {
@@ -1770,7 +1727,7 @@
 
   .schedule-page-center-zone {
     background:
-      linear-gradient(180deg, rgba(127, 147, 176, 0.045) 0, rgba(127, 147, 176, 0.018) 40px, transparent 76px),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 4.5%, transparent) 0, color-mix(in srgb, var(--color-info) 1.8%, transparent) 40px, transparent 76px),
       var(--schedule-center-bg);
     border: 1px solid var(--border-strong);
     box-shadow: var(--shadow-float);
@@ -1778,7 +1735,7 @@
 
   .schedule-page-right-zone {
     background:
-      linear-gradient(180deg, rgba(127, 147, 176, 0.05) 0, rgba(127, 147, 176, 0.015) 40px, transparent 84px),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 5%, transparent) 0, color-mix(in srgb, var(--color-info) 1.5%, transparent) 40px, transparent 84px),
       var(--schedule-right-bg);
     border: 1px solid var(--border-subtle);
     box-shadow: var(--shadow-panel);
@@ -1788,7 +1745,7 @@
     position: relative;
     cursor: col-resize;
     background:
-      linear-gradient(180deg, rgba(127, 147, 176, 0.03), transparent 60%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 3%, transparent), transparent 60%),
       transparent;
   }
 
@@ -1801,7 +1758,7 @@
     width: 2px;
     transform: translateX(-50%);
     border-radius: 2px;
-    background-color: rgba(127, 149, 187, 0.12);
+    background-color: color-mix(in srgb, var(--color-info) 12%, transparent);
     transition: background-color 160ms ease, box-shadow 160ms ease;
   }
 
@@ -1809,7 +1766,7 @@
   .schedule-rail-resizer:focus-visible::after,
   .schedule-rail-resizer--active::after {
     background-color: var(--schedule-accent-blue);
-    box-shadow: 0 0 0 2px rgba(95, 142, 255, 0.14);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-shadow) 14%, transparent);
   }
 
   .schedule-rail-resizer:focus-visible {
@@ -1845,7 +1802,7 @@
 
   .schedule-page-shell .app-chip {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 130%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 2%, transparent), transparent 130%),
       var(--schedule-chip);
     border-color: var(--schedule-chip-border);
     transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
@@ -1854,7 +1811,7 @@
   .schedule-page-shell .app-chip:hover {
     border-color: var(--schedule-accent-blue-border);
     background:
-      linear-gradient(180deg, rgba(95, 142, 255, 0.06), transparent 130%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 6%, transparent), transparent 130%),
       var(--schedule-chip);
     box-shadow: inset 0 0 0 1px var(--schedule-accent-blue-border);
   }
@@ -1893,7 +1850,7 @@
 
   .schedule-slot-button:hover {
     background:
-      linear-gradient(180deg, rgba(95, 142, 255, 0.08), transparent 130%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-info) 8%, transparent), transparent 130%),
       var(--schedule-card-muted);
   }
 
@@ -1932,7 +1889,7 @@
     text-transform: uppercase;
     white-space: nowrap;
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 130%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 2%, transparent), transparent 130%),
       var(--schedule-card-muted);
     transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
   }
@@ -1940,7 +1897,7 @@
   .schedule-toolbar-action {
     border: 1px solid transparent;
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 130%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 2%, transparent), transparent 130%),
       var(--schedule-card-muted);
     transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
   }
@@ -1956,7 +1913,7 @@
   .schedule-toolbar-action:hover {
     border-color: var(--schedule-item-accent-border, var(--border-strong));
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 130%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 4%, transparent), transparent 130%),
       var(--schedule-item-accent-soft, var(--schedule-card-muted));
     color: var(--schedule-item-accent, var(--text-primary));
     box-shadow: inset 0 0 0 1px var(--schedule-item-accent-border, transparent);
@@ -1973,7 +1930,7 @@
   .schedule-action-button:hover {
     border-color: var(--schedule-item-accent-border, var(--schedule-accent-blue-border));
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 130%),
+      linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 4%, transparent), transparent 130%),
       var(--schedule-item-accent-soft, var(--schedule-card-muted));
   }
 
@@ -2044,43 +2001,43 @@
   .map-page-shell {
     /* BASE = LIGHT family (App.tsx toggles `dark` on <html>; the dark family
        is restored by the .dark .map-* override block at the end of this region). */
-    --bg-base: #eef2f7;
-    --bg-surface: rgba(255, 255, 255, 0.95);
-    --bg-elevated: #ffffff;
-    --bg-inset: #e2e8f0;
-    --border-subtle: rgba(15, 23, 42, 0.1);
-    --border-strong: rgba(15, 23, 42, 0.18);
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --text-muted: #94a3b8;
-    --accent-highlight: #3f7666;
-    --accent-highlight-soft: rgba(63, 118, 102, 0.14);
+    --bg-base: var(--color-page);
+    --bg-surface: color-mix(in srgb, var(--color-surface) 95%, transparent);
+    --bg-elevated: var(--color-elevated);
+    --bg-inset: var(--color-inset);
+    --border-subtle: color-mix(in srgb, var(--color-border) 10%, transparent);
+    --border-strong: color-mix(in srgb, var(--color-border) 18%, transparent);
+    --text-primary: var(--color-text);
+    --text-secondary: var(--color-secondary);
+    --text-muted: var(--color-muted);
+    --accent-highlight: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    --accent-highlight-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
     --accent-primary: var(--accent-highlight);
     --accent-primary-soft: var(--accent-highlight-soft);
-    --accent-muted: #3f7666;
-    --accent-muted-soft: rgba(63, 118, 102, 0.12);
-    --state-success: var(--accent-highlight);
-    --state-success-soft: var(--accent-highlight-soft);
-    --state-danger: #dc2626;
-    --state-danger-soft: rgba(220, 38, 38, 0.12);
-    --state-info: #4a796b;
-    --state-info-soft: rgba(74, 121, 107, 0.12);
-    --theme-overlay: rgba(15, 23, 42, 0.4);
-    --theme-overlay-strong: rgba(15, 23, 42, 0.55);
-    --shadow-panel: 0 8px 32px rgba(15, 23, 42, 0.12);
-    --shadow-float: 0 16px 48px rgba(15, 23, 42, 0.16);
-    --map-workspace-bg: #eef2f7;
-    --map-main-surface: rgba(255, 255, 255, 0.62);
-    --map-rail-bg: rgba(255, 255, 255, 0.95);
-    --map-toolbar-bg: rgba(255, 255, 255, 0.85);
-    --map-panel-bg: rgba(255, 255, 255, 0.95);
-    --map-canvas-bg: #eef2f7;
-    --map-card-bg: rgba(255, 255, 255, 0.95);
-    --map-card-muted: rgba(241, 245, 249, 0.9);
-    --map-panel-border: rgba(15, 23, 42, 0.1);
-    --map-pill-bg: rgba(241, 245, 249, 0.9);
-    --map-shadow-soft: 0 8px 32px rgba(15, 23, 42, 0.12);
-    --map-shadow-strong: 0 16px 48px rgba(15, 23, 42, 0.16);
+    --accent-muted: var(--color-muted);
+    --accent-muted-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    --state-success: var(--color-accent);
+    --state-success-soft: var(--color-accent-soft);
+    --state-danger: var(--color-danger);
+    --state-danger-soft: var(--color-danger-soft);
+    --state-info: var(--color-info);
+    --state-info-soft: var(--color-info-soft);
+    --theme-overlay: color-mix(in srgb, var(--color-overlay) 40%, transparent);
+    --theme-overlay-strong: color-mix(in srgb, var(--color-overlay) 55%, transparent);
+    --shadow-panel: 0 8px 32px color-mix(in srgb, var(--color-shadow) 12%, transparent);
+    --shadow-float: 0 16px 48px color-mix(in srgb, var(--color-shadow) 16%, transparent);
+    --map-workspace-bg: var(--color-page);
+    --map-main-surface: color-mix(in srgb, var(--color-surface) 62%, transparent);
+    --map-rail-bg: color-mix(in srgb, var(--color-surface) 95%, transparent);
+    --map-toolbar-bg: color-mix(in srgb, var(--color-surface) 85%, transparent);
+    --map-panel-bg: color-mix(in srgb, var(--color-surface) 95%, transparent);
+    --map-canvas-bg: var(--color-page);
+    --map-card-bg: color-mix(in srgb, var(--color-elevated) 95%, transparent);
+    --map-card-muted: color-mix(in srgb, var(--color-inset) 90%, transparent);
+    --map-panel-border: color-mix(in srgb, var(--color-border) 10%, transparent);
+    --map-pill-bg: color-mix(in srgb, var(--color-inset) 90%, transparent);
+    --map-shadow-soft: 0 8px 32px color-mix(in srgb, var(--color-shadow) 12%, transparent);
+    --map-shadow-strong: 0 16px 48px color-mix(in srgb, var(--color-shadow) 16%, transparent);
     --map-glass-blur: blur(12px);
   }
 
@@ -2118,7 +2075,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid var(--map-panel-border);
-    background-color: rgba(15, 23, 42, 0.05);
+    background-color: color-mix(in srgb, var(--color-ink) 5%, transparent);
     color: var(--text-primary);
   }
 
@@ -2137,8 +2094,8 @@
   }
 
   .map-icon-button:hover {
-    background-color: rgba(15, 23, 42, 0.08);
-    border-color: rgba(15, 23, 42, 0.16);
+    background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+    border-color: color-mix(in srgb, var(--color-border) 16%, transparent);
     transform: translateY(-1px);
   }
 
@@ -2158,7 +2115,7 @@
     justify-content: center;
     border: 1px solid var(--map-panel-border);
     border-radius: 999px;
-    background-color: rgba(15, 23, 42, 0.05);
+    background-color: color-mix(in srgb, var(--color-ink) 5%, transparent);
     color: var(--text-secondary);
     transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
   }
@@ -2356,7 +2313,7 @@
 
   .map-chip:hover {
     transform: translateY(-1px);
-    border-color: rgba(15, 23, 42, 0.16);
+    border-color: color-mix(in srgb, var(--color-border) 16%, transparent);
   }
 
   .map-chip--active,
@@ -2380,7 +2337,7 @@
   }
 
   .map-option-row:hover {
-    border-color: rgba(15, 23, 42, 0.16);
+    border-color: color-mix(in srgb, var(--color-border) 16%, transparent);
   }
 
   .map-secondary-button,
@@ -2400,25 +2357,25 @@
 
   .map-secondary-button {
     border: 1px solid var(--map-panel-border);
-    background-color: rgba(15, 23, 42, 0.05);
+    background-color: color-mix(in srgb, var(--color-ink) 5%, transparent);
     color: var(--text-primary);
   }
 
   .map-primary-button {
     border: 1px solid var(--accent-primary);
     background-color: var(--accent-primary);
-    color: #ffffff;
+    color: var(--color-on-accent);
   }
 
   .map-secondary-button:hover {
-    border-color: rgba(15, 23, 42, 0.16);
-    background-color: rgba(15, 23, 42, 0.08);
+    border-color: color-mix(in srgb, var(--color-border) 16%, transparent);
+    background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
     transform: translateY(-1px);
   }
 
   .map-primary-button:hover {
-    background-color: #065f46;
-    border-color: #065f46;
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
     transform: translateY(-1px);
   }
 
@@ -2437,7 +2394,7 @@
 
   .map-search-surface:focus-within {
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.18);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-shadow) 18%, transparent);
   }
 
   .map-search-surface--toolbar {
@@ -2488,7 +2445,7 @@
   }
 
   .map-suggestion-row:hover {
-    background-color: rgba(15, 23, 42, 0.05);
+    background-color: color-mix(in srgb, var(--color-ink) 5%, transparent);
   }
 
   .map-mode-toggle {
@@ -2512,14 +2469,14 @@
   }
 
   .map-mode-button:hover:not(.map-mode-button--active) {
-    background-color: rgba(15, 23, 42, 0.06);
+    background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
     color: var(--text-primary);
   }
 
   .map-mode-button--active {
     background-color: var(--accent-primary);
     border-color: var(--accent-primary);
-    color: #ffffff;
+    color: var(--color-on-accent);
   }
 
   .map-count-chip {
@@ -2554,14 +2511,14 @@
   }
 
   .map-page-shell select option {
-    background: #ffffff;
-    color: #1e293b;
+    background: var(--color-elevated);
+    color: var(--color-text);
   }
 
   .dark .map-page-shell:not(.map-force-light) select option,
   .map-page-shell.map-force-dark select option {
-    background: #171b22;
-    color: #f1f5f9;
+    background: var(--color-surface);
+    color: var(--color-text);
   }
 
   /* Simple discovery filter: deliberately line-led and quiet. It is the
@@ -2652,7 +2609,7 @@
     cursor: pointer;
     appearance: none;
     background: var(--map-panel-border);
-    accent-color: #70817a;
+    accent-color: var(--color-accent);
   }
 
   .map-simple-range::-webkit-slider-thumb {
@@ -2661,8 +2618,8 @@
     appearance: none;
     border: 2px solid var(--map-panel-bg);
     border-radius: 999px;
-    background: #70817a;
-    box-shadow: 0 0 0 1px #70817a;
+    background: var(--color-inset);
+    box-shadow: 0 0 0 1px var(--color-shadow);
   }
 
   .map-simple-check {
@@ -2681,7 +2638,7 @@
   .map-simple-check input {
     height: 16px;
     width: 16px;
-    accent-color: #70817a;
+    accent-color: var(--color-accent);
   }
 
   .map-simple-primary,
@@ -2698,12 +2655,12 @@
   }
 
   .map-simple-primary {
-    background: #4f5f59;
-    color: #fff;
+    background: var(--color-inset);
+    color: var(--color-on-accent);
   }
 
   .map-simple-primary:hover {
-    background: #41504b;
+    background: var(--color-inset);
   }
 
   .map-simple-reset {
@@ -2865,7 +2822,7 @@
   }
 
   .talanti-map-marker__blip {
-    box-shadow: 0 0 16px var(--blip-glow, transparent), 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 16px var(--blip-glow, transparent), 0 4px 12px color-mix(in srgb, var(--color-shadow) 50%, transparent);
     transition: box-shadow 180ms ease, transform 180ms ease;
   }
 
@@ -2873,21 +2830,21 @@
   .talanti-map-marker--default .talanti-map-marker__blip {
     width: 16px;
     height: 16px;
-    border: 3px solid rgba(255, 255, 255, 0.95);
+    border: 3px solid color-mix(in srgb, var(--color-border) 95%, transparent);
   }
 
   /* === BEAM MARKERS — all entity types use the club-style beam === */
 
   .talanti-map-marker--club {
-    --blip-glow: rgba(0, 0, 0, 0.85);
+    --blip-glow: color-mix(in srgb, var(--color-text) 85%, transparent);
   }
 
   .talanti-map-marker--club .talanti-map-marker__blip {
     width: 3px;
     height: var(--beam-height, 120px);
     border: none;
-    background: linear-gradient(to bottom, transparent 0%, rgba(30,30,30,0.5) 25%, rgba(60,60,60,0.7) 55%, rgba(120,30,30,0.85) 78%, #8b0000 92%, #4a0000 100%);
-    box-shadow: 0 0 14px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.5);
+    background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--color-surface) 50%, transparent) 25%, color-mix(in srgb, var(--color-inset) 70%, transparent) 55%, color-mix(in srgb, var(--color-danger) 85%, transparent) 78%, var(--color-danger) 92%, var(--color-danger) 100%);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--color-shadow) 90%, transparent), 0 0 40px color-mix(in srgb, var(--color-shadow) 50%, transparent);
   }
 
   .talanti-map-marker--club .talanti-map-marker__blip::after {
@@ -2898,33 +2855,33 @@
     transform: translateX(-50%) scale(var(--base-scale, 1));
     width: 28px;
     height: 14px;
-    background: radial-gradient(ellipse at center, rgba(139,0,0,0.85) 0%, rgba(0,0,0,0.5) 55%, transparent 72%);
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-danger) 85%, transparent) 0%, color-mix(in srgb, var(--color-page) 50%, transparent) 55%, transparent 72%);
     border-radius: 50%;
-    border: 1.5px solid rgba(255,255,255,0.45);
+    border: 1.5px solid color-mix(in srgb, var(--color-border) 45%, transparent);
   }
 
   .talanti-map-marker--club.is-selected .talanti-map-marker__blip {
-    box-shadow: 0 0 22px rgba(0,0,0,0.95), 0 0 56px rgba(0,0,0,0.6);
+    box-shadow: 0 0 22px color-mix(in srgb, var(--color-shadow) 95%, transparent), 0 0 56px color-mix(in srgb, var(--color-shadow) 60%, transparent);
   }
 
   .talanti-map-marker--club.is-selected .talanti-map-marker__blip::after {
     width: 40px;
     height: 20px;
-    background: radial-gradient(ellipse at center, rgba(139,0,0,0.9) 0%, rgba(0,0,0,0.6) 55%, transparent 72%);
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-danger) 90%, transparent) 0%, color-mix(in srgb, var(--color-page) 60%, transparent) 55%, transparent 72%);
     border-width: 2px;
   }
 
   /* Match — neon cyberpunk pink */
   .talanti-map-marker--match {
-    --blip-glow: rgba(255, 0, 110, 0.85);
+    --blip-glow: color-mix(in srgb, var(--color-pink) 85%, transparent);
   }
 
   .talanti-map-marker--match .talanti-map-marker__blip {
     width: 3px;
     height: var(--beam-height, 120px);
     border: none;
-    background: linear-gradient(to bottom, transparent 0%, rgba(255,0,110,0.3) 25%, rgba(255,0,110,0.55) 55%, rgba(255,45,149,0.85) 78%, #ff006e 92%, #4a0028 100%);
-    box-shadow: 0 0 14px rgba(255,0,110,0.7), 0 0 40px rgba(255,0,110,0.35);
+    background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--color-pink) 30%, transparent) 25%, color-mix(in srgb, var(--color-pink) 55%, transparent) 55%, color-mix(in srgb, var(--color-pink) 85%, transparent) 78%, var(--color-pink) 92%, var(--color-pink) 100%);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--color-shadow) 70%, transparent), 0 0 40px color-mix(in srgb, var(--color-shadow) 35%, transparent);
   }
 
   .talanti-map-marker--match .talanti-map-marker__blip::after {
@@ -2935,33 +2892,33 @@
     transform: translateX(-50%) scale(var(--base-scale, 1));
     width: 28px;
     height: 14px;
-    background: radial-gradient(ellipse at center, rgba(255,0,110,0.85) 0%, rgba(255,0,110,0.35) 55%, transparent 72%);
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-pink) 85%, transparent) 0%, color-mix(in srgb, var(--color-pink) 35%, transparent) 55%, transparent 72%);
     border-radius: 50%;
-    border: 1.5px solid rgba(255,180,220,0.6);
+    border: 1.5px solid color-mix(in srgb, var(--color-pink) 60%, transparent);
   }
 
   .talanti-map-marker--match.is-selected .talanti-map-marker__blip {
-    box-shadow: 0 0 24px rgba(255,0,110,0.9), 0 0 60px rgba(255,0,110,0.5);
+    box-shadow: 0 0 24px color-mix(in srgb, var(--color-shadow) 90%, transparent), 0 0 60px color-mix(in srgb, var(--color-shadow) 50%, transparent);
   }
 
   .talanti-map-marker--match.is-selected .talanti-map-marker__blip::after {
     width: 40px;
     height: 20px;
-    background: radial-gradient(ellipse at center, rgba(255,0,110,0.9) 0%, rgba(255,0,110,0.5) 55%, transparent 72%);
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-pink) 90%, transparent) 0%, color-mix(in srgb, var(--color-pink) 50%, transparent) 55%, transparent 72%);
     border-width: 2px;
   }
 
   /* Tryout — vibrant happy yellow */
   .talanti-map-marker--tryout {
-    --blip-glow: rgba(255, 215, 0, 0.85);
+    --blip-glow: color-mix(in srgb, var(--color-warning) 85%, transparent);
   }
 
   .talanti-map-marker--tryout .talanti-map-marker__blip {
     width: 3px;
     height: var(--beam-height, 120px);
     border: none;
-    background: linear-gradient(to bottom, transparent 0%, rgba(255,215,0,0.3) 25%, rgba(255,215,0,0.55) 55%, rgba(255,230,0,0.85) 78%, #ffd700 92%, #4a3f00 100%);
-    box-shadow: 0 0 14px rgba(255,215,0,0.7), 0 0 40px rgba(255,215,0,0.35);
+    background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--color-warning) 30%, transparent) 25%, color-mix(in srgb, var(--color-warning) 55%, transparent) 55%, color-mix(in srgb, var(--color-warning) 85%, transparent) 78%, var(--color-warning) 92%, var(--color-warning) 100%);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--color-shadow) 70%, transparent), 0 0 40px color-mix(in srgb, var(--color-shadow) 35%, transparent);
   }
 
   .talanti-map-marker--tryout .talanti-map-marker__blip::after {
@@ -2972,33 +2929,33 @@
     transform: translateX(-50%) scale(var(--base-scale, 1));
     width: 28px;
     height: 14px;
-    background: radial-gradient(ellipse at center, rgba(255,215,0,0.85) 0%, rgba(255,215,0,0.35) 55%, transparent 72%);
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-warning) 85%, transparent) 0%, color-mix(in srgb, var(--color-warning) 35%, transparent) 55%, transparent 72%);
     border-radius: 50%;
-    border: 1.5px solid rgba(255,240,180,0.6);
+    border: 1.5px solid color-mix(in srgb, var(--color-warning) 60%, transparent);
   }
 
   .talanti-map-marker--tryout.is-selected .talanti-map-marker__blip {
-    box-shadow: 0 0 24px rgba(255,215,0,0.9), 0 0 60px rgba(255,215,0,0.5);
+    box-shadow: 0 0 24px color-mix(in srgb, var(--color-shadow) 90%, transparent), 0 0 60px color-mix(in srgb, var(--color-shadow) 50%, transparent);
   }
 
   .talanti-map-marker--tryout.is-selected .talanti-map-marker__blip::after {
     width: 40px;
     height: 20px;
-    background: radial-gradient(ellipse at center, rgba(255,215,0,0.9) 0%, rgba(255,215,0,0.5) 55%, transparent 72%);
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-warning) 90%, transparent) 0%, color-mix(in srgb, var(--color-warning) 50%, transparent) 55%, transparent 72%);
     border-width: 2px;
   }
 
   /* Tournament — dark evil green */
   .talanti-map-marker--tournament {
-    --blip-glow: rgba(0, 255, 65, 0.7);
+    --blip-glow: color-mix(in srgb, var(--color-accent) 70%, transparent);
   }
 
   .talanti-map-marker--tournament .talanti-map-marker__blip {
     width: 3px;
     height: var(--beam-height, 120px);
     border: none;
-    background: linear-gradient(to bottom, transparent 0%, rgba(0,80,20,0.4) 25%, rgba(0,120,30,0.55) 55%, rgba(0,200,50,0.8) 78%, #00aa2e 92%, #003310 100%);
-    box-shadow: 0 0 14px rgba(0,255,65,0.55), 0 0 40px rgba(0,180,40,0.3);
+    background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--color-accent) 40%, transparent) 25%, color-mix(in srgb, var(--color-accent) 55%, transparent) 55%, color-mix(in srgb, var(--color-accent) 80%, transparent) 78%, var(--color-accent) 92%, var(--color-accent) 100%);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--color-shadow) 55%, transparent), 0 0 40px color-mix(in srgb, var(--color-shadow) 30%, transparent);
   }
 
   .talanti-map-marker--tournament .talanti-map-marker__blip::after {
@@ -3009,33 +2966,33 @@
     transform: translateX(-50%) scale(var(--base-scale, 1));
     width: 28px;
     height: 14px;
-    background: radial-gradient(ellipse at center, rgba(0,200,50,0.8) 0%, rgba(0,100,25,0.4) 55%, transparent 72%);
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-accent) 80%, transparent) 0%, color-mix(in srgb, var(--color-accent) 40%, transparent) 55%, transparent 72%);
     border-radius: 50%;
-    border: 1.5px solid rgba(100,255,150,0.5);
+    border: 1.5px solid color-mix(in srgb, var(--color-accent) 50%, transparent);
   }
 
   .talanti-map-marker--tournament.is-selected .talanti-map-marker__blip {
-    box-shadow: 0 0 22px rgba(0,255,65,0.75), 0 0 56px rgba(0,200,50,0.4);
+    box-shadow: 0 0 22px color-mix(in srgb, var(--color-shadow) 75%, transparent), 0 0 56px color-mix(in srgb, var(--color-shadow) 40%, transparent);
   }
 
   .talanti-map-marker--tournament.is-selected .talanti-map-marker__blip::after {
     width: 40px;
     height: 20px;
-    background: radial-gradient(ellipse at center, rgba(0,255,65,0.85) 0%, rgba(0,150,40,0.5) 55%, transparent 72%);
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-accent) 85%, transparent) 0%, color-mix(in srgb, var(--color-accent) 50%, transparent) 55%, transparent 72%);
     border-width: 2px;
   }
 
   /* Event — light blue */
   .talanti-map-marker--event {
-    --blip-glow: rgba(0, 212, 255, 0.8);
+    --blip-glow: color-mix(in srgb, var(--color-cyan) 80%, transparent);
   }
 
   .talanti-map-marker--event .talanti-map-marker__blip {
     width: 3px;
     height: var(--beam-height, 120px);
     border: none;
-    background: linear-gradient(to bottom, transparent 0%, rgba(0,180,220,0.3) 25%, rgba(0,200,240,0.55) 55%, rgba(77,201,246,0.85) 78%, #00b8e6 92%, #002840 100%);
-    box-shadow: 0 0 14px rgba(0,212,255,0.65), 0 0 40px rgba(0,180,230,0.3);
+    background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--color-cyan) 30%, transparent) 25%, color-mix(in srgb, var(--color-cyan) 55%, transparent) 55%, color-mix(in srgb, var(--color-cyan) 85%, transparent) 78%, var(--color-cyan) 92%, var(--color-cyan) 100%);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--color-shadow) 65%, transparent), 0 0 40px color-mix(in srgb, var(--color-shadow) 30%, transparent);
   }
 
   .talanti-map-marker--event .talanti-map-marker__blip::after {
@@ -3046,33 +3003,33 @@
     transform: translateX(-50%) scale(var(--base-scale, 1));
     width: 28px;
     height: 14px;
-    background: radial-gradient(ellipse at center, rgba(77,201,246,0.85) 0%, rgba(0,160,220,0.35) 55%, transparent 72%);
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-cyan) 85%, transparent) 0%, color-mix(in srgb, var(--color-cyan) 35%, transparent) 55%, transparent 72%);
     border-radius: 50%;
-    border: 1.5px solid rgba(180,230,255,0.55);
+    border: 1.5px solid color-mix(in srgb, var(--color-cyan) 55%, transparent);
   }
 
   .talanti-map-marker--event.is-selected .talanti-map-marker__blip {
-    box-shadow: 0 0 24px rgba(0,212,255,0.85), 0 0 56px rgba(0,180,230,0.45);
+    box-shadow: 0 0 24px color-mix(in srgb, var(--color-shadow) 85%, transparent), 0 0 56px color-mix(in srgb, var(--color-shadow) 45%, transparent);
   }
 
   .talanti-map-marker--event.is-selected .talanti-map-marker__blip::after {
     width: 40px;
     height: 20px;
-    background: radial-gradient(ellipse at center, rgba(77,201,246,0.9) 0%, rgba(0,180,230,0.5) 55%, transparent 72%);
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-cyan) 90%, transparent) 0%, color-mix(in srgb, var(--color-cyan) 50%, transparent) 55%, transparent 72%);
     border-width: 2px;
   }
 
   /* Club Need — vibrant orange/amber */
   .talanti-map-marker--club-need {
-    --blip-glow: rgba(255, 140, 0, 0.8);
+    --blip-glow: color-mix(in srgb, var(--color-orange) 80%, transparent);
   }
 
   .talanti-map-marker--club-need .talanti-map-marker__blip {
     width: 3px;
     height: var(--beam-height, 120px);
     border: none;
-    background: linear-gradient(to bottom, transparent 0%, rgba(200,90,0,0.3) 25%, rgba(230,120,10,0.55) 55%, rgba(255,150,30,0.8) 78%, #ff8c00 92%, #3d1c00 100%);
-    box-shadow: 0 0 14px rgba(255,140,0,0.6), 0 0 40px rgba(220,100,0,0.3);
+    background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--color-orange) 30%, transparent) 25%, color-mix(in srgb, var(--color-orange) 55%, transparent) 55%, color-mix(in srgb, var(--color-orange) 80%, transparent) 78%, var(--color-orange) 92%, var(--color-orange) 100%);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--color-shadow) 60%, transparent), 0 0 40px color-mix(in srgb, var(--color-shadow) 30%, transparent);
   }
 
   .talanti-map-marker--club-need .talanti-map-marker__blip::after {
@@ -3083,19 +3040,19 @@
     transform: translateX(-50%) scale(var(--base-scale, 1));
     width: 28px;
     height: 14px;
-    background: radial-gradient(ellipse at center, rgba(255,150,30,0.8) 0%, rgba(200,100,0,0.4) 55%, transparent 72%);
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-orange) 80%, transparent) 0%, color-mix(in srgb, var(--color-orange) 40%, transparent) 55%, transparent 72%);
     border-radius: 50%;
-    border: 1.5px solid rgba(255,180,80,0.5);
+    border: 1.5px solid color-mix(in srgb, var(--color-orange) 50%, transparent);
   }
 
   .talanti-map-marker--club-need.is-selected .talanti-map-marker__blip {
-    box-shadow: 0 0 22px rgba(255,140,0,0.8), 0 0 56px rgba(220,100,0,0.4);
+    box-shadow: 0 0 22px color-mix(in srgb, var(--color-shadow) 80%, transparent), 0 0 56px color-mix(in srgb, var(--color-shadow) 40%, transparent);
   }
 
   .talanti-map-marker--club-need.is-selected .talanti-map-marker__blip::after {
     width: 40px;
     height: 20px;
-    background: radial-gradient(ellipse at center, rgba(255,150,30,0.85) 0%, rgba(200,100,0,0.5) 55%, transparent 72%);
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-orange) 85%, transparent) 0%, color-mix(in srgb, var(--color-orange) 50%, transparent) 55%, transparent 72%);
     border-width: 2px;
   }
 
@@ -3119,32 +3076,32 @@
   }
 
   .talanti-map-marker--club .talanti-map-marker__badge {
-    border-color: #b90c0c;
+    border-color: var(--color-danger);
   }
 
   .talanti-map-marker--match .talanti-map-marker__badge {
-    border-color: #ff006e;
+    border-color: var(--color-pink);
   }
 
   .talanti-map-marker--tryout .talanti-map-marker__badge {
-    border-color: #ffd700;
+    border-color: var(--color-warning);
   }
 
   .talanti-map-marker--tournament .talanti-map-marker__badge {
-    border-color: #00cc44;
+    border-color: var(--color-accent);
   }
 
   .talanti-map-marker--event .talanti-map-marker__badge {
-    border-color: #00d4ff;
+    border-color: var(--color-cyan);
   }
 
   .talanti-map-marker--club-need .talanti-map-marker__badge {
-    border-color: #ff8c00;
+    border-color: var(--color-orange);
   }
 
   .talanti-map-marker.is-selected .talanti-map-marker__blip {
     transform: scale(1.35);
-    box-shadow: 0 0 22px var(--blip-glow, transparent), 0 6px 16px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 22px var(--blip-glow, transparent), 0 6px 16px color-mix(in srgb, var(--color-shadow) 50%, transparent);
   }
 
   .talanti-map-marker--club.is-selected .talanti-map-marker__blip {
@@ -3178,10 +3135,10 @@
   /* ── Futuristic design mode (default) ── */
 
   .map-design-futuristic {
-    --map-glow-soft: 0 0 18px rgba(26, 115, 232, 0.1);
-    --map-glow-strong: 0 0 36px rgba(26, 115, 232, 0.16);
-    --map-glass-bg: rgba(255, 255, 255, 0.9);
-    --map-glass-border: rgba(15, 23, 42, 0.1);
+    --map-glow-soft: 0 0 18px color-mix(in srgb, var(--color-info) 10%, transparent);
+    --map-glow-strong: 0 0 36px color-mix(in srgb, var(--color-info) 16%, transparent);
+    --map-glass-bg: color-mix(in srgb, var(--color-surface) 90%, transparent);
+    --map-glass-border: color-mix(in srgb, var(--color-border) 10%, transparent);
   }
 
   .map-design-futuristic .map-rail,
@@ -3212,7 +3169,7 @@
 
   .map-design-futuristic .map-filter-card:hover,
   .map-design-futuristic .map-section-card:hover {
-    border-color: rgba(15, 23, 42, 0.16);
+    border-color: color-mix(in srgb, var(--color-border) 16%, transparent);
     box-shadow: var(--map-glow-soft);
   }
 
@@ -3230,7 +3187,7 @@
 
   .map-design-futuristic .map-search-surface:focus-within {
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.18);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-shadow) 18%, transparent);
   }
 
   .map-design-futuristic .map-input-shell,
@@ -3251,24 +3208,24 @@
   .map-design-futuristic .map-icon-button,
   .map-design-futuristic .map-rail-icon,
   .map-design-futuristic .map-help__trigger {
-    background-color: rgba(15, 23, 42, 0.05);
+    background-color: color-mix(in srgb, var(--color-ink) 5%, transparent);
     border-color: var(--map-panel-border);
   }
 
   .map-design-futuristic .map-icon-button:hover {
-    background-color: rgba(15, 23, 42, 0.08);
-    border-color: rgba(15, 23, 42, 0.16);
+    background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+    border-color: color-mix(in srgb, var(--color-border) 16%, transparent);
     box-shadow: var(--map-glow-soft);
   }
 
   .map-design-futuristic .map-secondary-button {
-    background-color: rgba(15, 23, 42, 0.05);
+    background-color: color-mix(in srgb, var(--color-ink) 5%, transparent);
     border-color: var(--map-panel-border);
   }
 
   .map-design-futuristic .map-secondary-button:hover {
-    background-color: rgba(15, 23, 42, 0.08);
-    border-color: rgba(15, 23, 42, 0.16);
+    background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+    border-color: color-mix(in srgb, var(--color-border) 16%, transparent);
     box-shadow: var(--map-glow-soft);
   }
 
@@ -3297,44 +3254,44 @@
      original dark family on top of the light base above. ── */
 
   .dark .map-page-shell {
-    --bg-base: #0d1016;
-    --bg-surface: rgba(13, 16, 22, 0.95);
-    --bg-elevated: #161a22;
-    --bg-inset: #0b0e14;
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.14);
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
-    --accent-highlight: #5f927f;
-    --accent-highlight-soft: rgba(95, 146, 127, 0.22);
-    --accent-muted: #5f927f;
-    --accent-muted-soft: rgba(95, 146, 127, 0.18);
-    --state-danger: #ef4444;
-    --state-danger-soft: rgba(239, 68, 68, 0.16);
-    --state-info: #78a394;
-    --state-info-soft: rgba(120, 163, 148, 0.14);
-    --theme-overlay: rgba(0, 0, 0, 0.6);
-    --theme-overlay-strong: rgba(0, 0, 0, 0.6);
-    --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.5);
-    --shadow-float: 0 16px 48px rgba(0, 0, 0, 0.5);
-    --map-workspace-bg: #0d1016;
-    --map-main-surface: rgba(13, 16, 22, 0.62);
-    --map-rail-bg: rgba(13, 16, 22, 0.95);
-    --map-toolbar-bg: rgba(13, 16, 22, 0.9);
-    --map-panel-bg: rgba(13, 16, 22, 0.95);
-    --map-canvas-bg: #0d1016;
-    --map-card-bg: rgba(13, 16, 22, 0.95);
-    --map-card-muted: rgba(13, 16, 22, 0.85);
-    --map-panel-border: rgba(255, 255, 255, 0.1);
-    --map-pill-bg: rgba(13, 16, 22, 0.9);
-    --map-shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.5);
-    --map-shadow-strong: 0 16px 48px rgba(0, 0, 0, 0.5);
+    --bg-base: var(--color-page);
+    --bg-surface: color-mix(in srgb, var(--color-surface) 95%, transparent);
+    --bg-elevated: var(--color-elevated);
+    --bg-inset: var(--color-inset);
+    --border-subtle: color-mix(in srgb, var(--color-border) 8%, transparent);
+    --border-strong: color-mix(in srgb, var(--color-border) 14%, transparent);
+    --text-primary: var(--color-text);
+    --text-secondary: var(--color-secondary);
+    --text-muted: var(--color-muted);
+    --accent-highlight: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    --accent-highlight-soft: color-mix(in srgb, var(--color-accent) 22%, transparent);
+    --accent-muted: var(--color-muted);
+    --accent-muted-soft: color-mix(in srgb, var(--color-accent) 18%, transparent);
+    --state-danger: var(--color-danger);
+    --state-danger-soft: var(--color-danger-soft);
+    --state-info: var(--color-info);
+    --state-info-soft: var(--color-info-soft);
+    --theme-overlay: color-mix(in srgb, var(--color-overlay) 60%, transparent);
+    --theme-overlay-strong: color-mix(in srgb, var(--color-overlay) 60%, transparent);
+    --shadow-panel: 0 8px 32px color-mix(in srgb, var(--color-shadow) 50%, transparent);
+    --shadow-float: 0 16px 48px color-mix(in srgb, var(--color-shadow) 50%, transparent);
+    --map-workspace-bg: var(--color-page);
+    --map-main-surface: color-mix(in srgb, var(--color-surface) 62%, transparent);
+    --map-rail-bg: color-mix(in srgb, var(--color-surface) 95%, transparent);
+    --map-toolbar-bg: color-mix(in srgb, var(--color-surface) 90%, transparent);
+    --map-panel-bg: color-mix(in srgb, var(--color-surface) 95%, transparent);
+    --map-canvas-bg: var(--color-page);
+    --map-card-bg: color-mix(in srgb, var(--color-elevated) 95%, transparent);
+    --map-card-muted: color-mix(in srgb, var(--color-inset) 85%, transparent);
+    --map-panel-border: color-mix(in srgb, var(--color-border) 10%, transparent);
+    --map-pill-bg: color-mix(in srgb, var(--color-inset) 90%, transparent);
+    --map-shadow-soft: 0 8px 32px color-mix(in srgb, var(--color-shadow) 50%, transparent);
+    --map-shadow-strong: 0 16px 48px color-mix(in srgb, var(--color-shadow) 50%, transparent);
   }
 
   .dark .map-design-futuristic {
-    --map-glass-bg: rgba(13, 16, 22, 0.9);
-    --map-glass-border: rgba(255, 255, 255, 0.08);
+    --map-glass-bg: color-mix(in srgb, var(--color-surface) 90%, transparent);
+    --map-glass-border: color-mix(in srgb, var(--color-border) 8%, transparent);
   }
 
   .dark .map-rail-icon,
@@ -3342,53 +3299,53 @@
   .dark .map-design-futuristic .map-icon-button,
   .dark .map-design-futuristic .map-rail-icon,
   .dark .map-design-futuristic .map-help__trigger {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: color-mix(in srgb, var(--color-ink) 5%, transparent);
   }
 
   .dark .map-icon-button:hover,
   .dark .map-design-futuristic .map-icon-button:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.14);
+    background-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
+    border-color: color-mix(in srgb, var(--color-border) 14%, transparent);
   }
 
   .dark .map-help__trigger {
-    color: #94a3b8;
+    color: var(--color-secondary);
   }
 
   .dark .map-chip:hover,
   .dark .map-option-row:hover,
   .dark .map-design-futuristic .map-filter-card:hover,
   .dark .map-design-futuristic .map-section-card:hover {
-    border-color: rgba(255, 255, 255, 0.16);
+    border-color: color-mix(in srgb, var(--color-border) 16%, transparent);
   }
 
   .dark .map-secondary-button,
   .dark .map-design-futuristic .map-secondary-button {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: color-mix(in srgb, var(--color-ink) 5%, transparent);
   }
 
   .dark .map-secondary-button:hover,
   .dark .map-design-futuristic .map-secondary-button:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.16);
+    background-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
+    border-color: color-mix(in srgb, var(--color-border) 16%, transparent);
   }
 
   .dark .map-primary-button,
   .dark .map-mode-button--active {
-    color: #ffffff;
+    color: var(--color-on-accent);
   }
 
   .dark .map-primary-button:hover {
-    background-color: #059669;
-    border-color: #059669;
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
   }
 
   .dark .map-suggestion-row:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: color-mix(in srgb, var(--color-ink) 5%, transparent);
   }
 
   .dark .map-mode-button:hover:not(.map-mode-button--active) {
-    background-color: rgba(255, 255, 255, 0.06);
+    background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
   }
 
   .dark .maplibregl-ctrl-geolocate {
@@ -3397,56 +3354,56 @@
   }
 
   .map-page-shell.map-force-light {
-    --bg-base: #eef2f7;
-    --bg-surface: rgba(255, 255, 255, 0.97);
-    --bg-elevated: #ffffff;
-    --bg-inset: #e2e8f0;
-    --border-subtle: rgba(15, 23, 42, 0.1);
-    --border-strong: rgba(15, 23, 42, 0.18);
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --text-muted: #94a3b8;
-    --accent-highlight: #3f7666;
-    --accent-highlight-soft: rgba(63, 118, 102, 0.14);
-    --accent-primary: #3f7666;
-    --accent-primary-soft: rgba(63, 118, 102, 0.14);
-    --map-workspace-bg: #eef2f7;
-    --map-rail-bg: rgba(255, 255, 255, 0.97);
-    --map-toolbar-bg: rgba(255, 255, 255, 0.92);
-    --map-panel-bg: rgba(255, 255, 255, 0.97);
-    --map-card-bg: rgba(255, 255, 255, 0.97);
-    --map-card-muted: rgba(241, 245, 249, 0.95);
-    --map-panel-border: rgba(15, 23, 42, 0.12);
-    --map-pill-bg: rgba(241, 245, 249, 0.95);
-    --map-glass-bg: rgba(255, 255, 255, 0.94);
-    --map-glass-border: rgba(15, 23, 42, 0.1);
+    --bg-base: var(--color-page);
+    --bg-surface: color-mix(in srgb, var(--color-surface) 97%, transparent);
+    --bg-elevated: var(--color-elevated);
+    --bg-inset: var(--color-inset);
+    --border-subtle: color-mix(in srgb, var(--color-border) 10%, transparent);
+    --border-strong: color-mix(in srgb, var(--color-border) 18%, transparent);
+    --text-primary: var(--color-text);
+    --text-secondary: var(--color-secondary);
+    --text-muted: var(--color-muted);
+    --accent-highlight: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    --accent-highlight-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
+    --accent-primary: var(--color-accent);
+    --accent-primary-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
+    --map-workspace-bg: var(--color-page);
+    --map-rail-bg: color-mix(in srgb, var(--color-surface) 97%, transparent);
+    --map-toolbar-bg: color-mix(in srgb, var(--color-surface) 92%, transparent);
+    --map-panel-bg: color-mix(in srgb, var(--color-surface) 97%, transparent);
+    --map-card-bg: color-mix(in srgb, var(--color-elevated) 97%, transparent);
+    --map-card-muted: color-mix(in srgb, var(--color-inset) 95%, transparent);
+    --map-panel-border: color-mix(in srgb, var(--color-border) 12%, transparent);
+    --map-pill-bg: color-mix(in srgb, var(--color-inset) 95%, transparent);
+    --map-glass-bg: color-mix(in srgb, var(--color-surface) 94%, transparent);
+    --map-glass-border: color-mix(in srgb, var(--color-border) 10%, transparent);
   }
 
   .map-page-shell.map-force-dark {
-    --text-primary: #f1f5f9;
-    --text-secondary: #a5b0bf;
-    --text-muted: #738094;
-    --accent-highlight: #5f927f;
-    --accent-highlight-soft: rgba(95, 146, 127, 0.2);
-    --accent-primary: #5f927f;
-    --accent-primary-soft: rgba(95, 146, 127, 0.2);
-    --map-workspace-bg: #0d1016;
-    --map-rail-bg: rgba(13, 16, 22, 0.97);
-    --map-toolbar-bg: rgba(13, 16, 22, 0.94);
-    --map-panel-bg: rgba(13, 16, 22, 0.97);
-    --map-card-bg: rgba(13, 16, 22, 0.97);
-    --map-card-muted: rgba(22, 27, 35, 0.96);
-    --map-panel-border: rgba(255, 255, 255, 0.11);
-    --map-pill-bg: rgba(22, 27, 35, 0.96);
-    --map-glass-bg: rgba(13, 16, 22, 0.94);
-    --map-glass-border: rgba(255, 255, 255, 0.09);
+    --text-primary: var(--color-text);
+    --text-secondary: var(--color-secondary);
+    --text-muted: var(--color-muted);
+    --accent-highlight: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    --accent-highlight-soft: color-mix(in srgb, var(--color-accent) 20%, transparent);
+    --accent-primary: var(--color-accent);
+    --accent-primary-soft: color-mix(in srgb, var(--color-accent) 20%, transparent);
+    --map-workspace-bg: var(--color-page);
+    --map-rail-bg: color-mix(in srgb, var(--color-surface) 97%, transparent);
+    --map-toolbar-bg: color-mix(in srgb, var(--color-surface) 94%, transparent);
+    --map-panel-bg: color-mix(in srgb, var(--color-surface) 97%, transparent);
+    --map-card-bg: color-mix(in srgb, var(--color-elevated) 97%, transparent);
+    --map-card-muted: color-mix(in srgb, var(--color-inset) 96%, transparent);
+    --map-panel-border: color-mix(in srgb, var(--color-border) 11%, transparent);
+    --map-pill-bg: color-mix(in srgb, var(--color-inset) 96%, transparent);
+    --map-glass-bg: color-mix(in srgb, var(--color-surface) 94%, transparent);
+    --map-glass-border: color-mix(in srgb, var(--color-border) 9%, transparent);
   }
 }
 
 /* ── Tournament Workspace (Soviet Brutalist) ── */
 .tournament-workspace-shell {
-  --accent-highlight: #dc2626;
-  --accent-highlight-soft: rgba(220, 38, 38, 0.12);
+  --accent-highlight: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  --accent-highlight-soft: color-mix(in srgb, var(--color-danger) 12%, transparent);
   --tw-font-weight-black: 900;
 }
 
@@ -3484,7 +3441,7 @@
 
 .tournament-workspace-shell .tw-btn-destructive:hover {
   background: var(--accent-highlight);
-  color: #fff;
+  color: var(--color-text);
 }
 
 .tournament-workspace-shell .tw-btn-default {
@@ -3562,7 +3519,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
+  background: color-mix(in srgb, var(--color-overlay) 55%, transparent);
 }
 
 .tournament-workspace-shell .tw-modal-panel {
@@ -3570,7 +3527,7 @@
   border: 2px solid var(--border-strong);
   min-width: 360px;
   max-width: 480px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--color-shadow) 35%, transparent);
 }
 
 /* ── Chat Messenger Shell ────────────────────────────────────────── */
@@ -3580,7 +3537,7 @@
   --chat-accent: var(--accent-primary);
   --chat-accent-soft: var(--accent-primary-soft);
   --chat-accent-hover: var(--accent-primary);
-  --chat-accent-contrast: #ffffff;
+  --chat-accent-contrast: var(--color-on-accent);
 
   /* Header */
   --chat-header-bg: var(--accent-primary);
@@ -3590,7 +3547,7 @@
   --chat-sidebar-bg: var(--bg-surface);
   --chat-surface: var(--bg-base);
   --chat-card: var(--bg-surface);
-  --chat-card-hover: rgba(0, 0, 0, 0.04);
+  --chat-card-hover: color-mix(in srgb, var(--color-inset) 4%, transparent);
 
   /* Borders */
   --chat-card-border: var(--border-subtle);
@@ -3620,13 +3577,13 @@
 
 .dark .chat-messenger-shell {
   --chat-accent-soft: var(--accent-primary-soft);
-  --chat-accent-contrast: #ffffff;
+  --chat-accent-contrast: var(--color-on-accent);
 
   --chat-bg: var(--bg-base);
   --chat-sidebar-bg: var(--bg-surface);
   --chat-surface: var(--bg-base);
   --chat-card: var(--bg-surface);
-  --chat-card-hover: rgba(255, 255, 255, 0.05);
+  --chat-card-hover: color-mix(in srgb, var(--color-inset) 5%, transparent);
 
   --chat-card-border: var(--border-subtle);
   --chat-divider: var(--border-subtle);
@@ -3663,13 +3620,13 @@
 }
 
 .chat-messenger-shell .chat-role-badge--creator {
-  background: rgba(245, 158, 11, 0.15);
-  color: #d97706;
+  background: color-mix(in srgb, var(--color-orange) 15%, transparent);
+  color: var(--color-orange);
 }
 
 .dark .chat-messenger-shell .chat-role-badge--creator {
-  background: rgba(245, 158, 11, 0.12);
-  color: #fbbf24;
+  background: color-mix(in srgb, var(--color-orange) 12%, transparent);
+  color: var(--color-orange);
 }
 
 /* ── Chat Suggestion Card ──────────────────────────────────────── */
@@ -3766,12 +3723,12 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background-color: #10b981;
-  color: #ffffff;
+  background-color: var(--color-accent);
+  color: var(--color-on-accent);
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
-  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--color-shadow) 25%, transparent);
 }
 
 /* ── Chat Input Actions ────────────────────────────────────────── */
@@ -3896,9 +3853,9 @@
 }
 
 @media (max-width: 1023px) {
-  .workspace-page-shell {
+  .club-workspace-shell {
     display: block !important;
-    height: calc(100dvh - var(--app-header-height)) !important;
+    height: calc(100dvh - var(--app-active-header-height)) !important;
     overflow: hidden;
   }
 
@@ -3929,7 +3886,7 @@
     width: min(88vw, 310px) !important;
     transform: translateX(-105%);
     transition: transform 180ms ease;
-    box-shadow: 18px 0 40px rgba(0, 0, 0, 0.28);
+    box-shadow: 18px 0 40px color-mix(in srgb, var(--color-shadow) 28%, transparent);
   }
 
   .workspace-sidebar.is-open {
@@ -3945,7 +3902,7 @@
     left: 0;
     z-index: 55;
     border: 0;
-    background: rgba(3, 5, 8, 0.62);
+    background: color-mix(in srgb, var(--color-overlay) 62%, transparent);
   }
 
   .workspace-sidebar-backdrop {
@@ -3961,7 +3918,7 @@
     width: min(88vw, 350px) !important;
     transform: translateX(105%);
     transition: transform 180ms ease;
-    box-shadow: -18px 0 40px rgba(0, 0, 0, 0.28);
+    box-shadow: -18px 0 40px color-mix(in srgb, var(--color-shadow) 28%, transparent);
   }
 
   .workspace-context-panel.is-open {
@@ -3988,3 +3945,111 @@
     transition: none;
   }
 }
+
+/* Shared social surfaces: restrained accents, with the same treatment in both rails. */
+.opportunity-link {
+  --opportunity-color: var(--color-accent);
+  display: block;
+  border: 1px solid color-mix(in srgb, var(--opportunity-color) 32%, transparent);
+  border-radius: 12px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--opportunity-color) 7%, transparent);
+  color: var(--opportunity-color);
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.opportunity-link--campaigns { --opportunity-color: var(--color-orange); }
+.opportunity-link--stadiums { --opportunity-color: var(--color-cyan); }
+.opportunity-link--jobs { --opportunity-color: var(--color-purple); }
+.dark .opportunity-link { --opportunity-color: var(--color-accent); background: color-mix(in srgb, var(--opportunity-color) 12%, transparent); border-color: color-mix(in srgb, var(--opportunity-color) 48%, transparent); }
+.dark .opportunity-link--campaigns { --opportunity-color: var(--color-orange); }
+.dark .opportunity-link--stadiums { --opportunity-color: var(--color-cyan); }
+.dark .opportunity-link--jobs { --opportunity-color: var(--color-purple); }
+.opportunity-link:hover { background: color-mix(in srgb, var(--opportunity-color) 13%, transparent); border-color: var(--opportunity-color); }
+.opportunity-link:focus-visible { outline: 2px solid var(--opportunity-color); outline-offset: 3px; }
+.opportunity-link__description { color: var(--text-secondary); }
+.dark .club-page-shell {
+  --club-tone-green: var(--color-accent);
+  --club-tone-green-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  --club-tone-green-border: color-mix(in srgb, var(--color-accent) 42%, transparent);
+  --club-tone-cyan: var(--color-cyan);
+  --club-tone-blue: var(--color-info);
+  --club-tone-violet: var(--color-purple);
+  --club-tone-amber: var(--color-orange);
+  --club-theme-text-primary: var(--color-text);
+  --club-theme-text-secondary: var(--color-secondary);
+  --club-theme-border-subtle: var(--color-border);
+  --feed-card-border: var(--color-border);
+  --club-band: var(--color-surface);
+  --feed-card: var(--color-elevated);
+  --feed-input-bg: var(--color-surface);
+  --feed-text-muted: var(--color-muted);
+  --feed-icon-muted: var(--color-muted);
+  --club-theme-base: var(--color-page);
+  --club-theme-surface: var(--color-surface);
+  --club-theme-elevated: var(--color-elevated);
+  --club-card: var(--color-elevated);
+  --club-theme-text-muted: var(--color-muted);
+}
+
+.club-page-shell {
+  --feed-text-primary: var(--club-theme-text-primary);
+  --feed-text-secondary: var(--club-theme-text-secondary);
+  --feed-text-muted: var(--club-theme-text-muted);
+  --feed-text-placeholder: var(--club-theme-text-secondary);
+  --feed-accent: var(--accent-primary);
+  --feed-accent-soft: var(--accent-primary-soft);
+  --feed-hover-bg: var(--club-theme-elevated);
+}
+.club-page-shell .app-page-hero { background-color: var(--club-theme-surface); }
+
+/* Semantic shortcut colours stay consistent across the feed and its composer. */
+:root {
+  --social-primary: var(--color-accent);
+  --social-map: var(--color-cyan);
+  --social-schedule: var(--color-info);
+  --social-people: var(--color-purple);
+  --social-clubs: var(--color-accent);
+  --social-video: var(--color-pink);
+}
+.dark {
+  --social-primary: var(--color-accent);
+  --social-map: var(--color-cyan);
+  --social-schedule: var(--color-info);
+  --social-people: var(--color-purple);
+  --social-clubs: var(--color-accent);
+  --social-video: var(--color-pink);
+}
+.home-profile-shortcut { margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--feed-divider); border-radius: 0; }
+.home-social-link { color: var(--feed-text-primary); }
+.home-shortcut-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--shortcut-accent);
+  background: color-mix(in srgb, var(--shortcut-accent) 14%, transparent);
+}
+.home-social-link:hover .home-shortcut-icon { background: color-mix(in srgb, var(--shortcut-accent) 22%, transparent); }
+.home-social-link:focus-visible { outline: 2px solid var(--shortcut-accent, var(--social-primary)); outline-offset: 3px; }
+.dark .opportunity-link:hover { background: color-mix(in srgb, var(--opportunity-color) 18%, transparent); border-color: var(--opportunity-color); }
+
+.club-activity-panel {
+  --club-tone-blue: var(--social-schedule);
+  --club-tone-green: var(--social-primary);
+  --club-tone-green-soft: color-mix(in srgb, var(--social-primary) 12%, transparent);
+}
+.club-activity-action {
+  border: 1px solid var(--club-theme-border-subtle);
+  background: var(--club-theme-surface);
+  color: var(--club-theme-text-primary);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  max-width: 100%;
+}
+.club-activity-action:hover { border-color: var(--club-tone-blue); }
+.club-activity-action[aria-pressed="true"] { background: var(--club-tone-green-soft); border-color: var(--club-tone-green); }
+.club-activity-action:focus-visible { outline: 2px solid var(--club-tone-blue); outline-offset: 3px; }

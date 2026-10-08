@@ -1,0 +1,215 @@
+/* Route-owned presentation. Home and public club/organization profiles never
+   enable this scope; the palette is defined exclusively in theme.css. */
+html.product-design-active {
+  background: var(--color-page);
+  color: var(--color-text);
+  --border-subtle: var(--color-border);
+  --border-strong: var(--color-border);
+  --theme-border: var(--color-border);
+  --theme-border-strong: var(--color-border);
+  --app-border-subtle: var(--color-border);
+  --app-border-strong: var(--color-border);
+  --app-shell-elevated: var(--color-surface);
+  --fc-card-bg: var(--color-surface);
+  --club-card: var(--color-surface);
+  --club-band: var(--color-surface);
+  --club-theme-base: var(--color-page);
+  --club-theme-surface: var(--color-surface);
+  --club-theme-elevated: var(--color-elevated);
+  --club-theme-inset: var(--color-inset);
+  --club-theme-border-subtle: var(--color-border);
+  --club-theme-border-strong: var(--color-border);
+  --club-theme-text-primary: var(--color-text);
+  --club-theme-text-secondary: var(--color-secondary);
+  --club-theme-text-muted: var(--color-muted);
+  --workspace-theme-border: var(--color-border);
+  --workspace-theme-surface: var(--color-surface);
+  --workspace-theme-sidebar-bg: var(--color-inset);
+  --schedule-theme-border-subtle: var(--color-border);
+  --schedule-theme-border-strong: var(--color-border);
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 9%, transparent);
+  --color-hover: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  --accent-primary-soft: var(--color-accent-soft);
+  --theme-surface-muted: var(--color-surface);
+}
+html.product-design-active :is(.product-app-shell, .app-page-shell) { background: var(--color-page); }
+html.product-design-active .product-design-scope { min-width: 0; color: var(--color-text); }
+html.product-design-active :is(.top-nav-force-dark, .product-design-scope .club-page-shell) {
+  --gk-canvas: var(--color-page); --gk-surface: var(--color-surface); --gk-raised: var(--color-elevated);
+  --gk-border: var(--color-border); --gk-text-primary: var(--color-text); --gk-text-secondary: var(--color-secondary); --gk-text-muted: var(--color-muted);
+  --text-primary: var(--color-text); --text-secondary: var(--color-secondary); --text-muted: var(--color-muted);
+  --bg-base: var(--color-page); --bg-surface: var(--color-surface); --bg-elevated: var(--color-elevated); --bg-inset: var(--color-inset);
+  --accent-primary: var(--color-accent); --accent-primary-soft: var(--color-accent-soft);
+  --club-theme-base: var(--color-page); --club-theme-surface: var(--color-surface); --club-card: var(--color-surface);
+  --club-theme-text-primary: var(--color-text); --club-theme-text-secondary: var(--color-secondary); --club-theme-text-muted: var(--color-muted);
+  --club-theme-border-subtle: var(--color-border); --club-theme-border-strong: var(--color-border);
+}
+html.product-design-active :is(button, a, summary, input, textarea, select, [contenteditable=true]) {
+  transition: background-color 180ms var(--app-motion-ease), border-color 180ms var(--app-motion-ease), color 180ms var(--app-motion-ease), box-shadow 180ms var(--app-motion-ease), opacity 180ms var(--app-motion-ease), transform 180ms var(--app-motion-ease), translate 180ms var(--app-motion-ease), scale 180ms var(--app-motion-ease);
+}
+html.product-design-active :is(button, a, summary, input, textarea, select, [contenteditable=true]):focus-visible {
+  outline: 2px solid var(--color-accent); outline-offset: 3px;
+}
+html.product-design-active :is(input, textarea, [contenteditable=true]) { caret-color: var(--color-accent); }
+html.product-design-active :is(input, textarea, [contenteditable=true])[data-input-active=true]:focus {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 8%, transparent);
+  transition-duration: 90ms;
+}
+html.product-design-active :is(input, textarea)::placeholder { color: var(--color-muted); opacity: 1; }
+html.product-design-active :is(input[type=checkbox], input[type=radio]) { accent-color: var(--color-accent); }
+html.product-design-active :is(.top-nav-force-dark, .nav-actions) .lucide { stroke-width: 1.7; flex-shrink: 0; }
+html.product-design-active .top-nav-force-dark { border-color: var(--color-border); box-shadow: none; }
+html.product-design-active :is(.top-nav-force-dark input, .discovery-search-input) { background: var(--color-inset); border-color: var(--color-border); }
+html.product-design-active :is(.app-popover, [role=menu], .settings-choice-panel, .workspace-picker) { border-color: var(--color-border); background-color: var(--color-surface); }
+html.product-design-active :is(.app-motion-dialog, .app-motion-panel, [role=dialog][aria-modal=true]) {
+  --theme-border: var(--color-border); --theme-surface: var(--color-surface); --bg-elevated: var(--color-surface);
+}
+/* Each family keeps its task-specific structure; common geometry remains bounded. */
+html.product-design-active .product-design-scope :is(.mx-page, .store-page, .venue-page, .request-centre, .tryout-page, .volunteer-page, .jobs-directory, .jobs-detail, .ev-page) {
+  width: 100%; max-width: 1520px; margin-inline: auto;
+  padding: 28px clamp(16px, 3vw, 40px) 64px;
+  background: var(--color-page);
+}
+html.product-design-active .product-design-scope :is(.request-centre, .tryout-page) { max-width: 1200px; }
+html.product-design-active .product-design-scope :is(.mx-page h1, .store-page h1, .venue-page h1, .request-centre h1, .tryout-page h1, .volunteer-page h1, .jobs-directory h1, .jobs-detail h1) {
+  font-size: clamp(28px, 2.6vw, 38px); line-height: 1.2; font-weight: 750; letter-spacing: -.035em;
+}
+html.product-design-active .product-design-scope :is(.mx-head, .store-heading, .venue-directory-heading, .tryout-heading, .volunteer-heading) { gap: 20px; margin-bottom: 24px; }
+html.product-design-active .product-design-scope :is(.mx-panel, .mx-card, .mx-listing, .mx-profile-card, .mh-card, .store-filter-panel, .store-product-card, .store-checkout-summary, .campaign-card, .campaign-support, .campaign-update, .venue-panel, .venue-card, .venue-filter-panel, .venue-owner-card, .venue-owner-organization, .venue-booking-panel, .tryout-panel, .volunteer-card, .volunteer-panel, .request-review, .request-empty, .request-list article, .event-filters, .job-card, .jobs-panel, .jobs-detail-panel, .jobs-filter-panel, .jobs-toolbar, .career-card, .career-entry, .ev-reservation) {
+  border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface); box-shadow: none;
+}
+html.product-design-active .product-design-scope :is(.mx-page, .venue-page, .store-page, .jobs-directory, .jobs-detail, .tryout-page, .request-centre, .volunteer-page, .ev-page) :is(input, select, textarea):not([type=checkbox],[type=radio],[type=range],[type=file]) {
+  background-color: var(--color-inset); border-color: var(--color-border); color: var(--color-text); min-height: 42px;
+}
+/* Searches retain their embedded icon spacing and use one border. */
+html.product-design-active :is(.store-search, .venue-directory-search, .jobs-search) { background: var(--color-inset); border-color: var(--color-border); }
+html.product-design-active :is(.store-search, .venue-directory-search, .jobs-search) input { background: transparent; box-shadow: none; }
+html.product-design-active .product-design-scope :is(.mx-tabs, .mh-periods, .request-tabs, .tryout-actions) button {
+  border-color: var(--color-border); background: var(--color-inset); color: var(--color-secondary);
+}
+html.product-design-active .product-design-scope :is(.mx-tabs, .mh-periods, .request-tabs) :is([aria-current], [aria-pressed=true], .active) {
+  background: var(--color-accent-soft); color: var(--color-accent); border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+}
+html.product-design-active .product-design-scope :is(.mx-primary, .tryout-primary, .store-add-button, .venue-button-primary, .job-action-primary, .volunteer-primary) {
+  background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); box-shadow: none;
+}
+html.product-design-active .product-design-scope .venue-page { --venue-accent: var(--color-accent); --venue-accent-soft: var(--color-accent-soft); }
+html.product-design-active .product-design-scope .store-page { --op-accent: var(--color-accent); --op-strong: var(--color-accent); --op-soft: var(--color-accent-soft); }
+html.product-design-active .product-design-scope .mx-page { --mx-bg: var(--color-surface); --mx-border: var(--color-border); --mx-text: var(--color-text); --mx-muted: var(--color-secondary); --mx-accent: var(--color-accent); }
+html.product-design-active :is(.mx-empty, .store-empty, .tryout-state, .volunteer-empty, .jobs-empty, .request-empty) { color: var(--color-secondary); }
+html.product-design-active :is(.mx-eyebrow, .store-eyebrow, .venue-eyebrow, .tryout-eyebrow, .request-eyebrow, .volunteer-eyebrow) { color: var(--color-accent); }
+html.product-design-active .product-design-scope :is(.store-toolbar, .jobs-toolbar, .mx-filters, .mh-toolbar, .event-filters) { border-radius: 12px; border-color: var(--color-border); }
+html.product-design-active .product-design-scope :is(.store-filter-panel, .venue-filter-panel, .jobs-filter-panel) { background: var(--color-inset); }
+html.product-design-active .product-design-scope :is(.store-checkout-quote, .store-checkout-items, .campaign-detail-body, .jobs-detail-facts) { border-color: var(--color-border); }
+html.product-design-active .product-design-scope :is(.request-card-icon, .job-logo, .jobs-detail-club-icon) { background: var(--color-inset); border-color: var(--color-border); }
+html.product-design-active .product-design-scope :is(.request-help, .request-context, .request-reference, .job-meta, .job-location) { opacity: 1; color: var(--color-secondary); }
+/* Personal profiles inherit the professional surface language, with readable
+   side information rather than sharp boxes or an expanding text column. */
+html.product-design-active .product-design-scope .profile-content-grid { max-width: 1520px; margin-inline: auto; gap: 24px; }
+html.product-design-active .product-design-scope .profile-information :is(.career-card, .mx-panel, [aria-label="Football roles"] > article) { border-radius: 14px; border-color: var(--color-border); background: var(--color-surface); }
+html.product-design-active .product-design-scope :is(.profile-stat-grid > div, .profile-details-toggle) { border-radius: 10px; border-color: var(--color-border); background: var(--color-surface); }
+html.product-design-active .product-design-scope .career-button { border-radius: 8px; }
+html.product-design-active .product-design-scope .profile-feed-column > :is(article, section) { border-radius: 14px; }
+html.product-design-active :is(.notifications-page, .account-page, .tournament-directory) { max-width: 1520px; width: 100%; margin-inline: auto; padding: 20px clamp(0px, 2vw, 24px) 48px; }
+html.product-design-active :is(.notifications-page, .account-page, .tournament-directory, .people-directory) h1 { font-size: clamp(28px, 2.6vw, 38px); line-height: 1.2; font-weight: 750; letter-spacing: -.035em; }
+html.product-design-active .notifications-page > div > header { padding-bottom: 24px; }
+html.product-design-active .notifications-page > div > header button { border-radius: 9px; }
+html.product-design-active .notifications-page nav[aria-label="Notification scope"] { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-inset); padding: 6px; gap: 4px; }
+html.product-design-active .notifications-page nav[aria-label="Notification scope"] button { border: 0; border-radius: 8px; }
+html.product-design-active .notifications-page .divide-y { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; border: 0; background: transparent; }
+html.product-design-active .notifications-page .divide-y > button { min-width: 0; overflow-wrap: anywhere; }
+html.product-design-active .notifications-page .divide-y > button { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); padding: 18px; }
+html.product-design-active .notifications-page .divide-y > button[class*="border-l-[var(--accent-primary)]"] { border-inline-start: 3px solid var(--color-accent); }
+html.product-design-active .notifications-page .divide-y > button > div > div:first-child { border-radius: 10px; background: var(--color-inset); }
+html.product-design-active .notifications-page .divide-y > button:hover { border-color: color-mix(in srgb, var(--color-accent) 30%, var(--color-border)); background: var(--color-inset); }
+html.product-design-active .tournament-directory > div > section:first-child { border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 4px 0 8px; }
+html.product-design-active .tournament-directory > div > section:first-child > .absolute { display: none; }
+html.product-design-active .tournament-directory :is(section, article)[class*="border"] { border-color: var(--color-border); border-radius: 14px; box-shadow: none; }
+html.product-design-active .tournament-directory :is(input, select) { background: var(--color-inset); border-color: var(--color-border); }
+html.product-design-active .tournament-directory [class*="bg-"][class*="var(--color-ink)"]:not(svg) { background-color: var(--color-inset); }
+html.product-design-active .people-directory input { height: 48px; border-radius: 10px; box-shadow: none; }
+html.product-design-active .people-directory a[class*="rounded-2xl"] { border-radius: 12px; background: var(--color-surface); box-shadow: none; }
+html.product-design-active .account-heading-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 460px); align-items: start; }
+html.product-design-active .account-quick-actions > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html.product-design-active .account-quick-actions :is(a, button) { min-width: 0; min-height: 44px; justify-content: flex-start; font-size: 12px; border-radius: 8px; }
+html.product-design-active .dola-page { --dola-text: var(--color-text); --dola-muted: var(--color-secondary); --dola-surface: var(--color-surface); --dola-border: var(--color-border); }
+html.product-design-active .dola-conversation { border-radius: 14px; box-shadow: none; }
+html.product-design-active .dola-input-wrap { background: var(--color-inset); border-radius: 10px; }
+html.product-design-active .dola-mark { border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface); color: var(--color-accent); }
+html.product-design-active .dola-page--panel .dola-conversation { border-radius: 0; }
+html.product-design-active .gk-landing { --landing-green: var(--color-accent); --landing-line: var(--color-border); background: var(--color-page); }
+html.product-design-active .landing-header { background: var(--color-page); border-color: var(--color-border); }
+html.product-design-active .landing-header-inner > a:first-child { filter: none; }
+html.product-design-active .landing-daylight { background: var(--color-page); }
+html.product-design-active .landing-light-field { background: radial-gradient(ellipse 80% 700px at 95% 3%, color-mix(in srgb, var(--color-accent) 2%, transparent), transparent); }
+html.product-design-active :is(.landing-auth, .landing-map-card) { border-color: var(--color-border); border-radius: 14px; box-shadow: none; }
+html.product-design-active .landing-auth { background: var(--color-surface); }
+html.product-design-active .landing-auth input { background: var(--color-inset); border-color: var(--color-border); border-radius: 8px; font-size: 14px; }
+html.product-design-active :is(.landing-daylight, .landing-final) .landing-button-primary { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); box-shadow: none; }
+html.product-design-active :is(.landing-intro h1 > span, .landing-auth h2 > span, .landing-scroll-invite > svg, .landing-daylight .landing-eyebrow) { color: var(--color-accent); text-shadow: none; }
+html.product-design-active .landing-daylight .landing-live-dot { background: var(--color-accent); box-shadow: none; }
+html.product-design-active .landing-daylight .landing-button-outline { border-color: var(--color-border); background: var(--color-inset); }
+html.product-design-active .gk-landing :is(.landing-footer, .landing-final) { background: var(--color-page); }
+html.product-design-active .gk-landing .role-player-search > span { color: var(--color-secondary); opacity: 1; }
+/* Decorative scenes can move gently without fading their small labels. */
+html.product-design-active .gk-landing .landing-role-scene { animation: product-scene-enter 280ms var(--app-motion-ease) both; }
+@keyframes product-scene-enter { from { transform: translateY(8px) scale(.985); } to { transform: none; } }
+html.product-design-active .product-design-scope .event-filters { min-width: 0; }
+html.product-design-active .product-design-scope .event-filters :is(label, input, select) { min-width: 0; width: 100%; }
+html.product-design-active .product-design-scope .jobs-detail-facts > div { display: block; }
+html.product-design-active .product-design-scope .jobs-detail-facts dt { display: flex; align-items: center; gap: 8px; }
+html.product-design-active .product-design-scope .jobs-detail-facts dt > svg { width: 17px; height: 17px; flex-shrink: 0; }
+html.product-design-active .product-design-scope .jobs-detail-facts dd { margin-inline-start: 25px; }
+/* Keep off-screen table labels within the horizontal table scroll container. */
+html.product-design-active .product-design-scope .sr-table th { position: relative; }
+/* Travelling schedule underlines stay inside their rail while it resizes. */
+html.product-design-active .product-design-scope :is(.schedule-direction-segments, .schedule-workspace-segments) { overflow: hidden; }
+html.product-design-active .product-design-scope :is(.schedule-direction-segments, .schedule-workspace-segments) button:focus-visible { outline-offset: -3px; }
+/* Utility-based account and discovery screens receive the same card/field
+   treatment without overriding images, avatar shapes or player cards. */
+html.product-design-active [data-product-surface]:is([data-product-surface=account], [data-product-surface=discovery], [data-product-surface=identity]) :is(section, article, form, div):is([class*="rounded-xl"], [class*="rounded-2xl"]) {
+  border-color: var(--color-border); box-shadow: none;
+}
+html.product-design-active [data-product-surface]:is([data-product-surface=account], [data-product-surface=discovery], [data-product-surface=identity]) :is(input, textarea, select)[class*="border"]:not([type=checkbox],[type=radio]) {
+  background: var(--color-inset); border-color: var(--color-border); min-height: 44px;
+}
+html.product-design-active [data-product-surface=identity] { --auth-field-surface: var(--color-inset); }
+html.product-design-active [data-product-surface=identity] :is(.theme-surface, .theme-surface-strong) { background: var(--color-surface); border-color: var(--color-border); }
+html.product-design-active [data-product-surface=identity] :is(input, select, textarea) { font-size: 14px; border-radius: 8px; }
+html.product-design-active [data-product-surface=identity] button[type=submit] { min-height: 44px; border-radius: 8px; font-size: 13px; }
+html.product-design-active [data-product-surface=identity] .pointer-events-none[class*="radial-gradient"] { background: none; }
+html.product-design-active [data-product-surface=identity] label[for] { font-size: 11px; letter-spacing: .07em; }
+html.product-design-active .product-design-scope :is([role=alert], .gk-empty) { border-radius: 12px; }
+html.product-design-active .gk-empty { background: var(--color-surface); border-color: var(--color-border); }
+/* Motion is limited to mounting/revealing content. No layout or glyph animation. */
+html.product-design-active .app-route-arrival > :not(.workspace-connection-bar) { animation: app-page-enter 280ms var(--app-motion-ease) backwards; }
+html.product-design-active :is(.request-list, .store-product-grid, .campaign-grid, .venue-card-grid, .tryout-results, .volunteer-grid, .jobs-results) > :nth-child(-n+6) { animation: app-content-enter 300ms var(--app-motion-ease) backwards; }
+html.product-design-active :is(.request-list, .store-product-grid, .campaign-grid, .venue-card-grid, .tryout-results, .volunteer-grid, .jobs-results) > :nth-child(2) { animation-delay: 20ms; }
+html.product-design-active :is(.request-list, .store-product-grid, .campaign-grid, .venue-card-grid, .tryout-results, .volunteer-grid, .jobs-results) > :nth-child(n+3):nth-child(-n+6) { animation-delay: 40ms; }
+html.product-design-active :is([role=menu], .app-popover, .workspace-picker, .settings-choice-panel) { animation: app-popover-enter 220ms var(--app-motion-soft) backwards; }
+@media (hover:hover) and (pointer:fine) {
+  html.product-design-active .product-design-scope :is(.store-product-card, .campaign-card, .venue-card, .volunteer-card, .request-card, .mx-card, .mx-listing):hover { border-color: color-mix(in srgb, var(--color-accent) 28%, var(--color-border)); }
+  html.product-design-active :is(.mx-button, .venue-button, .store-cart-link, .career-button):not(:disabled):hover { background-color: var(--color-hover); }
+  html.product-design-active :is(.mx-primary, .tryout-primary, .store-add-button, .venue-button-primary):not(:disabled):hover { background-color: var(--color-accent); opacity: .9; }
+}
+@media (max-width:760px) {
+  html.product-design-active .account-heading-layout { grid-template-columns: 1fr; }
+  html.product-design-active .product-design-scope :is(.mx-page, .store-page, .venue-page, .request-centre, .tryout-page, .volunteer-page, .jobs-directory, .jobs-detail, .ev-page) { padding: 22px 16px 48px; }
+  html.product-design-active .product-design-scope :is(.mx-head, .store-heading, .venue-directory-heading, .tryout-heading, .volunteer-heading) { align-items: flex-start; flex-wrap: wrap; gap: 16px; }
+  html.product-design-active .product-design-scope :is(.mx-head, .store-heading, .tryout-heading, .volunteer-heading) > div { min-width: 0; max-width: 100%; }
+  html.product-design-active .product-design-scope :is(.mx-page, .store-page, .venue-page, .request-centre, .tryout-page, .jobs-directory, .jobs-detail) :is(input, select, textarea):not([type=checkbox],[type=radio],[type=range],[type=file]) { font-size: 16px; }
+  html.product-design-active .product-design-scope :is(.store-detail-grid, .store-checkout-layout) { gap: 24px; }
+  html.product-design-active .tournament-directory .flex:has(> [aria-label="Results per page"]), html.product-design-active .tournament-directory .flex:has(> div > [aria-label="Results per page"]) { flex-wrap: wrap; }
+  html.product-design-active .product-design-scope .store-purchase-row { flex-wrap: wrap; }
+  html.product-design-active .product-design-scope .sp-toolbar .sd-search { min-width: 0; }
+}
+@media (max-width:480px) {
+  html.product-design-active .product-design-scope .event-filters { grid-template-columns: minmax(0, 1fr); }
+  html.product-design-active .notifications-page .divide-y > button .flex.items-start.justify-between { flex-wrap: wrap; gap: 6px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  html.product-design-active *, html.product-design-active *::before, html.product-design-active *::after {
+    animation: none !important; transition-duration: .01ms !important; animation-delay: 0ms !important; scroll-behavior: auto !important;
+  }
+  html.product-design-active :is(input, textarea, [contenteditable=true])[data-input-active=true]:focus { box-shadow: none; transition: none; }
+}

@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Search, Users, Link2, ShieldCheck, X } from 'lucide-react';
@@ -42,10 +43,10 @@ interface PageResult {
 const TYPE_OPTIONS = ['ALL', 'TRANSFER', 'LOAN', 'TRIAL', 'OPEN_TO_OFFERS'] as const;
 
 const TYPE_COLORS: Record<string, string> = {
-    TRANSFER: 'bg-blue-500/10 text-blue-400',
-    LOAN: 'bg-amber-500/10 text-amber-400',
-    TRIAL: 'bg-green-500/10 text-green-400',
-    OPEN_TO_OFFERS: 'bg-violet-500/10 text-violet-400'
+    TRANSFER: 'bg-[color:var(--color-info)]/10 text-[color:var(--color-info)]',
+    LOAN: 'bg-[color:var(--color-warning)]/10 text-[color:var(--color-warning)]',
+    TRIAL: 'bg-[color:var(--color-accent)]/10 text-[color:var(--color-accent)]',
+    OPEN_TO_OFFERS: 'bg-[color:var(--color-purple)]/10 text-[color:var(--color-purple)]'
 };
 
 export const MarketplacePage = () => {
@@ -80,7 +81,8 @@ export const MarketplacePage = () => {
             setInterestListing(null);
             setInterestMessage('');
             navigate(`/messages?chatWith=${player.agentUserId}`);
-        } catch (err: any) {
+        } catch (caught) {
+            const err = axios.isAxiosError<{ message?: string }>(caught) ? caught : undefined;
             if (err?.response?.status === 409) {
                 alert('Your club has already expressed interest in this player.');
             }
@@ -131,11 +133,11 @@ export const MarketplacePage = () => {
     const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
 
     return (
-        <div className="bg-[#0f1117] min-h-[calc(100dvh-var(--app-header-height))]">
+        <div className="bg-[var(--color-surface)] min-h-[calc(100dvh-var(--app-header-height))]">
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-[#0f1117] border-b border-[#ffffff0d] px-6 py-4">
+            <div className="sticky top-0 z-10 bg-[var(--color-surface)] border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-6 py-4">
                 <div className="max-w-6xl mx-auto">
-                    <h1 className="text-xl font-semibold text-[#f4f4f5] mb-3">Player Marketplace</h1>
+                    <h1 className="text-xl font-semibold text-[var(--color-text)] mb-3">Player Marketplace</h1>
                     <div className="flex items-center gap-3 flex-wrap">
                         {/* Type filter pills */}
                         <div className="flex gap-1.5">
@@ -145,8 +147,8 @@ export const MarketplacePage = () => {
                                     onClick={() => { setTypeFilter(t); setPage(0); }}
                                     className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
                                         typeFilter === t
-                                            ? 'bg-[#16a34a] text-white'
-                                            : 'bg-[rgba(255,255,255,0.05)] text-[#a1a1aa] hover:text-[#f4f4f5]'
+                                            ? 'bg-[var(--color-accent)] text-[var(--color-on-accent)]'
+                                            : 'bg-[color-mix(in_srgb,_var(--color-ink)_5%,_transparent)] text-[var(--color-secondary)] hover:text-[var(--color-text)]'
                                     }`}
                                 >
                                     {t === 'ALL' ? 'All Types' : t.replace(/_/g, ' ')}
@@ -155,13 +157,13 @@ export const MarketplacePage = () => {
                         </div>
                         {/* Search */}
                         <div className="relative flex-1 min-w-[200px] max-w-sm">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#71717a]" />
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-secondary)]" />
                             <input
                                 type="text"
                                 value={search}
                                 onChange={e => { setSearch(e.target.value); setPage(0); }}
                                 placeholder="Search players..."
-                                className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-[#26282d] bg-[#0f1117] text-sm text-[#f4f4f5] outline-none focus:border-[#16a34a] placeholder:text-[#71717a]"
+                                className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)] placeholder:text-[var(--color-secondary)]"
                             />
                         </div>
                     </div>
@@ -173,7 +175,7 @@ export const MarketplacePage = () => {
                 {loading ? (
                     <PageSpinner />
                 ) : error ? (
-                    <p className="text-sm text-[#d4737a] py-10 text-center">{error}</p>
+                    <p className="text-sm text-[var(--color-danger)] py-10 text-center">{error}</p>
                 ) : listings.length === 0 ? (
                     <EmptyStateCard
                         icon={Users}
@@ -193,7 +195,7 @@ export const MarketplacePage = () => {
                             {listings.map(player => (
                                 <div
                                     key={player.listingId}
-                                    className="rounded-xl border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] p-4 hover:border-[#ffffff15] transition-colors"
+                                    className="rounded-xl border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[color-mix(in_srgb,_var(--color-ink)_2%,_transparent)] p-4 hover:border-[color-mix(in_srgb,_var(--color-border)_8.24%,_transparent)] transition-colors"
                                 >
                                     {/* Player identity */}
                                     <div className="flex items-center gap-3 mb-3">
@@ -203,8 +205,8 @@ export const MarketplacePage = () => {
                                             size="md"
                                         />
                                         <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-[#f4f4f5] truncate">{player.fullName}</p>
-                                            <p className="text-xs text-[#71717a]">
+                                            <p className="text-sm font-semibold text-[var(--color-text)] truncate">{player.fullName}</p>
+                                            <p className="text-xs text-[var(--color-secondary)]">
                                                 {player.position || 'Unknown'}
                                                 {player.age != null ? ` · ${player.age}y` : ''}
                                                 {player.currentClubName ? ` · ${player.currentClubName}` : ''}
@@ -214,17 +216,17 @@ export const MarketplacePage = () => {
 
                                     {/* Agent info with trust signals */}
                                     <div className="mb-3">
-                                        <div className="text-xs text-[#71717a] mb-1">
+                                        <div className="text-xs text-[var(--color-secondary)] mb-1">
                                             Represented by{' '}
-                                            <span className="font-medium text-[#a1a1aa]">
+                                            <span className="font-medium text-[var(--color-secondary)]">
                                                 {player.agencyName || 'Unknown Agent'}
                                                 {player.agentVerified && (
-                                                    <span className="ml-1 text-[10px] text-[#16a34a]">✓</span>
+                                                    <span className="ml-1 text-[10px] text-[var(--color-accent)]">✓</span>
                                                 )}
                                             </span>
                                         </div>
                                         {/* LinkedIn-style connection counts */}
-                                        <div className="flex items-center gap-3 text-[11px] text-[#71717a]">
+                                        <div className="flex items-center gap-3 text-[11px] text-[var(--color-secondary)]">
                                             {player.playersRepresented != null && player.playersRepresented > 0 && (
                                                 <span className="flex items-center gap-1">
                                                     <Users className="w-3 h-3" />
@@ -238,7 +240,7 @@ export const MarketplacePage = () => {
                                                 </span>
                                             )}
                                             {player.mutualConnections != null && player.mutualConnections > 0 && (
-                                                <span className="flex items-center gap-1 text-[#16a34a]">
+                                                <span className="flex items-center gap-1 text-[var(--color-accent)]">
                                                     <ShieldCheck className="w-3 h-3" />
                                                     {player.mutualConnections} mutual
                                                 </span>
@@ -248,25 +250,25 @@ export const MarketplacePage = () => {
 
                                     {/* Description */}
                                     {player.description && (
-                                        <p className="text-xs text-[#71717a] mb-3 line-clamp-2">{player.description}</p>
+                                        <p className="text-xs text-[var(--color-secondary)] mb-3 line-clamp-2">{player.description}</p>
                                     )}
 
                                     {/* Footer */}
                                     <div className="flex items-center justify-between">
-                                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${TYPE_COLORS[player.availabilityType] || 'bg-[#71717a]/10 text-[#71717a]'}`}>
+                                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${TYPE_COLORS[player.availabilityType] || 'bg-[var(--color-inset)]/10 text-[var(--color-secondary)]'}`}>
                                             {player.availabilityType.replace(/_/g, ' ')}
                                         </span>
                                         {isAuthenticated ? (
                                             <button
                                                 onClick={() => myClubId ? setInterestListing(player) : navigate(`/messages?chatWith=${player.agentUserId}`)}
-                                                className="text-xs font-semibold text-[#16a34a] hover:text-[#22c55e] transition-colors"
+                                                className="text-xs font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
                                             >
                                                 Express Interest →
                                             </button>
                                         ) : (
                                             <button
                                                 onClick={() => navigate('/login?next=/marketplace')}
-                                                className="text-xs font-semibold text-[#71717a] hover:text-[#a1a1aa] transition-colors"
+                                                className="text-xs font-semibold text-[var(--color-secondary)] hover:text-[var(--color-secondary)] transition-colors"
                                             >
                                                 Sign in to contact →
                                             </button>
@@ -289,34 +291,34 @@ export const MarketplacePage = () => {
 
                 {/* M13: Express Interest Modal */}
                 {interestListing && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setInterestListing(null)}>
-                        <div className="bg-[#0f1117] border border-[#26282d] rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--color-overlay)]/60" onClick={() => setInterestListing(null)}>
+                        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-sm font-semibold text-[#f4f4f5]">Express Interest</h3>
-                                <button onClick={() => setInterestListing(null)} className="text-[#71717a] hover:text-[#a1a1aa]">
+                                <h3 className="text-sm font-semibold text-[var(--color-text)]">Express Interest</h3>
+                                <button onClick={() => setInterestListing(null)} className="text-[var(--color-secondary)] hover:text-[var(--color-secondary)]">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
-                            <p className="text-xs text-[#a1a1aa] mb-3">
-                                You're expressing interest in <span className="text-[#f4f4f5] font-medium">{interestListing.fullName}</span> — listed as {interestListing.availabilityType.replace(/_/g, ' ')}
+                            <p className="text-xs text-[var(--color-secondary)] mb-3">
+                                You're expressing interest in <span className="text-[var(--color-text)] font-medium">{interestListing.fullName}</span> — listed as {interestListing.availabilityType.replace(/_/g, ' ')}
                             </p>
                             <textarea
                                 value={interestMessage}
                                 onChange={e => setInterestMessage(e.target.value)}
                                 placeholder="Add a message for the agent... (optional)"
-                                className="w-full bg-[#16181d] border border-[#26282d] rounded-xl px-3 py-2 text-sm text-[#f4f4f5] placeholder-[#71717a] resize-none h-20 mb-4 focus:outline-none focus:border-[#16a34a]/50"
+                                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] resize-none h-20 mb-4 focus:outline-none focus:border-[var(--color-accent)]/50"
                             />
                             <div className="flex justify-end gap-2">
                                 <button
                                     onClick={() => setInterestListing(null)}
-                                    className="px-4 py-2 text-xs font-medium text-[#a1a1aa] hover:text-[#f4f4f5]"
+                                    className="px-4 py-2 text-xs font-medium text-[var(--color-secondary)] hover:text-[var(--color-text)]"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={() => handleExpressInterest(interestListing)}
                                     disabled={interestSubmitting}
-                                    className="px-4 py-2 text-xs font-semibold bg-[#16a34a] text-white rounded-xl hover:bg-[#22c55e] disabled:opacity-50"
+                                    className="px-4 py-2 text-xs font-semibold bg-[var(--color-accent)] text-[var(--color-on-accent)] rounded-xl hover:bg-[var(--color-accent)] disabled:opacity-50"
                                 >
                                     {interestSubmitting ? 'Submitting...' : 'Express Interest'}
                                 </button>

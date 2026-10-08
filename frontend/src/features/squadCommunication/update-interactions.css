@@ -1,0 +1,33 @@
+.update-interactions { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--fc-border); }
+.squad-announcements .squad-message>.update-interactions { grid-column: 2; min-width: 0; }
+.update-acknowledgers { position: relative; width: fit-content; max-width: 100%; margin-bottom: 8px; }
+.squad-page .update-interactions .update-ack-line { color: var(--fc-text-secondary); border: 0; padding: 2px 0; min-height: 28px; font-weight: 400; border-radius: 3px; }
+.squad-page .update-ack-line:hover { text-decoration: underline; text-underline-offset: 3px; }
+.update-people-popover { position: absolute; z-index: 20; left: 0; top: 100%; width: 280px; max-width: 65vw; max-height: 240px; overflow: auto; padding: 14px; background: var(--fc-card-bg); color: var(--fc-text-primary); border: 1px solid var(--fc-border); border-radius: 10px; box-shadow: 0 6px 22px color-mix(in srgb, var(--color-shadow) 13.33%, transparent); font-size: 12px; }
+.update-people-popover ul { list-style: none; padding: 0; margin: 8px 0 0; }
+.update-people-popover li { display: flex; align-items: center; gap: 9px; padding: 6px 0; }
+.update-person-avatar { display: grid; place-items: center; flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--fc-surface-hover); color: var(--fc-text-secondary); font-size: 11px; font-weight: 650; }
+.update-social-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.squad-page .update-interactions :is(.update-reaction,.update-add-reaction,.update-comments-toggle) { min-height: 30px; padding: 4px 10px; border-radius: 20px; font-size: 12px; color: var(--fc-text-secondary); }
+.squad-page .update-interactions button[aria-pressed=true] { background: var(--fc-accent-soft); color: var(--fc-accent); border-color: var(--fc-accent); }
+.squad-page .update-interactions .update-comments-toggle { border-color: transparent; }
+.squad-page .update-comments-toggle[aria-expanded=true] { color: var(--fc-accent); background: var(--fc-accent-soft); }
+.update-reaction-picker { position: relative; }
+.update-emoji-picker { position: absolute; z-index: 21; bottom: calc(100% + 5px); left: 0; display: grid; grid-template-columns: repeat(4,36px); gap: 3px; padding: 7px; border: 1px solid var(--fc-border); border-radius: 10px; background: var(--fc-card-bg); box-shadow: 0 6px 22px color-mix(in srgb, var(--color-shadow) 13.33%, transparent); }
+.squad-page .update-interactions .update-emoji-picker button { padding: 4px; min-height: 36px; border-color: transparent; font-size: 18px; }
+.squad-page .update-interactions .update-emoji-picker button:hover { background: var(--fc-surface-hover); }
+.update-comments { border-top: 1px solid var(--fc-border); margin-top: 12px; padding-top: 12px; }
+.squad-page .update-comments :is(.update-comments-audience,.update-comments-empty) { color: var(--fc-text-secondary); font-size: 12px; margin: 0 0 14px; }
+.update-comment { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--fc-border); }
+.update-comment>div { min-width: 0; flex: 1; }
+.squad-page .update-comment p { margin: 5px 0 0; font-size: 13px; white-space: pre-wrap; }
+.squad-page .update-interactions .update-comment button { min-height: 26px; padding: 4px; margin-left: auto; border: 0; color: var(--fc-text-secondary); }
+.update-comments form { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.squad-page .update-comments textarea { min-height: 66px; }
+.update-comments form>button { align-self: flex-end; }
+@media(max-width:600px) {
+ .update-social-actions { position: relative; }
+ .update-reaction-picker { position: static; }
+ .update-emoji-picker { left: 0; right: auto; }
+ .update-people-popover { max-width: min(65vw, 100% + 36px); }
+}

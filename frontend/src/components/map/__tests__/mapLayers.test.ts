@@ -7,6 +7,24 @@ import {
 } from '../mapLayers';
 
 describe('map layer styling', () => {
+    it('can omit decorative terrain while preserving street and label layers and the warm palette', () => {
+        const original = { version: 8, sources: { openmaptiles: { type: 'vector' } }, layers: [
+            { id: 'background', type: 'background', paint: { 'background-color': '#eee' } },
+            { id: 'water', type: 'fill', paint: { 'fill-color': '#aaa' } },
+            { id: 'highway-primary', type: 'line', source: 'openmaptiles', paint: { 'line-color': '#ccc' } },
+            { id: 'place-label', type: 'symbol', source: 'openmaptiles', layout: { 'text-field': ['get', 'name'] },
+                paint: { 'text-color': '#000', 'text-halo-color': '#fff' } },
+        ] };
+        const result = withHeritagePaints(original, { includeTerrain: false });
+        expect(result.layers.map(layer => layer.id)).toEqual(original.layers.map(layer => layer.id));
+        expect(result.sources).toEqual(original.sources);
+        expect(result.sources).not.toHaveProperty('atlas-elevation');
+        expect(result.layers.find(layer => layer.id === 'water')?.paint['fill-color']).toBe('#506a6b');
+        expect(result.layers.find(layer => layer.id === 'place-label')?.layout).toEqual(original.layers[3].layout);
+        expect(result.layers.find(layer => layer.id === 'highway-primary')?.source).toBe('openmaptiles');
+        expect(original.layers[1].paint['fill-color']).toBe('#aaa');
+    });
+
     it('keeps real relief and woods available at world zoom without recoloring water or mutating the source', () => {
         const original = { version: 8, sources: { openmaptiles: { type: 'vector' } }, layers: [
             { id: 'background', type: 'background', paint: { 'background-color': '#eee' } },

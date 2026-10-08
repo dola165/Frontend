@@ -1,0 +1,5 @@
+[
+  "frontend:src/components/layout/connectedWorkspaces.ts",
+  "frontend:src/components/layout/ConnectedWork.tsx",
+  "frontend:src/components/layout/connected-work.css"
+]

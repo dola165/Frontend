@@ -1,3 +1,5 @@
+vi.mock('../../paymentPreview/config', () => ({ paymentPreviewEnabled: () => false }));
+import type { ImgHTMLAttributes } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,7 +9,7 @@ import { StoreCartPage } from '../../../pages/StoreCartPage';
 import { StoreTab } from '../../../components/workspace/tabs/StoreTab';
 import { addCartItem, readCart, saveCart } from '../cart';
 import * as api from '../api';
-vi.mock('../api', async original => ({ ...await original<typeof import('../api')>(), fetchStoreLocations: vi.fn(), fetchStoreProduct: vi.fn(), fetchStoreCatalog: vi.fn(), fetchAllClubStoreProducts: vi.fn(), updateStoreProduct: vi.fn(), fetchCartQuote: vi.fn() }));
+vi.mock('../api', async original => ({ ...await original<typeof import('../api')>(), deleteStoreProduct: vi.fn(), fetchStoreLocations: vi.fn(), fetchStoreProduct: vi.fn(), fetchStoreCatalog: vi.fn(), fetchAllClubStoreProducts: vi.fn(), updateStoreProduct: vi.fn(), fetchCartQuote: vi.fn() }));
 vi.mock('../../../api/axiosConfig', () => ({ DEPLOYMENT_URLS: {mediaBaseUrl: 'http://localhost:8080'}, apiClient: { get: vi.fn(async () => ({data: {name: 'Alpha FC'}})) } }));
 const product = {id: 1, clubId: 10, clubName: 'Alpha FC', name: 'Home shirt', price: 12.34, currency: 'GEL', version: 3, active: true, variants: [{id: 7, label: 'M', stock: 5}]};
 const item = {variantId:7,quantity:2,productId:1,name:'Home shirt',variant:'M',clubId:10,currency:'GEL'};
@@ -83,7 +85,7 @@ describe('Store safety and recovery', () => {
         expect(screen.getByLabelText('City')).toBeDisabled();
     });
     it('switches gallery photos and sizes without allowing an unavailable variant into the cart', async () => {
-        vi.mocked(api.fetchStoreProduct).mockResolvedValue({...product, images:['/uploads/first.jpg','/uploads/second.jpg'], variants:[{id:7,label:'M',stock:5},{id:8,label:'L',stock:2},{id:9,label:'XL',stock:0}]});
+        vi.mocked(api.fetchStoreProduct).mockResolvedValue({...product, clubWhatsappNumber:'+995 555 123 456', clubEmail:'shop@alpha.test', images:['/uploads/first.jpg','/uploads/second.jpg'], variants:[{id:7,label:'M',stock:5},{id:8,label:'L',stock:2},{id:9,label:'XL',stock:0}]});
         render(<MemoryRouter initialEntries={['/store/products/1']}><Routes><Route path="/store/products/:id" element={<StoreProductPage/>}/></Routes></MemoryRouter>);
         await screen.findByRole('heading',{name:'Home shirt'});
         fireEvent.click(screen.getByRole('button',{name:'View photo 2'}));
@@ -95,6 +97,9 @@ describe('Store safety and recovery', () => {
         expect(screen.getByRole('button',{name:'XL - out of stock'})).toBeDisabled();
         fireEvent.click(screen.getByRole('button',{name:'Add to cart'}));
         expect(readCart()[0]).toEqual(expect.objectContaining({variantId:8,quantity:1}));
+        expect(screen.getByText(/does not reserve stock, place an order, or take payment/)).toBeInTheDocument();
+        expect(screen.getByRole('link',{name:'Ask via WhatsApp'})).toHaveAttribute('href',expect.stringContaining(encodeURIComponent('Home shirt · L × 1')));
+        expect(screen.getByRole('link',{name:'Email product enquiry'})).toHaveAttribute('href',expect.stringContaining(encodeURIComponent('Product enquiry: Home shirt · L × 1')));
     });
     it('removes an obsolete quote on failed recheck while retaining the cart', async () => {
         saveCart([item]);
@@ -107,4 +112,40 @@ describe('Store safety and recovery', () => {
         expect(readCart()[0].quantity).toBe(3);
         expect(screen.getByRole('button',{name:'Checkout unavailable'})).toBeDisabled();
     });
+
+    it('states that a cart is not a commitment and preserves line context for the club handoff', async () => {
+        saveCart([item]);
+        vi.mocked(api.fetchCartQuote).mockResolvedValue({clubId:10,clubName:'Alpha FC',currency:'GEL',lines:[{...item,unitAmount:1234,lineAmount:2468}],subtotal:2468,checkoutEnabled:false,message:'Unavailable'});
+        render(<MemoryRouter><StoreCartPage/></MemoryRouter>);
+        expect(await screen.findByText(/does not reserve this stock, place an order, or take payment/)).toBeInTheDocument();
+        expect(screen.getByText('Home shirt · M × 2')).toBeInTheDocument();
+        expect(screen.getByRole('link',{name:'Contact Alpha FC about this cart'})).toHaveAttribute('href','/clubs/10?tab=contact');
+        expect(screen.getByRole('button',{name:'Checkout unavailable'})).toBeDisabled();
+    });
+});
+
+// These suites test gallery selection; authenticated byte delivery has its own component and HTTP coverage.
+vi.mock('../../../components/ui/MediaImage', () => ({ MediaImage: (props: ImgHTMLAttributes<HTMLImageElement>) => <img {...props} /> }));
+
+it('rejects stale archive and requires a new confirmation after loading the newer product', async () => {
+    vi.mocked(api.fetchAllClubStoreProducts).mockResolvedValue([product]);
+    vi.mocked(api.deleteStoreProduct).mockRejectedValueOnce({response:{status:409,data:{error:'Product changed; it was not archived.'}}}).mockResolvedValueOnce(undefined);
+    render(<MemoryRouter><StoreTab clubId={10}/></MemoryRouter>);
+    fireEvent.click(await screen.findByRole('button',{name:'Archive Home shirt'}));
+    expect(api.deleteStoreProduct).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button',{name:'Confirm archive'}));
+    await screen.findByRole('alert');
+    expect(api.deleteStoreProduct).toHaveBeenLastCalledWith(10,1,3);
+    expect(screen.queryByText('Product archived.')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading',{name:'Home shirt'})).toBeInTheDocument();
+    vi.mocked(api.fetchAllClubStoreProducts).mockResolvedValue([{...product,version:4,name:'New kit'}]);
+    fireEvent.click(screen.getByRole('button',{name:'Reload products'}));
+    await screen.findByRole('heading',{name:'New kit'});
+    expect(screen.queryByRole('button',{name:'Confirm archive'})).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'Archive New kit'}));
+    vi.mocked(api.fetchAllClubStoreProducts).mockResolvedValue([]);
+    fireEvent.click(screen.getByRole('button',{name:'Confirm archive'}));
+    await screen.findByText('Product archived.');
+    expect(api.deleteStoreProduct).toHaveBeenLastCalledWith(10,1,4);
+    await waitFor(()=>expect(screen.queryByRole('heading',{name:'New kit'})).not.toBeInTheDocument());
 });

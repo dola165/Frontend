@@ -1,3 +1,4 @@
+import { visualColors } from '../../styles/visualColors';
 // Pure config for the map point layers (no React).
 // Basemap: OpenFreeMap positron is the shared light foundation. The explicit
 // dark URL below is kept as a resilient fallback when client-side recoloring
@@ -8,40 +9,44 @@ export const MAP_STYLE_DARK = 'https://tiles.openfreemap.org/styles/dark';
 // Google-Maps-inspired marker set: calm blue cluster/select accent, warm
 // multi-hue data colors that stay distinguishable on the light basemap.
 export const MAP_ENTITY_COLORS: Record<string, string> = {
-  CLUB: '#15803d', TRYOUT: '#d97706', MATCH: '#e11d48', TOURNAMENT: '#4f46e5'
+  STADIUM: visualColors.mapLayersPaint102, CLUB: visualColors.mapLayersPaint103, TRYOUT: visualColors.mapLayersPaint104, MATCH: visualColors.mapLayersPaint105, TOURNAMENT: visualColors.mapLayersPaint106
 };
-export const MAP_ACCENT = '#047857';
+export const MAP_ACCENT = visualColors.shortcutEmblemPaint66;
 /** Unsaturated Browns inspiration: warm mineral ground, sage vegetation, deep estuary water. */
-export const withHeritagePaints = <T extends MapStyleObject>(style: T): T => {
+export const withHeritagePaints = <T extends MapStyleObject>(style: T, { includeTerrain = true } = {}): T => {
     const result = structuredClone(style);
     for (const layer of result.layers ?? []) {
         const paint = layer.paint ?? (layer.paint = {});
         const id = layer.id.toLowerCase();
-        if (layer.type === 'background') paint['background-color'] = '#e9e2d8';
+        if (layer.type === 'background') paint['background-color'] = visualColors.mapLayersPaint107;
         if (layer.type === 'fill') {
-            paint['fill-color'] = /water/.test(id) ? '#506a6b'
-                : /building/.test(id) ? '#c8bbab'
-                : /ice|glacier/.test(id) ? '#fffef8'
-                : /wood|forest/.test(id) ? '#a5b899'
-                : /park|grass|garden|pitch|landcover/.test(id) ? '#b9c8aa'
-                : /sand/.test(id) ? '#e6d9bd'
-                : /residential/.test(id) ? '#f5f1e9' : '#e4dbce';
+            paint['fill-color'] = /water/.test(id) ? visualColors.mapLayersPaint108
+                : /building/.test(id) ? visualColors.mapLayersPaint109
+                : /ice|glacier/.test(id) ? visualColors.mapLayersPaint110
+                : /wood|forest/.test(id) ? visualColors.mapLayersPaint111
+                : /park|grass|garden|pitch|landcover/.test(id) ? visualColors.mapLayersPaint112
+                : /sand/.test(id) ? visualColors.mapLayersPaint113
+                : /residential/.test(id) ? visualColors.mapLayersPaint114 : visualColors.mapLayersPaint115;
             // Positron hides woods below z10, despite generalized woods being available.
             if (/wood|forest/.test(id)) layer.minzoom = 0;
             if (/water|park|grass|wood|forest/.test(id)) paint['fill-opacity'] = 1;
-            if (/building/.test(id)) { paint['fill-opacity'] = .65; paint['fill-outline-color'] = '#b8aa97'; }
+            if (/building/.test(id)) { paint['fill-opacity'] = .65; paint['fill-outline-color'] = visualColors.mapLayersPaint116; }
         }
         if (layer.type === 'line') {
-            paint['line-color'] = /water/.test(id) ? '#506a6b' : /boundary/.test(id) ? '#a99b8b'
-                : /casing/.test(id) ? '#b9a68e' : /motorway|trunk/.test(id) ? '#ad9576'
-                : /path|track/.test(id) ? '#9eaa82' : /rail/.test(id) ? '#aea698' : '#ffffff';
+            paint['line-color'] = /water/.test(id) ? visualColors.mapLayersPaint108 : /boundary/.test(id) ? visualColors.mapLayersPaint117
+                : /casing/.test(id) ? visualColors.mapLayersPaint118 : /motorway|trunk/.test(id) ? visualColors.mapLayersPaint119
+                : /path|track/.test(id) ? visualColors.mapLayersPaint120 : /rail/.test(id) ? visualColors.mapLayersPaint121 : visualColors.paper;
         }
         if (layer.type === 'symbol') {
-            if (paint['text-color'] !== undefined) paint['text-color'] = /water/.test(id) ? '#e4eeea' : /park/.test(id) ? '#4d6546' : '#5b594e';
-            if (paint['text-halo-color'] !== undefined) paint['text-halo-color'] = /water/.test(id) ? '#506a6b' : '#f0ebe2';
+            if (paint['text-color'] !== undefined) paint['text-color'] = /water/.test(id) ? visualColors.mapLayersPaint122 : /park/.test(id) ? visualColors.mapLayersPaint123 : visualColors.mapLayersPaint124;
+            if (paint['text-halo-color'] !== undefined) paint['text-halo-color'] = /water/.test(id) ? visualColors.mapLayersPaint108 : visualColors.mapLayersPaint125;
             if (paint['text-halo-width'] !== undefined) paint['text-halo-width'] = 1.3;
         }
     }
+    // Phones keep the same streets, labels and palette without fetching and
+    // rendering a second tile set solely for decorative elevation shading.
+    if (!includeTerrain) return result;
+
     // Real DEM elevation provides continuous regional relief even where vector
     // landcover is sparse. A shared source keeps the two terrain layers economical.
     result.sources = { ...(result.sources as Record<string, unknown> ?? {}), 'atlas-elevation': {
@@ -53,13 +58,13 @@ export const withHeritagePaints = <T extends MapStyleObject>(style: T): T => {
     const terrain: MapStyleLayer[] = [
         { id: 'atlas-elevation-colors', type: 'color-relief', source: 'atlas-elevation', paint: {
             'color-relief-color': ['interpolate', ['linear'], ['elevation'],
-                -500, '#d6dfc5', 0, '#ced9bb', 350, '#bdc9aa', 800, '#c4c4a5',
-                1400, '#c4b697', 2200, '#b39b7e', 3200, '#d6c8b7', 4300, '#faf9f1', 6500, '#ffffff'],
+                -500, visualColors.mapLayersPaint126, 0, visualColors.mapLayersPaint127, 350, visualColors.mapLayersPaint128, 800, visualColors.mapLayersPaint129,
+                1400, visualColors.mapLayersPaint130, 2200, visualColors.mapLayersPaint131, 3200, visualColors.mapLayersPaint132, 4300, visualColors.mapLayersPaint133, 6500, visualColors.paper],
             'color-relief-opacity': ['interpolate', ['linear'], ['zoom'], 0, .65, 7, .62, 10, .34, 13, .12, 16, .06]
         } },
         { id: 'atlas-hillshade', type: 'hillshade', source: 'atlas-elevation', paint: {
-            'hillshade-shadow-color': '#81654d', 'hillshade-highlight-color': '#ffffff',
-            'hillshade-accent-color': '#a38b68', 'hillshade-illumination-anchor': 'map',
+            'hillshade-shadow-color': visualColors.mapLayersPaint134, 'hillshade-highlight-color': visualColors.paper,
+            'hillshade-accent-color': visualColors.mapLayersPaint135, 'hillshade-illumination-anchor': 'map',
             'hillshade-exaggeration': ['interpolate', ['linear'], ['zoom'], 0, .5, 6, .7, 10, .55, 14, .24]
         } }
     ];
@@ -127,15 +132,15 @@ type MapStyleObject = {
 };
 
 const VIVID_COLORS = {
-    water: '#b7dce8',
-    waterway: '#8fc5d8',
-    motorway: '#efc36d',
-    primary: '#ffffff',
-    secondary: '#f8fafc',
-    tertiary: '#e5e7eb',
-    minor: '#d7dce1',
-    boundary: '#8b98a7',
-    building: '#dfe5e8'
+    water: visualColors.mapLayersPaint136,
+    waterway: visualColors.mapLayersPaint137,
+    motorway: visualColors.mapLayersPaint138,
+    primary: visualColors.paper,
+    secondary: visualColors.mapLayersPaint139,
+    tertiary: visualColors.mapLayersPaint140,
+    minor: visualColors.mapLayersPaint141,
+    boundary: visualColors.mapLayersPaint142,
+    building: visualColors.mapLayersPaint143
 } as const;
 
 // Scale a line-width that is either a constant or a zoom interpolate. Only the
@@ -233,44 +238,44 @@ export const withDarkPaints = <T extends MapStyleObject>(style: T): T => {
         const id = layer.id.toLocaleLowerCase();
 
         if (layer.type === 'background') {
-            paint['background-color'] = '#11171d';
+            paint['background-color'] = visualColors.mapLayersPaint144;
             continue;
         }
 
         if (layer.type === 'fill') {
             paint['fill-color'] = id.includes('water')
-                ? '#173c4b'
+                ? visualColors.mapLayersPaint145
                 : id.includes('building')
-                    ? '#2b3239'
+                    ? visualColors.mapLayersPaint146
                     : /(park|grass|wood|forest|landcover)/.test(id)
-                        ? '#182a24'
-                        : '#181e24';
-            if (paint['fill-outline-color'] !== undefined) paint['fill-outline-color'] = '#343d46';
+                        ? visualColors.mapLayersPaint147
+                        : visualColors.mapLayersPaint148;
+            if (paint['fill-outline-color'] !== undefined) paint['fill-outline-color'] = visualColors.mapLayersPaint149;
             continue;
         }
 
         if (layer.type === 'line') {
             paint['line-color'] = id.includes('water')
-                ? '#2d6275'
+                ? visualColors.mapLayersPaint150
                 : id.includes('boundary')
-                    ? '#66727f'
+                    ? visualColors.mapLayersPaint151
                     : /(motorway|trunk)/.test(id)
-                        ? '#8d7543'
+                        ? visualColors.mapLayersPaint152
                         : /(highway|road|street|transport)/.test(id)
-                            ? '#48515a'
-                            : '#36414a';
+                            ? visualColors.mapLayersPaint153
+                            : visualColors.mapLayersPaint154;
             continue;
         }
 
         if (layer.type === 'symbol') {
-            if (paint['text-color'] !== undefined) paint['text-color'] = '#dbe2e8';
-            if (paint['text-halo-color'] !== undefined) paint['text-halo-color'] = '#11171d';
+            if (paint['text-color'] !== undefined) paint['text-color'] = visualColors.mapLayersPaint155;
+            if (paint['text-halo-color'] !== undefined) paint['text-halo-color'] = visualColors.mapLayersPaint144;
             if (paint['text-halo-width'] !== undefined) paint['text-halo-width'] = 1.25;
             continue;
         }
 
         if (layer.type === 'fill-extrusion') {
-            paint['fill-extrusion-color'] = '#2b3239';
+            paint['fill-extrusion-color'] = visualColors.mapLayersPaint146;
             continue;
         }
 

@@ -1,237 +1,68 @@
-import { useEffect, useState } from 'react';
+import { ClubPreviewQueryContext, useClubProfileSearchParams } from '../../../features/clubs/clubProfilePreviewContext';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { ArrowRight, Crown, Loader2, UserRound, UsersRound } from 'lucide-react';
+import { ArrowRight, Users, Search, LayoutGrid, List, Network } from 'lucide-react';
 import { apiClient } from '../../../api/axiosConfig';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
+import { MediaImage } from '../../ui/MediaImage';
+import { staffMatchesSquad, staffTitle, type PublicStaff, type PublicResponsibility } from '../../../features/clubs/publicJourney';
 import type { ClubManagementTab } from '../ClubManagementModal';
+import '../club-public.css';
+import '../club-profile-refinement.css';
 
-interface ClubStaffMember {
-    userId: number;
-    fullName: string;
-    avatarUrl?: string | null;
-    role: string;
-    bio?: string | null;
-    title?: string | null;
+const areas = [{ id: '', name: 'Everyone' }, { id: 'coaching', name: 'Coaching' }, { id: 'analysis', name: 'Analysis & scouting' }, { id: 'performance', name: 'Sports science' }, { id: 'care', name: 'Medical & player care' }, { id: 'operations', name: 'Club operations' }, { id: 'officials', name: 'Match officials' }];
+const responsibilityAreas = (codes: string[]) => {
+  const roles = codes.join(' '), result: string[] = [];
+  if (/COACH|STRENGTH/.test(roles)) result.push('coaching');
+  if (/ANALYST|ANALYSIS|SCOUT/.test(roles)) result.push('analysis');
+  if (/SPORTS_SCIEN|STRENGTH|NUTRITION|PERFORMANCE_DIRECTOR/.test(roles)) result.push('performance');
+  if (/PHYSIO|MEDICAL|THERAP|REHABILITATION|NUTRITION|WELFARE/.test(roles)) result.push('care');
+  if (/REFEREE/.test(roles)) result.push('officials');
+  if (/MANAGER|SECRETARY|FINANCE|EQUIPMENT|EDUCATION|TEAM_SUPPORT/.test(roles) || !result.length) result.push('operations');
+  return result;
+};
+const staffAreas = (person: PublicStaff) => person.responsibilities.length
+  ? [...new Set(person.responsibilities.flatMap(r => responsibilityAreas(r.specialisations)))]
+  : person.role === 'COACH' ? ['coaching'] : ['operations'];
+const scopeLabel = (r: PublicResponsibility) => r.clubWide ? 'Across the club' : r.squadNames?.length ? r.squadNames.join(' · ') : r.squadName ?? 'Across the club';
+function Avatar({ person }: { person: PublicStaff }) {
+  return person.avatarUrl ? <MediaImage className="cp-avatar" src={resolveMediaUrl(person.avatarUrl)} alt=""/> : <span className="cp-avatar" aria-hidden="true">{person.fullName.split(' ').filter(n => n !== '·').slice(0, 2).map(n => n[0]).join('')}</span>;
 }
-
-interface TabPeopleProps {
-    clubId: number;
-    clubName: string;
-    isOwnClubAdmin: boolean;
-    onOpenManageClub?: (tab: ClubManagementTab) => void;
+function Responsibilities({ items }: { items: PublicResponsibility[] }) {
+  return <ul className="cp-responsibilities" aria-label="Published responsibilities">{items.map((r, i) => <li key={`${r.title}-${i}`}><strong>{r.title}</strong><span>{scopeLabel(r)}</span>{r.endsOn && <small>Until {r.endsOn}</small>}</li>)}</ul>;
 }
-
-const publicClubTitleKey = (role: string): string => {
-    switch (role) {
-        case 'OWNER':
-            return 'clubPeople.presidentOwner';
-        case 'CLUB_ADMIN':
-            return 'clubPeople.clubDirector';
-        case 'COACH':
-            return 'clubPeople.coach';
-        default:
-            return role;
-    }
-};
-
-const roleChipClass: Record<string, string> = {
-    OWNER: 'border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green-soft)] text-[color:var(--club-tone-green)]',
-    CLUB_ADMIN: 'border-[color:var(--club-tone-blue-border)] bg-[color:var(--club-tone-blue-soft)] text-[color:var(--club-tone-blue)]',
-    COACH: 'border-[color:var(--club-tone-cyan-border)] bg-[color:var(--club-tone-cyan-soft)] text-[color:var(--club-tone-cyan)]',
-};
-
-const initialsFrom = (name: string) =>
-    name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'GK';
-
-const StaffCard = ({ member, featured }: { member: ClubStaffMember; featured?: boolean }) => {
-    const { t } = useTranslation();
-    const avatarUrl = resolveMediaUrl(member.avatarUrl);
-    const displayName = member.fullName || 'Club Staff';
-    const chipClass = roleChipClass[member.role] ?? 'border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-base)] text-[color:var(--club-theme-text-secondary)]';
-
-    return (
-        <article
-            className={`group relative overflow-hidden rounded-2xl border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] p-5 transition-all hover:border-[color:var(--club-theme-border-strong)] hover:shadow-[0_10px_28px_rgba(2,6,12,0.22)] ${featured ? 'sm:col-span-2' : ''}`}
-        >
-            <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[radial-gradient(circle,rgba(34,197,94,0.10),transparent_65%)]" />
-
-            <div className="relative flex items-center gap-4">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-base)] text-lg font-bold text-[color:var(--club-theme-text-primary)] ring-1 ring-white/[0.04]">
-                    {avatarUrl ? (
-                        <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
-                    ) : (
-                        initialsFrom(displayName)
-                    )}
-                </div>
-                <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-[color:var(--club-theme-text-primary)]">{displayName}</p>
-                    <span className={`mt-1.5 inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${chipClass}`}>
-                        {member.title?.trim() ? member.title.trim() : t(publicClubTitleKey(member.role))}
-                    </span>
-                </div>
-            </div>
-
-            {member.bio && (
-                <p className="relative mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)] line-clamp-3">
-                    {member.bio}
-                </p>
-            )}
-
-            <Link
-                to={`/profile/${member.userId}`}
-                className="relative mt-4 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[color:var(--club-tone-green)] transition-colors hover:text-[color:var(--club-tone-green)]/80 hover:underline"
-            >
-                {t('clubPeople.viewProfile')}
-                <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-        </article>
-    );
-};
-
-export const TabPeople = ({ clubId, clubName, isOwnClubAdmin, onOpenManageClub }: TabPeopleProps) => {
-    const { t } = useTranslation();
-    const [staff, setStaff] = useState<ClubStaffMember[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    const loadStaff = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await apiClient.get<ClubStaffMember[]>(`/clubs/${clubId}/staff`);
-            setStaff(Array.isArray(response.data) ? response.data : []);
-        } catch (err) {
-            console.error('Failed to load club staff', err);
-            setError(t('clubPeople.loadFailed'));
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        void loadStaff();
-    }, [clubId]);
-
-    const leadership = staff.filter((member) => member.role === 'OWNER' || member.role === 'CLUB_ADMIN');
-    const coaching = staff.filter((member) => member.role === 'COACH');
-    const others = staff.filter((member) => member.role !== 'OWNER' && member.role !== 'CLUB_ADMIN' && member.role !== 'COACH');
-
-    if (loading) {
-        return (
-            <div className="flex justify-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin text-[color:var(--club-theme-text-muted)]" />
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="flex flex-col items-center gap-4 rounded-2xl border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-6 py-12 text-center">
-                <UsersRound className="h-9 w-9 text-[color:var(--club-tone-pink)]" />
-                <div>
-                    <h3 className="text-base font-semibold text-[color:var(--club-theme-text-primary)]">{t('clubPeople.staffUnavailable')}</h3>
-                    <p className="mt-1 text-sm text-[color:var(--club-theme-text-secondary)]">{error}</p>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => void loadStaff()}
-                    className="inline-flex items-center gap-2 rounded-full border border-[color:var(--club-theme-border-subtle)] bg-white/[0.04] px-4 py-2 text-[11px] font-semibold text-[color:var(--club-theme-text-primary)] hover:bg-white/[0.07]"
-                >
-                    {t('clubPeople.tryAgain')}
-                </button>
-            </div>
-        );
-    }
-
-    if (staff.length === 0) {
-        return (
-            <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-6 py-14 text-center">
-                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[color:var(--club-tone-green-soft)]">
-                    <UserRound className="h-8 w-8 text-[color:var(--club-tone-green)]" />
-                </span>
-                <div>
-                    <h3 className="text-base font-semibold text-[color:var(--club-theme-text-primary)]">{t('clubPeople.emptyTitle', { clubName })}</h3>
-                    <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
-                        {t('clubPeople.emptyBody')}
-                    </p>
-                </div>
-                {isOwnClubAdmin && onOpenManageClub && (
-                    <button
-                        type="button"
-                        onClick={() => onOpenManageClub('personnel')}
-                        className="mt-1 inline-flex items-center gap-2 rounded-full border border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green)] px-5 py-2.5 text-[11px] font-semibold text-[#04110a] transition-all hover:brightness-105"
-                    >
-                        <UsersRound className="h-4 w-4" />
-                        {t('clubPeople.addStaff')}
-                    </button>
-                )}
-            </div>
-        );
-    }
-
-    return (
-        <div className="flex flex-col gap-6">
-            <header className="flex items-end justify-between gap-4">
-                <div>
-                    <h2 className="text-xl font-semibold tracking-[-0.02em] text-[color:var(--club-theme-text-primary)]">{t('clubPeople.title')}</h2>
-                    <p className="mt-1 text-sm text-[color:var(--club-theme-text-secondary)]">
-                        {t('clubPeople.subtitle', { clubName })}
-                    </p>
-                </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-3 py-1 text-xs font-semibold text-[color:var(--club-theme-text-secondary)]">
-                    <UsersRound className="h-3.5 w-3.5" />
-                    {staff.length}
-                </span>
-            </header>
-
-            {leadership.length > 0 && (
-                <section className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2.5">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-green-soft)]">
-                            <Crown className="h-4 w-4 text-[color:var(--club-tone-green)]" />
-                        </span>
-                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[color:var(--club-theme-text-secondary)]">{t('clubPeople.management')}</h3>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        {leadership.map((member) => (
-                            <StaffCard key={member.userId} member={member} featured={leadership.length === 1} />
-                        ))}
-                    </div>
-                </section>
-            )}
-
-            {coaching.length > 0 && (
-                <section className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2.5">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-cyan-soft)]">
-                            <UsersRound className="h-4 w-4 text-[color:var(--club-tone-cyan)]" />
-                        </span>
-                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[color:var(--club-theme-text-secondary)]">{t('clubPeople.coachingStaff')}</h3>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {coaching.map((member) => (
-                            <StaffCard key={member.userId} member={member} />
-                        ))}
-                    </div>
-                </section>
-            )}
-
-            {others.length > 0 && (
-                <section className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2.5">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--club-tone-blue-soft)]">
-                            <UsersRound className="h-4 w-4 text-[color:var(--club-tone-blue)]" />
-                        </span>
-                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[color:var(--club-theme-text-secondary)]">{t('clubPeople.clubStaff')}</h3>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {others.map((member) => (
-                            <StaffCard key={member.userId} member={member} />
-                        ))}
-                    </div>
-                </section>
-            )}
-        </div>
-    );
-};
+function PersonRow({ person, department, compact = false }: { person: PublicStaff; department?: string; compact?: boolean }) {
+  const appointments = department ? person.responsibilities.filter(r => responsibilityAreas(r.specialisations).includes(department)) : person.responsibilities;
+  if (compact) return <article className="cp-structure-person"><Avatar person={person}/><div className="cp-staff-row-content"><Link className="cp-person-name" to={`/profile/${person.userId}`}>{person.fullName}<ArrowRight size={13}/></Link><p className="cp-structure-role">{appointments.length ? [...new Set(appointments.map(r => r.title))].join(' · ') : staffTitle(person)}</p>{(appointments.length > 0 || person.bio) && <details className="cp-structure-details"><summary>Details</summary>{appointments.length > 0 && <Responsibilities items={appointments}/>}<p className="cp-prose">{person.bio}</p>{appointments.some(r => r.provenance === 'RECORDED_APPOINTMENT') && <p>Recorded club appointments · published by the staff member.</p>}</details>}</div></article>;
+  return <article className="cp-staff-row"><Avatar person={person}/><div className="cp-staff-row-content"><Link className="cp-person-name" to={`/profile/${person.userId}`}>{person.fullName}<ArrowRight size={14}/></Link>{appointments.length ? <Responsibilities items={appointments}/> : <p className="cp-muted">{staffTitle(person)}</p>}{(person.bio || appointments.some(r => r.provenance === 'RECORDED_APPOINTMENT')) && <details className="cp-person-bio"><summary>About & appointments</summary>{person.bio && <p className="cp-prose">{person.bio}</p>}{appointments.some(r => r.provenance === 'RECORDED_APPOINTMENT') && <p className="cp-muted">Recorded club appointments · published by the staff member.</p>}</details>}</div></article>;
+}
+export function TabPeople({ clubId, clubName, isOwnClubAdmin }: { clubId: number; clubName: string; isOwnClubAdmin: boolean; onOpenManageClub?: (tab: ClubManagementTab) => void }) {
+  const embedded = useContext(ClubPreviewQueryContext) !== null;
+  const [params, setParams] = useClubProfileSearchParams();
+  const search = params.get('q') ?? '', squad = params.get('squad') ?? '', area = params.get('staff') ?? '';
+  const savedView = params.get('staffView');
+  const view = savedView === 'cards' || savedView === 'list' || savedView === 'structure' ? savedView : embedded ? 'list' : 'structure';
+  const [result, setResult] = useState<{ scope: string; people: PublicStaff[]; error: boolean } | null>(null), [attempt, setAttempt] = useState(0);
+  const scope = `${clubId}:${attempt}`;
+  useEffect(() => {
+    const controller = new AbortController();
+    void apiClient.get<PublicStaff[]>(`/clubs/${clubId}/staff-directory`, { signal: controller.signal })
+      .then(r => { if (!controller.signal.aborted) setResult({ scope, people: r.data, error: false }); })
+      .catch(() => { if (!controller.signal.aborted) setResult({ scope, people: [], error: true }); });
+    return () => controller.abort();
+  }, [clubId, scope]);
+  const people = useMemo(() => result?.scope === scope ? result.people : [], [result, scope]);
+  const squads = [...new Map(people.flatMap(p => p.responsibilities.flatMap(r => (r.squadIds ?? (r.squadId == null ? [] : [r.squadId])).map((id, i) => [id, r.squadNames?.[i] ?? r.squadName ?? 'Training group'] as const)))).entries()];
+  const filtered = people.filter(p => staffMatchesSquad(p, squad) && (!area || staffAreas(p).includes(area)) && `${p.fullName} ${staffTitle(p)} ${p.responsibilities.map(r => `${r.title} ${r.squadNames?.join(' ') ?? r.squadName ?? ''} ${r.specialisations.join(' ')}`).join(' ')}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
+  const filter = (key: string, value: string) => { const next = new URLSearchParams(params); if (value) next.set(key, value); else next.delete(key); setParams(next, { replace: true }); };
+  const clear = () => { const next = new URLSearchParams(params); ['q', 'squad', 'staff'].forEach(k => next.delete(k)); setParams(next, { replace: true }); };
+  return <section className="club-public cp-people"><header className="cp-heading"><div className="cp-heading-title"><span className="cp-section-icon" data-tone="blue"><Users size={26}/></span><div><p className="cp-eyebrow">The people behind the club</p><h2>Coaches & staff</h2><p>Meet the people and see where they contribute at {clubName}.</p></div></div>{isOwnClubAdmin && <Link className="cp-button" to={`/clubs/${clubId}/workspace?tab=staff-duties`}>Manage staff<ArrowRight size={16}/></Link>}</header>
+    {result?.scope !== scope ? <p role="status">Loading staff…</p> : result.error ? <p role="alert">The staff directory could not load. <button type="button" className="cp-text-button" onClick={() => setAttempt(v => v + 1)}>Try again</button></p> : <>
+      {people.length > 0 && <><div className="cp-people-toolbar"><div className="cp-view-switch" aria-label="Staff view">{([{ id: 'structure', label: 'Structure', Icon: Network }, { id: 'cards', label: 'Cards', Icon: LayoutGrid }, { id: 'list', label: 'List', Icon: List }] as const).map(({ id, label, Icon }) => <button type="button" key={id} aria-pressed={view === id} onClick={() => filter('staffView', id)}><Icon size={15}/>{label}</button>)}</div><span className="cp-muted">{filtered.length} {filtered.length === 1 ? 'person' : 'people'}</span></div><div className="cp-filter-tabs" aria-label="Staff responsibilities">{areas.filter(a => !a.id || people.some(p => staffAreas(p).includes(a.id))).map(a => <button key={a.id} type="button" aria-pressed={area === a.id} onClick={() => filter('staff', a.id)}>{a.name}<span>{people.filter(p => !a.id || staffAreas(p).includes(a.id)).length}</span></button>)}</div><div className="cp-finder"><label><Search size={17}/><input aria-label="Find a coach or responsibility" placeholder="Name, responsibility or squad" value={search} onChange={e => filter('q', e.target.value)}/></label><select aria-label="Staff training group" value={squad} onChange={e => filter('squad', e.target.value)}><option value="">All squads</option>{squad && !squads.some(([id]) => String(id) === squad) && <option value={squad}>Selected squad</option>}{squads.map(([id, name]) => <option value={id} key={id}>{name}</option>)}</select>{(search || squad || area) && <button className="cp-text-button" onClick={clear}>Clear filters</button>}</div>{squad && <p className="cp-filter-note">Staff assigned to this squad, plus people working across the club.</p>}</>}
+      {!filtered.length ? <div className="cp-empty"><h3>{people.length ? 'No matching staff' : 'Meet the team soon'}</h3><p>{people.length ? 'Try a different name, responsibility or squad.' : 'The club has not published its staff directory yet.'}</p>{people.length > 0 && <button className="cp-button" onClick={clear}>Show everyone</button>}</div>
+        : view === 'structure' ? <div className={`cp-staff-structure${embedded ? '' : ' cp-staff-structure-compact'}`}><div className="cp-structure-root"><Network size={23}/><div><h3>{clubName}</h3><p>Departments & responsibilities</p></div></div><p className="cp-structure-note">Grouped by published responsibilities. People may contribute to more than one department.</p><div className="cp-departments">{areas.filter(a => a.id && (!area || a.id === area)).map(a => { const members = filtered.filter(p => staffAreas(p).includes(a.id)); return members.length ? <section className="cp-department" data-area={a.id} key={a.id}><header><h3>{a.name}</h3><span>{members.length}</span></header>{members.map(person => <PersonRow key={person.userId} person={person} department={a.id} compact={!embedded}/>)}</section> : null; })}</div></div>
+        : view === 'list' ? <div className="cp-staff-list">{filtered.map(person => <PersonRow key={person.userId} person={person}/>)}</div>
+        : <div className="cp-staff-grid">{filtered.map(p => <article className="cp-card cp-person" data-area={staffAreas(p)[0]} key={p.userId}><div className="cp-person-header"><Avatar person={p}/><div><h3>{p.fullName}</h3><p className="cp-muted">{staffTitle(p)}</p></div></div>{p.responsibilities.length > 0 && <Responsibilities items={p.responsibilities}/>}<details className="cp-person-bio"><summary>About {p.fullName}</summary>{p.bio && <p className="cp-muted cp-prose">{p.bio}</p>}{p.responsibilities.some(r => r.provenance === 'RECORDED_APPOINTMENT') && <p className="cp-muted">Recorded club appointments · published by the staff member.</p>}</details><Link to={`/profile/${p.userId}`} className="cp-link-label">View profile<ArrowRight size={16}/></Link></article>)}</div>}
+    </>}
+  </section>;
+}

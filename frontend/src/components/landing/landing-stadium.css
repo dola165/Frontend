@@ -1,0 +1,319 @@
+/* A quiet entrance, followed by the atmosphere of a floodlit ground. */
+.gk-landing {
+  --landing-ink: var(--color-text);
+  --landing-muted: var(--color-muted);
+  --landing-green: var(--color-accent);
+  --landing-line: color-mix(in srgb, var(--color-border) 9.41%, transparent);
+  background: var(--color-page);
+}
+.landing-wrap { width: min(1320px, calc(100% - 96px)); }
+.landing-header, .landing-daylight { background: var(--color-elevated); color: var(--color-text); color-scheme: light; }
+.landing-header { border-color: color-mix(in srgb, var(--color-border) 7.84%, transparent); }
+.landing-header-inner { min-height: 72px; }
+.landing-header nav { color: var(--color-secondary); font-size: 12px; }
+.landing-header nav a:hover { color: var(--color-muted); }
+.landing-header nav .landing-nav-login { color: var(--color-muted); border-color: color-mix(in srgb, var(--color-border) 12.55%, transparent); }
+.landing-daylight { background-image: radial-gradient(ellipse at 5% 0, var(--color-inset), transparent 55%); }
+.landing-entry { padding-top: 30px; }
+.landing-intro { margin-bottom: 24px; }
+.landing-daylight .landing-eyebrow { color: var(--color-muted); font-size: 9px; letter-spacing: .16em; }
+.landing-daylight .landing-live-dot { background: var(--color-inset); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-shadow) 6.27%, transparent); }
+.landing-intro h1 { font-size: clamp(29px, 3.1vw, 45px); font-weight: 500; letter-spacing: -.06em; margin-top: 9px; }
+.landing-intro h1 > span { color: var(--color-secondary); }
+.landing-intro > p { color: var(--color-secondary); font-size: 12px; line-height: 1.8; max-width: 330px; }
+.landing-entry-grid {
+  grid-template-columns: minmax(0, 1fr) 324px;
+  gap: 0;
+  border: 1px solid color-mix(in srgb, var(--color-border) 14.9%, transparent);
+  border-radius: 14px;
+  background: var(--color-elevated);
+  box-shadow: 0 3px 4px color-mix(in srgb, var(--color-shadow) 1.18%, transparent), 0 20px 50px -25px color-mix(in srgb, var(--color-shadow) 14.51%, transparent);
+  overflow: clip;
+}
+.landing-map-card { border: 0; border-radius: 0; display: flex; flex-direction: column; background: var(--color-elevated); }
+.landing-map-caption { padding: 13px 20px; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 7.45%, transparent); font-size: 10px; }
+.landing-map-caption > span { color: var(--color-secondary); }
+.landing-map-caption > span > svg { color: var(--color-secondary); }
+.landing-map-caption > a { color: var(--color-muted); font-weight: 500; }
+.landing-map-foot { padding: 11px 20px; color: var(--color-secondary); font-size: 9px; border-top: 1px solid color-mix(in srgb, var(--color-border) 7.45%, transparent); }
+.landing-map-foot > a { color: var(--color-muted); }
+.gk-landing .landing-map-viewport { --landing-map-height: 380px; flex: 1; min-height: var(--landing-map-height); height: auto; position: relative; }
+.gk-landing .landing-map-viewport > .map-experience-embedded { position: absolute; inset: 0; }
+.gk-landing .landing-map-viewport .map-atlas { --map-panel-bg: var(--color-surface); --map-card-bg: var(--color-elevated); --map-panel-border: var(--color-border); }
+.landing-map-viewport .map-experience-embedded > div:first-child > section { padding: 12px 16px; }
+.landing-map-viewport input { font-weight: 400; }
+.landing-map-viewport .map-experience-embedded > div:first-child > section > div > span { font-size: 9px; font-weight: 500; }
+.landing-map-viewport .atlas-command-bar { border-radius: 9px; box-shadow: 0 3px 14px color-mix(in srgb, var(--color-shadow) 7.06%, transparent); }
+.landing-map-viewport .atlas-area-action > button { border-radius: 8px; padding: 11px 17px; font-size: 11px; }
+.landing-map-viewport .atlas-area-action { bottom: 25px; gap: 6px; }
+.landing-map-viewport .atlas-area-action > span { font-size: 7px; }
+.landing-auth { background: var(--color-elevated); border: 0; border-left: 1px solid color-mix(in srgb, var(--color-border) 14.9%, transparent); border-radius: 0; padding: 25px 27px 22px; }
+.landing-auth h2 { color: var(--color-text); font-size: 27px; font-weight: 500; }
+.landing-auth h2 > span { color: var(--color-secondary); }
+.landing-auth > p:not(.landing-eyebrow) { color: var(--color-secondary); font-size: 11px; }
+.landing-auth form { margin-top: 21px; }
+.landing-auth label { color: var(--color-muted); font-size: 10px; }
+.landing-auth input { height: 42px; padding: 11px 12px; border-color: var(--color-border); background: var(--color-inset); color: var(--color-text); border-radius: 6px; font-size: 12px; }
+.landing-auth input::placeholder { color: var(--color-muted); }
+.landing-auth input:focus { border-color: var(--color-border); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-shadow) 7.06%, transparent); }
+.landing-password-label { margin-top: 15px; }
+.landing-password-label a { color: var(--color-secondary); font-size: 9px; }
+.landing-button { border-radius: 5px; }
+.landing-daylight .landing-button-primary { background: var(--color-inset); color: var(--color-on-accent); }
+.landing-daylight .landing-button-primary:hover { background: var(--color-inset); }
+.landing-auth .landing-button { min-height: 42px; padding: 12px 16px; font-size: 11px; }
+.landing-auth form > .landing-button, .landing-auth > .landing-button-primary { margin-top: 17px; }
+.landing-auth-divider { color: var(--color-secondary); font-size: 9px; margin: 17px 0; }
+.landing-auth-divider::before, .landing-auth-divider::after { background: color-mix(in srgb, var(--color-ink) 8.63%, transparent); }
+.landing-daylight .landing-button-outline { color: var(--color-muted); background: transparent; border-color: var(--color-border); }
+.landing-daylight .landing-button-outline:hover { background: var(--color-inset); border-color: var(--color-border); }
+.landing-auth-note { font-size: 8px; margin-top: 17px; color: var(--color-secondary); }
+.landing-daylight .landing-text-link { color: var(--color-muted); }
+.landing-auth .landing-auth-error { color: var(--color-muted); }
+.landing-scroll-row { display: flex; align-items: center; gap: 25px; }
+.landing-scroll-invite { padding: 24px 0; font-size: 10px; color: var(--color-secondary); gap: 20px; }
+.landing-scroll-invite > svg { color: var(--color-muted); transition: transform .2s; }
+.landing-scroll-invite:hover > svg { transform: translateY(4px); }
+.landing-scroll-row .landing-scroll-line { background: color-mix(in srgb, var(--color-ink) 12.55%, transparent); }
+.landing-motion-toggle { border: 0; display: flex; align-items: center; gap: 7px; background: transparent; color: var(--color-secondary); cursor: pointer; font-size: 9px; min-height: 36px; padding: 4px; }
+.landing-daylight :is(a, button, input):focus-visible { outline-color: var(--color-accent); }
+
+/* The photo reads like a full-bleed matchday title sequence. */
+.landing-origin { background: var(--color-page); min-height: 780px; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 9.02%, transparent); }
+.landing-origin-content { min-height: 710px; padding-block: 110px 80px; }
+.landing-origin-image { inset: -24px 0; }
+.landing-origin-image > img { object-position: center 59%; filter: saturate(.7) brightness(.76); }
+.landing-origin-shade { background: linear-gradient(90deg, color-mix(in srgb, var(--color-page) 90.98%, transparent) 0%, color-mix(in srgb, var(--color-page) 60%, transparent) 37%, color-mix(in srgb, var(--color-ink) 5.1%, transparent) 75%), linear-gradient(0deg, var(--color-page), transparent 55%, color-mix(in srgb, var(--color-ink) 21.96%, transparent)); }
+.landing-origin h2 { font-size: clamp(76px, 8.4vw, 128px); line-height: .96; letter-spacing: -.065em; font-weight: 500; margin-top: 35px; }
+.gk-landing em { color: var(--color-muted); }
+.landing-origin h2 em { color: var(--color-muted); }
+.gk-landing .landing-origin-body { font-size: 18px; line-height: 1.75; color: var(--color-text); margin-top: 35px; }
+.gk-landing .landing-origin-small { color: var(--color-muted); font-size: 12px; margin-top: 23px; }
+.landing-floodlight { position: absolute; inset: 0; z-index: -1; pointer-events: none; background: conic-gradient(from 145deg at 88% -10%, transparent 0deg, color-mix(in srgb, var(--color-ink) 4.31%, transparent) 10deg, transparent 14deg, color-mix(in srgb, var(--color-ink) 3.14%, transparent) 19deg, transparent 24deg); }
+.landing-origin-registration { position: absolute; top: 45px; right: 48px; font: 8px monospace; letter-spacing: .2em; writing-mode: vertical-rl; color: color-mix(in srgb, var(--color-muted) 45.1%, transparent); }
+.landing-ground-note { border-radius: 0; background: color-mix(in srgb, var(--color-surface) 65.1%, transparent); transform: none; border-width: 0 0 0 1px; border-color: var(--color-border); padding: 14px 20px; margin-bottom: 32px; line-height: 1.85; }
+.landing-origin-bottom { color: var(--color-secondary); border-color: color-mix(in srgb, var(--color-border) 10.98%, transparent); font: 9px monospace; letter-spacing: .02em; }
+.landing-belong { padding-block: 112px 90px; }
+.landing-section-heading h2 { font-size: clamp(42px, 4.6vw, 68px); line-height: 1.1; }
+.landing-section-heading > p { font-size: 12px; color: var(--color-secondary); }
+.landing-text-link { color: var(--color-muted); }
+.landing-role-panel { padding: 30px 30px 0; gap: 55px; }
+.landing-role-copy h3 { font-size: clamp(32px, 3.3vw, 48px); }
+.landing-role-copy > p { color: var(--color-secondary); }
+.landing-role-number { color: var(--color-secondary); }
+.landing-role-copy li { color: var(--color-muted); }
+.landing-role-copy li svg { color: var(--color-muted); }
+.role-scene-grid { background-image: radial-gradient(color-mix(in srgb, var(--color-ink) 18.82%, transparent) .7px, transparent .7px); }
+.landing-role-scene { filter: drop-shadow(0 0 40px color-mix(in srgb, var(--color-text) 3.14%, transparent)); }
+
+/* Connected, layered pitch: all drawing stays in CSS/SVG, without a 3D runtime. */
+.landing-constellation { --field-x: 0deg; --field-y: 0deg; position: relative; padding-top: 4px; margin-top: -15px; }
+.constellation-art { height: 485px; position: relative; overflow: hidden; perspective: 1400px; pointer-events: none; }
+.constellation-halo { position: absolute; width: 760px; height: 440px; left: 50%; top: -20px; transform: translateX(-50%); background: radial-gradient(ellipse, color-mix(in srgb, var(--color-ink) 14.12%, transparent), color-mix(in srgb, var(--color-ink) 3.14%, transparent) 50%, transparent 70%); }
+.constellation-grid { position: absolute; inset: 15% -10% -35%; background-image: linear-gradient(color-mix(in srgb, var(--color-ink) 4.31%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--color-ink) 4.31%, transparent) 1px, transparent 1px); background-size: 42px 42px; transform: perspective(600px) rotateX(55deg) rotateZ(-25deg); mask-image: radial-gradient(ellipse, var(--color-text), transparent 66%); }
+.constellation-wires { position: absolute; inset: 0; width: 100%; height: 100%; }
+.constellation-wire { opacity: .3; transition: opacity .5s; }
+.landing-constellation[data-selected='0'] .constellation-wire-0,
+.landing-constellation[data-selected='1'] .constellation-wire-1,
+.landing-constellation[data-selected='2'] .constellation-wire-2 { opacity: 1; }
+.constellation-current { animation: constellation-current 5s linear infinite; }
+@keyframes constellation-current { to { stroke-dashoffset: -492; } }
+.constellation-scene { position: absolute; width: 560px; height: 315px; top: 41%; left: 50%; transform-style: preserve-3d; transform: translate(-50%, -50%) rotateX(calc(51deg + var(--field-y))) rotateZ(-28deg) rotateY(var(--field-x)); transition: transform .35s ease-out; }
+.constellation-pitch { position: absolute; inset: 0; border-radius: 9px; border: 1px solid color-mix(in srgb, var(--color-border) 61.18%, transparent); background: repeating-linear-gradient(90deg, var(--color-inset) 0, var(--color-inset) 70px, var(--color-inset) 70px, var(--color-inset) 140px); box-shadow: 0 0 30px color-mix(in srgb, var(--color-shadow) 5.1%, transparent), inset 0 0 45px color-mix(in srgb, var(--color-shadow) 6.27%, transparent), 0 2px 0 var(--color-shadow), 0 5px 0 var(--color-shadow), 0 8px 0 var(--color-shadow); transform: translateZ(45px); transform-style: preserve-3d; }
+.constellation-underlay { position: absolute; inset: -12px; border: 1px solid color-mix(in srgb, var(--color-border) 20.78%, transparent); background: linear-gradient(135deg, color-mix(in srgb, var(--color-ink) 21.96%, transparent), color-mix(in srgb, var(--color-ink) 26.67%, transparent)); border-radius: 10px; box-shadow: 0 18px 40px color-mix(in srgb, var(--color-shadow) 26.67%, transparent); transform: translateZ(4px); }
+.constellation-underlay-two { inset: -24px; opacity: .5; transform: translateZ(-34px); }
+.constellation-pitch-lines { position: absolute; inset: 0; width: 100%; height: 100%; stroke: color-mix(in srgb, var(--color-border) 36.86%, transparent); stroke-width: 1; color: var(--color-muted); }
+.constellation-player { position: absolute; display: block; width: 12px; height: 12px; border: 1px solid var(--color-border); background: var(--color-inset); border-radius: 50%; box-shadow: 0 0 18px color-mix(in srgb, var(--color-shadow) 33.33%, transparent); transform: translate(-50%, -50%) translateZ(3px); }
+.constellation-player::after { content: ''; position: absolute; inset: -8px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--color-border) 23.92%, transparent); }
+.constellation-player i { position: absolute; bottom: 50%; left: 50%; width: 1px; height: 35px; transform-origin: bottom; transform: rotateX(-51deg); background: linear-gradient(0deg, var(--color-inset), transparent); opacity: .6; }
+.constellation-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 15px; pointer-events: none; transform: translateZ(32px); }
+.constellation-center > span { display: grid; place-items: center; font: italic 46px Georgia, serif; color: var(--color-text); background: linear-gradient(145deg, var(--color-inset), var(--color-inset)); width: 63px; height: 68px; border: 1px solid color-mix(in srgb, var(--color-border) 50.98%, transparent); border-radius: 7px 7px 22px 22px; box-shadow: 8px 10px 25px color-mix(in srgb, var(--color-shadow) 40%, transparent), inset 0 0 18px color-mix(in srgb, var(--color-shadow) 12.94%, transparent); }
+.constellation-center > small { font: 9px/1.65 monospace; letter-spacing: .16em; color: var(--color-text); text-shadow: 0 2px 6px var(--color-shadow); }
+.constellation-coordinate { position: absolute; top: 40%; color: var(--color-secondary); font: 8px monospace; letter-spacing: .16em; }
+.constellation-coordinate-left { left: 3%; writing-mode: vertical-rl; transform: rotate(180deg); }
+.constellation-coordinate-right { right: 3%; writing-mode: vertical-rl; }
+.constellation-people { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-top: -6px; position: relative; }
+.constellation-people > button { display: flex; text-align: left; align-items: center; gap: 16px; padding: 20px 23px; color: var(--color-muted); background: linear-gradient(125deg, var(--color-surface), var(--color-page)); border: 1px solid color-mix(in srgb, var(--color-border) 13.33%, transparent); border-radius: 9px; cursor: pointer; box-shadow: 0 14px 36px color-mix(in srgb, var(--color-shadow) 20%, transparent); transition: border-color .3s, transform .3s, box-shadow .3s; }
+.constellation-people > button:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--color-border) 41.96%, transparent); }
+.constellation-people > button[aria-selected=true] { border-color: color-mix(in srgb, var(--color-border) 54.9%, transparent); background: linear-gradient(125deg, var(--color-surface), var(--color-surface)); box-shadow: 0 0 35px color-mix(in srgb, var(--color-shadow) 3.92%, transparent); }
+.constellation-person-icon { display: grid; place-items: center; width: 43px; height: 46px; border-radius: 8px; background: color-mix(in srgb, var(--color-ink) 6.27%, transparent); border: 1px solid color-mix(in srgb, var(--color-border) 14.12%, transparent); color: var(--color-muted); flex-shrink: 0; }
+.constellation-people strong { display: block; font-size: 13px; font-weight: 500; }
+.constellation-people small { display: block; font-size: 9px; color: var(--color-secondary); margin-top: 5px; }
+.constellation-people > button > svg { margin-left: auto; flex-shrink: 0; color: var(--color-muted); width: 15px; }
+.landing-atmosphere[data-in-view=false] * { animation-play-state: paused !important; }
+.gk-landing[data-motion=paused] *, .gk-landing[data-motion=paused] *::before, .gk-landing[data-motion=paused] *::after { animation: none !important; transition: none !important; }
+.gk-landing[data-motion=paused] .constellation-scene { transform: translate(-50%, -50%) rotateX(51deg) rotateZ(-28deg); }
+
+/* Three ways into the same community. */
+.landing-path-section { background: var(--color-surface); border-color: color-mix(in srgb, var(--color-border) 7.06%, transparent); padding: 100px 0 105px; }
+.landing-journey-grid { gap: 18px; }
+.landing-journey-card { border-radius: 10px; background: var(--color-surface); border-color: color-mix(in srgb, var(--color-border) 13.73%, transparent); transition: border-color .3s, box-shadow .3s; }
+.landing-journey-card:hover { border-color: color-mix(in srgb, var(--color-border) 34.9%, transparent); box-shadow: 0 15px 45px color-mix(in srgb, var(--color-shadow) 20%, transparent); }
+.landing-contour-art, .landing-connect-art, .landing-tactics-art { height: 245px; }
+.landing-contour-art { color: var(--color-secondary); background: radial-gradient(ellipse at 50% 0, var(--color-inset), var(--color-surface)); }
+.landing-contour-art > svg { opacity: .9; transform: scale(1.06); transition: transform .7s; }
+.landing-discover-card:hover .landing-contour-art > svg { transform: scale(1.14) rotate(-3deg); }
+.landing-contour-art .landing-map-trail { stroke: var(--color-border); }
+.landing-contour-art circle { fill: var(--color-inset); stroke: var(--color-border); }
+.landing-art-label { color: var(--color-secondary); font-size: 8px; letter-spacing: .02em; }
+.landing-connect-art { background: radial-gradient(ellipse at 60% 100%, color-mix(in srgb, var(--color-ink) 27.06%, transparent), transparent), var(--color-surface); }
+.landing-story-post { background: var(--color-surface); border-color: color-mix(in srgb, var(--color-border) 21.96%, transparent); padding: 18px 13px; transition: transform .5s; }
+.landing-connect-card:hover .landing-story-post { transform: rotate(-2deg) translateY(-24px); }
+.landing-voice { top: 135px; }
+.landing-voice > span { background: var(--color-inset); }
+.landing-connect-card:hover .landing-voice > span:nth-child(odd) { animation: landing-voice .8s ease-in-out alternate infinite; }
+@keyframes landing-voice { to { transform: scaleY(1.6); } }
+.landing-tactics-art { background: radial-gradient(ellipse at 70% 50%, var(--color-inset), transparent), var(--color-surface); }
+.landing-tactics-pitch { height: 155px; transition: transform .6s; }
+.landing-build-card:hover .landing-tactics-pitch { transform: perspective(500px) rotateX(18deg) rotate(-5deg) translateY(-14px); }
+.landing-journey-copy { padding: 27px 27px 63px; border-top: 1px solid color-mix(in srgb, var(--color-border) 10.98%, transparent); }
+.landing-journey-copy h3 { font-size: 23px; }
+.landing-journey-copy > p { color: var(--color-secondary); font-size: 12px; line-height: 1.9; }
+.landing-journey-copy > a { border: 1px solid color-mix(in srgb, var(--color-border) 13.33%, transparent); width: 34px; height: 34px; bottom: 20px; }
+
+/* A playable invitation. */
+.landing-extra-time { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 40px; padding-block: 75px; }
+.landing-extra-time h2 { font-size: clamp(48px, 5.4vw, 80px); font-weight: 500; line-height: 1.02; letter-spacing: -.065em; margin-top: 23px; }
+.landing-kickoff { position: relative; width: 100%; min-height: 320px; display: flex; flex-direction: column; gap: 32px; align-items: center; justify-content: center; background: transparent; border: 0; color: var(--color-muted); cursor: pointer; }
+.landing-kickoff::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse, color-mix(in srgb, var(--color-ink) 6.27%, transparent), transparent 64%); }
+.landing-kickoff-orbit { position: absolute; width: 320px; height: 150px; border: 1px solid color-mix(in srgb, var(--color-border) 14.9%, transparent); border-radius: 50%; transform: rotate(-25deg); top: 85px; }
+.landing-kickoff-orbit::before { content: ''; position: absolute; inset: -35px 25px; border: 1px solid color-mix(in srgb, var(--color-border) 7.84%, transparent); border-radius: 50%; transform: rotate(55deg); }
+.landing-football { position: relative; display: grid; place-items: center; width: 125px; height: 125px; border-radius: 50%; background: radial-gradient(circle at 32% 23%, var(--color-inset), var(--color-inset) 63%, var(--color-inset) 93%); color: var(--color-text); font-size: 60px; line-height: 1; box-shadow: inset -12px -9px 25px color-mix(in srgb, var(--color-shadow) 66.67%, transparent), 0 35px 35px -14px color-mix(in srgb, var(--color-shadow) 60%, transparent), 0 0 70px color-mix(in srgb, var(--color-shadow) 3.92%, transparent); transform: rotate(-16deg); transition: transform .6s cubic-bezier(.2,.8,.2,1), box-shadow .5s; }
+.landing-football::before { content: ''; position: absolute; inset: 4px; border: 1px solid color-mix(in srgb, var(--color-border) 33.33%, transparent); border-radius: 50%; background: repeating-conic-gradient(from 20deg, transparent 0deg 58deg, color-mix(in srgb, var(--color-ink) 33.33%, transparent) 59deg 60deg); mask-image: radial-gradient(circle, transparent 22%, var(--color-text) 23%); }
+.landing-kickoff:hover .landing-football, .landing-kickoff:focus-visible .landing-football { transform: translateY(-16px) rotate(20deg); box-shadow: inset -12px -9px 25px color-mix(in srgb, var(--color-shadow) 66.67%, transparent), 0 55px 35px -14px color-mix(in srgb, var(--color-shadow) 60%, transparent), 0 0 70px color-mix(in srgb, var(--color-shadow) 7.84%, transparent); }
+.landing-kickoff-label { display: flex; align-items: center; gap: 16px; font-size: 12px; z-index: 1; }
+.landing-final { border-top: 1px solid color-mix(in srgb, var(--color-border) 12.55%, transparent); background: radial-gradient(ellipse at 50% 115%, color-mix(in srgb, var(--color-ink) 21.96%, transparent), transparent 68%), var(--color-page); padding: 105px 0; }
+.landing-final h2 { font-size: clamp(60px, 7.4vw, 112px); line-height: 1.01; }
+.landing-final-pitch { border-color: color-mix(in srgb, var(--color-border) 10.2%, transparent); background: linear-gradient(90deg, transparent 49.95%, color-mix(in srgb, var(--color-ink) 10.2%, transparent) 49.95%, color-mix(in srgb, var(--color-ink) 10.2%, transparent) 50.05%, transparent 50.05%); }
+.landing-final-pitch > span { border-color: color-mix(in srgb, var(--color-border) 10.2%, transparent); }
+.landing-final .landing-button-primary { background: var(--color-inset); color: var(--color-on-accent); box-shadow: 0 4px 25px color-mix(in srgb, var(--color-shadow) 5.1%, transparent); }
+.landing-final .landing-button-primary:hover { background: var(--color-inset); }
+.landing-final p:not(.landing-eyebrow) { color: var(--color-muted); }
+.landing-final-note { color: var(--color-secondary); }
+.landing-footer { background: var(--color-page); border-color: color-mix(in srgb, var(--color-border) 10.2%, transparent); padding-block: 50px 24px; }
+.landing-footer-top > p, .landing-footer nav, .landing-playground-door { color: var(--color-secondary); }
+.landing-footer-bottom { color: var(--color-secondary); border-color: color-mix(in srgb, var(--color-border) 7.84%, transparent); }
+
+@media (min-width: 1900px) {
+  .landing-wrap { width: min(1500px, calc(100% - 160px)); }
+  .landing-entry-grid { grid-template-columns: minmax(0, 1fr) 365px; }
+  .gk-landing .landing-map-viewport { --landing-map-height: 400px; }
+  .landing-auth { padding: 29px 32px; }
+}
+@media (max-width: 1199px) {
+  .landing-wrap { width: calc(100% - 64px); }
+  .landing-intro { display: flex; gap: 25px; }
+  .landing-intro h1 { max-width: 480px; }
+  .landing-intro > p { max-width: 280px; font-size: 11px; margin-top: 0; }
+  .landing-entry-grid { grid-template-columns: minmax(0, 1fr) 300px; gap: 0; }
+  .landing-auth { padding: 25px 23px 22px; }
+  .constellation-people { gap: 16px; }
+  .constellation-people > button { padding: 18px 17px; gap: 11px; }
+  .constellation-person-icon { width: 35px; height: 40px; }
+  .constellation-people strong { font-size: 12px; }
+  .constellation-people small { font-size: 8px; }
+  .landing-role-panel { padding-inline: 10px; gap: 30px; }
+}
+@media (max-width: 900px) {
+  .landing-intro { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .landing-intro > p { max-width: none; }
+  .landing-desktop-break { display: none; }
+  .landing-entry-grid { grid-template-columns: minmax(0, 1fr) 280px; }
+  .landing-auth { padding: 23px 20px; }
+  .landing-map-caption { padding-inline: 14px; gap: 10px; }
+  .landing-map-caption > span { font-size: 9px; max-width: 145px; }
+  .landing-map-foot { padding-inline: 14px; font-size: 8px; }
+  .landing-role-panel { grid-template-columns: 1fr; padding-top: 25px; }
+  .constellation-people > button { padding: 16px 12px; }
+  .constellation-people small { display: none; }
+  .constellation-people > button > svg { display: none; }
+  .landing-journey-grid { gap: 12px; }
+  .landing-journey-copy { padding: 22px 18px 60px; }
+  .landing-journey-copy h3 { font-size: 20px; }
+  .landing-contour-art, .landing-connect-art, .landing-tactics-art { height: 220px; }
+}
+@media (max-width: 700px) {
+  .landing-wrap { width: calc(100% - 36px); }
+  .landing-header-inner { min-height: 64px; }
+  .landing-entry { padding-top: 25px; }
+  .landing-intro { gap: 12px; margin-bottom: 24px; }
+  .landing-intro h1 { font-size: 36px; line-height: 1.12; max-width: 360px; }
+  .landing-intro > p { font-size: 12px; max-width: 345px; line-height: 1.75; }
+  .landing-entry-grid { grid-template-columns: minmax(0, 1fr); border-radius: 10px; gap: 0; }
+  .landing-auth { grid-row: 1; border-left: 0; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 14.9%, transparent); padding: 24px; }
+  .landing-auth h2 { font-size: 28px; }
+  .landing-auth input { font-size: 16px; height: 45px; }
+  .landing-auth label { font-size: 11px; }
+  .landing-auth .landing-button { min-height: 44px; font-size: 12px; }
+  .landing-auth-note { font-size: 9px; }
+  .landing-auth .landing-eyebrow { font-size: 8px; }
+  .landing-map-caption { padding: 15px; }
+  .landing-map-caption > span { max-width: none; font-size: 9px; }
+  .landing-map-caption > a { font-size: 9px; }
+  .landing-map-viewport .atlas-external-toolbar > div { display: grid; grid-template-columns: auto 1fr; gap: 8px; }
+  .landing-map-viewport .atlas-external-toolbar > div > div { grid-column: 1 / -1; }
+  .landing-map-viewport .atlas-external-toolbar > div > button { font-size: 11px; min-height: 35px; padding: 7px 10px; gap: 6px; border-radius: 7px; }
+  .landing-map-viewport .atlas-external-toolbar > div > button > span { min-width: 15px; height: 15px; }
+  .landing-map-viewport .atlas-external-toolbar > div > span { font-size: 8px !important; }
+  .gk-landing .landing-map-viewport { --landing-map-height: 400px; flex: none; height: 400px; }
+  .landing-map-foot { font-size: 8px; padding: 12px 14px; }
+  .landing-scroll-row { gap: 10px; }
+  .landing-scroll-invite { font-size: 8px; gap: 10px; padding: 22px 0; }
+  .landing-motion-toggle { font-size: 8px; gap: 5px; }
+  .landing-origin { min-height: 680px; }
+  .landing-origin-content { min-height: 620px; padding-block: 85px 75px; }
+  .landing-origin h2 { font-size: clamp(60px, 15.5vw, 95px); margin-top: 28px; }
+  .landing-origin-image > img { object-position: 64% center; }
+  .landing-origin-shade { background: linear-gradient(90deg, color-mix(in srgb, var(--color-page) 85.1%, transparent), color-mix(in srgb, var(--color-ink) 13.33%, transparent)), linear-gradient(0deg, var(--color-page), transparent 70%); }
+  .gk-landing .landing-origin-body { font-size: 15px; margin-top: 30px; }
+  .gk-landing .landing-origin-small { font-size: 11px; }
+  .landing-origin-registration { right: 18px; top: 30px; font-size: 6px; }
+  .landing-origin-bottom { font-size: 8px; }
+  .landing-belong { padding-block: 72px 65px; }
+  .landing-section-heading h2 { font-size: clamp(33px, 8.8vw, 54px); }
+  .landing-section-heading > p { font-size: 11px; }
+  .landing-section-heading { margin-bottom: 25px; }
+  .landing-constellation { margin-top: -15px; }
+  .constellation-art { height: 310px; margin-inline: -18px; }
+  .constellation-scene { transform: translate(-50%, -50%) scale(.53) rotateX(51deg) rotateZ(-28deg); top: 45%; }
+  .gk-landing[data-motion=paused] .constellation-scene { transform: translate(-50%, -50%) scale(.53) rotateX(51deg) rotateZ(-28deg); }
+  .constellation-halo { width: 450px; height: 310px; top: 0; }
+  .constellation-coordinate { display: none; }
+  .constellation-people { gap: 7px; }
+  .constellation-people > button { flex-direction: column; gap: 12px; padding: 16px 4px; text-align: center; border-radius: 7px; }
+  .constellation-person-icon { height: 35px; width: 35px; }
+  .constellation-people strong { font-size: 9px; }
+  .landing-role-panel { padding: 15px 0 0; gap: 0; }
+  .landing-role-copy h3 { font-size: 34px; }
+  .landing-role-copy > p { font-size: 12px; }
+  .landing-role-copy ul { gap: 10px 14px; }
+  .landing-path-section { padding-block: 64px; }
+  .landing-journey-grid { grid-template-columns: 1fr; gap: 22px; }
+  .landing-contour-art, .landing-connect-art, .landing-tactics-art { height: 245px; }
+  .landing-journey-copy { padding: 26px 24px 62px; }
+  .landing-journey-copy h3 { font-size: 24px; }
+  .landing-extra-time { grid-template-columns: 1fr; padding-block: 65px 25px; gap: 15px; }
+  .landing-extra-time h2 { font-size: 56px; }
+  .landing-kickoff { min-height: 290px; }
+  .landing-kickoff-orbit { width: 280px; }
+  .landing-final { padding-block: 75px; }
+  .landing-final h2 { font-size: clamp(48px, 12.7vw, 78px); }
+  .landing-final p:not(.landing-eyebrow) { font-size: 12px; }
+  .landing-final-actions { margin-top: 30px; }
+  .landing-footer { padding-block: 36px 22px; }
+}
+@media (max-width: 370px) {
+  .landing-wrap { width: calc(100% - 28px); }
+  .landing-intro h1 { font-size: 32px; }
+  .landing-auth { padding: 22px 19px; }
+  .landing-map-caption > span { max-width: 145px; }
+  .landing-scroll-row .landing-scroll-line { display: none; }
+  .landing-scroll-row { justify-content: space-between; }
+  .constellation-scene { transform: translate(-50%, -50%) scale(.44) rotateX(51deg) rotateZ(-28deg); }
+  .gk-landing[data-motion=paused] .constellation-scene { transform: translate(-50%, -50%) scale(.44) rotateX(51deg) rotateZ(-28deg); }
+  .constellation-art { height: 280px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gk-landing *, .gk-landing *::before, .gk-landing *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .landing-motion-toggle { display: none; }
+}

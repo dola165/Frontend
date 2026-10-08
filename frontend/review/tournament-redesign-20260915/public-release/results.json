@@ -1,0 +1,85 @@
+{
+  "passed": true,
+  "root": "https://app.grasskickz.com",
+  "build": "C:\\Users\\daddo\\IdeaProjects\\GrassKickZ\\outputs\\tournament-release-20260915\\web-r5",
+  "hashes": {
+    "index.html": "af410819398e38c0a5f5e9fb382166b84b5b6657c69a8e411ab54313e16f3382",
+    "assets/index-ySmJ1VKB-tournament-20260915-web-r5.js": "1b824af077f78954ae6d8dd9ae4b2ae57f81a106f8e9d5c026e4c10926f2c6dd",
+    "assets/index-CPpTKLLW.css": "263afe1d65955f8fd6d6aa5fee7adbfea136b4ac93116bd3d7ff3df27593e3f2",
+    "assets/TournamentWorkspacePage-BD0E4YsC-tournament-20260915-web-r5.js": "bdb61631345a808b932f873de5eccad8ac3edd2a3e1bac61f3520b79c7562877",
+    "assets/api-ByH3_6h3-tournament-20260915-web-r5.js": "4a41cd30849385bb40e87649054ed233a75df76eddad3e10b9c673b31427ee24",
+    "assets/domain-3NXPzA7s-tournament-20260915-web-r5.js": "d556a8e449c85274d680cc50da807cff9055893afdfa761ef44634377b2b3e8c",
+    "assets/TournamentPresentation-Nb3H2R9E-tournament-20260915-web-r5.js": "e8147089949bd5ba9bd10677118f394aaab9f61b87aa1d0903ba4fc6ba64580b",
+    "assets/user-round-BQquu2LS-tournament-20260915-web-r5.js": "683bd61c199a5787084986e6a74447baa6d1fc2c4e6b0aa7ebf2490a90d3dad3",
+    "assets/chart-column-MIKryrxz-tournament-20260915-web-r5.js": "81afa300ce369fc0f75251cddcdc495b5bd8e305e75fb6c81f7d96976a06da47",
+    "assets/ConfirmDialog-BXabX0V2-tournament-20260915-web-r5.js": "5530d915cdddb2e6d39ae24651cad0c970dedcde92cc857982202f61b3273142",
+    "assets/plus-Hck65a8Z-tournament-20260915-web-r5.js": "c0b6ca8d65cc33943bf8b5c9cf0f39d131e87934bd7a75ed9a46fe4b94e3e349",
+    "assets/trash-2-C3oJwlRj-tournament-20260915-web-r5.js": "37031ca03bfc0ea0caae9b3cbdfef365ec058e89640e2e04b7f3068053236a2b",
+    "assets/rotate-ccw-D9Xlvo1Z-tournament-20260915-web-r5.js": "c1cf8f07b82741bd3eeec0f7b13ca4b6d0b8982bdc29cddcdd769ff917231853",
+    "assets/circle-x-BahBZ6Sw-tournament-20260915-web-r5.js": "ac4c3898684eb6cc87d04c35a7da4a6943c24c1a1e3193740cf073282f3b35dd",
+    "assets/chevron-right-B2MZ2lkD-tournament-20260915-web-r5.js": "d0dbf8a3e7e9d650303ceaab4749674e7b06d884c87c0f714af73979ec97c5de",
+    "assets/clock-sPzI1kw9-tournament-20260915-web-r5.js": "beb4c10778e73bde711d339b37c984b54326d8a2a3ef42114f3bfa4fb40465f0",
+    "assets/globe-DANWmiyA-tournament-20260915-web-r5.js": "c34b4448e0c8116bb1c8889682866f60345f610f0a6d1d2f46e9aeaf59d934da",
+    "assets/lock-DCI_7WFl-tournament-20260915-web-r5.js": "3ee4ee54f8cd4c598d0c9b308a3c1e7a03cccadcdd04eafc5b23f955ae95a5bb",
+    "assets/eye-D2-MpwEL-tournament-20260915-web-r5.js": "aa8df36e0f895856cfa28a2dcdd226dd677ead7659409d412ef844083da56c9e",
+    "assets/swords-WjiCjZXq-tournament-20260915-web-r5.js": "f22fa6ea1350d76cd3f39d4de97f04c8215f9bb136beb0f54393e611f807ec2c",
+    "assets/mail-BWlURXNA-tournament-20260915-web-r5.js": "487eeac647b97a765f1b2ce5ba0bb4726c30c44f69545f257ecced4f5d711ad4",
+    "assets/TournamentSetupPage-7w4JEmYH-tournament-20260915-web-r5.js": "d2c66e73ffcac8dc8c15afaba6686627fb602fc66aae27a88d7360c62d543c76",
+    "assets/setupDraft-CMWXATVk-tournament-20260915-web-r5.js": "0e85b2056811d05109c2edeef9b8577b154edef6af90e03a749eee16cd17ae52",
+    "assets/TournamentDetailPage-D4OgrU3F-tournament-20260915-web-r5.js": "2e8ee6a6f39a38e6f735a0a2f113a4192b9932568e70c651d14367c99125afa2",
+    "assets/clock-3-C_c1aR0y-tournament-20260915-web-r5.js": "66d20fd4e6763a9c919bfab4612ae2dfc90bfd19cf74e711a009b3eda5976f72",
+    "assets/crown-Cdqh4sKg-tournament-20260915-web-r5.js": "0414392645ef60f35d08123f9b21999ef729767349d5776714e781fe9305b52c",
+    "assets/award-C7ocA55P-tournament-20260915-web-r5.js": "0f478698a44d10d0ca56e65793de6f0d86ed272107fa6517a952ea01421e31ba",
+    "assets/BrowseTournamentsPage-BLs3tu_K-tournament-20260915-web-r5.js": "9bd333cdbe263f8dfa0bab6ce6b0e726d52344b4dabbd10751e062f81975c340",
+    "assets/PaginationBar-0Vk5iIqP-tournament-20260915-web-r5.js": "d0885a7c5e739d78caf6a68f08bf52945e04bf6dd520d7701382060b9f0d027b",
+    "assets/sparkles-Ci9tqXPy-tournament-20260915-web-r5.js": "d6c2c455b91db40798ed240bee21ec838509424d3ed87774272fbc387aa994d3",
+    "assets/tournament-routes-tournament-20260915-web-r5.css": "0396be180a2b3d73acbf0515ffdf28094a6adcfd926a256efddf6d0d5ebdadd5",
+    "assets/tournament-routes-tournament-20260915-web-r5.js": "7e52d35c9cb6a7a815c4075eb2364e0b51b1fced4ed8a66154191033b480e4c1"
+  },
+  "protectedRoutes": [
+    "/tournaments/setup",
+    "/tournaments/1/workspace"
+  ],
+  "publicTournament": {
+    "id": 1,
+    "stageCount": 4,
+    "fixtureCount": 8,
+    "entryCount": 4,
+    "bracketStageId": 2,
+    "refreshSucceeded": true
+  },
+  "pageErrors": [],
+  "blockedMutations": [],
+  "blockedTelemetry": [
+    {
+      "method": "POST",
+      "url": "https://app.grasskickz.com/cdn-cgi/rum?"
+    },
+    {
+      "method": "POST",
+      "url": "https://app.grasskickz.com/cdn-cgi/rum?"
+    },
+    {
+      "method": "POST",
+      "url": "https://app.grasskickz.com/cdn-cgi/rum?"
+    },
+    {
+      "method": "POST",
+      "url": "https://app.grasskickz.com/cdn-cgi/rum?"
+    },
+    {
+      "method": "POST",
+      "url": "https://app.grasskickz.com/cdn-cgi/rum?"
+    }
+  ],
+  "html": {
+    "localSha256": "af410819398e38c0a5f5e9fb382166b84b5b6657c69a8e411ab54313e16f3382",
+    "servedSha256": "af410819398e38c0a5f5e9fb382166b84b5b6657c69a8e411ab54313e16f3382",
+    "exactBytes": true,
+    "releaseAssetReferences": [
+      "/assets/index-ySmJ1VKB-tournament-20260915-web-r5.js",
+      "/assets/index-CPpTKLLW.css",
+      "/assets/tournament-routes-tournament-20260915-web-r5.css"
+    ]
+  }
+}

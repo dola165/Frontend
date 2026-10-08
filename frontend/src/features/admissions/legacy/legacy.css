@@ -1,0 +1,14 @@
+.legacy-admissions { --admission-border:var(--color-border,var(--border-color)); color:var(--text-primary); background:var(--color-surface); border:1px solid var(--admission-border); border-radius:16px; padding:18px; }
+.legacy-admissions > summary { cursor:pointer; font-weight:700; padding:10px 0; }
+.legacy-admissions > p { margin:12px 0; line-height:1.65; }
+.legacy-admissions .admission-card { margin-top:16px; min-width:0; overflow-wrap:anywhere; border:1px solid var(--admission-border); border-radius:12px; padding:18px; }
+.legacy-admissions .admission-card > h3 { font-size:16px; line-height:1.5; margin:0 0 8px; }
+.legacy-admissions .admission-card > p { font-size:14px; line-height:1.65; margin:8px 0; }
+.legacy-admissions .admission-button { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:10px 14px; box-sizing:border-box; color:var(--text-primary); background:var(--color-surface); border:1px solid var(--admission-border); border-radius:9px; font-size:14px; font-weight:650; text-decoration:none; cursor:pointer; }
+.legacy-admissions .legacy-filter { display:grid; gap:7px; max-width:360px; margin:14px 0; }
+.legacy-admissions form { display:grid; gap:14px; }
+.legacy-admissions label { display:block; margin-bottom:7px; font-size:14px; font-weight:650; }
+.legacy-admissions :is(select,textarea) { box-sizing:border-box; width:100%; min-height:44px; border:1px solid var(--admission-border); border-radius:9px; color:var(--text-primary); background:var(--color-surface); padding:10px 12px; font:inherit; }
+.legacy-admissions textarea { min-height:90px; resize:vertical; }
+.legacy-admissions :is(a,button,select,textarea,summary):focus-visible { outline:3px solid var(--color-accent); outline-offset:3px; }
+.legacy-admissions button:disabled { opacity:.6; cursor:default; }

@@ -1,19 +1,31 @@
+import { useClubProfileSearchParams } from '../../../features/clubs/clubProfilePreviewContext';
 import { type ReactNode } from 'react';
 import { ExternalLink, Globe, Mail, MapPin, MessageSquare, Phone, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { ClubProfile } from '../../../pages/ClubProfilePage';
 import { buildClubProfileLinks, summarizeClubTrust, toPhoneHref, toWhatsappHref } from '../clubProfileInfo';
 
 export const TabContact = ({ club }: { club: ClubProfile }) => {
+    const [params] = useClubProfileSearchParams();
     const phoneHref = toPhoneHref(club.whatsappNumber);
     const whatsappHref = toWhatsappHref(club.whatsappNumber);
     const links = buildClubProfileLinks(club);
+    const roleId = params.get('roleId');
+    const roleTitle = params.get('roleTitle')?.trim();
 
     return (
-        <section className="rounded-[24px] border border-[color:var(--club-theme-border-subtle)] bg-[rgba(12,18,27,0.96)] p-5 shadow-[0_18px_32px_rgba(2,6,12,0.22)]">
+        <section className="rounded-[24px] border border-[color:var(--club-theme-border-subtle)] bg-[var(--club-card)] p-5 shadow-[0_18px_32px_color-mix(in_srgb,_var(--color-shadow)_22%,_transparent)]">
             <div className="mb-5">
                 <p className="text-[11px] font-semibold  text-[color:var(--club-tone-green)]">Contact</p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[color:var(--club-theme-text-primary)]">Reach club staff</h2>
             </div>
+
+            {roleId && roleTitle && <aside className="mb-5 rounded-[18px] border border-[color:var(--color-border)]/8 bg-[color:var(--color-ink)]/[0.03] p-4" aria-label="Role contact context">
+                <p className="text-[10px] font-semibold text-[color:var(--club-tone-green)]">Role enquiry</p>
+                <h3 className="mt-2 text-lg font-semibold text-[color:var(--club-theme-text-primary)]">Contact {club.name} about {roleTitle}</h3>
+                <p className="mt-2 text-sm text-[color:var(--club-theme-text-secondary)]">Use the published details below and mention this role. No in-app application has been submitted or tracked.</p>
+                <Link className="mt-3 inline-flex text-sm font-semibold text-[color:var(--club-tone-green)]" to={`/jobs/${encodeURIComponent(roleId)}`}>Return to role</Link>
+            </aside>}
 
             <div className="grid gap-4 lg:grid-cols-2">
                 <Card title="Primary contact" icon={<Phone className="h-4 w-4" />}>
@@ -44,7 +56,7 @@ export const TabContact = ({ club }: { club: ClubProfile }) => {
                     {club.trustedByClubs.length > 0 ? (
                         <div className="mt-4 flex flex-wrap gap-2">
                             {club.trustedByClubs.map((trustedClub) => (
-                                <span key={trustedClub.clubId} className="rounded-full bg-white/[0.05] px-3 py-2 text-[10px] font-semibold  text-[color:var(--club-theme-text-primary)]">
+                                <span key={trustedClub.clubId} className="rounded-full bg-[color:var(--color-ink)]/[0.05] px-3 py-2 text-[10px] font-semibold  text-[color:var(--club-theme-text-primary)]">
                                     {trustedClub.clubName}
                                 </span>
                             ))}
@@ -57,7 +69,7 @@ export const TabContact = ({ club }: { club: ClubProfile }) => {
 };
 
 const Card = ({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) => (
-    <article className="rounded-[18px] border border-white/6 bg-white/[0.03] p-4">
+    <article className="rounded-[18px] border border-[color:var(--color-border)]/6 bg-[color:var(--color-ink)]/[0.03] p-4">
         <div className="flex items-center gap-2 text-[10px] font-semibold  text-[color:var(--club-tone-green)]">
             {icon}
             {title}
@@ -71,7 +83,7 @@ const ActionLink = ({ href, label, external = false }: { href: string; label: st
         href={href}
         target={external ? '_blank' : undefined}
         rel={external ? 'noopener noreferrer' : undefined}
-        className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-2 text-[10px] font-semibold  text-[color:var(--club-theme-text-primary)]"
+        className="inline-flex items-center gap-2 rounded-full border border-[color:var(--color-border)]/8 bg-[color:var(--color-ink)]/[0.04] px-3 py-2 text-[10px] font-semibold  text-[color:var(--club-theme-text-primary)]"
     >
         {label === 'Messenger' ? <MessageSquare className="h-3.5 w-3.5" /> : null}
         {label === 'Email' ? <Mail className="h-3.5 w-3.5" /> : null}

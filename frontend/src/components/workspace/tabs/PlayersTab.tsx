@@ -1,8 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowDown, ArrowLeft, Check, MessageSquare, Search, UserPlus, UserX, Users, X } from 'lucide-react';
 import type { ClubPlayerAffiliation, PlayerAffiliationStatus, PageResult } from '../../../features/clubs/domain';
-import { ErrorBlock, formatMetaTime, PageSpinner, SectionHeader, Pill } from '../helpers';
+import { ErrorBlock, formatMetaTime, PageSpinner, Pill } from '../helpers';
 import type { SortState } from '../helpers';
 import { EmptyStateCard } from '../EmptyStateCard';
 import { UserIdentityCell } from '../UserIdentityCell';
@@ -10,6 +10,9 @@ import { StatusCell } from '../StatusCell';
 import { OverflowActions, type OverflowActionItem } from '../../ui/OverflowActions';
 import { TrialistBadge } from '../TrialistBadge';
 import type { WorkspaceTab } from '../types';
+import { squadLabel } from '../../squads/squadLabels';
+import '../../squads/squad-design.css';
+import './players-roster.css';
 
 interface PlayersTabProps {
     playerDirectory: PageResult<ClubPlayerAffiliation> | null;
@@ -19,10 +22,13 @@ interface PlayersTabProps {
     playerCounts?: Partial<Record<'ALL' | PlayerAffiliationStatus, number>>;
     pendingKey: string | null;
     canManagePlayerStatuses: boolean;
+    canInvitePlayer?: boolean;
+    joiningUnavailableReason?: string;
     totalPlayerPages: number;
     onStatusFilterChange: (filter: 'ALL' | PlayerAffiliationStatus) => void;
     onPlayerStatusChange: (userId: number, status: PlayerAffiliationStatus, playerName?: string) => Promise<void>;
-    onPromotePlayer: (player: ClubPlayerAffiliation) => void;
+    onReviewJoining?: (userId: number) => void;
+    joiningPlayerIds?: readonly number[];
     onTrialEndsChange: (userId: number, trialEndsOn: string) => Promise<void>;
     onRetry: () => void;
     onPageChange: (page: number) => void;
@@ -33,28 +39,37 @@ interface PlayersTabProps {
 
 // ── helpers ──
 
-const posTone = (pos?: string | null): 'success' | 'info' | 'warning' | 'danger' | 'neutral' => {
-    if (!pos) return 'neutral';
-    const p = pos.toUpperCase();
-    if (p === 'GK' || p === 'GOALKEEPER') return 'success';
-    if (p === 'DEF' || p === 'DEFENDER' || p === 'CB' || p === 'LB' || p === 'RB' || p === 'SW') return 'info';
-    if (p === 'MID' || p === 'MIDFIELDER' || p === 'CM' || p === 'CDM' || p === 'CAM' || p === 'LM' || p === 'RM') return 'warning';
-    if (p === 'FWD' || p === 'FORWARD' || p === 'ST' || p === 'CF' || p === 'LW' || p === 'RW' || p === 'WINGER') return 'danger';
-    return 'neutral';
-};
-
+const EMPTY_PLAYERS: ClubPlayerAffiliation[] = [];
 const FILTERS = ['ALL', 'TRIALIST', 'ACTIVE', 'PAST', 'REMOVED'] as const;
-type PlayerFilter = typeof FILTERS[number];
+type PlayerFilter = (typeof FILTERS)[number];
 
 // ── component ──
 
 export const PlayersTab = ({
-    playerDirectory, playerLoading, playerError, playerStatusFilter, playerCounts,
-    pendingKey, canManagePlayerStatuses, totalPlayerPages, onStatusFilterChange, onPlayerStatusChange, onPromotePlayer, onTrialEndsChange,
-    onRetry, onPageChange, onMessagePlayer, onSendConsentEmail, onTabChange,
+    playerDirectory,
+    playerLoading,
+    playerError,
+    playerStatusFilter,
+    playerCounts,
+    pendingKey,
+    canManagePlayerStatuses,
+    canInvitePlayer = true,
+    joiningUnavailableReason,
+    totalPlayerPages,
+    onStatusFilterChange,
+    onPlayerStatusChange,
+    onReviewJoining,
+    joiningPlayerIds,
+    onTrialEndsChange,
+    onRetry,
+    onPageChange,
+    onMessagePlayer,
+    onSendConsentEmail,
+    onTabChange,
 }: PlayersTabProps) => {
     const { t } = useTranslation();
-    const allPlayers = playerDirectory?.content ?? [];
+    const joiningReasonId = useId();
+    const allPlayers = playerDirectory?.content ?? EMPTY_PLAYERS;
     const [searchQuery, setSearchQuery] = useState('');
     const [sort, setSort] = useState<SortState | null>(null);
     // Phase A5 — inline parent-email capture for trialist consent sends.
@@ -72,7 +87,11 @@ export const PlayersTab = ({
             REMOVED: allPlayers.filter((p) => p.status === 'REMOVED').length,
         };
         const map = {} as Record<PlayerFilter, number>;
-        for (const status of FILTERS) map[status] = playerCounts?.[status] ?? fallback[status];
+        for (const status of FILTERS) {
+            const value = playerCounts?.[status];
+            map[status] = typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback[status];
+        }
+        if (!Number.isFinite(playerCounts?.ALL)) map.ALL = FILTERS.filter(status => status !== 'ALL').reduce((total, status) => total + map[status], 0);
         return map;
     }, [allPlayers, playerCounts]);
 
@@ -81,30 +100,36 @@ export const PlayersTab = ({
         if (!searchQuery.trim()) return allPlayers;
         const q = searchQuery.toLowerCase();
         return allPlayers.filter(
-            (p) =>
-                (p.fullName || '').toLowerCase().includes(q) ||
-                (p.username || '').toLowerCase().includes(q),
+            (p) => (p.fullName || '').toLowerCase().includes(q) || (p.username || '').toLowerCase().includes(q),
         );
     }, [allPlayers, searchQuery]);
 
     const getPlayerSortValue = (p: ClubPlayerAffiliation, col: number): string | number | null => {
         switch (col) {
-            case 0: return (p.fullName || p.username || '').toLowerCase();
-            case 1: return p.status;
-            case 2: return p.parentalConsentStatus ?? '';
-            case 3: return p.position || '';
-            case 4: return p.jerseyNumber ?? -1;
-            case 5: return p.trialEndsOn ?? '';
-            case 6: return p.joinedAt ?? '';
-            default: return null;
+            case 0:
+                return (p.fullName || p.username || '').toLowerCase();
+            case 1:
+                return p.status;
+            case 2:
+                return p.parentalConsentStatus ?? '';
+            case 3:
+                return p.position || '';
+            case 4:
+                return p.jerseyNumber ?? -1;
+            case 5:
+                return p.trialEndsOn ?? '';
+            case 6:
+                return p.joinedAt ?? '';
+            default:
+                return null;
         }
     };
 
     const handleSort = useCallback((col: number) => {
-        setSort(prev =>
+        setSort((prev) =>
             prev?.column === col
                 ? { column: col, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
-                : { column: col, direction: 'asc' }
+                : { column: col, direction: 'asc' },
         );
     }, []);
 
@@ -132,74 +157,111 @@ export const PlayersTab = ({
     // ── render ──
 
     return (
-        <div className="space-y-4">
-            <SectionHeader
-                eyebrow="Players"
-                title="Player Affiliations"
-                description="Track trialists, active players, past players, and removed affiliations."
-                action={
-                    <button
-                        type="button"
-                        onClick={() => onTabChange('invites')}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-[#16a34a] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
-                    >
-                        <UserPlus className="h-3.5 w-3.5" />
-                        + Invite Player
-                    </button>
-                }
-            />
-
-            {/* Filter row + search */}
-            <div className="flex flex-wrap items-center gap-2">
-                <div className="flex flex-wrap gap-1.5">
-                    {FILTERS.map((status) => {
-                        const isActive = playerStatusFilter === status;
-                        const count = counts[status] ?? 0;
-                        return (
-                            <button
-                                key={status}
-                                type="button"
-                                onClick={() => onStatusFilterChange(status)}
-                                className={`rounded-xl border px-3 py-1.5 text-xs font-medium transition-colors ${
-                                    isActive
-                                        ? 'bg-[var(--fc-accent-soft)] border-[var(--fc-accent-border)] text-[var(--fc-accent)]'
-                                        : 'border-[var(--fc-border)] bg-[var(--fc-card-bg)] text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]'
-                                }`}
-                            >
-                                {status === 'ALL' ? 'All' : status.replace('_', ' ')}
-                                <span className="ml-1 opacity-60">({count})</span>
-                            </button>
-                        );
-                    })}
+        <div className="squad-design players-roster" aria-busy={playerLoading}>
+            <header className="sd-heading">
+                <div>
+                    <span className="sd-eyebrow">{t('squadDesign.players.eyebrow', 'Club workspace / People')}</span>
+                    <h1>{t('squadDesign.players.title', 'Players')}</h1>
+                    <p>
+                        {t(
+                            'squadDesign.players.description',
+                            'Your players, their progress and the next decision. All in one place.',
+                        )}
+                    </p>
                 </div>
-                <div className="relative ml-auto w-full sm:w-56">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--fc-text-muted)]" />
+                <button type="button" disabled={!canInvitePlayer} aria-describedby={!canInvitePlayer && joiningUnavailableReason ? joiningReasonId : undefined} onClick={() => onTabChange('admissions')} className="sd-primary">
+                    <UserPlus size={16} />
+                    {t('squadDesign.players.invite', 'Invite player')}
+                </button>
+            </header>
+            {!canInvitePlayer && joiningUnavailableReason && <p id={joiningReasonId} role="status">{joiningUnavailableReason}</p>}
+            <div className="players-roster-links">
+                <button type="button" onClick={() => onTabChange('squads')}>
+                    {t('squadDesign.players.squads', 'Manage squads')} <ArrowDown size={13} className="-rotate-90" />
+                </button>
+                <button type="button" onClick={() => onTabChange('player-cards')}>
+                    {t('squadDesign.players.cards', 'Player cards')} <ArrowDown size={13} className="-rotate-90" />
+                </button>
+            </div>
+            <div
+                className="players-status-filters"
+                aria-label={t('squadDesign.players.filter', 'Filter players by status')}
+            >
+                {FILTERS.map((status) => (
+                    <button
+                        key={status}
+                        data-player-status={status}
+                        type="button"
+                        aria-pressed={playerStatusFilter === status}
+                        onClick={() => {
+                            setSearchQuery('');
+                            onStatusFilterChange(status);
+                        }}
+                    >
+                        {t(`squadDesign.players.status.${status}`, {
+                            defaultValue:
+                                status === 'ALL'
+                                    ? 'All players'
+                                    : status === 'TRIALIST'
+                                      ? 'On trial'
+                                      : status.charAt(0) + status.slice(1).toLowerCase(),
+                        })}
+                        <span>{counts[status] ?? 0}</span>
+                    </button>
+                ))}
+            </div>
+            <div className="sd-toolbar">
+                <label className="sd-search">
+                    <Search size={16} />
                     <input
-                        type="text"
+                        type="search"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search by name or handle..."
-                        className="w-full rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] py-2 pl-9 pr-3 text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)] focus:ring-1 focus:ring-[var(--fc-accent)]"
+                        aria-label={t('squadDesign.players.search', 'Search players on this page')}
+                        placeholder={t('squadDesign.players.search', 'Search players on this page')}
                     />
-                </div>
-            </div>
-
-            {/* Alert banner */}
-            {trialistCount > 0 && (
-                <div className="rounded-xl border border-[var(--fc-state-warning-soft)] bg-[var(--fc-state-warning-soft)] px-4 py-2.5 flex items-center gap-3">
-                    <span className="text-sm text-[var(--fc-text-primary)]">
-                        <strong>{trialistCount}</strong> player{trialistCount !== 1 ? 's are' : ' is'} waiting for a decision.
-                    </span>
-                    <button
-                        type="button"
-                        onClick={() => onStatusFilterChange('TRIALIST')}
-                        className="text-sm font-medium text-[var(--fc-accent)] hover:underline"
+                </label>
+                <label className="players-sort">
+                    <span>{t('squadDesign.players.sort', 'Sort by')}</span>
+                    <select
+                        value={sort?.column ?? ''}
+                        onChange={(e) =>
+                            setSort(e.target.value === '' ? null : { column: Number(e.target.value), direction: 'asc' })
+                        }
                     >
-                        Review
-                    </button>
+                        <option value="">{t('squadDesign.players.defaultOrder', 'Default order')}</option>
+                        {['Player', 'Status', 'Consent', 'Position', 'Shirt number', 'Trial ends', 'Joined'].map(
+                            (label, col) => (
+                                <option key={col} value={col}>
+                                    {t(`squadDesign.players.sort${col}`, label)}
+                                </option>
+                            ),
+                        )}
+                    </select>
+                    {sort && (
+                        <button
+                            type="button"
+                            className="sd-icon-button"
+                            onClick={() => handleSort(sort.column)}
+                            aria-label={t('squadDesign.players.reverseSort', 'Reverse sort order')}
+                        >
+                            <ArrowDown size={14} className={sort.direction === 'desc' ? 'rotate-180' : ''} />
+                        </button>
+                    )}
+                </label>
+            </div>
+            {trialistCount > 0 && playerStatusFilter === 'TRIALIST' && (
+                <div className="players-trial-note">
+                    <Users size={16} />
+                    <span>
+                        {t(
+                            'squadDesign.players.trialNote',
+                            'Review trial dates and consent before moving a player into the active squad.',
+                        )}
+                    </span>
                 </div>
             )}
-
+            {playerError && playerDirectory && <ErrorBlock message={playerError} onRetry={onRetry} />}
             {/* Content */}
             {playerLoading && !playerDirectory ? (
                 <PageSpinner />
@@ -213,22 +275,22 @@ export const PlayersTab = ({
                         searchQuery
                             ? 'Try a different search term.'
                             : playerStatusFilter === 'TRIALIST'
-                                ? t('trialists.emptyOnTrial')
-                                : 'Players will appear here when they join your club or are invited.'
+                              ? t('trialists.emptyOnTrial')
+                              : 'Players will appear here when they join your club or are invited.'
                     }
                 />
             ) : (
                 <>
                     {/* Column header */}
-                    <div className="flex items-center gap-4 rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 h-11 text-xs font-semibold text-[var(--fc-text-secondary)]">
+                    <div className="players-table-head players-table-grid">
                         {[
-                            { col: 0, label: 'PLAYER', className: 'flex-1 min-w-0' },
-                            { col: 1, label: 'STATUS', className: 'w-24' },
-                            { col: 2, label: 'CONSENT', className: 'w-36' },
-                            { col: 3, label: 'POS', className: 'w-20' },
-                            { col: 4, label: '#', className: 'w-14' },
-                            { col: 5, label: t('trialists.trialEnds').toUpperCase(), className: 'w-32' },
-                            { col: 6, label: 'JOINED', className: 'w-32' },
+                            { col: 0, label: t('squadDesign.players.sort0', 'Player'), className: '' },
+                            { col: 1, label: t('squadDesign.players.sort1', 'Status'), className: '' },
+                            { col: 2, label: t('squadDesign.players.sort2', 'Consent'), className: '' },
+                            { col: 3, label: t('squadDesign.players.sort3', 'Position'), className: '' },
+                            { col: 4, label: t('squadDesign.roster.number', 'No.'), className: '' },
+                            { col: 5, label: t('trialists.trialEnds').toUpperCase(), className: '' },
+                            { col: 6, label: t('squadDesign.players.sort6', 'Joined'), className: '' },
                         ].map(({ col, label, className }) => (
                             <button
                                 key={col}
@@ -242,26 +304,31 @@ export const PlayersTab = ({
                                 </span>
                             </button>
                         ))}
-                        <span className="w-36" />
+                        <span />
                     </div>
 
                     {/* Card rows */}
-                    <div className="space-y-1.5">
+                    <div className="players-table-body">
                         {sortedPlayers.map((player) => {
                             const isTrialist = player.status === 'TRIALIST';
                             const isInactive = player.status === 'PAST' || player.status === 'REMOVED';
                             const isCurrent = player.status === 'ACTIVE' || player.status === 'TRIALIST';
+                            const isAdmissionManaged = joiningPlayerIds?.includes(player.userId) === true;
                             // Phase A5 — consent attaches at first contact: offer the
                             // send affordance on trialist rows too.
-                            const consentNeedsSending = isCurrent
-                                && !!player.requiresParentalConsent
-                                && (!player.parentalConsentStatus || player.parentalConsentStatus === 'NOT_REQUIRED')
-                                && !!onSendConsentEmail;
+                            const consentNeedsSending =
+                                isCurrent &&
+                                !!player.requiresParentalConsent &&
+                                (!player.parentalConsentStatus || player.parentalConsentStatus === 'NOT_REQUIRED') &&
+                                !!onSendConsentEmail;
                             const statusTone =
-                                player.status === 'ACTIVE' ? 'success'
-                                : player.status === 'TRIALIST' ? 'warning'
-                                : player.status === 'PAST' ? 'warning'
-                                : 'neutral';
+                                player.status === 'ACTIVE'
+                                    ? 'success'
+                                    : player.status === 'TRIALIST'
+                                      ? 'warning'
+                                      : player.status === 'PAST'
+                                        ? 'warning'
+                                        : 'neutral';
                             // POS and jersey from API
                             const pos = player.position;
                             const jersey = player.jerseyNumber;
@@ -269,38 +336,36 @@ export const PlayersTab = ({
                             return (
                                 <div
                                     key={`${player.userId}-${player.status}`}
-                                    className={`flex items-center gap-4 rounded-xl border px-4 py-3 transition-colors group ${
-                                        isTrialist
-                                            ? 'bg-[var(--fc-state-warning-soft)] border-[var(--fc-state-warning-soft)]'
-                                            : 'bg-[var(--fc-card-bg)] border-[var(--fc-border)] hover:bg-[var(--fc-surface-hover)]'
-                                    }`}
+                                    className="players-table-row players-table-grid group"
+                                    data-status={player.status}
                                 >
                                     {/* Player identity */}
-                                    <span className="flex-1 min-w-0 flex items-center gap-2">
+                                    <span className="players-identity">
                                         <UserIdentityCell
                                             avatarUrl={player.avatarUrl}
                                             fullName={player.fullName}
                                             username={player.username}
                                             userId={player.userId}
                                         />
-                                        {isTrialist && (
-                                            <TrialistBadge
-                                                joinedAt={player.joinedAt}
-                                                approveLabel={t('trialists.promote')}
-                                                onApprove={canManagePlayerStatuses ? () => onPromotePlayer(player) : undefined}
-                                                onRelease={canManagePlayerStatuses ? () => void onPlayerStatusChange(player.userId, 'REMOVED', player.fullName || undefined) : undefined}
-                                            />
-                                        )}
                                     </span>
 
                                     {/* Status */}
-                                    <span className="w-24">
+                                    <span
+                                        className="players-cell"
+                                        data-label={t('squadDesign.players.sort1', 'Status')}
+                                    >
                                         <StatusCell label={player.status.replace('_', ' ')} tone={statusTone} />
+                                        {isTrialist && <TrialistBadge joinedAt={player.joinedAt} className="players-trial-age" />}
                                     </span>
 
                                     {/* Parental consent (13-15, WEB_APP_MASTER_PLAN.md §2.1; phase A5 covers trialists) */}
-                                    <span className="w-36 flex items-center gap-1">
-                                        {player.parentalConsentStatus === 'CONFIRMED' ? (
+                                    <span
+                                        className="players-cell players-consent"
+                                        data-label={t('squadDesign.players.sort2', 'Consent')}
+                                    >
+                                        {isAdmissionManaged && onReviewJoining ? (
+                                            <button type="button" className="text-xs text-[var(--fc-accent)] hover:underline" onClick={() => onReviewJoining(player.userId)}>View agreed terms</button>
+                                        ) : player.parentalConsentStatus === 'CONFIRMED' ? (
                                             <Pill label={t('minors.playersTab.consentParent')} tone="success" />
                                         ) : player.parentalConsentStatus === 'DECLINED' ? (
                                             <>
@@ -309,24 +374,40 @@ export const PlayersTab = ({
                                                     <button
                                                         type="button"
                                                         disabled={pendingKey === `consent-${player.userId}`}
-                                                        title={t('minors.playersTab.resendTo', { email: player.parentEmail })}
-                                                        onClick={() => onSendConsentEmail(player.userId, player.parentEmail)}
-                                                        className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#16a34a] hover:underline"
+                                                        title={t('minors.playersTab.resendTo', {
+                                                            email: player.parentEmail,
+                                                        })}
+                                                        onClick={() =>
+                                                            onSendConsentEmail(player.userId, player.parentEmail)
+                                                        }
+                                                        className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent)] hover:underline"
                                                     >
                                                         {t('minors.playersTab.resend')}
                                                     </button>
                                                 )}
                                             </>
-                                        ) : (player.parentalConsentStatus === 'PENDING' || player.parentalConsentStatus === 'EXPIRED') ? (
+                                        ) : player.parentalConsentStatus === 'PENDING' ||
+                                          player.parentalConsentStatus === 'EXPIRED' ? (
                                             <>
-                                                <Pill label={t(player.parentalConsentStatus === 'EXPIRED' ? 'minors.playersTab.consentExpired' : 'minors.playersTab.consentPending')} tone="warning" />
+                                                <Pill
+                                                    label={t(
+                                                        player.parentalConsentStatus === 'EXPIRED'
+                                                            ? 'minors.playersTab.consentExpired'
+                                                            : 'minors.playersTab.consentPending',
+                                                    )}
+                                                    tone="warning"
+                                                />
                                                 {player.parentEmail && isCurrent && onSendConsentEmail && (
                                                     <button
                                                         type="button"
                                                         disabled={pendingKey === `consent-${player.userId}`}
-                                                        title={t('minors.playersTab.resendTo', { email: player.parentEmail })}
-                                                        onClick={() => onSendConsentEmail(player.userId, player.parentEmail)}
-                                                        className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#16a34a] hover:underline"
+                                                        title={t('minors.playersTab.resendTo', {
+                                                            email: player.parentEmail,
+                                                        })}
+                                                        onClick={() =>
+                                                            onSendConsentEmail(player.userId, player.parentEmail)
+                                                        }
+                                                        className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent)] hover:underline"
                                                     >
                                                         {t('minors.playersTab.resend')}
                                                     </button>
@@ -344,7 +425,7 @@ export const PlayersTab = ({
                                                         setConsentEmailValue('');
                                                     }
                                                 }}
-                                                className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#16a34a] hover:underline"
+                                                className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent)] hover:underline"
                                             >
                                                 {t('minors.playersTab.sendConsent')}
                                             </button>
@@ -360,15 +441,21 @@ export const PlayersTab = ({
                                                 />
                                                 <button
                                                     type="button"
-                                                    disabled={!consentEmailValue.trim() || pendingKey === `consent-${player.userId}`}
+                                                    disabled={
+                                                        !consentEmailValue.trim() ||
+                                                        pendingKey === `consent-${player.userId}`
+                                                    }
                                                     onClick={async () => {
-                                                        const sent = await onSendConsentEmail?.(player.userId, consentEmailValue.trim());
+                                                        const sent = await onSendConsentEmail?.(
+                                                            player.userId,
+                                                            consentEmailValue.trim(),
+                                                        );
                                                         if (sent !== false) {
                                                             setConsentEmailFor(null);
                                                             setConsentEmailValue('');
                                                         }
                                                     }}
-                                                    className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#16a34a] hover:underline disabled:opacity-50"
+                                                    className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent)] hover:underline disabled:opacity-50"
                                                 >
                                                     {t('minors.playersTab.send')}
                                                 </button>
@@ -387,29 +474,44 @@ export const PlayersTab = ({
                                     </span>
 
                                     {/* POS */}
-                                    <span className="w-20">
+                                    <span
+                                        className="players-cell"
+                                        data-label={t('squadDesign.players.sort3', 'Position')}
+                                    >
                                         {pos ? (
-                                            <Pill label={pos.toUpperCase()} tone={posTone(pos)} />
+                                            <span className="players-position">{squadLabel(pos, t)}</span>
                                         ) : (
                                             <span className="text-xs text-[var(--fc-text-muted)]">—</span>
                                         )}
                                     </span>
 
                                     {/* Jersey # */}
-                                    <span className="w-14 text-xs text-[var(--fc-text-secondary)]">
+                                    <span
+                                        className="players-cell"
+                                        data-label={t('squadDesign.players.sort4', 'Shirt number')}
+                                    >
                                         {jersey ?? '—'}
                                     </span>
 
                                     {/* Trial ends (phase A1) — editable for trialists */}
-                                    <span className="w-32">
+                                    <span className="players-cell" data-label={t('trialists.trialEnds')}>
                                         {isTrialist ? (
                                             <input
                                                 type="date"
                                                 value={player.trialEndsOn ?? ''}
                                                 onChange={(e) => void onTrialEndsChange(player.userId, e.target.value)}
-                                                disabled={!canManagePlayerStatuses}
+                                                disabled={
+                                                    !canManagePlayerStatuses || isAdmissionManaged ||
+                                                    pendingKey === `trial-ends-${player.userId}`
+                                                }
                                                 aria-label={`${t('trialists.trialEnds')} ${player.fullName || player.username}`}
-                                                title={canManagePlayerStatuses ? undefined : 'Only club owners and admins can change player status or trial dates.'}
+                                                title={
+                                                    isAdmissionManaged
+                                                        ? 'Review dates in the player’s joining arrangement.'
+                                                        : canManagePlayerStatuses
+                                                        ? undefined
+                                                        : 'Only club owners and admins can change player status or trial dates.'
+                                                }
                                                 className="w-full rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2 py-1 text-xs text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)] disabled:cursor-not-allowed disabled:opacity-60"
                                             />
                                         ) : (
@@ -418,31 +520,41 @@ export const PlayersTab = ({
                                     </span>
 
                                     {/* Joined date */}
-                                    <span className="w-32 text-xs text-[var(--fc-text-secondary)]">
+                                    <span
+                                        className="players-cell"
+                                        data-label={t('squadDesign.players.sort6', 'Joined')}
+                                    >
                                         {formatMetaTime(player.joinedAt) || '—'}
                                     </span>
 
                                     {/* Actions */}
-                                    <span className="w-36 flex items-center gap-1 justify-end">
+                                    <span className="players-row-actions">
                                         {isInactive ? (
                                             <span className="text-xs text-[var(--fc-text-muted)]">—</span>
                                         ) : isTrialist ? (
                                             <>
-                                                {canManagePlayerStatuses ? (
+                                                {(onReviewJoining || canManagePlayerStatuses) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onReviewJoining ? onReviewJoining(player.userId) : onTabChange('admissions')}
+                                                        className="inline-flex items-center gap-1 rounded-xl bg-[var(--color-accent)] px-2.5 py-1 text-xs font-semibold text-[var(--color-on-accent)] hover:opacity-90 transition-opacity"
+                                                    >
+                                                        <Check className="h-3 w-3" />
+                                                        Review joining
+                                                    </button>
+                                                )}
+                                                {canManagePlayerStatuses && !isAdmissionManaged ? (
                                                     <>
                                                         <button
                                                             type="button"
-                                                            disabled={pendingKey === `player-${player.userId}-ACTIVE`}
-                                                            onClick={() => onPromotePlayer(player)}
-                                                            className="inline-flex items-center gap-1 rounded-xl bg-[#16a34a] px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
-                                                        >
-                                                            <Check className="h-3 w-3" />
-                                                            {t('trialists.promote')}
-                                                        </button>
-                                                        <button
-                                                            type="button"
                                                             disabled={pendingKey === `player-${player.userId}-REMOVED`}
-                                                            onClick={() => void onPlayerStatusChange(player.userId, 'REMOVED', player.fullName || undefined)}
+                                                            onClick={() =>
+                                                                void onPlayerStatusChange(
+                                                                    player.userId,
+                                                                    'REMOVED',
+                                                                    player.fullName || undefined,
+                                                                )
+                                                            }
                                                             className="inline-flex items-center gap-1 rounded-xl border border-[var(--fc-state-danger)] px-2.5 py-1 text-xs font-semibold text-[var(--fc-state-danger)] hover:bg-[var(--fc-state-danger-soft)] disabled:opacity-50 transition-colors"
                                                         >
                                                             <X className="h-3 w-3" />
@@ -450,70 +562,99 @@ export const PlayersTab = ({
                                                         </button>
                                                     </>
                                                 ) : (
-                                                    <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--fc-text-muted)]" title="Only club owners and admins can finalize player status.">
+                                                    !onReviewJoining && <span
+                                                        className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--fc-text-muted)]"
+                                                        title="Only club owners and admins can finalize player status."
+                                                    >
                                                         Review only
                                                     </span>
                                                 )}
                                             </>
                                         ) : (
                                             <>
+                                                {isAdmissionManaged && onReviewJoining && <button type="button" className="inline-flex items-center gap-1 rounded-xl border border-[var(--fc-border)] px-2.5 py-1 text-xs font-semibold text-[var(--fc-text-primary)]" onClick={() => onReviewJoining(player.userId)}>Review placement</button>}
                                                 {onMessagePlayer && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => onMessagePlayer(player.userId, player.fullName || undefined)}
+                                                        onClick={() =>
+                                                            onMessagePlayer(player.userId, player.fullName || undefined)
+                                                        }
                                                         aria-label={`Message ${player.fullName || player.username}`}
-                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-[var(--fc-text-muted)] hover:text-[var(--fc-accent)] hover:bg-[var(--fc-accent-soft)] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all"
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-[var(--fc-text-muted)] hover:text-[var(--fc-accent)] hover:bg-[var(--fc-accent-soft)] transition-colors"
                                                         title={`Message ${player.fullName || player.username}`}
                                                     >
                                                         <MessageSquare className="h-4 w-4" />
                                                     </button>
                                                 )}
-                                                {canManagePlayerStatuses && <OverflowActions
-                                                    triggerIcon="vertical"
-                                                    label="Player actions"
-                                                    items={(() => {
-                                                        const items: OverflowActionItem[] = [];
-                                                        const name = player.fullName || undefined;
-                                                        if (player.status === 'ACTIVE') {
-                                                            items.push({
-                                                                id: 'demote',
-                                                                label: 'Demote',
-                                                                description: 'Revert to trialist',
-                                                                icon: <ArrowDown className="h-3.5 w-3.5" />,
-                                                                disabled: pendingKey === `player-${player.userId}-TRIALIST`,
-                                                                onSelect: () => void onPlayerStatusChange(player.userId, 'TRIALIST', name),
-                                                            });
-                                                            items.push({
-                                                                id: 'mark-past',
-                                                                label: 'Mark Past',
-                                                                description: 'Move to past players, remove from squads',
-                                                                icon: <ArrowLeft className="h-3.5 w-3.5" />,
-                                                                tone: 'warning',
-                                                                disabled: pendingKey === `player-${player.userId}-PAST`,
-                                                                confirm: {
-                                                                    title: 'Mark as past?',
-                                                                    body: `Mark "${player.fullName || player.username}" as a past player? They will be removed from ALL squads.`,
-                                                                },
-                                                                onSelect: () => void onPlayerStatusChange(player.userId, 'PAST', name),
-                                                            });
-                                                            items.push({
-                                                                id: 'remove',
-                                                                label: 'Remove',
-                                                                description: 'Remove from club permanently',
-                                                                icon: <UserX className="h-3.5 w-3.5" />,
-                                                                tone: 'danger',
-                                                                divider: true,
-                                                                disabled: pendingKey === `player-${player.userId}-REMOVED`,
-                                                                confirm: {
-                                                                    title: 'Remove player?',
-                                                                    body: `Remove "${player.fullName || player.username}" from the club? They will be removed from ALL squads.`,
-                                                                },
-                                                                onSelect: () => void onPlayerStatusChange(player.userId, 'REMOVED', name),
-                                                            });
-                                                        }
-                                                        return items;
-                                                    })()}
-                                                />}
+                                                {canManagePlayerStatuses && !isAdmissionManaged && (
+                                                    <OverflowActions
+                                                        triggerIcon="vertical"
+                                                        label="Player actions"
+                                                        items={(() => {
+                                                            const items: OverflowActionItem[] = [];
+                                                            const name = player.fullName || undefined;
+                                                            if (player.status === 'ACTIVE') {
+                                                                items.push({
+                                                                    id: 'demote',
+                                                                    label: 'Demote',
+                                                                    description: 'Revert to trialist',
+                                                                    icon: <ArrowDown className="h-3.5 w-3.5" />,
+                                                                    disabled:
+                                                                        pendingKey ===
+                                                                        `player-${player.userId}-TRIALIST`,
+                                                                    onSelect: () =>
+                                                                        void onPlayerStatusChange(
+                                                                            player.userId,
+                                                                            'TRIALIST',
+                                                                            name,
+                                                                        ),
+                                                                });
+                                                                items.push({
+                                                                    id: 'mark-past',
+                                                                    label: 'Mark Past',
+                                                                    description:
+                                                                        'Move to past players, remove from squads',
+                                                                    icon: <ArrowLeft className="h-3.5 w-3.5" />,
+                                                                    tone: 'warning',
+                                                                    disabled:
+                                                                        pendingKey === `player-${player.userId}-PAST`,
+                                                                    confirm: {
+                                                                        title: 'Mark as past?',
+                                                                        body: `Mark "${player.fullName || player.username}" as a past player? They will be removed from ALL squads.`,
+                                                                    },
+                                                                    onSelect: () =>
+                                                                        void onPlayerStatusChange(
+                                                                            player.userId,
+                                                                            'PAST',
+                                                                            name,
+                                                                        ),
+                                                                });
+                                                                items.push({
+                                                                    id: 'remove',
+                                                                    label: 'Remove',
+                                                                    description: 'Remove from club permanently',
+                                                                    icon: <UserX className="h-3.5 w-3.5" />,
+                                                                    tone: 'danger',
+                                                                    divider: true,
+                                                                    disabled:
+                                                                        pendingKey ===
+                                                                        `player-${player.userId}-REMOVED`,
+                                                                    confirm: {
+                                                                        title: 'Remove player?',
+                                                                        body: `Remove "${player.fullName || player.username}" from the club? They will be removed from ALL squads.`,
+                                                                    },
+                                                                    onSelect: () =>
+                                                                        void onPlayerStatusChange(
+                                                                            player.userId,
+                                                                            'REMOVED',
+                                                                            name,
+                                                                        ),
+                                                                });
+                                                            }
+                                                            return items;
+                                                        })()}
+                                                    />
+                                                )}
                                             </>
                                         )}
                                     </span>
@@ -524,14 +665,17 @@ export const PlayersTab = ({
 
                     {/* Pagination */}
                     {playerDirectory && playerDirectory.totalElements > playerDirectory.pageSize && (
-                        <div className="flex items-center justify-between px-1">
+                        <div className="players-pagination">
                             <p className="text-xs text-[var(--fc-text-muted)]">
                                 Page {playerDirectory.pageNumber + 1} of {totalPlayerPages}
                             </p>
                             <div className="flex gap-2">
                                 <button
                                     type="button"
-                                    onClick={() => onPageChange(Math.max(0, playerDirectory.pageNumber - 1))}
+                                    onClick={() => {
+                                        setSearchQuery('');
+                                        onPageChange(Math.max(0, playerDirectory.pageNumber - 1));
+                                    }}
                                     disabled={playerDirectory.pageNumber === 0}
                                     className="rounded-xl border border-[var(--fc-border)] px-2.5 py-1 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-40"
                                 >
@@ -539,7 +683,10 @@ export const PlayersTab = ({
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => onPageChange(playerDirectory.pageNumber + 1)}
+                                    onClick={() => {
+                                        setSearchQuery('');
+                                        onPageChange(playerDirectory.pageNumber + 1);
+                                    }}
                                     disabled={playerDirectory.pageNumber + 1 >= totalPlayerPages}
                                     className="rounded-xl border border-[var(--fc-border)] px-2.5 py-1 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-40"
                                 >

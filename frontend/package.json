@@ -5,13 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run check:theme && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "qa:smoke": "npx playwright test e2e/smoke.spec.ts",
     "qa:smoke:headed": "npx playwright test e2e/smoke.spec.ts --headed",
     "qa:layout": "npx playwright test e2e/layout.spec.ts",
-    "qa:smoke:install": "npx playwright install chromium"
+    "qa:smoke:install": "npx playwright install chromium",
+    "test": "vitest run",
+    "check": "npm run lint && npm run test && npm run build",
+    "check:theme": "node scripts/check-theme-colors.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

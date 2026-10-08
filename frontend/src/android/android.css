@@ -1,0 +1,30 @@
+/* Native bars provide navigation and safe-area spacing around the bundled pages. */
+html.android-app { --app-header-height: 0px; --app-active-header-height: 0px; overscroll-behavior: none; }
+.android-app body { overscroll-behavior: none; }
+.android-app .feed-home-grid { display: block; padding: 0 12px; }
+.android-app .feed-home-grid > aside { display: none; }
+.android-app .store-page { padding-inline: 12px; }
+.android-app button, .android-app input, .android-app select { touch-action: manipulation; }
+.android-app .entity-tabs { scrollbar-width: thin; scroll-padding-inline: 12px; }
+.android-app .entity-tabs > div { gap: 12px; }
+.android-app .entity-tabs :is(a, button) { padding-inline: 10px; min-height: 48px; color: var(--text-secondary); }
+.android-app .entity-tabs :is([aria-current="page"], [aria-pressed="true"]) { color: var(--text-primary); }
+.android-app :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]) {
+  font-size: 16px;
+  min-width: 0;
+}
+.android-app :is(input, select):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]) { min-height: 44px; }
+.android-app .atlas-area-action { bottom: 72px; }
+.android-app .atlas-area-action > span, .android-app .atlas-area-action > small { display: none; }
+.android-app .atlas-area-action > button { padding: 12px 18px; }
+@media (max-height: 400px) {
+  .android-app .atlas-view-controls, .android-app .maplibregl-ctrl-group { display: none; }
+}
+@media (max-width: 600px) {
+  .android-app .workspace-mobile-bar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; padding-inline: 12px; }
+  .android-app .workspace-mobile-bar > button { padding-inline: 9px; }
+  .android-app .workspace-mobile-bar > div { overflow: hidden; }
+  .android-app .store-variant-row { display: grid; grid-template-columns: minmax(0, 1fr) 96px; }
+  .android-app .store-variant-row > label { min-width: 0; width: auto; }
+  .android-app .store-variant-row > button { grid-column: 1 / -1; justify-self: start; }
+}

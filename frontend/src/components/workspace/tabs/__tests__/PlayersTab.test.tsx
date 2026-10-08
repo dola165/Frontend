@@ -54,7 +54,6 @@ const renderTab = (overrides: Partial<Parameters<typeof PlayersTab>[0]> = {}) =>
         totalPlayerPages: 1,
         onStatusFilterChange: vi.fn(),
         onPlayerStatusChange: vi.fn(),
-        onPromotePlayer: vi.fn(),
         onTrialEndsChange: vi.fn(),
         onRetry: vi.fn(),
         onPageChange: vi.fn(),
@@ -66,17 +65,32 @@ const renderTab = (overrides: Partial<Parameters<typeof PlayersTab>[0]> = {}) =>
 };
 
 describe('PlayersTab — phase A1 trialist actions', () => {
-    it('shows Promote and Release buttons for trialist rows', () => {
+    it('keeps player intake unavailable with an explanation until joining access is ready', () => {
+        const props=renderTab({canInvitePlayer:false,joiningUnavailableReason:'Joining access is loading.'});
+        expect(screen.getByRole('button',{name:'Invite player'})).toBeDisabled();
+        expect(screen.getByRole('status')).toHaveTextContent('Joining access is loading.');
+        fireEvent.click(screen.getByRole('button',{name:'Invite player'}));
+        expect(props.onTabChange).not.toHaveBeenCalled();
+    });
+    it('uses the known whole-cohort counts when an omitted total becomes non-finite', () => {
+        renderTab({playerCounts:{ALL:Number.NaN,ACTIVE:86,REMOVED:2,PAST:0,TRIALIST:0}});
+        expect(screen.getByRole('button',{name:/All players\s*88/})).toBeInTheDocument();
+        expect(screen.queryByText('NaN')).not.toBeInTheDocument();
+    });
+    it('opens player intake rather than staff invitations', () => {
+        const props=renderTab();fireEvent.click(screen.getByRole('button',{name:'Invite player'}));expect(props.onTabChange).toHaveBeenCalledWith('admissions');
+    });
+    it('shows a joining review and Release for preserved trialist rows', () => {
         renderTab();
-        const promoteButtons = screen.getAllByRole('button', { name: 'Promote' });
+        const promoteButtons = screen.getAllByRole('button', { name: 'Review joining' });
         expect(promoteButtons.length).toBeGreaterThanOrEqual(1);
         expect(screen.getAllByRole('button', { name: 'Release' }).length).toBeGreaterThanOrEqual(1);
     });
 
-    it('Promote opens the promote flow via onPromotePlayer', () => {
+    it('continues the player’s joining arrangement without a parallel automatic promotion', () => {
         const props = renderTab();
-        fireEvent.click(screen.getAllByRole('button', { name: 'Promote' })[0]);
-        expect(props.onPromotePlayer).toHaveBeenCalledWith(expect.objectContaining({ userId: trialist.userId }));
+        fireEvent.click(screen.getAllByRole('button', { name: 'Review joining' })[0]);
+        expect(props.onTabChange).toHaveBeenCalledWith('admissions');expect(props.onPlayerStatusChange).not.toHaveBeenCalled();
     });
 
     it('Release goes through onPlayerStatusChange with REMOVED', () => {
@@ -107,9 +121,9 @@ describe('PlayersTab — phase A1 trialist actions', () => {
             playerStatusFilter: 'TRIALIST',
             playerCounts: { ALL: 86, TRIALIST: 2, ACTIVE: 84, PAST: 0, REMOVED: 0 },
         });
-        expect(screen.getByRole('button', { name: /All\s*\(86\)/ })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /TRIALIST\s*\(2\)/ })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /ACTIVE\s*\(84\)/ })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /All players\s*86/ })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /On trial\s*2/ })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Active\s*84/ })).toBeInTheDocument();
     });
 
     it('does not render Promote/Release for active players', () => {
@@ -124,6 +138,33 @@ describe('PlayersTab — phase A1 trialist actions', () => {
         expect(screen.queryByRole('button', { name: 'Release' })).toBeNull();
         expect(screen.getAllByText('Review only').length).toBeGreaterThan(0);
         expect(screen.getByLabelText(`Trial ends ${trialist.fullName}`)).toBeDisabled();
+    });
+
+    it('lets an authorized coach review joining without leadership status permissions', () => {
+        const onReviewJoining = vi.fn();
+        const props = renderTab({ canManagePlayerStatuses: false, onReviewJoining });
+        fireEvent.click(screen.getByRole('button', { name: 'Review joining' }));
+        expect(onReviewJoining).toHaveBeenCalledWith(trialist.userId);
+        expect(screen.queryByRole('button', { name: 'Release' })).toBeNull();
+        expect(screen.getByLabelText(`Trial ends ${trialist.fullName}`)).toBeDisabled();
+        expect(props.onPlayerStatusChange).not.toHaveBeenCalled();
+    });
+    it('takes a completed placement to its arrangement rather than altering the affiliation independently', () => {
+        const onReviewJoining = vi.fn();
+        const props = renderTab({ playerDirectory:makeDirectory([active]),joiningPlayerIds:[active.userId],onReviewJoining });
+        fireEvent.click(screen.getByRole('button',{name:'Review placement'}));
+        expect(onReviewJoining).toHaveBeenCalledWith(active.userId);
+        expect(screen.queryByRole('button',{name:'Player actions'})).not.toBeInTheDocument();
+        expect(props.onPlayerStatusChange).not.toHaveBeenCalled();
+    });
+    it('uses arrangement terms and dates for a linked request rather than old trialist controls', () => {
+        const onReviewJoining = vi.fn();
+        const props=renderTab({playerDirectory:makeDirectory([trialist]),joiningPlayerIds:[trialist.userId],onReviewJoining,onSendConsentEmail:vi.fn()});
+        expect(screen.queryByRole('button',{name:'Release'})).not.toBeInTheDocument();
+        expect(screen.queryByRole('button',{name:'Send consent'})).not.toBeInTheDocument();
+        expect(screen.getByLabelText(`Trial ends ${trialist.fullName}`)).toBeDisabled();
+        fireEvent.click(screen.getByRole('button',{name:'View agreed terms'}));expect(onReviewJoining).toHaveBeenCalledWith(trialist.userId);
+        expect(props.onPlayerStatusChange).not.toHaveBeenCalled();
     });
 
     it('phase A5: offers Send consent on a consent-flagged trialist and captures the parent email inline', () => {

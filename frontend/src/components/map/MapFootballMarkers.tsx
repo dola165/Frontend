@@ -1,3 +1,4 @@
+import { visualColors } from '../../styles/visualColors';
 import { useEffect } from 'react';
 import { useMap } from 'react-map-gl/maplibre';
 
@@ -11,11 +12,11 @@ function footballImage() {
     if (!ctx) return null;
     ctx.scale(2, 2); ctx.translate(32, 32);
     ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2);
-    ctx.fillStyle = '#fffef5'; ctx.fill();
+    ctx.fillStyle = visualColors.mapFootballMarkersPaint101; ctx.fill();
     ctx.beginPath(); ctx.arc(0, 0, 27, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffffff'; ctx.fill();
-    ctx.strokeStyle = '#173029'; ctx.lineWidth = 1.8; ctx.stroke();
-    ctx.save(); ctx.clip(); ctx.fillStyle = '#173029';
+    ctx.fillStyle = visualColors.paper; ctx.fill();
+    ctx.strokeStyle = visualColors.mapExperiencePaint96; ctx.lineWidth = 1.8; ctx.stroke();
+    ctx.save(); ctx.clip(); ctx.fillStyle = visualColors.mapExperiencePaint96;
     for (let i = 0; i < 5; i++) {
         ctx.save(); ctx.rotate(i * Math.PI * 2 / 5);
         ctx.beginPath(); ctx.moveTo(-9, -27); ctx.lineTo(9, -27);

@@ -1,4 +1,5 @@
-import { Loader2 } from 'lucide-react';
+import { EmptyState as WorkflowEmptyState } from '../ui/EmptyState';
+import { Inbox, Loader2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 export const avatarLetter = (value?: string | null) => (value?.trim()?.charAt(0) || '?').toUpperCase();
@@ -22,11 +23,7 @@ export const SectionHeader = ({ eyebrow, title, description, action }: { eyebrow
 );
 
 export const EmptyState = ({ message, description, icon }: { message: string; description?: string; icon?: React.ReactNode }) => (
-    <div className="rounded-xl border border-[var(--fc-border)] px-4 py-12 text-center">
-        {icon && <div className="mb-3 flex justify-center text-[var(--fc-text-muted)]">{icon}</div>}
-        <p className="text-sm font-medium text-[var(--fc-text-muted)]">{message}</p>
-        {description && <p className="mt-1 text-xs text-[var(--fc-text-muted)]">{description}</p>}
-    </div>
+    <WorkflowEmptyState icon={Inbox} iconElement={icon} title={message} description={description ?? ''}/>
 );
 
 export interface SortState {
@@ -116,7 +113,7 @@ export const ErrorBlock = ({ message, onRetry }: { message: string; onRetry: () 
         <button
             type="button"
             onClick={onRetry}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--fc-accent)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--fc-accent)] px-4 py-2.5 text-sm font-semibold text-[color:var(--color-on-accent)] hover:opacity-90 transition-opacity"
         >
             Retry
         </button>

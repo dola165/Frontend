@@ -1,0 +1,20 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { beforeEach, expect, it, vi } from 'vitest';
+import '../../i18n';
+import { apiClient } from '../../api/axiosConfig';
+import { VerifyEmailPage } from '../VerifyEmailPage';
+vi.mock('../../api/axiosConfig', () => ({ apiClient: { post: vi.fn() } }));
+const auth = vi.hoisted(() => ({ status: 'anonymous', bootstrapSession: vi.fn() }));
+vi.mock('../../context/AuthContext', () => ({ useAuth: () => auth }));
+beforeEach(() => { vi.clearAllMocks(); sessionStorage.clear(); });
+it('reviews an existing identity before explicitly accepting and explains password setup', async () => {
+    vi.mocked(apiClient.post).mockImplementation(async path => ({ data: path === '/auth/verification-context' ? { accountInvitation: true, accountName: 'Existing player' } : { email: 'player@example.test', passwordSetupRequired: true } }));
+    render(<MemoryRouter initialEntries={['/verify-email?token=identity-explicit-acceptance']}><VerifyEmailPage /></MemoryRouter>);
+    const accept = await screen.findByRole('button', { name: 'Accept my account invitation' });
+    expect(screen.getByRole('status')).toHaveTextContent('Existing player');
+    expect(apiClient.post).toHaveBeenCalledTimes(1);
+    fireEvent.click(accept);
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('password setup link'));
+    expect(apiClient.post).toHaveBeenLastCalledWith('/auth/accept-account-invitation', { token: 'identity-explicit-acceptance' });
+});

@@ -831,7 +831,7 @@ export const clubHandlers: HttpHandler[] = [
 
   http.post(`${API}/player-cards/:cardId/activate`, async () => {
     await simulateLatency();
-    return HttpResponse.json({ username: 'card_demo_mock', tempPassword: 'MockTemp123' });
+    return HttpResponse.json({ username: 'card_demo_mock', email: 'child@example.test', status: 'EMAIL_VERIFICATION_PENDING' });
   }),
 
   http.post(`${API}/clubs/:clubId/squads`, async () => {

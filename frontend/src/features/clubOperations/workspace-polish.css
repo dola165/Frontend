@@ -1,0 +1,187 @@
+.club-workspace-shell { --work-radius: 10px; }
+.club-workspace-shell .squad-design, .wo-dialog-backdrop .squad-design { --sd-panel: var(--sd-surface); }
+.club-workspace-shell .workspace-sidebar { width: 232px; }
+.club-workspace-shell .workspace-page-main > .px-6 { padding: 24px 32px 40px; }
+.club-workspace-shell .workspace-alert-stack:empty { padding-top: 0; }
+.club-workspace-shell .workspace-mobile-bar { background: var(--fc-page-bg); z-index: 40; }
+.club-workspace-shell .club-overview, .club-workspace-shell .sw-workspace { max-width: 1280px; margin-inline: auto; }
+.club-workspace-shell .work-breadcrumb { min-height: 49px; padding-inline: 32px; font-size: 12px; }
+.club-workspace-shell .work-nav-caption { margin-top: 24px; letter-spacing: .1em; font-size: 10px; }
+.club-workspace-shell .work-navigation > button { min-height: 40px; }
+.club-workspace-shell .work-navigation button[aria-current=page] { border-radius: 6px; }
+.club-workspace-shell button:focus-visible, .club-workspace-shell a:focus-visible, .wo-dialog-backdrop button:focus-visible, .wo-dialog-backdrop a:focus-visible { outline: 2px solid var(--fc-accent); outline-offset: 3px; }
+.wo-personal { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px 22px; margin: 0 0 24px; border: 1px solid var(--sd-border); border-radius: 10px; background: var(--sd-panel); }
+.wo-responsibilities { display: flex; gap: 14px; min-width: 0; align-items: center; }
+.wo-personal-icon { display: grid; place-items: center; width: 42px; height: 42px; flex: none; border: 1px solid var(--sd-border); border-radius: 10px; color: var(--sd-accent); background: var(--sd-elevated); }
+.wo-caption { display: block; color: var(--sd-muted); font-size: 10px; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; margin-bottom: 5px; }
+.wo-responsibilities strong { display: block; font-size: 13px; line-height: 1.5; font-weight: 600; }
+.wo-responsibilities button { display: flex; align-items: center; gap: 3px; color: var(--sd-accent); font-size: 12px; margin-top: 5px; }
+.wo-focus { width: 230px; flex: none; }
+.wo-focus select { width: 100%; border: 1px solid var(--sd-border); border-radius: 6px; background: var(--fc-page-bg); padding: 9px 11px; font-size: 12px; color: var(--sd-text); }
+.wo-scoped-stats { display: flex; gap: 32px; padding: 0 0 24px; color: var(--sd-muted); font-size: 12px; }
+.wo-scoped-stats strong { color: var(--sd-text); font-size: 24px; font-weight: 700; margin-right: 5px; }
+.wo-attention-link { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border: 1px solid var(--sd-border); border-radius: 8px; font-size: 12px; text-align: left; color: var(--sd-text); background: var(--sd-panel); }
+.wo-attention-link:hover { border-color: var(--sd-accent); }
+.wo-attention-link.wo-subtle { color: var(--sd-muted); background: transparent; padding: 9px 0; border: 0; justify-content: flex-start; }
+.wo-attention-link.wo-subtle > svg:last-child { margin-left: auto; }
+.wo-attention header button, .wo-squads header button, .wo-player-records header button { display: inline-flex; gap: 6px; align-items: center; color: var(--sd-muted); font-size: 11px; }
+.wo-attention > button { display: flex; align-items: center; gap: 12px; padding: 16px 22px; width: 100%; border-top: 1px solid var(--sd-border); text-align: left; }
+.wo-attention > button > span { flex: 1; min-width: 0; }
+.wo-attention strong { font-size: 12px; font-weight: 600; }
+.wo-attention small { display: block; color: var(--sd-muted); font-size: 11px; margin-top: 5px; }
+.wo-shortcuts { margin: 28px 0; padding: 22px 0; border-block: 1px solid var(--sd-border); }
+.wo-shortcuts > header, .wo-squads > header, .wo-player-records > header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.wo-shortcuts h2, .wo-squads h2 { font-size: 16px; font-weight: 650; letter-spacing: -.02em; }
+.wo-shortcuts header span { font-size: 12px; color: var(--sd-muted); display: block; margin-top: 4px; }
+.wo-shortcut-links { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
+.wo-shortcut-links button { display: flex; gap: 9px; align-items: center; padding: 11px 14px; border: 1px solid var(--sd-border); border-radius: 7px; background: var(--sd-panel); font-size: 12px; font-weight: 550; }
+.wo-shortcut-links button:hover { border-color: var(--sd-accent); }
+.wo-shortcut-links button > svg:last-child { color: var(--sd-muted); margin-left: 12px; }
+.wo-squads { margin-top: 26px; }
+.wo-squads > div { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0 24px; margin-top: 12px; }
+.wo-squads > div > button { display: flex; align-items: center; gap: 12px; text-align: left; padding: 17px 0; border-bottom: 1px solid var(--sd-border); min-width: 0; }
+.wo-squads button > span:nth-child(2) { flex: 1; min-width: 0; }
+.wo-squad-symbol { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; background: var(--sd-elevated); color: var(--sd-muted); flex: none; }
+.wo-squads strong { font-size: 12px; font-weight: 600; display: block; overflow-wrap: anywhere; }
+.wo-squads small { display: block; color: var(--sd-muted); font-size: 11px; margin-top: 4px; }
+.wo-quiet { font-size: 12px; line-height: 1.7; color: var(--sd-muted,var(--fc-text-muted)); padding: 16px 20px; }
+.wo-session { display: flex; align-items: center; gap: 16px; padding: 18px 22px; border-top: 1px solid var(--sd-border); }
+.wo-session time { text-align: center; width: 36px; flex: none; color: var(--sd-muted); font-size: 11px; }
+.wo-session time strong { display: block; font-size: 24px; color: var(--sd-text); }
+.wo-session > span { flex: 1; }
+.wo-session > span strong { display: block; font-size: 13px; }
+.wo-session small { display: block; font-size: 11px; margin-top: 5px; color: var(--sd-muted); }
+.wo-session > button { display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--sd-accent); }
+.wo-dialog-backdrop { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 24px; background: color-mix(in srgb, var(--color-overlay) 64%, transparent); }
+.wo-shortcut-editor { display: flex; flex-direction: column; width: min(660px,100%); max-height: min(800px,90dvh); border: 1px solid var(--sd-border); border-radius: 14px; background: var(--fc-page-bg); box-shadow: 0 24px 100px color-mix(in srgb, var(--color-shadow) 30%, transparent); overflow: hidden; color: var(--sd-text); }
+.wo-shortcut-editor > header, .wo-player-panel > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 25px; border-bottom: 1px solid var(--sd-border); }
+.wo-shortcut-editor h2, .wo-player-panel h2 { font-size: 26px; font-weight: 700; letter-spacing: -.035em; margin: 5px 0 0; line-height: 1.25; overflow-wrap: anywhere; }
+.wo-shortcut-editor header p, .wo-player-panel header p { color: var(--sd-muted); font-size: 12px; line-height: 1.6; margin-top: 8px; }
+.wo-shortcut-editor button { cursor: pointer; }
+.wo-shortcut-editor button:disabled { cursor: default; opacity: .4; }
+.wo-pin-order { padding: 12px 24px; border-bottom: 1px solid var(--sd-border); list-style: none; flex-shrink: 0; }
+.wo-pin-order li { display: flex; align-items: center; gap: 10px; min-height: 32px; font-size: 12px; }
+.wo-pin-order li > span { flex: 1; }
+.wo-pin-order li button { display: grid; place-items: center; height: 28px; width: 28px; color: var(--sd-muted); }
+.wo-search { display: flex; align-items: center; gap: 10px; border: 1px solid var(--sd-border); border-radius: 7px; padding: 11px 13px; margin: 16px 24px 4px; color: var(--sd-muted); }
+.wo-search input { background: transparent; color: var(--sd-text); min-width: 0; width: 100%; border: 0; outline: none; font-size: 13px; }
+.wo-search:focus-within { outline: 2px solid var(--sd-accent); outline-offset: 2px; }
+.wo-shortcut-options { min-height: 100px; overflow-y: auto; overscroll-behavior: contain; padding: 8px 24px 16px; }
+.wo-shortcut-options > button { display: flex; align-items: center; gap: 14px; text-align: left; width: 100%; padding: 13px 0; border-bottom: 1px solid var(--sd-border); }
+.wo-shortcut-options > button > span { flex: 1; }
+.wo-shortcut-options strong { display: block; font-size: 13px; font-weight: 600; }
+.wo-shortcut-options small { display: block; font-size: 11px; line-height: 1.6; color: var(--sd-muted); margin-top: 4px; }
+.wo-shortcut-options > button[aria-pressed=true] > svg { color: var(--sd-accent); }
+.wo-shortcut-editor footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px 24px; border-top: 1px solid var(--sd-border); font-size: 11px; color: var(--sd-muted); }
+.wo-squad-nav { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 18px 22px; border-bottom: 1px solid var(--sd-border); background: var(--sd-panel); }
+.wo-squad-nav .sd-segments button { display: flex; gap: 7px; align-items: center; }
+.wo-squad-nav .sd-segments button > span { background: var(--sd-elevated); padding: 1px 5px; border-radius: 4px; font-size: 10px; }
+.wo-squad-links { display: flex; align-items: center; gap: 19px; }
+.wo-squad-links > button, .wo-more > summary { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sd-secondary); cursor: pointer; }
+.wo-more { position: relative; }
+.wo-more > summary { display: list-item; list-style: none; border: 1px solid var(--sd-border); padding: 7px 11px; border-radius: 6px; }
+.wo-more > summary::after { content: '⌄'; margin-left: 10px; }
+.wo-more > nav { position: absolute; right: 0; top: calc(100% + 7px); z-index: 12; min-width: 235px; background: var(--fc-card-bg); border: 1px solid var(--sd-border); border-radius: 8px; box-shadow: 0 12px 36px color-mix(in srgb, var(--color-shadow) 20%, transparent); padding: 7px; }
+.wo-more > nav > button { display: flex; align-items: center; gap: 10px; padding: 10px; width: 100%; text-align: left; font-size: 12px; border-radius: 5px; }
+.wo-more > nav > button:hover { background: var(--sd-elevated); }
+.wo-next-session { display: flex; width: calc(100% - 44px); margin: 20px 22px 0; gap: 14px; align-items: center; padding: 15px 18px; border: 1px solid var(--sd-border); border-left: 3px solid var(--sd-accent); border-radius: 7px; text-align: left; background: var(--sd-panel); }
+.wo-next-session > svg { color: var(--sd-accent); }
+.wo-next-session > span:nth-child(2) { flex: 1; }
+.wo-next-session small, .wo-next-session strong { display: block; }
+.wo-next-session small { font-size: 11px; color: var(--sd-muted); margin-bottom: 4px; }
+.wo-next-session strong { font-size: 13px; font-weight: 600; }
+.wo-next-session > span:last-child { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--sd-secondary); }
+.wo-squad-training { padding: 24px 22px; }
+.wo-squad-training > header, .wo-session-detail > header { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.wo-squad-training h3, .wo-session-detail h3 { font-size: 22px; font-weight: 650; letter-spacing: -.035em; line-height: 1.3; }
+.wo-squad-training > .wo-quiet { padding: 10px 0 18px; }
+.wo-session-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.wo-session-list > button { display: flex; gap: 12px; align-items: center; padding: 14px; text-align: left; border: 1px solid var(--sd-border); border-radius: 7px; }
+.wo-session-list > button[aria-pressed=true] { background: var(--fc-accent-soft); border-color: var(--sd-accent); }
+.wo-session-list > button > span { flex: 1; }
+.wo-session-list strong { display: block; font-size: 12px; font-weight: 600; }
+.wo-session-list small { display: block; font-size: 11px; color: var(--sd-muted); margin-top: 5px; }
+.wo-session-detail { margin-top: 28px; }
+.wo-session-detail > header { margin-bottom: 18px; }
+.wo-session-detail header p { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sd-muted); margin-top: 7px; }
+.club-workspace-shell .work-register-actions button, .wo-session-detail .work-tool-search > button, .wo-session-detail .work-register-correction button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 8px 11px; border: 1px solid var(--fc-border); border-radius: 6px; background: var(--fc-card-bg); color: var(--fc-text-secondary); font-size: 12px; line-height: 1.4; }
+.club-workspace-shell .work-register-actions button:first-child { color: var(--fc-accent); }
+.wo-session-detail .work-register-correction label { display: grid; gap: 8px; font-size: 12px; }
+.wo-session-detail .work-register-correction input { width: 100%; padding: 10px; border: 1px solid var(--fc-border); border-radius: 6px; background: var(--fc-page-bg); color: var(--fc-text-primary); }
+.wo-player-name { text-align: left; font-weight: inherit; color: inherit; text-underline-offset: 4px; }
+.wo-player-name:hover { color: var(--sd-accent); text-decoration: underline; }
+.wo-drawer-backdrop { justify-content: flex-end; padding: 0; }
+.wo-player-panel { height: 100dvh; width: min(560px,100%); display: flex; flex-direction: column; background: var(--fc-page-bg); color: var(--sd-text); border-left: 1px solid var(--sd-border); box-shadow: -20px 0 70px color-mix(in srgb, var(--color-shadow) 20%, transparent); }
+.wo-player-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 24px; }
+.wo-profile-link { display: flex; align-items: center; gap: 7px; color: var(--sd-muted); font-size: 12px; margin-bottom: 22px; }
+.wo-observation-add { width: 100%; justify-content: center; margin-bottom: 24px; }
+.wo-observation-form { display: grid; gap: 15px; margin-bottom: 26px; padding: 19px; border: 1px solid var(--sd-border); border-radius: 8px; background: var(--sd-panel); }
+.wo-observation-form h3, .wo-player-records h3, .wo-player-tools h3 { font-size: 15px; font-weight: 650; }
+.wo-observation-form label { display: grid; gap: 7px; font-size: 12px; }
+.wo-observation-form label > span { color: var(--sd-muted); }
+.wo-observation-form textarea { padding: 10px 12px; border: 1px solid var(--sd-border); border-radius: 6px; background: var(--fc-page-bg); color: var(--sd-text); font-size: 13px; line-height: 1.6; resize: vertical; }
+.wo-observation-form > div { display: flex; gap: 9px; }
+.wo-player-records { margin-bottom: 26px; }
+.wo-player-records > header { padding-bottom: 14px; border-bottom: 1px solid var(--sd-border); }
+.wo-player-records > button { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 15px 0; border-bottom: 1px solid var(--sd-border); }
+.wo-player-records > button > span { flex: 1; }
+.wo-player-records strong { font-size: 12px; font-weight: 600; }
+.wo-player-records small { display: block; font-size: 12px; color: var(--sd-muted); line-height: 1.6; margin-top: 5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.wo-player-records .wo-quiet { padding-inline: 0; }
+.wo-player-tools > button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 13px 0; font-size: 12px; border-bottom: 1px solid var(--sd-border); }
+.wo-player-tools > button > svg:last-child { margin-left: auto; }
+.wo-success { border-left: 3px solid var(--sd-accent); background: var(--fc-accent-soft); padding: 12px 14px; margin-bottom: 18px; font-size: 12px; line-height: 1.7; }
+.wo-return { display: block; margin: 18px 32px 0; font-size: 12px; color: var(--fc-text-secondary); }
+.wo-scoped-roster { padding: 0 22px 22px; }
+.wo-scoped-player { display: flex; width: 100%; text-align: left; gap: 14px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--sd-border); }
+.wo-scoped-player > span:nth-child(2) { flex: 1; }
+.wo-scoped-player strong { font-size: 13px; font-weight: 600; }
+.wo-scoped-player small { display: block; font-size: 11px; color: var(--sd-muted); margin-top: 4px; }
+.wo-scoped-player > span:last-child { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--sd-muted); }
+.wo-assigned-squads { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.wo-assigned-squads > button { display: flex; gap: 20px; align-items: center; text-align: left; padding: 26px; background: var(--sd-surface); border: 1px solid var(--sd-border); border-radius: 10px; }
+.wo-assigned-squads > button:hover { border-color: var(--sd-accent); }
+.wo-assigned-squads > button > span { flex: 1; }
+.wo-assigned-squads strong { display: block; font-size: 18px; font-weight: 650; }
+.wo-assigned-squads small { display: block; color: var(--sd-muted); font-size: 12px; margin-top: 7px; }
+.club-workspace-shell .workspace-section-heading h1, .club-workspace-shell .role-page-heading h1 { font-size: 30px; font-weight: 700; letter-spacing: -.035em; }
+.club-workspace-shell .workspace-section-heading { margin-bottom: 26px; }
+@media (max-width:1100px) {
+  .wo-squad-nav { align-items: flex-start; flex-direction: column; }
+  .wo-squads > div { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:767px) {
+  .club-workspace-shell .workspace-sidebar { width: min(300px,85vw); }
+  .club-workspace-shell .workspace-page-main > .px-6 { padding: 20px 16px 30px; }
+  .club-workspace-shell .work-breadcrumb { padding-inline: 16px; }
+  .wo-personal { align-items: stretch; flex-direction: column; padding: 16px; gap: 18px; }
+  .wo-focus { width: 100%; }
+  .wo-scoped-stats { gap: 16px; flex-wrap: wrap; }
+  .wo-scoped-stats strong { font-size: 20px; }
+  .wo-squads > div { grid-template-columns: 1fr; }
+  .wo-shortcuts header { align-items: flex-start; }
+  .wo-shortcuts header .sd-button { font-size: 11px; padding: 8px; }
+  .wo-dialog-backdrop { padding: 12px; }
+  .wo-shortcut-editor { max-height: 94dvh; }
+  .wo-shortcut-editor > header, .wo-player-panel > header { padding: 19px; }
+  .wo-pin-order { padding-inline: 18px; }
+  .wo-shortcut-options { padding-inline: 18px; }
+  .wo-search { margin-inline: 18px; }
+  .wo-shortcut-editor footer { padding: 14px 18px; }
+  .wo-squad-nav { padding: 16px; }
+  .wo-squad-links { gap: 14px; flex-wrap: wrap; width: 100%; }
+  .wo-more { margin-left: auto; }
+  .wo-next-session { width: calc(100% - 32px); margin-inline: 16px; padding: 13px; }
+  .wo-next-session > span:last-child { font-size: 0; }
+  .wo-squad-training { padding: 20px 16px; }
+  .wo-session-list { grid-template-columns: 1fr; }
+  .wo-session-detail > header { align-items: flex-start; flex-direction: column; }
+  .wo-session { flex-wrap: wrap; padding: 16px; }
+  .wo-session > button { margin-left: 52px; }
+  .wo-drawer-backdrop { padding: 0; }
+  .wo-player-body { padding: 20px; }
+  .wo-return { margin-inline: 16px; }
+  .wo-assigned-squads { grid-template-columns: 1fr; }
+  .wo-scoped-roster { padding-inline: 16px; }
+  .wo-scoped-player > span:last-child { font-size: 0; }
+}

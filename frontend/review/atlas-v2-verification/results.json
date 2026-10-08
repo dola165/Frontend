@@ -1,0 +1,19 @@
+{
+  "desktop": true,
+  "mobile": true,
+  "filterCommit": true,
+  "viewportQuery": true,
+  "all230ClubsAccessible": true,
+  "workerWalkingRoute": true,
+  "nativeRouteCameraStability": true,
+  "dashedConnections": true,
+  "repeatedOriginChanges": true,
+  "filterOriginPersistsAfterPan": true,
+  "wideZoomTerrain": true,
+  "fullHeightRails": true,
+  "draggableOrigin": true,
+  "reducedMotion": true,
+  "emptyState": true,
+  "retry": true,
+  "pageErrors": []
+}

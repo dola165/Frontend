@@ -1,0 +1,1 @@
+{"extends":"../../tsconfig.app.json","compilerOptions":{"incremental":true,"tsBuildInfoFile":"./preview.tsbuildinfo"},"include":["../../src","../../e2e/previews/schedule-direction/main.tsx"]}

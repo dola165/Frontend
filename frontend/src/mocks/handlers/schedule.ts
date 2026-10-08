@@ -1,6 +1,7 @@
 import { http, HttpHandler, HttpResponse } from 'msw';
 import { events, currentUserId, nextEventId, clubs } from '../data/store';
 import { simulateLatency } from '../utils';
+import { mockTournamentRefereeCalendar } from './tournamentReferees';
 
 const API = '*/api';
 
@@ -71,7 +72,7 @@ export const scheduleHandlers: HttpHandler[] = [
       .filter((e) => e.userId === uid)
       .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
       .map(toOccurrence);
-    return HttpResponse.json({ events: filtered, windowStart: '2026-06-01T00:00:00Z', windowEnd: '2026-07-01T00:00:00Z' });
+    return HttpResponse.json({ events: [...filtered, ...(uid == null ? [] : mockTournamentRefereeCalendar(uid))], windowStart: '2026-06-01T00:00:00Z', windowEnd: '2026-07-01T00:00:00Z' });
   }),
 
   // -- POST /schedule/me/events --

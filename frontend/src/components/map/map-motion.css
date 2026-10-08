@@ -1,0 +1,33 @@
+/* Shared motion language: brief, soft arrivals and tactile surfaces; no running effects. */
+.map-atlas{--map-ease:cubic-bezier(.22,1,.36,1);--map-ease-soft:cubic-bezier(.16,1,.3,1);--map-fast:180ms;--map-arrival:380ms}
+@keyframes map-soft-arrive{from{opacity:0;translate:0 12px;scale:.985}to{opacity:1;translate:0 0;scale:1}}
+@keyframes map-popover-arrive{from{opacity:0;translate:0 8px;scale:.965}to{opacity:1;translate:0 0;scale:1}}
+@keyframes map-item-arrive{from{opacity:0;translate:0 7px}to{opacity:1;translate:0 0}}
+.map-atlas :is(.atlas-results,.atlas-detail-dock,.atlas-walking-panel,.atlas-command,.mp-rail,.mp-review-body,.mp-editor,.mp-family,.mp-map-tools){animation:map-soft-arrive var(--map-arrival) var(--map-ease) both}
+.map-atlas :is(.atlas-command-suggestions,.map-simple-suggestions,.mp-location-results,.mp-map-choice,.mp-dialog,.mp-created-notice,.mp-validation-notice,.mp-inset,.atlas-hover-card){animation:map-popover-arrive 300ms var(--map-ease-soft) both;transform-origin:50% 12%}
+.map-atlas :is(.atlas-results-scroll>ol>li,.mp-place-list>article,.mp-arrangements>article,.mp-timeline>li,.mp-family-card):nth-child(-n+8){animation:map-item-arrive 320ms var(--map-ease) both}
+.map-atlas :is(.atlas-results-scroll>ol>li,.mp-place-list>article,.mp-timeline>li):nth-child(2){animation-delay:25ms}
+.map-atlas :is(.atlas-results-scroll>ol>li,.mp-place-list>article,.mp-timeline>li):nth-child(3){animation-delay:50ms}
+.map-atlas :is(.atlas-results-scroll>ol>li,.mp-place-list>article,.mp-timeline>li):nth-child(n+4):nth-child(-n+8){animation-delay:75ms}
+.map-atlas :is(button,a,input,textarea,select){transition:background-color var(--map-fast) var(--map-ease),color var(--map-fast) var(--map-ease),border-color var(--map-fast) var(--map-ease),box-shadow var(--map-fast) var(--map-ease),translate var(--map-fast) var(--map-ease),scale var(--map-fast) var(--map-ease),opacity var(--map-fast) var(--map-ease)}
+.map-atlas :is(input,textarea,select):focus{border-color:var(--color-border);box-shadow:0 0 0 3px color-mix(in srgb, var(--color-shadow) 6.27%, transparent)}
+.map-atlas :is(.atlas-command-bar,.mp-map-search){background:linear-gradient(135deg,color-mix(in srgb, var(--color-elevated) 96.86%, transparent),color-mix(in srgb, var(--color-elevated) 96.86%, transparent));box-shadow:0 1px 0 color-mix(in srgb, var(--color-shadow) 78.82%, transparent) inset,0 5px 18px color-mix(in srgb, var(--color-shadow) 6.27%, transparent),0 15px 38px color-mix(in srgb, var(--color-shadow) 4.71%, transparent)}
+.map-atlas :is(.mp-map-choice,.mp-dialog,.mp-location-results,.atlas-command-suggestions,.map-simple-suggestions){box-shadow:0 1px 0 var(--color-shadow) inset,0 8px 24px color-mix(in srgb, var(--color-shadow) 9.02%, transparent),0 28px 60px color-mix(in srgb, var(--color-shadow) 7.06%, transparent)}
+.map-atlas :is(.map-simple-rail,.atlas-results,.atlas-detail-dock){box-shadow:0 1px 0 color-mix(in srgb, var(--color-shadow) 69.02%, transparent) inset,0 10px 38px color-mix(in srgb, var(--color-shadow) 9.02%, transparent)}
+.map-atlas .map-simple-rail{transition-duration:420ms!important;transition-timing-function:var(--map-ease)!important}
+.map-atlas :is(.mp-tabs button,.atlas-entity-options .map-simple-check,.mp-map-shortcuts button,.mp-source-options label){transition:background-color 220ms var(--map-ease),color 220ms var(--map-ease),border-color 220ms var(--map-ease),box-shadow 220ms var(--map-ease)}
+.map-atlas :is(.atlas-results-scroll>ol>li,.mp-place-list>article,.mp-arrangements>article){transition:background-color 220ms var(--map-ease),box-shadow 220ms var(--map-ease),border-color 220ms var(--map-ease)}
+.map-atlas .mp-budget-track i{transition:width 400ms var(--map-ease)}
+.map-atlas .mp-map-shortcuts button{box-shadow:0 1px 0 var(--color-shadow) inset,0 3px 8px color-mix(in srgb, var(--color-shadow) 4.31%, transparent)}
+.atlas-hover-card{pointer-events:none;padding:12px 15px;max-width:240px;background:var(--map-panel-bg);border:1px solid var(--map-panel-border);border-radius:12px;box-shadow:0 1px 0 var(--color-shadow) inset,0 10px 35px color-mix(in srgb, var(--color-shadow) 14.51%, transparent);color:var(--text-primary)}
+.atlas-hover-card small{display:block;margin-top:4px;color:var(--text-secondary);font-size:10px}.atlas-hover-card strong{font-size:12px;display:block}
+.map-atlas .atlas-hover-popup .maplibregl-popup-content{background:transparent;padding:0;box-shadow:none}.map-atlas .atlas-hover-popup .maplibregl-popup-tip{border-top-color:var(--map-panel-bg)}
+@media(hover:hover) and (pointer:fine){
+ .map-atlas :is(button,a):not(:disabled):not(.mp-title-button):not(.atlas-result-main):hover{translate:0 -1px}
+ .map-atlas :is(.mp-primary,.map-simple-primary,.map-plan-entry,.atlas-area-action>button):not(:disabled):hover{box-shadow:0 2px 0 color-mix(in srgb, var(--color-shadow) 6.67%, transparent) inset,0 8px 18px color-mix(in srgb, var(--color-shadow) 17.25%, transparent);scale:1.015}
+ .map-atlas :is(.atlas-results-scroll>ol>li,.mp-place-list>article,.mp-arrangements>article):hover{background:var(--color-inset);box-shadow:0 8px 18px color-mix(in srgb, var(--color-shadow) 3.92%, transparent)}
+ .map-atlas .mp-map-shortcuts button:hover{border-color:var(--color-border);box-shadow:0 6px 14px color-mix(in srgb, var(--color-shadow) 8.24%, transparent)}
+}
+.map-atlas :is(button,a):not(:disabled):active{scale:.975;translate:0 0;transition-duration:80ms}
+.map-atlas .mp-resizer:active{scale:1;translate:0 0}
+@media(prefers-reduced-motion:reduce){.map-atlas *, .map-atlas *::before,.map-atlas *::after{animation:none!important;transition-duration:.01ms!important;animation-delay:0ms!important}.map-atlas :is(button,a):hover,.map-atlas :is(button,a):active{translate:none;scale:none}}

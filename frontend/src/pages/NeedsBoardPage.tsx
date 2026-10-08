@@ -21,9 +21,9 @@ interface ClubNeed {
 const TYPE_OPTIONS = ['ALL', 'IMMEDIATE', 'UPCOMING_SEASON', 'DEVELOPMENT'] as const;
 
 const TYPE_COLORS: Record<string, string> = {
-    IMMEDIATE: 'bg-red-500/10 text-red-400',
-    UPCOMING_SEASON: 'bg-amber-500/10 text-amber-400',
-    DEVELOPMENT: 'bg-blue-500/10 text-blue-400'
+    IMMEDIATE: 'bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)]',
+    UPCOMING_SEASON: 'bg-[color:var(--color-warning)]/10 text-[color:var(--color-warning)]',
+    DEVELOPMENT: 'bg-[color:var(--color-info)]/10 text-[color:var(--color-info)]'
 };
 
 const NEED_LABELS: Record<string, string> = {
@@ -75,17 +75,17 @@ export const NeedsBoardPage = () => {
     };
 
     return (
-        <div className="bg-[#0f1117] min-h-[calc(100dvh-var(--app-header-height))]">
+        <div className="bg-[var(--color-surface)] min-h-[calc(100dvh-var(--app-header-height))]">
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-[#0f1117] border-b border-[#ffffff0d] px-6 py-4">
+            <div className="sticky top-0 z-10 bg-[var(--color-surface)] border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-6 py-4">
                 <div className="max-w-6xl mx-auto">
                     <div className="flex items-center gap-3 mb-3">
-                        <h1 className="text-xl font-semibold text-[#f4f4f5]">Club Player Needs</h1>
-                        <span className="text-xs text-[#71717a] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded-full">
+                        <h1 className="text-xl font-semibold text-[var(--color-text)]">Club Player Needs</h1>
+                        <span className="text-xs text-[var(--color-secondary)] bg-[color-mix(in_srgb,_var(--color-ink)_4%,_transparent)] px-2 py-0.5 rounded-full">
                             Reverse Marketplace
                         </span>
                     </div>
-                    <p className="text-xs text-[#71717a] mb-3">
+                    <p className="text-xs text-[var(--color-secondary)] mb-3">
                         Clubs post the positions they're recruiting for. Agents — match your players to active needs.
                     </p>
                     <div className="flex items-center gap-3 flex-wrap">
@@ -97,8 +97,8 @@ export const NeedsBoardPage = () => {
                                     onClick={() => { setTypeFilter(t); setPage(0); }}
                                     className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
                                         typeFilter === t
-                                            ? 'bg-[#16a34a] text-white'
-                                            : 'bg-[rgba(255,255,255,0.05)] text-[#a1a1aa] hover:text-[#f4f4f5]'
+                                            ? 'bg-[var(--color-accent)] text-[var(--color-on-accent)]'
+                                            : 'bg-[color-mix(in_srgb,_var(--color-ink)_5%,_transparent)] text-[var(--color-secondary)] hover:text-[var(--color-text)]'
                                     }`}
                                 >
                                     {t === 'ALL' ? 'All Needs' : NEED_LABELS[t] || t.replace(/_/g, ' ')}
@@ -114,7 +114,7 @@ export const NeedsBoardPage = () => {
                 {loading ? (
                     <PageSpinner />
                 ) : error ? (
-                    <p className="text-sm text-[#d4737a] py-10 text-center">{error}</p>
+                    <p className="text-sm text-[var(--color-danger)] py-10 text-center">{error}</p>
                 ) : needs.length === 0 ? (
                     <EmptyStateCard
                         icon={Target}
@@ -130,21 +130,21 @@ export const NeedsBoardPage = () => {
                             {needs.map(need => (
                                 <div
                                     key={need.needId}
-                                    className="rounded-xl border border-[#ffffff0d] bg-[rgba(255,255,255,0.02)] p-4 hover:border-[#ffffff15] transition-colors"
+                                    className="rounded-xl border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[color-mix(in_srgb,_var(--color-ink)_2%,_transparent)] p-4 hover:border-[color-mix(in_srgb,_var(--color-border)_8.24%,_transparent)] transition-colors"
                                 >
                                     {/* Club identity */}
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-full bg-[rgba(255,255,255,0.06)] flex items-center justify-center shrink-0 text-sm font-semibold text-[#a1a1aa]">
+                                        <div className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,_var(--color-ink)_6%,_transparent)] flex items-center justify-center shrink-0 text-sm font-semibold text-[var(--color-secondary)]">
                                             <Building2 className="w-5 h-5" />
                                         </div>
                                         <div className="min-w-0">
                                             <button
                                                 onClick={() => navigate(`/clubs/${need.clubId}`)}
-                                                className="text-sm font-semibold text-[#f4f4f5] truncate hover:text-[#16a34a] transition-colors text-left"
+                                                className="text-sm font-semibold text-[var(--color-text)] truncate hover:text-[var(--color-accent)] transition-colors text-left"
                                             >
                                                 {need.clubName}
                                             </button>
-                                            <p className="text-xs text-[#71717a]">
+                                            <p className="text-xs text-[var(--color-secondary)]">
                                                 {need.position ? `${need.position}` : 'Any position'}
                                                 {need.ageGroup ? ` · ${need.ageGroup}` : ''}
                                             </p>
@@ -154,34 +154,34 @@ export const NeedsBoardPage = () => {
                                     {/* Need details */}
                                     <div className="flex flex-wrap gap-1.5 mb-3">
                                         {need.position && (
-                                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[rgba(255,255,255,0.06)] text-[#a1a1aa]">
+                                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[color-mix(in_srgb,_var(--color-ink)_6%,_transparent)] text-[var(--color-secondary)]">
                                                 {need.position}
                                             </span>
                                         )}
                                         {need.ageGroup && (
-                                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[rgba(255,255,255,0.06)] text-[#a1a1aa]">
+                                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[color-mix(in_srgb,_var(--color-ink)_6%,_transparent)] text-[var(--color-secondary)]">
                                                 {need.ageGroup}
                                             </span>
                                         )}
-                                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${TYPE_COLORS[need.needType] || 'bg-[#71717a]/10 text-[#71717a]'}`}>
+                                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${TYPE_COLORS[need.needType] || 'bg-[var(--color-inset)]/10 text-[var(--color-secondary)]'}`}>
                                             {NEED_LABELS[need.needType] || need.needType}
                                         </span>
                                     </div>
 
                                     {/* Description */}
                                     {need.description && (
-                                        <p className="text-xs text-[#71717a] mb-3 line-clamp-2">{need.description}</p>
+                                        <p className="text-xs text-[var(--color-secondary)] mb-3 line-clamp-2">{need.description}</p>
                                     )}
 
                                     {/* Footer */}
                                     <div className="flex items-center justify-between">
-                                        <span className="flex items-center gap-1 text-[11px] text-[#71717a]">
+                                        <span className="flex items-center gap-1 text-[11px] text-[var(--color-secondary)]">
                                             <Clock className="w-3 h-3" />
                                             {new Date(need.createdAt).toLocaleDateString()}
                                         </span>
                                         <button
                                             onClick={() => navigate(`/clubs/${need.clubId}`)}
-                                            className="text-xs font-semibold text-[#16a34a] hover:text-[#22c55e] transition-colors"
+                                            className="text-xs font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
                                         >
                                             View Club →
                                         </button>

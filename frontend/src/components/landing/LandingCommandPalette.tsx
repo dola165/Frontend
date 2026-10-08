@@ -108,22 +108,22 @@ export const LandingCommandPalette = ({ actions }: LandingCommandPaletteProps) =
                 onClick={open}
                 aria-label="Open quick actions"
                 aria-keyshortcuts="Control+K Meta+K"
-                className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#ffffff0d] bg-[#16181d] px-3 text-sm font-semibold text-[#a1a1aa] transition-colors hover:border-[#ffffff1a] hover:text-[#f4f4f5]"
+                className="inline-flex h-9 items-center gap-2 rounded-xl border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] px-3 text-sm font-semibold text-[var(--color-secondary)] transition-colors hover:border-[color-mix(in_srgb,_var(--color-border)_10.2%,_transparent)] hover:text-[var(--color-text)]"
             >
                 <Command className="h-4 w-4" />
                 <span className="hidden sm:inline">Quick actions</span>
-                <kbd className="hidden rounded-md border border-[#ffffff0d] bg-[#0f1117] px-1.5 py-0.5 text-[10px] font-semibold text-[#71717a] sm:inline">⌘K</kbd>
+                <kbd className="hidden rounded-md border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--color-secondary)] sm:inline">⌘K</kbd>
             </button>
 
             {isOpen && (
-                <div className="fixed inset-0 z-[1600] flex items-start justify-center bg-black/60 px-4 pt-[12vh] backdrop-blur-sm" onMouseDown={(event) => {
+                <div className="fixed inset-0 z-[1600] flex items-start justify-center bg-[color:var(--color-overlay)]/60 px-4 pt-[12vh] backdrop-blur-sm" onMouseDown={(event) => {
                     if (event.currentTarget === event.target) {
                         setIsOpen(false);
                     }
                 }}>
-                    <div role="dialog" aria-modal="true" aria-labelledby="landing-command-title" className="w-full max-w-xl overflow-hidden rounded-2xl border border-[#ffffff1a] bg-[#16181d] shadow-2xl">
-                        <div className="flex items-center gap-3 border-b border-[#ffffff0d] px-4">
-                            <Search className="h-4 w-4 shrink-0 text-[#71717a]" />
+                    <div role="dialog" aria-modal="true" aria-labelledby="landing-command-title" className="w-full max-w-xl overflow-hidden rounded-2xl border border-[color-mix(in_srgb,_var(--color-border)_10.2%,_transparent)] bg-[var(--color-surface)] shadow-2xl">
+                        <div className="flex items-center gap-3 border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-4">
+                            <Search className="h-4 w-4 shrink-0 text-[var(--color-secondary)]" />
                             <input
                                 ref={inputRef}
                                 value={query}
@@ -133,10 +133,10 @@ export const LandingCommandPalette = ({ actions }: LandingCommandPaletteProps) =
                                 }}
                                 placeholder="Search GrassKickZ actions..."
                                 aria-label="Search quick actions"
-                                className="h-14 min-w-0 flex-1 bg-transparent text-sm text-[#f4f4f5] outline-none placeholder:text-[#71717a]"
+                                className="h-14 min-w-0 flex-1 bg-transparent text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-secondary)]"
                             />
-                            <kbd className="hidden rounded-md border border-[#ffffff0d] px-1.5 py-0.5 text-[10px] text-[#71717a] sm:inline">Esc</kbd>
-                            <button type="button" onClick={() => setIsOpen(false)} aria-label="Close quick actions" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#71717a] hover:bg-[#ffffff0d] hover:text-[#f4f4f5]">
+                            <kbd className="hidden rounded-md border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-1.5 py-0.5 text-[10px] text-[var(--color-secondary)] sm:inline">Esc</kbd>
+                            <button type="button" onClick={() => setIsOpen(false)} aria-label="Close quick actions" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-secondary)] hover:bg-[color-mix(in_srgb,_var(--color-ink)_5.1%,_transparent)] hover:text-[var(--color-text)]">
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
@@ -156,25 +156,25 @@ export const LandingCommandPalette = ({ actions }: LandingCommandPaletteProps) =
                                                 action.onSelect();
                                                 setIsOpen(false);
                                             }}
-                                            className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors ${index === activeIndex ? 'bg-[#16a34a]/10 text-[#f4f4f5]' : 'text-[#a1a1aa] hover:bg-[#ffffff0d] hover:text-[#f4f4f5]'}`}
+                                            className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors ${index === activeIndex ? 'bg-[var(--color-accent)]/10 text-[var(--color-text)]' : 'text-[var(--color-secondary)] hover:bg-[color-mix(in_srgb,_var(--color-ink)_5.1%,_transparent)] hover:text-[var(--color-text)]'}`}
                                         >
-                                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${index === activeIndex ? 'bg-[#16a34a]/15 text-[#4ade80]' : 'bg-[#0f1117] text-[#71717a]'}`}>
+                                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${index === activeIndex ? 'bg-[var(--color-accent)]/15 text-[var(--color-accent)]' : 'bg-[var(--color-surface)] text-[var(--color-secondary)]'}`}>
                                                 <action.icon className="h-4 w-4" />
                                             </span>
                                             <span className="min-w-0 flex-1">
                                                 <span className="block text-sm font-semibold">{action.label}</span>
-                                                <span className="mt-0.5 block truncate text-xs text-[#71717a]">{action.description}</span>
+                                                <span className="mt-0.5 block truncate text-xs text-[var(--color-secondary)]">{action.description}</span>
                                             </span>
-                                            <span className="hidden text-xs text-[#71717a] sm:inline">↵</span>
+                                            <span className="hidden text-xs text-[var(--color-secondary)] sm:inline">↵</span>
                                         </button>
                                     ))}
                                 </div>
                             ) : (
-                                <p className="px-3 py-8 text-center text-sm text-[#a1a1aa]">No matching actions.</p>
+                                <p className="px-3 py-8 text-center text-sm text-[var(--color-secondary)]">No matching actions.</p>
                             )}
                         </div>
-                        <div className="border-t border-[#ffffff0d] px-4 py-3 text-xs text-[#71717a]">
-                            Use <span className="text-[#a1a1aa]">↑↓</span> to move, <span className="text-[#a1a1aa]">Enter</span> to choose, and <span className="text-[#a1a1aa]">Esc</span> to close.
+                        <div className="border-t border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-4 py-3 text-xs text-[var(--color-secondary)]">
+                            Use <span className="text-[var(--color-secondary)]">↑↓</span> to move, <span className="text-[var(--color-secondary)]">Enter</span> to choose, and <span className="text-[var(--color-secondary)]">Esc</span> to close.
                         </div>
                     </div>
                 </div>

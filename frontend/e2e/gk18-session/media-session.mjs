@@ -1,0 +1,41 @@
+import {readFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+import path from 'node:path';
+import {createServer} from 'vite';
+import {chromium,expect} from '@playwright/test';
+const fixture=JSON.parse(await readFile(process.argv[2],'utf8'));
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+const server=await createServer({root,configFile:path.join(root,'vite.config.ts'),define:{'import.meta.env.VITE_API_BASE_URL':JSON.stringify(process.argv[3]==='true'?fixture.backend+'/api':'/api'),'import.meta.env.VITE_ENABLE_MOCKS':'"false"'},server:{host:'127.0.0.1',port:5184,strictPort:true,hmr:false,proxy:{'/api':fixture.backend,'/uploads':fixture.backend}}});
+await server.listen();const browser=await chromium.launch({headless:true});
+try{
+ const context=await browser.newContext();
+ const upload=async()=>{const r=await context.request.post(fixture.backend+'/api/media/upload',{headers:{Authorization:'Bearer '+fixture.token},multipart:{file:{name:'photo.png',mimeType:'image/png',buffer:Buffer.from(fixture.image,'base64')}}});expect(r.ok()).toBe(true);return (await r.json()).url;};
+ const first=await upload(),second=await upload();
+ await context.addCookies([{name:fixture.refreshName,value:fixture.refresh,domain:new URL(fixture.backend).hostname,path:"/api/auth",httpOnly:true,sameSite:'Lax'}]);
+ await context.addInitScript(token=>localStorage.setItem('accessToken',token),fixture.expired);
+ let refreshes=0;const page=await context.newPage();page.on('request',r=>{if(r.url().endsWith('/auth/refresh'))refreshes++;});
+ await page.goto('http://127.0.0.1:5184/e2e/gk18-session/index.html?first='+encodeURIComponent(first)+'&second='+encodeURIComponent(second));
+ await expect.poll(()=>page.locator('[data-testid=photo] img').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
+ expect(refreshes).toBe(1);
+ console.log('PASS R1: expired bearer automatically renews with real CSRF protection and renders private AvatarCell.');
+ // addInitScript from earlier overwrites on reload, so use a clean, valid-token context.
+ const current=await browser.newContext();await current.addInitScript(token=>localStorage.setItem('accessToken',token),fixture.token);
+ const rapid=await current.newPage();let firstRequests=0;
+ await rapid.route('http://127.0.0.1:5184'+first,async route=>{firstRequests++;if(firstRequests>1)await new Promise(r=>setTimeout(r,1200));try{await route.continue();}catch{}});
+ await rapid.route('http://127.0.0.1:5184'+second,async route=>{await new Promise(r=>setTimeout(r,1200));try{await route.continue();}catch{}});
+ await rapid.goto('http://127.0.0.1:5184/e2e/gk18-session/index.html?first='+encodeURIComponent(first)+'&second='+encodeURIComponent(second));
+ await expect.poll(()=>rapid.locator('[data-testid=photo] img').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
+ await rapid.getByRole('button',{name:'Second',exact:true}).click();await rapid.getByRole('button',{name:'First',exact:true}).click();
+ await expect.poll(()=>rapid.locator('[data-testid=photo] img').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
+ await rapid.getByRole('button',{name:'External',exact:true}).click();
+ await rapid.getByRole('button',{name:'First',exact:true}).click();
+ await expect.poll(()=>rapid.locator('[data-testid=photo] img').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
+ console.log('PASS R2: slow A -> B -> A and A -> external -> A retain AvatarCell and load usable bytes.');
+ const logout=await page.evaluate(async()=>{const {apiClient,ensureCsrfToken}=await import('/src/api/axiosConfig.ts');return (await apiClient.post('/auth/logout',{},await ensureCsrfToken())).status;});
+ expect(logout).toBe(200);
+ const denied=await page.evaluate(async()=>{const {refreshAccessToken}=await import('/src/api/axiosConfig.ts');try{await refreshAccessToken();return 200;}catch(e){return e.response?.status;}});
+ expect(denied).toBe(401);
+ const guest=await browser.newContext();expect((await guest.request.get(fixture.backend+first)).status()).toBe(404);
+ expect((await guest.request.get(fixture.backend+first,{headers:{Authorization:'Bearer '+fixture.expired}})).status()).toBe(401);
+ console.log('PASS session boundary: real CSRF logout revokes renewal; guests get 404, expired bearer gets 401.');
+}finally{await browser.close();await server.close();}

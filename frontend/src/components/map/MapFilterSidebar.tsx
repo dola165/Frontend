@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, useRef, type PointerEvent as ReactPointer
 import { Building2, ChevronDown, ChevronRight, Crosshair, Filter, GripVertical, Loader2, MapPin, Navigation, Search, ShieldCheck, SlidersHorizontal, Trophy, Users, X } from 'lucide-react';
 import { type MapEntityType } from '../../api/map';
 export type { MapEntityType };
+import { TrainingPriceFields } from './TrainingPriceFields';
 import { usePersistedState } from '../../utils/usePersistedState';
 import { MapHelpHint } from './MapHelpHint';
 import { MapCountryCityFields } from './MapCountryCityFields';
@@ -32,6 +33,12 @@ export type MapPosition =
 export type ClubCategory = 'PROFESSIONAL_ACADEMY' | 'PRIVATE_ACADEMY' | 'SCHOOL_CLUB' | 'AMATEUR_CLUB' | 'OTHER';
 
 interface ClubFilters {
+    birthYear?: number;
+    includeWaitlist?: boolean;
+    trainingMinPrice?: string;
+    trainingMaxPrice?: string;
+    trainingCurrency?: string;
+    trainingPeriod?: string;
     officialOnly: boolean;
     openTryoutsOnly: boolean;
     city: string;
@@ -142,7 +149,7 @@ const QUICK_AGE_GROUPS = ['U12', 'U14', 'U16', 'U18', 'Senior'];
 // Shared with MapPage; keeping the default beside the filter schema makes drift visible.
 // eslint-disable-next-line react-refresh/only-export-components
 export const defaultMapFilters: MapFilters = {
-    entityType: ['CLUB', 'MATCH', 'TOURNAMENT'],
+    entityType: ['CLUB', 'STADIUM', 'MATCH', 'TOURNAMENT'],
     sortBy: 'RELEVANCE',
     distanceKm: 50,
     positions: [],
@@ -177,6 +184,7 @@ export const defaultMapFilters: MapFilters = {
 };
 
 const ENTITY_LABELS: Record<MapEntityType, string> = {
+    STADIUM: 'Stadiums',
     CLUB: 'Clubs',
     TRYOUT: 'Tryouts',
     MATCH: 'Matches',
@@ -185,6 +193,7 @@ const ENTITY_LABELS: Record<MapEntityType, string> = {
 };
 
 const ENTITY_ICONS: Record<MapEntityType, ReactNode> = {
+    STADIUM: <MapPin className="h-4 w-4" />,
     CLUB: <Building2 className="h-4 w-4" />,
     TRYOUT: <Users className="h-4 w-4" />,
     MATCH: <Trophy className="h-4 w-4" />,
@@ -193,6 +202,7 @@ const ENTITY_ICONS: Record<MapEntityType, ReactNode> = {
 };
 
 const ENTITY_DESCRIPTIONS: Record<MapEntityType, string> = {
+    STADIUM: 'Find a pitch and see available times',
     CLUB: 'Find football clubs near you',
     TRYOUT: 'Discover open tryout sessions',
     MATCH: 'Browse open match challenges',
@@ -212,6 +222,8 @@ const countArrayDelta = (current: string[], initial: string[]) => {
 const countActiveFilters = (filters: MapFilters) => {
     let count = 0;
 
+    if (filters.clubs.trainingMinPrice) count += 1;
+    if (filters.clubs.trainingMaxPrice) count += 1;
     if (filters.sortBy !== defaultMapFilters.sortBy) count += 1;
     if (filters.distanceKm !== defaultMapFilters.distanceKm) count += 1;
     count += countArrayDelta(filters.positions, defaultMapFilters.positions);
@@ -256,18 +268,18 @@ const RailSection = ({
     onToggle: () => void;
     children: ReactNode;
 }) => (
-    <section className="border-t border-slate-300 dark:border-white/15">
+    <section className="border-t border-[color:var(--color-border)] dark:border-[color:var(--color-border)]/15">
         <button type="button" onClick={onToggle} className="flex w-full items-center justify-between gap-3 py-3 text-left">
             <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center text-[#3f7666] dark:text-[#78a394]">{icon}</span>
-                <h3 className="truncate text-xs font-black uppercase tracking-[0.12em] text-slate-900 dark:text-slate-100">{title}</h3>
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center text-[var(--color-accent)] dark:text-[var(--color-secondary)]">{icon}</span>
+                <h3 className="truncate text-xs font-black uppercase tracking-[0.12em] text-[color:var(--color-text)] dark:text-[color:var(--color-text)]">{title}</h3>
             </div>
             <div className="flex shrink-0 items-center gap-2">
                 {helpText ? <MapHelpHint text={helpText} align="right" /> : null}
-                {expanded ? <ChevronDown className="h-4 w-4 text-slate-500" /> : <ChevronRight className="h-4 w-4 text-slate-500" />}
+                {expanded ? <ChevronDown className="h-4 w-4 text-[color:var(--color-muted)]" /> : <ChevronRight className="h-4 w-4 text-[color:var(--color-muted)]" />}
             </div>
         </button>
-        {expanded && <div className="space-y-4 border-l-2 border-[#5a8778]/70 pb-5 pl-4 pt-1">{children}</div>}
+        {expanded && <div className="space-y-4 border-l-2 border-[var(--color-accent)]/70 pb-5 pl-4 pt-1">{children}</div>}
     </section>
 );
 
@@ -283,15 +295,15 @@ const TextField = ({
     onChange: (value: string) => void;
 }) => (
     <label className="space-y-2">
-        <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{label}</span>
-        <div className="flex min-h-[36px] items-center gap-2 border-b-2 border-slate-300 bg-transparent px-1 transition-colors focus-within:border-[#4a796b] dark:border-white/20">
-            <Search className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+        <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">{label}</span>
+        <div className="flex min-h-[36px] items-center gap-2 border-b-2 border-[color:var(--color-border)] bg-transparent px-1 transition-colors focus-within:border-[var(--color-accent)] dark:border-[color:var(--color-border)]/20">
+            <Search className="h-4 w-4 text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]" />
             <input
                 type="text"
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
                 placeholder={placeholder}
-                className="w-full border-0 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
+                className="w-full border-0 bg-transparent text-sm text-[color:var(--color-text)] outline-none placeholder:text-[color:var(--color-muted)] dark:text-[color:var(--color-text)] dark:placeholder:text-[color:var(--color-muted)]"
             />
         </div>
     </label>
@@ -302,7 +314,7 @@ const ToggleChip = ({ active, label, onClick }: { active: boolean; label: string
         type="button"
         onClick={onClick}
         className={`inline-flex min-h-[28px] items-center justify-center gap-1 rounded-[3px] border px-2.5 text-[11px] font-bold transition-colors ${
-            active ? 'border-[#315f53] bg-[#3f7666] text-white dark:border-[#78a394] dark:bg-[#557f70] dark:text-white' : 'border-slate-300 bg-transparent text-slate-600 hover:border-slate-700 hover:text-slate-900 dark:border-white/15 dark:text-slate-400 dark:hover:border-white/40 dark:hover:text-slate-100'
+            active ? 'border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-on-accent)] dark:border-[var(--color-accent)] dark:bg-[var(--color-accent)] dark:text-[var(--color-on-accent)]' : 'border-[color:var(--color-border)] bg-transparent text-[color:var(--color-muted)] hover:border-[color:var(--color-border)] hover:text-[color:var(--color-text)] dark:border-[color:var(--color-border)]/15 dark:text-[color:var(--color-muted)] dark:hover:border-[color:var(--color-border)]/40 dark:hover:text-[color:var(--color-text)]'
         }`}
     >
         {label}
@@ -318,9 +330,9 @@ const CheckRow = ({
     label: string;
     onChange: () => void;
 }) => (
-    <label className="flex cursor-pointer items-center justify-between gap-2.5 border-b border-slate-200 py-2 transition-colors hover:border-[#5a8778] dark:border-white/10">
-        <span className="min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-100">{label}</span>
-        <input type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4 accent-[#3f7666]" />
+    <label className="flex cursor-pointer items-center justify-between gap-2.5 border-b border-[color:var(--color-border)] py-2 transition-colors hover:border-[var(--color-accent)] dark:border-[color:var(--color-border)]/10">
+        <span className="min-w-0 text-sm font-semibold text-[color:var(--color-text)] dark:text-[color:var(--color-text)]">{label}</span>
+        <input type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4 accent-[var(--color-accent)]" />
     </label>
 );
 
@@ -335,9 +347,9 @@ const RadioRow = ({
     label: string;
     onChange: () => void;
 }) => (
-    <label className="flex cursor-pointer items-center justify-between gap-2.5 border-b border-slate-200 py-2 transition-colors hover:border-[#5a8778] dark:border-white/10">
-        <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{label}</span>
-        <input type="radio" name={name} checked={checked} onChange={onChange} className="h-4 w-4 accent-[#3f7666]" />
+    <label className="flex cursor-pointer items-center justify-between gap-2.5 border-b border-[color:var(--color-border)] py-2 transition-colors hover:border-[var(--color-accent)] dark:border-[color:var(--color-border)]/10">
+        <span className="text-sm font-semibold text-[color:var(--color-text)] dark:text-[color:var(--color-text)]">{label}</span>
+        <input type="radio" name={name} checked={checked} onChange={onChange} className="h-4 w-4 accent-[var(--color-accent)]" />
     </label>
 );
 
@@ -518,7 +530,7 @@ export const MapFilterSidebar = ({
     return (
         <>
             <div
-                className={`map-modal-backdrop fixed bottom-0 left-0 right-0 top-[var(--app-active-header-height)] z-[1090] bg-slate-900/40 transition-[opacity,top] dark:bg-black/60 ${
+                className={`map-modal-backdrop fixed bottom-0 left-0 right-0 top-[var(--app-active-header-height)] z-[1090] bg-[color:var(--color-overlay)]/40 transition-[opacity,top] dark:bg-[color:var(--color-overlay)]/60 ${
                     isVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
                 }`}
                 onClick={onClose}
@@ -526,22 +538,22 @@ export const MapFilterSidebar = ({
             <aside
                 data-visible={isVisible}
                 style={{ width: `min(92vw, ${clampedWidth}px)` }}
-                className={`map-advanced-rail pointer-events-auto fixed bottom-0 left-0 top-[var(--app-active-header-height)] z-[1100] border-r-2 border-slate-900 bg-[#f7f6f0] transition-[transform,top] duration-200 dark:border-[#5a8778]/70 dark:bg-[#0d1016] ${
+                className={`map-advanced-rail pointer-events-auto fixed bottom-0 left-0 top-[var(--app-active-header-height)] z-[1100] border-r-2 border-[color:var(--color-border)] bg-[var(--color-elevated)] transition-[transform,top] duration-200 dark:border-[var(--color-accent)]/70 dark:bg-[var(--color-page)] ${
                     isVisible ? 'translate-x-0' : '-translate-x-full'
                 }`}
             >
                 <div className="flex h-full min-h-0 flex-col">
-                    <header className="shrink-0 border-b-2 border-slate-900 bg-[#3f7666] px-4 pb-3 pt-4 text-white dark:border-[#5a8778]/70 dark:bg-[#163b32]">
+                    <header className="shrink-0 border-b-2 border-[color:var(--color-border)] bg-[var(--color-accent)] px-4 pb-3 pt-4 text-[var(--color-on-accent)] dark:border-[var(--color-accent)]/70 dark:bg-[var(--color-accent)]">
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-3">
-                                    <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-white/60 text-white">
+                                    <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-[color:var(--color-border)]/60 text-[color:var(--color-text)]">
                                         <SlidersHorizontal className="h-4 w-4" />
                                     </span>
                                     <div className="flex min-w-0 items-center gap-2">
                                         <div>
-                                            <h2 className="truncate text-lg font-black uppercase tracking-[0.08em] text-white">Advanced filters</h2>
-                                            <p className="mt-0.5 text-xs text-[#edf3f0]/80">
+                                            <h2 className="truncate text-lg font-black uppercase tracking-[0.08em] text-[color:var(--color-text)]">Advanced filters</h2>
+                                            <p className="mt-0.5 text-xs text-[var(--color-text)]/80">
                                                 {viewerMode === 'guest'
                                                     ? 'Public football discovery'
                                                     : viewerMode === 'player'
@@ -556,22 +568,22 @@ export const MapFilterSidebar = ({
                                     </div>
                                 </div>
                             </div>
-                            <button type="button" onClick={onClose} aria-label="Close filters" className="map-wide-hidden inline-flex h-7 w-7 items-center justify-center border border-white/60 text-white transition-colors hover:bg-white hover:text-[#244c42]">
+                            <button type="button" onClick={onClose} aria-label="Close filters" className="map-wide-hidden inline-flex h-7 w-7 items-center justify-center border border-[color:var(--color-border)]/60 text-[color:var(--color-text)] transition-colors hover:bg-[color:var(--color-elevated)] hover:text-[var(--color-accent)]">
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
 
-                        <div className="mt-3 flex items-center justify-between gap-3 border-l-2 border-white bg-[#163b32]/20 py-2 pl-3">
+                        <div className="mt-3 flex items-center justify-between gap-3 border-l-2 border-[color:var(--color-border)] bg-[var(--color-accent)]/20 py-2 pl-3">
                             <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#d7e5e0]/70">Search status</p>
-                                <p className="mt-0.5 text-sm font-bold text-white">
+                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-text)]/70">Search status</p>
+                                <p className="mt-0.5 text-sm font-bold text-[color:var(--color-text)]">
                                     {hasPendingChanges ? 'Changes ready to apply' : resultCount == null ? 'Ready' : `${resultCount} loaded results`}
                                 </p>
                             </div>
                             <button
                                 type="button"
                                 onClick={onResetAll}
-                                className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap border border-white/60 bg-transparent px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-white hover:text-[#244c42] disabled:cursor-not-allowed disabled:opacity-50"
+                                className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap border border-[color:var(--color-border)]/60 bg-transparent px-3 py-1.5 text-xs font-bold text-[color:var(--color-text)] transition-colors hover:bg-[color:var(--color-elevated)] hover:text-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-50"
                                 disabled={activeCount === 0 && !hasPendingChanges}
                             >
                                 Reset all
@@ -579,14 +591,14 @@ export const MapFilterSidebar = ({
                         </div>
                     </header>
 
-                    <div className="shrink-0 border-b border-slate-300 px-4 pb-4 pt-4 dark:border-white/15">
+                    <div className="shrink-0 border-b border-[color:var(--color-border)] px-4 pb-4 pt-4 dark:border-[color:var(--color-border)]/15">
                         <div className="mb-2 flex items-center justify-between gap-3">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900 dark:text-slate-100">Show on map</p>
-                            <span className="border-l-2 border-[#4a796b] pl-2 text-[9px] font-black uppercase tracking-[0.14em] text-[#315f53] dark:text-[#78a394]">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[color:var(--color-text)] dark:text-[color:var(--color-text)]">Show on map</p>
+                            <span className="border-l-2 border-[var(--color-accent)] pl-2 text-[9px] font-black uppercase tracking-[0.14em] text-[var(--color-accent)] dark:text-[var(--color-secondary)]">
                                 {viewerMode === 'guest' ? 'Public football' : viewerMode === 'player' ? 'Player discovery' : 'Staff operations'}
                             </span>
                         </div>
-                        <div className="grid grid-cols-2 border-l border-t border-slate-400 dark:border-white/25">
+                        <div className="grid grid-cols-2 border-l border-t border-[color:var(--color-border)] dark:border-[color:var(--color-border)]/25">
                             {allowedEntityTypes.map((entityType) => {
                                 const isActive = draftFilters.entityType.length === 1 && draftFilters.entityType[0] === entityType;
                                 return (
@@ -600,10 +612,10 @@ export const MapFilterSidebar = ({
                                                 entityType: [entityType]
                                             }))
                                         }
-                                        className={`flex items-center justify-start gap-2 border-b border-r border-slate-400 px-3 py-2.5 text-xs font-bold transition-colors dark:border-white/25 ${
+                                        className={`flex items-center justify-start gap-2 border-b border-r border-[color:var(--color-border)] px-3 py-2.5 text-xs font-bold transition-colors dark:border-[color:var(--color-border)]/25 ${
                                             isActive
-                                                ? 'bg-[#3f7666] text-white dark:bg-[#557f70] dark:text-white'
-                                                : 'bg-transparent text-slate-600 hover:bg-slate-900 hover:text-white dark:text-slate-400 dark:hover:bg-white dark:hover:text-slate-950'
+                                                ? 'bg-[var(--color-accent)] text-[var(--color-on-accent)] dark:bg-[var(--color-accent)] dark:text-[var(--color-on-accent)]'
+                                                : 'bg-transparent text-[color:var(--color-muted)] hover:bg-[color:var(--color-surface)] hover:text-[color:var(--color-text)] dark:text-[color:var(--color-muted)] dark:hover:bg-[color:var(--color-elevated)] dark:hover:text-[color:var(--color-text)]'
                                         }`}
                                     >
                                         {ENTITY_ICONS[entityType]}
@@ -623,8 +635,8 @@ export const MapFilterSidebar = ({
                             }
                             className={`mt-2 flex w-full items-center justify-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition-colors ${
                                 draftFilters.entityType.length > 1
-                                    ? 'border-[#3f7666] text-[#315f53] dark:border-[#78a394] dark:text-[#90b2a6]'
-                                    : 'border-slate-300 text-slate-600 hover:border-slate-800 hover:text-slate-900 dark:border-white/20 dark:text-slate-400 dark:hover:border-white dark:hover:text-white'
+                                    ? 'border-[var(--color-accent)] text-[var(--color-accent)] dark:border-[var(--color-accent)] dark:text-[var(--color-secondary)]'
+                                    : 'border-[color:var(--color-border)] text-[color:var(--color-muted)] hover:border-[color:var(--color-border)] hover:text-[color:var(--color-text)] dark:border-[color:var(--color-border)]/20 dark:text-[color:var(--color-muted)] dark:hover:border-[color:var(--color-border)] dark:hover:text-[color:var(--color-text)]'
                             }`}
                         >
                             <Filter className="h-3.5 w-3.5" />
@@ -632,11 +644,11 @@ export const MapFilterSidebar = ({
                         </button>
                         {viewerMode === 'staff' && (
                             <div className="mt-3">
-                                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Staff shortcuts</p>
-                                <div className="grid grid-cols-3 border-y border-slate-300 dark:border-white/15">
-                                    <button type="button" onClick={() => applyPreset('RECRUIT')} className="border-r border-slate-300 px-2 py-2 text-[11px] font-black uppercase tracking-wide text-slate-600 transition-colors hover:bg-[#3f7666] hover:text-white dark:border-white/15 dark:text-slate-300">Recruit</button>
-                                    <button type="button" onClick={() => applyPreset('FIXTURES')} className="border-r border-slate-300 px-2 py-2 text-[11px] font-black uppercase tracking-wide text-slate-600 transition-colors hover:bg-[#3f7666] hover:text-white dark:border-white/15 dark:text-slate-300">Fixtures</button>
-                                    <button type="button" onClick={() => applyPreset('EVENTS')} className="px-2 py-2 text-[11px] font-black uppercase tracking-wide text-slate-600 transition-colors hover:bg-[#3f7666] hover:text-white dark:text-slate-300">Events</button>
+                                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Staff shortcuts</p>
+                                <div className="grid grid-cols-3 border-y border-[color:var(--color-border)] dark:border-[color:var(--color-border)]/15">
+                                    <button type="button" onClick={() => applyPreset('RECRUIT')} className="border-r border-[color:var(--color-border)] px-2 py-2 text-[11px] font-black uppercase tracking-wide text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent)] hover:text-[var(--color-on-accent)] dark:border-[color:var(--color-border)]/15 dark:text-[var(--color-on-accent)]">Recruit</button>
+                                    <button type="button" onClick={() => applyPreset('FIXTURES')} className="border-r border-[color:var(--color-border)] px-2 py-2 text-[11px] font-black uppercase tracking-wide text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent)] hover:text-[var(--color-on-accent)] dark:border-[color:var(--color-border)]/15 dark:text-[var(--color-on-accent)]">Fixtures</button>
+                                    <button type="button" onClick={() => applyPreset('EVENTS')} className="px-2 py-2 text-[11px] font-black uppercase tracking-wide text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent)] hover:text-[var(--color-on-accent)] dark:text-[var(--color-on-accent)]">Events</button>
                                 </div>
                             </div>
                         )}
@@ -668,7 +680,7 @@ export const MapFilterSidebar = ({
                             >
                                 <div className="space-y-5">
                                     <div>
-                                        <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Sort results</span>
+                                        <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Sort results</span>
                                         <div className="mt-2 grid grid-cols-2 gap-2">
                                             {visibleSortOptions.map((option) => (
                                                 <ToggleChip
@@ -683,8 +695,8 @@ export const MapFilterSidebar = ({
 
                                     <div>
                                         <div className="flex items-center justify-between gap-3">
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Radius</span>
-                                            <span className="border-b border-[#4a796b] px-1.5 py-0.5 text-xs font-bold text-[#315f53] dark:text-[#78a394]">
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Radius</span>
+                                            <span className="border-b border-[var(--color-accent)] px-1.5 py-0.5 text-xs font-bold text-[var(--color-accent)] dark:text-[var(--color-secondary)]">
                                                 {draftFilters.distanceKm} km
                                             </span>
                                         </div>
@@ -697,9 +709,9 @@ export const MapFilterSidebar = ({
                                             onChange={(event) =>
                                                 updateFilters((current) => ({ ...current, distanceKm: Number(event.target.value) }))
                                             }
-                                            className="mt-3 h-2 w-full cursor-pointer appearance-none bg-slate-300 accent-[#3f7666] dark:bg-white/10"
+                                            className="mt-3 h-2 w-full cursor-pointer appearance-none bg-[color:var(--color-inset)] accent-[var(--color-accent)] dark:bg-[color:var(--color-ink)]/10"
                                         />
-                                        <div className="mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                                        <div className="mt-2 flex items-center justify-between text-xs text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">
                                             <span>Close by</span>
                                             <span>Wider search</span>
                                         </div>
@@ -734,14 +746,14 @@ export const MapFilterSidebar = ({
                                                         clubs: { ...current.clubs, officialOnly: !current.clubs.officialOnly }
                                                     }))}
                                                 />
-                                                <p className="border-l-2 border-amber-500 bg-amber-50/60 px-3 py-2 text-[11px] leading-5 text-slate-600 dark:bg-amber-400/[0.06] dark:text-slate-400">
+                                                <p className="border-l-2 border-[color:var(--color-warning)] bg-[color:var(--color-warning)]/60 px-3 py-2 text-[11px] leading-5 text-[color:var(--color-muted)] dark:bg-[color:var(--color-warning)]/[0.06] dark:text-[color:var(--color-muted)]">
                                                     Accepting players means the club is currently open to player enquiries or applications.
                                                 </p>
                                             </div>
                                         )}
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Position needed</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Position needed</span>
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {POSITION_OPTIONS.map((option) => (
                                                     <ToggleChip
@@ -758,7 +770,7 @@ export const MapFilterSidebar = ({
                                         </div>
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Age group</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Age group</span>
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {QUICK_AGE_GROUPS.map((ageGroup) => (
                                                     <ToggleChip
@@ -772,7 +784,7 @@ export const MapFilterSidebar = ({
                                         </div>
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Team</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Team</span>
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {GENDER_OPTIONS.map((gender) => (
                                                     <ToggleChip
@@ -789,10 +801,10 @@ export const MapFilterSidebar = ({
                             )}
 
                             {activeSummaries.length > 0 && (
-                                <section className="border-y border-[#3f7666]/40 bg-[#edf3f0]/60 py-3 dark:border-[#78a394]/25 dark:bg-[#78a394]/[0.05]">
+                                <section className="border-y border-[var(--color-accent)]/40 bg-[var(--color-inset)]/60 py-3 dark:border-[var(--color-accent)]/25 dark:bg-[var(--color-accent)]/[0.05]">
                                     <div className="mb-2 flex items-center justify-between gap-3">
-                                        <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#315f53] dark:text-[#90b2a6]">Active filters</p>
-                                        <span className="text-[11px] font-bold text-[#3f7666] dark:text-[#90b2a6]">{activeSummaries.length}</span>
+                                        <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--color-accent)] dark:text-[var(--color-secondary)]">Active filters</p>
+                                        <span className="text-[11px] font-bold text-[var(--color-accent)] dark:text-[var(--color-secondary)]">{activeSummaries.length}</span>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
                                         {activeSummaries.map((summary) => (
@@ -800,7 +812,7 @@ export const MapFilterSidebar = ({
                                                 key={summary.key}
                                                 type="button"
                                                 onClick={summary.remove}
-                                                className="inline-flex min-h-7 items-center gap-1.5 rounded-[3px] border border-[#3f7666]/50 bg-transparent px-2.5 text-[11px] font-bold text-[#244c42] transition-colors hover:bg-[#3f7666] hover:text-white dark:border-[#78a394]/30 dark:text-[#b6cec5]"
+                                                className="inline-flex min-h-7 items-center gap-1.5 rounded-[3px] border border-[var(--color-accent)]/50 bg-transparent px-2.5 text-[11px] font-bold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)] hover:text-[var(--color-on-accent)] dark:border-[var(--color-accent)]/30 dark:text-[var(--color-on-accent)]"
                                                 title={`Remove ${summary.label}`}
                                             >
                                                 {summary.label}<X className="h-3 w-3" />
@@ -814,12 +826,13 @@ export const MapFilterSidebar = ({
                                 type="button"
                                 onClick={() => toggleExpanded('advanced')}
                                 aria-expanded={expanded.advanced}
-                                className="flex w-full items-center justify-between border-y border-slate-400 bg-transparent py-3 text-xs font-black uppercase tracking-[0.12em] text-slate-700 transition-colors hover:border-[#3f7666] hover:text-[#315f53] dark:border-white/20 dark:text-slate-300 dark:hover:border-[#78a394] dark:hover:text-[#90b2a6]"
+                                className="flex w-full items-center justify-between border-y border-[color:var(--color-border)] bg-transparent py-3 text-xs font-black uppercase tracking-[0.12em] text-[color:var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] dark:border-[color:var(--color-border)]/20 dark:text-[color:var(--color-secondary)] dark:hover:border-[var(--color-accent)] dark:hover:text-[var(--color-secondary)]"
                             >
                                 <span className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4" /> Detailed filters</span>
                                 <ChevronDown className={`h-4 w-4 transition-transform ${expanded.advanced ? 'rotate-180' : ''}`} />
                             </button>
 
+                            {draftFilters.entityType.includes('CLUB') && <TrainingPriceFields filters={draftFilters} onChange={onDraftChange} />}
                             {expanded.advanced && <>
                             <RailSection
                                 icon={<MapPin className="h-4 w-4" />}
@@ -879,7 +892,7 @@ export const MapFilterSidebar = ({
                                         </div>
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Club type</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Club type</span>
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {CLUB_CATEGORY_OPTIONS.map((option) => (
                                                     <ToggleChip
@@ -901,7 +914,7 @@ export const MapFilterSidebar = ({
                                         </div>
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Age group</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Age group</span>
                                             <div className="mt-2 grid grid-cols-2 gap-2">
                                                 {AGE_GROUPS.map((ageGroup) => (
                                                     <ToggleChip
@@ -923,7 +936,7 @@ export const MapFilterSidebar = ({
                                         </div>
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Gender</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Gender</span>
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {GENDER_OPTIONS.map((gender) => (
                                                     <ToggleChip
@@ -945,7 +958,7 @@ export const MapFilterSidebar = ({
                                         </div>
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Level</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Level</span>
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {LEVEL_OPTIONS.map((level) => (
                                                     <ToggleChip
@@ -979,7 +992,7 @@ export const MapFilterSidebar = ({
                                 >
                                     <div className="space-y-5">
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Date window</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Date window</span>
                                             <div className="mt-2 grid gap-2">
                                                 {DATE_WINDOWS.map((option) => (
                                                     <RadioRow
@@ -999,7 +1012,7 @@ export const MapFilterSidebar = ({
                                         </div>
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Time of day</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Time of day</span>
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {TIME_WINDOWS.map((window) => (
                                                     <ToggleChip
@@ -1021,7 +1034,7 @@ export const MapFilterSidebar = ({
                                         </div>
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Gender</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Gender</span>
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {GENDER_OPTIONS.map((gender) => (
                                                     <ToggleChip
@@ -1043,7 +1056,7 @@ export const MapFilterSidebar = ({
                                         </div>
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Age group</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Age group</span>
                                             <div className="mt-2 grid grid-cols-2 gap-2">
                                                 {AGE_GROUPS.map((ageGroup) => (
                                                     <ToggleChip
@@ -1076,7 +1089,7 @@ export const MapFilterSidebar = ({
                                 >
                                     <div className="space-y-5">
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Match type</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Match type</span>
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {MATCH_SUBTYPE_OPTIONS.map((option) => (
                                                     <ToggleChip
@@ -1098,7 +1111,7 @@ export const MapFilterSidebar = ({
                                         </div>
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Date window</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Date window</span>
                                             <div className="mt-2 grid gap-2">
                                                 {DATE_WINDOWS.map((option) => (
                                                     <RadioRow
@@ -1118,7 +1131,7 @@ export const MapFilterSidebar = ({
                                         </div>
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Time of day</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Time of day</span>
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {TIME_WINDOWS.map((window) => (
                                                     <ToggleChip
@@ -1140,7 +1153,7 @@ export const MapFilterSidebar = ({
                                         </div>
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Gender</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Gender</span>
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {GENDER_OPTIONS.map((gender) => (
                                                     <ToggleChip
@@ -1162,7 +1175,7 @@ export const MapFilterSidebar = ({
                                         </div>
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Level</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Level</span>
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {LEVEL_OPTIONS.map((level) => (
                                                     <ToggleChip
@@ -1184,7 +1197,7 @@ export const MapFilterSidebar = ({
                                         </div>
 
                                         <div>
-                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Age group</span>
+                                            <span className="block text-[10px] font-extrabold uppercase tracking-[0.18em] text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">Age group</span>
                                             <div className="mt-2 grid grid-cols-2 gap-2">
                                                 {AGE_GROUPS.map((ageGroup) => (
                                                     <ToggleChip
@@ -1211,12 +1224,12 @@ export const MapFilterSidebar = ({
                         </div>
                     </div>
 
-                    <div className="shrink-0 border-t-2 border-slate-900 bg-[#f7f6f0] px-4 py-3 dark:border-[#5a8778]/70 dark:bg-[#0d1016]">
+                    <div className="shrink-0 border-t-2 border-[color:var(--color-border)] bg-[var(--color-elevated)] px-4 py-3 dark:border-[var(--color-accent)]/70 dark:bg-[var(--color-page)]">
                         <button
                             type="button"
                             onClick={onApply}
                             disabled={applying}
-                            className="flex w-full items-center justify-center gap-2 border-2 border-[#315f53] bg-[#3f7666] py-3 text-sm font-black uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#315f53] disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#78a394]"
+                            className="flex w-full items-center justify-center gap-2 border-2 border-[var(--color-accent)] bg-[var(--color-accent)] py-3 text-sm font-black uppercase tracking-[0.08em] text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60 dark:border-[var(--color-accent)]"
                         >
                             {applying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                             {applying ? 'Searching...' : hasPendingChanges ? 'Show updated results' : 'Refresh results'}
@@ -1225,19 +1238,19 @@ export const MapFilterSidebar = ({
                             <button
                                 type="button"
                                 onClick={onResetAll}
-                                className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap border-b border-slate-400 px-1 py-1.5 text-xs font-bold text-slate-600 transition-colors hover:border-slate-900 hover:text-slate-900 dark:border-white/20 dark:text-slate-300 dark:hover:border-white dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap border-b border-[color:var(--color-border)] px-1 py-1.5 text-xs font-bold text-[color:var(--color-muted)] transition-colors hover:border-[color:var(--color-border)] hover:text-[color:var(--color-text)] dark:border-[color:var(--color-border)]/20 dark:text-[color:var(--color-secondary)] dark:hover:border-[color:var(--color-border)] dark:hover:text-[color:var(--color-text)] disabled:cursor-not-allowed disabled:opacity-50"
                                 disabled={activeCount === 0 && !hasPendingChanges}
                             >
                                 Reset
                             </button>
                             {resultCount != null && (
-                                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{resultCount} loaded results</p>
+                                <p className="text-xs font-semibold text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">{resultCount} loaded results</p>
                             )}
                         </div>
                         <button
                             type="button"
                             onClick={onBackToSimple}
-                            className="mt-3 flex w-full items-center justify-between border-t border-slate-300 pt-3 text-xs font-bold text-slate-600 transition-colors hover:text-slate-950 dark:border-white/15 dark:text-slate-300 dark:hover:text-white"
+                            className="mt-3 flex w-full items-center justify-between border-t border-[color:var(--color-border)] pt-3 text-xs font-bold text-[color:var(--color-muted)] transition-colors hover:text-[color:var(--color-text)] dark:border-[color:var(--color-border)]/15 dark:text-[color:var(--color-secondary)] dark:hover:text-[color:var(--color-text)]"
                         >
                             <span>Back to simple filters</span>
                             <span aria-hidden>→</span>
@@ -1254,7 +1267,7 @@ export const MapFilterSidebar = ({
                     role="separator"
                     aria-orientation="vertical"
                     aria-label="Resize filters drawer"
-                    className="absolute right-0 top-0 z-10 -mr-1 hidden h-full w-3 cursor-ew-resize touch-none select-none border-l border-transparent text-slate-400 hover:border-l-[#4a796b] hover:text-[#3f7666] dark:text-slate-500 dark:hover:border-l-[#78a394] dark:hover:text-[#78a394] xl:block"
+                    className="absolute right-0 top-0 z-10 -mr-1 hidden h-full w-3 cursor-ew-resize touch-none select-none border-l border-transparent text-[color:var(--color-muted)] hover:border-l-[var(--color-accent)] hover:text-[var(--color-accent)] dark:text-[color:var(--color-muted)] dark:hover:border-l-[var(--color-accent)] dark:hover:text-[var(--color-secondary)] xl:block"
                 >
                     <div className="flex h-full items-center justify-center">
                         <GripVertical className="h-4 w-4" />

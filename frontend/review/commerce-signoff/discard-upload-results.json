@@ -1,0 +1,11 @@
+{
+  "diagnostic": true,
+  "Store": {
+    "discardAllowedDuringUpload": true,
+    "oldUploadAppearedInNewDraft": true
+  },
+  "Campaigns": {
+    "discardAllowedDuringUpload": true,
+    "oldUploadAppearedInNewDraft": true
+  }
+}

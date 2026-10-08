@@ -1,0 +1,359 @@
+{
+  "label": "release",
+  "conditions": {
+    "cpuSlowdown": 4,
+    "api": "Local deterministic fixture; no live data",
+    "assets": "Production build",
+    "viewport": "1440×900"
+  },
+  "samples": [
+    {
+      "load": 0,
+      "sample": 0,
+      "initial": {
+        "constructors": 5,
+        "nodes": 457,
+        "cards": 7
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 63.60000002384186,
+          "dateConstructors": 0,
+          "mainThreadMs": 66.27099999999997
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 98.60000002384186,
+          "dateConstructors": 3,
+          "mainThreadMs": 101.82199999999986
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 43,
+          "dateConstructors": 0,
+          "mainThreadMs": 41.02799999999984
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 33.39999997615814,
+          "dateConstructors": 0,
+          "mainThreadMs": 34.78700000000012
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 44.89999997615814,
+          "dateConstructors": 0,
+          "mainThreadMs": 48.89799999999988
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 28.69999998807907,
+          "dateConstructors": 0,
+          "mainThreadMs": 30.08299999999986
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 1238,
+        "visibleHeight": 859,
+        "framesOver32ms": 0,
+        "p95FrameMs": 5.600000023841858
+      },
+      "constructors": 8,
+      "longTasks": [
+        {
+          "start": 111.40000003576279,
+          "ms": 238
+        },
+        {
+          "start": 500.10000002384186,
+          "ms": 59
+        },
+        {
+          "start": 1168.5,
+          "ms": 89
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-BkyJO-Sj.js"
+      ],
+      "errors": []
+    },
+    {
+      "load": 0,
+      "sample": 1,
+      "initial": {
+        "constructors": 5,
+        "nodes": 457,
+        "cards": 7
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 74.5,
+          "dateConstructors": 0,
+          "mainThreadMs": 78.34000000000007
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 100.30000001192093,
+          "dateConstructors": 3,
+          "mainThreadMs": 103.07599999999995
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 37.5,
+          "dateConstructors": 0,
+          "mainThreadMs": 39.02500000000009
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 34,
+          "dateConstructors": 0,
+          "mainThreadMs": 35.27799999999992
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 65.09999996423721,
+          "dateConstructors": 0,
+          "mainThreadMs": 68.88000000000005
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 35.69999998807907,
+          "dateConstructors": 0,
+          "mainThreadMs": 37.973000000000035
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 1238,
+        "visibleHeight": 859,
+        "framesOver32ms": 0,
+        "p95FrameMs": 5.399999976158142
+      },
+      "constructors": 8,
+      "longTasks": [
+        {
+          "start": 110.40000003576279,
+          "ms": 203
+        },
+        {
+          "start": 445.7000000476837,
+          "ms": 76
+        },
+        {
+          "start": 1163.300000011921,
+          "ms": 90
+        },
+        {
+          "start": 1349.300000011921,
+          "ms": 54
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-BkyJO-Sj.js"
+      ],
+      "errors": []
+    },
+    {
+      "load": 210,
+      "sample": 0,
+      "initial": {
+        "constructors": 5,
+        "nodes": 3398,
+        "cards": 217
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 325.60000002384186,
+          "dateConstructors": 0,
+          "mainThreadMs": 329.879
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 274.39999997615814,
+          "dateConstructors": 3,
+          "mainThreadMs": 276.31300000000005
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 240.80000001192093,
+          "dateConstructors": 0,
+          "mainThreadMs": 245.228
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 222.39999997615814,
+          "dateConstructors": 0,
+          "mainThreadMs": 225.2749999999999
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 242.69999998807907,
+          "dateConstructors": 0,
+          "mainThreadMs": 244.3360000000001
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 251.70000004768372,
+          "dateConstructors": 0,
+          "mainThreadMs": 254.00800000000024
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 5976,
+        "visibleHeight": 859,
+        "framesOver32ms": 2,
+        "p95FrameMs": 5.5
+      },
+      "constructors": 8,
+      "longTasks": [
+        {
+          "start": 142.5,
+          "ms": 311
+        },
+        {
+          "start": 640.6000000238419,
+          "ms": 159
+        },
+        {
+          "start": 1207.2000000476837,
+          "ms": 182
+        },
+        {
+          "start": 1796.800000011921,
+          "ms": 285
+        },
+        {
+          "start": 2088.300000011921,
+          "ms": 239
+        },
+        {
+          "start": 2400.2000000476837,
+          "ms": 209
+        },
+        {
+          "start": 2633.600000023842,
+          "ms": 204
+        },
+        {
+          "start": 2844.600000023842,
+          "ms": 196
+        },
+        {
+          "start": 3121.900000035763,
+          "ms": 222
+        },
+        {
+          "start": 3492.600000023842,
+          "ms": 50
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-BkyJO-Sj.js"
+      ],
+      "errors": []
+    },
+    {
+      "load": 210,
+      "sample": 1,
+      "initial": {
+        "constructors": 5,
+        "nodes": 3398,
+        "cards": 217
+      },
+      "switches": [
+        {
+          "view": "Agenda",
+          "presentationMs": 211.0999999642372,
+          "dateConstructors": 0,
+          "mainThreadMs": 214.05500000000012
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 263.2999999523163,
+          "dateConstructors": 3,
+          "mainThreadMs": 265.07900000000006
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 169.39999997615814,
+          "dateConstructors": 0,
+          "mainThreadMs": 171.53699999999984
+        },
+        {
+          "view": "Agenda",
+          "presentationMs": 195.0999999642372,
+          "dateConstructors": 0,
+          "mainThreadMs": 198.03799999999993
+        },
+        {
+          "view": "Calendar",
+          "presentationMs": 194,
+          "dateConstructors": 0,
+          "mainThreadMs": 199.719
+        },
+        {
+          "view": "Week board",
+          "presentationMs": 166.60000002384186,
+          "dateConstructors": 0,
+          "mainThreadMs": 168.2159999999997
+        }
+      ],
+      "scroll": {
+        "scrollHeight": 5976,
+        "visibleHeight": 859,
+        "framesOver32ms": 1,
+        "p95FrameMs": 5.5
+      },
+      "constructors": 8,
+      "longTasks": [
+        {
+          "start": 144.0999999642372,
+          "ms": 238
+        },
+        {
+          "start": 388.39999997615814,
+          "ms": 51
+        },
+        {
+          "start": 532,
+          "ms": 73
+        },
+        {
+          "start": 946.1999999880791,
+          "ms": 138
+        },
+        {
+          "start": 1413.699999988079,
+          "ms": 188
+        },
+        {
+          "start": 1610.199999988079,
+          "ms": 226
+        },
+        {
+          "start": 1904.199999988079,
+          "ms": 142
+        },
+        {
+          "start": 2064.800000011921,
+          "ms": 181
+        },
+        {
+          "start": 2252.399999976158,
+          "ms": 163
+        },
+        {
+          "start": 2475.5,
+          "ms": 145
+        }
+      ],
+      "js": [
+        "/assets/schedule-preview-BkyJO-Sj.js"
+      ],
+      "errors": []
+    }
+  ]
+}

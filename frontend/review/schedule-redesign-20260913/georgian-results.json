@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "checks": [
+    "Georgian editor labels",
+    "localized weekdays and dates",
+    "mobile layout and footer",
+    "Georgian create flow"
+  ],
+  "errors": []
+}

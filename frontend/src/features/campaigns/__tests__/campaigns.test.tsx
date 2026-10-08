@@ -1,3 +1,5 @@
+vi.mock('../../paymentPreview/config', () => ({ paymentPreviewEnabled: () => false }));
+import type { ImgHTMLAttributes } from 'react';
 import {ShoppingBag,HeartHandshake,Briefcase} from 'lucide-react';
 import {WorkspaceSidebar} from '../../../components/workspace/WorkspaceSidebar';
 import {ClubOpportunities} from '../../../components/club/ClubOpportunities';
@@ -29,7 +31,7 @@ it('ignores a delayed response after a new search',async()=>{
  let resolve!:(value:{content:api.Campaign[];totalElements:number})=>void;vi.mocked(api.fetchCampaigns).mockImplementationOnce(()=>new Promise(r=>{resolve=r;})).mockResolvedValue({content:[{...campaign,title:'New result'}],totalElements:1});browse();fireEvent.change(screen.getByLabelText('Search campaigns'),{target:{value:'new'}});await screen.findByRole('link',{name:'New result'});await act(async()=>resolve({content:[campaign],totalElements:1}));expect(screen.queryByRole('link',{name:'A pitch for everyone'})).not.toBeInTheDocument();
 });
 it('labels progress as a club report and never offers an enabled payment action',async()=>{
- detail();await screen.findByRole('heading',{name:campaign.title});expect(screen.getByText('Club-reported funds are not verified by GrassKickZ.',{exact:false})).toBeInTheDocument();expect(screen.getByRole('button',{name:'Online contributions unavailable'})).toBeDisabled();expect(screen.getByRole('link',{name:'Contact the club'})).toHaveAttribute('href','/clubs/10?tab=contact');expect(screen.getByText('First goals arrived')).toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'View photo 2'}));expect(screen.getByRole('img',{name:'A pitch for everyone — photo 2'})).toHaveAttribute('src',expect.stringContaining('two.jpg'));
+ detail();await screen.findByRole('heading',{name:campaign.title});expect(screen.getByText('Club-reported funds are not verified by GrassKickZ.',{exact:false})).toBeInTheDocument();expect(screen.getByText(/does not take payment or record a contribution/)).toBeInTheDocument();expect(screen.getByRole('button',{name:'Online contributions unavailable'})).toBeDisabled();expect(screen.getByRole('link',{name:'Ask the club how to support this campaign'})).toHaveAttribute('href','/clubs/10?tab=contact');expect(screen.getByText(`Mention “${campaign.title}” when asking how you can help.`)).toBeInTheDocument();expect(screen.getByText('First goals arrived')).toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'View photo 2'}));expect(screen.getByRole('img',{name:'A pitch for everyone — photo 2'})).toHaveAttribute('src',expect.stringContaining('two.jpg'));
 });
 it('offers a copyable exact link if the clipboard is unavailable',async()=>{
  vi.stubGlobal('navigator',{clipboard:{writeText:vi.fn().mockRejectedValue(new Error('denied'))}});detail();fireEvent.click(await screen.findByRole('button',{name:'Copy campaign link'}));expect(await screen.findByLabelText('Campaign link')).toHaveValue(window.location.origin + '/campaigns/1');
@@ -49,9 +51,12 @@ it('keeps all three club opportunity entry points scoped to that club',()=>{
  render(<MemoryRouter><ClubOpportunities club={{id:10} as ClubProfile}/></MemoryRouter>);
  expect(screen.getByRole('link',{name:/Fundraising & campaigns/})).toHaveAttribute('href','/clubs/10/campaigns');
  expect(screen.getByRole('link',{name:/Store/})).toHaveAttribute('href','/clubs/10/store');
- expect(screen.getByRole('link',{name:/Jobs & volunteering/})).toHaveAttribute('href','/clubs/10?tab=business&opportunity=jobs');
+ expect(screen.getByRole('link',{name:/Roles/})).toHaveAttribute('href','/clubs/10?tab=business&opportunity=jobs');
 });
-it('makes Store, Campaigns and Jobs reachable in the workspace navigation',()=>{
- const onTabChange=vi.fn();render(<WorkspaceSidebar clubId={10} overview={null} activeTab="campaigns" tabs={[{id:'store',label:'Store',icon:ShoppingBag},{id:'campaigns',label:'Campaigns',icon:HeartHandshake},{id:'jobs',label:'Jobs & volunteering',icon:Briefcase}]} unreadInboxCount={0} mobileOpen={false} onTabChange={onTabChange} onNavigate={vi.fn()} onClose={vi.fn()}/>);
- for(const [name,id] of [['Store','store'],['Campaigns','campaigns'],['Jobs & volunteering','jobs']]) {fireEvent.click(screen.getByRole('button',{name}));expect(onTabChange).toHaveBeenLastCalledWith(id);}
+it('makes Store, Campaigns and Roles reachable in the workspace navigation',()=>{
+ const onTabChange=vi.fn();render(<WorkspaceSidebar clubId={10} overview={null} activeTab="campaigns" tabs={[{id:'store',label:'Store',icon:ShoppingBag},{id:'campaigns',label:'Campaigns',icon:HeartHandshake},{id:'jobs',label:'Roles',icon:Briefcase}]} unreadInboxCount={0} mobileOpen={false} onTabChange={onTabChange} onNavigate={vi.fn()} onClose={vi.fn()}/>);
+ for(const [name,id] of [['Store','store'],['Campaigns','campaigns'],['Roles','jobs']]) {if(id==='jobs')fireEvent.click(screen.getByRole('button',{name:/Recruitment/}));fireEvent.click(screen.getByRole('button',{name}));expect(onTabChange).toHaveBeenLastCalledWith(id);}
 });
+
+// These suites test gallery selection; authenticated byte delivery has its own component and HTTP coverage.
+vi.mock('../../../components/ui/MediaImage', () => ({ MediaImage: (props: ImgHTMLAttributes<HTMLImageElement>) => <img {...props} /> }));

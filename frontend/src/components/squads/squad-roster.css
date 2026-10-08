@@ -1,0 +1,343 @@
+.sr-roster {
+    color: var(--sd-text, var(--fc-text-primary, var(--color-text)));
+}
+.sr-roster section + section {
+    margin-top: 28px;
+}
+.sr-group-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.sr-group-heading h3 {
+    font-size: 13px;
+    font-weight: 650;
+    margin: 0;
+}
+.sr-group-heading > span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    background: var(--sd-surface, var(--fc-card-bg, var(--color-surface)));
+    color: var(--sd-muted, var(--fc-text-secondary, var(--color-secondary)));
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+.sr-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr));
+    gap: 12px;
+}
+.sr-player-card {
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid var(--sd-border, var(--fc-border, var(--color-border)));
+    background: var(--sd-surface, var(--fc-card-bg, var(--color-surface)));
+    border-radius: 8px;
+}
+.sr-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 17px;
+}
+.sr-avatar {
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: 46px;
+    height: 46px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--sd-elevated, var(--fc-surface-hover, var(--color-surface)));
+    color: var(--sd-secondary, var(--fc-text-secondary, var(--color-secondary)));
+    font-size: 14px;
+    font-weight: 650;
+    overflow: hidden;
+}
+.sr-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.sr-card-top .sr-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 19px;
+}
+.sr-shirt {
+    font-size: 38px;
+    line-height: 1;
+    font-weight: 750;
+    letter-spacing: -2px;
+    color: var(--sd-muted, var(--fc-text-secondary, var(--color-secondary)));
+    font-variant-numeric: tabular-nums;
+}
+.sr-player-card h4 {
+    margin: 0 0 7px;
+    font-size: 15px;
+    font-weight: 650;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+.sr-card-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    color: var(--sd-secondary, var(--fc-text-secondary, var(--color-secondary)));
+    font-size: 12px;
+}
+.sr-role {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--sd-accent, var(--fc-accent, var(--color-accent)));
+}
+.sr-player-card > .sr-role {
+    margin-top: 9px;
+}
+.sr-management,
+.sr-name-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+.sr-management:empty,
+.sr-name-meta:empty {
+    display: none;
+}
+.sr-management {
+    margin-top: 10px;
+}
+.sr-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border: 1px solid var(--sd-border, var(--fc-border, var(--color-border)));
+    border-radius: 4px;
+    color: var(--sd-muted, var(--fc-text-secondary, var(--color-secondary)));
+}
+.sr-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border-top: 1px solid var(--sd-border, var(--fc-border, var(--color-border)));
+    margin-top: 16px;
+    padding-top: 12px;
+}
+.sr-card-actions > .sd-button {
+    margin-right: auto;
+}
+.sr-card-actions .sd-button,
+.sr-card-actions .sd-icon-button {
+    min-height: 32px;
+}
+.sr-roster .sr-remove:hover {
+    color: var(--state-danger, var(--color-danger));
+    background: var(--state-danger-soft, var(--color-surface));
+}
+.sr-table-scroll {
+    border: 1px solid var(--sd-border, var(--fc-border, var(--color-border)));
+    border-radius: 7px;
+    overflow: auto;
+}
+.sr-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--sd-surface, var(--fc-card-bg, var(--color-surface)));
+}
+.sr-table th {
+    text-align: left;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--sd-border, var(--fc-border, var(--color-border)));
+    color: var(--sd-secondary, var(--fc-text-secondary, var(--color-secondary)));
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.sr-table th button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    padding: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+}
+.sr-table td {
+    border-bottom: 1px solid var(--sd-border, var(--fc-border, var(--color-border)));
+    padding: 13px 16px;
+    font-size: 13px;
+    vertical-align: middle;
+}
+.sr-table tbody > tr:last-child td {
+    border-bottom: 0;
+}
+.sr-table tbody > tr:hover {
+    background: var(--sd-elevated, var(--fc-surface-hover, var(--color-surface)));
+}
+.sr-col-number {
+    width: 62px;
+}
+.sr-col-position {
+    width: 21%;
+    color: var(--sd-secondary, var(--fc-text-secondary, var(--color-secondary)));
+}
+.sr-col-age {
+    width: 65px;
+    color: var(--sd-secondary, var(--fc-text-secondary, var(--color-secondary)));
+}
+.sr-col-actions {
+    width: 90px;
+}
+.sr-number,
+.sr-number-button {
+    font-size: 17px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.sr-number-button {
+    border: 0;
+    background: none;
+    color: inherit;
+    padding: 4px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+.sr-number-button:hover {
+    color: var(--sd-accent, var(--fc-accent, var(--color-accent)));
+}
+.sr-player-name {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+.sr-player-name strong {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 2px;
+    line-height: 1.5;
+    min-width: 120px;
+}
+.sr-name-meta {
+    margin-top: 3px;
+}
+.sr-player-name .sr-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 11px;
+}
+.sr-row-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 2px;
+}
+.sr-player-editor {
+    border-top: 1px solid var(--sd-border, var(--fc-border, var(--color-border)));
+    padding-top: 16px;
+    margin-top: 16px;
+}
+.sr-edit-row .sr-player-editor {
+    border: 0;
+    margin: 0;
+    padding: 5px 0;
+    max-width: 450px;
+}
+.sr-editor-fields {
+    display: grid;
+    grid-template-columns: minmax(75px, 0.8fr) minmax(100px, 1.2fr);
+    gap: 10px;
+}
+.sr-editor-fields label {
+    display: grid;
+    gap: 7px;
+    color: var(--sd-secondary, var(--fc-text-secondary, var(--color-secondary)));
+    font-size: 11px;
+}
+.sr-editor-fields input,
+.sr-editor-fields select {
+    border: 1px solid var(--sd-border, var(--fc-border, var(--color-border)));
+    border-radius: 5px;
+    background: var(--sd-bg, var(--fc-bg, var(--color-page)));
+    color: var(--sd-text, var(--fc-text-primary, var(--color-text)));
+    width: 100%;
+    min-height: 37px;
+    padding: 7px 9px;
+    font-size: 13px;
+}
+.sr-editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+.sr-editor-actions .sd-button,
+.sr-editor-actions .sd-primary {
+    min-height: 32px;
+    font-size: 11px;
+    padding: 6px 9px;
+}
+.sr-editor-error {
+    font-size: 12px;
+    margin-top: 9px;
+    color: var(--state-danger, var(--color-danger));
+}
+.sr-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+@media (max-width: 640px) {
+    .sr-card-grid {
+        grid-template-columns: repeat(auto-fill, minmax(min(160px, 100%), 1fr));
+        gap: 9px;
+    }
+    .sr-player-card {
+        padding: 13px;
+    }
+    .sr-card-top .sr-avatar {
+        width: 46px;
+        height: 46px;
+        font-size: 15px;
+    }
+    .sr-shirt {
+        font-size: 30px;
+    }
+    .sr-table th,
+    .sr-table td {
+        padding-left: 11px;
+        padding-right: 11px;
+    }
+    .sr-col-number {
+        width: 40px;
+    }
+    .sr-player-name .sr-avatar {
+        display: none;
+    }
+    .sr-player-name strong {
+        min-width: 100px;
+    }
+    .sr-table .sr-col-age {
+        display: none;
+    }
+    .sr-col-position {
+        min-width: 110px;
+    }
+    .sr-editor-fields input,
+    .sr-editor-fields select {
+        font-size: 16px;
+    }
+}
+
+.sr-profile-link:hover{color:var(--fc-accent,var(--color-accent));text-decoration:underline}.sr-profile-link:focus-visible{outline:2px solid var(--fc-accent,var(--color-accent));outline-offset:4px;border-radius:4px}

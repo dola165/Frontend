@@ -15,7 +15,7 @@ describe('resolveMapExperienceOptions', () => {
         });
     });
 
-    it('keeps authenticated maps in daylight while retaining account controls', () => {
+    it('keeps authenticated maps light in a dark account while retaining account controls', () => {
         expect(resolveMapExperienceOptions({ darkMode: true })).toEqual({
             context: 'authenticated',
             mapDarkMode: false,
@@ -25,11 +25,19 @@ describe('resolveMapExperienceOptions', () => {
         });
     });
 
-    it('keeps legacy theme overrides in daylight while honoring control options', () => {
+    it('keeps maps light in a light account or mixed preference', () => {
+        expect(resolveMapExperienceOptions({ darkMode: false }).mapDarkMode).toBe(false);
+    });
+
+    it('honors an explicit light composition in a dark account', () => {
+        expect(resolveMapExperienceOptions({ darkMode: true, mapTheme: 'light' }).mapDarkMode).toBe(false);
+    });
+
+    it('honors a light composition while retaining control options', () => {
         expect(resolveMapExperienceOptions({
             darkMode: false,
             context: 'authenticated',
-            mapTheme: 'dark',
+            mapTheme: 'light',
             showAdvancedFilters: true,
             showModeControl: true,
             showBackControl: true
@@ -56,11 +64,11 @@ describe('resolveMapExperienceOptions', () => {
         });
     });
 
-    it('keeps the landing map in daylight even when the composition requests dark', () => {
+    it('keeps guest maps light without enabling account-only controls', () => {
         expect(resolveMapExperienceOptions({
             darkMode: false,
             context: 'guest',
-            mapTheme: 'dark'
+            mapTheme: 'light'
         })).toEqual({
             context: 'guest',
             mapDarkMode: false,
@@ -73,7 +81,7 @@ describe('resolveMapExperienceOptions', () => {
 
 describe('resolveMapExperienceEntityTypes', () => {
     it('offers the same public types without needing an account role or membership', () => {
-        expect(resolveMapExperienceEntityTypes({})).toEqual(['CLUB', 'MATCH', 'TOURNAMENT']);
+        expect(resolveMapExperienceEntityTypes({})).toEqual(['CLUB', 'STADIUM', 'MATCH', 'TOURNAMENT']);
     });
     it('supports a narrower club-only landing composition', () => {
         expect(resolveMapExperienceEntityTypes({ allowedEntityTypes: ['CLUB'] })).toEqual(['CLUB']);

@@ -1,357 +1,54 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import {
-    LayoutGrid,
-    LayoutList,
-    Loader2,
-    RotateCcw,
-    Search,
-    Sparkles,
-    Trophy,
-    X,
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ArrowRight, Building2, CalendarDays, Compass, Grid2X2, Inbox, List, Loader2, Plus, RefreshCw, Search, Trophy, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { extractApiErrorMessage } from '../utils/apiError';
-import { fetchTournaments, registerPlayer } from '../features/tournaments/api';
-import { PaginationBar } from '../components/ui/PaginationBar';
-import { TournamentCard } from '../components/tournaments/TournamentCard';
-import { TournamentListCard } from '../components/tournaments/TournamentListCard';
-import type { TournamentSummary } from '../features/tournaments/domain';
 import { useAuth } from '../context/AuthContext';
-import { buildLoginRedirectPath } from '../utils/authRedirect';
+import { fetchMyOrganizations, fetchTournaments } from '../features/tournaments/api';
+import {browsePersonalCompetitions} from '../features/competitions/api';
+import type { TournamentSummary } from '../features/tournaments/domain';
+import { CompetitionPagination } from '../features/competitions/CompetitionPagination';
+import { TournamentScopeBadge, TournamentStatusBadge, TournamentVisual } from '../components/tournaments/TournamentPresentation';
+import { formatTournamentDateRange, tournamentVisibilityText } from '../components/tournaments/tournamentFormatters';
+import { TournamentInbox } from '../features/tournaments/components/TournamentInbox';
+import { TournamentDiscovery, TournamentHosts } from '../features/tournaments/components/TournamentDiscovery';
+import { extractApiErrorMessage } from '../utils/apiError';
+import '../features/tournaments/components/tournament-workspace.css';
+import '../features/tournaments/components/tournament-hub.css';
 
-const inputClass = 'w-full rounded-xl border border-white/[0.08] bg-black/20 px-4 py-3 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 hover:border-white/[0.14] focus:border-emerald-400/40 focus:ring-2 focus:ring-emerald-400/10';
-const selectClass = 'min-w-40 rounded-xl border border-white/[0.08] bg-[#111418] px-4 py-3 text-sm font-medium text-zinc-200 outline-none transition hover:border-white/[0.14] focus:border-emerald-400/40 focus:ring-2 focus:ring-emerald-400/10';
-
-export const BrowseTournamentsPage = () => {
-    const navigate = useNavigate();
-    const { isAuthenticated, user } = useAuth();
-    const { t } = useTranslation();
-    const [tournaments, setTournaments] = useState<TournamentSummary[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [page, setPage] = useState(0);
-    const [pageSize, setPageSize] = useState(12);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalElements, setTotalElements] = useState(0);
-    const [scopeFilter, setScopeFilter] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [registeringId, setRegisteringId] = useState<number | null>(null);
-    const [registeredIds, setRegisteredIds] = useState<Set<number>>(new Set());
-    const [message, setMessage] = useState<string | null>(null);
-    const [messageType, setMessageType] = useState<'success' | 'error'>('success');
-    const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
-        try {
-            return (localStorage.getItem('tournament-view-mode') as 'list' | 'grid') || 'list';
-        } catch {
-            return 'list';
-        }
-    });
-
-    const canCreateTournament = isAuthenticated && ['ORGANIZER', 'ADMIN'].includes(user?.role ?? '');
-
-    const showMessage = (text: string, type: 'success' | 'error') => {
-        setMessage(text);
-        setMessageType(type);
-        window.setTimeout(() => setMessage(null), 4000);
-    };
-
-    const loadTournaments = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const params: Record<string, string> = { page: String(page), size: String(pageSize) };
-            if (scopeFilter) params.scope = scopeFilter;
-            if (statusFilter) params.status = statusFilter;
-            const result = await fetchTournaments(params);
-            setTournaments(result.content);
-            setTotalPages(result.totalPages);
-            setTotalElements(result.totalElements);
-        } catch (err) {
-            setError(extractApiErrorMessage(err, t('tournaments.public.browseLoadFailed')));
-            setTournaments([]);
-        } finally {
-            setLoading(false);
-        }
-    }, [page, pageSize, scopeFilter, statusFilter, t]);
-
-    useEffect(() => {
-        void loadTournaments();
-    }, [loadTournaments]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem('tournament-view-mode', viewMode);
-        } catch {
-            // localStorage can be unavailable in privacy-restricted browsers.
-        }
-    }, [viewMode]);
-
-    const handleRegister = async (tournamentId: number) => {
-        if (!isAuthenticated) {
-            navigate(buildLoginRedirectPath(window.location.pathname));
-            return;
-        }
-        if (registeringId != null) return;
-        setRegisteringId(tournamentId);
-        try {
-            await registerPlayer(tournamentId);
-            setRegisteredIds((previous) => new Set(previous).add(tournamentId));
-            showMessage(t('tournaments.public.registrationSuccess'), 'success');
-        } catch (err) {
-            showMessage(extractApiErrorMessage(err, t('tournaments.public.registrationFailed')), 'error');
-        } finally {
-            setRegisteringId(null);
-        }
-    };
-
-    const normalizedSearch = searchQuery.trim().toLocaleLowerCase();
-    const displayTournaments = normalizedSearch
-        ? tournaments.filter((tournament) =>
-            [tournament.name, tournament.description, tournament.hostClubName, tournament.organizerName]
-                .filter(Boolean)
-                .some((value) => value!.toLocaleLowerCase().includes(normalizedSearch)))
-        : tournaments;
-
-    const hasActiveFilters = Boolean(searchQuery || scopeFilter || statusFilter);
-    const clearFilters = () => {
-        setSearchQuery('');
-        setScopeFilter('');
-        setStatusFilter('');
-        setPage(0);
-    };
-
-    return (
-        <div className="min-h-full bg-[#0d1014] text-zinc-100 selection:bg-emerald-400/20">
-            <div className="flex w-full flex-col gap-6 pb-8">
-                <section className="relative isolate overflow-hidden rounded-3xl border border-white/[0.07] bg-[#121a16] px-6 py-7 shadow-[0_24px_70px_rgba(0,0,0,0.18)] sm:px-8 sm:py-9 lg:px-10">
-                    <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_82%_18%,rgba(39,189,104,0.20),transparent_27%),radial-gradient(circle_at_8%_110%,rgba(50,111,83,0.28),transparent_34%)]" />
-                    <div className="absolute -right-16 top-1/2 -z-10 h-72 w-72 -translate-y-1/2 rounded-full border border-white/[0.06]" />
-                    <div className="absolute right-20 top-1/2 -z-10 h-px w-72 -translate-y-1/2 bg-white/[0.06]" />
-                    <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="max-w-3xl">
-                            <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">
-                                <Sparkles className="h-3.5 w-3.5" />
-                                {t('tournaments.public.competitionHub')}
-                            </p>
-                            <h1 className="mt-3 text-3xl font-bold tracking-[-0.035em] text-white sm:text-4xl">
-                                {t('tournaments.public.browseTitle')}
-                            </h1>
-                            <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400 sm:text-base">
-                                {t('tournaments.public.browseDescription')}
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-3">
-                            <div className="rounded-2xl border border-white/[0.08] bg-black/20 px-4 py-3 backdrop-blur-sm">
-                                <p className="text-2xl font-bold text-white">{loading ? '—' : totalElements}</p>
-                                <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-500">
-                                    {t('tournaments.public.availableCompetitions')}
-                                </p>
-                            </div>
-                            {canCreateTournament ? (
-                                <Link
-                                    to="/tournaments/setup"
-                                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-xl shadow-emerald-950/30 transition hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-                                >
-                                    <Trophy className="h-4 w-4" />
-                                    {t('tournaments.public.createTournament')}
-                                </Link>
-                            ) : null}
-                        </div>
-                    </div>
-                </section>
-
-                {message ? (
-                    <div
-                        role={messageType === 'error' ? 'alert' : 'status'}
-                        className={`rounded-xl border px-4 py-3 text-sm font-semibold ${messageType === 'success'
-                            ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300'
-                            : 'border-rose-400/20 bg-rose-400/10 text-rose-300'}`}
-                    >
-                        {message}
-                    </div>
-                ) : null}
-
-                <section aria-label={t('tournaments.public.filters')} className="rounded-2xl border border-white/[0.07] bg-[#15181c] p-4 sm:p-5">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                        <div className="relative min-w-0 flex-1 lg:max-w-xl">
-                            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                            <input
-                                type="search"
-                                value={searchQuery}
-                                onChange={(event) => setSearchQuery(event.target.value)}
-                                placeholder={t('tournaments.public.searchPlaceholder')}
-                                aria-label={t('tournaments.public.searchLabel')}
-                                className={`${inputClass} pl-11`}
-                            />
-                        </div>
-                        <select
-                            value={scopeFilter}
-                            aria-label={t('tournaments.public.scopeFilter')}
-                            onChange={(event) => { setScopeFilter(event.target.value); setPage(0); }}
-                            className={selectClass}
-                        >
-                            <option value="">{t('tournaments.public.allScopes')}</option>
-                            <option value="PLAYER">{t('tournaments.public.scope.player')}</option>
-                            <option value="CLUB">{t('tournaments.public.scope.club')}</option>
-                            <option value="SQUAD">{t('tournaments.public.scope.squad')}</option>
-                        </select>
-                        <select
-                            value={statusFilter}
-                            aria-label={t('tournaments.public.statusFilter')}
-                            onChange={(event) => { setStatusFilter(event.target.value); setPage(0); }}
-                            className={selectClass}
-                        >
-                            <option value="">{t('tournaments.public.allStatuses')}</option>
-                            <option value="PLANNING">{t('tournaments.public.status.planning')}</option>
-                            <option value="ACTIVE">{t('tournaments.public.status.active')}</option>
-                            <option value="COMPLETED">{t('tournaments.public.status.completed')}</option>
-                            <option value="CANCELLED">{t('tournaments.public.status.cancelled')}</option>
-                        </select>
-                        <div className="flex w-fit shrink-0 rounded-xl border border-white/[0.08] bg-black/20 p-1 lg:ml-auto" role="group" aria-label={t('tournaments.public.viewMode')}>
-                            <button
-                                type="button"
-                                onClick={() => setViewMode('list')}
-                                aria-label={t('tournaments.public.listView')}
-                                aria-pressed={viewMode === 'list'}
-                                className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition ${viewMode === 'list' ? 'bg-white/[0.09] text-white' : 'text-zinc-500 hover:text-zinc-200'}`}
-                            >
-                                <LayoutList className="h-4 w-4" />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setViewMode('grid')}
-                                aria-label={t('tournaments.public.gridView')}
-                                aria-pressed={viewMode === 'grid'}
-                                className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition ${viewMode === 'grid' ? 'bg-white/[0.09] text-white' : 'text-zinc-500 hover:text-zinc-200'}`}
-                            >
-                                <LayoutGrid className="h-4 w-4" />
-                            </button>
-                        </div>
-                    </div>
-
-                    {hasActiveFilters ? (
-                        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-4">
-                            <span className="mr-1 text-xs font-semibold text-zinc-500">{t('tournaments.public.activeFilters')}</span>
-                            {searchQuery ? (
-                                <button type="button" onClick={() => setSearchQuery('')} className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs text-zinc-300 hover:border-white/[0.16]">
-                                    {t('tournaments.public.searchChip', { query: searchQuery })}<X className="h-3 w-3" />
-                                </button>
-                            ) : null}
-                            {scopeFilter ? (
-                                <button type="button" onClick={() => { setScopeFilter(''); setPage(0); }} className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs text-zinc-300 hover:border-white/[0.16]">
-                                    {t(`tournaments.public.scope.${scopeFilter.toLowerCase()}`)}<X className="h-3 w-3" />
-                                </button>
-                            ) : null}
-                            {statusFilter ? (
-                                <button type="button" onClick={() => { setStatusFilter(''); setPage(0); }} className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs text-zinc-300 hover:border-white/[0.16]">
-                                    {t(`tournaments.public.status.${statusFilter.toLowerCase()}`)}<X className="h-3 w-3" />
-                                </button>
-                            ) : null}
-                            <button type="button" onClick={clearFilters} className="ml-auto text-xs font-bold text-emerald-300 hover:text-emerald-200">
-                                {t('tournaments.public.clearAll')}
-                            </button>
-                        </div>
-                    ) : null}
-                </section>
-
-                {error ? (
-                    <div role="alert" className="flex flex-col gap-4 rounded-2xl border border-rose-400/20 bg-rose-400/[0.07] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <p className="text-sm font-bold text-rose-200">{t('tournaments.public.unableToLoad')}</p>
-                            <p className="mt-1 text-sm text-rose-200/70">{error}</p>
-                        </div>
-                        <button type="button" onClick={() => void loadTournaments()} className="inline-flex w-fit items-center gap-2 rounded-xl border border-rose-300/20 px-4 py-2 text-sm font-bold text-rose-100 transition hover:bg-rose-300/10">
-                            <RotateCcw className="h-4 w-4" />
-                            {t('tournaments.public.tryAgain')}
-                        </button>
-                    </div>
-                ) : null}
-
-                {!error ? (
-                    <section aria-labelledby="tournament-results-heading">
-                        <div className="mb-4 flex items-end justify-between gap-4">
-                            <div>
-                                <h2 id="tournament-results-heading" className="text-lg font-bold text-zinc-100">{t('tournaments.public.results')}</h2>
-                                <p className="mt-1 text-xs text-zinc-500" aria-live="polite">
-                                    {loading
-                                        ? t('tournaments.public.loadingCompetitions')
-                                        : t('tournaments.public.showingResults', { shown: displayTournaments.length, total: totalElements })}
-                                </p>
-                            </div>
-                        </div>
-
-                        {loading ? (
-                            <div className="grid gap-4" aria-label={t('tournaments.public.loadingCompetitions')}>
-                                <Loader2 className="sr-only animate-spin" />
-                                {[0, 1, 2].map((item) => (
-                                    <div key={item} className="grid animate-pulse overflow-hidden rounded-2xl border border-white/[0.06] bg-[#15181c] md:grid-cols-[220px_1fr_190px]">
-                                        <div className="h-44 bg-white/[0.04]" />
-                                        <div className="space-y-3 p-6">
-                                            <div className="h-3 w-28 rounded bg-white/[0.06]" />
-                                            <div className="h-5 w-2/5 rounded bg-white/[0.08]" />
-                                            <div className="h-3 w-3/4 rounded bg-white/[0.05]" />
-                                        </div>
-                                        <div className="hidden border-l border-white/[0.05] p-6 md:block"><div className="h-9 rounded-xl bg-white/[0.06]" /></div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : displayTournaments.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.1] bg-[#15181c] px-6 py-16 text-center">
-                                <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-zinc-500">
-                                    <Trophy className="h-7 w-7" />
-                                </span>
-                                <p className="mt-5 text-lg font-bold text-zinc-100">{t('tournaments.public.noTournamentsFound')}</p>
-                                <p className="mt-2 max-w-md text-sm text-zinc-500">
-                                    {hasActiveFilters ? t('tournaments.public.emptyFiltered') : t('tournaments.public.emptyDefault')}
-                                </p>
-                                {hasActiveFilters ? (
-                                    <button type="button" onClick={clearFilters} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-500">
-                                        <RotateCcw className="h-4 w-4" />
-                                        {t('browseTournaments.emptyCtaClear')}
-                                    </button>
-                                ) : canCreateTournament ? (
-                                    <Link to="/tournaments/setup" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-500">
-                                        <Trophy className="h-4 w-4" />
-                                        {t('browseTournaments.emptyCtaCreate')}
-                                    </Link>
-                                ) : null}
-                            </div>
-                        ) : (
-                            <>
-                                <div className={viewMode === 'grid' ? 'grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 min-[2200px]:grid-cols-5' : 'flex flex-col gap-4'}>
-                                    {displayTournaments.map((tournament) => viewMode === 'grid' ? (
-                                        <TournamentCard
-                                            key={tournament.id}
-                                            tournament={tournament}
-                                            isRegistered={registeredIds.has(tournament.id)}
-                                            isRegistering={registeringId === tournament.id}
-                                            onRegister={handleRegister}
-                                        />
-                                    ) : (
-                                        <TournamentListCard
-                                            key={tournament.id}
-                                            tournament={tournament}
-                                            isRegistered={registeredIds.has(tournament.id)}
-                                            isRegistering={registeringId === tournament.id}
-                                            onRegister={handleRegister}
-                                        />
-                                    ))}
-                                </div>
-                                <PaginationBar
-                                    page={page}
-                                    totalPages={totalPages}
-                                    totalElements={totalElements}
-                                    pageSize={pageSize}
-                                    onPageChange={setPage}
-                                    onPageSizeChange={(size) => { setPageSize(size); setPage(0); }}
-                                />
-                            </>
-                        )}
-                    </section>
-                ) : null}
-            </div>
-        </div>
-    );
+export const BrowseTournamentsPage = ({ embedded = false }: { embedded?: boolean } = {}) => {
+    const { user, sessionId } = useAuth();
+    const [params] = useSearchParams();
+    return <TournamentDirectory embedded={embedded} key={`${user?.id}:${sessionId}:${params.get('view')}`}/>;
 };
+function TournamentDirectory({ embedded }: { embedded: boolean }) {
+    const { isAuthenticated, user } = useAuth(); const { t, i18n } = useTranslation();
+    const copy = (en: string, ka: string) => i18n.language.startsWith('ka') ? ka : en;
+    const [params, setParams] = useSearchParams(); const requested = params.get('view');
+    const view = isAuthenticated && (requested === 'mine' || requested === 'invitations') ? requested : requested === 'discover' || params.has('scope') ? 'discover' : requested === 'hosts' ? 'hosts' : 'overview';
+    const [data,setData]=useState<TournamentSummary[]>([]),[pages,setPages]=useState(1),[total,setTotal]=useState(0);
+    const bounded=(key:string,fallback:number,max:number)=>{const raw=params.get(key);return raw&&/^\d{1,6}$/.test(raw)&&Number(raw)<=max?Number(raw):fallback;};
+    const page=bounded('page',0,100000),size=[6,12,24].includes(bounded('size',12,24))?bounded('size',12,24):12;
+    const query=(params.get('q')||'').slice(0,200),scope=['CLUB','SQUAD','PLAYER'].includes(params.get('scope')||'')?params.get('scope')||'':'',status=['PLANNING','ACTIVE','COMPLETED','CANCELLED'].includes(params.get('status')||'')?params.get('status')||'':'';
+    const [search,setSearch]=useState(query.trim());
+    const filter=(key:string,value:string)=>setParams(previous=>{const next=new URLSearchParams(previous);if(value)next.set(key,value);else next.delete(key);if(key!=='page')next.delete('page');return next;},{replace:key==='q'});
+    const setPage=(value:number)=>filter('page',String(value)),setSize=(value:number)=>filter('size',String(value)),setQuery=(value:string)=>filter('q',value),setScope=(value:string)=>filter('scope',value),setStatus=(value:string)=>filter('status',value);
+    const [settledKey,setSettledKey]=useState(''),[savedError,setError]=useState(''),[attempt,setAttempt]=useState(0),[canCreate,setCanCreate]=useState(false);
+    const [mode,setMode]=useState<'list'|'grid'>(()=>{try{return localStorage.getItem('tournament-view-mode')==='grid'?'grid':'list';}catch{return 'list';}});
+    useEffect(()=>{const timer=setTimeout(()=>{setSearch(query.trim());},250);return()=>clearTimeout(timer);},[query]);
+    useEffect(()=>{let active=true;if(!isAuthenticated)return;fetchMyOrganizations().then(orgs=>{if(active)setCanCreate(orgs.some(org=>org.canCreateTournament===true));}).catch(()=>{if(active)setCanCreate(false);});return()=>{active=false;};},[isAuthenticated,user?.id]);
+    const requestKey = JSON.stringify([view,page,size,search,scope,status,attempt,i18n.language]);
+    const loading = search!==query.trim()||requestKey !== settledKey, error = loading ? '' : savedError;
+    useEffect(()=>{let active=true;if(view==='invitations'||view==='overview'||view==='hosts'||search!==query.trim())return;const request=view==='mine'?browsePersonalCompetitions({page,size,search:search||undefined,scope:scope||undefined,status:status||undefined}):fetchTournaments({page,size,search:search||undefined,scope:scope||undefined,status:status||undefined});request.then(result=>{if(active){setError('');setData(result.content);setTotal(result.totalElements);setPages(result.totalPages);}}).catch(err=>{if(active){setData([]);setError(extractApiErrorMessage(err,t('tournaments.public.browseLoadFailed')));}}).finally(()=>{if(active)setSettledKey(requestKey);});return()=>{active=false;};},[view,page,size,search,query,scope,status,attempt,t,requestKey]);
+    useEffect(()=>{try{localStorage.setItem('tournament-view-mode',mode);}catch{/* Optional preference. */}},[mode]);
+    const clear=()=>setParams(previous=>{const next=new URLSearchParams(previous);for(const key of ['q','scope','status','page'])next.delete(key);return next;});
+    const selectView=(next:string)=>{clear();setParams(previous=>{const value=new URLSearchParams(previous);value.delete('scope');value.delete('kind');value.delete('host');if(next==='overview')value.delete('view');else value.set('view',next);return value;});};
+    const managed=new Set(user?.navigationCapabilities?.workspaces.filter(w=>w.id==='tournament.workspace').map(w=>w.context.id)??[]);
+    return <div className="tournament-directory tc-directory td-hub">{(!embedded || view==='mine')&&<header className="tc-directory-header"><div>{!embedded&&<p className="tw-eyebrow"><Trophy size={15}/>{t('tournaments.public.competitionHub')}</p>}{embedded ? <h2>{view === 'mine' ? copy('My competitions','ჩემი შეჯიბრებები') : view === 'hosts' ? copy('Competition hosts','მასპინძლები') : copy('Invitations','მოწვევები')}</h2> : <h1>{t('tournaments.public.browseTitle')}</h1>}<p>{copy('Find a competition. Bring your team. Follow every match.','იპოვეთ შეჯიბრება. ჩაერთეთ გუნდით. ადევნეთ თვალი ყველა მატჩს.')}</p></div>{!embedded&&isAuthenticated&&<Link className={canCreate?'tw-primary':'tw-button'} to="/tournaments/setup"><Plus size={16}/>{canCreate?t('tournaments.public.createTournament'):copy('Tournament setup','ტურნირის შექმნა')}</Link>}</header>}
+        {!embedded && <nav className="tc-hub-tabs" aria-label={copy('Tournament hub','ტურნირების ცენტრი')}>{[{key:'overview',label:copy('Overview','მიმოხილვა'),icon:Compass},{key:'discover',label:copy('Browse tournaments','ტურნირების ნახვა'),icon:Trophy},{key:'hosts',label:copy('Hosts','მასპინძლები'),icon:Building2},...(isAuthenticated?[{key:'mine',label:copy('My tournaments','ჩემი ტურნირები'),icon:Users},{key:'invitations',label:copy('Invitations','მოწვევები'),icon:Inbox}]:[])].map(tab=><button key={tab.key} aria-pressed={view===tab.key} onClick={()=>selectView(tab.key)}><tab.icon size={17}/>{tab.label}</button>)}</nav>}
+        {view==='overview'?<TournamentDiscovery onBrowse={next=>setParams(next?{view:'discover',scope:next}:{view:'discover'})} onHosts={()=>selectView('hosts')} onHost={host=>setParams({view:'hosts',kind:host.kind,host:String(host.id)})}/>:view==='hosts'?<TournamentHosts key={`${params.get('kind')}:${params.get('host')}`} kind={params.get('kind')==='CLUB'||params.get('kind')==='ORGANIZATION'?params.get('kind') as 'CLUB'|'ORGANIZATION':null} hostId={/^[1-9][0-9]*$/.test(params.get('host')||'')&&Number.isSafeInteger(Number(params.get('host')))?Number(params.get('host')):null} onHost={host=>setParams({view:'hosts',kind:host.kind,host:String(host.id)})} onBack={()=>selectView('hosts')}/>:view==='invitations'?<TournamentInbox/>:<div className="tc-directory-frame"><aside className="tc-directory-filters"><section className="tc-panel" aria-label={t('tournaments.public.filters')}><div className="tc-panel-heading"><Search size={17}/><h2>{t('tournaments.public.filters')}</h2><button className="tc-text-button" onClick={clear}>{t('tournaments.public.clearAll')}</button></div>{view==='discover'&&<><label>{t('tournaments.public.searchLabel')}<input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder={t('tournaments.public.searchPlaceholder')}/></label><label>{t('tournaments.public.scopeFilter')}<select value={scope} onChange={e=>{setScope(e.target.value);setPage(0);}}><option value="">{t('tournaments.public.allScopes')}</option>{['CLUB','SQUAD','PLAYER'].map(s=><option key={s} value={s}>{t(`tournaments.public.scope.${s.toLowerCase()}`)}</option>)}</select></label></>}
+            <label>{t('tournaments.public.statusFilter')}<select value={status} onChange={e=>{setStatus(e.target.value);setPage(0);}}><option value="">{t('tournaments.public.allStatuses')}</option>{['PLANNING','ACTIVE','COMPLETED','CANCELLED'].map(s=><option key={s} value={s}>{t(`tournaments.public.status.${s.toLowerCase()}`)}</option>)}</select></label></section><section className="tc-directory-help"><Trophy size={23}/><h2>{view==='mine'?copy('Your competition connections','თქვენი შეჯიბრებები'):copy('From entry to final whistle','მონაწილეობიდან საფინალო სასტვენამდე')}</h2><p>{view==='mine'?copy('Events you organize or participate in. Workspace access follows your current tournament appointment.','თქვენი ორგანიზებული ან მონაწილეობით მიმდინარე ღონისძიებები. წვდომა დამოკიდებულია მოქმედ დანიშვნაზე.'):copy('Check the organizer, entry rules, clubs, fixtures and results before you enter.','მონაწილეობამდე შეამოწმეთ ორგანიზატორი, წესები, კლუბები, მატჩები და შედეგები.')}</p>{isAuthenticated&&<Link className="tc-text-button" to="/requests">{copy('Review requests','მოთხოვნების განხილვა')} <ArrowRight size={15}/></Link>}</section></aside>
+        <section className="tc-directory-results" aria-labelledby="tournament-results-heading"><div className="tw-toolbar"><div><h2 id="tournament-results-heading">{view==='mine'?copy('My tournaments','ჩემი ტურნირები'):copy('Competitions','შეჯიბრებები')}</h2><p>{loading?copy('Loading competitions…','შეჯიბრებები იტვირთება…'):copy(`${data.length} of ${total} competitions`,`${data.length} / ${total} შეჯიბრება`)}</p></div><div className="tc-display" role="group" aria-label={t('tournaments.public.viewMode')}><button aria-label={t('tournaments.public.listView')} aria-pressed={mode==='list'} onClick={()=>setMode('list')}><List size={17}/></button><button aria-label={t('tournaments.public.gridView')} aria-pressed={mode==='grid'} onClick={()=>setMode('grid')}><Grid2X2 size={17}/></button><button aria-label={copy('Refresh tournaments','ტურნირების განახლება')} disabled={loading} onClick={()=>setAttempt(a=>a+1)}><RefreshCw size={16}/></button></div></div>
+            {error?<div className="tw-error" role="alert"><p>{error}</p><button className="tw-button" onClick={()=>setAttempt(a=>a+1)}>{t('tournaments.public.tryAgain')}</button></div>:loading?<div className="tc-empty" role="status"><Loader2 className="animate-spin"/>{copy('Loading tournaments…','ტურნირები იტვირთება…')}</div>:data.length?<><div className={`tc-results tc-results--${mode}`}>{data.map(event=><article className="tc-event" key={event.id}><TournamentVisual name={event.name} imageUrl={event.bannerImageUrl} className="tc-event-art" overlay={false}><span className="tc-event-emblem" aria-hidden="true"><Trophy size={34}/></span></TournamentVisual><div className="tc-event-body"><div className="tc-event-badges"><TournamentStatusBadge status={event.status}/><TournamentScopeBadge scope={event.participantScope}/><small>{tournamentVisibilityText(event.visibility,t)}</small></div><Link to={`/tournaments/${event.id}`}><h3>{event.name}</h3></Link><p>{event.description||t('tournaments.public.noDescription')}</p><div className="tc-event-meta"><span><CalendarDays size={15}/>{formatTournamentDateRange(event.startDate,event.endDate,i18n.language)||t('tournaments.public.datesToBeConfirmed')}</span><span><Users size={15}/>{t('tournaments.public.entryCount',{count:event.entryCount})}</span></div>{event.hostClubName||event.organizerName?<small>{t('tournaments.public.hostedBy',{name:event.hostClubName||event.organizerName})}</small>:null}<div className="tc-event-footer"><Link className="tc-text-button" aria-label={`${copy('View','ნახვა')} ${event.name}`} to={`/tournaments/${event.id}`}>{copy('View competition','შეჯიბრების ნახვა')} <ArrowRight size={15}/></Link>{view==='mine'&&managed.has(event.id)&&<Link className="tw-button" to={`/tournaments/${event.id}/workspace`}>{copy('Workspace','სამუშაო სივრცე')}</Link>}</div></div></article>)}</div><CompetitionPagination page={page} totalPages={pages} pageSize={size} sizes={[12,24]} onPageChange={setPage} onPageSizeChange={setSize}/></>:<div className="tc-empty"><Trophy size={32}/><h3>{t('tournaments.public.noTournamentsFound')}</h3><p>{query||scope||status?t('tournaments.public.emptyFiltered'):view==='mine'?copy('Your organizing and participation connections will appear here.','თქვენი შეჯიბრებები აქ გამოჩნდება.'):t('tournaments.public.emptyDefault')}</p>{(query||scope||status)&&<button className="tw-button" onClick={clear}>{t('tournaments.public.clearAll')}</button>}</div>}
+        </section></div>}
+    </div>;
+}

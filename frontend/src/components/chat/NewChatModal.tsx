@@ -1,7 +1,9 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, X, Loader2, Users, Check, ArrowLeft, UserPlus, MessageCircle } from 'lucide-react';
 import { chatApi, type UserSearchResult } from '../../api/chat';
 import { useDialogFocus } from '../workspace/useDialogFocus';
+import { usePanelMotion } from '../ui/usePanelMotion';
 import { getStoredUserId } from '../../utils/authStorage';
 
 interface NewChatModalProps {
@@ -14,7 +16,12 @@ interface NewChatModalProps {
 type ChatMode = 'DIRECT' | 'GROUP';
 type GroupStep = 'select' | 'name';
 
-export function NewChatModal({ open, onClose, onConversationCreated, recentContacts }: NewChatModalProps) {
+export function NewChatModal(props: NewChatModalProps) {
+    return props.open ? <NewChatContent {...props} /> : null;
+}
+function NewChatContent({ open, onClose: finishClose, onConversationCreated, recentContacts }: NewChatModalProps) {
+    const motion = usePanelMotion(finishClose);
+    const onClose = motion.close;
     const [mode, setMode] = useState<ChatMode>('DIRECT');
     const [groupStep, setGroupStep] = useState<GroupStep>('select');
     const [groupName, setGroupName] = useState('');
@@ -165,33 +172,33 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
     const showRecentContacts = !showSearchResults && visibleRecents.length > 0 && !isNameStep;
 
     return (
-        <div className="theme-overlay-strong fixed inset-0 z-[9999] flex items-start justify-center pt-[10vh] backdrop-blur-sm">
+        <div className="app-motion-portal app-motion-backdrop theme-overlay-strong fixed inset-0 z-[9999] flex items-start justify-center pt-[10vh] backdrop-blur-sm" data-closing={motion.closing}>
             <div
                 className="absolute inset-0"
                 onClick={onClose}
             />
 
-            <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="New Chat" className="theme-surface theme-border relative z-10 w-full max-w-[420px] overflow-hidden rounded-xl border shadow-2xl">
+            <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="New Chat" className="app-motion-dialog theme-surface theme-border relative z-10 w-full max-w-[420px] overflow-hidden rounded-xl border shadow-2xl" data-closing={motion.closing} onAnimationEnd={motion.onAnimationEnd}>
 
                 {/* ── Header ──────────────────────────────────────── */}
-                <div className="flex items-center gap-3 bg-[#16a34a] px-5 h-14">
+                <div className="flex items-center gap-3 bg-[var(--color-accent)] px-5 h-14">
                     {isNameStep ? (
                         <button
                             onClick={() => setGroupStep('select')}
-                            className="p-1 -ml-1 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                            className="p-1 -ml-1 rounded-full text-[color:var(--color-text)]/80 hover:text-[color:var(--color-text)] hover:bg-[color:var(--color-ink)]/10 transition-colors"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
                     ) : (
                         <button
                             onClick={onClose}
-                            className="p-1 -ml-1 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                            className="p-1 -ml-1 rounded-full text-[color:var(--color-text)]/80 hover:text-[color:var(--color-text)] hover:bg-[color:var(--color-ink)]/10 transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
                     )}
 
-                    <h2 className="font-semibold text-white text-base flex-1">
+                    <h2 className="font-semibold text-[color:var(--color-text)] text-base flex-1">
                         {isNameStep ? 'New Group' : 'New Chat'}
                     </h2>
 
@@ -199,7 +206,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                     {isGroup && !isNameStep && selectedUsers.length > 0 && (
                         <button
                             onClick={goToNameStep}
-                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors"
+                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[color:var(--color-ink)]/20 text-[color:var(--color-text)] text-sm font-semibold hover:bg-[color:var(--color-ink)]/30 transition-colors"
                         >
                             Next
                             <ArrowLeft className="w-4 h-4 rotate-180" />
@@ -211,7 +218,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                 {isNameStep && (
                     <div className="px-5 py-6">
                         <div className="flex justify-center mb-6">
-                            <div className="w-24 h-24 rounded-full flex items-center justify-center bg-[#0f1117]">
+                            <div className="w-24 h-24 rounded-full flex items-center justify-center bg-[var(--color-surface)]">
                                 <Users className="w-8 h-8 text-muted" />
                             </div>
                         </div>
@@ -224,11 +231,11 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                             placeholder="Group name"
                             maxLength={100}
                             onKeyDown={(e) => { if (e.key === 'Enter') handleCreateGroup(); }}
-                            className="w-full py-3 text-base font-semibold text-center bg-transparent text-[#f4f4f5] border-b-2 outline-none transition-colors focus:border-[#16a34a]"
+                            className="w-full py-3 text-base font-semibold text-center bg-transparent text-[var(--color-text)] border-b-2 outline-none transition-colors focus:border-[var(--color-accent)]"
                             style={{
                                 borderColor: groupName.trim()
-                                    ? '#16a34a'
-                                    : '#ffffff0d',
+                                    ? 'var(--color-accent)'
+                                    : 'color-mix(in srgb, var(--color-text) 5.1%, transparent)',
                             }}
                         />
 
@@ -237,12 +244,12 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                 {selectedUsers.map((user) => (
                                     <span
                                         key={user.id}
-                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold bg-[#16a34a]-soft text-[#16a34a]"
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold bg-[var(--color-accent)]-soft text-[var(--color-accent)]"
                                     >
                                         {(user.fullName || user.username)}
                                         <button
                                             onClick={() => handleRemoveSelected(user.id)}
-                                            className="p-0.5 rounded-full hover:bg-white/50 transition-colors"
+                                            className="p-0.5 rounded-full hover:bg-[color:var(--color-elevated)]/50 transition-colors"
                                         >
                                             <X className="w-3.5 h-3.5" />
                                         </button>
@@ -258,7 +265,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                         <button
                             onClick={handleCreateGroup}
                             disabled={creating || !groupName.trim() || selectedUsers.length === 0}
-                            className="w-full mt-6 py-3 rounded-full text-white text-sm font-bold tracking-wide transition-all hover:opacity-90 disabled:opacity-30 bg-[#16a34a]"
+                            className="w-full mt-6 py-3 rounded-full text-[var(--color-on-accent)] text-sm font-bold tracking-wide transition-all hover:opacity-90 disabled:opacity-30 bg-[var(--color-accent)]"
                         >
                             {creating ? (
                                 <span className="inline-flex items-center gap-2">
@@ -281,8 +288,8 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                 onClick={() => switchMode('DIRECT')}
                                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                                     mode === 'DIRECT'
-                                        ? 'bg-[#16a34a] text-white'
-                                        : 'text-[#a1a1aa] hover:bg-elevated border border-[#ffffff0d]'
+                                        ? 'bg-[var(--color-accent)] text-[var(--color-on-accent)]'
+                                        : 'text-[var(--color-secondary)] hover:bg-elevated border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]'
                                 }`}
                             >
                                 <UserPlus className="w-4 h-4" />
@@ -292,8 +299,8 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                 onClick={() => switchMode('GROUP')}
                                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                                     mode === 'GROUP'
-                                        ? 'bg-[#16a34a] text-white'
-                                        : 'text-[#a1a1aa] hover:bg-elevated border border-[#ffffff0d]'
+                                        ? 'bg-[var(--color-accent)] text-[var(--color-on-accent)]'
+                                        : 'text-[var(--color-secondary)] hover:bg-elevated border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]'
                                 }`}
                             >
                                 <Users className="w-4 h-4" />
@@ -307,12 +314,12 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                 {selectedUsers.map((user) => (
                                     <span
                                         key={user.id}
-                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold bg-[#16a34a]-soft text-[#16a34a]"
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold bg-[var(--color-accent)]-soft text-[var(--color-accent)]"
                                     >
                                         {(user.fullName || user.username)}
                                         <button
                                             onClick={() => handleRemoveSelected(user.id)}
-                                            className="p-0.5 rounded-full hover:bg-white/50 transition-colors"
+                                            className="p-0.5 rounded-full hover:bg-[color:var(--color-elevated)]/50 transition-colors"
                                         >
                                             <X className="w-3.5 h-3.5" />
                                         </button>
@@ -335,13 +342,13 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                             ? 'Search people to add...'
                                             : 'Search name or username...'
                                     }
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none bg-[#0f1117] text-[#f4f4f5] placeholder:text-[#a1a1aa]"
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-secondary)]"
                                 />
                             </div>
                         </div>
 
                         {/* Content area */}
-                        <div className="max-h-72 overflow-y-auto border-t border-[#ffffff0d]">
+                        <div className="max-h-72 overflow-y-auto border-t border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]">
 
                             {error && (
                                 <p className="px-5 py-6 text-sm font-semibold text-[color:var(--state-danger)] text-center">{error}</p>
@@ -370,9 +377,9 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                         disabled={creating && mode === 'DIRECT'}
                                         className="w-full flex items-center gap-3 px-5 py-3 transition-colors disabled:opacity-50 text-left hover:bg-elevated"
                                     >
-                                        <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm shrink-0 bg-[#16a34a]-soft text-[#16a34a]">
+                                        <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm shrink-0 bg-[var(--color-accent)]-soft text-[var(--color-accent)]">
                                             {user.avatarUrl ? (
-                                                <img
+                                                <MediaImage
                                                     src={user.avatarUrl}
                                                     alt=""
                                                     className="w-full h-full rounded-full object-cover"
@@ -383,7 +390,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                         </div>
 
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-semibold truncate text-[#f4f4f5]">
+                                            <p className="text-sm font-semibold truncate text-[var(--color-text)]">
                                                 {user.fullName || user.username}
                                             </p>
                                             <p className="text-xs text-muted">
@@ -395,10 +402,10 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                         {isGroup && (
                                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
                                                 isSelected
-                                                    ? 'border-[#16a34a] bg-[#16a34a]'
-                                                    : 'border-[#ffffff0d]'
+                                                    ? 'border-[var(--color-accent)] bg-[var(--color-accent)]'
+                                                    : 'border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]'
                                             }`}>
-                                                {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                                                {isSelected && <Check className="w-3 h-3 text-[color:var(--color-text)]" strokeWidth={3} />}
                                             </div>
                                         )}
                                     </button>
@@ -418,9 +425,9 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                             disabled={creating && mode === 'DIRECT'}
                                             className="w-full flex items-center gap-3 px-5 py-2.5 transition-colors disabled:opacity-50 text-left hover:bg-elevated"
                                         >
-                                            <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0 bg-[#16a34a]-soft text-[#16a34a]">
+                                            <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0 bg-[var(--color-accent)]-soft text-[var(--color-accent)]">
                                                 {user.avatarUrl ? (
-                                                    <img
+                                                    <MediaImage
                                                         src={user.avatarUrl}
                                                         alt=""
                                                         className="w-full h-full rounded-full object-cover"
@@ -431,7 +438,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                             </div>
 
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold truncate text-[#f4f4f5]">
+                                                <p className="text-sm font-semibold truncate text-[var(--color-text)]">
                                                     {user.fullName || user.username}
                                                 </p>
                                                 <p className="text-xs text-muted">
@@ -440,7 +447,7 @@ export function NewChatModal({ open, onClose, onConversationCreated, recentConta
                                             </div>
 
                                             {isGroup ? (
-                                                <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 border-[#ffffff0d]">
+                                                <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]">
                                                 </div>
                                             ) : (
                                                 <MessageCircle className="w-4 h-4 text-muted" />

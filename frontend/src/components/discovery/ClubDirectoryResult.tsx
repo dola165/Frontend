@@ -26,20 +26,20 @@ export const ClubDirectoryResult = ({
     onFollowToggle
 }: ClubDirectoryResultProps) => {
     return (
-        <article className="grid gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1.6fr)_150px_170px_180px] lg:items-center">
+        <article className="club-directory-row grid gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1.6fr)_150px_170px_180px] lg:items-center">
             <ClubDirectoryIdentity club={club} />
 
-            <p className="text-sm leading-6 text-[#a1a1aa]">{club.description || 'No club summary provided yet.'}</p>
+            <div><p className="text-sm leading-6 text-[var(--color-secondary)]">{club.description || 'No club summary provided yet.'}</p></div>
 
-            <div className="text-sm text-[#a1a1aa]">
+            <div className="text-sm text-[var(--color-secondary)]">
                 <div className="inline-flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5 text-[#16a34a]" />
+                    <MapPin className="h-3.5 w-3.5 text-[var(--color-accent)]" />
                     <span>{getClubLocation(club)}</span>
                 </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-[#a1a1aa]">
-                <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-[#16a34a]" />{club.memberCount} members</span>
+            <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-[var(--color-secondary)]">
+                <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-[var(--color-accent)]" />{club.memberCount} members</span>
                 <span>{club.followerCount} followers</span>
             </div>
 

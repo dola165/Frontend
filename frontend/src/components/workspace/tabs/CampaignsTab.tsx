@@ -1,5 +1,13 @@
+import { EmptyState } from '../../ui/EmptyState';
+import { Archive, CalendarDays, HeartHandshake, Pencil, Plus, ShieldCheck } from 'lucide-react';
+import { OpportunityBadge, OpportunityHeader, OpportunityMenu, OpportunityToolbar } from '../opportunities/OpportunityWorkspace';
+import { CommerceDraftScope, CommerceDraftNotice } from '../CommerceDraftScope';
+import { useCommerceDraftState, useClearCommerceForm } from '../commerceDraftState';
+import { MediaImage } from '../../ui/MediaImage';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Flag, ImagePlus, Trash2 } from 'lucide-react';
+import { EditorChecklist, EditorDiscardPrompt, EditorSection, WorkspaceEditor } from '../editor/WorkspaceEditor';
 import { apiClient } from '../../../api/axiosConfig';
 import {
     fetchManagedCampaigns,
@@ -12,6 +20,7 @@ import {
     CURRENCIES,
     campaignPhase,
     campaignDate,
+    campaignMoney,
     type Campaign,
     type CampaignInput,
     type CampaignState,
@@ -20,16 +29,20 @@ import { extractApiErrorMessage } from '../../../utils/apiError';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import '../../../features/store/store.css';
 import '../../../features/campaigns/campaigns.css';
-const button = 'store-cart-link';
-export const CampaignsTab = ({ clubId }: { clubId: number }) => {
+const button = 'op-button';
+const CampaignsTabContent = ({ clubId }: { clubId: number }) => {
+    const clearForm = useClearCommerceForm();
+    const [query,setQuery] = useState('');
+    const [filter,setFilter] = useState('ALL');
+    const [actionError, setActionError] = useCommerceDraftState('actionError', '');
     const [items, setItems] = useState<Campaign[] | null>(null),
         [error, setError] = useState(''),
-        [message, setMessage] = useState(''),
-        [reload, setReload] = useState(0);
-    const [editing, setEditing] = useState<Campaign | 'new' | null>(null),
-        [updates, setUpdates] = useState<Campaign | null>(null),
-        [busy, setBusy] = useState(false),
-        [formError, setFormError] = useState('');
+        [message, setMessage] = useCommerceDraftState("message", ''),
+        [reload, setReload] = useCommerceDraftState("reload", 0);
+    const [editing, setEditing] = useCommerceDraftState<Campaign | 'new' | null>("editing", null),
+        [updates, setUpdates] = useCommerceDraftState<Campaign | null>("updates", null),
+        [busy, setBusy] = useCommerceDraftState("busy", false),
+        [formError, setFormError] = useCommerceDraftState("formError", '');
     const [confirm, setConfirm] = useState<{ campaign: Campaign; status: CampaignState } | null>(null),
         [showArchived, setShowArchived] = useState(false);
     const active = useRef(true);
@@ -62,6 +75,7 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
     const transition = async (campaign: Campaign, status: CampaignState) => {
         if (busy) return;
         setBusy(true);
+        setActionError('');
         setError('');
         setMessage('');
         try {
@@ -69,170 +83,59 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
             if (active.current) {
                 replace(result);
                 setConfirm(null);
-                setMessage(`Campaign ${status === 'PUBLISHED' ? 'published' : status.toLowerCase()}.`);
             }
+            setMessage(`Campaign ${status === 'PUBLISHED' ? 'published' : status.toLowerCase()}.`);
+            setReload(n => n + 1);
         } catch (e) {
-            if (active.current) setError(extractApiErrorMessage(e, 'The campaign could not be changed.'));
+            setActionError(extractApiErrorMessage(e, 'The campaign could not be changed.'));
         } finally {
-            if (active.current) setBusy(false);
+            setBusy(false);
         }
     };
-    return (
-        <section className="store-page campaigns-page campaign-workspace space-y-5">
-            <header className="store-heading">
-                <div>
-                    <p className="store-eyebrow">Make your club's next chapter possible</p>
-                    <h2 className="text-2xl font-bold">Club Campaigns</h2>
-                    <p className="store-subtitle">
-                        Create projects, explain their purpose and keep your community informed.
-                    </p>
+    const available = (items ?? []).filter(campaign => showArchived || campaign.status !== 'ARCHIVED');
+    const visible = available.filter(campaign => (filter === 'ALL' || campaign.status === filter) && `${campaign.title} ${campaign.category}`.toLowerCase().includes(query.toLowerCase()));
+    const openUpdates = async (campaign: Campaign) => {
+        if (busy) return;
+        setBusy(true);setError('');setActionError('');setMessage('');
+        try {
+            const latest = await fetchManagedCampaign(clubId,campaign.id);
+            if (active.current) replace(latest);
+            setUpdates(latest);setFormError('');
+        }
+        catch(error){setActionError(extractApiErrorMessage(error,'Updates could not load.'));}
+        finally{setBusy(false);}
+    };
+    return (<section className="op-workspace" data-section="campaigns">
+        <div hidden={!!editing || !!updates}>
+            <OpportunityHeader title="Club Campaigns" description="Give your club’s next project a clear story, a goal and a place to grow." icon={<HeartHandshake size={23}/>}
+                link={<Link to={`/clubs/${clubId}/campaigns?state=ALL`}>View club campaigns</Link>}
+                action={<button className="op-button primary op-create" disabled={busy || !!editing || !!updates} onClick={() => {setEditing('new');setFormError('');}}><Plus size={17}/>Create campaign</button>}/>
+            <p className="op-list-note"><span><ShieldCheck size={15}/>Online contributions are not available yet. Reported funds are shown as your club's own figures.</span></p>
+            <OpportunityToolbar query={query} onQueryChange={setQuery} label="Search campaigns" filter={filter} onFilterChange={setFilter} count={`${visible.length} campaigns`} filters={[['ALL','All campaigns'],['PUBLISHED','Published'],['DRAFT','Drafts'],['PAUSED','Paused'],['CLOSED','Closed']].map(([value,label])=>({value,label,count:available.filter(c=>value==='ALL'||c.status===value).length}))}>
+                <button className={button} disabled={busy || !!editing || !!updates} onClick={() => {setActionError('');setReload(n=>n+1);}}>Refresh campaigns</button>
+                <label className="op-archive-filter"><input type="checkbox" checked={showArchived} onChange={e=>setShowArchived(e.target.checked)}/> Include archived</label>
+            </OpportunityToolbar>
+            {error && <p className="op-feedback" role="alert">{error}</p>}
+            {actionError && <p className="op-feedback" role="alert">{actionError}</p>}
+            {message && <p className="op-feedback" role="status">{message}</p>}
+            {!items ? !error && <p role="status">Loading campaigns...</p> : visible.length === 0 ? <EmptyState icon={HeartHandshake} title={items.length ? 'No campaigns match these filters.' : 'No campaigns here yet. Start with a draft.'} description={items.length ? 'Try another status or search term to find your campaign.' : 'Explain the project, who benefits and how supporters can help. Prepare a draft before sharing it with your community.'}/> : <div className="op-campaign-list">{visible.map(c => <article key={c.id} className="op-campaign-row">
+                <div className="op-campaign-thumbnail">{c.images?.[0] ? <MediaImage src={resolveMediaUrl(c.images[0])} alt={c.title}/> : <HeartHandshake size={34}/>}</div>
+                <div className="op-campaign-main"><div className="op-campaign-eyebrow"><span className="op-category">{CAMPAIGN_CATEGORIES.find(category=>category.value===c.category)?.label ?? 'Campaign'}</span><OpportunityBadge status={campaignPhase(c.phase || c.status)}/></div><h3>{c.title}</h3><p>{c.summary || 'Add a short summary to help supporters understand the project.'}</p><div className="op-campaign-meta"><span><CalendarDays size={13}/>{c.endsOn ? `Until ${campaignDate(c.endsOn)}` : 'No end date'}</span>{c.publishedAt && c.status !== 'ARCHIVED' && <Link className="app-text-action" to={`/campaigns/${c.id}`}>View campaign</Link>}</div></div>
+                <div className="op-campaign-funding"><div><strong>{c.reportedAmount === null ? 'Not reported' : campaignMoney(c.reportedAmount,c.currency)}</strong><span>{c.goalAmount ? `of ${campaignMoney(c.goalAmount,c.currency)}` : 'No target'}</span></div><div className="op-progress"><i style={{width:`${c.goalAmount ? Math.min(100,Math.max(0,(c.reportedAmount ?? 0)/c.goalAmount*100)) : 0}%`}}/></div><small>Club-reported funds</small>
+                {c.status !== 'ARCHIVED' && <div className="op-row-actions"><button className={button} disabled={busy || !!editing || !!updates} aria-label={`Edit ${c.title}`} onClick={()=>{setEditing(c);setFormError('');setMessage('');}}><Pencil size={14}/>Edit campaign</button>
+                <OpportunityMenu name={c.title} disabled={busy || !!editing || !!updates}>
+                    {['DRAFT','PAUSED'].includes(c.status) && <button disabled={busy || !!editing || !!updates} aria-label={`${c.status==='DRAFT'?'Publish':'Resume'} ${c.title}`} onClick={()=>void transition(c,'PUBLISHED')}>{c.status==='DRAFT'?'Publish':'Resume'}</button>}
+                    {c.status==='PUBLISHED' && <button disabled={busy || !!editing || !!updates} aria-label={`Pause ${c.title}`} onClick={()=>void transition(c,'PAUSED')}>Pause campaign</button>}
+                    {['PUBLISHED','PAUSED'].includes(c.status) && <button disabled={busy || !!editing || !!updates} aria-label={`Close ${c.title}`} onClick={()=>setConfirm({campaign:c,status:'CLOSED'})}>Close campaign</button>}
+                    {c.publishedAt && <button disabled={busy || !!editing || !!updates} aria-label={`Updates for ${c.title}`} onClick={()=>void openUpdates(c)}>Post an update</button>}
+                    <button className="danger" disabled={busy || !!editing || !!updates} aria-label={`Archive ${c.title}`} onClick={()=>setConfirm({campaign:c,status:'ARCHIVED'})}><Archive size={15}/>Archive campaign</button>
+                </OpportunityMenu></div>}
                 </div>
-                <Link className={button} to={`/clubs/${clubId}/campaigns?state=ALL`}>
-                    View club campaigns
-                </Link>
-            </header>
-            <p className="store-notice">
-                <span className="store-notice-dot" />
-                Online contributions are not available yet. Reported funds are shown as your club's own
-                figures.
-            </p>
-            <div className="campaign-actions">
-                <button
-                    className="job-action"
-                    disabled={busy || !!editing || !!updates}
-                    onClick={() => {
-                        setEditing('new');
-                        setFormError('');
-                    }}
-                >
-                    Create campaign
-                </button>
-                <button
-                    className={button}
-                    disabled={busy || !!editing || !!updates}
-                    onClick={() => setReload((n) => n + 1)}
-                >
-                    Refresh campaigns
-                </button>
-                <label className="store-hint">
-                    <input
-                        type="checkbox"
-                        checked={showArchived}
-                        onChange={(e) => setShowArchived(e.target.checked)}
-                    />{' '}
-                    Include archived
-                </label>
-            </div>
-            {error && <p role="alert">{error}</p>}
-            {message && <p role="status">{message}</p>}
-            {!items ? (
-                !error && <p role="status">Loading campaigns...</p>
-            ) : (
-                <div className="space-y-3">
-                    {items.filter((c) => showArchived || c.status !== 'ARCHIVED').length === 0 && (
-                        <p>No campaigns here yet. Start with a draft.</p>
-                    )}
-                    {items
-                        .filter((c) => showArchived || c.status !== 'ARCHIVED')
-                        .map((c) => (
-                            <article key={c.id} className="campaign-management-row">
-                                <div>
-                                    <h3>{c.title}</h3>
-                                    <span className="campaign-phase">{campaignPhase(c.phase)}</span>
-                                    {c.publishedAt && c.status !== 'ARCHIVED' && (
-                                        <Link className="ml-3 underline text-sm" to={`/campaigns/${c.id}`}>
-                                            View campaign
-                                        </Link>
-                                    )}
-                                </div>
-                                {c.status !== 'ARCHIVED' && (
-                                    <>
-                                        <button
-                                            className={button}
-                                            disabled={busy || !!editing || !!updates}
-                                            aria-label={`Edit ${c.title}`}
-                                            onClick={() => {
-                                                setEditing(c);
-                                                setFormError('');
-                                                setMessage('');
-                                            }}
-                                        >
-                                            Edit
-                                        </button>
-                                        {['DRAFT', 'PAUSED'].includes(c.status) && (
-                                            <button
-                                                className={button}
-                                                disabled={busy || !!editing || !!updates}
-                                                onClick={() => void transition(c, 'PUBLISHED')} aria-label={`${c.status === 'DRAFT' ? 'Publish' : 'Resume'} ${c.title}`}>{c.status === 'DRAFT' ? 'Publish' : 'Resume'}</button>
-                                        )}
-                                        {c.status === 'PUBLISHED' && (
-                                            <button
-                                                className={button}
-                                                disabled={busy || !!editing || !!updates}
-                                                aria-label={`Pause ${c.title}`} onClick={() => void transition(c, 'PAUSED')}
-                                            >
-                                                Pause
-                                            </button>
-                                        )}
-                                        {['PUBLISHED', 'PAUSED'].includes(c.status) && (
-                                            <button
-                                                className={button}
-                                                disabled={busy || !!editing || !!updates}
-                                                aria-label={`Close ${c.title}`} onClick={() => setConfirm({ campaign: c, status: 'CLOSED' })}
-                                            >
-                                                Close
-                                            </button>
-                                        )}
-                                        {c.publishedAt && (
-                                            <button
-                                                className={button}
-                                                disabled={busy || !!editing || !!updates}
-                                                aria-label={`Updates for ${c.title}`}
-                                                onClick={async () => {
-                                                    setBusy(true);
-                                                    setError('');
-                                                    try {
-                                                        const latest = await fetchManagedCampaign(
-                                                            clubId,
-                                                            c.id,
-                                                        );
-                                                        if (active.current) {
-                                                            replace(latest);
-                                                            setUpdates(latest);
-                                                            setFormError('');
-                                                        }
-                                                    } catch (e) {
-                                                        if (active.current)
-                                                            setError(
-                                                                extractApiErrorMessage(
-                                                                    e,
-                                                                    'Updates could not load.',
-                                                                ),
-                                                            );
-                                                    } finally {
-                                                        if (active.current) setBusy(false);
-                                                    }
-                                                }}
-                                            >
-                                                Updates
-                                            </button>
-                                        )}
-                                        <button
-                                            className={button}
-                                            disabled={busy || !!editing || !!updates}
-                                            aria-label={`Archive ${c.title}`} onClick={() => setConfirm({ campaign: c, status: 'ARCHIVED' })}
-                                        >
-                                            Archive
-                                        </button>
-                                    </>
-                                )}
-                            </article>
-                        ))}
-                </div>
-            )}
+            </article>)}</div>}
+        </div>
             {confirm && (
                 <div
-                    className="campaign-confirmation"
+                    className="op-confirmation"
                     role="group"
                     aria-label={`Confirm ${confirm.status.toLowerCase()}`}
                 >
@@ -261,7 +164,7 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
                     campaign={editing === 'new' ? null : editing}
                     saving={busy}
                     error={formError}
-                    onCancel={() => setEditing(null)}
+                    onCancel={() => { clearForm(); setEditing(null); }}
                     onSubmit={async (input) => {
                         if (busy) return;
                         setBusy(true);
@@ -275,14 +178,13 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
                             if (active.current) {
                                 if (editing === 'new') setItems((current) => [saved, ...(current ?? [])]);
                                 else replace(saved);
-                                setEditing(null);
-                                setMessage('Campaign saved.');
                             }
+                            clearForm(); setEditing(null);
+                            setMessage('Campaign saved.'); setReload(n => n + 1);
                         } catch (e) {
-                            if (active.current)
-                                setFormError(extractApiErrorMessage(e, 'Could not save the campaign.'));
+                            setFormError(extractApiErrorMessage(e, 'Could not save the campaign.'));
                         } finally {
-                            if (active.current) setBusy(false);
+                            setBusy(false);
                         }
                     }}
                 />
@@ -293,7 +195,7 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
                     campaign={updates}
                     saving={busy}
                     error={formError}
-                    onCancel={() => setUpdates(null)}
+                    onCancel={() => { clearForm(); setUpdates(null); }}
                     onSubmit={async (title, body) => {
                         if (busy) return;
                         setBusy(true);
@@ -303,14 +205,13 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
                             const saved = await postCampaignUpdate(clubId, updates, title, body);
                             if (active.current) {
                                 replace(saved);
-                                setUpdates(null);
-                                setMessage('Campaign update published.');
                             }
+                            clearForm(); setUpdates(null);
+                            setMessage('Campaign update published.'); setReload(n => n + 1);
                         } catch (e) {
-                            if (active.current)
-                                setFormError(extractApiErrorMessage(e, 'The update could not be published.'));
+                            setFormError(extractApiErrorMessage(e, 'The update could not be published.'));
                         } finally {
-                            if (active.current) setBusy(false);
+                            setBusy(false);
                         }
                     }}
                 />
@@ -318,273 +219,113 @@ export const CampaignsTab = ({ clubId }: { clubId: number }) => {
         </section>
     );
 };
-export const CampaignForm = ({
-    campaign,
-    saving,
-    error,
-    onCancel,
-    onSubmit,
-}: {
+export const CampaignForm = ({ campaign, saving, error, onCancel, onSubmit }: {
     campaign: Campaign | null;
     saving: boolean;
     error: string;
     onCancel: () => void;
     onSubmit: (input: CampaignInput) => Promise<void>;
 }) => {
-    const [title, setTitle] = useState(campaign?.title ?? ''),
-        [summary, setSummary] = useState(campaign?.summary ?? ''),
-        [description, setDescription] = useState(campaign?.description ?? ''),
-        [beneficiary, setBeneficiary] = useState(campaign?.beneficiary ?? ''),
-        [useOfFunds, setUseOfFunds] = useState(campaign?.useOfFunds ?? '');
-    const [category, setCategory] = useState(campaign?.category ?? 'COMMUNITY'),
-        [currency, setCurrency] = useState(campaign?.currency ?? 'GEL'),
-        [goal, setGoal] = useState(campaign?.goalAmount?.toString() ?? ''),
-        [reported, setReported] = useState(campaign?.reportedAmount?.toString() ?? ''),
-        [note, setNote] = useState(campaign?.reportedNote ?? '');
-    const [start, setStart] = useState(campaign?.startsOn ?? ''),
-        [end, setEnd] = useState(campaign?.endsOn ?? ''),
-        [images, setImages] = useState(campaign?.images ?? []),
-        [uploading, setUploading] = useState(false),
-        [uploadError, setUploadError] = useState(''),
+    const [title, setTitle] = useCommerceDraftState("form:title", campaign?.title ?? ''),
+        [summary, setSummary] = useCommerceDraftState("form:summary", campaign?.summary ?? ''),
+        [description, setDescription] = useCommerceDraftState("form:description", campaign?.description ?? ''),
+        [beneficiary, setBeneficiary] = useCommerceDraftState("form:beneficiary", campaign?.beneficiary ?? ''),
+        [useOfFunds, setUseOfFunds] = useCommerceDraftState("form:useOfFunds", campaign?.useOfFunds ?? '');
+    const [category, setCategory] = useCommerceDraftState("form:category", campaign?.category ?? 'COMMUNITY'),
+        [currency, setCurrency] = useCommerceDraftState("form:currency", campaign?.currency ?? 'GEL'),
+        [goal, setGoal] = useCommerceDraftState("form:goal", campaign?.goalAmount?.toString() ?? ''),
+        [reported, setReported] = useCommerceDraftState("form:reported", campaign?.reportedAmount?.toString() ?? ''),
+        [note, setNote] = useCommerceDraftState("form:note", campaign?.reportedNote ?? '');
+    const [start, setStart] = useCommerceDraftState("form:start", campaign?.startsOn ?? ''),
+        [end, setEnd] = useCommerceDraftState("form:end", campaign?.endsOn ?? ''),
+        [images, setImages] = useCommerceDraftState("form:images", campaign?.images ?? []),
+        [uploading, setUploading] = useCommerceDraftState("form:uploading", false),
+        [uploadError, setUploadError] = useCommerceDraftState("form:uploadError", ''),
         [discard, setDiscard] = useState(false);
-    return (
-        <form
-            className="campaign-editor space-y-4"
-            aria-label="Campaign editor"
-            onSubmit={(e) => {
-                e.preventDefault();
-                if (saving || uploading) return;
-                void onSubmit({
-                    version: campaign?.version,
-                    title: title.trim(),
-                    summary,
-                    description,
-                    beneficiary,
-                    useOfFunds,
-                    category,
-                    currency,
-                    goalAmount: goal === '' ? null : Number(goal),
-                    reportedAmount: reported === '' ? null : Number(reported),
-                    reportedNote: note,
-                    startsOn: start || null,
-                    endsOn: end || null,
-                    images,
-                });
-            }}
-        >
-            <h3 className="text-xl font-bold">{campaign ? 'Edit campaign' : 'New campaign draft'}</h3>
-            <p className="store-hint">
-                Save a draft at any time after adding a title. Before publishing, explain the purpose,
-                beneficiary and how any funding goal will be used.
-            </p>
-            {error && (
-                <p role="alert">
-                    {error} Your edits have been kept. If another manager changed this campaign, copy your
-                    edits before reopening its latest version.
-                </p>
-            )}
-            <fieldset disabled={saving || uploading}>
-                <label className="store-field">
-                    Campaign title
-                    <input
-                        autoFocus
-                        required
-                        maxLength={120}
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                    />
-                </label>
-                <label className="store-field">
-                    Short summary
-                    <textarea
-                        rows={2}
-                        maxLength={240}
-                        value={summary}
-                        onChange={(e) => setSummary(e.target.value)}
-                    />
-                </label>
-                <label className="store-field">
-                    Campaign purpose
-                    <textarea
-                        rows={5}
-                        maxLength={5000}
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                    />
-                </label>
-                <label className="store-field">
-                    Who benefits
-                    <input
-                        maxLength={240}
-                        value={beneficiary}
-                        onChange={(e) => setBeneficiary(e.target.value)}
-                        placeholder="For example: the club's U14 girls team"
-                    />
-                </label>
-                <div className="campaign-fields">
-                    <label className="store-field">
-                        Category
-                        <select value={category} onChange={(e) => setCategory(e.target.value)}>
-                            {CAMPAIGN_CATEGORIES.map((c) => (
-                                <option key={c.value} value={c.value}>
-                                    {c.label}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                    <label className="store-field">
-                        Currency
-                        <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
-                            {CURRENCIES.map((c) => (
-                                <option key={c}>{c}</option>
-                            ))}
-                        </select>
-                    </label>
-                    <label className="store-field">
-                        Funding goal (optional)
-                        <input
-                            type="number"
-                            min="0.01"
-                            max="9999999999.99"
-                            step="0.01"
-                            value={goal}
-                            onChange={(e) => setGoal(e.target.value)}
-                        />
-                    </label>
-                    <label className="store-field">
-                        Start date (optional)
-                        <input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
-                    </label>
-                    <label className="store-field">
-                        End date (optional)
-                        <input
-                            type="date"
-                            min={start || undefined}
-                            value={end}
-                            onChange={(e) => setEnd(e.target.value)}
-                        />
-                    </label>
+    const draft = !campaign || campaign.status === 'DRAFT';
+    return <WorkspaceEditor
+        stepLabels={["Tell the story", "Goal & timing", "Photos & review"]} title={campaign ? 'Edit campaign' : 'Create a campaign'} eyebrow="Club campaigns / Campaign editor" accent="campaign" formLabel="Campaign editor"
+        description="Tell your community what you want to make possible, who it will help and how their support will be used. Start with a title and build the story from there."
+        backLabel="Back to campaigns" saving={saving} disabled={saving || uploading} saveLabel="Save campaign"
+        footerNote={draft ? 'Your campaign stays a draft until you publish it from the campaign list.' : 'Saving updates this campaign. Its current publication status stays the same.'}
+        onRequestClose={() => setDiscard(true)}
+        onSubmit={event => {
+            event.preventDefault();
+            if (saving || uploading) return;
+            void onSubmit({
+                version: campaign?.version, title: title.trim(), summary, description, beneficiary, useOfFunds,
+                category, currency, goalAmount: goal === '' ? null : Number(goal),
+                reportedAmount: reported === '' ? null : Number(reported), reportedNote: note,
+                startsOn: start || null, endsOn: end || null, images,
+            });
+        }}
+        feedback={(error || uploading || uploadError) && <>{error && <p role="alert">{error} Your edits have been kept. If another manager changed this campaign, copy your edits before reopening its latest version.</p>}{uploading && <p role="status">Uploading photo...</p>}{uploadError && <p role="alert">{uploadError}</p>}</>}
+        confirmation={discard && <EditorDiscardPrompt label="Discard campaign edits" disabled={saving || uploading} onKeepEditing={() => setDiscard(false)} onDiscard={onCancel}/>}
+        preview={<>
+            <section className="workspace-editor__preview" aria-label="Campaign preview">
+                <div className="workspace-editor__preview-label"><span>Campaign preview</span><span>Unsaved</span></div>
+                <div className="workspace-editor__preview-image workspace-editor__preview-image--landscape">{images[0] ? <MediaImage src={resolveMediaUrl(images[0])} alt="Campaign cover preview"/> : <><Flag size={32} strokeWidth={1.3} aria-hidden="true"/><span>Your campaign cover appears here</span></>}</div>
+                <div className="workspace-editor__preview-body">
+                    <span className="workspace-editor__badge">{CAMPAIGN_CATEGORIES.find(c => c.value === category)?.label ?? 'Community projects'}</span>
+                    <h4>{title.trim() || 'Your next club project'}</h4>
+                    <p className="workspace-editor__preview-description">{summary.trim() || 'A short, clear summary helps people understand why this project matters.'}</p>
+                    {beneficiary.trim() && <p>For: {beneficiary}</p>}
+                    {goal && Number(goal) > 0 ? <p className="workspace-editor__preview-price">{campaignMoney(Number(goal), currency)} goal</p> : <p>No funding target set</p>}
+                    {(start || end) && <p>{start ? `Starts ${campaignDate(start)}` : 'No start date'}{end ? ` · Ends ${campaignDate(end)}` : ''}</p>}
                 </div>
-                <label className="store-field">
-                    How funds will be used
-                    <textarea
-                        rows={3}
-                        maxLength={2000}
-                        value={useOfFunds}
-                        onChange={(e) => setUseOfFunds(e.target.value)}
-                    />
-                </label>
-                <details>
-                    <summary className="font-bold cursor-pointer">
-                        Report funds received outside GrassKickZ (optional)
-                    </summary>
-                    <p className="store-hint">
-                        Only enter funds your club has actually received. These figures will be labelled as
-                        club-reported and unverified by GrassKickZ. Leave blank if you are not reporting an
-                        amount.
-                    </p>
-                    <label className="store-field mt-3">
-                        Club-reported amount
-                        <input
-                            type="number"
-                            min="0"
-                            max="9999999999.99"
-                            step="0.01"
-                            value={reported}
-                            onChange={(e) => setReported(e.target.value)}
-                        />
-                    </label>
-                    <label className="store-field mt-3">
-                        Explanation of reported funds
-                        <textarea
-                            required={reported !== ''}
-                            rows={3}
-                            maxLength={1000}
-                            value={note}
-                            onChange={(e) => setNote(e.target.value)}
-                        />
-                    </label>
-                </details>
-                <div className="campaign-actions">
-                    {images.map((url, index) => (
-                        <div key={index}>
-                            <img
-                                className="h-24 w-36 object-cover rounded"
-                                src={resolveMediaUrl(url)}
-                                alt={`Campaign photo ${index + 1}`}
-                            />
-                            <button
-                                className={button}
-                                type="button"
-                                onClick={() => setImages((current) => current.filter((_, i) => i !== index))}
-                            >
-                                Remove photo {index + 1}
-                            </button>
-                        </div>
-                    ))}
-                </div>
-                {images.length < 8 && (
-                    <label className="store-field">
-                        Add campaign photo (up to 8)
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={async (event) => {
-                                const element = event.currentTarget,
-                                    file = element.files?.[0];
-                                if (!file) return;
-                                setUploading(true);
-                                setUploadError('');
-                                try {
-                                    const data = new FormData();
-                                    data.append('file', file);
-                                    const response = await apiClient.post<{ url: string }>(
-                                        '/media/upload',
-                                        data,
-                                        { params: { context: 'campaign' } },
-                                    );
-                                    setImages((current) => [...current, response.data.url]);
-                                } catch (e) {
-                                    setUploadError(extractApiErrorMessage(e, 'Photo upload failed.'));
-                                } finally {
-                                    setUploading(false);
-                                    element.value = '';
-                                }
-                            }}
-                        />
-                    </label>
-                )}
-            </fieldset>
-            {uploading && <p role="status">Uploading photo...</p>}
-            {uploadError && <p role="alert">{uploadError}</p>}
-            <div className="campaign-actions">
-                <button className="job-action" disabled={saving || uploading}>
-                    {saving ? 'Saving...' : 'Save campaign'}
-                </button>
-                <button
-                    type="button"
-                    className={button}
-                    disabled={saving || uploading}
-                    onClick={() => setDiscard(true)}
-                >
-                    Close editor
-                </button>
+                <p className="workspace-editor__preview-footnote">{draft ? 'Draft — only visible to your club managers.' : `Current status: ${campaignPhase(campaign.phase)}. Changes appear after saving.`}</p>
+            </section>
+            <EditorChecklist items={[
+                { label: 'A campaign title', complete: !!title.trim() },
+                { label: 'A short summary', complete: !!summary.trim() },
+                { label: 'The purpose of the campaign', complete: !!description.trim() },
+                { label: 'Who will benefit', complete: !!beneficiary.trim() },
+                ...(goal ? [{ label: 'How the funding goal will be used', complete: !!useOfFunds.trim() }] : []),
+            ]}>Save a draft after adding a title. Complete these details before publishing. Photos help tell the story but are optional.</EditorChecklist>
+        </>}
+    >
+        <EditorSection number="01" title="Tell the story" description="Make the purpose easy to understand at a glance, then explain why it matters.">
+            <label className="workspace-editor__field"><span>Campaign title<span className="workspace-editor__required" aria-hidden="true">*</span></span><input autoFocus aria-label="Campaign title" required maxLength={120} placeholder="For example: A new pitch for our youth teams" value={title} onChange={e => setTitle(e.target.value)}/></label>
+            <label className="workspace-editor__field"><span>Short summary<span className="workspace-editor__count" aria-hidden="true">{summary.length}/240</span></span><textarea aria-label="Short summary" rows={2} maxLength={240} placeholder="Explain the project in one or two sentences." value={summary} onChange={e => setSummary(e.target.value)}/></label>
+            <label className="workspace-editor__field"><span>Campaign purpose<span className="workspace-editor__count" aria-hidden="true">{description.length}/5000</span></span><textarea aria-label="Campaign purpose" rows={4} maxLength={5000} placeholder="What will change for your club or community? Explain the need, your plan and the difference it will make." value={description} onChange={e => setDescription(e.target.value)}/></label>
+            <label className="workspace-editor__field">Who benefits<input maxLength={240} value={beneficiary} onChange={e => setBeneficiary(e.target.value)} placeholder="For example: the club's U14 girls team"/></label>
+            <label className="workspace-editor__field">Category<select value={category} onChange={e => setCategory(e.target.value)}>{CAMPAIGN_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select></label>
+        </EditorSection>
+        <EditorSection number="02" title="Goal & timing" description="Set a target if your project needs one, and give your community a clear plan.">
+            <div className="workspace-editor__row">
+                <label className="workspace-editor__field">Funding goal (optional)<input type="number" min="0.01" max="9999999999.99" step="0.01" placeholder="No target" value={goal} onChange={e => setGoal(e.target.value)}/></label>
+                <label className="workspace-editor__field">Currency<select value={currency} onChange={e => setCurrency(e.target.value)}>{CURRENCIES.map(c => <option key={c}>{c}</option>)}</select></label>
             </div>
-            {discard && (
-                <div className="campaign-confirmation" role="group" aria-label="Discard campaign edits">
-                    <p>Discard these unsaved edits?</p>
-                    <div className="campaign-actions mt-3">
-                        <button type="button" className={button} onClick={() => setDiscard(false)}>
-                            Keep editing
-                        </button>
-                        <button type="button" className={button} onClick={onCancel}>
-                            Discard edits
-                        </button>
-                    </div>
+            <label className="workspace-editor__field">How funds will be used<textarea rows={4} maxLength={2000} placeholder="For example: kit for 24 players, training equipment and tournament travel." value={useOfFunds} onChange={e => setUseOfFunds(e.target.value)}/></label>
+            <p className="workspace-editor__hint">A funding goal needs an explanation of how it will be used before the campaign can be published.</p>
+            <div className="workspace-editor__row">
+                <label className="workspace-editor__field">Start date (optional)<input type="date" value={start} onChange={e => setStart(e.target.value)}/></label>
+                <label className="workspace-editor__field">End date (optional)<input type="date" min={start || undefined} value={end} onChange={e => setEnd(e.target.value)}/></label>
+            </div>
+            <details className="workspace-editor__details" open={reported !== '' || undefined}>
+                <summary>Report funds received outside GrassKickZ (optional)</summary>
+                <div className="workspace-editor__details-body">
+                    <p className="workspace-editor__hint">Only enter funds your club has actually received. These figures will be labelled as club-reported and unverified by GrassKickZ. Leave blank if you are not reporting an amount.</p>
+                    <label className="workspace-editor__field">Club-reported amount<input type="number" min="0" max="9999999999.99" step="0.01" placeholder="0.00" value={reported} onChange={e => setReported(e.target.value)}/></label>
+                    <label className="workspace-editor__field"><span>Explanation of reported funds{reported !== '' && <span className="workspace-editor__required" aria-hidden="true">*</span>}</span><textarea aria-label="Explanation of reported funds" required={reported !== ''} rows={3} maxLength={1000} placeholder="Where did the funds come from, and when were they received?" value={note} onChange={e => setNote(e.target.value)}/></label>
                 </div>
-            )}
-        </form>
-    );
+            </details>
+        </EditorSection>
+        <EditorSection number="03" title="Photos & review" description="Show the people, place or project behind your campaign. The first image becomes the cover.">
+            {images.length > 0 && <div className="workspace-editor__photos">{images.map((url, index) => <div key={index} className="workspace-editor__photo"><MediaImage src={resolveMediaUrl(url)} alt={`Campaign photo ${index + 1}`}/><div><span>{index === 0 ? 'Cover photo' : `Photo ${index + 1}`}</span><button type="button" aria-label={`Remove photo ${index + 1}`} onClick={() => setImages(current => current.filter((_, i) => i !== index))}><Trash2 size={16} aria-hidden="true"/></button></div></div>)}</div>}
+            {images.length < 8 && <div className="workspace-editor__upload"><ImagePlus size={22} aria-hidden="true"/><label className="workspace-editor__field">Add campaign photo (up to 8)<input type="file" accept="image/*" onChange={async event => {
+                const element = event.currentTarget, file = element.files?.[0]; if (!file) return;
+                setUploading(true); setUploadError('');
+                try {
+                    const data = new FormData(); data.append('file', file);
+                    const response = await apiClient.post<{ url: string }>('/media/upload', data, { params: { context: 'campaign' } });
+                    setImages(current => [...current, response.data.url]);
+                } catch (e) { setUploadError(extractApiErrorMessage(e, 'Photo upload failed.')); }
+                finally { setUploading(false); element.value = ''; }
+            }}/></label><p className="workspace-editor__hint">Choose a photo that helps people understand your project. {images.length} of 8 photos added.</p></div>}
+            <div className="workspace-editor__review"><h4>{title || "Untitled campaign"}</h4><p>{beneficiary || "Beneficiaries not added"}</p><p>{goal ? `${campaignMoney(Number(goal), currency)} goal` : "No funding target"}</p><p>{summary || "Summary not added"}</p></div>
+        </EditorSection>
+    </WorkspaceEditor>;
 };
 function CampaignUpdateForm({
     campaign,
@@ -599,8 +340,8 @@ function CampaignUpdateForm({
     onCancel: () => void;
     onSubmit: (title: string, body: string) => Promise<void>;
 }) {
-    const [title, setTitle] = useState(''),
-        [body, setBody] = useState(''),
+    const [title, setTitle] = useCommerceDraftState('form:updateTitle', ''),
+        [body, setBody] = useCommerceDraftState('form:updateBody', ''),
         [discard, setDiscard] = useState(false);
     return (
         <section className="campaign-editor space-y-4">
@@ -660,7 +401,7 @@ function CampaignUpdateForm({
                         <button type="button" className={button} onClick={() => setDiscard(false)}>
                             Keep writing
                         </button>
-                        <button type="button" className={button} onClick={onCancel}>
+                        <button type="button" className={button} disabled={saving} onClick={() => { if (!saving) onCancel(); }}>
                             Discard update
                         </button>
                     </div>
@@ -669,3 +410,5 @@ function CampaignUpdateForm({
         </section>
     );
 }
+
+export const CampaignsTab = (props: Parameters<typeof CampaignsTabContent>[0]) => <CommerceDraftScope clubId={props.clubId} feature="CampaignsTab"><CommerceDraftNotice/><CampaignsTabContent {...props}/></CommerceDraftScope>;

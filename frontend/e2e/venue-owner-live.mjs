@@ -1,0 +1,63 @@
+// Actual live UI and API, with a fresh isolated browser profile and only the dedicated fictional owner.
+import { chromium, expect } from '@playwright/test';
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import path from 'node:path';
+const root='C:/Users/daddo/IdeaProjects/GrassKickZ/outputs/venue-owner-demo-20260921';
+const seed=JSON.parse(await readFile(path.join(root,'seed-result.json'),'utf8'));
+const credentials=JSON.parse(await readFile(path.join(homedir(),'Documents/GrassKickZ-demo/venue-owner-demo-login.json'),'utf8'));
+const output=path.join(root,'browser');await mkdir(output,{recursive:true});
+const origin='https://app.grasskickz.com';
+const browser=await chromium.launch({channel:'chrome',headless:true});
+const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[],checks=[];
+page.on('pageerror',e=>errors.push(e.message));
+await page.addInitScript(()=>{localStorage.setItem('i18nextLng','en');localStorage.setItem('theme-preference','light');});
+try {
+    const first=seed.venues[0];
+    await page.goto(origin+'/login?next='+encodeURIComponent(`/stadiums/${first.id}/manage`));
+    await page.locator('#auth-login-email').fill(credentials.email);
+    await page.locator('#auth-login-password').fill(credentials.password);
+    const userResponse=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/users/me'&&r.status()===200);
+    await page.locator('form button[type="submit"]').click();
+    const user=await (await userResponse).json();
+    expect(user.navigationCapabilities.workspaces.filter(w=>w.id==='venue.workspace')).toHaveLength(3);
+    expect(user.navigationCapabilities.workspaces.some(w=>['admin.console','club.workspace','squad.workspace','parent.hub','tournament.create'].includes(w.id))).toBe(false);
+    await expect(page).toHaveURL(new RegExp(`/stadiums/${first.id}/manage$`));
+    checks.push('normal live login opens owner workspace without onboarding or club setup');
+    for(const venue of seed.venues){
+        await page.getByRole('button',{name:'Shortcuts',exact:true}).click();
+        await page.getByRole('menuitem',{name:`Stadium workspace — ${venue.display_name}`,exact:true}).click();
+        await expect(page.getByRole('heading',{name:venue.display_name,exact:true,level:1})).toBeVisible();
+        await expect(page.getByRole('button',{name:'Calendar & reservations',exact:true})).toBeVisible();
+        await expect(page.getByText('Requests this week',{exact:true})).toBeVisible();
+        await page.getByRole('button').filter({has:page.getByText('Requests this week',{exact:true})}).click();
+        await expect(page.getByRole('heading',{name:'Requests for the next seven days',exact:true})).toBeVisible();
+        await expect(page.getByRole('button',{name:'Accept',exact:true})).toHaveCount(2);
+        await page.screenshot({path:path.join(output,`${venue.city.toLowerCase()}-requests.png`),fullPage:true});
+        await page.getByRole('button',{name:'Pitches',exact:true}).click();
+        await expect(page.locator('.venue-workspace')).toContainText(venue.city==='Kutaisi'?'Futsal hall A':'Main pitch');
+        await page.getByRole('button',{name:'Stadium page',exact:true}).click();
+        await expect(page.getByRole('heading',{name:'Your stadium page',exact:true})).toBeVisible();
+        await expect(page.locator('.venue-workspace')).toContainText(venue.city);
+        expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+        checks.push(`${venue.city}: workspace switching, two pending requests, pitches and editable stadium listing`);
+    }
+    await page.goto(origin+`/organizations/${first.id}?settings=1`);
+    await expect(page.getByRole('heading',{name:first.display_name,exact:true,level:1})).toBeVisible();
+    await expect(page.getByRole('link',{name:/create tournament/i})).toHaveCount(0);
+    await page.screenshot({path:path.join(output,'venue-organization-settings.png'),fullPage:true});
+    await page.goto(origin+'/assistant');
+    await expect(page.getByRole('button',{name:'What needs attention in my organisation?',exact:true})).toBeVisible();
+    await expect(page.getByRole('button',{name:'Help me write a coach update.',exact:true})).toHaveCount(0);
+    checks.push('venue organisation settings and matching Dola opening suggestions are live');
+    await page.setViewportSize({width:390,height:844});
+    await page.goto(origin+`/stadiums/${first.id}/manage`);
+    await expect(page.getByRole('heading',{name:first.display_name,exact:true,level:1})).toBeVisible();
+    await expect(page.getByText('Requests this week',{exact:true})).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+    await page.screenshot({path:path.join(output,'mobile-owner.png'),fullPage:true});
+    checks.push('mobile owner workspace has no page overflow');
+    expect(errors).toEqual([]);
+    const proof={status:'passed',origin,accountId:seed.owner.id,mockedRequests:false,loginThroughUI:true,mutationsPerformed:false,checks,errors};
+    await writeFile(path.join(root,'live-browser-proof.json'),JSON.stringify(proof,null,2));console.log(JSON.stringify(proof));
+} finally { await browser.close(); }

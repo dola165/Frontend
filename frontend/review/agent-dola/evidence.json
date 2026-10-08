@@ -1,0 +1,26 @@
+[
+  {
+    "name": "desktop",
+    "width": 1440,
+    "height": 1000,
+    "overflow": false,
+    "errors": [],
+    "syntheticRequests": 2
+  },
+  {
+    "name": "desktop-dark",
+    "width": 1440,
+    "height": 1000,
+    "overflow": false,
+    "errors": [],
+    "syntheticRequests": 2
+  },
+  {
+    "name": "mobile",
+    "width": 390,
+    "height": 844,
+    "overflow": false,
+    "errors": [],
+    "syntheticRequests": 1
+  }
+]

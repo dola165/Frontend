@@ -1,497 +1,607 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Loader2, Pencil, ShieldCheck, Trash2, X } from 'lucide-react';
+import { SquadWorkbench, WorkspacePlayerPanel } from '../../../features/clubOperations/SquadWorkbench';
+import { SquadAgePolicy } from '../../../features/clubOperations/SquadAgePolicy';
+import type { RolesWorkspace } from '../../../features/clubOperations/useWorkspaceRoles';
+import type { Bootstrap } from '../../../features/clubOperations/api';
+import type { OpenWorkspace } from '../../../features/clubOperations/WorkspaceHome';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LayoutGrid, List, Loader2, Pencil, Plus, Search, Shield, Trash2, Users, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../../api/axiosConfig';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
-import { SectionHeader, EmptyState } from '../helpers';
-import { SquadRosterTable, type SquadRosterGroup } from '../../squads/SquadRosterTable';
+import { SquadRosterTable, type SquadRosterGroup, type SquadRosterPlayer } from '../../squads/SquadRosterTable';
 import { SquadRosterGrid } from '../../squads/SquadRosterGrid';
+import { squadLabel } from '../../squads/squadLabels';
 import { AddPlayerToSquadModal } from '../../squads/AddPlayerToSquadModal';
 import { PlayerCardModal } from '../../squads/PlayerCardModal';
+import { SquadEditorModal, type SquadDetails } from '../../squads/SquadEditorModal';
 import {
     updateSquad,
     deleteSquad,
     removePlayerFromSquad,
     updateSquadPlayer,
     fetchPlayerCards,
-    type UpdateSquadPayload,
-    type PlayerCard
+    type PlayerCard,
 } from '../../../features/clubs/api';
 import type { ClubManagementOverview } from '../../../features/clubs/domain';
 import { usePersistedState } from '../../../utils/usePersistedState';
+import { extractApiErrorMessage } from '../../../utils/apiError';
+import '../../squads/squad-design.css';
+import '../../squads/squad-workspace.css';
+import { Link, useSearchParams } from 'react-router-dom';
 
-// ── types ──
-
-interface SquadDto {
+interface SquadDto extends SquadDetails {
     id: number;
     clubId: number;
-    name: string;
-    category: string;
-    gender: string;
 }
-
 interface SquadsTabProps {
     clubId: number;
     overview: ClubManagementOverview | null;
     setParentError: (msg: string | null) => void;
     setParentSuccess: (msg: string | null) => void;
+    workspace?: { data:RolesWorkspace; boot:Bootstrap|null; onOpen:OpenWorkspace };
 }
 
-// ── component ──
-
-export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }: SquadsTabProps) => {
-    // squad list
+export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess, workspace }: SquadsTabProps) => {
+    const { t } = useTranslation();
+    const [params,setParams] = useSearchParams();
+    const [activePlayer,setActivePlayer] = useState<SquadRosterPlayer|null>(null);
+    const linkedSquad=Number(params.get('squad'))||undefined;
+    const initialSquad=useRef(linkedSquad ?? workspace?.data.views.find(v=>v.id==='coaching')?.squadIds[0]);
     const [squads, setSquads] = useState<SquadDto[]>([]);
     const [squadsLoading, setSquadsLoading] = useState(true);
-
-    // selection + roster
+    const [squadsError, setSquadsError] = useState<string | null>(null);
     const [selectedSquadId, setSelectedSquadId] = useState<number | null>(null);
+    const selectedSquadRef = useRef<number | null>(null);
+    const squadRequestRef = useRef(0);
+    const rosterRequestRef = useRef(0);
     const [rosterGroups, setRosterGroups] = useState<SquadRosterGroup[]>([]);
     const [rosterLoading, setRosterLoading] = useState(false);
-
-    // view toggle
+    const [rosterError, setRosterError] = useState<string | null>(null);
     const [cardView, setCardView] = usePersistedState('gkz:roster:cardView', false);
-
-    // edit
-    const [editingSquadId, setEditingSquadId] = useState<number | null>(null);
-    const [editForm, setEditForm] = useState<UpdateSquadPayload>({});
-
-    // create form
-    const [squadForm, setSquadForm] = useState({ name: '', category: 'SENIOR', gender: 'MALE' });
-
-    // confirmation dialogs
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
-    const pendingDeleteRef = useRef<{ squadId: number; squadName: string } | null>(null);
-    const pendingRemoveRef = useRef<{ userId: number; playerName: string } | null>(null);
-
-    // modals + actions
+    const [query, setQuery] = useState(params.get('playerSearch')??'');
+    const [position, setPosition] = useState(params.get('position')??'');
+    const [squadEditor, setSquadEditor] = useState<SquadDto | 'new' | null>(null);
+    const [pendingDelete, setPendingDelete] = useState<SquadDto | null>(null);
+    const [pendingRemove, setPendingRemove] = useState<{
+        userId: number;
+        playerName: string;
+        squadId: number;
+        squadName: string;
+    } | null>(null);
     const [showAddPlayers, setShowAddPlayers] = useState(false);
     const [removingPlayerId, setRemovingPlayerId] = useState<number | null>(null);
-
-    // player cards (Aug 17: roster rows get an edit-card pencil for card players)
+    const [deletingSquadId, setDeletingSquadId] = useState<number | null>(null);
     const [cards, setCards] = useState<PlayerCard[]>([]);
     const [editingCard, setEditingCard] = useState<PlayerCard | null>(null);
-    const cardUserIds = useMemo(() => new Set(cards.map((c) => c.userId).filter((id): id is number => id != null)), [cards]);
+    const cardUserIds = useMemo(
+        () => new Set(cards.map((card) => card.userId).filter((id): id is number => id != null)),
+        [cards],
+    );
+    const selectedSquad = squads.find((squad) => squad.id === selectedSquadId) ?? null;
+    const playerCount = useMemo(
+        () => rosterGroups.reduce((total, group) => total + group.players.length, 0),
+        [rosterGroups],
+    );
+    const visibleGroups = useMemo(() => {
+        const needle = query.trim().toLocaleLowerCase();
+        return rosterGroups
+            .map((group) => ({
+                ...group,
+                players: group.players.filter(
+                    (player) =>
+                        (!position || group.label === position) &&
+                        (!needle ||
+                            player.name.toLocaleLowerCase().includes(needle) ||
+                            String(player.number ?? '').includes(needle)),
+                ),
+            }))
+            .filter((group) => group.players.length > 0);
+    }, [rosterGroups, query, position]);
+    const visibleCount = useMemo(
+        () => visibleGroups.reduce((total, group) => total + group.players.length, 0),
+        [visibleGroups],
+    );
+    const genderLabel = (gender: string) => t(`squads.design.${gender.toLowerCase()}`, { defaultValue: gender });
 
-    // loading states
-    const [localPending, setLocalPending] = useState<string | null>(null);
-    const [savingSquad, setSavingSquad] = useState(false);
-    const [deletingSquadId, setDeletingSquadId] = useState<number | null>(null);
+    // Clear the previous team's roster immediately and discard requests that finish out of order.
+    const selectSquad = useCallback((squadId: number | null) => {
+        if (selectedSquadRef.current === squadId) return;
+        const changing = selectedSquadRef.current !== null;
+        selectedSquadRef.current = squadId;
+        rosterRequestRef.current += 1;
+        setSelectedSquadId(squadId);
+        setRosterGroups([]);
+        setRosterError(null);
+        setRosterLoading(squadId != null);
+        if(changing){setQuery('');setPosition('');setActivePlayer(null);}
+    }, []);
 
-    const selectedSquad = squads.find((s) => s.id === selectedSquadId) ?? null;
-
-    // ── data loading ──
-
-    const loadSquads = useCallback(async () => {
-        setSquadsLoading(true);
-        const [squadsResult, cardsResult] = await Promise.allSettled([
-            apiClient.get<SquadDto[]>(`/clubs/${clubId}/squads`),
-            fetchPlayerCards(clubId),
-        ]);
-        try {
-            const list = squadsResult.status === 'fulfilled' ? (squadsResult.value.data || []) : [];
+    const loadSquads = useCallback(
+        async (preferredId?: number) => {
+            const requestId = ++squadRequestRef.current;
+            setSquadsLoading(true);
+            setSquadsError(null);
+            const [squadsResult, cardsResult] = await Promise.allSettled([
+                apiClient.get<SquadDto[]>(`/clubs/${clubId}/squads`),
+                fetchPlayerCards(clubId),
+            ]);
+            if (requestId !== squadRequestRef.current) return;
+            if (squadsResult.status === 'rejected') {
+                setSquadsError(
+                    extractApiErrorMessage(
+                        squadsResult.reason,
+                        t('squads.design.loadError', { defaultValue: 'Could not load your squads.' }),
+                    ),
+                );
+                setSquadsLoading(false);
+                return;
+            }
+            const list = squadsResult.value.data || [];
             const nextCards = cardsResult.status === 'fulfilled' ? cardsResult.value : [];
             setSquads(list);
             setCards(nextCards);
-            // Make card-backed players discoverable immediately: a club with
-            // cards assigned to a youth squad should open on that squad rather
-            // than an empty first-team roster. Manual selection is unchanged.
-            const firstCardSquadId = nextCards.find((card) =>
-                card.squadId != null && list.some((squad) => squad.id === card.squadId)
-            )?.squadId ?? null;
-            setSelectedSquadId(prev => prev ?? firstCardSquadId ?? list[0]?.id ?? null);
-        } finally {
+            const existingId = preferredId ?? selectedSquadRef.current;
+            const firstCardSquadId = nextCards.find(
+                (card) => card.squadId != null && list.some((squad) => squad.id === card.squadId),
+            )?.squadId;
+            selectSquad(
+                list.some((squad) => squad.id === existingId) ? existingId! : (firstCardSquadId ?? list[0]?.id ?? null),
+            );
             setSquadsLoading(false);
-        }
-    }, [clubId]);
+        },
+        [clubId, selectSquad, t],
+    );
 
     const loadCards = useCallback(async () => {
         try {
             setCards(await fetchPlayerCards(clubId));
         } catch {
-            // Cards are optional context for the roster pencil.
+            /* Cards are optional roster context. */
         }
     }, [clubId]);
 
-    const loadRoster = useCallback(async (squadId: number) => {
-        setRosterLoading(true);
-        try {
-            const response = await apiClient.get<SquadRosterGroup[]>(`/clubs/${clubId}/squads/${squadId}/roster`);
-            setRosterGroups(response.data || []);
-        } catch {
-            setRosterGroups([]);
-        } finally {
-            setRosterLoading(false);
-        }
-    }, [clubId]);
-
-    useEffect(() => { void loadSquads(); }, [loadSquads]);
+    const loadRoster = useCallback(
+        async (squadId: number) => {
+            if (selectedSquadRef.current !== squadId) return;
+            const requestId = ++rosterRequestRef.current;
+            setRosterLoading(true);
+            setRosterError(null);
+            try {
+                const response = await apiClient.get<SquadRosterGroup[]>(`/clubs/${clubId}/squads/${squadId}/roster`);
+                if (requestId === rosterRequestRef.current && selectedSquadRef.current === squadId)
+                    setRosterGroups(response.data || []);
+            } catch (error) {
+                if (requestId === rosterRequestRef.current && selectedSquadRef.current === squadId) {
+                    setRosterError(
+                        extractApiErrorMessage(
+                            error,
+                            t('squads.design.rosterError', { defaultValue: 'Could not load this roster.' }),
+                        ),
+                    );
+                }
+            } finally {
+                if (requestId === rosterRequestRef.current) setRosterLoading(false);
+            }
+        },
+        [clubId, t],
+    );
 
     useEffect(() => {
-        if (selectedSquadId) {
-            void loadRoster(selectedSquadId);
-        } else {
-            setRosterGroups([]);
-        }
+        void loadSquads(initialSquad.current);
+        return () => {
+            squadRequestRef.current += 1;
+        };
+    }, [loadSquads]);
+    useEffect(()=>{if(linkedSquad&&squads.some(s=>s.id===linkedSquad))selectSquad(linkedSquad);},[linkedSquad,squads,selectSquad]);
+    useEffect(() => {
+        if (selectedSquadId != null) void loadRoster(selectedSquadId);
+        return () => {
+            rosterRequestRef.current += 1;
+        };
     }, [selectedSquadId, loadRoster]);
 
-    // ── actions ──
-
-    const runAction = async (key: string, action: () => Promise<void>) => {
-        setLocalPending(key);
-        try {
-            await action();
-        } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : 'Request failed.';
-            setParentError(msg);
-        } finally {
-            setLocalPending(null);
+    const handleSaveSquad = async (details: SquadDetails) => {
+        if (squadEditor && squadEditor !== 'new') {
+            await updateSquad(clubId, squadEditor.id, details);
+            setSquads((prev) => prev.map((squad) => (squad.id === squadEditor.id ? { ...squad, ...details } : squad)));
+            setParentSuccess(t('squads.design.updated', { defaultValue: 'Squad updated.' }));
+        } else {
+            const response = await apiClient.post<SquadDto>(`/clubs/${clubId}/squads`, details);
+            await loadSquads(response.data?.id);
+            setParentSuccess(t('squads.design.created', { defaultValue: 'Squad created.' }));
         }
-    };
-
-    const handleCreateSquad = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        await runAction('create-squad', async () => {
-            await apiClient.post(`/clubs/${clubId}/squads`, squadForm);
-            setSquadForm({ name: '', category: 'SENIOR', gender: 'MALE' });
-            setParentSuccess('Squad created.');
-            await loadSquads();
-        });
-    };
-
-    const handleUpdateSquad = async (squadId: number) => {
-        if (!editForm.name?.trim()) return;
-        setSavingSquad(true);
-        try {
-            await updateSquad(clubId, squadId, editForm);
-            setSquads((prev) => prev.map((s) => (s.id === squadId ? { ...s, ...editForm } as SquadDto : s)));
-            setEditingSquadId(null);
-            setEditForm({});
-            setParentSuccess('Squad updated.');
-        } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : 'Failed to update squad.';
-            setParentError(msg);
-        } finally {
-            setSavingSquad(false);
-        }
-    };
-
-    const handleDeleteSquad = async (squadId: number, squadName: string) => {
-        pendingDeleteRef.current = { squadId, squadName };
-        setShowDeleteConfirm(true);
     };
 
     const confirmDeleteSquad = async () => {
-        setShowDeleteConfirm(false);
-        const pending = pendingDeleteRef.current;
-        if (!pending) return;
-        setDeletingSquadId(pending.squadId);
+        const pending = pendingDelete;
+        if (!pending || deletingSquadId != null) return;
+        setPendingDelete(null);
+        setDeletingSquadId(pending.id);
         try {
-            await deleteSquad(clubId, pending.squadId);
-            setSquads((prev) => prev.filter((s) => s.id !== pending.squadId));
-            if (selectedSquadId === pending.squadId) {
-                const remaining = squads.filter((s) => s.id !== pending.squadId);
-                setSelectedSquadId(remaining.length > 0 ? remaining[0].id : null);
-            }
-            setParentSuccess(`Squad "${pending.squadName}" deleted.`);
-        } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : 'Failed to delete squad.';
-            setParentError(msg);
+            await deleteSquad(clubId, pending.id);
+            const remaining = squads.filter((squad) => squad.id !== pending.id);
+            setSquads(remaining);
+            if (selectedSquadRef.current === pending.id) selectSquad(remaining[0]?.id ?? null);
+            setParentSuccess(
+                t('squads.design.deleted', { defaultValue: 'Squad “{{name}}” deleted.', name: pending.name }),
+            );
+        } catch (error) {
+            setParentError(
+                extractApiErrorMessage(
+                    error,
+                    t('squads.design.deleteError', { defaultValue: 'Could not delete squad.' }),
+                ),
+            );
         } finally {
             setDeletingSquadId(null);
-            pendingDeleteRef.current = null;
         }
     };
 
-    const handleRemovePlayer = async (userId: number, playerName: string) => {
-        if (!selectedSquad) return;
-        pendingRemoveRef.current = { userId, playerName };
-        setShowRemoveConfirm(true);
+    const handleRemovePlayer = (userId: number, playerName: string) => {
+        if (selectedSquad)
+            setPendingRemove({ userId, playerName, squadId: selectedSquad.id, squadName: selectedSquad.name });
     };
-
     const confirmRemovePlayer = async () => {
-        setShowRemoveConfirm(false);
-        const pending = pendingRemoveRef.current;
-        if (!pending || !selectedSquad) return;
+        const pending = pendingRemove;
+        if (!pending || removingPlayerId != null) return;
+        setPendingRemove(null);
         setRemovingPlayerId(pending.userId);
         try {
-            await removePlayerFromSquad(clubId, selectedSquad.id, pending.userId);
-            await loadRoster(selectedSquad.id);
-            setParentSuccess(`${pending.playerName} removed from squad.`);
-        } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : 'Failed to remove player.';
-            setParentError(msg);
+            await removePlayerFromSquad(clubId, pending.squadId, pending.userId);
+            await loadRoster(pending.squadId);
+            setParentSuccess(
+                t('squads.design.playerRemoved', {
+                    defaultValue: '{{name}} removed from squad.',
+                    name: pending.playerName,
+                }),
+            );
+        } catch (error) {
+            setParentError(
+                extractApiErrorMessage(
+                    error,
+                    t('squads.design.removeError', { defaultValue: 'Could not remove player.' }),
+                ),
+            );
         } finally {
             setRemovingPlayerId(null);
-            pendingRemoveRef.current = null;
         }
     };
-
     const handleUpdatePlayer = async (userId: number, jerseyNumber: number | null, squadRole: string | null) => {
         if (!selectedSquad) return;
+        const squadId = selectedSquad.id;
         try {
-            await updateSquadPlayer(clubId, selectedSquad.id, userId, { jerseyNumber, squadRole });
-            await loadRoster(selectedSquad.id);
-        } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : 'Failed to update player.';
-            setParentError(msg);
+            await updateSquadPlayer(clubId, squadId, userId, { jerseyNumber, squadRole });
+            await loadRoster(squadId);
+        } catch (error) {
+            setParentError(
+                extractApiErrorMessage(
+                    error,
+                    t('squads.design.playerUpdateError', { defaultValue: 'Could not update player.' }),
+                ),
+            );
+            throw error;
         }
     };
-
     const handlePlayersAdded = async () => {
         if (!selectedSquad) return;
-        await loadRoster(selectedSquad.id);
-        setParentSuccess('Players added to squad.');
+        await Promise.all([loadRoster(selectedSquad.id), loadCards()]);
+        setParentSuccess(t('squads.design.playersAdded', { defaultValue: 'Players added to squad.' }));
     };
 
-    // ── render ──
-
-    return (
-        <div className="space-y-4">
-            {/* ── Section 1: Squad Creation ── */}
-            <SectionHeader
-                eyebrow="Squads"
-                title="Create Squad"
-                description="Create a new squad. Manage rosters, assign jersey numbers, and set squad roles inline below."
-            />
-            <form onSubmit={handleCreateSquad} className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-4">
-                <div className="grid gap-3 sm:grid-cols-3">
-                    <input
-                        type="text"
-                        value={squadForm.name}
-                        onChange={(e) => setSquadForm({ ...squadForm, name: e.target.value })}
-                        placeholder="Squad name"
-                        required
-                        className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)] focus:ring-1 focus:ring-[var(--fc-accent)]"
-                    />
-                    <input
-                        type="text"
-                        value={squadForm.category}
-                        onChange={(e) => setSquadForm({ ...squadForm, category: e.target.value.toUpperCase() })}
-                        placeholder="Category (e.g. SENIOR)"
-                        required
-                        className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)] focus:ring-1 focus:ring-[var(--fc-accent)]"
-                    />
-                    <select
-                        value={squadForm.gender}
-                        onChange={(e) => setSquadForm({ ...squadForm, gender: e.target.value })}
-                        className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-sm font-medium text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)]"
-                    >
-                        <option value="MALE">Male</option>
-                        <option value="FEMALE">Female</option>
-                        <option value="MIXED">Mixed</option>
-                    </select>
-                </div>
-                <button
-                    type="submit"
-                    disabled={localPending === 'create-squad'}
-                    className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[var(--fc-accent)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
-                >
-                    {localPending === 'create-squad' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                    Create Squad
-                </button>
-            </form>
-
-            {/* Stat cards */}
-            <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
-                    <p className="text-xs font-medium text-[var(--fc-text-muted)]">Active Player Pool</p>
-                    <p className="mt-1 text-2xl font-semibold text-[var(--fc-text-primary)]">{overview?.activePlayerCount ?? 0}</p>
-                    <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">Players available for squad assignment.</p>
-                </div>
-                <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
-                    <p className="text-xs font-medium text-[var(--fc-text-muted)]">Total Squads</p>
-                    <p className="mt-1 text-2xl font-semibold text-[var(--fc-text-primary)]">{squads.length}</p>
-                    <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">Squads registered for this club.</p>
-                </div>
-            </div>
-
-            {/* ── Section 2: Squad Roster Management ── */}
-            {squadsLoading ? (
-                <div className="flex justify-center py-10">
-                    <Loader2 className="h-6 w-6 animate-spin text-[var(--fc-text-muted)]" />
-                </div>
-            ) : squads.length === 0 ? (
-                <EmptyState message="No squads created yet. Use the form above to create your first squad." />
-            ) : (
-                <div className="space-y-4">
-                    {/* Squad selector — horizontal pill tabs */}
-                    <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)]">
-                        <div className="border-b border-[var(--fc-border)] px-4 py-2.5">
-                            <p className="text-xs font-medium text-[var(--fc-text-muted)]">Squad Selector</p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-1.5 p-3">
-                            {squads.map((squad) => {
-                                const isActive = selectedSquadId === squad.id;
-                                const isEditing = editingSquadId === squad.id;
-                                return (
-                                    <div key={squad.id} className="flex items-center">
-                                        {isEditing ? (
-                                            <div className="flex items-center gap-1.5 rounded-xl border border-[var(--fc-accent-border)] bg-[var(--fc-surface-hover)] px-2 py-1.5">
-                                                <input
-                                                    value={editForm.name ?? squad.name}
-                                                    onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
-                                                    placeholder="Name"
-                                                    className="w-24 rounded border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2 py-1 text-xs text-[var(--fc-text-primary)] outline-none"
-                                                />
-                                                <input
-                                                    value={editForm.category ?? squad.category}
-                                                    onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
-                                                    placeholder="CAT"
-                                                    className="w-16 rounded border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2 py-1 text-xs text-[var(--fc-text-primary)] outline-none"
-                                                />
-                                                <select
-                                                    value={editForm.gender ?? squad.gender}
-                                                    onChange={(e) => setEditForm((f) => ({ ...f, gender: e.target.value }))}
-                                                    className="rounded border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-1 py-1 text-xs text-[var(--fc-text-primary)] outline-none"
-                                                >
-                                                    <option value="MALE">M</option>
-                                                    <option value="FEMALE">F</option>
-                                                    <option value="MIXED">X</option>
-                                                </select>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => void handleUpdateSquad(squad.id)}
-                                                    disabled={savingSquad}
-                                                    className="rounded-xl bg-[var(--fc-accent)] px-2 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                                                >
-                                                    {savingSquad ? '...' : 'Save'}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { setEditingSquadId(null); setEditForm({}); }}
-                                                    className="rounded-xl p-0.5 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]"
-                                                >
-                                                    <X className="h-3.5 w-3.5" />
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                onClick={() => setSelectedSquadId(squad.id)}
-                                                className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${
-                                                    isActive
-                                                        ? 'bg-[var(--fc-accent-soft)] text-[var(--fc-accent)] border border-[var(--fc-accent-border)]'
-                                                        : 'text-[var(--fc-text-secondary)] border border-transparent hover:border-[var(--fc-border)] hover:text-[var(--fc-text-primary)]'
-                                                }`}
-                                            >
-                                                {squad.name}
-                                                <span className="text-[11px] text-[var(--fc-text-muted)]">{squad.category}</span>
-                                            </button>
-                                        )}
-
-                                        {/* Edit / Delete buttons for active squad */}
-                                        {isActive && !isEditing && (
-                                            <div className="ml-1 flex items-center gap-0.5">
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => { e.stopPropagation(); setEditingSquadId(squad.id); setEditForm({ name: squad.name, category: squad.category, gender: squad.gender }); }}
-                                                    className="rounded-xl p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)] transition-colors"
-                                                    title="Edit squad"
-                                                >
-                                                    <Pencil className="h-3 w-3" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => { e.stopPropagation(); void handleDeleteSquad(squad.id, squad.name); }}
-                                                    disabled={deletingSquadId === squad.id}
-                                                    className="rounded-xl p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-state-danger)] disabled:opacity-50 transition-colors"
-                                                    title="Delete squad"
-                                                >
-                                                    {deletingSquadId === squad.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Selected squad detail + roster */}
-                    {selectedSquad && (
-                        <>
-                            {/* Detail bar */}
-                            <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)]">
-                                <div className="grid divide-y divide-[var(--fc-border)] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-                                    <div className="px-4 py-3">
-                                        <p className="text-xs font-medium text-[var(--fc-text-muted)]">Category</p>
-                                        <p className="mt-1 text-sm font-semibold text-[var(--fc-text-primary)]">{selectedSquad.category}</p>
-                                    </div>
-                                    <div className="px-4 py-3">
-                                        <p className="text-xs font-medium text-[var(--fc-text-muted)]">Gender</p>
-                                        <p className="mt-1 text-sm font-semibold text-[var(--fc-text-primary)]">{selectedSquad.gender}</p>
-                                    </div>
-                                    <div className="px-4 py-3">
-                                        <p className="text-xs font-medium text-[var(--fc-text-muted)]">Groups</p>
-                                        <p className="mt-1 text-sm font-semibold text-[var(--fc-accent)]">{rosterGroups.length}</p>
-                                    </div>
+    const renderRoster = () => (<>
+                            <div className="sd-toolbar sw-roster-toolbar">
+                                <label className="sd-search">
+                                    <Search size={17} />
+                                    <input
+                                        type="search"
+                                        aria-label={t('squads.design.searchPlayers', {
+                                            defaultValue: 'Search players or shirt number',
+                                        })}
+                                        placeholder={t('squads.design.searchPlayers', {
+                                            defaultValue: 'Search players or shirt number',
+                                        })}
+                                        value={query}
+                                        onChange={(event) => {setQuery(event.target.value);const next=new URLSearchParams(params);next.set('playerSearch',event.target.value);if(selectedSquadId)next.set('squad',String(selectedSquadId));setParams(next,{replace:true});}}
+                                    />
+                                </label>
+                                <select
+                                    className="sw-position-filter"
+                                    aria-label={t('squads.design.position', { defaultValue: 'Position' })}
+                                    value={position}
+                                    onChange={(event) => {setPosition(event.target.value);const next=new URLSearchParams(params);next.set('position',event.target.value);if(selectedSquadId)next.set('squad',String(selectedSquadId));setParams(next,{replace:true});}}
+                                >
+                                    <option value="">
+                                        {t('squads.design.allPositions', { defaultValue: 'All positions' })}
+                                    </option>
+                                    {rosterGroups
+                                        .filter((group) => group.players.length > 0)
+                                        .map((group) => (
+                                            <option key={group.label} value={group.label}>
+                                                {squadLabel(group.label, t)}
+                                            </option>
+                                        ))}
+                                </select>
+                                <div
+                                    className="sd-segments"
+                                    role="group"
+                                    aria-label={t('squads.design.rosterView', { defaultValue: 'Roster view' })}
+                                >
+                                    <button type="button" aria-pressed={!cardView} onClick={() => setCardView(false)}>
+                                        <List size={15} />
+                                        {t('squads.design.roster', { defaultValue: 'Roster' })}
+                                    </button>
+                                    <button type="button" aria-pressed={cardView} onClick={() => setCardView(true)}>
+                                        <LayoutGrid size={15} />
+                                        {t('squads.design.cards', { defaultValue: 'Cards' })}
+                                    </button>
                                 </div>
                             </div>
-
-                            {/* Toolbar: view toggle + add players */}
-                            <div className="flex items-center justify-between">
-                                <button
-                                    type="button"
-                                    onClick={() => setCardView((v) => !v)}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-1.5 text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] transition-colors"
-                                >
-                                    {cardView ? 'Table View' : 'Card View'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAddPlayers(true)}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--fc-accent)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
-                                >
-                                    + Add Players
-                                </button>
-                            </div>
-
-                            {/* Roster */}
+                            {(query || position) && (
+                                <div className="sw-filter-summary">
+                                    <span>
+                                        {t('squads.design.showingCount', {
+                                            defaultValue: '{{visible}} of {{total}} players',
+                                            visible: visibleCount,
+                                            total: playerCount,
+                                        })}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setQuery('');
+                                            setPosition('');
+                                            const next=new URLSearchParams(params);next.delete('playerSearch');next.delete('position');setParams(next,{replace:true});
+                                        }}
+                                    >
+                                        <X size={13} />
+                                        {t('squads.design.clearFilters', { defaultValue: 'Clear filters' })}
+                                    </button>
+                                </div>
+                            )}
                             {rosterLoading ? (
-                                <div className="flex justify-center py-10">
-                                    <Loader2 className="h-6 w-6 animate-spin text-[var(--fc-text-muted)]" />
+                                <div className="sw-loading" role="status">
+                                    <Loader2 size={22} className="animate-spin" />
+                                    <span>{t('squads.design.loadingRoster', { defaultValue: 'Loading roster…' })}</span>
                                 </div>
-                            ) : rosterGroups.length === 0 ? (
-                                <EmptyState message={`No players in "${selectedSquad.name}". Click "Add Players" to assign squad members.`} />
+                            ) : rosterError ? (
+                                <div className="sd-empty" role="alert">
+                                    <p>{rosterError}</p>
+                                    <button
+                                        className="sd-button"
+                                        type="button"
+                                        onClick={() => void loadRoster(selectedSquad!.id)}
+                                    >
+                                        {t('squads.design.retry', { defaultValue: 'Try again' })}
+                                    </button>
+                                </div>
+                            ) : playerCount === 0 ? (
+                                <div className="sd-empty sw-empty-roster">
+                                    <Users size={28} />
+                                    <h3>
+                                        {t('squads.design.emptyRoster', {
+                                            defaultValue: 'A team starts with its players',
+                                        })}
+                                    </h3>
+                                    <p>
+                                        {t('squads.design.emptyRosterIntro', {
+                                            defaultValue:
+                                                'Add club players to this squad, or create a card for someone without an account.',
+                                        })}
+                                    </p>
+                                    <button type="button" className="sd-button" onClick={() => setShowAddPlayers(true)}>
+                                        <Plus size={16} />
+                                        {t('squads.design.addPlayers', { defaultValue: 'Add players' })}
+                                    </button>
+                                </div>
+                            ) : visibleCount === 0 ? (
+                                <div className="sd-empty">
+                                    <p>
+                                        {t('squads.design.noMatches', {
+                                            defaultValue: 'No players match these filters.',
+                                        })}
+                                    </p>
+                                    <button
+                                        className="sd-button"
+                                        type="button"
+                                        onClick={() => {
+                                            setQuery('');
+                                            setPosition('');
+                                            const next=new URLSearchParams(params);next.delete('playerSearch');next.delete('position');setParams(next,{replace:true});
+                                        }}
+                                    >
+                                        {t('squads.design.clearFilters', { defaultValue: 'Clear filters' })}
+                                    </button>
+                                </div>
                             ) : cardView ? (
                                 <SquadRosterGrid
-                                    groups={rosterGroups}
+                                    key={selectedSquad!.id}
+                                    groups={visibleGroups}
                                     editable
+                                    onOpenPlayer={workspace ? setActivePlayer : undefined}
                                     onRemovePlayer={handleRemovePlayer}
                                     onUpdatePlayer={handleUpdatePlayer}
                                     removingPlayerId={removingPlayerId}
                                     cardUserIds={cardUserIds}
-                                    onEditCard={(userId) => setEditingCard(cards.find((c) => c.userId === userId) ?? null)}
+                                    onEditCard={(userId) =>
+                                        setEditingCard(cards.find((card) => card.userId === userId) ?? null)
+                                    }
                                 />
                             ) : (
                                 <SquadRosterTable
-                                    groups={rosterGroups}
+                                    key={selectedSquad!.id}
+                                    groups={visibleGroups}
                                     editable
+                                    onOpenPlayer={workspace ? setActivePlayer : undefined}
                                     onRemovePlayer={handleRemovePlayer}
                                     onUpdatePlayer={handleUpdatePlayer}
                                     removingPlayerId={removingPlayerId}
                                     cardUserIds={cardUserIds}
-                                    onEditCard={(userId) => setEditingCard(cards.find((c) => c.userId === userId) ?? null)}
+                                    onEditCard={(userId) =>
+                                        setEditingCard(cards.find((card) => card.userId === userId) ?? null)
+                                    }
                                 />
                             )}
-                        </>
-                    )}
+    </>);
+
+    return (
+        <div className="squad-design sw-workspace">
+            <header className="sw-page-header">
+                <div>
+                    <p className="sd-eyebrow">{t('squads.design.clubFootball', { defaultValue: 'Club football' })}</p>
+                    <h1 className="sw-heading">
+                        {t('squads.design.title', { defaultValue: 'Squads' })}
+                        <span className="sw-heading-dot">.</span>
+                    </h1>
+                    <p className="sd-muted">
+                        {t('squads.design.intro', {
+                            defaultValue: 'Your teams, their players. Everything in its place.',
+                        })}
+                    </p>
                 </div>
+                <div className="sw-page-actions">
+                    <div className="sw-club-count">
+                        <Users size={15} />
+                        <span>
+                            <strong>{overview?.activePlayerCount ?? '—'}</strong>{' '}
+                            {t('squads.design.clubPlayers', { defaultValue: 'club players' })}
+                        </span>
+                    </div>
+                    <button type="button" className="sd-primary" onClick={() => setSquadEditor('new')}>
+                        <Plus size={17} />
+                        {t('squads.design.newSquad', { defaultValue: 'New squad' })}
+                    </button>
+                </div>
+            </header>
+
+            {squadsLoading ? (
+                <div className="sw-loading" role="status">
+                    <Loader2 size={22} className="animate-spin" />
+                    <span>{t('squads.design.loadingSquads', { defaultValue: 'Loading squads…' })}</span>
+                </div>
+            ) : squadsError ? (
+                <div className="sd-empty" role="alert">
+                    <p>{squadsError}</p>
+                    <button className="sd-button" type="button" onClick={() => void loadSquads()}>
+                        {t('squads.design.retry', { defaultValue: 'Try again' })}
+                    </button>
+                </div>
+            ) : squads.length === 0 ? (
+                <div className="sd-empty sw-first-squad">
+                    <Shield size={34} />
+                    <h2>{t('squads.design.firstSquad', { defaultValue: 'Start with your first team' })}</h2>
+                    <p>
+                        {t('squads.design.emptyIntro', {
+                            defaultValue: 'Create a squad, then add players from your club or create a player card.',
+                        })}
+                    </p>
+                    <button type="button" className="sd-primary" onClick={() => setSquadEditor('new')}>
+                        <Plus size={16} />
+                        {t('squads.design.createSquad', { defaultValue: 'Create squad' })}
+                    </button>
+                </div>
+            ) : (
+                <>
+                    <div
+                        className="sw-squad-strip"
+                        role="group"
+                        aria-label={t('squads.design.chooseSquad', { defaultValue: 'Choose squad' })}
+                    >
+                        {squads.map((squad) => (
+                            <button
+                                key={squad.id}
+                                type="button"
+                                aria-pressed={selectedSquadId === squad.id}
+                                className="sw-squad-option"
+                                onClick={() => {selectSquad(squad.id);const next=new URLSearchParams(params);next.set('squad',String(squad.id));['session','playerSearch','position'].forEach(k=>next.delete(k));setParams(next);}}
+                            >
+                                <span className="sw-squad-category">{squadLabel(squad.category, t)}</span>
+                                <strong>{squad.name}</strong>
+                                <span className="sw-squad-kind">{genderLabel(squad.gender)}</span>
+                            </button>
+                        ))}
+                    </div>
+                    {selectedSquad && (
+                        <section className="sw-active-squad" aria-labelledby="sw-squad-title">
+                            <header className="sw-roster-header">
+                                <div className="sw-roster-identity">
+                                    <div className="sw-squad-mark" aria-hidden="true">
+                                        <Shield size={25} />
+                                    </div>
+                                    <div>
+                                        <h2 id="sw-squad-title">{selectedSquad.name}</h2>
+                                        <p>
+                                            {squadLabel(selectedSquad.category, t)} <span>·</span>{' '}
+                                            {genderLabel(selectedSquad.gender)} <span>·</span>{' '}
+                                            {rosterLoading
+                                                ? '…'
+                                                : t('squads.design.playerCount', {
+                                                      defaultValue: '{{count}} players',
+                                                      count: playerCount,
+                                                  })}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="sw-roster-actions">
+                                    <Link to={`/squads/${selectedSquad.id}`} className="sd-button">Messages & plans</Link>
+                                    <button
+                                        type="button"
+                                        className="sd-button"
+                                        onClick={() => setSquadEditor(selectedSquad)}
+                                    >
+                                        <Pencil size={14} />
+                                        <span>{t('squads.design.editSquad', { defaultValue: 'Edit squad' })}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="sd-icon-button sw-delete"
+                                        disabled={deletingSquadId != null}
+                                        aria-label={t('squads.design.deleteSquad', { defaultValue: 'Delete squad' })}
+                                        title={t('squads.design.deleteSquad', { defaultValue: 'Delete squad' })}
+                                        onClick={() => setPendingDelete(selectedSquad)}
+                                    >
+                                        {deletingSquadId === selectedSquad.id ? (
+                                            <Loader2 size={15} className="animate-spin" />
+                                        ) : (
+                                            <Trash2 size={15} />
+                                        )}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="sd-primary"
+                                        onClick={() => setShowAddPlayers(true)}
+                                    >
+                                        <Plus size={16} />
+                                        {t('squads.design.addPlayers', { defaultValue: 'Add players' })}
+                                    </button>
+                                </div>
+                            </header>
+                            {(workspace?.data.leadership || overview?.currentUserRole === 'OWNER' || overview?.currentUserRole === 'CLUB_ADMIN') && <SquadAgePolicy key={selectedSquad.id} club={clubId} squad={selectedSquad.id} />}
+                            {workspace ? <SquadWorkbench data={workspace.data} boot={workspace.boot} squad={selectedSquad.id} onOpen={workspace.onOpen}>{renderRoster()}</SquadWorkbench> : renderRoster()}
+                        </section>
+                    )}
+                </>
             )}
 
-            {/* Add Players modal */}
+            {activePlayer && selectedSquad && workspace && <WorkspacePlayerPanel key={activePlayer.id} player={activePlayer} squad={selectedSquad.id} squadName={selectedSquad.name} boot={workspace.boot} onClose={()=>setActivePlayer(null)} onOpen={workspace.onOpen}/>}
+            {squadEditor && (
+                <SquadEditorModal
+                    initial={squadEditor === 'new' ? undefined : squadEditor}
+                    onClose={() => setSquadEditor(null)}
+                    onSave={handleSaveSquad}
+                />
+            )}
             {selectedSquad && (
                 <AddPlayerToSquadModal
+                    key={selectedSquad.id}
                     clubId={clubId}
                     squadId={selectedSquad.id}
+                    squadName={selectedSquad.name}
+                    existingPlayerIds={rosterGroups.flatMap((group) => group.players.map((player) => player.id))}
                     isOpen={showAddPlayers}
                     onClose={() => setShowAddPlayers(false)}
                     onPlayersAdded={handlePlayersAdded}
                 />
             )}
-
-            {/* Edit player card modal (roster pencil) */}
             <PlayerCardModal
                 clubId={clubId}
                 isOpen={editingCard != null}
@@ -499,29 +609,42 @@ export const SquadsTab = ({ clubId, overview, setParentError, setParentSuccess }
                 card={editingCard}
                 onCardUpdated={async () => {
                     await loadCards();
-                    if (selectedSquad) {
-                        await loadRoster(selectedSquad.id);
-                    }
-                    setParentSuccess('Player card updated.');
+                    if (selectedSquad) await loadRoster(selectedSquad.id);
+                    setParentSuccess(t('squads.design.cardUpdated', { defaultValue: 'Player card updated.' }));
                 }}
             />
             <ConfirmDialog
-                open={showDeleteConfirm}
-                title="Delete Squad"
-                message={pendingDeleteRef.current ? `Delete squad "${pendingDeleteRef.current.squadName}"? All players must be removed first.` : ''}
-                confirmLabel="Delete"
+                open={pendingDelete != null}
+                title={t('squads.design.deleteSquad', { defaultValue: 'Delete squad' })}
+                message={
+                    pendingDelete
+                        ? t('squads.design.deleteConfirm', {
+                              defaultValue: 'Delete squad “{{name}}”? All players must be removed first.',
+                              name: pendingDelete.name,
+                          })
+                        : ''
+                }
+                confirmLabel={t('squads.design.delete', { defaultValue: 'Delete' })}
                 variant="danger"
                 onConfirm={confirmDeleteSquad}
-                onCancel={() => { setShowDeleteConfirm(false); pendingDeleteRef.current = null; }}
+                onCancel={() => setPendingDelete(null)}
             />
             <ConfirmDialog
-                open={showRemoveConfirm}
-                title="Remove Player"
-                message={pendingRemoveRef.current ? `Remove "${pendingRemoveRef.current.playerName}" from squad "${selectedSquad?.name}"?` : ''}
-                confirmLabel="Remove"
+                open={pendingRemove != null}
+                title={t('squads.design.removePlayer', { defaultValue: 'Remove player' })}
+                message={
+                    pendingRemove
+                        ? t('squads.design.removeConfirm', {
+                              defaultValue: 'Remove “{{player}}” from “{{squad}}”?',
+                              player: pendingRemove.playerName,
+                              squad: pendingRemove.squadName,
+                          })
+                        : ''
+                }
+                confirmLabel={t('squads.design.remove', { defaultValue: 'Remove' })}
                 variant="danger"
                 onConfirm={confirmRemovePlayer}
-                onCancel={() => { setShowRemoveConfirm(false); pendingRemoveRef.current = null; }}
+                onCancel={() => setPendingRemove(null)}
             />
         </div>
     );

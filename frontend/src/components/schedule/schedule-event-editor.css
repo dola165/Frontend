@@ -1,0 +1,996 @@
+/* Schedule creation: neutral surfaces, familiar controls, colour reserved for meaning. */
+.schedule-compose-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+    background: color-mix(in srgb, var(--color-overlay) 73.33%, transparent);
+    backdrop-filter: blur(5px);
+}
+.schedule-compose {
+    --compose-bg: var(--fc-sidebar-bg, var(--color-surface));
+    --compose-card: var(--fc-card-bg, var(--color-elevated));
+    --compose-input: var(--color-inset);
+    --compose-line: var(--fc-border, var(--color-border));
+    --compose-text: var(--fc-text-primary, var(--color-secondary));
+    --compose-muted: var(--fc-text-muted, var(--color-muted));
+    --compose-accent: var(--fc-accent, var(--color-accent));
+    width: min(1080px, 100%);
+    max-height: min(900px, calc(100dvh - 56px));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--compose-line);
+    border-radius: 19px;
+    background: var(--compose-bg);
+    color: var(--compose-text);
+    box-shadow: 0 32px 100px color-mix(in srgb, var(--color-shadow) 46.67%, transparent);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+}
+.schedule-compose * {
+    box-sizing: border-box;
+}
+.schedule-compose :is(button, input, select, textarea) {
+    font-family: inherit;
+}
+.schedule-compose button {
+    cursor: pointer;
+}
+.schedule-compose button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+.schedule-compose :is(button, input, select, textarea, summary):focus-visible {
+    outline: 2px solid var(--compose-accent);
+    outline-offset: 4px;
+}
+.schedule-compose :is(h2, h3, h4, p) {
+    margin: 0;
+}
+.schedule-compose-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 25px 30px 22px;
+    flex-shrink: 0;
+}
+.schedule-compose-context {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+    color: var(--compose-muted);
+    font-size: 11px;
+    margin-bottom: 11px;
+}
+.schedule-compose-header h2 {
+    font-size: 29px;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.3;
+}
+.schedule-compose-header p {
+    margin-top: 7px;
+    color: var(--compose-muted);
+    font-size: 12px;
+    line-height: 1.7;
+}
+.schedule-compose-close {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border: 1px solid var(--compose-line);
+    border-radius: 8px;
+    color: var(--compose-muted);
+    background: transparent;
+}
+.schedule-compose-close:hover {
+    color: var(--compose-text);
+    background: var(--compose-card);
+}
+.schedule-compose-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 0 30px;
+    border-bottom: 1px solid var(--compose-line);
+    flex-shrink: 0;
+}
+.schedule-compose-steps > button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    padding: 15px 0 16px;
+    color: var(--compose-muted);
+}
+.schedule-compose-steps > button > span {
+    display: grid;
+    place-items: center;
+    width: 25px;
+    height: 25px;
+    border: 1px solid var(--compose-line);
+    border-radius: 50%;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+.schedule-compose-steps strong {
+    font-size: 12px;
+    font-weight: 600;
+}
+.schedule-compose-steps > button > svg {
+    margin-left: auto;
+    margin-right: 28px;
+    opacity: 0.45;
+}
+.schedule-compose-steps > button.active {
+    color: var(--compose-accent);
+    border-bottom-color: var(--compose-accent);
+}
+.schedule-compose-steps > button.active > span {
+    background: var(--compose-accent);
+    color: var(--color-text);
+    border-color: var(--compose-accent);
+}
+.schedule-compose-steps > button.visited > span {
+    color: var(--compose-accent);
+    border-color: var(--compose-accent);
+}
+.schedule-compose-body {
+    min-height: 0;
+    overflow: auto;
+    padding: 26px 30px 30px;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+.schedule-compose-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 278px;
+    gap: 25px;
+    align-items: start;
+}
+.schedule-compose-fields {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.schedule-compose-card {
+    border: 1px solid var(--compose-line);
+    background: var(--compose-card);
+    border-radius: 12px;
+    overflow: hidden;
+}
+.schedule-compose-card > header {
+    display: flex;
+    gap: 13px;
+    padding: 21px 23px;
+    border-bottom: 1px solid var(--compose-line);
+}
+.schedule-compose-number {
+    font-size: 11px;
+    font-weight: 650;
+    color: var(--compose-accent);
+    padding-top: 2px;
+}
+.schedule-compose-card h3 {
+    font-size: 16px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    line-height: 1.4;
+}
+.schedule-compose-card > header p {
+    font-size: 11px;
+    color: var(--compose-muted);
+    margin-top: 5px;
+    line-height: 1.7;
+}
+.schedule-compose-card-body {
+    padding: 23px;
+    display: grid;
+    gap: 23px;
+}
+.schedule-compose-modes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+.schedule-compose-modes > button {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 17px 15px;
+    text-align: left;
+    border: 1px solid var(--compose-line);
+    border-radius: 9px;
+    background: var(--compose-input);
+    color: var(--compose-text);
+}
+.schedule-compose-modes > button > svg {
+    color: var(--compose-muted);
+    margin-bottom: 3px;
+}
+.schedule-compose-modes strong {
+    font-size: 13px;
+    font-weight: 650;
+}
+.schedule-compose-modes small {
+    font-size: 11px;
+    color: var(--compose-muted);
+    line-height: 1.7;
+    max-width: 190px;
+}
+.schedule-compose-modes > button.selected {
+    border-color: var(--compose-accent);
+}
+.schedule-compose-modes > button.selected > svg {
+    color: var(--compose-accent);
+}
+.schedule-compose-choice-dot {
+    position: absolute;
+    right: 12px;
+    top: 14px;
+    width: 16px;
+    height: 16px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--compose-line);
+    border-radius: 50%;
+}
+.selected > .schedule-compose-choice-dot {
+    background: var(--compose-accent);
+    border-color: var(--compose-accent);
+    color: var(--color-accent);
+}
+.schedule-compose-field {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    font-size: 12px;
+    min-width: 0;
+}
+.schedule-compose-field > span {
+    font-weight: 600;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+.schedule-compose-field b {
+    font-size: 12px;
+    color: var(--compose-accent);
+}
+.schedule-compose-field em {
+    font-style: normal;
+    color: var(--compose-muted);
+    font-size: 10px;
+    font-weight: 400;
+    margin-left: auto;
+}
+.schedule-compose-field :is(input, select, textarea) {
+    min-width: 0;
+    width: 100%;
+    min-height: 43px;
+    line-height: 1.5;
+    border: 1px solid var(--compose-line);
+    border-radius: 7px;
+    padding: 10px 11px;
+    background: var(--compose-input);
+    color: var(--compose-text);
+    font-size: 13px;
+    outline-offset: 2px;
+}
+.schedule-compose-field :is(input, select, textarea):focus {
+    border-color: var(--compose-accent);
+}
+.schedule-compose-field input::placeholder,
+.schedule-compose-field textarea::placeholder {
+    color: var(--compose-muted);
+    opacity: 0.75;
+}
+.schedule-compose-field small {
+    font-size: 10px;
+    line-height: 1.7;
+    color: var(--compose-muted);
+}
+.schedule-compose-types {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+.schedule-compose-types > button {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 10px;
+    min-height: 38px;
+    border: 1px solid var(--compose-line);
+    border-radius: 7px;
+    font-size: 11px;
+    background: none;
+    color: var(--compose-muted);
+}
+.schedule-compose-types > button[aria-pressed='true'] {
+    color: var(--compose-text);
+    border-color: var(--type-accent);
+    background: color-mix(in srgb, var(--type-accent) 6%, transparent);
+}
+.schedule-compose-types > button[aria-pressed='true'] svg {
+    color: var(--type-accent);
+}
+.schedule-compose-inline {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--compose-muted);
+}
+.schedule-compose-inline svg {
+    color: var(--event-accent);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.schedule-compose-details {
+    border-top: 1px solid var(--compose-line);
+    padding-top: 17px;
+    min-width: 0;
+}
+.schedule-compose-details summary {
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--compose-text);
+    line-height: 1.6;
+}
+.schedule-compose-details summary > span {
+    font-size: 10px;
+    color: var(--compose-muted);
+    font-weight: 400;
+    margin-left: 7px;
+}
+.schedule-compose-details[open] summary {
+    margin-bottom: 16px;
+}
+.schedule-compose-details > .schedule-compose-field {
+    margin-top: 16px;
+}
+.schedule-compose-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+.schedule-compose-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+}
+.schedule-compose-weekdays > button {
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    height: 42px;
+    border: 1px solid var(--compose-line);
+    border-radius: 7px;
+    background: var(--compose-input);
+    color: var(--compose-muted);
+    font-size: 11px;
+    font-weight: 600;
+}
+.schedule-compose-weekdays > button[aria-pressed='true'] {
+    color: var(--color-accent);
+    background: var(--compose-accent);
+    border-color: var(--compose-accent);
+}
+.schedule-compose-duration {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: -10px;
+    font-size: 10px;
+    color: var(--compose-muted);
+}
+.schedule-compose-duration > span {
+    margin-right: 3px;
+}
+.schedule-compose-duration > button {
+    font-size: 10px;
+    color: var(--compose-muted);
+    background: none;
+    border: 1px solid var(--compose-line);
+    border-radius: 5px;
+    padding: 4px 7px;
+}
+.schedule-compose-duration > button[aria-pressed='true'] {
+    color: var(--compose-text);
+    border-color: var(--compose-muted);
+}
+.schedule-compose-divider {
+    height: 1px;
+    background: var(--compose-line);
+    margin: 0;
+}
+.schedule-compose-location-input {
+    position: relative;
+    min-width: 0;
+}
+.schedule-compose-location-input > svg {
+    position: absolute;
+    left: 12px;
+    top: 13px;
+    color: var(--compose-muted);
+}
+.schedule-compose-location-input input {
+    padding-left: 37px;
+}
+.schedule-compose-map-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: -11px;
+    flex-wrap: wrap;
+}
+.schedule-compose-text-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--compose-accent);
+    background: none;
+    border: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+.schedule-compose-muted {
+    color: var(--compose-muted);
+    font-size: 11px;
+    line-height: 1.8;
+}
+.schedule-compose-review {
+    display: grid;
+    gap: 15px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--compose-line);
+}
+.schedule-compose-review > div {
+    display: grid;
+    grid-template-columns: 55px minmax(0, 1fr);
+    gap: 15px;
+    font-size: 12px;
+    line-height: 1.7;
+}
+.schedule-compose-review > div > span {
+    font-size: 11px;
+    color: var(--compose-muted);
+}
+.schedule-compose-review strong {
+    font-weight: 550;
+    overflow-wrap: anywhere;
+}
+.schedule-compose-review small {
+    display: block;
+    font-size: 11px;
+    color: var(--compose-muted);
+    font-weight: 400;
+    margin-top: 2px;
+}
+.schedule-compose-sharing {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+.schedule-compose-sharing > button {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    text-align: left;
+    min-width: 0;
+    padding: 15px 12px;
+    border: 1px solid var(--compose-line);
+    border-radius: 8px;
+    background: var(--compose-input);
+    color: var(--compose-muted);
+}
+.schedule-compose-sharing svg {
+    flex-shrink: 0;
+}
+.schedule-compose-sharing strong {
+    font-size: 12px;
+    color: var(--compose-text);
+    font-weight: 600;
+    display: block;
+}
+.schedule-compose-sharing small {
+    font-size: 10px;
+    line-height: 1.7;
+    display: block;
+    margin-top: 4px;
+}
+.schedule-compose-sharing > button[aria-pressed='true'] {
+    border-color: var(--compose-accent);
+}
+.schedule-compose-sharing > button[aria-pressed='true'] > svg {
+    color: var(--compose-accent);
+}
+.schedule-compose-sharing > button > svg:last-child:not(:first-child) {
+    width: 13px;
+    margin-left: auto;
+}
+.schedule-compose-checkbox {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 12px;
+    color: var(--compose-text);
+}
+.schedule-compose-checkbox input {
+    accent-color: var(--compose-accent);
+    width: 15px;
+    height: 15px;
+}
+.schedule-compose-privacy {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    color: var(--compose-muted);
+}
+.schedule-compose-privacy svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.schedule-compose-privacy strong {
+    font-size: 13px;
+    color: var(--compose-text);
+    font-weight: 600;
+}
+.schedule-compose-privacy p {
+    font-size: 11px;
+    line-height: 1.8;
+    margin-top: 5px;
+}
+.schedule-compose-preview {
+    position: sticky;
+    top: 0;
+    display: grid;
+    gap: 17px;
+    min-width: 0;
+}
+.schedule-compose-preview-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 9px;
+    color: var(--compose-muted);
+    letter-spacing: 0.07em;
+    font-weight: 550;
+}
+.schedule-compose-preview-heading > span:last-child {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    letter-spacing: 0;
+    color: var(--compose-accent);
+    font-size: 10px;
+}
+.schedule-compose-preview-heading i {
+    width: 5px;
+    height: 5px;
+    background: currentColor;
+    border-radius: 50%;
+}
+.schedule-compose-event-card {
+    border: 1px solid var(--compose-line);
+    border-top: 3px solid var(--event-accent);
+    border-radius: 10px;
+    background: var(--compose-card);
+    padding: 18px 17px 0;
+    overflow: hidden;
+}
+.schedule-compose-event-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: center;
+    color: var(--event-accent);
+    font-size: 10px;
+    font-weight: 600;
+    margin-bottom: 11px;
+}
+.schedule-compose-event-card h3 {
+    font-size: 20px;
+    line-height: 1.45;
+    letter-spacing: -0.025em;
+    font-weight: 650;
+    margin-bottom: 18px;
+    overflow-wrap: anywhere;
+}
+.schedule-compose-event-card > p {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--compose-muted);
+    margin-top: 12px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+.schedule-compose-event-card > p > svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.schedule-compose-event-card > p > small {
+    font-size: 9px;
+    margin-left: auto;
+    white-space: nowrap;
+}
+.schedule-compose-event-card footer {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border-top: 1px solid var(--compose-line);
+    margin: 19px -17px 0;
+    padding: 12px 14px;
+    font-size: 9px;
+    color: var(--compose-muted);
+}
+.schedule-compose-event-card footer > span {
+    margin-left: auto;
+    font-size: 9px;
+}
+.schedule-compose-next {
+    padding: 1px 2px 0;
+}
+.schedule-compose-next h4 {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 13px;
+}
+.schedule-compose-next ol {
+    display: grid;
+    gap: 12px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.schedule-compose-next li {
+    display: flex;
+    gap: 11px;
+    align-items: flex-start;
+}
+.schedule-compose-next li > span {
+    font-size: 9px;
+    color: var(--compose-muted);
+    padding-top: 3px;
+}
+.schedule-compose-next strong {
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.7;
+}
+.schedule-compose-next small {
+    display: block;
+    font-size: 10px;
+    color: var(--compose-muted);
+    margin-top: 2px;
+}
+.schedule-compose-next > p {
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--compose-muted);
+}
+.schedule-compose-preview-note {
+    font-size: 10px;
+    line-height: 1.8;
+    color: var(--compose-muted);
+    border-top: 1px solid var(--compose-line);
+    padding-top: 15px;
+}
+.schedule-compose-notice,
+.schedule-compose-error {
+    padding: 13px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 11px;
+    border: 1px solid var(--compose-line);
+    background: var(--compose-card);
+    border-radius: 9px;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--compose-muted);
+}
+.schedule-compose-notice svg {
+    flex-shrink: 0;
+    margin-top: 3px;
+    color: var(--compose-accent);
+}
+.schedule-compose-notice strong {
+    color: var(--compose-text);
+    font-weight: 600;
+}
+.schedule-compose-error {
+    border-color: color-mix(in srgb, var(--color-danger) 50.2%, transparent);
+    color: var(--fc-state-danger, var(--color-danger));
+    background: color-mix(in srgb, var(--color-danger) 3.14%, transparent);
+}
+.schedule-compose-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    flex-shrink: 0;
+    padding: 17px 25px;
+    border-top: 1px solid var(--compose-line);
+    background: var(--compose-bg);
+}
+.schedule-compose-footer > p {
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--compose-muted);
+    max-width: 280px;
+}
+.schedule-compose-footer > div {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.schedule-compose-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 40px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 9px 14px;
+    border: 1px solid var(--compose-line);
+    border-radius: 8px;
+    color: var(--compose-text);
+    background: transparent;
+    white-space: nowrap;
+}
+.schedule-compose-button.primary {
+    background: var(--compose-accent);
+    border-color: var(--compose-accent);
+    color: var(--color-accent);
+}
+.schedule-compose-button.danger {
+    color: var(--fc-state-danger, var(--color-danger));
+    border-color: transparent;
+    font-size: 11px;
+}
+.schedule-compose button:hover:not(:disabled) {
+    filter: brightness(1.1);
+}
+@media (max-width: 1050px) {
+    .schedule-compose-backdrop {
+        padding: 18px;
+    }
+    .schedule-compose {
+        max-height: calc(100dvh - 36px);
+    }
+    .schedule-compose-columns {
+        grid-template-columns: minmax(0, 1fr) 240px;
+        gap: 20px;
+    }
+    .schedule-compose-card-body {
+        padding: 20px;
+    }
+    .schedule-compose-sharing {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .schedule-compose-footer > p {
+        max-width: 220px;
+    }
+}
+@media (max-width: 767px) {
+    .schedule-compose-backdrop {
+        padding: 0;
+        backdrop-filter: none;
+        align-items: stretch;
+    }
+    .schedule-compose {
+        height: 100%;
+        max-height: 100dvh;
+        width: 100%;
+        border: 0;
+        border-radius: 0;
+    }
+    .schedule-compose-header {
+        padding: 18px 18px 17px;
+    }
+    .schedule-compose-context {
+        font-size: 10px;
+        margin-bottom: 9px;
+    }
+    .schedule-compose-header h2 {
+        font-size: 25px;
+    }
+    .schedule-compose-header p {
+        font-size: 11px;
+        max-width: 310px;
+    }
+    .schedule-compose-close {
+        width: 36px;
+        height: 36px;
+    }
+    .schedule-compose-steps {
+        padding: 0 18px;
+    }
+    .schedule-compose-steps > button {
+        gap: 7px;
+        padding: 12px 0 13px;
+    }
+    .schedule-compose-steps strong {
+        font-size: 10px;
+    }
+    .schedule-compose-steps > button > svg {
+        display: none;
+    }
+    .schedule-compose-steps > button > span {
+        width: 22px;
+        height: 22px;
+        font-size: 10px;
+    }
+    .schedule-compose-body {
+        padding: 19px 16px 25px;
+    }
+    .schedule-compose-columns {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 25px;
+    }
+    .schedule-compose-card > header {
+        padding: 17px;
+        gap: 10px;
+    }
+    .schedule-compose-card h3 {
+        font-size: 15px;
+    }
+    .schedule-compose-card > header p {
+        font-size: 10px;
+    }
+    .schedule-compose-card-body {
+        padding: 18px 16px;
+        gap: 21px;
+    }
+    .schedule-compose-modes {
+        gap: 9px;
+    }
+    .schedule-compose-modes > button {
+        padding: 15px 12px;
+        gap: 9px;
+    }
+    .schedule-compose-modes strong {
+        font-size: 12px;
+    }
+    .schedule-compose-modes small {
+        font-size: 10px;
+    }
+    .schedule-compose-types > button {
+        min-height: 42px;
+        padding: 9px 10px;
+    }
+    .schedule-compose-field :is(input, select, textarea) {
+        font-size: 16px;
+        min-height: 44px;
+    }
+    .schedule-compose-field textarea {
+        font-size: 14px;
+    }
+    .schedule-compose-row {
+        gap: 11px;
+    }
+    .schedule-compose-weekdays {
+        gap: 4px;
+    }
+    .schedule-compose-weekdays > button {
+        height: 44px;
+        font-size: 10px;
+    }
+    .schedule-compose-duration {
+        gap: 6px;
+    }
+    .schedule-compose-duration > button {
+        min-height: 32px;
+        padding: 6px;
+    }
+    .schedule-compose-field small {
+        font-size: 10px;
+    }
+    .schedule-compose-map-actions {
+        margin-top: -9px;
+    }
+    .schedule-compose-text-button {
+        min-height: 36px;
+    }
+    .schedule-compose-preview {
+        position: static;
+    }
+    .schedule-compose-event-card h3 {
+        font-size: 22px;
+    }
+    .schedule-compose-preview-note {
+        font-size: 11px;
+    }
+    .schedule-compose-footer {
+        padding: 12px 14px max(12px, env(safe-area-inset-bottom));
+        gap: 7px;
+        flex-wrap: wrap;
+    }
+    .schedule-compose-footer > p {
+        display: none;
+    }
+    .schedule-compose-footer > div {
+        width: 100%;
+        justify-content: flex-end;
+        gap: 7px;
+        flex-wrap: wrap;
+    }
+    .schedule-compose-button {
+        min-height: 44px;
+        font-size: 11px;
+        padding: 9px 12px;
+    }
+    .schedule-compose-button.primary {
+        flex: 1;
+    }
+    .schedule-compose-sharing {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .schedule-compose-next li {
+        gap: 14px;
+    }
+    .schedule-compose-review > div {
+        gap: 12px;
+        grid-template-columns: 45px minmax(0, 1fr);
+    }
+}
+@media (max-width: 359px) {
+    .schedule-compose-header h2 {
+        font-size: 23px;
+    }
+    .schedule-compose-steps {
+        padding-inline: 14px;
+    }
+    .schedule-compose-steps strong {
+        font-size: 9px;
+    }
+    .schedule-compose-body {
+        padding-inline: 12px;
+    }
+    .schedule-compose-card-body {
+        padding-inline: 13px;
+    }
+    .schedule-compose-weekdays > button {
+        font-size: 9px;
+    }
+    .schedule-compose-footer .schedule-compose-button {
+        padding-inline: 9px;
+        font-size: 10px;
+    }
+    .schedule-compose-types {
+        gap: 6px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .schedule-compose * {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+.workspace-light .schedule-compose {
+    --compose-muted: var(--fc-text-secondary, var(--color-muted));
+}

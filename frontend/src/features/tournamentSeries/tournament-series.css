@@ -1,0 +1,17 @@
+.ts-panel { margin-block: 1.5rem; padding: 1.25rem; border: 1px solid var(--border-color, var(--color-border)); border-radius: 16px; background: var(--card-bg, transparent); color: inherit; }
+.ts-panel h2, .ts-panel h3 { margin: 0 0 .5rem; }
+.ts-panel p { line-height: 1.5; margin: .5rem 0 1rem; }
+.ts-edition { padding-block: 1rem; border-top: 1px solid var(--border-color, var(--color-border)); }
+.ts-edition ul { padding: 0; list-style: none; }
+.ts-edition li { display: flex; justify-content: space-between; gap: 1rem; padding-block: .6rem; flex-wrap: wrap; }
+.ts-edition a { color: inherit; font-weight: 600; }
+.ts-edition li span { font-size: .85rem; opacity: .8; }
+.ts-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.ts-panel button { border: 1px solid var(--border-color, var(--color-border)); background: transparent; color: inherit; border-radius: 8px; padding: .55rem .8rem; cursor: pointer; }
+.ts-panel button:disabled { opacity: .5; cursor: wait; }
+.ts-panel button:focus-visible, .ts-panel input:focus-visible, .ts-panel textarea:focus-visible, .ts-panel select:focus-visible { outline: 2px solid var(--color-primary, var(--color-accent)); outline-offset: 2px; }
+.ts-form { border-top: 1px solid var(--border-color, var(--color-border)); padding-top: 1rem; display: grid; gap: 1rem; }
+.ts-form label { display: grid; gap: .4rem; }
+.ts-form input, .ts-form textarea, .ts-form select { min-width: 0; width: 100%; box-sizing: border-box; border-radius: 8px; border: 1px solid var(--border-color, var(--color-border)); background: var(--input-bg, var(--color-elevated)); color: var(--text-primary, var(--color-text)); padding: .7rem; }
+.ts-form textarea { min-height: 80px; }
+.ts-panel [role="alert"] { color: var(--state-error, var(--color-danger)); }

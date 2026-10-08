@@ -6,6 +6,8 @@ export interface MyTryoutApplication {
     tryoutTitle: string;
     status: string;
     appliedAt: string;
+    tryoutLifecycleStatus?: string | null;
+    cancelledAt?: string | null;
 }
 
 export interface TryoutApplyResponse {
@@ -16,8 +18,8 @@ export interface TryoutApplyResponse {
     appliedAt: string;
 }
 
-export const fetchMyTryoutApplications = async (): Promise<MyTryoutApplication[]> => {
-    const response = await apiClient.get<MyTryoutApplication[]>('/tryouts/my-applications');
+export const fetchMyTryoutApplications = async (signal?: AbortSignal): Promise<MyTryoutApplication[]> => {
+    const response = await apiClient.get<MyTryoutApplication[]>('/tryouts/my-applications', { signal });
     return response.data;
 };
 
@@ -30,6 +32,7 @@ export const applyToTryout = async (tryoutId: number, message?: string): Promise
 };
 
 export interface TryoutDto {
+    status?: string;
     id: number;
     clubId: number;
     title: string;
@@ -39,6 +42,13 @@ export interface TryoutDto {
     gender: string | null;
     tryoutDate: string;
     deadline: string | null;
+}
+
+/** The browse endpoint uses tryoutId; mutation responses use id. */
+export type TryoutBrowseItem = Omit<TryoutDto, 'id' | 'gender'> & { tryoutId: number };
+export function normalizeManagedTryout(item: TryoutBrowseItem): TryoutDto {
+    if (!Number.isSafeInteger(item.tryoutId) || item.tryoutId <= 0) throw new Error('Invalid tryout identity. Reload the sessions.');
+    return { ...item, id: item.tryoutId, gender: null };
 }
 
 /** POST /tryouts — club-owner tryout creation. */
@@ -68,7 +78,7 @@ export const updateTryout = async (tryoutId: number, payload: {
     return response.data;
 };
 
-/** DELETE /tryouts/{id} — club-owner tryout deletion. */
+/** DELETE /tryouts/{id} — cancels the session while preserving application history. */
 export const deleteTryout = async (tryoutId: number): Promise<void> => {
     await apiClient.delete(`/tryouts/${tryoutId}`);
 };

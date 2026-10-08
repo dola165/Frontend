@@ -1,0 +1,479 @@
+.sp-dot {
+    color: var(--sd-accent);
+}
+.sp-directory {
+    padding: 8px 0 24px;
+}
+.sp-directory-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+    margin-bottom: 25px;
+}
+.sp-directory .sp-title {
+    font-size: 36px;
+    font-weight: 750;
+    letter-spacing: -.035em;
+    line-height: 1.15;
+    margin: 8px 0 10px;
+}
+.sp-directory .sd-muted {
+    font-size: 13px;
+}
+.sp-directory-count {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 8px;
+    color: var(--sd-secondary);
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+.sp-directory-search {
+    max-width: 430px;
+    margin-bottom: 22px;
+}
+.sp-squad-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
+    gap: 16px;
+}
+.sp-squad-card {
+    border: 1px solid var(--sd-border);
+    border-radius: 9px;
+    padding: 24px;
+    display: block;
+    color: var(--sd-text);
+    background: var(--sd-surface);
+    text-decoration: none;
+    transition:
+        border-color 150ms,
+        background 150ms;
+}
+.sp-squad-card:hover {
+    background: var(--sd-elevated);
+    border-color: var(--sd-accent);
+}
+.sp-squad-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 28px;
+}
+.sp-category-mark {
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: -1px;
+    font-weight: 750;
+    color: var(--sd-secondary);
+}
+.sp-squad-card-top svg {
+    color: var(--sd-accent);
+}
+.sp-squad-card h3 {
+    margin: 0;
+    font-size: 19px;
+    line-height: 1.3;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+.sp-squad-card > p {
+    color: var(--sd-secondary);
+    font-size: 12px;
+    margin: 9px 0 21px;
+}
+.sp-card-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 16px;
+    border-top: 1px solid var(--sd-border);
+    color: var(--sd-accent);
+    font-size: 12px;
+    font-weight: 600;
+}
+.sp-page {
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 34px 32px 64px;
+    min-height: 100%;
+}
+.sp-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--sd-secondary);
+    text-decoration: none;
+    font-size: 12px;
+}
+.sp-back:hover {
+    color: var(--sd-accent);
+}
+.sp-page-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 30px;
+    padding: 29px 0 28px;
+    margin-bottom: 30px;
+    border-bottom: 1px solid var(--sd-border);
+}
+.sp-page .sp-title {
+    margin: 7px 0 10px;
+    font-size: 46px;
+    line-height: 1.06;
+    letter-spacing: -1.5px;
+    font-weight: 700;
+}
+.sp-club-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--sd-secondary);
+    font-size: 14px;
+}
+.sp-club-line svg {
+    color: var(--sd-accent);
+}
+.sp-page-aside {
+    display: grid;
+    gap: 12px;
+    justify-items: end;
+    max-width: 360px;
+}
+.sp-page-aside > p {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+    color: var(--sd-secondary);
+    font-size: 12px;
+    text-align: right;
+}
+.sp-page-aside > p svg {
+    flex-shrink: 0;
+}
+.sp-layout {
+    display: grid;
+    grid-template-columns: 225px minmax(0, 1fr);
+    gap: 36px;
+    align-items: start;
+}
+.sp-squad-nav {
+    min-width: 0;
+}
+.sp-nav-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px 15px;
+    color: var(--sd-muted);
+    font-size: 11px;
+}
+.sp-nav-heading > span:last-child {
+    font-variant-numeric: tabular-nums;
+}
+.sp-nav-items {
+    display: grid;
+    gap: 5px;
+}
+.sp-nav-items button {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    padding: 15px 13px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: none;
+    color: var(--sd-secondary);
+    width: 100%;
+    cursor: pointer;
+}
+.sp-nav-items button > span {
+    min-width: 0;
+}
+.sp-nav-items button svg {
+    flex-shrink: 0;
+    color: var(--sd-muted);
+}
+.sp-nav-items button:hover {
+    color: var(--sd-text);
+    background: var(--sd-surface);
+}
+.sp-nav-items button.is-active {
+    color: var(--sd-text);
+    background: var(--sd-surface);
+    border-color: var(--sd-border);
+    box-shadow: inset 3px 0 0 var(--sd-accent);
+}
+.sp-nav-items button.is-active svg {
+    color: var(--sd-accent);
+}
+.sp-nav-items strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.sp-nav-items small {
+    display: block;
+    font-size: 11px;
+    margin-top: 6px;
+    color: var(--sd-muted);
+}
+.sp-roster-main {
+    min-width: 0;
+}
+.sp-roster-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.sp-roster-heading h2 {
+    font-size: 28px;
+    font-weight: 650;
+    line-height: 1.2;
+    margin: 7px 0 11px;
+    letter-spacing: -0.6px;
+}
+.sp-roster-count {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--sd-secondary);
+    font-size: 12px;
+}
+.sp-roster-management {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sp-roster-management .sd-primary {
+    margin-left: 6px;
+}
+.sp-toolbar {
+    margin-bottom: 22px;
+    gap: 10px;
+}
+.sp-toolbar .sd-search {
+    flex: 1 1 230px;
+}
+.sp-toolbar .sd-segments {
+    flex-shrink: 0;
+}
+.sp-position-filter {
+    min-height: 40px;
+    border: 1px solid var(--sd-border);
+    border-radius: 6px;
+    background: var(--sd-surface);
+    padding: 8px 30px 8px 11px;
+    color: var(--sd-secondary);
+    font-size: 12px;
+    max-width: 190px;
+}
+.sp-filter-summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    color: var(--sd-secondary);
+    font-size: 12px;
+}
+.sp-filter-summary .sd-button {
+    font-size: 11px;
+    min-height: 29px;
+}
+.sp-alert {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 15px;
+    margin-bottom: 24px;
+    background: var(--state-danger-soft);
+    border: 1px solid var(--state-danger);
+    color: var(--state-danger);
+    border-radius: 6px;
+    font-size: 13px;
+}
+.sp-squad-edit {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr;
+    gap: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    background: var(--sd-surface);
+    border: 1px solid var(--sd-border);
+    border-radius: 7px;
+}
+.sp-squad-edit label {
+    display: grid;
+    gap: 7px;
+    color: var(--sd-secondary);
+    font-size: 12px;
+}
+.sp-squad-edit input,
+.sp-squad-edit select {
+    width: 100%;
+    border: 1px solid var(--sd-border);
+    border-radius: 5px;
+    background: var(--sd-bg);
+    color: var(--sd-text);
+    padding: 9px 10px;
+    font-size: 13px;
+}
+.sp-squad-edit > div {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    grid-column: 1/-1;
+}
+@media (max-width: 1000px) {
+    .sp-page {
+        padding: 26px 22px 50px;
+    }
+    .sp-layout {
+        grid-template-columns: 190px minmax(0, 1fr);
+        gap: 24px;
+    }
+    .sp-roster-heading {
+        align-items: flex-start;
+    }
+    .sp-roster-management {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    .sp-roster-management .sd-primary {
+        margin-left: 0;
+    }
+}
+@media (max-width: 760px) {
+    .sp-directory-heading {
+        align-items: flex-start;
+    }
+    .sp-directory-count {
+        margin-top: 5px;
+    }
+    .sp-squad-cards {
+        grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+        gap: 12px;
+    }
+    .sp-page {
+        padding: 22px 16px 45px;
+    }
+    .sp-page-heading {
+        align-items: flex-start;
+        gap: 18px;
+        padding: 23px 0;
+        margin-bottom: 18px;
+    }
+    .sp-page .sp-title {
+        font-size: 36px;
+    }
+    .sp-page-aside {
+        max-width: 170px;
+    }
+    .sp-page-aside > p {
+        display: none;
+    }
+    .sp-page-aside .sd-button {
+        font-size: 11px;
+    }
+    .sp-layout {
+        display: block;
+    }
+    .sp-squad-nav {
+        margin-bottom: 25px;
+    }
+    .sp-nav-heading {
+        padding: 0 0 12px;
+    }
+    .sp-nav-items {
+        display: flex;
+        overflow-x: auto;
+        padding: 1px 1px 7px;
+        gap: 8px;
+        scroll-snap-type: x proximity;
+    }
+    .sp-nav-items button {
+        min-width: 160px;
+        width: auto;
+        flex: 0 0 auto;
+        border-color: var(--sd-border);
+        padding: 12px;
+        scroll-snap-align: start;
+    }
+    .sp-nav-items button svg {
+        display: none;
+    }
+    .sp-nav-items button.is-active {
+        box-shadow: inset 0 -2px 0 var(--sd-accent);
+    }
+    .sp-roster-heading h2 {
+        font-size: 25px;
+    }
+    .sp-roster-management .sd-primary {
+        font-size: 11px;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    .sp-position-filter {
+        max-width: none;
+        flex: 1 1 auto;
+    }
+    .sp-toolbar .sd-search {
+        flex-basis: 100%;
+    }
+    .sp-squad-edit {
+        grid-template-columns: 1fr 1fr;
+        padding: 15px;
+    }
+    .sp-squad-edit label:first-child {
+        grid-column: 1/-1;
+    }
+    .sp-squad-edit input,
+    .sp-squad-edit select,
+    .sp-position-filter {
+        font-size: 16px;
+    }
+}
+@media (max-width: 430px) {
+    .sp-directory-heading {
+        display: block;
+    }
+    .sp-directory-count {
+        margin-top: 15px;
+    }
+    .sp-page-heading {
+        display: block;
+    }
+    .sp-page-aside {
+        max-width: none;
+        justify-items: start;
+        margin-top: 15px;
+    }
+    .sp-roster-heading {
+        flex-wrap: wrap;
+    }
+    .sp-roster-management {
+        justify-content: flex-start;
+        width: 100%;
+    }
+    .sp-roster-management .sd-primary {
+        margin-left: auto;
+    }
+    .sp-squad-card {
+        padding: 21px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .sp-squad-card {
+        transition: none;
+    }
+}
+

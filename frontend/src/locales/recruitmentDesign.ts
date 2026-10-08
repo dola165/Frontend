@@ -1,0 +1,96 @@
+import { useTranslation } from 'react-i18next';
+
+export const recruitmentDesignEn = {
+    recruitment: 'Recruitment', applications: 'Applications', tryouts: 'Tryouts', players: 'Players & trials', squads: 'Squads',
+    applicationsIntro: 'Meet the people who want to join your club. Review their details, then send a decision.',
+    tryoutsIntro: 'Bring new players onto the pitch. Manage your sessions and review who is ready for a trial.',
+    applicationsStep: 'Review applications', tryoutsStep: 'Manage tryouts', playersStep: 'Review trialists', squadsStep: 'Build your squads',
+    workflow: 'Recruitment navigation', searchApplicants: 'Search applicants', job: 'Job', allApplications: 'All applications',
+    pending: 'Needs review', accepted: 'Accepted', declined: 'Declined', cancelled: 'Cancelled', rejected: 'Declined', shortlisted: 'Shortlisted',
+    loadedApplications: 'Applications in this view', awaitingDecision: 'Awaiting a decision', playerApplications: 'Player applications', jobApplications: 'Job applications',
+    applicant: 'Applicant', opportunity: 'Applying for', submitted: 'Submitted', status: 'Status', review: 'Review',
+    applicationDetails: 'Application details', message: 'Message from the applicant', noMessage: 'No message included.',
+    generalApplication: 'Club membership', playerNext: 'Accepting a player application starts a club trial. Review their progress in Players before adding them to a squad.',
+    staffNext: 'Accepting a job application keeps an existing staff member’s current permissions.',
+    close: 'Close', accept: 'Accept', decline: 'Decline', decisionComplete: 'Decision complete', retry: 'Try again', inviteExpires: 'Invitation expires {{date}}',
+    emptyApplications: 'No applications here yet', emptyApplicationsIntro: 'Applications matching these filters will appear here.',
+    clearFilters: 'Clear filters', results: '{{count}} applicants', recently: 'Recently',
+    postedSessions: 'Posted sessions', openSessions: 'Open for applications', reviewApplicants: 'Applicants to review',
+    sessions: 'Tryout sessions', postTryout: 'Post a tryout', noTryouts: 'Your next player could start here',
+    noTryoutsIntro: 'Post a session with a date, the players you are looking for, and what they should bring.',
+    open: 'Open', closed: 'Completed', expired: 'Applications closed', deadline: 'Apply by {{date}}',
+    noDeadline: 'No application deadline', allPositions: 'All positions', allAges: 'All ages', edit: 'Edit',
+    editTryout: 'Edit tryout', newTryout: 'New tryout', editNamed: 'Edit {{name}}', deleteNamed: 'Cancel {{name}}',
+    deleteTryout: 'Cancel tryout', deleteMessage: 'Cancel “{{name}}”? Affected applicants will be notified. Application history and accepted decisions are retained.',
+    deleting: 'Cancelling…', keepTryout: 'Keep tryout', failed: 'Tryout action failed',
+    applicantReview: 'Applicant review', applicantReviewIntro: 'Accept a player to start their club trial, with a note about what comes next.',
+    allStatuses: 'All statuses', position: 'Position', ageGroup: 'Age group',
+    noApplicants: 'No tryout applications to review', noApplicantsIntro: 'Players who apply to your club’s tryouts will appear here.',
+    noMatches: 'No applicants match your search', noMatchesIntro: 'Try a different name or clear your filters.',
+    title: 'Tryout title', date: 'Tryout date', deadlineLabel: 'Application deadline', optional: 'Optional',
+    description: 'Session details', descriptionHint: 'Where to meet, what to bring, and what players can expect.',
+    saveTryout: 'Save tryout', cancel: 'Cancel', sessionDetails: 'Session details', sessionTiming: 'Date & applications',
+    formIntro: 'Give players the details they need to arrive ready.', saving: 'Saving…',
+    nextStep: 'The next step', trialNext: 'Accepted players join your club as trialists. Manage their trial and squad placement in Players.',
+    noteHint: 'Share the details the applicant needs for their next step.',
+    journey: 'Your club journey', journeyIntro: 'Your applications, invitations and next steps, together.',
+    invitationNext: 'A club wants you on board', invitationHint: 'Review the invitation and let them know your decision.',
+    yourClubs: 'Your clubs', trialHint: 'Your trial is underway. Check the club’s instructions and trial end date.',
+    activeHint: 'You are part of this club.', waitingHint: 'The club will review your application and send a decision.',
+    acceptedTryoutHint: 'You have been accepted. Check the club’s note for your next steps.',
+    consentPending: 'Parental consent pending', viewClub: 'View club', selectApplicant: 'Select {{name}}',
+    OWNER: 'Owner', CLUB_ADMIN: 'Club admin', COACH: 'Coach', PLAYER: 'Player',
+} as const;
+
+export const recruitmentDesignKa: Record<keyof typeof recruitmentDesignEn, string> = {
+    recruitment: 'შერჩევა', applications: 'განაცხადები', tryouts: 'სინჯები', players: 'მოთამაშეები და სინჯები', squads: 'გუნდები',
+    applicationsIntro: 'გაიცანით კლუბში გაწევრიანების მსურველები. გადახედეთ მათ მონაცემებს და აცნობეთ გადაწყვეტილება.',
+    tryoutsIntro: 'მოიწვიეთ ახალი მოთამაშეები მოედანზე. მართეთ სინჯები და განიხილეთ განაცხადები.',
+    applicationsStep: 'განაცხადების განხილვა', tryoutsStep: 'სინჯების მართვა', playersStep: 'საცდელი მოთამაშეები', squadsStep: 'გუნდების დაკომპლექტება',
+    workflow: 'შერჩევის ნავიგაცია', searchApplicants: 'მოძებნეთ განმცხადებელი', job: 'ვაკანსია', allApplications: 'ყველა განაცხადი',
+    pending: 'განსახილველი', accepted: 'მიღებულია', declined: 'უარყოფილია', cancelled: 'გაუქმებულია', rejected: 'უარყოფილია', shortlisted: 'შერჩეულია',
+    loadedApplications: 'განაცხადები ამ ხედში', awaitingDecision: 'ელოდება გადაწყვეტილებას', playerApplications: 'მოთამაშეთა განაცხადები', jobApplications: 'ვაკანსიის განაცხადები',
+    applicant: 'განმცხადებელი', opportunity: 'განაცხადის მიზანი', submitted: 'გამოგზავნილია', status: 'სტატუსი', review: 'განხილვა',
+    applicationDetails: 'განაცხადის დეტალები', message: 'განმცხადებლის შეტყობინება', noMessage: 'შეტყობინება არ არის.',
+    generalApplication: 'კლუბის წევრობა', playerNext: 'მოთამაშის მიღებით იწყება საცდელი პერიოდი. გუნდში დამატებამდე შეაფასეთ მისი პროგრესი მოთამაშეების გვერდზე.',
+    staffNext: 'ვაკანსიაზე მიღებისას კლუბის არსებული თანამშრომელი ინარჩუნებს მიმდინარე უფლებებს.',
+    close: 'დახურვა', accept: 'მიღება', decline: 'უარყოფა', decisionComplete: 'გადაწყვეტილება მიღებულია', retry: 'ხელახლა ცდა', inviteExpires: 'მოწვევის ვადა: {{date}}',
+    emptyApplications: 'აქ ჯერ განაცხადები არ არის', emptyApplicationsIntro: 'ამ ფილტრების შესაბამისი განაცხადები აქ გამოჩნდება.',
+    clearFilters: 'ფილტრების გასუფთავება', results: '{{count}} განმცხადებელი', recently: 'ახლახან',
+    postedSessions: 'გამოქვეყნებული სინჯები', openSessions: 'განაცხადების მიღება ღიაა', reviewApplicants: 'განსახილველი განაცხადები',
+    sessions: 'სინჯების სესიები', postTryout: 'სინჯის გამოქვეყნება', noTryouts: 'თქვენი შემდეგი მოთამაშე შეიძლება აქედან დაიწყოს',
+    noTryoutsIntro: 'გამოაქვეყნეთ სინჯის თარიღი, სასურველი მოთამაშეების მონაცემები და მოსატანი ნივთების სია.',
+    open: 'ღიაა', closed: 'დასრულებულია', expired: 'განაცხადების მიღება დასრულდა', deadline: 'განაცხადის ვადა: {{date}}',
+    noDeadline: 'განაცხადის ვადა არ არის მითითებული', allPositions: 'ყველა პოზიცია', allAges: 'ყველა ასაკი', edit: 'რედაქტირება',
+    editTryout: 'სინჯის რედაქტირება', newTryout: 'ახალი სინჯი', editNamed: '{{name}} — რედაქტირება', deleteNamed: '{{name}} — გაუქმება',
+    deleteTryout: 'სინჯის გაუქმება', deleteMessage: 'გაუქმდეს „{{name}}“? შესაბამის განმცხადებლებს ეცნობებათ. განაცხადების ისტორია და მიღების გადაწყვეტილებები შენარჩუნდება.',
+    deleting: 'უქმდება…', keepTryout: 'სინჯის შენარჩუნება', failed: 'სინჯის მოქმედება ვერ შესრულდა',
+    applicantReview: 'განაცხადების განხილვა', applicantReviewIntro: 'მიიღეთ მოთამაშე საცდელ პერიოდზე და გაუგზავნეთ შემდეგი ნაბიჯების აღწერა.',
+    allStatuses: 'ყველა სტატუსი', position: 'პოზიცია', ageGroup: 'ასაკობრივი ჯგუფი',
+    noApplicants: 'განსახილველი განაცხადები არ არის', noApplicantsIntro: 'კლუბის სინჯებზე შემოსული განაცხადები აქ გამოჩნდება.',
+    noMatches: 'განმცხადებლები ვერ მოიძებნა', noMatchesIntro: 'სცადეთ სხვა სახელი ან გაასუფთავეთ ფილტრები.',
+    title: 'სინჯის სათაური', date: 'სინჯის თარიღი', deadlineLabel: 'განაცხადის ბოლო ვადა', optional: 'არასავალდებულო',
+    description: 'სესიის დეტალები', descriptionHint: 'სად შეიკრიბონ, რა მოიტანონ და რას უნდა ელოდონ მოთამაშეები.',
+    saveTryout: 'სინჯის შენახვა', cancel: 'გაუქმება', sessionDetails: 'სესიის დეტალები', sessionTiming: 'თარიღი და განაცხადები',
+    formIntro: 'მიაწოდეთ მოთამაშეებს ყველა საჭირო დეტალი.', saving: 'ინახება…',
+    nextStep: 'შემდეგი ნაბიჯი', trialNext: 'მიღებული მოთამაშე კლუბში საცდელ პერიოდს იწყებს. მართეთ მისი სინჯი და გუნდში განაწილება მოთამაშეების გვერდზე.',
+    noteHint: 'გაუზიარეთ განმცხადებელს შემდეგი ნაბიჯისთვის საჭირო დეტალები.',
+    journey: 'თქვენი გზა კლუბში', journeyIntro: 'თქვენი განაცხადები, მოწვევები და შემდეგი ნაბიჯები ერთ ადგილას.',
+    invitationNext: 'კლუბს თქვენი მიღება სურს', invitationHint: 'გადახედეთ მოწვევას და აცნობეთ გადაწყვეტილება.',
+    yourClubs: 'თქვენი კლუბები', trialHint: 'თქვენი საცდელი პერიოდი მიმდინარეობს. ნახეთ კლუბის მითითებები და დასრულების თარიღი.',
+    activeHint: 'თქვენ ამ კლუბის წევრი ხართ.', waitingHint: 'კლუბი განიხილავს თქვენს განაცხადს და გაცნობებთ გადაწყვეტილებას.',
+    acceptedTryoutHint: 'თქვენ მიღებული ხართ. შემდეგი ნაბიჯებისთვის ნახეთ კლუბის შეტყობინება.',
+    consentPending: 'მშობლის თანხმობის მოლოდინში', viewClub: 'კლუბის ნახვა', selectApplicant: '{{name}} — არჩევა',
+    OWNER: 'მფლობელი', CLUB_ADMIN: 'კლუბის ადმინისტრატორი', COACH: 'მწვრთნელი', PLAYER: 'მოთამაშე',
+};
+
+export const useRecruitmentCopy = () => {
+    const { t } = useTranslation();
+    return (key: keyof typeof recruitmentDesignEn, values: Record<string, string | number> = {}) =>
+        t(`recruitmentDesign.${key}`, { defaultValue: recruitmentDesignEn[key], ...values });
+};
+
+export const recruitmentStatusKey = (status: string) => {
+    const key = status.toLowerCase();
+    return key in recruitmentDesignEn ? key as keyof typeof recruitmentDesignEn : null;
+};

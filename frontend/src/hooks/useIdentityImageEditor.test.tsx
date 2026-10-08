@@ -1,0 +1,63 @@
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { useIdentityImageEditor } from './useIdentityImageEditor';
+import { apiClient } from '../api/axiosConfig';
+import { prepareCropSource, getCroppedImg } from '../utils/cropImageHelper';
+vi.mock('../api/axiosConfig', () => ({ apiClient: { post: vi.fn() } }));
+vi.mock('../utils/cropImageHelper', () => ({ prepareCropSource: vi.fn(), getCroppedImg: vi.fn() }));
+const crop = { x: 0, y: 0, width: 800, height: 800 };
+beforeEach(() => {
+    vi.clearAllMocks();
+    URL.revokeObjectURL = vi.fn();
+    vi.mocked(prepareCropSource).mockResolvedValue('blob:photo');
+    vi.mocked(getCroppedImg).mockResolvedValue(new File(['jpg'], 'avatar.jpg', { type: 'image/jpeg' }));
+    vi.mocked(apiClient.post).mockResolvedValue({ data: { url: '/uploads/portrait.jpg' } });
+});
+it('uses the supported profile context, saves the returned URL and releases the source', async () => {
+    const save = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useIdentityImageEditor(save));
+    await act(() => result.current.select(new File(['png'], 'photo.png'), 'avatar'));
+    await act(() => result.current.save(crop));
+    expect(apiClient.post).toHaveBeenCalledWith('/media/upload', expect.any(FormData), { params: { context: 'profile' } });
+    expect(save).toHaveBeenCalledWith('avatar', '/uploads/portrait.jpg');
+    expect(result.current.source).toBeNull();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:photo');
+});
+it('retains the crop after save failure, never automatically retries, and permits explicit retry', async () => {
+    const save = vi.fn().mockRejectedValueOnce({ response: { data: { error: 'Permission changed.' } } }).mockResolvedValue(undefined);
+    const { result } = renderHook(() => useIdentityImageEditor(save));
+    await act(() => result.current.select(new File(['png'], 'photo.png'), 'banner'));
+    await act(() => result.current.save(crop));
+    expect(result.current.error).toBe('Permission changed.');
+    expect(result.current.source?.imageUrl).toBe('blob:photo');
+    expect(apiClient.post).toHaveBeenCalledTimes(1);
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    await act(() => result.current.save(crop));
+    expect(result.current.source).toBeNull();
+});
+it('releases replacement, cancelled and unmounted sources', async () => {
+    const { result, unmount } = renderHook(() => useIdentityImageEditor(vi.fn()));
+    await act(() => result.current.select(new File(['png'], 'a.png'), 'logo'));
+    vi.mocked(prepareCropSource).mockResolvedValue('blob:second');
+    await act(() => result.current.select(new File(['png'], 'b.png'), 'logo'));
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:photo');
+    act(() => result.current.close());
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:second');
+    await act(() => result.current.select(new File(['png'], 'b.png'), 'logo'));
+    unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(3);
+});
+it('blocks duplicate save and does not attach an upload after navigation', async () => {
+    let resolve!: (value: { data: { url: string } }) => void;
+    vi.mocked(apiClient.post).mockReturnValue(new Promise(done => { resolve = done; }));
+    const save = vi.fn();
+    const { result, rerender } = renderHook(({ scope }) => useIdentityImageEditor(save, scope), { initialProps: { scope: 'user:1' } });
+    await act(() => result.current.select(new File(['png'], 'photo.png'), 'avatar'));
+    let pending!: Promise<void>;
+    act(() => { pending = result.current.save(crop); void result.current.save(crop); });
+    await waitFor(() => expect(apiClient.post).toHaveBeenCalledTimes(1));
+    rerender({ scope: 'user:2' });
+    await act(async () => { resolve({ data: { url: '/uploads/old.jpg' } }); await pending; });
+    expect(save).not.toHaveBeenCalled();
+    expect(result.current.source).toBeNull();
+    expect(result.current.uploading).toBeNull();
+});

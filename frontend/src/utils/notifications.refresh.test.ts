@@ -11,7 +11,7 @@ it('shares one bounded timer and pauses while hidden or offline', () => {
     const stopFirst = subscribeNotificationsChanged(first);
     const stopSecond = subscribeNotificationsChanged(second);
     expect(vi.getTimerCount()).toBe(1);
-    vi.advanceTimersByTime(30_000);
+    vi.advanceTimersByTime(5_000);
     expect(first).toHaveBeenCalledTimes(1); expect(second).toHaveBeenCalledTimes(1);
     Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
     vi.advanceTimersByTime(60_000);
@@ -20,7 +20,7 @@ it('shares one bounded timer and pauses while hidden or offline', () => {
     document.dispatchEvent(new Event('visibilitychange'));
     expect(first).toHaveBeenCalledTimes(2);
     Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
-    vi.advanceTimersByTime(30_000);
+    vi.advanceTimersByTime(5_000);
     expect(first).toHaveBeenCalledTimes(2);
     stopFirst(); stopFirst(); stopSecond();
     expect(vi.getTimerCount()).toBe(0);

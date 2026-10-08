@@ -25,12 +25,12 @@ export const ClubDirectoryCard = ({
     onApply,
     onFollowToggle
 }: ClubDirectoryCardProps) => (
-    <article className="flex min-w-0 flex-col gap-4 rounded-xl border border-[#ffffff0d] bg-[#16181d] p-4">
+    <article className="club-directory-card flex min-w-0 flex-col gap-4 rounded-xl border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] p-4">
         <ClubDirectoryIdentity club={club} variant="card" />
-        <p className="line-clamp-2 min-h-[3rem] text-sm leading-6 text-[#a1a1aa]">{club.description || 'No club summary provided yet.'}</p>
-        <div className="flex flex-wrap items-center gap-4 text-[11px] font-medium text-[#a1a1aa]">
-            <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-[#16a34a]" />{getClubLocation(club)}</span>
-            <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-[#16a34a]" />{club.memberCount} members</span>
+        <p className="line-clamp-2 min-h-[3rem] text-sm leading-6 text-[var(--color-secondary)]">{club.description || 'No club summary provided yet.'}</p>
+        <div className="flex flex-wrap items-center gap-4 text-[11px] font-medium text-[var(--color-secondary)]">
+            <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-[var(--color-accent)]" />{getClubLocation(club)}</span>
+            <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-[var(--color-accent)]" />{club.memberCount} members</span>
             <span>{club.followerCount} followers</span>
         </div>
         <ClubDirectoryActions

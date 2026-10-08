@@ -1,0 +1,56 @@
+[
+  {
+    "width": 1920,
+    "height": 1000,
+    "theme": "dark",
+    "sticky": true,
+    "dockPreservesOpportunities": true,
+    "noOverflow": true,
+    "noPaidCalls": true
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "theme": "light",
+    "sticky": true,
+    "dockPreservesOpportunities": true,
+    "noOverflow": true,
+    "noPaidCalls": true
+  },
+  {
+    "width": 1280,
+    "height": 800,
+    "theme": "dark",
+    "sticky": true,
+    "dockPreservesOpportunities": true,
+    "noOverflow": true,
+    "noPaidCalls": true
+  },
+  {
+    "width": 1100,
+    "height": 800,
+    "theme": "light",
+    "sticky": true,
+    "dockPreservesOpportunities": true,
+    "noOverflow": true,
+    "noPaidCalls": true
+  },
+  {
+    "width": 1920,
+    "height": 650,
+    "theme": "light",
+    "sticky": true,
+    "dockPreservesOpportunities": true,
+    "noOverflow": true,
+    "noPaidCalls": true
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "sticky": true,
+    "dockPreservesOpportunities": true,
+    "noOverflow": true,
+    "noPaidCalls": true
+  }
+]

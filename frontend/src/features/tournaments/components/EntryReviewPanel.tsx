@@ -14,11 +14,11 @@ interface Props {
 }
 
 const statusToneBorder: Record<string, string> = {
-    success: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-    warning: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-    info: 'bg-sky-500/10 text-sky-400 border-sky-500/30',
-    danger: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
-    neutral: 'bg-[#16181d] text-[#a1a1aa] border-[#ffffff0d]',
+    success: 'bg-[color:var(--color-accent)]/10 text-[color:var(--color-accent)] border-[color:var(--color-accent)]/30',
+    warning: 'bg-[color:var(--color-warning)]/10 text-[color:var(--color-warning)] border-[color:var(--color-warning)]/30',
+    info: 'bg-[color:var(--color-info)]/10 text-[color:var(--color-info)] border-[color:var(--color-info)]/30',
+    danger: 'bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)] border-[color:var(--color-danger)]/30',
+    neutral: 'bg-[var(--color-surface)] text-[var(--color-secondary)] border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]',
 };
 
 const validTransitions: Record<TournamentEntryStatus, TournamentEntryStatus[]> = {
@@ -87,10 +87,10 @@ export const EntryReviewPanel = ({ tournamentId, tournament, onRefresh }: Props)
     if (reviewEntries.length === 0) {
         return (
             <div>
-                <div className="border-b border-white/[0.08] px-5 py-4 sm:px-6">
-                    <p className="text-sm font-bold text-zinc-100">{t('tournaments.workspace.entryReview')}</p>
+                <div className="border-b border-[color:var(--color-border)]/[0.08] px-5 py-4 sm:px-6">
+                    <p className="text-sm font-bold text-[color:var(--color-text)]">{t('tournaments.workspace.entryReview')}</p>
                 </div>
-                <div className="px-5 py-12 text-center text-sm text-zinc-500">
+                <div className="px-5 py-12 text-center text-sm text-[color:var(--color-muted)]">
                     {entries.length === 0 ? t('tournaments.workspace.noEntries') : t('tournaments.workspace.noEntryDecisions')}
                 </div>
             </div>
@@ -99,43 +99,43 @@ export const EntryReviewPanel = ({ tournamentId, tournament, onRefresh }: Props)
 
     return (
         <div>
-            <div className="border-b border-white/[0.08] px-5 py-4 sm:px-6">
-                <p className="text-sm font-bold text-zinc-100">
+            <div className="border-b border-[color:var(--color-border)]/[0.08] px-5 py-4 sm:px-6">
+                <p className="text-sm font-bold text-[color:var(--color-text)]">
                     {t('tournaments.workspace.entryReview')}
                     {pendingCount > 0 && (
-                        <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-300/15 px-1.5 text-xs font-bold text-amber-300">
+                        <span className="ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[color:var(--color-warning)]/15 px-1.5 text-xs font-bold text-[color:var(--color-warning)]">
                             {pendingCount}
                         </span>
                     )}
                 </p>
-                <p className="mt-1 text-xs text-zinc-500">{t('tournaments.workspace.entryReviewHint')}</p>
+                <p className="mt-1 text-xs text-[color:var(--color-muted)]">{t('tournaments.workspace.entryReviewHint')}</p>
             </div>
 
             {message && (
-                <div className={`border-b border-[#ffffff0d] px-4 py-3 text-sm font-semibold ${
+                <div className={`border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-4 py-3 text-sm font-semibold ${
                     messageType === 'success'
-                        ? 'bg-[#16a34a]/10 text-[#16a34a]'
-                        : 'bg-[#ef4444]/10 text-[#ef4444]'
+                        ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+                        : 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
                 }`}>
                     {message}
                 </div>
             )}
 
-            <div className="max-h-[430px] divide-y divide-white/[0.06] overflow-y-auto">
+            <div className="max-h-[430px] divide-y divide-[color:var(--color-border)]/[0.06] overflow-y-auto">
                 {reviewEntries.map((entry) => {
                     const tone = entryStatusTone(entry.status);
                     const available = validTransitions[entry.status] ?? [];
                     return (
                         <div
                             key={entry.id}
-                            className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-white/[0.025] sm:flex-nowrap sm:px-6"
+                            className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-[color:var(--color-ink)]/[0.025] sm:flex-nowrap sm:px-6"
                         >
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-bold text-zinc-100">
+                                <p className="truncate text-sm font-bold text-[color:var(--color-text)]">
                                     {entryLabel(entry)}
                                 </p>
                                 {entrySubLabel(entry) && (
-                                    <p className="mt-0.5 truncate text-xs text-zinc-500">{entrySubLabel(entry)}</p>
+                                    <p className="mt-0.5 truncate text-xs text-[color:var(--color-muted)]">{entrySubLabel(entry)}</p>
                                 )}
                             </div>
                             <span className={`shrink-0 rounded-xl border px-2.5 py-0.5 text-xs font-semibold ${statusToneBorder[tone] ?? statusToneBorder.neutral}`}>
@@ -154,8 +154,8 @@ export const EntryReviewPanel = ({ tournamentId, tournament, onRefresh }: Props)
                                                 disabled={actionLoading === entry.id}
                                                 className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
                                                     isDestructive
-                                                        ? 'border-rose-500/30 text-rose-400 hover:bg-rose-500/10'
-                                                        : 'border-[#ffffff0d] text-[#a1a1aa] hover:bg-[#1a1c22]'
+                                                        ? 'border-[color:var(--color-danger)]/30 text-[color:var(--color-danger)] hover:bg-[color:var(--color-danger)]/10'
+                                                        : 'border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] text-[var(--color-secondary)] hover:bg-[var(--color-surface)]'
                                                 } disabled:opacity-50`}
                                                 title={t(transitionLabelKey[targetStatus])}
                                             >

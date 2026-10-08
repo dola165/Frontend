@@ -1,0 +1,20 @@
+{
+  "checks": [
+    "01-desktop",
+    "schedule-review-consent-navigation",
+    "02-width-1024",
+    "02-width-768",
+    "02-width-390",
+    "02-width-320",
+    "03-georgian",
+    "04-georgian-mobile",
+    "05-light",
+    "06-empty",
+    "07-partial-coverage",
+    "08-error",
+    "independent-retry",
+    "role-actions"
+  ],
+  "errors": [],
+  "unexpectedNetwork": []
+}

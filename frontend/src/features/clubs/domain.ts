@@ -1,7 +1,7 @@
 export type ClubMembershipRole = 'OWNER' | 'CLUB_ADMIN' | 'COACH' | 'PLAYER';
 export type LegacyClubMembershipRole = ClubMembershipRole | 'AGENT';
-export type ClubInviteStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED' | 'EXPIRED';
-export type ClubApplicationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
+export type ClubInviteStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED' | 'EXPIRED' | 'UNAVAILABLE';
+export type ClubApplicationStatus = 'PENDING' | 'OFFERED' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED' | 'EXPIRED' | 'OFFER_DECLINED' | 'OFFER_CANCELLED';
 export type ClubRelationshipState = 'NONE' | 'INVITED' | 'APPLIED' | 'TRIALIST' | 'ACTIVE' | 'LEFT' | 'REMOVED';
 export type PlayerJoinPolicy = 'OPEN_TRIAL' | 'APPLICATION_REQUIRED' | 'INVITE_ONLY';
 export type PlayerAffiliationStatus = 'TRIALIST' | 'ACTIVE' | 'PAST' | 'REMOVED';
@@ -214,6 +214,7 @@ const inviteStatusLabels: Record<ClubInviteStatus, string> = {
     ACCEPTED: 'Accepted',
     DECLINED: 'Declined',
     CANCELLED: 'Cancelled',
+    UNAVAILABLE: 'Unavailable',
     EXPIRED: 'Expired'
 };
 
@@ -221,7 +222,7 @@ const applicationStatusLabels: Record<ClubApplicationStatus, string> = {
     PENDING: 'Pending',
     ACCEPTED: 'Accepted',
     DECLINED: 'Declined',
-    CANCELLED: 'Cancelled'
+    CANCELLED: 'Withdrawn', OFFERED: 'Offer ready', EXPIRED: 'Offer unavailable', OFFER_DECLINED: 'Offer declined', OFFER_CANCELLED: 'Offer cancelled'
 };
 
 const formatFallbackLabel = (value: string) => value

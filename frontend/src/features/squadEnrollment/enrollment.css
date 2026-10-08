@@ -1,0 +1,10 @@
+.enrollment-page{max-width:860px;margin:0 auto;padding:24px;display:grid;gap:20px;color:var(--text-primary)}
+.enrollment-panel{padding:20px;border:1px solid var(--border-color,var(--color-border));border-radius:12px;background:var(--bg-secondary,transparent);display:grid;gap:14px;margin-block:16px}
+.enrollment-panel summary{cursor:pointer;font-weight:650}.enrollment-panel[open] summary{margin-bottom:16px}
+.enrollment-page label,.enrollment-panel label{display:grid;gap:6px;margin-block:10px;font-size:14px}
+.enrollment-page input:not([type=checkbox]),.enrollment-panel input:not([type=checkbox]),.enrollment-panel select{width:100%;min-width:0;padding:10px;border:1px solid var(--border-color,var(--color-border));border-radius:6px;background:var(--bg-primary,transparent);color:inherit}
+.enrollment-page button,.enrollment-panel button{padding:9px 13px;border:1px solid var(--border-color,var(--color-border));border-radius:7px;cursor:pointer;color:inherit}.enrollment-page button:disabled,.enrollment-panel button:disabled{opacity:.55;cursor:default}
+.enrollment-page .enrollment-consent{display:flex;align-items:flex-start;gap:10px}.enrollment-consent input{margin-top:4px;flex-shrink:0}
+.enrollment-row,.enrollment-inline{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.enrollment-inline label{flex:1;min-width:130px}
+.enrollment-review{border-top:1px solid var(--border-color,var(--color-border));margin-top:18px;padding-top:16px;overflow-wrap:anywhere}.enrollment-muted{font-size:13px;opacity:.75}
+.enrollment-panel a{display:inline-block;margin:8px}.enrollment-page [role=alert],.enrollment-panel [role=alert]{color:var(--state-danger,var(--color-danger))}

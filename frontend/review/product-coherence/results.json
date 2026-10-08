@@ -1,0 +1,30 @@
+{
+  "conditions": "Production UI, synthetic accounts and API responses; external network blocked; no live mutations",
+  "checks": [
+    "Home 1366x768: stable media and requests, Shortcuts beside World, authorized Workspace, no overflow",
+    "Club 1366: bounded lone directory card, compact header, usable workspace",
+    "Calendar 1366: Week default, responsive filters, no document overflow",
+    "Home 1280x720: stable media and requests, Shortcuts beside World, authorized Workspace, no overflow",
+    "Club 1280: bounded lone directory card, compact header, usable workspace",
+    "Calendar 1280: Week default, responsive filters, no document overflow",
+    "Home 1024x768: stable media and requests, Shortcuts beside World, authorized Workspace, no overflow",
+    "Club 1024: bounded lone directory card, compact header, usable workspace",
+    "Calendar 1024: Week default, responsive filters, no document overflow",
+    "Home 390x844: stable media and requests, Shortcuts beside World, authorized Workspace, no overflow",
+    "Club 390: bounded lone directory card, compact header, usable workspace",
+    "Calendar 390: Week default, responsive filters, no document overflow",
+    "Home 360x800: stable media and requests, Shortcuts beside World, authorized Workspace, no overflow",
+    "Club 360: bounded lone directory card, compact header, usable workspace",
+    "Calendar 360: Week default, responsive filters, no document overflow",
+    "Home 2560x1440: stable media and requests, Shortcuts beside World, authorized Workspace, no overflow",
+    "Club 2560: bounded lone directory card, compact header, usable workspace",
+    "Calendar 2560: Week default, responsive filters, no document overflow",
+    "Landing 1366 dark: bounded map container and centered width; remote tiles blocked in isolated test, actual map wheel zoom checked by live rehearsal",
+    "Landing 390 dark: bounded map container and centered width; remote tiles blocked in isolated test, actual map wheel zoom checked by live rehearsal",
+    "Landing 2560 dark: bounded map container and centered width; remote tiles blocked in isolated test, actual map wheel zoom checked by live rehearsal",
+    "Landing 1280 light: bounded map container and centered width; remote tiles blocked in isolated test, actual map wheel zoom checked by live rehearsal",
+    "Player cannot see staff shortcuts; backend authorization unchanged"
+  ],
+  "errors": [],
+  "passed": true
+}

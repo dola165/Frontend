@@ -1,0 +1,133 @@
+{
+  "organizationId": 1,
+  "organizationName": "FC Dinamo Tbilisi Academy",
+  "clubId": 1,
+  "canConfigure": true,
+  "groups": [
+    {
+      "id": 1,
+      "version": 1,
+      "organizationId": 1,
+      "organizationName": "FC Dinamo Tbilisi Academy",
+      "clubId": 1,
+      "name": "Beginner group",
+      "squadId": 1,
+      "intake": "2026-27",
+      "method": "INTRODUCTION",
+      "visibility": "PUBLIC",
+      "published": true,
+      "intakeOpen": true,
+      "capacity": 20,
+      "beginnerWelcome": true,
+      "birthYearFrom": 2016,
+      "birthYearTo": 2019,
+      "referenceDate": "2026-09-01",
+      "gender": "ANY",
+      "location": {
+        "name": "Dinamo Academy training ground",
+        "address": "Tbilisi",
+        "latitude": 41.7151,
+        "longitude": 44.8271
+      },
+      "schedule": "Tuesday and Thursday 17:00\u201318:00",
+      "timezone": "Asia/Tbilisi",
+      "terms": {
+        "feesKnown": true,
+        "charges": [],
+        "cancellation": "Contact admissions to arrange the recorded end date. No refund is implied.",
+        "participation": "Attend agreed sessions with an emergency contact.",
+        "startDate": "2026-10-12",
+        "endDate": null,
+        "affiliationEffect": "NONE",
+        "requirements": []
+      },
+      "responsibleUserId": 10,
+      "waitlistEnabled": true,
+      "availability": "INTRODUCTION_AVAILABLE",
+      "remainingPlaces": 3,
+      "destination": "/admissions/opportunities/1",
+      "canManage": true,
+      "extraApprovalRequired": false,
+      "decisionUserId": null,
+      "city": "Tbilisi",
+      "country": "GE",
+      "level": "BEGINNER",
+      "positions": []
+    }
+  ],
+  "cases": [
+    {
+      "id": 100,
+      "version": 1,
+      "playerId": 101,
+      "playerName": "Synthetic child",
+      "dateOfBirth": "2018-05-01",
+      "organizationId": 1,
+      "organizationName": "FC Dinamo Tbilisi Academy",
+      "clubId": 1,
+      "groupId": 1,
+      "groupName": "Beginner group",
+      "intake": "2026-27",
+      "method": "INTRODUCTION",
+      "stage": "REQUEST_RECEIVED",
+      "responsible": {
+        "id": 10,
+        "name": "Academy coach"
+      },
+      "nextAction": {
+        "code": "CLUB_REVIEW",
+        "owner": "CLUB",
+        "label": "Review request and arrange the next step",
+        "dueAt": null
+      },
+      "requirements": [],
+      "sessions": [],
+      "offer": null,
+      "enrollment": null,
+      "history": [],
+      "actions": [
+        "MESSAGE",
+        "WITHDRAW"
+      ],
+      "primaryAffiliation": null,
+      "previousCaseId": null,
+      "submittedAt": "2026-10-04T00:00:00Z",
+      "updatedAt": "2026-10-04T00:00:00Z",
+      "assessments": [],
+      "siblingConstraint": null
+    }
+  ],
+  "squads": [
+    {
+      "id": 1,
+      "name": "Beginner group"
+    }
+  ],
+  "staff": [
+    {
+      "id": 10,
+      "name": "Academy coach"
+    }
+  ],
+  "sessions": [],
+  "inquiries": [
+    {
+      "id": 500,
+      "version": 1,
+      "playerId": 101,
+      "playerName": "Synthetic child",
+      "organizationId": 1,
+      "organizationName": "FC Dinamo Tbilisi Academy",
+      "status": "OPEN",
+      "message": "Which beginner group fits our family?",
+      "caseId": null,
+      "actions": [
+        "MESSAGE",
+        "WITHDRAW"
+      ],
+      "history": [],
+      "createdAt": "2026-10-04T00:00:00Z",
+      "updatedAt": "2026-10-04T00:00:00Z"
+    }
+  ]
+}

@@ -26,7 +26,7 @@ describe('ConsentPage participation and account activation', () => {
     it('keeps activation available after a recoverable failure without consuming consent again', async () => {
         vi.mocked(apiClient.post).mockResolvedValue({ data: { accepted: true, cardId: 7, activationEligible: true } });
         vi.mocked(activatePlayerCard).mockRejectedValueOnce(new Error('Temporary failure'))
-            .mockResolvedValueOnce({ username: 'player_test', tempPassword: 'temporary' });
+            .mockResolvedValueOnce({ username: 'player_test', email: 'child@example.com', status: 'EMAIL_VERIFICATION_PENDING' });
         show();
         fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
         const dob = await screen.findByLabelText("Child's Date of Birth");
@@ -37,7 +37,7 @@ describe('ConsentPage participation and account activation', () => {
         expect(screen.getByLabelText("Child's Email (new, unused)")).toHaveValue('child@example.com');
         fireEvent.click(screen.getByRole('button', { name: 'Activate Account' }));
         await waitFor(() => expect(activatePlayerCard).toHaveBeenCalledTimes(2));
-        expect(await screen.findByText('player_test')).toBeInTheDocument();
+        expect(await screen.findByText(/Account invitation sent to child@example.com/)).toBeInTheDocument();
         expect(apiClient.post).toHaveBeenCalledOnce();
     });
 });

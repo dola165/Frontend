@@ -1,0 +1,47 @@
+.players-roster { container-type: inline-size; }
+.players-roster-links { display: flex; flex-wrap: wrap; gap: 22px; padding-bottom: 24px; }
+.players-roster-links button { display: flex; align-items: center; gap: 7px; color: var(--sd-secondary); font-size: 12px; }
+.players-roster-links button:hover { color: var(--sd-accent); }
+.players-status-filters { display: flex; gap: 22px; overflow-x: auto; border-bottom: 1px solid var(--sd-border); }
+.players-status-filters button { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding: 0 1px 13px; border-bottom: 2px solid transparent; color: var(--sd-muted); font-size: 13px; font-weight: 600; }
+.players-status-filters button[aria-pressed="true"] { color: var(--sd-text); border-color: var(--sd-accent); }
+.players-status-filters button span { background: var(--sd-surface); padding: 2px 6px; border-radius: 4px; font-size: 10px; color: var(--sd-secondary); }
+.players-roster .sd-search { flex: 1; max-width: 470px; }
+.players-sort { display: flex; align-items: center; gap: 8px; margin-left: auto; color: var(--sd-muted); font-size: 12px; }
+.players-sort select { padding: 10px; border: 1px solid var(--sd-border); border-radius: 7px; background: var(--sd-surface); color: var(--sd-text); max-width: 180px; }
+.players-trial-note { display: flex; align-items: center; gap: 9px; padding: 12px 0 20px; color: var(--sd-secondary); font-size: 12px; }
+.players-trial-note svg { color: var(--color-orange); flex-shrink: 0; }
+.players-table-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.players-table-head { display: none; }
+.players-table-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 18px 14px; padding: 20px; border: 1px solid var(--sd-border); border-radius: 9px; background: var(--sd-surface); }
+.players-identity { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-width: 0; padding-bottom: 16px; border-bottom: 1px solid var(--sd-border); }
+.players-identity > div { min-width: 0; }
+.players-identity p { overflow-wrap: anywhere; }
+.players-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; min-width: 0; font-size: 12px; color: var(--sd-secondary); }
+.players-cell::before { content: attr(data-label); display: block; flex-basis: 100%; color: var(--sd-muted); font-size: 10px; margin-bottom: 2px; }
+.players-cell input { max-width: 100%; }
+.players-consent > span { flex-wrap: wrap; }
+.players-row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; grid-column: 1 / -1; padding-top: 10px; border-top: 1px solid var(--sd-border); min-height: 40px; }
+.players-row-actions > button { min-height: 32px; border-radius: 6px; }
+.players-pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; }
+@container (min-width: 1100px) {
+  .players-table-body { display: block; border: 1px solid var(--sd-border); border-radius: 0 0 9px 9px; overflow: visible; }
+  .players-table-grid { display: grid; grid-template-columns: minmax(170px, 1.6fr) 80px minmax(100px, 1fr) 115px 40px 125px 95px 152px; align-items: center; gap: 14px; }
+  .players-table-head { padding: 13px 18px; border: 1px solid var(--sd-border); border-bottom: 0; border-radius: 9px 9px 0 0; background: var(--sd-surface); color: var(--sd-muted); font-size: 10px; }
+  .players-table-head button { text-align: left; }
+  .players-table-row { padding: 16px 18px; border: 0; border-radius: 0; border-bottom: 1px solid var(--sd-border); background: transparent; }
+  .players-table-row:last-child { border-bottom: 0; }
+  .players-table-row:hover { background: var(--sd-surface); }
+  .players-identity { grid-column: auto; border: 0; padding: 0; }
+  .players-cell::before { display: none; }
+  .players-row-actions { grid-column: auto; padding: 0; border: 0; }
+}
+@container (max-width: 650px) {
+  .players-table-body { grid-template-columns: minmax(0, 1fr); }
+  .players-roster .sd-toolbar { align-items: stretch; }
+  .players-roster .sd-search { flex-basis: 100%; max-width: none; }
+  .players-sort { margin-left: 0; }
+  .players-status-filters { gap: 18px; }
+}
+
+.players-position { font-size: 12px; line-height: 1.45; }

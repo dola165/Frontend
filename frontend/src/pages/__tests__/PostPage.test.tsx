@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { PostPage } from '../PostPage';
@@ -82,7 +82,7 @@ describe('PostPage', () => {
         expect(await screen.findByText(saved.content)).toBeInTheDocument();
         await act(async () => submitted.resolve({ data: saved }));
         expect(screen.getAllByText(saved.content)).toHaveLength(1);
-        expect(screen.getByText('1 comments')).toBeInTheDocument();
+        expect(screen.getByText('1 comment')).toBeInTheDocument();
     });
 
     it('renders the exact public post returned by the single-post endpoint', async () => {
@@ -103,6 +103,26 @@ describe('PostPage', () => {
         expect(apiClient.get).toHaveBeenCalledWith('/posts/42');
     });
 
+    it('starts omitted interaction defaults at zero and updates them after a like and comment', async () => {
+        const user = userEvent.setup();
+        vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true } as ReturnType<typeof useAuth>);
+        vi.mocked(apiClient.get).mockImplementation(async url => ({ data: String(url).endsWith('/comments') ? [] : {
+            id: 42, authorId: 7, authorName: 'Jordan Lee', content: 'A brand new post', createdAt: '2026-09-08T08:00:00Z',
+        } }));
+        vi.mocked(apiClient.put).mockResolvedValue({ data: { id: 42, myReaction: 'LIKE', reactionCount: 1, reactionCounts: { LIKE: 1 }, likeCount: 1, isLikedByMe: true } });
+        vi.mocked(apiClient.post).mockResolvedValue({ data: comment(12, 'Great album') });
+        renderPage();
+        expect(await screen.findByText('0 reactions')).toBeInTheDocument();
+        expect(screen.getByText('0 comments')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Like' }));
+        expect(await screen.findByText('1 reaction')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Comment' }));
+        await user.type(screen.getByRole('textbox'), 'Great album');
+        await user.click(screen.getByRole('button', { name: 'Post comment' }));
+        expect(await screen.findByText('1 comment')).toBeInTheDocument();
+        expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
+    });
+
     it('gives guests a safe unavailable state with a return-aware sign-in link', async () => {
         (apiClient.get as ReturnType<typeof vi.fn>).mockRejectedValue({ response: { status: 404 } });
 
@@ -114,7 +134,12 @@ describe('PostPage', () => {
 
     it('opens every attachment from a shared post with the keyboard and plays video', async () => {
         const user = userEvent.setup();
+        const createDescriptor = Object.getOwnPropertyDescriptor(URL, 'createObjectURL');
+        const revokeDescriptor = Object.getOwnPropertyDescriptor(URL, 'revokeObjectURL');
+        Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: () => 'blob:post-page-media' });
+        Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
         (apiClient.get as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+            if (url.includes('/uploads/')) return Promise.resolve({ data: new Blob(['fixture media']) });
             if (url.endsWith('/comments')) return Promise.resolve({ data: [] });
             return Promise.resolve({ data: {
                 id: 42,
@@ -150,7 +175,10 @@ describe('PostPage', () => {
 
         expect(screen.getByText('5 / 5')).toBeInTheDocument();
         const video = document.querySelector('video[controls]');
-        expect(video).toHaveAttribute('src', 'http://localhost:8080/uploads/five.mp4');
+        await waitFor(() => expect(video).toHaveAttribute('src', 'blob:post-page-media'));
+        expect(apiClient.get).toHaveBeenCalledWith('http://localhost:8080/uploads/five.mp4', expect.objectContaining({ responseType: 'blob' }));
+        if (createDescriptor) Object.defineProperty(URL, 'createObjectURL', createDescriptor); else Reflect.deleteProperty(URL, 'createObjectURL');
+        if (revokeDescriptor) Object.defineProperty(URL, 'revokeObjectURL', revokeDescriptor); else Reflect.deleteProperty(URL, 'revokeObjectURL');
     });
 
     it('clears comments and loads the new post comments after route navigation', async () => {

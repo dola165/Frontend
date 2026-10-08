@@ -1,31 +1,28 @@
-import { useCallback, useMemo, useState } from 'react';
+import { RecruitmentApplication } from '../../../features/recruitment/RecruitmentApplication';
+import { recruitmentOutcome } from '../../../features/recruitment/outcome';
+import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, ShieldAlert, X } from 'lucide-react';
+import { ArrowRight, ClipboardList, Info, Search, ShieldAlert, X } from 'lucide-react';
 import type { ClubMembershipApplication } from '../../../features/clubs/domain';
 import type { ClubJob } from '../../../features/clubs/api';
 import { clubRoleLabel } from '../../../features/clubs/domain';
-import { DataTable, EmptyState, ErrorBlock, formatMetaTime, PageSpinner, Pill, SectionHeader } from '../helpers';
+import { squadLabel } from '../../squads/squadLabels';
+import { DataTable, ErrorBlock, PageSpinner } from '../helpers';
+import { formatDate } from '../../../utils/formatting';
 import type { SortState } from '../helpers';
 import { UserIdentityCell } from '../UserIdentityCell';
-import { OverflowActions } from '../../ui/OverflowActions';
 import { DecisionNoteModal } from './DecisionNoteModal';
+import { useDialogFocus } from '../useDialogFocus';
+import { RecruitmentNavigation } from '../recruitment/RecruitmentNavigation';
+import { useRecruitmentCopy } from '../../../locales/recruitmentDesign';
+import '../../squads/squad-design.css';
+import '../recruitment/recruitment-design.css';
 
-const POSITION_OPTIONS = [
-    'GOALKEEPER', 'CENTER_BACK', 'FULLBACK', 'LEFT_BACK', 'RIGHT_BACK',
-    'DEFENSIVE_MIDFIELDER', 'CENTRAL_MIDFIELDER', 'ATTACKING_MIDFIELDER',
-    'WINGER', 'LEFT_WINGER', 'RIGHT_WINGER', 'STRIKER', 'FORWARD',
-] as const;
-
+const POSITION_OPTIONS = ['GOALKEEPER', 'CENTER_BACK', 'FULLBACK', 'LEFT_BACK', 'RIGHT_BACK', 'DEFENSIVE_MIDFIELDER', 'CENTRAL_MIDFIELDER', 'ATTACKING_MIDFIELDER', 'WINGER', 'LEFT_WINGER', 'RIGHT_WINGER', 'STRIKER', 'FORWARD'] as const;
 const AGE_GROUP_OPTIONS = ['U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19', 'U21', 'SENIOR'] as const;
+const STATUS_OPTIONS = ['PENDING', 'OFFERED', 'ACCEPTED', 'DECLINED', 'CANCELLED', 'EXPIRED', 'OFFER_DECLINED', 'OFFER_CANCELLED', 'ALL'] as const;
 
-const STATUS_OPTIONS = ['PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED'] as const;
-
-export interface ApplicationFilters {
-    position: string;
-    ageGroup: string;
-    status: string;
-    jobId: string;
-}
+export interface ApplicationFilters { position: string; ageGroup: string; status: string; jobId: string; }
 
 interface ApplicationsTabProps {
     applications: ClubMembershipApplication[];
@@ -37,271 +34,127 @@ interface ApplicationsTabProps {
     onFiltersChange: (filters: ApplicationFilters) => void;
     onAcceptApplication: (applicationId: number) => void;
     onDeclineApplication: (applicationId: number) => void;
-    /** Returns true when the request completed (selection is cleared only then). */
+    /** Selection is cleared only after a completed request. */
     onBulkDecide: (applicationIds: number[], action: 'ACCEPT' | 'DECLINE', message: string | null) => Promise<boolean>;
     onRetry: () => void;
+    onOpenTryouts?: () => void;
+    onOpenPlayers?: () => void;
+    onOpenSquads?: () => void;
+    pagination?: { page: number; size: number; total: number; onChange: (page: number) => void };
 }
 
-export const ApplicationsTab = ({
-    applications, applicationsLoading, applicationsError, filters, bulkPending, jobs = [],
-    onFiltersChange, onAcceptApplication, onDeclineApplication, onBulkDecide, onRetry,
-}: ApplicationsTabProps) => {
+export const ApplicationsTab = ({ applications, applicationsLoading, applicationsError, filters, bulkPending, jobs = [], onFiltersChange, onDeclineApplication, onBulkDecide, onRetry, onOpenTryouts, onOpenPlayers, onOpenSquads, pagination }: ApplicationsTabProps) => {
     const { t } = useTranslation();
+    const r = useRecruitmentCopy();
     const [sort, setSort] = useState<SortState | null>(null);
+    const [query, setQuery] = useState('');
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [bulkAction, setBulkAction] = useState<'ACCEPT' | 'DECLINE' | null>(null);
+    const [reviewId, setReviewId] = useState<number | null>(null);
 
-    const filteredApplications = useMemo(
-        () => filters.jobId ? applications.filter((application) => String(application.jobId ?? '') === filters.jobId) : applications,
-        [applications, filters.jobId]
-    );
-
-    const pendingIds = useMemo(
-        () => filteredApplications.filter((a) => a.status === 'PENDING').map((a) => a.id),
-        [filteredApplications]
-    );
-
-    const handleSort = useCallback((col: number) => {
-        setSort(prev =>
-            prev?.column === col
-                ? { column: col, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
-                : { column: col, direction: 'asc' }
-        );
-    }, []);
-
-    const getAppSortValue = (app: ClubMembershipApplication, col: number): string | number | null => {
-        switch (col) {
-            case 0: return (app.fullName || app.username || '').toLowerCase();
-            case 1: return app.role;
-            case 2: return app.message || '';
-            case 3: return app.createdAt ?? '';
-            default: return null;
-        }
-    };
+    const filteredApplications = useMemo(() => applications.filter((application) => {
+        if (filters.jobId && String(application.jobId ?? '') !== filters.jobId) return false;
+        const search = query.trim().toLocaleLowerCase();
+        return !search || `${application.fullName ?? ''} ${application.username} ${application.jobTitle ?? ''}`.toLocaleLowerCase().includes(search);
+    }), [applications, filters.jobId, query]);
+    const pendingIds = useMemo(() => filteredApplications.filter((app) => app.status === 'PENDING').map((app) => app.id), [filteredApplications]);
+    const selectedIds = pendingIds.filter((id) => selected.has(id));
+    const allPendingSelected = pendingIds.length > 0 && selectedIds.length === pendingIds.length;
+    const reviewedApplication = applications.find((application) => application.id === reviewId);
 
     const sortedApplications = useMemo(() => {
         if (!sort) return filteredApplications;
-        const data = [...filteredApplications];
-        data.sort((a, b) => {
-            const aVal = getAppSortValue(a, sort.column);
-            const bVal = getAppSortValue(b, sort.column);
-            if (aVal == null && bVal == null) return 0;
-            if (aVal == null) return 1;
-            if (bVal == null) return -1;
-            const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
-            return sort.direction === 'desc' ? -cmp : cmp;
-        });
-        return data;
+        const value = (app: ClubMembershipApplication) => {
+            switch (sort.column) {
+                case 1: return (app.fullName || app.username).toLocaleLowerCase();
+                case 2: return (app.jobTitle || clubRoleLabel(app.role)).toLocaleLowerCase();
+                case 3: return app.createdAt || '';
+                case 4: return app.status;
+                default: return '';
+            }
+        };
+        return [...filteredApplications].sort((a, b) => value(a).localeCompare(value(b)) * (sort.direction === 'asc' ? 1 : -1));
     }, [filteredApplications, sort]);
 
-    const toggleSelect = (id: number) => {
-        setSelected(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
-    };
-
+    const toggleSelect = (id: number) => setSelected((previous) => {
+        const next = new Set(previous);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        return next;
+    });
     const handleBulkConfirm = async (message: string | null) => {
-        if (!bulkAction) return;
-        const action = bulkAction;
-        const ok = await onBulkDecide(Array.from(selected), action, message);
-        if (ok) {
+        if (!bulkAction || !selectedIds.length || bulkPending) return;
+        if (await onBulkDecide(selectedIds, bulkAction, message)) {
             setSelected(new Set());
             setBulkAction(null);
         }
     };
+    const clearFilters = () => { setQuery(''); onFiltersChange({ position: '', ageGroup: '', status: 'PENDING', jobId: '' }); };
 
-    const summaryChips = (app: ClubMembershipApplication) => {
-        const chips: string[] = [];
-        if (app.age != null) chips.push(t('applications.summaryAge', { age: app.age }));
-        if (app.preferredFoot) chips.push(app.preferredFoot);
-        if (app.heightCm != null) chips.push(t('applications.summaryHeight', { height: app.heightCm }));
-        if (app.currentClubName) chips.push(app.currentClubName);
-        if (app.careerHistoryCount != null && app.careerHistoryCount > 0) {
-            chips.push(t('applications.summaryHistory', { count: app.careerHistoryCount }));
-        }
-        return chips;
-    };
-
-    return (
-        <div className="space-y-4">
-            <SectionHeader eyebrow="Applications" title="Club and Job Applications" description="Review applications you can manage. Accepting an existing staff member for a job keeps their current permissions." />
-
-            {/* Phase A3 filter bar */}
-            <div className="flex flex-wrap items-center gap-2">
-                <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--fc-text-secondary)]">
-                    {t('applications.filterPosition')}
-                    <select
-                        value={filters.position}
-                        onChange={(e) => onFiltersChange({ ...filters, position: e.target.value })}
-                        className="rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2 py-1.5 text-xs text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)]"
-                    >
-                        <option value="">{t('applications.allPositions')}</option>
-                        {POSITION_OPTIONS.map((p) => <option key={p} value={p}>{p.replaceAll('_', ' ')}</option>)}
-                    </select>
-                </label>
-                <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--fc-text-secondary)]">
-                    Job
-                    <select
-                        value={filters.jobId}
-                        onChange={(e) => onFiltersChange({ ...filters, jobId: e.target.value })}
-                        className="max-w-[220px] rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2 py-1.5 text-xs text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)]"
-                    >
-                        <option value="">All applications</option>
-                        {jobs.map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}
-                    </select>
-                </label>
-                <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--fc-text-secondary)]">
-                    {t('applications.filterAgeGroup')}
-                    <select
-                        value={filters.ageGroup}
-                        onChange={(e) => onFiltersChange({ ...filters, ageGroup: e.target.value })}
-                        className="rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2 py-1.5 text-xs text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)]"
-                    >
-                        <option value="">{t('applications.allAgeGroups')}</option>
-                        {AGE_GROUP_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
-                    </select>
-                </label>
-                <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--fc-text-secondary)]">
-                    {t('applications.filterStatus')}
-                    <select
-                        value={filters.status}
-                        onChange={(e) => onFiltersChange({ ...filters, status: e.target.value })}
-                        className="rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-2 py-1.5 text-xs text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)]"
-                    >
-                        {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                </label>
-                {pendingIds.length > 0 && (
-                    <button
-                        type="button"
-                        onClick={() => setSelected(prev => prev.size === pendingIds.length ? new Set() : new Set(pendingIds))}
-                        className="ml-auto text-[11px] font-semibold text-[var(--fc-accent)] hover:underline"
-                    >
-                        {selected.size === pendingIds.length
-                            ? t('applications.clearSelection')
-                            : t('applications.selectAllPending', { count: pendingIds.length })}
-                    </button>
-                )}
-            </div>
-
-            {/* Phase A3 bulk bar */}
-            {selected.size > 0 && (
-                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--fc-accent-border)] bg-[var(--fc-accent-soft)] px-4 py-2.5">
-                    <p className="text-xs font-semibold text-[var(--fc-text-primary)]">
-                        {t('applications.selected', { count: selected.size })}
-                    </p>
-                    <div className="ml-auto flex items-center gap-2">
-                        <button
-                            type="button"
-                            disabled={bulkPending}
-                            onClick={() => setBulkAction('ACCEPT')}
-                            className="inline-flex items-center gap-1 rounded-xl bg-[#16a34a] px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                        >
-                            <Check className="h-3 w-3" />
-                            {t('applications.acceptSelected', { count: selected.size })}
-                        </button>
-                        <button
-                            type="button"
-                            disabled={bulkPending}
-                            onClick={() => setBulkAction('DECLINE')}
-                            className="inline-flex items-center gap-1 rounded-xl border border-[var(--fc-state-danger)] px-2.5 py-1 text-xs font-semibold text-[var(--fc-state-danger)] hover:bg-[var(--fc-state-danger-soft)] disabled:opacity-50"
-                        >
-                            <X className="h-3 w-3" />
-                            {t('applications.declineSelected', { count: selected.size })}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setSelected(new Set())}
-                            className="text-xs font-medium text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]"
-                        >
-                            {t('applications.clearSelection')}
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {applicationsLoading && applications.length === 0 ? (
-                <PageSpinner />
-            ) : applicationsError && applications.length === 0 ? (
-                <ErrorBlock message={applicationsError} onRetry={onRetry} />
-            ) : filteredApplications.length === 0 ? (
-                <EmptyState message="No applications match the current filters." />
-            ) : (
-                <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
-                    <DataTable columns={['', 'Applicant', 'Role', 'Message', 'Submitted', '']} sort={sort} onSort={handleSort}>
-                        {sortedApplications.map((app) => {
-                            const isPending = app.status === 'PENDING';
-                            return (
-                                <tr key={app.id} className="group h-11 hover:bg-[var(--fc-surface-hover)] transition-colors">
-                                    <td className="px-4 w-8">
-                                        <input
-                                            type="checkbox"
-                                            checked={selected.has(app.id)}
-                                            disabled={!isPending}
-                                            onChange={() => toggleSelect(app.id)}
-                                            aria-label={`Select ${app.fullName || app.username}`}
-                                            className="h-3.5 w-3.5 accent-[#16a34a]"
-                                        />
-                                    </td>
-                                    <td className="px-4">
-                                        <UserIdentityCell avatarUrl={app.avatarUrl} fullName={app.fullName} username={app.username} />
-                                        {/* Phase A3 — inline applicant summary */}
-                                        <div className="mt-1 flex flex-wrap items-center gap-1">
-                                            {summaryChips(app).map((chip) => (
-                                                <Pill key={chip} label={chip} tone="neutral" />
-                                            ))}
-                                            {app.isMinor && (
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--fc-state-warning)]">
-                                                    <ShieldAlert className="h-3 w-3" />
-                                                    {t('applications.minor')}
-                                                </span>
-                                            )}
-                                            {app.isMinor && app.currentConsentStatus === 'PENDING' && (
-                                                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--fc-state-warning)]">
-                                                    · {t('applications.consentPending')}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-4"><Pill label={clubRoleLabel(app.role)} /></td>
-                                    <td className="px-4">
-                                        <p className="text-xs text-[var(--fc-text-secondary)] max-w-[200px] truncate">{app.message || '—'}</p>
-                                    </td>
-                                    <td className="px-4 text-xs text-[var(--fc-text-secondary)]">{formatMetaTime(app.createdAt) || 'Recently'}</td>
-                                    <td className="px-4 w-12">
-                                        <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
-                                            <OverflowActions
-                                                triggerIcon="vertical"
-                                                label="Application actions"
-                                                items={[
-                                                    { id: 'accept', label: 'Accept', description: app.jobId ? 'Accept job application' : 'Accept membership request', icon: <Check className="h-3.5 w-3.5" />, tone: 'positive', disabled: !isPending, onSelect: () => onAcceptApplication(app.id) },
-                                                    { id: 'decline', label: 'Decline', description: 'Reject this application with a kind note (phase A6)', icon: <X className="h-3.5 w-3.5" />, tone: 'danger', divider: true, disabled: !isPending, onSelect: () => onDeclineApplication(app.id) },
-                                                ]}
-                                            />
-                                        </div>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </DataTable>
-                </div>
-            )}
-
-            {bulkAction && (
-                <DecisionNoteModal
-                    title={bulkAction === 'ACCEPT' ? t('applications.acceptTitle') : t('applications.declineTitle')}
-                    subtitle={t(bulkAction === 'ACCEPT' ? 'decisions.bulkAcceptSubtitle' : 'applications.subtitle')}
-                    templateKey={bulkAction === 'ACCEPT' ? 'decisions.staffTemplate' : 'decisions.declineApplicationTemplate'}
-                    saving={bulkPending}
-                    confirmLabel={bulkAction === 'ACCEPT' ? t('decisions.accept') : t('applications.declineConfirm')}
-                    danger={bulkAction === 'DECLINE'}
-                    onClose={() => setBulkAction(null)}
-                    onConfirm={(message) => void handleBulkConfirm(message)}
-                />
-            )}
+    return <div className="squad-design recruitment-design">
+        <header className="sd-heading"><div><span className="sd-eyebrow">{r('recruitment')}</span><h2>{r('applications')}</h2><p>{r('applicationsIntro')}</p></div></header>
+        <RecruitmentNavigation active="applications" onOpenTryouts={onOpenTryouts} onOpenPlayers={onOpenPlayers} onOpenSquads={onOpenSquads} />
+        <div className="rc-metrics" aria-label={r('loadedApplications')}>
+            <div className="rc-metric"><strong>{applicationsLoading ? '—' : pendingIds.length}</strong><span>{r('awaitingDecision')}</span></div>
+            <div className="rc-metric"><strong>{applicationsLoading ? '—' : filteredApplications.filter((app) => app.role === 'PLAYER').length}</strong><span>{r('playerApplications')}</span></div>
+            <div className="rc-metric"><strong>{applicationsLoading ? '—' : filteredApplications.filter((app) => app.jobId != null).length}</strong><span>{r('jobApplications')}</span></div>
         </div>
-    );
+        <section className="sd-panel">
+            <header className="rc-panel-header"><div><h3>{r('applicationsStep')}</h3><p>{r('loadedApplications')}</p></div><span>{r('results', { count: filteredApplications.length })}</span></header>
+            {pagination && <nav className="rc-table-summary" aria-label="Application pages"><button disabled={applicationsLoading || bulkPending || pagination.page === 0} onClick={() => { setSelected(new Set()); pagination.onChange(pagination.page - 1); }}>Previous page</button><span>Page {pagination.page + 1} · {pagination.total} matching applications. Search and sorting apply to this page.</span><button disabled={applicationsLoading || bulkPending || (pagination.page + 1) * pagination.size >= pagination.total} onClick={() => { setSelected(new Set()); pagination.onChange(pagination.page + 1); }}>Next page</button></nav>}
+            <div className="rc-toolbar">
+                <label className="sd-search"><Search size={16} /><input type="search" aria-label={r('searchApplicants')} placeholder={r('searchApplicants')} value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+                <label className="rc-filter">{t('applications.filterPosition')}<select value={filters.position} onChange={(event) => onFiltersChange({ ...filters, position: event.target.value })}><option value="">{t('applications.allPositions')}</option>{POSITION_OPTIONS.map((position) => <option key={position} value={position}>{squadLabel(position, t)}</option>)}</select></label>
+                <label className="rc-filter">{r('job')}<select value={filters.jobId} onChange={(event) => onFiltersChange({ ...filters, jobId: event.target.value })}><option value="">{r('allApplications')}</option>{jobs.map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}</select></label>
+                <label className="rc-filter">{t('applications.filterAgeGroup')}<select value={filters.ageGroup} onChange={(event) => onFiltersChange({ ...filters, ageGroup: event.target.value })}><option value="">{t('applications.allAgeGroups')}</option>{AGE_GROUP_OPTIONS.map((age) => <option key={age} value={age}>{age}</option>)}</select></label>
+                <label className="rc-filter">{t('applications.filterStatus')}<select value={filters.status} onChange={(event) => onFiltersChange({ ...filters, status: event.target.value })}>{STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status === 'ALL' ? 'All outcomes' : recruitmentOutcome(status)}</option>)}</select></label>
+            </div>
+            {selectedIds.length > 0 ? <div className="rc-bulk">
+                <strong>{t('applications.selected', { count: selectedIds.length })}</strong>
+
+                <button type="button" className="sd-button rc-danger" disabled={bulkPending} onClick={() => setBulkAction('DECLINE')}><X size={14} />{t('applications.declineSelected', { count: selectedIds.length })}</button>
+                <button type="button" className="rc-link" disabled={bulkPending} onClick={() => setSelected(new Set())}>{t('applications.clearSelection')}</button>
+            </div> : pendingIds.length > 0 && <div className="rc-table-summary"><span>{r('results', { count: pendingIds.length })} · {r('pending')}</span><button type="button" className="rc-link" onClick={() => setSelected(new Set(pendingIds))}>{t('applications.selectAllPending', { count: pendingIds.length })}</button></div>}
+            {selectedIds.length > 0 && !allPendingSelected && <div className="rc-table-summary"><button type="button" className="rc-link" onClick={() => setSelected(new Set(pendingIds))}>{t('applications.selectAllPending', { count: pendingIds.length })}</button></div>}
+            {applicationsError && applications.length > 0 && <div role="alert" className="rc-help"><Info size={16} /><p>{applicationsError}</p><button type="button" className="rc-link" onClick={onRetry}>{t('journey.retry')}</button></div>}
+            {applicationsLoading && applications.length === 0 ? <PageSpinner /> : applicationsError && applications.length === 0 ? <ErrorBlock message={applicationsError} onRetry={onRetry} /> : filteredApplications.length === 0 ? <div className="sd-empty"><ClipboardList size={28} /><h3>{r('emptyApplications')}</h3><p>{r('emptyApplicationsIntro')}</p>{(query || filters.position || filters.ageGroup || filters.jobId || filters.status !== 'PENDING') && <button type="button" className="sd-button" onClick={clearFilters}>{r('clearFilters')}</button>}</div> : <div className="rc-table">
+                <DataTable columns={['', r('applicant'), r('opportunity'), r('submitted'), r('status'), '']} sort={sort} onSort={(column) => setSort((previous) => ({ column, direction: previous?.column === column && previous.direction === 'asc' ? 'desc' : 'asc' }))}>
+                    {sortedApplications.map((app) => <tr key={app.id} data-selected={selectedIds.includes(app.id)}>
+                        <td className="rc-select"><input type="checkbox" checked={selectedIds.includes(app.id)} disabled={app.status !== 'PENDING' || bulkPending} onChange={() => toggleSelect(app.id)} aria-label={r('selectApplicant', { name: app.fullName || app.username })} /></td>
+                        <td className="rc-identity"><UserIdentityCell avatarUrl={app.avatarUrl} fullName={app.fullName} username={app.username} /><p>{[app.position ? squadLabel(app.position, t) : null, app.ageGroup].filter(Boolean).join(' · ')}</p><ApplicantSummary application={app} /></td>
+                        <td className="rc-job"><strong>{app.jobTitle || r('generalApplication')}</strong><small>{r(app.role)}</small></td>
+                        <td>{app.createdAt ? formatDate(app.createdAt) : r('recently')}</td>
+                        <td><span className="rc-status" data-status={app.status}>{recruitmentOutcome(app.status)}</span></td>
+                        <td><div className="rc-actions"><button type="button" className="sd-button" onClick={() => setReviewId(app.id)}>{r('review')}<ArrowRight size={13} /></button></div></td>
+                    </tr>)}
+                </DataTable>
+            </div>}
+        </section>
+        <div className="rc-help"><Info size={16} /><p>{r('playerNext')}</p>{onOpenPlayers && <button type="button" className="rc-link" onClick={onOpenPlayers}>{r('playersStep')}<ArrowRight size={13} /></button>}</div>
+        {reviewedApplication && <ApplicationReview application={reviewedApplication} onClose={() => setReviewId(null)} onChanged={onRetry} onDecline={() => { setReviewId(null); onDeclineApplication(reviewedApplication.id); }} />}
+        {bulkAction && <DecisionNoteModal title={bulkAction === 'ACCEPT' ? t('applications.acceptTitle') : t('applications.declineTitle')} subtitle={t(bulkAction === 'ACCEPT' ? 'decisions.bulkAcceptSubtitle' : 'applications.subtitle')} templateKey={bulkAction === 'ACCEPT' ? 'decisions.staffTemplate' : 'decisions.declineApplicationTemplate'} saving={bulkPending} confirmLabel={bulkAction === 'ACCEPT' ? t('decisions.accept') : t('applications.declineConfirm')} danger={bulkAction === 'DECLINE'} onClose={() => setBulkAction(null)} onConfirm={(message) => void handleBulkConfirm(message)} />}
+    </div>;
+};
+
+const ApplicantSummary = ({ application: app }: { application: ClubMembershipApplication }) => {
+    const { t } = useTranslation();
+    return <div className="rc-summary">
+        {app.age != null && <span>{t('applications.summaryAge', { age: app.age })}</span>}
+        {app.preferredFoot && <span>{app.preferredFoot}</span>}
+        {app.heightCm != null && <span>{t('applications.summaryHeight', { height: app.heightCm })}</span>}
+        {app.currentClubName && <span>{app.currentClubName}</span>}
+        {app.careerHistoryCount != null && app.careerHistoryCount > 0 && <span>{t('applications.summaryHistory', { count: app.careerHistoryCount })}</span>}
+        {app.isMinor && <span className="rc-consent"><ShieldAlert size={12} />{t('applications.minor')}</span>}
+        {app.isMinor && app.currentConsentStatus === 'PENDING' && <span className="rc-consent">{t('applications.consentPending')}</span>}
+    </div>;
+};
+
+const ApplicationReview = ({ application, onClose, onChanged, onDecline }: { application: ClubMembershipApplication; onClose: () => void; onChanged: () => void; onDecline: () => void }) => {
+    const r = useRecruitmentCopy();
+    const dialogRef = useRef<HTMLDivElement>(null);
+    useDialogFocus(true, dialogRef, onClose);
+    return <div className="rc-overlay"><div className="rc-backdrop" onClick={onClose} /><div className="rc-dialog" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="application-review-title">
+        <header className="rc-dialog-header"><div><span className="sd-eyebrow">{r('applicationDetails')}</span><h2 id="application-review-title">{application.fullName || application.username}</h2><p>{[application.jobTitle || r('generalApplication'), r(application.role)].join(' · ')}</p></div><button type="button" className="sd-icon-button" onClick={onClose} aria-label={r('close')}><X size={17} /></button></header>
+        <div className="rc-dialog-body"><UserIdentityCell avatarUrl={application.avatarUrl} fullName={application.fullName} username={application.username} /><ApplicantSummary application={application} /><span className="rc-status" data-status={application.status}>{recruitmentOutcome(application.status)}</span><h3>{r('message')}</h3><p className="rc-message">{application.message || r('noMessage')}</p><RecruitmentApplication applicationId={application.id} onChanged={onChanged} /></div>
+        <footer className="rc-dialog-footer"><button type="button" className="sd-button" onClick={onClose}>{r('close')}</button>{application.status === 'PENDING' && <><button type="button" className="sd-button rc-danger" onClick={onDecline}><X size={14} />{r('decline')}</button></>}</footer>
+    </div></div>;
 };

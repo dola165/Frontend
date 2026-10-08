@@ -1,0 +1,16 @@
+import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
+import type { AuthSessionId } from '../../utils/authStorage';
+import type { AdmissionCase, Opportunity, Choice, Terms, Charge, AdmissionWorkspace } from '../admissions/types';
+import type { ConnectedInquiry } from './types';
+export type JoiningContact = {id:number;name:string;online:boolean|null;busy:boolean};
+export type JoiningVenue = {id:number;name:string;address:string;squadId:number|null};
+export type JoiningContext = {contacts:JoiningContact[];venues:JoiningVenue[]};
+export type JoiningPreferences = {sharePresence:boolean;busy:boolean};
+export type JoiningJourney = {inquiry:ConnectedInquiry;clubId:number|null;squadName:string|null;programmeName:string|null;staff:boolean;canAct:boolean;managed:boolean;handler:Choice|null;pendingHandler:Choice|null;privateHandoffNote:string|null;preferredFacilityId:number|null;context:JoiningContext;arrangement:AdmissionCase|null;group:Opportunity|null;sessions:NonNullable<AdmissionWorkspace['sessions']>;programmeCharges:Charge[];programmeFeesKnown:boolean;trialCost:string;preferences:JoiningPreferences|null};
+export type JourneyCommand = {requestId:string;expectedVersion:number;action:'INVITE'|'OFFER'|'HANDOFF'|'ACCEPT_HANDOFF'|'CANCEL_HANDOFF';contactId?:number;internalNote?:string;squadSessionId?:number;facilityId?:number;location?:string;cost?:string;preparation?:string;terms?:Terms;schedule?:string;reason?:string};
+const config=(session:AuthSessionId,signal?:AbortSignal):AuthSessionRequestConfig=>({_authSessionId:session,signal});
+export const fetchJoiningContext=(club:number,squad:number|null,session:AuthSessionId,signal?:AbortSignal)=>apiClient.get<JoiningContext>(`/joining/clubs/${club}/contacts`,{...config(session,signal),params:{squadId:squad}}).then(r=>r.data);
+export const fetchJoiningJourney=(id:number,session:AuthSessionId,signal?:AbortSignal)=>apiClient.get<JoiningJourney>(`/joining/enquiries/${id}/journey`,config(session,signal)).then(r=>r.data);
+export const commandJoiningJourney=(id:number,body:JourneyCommand,session:AuthSessionId)=>apiClient.post<JoiningJourney>(`/joining/enquiries/${id}/journey`,body,config(session)).then(r=>r.data);
+export const saveJoiningPreferences=(body:JoiningPreferences,session:AuthSessionId)=>apiClient.put<JoiningPreferences>('/joining/contact-preferences',body,config(session)).then(r=>r.data);
+export const contactLabel=(contact:JoiningContact)=>`${contact.name}${contact.busy?' · Busy':contact.online===true?' · Online now':contact.online===false?' · Offline':''}`;

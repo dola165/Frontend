@@ -1,0 +1,10 @@
+{
+  "origin": "https://app.grasskickz.com",
+  "checks": [
+    "existing saved hoodie cart displays both size thumbnails",
+    "one product lookup for multiple sizes, no refetch on quantity changes",
+    "desktop/mobile layout and working thumbnail links",
+    "unavailable image falls back to an icon without blocking checkout"
+  ],
+  "errors": []
+}

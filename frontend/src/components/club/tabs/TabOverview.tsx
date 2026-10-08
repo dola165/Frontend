@@ -1,6 +1,8 @@
+import { usePostReactions } from '../../../hooks/usePostReactions';
+import { reactionFields } from '../../../components/feed/reactions';
 import { useEffect, useState } from 'react';
 import { apiClient } from '../../../api/axiosConfig';
-import { ArrowRight, CheckCircle, Loader2, MapPin, Megaphone, Sparkles, UserPlus, Users, X } from 'lucide-react';
+import { Loader2, Megaphone } from 'lucide-react';
 import { PostComposer } from '../../feed/PostComposer';
 import { type FeedPostDto, type CommentDto } from '../../feed/FeedPost';
 import { FeedList } from '../../feed/FeedList';
@@ -8,8 +10,9 @@ import { PostTheaterModal } from '../../PostTheaterModal';
 import type { ClubProfile } from '../../../pages/ClubProfilePage';
 import type { ClubManagementTab } from '../../club/ClubManagementModal';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { usePagedProfilePosts } from '../../../hooks/usePagedProfilePosts';
+import { ProfilePostPagination } from '../../profile/ProfilePostPagination';
 
-const SETUP_CHECKLIST_KEY = 'club_setup_checklist_dismissed';
 
 interface TabOverviewProps {
   club: ClubProfile;
@@ -17,9 +20,9 @@ interface TabOverviewProps {
   onOpenManageClub?: (tab: ClubManagementTab) => void;
 }
 
-export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverviewProps) => {
-  const [posts, setPosts] = useState<FeedPostDto[]>([]);
-  const [loading, setLoading] = useState(true);
+export const TabOverview = ({ club, isOwnClubAdmin }: TabOverviewProps) => {
+  const postPages = usePagedProfilePosts(`/posts/club/${club.id}`);
+  const { posts, setPosts, loading } = postPages;
   const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
   const [commentsData, setCommentsData] = useState<Record<number, CommentDto[]>>({});
   const [selectedPost, setSelectedPost] = useState<FeedPostDto | null>(null);
@@ -27,38 +30,17 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
   const [commentsLoading, setCommentsLoading] = useState<Record<number, boolean>>({});
   const [pendingLikes, setPendingLikes] = useState<Record<number, boolean>>({});
   const [likeErrors, setLikeErrors] = useState<Record<number, string | null>>({});
-  const [checklistDismissed, setChecklistDismissed] = useState(() => {
-    try {
-      return localStorage.getItem(`${SETUP_CHECKLIST_KEY}_${club.id}`) === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  const dismissChecklist = () => {
-    setChecklistDismissed(true);
-    try {
-      localStorage.setItem(`${SETUP_CHECKLIST_KEY}_${club.id}`, 'true');
-    } catch { /* localStorage unavailable */ }
-  };
-
-  const loadFeed = async () => {
-    setLoading(true);
-    try {
-      const response = await apiClient.get(`/posts/club/${club.id}`);
-      setPosts(response.data.posts || []);
-    } catch (error) {
-      console.error('Failed to load club feed', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    void loadFeed();
-  }, [club.id]);
+    setCommentsData({}); setCommentsErrors({}); setCommentsLoading({}); setOpenComments({}); setPendingLikes({}); setLikeErrors({}); setSelectedPost(null);
+  }, [postPages.pageKey]);
 
-  const handleLikeToggle = async (postId: number) => {
+  const reactions = usePostReactions(postPages.pageKey, saved => {
+        const update = (post: FeedPostDto) => post.id === saved.id ? reactionFields(post, saved) : post;
+        setPosts(current => current.map(update));
+        setSelectedPost(current => current ? update(current) : null);
+    });
+
+    const handleLikeToggle = async (postId: number) => {
     if (pendingLikes[postId]) return;
     const currentPost = posts.find((post) => post.id === postId) ?? (selectedPost?.id === postId ? selectedPost : null);
     if (!currentPost) return;
@@ -123,97 +105,30 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[760px] flex-col gap-4">
-      {isOwnClubAdmin && <PostComposer clubId={club.id} authorName={club.name} avatarUrl={club.logoUrl} onPostCreated={loadFeed} compact />}
+    <div className="club-posts-canvas home-feed-canvas mx-auto flex w-full max-w-[680px] flex-col gap-4"><header><h2 className="text-2xl font-semibold tracking-tight">Posts</h2><p className="mt-2 mb-3 text-sm text-[var(--club-theme-text-secondary)]">News, updates and conversations from the club.</p></header>
+      {isOwnClubAdmin && <PostComposer home clubId={club.id} authorName={club.name} avatarUrl={club.logoUrl} onPostCreated={postPages.refresh} compact />}
 
-      {isOwnClubAdmin && !checklistDismissed && (
-        <div className="relative overflow-hidden rounded-[18px] border-2 border-amber-400/40 bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 p-5 shadow-[0_8px_32px_rgba(251,191,36,0.15)]">
-          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-amber-400/20" />
-          <div className="absolute -left-4 -bottom-4 h-16 w-16 rounded-full bg-rose-300/20" />
-          <div className="relative">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-amber-400 text-amber-900 shadow-[0_2px_8px_rgba(251,191,36,0.4)]">
-                  <Sparkles className="h-4 w-4" />
-                </span>
-                <div>
-                  <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-amber-800">Getting Started</h3>
-                  <p className="mt-0.5 text-xs font-medium text-amber-700/70">Follow these steps to set up your club — it only takes a minute!</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={dismissChecklist}
-                className="shrink-0 rounded-full p-1.5 text-amber-500 hover:bg-amber-200/50 hover:text-amber-700 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="space-y-2">
-              {[
-                { step: 1, icon: MapPin, label: 'Add club location', desc: 'Pin your club on the map so players can find you', tab: 'personnel' as ClubManagementTab },
-                { step: 2, icon: Users, label: 'Create your first squad', desc: 'Set up age-group or competitive squads', tab: 'squads' as ClubManagementTab },
-                { step: 3, icon: UserPlus, label: 'Invite staff members', desc: 'Bring in coaches, admins, and players', tab: 'invites' as ClubManagementTab },
-                { step: 4, icon: Megaphone, label: 'Post your first update', desc: 'Share news or welcome message with followers', tab: null }
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-3 rounded-xl bg-white/70 px-4 py-3  ring-1 ring-amber-200/50 transition-all hover:bg-white hover: hover:ring-amber-300/60">
-                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400 text-[11px] font-semibold text-amber-900 shadow-[0_1px_4px_rgba(251,191,36,0.5)]">
-                    {item.step}
-                  </span>
-                  <item.icon className="h-4 w-4 shrink-0 text-amber-600" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-slate-800">{item.label}</p>
-                    <p className="text-[11px] text-slate-500">{item.desc}</p>
-                  </div>
-                  {item.tab && onOpenManageClub ? (
-                    <button
-                      type="button"
-                      onClick={() => onOpenManageClub(item.tab!)}
-                      className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-400 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-amber-900 shadow-[0_2px_6px_rgba(251,191,36,0.35)] transition-all hover:bg-amber-500 hover:shadow-[0_4px_10px_rgba(251,191,36,0.45)] active:translate-y-0.5"
-                    >
-                      Go <ArrowRight className="h-3 w-3" />
-                    </button>
-                  ) : (
-                    <CheckCircle className="h-5 w-5 shrink-0 text-emerald-500" />
-                  )}
-                </div>
-              ))}
-            </div>
-            <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-wider text-amber-600/60">
-              You can skip this and set things up later from Manage Club
-            </p>
-          </div>
-        </div>
-      )}
-
-      {posts.length === 0 ? (
-        <div className="flex min-h-[180px] flex-col items-center justify-center gap-4 rounded-[18px] border border-[color:var(--club-theme-border-subtle)] bg-[rgba(12,18,27,0.96)] px-5 py-10 text-center shadow-[0_18px_32px_rgba(2,6,12,0.22)]">
+      {postPages.error && <ProfilePostPagination {...postPages}/>}
+      {postPages.error ? null : posts.length === 0 ? (
+        <div className="flex min-h-[180px] flex-col items-center justify-center gap-4 rounded-[18px] border border-[color:var(--club-theme-border-subtle)] bg-[var(--club-theme-surface)] px-5 py-10 text-center shadow-[0_18px_32px_color-mix(in_srgb,_var(--color-shadow)_22%,_transparent)]">
           <Megaphone className="h-8 w-8 text-[color:var(--club-theme-text-secondary)]" />
           <div>
             <h3 className="text-lg font-semibold uppercase tracking-[0.14em] text-[color:var(--club-theme-text-primary)]">No Posts Yet</h3>
-            <p className="mt-2 text-sm text-[color:var(--club-theme-text-secondary)]">Share your first update with the club using the composer above.</p>
+            <p className="mt-2 text-sm text-[color:var(--club-theme-text-secondary)]">{isOwnClubAdmin ? 'Share the first update using the composer above.' : 'Updates will appear here when the club shares them.'}</p>
           </div>
-          {isOwnClubAdmin && onOpenManageClub && (
-            <button
-              type="button"
-              onClick={() => onOpenManageClub('squads')}
-              className="mt-2 inline-flex items-center gap-2 border border-[color:var(--club-theme-border-subtle)] bg-white/[0.04] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--club-theme-text-secondary)] transition-colors hover:text-[color:var(--club-theme-text-primary)] hover:border-white/20"
-            >
-              <Users className="h-3.5 w-3.5" />
-              Create Your First Squad
-            </button>
-          )}
         </div>
       ) : (
         <FeedList
+          home
           posts={posts}
           openComments={openComments}
           commentsData={commentsData}
           onLikeToggle={handleLikeToggle}
+    onReactionChange={reactions.change}
           onToggleComments={toggleComments}
           onSubmitComment={submitComment}
-          pendingLikes={pendingLikes}
-          likeErrors={likeErrors}
+          pendingLikes={{ ...pendingLikes, ...reactions.pending }}
+          likeErrors={{ ...likeErrors, ...reactions.errors }}
           commentsErrors={commentsErrors}
           onRetryComments={(postId) => void loadComments(postId)}
           onSelectPost={(post) => {
@@ -226,6 +141,7 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
         />
       )}
 
+      {!postPages.error && <ProfilePostPagination {...postPages}/>}
       <PostTheaterModal
         isOpen={!!selectedPost}
         post={selectedPost}
@@ -233,8 +149,9 @@ export const TabOverview = ({ club, isOwnClubAdmin, onOpenManageClub }: TabOverv
         commentsData={selectedPost ? commentsData[selectedPost.id] : undefined}
         onSubmitComment={submitComment}
         onLikeToggle={handleLikeToggle}
-        likePending={selectedPost ? pendingLikes[selectedPost.id] === true : false}
-        likeError={selectedPost ? likeErrors[selectedPost.id] : null}
+    onReactionChange={reactions.change}
+        likePending={selectedPost ? reactions.pending[selectedPost.id] === true || pendingLikes[selectedPost.id] === true : false}
+        likeError={selectedPost ? reactions.errors[selectedPost.id] || likeErrors[selectedPost.id] : null}
         commentsLoading={selectedPost ? commentsLoading[selectedPost.id] === true : false}
         commentsError={selectedPost ? commentsErrors[selectedPost.id] : null}
         onRetryComments={(postId) => void loadComments(postId)}

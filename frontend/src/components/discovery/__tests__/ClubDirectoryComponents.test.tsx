@@ -42,7 +42,7 @@ describe('Club Directory presentational building blocks', () => {
             </MemoryRouter>
         );
 
-        expect(screen.getByText('OPEN TRIAL')).toHaveClass('text-emerald-400');
+        expect(screen.getByText('OPEN TRIAL')).toHaveClass('text-[color:var(--color-accent)]');
         expect(screen.getByText('Tbilisi')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: /follow/i }));
         expect(onFollowToggle).toHaveBeenCalledWith(expect.anything(), 7);

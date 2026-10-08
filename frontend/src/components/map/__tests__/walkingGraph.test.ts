@@ -39,6 +39,25 @@ describe('walking path search', () => {
     it('rejects a start too far from a mapped path instead of drawing a false connector', () => {
         expect(() => findWalkingRoute([...nodes, way(10, [1, 2, 3])], [44.75, 41.7], [44.802, 41.7])).toThrow('No mapped walking path');
     });
+    it('routes between points beside the middle of a long street with sparse OSM nodes', () => {
+        const elements: OsmElement[] = [
+            { type: 'node', id: 1, lon: 44.8, lat: 41.7 },
+            { type: 'node', id: 2, lon: 44.82, lat: 41.7 }, way(10, [1, 2])
+        ];
+        const route = findWalkingRoute(elements, [44.807, 41.7001], [44.809, 41.7001]);
+        expect(route.coordinates).toEqual([[44.807, 41.7], [44.809, 41.7]]);
+        expect(route.distanceKm).toBeCloseTo(.166, 2);
+        expect(route.startOffsetM).toBe(11);
+        expect(route.endOffsetM).toBe(11);
+    });
+    it('preserves walking one-way restrictions when both pins split the same street', () => {
+        const elements = [...nodes, way(10, [1, 3], { 'oneway:foot': 'yes' })];
+        expect(findWalkingRoute(elements, [44.8005, 41.7], [44.8015, 41.7]).coordinates).toHaveLength(2);
+        expect(() => findWalkingRoute(elements, [44.8015, 41.7], [44.8005, 41.7])).toThrow('No connected');
+    });
+    it('reports arrival when both pins meet the same path point', () => {
+        expect(findWalkingRoute([...nodes, way(10, [1, 2])], [44.8, 41.7], [44.8, 41.7])).toMatchObject({ distanceKm: 0, minutes: 0 });
+    });
 });
 describe('neighborhood discovery', () => {
     it('includes both sides of the antimeridian without including the rest of the world', () => {

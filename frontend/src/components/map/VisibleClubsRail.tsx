@@ -1,3 +1,4 @@
+import { MediaImage } from '../ui/MediaImage';
 import { useEffect, useRef } from 'react';
 import { ArrowUpRight, Building2, MapPin, ShieldCheck, Users, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -64,7 +65,7 @@ export const VisibleClubsRail = ({
     return (
         <>
             <div
-                className={`map-modal-backdrop ${backdropPosition} z-[1070] bg-slate-950/25 backdrop-blur-[1px] transition-opacity ${isVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`}
+                className={`map-modal-backdrop ${backdropPosition} z-[1070] bg-[color:var(--color-ink)]/25 backdrop-blur-[1px] transition-opacity ${isVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`}
                 onClick={onClose}
             />
             <aside
@@ -122,7 +123,7 @@ export const VisibleClubsRail = ({
                                         <button type="button" onClick={() => onSelect(club.key)} className="block w-full px-5 py-4 text-left">
                                             <div className="flex items-start gap-3">
                                                 <span className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden border text-xs font-black ${selected ? 'border-[var(--accent-primary)] bg-[var(--accent-primary-soft)] text-[var(--accent-primary)]' : 'border-[var(--map-panel-border)] bg-[var(--map-card-muted)] text-[var(--text-secondary)]'}`}>
-                                                    {logoUrl ? <img src={logoUrl} alt="" className="h-full w-full object-cover" /> : initialsFor(club.name)}
+                                                    {logoUrl ? <MediaImage src={logoUrl} alt="" className="h-full w-full object-cover" /> : initialsFor(club.name)}
                                                 </span>
                                                 <span className="min-w-0 flex-1">
                                                     <span className="flex items-start justify-between gap-2">

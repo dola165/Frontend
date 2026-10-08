@@ -1,45 +1,67 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CalendarPlus, Camera, Loader2, Send, Video } from 'lucide-react';
+import { MediaImage } from '../ui/MediaImage';
+import { useAndroidUnsavedChanges } from '../../android/useAndroidUnsavedChanges';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, CalendarPlus, Camera, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiClient } from '../../api/axiosConfig';
+import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
+import { SOCIAL_IMAGE_ACCEPT, socialImageUploadError, validateSocialImage } from '../../utils/socialImageUpload';
+import { getAuthSessionId, isCurrentAuthSession, subscribeAuthSession, type AuthSessionId } from '../../utils/authStorage';
+
+const MAX_PHOTOS = 10;
+const MAX_CAPTION = 2000;
+type DraftPhoto = { key: number; file: File; previewUrl: string; mediaId: number | null };
 
 interface PostComposerProps {
   clubId?: number;
   authorName?: string;
   avatarUrl?: string | null;
-  onPostCreated: () => void;
+  onPostCreated: (postId?: number) => void;
   contextType?: string;
   contextId?: number;
   compact?: boolean;
+  home?: boolean;
   onExpand?: () => void;
   onCreateEvent?: () => void;
 }
 
-const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+export const PostComposer = (props: PostComposerProps) => {
+  const sessionId = useSyncExternalStore(subscribeAuthSession, getAuthSessionId);
+  return <PostComposerEditor key={`${sessionId ?? 'guest'}:${props.clubId ?? 'personal'}`} {...props} sessionId={sessionId} />;
+};
 
-export const PostComposer = ({
+const PostComposerEditor = ({
   clubId,
   authorName = 'You',
   avatarUrl,
   onPostCreated,
   compact = false,
+  home = false,
   onExpand,
-  onCreateEvent
-}: PostComposerProps) => {
+  onCreateEvent,
+  sessionId,
+}: PostComposerProps & { sessionId: AuthSessionId }) => {
   const navigate = useNavigate();
   const [content, setContent] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [uploadedMediaId, setUploadedMediaId] = useState<number | null>(null);
+  const [photos, setPhotos] = useState<DraftPhoto[]>([]);
+  const photosRef = useRef<DraftPhoto[]>([]);
+  const photoSequence = useRef(0);
+  const mounted = useRef(true);
+  const requestController = useRef<AbortController | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(!compact);
-  const [submitError, setSubmitError] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [publishedPostId, setPublishedPostId] = useState<number | null>(null);
+  const submissionPending = useRef(false);
+  useAndroidUnsavedChanges(Boolean(content.trim() || photos.length || isSubmitting));
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLElement>(null);
   const resolvedAvatarUrl = resolveMediaUrl(avatarUrl);
+  const current = () => mounted.current && isCurrentAuthSession(sessionId);
+  const updatePhotos = (next: DraftPhoto[]) => { photosRef.current = next; setPhotos(next); };
 
   const expandComposer = () => {
     if (!compact || isExpanded) return;
@@ -47,110 +69,152 @@ export const PostComposer = ({
     onExpand?.();
   };
 
-  const clearFile = () => {
-    setSelectedFile(null);
-    setUploadedMediaId(null);
-    setPreviewUrl((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return null;
-    });
+  const resetFile = () => {
+    setFileError(null);
+    photosRef.current.forEach(photo => URL.revokeObjectURL(photo.previewUrl));
+    updatePhotos([]);
     if (imageInputRef.current) imageInputRef.current.value = '';
-    if (videoInputRef.current) videoInputRef.current.value = '';
+  };
+
+  const removePhoto = (key: number) => {
+    if (!current() || submissionPending.current) return;
+    const removed = photosRef.current.find(photo => photo.key === key);
+    if (removed) URL.revokeObjectURL(removed.previewUrl);
+    updatePhotos(photosRef.current.filter(photo => photo.key !== key));
+    setFileError(null); setSubmitError(null);
+  };
+  const movePhoto = (key: number, direction: -1 | 1) => {
+    if (!current() || submissionPending.current) return;
+    const next = [...photosRef.current];
+    const index = next.findIndex(photo => photo.key === key);
+    const destination = index + direction;
+    if (index < 0 || destination < 0 || destination >= next.length) return;
+    [next[index], next[destination]] = [next[destination], next[index]];
+    updatePhotos(next); setSubmitError(null);
   };
 
   useEffect(() => {
     if (!compact || !isExpanded) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node) && !content.trim() && !selectedFile) {
+      if (!submissionPending.current && containerRef.current && !containerRef.current.contains(event.target as Node) && !content.trim() && !photos.length) {
         setIsExpanded(false);
-        setPreviewUrl((current) => {
-          if (current) URL.revokeObjectURL(current);
-          return null;
-        });
         if (imageInputRef.current) imageInputRef.current.value = '';
-        if (videoInputRef.current) videoInputRef.current.value = '';
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [compact, isExpanded, content, selectedFile]);
+  }, [compact, isExpanded, content, photos.length]);
 
-  useEffect(() => () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-  }, [previewUrl]);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      requestController.current?.abort();
+      photosRef.current.forEach(photo => URL.revokeObjectURL(photo.previewUrl));
+      photosRef.current = [];
+    };
+  }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      toast.error('Choose an image or video file.');
-      event.target.value = '';
+    if (!current() || submissionPending.current) return;
+    const selected = Array.from(event.target.files ?? []);
+    event.target.value = '';
+    if (!selected.length) return;
+    const invalid = selected.find(file => validateSocialImage(file));
+    const validationError = photosRef.current.length + selected.length > MAX_PHOTOS
+      ? 'A post can include up to 10 photos. Remove a photo before adding more.'
+      : invalid ? `${invalid.name}: ${validateSocialImage(invalid)}` : null;
+    if (validationError) {
+      setFileError(validationError);
+      toast.error(validationError);
       return;
     }
-    if (file.size > MAX_UPLOAD_BYTES) {
-      toast.error('Uploads must be 25 MB or smaller.');
-      event.target.value = '';
-      return;
-    }
+    setFileError(null);
 
     expandComposer();
-    setSelectedFile(file);
-    setUploadedMediaId(null);
-    setPreviewUrl((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return URL.createObjectURL(file);
-    });
-    setSubmitError(false);
+    updatePhotos([...photosRef.current, ...selected.map(file => ({ key: ++photoSequence.current, file, previewUrl: URL.createObjectURL(file), mediaId: null }))]);
+    setSubmitError(null);
   };
 
   const handleSubmit = async () => {
-    if (!content.trim() && !selectedFile) return;
+    // The ref closes the same-tick gap before React disables the controls.
+    if (!current() || submissionPending.current) return;
+    if (!content.trim() || content.length > MAX_CAPTION) {
+      setSubmitError(!content.trim() ? 'Add a caption before publishing your photos.' : 'Keep your post to 2,000 characters or fewer.');
+      return;
+    }
+    submissionPending.current = true;
     setIsSubmitting(true);
+    setSubmitError(null);
+    const controller = new AbortController();
+    requestController.current = controller;
+    const config: AuthSessionRequestConfig = { _authSessionId: sessionId, signal: controller.signal };
+    const submittedPhotos = [...photosRef.current];
 
+    let uploading = false;
     try {
       const mediaIds: number[] = [];
-      let mediaId = uploadedMediaId;
-      if (selectedFile && mediaId == null) {
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        const mediaResponse = await apiClient.post('/media/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        mediaId = mediaResponse.data.id;
-        setUploadedMediaId(mediaId);
+      for (let index = 0; index < submittedPhotos.length; index++) {
+        const photo = submittedPhotos[index];
+        let mediaId = photo.mediaId;
+        if (!current()) return;
+        if (mediaId == null) {
+          const formData = new FormData();
+          formData.append('file', photo.file, photo.file.name);
+          uploading = true; setUploadProgress(index + 1);
+          const mediaResponse = await apiClient.post<{ id: number }>('/media/upload', formData, {
+            ...config, headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          if (!current()) return;
+          if (!Number.isSafeInteger(mediaResponse.data.id) || mediaResponse.data.id <= 0) throw new Error('Upload was not confirmed.');
+          mediaId = mediaResponse.data.id;
+          updatePhotos(photosRef.current.map(item => item.key === photo.key ? { ...item, mediaId } : item));
+          uploading = false;
+        }
+        mediaIds.push(mediaId);
       }
-      if (mediaId != null) mediaIds.push(mediaId);
-
-      await apiClient.post('/posts', {
-        content,
+      if (!current()) return;
+      setUploadProgress(null);
+      const published = await apiClient.post<{ postId?: number }>('/posts', {
+        content: content.trim(),
         clubId: clubId || null,
         isPublic: true,
         mediaIds
-      });
-
+      }, config);
+      if (!current()) return;
+      const postId = published.data?.postId;
+      const confirmedPostId = typeof postId === 'number' && Number.isSafeInteger(postId) && postId > 0 ? postId : undefined;
+      setPublishedPostId(confirmedPostId ?? null);
       setContent('');
-      clearFile();
-      setSubmitError(false);
-      onPostCreated();
+      resetFile();
+      setSubmitError(null);
+      onPostCreated(confirmedPostId);
       toast.success('Post published');
       if (compact) setIsExpanded(false);
     } catch (error) {
+      if (!current() || controller.signal.aborted) return;
       console.error('Failed to create post', error);
-      setSubmitError(true);
-      toast.error('Failed to publish post. Please try again.');
+      const message = uploading ? socialImageUploadError(error) : 'Failed to publish this post. Your draft is still here—please try again.';
+      setSubmitError(message);
+      toast.error(message);
     } finally {
-      setIsSubmitting(false);
+      if (current()) {
+        requestController.current = null;
+        submissionPending.current = false;
+        setIsSubmitting(false);
+        setUploadProgress(null);
+      }
     }
   };
 
-  const openAttachmentPicker = (type: 'photo' | 'video') => {
+  const openAttachmentPicker = () => {
+    if (!current() || submissionPending.current || photosRef.current.length >= MAX_PHOTOS) return;
     expandComposer();
-    if (type === 'photo') imageInputRef.current?.click();
-    else videoInputRef.current?.click();
+    imageInputRef.current?.click();
   };
 
   const openEventCreator = () => {
+    if (!current() || submissionPending.current) return;
     expandComposer();
     if (onCreateEvent) onCreateEvent();
     else navigate('/calendar?newEvent=1');
@@ -160,73 +224,86 @@ export const PostComposer = ({
   const compactActionClass = 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--feed-hover-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--feed-accent)]';
 
   return (
-    <section ref={containerRef} className={`rounded-2xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] shadow-[var(--feed-shadow-panel)] transition-shadow focus-within:shadow-[var(--feed-shadow-float)] ${collapsed ? 'p-3' : 'p-4'}`}>
-      <input type="file" ref={imageInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" />
-      <input type="file" ref={videoInputRef} onChange={handleFileSelect} className="hidden" accept="video/*" />
+    <section ref={containerRef} aria-label="Share an update" aria-busy={isSubmitting} className={`${home ? 'home-post-composer' : ''} rounded-2xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] shadow-[var(--feed-shadow-panel)] transition-shadow focus-within:shadow-[var(--feed-shadow-float)] ${collapsed ? 'p-3' : 'p-4'}`}>
+      <fieldset disabled={isSubmitting} className="min-w-0">
+      <input type="file" multiple ref={imageInputRef} onChange={handleFileSelect} className="hidden" aria-label="Choose photo" accept={SOCIAL_IMAGE_ACCEPT} />
 
       <div className={`flex gap-2.5 ${collapsed ? 'items-center' : 'items-start'}`}>
         <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--feed-layer-bg)] text-sm font-bold text-[var(--feed-text-secondary)] ring-1 ring-[var(--feed-card-border)] ${collapsed ? 'h-10 w-10' : 'h-11 w-11'}`}>
-          {resolvedAvatarUrl ? <img src={resolvedAvatarUrl} alt="" className="h-full w-full object-cover" /> : authorName.substring(0, 2).toUpperCase()}
+          {resolvedAvatarUrl ? <MediaImage src={resolvedAvatarUrl} alt="" className="h-full w-full object-cover" /> : authorName.substring(0, 2).toUpperCase()}
         </div>
         <textarea
           value={content}
           onChange={(event) => {
+            if (!current() || submissionPending.current) return;
             setContent(event.target.value);
-            setSubmitError(false);
+            setSubmitError(null);
           }}
           onFocus={expandComposer}
           onClick={expandComposer}
-          placeholder={clubId ? 'Share an update from your club…' : `What do you want to share, ${authorName.split(' ')[0]}?`}
+          placeholder={collapsed ? 'Share an update…' : clubId ? 'Share an update from your club…' : `What do you want to share, ${authorName.split(' ')[0]}?`}
           aria-label={clubId ? 'Create a club post' : 'Create a post'}
-          className={`min-w-0 flex-1 resize-none border border-[var(--feed-card-border)] bg-[var(--feed-input-bg)] px-4 text-sm leading-6 text-[var(--feed-text-primary)] outline-none placeholder:text-[var(--feed-text-placeholder)] transition-colors focus:border-[var(--feed-accent)] ${isExpanded ? 'min-h-[104px] rounded-2xl py-3' : 'h-10 min-h-10 overflow-hidden rounded-full py-2'}`}
+          className={`min-w-0 flex-1 resize-none border border-[var(--feed-card-border)] bg-[var(--feed-input-bg)] px-4 text-sm leading-6 text-[var(--feed-text-primary)] outline-none placeholder:text-[var(--feed-text-placeholder)] transition-colors focus:border-[var(--feed-accent)] ${isExpanded ? 'min-h-[104px] rounded-2xl py-3' : 'h-10 min-h-10 overflow-hidden whitespace-nowrap rounded-full py-1.5'}`}
           rows={isExpanded ? 3 : 1}
         />
-        {collapsed && (
-          <div className="flex shrink-0 items-center gap-0.5" aria-label="Add to your post">
-            <button type="button" onClick={() => openAttachmentPicker('video')} className={compactActionClass} aria-label="Add video" title="Video">
-              <Video className="h-5 w-5 text-rose-500" />
-            </button>
-            <button type="button" onClick={() => openAttachmentPicker('photo')} className={compactActionClass} aria-label="Add photo" title="Photo">
-              <Camera className="h-5 w-5 text-emerald-500" />
+        {collapsed && !home && (
+          <div role="group" className="flex shrink-0 items-center gap-0.5" aria-label="Add to your post">
+            <button type="button" onClick={openAttachmentPicker} className={compactActionClass} aria-label="Add photo" title="Photo">
+              <Camera className="h-5 w-5 text-[var(--social-primary)]" />
             </button>
             <button type="button" onClick={openEventCreator} className={compactActionClass} aria-label="Create event" title="Event">
-              <CalendarPlus className="h-5 w-5 text-amber-400" />
+              <CalendarPlus className="h-5 w-5 text-[var(--social-schedule)]" />
             </button>
           </div>
         )}
         {isExpanded && (
-          <button type="button" onClick={handleSubmit} disabled={isSubmitting || (!content.trim() && !selectedFile)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--feed-accent)] text-[var(--feed-accent-contrast)] transition-colors hover:bg-[var(--feed-accent-hover)] disabled:opacity-40" aria-label="Publish post">
+          <button type="button" onClick={handleSubmit} disabled={isSubmitting || !content.trim() || content.length > MAX_CAPTION} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--feed-accent)] text-[var(--feed-accent-contrast)] transition-colors hover:bg-[var(--feed-accent-hover)] disabled:opacity-40" aria-label="Publish post">
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>
         )}
       </div>
 
-      {previewUrl && selectedFile && (
-        <div className="relative mt-3 ml-14 overflow-hidden rounded-2xl border border-[var(--feed-card-border)] bg-[var(--feed-layer-bg)]">
-          {selectedFile.type.startsWith('video/') ? (
-            <video src={previewUrl} controls className="max-h-72 w-full object-contain" />
-          ) : (
-            <img src={previewUrl} alt="Upload preview" className="max-h-72 w-full object-contain" />
-          )}
-          <button type="button" onClick={clearFile} className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black/90" aria-label="Remove attachment">&times;</button>
+      {photos.length > 0 && <div className="mt-3 space-y-2">
+        <p className="text-xs text-[var(--feed-text-secondary)]">{photos.length} / 10 photos · Arrange them in the order they should appear.</p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {photos.map((photo, index) => <div key={photo.key} className="overflow-hidden rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-layer-bg)]">
+            <MediaImage src={photo.previewUrl} alt={photos.length === 1 ? 'Upload preview' : `Upload preview ${index + 1}: ${photo.file.name}`} className="aspect-square w-full object-contain" />
+            <div className="space-y-1 p-2">
+              <p className="truncate text-xs text-[var(--feed-text-secondary)]">{index + 1}. {photo.file.name}</p>
+              {photo.mediaId != null && <p className="text-xs text-[var(--feed-text-secondary)]">Uploaded · Ready to publish</p>}
+              <div className="flex justify-between gap-1">
+                <button type="button" onClick={() => movePhoto(photo.key, -1)} disabled={index === 0} aria-label={`Move photo ${index + 1} earlier`} className="rounded p-2 disabled:opacity-30"><ArrowLeft className="h-4 w-4" /></button>
+                <button type="button" onClick={() => movePhoto(photo.key, 1)} disabled={index === photos.length - 1} aria-label={`Move photo ${index + 1} later`} className="rounded p-2 disabled:opacity-30"><ArrowRight className="h-4 w-4" /></button>
+                <button type="button" onClick={() => removePhoto(photo.key)} className="rounded px-2 py-1 text-xs text-[color:var(--color-danger)]" aria-label={photos.length === 1 ? 'Remove attachment' : `Remove photo ${index + 1}`}>Remove</button>
+              </div>
+            </div>
+          </div>)}
         </div>
-      )}
+      </div>}
 
-      {isExpanded && (
-        <div className="mt-3 grid grid-cols-3 border-t border-[var(--feed-divider)] pt-3">
-          <button type="button" onClick={() => openAttachmentPicker('photo')} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-semibold text-[var(--feed-text-secondary)] transition-colors hover:bg-[var(--feed-hover-bg)] hover:text-[var(--feed-text-primary)]">
-            <Camera className="h-4 w-4 text-emerald-500" /> Photo
-          </button>
-          <button type="button" onClick={() => openAttachmentPicker('video')} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-semibold text-[var(--feed-text-secondary)] transition-colors hover:bg-[var(--feed-hover-bg)] hover:text-[var(--feed-text-primary)]">
-            <Video className="h-4 w-4 text-rose-500" /> Video
+      {(isExpanded || home) && (
+        <div className={`${home ? 'home-composer-actions' : 'grid grid-cols-2'} mt-3 border-t border-[var(--feed-divider)] pt-3`}>
+          <button type="button" onClick={openAttachmentPicker} disabled={photos.length >= MAX_PHOTOS} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-semibold text-[var(--feed-text-secondary)] transition-colors hover:bg-[var(--feed-hover-bg)] hover:text-[var(--feed-text-primary)] disabled:opacity-40">
+            <Camera className="h-4 w-4 text-[var(--social-primary)]" /> Photo
           </button>
           <button type="button" onClick={openEventCreator} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-2 text-xs font-semibold text-[var(--feed-text-secondary)] transition-colors hover:bg-[var(--feed-hover-bg)] hover:text-[var(--feed-text-primary)]">
-            <CalendarPlus className="h-4 w-4 text-amber-400" /> Event
+            <CalendarPlus className="h-4 w-4 text-[var(--social-schedule)]" /> Event
           </button>
+          {home && collapsed && <button type="button" onClick={expandComposer} className="home-compose-start">Write a post</button>}
         </div>
       )}
 
-      {submitError && <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-300">Failed to publish this post. Your draft is still here—please try again.</div>}
+      </fieldset>
+      {publishedPostId != null && !isSubmitting && <p role="status" className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--feed-text-secondary)]">
+        Post published.
+        <Link to={`/posts/${publishedPostId}`} className="font-semibold app-text-action">View your post</Link>
+      </p>}
+      {isExpanded && <p className="mt-2 text-xs text-[var(--feed-text-secondary)]">A caption is required · Up to 10 photos · JPEG, PNG, GIF or WebP · Max 10 MB each. Videos are not supported.</p>}
+      {isExpanded && content.length > 1800 && <p className={`mt-2 text-xs ${content.length > MAX_CAPTION ? 'text-[color:var(--color-danger)]' : 'text-[var(--feed-text-secondary)]'}`}>{content.length} / 2,000 characters</p>}
+      {fileError && <p role="alert" className="mt-2 text-sm text-[color:var(--color-danger)]">{fileError}</p>}
+      {isSubmitting && <p role="status" className="mt-3 text-xs text-[var(--feed-text-secondary)]">{uploadProgress ? `Uploading photo ${uploadProgress} of ${photos.length}…` : 'Publishing your post…'} Editing will be available when it finishes.</p>}
+
+      {submitError && <div role="alert" className="mt-3 rounded-xl border border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 px-3 py-2 text-xs font-semibold text-[color:var(--color-danger)]">{submitError}</div>}
     </section>
   );
 };

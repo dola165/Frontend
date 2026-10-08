@@ -1,0 +1,8 @@
+{
+  "diagnostic": true,
+  "api": "controlled delayed mocked responses; real workspace components and client",
+  "storeConflictLostAfterRemount": true,
+  "campaignsConflictLostAfterRemount": true,
+  "jobsPendingUntracked": true,
+  "jobsServerClosedButRemountedListOpen": true
+}

@@ -31,6 +31,7 @@ export const InvitesTab = ({
     selectedInviteRole, pendingKey, invitedUserIds, totalSearchPages,
     onSearchQueryChange, onSearchPageChange, onInviteRoleChange, onInvite, onCancelInvite
 }: InvitesTabProps) => {
+    const [confirmInvite,setConfirmInvite]=useState<UserSearchDto|null>(null);
     const [searchSort, setSearchSort] = useState<SortState | null>(null);
     const [inviteSort, setInviteSort] = useState<SortState | null>(null);
     const canCreateInvites = (overview?.assignableInviteRoles.length ?? 0) > 0;
@@ -102,7 +103,7 @@ export const InvitesTab = ({
     return (
         <div className="space-y-6">
             {canCreateInvites ? <div className="space-y-4">
-                <SectionHeader eyebrow="Invites" title="Invite Members" description="Search users and invite them to join with a specific club role." />
+                <SectionHeader eyebrow="Invites" title="Invite to club management" description="These memberships grant broad club access. Use a staff appointment for squad-specific or specialist responsibilities." />
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                     <div className="flex-1 relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--fc-text-muted)]" />
@@ -116,7 +117,7 @@ export const InvitesTab = ({
                     </div>
                     <select
                         value={selectedInviteRole}
-                        onChange={(e) => onInviteRoleChange(e.target.value as ClubMembershipRole)}
+                        onChange={(e) => {setConfirmInvite(null);onInviteRoleChange(e.target.value as ClubMembershipRole);}}
                         disabled={(overview?.assignableInviteRoles.length ?? 0) === 0}
                         className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-3 py-2 text-sm font-medium text-[var(--fc-text-primary)] outline-none focus:ring-1 focus:ring-[var(--fc-accent)] disabled:opacity-50"
                     >
@@ -136,6 +137,7 @@ export const InvitesTab = ({
                         <DataTable columns={['User', 'Details', 'Action']} sort={searchSort} onSort={handleSearchSort}>
                             {sortedSearchResults.map((user) => {
                                 const alreadyInvited = invitedUserIds.has(user.id);
+                                const alreadyMember = overview?.members.some(m=>m.userId===user.id);
                                 return (
                                     <tr key={user.id} className="h-11 hover:bg-[var(--fc-surface-hover)] transition-colors">
                                         <td className="px-4">
@@ -148,17 +150,17 @@ export const InvitesTab = ({
                                             </div>
                                         </td>
                                         <td className="px-4">
-                                            {alreadyInvited ? (
+                                            {alreadyMember ? <Pill label="Already a club member" /> : alreadyInvited ? (
                                                 <Pill label="Already Invited" tone="info" />
                                             ) : (
                                                 <button
                                                     type="button"
-                                                    onClick={() => void onInvite(user.id)}
+                                                    onClick={() => setConfirmInvite(user)}
                                                     disabled={pendingKey === `invite-${user.id}` || (overview?.assignableInviteRoles.length ?? 0) === 0}
-                                                    className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--fc-accent)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+                                                    className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--fc-accent)] px-3 py-1.5 text-xs font-semibold text-[color:var(--color-on-accent)] hover:opacity-90 disabled:opacity-50 transition-opacity"
                                                 >
                                                     {pendingKey === `invite-${user.id}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
-                                                    Invite as {clubRoleLabel(selectedInviteRole)}
+                                                    Review invitation
                                                 </button>
                                             )}
                                         </td>
@@ -185,6 +187,7 @@ export const InvitesTab = ({
                 </div>
             )}
 
+            {confirmInvite && <section className="staff-access-note" role="group" aria-label="Review management invitation"><h3>Invite {confirmInvite.fullName || confirmInvite.username} as {clubRoleLabel(selectedInviteRole)}?</h3><p>This grants broad club {selectedInviteRole==='CLUB_ADMIN'?'administration':'coaching'} access after acceptance. Use a specialist staff appointment for limited responsibilities.</p><div className="ops-row"><button type="button" disabled={Boolean(pendingKey)} onClick={()=>setConfirmInvite(null)}>Keep editing</button><button type="button" disabled={Boolean(pendingKey)} onClick={()=>{void onInvite(confirmInvite.id).then(()=>setConfirmInvite(null));}}>Send management invitation</button></div></section>}
             <div className="space-y-4">
                 <SectionHeader eyebrow="Pending" title="Sent Invitations" />
                 {overview && sortedInvitations.length === 0 ? (
@@ -206,7 +209,7 @@ export const InvitesTab = ({
                                         </div>
                                     </td>
                                     <td className="px-4 w-12">
-                                        <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                                        <div className="opacity-100">
                                             <OverflowActions
                                                 triggerIcon="vertical"
                                                 label="Invitation actions"

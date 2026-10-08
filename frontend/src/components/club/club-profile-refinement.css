@@ -1,0 +1,71 @@
+@import '../../features/clubs/training-calendar.css';
+
+/* Compact structure is exclusive to the full directory, not squad previews. */
+.cp-staff-structure-compact .cp-structure-root { padding:12px 18px;gap:10px; }
+.cp-staff-structure-compact .cp-structure-root h3 { font-size:15px; }
+.cp-staff-structure-compact .cp-departments { display:block;columns:3 260px;column-gap:16px; }
+.cp-staff-structure-compact .cp-department { break-inside:avoid;display:block;width:100%;margin:0 0 16px;vertical-align:top; }
+.cp-staff-structure-compact .cp-department:before { display:none; }
+.cp-staff-structure-compact .cp-department>header { padding:10px 12px; }
+.cp-staff-structure-compact .cp-department>header h3 { font-size:13px; }
+.cp-structure-person { position:relative;display:flex;align-items:flex-start;gap:9px;padding:12px; }
+.cp-structure-person+.cp-structure-person { border-top:1px solid var(--club-theme-border-subtle); }
+.cp-structure-person .cp-avatar { width:30px;height:30px;min-width:30px;min-height:30px;font-size:10px; }
+.cp-structure-person .cp-person-name { font-size:13px;line-height:1.4;gap:6px;overflow-wrap:anywhere;padding-right:52px; }
+.cp-structure-person .cp-person-name>svg { display:none; }
+.club-public .cp-structure-role { font-size:12px;line-height:1.45;color:var(--club-theme-text-secondary);margin:3px 0 0;overflow-wrap:anywhere; }
+.cp-structure-details { font-size:12px;color:var(--club-theme-text-secondary); }
+.cp-structure-details>summary { position:absolute;right:10px;top:8px;cursor:pointer;width:fit-content;min-height:28px;line-height:28px;padding:0 4px;border-radius:4px;font-weight:500; }
+.cp-structure-details>summary:hover { background:var(--club-theme-elevated);color:var(--club-theme-text-primary); }
+.cp-structure-details[open] { padding-bottom:4px; }
+.cp-structure-details p:empty { display:none; }
+.cp-structure-details>summary:focus-visible { outline:2px solid var(--club-tone-blue);outline-offset:2px; }
+
+.cp-facilities-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:20px;align-items:start; }
+.cp-facility-compact { container-type:inline-size; }
+.cp-facility-compact .cp-facility-top { grid-template-columns:minmax(0,1fr); }
+.cp-facility-compact.cp-facility-with-photo .cp-facility-top { grid-template-columns:minmax(0,1fr) 180px; }
+.cp-facility-compact .cp-facility-intro { padding:22px 24px; }
+.cp-facility-compact .cp-facility-intro h3 { margin:12px 0 8px;font-size:21px;overflow-wrap:anywhere; }
+.cp-facility-compact .cp-meta { gap:8px 12px;font-size:12px; }
+.cp-facility-compact .cp-tag { background:var(--club-theme-elevated);color:var(--club-theme-text-secondary); }
+.cp-facility-compact .cp-facility-address { margin:0;font-size:14px;overflow-wrap:anywhere; }
+.cp-facility-compact .cp-facility-actions { margin-top:16px; }
+.club-public .cp-facility-compact .cp-facility-actions .cp-button-primary { color:var(--club-theme-text-primary);background:var(--club-theme-elevated);border-color:var(--club-theme-border-subtle); }
+.cp-facility-compact .cp-facility-actions .cp-button-primary:hover { border-color:var(--club-tone-blue); }
+.cp-facility-compact .cp-facility-photo { min-height:180px;max-height:260px; }
+.cp-facility-compact .cp-facility-guidance { grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));padding:18px 24px;gap:20px;background:transparent; }
+.cp-facility-compact .cp-facility-guidance section+section { padding-top:0;border-top:0; }
+.cp-facility-compact .cp-facility-guidance h4 { font-size:13px; }
+.cp-facility-compact .cp-facility-guidance p { margin:7px 0 0; }
+.cp-facility-visit-note { display:flex;align-items:flex-start;gap:10px;padding:14px 24px;border-top:1px solid var(--club-theme-border-subtle);color:var(--club-theme-text-secondary);background:var(--club-card); }
+.cp-facility-visit-note>svg { flex:none;margin-top:3px; }
+.club-public .cp-facility-visit-note p { margin:0;font-size:12px;line-height:1.65; }
+.cp-facility-visit-note strong { font-weight:600;color:var(--club-theme-text-primary); }
+.cp-facility-filter { align-items:center;gap:12px 20px; }
+.cp-facility-filter>label { display:flex;align-items:center;gap:12px;font-size:13px;color:var(--club-theme-text-secondary); }
+.cp-facility-filter>label>span { white-space:nowrap; }
+.cp-facility-filter>label>select { max-width:100%;min-width:0; }
+.cp-facility-filter>.cp-muted { margin-left:auto; }
+@container(max-width:520px) {
+  .cp-facility-compact.cp-facility-with-photo .cp-facility-top { grid-template-columns:minmax(0,1fr); }
+  .cp-facility-compact .cp-facility-photo { height:160px;min-height:160px;grid-row:1; }
+}
+@container(min-width:650px) {
+  .cp-facility-compact:not(.cp-facility-with-photo) .cp-facility-intro { display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:28px; }
+  .cp-facility-compact:not(.cp-facility-with-photo) .cp-facility-intro>:not(.cp-facility-actions) { grid-column:1; }
+  .cp-facility-compact:not(.cp-facility-with-photo) .cp-facility-actions { grid-column:2;grid-row:1 / span 5;align-self:center;margin:0; }
+}
+@media(max-width:760px) {
+  .cp-staff-structure-compact .cp-departments { columns:1; }
+  .cp-facility-compact .cp-facility-intro { padding:18px; }
+  .cp-facility-compact .cp-facility-guidance,.cp-facility-visit-note { padding:16px 18px; }
+  .cp-facility-filter { align-items:stretch; }
+  .cp-facility-filter>.cp-muted { margin-left:0; }
+  .cp-facility-filter>label>select { flex:1; }
+}
+
+.cp-people-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:22px 0 16px}.cp-people .cp-filter-tabs{gap:6px}.cp-staff-structure{margin-top:24px}.cp-structure-root{display:flex;align-items:center;justify-content:center;gap:14px;width:fit-content;max-width:100%;margin:auto;padding:18px 26px;background:var(--club-card);border:1px solid var(--club-theme-border-subtle);border-radius:12px;text-align:left}.cp-structure-root>svg{color:var(--club-tone-blue);flex:none}.cp-structure-root h3{margin:0;font-size:18px}.cp-structure-root p{font-size:13px;margin:3px 0 0;color:var(--club-theme-text-secondary)}.cp-structure-note{text-align:center;font-size:12px;line-height:1.6;color:var(--club-theme-text-secondary);margin:12px 0 26px}.cp-departments{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;position:relative;padding-top:20px;border-top:1px solid var(--club-theme-border-subtle)}.cp-departments:before{content:'';position:absolute;left:50%;top:-20px;height:20px;border-left:1px solid var(--club-theme-border-subtle)}.cp-department{position:relative;background:var(--club-card);border:1px solid var(--club-theme-border-subtle);border-radius:12px;min-width:0;align-self:start;overflow:visible}.cp-department:before{content:'';position:absolute;left:50%;top:-21px;height:20px;border-left:1px solid var(--club-theme-border-subtle)}.cp-department>header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--club-theme-border-subtle);background:var(--club-theme-surface);border-radius:12px 12px 0 0}.cp-department>header h3{font-size:15px;margin:0}.cp-department>header>span{font-size:12px;color:var(--club-theme-text-secondary);border:1px solid var(--club-theme-border-subtle);padding:1px 8px;border-radius:20px}.cp-staff-row{display:flex;gap:14px;padding:18px 20px;min-width:0}.cp-staff-row+.cp-staff-row{border-top:1px solid var(--club-theme-border-subtle)}.cp-staff-row .cp-avatar{width:42px;height:42px;min-width:42px;min-height:42px;flex:none;border-radius:50%;font-size:12px}.cp-staff-row-content{min-width:0;flex:1}.cp-person-name{font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--club-theme-text-primary);text-decoration:none}.cp-person-name>svg{flex:none;color:var(--club-theme-text-secondary)}.cp-person-name:hover{color:var(--club-tone-blue)}.club-public .cp-responsibilities{list-style:none;padding:0;margin:9px 0 0;display:grid;gap:10px}.club-public .cp-responsibilities li{border:0;padding:0;display:grid;gap:2px}.cp-responsibilities strong{font-size:13px;font-weight:500}.cp-responsibilities span,.cp-responsibilities small{color:var(--club-theme-text-secondary);font-size:12px;line-height:1.5}.cp-staff-row .cp-person-bio{margin-top:10px;font-size:12px;color:var(--club-theme-text-secondary)}.cp-staff-list{border:1px solid var(--club-theme-border-subtle);border-radius:12px;background:var(--club-card);overflow:hidden}.cp-people .cp-person{gap:16px}.cp-people .cp-person-bio summary{cursor:pointer;min-height:28px;line-height:28px}
+.cp-squad-card{min-width:0;border:1px solid var(--club-theme-border-subtle);border-radius:12px;background:var(--club-card);overflow:hidden}.cp-squad-card .cp-team-row{border:0;border-radius:0;background:transparent;padding:20px;min-height:108px}.cp-squad-card .cp-team-row>span:nth-child(2){flex:1;min-width:0}.cp-squad-card-actions{display:flex;gap:10px;flex-wrap:wrap;border-top:1px solid var(--club-theme-border-subtle);padding:8px 12px}.cp-squad-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.cp-squad-shortcuts>a{display:flex;align-items:center;gap:12px;padding:18px;border:1px solid var(--club-theme-border-subtle);border-radius:12px;background:var(--club-card);color:var(--club-theme-text-primary);text-decoration:none}.cp-squad-shortcuts>a>svg:first-child{color:var(--club-tone-blue);flex:none}.cp-squad-shortcuts>a>span{display:grid;gap:4px;min-width:0;flex:1}.cp-squad-shortcuts strong{font-size:14px;font-weight:600}.cp-squad-shortcuts small{font-size:12px;color:var(--club-theme-text-secondary);line-height:1.5}.cp-squad-shortcuts>a:hover{border-color:var(--club-tone-blue)}.cp-squad-shortcuts>a>svg:last-child{width:15px;flex:none}.cp-programme-options{display:grid;gap:12px}.club-public .cp-programme-option{display:grid;grid-template-columns:48px minmax(0,1fr) minmax(145px,auto);align-items:start;gap:20px;padding:22px;min-height:0}.cp-option-copy{min-width:0}.cp-option-title{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px}.cp-option-title h3{margin:0!important;font-size:17px}.cp-option-title .cp-tag{font-size:11px;background:var(--club-theme-surface);color:var(--club-theme-text-secondary);border:1px solid var(--club-theme-border-subtle)}.cp-option-description{font-size:13px;line-height:1.65;color:var(--club-theme-text-secondary);margin:8px 0 10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.cp-option-meta{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--club-theme-text-secondary);font-size:12px}.cp-option-meta>span{display:flex;align-items:center;gap:6px}.cp-option-price{display:flex;flex-direction:column;align-items:flex-end;gap:7px;padding-left:16px;border-left:1px solid var(--club-theme-border-subtle);font-size:14px}.cp-option-price>small{font-size:12px;color:var(--club-theme-text-secondary)}.club-public .cp-option-price .cp-link-label{border:0;margin:5px 0 0;padding:6px 0;font-size:12px;gap:10px;min-height:32px}.cp-schedule-timetable{padding:18px}.cp-schedule-timetable .fj-timetable{border:0;padding:0;background:transparent}.cp-schedule-squads{padding:20px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cp-schedule-squads>p{grid-column:1/-1;color:var(--club-theme-text-secondary);font-size:13px;margin:0 0 8px}.cp-schedule-squad{display:flex;align-items:center;gap:10px;text-align:left;padding:14px;border:1px solid var(--club-theme-border-subtle);border-radius:9px;font-size:14px;cursor:pointer;background:var(--club-card)}.cp-schedule-squad>span:first-of-type{flex:1}.cp-schedule-squad:hover{border-color:var(--club-tone-blue)}
+.club-preview-body .cp-departments{grid-template-columns:1fr}.club-preview-body .cp-programme-option{grid-template-columns:36px minmax(0,1fr)}.club-preview-body .cp-option-price{grid-column:2;border:0;padding:0;align-items:flex-start}.club-preview-body .cp-squad-shortcuts{grid-template-columns:1fr}
+@media(max-width:760px){.cp-departments{grid-template-columns:1fr;gap:20px}.cp-squad-shortcuts{grid-template-columns:1fr}.club-public .cp-programme-option{grid-template-columns:36px minmax(0,1fr);padding:18px;gap:12px}.cp-programme-option>.cp-section-icon{width:36px;height:36px}.cp-option-price{grid-column:2;border:0;padding:0;align-items:flex-start}.cp-staff-row{padding:16px}.cp-structure-root{padding:16px}.cp-people-toolbar{flex-wrap:wrap}.cp-schedule-squads{grid-template-columns:1fr}.cp-schedule-timetable{padding:14px}}

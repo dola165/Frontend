@@ -59,17 +59,17 @@ export const DobGatePage = () => {
         navigate('/login', { replace: true });
     };
 
-    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-[#f4f4f5] outline-none transition-colors focus:border-[#16a34a] placeholder:text-[#a1a1aa]';
+    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-[var(--color-text)] outline-none transition-colors focus:border-[var(--color-accent)] placeholder:text-[var(--color-secondary)]';
 
     return (
-        <div className="bg-[#0f1117] flex min-h-screen flex-col items-center justify-center p-6">
+        <div className="bg-[var(--color-surface)] flex min-h-screen flex-col items-center justify-center p-6">
             <div className="w-full max-w-md">
                 <div className="text-center mb-10">
-                    <div className="w-16 h-16 bg-[#16a34a] text-white flex items-center justify-center mx-auto mb-6 border border-[#16a34a]">
+                    <div className="w-16 h-16 bg-[var(--color-accent)] text-[var(--color-on-accent)] flex items-center justify-center mx-auto mb-6 border border-[var(--color-accent)]">
                         <ShieldCheck className="w-8 h-8" />
                     </div>
-                    <h1 className="text-3xl font-semibold uppercase tracking-tight text-[#f4f4f5] mb-2">{t('minors.dob.title')}</h1>
-                    <p className="text-sm text-[#a1a1aa]">{t('minors.dob.subtitle')}</p>
+                    <h1 className="text-3xl font-semibold uppercase tracking-tight text-[var(--color-text)] mb-2">{t('minors.dob.title')}</h1>
+                    <p className="text-sm text-[var(--color-secondary)]">{t('minors.dob.subtitle')}</p>
                 </div>
 
                 <div className="theme-surface theme-border border shadow-2xl p-8 rounded-xl">
@@ -81,7 +81,7 @@ export const DobGatePage = () => {
 
                     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                         <div className="space-y-2">
-                            <label className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.dob.label')}</label>
+                            <label className="text-[10px] font-semibold  text-[var(--color-secondary)]">{t('minors.dob.label')}</label>
                             <input
                                 type="date"
                                 value={dob}
@@ -96,7 +96,7 @@ export const DobGatePage = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full mt-2 inline-flex items-center justify-center gap-2 border border-[#16a34a] bg-[#16a34a] text-white px-4 py-3 text-[11px] font-semibold  transition-colors disabled:opacity-50"
+                            className="w-full mt-2 inline-flex items-center justify-center gap-2 border border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-on-accent)] px-4 py-3 text-[11px] font-semibold  transition-colors disabled:opacity-50"
                         >
                             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('minors.dob.confirm')}
                         </button>
@@ -105,7 +105,7 @@ export const DobGatePage = () => {
                     <button
                         type="button"
                         onClick={handleLogout}
-                        className="w-full mt-4 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors"
+                        className="w-full mt-4 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-secondary)] hover:text-[var(--color-text)] transition-colors"
                     >
                         {t('minors.dob.notYou')}
                     </button>

@@ -1,0 +1,12 @@
+{
+  "desktop": true,
+  "mobile": true,
+  "filterCommit": true,
+  "viewportQuery": true,
+  "all230ClubsAccessible": true,
+  "workerWalkingRoute": true,
+  "reducedMotion": true,
+  "emptyState": true,
+  "retry": true,
+  "pageErrors": []
+}

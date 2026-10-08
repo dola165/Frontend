@@ -1,6 +1,10 @@
+import { OpportunityBadge, OpportunityHeader, OpportunityMenu, OpportunityToolbar } from '../opportunities/OpportunityWorkspace';
+import { CommerceDraftScope, CommerceDraftNotice } from '../CommerceDraftScope';
+import { useCommerceDraftState, useClearCommerceForm } from '../commerceDraftState';
+import { MediaImage } from '../../ui/MediaImage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Briefcase, Check, Eye, Loader2, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
+import { ArrowLeft, Briefcase, Check, Pencil, Plus, Trash2, Users, X } from 'lucide-react';
 import {
     acceptClubApplication, createClubJob, declineClubApplication, deleteClubJob, fetchAllClubJobs, fetchJobApplications, updateClubJob,
     type ClubJob, type ClubJobCategory, type ClubJobEngagementType, type ClubJobPayload
@@ -9,6 +13,8 @@ import { extractApiErrorMessage } from '../../../utils/apiError';
 import type { ClubMembershipApplication } from '../../../features/clubs/domain';
 import { ErrorBlock, PageSpinner, Pill, SectionHeader } from '../helpers';
 import { DecisionNoteModal } from './DecisionNoteModal';
+import { EditorChecklist, EditorDiscardPrompt, EditorSection, WorkspaceEditor } from '../editor/WorkspaceEditor';
+import { JevAdvice } from '../../../features/jev/JevAdvice';
 
 interface JobsTabProps {
     clubId: number;
@@ -32,24 +38,30 @@ const JOB_CATEGORIES: Array<{ value: ClubJobCategory; label: string }> = [
 ];
 const ENGAGEMENT_TYPES: Array<{ value: ClubJobEngagementType; label: string }> = [
     { value: 'PAID', label: 'Paid role' },
-    { value: 'VOLUNTEER', label: 'Volunteer role' },
-    { value: 'FLEXIBLE', label: 'Paid or volunteer' },
-    { value: 'UNSPECIFIED', label: 'Not specified' },
+    { value: 'VOLUNTEER', label: 'Ongoing volunteer role' },
+    { value: 'FLEXIBLE', label: 'Flexible: paid or volunteer' },
+    { value: 'UNSPECIFIED', label: 'Engagement not specified' },
 ];
 
 /**
- * Workspace Jobs tab (WEB_APP_MASTER_PLAN.md §4.2, Phase 2):
- * create/edit/close club job postings; candidates arrive in the Applications tab.
+ * Workspace Roles tab (WEB_APP_MASTER_PLAN.md §4.2, Phase 2):
+ * create/edit/close ongoing role postings; supported candidates arrive in the Applications tab.
  */
-export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplications }: JobsTabProps) => {
+const JobsTabContent = ({ clubId, pendingKey, currentUserId, canReviewAllApplications }: JobsTabProps) => {
+    const clearForm = useClearCommerceForm();
     const { t } = useTranslation();
     const [jobs, setJobs] = useState<ClubJob[] | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [editing, setEditing] = useState<ClubJob | 'new' | null>(null);
-    const [saving, setSaving] = useState(false);
-    const [formError, setFormError] = useState<string | null>(null);
-    const [jobBusy, setJobBusy] = useState(false);
-    const [deleteId, setDeleteId] = useState<number | null>(null);
+    const [editing, setEditing] = useCommerceDraftState<ClubJob | 'new' | null>("editing", null);
+    const [saving, setSaving] = useCommerceDraftState("busy", false);
+    const [formError, setFormError] = useCommerceDraftState<string | null>("formError", null);
+    const [jobBusy, setJobBusy] = useCommerceDraftState('jobBusy', false);
+    const [actionError, setActionError] = useCommerceDraftState<string | null>('actionError', null);
+    const [actionMessage, setActionMessage] = useCommerceDraftState('actionMessage', '');
+    const loadRequest = useRef({ value: 0 });
+    const [deleteTarget, setDeleteTarget] = useState<ClubJob | null>(null);
+    const [latest, setLatest] = useState<ClubJob | null>(null);
+    const [loadingLatest, setLoadingLatest] = useState(false);
     const applicantRequest = useRef(0);
     const [query, setQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
@@ -60,16 +72,19 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
     const [applicationDecision, setApplicationDecision] = useState<{ application: ClubMembershipApplication; accept: boolean } | null>(null);
     const [applicationPendingId, setApplicationPendingId] = useState<number | null>(null);
 
+    const [revision, setRevision] = useCommerceDraftState("revision", 0);
     const load = useCallback(async () => {
+        const request = ++loadRequest.current.value;
         setError(null);
         try {
-            setJobs(await fetchAllClubJobs(clubId));
+            const records = await fetchAllClubJobs(clubId);
+            if (request === loadRequest.current.value) setJobs(records);
         } catch {
-            setError(t('jobs.loadFailed'));
+            if (request === loadRequest.current.value) setError(t('jobs.loadFailed'));
         }
     }, [clubId, t]);
 
-    useEffect(() => { void load(); }, [load]);
+    useEffect(() => { const requests = loadRequest.current; void load(); return () => { requests.value++; }; }, [load, revision]);
 
     const visibleJobs = useMemo(() => {
         const normalized = query.trim().toLowerCase();
@@ -120,21 +135,26 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
         }
     };
 
+    const actionFeedback = <>
+        {actionMessage && <p className="op-feedback" role="status">{actionMessage}</p>}
+        {actionError && <p className="op-feedback" role="alert">{actionError} <button className="app-text-action" onClick={() => { setActionError(null); void load(); }}>Reload jobs</button></p>}
+    </>;
     if (jobs == null) {
-        return error ? <ErrorBlock message={error} onRetry={() => void load()} /> : <PageSpinner />;
+        return <>{actionFeedback}{error ? <ErrorBlock message={error} onRetry={() => void load()} /> : <PageSpinner />}</>;
     }
 
     if (selectedJob) {
         return (
             <div className="space-y-4">
                 <button type="button" disabled={applicationPendingId !== null} onClick={() => { applicantRequest.current++; setSelectedJob(null); setJobApplications([]); setApplicationsError(null); setApplicationDecision(null); }} className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]">
-                    <ArrowLeft className="h-4 w-4" /> Back to job postings
+                    <ArrowLeft className="h-4 w-4" /> Back to role postings
                 </button>
                 <SectionHeader
                     eyebrow="Applicants"
                     title={selectedJob.title}
                     description={selectedJob.status === 'OPEN' ? 'Review applicants and decide who moves forward.' : 'This posting is closed. Existing applications remain available for review.'}
                 />
+                <p className="text-xs leading-5 text-[var(--fc-text-secondary)]">Accepting a supported player or coach application may create that matching club relationship. It never grants club administration or unrelated permissions automatically.</p>
                 {applicationsError && <ErrorBlock message={applicationsError} onRetry={() => void openApplicants(selectedJob)} />}
                 {applicationsLoading ? <PageSpinner /> : jobApplications.length === 0 ? (
                     <p className="text-sm text-[var(--fc-text-secondary)]">No applications have been submitted for this posting.</p>
@@ -146,7 +166,7 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
                                 <article key={application.id} className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-4">
                                     <div className="flex flex-wrap items-start gap-3">
                                         <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--fc-accent-soft)] text-sm font-bold text-[var(--fc-accent)]">
-                                            {application.avatarUrl ? <img src={application.avatarUrl} alt="" className="h-full w-full object-cover" /> : (application.fullName || application.username).slice(0, 1).toUpperCase()}
+                                            {application.avatarUrl ? <MediaImage src={application.avatarUrl} alt="" className="h-full w-full object-cover" /> : (application.fullName || application.username).slice(0, 1).toUpperCase()}
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate text-sm font-semibold text-[var(--fc-text-primary)]">{application.fullName || application.username}</p>
@@ -160,7 +180,7 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
                                             <button type="button" disabled={applicationPendingId === application.id} onClick={() => setApplicationDecision({ application, accept: false })} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--fc-border)] px-3 py-1.5 text-xs font-semibold text-[var(--fc-text-secondary)] hover:text-[var(--fc-state-danger)] disabled:opacity-50">
                                                 <X className="h-3.5 w-3.5" /> Decline
                                             </button>
-                                            <button type="button" disabled={applicationPendingId === application.id} onClick={() => setApplicationDecision({ application, accept: true })} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--fc-accent)] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
+                                            <button type="button" disabled={applicationPendingId === application.id} onClick={() => setApplicationDecision({ application, accept: true })} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--fc-accent)] px-3 py-1.5 text-xs font-semibold text-[color:var(--color-on-accent)] disabled:opacity-50">
                                                 <Check className="h-3.5 w-3.5" /> Accept
                                             </button>
                                         </div>
@@ -185,104 +205,73 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
         );
     }
 
+    const changeStatus = async (job: ClubJob) => {
+        if (jobBusy) return;
+        setJobBusy(true); setError(null); setActionError(null); setActionMessage('');
+        try {
+            await updateClubJob(clubId, job.id, {status: job.status === 'OPEN' ? 'CLOSED' : 'OPEN', version: job.version});
+            setActionMessage(job.status === 'OPEN' ? 'Posting closed.' : 'Posting reopened.');
+            setRevision(n => n + 1);
+        } catch (error) {setActionError(extractApiErrorMessage(error, 'Could not change this posting.'));}
+        finally {setJobBusy(false);}
+    };
     return (
-        <div className="space-y-4">
-            <SectionHeader
-                eyebrow={t('jobs.title')}
-                title={t('jobs.heading')}
-                description={t('jobs.description')}
-                action={
-                    <button
-                        type="button"
-                        onClick={() => setEditing('new')}
-                        className="inline-flex items-center gap-2 rounded-xl bg-fuchsia-700 px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
-                    >
-                        <Plus className="h-3.5 w-3.5" /> {t('jobs.postJob')}
-                    </button>
-                }
-            />
-
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-3">
-                <label className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-[var(--fc-border)] bg-[var(--fc-page-bg)] px-3 py-2">
-                    <Search className="h-4 w-4 text-[var(--fc-text-muted)]" />
-                    <span className="sr-only">Search job postings</span>
-                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search postings" className="min-w-0 flex-1 bg-transparent text-sm text-[var(--fc-text-primary)] outline-none placeholder:text-[var(--fc-text-muted)]" />
-                </label>
-                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className="rounded-lg border border-[var(--fc-border)] bg-[var(--fc-page-bg)] px-3 py-2 text-xs font-semibold text-[var(--fc-text-primary)]">
-                    <option value="ALL">All statuses</option><option value="OPEN">Open</option><option value="CLOSED">Closed</option>
-                </select>
-                <span className="text-xs text-[var(--fc-text-muted)]">{visibleJobs.length} posting{visibleJobs.length === 1 ? '' : 's'}</span>
+        <div className="op-workspace" data-section="jobs">
+            <div hidden={!!editing}>
+                <OpportunityHeader title="Roles" description="Publish ongoing paid, volunteer or flexible roles. Dated volunteer shifts are managed separately and are not production-backed." icon={<Briefcase size={22}/>} action={<button type="button" disabled={saving || jobBusy || !!editing} onClick={() => setEditing('new')} className="op-button primary op-create"><Plus size={16}/>{t('jobs.postJob')}</button>}/>
+                <OpportunityToolbar query={query} onQueryChange={setQuery} label="Search role postings" filters={(['ALL','OPEN','CLOSED'] as const).map(value => ({value, label: value === 'ALL' ? 'All postings' : value === 'OPEN' ? 'Open' : 'Closed', count: jobs.filter(job => value === 'ALL' || job.status === value).length}))} filter={statusFilter} onFilterChange={value => setStatusFilter(value as typeof statusFilter)} count={visibleJobs.length + ' role' + (visibleJobs.length === 1 ? '' : 's')}/>
+                {visibleJobs.length === 0 ? <p className="op-list-empty">{t('jobs.empty')}</p> : <div className="op-jobs-list">{visibleJobs.map(job => <article key={job.id} className="op-job-row">
+                    <div className="op-job-mark"><Briefcase size={24}/></div>
+                    <div className="op-job-main"><div><h3>{job.title}</h3><OpportunityBadge status={job.status === 'OPEN' ? 'Open' : 'Closed'}/></div><p>Ongoing role · {JOB_CATEGORIES.find(item => item.value === job.category)?.label || 'Club role'} · {ENGAGEMENT_TYPES.find(item => item.value === job.engagementType)?.label || 'Engagement not specified'}</p><div className="op-tags">{[job.ageGroup,job.level,job.requiredRole === 'PLAYER' || job.requiredRole === 'COACH' ? 'In-app application' : 'Contact the club'].filter(Boolean).map((tag,index) => <span key={index}>{tag}</span>)}</div></div>
+                    <div className="op-row-actions">
+                        {canReviewJob(job) && <button type="button" disabled={saving || jobBusy || !!editing} onClick={() => void openApplicants(job)} className="op-button op-applicants"><Users size={15}/><strong>{job.applicationCount ?? 0}</strong> View applicants</button>}
+                        <button type="button" disabled={jobBusy || saving || !!editing} onClick={() => setEditing(job)} aria-label={'Edit ' + job.title} className="op-button op-edit"><Pencil size={14}/>Edit</button>
+                        <OpportunityMenu name={job.title} disabled={jobBusy || saving || !!editing}>
+                            <button type="button" disabled={jobBusy || saving || !!editing || pendingKey === 'job-' + job.id} onClick={() => void changeStatus(job)}>{job.status === 'OPEN' ? t('jobs.close') : t('jobs.reopen')}</button>
+                            <button type="button" className="danger" aria-label={'Delete ' + job.title} disabled={jobBusy || saving || !!editing} onClick={() => setDeleteTarget(job)}><Trash2 size={14}/>Delete posting</button>
+                        </OpportunityMenu>
+                    </div>
+                </article>)}</div>}
             </div>
 
-            {visibleJobs.length === 0 ? (
-                <p className="text-sm text-[var(--fc-text-secondary)]">{t('jobs.empty')}</p>
-            ) : (
-                <div className="space-y-1.5">
-                    {visibleJobs.map((job) => (
-                        <div key={job.id} className="flex flex-wrap items-center gap-4 rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
-                            <Briefcase className="h-4 w-4 shrink-0 text-[var(--fc-text-muted)]" />
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-[var(--fc-text-primary)]">{job.title}</p>
-                                <p className="text-xs text-[var(--fc-text-secondary)]">
-                                    {[JOB_CATEGORIES.find((item) => item.value === job.category)?.label, ENGAGEMENT_TYPES.find((item) => item.value === job.engagementType)?.label, job.ageGroup, job.level].filter(Boolean).join(' · ') || '—'}
-                                </p>
-                            </div>
-                            <span className="inline-flex shrink-0 items-center gap-1 text-xs text-[var(--fc-text-secondary)]" title="Pending applications">
-                                <Users className="h-3.5 w-3.5" /> {job.applicationCount ?? 0}
-                            </span>
-                            <Pill label={job.status ?? 'OPEN'} tone={job.status === 'OPEN' ? 'success' : 'neutral'} />
-                            {job.requiredRole && <Pill label={job.requiredRole} tone="neutral" />}
-                            {canReviewJob(job) && (
-                                <button type="button" onClick={() => void openApplicants(job)} className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--fc-border)] px-2.5 py-1.5 text-xs font-semibold text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)]">
-                                    <Eye className="h-3.5 w-3.5" /> View applicants
-                                </button>
-                            )}
-                            <button
-                                type="button"
-                                disabled={jobBusy || saving || !!editing || pendingKey === `job-${job.id}`}
-                                onClick={() => void (async () => {
-                                    setJobBusy(true);setError(null);
-                                    try {
-                                        await updateClubJob(clubId, job.id, { status: job.status === 'OPEN' ? 'CLOSED' : 'OPEN' });
-                                        await load();
-                                    } catch (error) { setError(extractApiErrorMessage(error, 'Could not change this posting.')); } finally {setJobBusy(false);}
-                                })()}
-                                className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--fc-text-secondary)] hover:text-[var(--fc-text-primary)] disabled:opacity-50"
-                            >
-                                {job.status === 'OPEN' ? t('jobs.close') : t('jobs.reopen')}
-                            </button>
-                            <button type="button" disabled={jobBusy || saving} onClick={() => setEditing(job)} aria-label={`Edit ${job.title}`} className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
-                                <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                                type="button"
-                                aria-label={`Delete ${job.title}`}
-                                disabled={jobBusy || saving || !!editing}
-                                onClick={() => setDeleteId(job.id)}
-                                className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-state-danger)]"
-                            >
-                                <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {error && <p role="alert">{error} <button className="underline" onClick={() => void load()}>Reload jobs</button></p>}
-            {deleteId !== null && <div role="group" aria-label="Confirm delete job"><p>Delete this posting? A posting with applications must be closed instead.</p><button disabled={jobBusy} onClick={async () => {
-                setJobBusy(true);setError(null);
-                try {await deleteClubJob(clubId,deleteId);setDeleteId(null);await load();}
-                catch(error) {setError(extractApiErrorMessage(error,'Could not delete this posting.'));}
+            {actionFeedback}
+            {error && <p className="op-feedback" role="alert">{error} <button className="app-text-action" onClick={() => void load()}>Reload jobs</button></p>}
+            {deleteTarget !== null && <div role="group" className="op-confirmation" aria-label="Confirm delete job"><p>Delete this posting? A posting with applications must be closed instead.</p><button disabled={jobBusy} onClick={async () => {
+                if (jobBusy) return;
+                                    setJobBusy(true);setError(null);setActionError(null);setActionMessage('');
+                try {await deleteClubJob(clubId,deleteTarget.id,deleteTarget.version);setDeleteTarget(null);setActionMessage('Posting deleted.');setRevision(n => n + 1);}
+                catch(error) {setActionError(extractApiErrorMessage(error,'Could not delete this posting.'));}
                 finally {setJobBusy(false);}
-            }}>Confirm delete</button><button className="ml-4" disabled={jobBusy} onClick={() => setDeleteId(null)}>Keep posting</button></div>}
+            }}>Confirm delete</button><button className="ml-4" disabled={jobBusy} onClick={() => setDeleteTarget(null)}>Keep posting</button></div>}
+            {editing && editing !== 'new' && formError && <div id={`job-editor-recovery-${clubId}`} className="workspace-editor__recovery space-y-3 rounded-xl border border-[var(--color-pink)] p-4">
+                <p>Your draft is kept below. You can check the latest saved role before deciding what to change.</p>
+                <button type="button" disabled={saving || loadingLatest} className="rounded-lg bg-[var(--color-pink)] px-3 py-2 text-sm font-semibold text-[var(--color-on-accent)] disabled:opacity-50" onClick={async () => {
+                    setLoadingLatest(true); setLatest(null);
+                    try {
+                        const records = await fetchAllClubJobs(clubId);
+                        setJobs(records);
+                        const record = records.find(item => item.id === editing.id);
+                        if (record) setLatest(record);
+                        else setFormError('This posting is no longer available. Your draft is kept below.');
+                    } catch { setFormError('Could not load the latest posting. Your draft is kept below. Please try again.'); }
+                    finally { setLoadingLatest(false); }
+                }}>View latest saved posting</button>
+                {latest && <div role="region" aria-label="Latest saved posting" className="space-y-2">
+                    <h3 className="font-semibold">{latest.title}</h3>
+                    <p className="whitespace-pre-wrap">{latest.description || 'No description'}</p>
+                    <p>{[latest.status, JOB_CATEGORIES.find(item => item.value === latest.category)?.label, ENGAGEMENT_TYPES.find(item => item.value === latest.engagementType)?.label, latest.ageGroup, latest.level, latest.requiredRole || 'Contact club'].filter(Boolean).join(' · ')}</p>
+                    <p>Replacing your draft discards your unsaved edits. Copy anything you want to keep first.</p>
+                    <button type="button" disabled={saving} className="rounded-lg bg-[var(--color-pink)] px-3 py-2 text-sm font-semibold text-[var(--color-on-accent)] disabled:opacity-50" onClick={() => { clearForm(); setEditing(latest); setFormError(null); setLatest(null); }}>Discard my draft and use latest posting</button>
+                </div>}
+            </div>}
             {editing && (
                 <JobForm
-                    key={editing === 'new' ? 'new' : editing.id}
+                    key={editing === 'new' ? 'new' : `${editing.id}:${editing.version}`}
                     clubId={clubId}
                     job={editing === 'new' ? null : editing}
-                    saving={saving}
+                    saving={saving || loadingLatest}
                     formError={formError}
-                    onCancel={() => { setEditing(null); setFormError(null); }}
+                    onCancel={() => { clearForm(); setEditing(null); setFormError(null); setLatest(null); }}
                     onSubmit={async (payload) => {
                         if (saving) return;
                         setSaving(true);
@@ -291,10 +280,10 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
                             if (editing === 'new') {
                                 await createClubJob(clubId, payload);
                             } else {
-                                await updateClubJob(clubId, editing.id, payload);
+                                await updateClubJob(clubId, editing.id, { ...payload, version: editing.version });
                             }
-                            setEditing(null);
-                            await load();
+                            clearForm(); setEditing(null);
+                            setRevision(n => n + 1);
                         } catch (error) {
                             setFormError(extractApiErrorMessage(error, t('jobs.saveFailed')));
                         } finally {
@@ -307,9 +296,7 @@ export const JobsTab = ({ clubId, pendingKey, currentUserId, canReviewAllApplica
     );
 };
 
-const JobForm = ({
-    job, saving, formError, onCancel, onSubmit
-}: {
+const JobForm = ({ clubId, job, saving, formError, onCancel, onSubmit }: {
     clubId: number;
     job: ClubJob | null;
     saving: boolean;
@@ -318,67 +305,71 @@ const JobForm = ({
     onSubmit: (payload: ClubJobPayload) => Promise<void>;
 }) => {
     const { t } = useTranslation();
-    const [title, setTitle] = useState(job?.title ?? '');
-    const [description, setDescription] = useState(job?.description ?? '');
-    const [ageGroup, setAgeGroup] = useState(job?.ageGroup ?? '');
-    const [level, setLevel] = useState(job?.level ?? '');
-    const [requiredRole, setRequiredRole] = useState(job?.requiredRole ?? '');
-    const [category, setCategory] = useState<ClubJobCategory>(job?.category ?? 'OTHER');
-    const [engagementType, setEngagementType] = useState<ClubJobEngagementType>(job?.engagementType ?? 'UNSPECIFIED');
-
-    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-2 text-sm font-semibold text-[var(--fc-text-primary)] focus:border-fuchsia-500 outline-none';
-
-    return (
-        <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-4">
-            <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-[var(--fc-text-primary)]">{job ? t('jobs.editPosting') : t('jobs.newPosting')}</p>
-                <button type="button" disabled={saving} onClick={onCancel} aria-label="Close job editor" className="p-1 text-[var(--fc-text-muted)] hover:text-[var(--fc-text-primary)]">
-                    <X className="h-4 w-4" />
-                </button>
+    const [title, setTitle] = useCommerceDraftState("form:title", job?.title ?? '');
+    const [description, setDescription] = useCommerceDraftState("form:description", job?.description ?? '');
+    const [ageGroup, setAgeGroup] = useCommerceDraftState("form:ageGroup", job?.ageGroup ?? '');
+    const [level, setLevel] = useCommerceDraftState("form:level", job?.level ?? '');
+    const [requiredRole, setRequiredRole] = useCommerceDraftState("form:requiredRole", job?.requiredRole ?? '');
+    const [category, setCategory] = useCommerceDraftState<ClubJobCategory>("form:category", job?.category ?? 'OTHER');
+    const [engagementType, setEngagementType] = useCommerceDraftState<ClubJobEngagementType>("form:engagementType", job?.engagementType ?? 'UNSPECIFIED');
+    const [discard, setDiscard] = useState(false);
+    const inAppApplications = requiredRole === 'PLAYER' || requiredRole === 'COACH';
+    return <WorkspaceEditor
+        stepLabels={["Role details", "Who & how", "Review & post"]} title={job ? t('jobs.editPosting') : "Post a role"} eyebrow="Club opportunities / Role editor" accent="job" formLabel="Role editor"
+        description="Help the right people see where they fit. Describe the work, the commitment and how candidates should get in touch with your club."
+        backLabel="Back to role postings" closeLabel="Close role editor" saving={saving} saveLabel={t('jobs.save')}
+        footerNote={job ? `Saving updates this posting and keeps it ${job.status === 'CLOSED' ? 'closed' : 'open'}.` : 'Saving creates an open posting, visible to candidates. Review the details before saving.'}
+        onRequestClose={() => setDiscard(true)}
+        onSubmit={event => {
+            event.preventDefault();
+            if (saving) return;
+            void onSubmit({ title: title.trim(), description, ageGroup, level, requiredRole, category, engagementType });
+        }}
+        feedback={formError && <><p role="alert">{formError}</p><p>Your edits have been kept.{job && <> <a className="app-text-action" href={`#job-editor-recovery-${clubId}`}>Check the latest saved posting</a> before replacing your draft.</>}</p></>}
+        confirmation={discard && <EditorDiscardPrompt label="Discard job edits" disabled={saving} onKeepEditing={() => setDiscard(false)} onDiscard={onCancel}/>}
+        preview={<>
+            <section className="workspace-editor__preview" aria-label="Role preview">
+                <div className="workspace-editor__preview-label"><span>Candidate preview</span><span>Unsaved</span></div>
+                <div className="workspace-editor__preview-body">
+                    <Briefcase size={26} strokeWidth={1.4} aria-hidden="true"/>
+                    <span className="workspace-editor__badge">{JOB_CATEGORIES.find(item => item.value === category)?.label}</span>
+                    <h4>{title.trim() || 'Your next club opening'}</h4>
+                    <div className="workspace-editor__preview-tags"><span className="workspace-editor__badge">{ENGAGEMENT_TYPES.find(item => item.value === engagementType)?.label}</span>{ageGroup && <span className="workspace-editor__badge">{ageGroup}</span>}{level && level !== 'ANY' && <span className="workspace-editor__badge">{level.charAt(0) + level.slice(1).toLowerCase()}</span>}</div>
+                    <p className="workspace-editor__preview-description">{description.trim() || 'Explain the responsibilities, expected commitment and what your club offers.'}</p>
+                    <span className="workspace-editor__badge">{inAppApplications ? 'Apply in GrassKickZ' : 'Contact the club'}</span>
+                </div>
+                <p className="workspace-editor__preview-footnote">{inAppApplications ? 'Candidates send an application. You can review it from this posting.' : 'Candidates use your club’s public contact details. Make sure those details are current.'}</p>
+            </section>
+            <EditorChecklist title="Before you save" items={[
+                { label: 'A clear job title', complete: !!title.trim() },
+                { label: 'Responsibilities and commitment (recommended)', complete: !!description.trim() },
+                { label: 'Paid or volunteer terms (recommended)', complete: engagementType !== 'UNSPECIFIED' },
+            ]}>{job ? 'Edits keep the existing application route unless you change it below.' : 'New postings are open immediately after saving.'} Choose the application route that fits this opening.</EditorChecklist>
+        </>}
+    >
+        <EditorSection number="01" title="Role details" description="Give candidates a specific title and enough detail to decide whether this role fits them.">
+            <label className="workspace-editor__field"><span>Role title<span className="workspace-editor__required" aria-hidden="true">*</span></span><input autoFocus aria-label="Role title" type="text" value={title} onChange={e => setTitle(e.target.value)} required maxLength={120} placeholder={t('jobs.titlePlaceholder')}/></label>
+            <label className="workspace-editor__field"><span>Role description<span className="workspace-editor__count" aria-hidden="true">{description.length}/2000</span></span><textarea aria-label="Role description" value={description} onChange={e => setDescription(e.target.value)} rows={5} maxLength={2000} placeholder={t('jobs.descriptionPlaceholder')}/></label>
+            <p className="workspace-editor__hint">Include responsibilities, location, expected days or hours, experience and what the club offers.</p>
+            <div className="workspace-editor__row">
+                <label className="workspace-editor__field">Football role<select value={category} onChange={e => setCategory(e.target.value as ClubJobCategory)}>{JOB_CATEGORIES.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+                <label className="workspace-editor__field">Engagement type<select value={engagementType} onChange={e => setEngagementType(e.target.value as ClubJobEngagementType)}>{ENGAGEMENT_TYPES.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
             </div>
-            {formError && <p className="mt-2 text-xs font-semibold text-[var(--fc-state-danger)]">{formError}</p>}
-            <form
-                onSubmit={(e) => { e.preventDefault(); void onSubmit({ title: title.trim(), description, ageGroup, level, requiredRole, category, engagementType }); }}
-                className="mt-3 grid gap-3"
-            >
-                <input aria-label="Job title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120}
-                    placeholder={t('jobs.titlePlaceholder')} className={inputClass} />
-                <textarea aria-label="Job description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={2000}
-                    placeholder={t('jobs.descriptionPlaceholder')} className={inputClass} />
-                <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="grid gap-1">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--fc-text-muted)]">Football role</span>
-                        <select value={category} onChange={(e) => setCategory(e.target.value as ClubJobCategory)} className={inputClass}>
-                            {JOB_CATEGORIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                        </select>
-                    </label>
-                    <label className="grid gap-1">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--fc-text-muted)]">Opportunity type</span>
-                        <select value={engagementType} onChange={(e) => setEngagementType(e.target.value as ClubJobEngagementType)} className={inputClass}>
-                            {ENGAGEMENT_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                        </select>
-                    </label>
-                </div>
-                <p className="text-xs text-[var(--fc-text-secondary)]">Player and coach openings use in-app applications. Other roles direct visitors to your club contact details; keep those details up to date.</p>
-                <div className="grid gap-3 sm:grid-cols-3">
-                    <select value={ageGroup} onChange={(e) => setAgeGroup(e.target.value)} className={inputClass}>
-                        <option value="">{t('jobs.ageGroupAny')}</option>
-                        {AGE_GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
-                    </select>
-                    <select value={level} onChange={(e) => setLevel(e.target.value)} className={inputClass}>
-                        <option value="">{t('jobs.levelAny')}</option>
-                        {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-                    </select>
-                    <select value={requiredRole} onChange={(e) => setRequiredRole(e.target.value)} aria-label="Application route" className={inputClass}>
-                        <option value="">Contact club (other roles)</option>
-                        {REQUIRED_ROLES.map((r) => <option key={r} value={r}>{r === 'CLUB_ADMIN' ? 'Club admin (contact club)' : `${r.charAt(0)}${r.slice(1).toLowerCase()} application`}</option>)}
-                    </select>
-                </div>
-                <button type="submit" disabled={saving}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-fuchsia-700 px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50">
-                    {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t('jobs.save')}
-                </button>
-            </form>
-        </div>
-    );
+        </EditorSection>
+        <EditorSection number="02" title="Who & how" description="Use these optional filters when the opening is for a particular team or level of experience.">
+            <div className="workspace-editor__row">
+                <label className="workspace-editor__field">Age group<select value={ageGroup} onChange={e => setAgeGroup(e.target.value)}><option value="">{t('jobs.ageGroupAny')}</option>{AGE_GROUPS.map(group => <option key={group} value={group}>{group}</option>)}</select></label>
+                <label className="workspace-editor__field">Experience level<select value={level} onChange={e => setLevel(e.target.value)}><option value="">{t('jobs.levelAny')}</option>{LEVELS.map(item => <option key={item} value={item}>{item.charAt(0) + item.slice(1).toLowerCase()}</option>)}</select></label>
+            </div>
+            <div className="workspace-editor__subheading"><h4>How candidates apply</h4></div>
+            <label className="workspace-editor__field">Application route<select aria-label="Application route" value={requiredRole} onChange={e => setRequiredRole(e.target.value)}><option value="">Contact club (other roles)</option>{REQUIRED_ROLES.map(role => <option key={role} value={role}>{role === 'CLUB_ADMIN' ? 'Club admin (contact club)' : `${role.charAt(0)}${role.slice(1).toLowerCase()} application`}</option>)}</select></label>
+            <p className="workspace-editor__hint">{inAppApplications ? 'Players and coaches submit an application in GrassKickZ. Open “View applicants” on this posting to review candidates and respond.' : 'This opening directs candidates to your club’s contact details. Add a clear contact method to the description and keep your public club details up to date.'}</p>
+        </EditorSection>
+        <EditorSection number="03" title="Review & post" description="Check the details candidates will see before saving this opening.">
+            <JevAdvice endpoint={`/jev/listings/${clubId}`} kind="listing" input={{ title, description, category, engagement: engagementType }} disabled={saving || !title.trim()} onApply={value => { if (JOB_CATEGORIES.some(item => item.value === value)) setCategory(value as ClubJobCategory); }} />
+            <div className="workspace-editor__review"><h4>{title || "Untitled opening"}</h4><p>{JOB_CATEGORIES.find(item => item.value === category)?.label} · {ENGAGEMENT_TYPES.find(item => item.value === engagementType)?.label}</p><p>{description || "No description added"}</p><p>{ageGroup || "Any age group"} · {level || "Any experience"}</p><p>{inAppApplications ? "Candidates apply in GrassKickZ" : "Candidates use your public club contact details"}</p></div>
+            <p className="workspace-editor__hint">{job ? "Saving keeps the current open or closed status." : "Saving creates an open posting. Candidates can see and respond to it immediately."}</p>
+        </EditorSection>
+    </WorkspaceEditor>;
 };
+export const JobsTab = (props: Parameters<typeof JobsTabContent>[0]) => <CommerceDraftScope clubId={props.clubId} feature="JobsTab"><CommerceDraftNotice/><JobsTabContent {...props}/></CommerceDraftScope>;

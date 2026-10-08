@@ -1,3 +1,4 @@
+import { MediaImage } from '../components/ui/MediaImage';
 import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -10,6 +11,8 @@ import {
     type Campaign,
 } from '../features/campaigns/api';
 import { CampaignProgress } from '../features/campaigns/CampaignProgress';
+import { CampaignPaymentPreview } from '../features/paymentPreview/CampaignPaymentPreview';
+import { paymentPreviewEnabled } from '../features/paymentPreview/config';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import '../features/store/store.css';
 import '../features/campaigns/campaigns.css';
@@ -82,7 +85,7 @@ function CampaignDetail({ id }: { id: number }) {
                             <div className="campaign-gallery">
                                 <div className="store-main-photo">
                                     {campaign.images[photo] ? (
-                                        <img
+                                        <MediaImage
                                             src={resolveMediaUrl(campaign.images[photo])}
                                             alt={`${campaign.title} — photo ${photo + 1}`}
                                         />
@@ -99,7 +102,7 @@ function CampaignDetail({ id }: { id: number }) {
                                                 aria-pressed={photo === index}
                                                 onClick={() => setPhoto(index)}
                                             >
-                                                <img src={resolveMediaUrl(url)} alt="" />
+                                                <MediaImage src={resolveMediaUrl(url)} alt="" />
                                             </button>
                                         ))}
                                     </div>
@@ -164,11 +167,9 @@ function CampaignDetail({ id }: { id: number }) {
                                     the club for its latest plans.
                                 </p>
                             )}
-                            <button className="job-action" disabled>
-                                Online contributions unavailable
-                            </button>
+                            {paymentPreviewEnabled() && campaign.phase === 'ACTIVE' && campaign.status === 'PUBLISHED' ? <CampaignPaymentPreview campaign={campaign} /> : <><p className="store-notice">GrassKickZ does not take payment or record a contribution. Contacting the club is an enquiry, not a pledge or donation.</p><button className="job-action" disabled>Online contributions unavailable</button></>}
                             <Link className="store-cart-link" to={`/clubs/${campaign.clubId}?tab=contact`}>
-                                Contact the club
+                                Ask the club how to support this campaign
                             </Link>
                             <p className="store-hint">
                                 Mention “{campaign.title}” when asking how you can help.

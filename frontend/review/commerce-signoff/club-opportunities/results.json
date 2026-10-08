@@ -1,0 +1,10 @@
+{
+  "singleClubTab": true,
+  "threeScopedChoices": true,
+  "storeCampaignJobsRoundTrips": true,
+  "explicitGeneralExits": true,
+  "keyboardReturn": true,
+  "narrowFits": true,
+  "themeScreenshots": true,
+  "fixture": "mocked API; actual UI components"
+}

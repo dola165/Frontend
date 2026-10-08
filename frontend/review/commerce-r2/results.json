@@ -1,0 +1,11 @@
+{
+  "draftRetained": true,
+  "latestPreview": true,
+  "explicitKeyboardReplacement": true,
+  "narrowLayout": true,
+  "retryVersions": [
+    0,
+    1
+  ],
+  "api": "mocked; actual workspace and API client"
+}

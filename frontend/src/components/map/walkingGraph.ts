@@ -79,14 +79,44 @@ export function findWalkingRoute(elements: OsmElement[], origin: Coordinate, des
             if (way.tags?.['oneway:foot'] !== 'yes') add(way.nodes[i], way.nodes[i - 1], name);
         }
     }
-    const connected = new Set([...edges.keys(), ...[...edges.values()].flatMap(list => list.map(edge => edge.to))]);
-    const nearest = (point: Coordinate) => [...connected].reduce<{ id: number; offset: number } | null>((best, id) => {
-        const offset = distanceKm(point, nodes.get(id)!);
-        return !best || offset < best.offset ? { id, offset } : best;
-    }, null);
-    const start = nearest(origin); const end = nearest(destination);
+    // A pin can be beside the middle of a long street even when its nearest
+    // OSM vertex is hundreds of metres away. Snap to a traversable segment,
+    // then split that segment without adding a connection across other roads.
+    const nearest = (point: Coordinate) => {
+        let best: { from: number; to: number; point: Coordinate; t: number; offset: number } | null = null;
+        const scale = Math.cos(point[1] * Math.PI / 180);
+        for (const [from, list] of edges) for (const edge of list) {
+            const a = nodes.get(from)!, b = nodes.get(edge.to)!;
+            const dx = (b[0] - a[0]) * scale, dy = b[1] - a[1];
+            const length = dx * dx + dy * dy;
+            const t = length ? Math.max(0, Math.min(1, (((point[0] - a[0]) * scale * dx) + (point[1] - a[1]) * dy) / length)) : 0;
+            const projected: Coordinate = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+            const offset = distanceKm(point, projected);
+            if (!best || offset < best.offset) best = { from, to: edge.to, point: projected, t, offset };
+        }
+        return best;
+    };
+    let virtualId = -1;
+    const snap = (point: Coordinate) => {
+        const hit = nearest(point);
+        if (!hit || hit.offset > .25) return null;
+        if (hit.t < 1e-7) return { id: hit.from, offset: hit.offset };
+        if (hit.t > 1 - 1e-7) return { id: hit.to, offset: hit.offset };
+        while (nodes.has(virtualId)) virtualId--;
+        const id = virtualId--;
+        nodes.set(id, hit.point);
+        for (const [from, to] of [[hit.from, hit.to], [hit.to, hit.from]]) {
+            const list = edges.get(from) ?? [];
+            const matches = list.filter(edge => edge.to === to);
+            edges.set(from, list.filter(edge => edge.to !== to));
+            for (const edge of matches) { add(from, id, edge.name); add(id, to, edge.name); }
+        }
+        return { id, offset: hit.offset };
+    };
+    const start = snap(origin); const end = snap(destination);
     if (!start || !end || start.offset > .25 || end.offset > .25) throw new Error('No mapped walking path close to this pin. Choose a start on a nearby street.');
-    if (start.id === end.id) throw new Error('These pins meet the same path point. Choose a start farther away.');
+    if (start.id === end.id) return { coordinates: [nodes.get(start.id)!, nodes.get(end.id)!], branches: [], distanceKm: 0, minutes: 0,
+        startOffsetM: Math.round(start.offset * 1000), endOffsetM: Math.round(end.offset * 1000), steps: [] };
     const costs = new Map<number, number>([[start.id, 0]]);
     const parents = new Map<number, { from: number; edge: Edge }>();
     const closed = new Set<number>();
@@ -112,8 +142,9 @@ export function findWalkingRoute(elements: OsmElement[], origin: Coordinate, des
     let cursor = end.id;
     while (cursor !== start.id) {
         const parent = parents.get(cursor)!;
-        path.unshift(parent.edge); coordinates.unshift(nodes.get(parent.from)!); cursor = parent.from;
+        path.push(parent.edge); coordinates.push(nodes.get(parent.from)!); cursor = parent.from;
     }
+    path.reverse(); coordinates.reverse();
     const steps: WalkingRoute['steps'] = [];
     for (const edge of path) {
         if (steps.at(-1)?.name === edge.name) steps.at(-1)!.distanceM += edge.distance * 1000;

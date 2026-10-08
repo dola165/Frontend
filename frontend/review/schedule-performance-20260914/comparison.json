@@ -1,0 +1,26 @@
+{
+  "conditions": {
+    "cpuSlowdown": 4,
+    "api": "Local deterministic fixture; no live data",
+    "assets": "Production build",
+    "viewport": "1440\u00c3\u2014900"
+  },
+  "summary": [
+    {
+      "events": 7,
+      "beforeMeanMs": 88.5,
+      "afterMeanMs": 54.9,
+      "meanReductionPercent": 37.9,
+      "beforeMedianMs": 79.5,
+      "afterMedianMs": 43.9
+    },
+    {
+      "events": 217,
+      "beforeMeanMs": 455.5,
+      "afterMeanMs": 229.8,
+      "meanReductionPercent": 49.6,
+      "beforeMedianMs": 460.2,
+      "afterMedianMs": 231.6
+    }
+  ]
+}

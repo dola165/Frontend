@@ -69,7 +69,7 @@ export const PromotePlayerModal = ({
             <div className="theme-overlay absolute inset-0" onClick={onClose} />
             <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="promote-player-title" aria-describedby="promote-player-description" className="relative z-10 mx-4 max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto border border-[var(--fc-border)] bg-[var(--fc-page-bg)] shadow-2xl">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-[#ffffff0d] px-5 py-4">
+                <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-5 py-4">
                     <div className="flex items-center gap-3">
                         <ShieldCheck className="h-5 w-5 text-[var(--fc-accent)]" />
                         <div>
@@ -85,16 +85,16 @@ export const PromotePlayerModal = ({
                 </div>
 
                 {/* Squad picker */}
-                <div className="border-b border-[#ffffff0d] px-5 py-4">
-                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa]">
+                <div className="border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-5 py-4">
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-secondary)]">
                         {t('trialists.chooseSquad')}
                     </p>
                     {squadsLoading ? (
                         <div className="flex justify-center py-6">
-                            <Loader2 className="h-6 w-6 animate-spin text-[#16a34a]" />
+                            <Loader2 className="h-6 w-6 animate-spin text-[var(--color-accent)]" />
                         </div>
                     ) : squads.length === 0 ? (
-                        <p className="py-3 text-xs font-medium text-[#a1a1aa]">{t('trialists.noSquads')}</p>
+                        <p className="py-3 text-xs font-medium text-[var(--color-secondary)]">{t('trialists.noSquads')}</p>
                     ) : (
                         <div className="space-y-1.5">
                             {squads.map((squad) => {
@@ -106,17 +106,17 @@ export const PromotePlayerModal = ({
                                         onClick={() => setSelectedSquadId(squad.id)}
                                         className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left transition-colors ${
                                             isSelected
-                                                ? 'border-[#16a34a] bg-[#16a34a]/10'
-                                                : 'border-[#ffffff0d] hover:bg-elevated'
+                                                ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10'
+                                                : 'border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] hover:bg-elevated'
                                         }`}
                                     >
                                         <span>
-                                            <span className="block text-sm font-semibold text-[#f4f4f5]">{squad.name}</span>
-                                            <span className="mt-0.5 block text-[11px] font-medium text-[#a1a1aa]">
+                                            <span className="block text-sm font-semibold text-[var(--color-text)]">{squad.name}</span>
+                                            <span className="mt-0.5 block text-[11px] font-medium text-[var(--color-secondary)]">
                                                 {[squad.category, squad.gender].filter(Boolean).join(' · ') || '—'}
                                             </span>
                                         </span>
-                                        {isSelected && <Check className="h-4 w-4 text-[#16a34a]" />}
+                                        {isSelected && <Check className="h-4 w-4 text-[var(--color-accent)]" />}
                                     </button>
                                 );
                             })}
@@ -126,7 +126,7 @@ export const PromotePlayerModal = ({
 
                 {/* Optional trial deadline */}
                 <div className="px-5 py-4">
-                    <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa]">
+                    <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-secondary)]">
                         {t('trialists.trialEnds')} ({t('trialists.optional')})
                     </label>
                     <input
@@ -134,16 +134,16 @@ export const PromotePlayerModal = ({
                         value={trialEndsOn}
                         onChange={(e) => setTrialEndsOn(e.target.value)}
                         aria-label={t('trialists.trialEnds')}
-                        className="w-full rounded-lg border border-[#ffffff0d] bg-elevated px-3 py-2 text-sm text-[#f4f4f5] outline-none focus:border-[#16a34a]"
+                        className="w-full rounded-lg border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-elevated px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
                     />
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-2 border-t border-[#ffffff0d] px-5 py-3">
+                <div className="flex items-center justify-end gap-2 border-t border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-5 py-3">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="border border-[#ffffff0d] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa] hover:text-[#f4f4f5]"
+                        className="border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-secondary)] hover:text-[var(--color-text)]"
                     >
                         {t('trialists.cancel')}
                     </button>
@@ -151,7 +151,7 @@ export const PromotePlayerModal = ({
                         type="button"
                         onClick={() => selectedSquadId !== null && onConfirm(selectedSquadId, trialEndsOn || null)}
                         disabled={selectedSquadId === null || saving}
-                        className="border border-[#16a34a] bg-[#16a34a] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--accent-on-primary)] hover:bg-[#16a34a]-hover disabled:opacity-50"
+                        className="border border-[var(--color-accent)] bg-[var(--color-accent)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--accent-on-primary)] hover:bg-[var(--color-accent)]-hover disabled:opacity-50"
                     >
                         {saving ? (
                             <span className="inline-flex items-center gap-2">

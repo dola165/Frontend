@@ -1,0 +1,19 @@
+{
+  "diagnosticAssertsBug": true,
+  "fullApp": true,
+  "twoTabsSameContext": true,
+  "displayedAccount": "Alpha",
+  "actualRequestAccount": "Bravo",
+  "writes": [
+    {
+      "authorization": "Bearer B-token",
+      "body": {
+        "content": "Typed from the tab still displaying Account Alpha",
+        "clubId": null,
+        "isPublic": true,
+        "mediaIds": []
+      }
+    }
+  ],
+  "errors": []
+}

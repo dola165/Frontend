@@ -5,6 +5,9 @@ import { clubHandlers } from './clubs';
 import { feedHandlers } from './feed';
 import { scheduleHandlers } from './schedule';
 import { tournamentHandlers } from './tournaments';
+import { tournamentSeriesHandlers } from './tournamentSeries';
+import { tournamentRefereeHandlers } from './tournamentReferees';
+import { volunteerHandlers } from './volunteers';
 import { notificationHandlers } from './notifications';
 import { mediaHandlers } from './media';
 import { adminHandlers } from './admin';
@@ -14,6 +17,7 @@ import { mapHandlers } from './map';
 import { chatHandlers } from './chat';
 import { agentHandlers } from './agents';
 import { storeHandlers } from './store';
+import { parentHandlers } from './parents';
 
 export const handlers: HttpHandler[] = [
   ...authHandlers,
@@ -22,6 +26,9 @@ export const handlers: HttpHandler[] = [
   ...feedHandlers,
   ...scheduleHandlers,
   ...tournamentHandlers,
+  ...tournamentSeriesHandlers,
+  ...tournamentRefereeHandlers,
+  ...volunteerHandlers,
   ...notificationHandlers,
   ...mediaHandlers,
   ...adminHandlers,
@@ -32,4 +39,5 @@ export const handlers: HttpHandler[] = [
   ...chatHandlers,
   ...agentHandlers,
   ...storeHandlers,
+  ...parentHandlers,
 ];

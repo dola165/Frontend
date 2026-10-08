@@ -9,6 +9,8 @@ import {
 } from '../api/notifications';
 import { NotificationListItem } from '../components/notifications/NotificationListItem';
 import { NotificationTarget } from '../components/notifications/NotificationTarget';
+import { BookingNotificationTarget } from '../components/notifications/BookingNotificationTarget';
+import { SquadConversationNotificationTarget } from '../components/notifications/SquadConversationNotificationTarget';
 import type { NotificationItem, NotificationListScope } from '../types/notifications';
 import { extractApiErrorMessage } from '../utils/apiError';
 import {
@@ -173,7 +175,10 @@ export const NotificationsPage = () => {
     }, [filter.clubId, filter.scope]);
 
     useEffect(() => {
-        const unsubscribe = subscribeNotificationsChanged(() => {
+        const unsubscribe = subscribeNotificationsChanged((change) => {
+            if (change?.allRead) {
+                setNotifications((current) => current.map((notification) => ({ ...notification, isRead: true })));
+            }
             void refreshUnreadCount();
             void loadScopeCounts();
         });
@@ -275,8 +280,14 @@ export const NotificationsPage = () => {
     }
 
     return (
-        <div className="theme-page min-h-full [--accent-primary:#3f7666] [--accent-primary-soft:rgba(63,118,102,0.10)] dark:[--accent-primary:#5f927f] dark:[--accent-primary-soft:rgba(95,146,127,0.16)]">
+        <div className="notifications-page theme-page min-h-full [--accent-primary:var(--color-accent)] [--accent-primary-soft:var(--color-accent-soft)] dark:[--accent-primary:var(--color-accent)] dark:[--accent-primary-soft:var(--color-accent-soft)]">
             <div className="flex w-full flex-col gap-6">
+                {searchParams.has('squadId') && <SquadConversationNotificationTarget key={user?.id} squadId={searchParams.get('squadId') ?? ''} channel={searchParams.get('channel') ?? ''} thread={searchParams.get('thread')} onClose={() => {
+                    const next = new URLSearchParams(searchParams); next.delete('squadId'); next.delete('channel'); next.delete('thread'); setSearchParams(next);
+                }} />}
+                {(searchParams.has('bookingId') || searchParams.has('venueId')) && <BookingNotificationTarget key={user?.id} venueId={searchParams.get('venueId') ?? ''} bookingId={searchParams.get('bookingId') ?? ''} onClose={() => {
+                    const next = new URLSearchParams(searchParams); next.delete('venueId'); next.delete('bookingId'); setSearchParams(next);
+                }} />}
                 {searchParams.has('itemId') && <NotificationTarget kind="outcome" id={searchParams.get('itemId') ?? ''} onClose={() => {
                     const next = new URLSearchParams(searchParams); next.delete('itemId'); setSearchParams(next);
                 }} />}
@@ -302,7 +313,7 @@ export const NotificationsPage = () => {
                                 type="button"
                                 onClick={() => void handleMarkAllAsRead()}
                                 disabled={markingAll || unreadCount === 0}
-                                className="inline-flex min-h-11 items-center justify-center gap-2 border border-[var(--accent-primary)] bg-[var(--accent-primary)] px-4 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                                className="inline-flex min-h-11 items-center justify-center gap-2 border border-[var(--accent-primary)] bg-[var(--accent-primary)] px-4 text-sm font-bold text-[color:var(--color-on-accent)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                                 {markingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCheck className="h-4 w-4" />}
                                 Mark all as read

@@ -1,0 +1,15 @@
+{
+  "source": "Existing backend catalog and campaigns",
+  "writes": [],
+  "errors": [],
+  "checks": [
+    "actual cart: decline, retry, success, refund, reload, cart retained, readable desktop/mobile",
+    "actual campaign: correct currency/amount, successful contribution, unchanged published progress, desktop/mobile"
+  ],
+  "origin": "https://app.grasskickz.com",
+  "catalog": {
+    "activeProducts": 405,
+    "purchasableProducts": 405,
+    "unavailableProducts": 0
+  }
+}

@@ -1,0 +1,64 @@
+/* The rail itself is sticky in the tall feed grid; a short child cannot be sticky within a short aside. */
+.feed-home-grid > .home-side-rail {
+    position: sticky;
+    top: var(--home-rail-top, calc(var(--app-header-height) + 16px));
+    align-self: start;
+    min-width: 0;
+    max-height: calc(100dvh - var(--home-rail-top, calc(var(--app-header-height) + 16px)) - 16px);
+}
+.home-side-scroll { max-height: inherit; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; }
+.home-commercial-nav { display: none; gap: 8px; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 8px var(--app-page-gutter, 16px); background: var(--feed-bg, var(--theme-page)); border-bottom: 1px solid var(--feed-card-border, var(--theme-border)); }
+.home-opportunity-shortcut { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 7px 4px; border: 1px solid var(--feed-card-border, var(--theme-border)); border-radius: 10px; font-size: 12px; font-weight: 600; color: var(--feed-text-primary, var(--text-primary)); }
+.home-opportunity-shortcut svg { flex-shrink: 0; }
+.home-opportunity-shortcut--store svg { color: var(--social-primary, var(--color-accent)); }
+.home-opportunity-shortcut--stadiums svg { color: var(--social-map, var(--color-cyan)); }
+.home-opportunity-shortcut--campaigns svg { color: var(--color-orange); }
+.home-opportunity-shortcut--jobs svg { color: var(--color-purple); }
+.home-opportunity-shortcut:hover { background: var(--feed-hover-bg, color-mix(in srgb, var(--color-ink) 7.06%, transparent)); }
+.home-opportunity-shortcut:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.home-opportunities--feed { position: sticky; top: var(--app-header-height); z-index: 30; }
+.home-opportunities--panel { position: static; flex-shrink: 0; background: var(--dola-surface); padding: 8px 12px; }
+@media (max-width: 1279px) {
+    .home-opportunities--feed { display: grid; }
+    .feed-home-grid { --home-rail-top: calc(var(--app-header-height) + 76px); }
+}
+@media (min-width: 1000px) {
+    .dola-layout-panel { padding-right: var(--dola-dock-width); }
+    .dola-layout-panel .dola-dock { width: var(--dola-dock-width); }
+    .dola-layout-panel .feed-home-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; --home-rail-top:calc(var(--app-header-height) + 76px); }
+    .dola-layout-panel .home-side-rail--left, .dola-layout-panel .home-side-rail--right { display:none; }
+    .dola-layout-panel .home-opportunities--feed { display:grid; }
+    .dola-layout-panel:is([data-dola-layout="right"],[data-dola-layout="both"],[data-dola-layout="wide"]) .feed-home-grid { grid-template-columns:minmax(0,680px) 220px; --home-rail-top:calc(var(--app-header-height) + 16px); }
+    .dola-layout-panel:is([data-dola-layout="right"],[data-dola-layout="both"],[data-dola-layout="wide"]) .home-side-rail--right { display:block; }
+    .dola-layout-panel:is([data-dola-layout="right"],[data-dola-layout="both"],[data-dola-layout="wide"]) .home-opportunities--feed { display:none; }
+    .dola-layout-panel:is([data-dola-layout="both"],[data-dola-layout="wide"]) .feed-home-grid { grid-template-columns:200px minmax(0,680px) 220px; }
+    .dola-layout-panel:is([data-dola-layout="both"],[data-dola-layout="wide"]) .home-side-rail--left { display:block; }
+    .dola-layout-panel[data-dola-layout="wide"] .feed-home-grid { grid-template-columns:240px minmax(0,680px) 260px; }
+    .dola-layout-panel .home-side-rail--left .home-social-link { padding-left:6px; padding-right:6px; }
+}
+@media (max-width: 999px) { .home-opportunities--panel { display: grid; } }
+@media (max-width: 480px) { .home-opportunity-shortcut { gap: 5px; font-size: 11px; } }
+
+.home-shortcut-emblem { display:inline-flex; align-items:center; justify-content:center; flex:0 0 42px; width:42px; height:44px; }
+.home-shortcut-emblem svg { width:36px; height:36px; overflow:visible; filter:drop-shadow(0 2px 2px color-mix(in srgb, var(--color-text) 8.24%, transparent)); }
+.home-shortcut-copy { display:block; min-width:0; flex:1; }
+.home-shortcut-description { display:block; margin-top:3px; color:var(--feed-text-muted); font-size:12px; line-height:1.35; }
+.home-side-rail--left .home-social-link { justify-content:flex-start; gap:12px; padding:9px 10px; min-height:58px; border-radius:12px; }
+.home-side-rail--left .feed-side-link__title, .home-side-rail--left .workspace-shortcut > span:last-child { font-size:15px; font-weight:650; line-height:1.3; white-space:normal; }
+.home-side-rail--left .home-profile-shortcut { margin-bottom:4px; padding-bottom:13px; border-radius:0; }
+.home-side-rail--left .home-profile-shortcut .text-\[10px\] { font-size:12px; }
+.home-shortcut-group { padding-top:9px; margin-top:7px; border-top:1px solid var(--feed-divider); }
+.home-shortcut-heading { padding:3px 12px 6px; margin:0; font-size:12px; font-weight:600; color:var(--feed-text-muted); letter-spacing:.035em; }
+.home-side-rail--left .workspace-shortcut { border:0; margin-bottom:0; }
+.home-side-rail--left .home-social-link:focus-visible { outline:2px solid var(--social-primary); outline-offset:-2px; }
+.home-side-rail--left .home-dola-shortcut:hover { background:color-mix(in srgb,var(--social-primary) 10%,transparent); }
+
+/* The header responds to its actual space when Dola is widened. */
+#app-top-navigation { container-type:inline-size; container-name:top-navigation; }
+@container top-navigation (max-width:780px) {
+    .nav-primary-row > .lg\:flex { display:none; }
+    .nav-actions { gap:6px; }
+    .nav-actions > span, .nav-actions .nav-profile-shortcut, .nav-shortcut-label, .world-nav-wordmark { display:none; }
+    .nav-actions .nav-search-trigger, .nav-actions .nav-dola-mobile, .nav-mobile-search-row { display:flex; }
+    .nav-actions .world-nav-button__inner { padding-left:7px; padding-right:7px; }
+}

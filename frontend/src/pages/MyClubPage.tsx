@@ -6,6 +6,8 @@ import { fetchMyClubMembershipContext } from '../features/clubs/api';
 import type { ClubMembershipContext } from '../features/clubs/domain';
 import { MyClubInvitationsPanel } from '../features/invites/components/MyClubInvitationsPanel';
 import { useAuth } from '../context/AuthContext';
+import { ClubAccessEntry } from '../components/layout/ClubSwitcher';
+import { accessibleClubs } from '../components/layout/clubAccess';
 
 const journeySteps = [
     { icon: Search, title: 'Discover clubs', description: 'Explore clubs by location, level, and the way they welcome new players.' },
@@ -13,31 +15,37 @@ const journeySteps = [
     { icon: CheckCircle2, title: 'Take the next step', description: 'Join an open training session, send a request, or respond to an invitation.' }
 ];
 
-export const MyClubPage = () => {
+export const MyClubPage = () => <ClubAccessEntry><SingleClubPage /></ClubAccessEntry>;
+const SingleClubPage = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const userRole = user?.role;
     const [loading, setLoading] = useState(true);
     const [membershipContext, setMembershipContext] = useState<ClubMembershipContext | null>(null);
+    const ownClubIds = accessibleClubs(user?.navigationCapabilities).map(club=>club.id).join(',');
+    const hasProjection = user?.navigationCapabilities !== undefined;
 
     useEffect(() => {
+        let current = true;
         fetchMyClubMembershipContext()
             .then((context) => {
+                if (!current) return;
                 setMembershipContext(context);
-                if (context?.clubId) {
+                if (context?.clubId && (!hasProjection || ownClubIds.split(',').includes(String(context.clubId)))) {
                     navigate(`/clubs/${context.clubId}`, { replace: true });
                     return;
                 }
                 setLoading(false);
             })
-            .catch(() => setLoading(false));
-    }, [navigate]);
+            .catch(() => { if (current) setLoading(false); });
+        return () => { current = false; };
+    }, [navigate, ownClubIds, hasProjection]);
 
     if (loading) {
         return (
             <div className="flex h-full min-h-[calc(100vh-var(--app-header-height))] items-center justify-center bg-[color:var(--theme-page)]">
                 <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-10 w-10 animate-spin text-[#16a34a]" />
+                    <Loader2 className="h-10 w-10 animate-spin text-[var(--color-accent)]" />
                     <p className="text-sm font-semibold text-[color:var(--text-secondary)]">Finding your club</p>
                 </div>
             </div>
@@ -55,16 +63,16 @@ export const MyClubPage = () => {
 
     return (
         <div className="min-h-full bg-[color:var(--theme-page)] pb-12 text-[color:var(--text-primary)]">
-            <EntityHeaderBand className="bg-[linear-gradient(110deg,color-mix(in_srgb,var(--theme-surface)_94%,#16a34a_6%),var(--theme-surface))]">
+            <EntityHeaderBand className="bg-[linear-gradient(110deg,color-mix(in_srgb,var(--theme-surface)_94%,var(--color-accent)_6%),var(--theme-surface))]">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <div className="inline-flex items-center gap-2 rounded-full border border-[#16a34a]/25 bg-[#16a34a]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#3ddc78]">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-accent)]/25 bg-[var(--color-accent)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-accent)]">
                             <ShieldCheck className="h-3.5 w-3.5" /> No club yet
                         </div>
                         <h1 className="mt-3 text-3xl font-bold tracking-tight text-[color:var(--text-primary)] sm:text-4xl">My Club</h1>
                         <p className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--text-secondary)]">{pageIntro}</p>
                     </div>
-                    <button type="button" onClick={() => navigate('/clubs')} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#16a34a] px-5 text-sm font-bold text-white shadow-[0_10px_28px_rgba(22,163,74,0.22)] transition hover:bg-[#22b955] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16a34a]/60">
+                    <button type="button" onClick={() => navigate('/clubs')} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] px-5 text-sm font-bold text-[var(--color-on-accent)] shadow-[0_10px_28px_color-mix(in_srgb,_var(--color-shadow)_22%,_transparent)] transition hover:bg-[var(--color-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/60">
                         <Search className="h-4 w-4" /> Browse clubs
                     </button>
                 </div>
@@ -76,27 +84,27 @@ export const MyClubPage = () => {
                         <section className="overflow-hidden rounded-2xl border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)]">
                             <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-center">
                                 <div>
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#16a34a]/25 bg-[#16a34a]/10 text-[#3ddc78]"><Building2 className="h-5 w-5" /></div>
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--color-accent)]/25 bg-[var(--color-accent)]/10 text-[var(--color-accent)]"><Building2 className="h-5 w-5" /></div>
                                     <h2 className="mt-5 text-2xl font-bold tracking-tight">Build your club on GrassKickZ</h2>
                                     <p className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--text-secondary)]">Set up your club profile, create squads, invite players, and organize your football operations in one place.</p>
                                 </div>
-                                <button type="button" onClick={() => navigate('/clubs/create')} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#16a34a] px-5 text-sm font-bold text-white transition hover:bg-[#22b955]">
+                                <button type="button" onClick={() => navigate('/clubs/create')} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] px-5 text-sm font-bold text-[var(--color-on-accent)] transition hover:bg-[var(--color-accent)]">
                                     Create a club <ArrowRight className="h-4 w-4" />
                                 </button>
                             </div>
                         </section>
                     ) : isPlayer ? (
-                        <section className="overflow-hidden rounded-2xl border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
+                        <section className="overflow-hidden rounded-2xl border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] shadow-[0_18px_55px_color-mix(in_srgb,_var(--color-shadow)_12%,_transparent)]">
                             <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
                                 <div className="flex flex-col justify-center p-6 sm:p-8 lg:p-10">
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#3ddc78]">Find your team</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--color-accent)]">Find your team</p>
                                     <h2 className="mt-3 max-w-xl text-2xl font-bold leading-tight tracking-tight sm:text-3xl">Your next training session could start here.</h2>
                                     <p className="mt-3 max-w-xl text-sm leading-6 text-[color:var(--text-secondary)]">Browse clubs, compare their entry options, and choose the environment that fits your goals. Each club will show whether you can join training, send a request, or wait for an invitation.</p>
                                     <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                                        <button type="button" onClick={() => navigate('/clubs')} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#16a34a] px-5 text-sm font-bold text-white transition hover:bg-[#22b955]">
+                                        <button type="button" onClick={() => navigate('/clubs')} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] px-5 text-sm font-bold text-[var(--color-on-accent)] transition hover:bg-[var(--color-accent)]">
                                             Explore clubs <ArrowRight className="h-4 w-4" />
                                         </button>
-                                        <button type="button" onClick={() => navigate('/map')} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[color:var(--theme-border-strong)] bg-[color:var(--theme-surface-inset)] px-5 text-sm font-bold text-[color:var(--text-primary)] transition hover:border-[#16a34a]/40">
+                                        <button type="button" onClick={() => navigate('/map')} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[color:var(--theme-border-strong)] bg-[color:var(--theme-surface-inset)] px-5 text-sm font-bold text-[color:var(--text-primary)] transition hover:border-[var(--color-accent)]/40">
                                             <MapPinned className="h-4 w-4" /> Find clubs nearby
                                         </button>
                                     </div>
@@ -106,9 +114,9 @@ export const MyClubPage = () => {
                                     <div className="mt-3 space-y-2">
                                         {journeySteps.map(({ icon: Icon, title, description }, index) => (
                                             <div key={title} className="flex gap-4 rounded-xl border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] p-4">
-                                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#16a34a]/10 text-[#3ddc78]"><Icon className="h-4 w-4" /></div>
+                                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-accent)]/10 text-[var(--color-accent)]"><Icon className="h-4 w-4" /></div>
                                                 <div>
-                                                    <p className="text-sm font-bold"><span className="mr-2 text-[#3ddc78]">0{index + 1}</span>{title}</p>
+                                                    <p className="text-sm font-bold"><span className="mr-2 text-[var(--color-accent)]">0{index + 1}</span>{title}</p>
                                                     <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">{description}</p>
                                                 </div>
                                             </div>
@@ -119,7 +127,7 @@ export const MyClubPage = () => {
                         </section>
                     ) : (
                         <section className="rounded-2xl border border-[color:var(--theme-border)] bg-[color:var(--theme-surface)] p-6 sm:p-8">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#16a34a]/25 bg-[#16a34a]/10 text-[#3ddc78]"><Users className="h-5 w-5" /></div>
+                            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--color-accent)]/25 bg-[var(--color-accent)]/10 text-[var(--color-accent)]"><Users className="h-5 w-5" /></div>
                             <h2 className="mt-5 text-2xl font-bold tracking-tight">Find clubs worth following</h2>
                             <p className="mt-2 text-sm leading-6 text-[color:var(--text-secondary)]">Explore club profiles, results, events, and football communities.</p>
                         </section>

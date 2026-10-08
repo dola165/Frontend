@@ -1,0 +1,225 @@
+/* The only application UI palette. Components consume semantic roles, never palette shades.
+   Forced scopes support the public/light Map without changing the account preference. */
+:root, .map-force-light, .theme-force-light {
+  color-scheme: light;
+  --color-page: #f4f5f3;
+  --color-surface: #fafbf9;
+  --color-elevated: #ffffff;
+  --color-inset: #eaf0eb;
+  --color-border: #bdc9c0;
+  --color-text: #21352b;
+  --color-secondary: #4c6255;
+  --color-muted: #54695d;
+  --color-ink: #21352b;
+  --color-accent: #246844;
+  --color-danger: #b62e43;
+  --color-warning: #815609;
+  --color-orange: #994417;
+  --color-info: #245caa;
+  --color-cyan: #076a79;
+  --color-purple: #7044a1;
+  --color-pink: #a43670;
+  --color-on-accent: #ffffff;
+  --color-on-media: #ffffff;
+  --color-overlay: #0c1510;
+  --color-shadow: #0a1610;
+  --color-media-surface: #0c1510;
+  --map-control-icon-filter: none;
+}
+:root.dark, .map-force-dark, .theme-force-dark, .top-nav-force-dark {
+  color-scheme: dark;
+  --color-page: #09090b;
+  --color-surface: #18181b;
+  --color-elevated: #27272a;
+  --color-inset: #18181b;
+  --color-border: #3f3f46;
+  --color-text: #f4f4f5;
+  --color-secondary: #a1a1aa;
+  --color-muted: #a1a1aa;
+  --color-ink: #f4f4f5;
+  --color-accent: #00c853;
+  --color-danger: #ec8daf;
+  --color-warning: #d0a85a;
+  --color-orange: #ff9e58;
+  --color-info: #7db7e6;
+  --color-cyan: #64c6ff;
+  --color-purple: #9076ff;
+  --color-pink: #e07da7;
+  --color-on-accent: #000000;
+  --color-overlay: #060608;
+  --color-shadow: #000000;
+  --color-media-surface: #060608;
+  --map-control-icon-filter: invert(1);
+}
+/* Retain the existing slate palette of the header, feed and professional profiles. */
+.top-nav-force-dark,
+.dark .feed-home-shell,
+.dark .club-page-shell:not(.map-force-light) {
+  --color-page: #0e1318;
+  --color-surface: #10151b;
+  --color-elevated: #1c252e;
+  --color-inset: #202d38;
+  --color-border: #33414d;
+  --color-text: #f2f6fa;
+  --color-secondary: #aab8c5;
+  --color-muted: #aab8c5;
+  --color-ink: #f2f6fa;
+  --color-accent: #00e676;
+}
+.top-nav-force-dark { --color-accent: #00ff6e; }
+/* Approved Home and public club surfaces. Home's primary accent is updated below. */
+.dark .feed-home-shell,
+.dark .club-design-scope,
+.dark .club-design-scope.club-page-shell:not(.map-force-light),
+.top-nav-home.top-nav-force-dark {
+  --color-page: #090d12;
+  --color-surface: #131821;
+  --color-elevated: #1c222d;
+  --color-inset: #0e131b;
+  --color-border: #28313f;
+  --color-text: #eef3f7;
+  --color-secondary: #adb7c4;
+  --color-muted: #adb7c4;
+  --color-ink: #eef3f7;
+  --color-accent: #39bf9b;
+  --color-on-accent: #102b23;
+  --color-cyan: #72c6db;
+  --color-orange: #e8b56c;
+  --color-purple: #af96ed;
+  --color-info: #8cb9e8;
+}
+/* Home keeps its approved layout and surfaces, with the product's green actions. */
+.feed-home-shell,
+.top-nav-feed.top-nav-light {
+  --color-accent: #146b3c;
+  --color-on-accent: #ffffff;
+}
+.dark .feed-home-shell,
+.top-nav-feed.top-nav-home.top-nav-force-dark {
+  --color-accent: #00e676;
+  --color-on-accent: #06110b;
+}
+/* The refreshed product uses the private-work palette. Local map geography and
+   the excluded Home/public identity surfaces retain their own palettes. */
+html.product-design-active:not(.dark),
+.club-design-scope,
+.top-nav-home.top-nav-light {
+  --color-page: #f3f5f4;
+  --color-surface: #ffffff;
+  --color-elevated: #e9eeec;
+  --color-inset: #f7f9f8;
+  --color-border: #c7d1cd;
+  --color-text: #17251e;
+  --color-secondary: #4b5f54;
+  --color-muted: #4b5f54;
+  --color-ink: #17251e;
+  --color-accent: #146b3c;
+  --color-on-accent: #ffffff;
+}
+/* Home and private work share the same calm canvas and semantic accents. */
+html.dark.product-design-active,
+.dark .feed-home-shell,
+html.dark.product-design-active :is(.top-nav-force-dark, .club-page-shell, .club-design-scope, .venue-page, .theme-force-dark),
+.top-nav-home.top-nav-force-dark,
+.dark .club-design-scope,
+.dark .club-design-scope.club-page-shell:not(.map-force-light),
+.dark .workspace-design-scope,
+.workspace-page-shell.club-workspace-shell.workspace-refresh:not(.workspace-light) {
+  --color-page: #0a0d0f;
+  --color-surface: #13181d;
+  --color-elevated: #1c232a;
+  --color-inset: #0e1216;
+  --color-border: #222b35;
+  --color-text: #f2f4f6;
+  --color-secondary: #a5afb8;
+  --color-muted: #a5afb8;
+  --color-ink: #f2f4f6;
+  --color-accent: #00e676;
+  --color-on-accent: #06110b;
+  --color-warning: #e8ba62;
+  --color-orange: #e8ba62;
+  --color-info: #83b9ef;
+  --color-cyan: #83b9ef;
+  --color-purple: #bf9bf5;
+}
+.dark .club-page-shell:not(.map-force-light) {
+  --color-cyan: #22d3ee;
+  --color-info: #60a5fa;
+  --color-purple: #c084fc;
+  --color-orange: #ffc857;
+}
+.map-force-light {
+  --color-page: #e5ddd3;
+  --color-surface: #faf8f1;
+  --color-elevated: #faf8f1;
+  --color-inset: #efece2;
+  --color-border: #dadccf;
+  --color-text: #243d33;
+  --color-secondary: #626c5f;
+  --color-muted: #626c5f;
+  --color-ink: #243d33;
+  --color-accent: #2e6248;
+}
+:root, .map-force-light, .theme-force-light, .map-force-dark, .theme-force-dark, .top-nav-force-dark {
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  --color-danger-soft: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  --color-warning-soft: color-mix(in srgb, var(--color-warning) 12%, transparent);
+  --color-orange-soft: color-mix(in srgb, var(--color-orange) 12%, transparent);
+  --color-info-soft: color-mix(in srgb, var(--color-info) 12%, transparent);
+  --color-cyan-soft: color-mix(in srgb, var(--color-cyan) 12%, transparent);
+  --color-purple-soft: color-mix(in srgb, var(--color-purple) 12%, transparent);
+  --color-pink-soft: color-mix(in srgb, var(--color-pink) 12%, transparent);
+  --color-hover: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  --color-overlay-soft: color-mix(in srgb, var(--color-overlay) 66%, transparent);
+  --color-overlay-strong: color-mix(in srgb, var(--color-overlay) 88%, transparent);
+  --color-shadow-soft: color-mix(in srgb, var(--color-shadow) 10%, transparent);
+  --color-shadow-strong: color-mix(in srgb, var(--color-shadow) 24%, transparent);
+  --color-hero-scrim: linear-gradient(to top, var(--color-surface), color-mix(in srgb, var(--color-surface) 45%, transparent) 60%, transparent);
+  /* Compatibility for older widgets. The palette still lives here. */
+  --app-bg: var(--color-page);
+  --app-text: var(--color-text);
+  --app-surface: var(--color-surface);
+  --app-border: var(--color-border);
+}
+
+/* Third-party map chrome follows the same palette as our panels. */
+.maplibregl-map .maplibregl-ctrl-group,
+.maplibregl-map .maplibregl-popup-content {
+  background: var(--color-elevated);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 12px var(--color-shadow-soft);
+}
+.maplibregl-map .maplibregl-ctrl-group button + button {
+  border-top-color: var(--color-border);
+}
+.maplibregl-map .maplibregl-ctrl-group button:hover {
+  background: var(--color-inset);
+}
+.maplibregl-map .maplibregl-ctrl-icon,
+.maplibregl-map .maplibregl-ctrl-attrib-button {
+  filter: var(--map-control-icon-filter);
+}
+.maplibregl-map .maplibregl-ctrl-attrib {
+  background: var(--color-elevated);
+  color: var(--color-secondary);
+}
+.maplibregl-map .maplibregl-ctrl-attrib a {
+  color: inherit;
+}
+.maplibregl-map .maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-map .maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-map .maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--color-elevated);
+}
+.maplibregl-map .maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-map .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-map .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--color-elevated);
+}
+.maplibregl-map .maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--color-elevated);
+}
+.maplibregl-map .maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--color-elevated);
+}

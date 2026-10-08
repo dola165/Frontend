@@ -12,7 +12,7 @@ export const PageHeroSection = ({
     className = '',
     frameClassName = 'relative py-8 lg:py-10'
 }: PageHeroSectionProps) => (
-    <section className={`app-page-hero border-b border-[#ffffff0d] ${className}`.trim()}>
+    <section className={`app-page-hero border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] ${className}`.trim()}>
         <AppPageFrame className={frameClassName}>{children}</AppPageFrame>
     </section>
 );

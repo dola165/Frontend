@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildNotificationDestination, notificationActionLabel } from '../notifications';
 import type { NotificationItem } from '../../types/notifications';
+import destinations from './notification-destinations.json';
 
 const notification = (overrides: Partial<NotificationItem>): NotificationItem => ({
     id: 1,
@@ -16,6 +17,19 @@ const notification = (overrides: Partial<NotificationItem>): NotificationItem =>
     createdAt: new Date().toISOString(),
     linkPath: null,
     ...overrides
+});
+
+describe('web / Android destination contract', () => {
+    it('recovers old permission and appointment notifications using their typed identity', () => {
+        expect(buildNotificationDestination(notification({type:'CLUB_PERMISSION_REQUEST',entityType:'club_operation',entityId:8,linkPath:'/club-operations'}))).toBe('/club-operations?permissionId=8');
+        expect(notificationActionLabel(notification({type:'CLUB_PERMISSION_REQUEST'}))).toBe('Review permission');
+        expect(buildNotificationDestination(notification({type:'CLUB_STAFF_APPOINTMENT',entityType:'club_staff_appointment',entityId:7,linkPath:'/club-operations'}))).toBe('/club-operations?appointmentId=7');
+        expect(buildNotificationDestination(notification({type:'CLUB_PERMISSION_REQUEST',entityType:'post',entityId:8}))).toBe('/notifications?itemId=1');
+        expect(buildNotificationDestination(notification({type:'CLUB_PERMISSION_REQUEST',entityType:'club_operation',entityId:0}))).toBe('/notifications?itemId=1');
+    });
+    it.each(destinations)('$name', ({ notification: input, expected }) => {
+        expect(buildNotificationDestination(notification(input as Partial<NotificationItem>))).toBe(expected);
+    });
 });
 
 describe('buildNotificationDestination — Aug 17 deep-link audit (P2.5)', () => {

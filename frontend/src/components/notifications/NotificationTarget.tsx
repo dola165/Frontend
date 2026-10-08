@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { apiClient } from '../../api/axiosConfig';
 import type { NotificationItem } from '../../types/notifications';
 import type { ScheduleEventOccurrence } from '../../features/schedule/api';
+import { ScheduleResult } from '../../features/matchHistory/ScheduleResult';
+import { TryoutNotificationReceipt } from '../../features/tryouts/TryoutNotificationReceipt';
 
 type Target = { kind: 'event' | 'outcome'; id: string; onClose: () => void };
 
@@ -29,20 +31,23 @@ export const NotificationTarget = ({ kind, id, onClose }: Target) => {
     const current = !valid ? { key, error: 'This notification destination is unavailable.' } : result?.key === key ? result : null;
     const event = kind === 'event' ? current?.value as ScheduleEventOccurrence | undefined : undefined;
     const outcome = kind === 'outcome' ? current?.value as NotificationItem | undefined : undefined;
-    return <section aria-label="Notification destination" className="max-h-64 shrink-0 overflow-y-auto border-b theme-border bg-[var(--theme-surface)] p-4">
+    return <section aria-label="Notification destination" className="max-h-[70dvh] shrink-0 overflow-y-auto border-b theme-border bg-[var(--theme-surface)] p-4">
         <div className="flex items-start justify-between gap-4">
             <h2 className="font-bold">{event?.title ?? outcome?.title ?? 'Notification details'}</h2>
-            <button type="button" onClick={onClose} className="underline">Close details</button>
+            <button type="button" onClick={onClose} className="app-text-action">Close details</button>
         </div>
         {!current && <p role="status">Loading details…</p>}
-        {current?.error && <div role="alert"><p>{current.error}</p><button type="button" className="underline" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
+        {current?.error && <div role="alert"><p>{current.error}</p><button type="button" className="app-text-action" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
         {event && <>
+            <ScheduleResult event={event} clubId={event.clubId} clubName={event.clubName} onSaved={() => setRetry(value => value + 1)} />
             <p className="mt-2">{event.status.replaceAll('_', ' ')} · {event.clubName ?? 'Personal event'}</p>
             <p><time dateTime={event.startsAt}>{new Date(event.startsAt).toLocaleString()}</time> – <time dateTime={event.endsAt}>{new Date(event.endsAt).toLocaleString()}</time></p>
             {event.recurring && <p>This update concerns a recurring event series.</p>}
             {event.locationName && <p>{event.locationName}</p>}
             {event.description && <p className="whitespace-pre-wrap">{event.description}</p>}
         </>}
-        {outcome && <><p className="mt-2 whitespace-pre-wrap">{outcome.body}</p><p className="mt-2 text-sm">This is the update recorded when the notification was sent. A separate detail view is not available here.</p></>}
+        {outcome && <><p className="mt-2 whitespace-pre-wrap">{outcome.body}</p>{outcome.entityType === 'tryout_application'
+            ? <TryoutNotificationReceipt notification={outcome} />
+            : <p className="mt-2 text-sm">This is the update recorded when the notification was sent. A separate detail view is not available here.</p>}</>}
     </section>;
 };

@@ -1,0 +1,40 @@
+import {readFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+import path from 'node:path';
+import {createServer} from 'vite';
+import {chromium,expect} from '@playwright/test';
+const fixture=JSON.parse(await readFile(process.argv[2],'utf8'));
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const server=await createServer({root,configFile:path.join(root,'vite.config.ts'),define:{'import.meta.env.VITE_API_BASE_URL':JSON.stringify(fixture.backend+'/api'),'import.meta.env.VITE_ENABLE_MOCKS':'"false"'},server:{host:'127.0.0.1',port:5184,strictPort:true,hmr:false}});
+await server.listen();
+const browser=await chromium.launch({headless:true});
+try {
+ const owner=await browser.newContext();
+ await owner.addInitScript(token=>localStorage.setItem('accessToken',token),fixture.token);
+ const page=await owner.newPage();const pageErrors=[];page.on('pageerror',e=>pageErrors.push(e.message));
+ await page.goto('http://127.0.0.1:5184/e2e/gk18-media.html');
+ await page.getByLabel('Upload image').setInputFiles({name:'photo.png',mimeType:'image/png',buffer:Buffer.from(fixture.image,'base64')});
+ await expect(page.locator('output')).toHaveText(/\/uploads\/.+\.jpg/);
+ const url=await page.locator('output').textContent();
+ await expect.poll(()=>page.getByAltText('Uploaded photo').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
+ const authorized=await owner.request.get(fixture.backend+url,{headers:{Authorization:'Bearer '+fixture.token}});
+ expect(authorized.status()).toBe(200);expect(authorized.headers()['cache-control']).toBe('private, no-store');
+ const guest=await browser.newContext();expect((await guest.request.get(fixture.backend+url)).status()).toBe(404);
+ const api=async(method,route,data)=>{const response=await owner.request.fetch(fixture.backend+'/api'+route,{method,headers:{Authorization:'Bearer '+fixture.token},data});expect(response.ok(),await response.text()).toBe(true);return response.json();};
+ await api('PUT','/users/me',{avatarUrl:url});
+ await page.getByRole('button',{name:'Sign out'}).click();
+ await expect.poll(()=>page.getByAltText('Uploaded photo').evaluate(img=>img.naturalWidth)).toBe(0);
+ console.log('PASS: browser upload, private preview, direct known-URL denial and logout clearing');
+ // A separate upload must be used for publicly published content.
+ const uploaded=await owner.request.post(fixture.backend+'/api/media/upload?context=campaign',{headers:{Authorization:'Bearer '+fixture.token},multipart:{file:{name:'campaign.png',mimeType:'image/png',buffer:Buffer.from(fixture.image,'base64')}}});expect(uploaded.ok()).toBe(true);const photo=await uploaded.json();
+ let campaign=await api('POST','/clubs/'+fixture.club+'/campaigns',{title:'Media verified campaign',summary:'Pitch work',description:'Improve the training pitch',beneficiary:'Youth teams',useOfFunds:'Pitch materials',category:'FACILITIES',currency:'GEL',images:[photo.url]});
+ expect((await guest.request.get(fixture.backend+photo.url)).status()).toBe(404);
+ campaign=await api('POST','/clubs/'+fixture.club+'/campaigns/'+campaign.id+'/state',{version:campaign.version,status:'PUBLISHED'});
+ const guestPage=await guest.newPage();await guestPage.goto('http://127.0.0.1:5184/e2e/gk18-media.html?image='+encodeURIComponent(photo.url));
+ await expect.poll(()=>guestPage.getByAltText('Uploaded photo').evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
+ await api('POST','/clubs/'+fixture.club+'/campaigns/'+campaign.id+'/state',{version:campaign.version,status:'ARCHIVED'});
+ await guestPage.reload();await expect.poll(()=>guestPage.getByAltText('Uploaded photo').evaluate(img=>img.naturalWidth)).toBe(0);
+ expect((await guest.request.get(fixture.backend+photo.url,{headers:{Range:'bytes=0-10','If-Modified-Since':'Wed, 01 Jan 2031 00:00:00 GMT'}})).status()).toBe(404);
+ expect(pageErrors).toEqual([]);
+ console.log('PASS: draft denial, published guest image decode, archive and conditional/range denial on the same URL');
+} finally {await browser.close();await server.close();}

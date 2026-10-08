@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>Schedule phone verification</title><style>html,body,#root{height:100%;margin:0}</style></head>
+<body><div id="root"></div><script type="module">
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {MemoryRouter} from 'react-router-dom';
+import {CalendarPage} from '/src/pages/CalendarPage.tsx';
+import '/src/i18n.ts';
+import '/src/index.css';
+import '/src/styles/product-identity.css';
+const personal = new URLSearchParams(location.search).get('scope') === 'personal';
+localStorage.setItem('tutorial.calendar.completed', 'true');
+createRoot(document.getElementById('root')).render(React.createElement(MemoryRouter,{initialEntries:[`/calendar?date=2099-01-05${personal ? '&scope=personal' : ''}`]},
+  React.createElement(CalendarPage,{user:{id:1,role:'PLAYER'},darkMode:false,setDarkMode:()=>{}})));
+</script></body></html>

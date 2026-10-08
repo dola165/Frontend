@@ -1,0 +1,10 @@
+import { useEffect, useState, type FormEvent } from 'react';
+import { apiClient } from '../../api/axiosConfig';
+import { extractApiErrorMessage } from '../../utils/apiError';
+interface Policy { cutoffOn: string | null; effectiveCutoff: string; revision: number; rule: string }
+export function SquadAgePolicy({ club, squad }: { club: number; squad: number }) {
+  const [policy, setPolicy] = useState<Policy | null>(null), [cutoff, setCutoff] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
+  useEffect(() => { const controller = new AbortController(); void apiClient.get<Policy>(`/clubs/${club}/squads/${squad}/age-policy`, { signal: controller.signal }).then(r => { if (!controller.signal.aborted) { setPolicy(r.data); setCutoff(r.data.cutoffOn ?? ''); } }).catch(e => { if (!controller.signal.aborted) setError(extractApiErrorMessage(e, 'Could not load the age policy.')); }); return () => controller.abort(); }, [club, squad]);
+  async function save(e: FormEvent) { e.preventDefault(); if (!policy || busy) return; setBusy(true); setError(''); try { const r = await apiClient.put<Policy>(`/clubs/${club}/squads/${squad}/age-policy`, { cutoffOn: cutoff || null, revision: policy.revision }); setPolicy(r.data); } catch (e) { setError(extractApiErrorMessage(e, 'Could not update the age policy.')); } finally { setBusy(false); } }
+  return <details className="sd-panel"><summary>Age eligibility and season cutoff</summary><p>Youth categories require players to be under the stated age on this cutoff. A blank date uses the club's admission date. Squad eligibility and competition rules are checked separately.</p>{error && <p role="alert">{error}</p>}{policy && <form onSubmit={save}><p>Current cutoff: {policy.effectiveCutoff}</p><label>Season cutoff date<input type="date" disabled={busy} value={cutoff} onChange={e => setCutoff(e.target.value)} /></label><button disabled={busy || cutoff === (policy.cutoffOn ?? '')}>Save age policy</button></form>}</details>;
+}

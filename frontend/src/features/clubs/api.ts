@@ -1,4 +1,4 @@
-import { apiClient } from '../../api/axiosConfig';
+import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
 import type {
     BulkApplicationDecisionRequestPayload,
     BulkApplicationDecisionResponse,
@@ -11,7 +11,6 @@ import type {
     ClubPlayerAffiliation,
     ClubApplicationAcceptResult,
     MyClubInvitation,
-    MyClubMembership,
     PageResult,
     PlayerJoinPolicy
 } from './domain';
@@ -68,8 +67,17 @@ export const dissolveClub = async (clubId: number) => {
     await apiClient.post(`/clubs/${clubId}/dissolve`);
 };
 
-export const leaveClubMembership = async (clubId: number) => {
-    await apiClient.post(`/clubs/${clubId}/membership/leave`);
+export interface ClubDepartureCommand { requestId: string; snapshot: string }
+
+export const prepareStaffDeparture = async (clubId: number): Promise<ClubDepartureCommand> => {
+    const response = await apiClient.get<{ clubId: number; departureSnapshots: { STAFF: string } }[]>('/me/club-relationships');
+    const snapshot = response.data.find(row => row.clubId === clubId)?.departureSnapshots?.STAFF;
+    if (!snapshot) throw new Error('Refresh your club responsibilities before confirming departure.');
+    return { requestId: crypto.randomUUID(), snapshot };
+};
+
+export const leaveClubMembership = async (clubId: number, command: ClubDepartureCommand) => {
+    await apiClient.post(`/clubs/${clubId}/membership/leave`, command);
 };
 
 export const transferClubOwnership = async (clubId: number, userId: number) => {
@@ -155,7 +163,8 @@ export const createClubApplication = async (
     clubId: number,
     role: Extract<ClubMembershipRole, 'COACH' | 'PLAYER'>,
     message?: string | null,
-    extra?: { position?: string | null; ageGroup?: string | null; jobId?: number | null }
+    extra?: { position?: string | null; ageGroup?: string | null; jobId?: number | null },
+    config?: AuthSessionRequestConfig
 ) => {
     const response = await apiClient.post<{ applicationId: number }>(`/clubs/${clubId}/applications`, {
         role,
@@ -163,13 +172,14 @@ export const createClubApplication = async (
         position: extra?.position ?? null,
         ageGroup: extra?.ageGroup ?? null,
         jobId: extra?.jobId ?? null,
-    });
+    }, config);
     return response.data;
 };
 
 // ── Club jobs (WEB_APP_MASTER_PLAN.md §4.2, Phase 2) ──
 
 export interface ClubJob {
+    version?: number;
     id: number;
     clubId?: number | null;
     title: string;
@@ -193,6 +203,7 @@ export type ClubJobCategory = 'COACHING' | 'FOOTBALL_OPERATIONS' | 'ADMINISTRATI
 export type ClubJobEngagementType = 'PAID' | 'VOLUNTEER' | 'FLEXIBLE' | 'UNSPECIFIED';
 
 export interface ClubJobPayload {
+    version?: number;
     title?: string;
     description?: string | null;
     ageGroup?: string | null;
@@ -240,8 +251,8 @@ export const updateClubJob = async (clubId: number, jobId: number, payload: Club
     return response.data;
 };
 
-export const deleteClubJob = async (clubId: number, jobId: number) => {
-    await apiClient.delete(`/clubs/${clubId}/jobs/${jobId}`);
+export const deleteClubJob = async (clubId: number, jobId: number, version: number | undefined) => {
+    await apiClient.delete(`/clubs/${clubId}/jobs/${jobId}`, { params: { version } });
 };
 
 /** Per-job application list (item 5) — job creator or club owner/admin only. */
@@ -255,13 +266,13 @@ export const updateClubSettings = async (clubId: number, playerJoinPolicy: Playe
     await apiClient.patch(`/clubs/${clubId}`, { playerJoinPolicy });
 };
 
-export const selfRegisterClubPlayer = async (clubId: number) => {
-    const response = await apiClient.post<ClubPlayerAffiliation>(`/clubs/${clubId}/players/self-register`);
+export const selfRegisterClubPlayer = async (clubId: number, config?: AuthSessionRequestConfig) => {
+    const response = await apiClient.post<ClubPlayerAffiliation>(`/clubs/${clubId}/players/self-register`, undefined, config);
     return response.data;
 };
 
-export const cancelClubApplication = async (clubId: number, applicationId: number) => {
-    const response = await apiClient.post<{ status: string }>(`/clubs/${clubId}/applications/${applicationId}/cancel`);
+export const cancelClubApplication = async (clubId: number, applicationId: number, config?: AuthSessionRequestConfig) => {
+    const response = await apiClient.post<{ status: string }>(`/clubs/${clubId}/applications/${applicationId}/cancel`, undefined, config);
     return response.data;
 };
 
@@ -276,11 +287,6 @@ export const declineClubApplication = async (clubId: number, applicationId: numb
     await apiClient.post(`/clubs/${clubId}/management/applications/${applicationId}/decline`, {
         message: message ?? null,
     });
-};
-
-export const fetchMyClubMemberships = async () => {
-    const response = await apiClient.get<MyClubMembership[]>('/club-memberships/me');
-    return response.data;
 };
 
 // ── Squad management ──
@@ -390,7 +396,7 @@ export const fetchMyPlayerCards = async () => {
 };
 
 export const activatePlayerCard = async (cardId: number, dateOfBirth: string, email: string) => {
-    const response = await apiClient.post<{ username: string; tempPassword: string }>(
+    const response = await apiClient.post<{ username: string; email: string; status: string }>(
         `/player-cards/${cardId}/activate`,
         { dateOfBirth, email }
     );

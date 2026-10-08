@@ -1,0 +1,380 @@
+@import "./family-theme.css";
+.parent-hub { max-width: 1220px; margin: 0 auto; padding: 32px 24px 64px; color: var(--fc-text-primary); }
+.parent-hub-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 28px; }
+.parent-hub-header h1 { margin: 8px 0 10px; font-size: clamp(28px, 4vw, 38px); font-weight: 750; letter-spacing: -.04em; }
+.parent-hub-header p:not(.parent-eyebrow), .parent-profile p:not(.parent-eyebrow), .parent-club-link p { color: var(--fc-text-secondary); font-size: 14px; line-height: 1.6; }
+.parent-eyebrow { display: flex; gap: 7px; align-items: center; color: var(--fc-accent); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.parent-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border: 1px solid var(--fc-border); border-radius: 10px; font-size: 12px; font-weight: 650; line-height: 1.5; color: var(--fc-text-primary); background: var(--fc-card-bg); transition: background .15s; }
+.parent-button:hover { background: var(--fc-surface-hover); }
+.parent-button:disabled, .parent-icon-button:disabled { cursor: wait; opacity: .55; }
+.parent-button-primary { color: var(--color-on-accent); background: var(--fc-accent); border-color: var(--fc-accent); }
+.parent-button-primary:hover { background: var(--fc-accent); filter: brightness(.95); }
+.parent-button:focus-visible, .parent-child-choice:focus-visible, .parent-icon-button:focus-visible { outline: 2px solid var(--fc-accent); outline-offset: 3px; }
+.parent-panel { border: 1px solid var(--fc-border); border-radius: 16px; background: var(--fc-card-bg); padding: 24px; }
+.parent-panel h2, .parent-dialog h2 { font-size: 18px; font-weight: 700; line-height: 1.4; letter-spacing: -.02em; }
+.parent-panel h3 { font-size: 14px; font-weight: 650; line-height: 1.5; }
+.parent-muted { color: var(--fc-text-muted); font-size: 12px; line-height: 1.7; }
+.parent-empty { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 52px 24px; text-align: center; }
+.parent-empty > p { max-width: 560px; font-size: 14px; line-height: 1.8; color: var(--fc-text-secondary); }
+.parent-empty-steps { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; margin: 10px 0; }
+.parent-empty-steps span { display: flex; gap: 8px; align-items: center; font-size: 12px; }
+.parent-icon { width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center; background: var(--fc-accent-soft); color: var(--fc-accent); }
+.parent-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+.parent-stats > div { display: grid; grid-template-columns: 22px 1fr; gap: 6px 10px; padding: 18px 20px; background: var(--fc-card-bg); border: 1px solid var(--fc-border); border-radius: 14px; }
+.parent-stats svg { color: var(--fc-accent); align-self: center; }
+.parent-stats strong { font-size: 21px; font-weight: 700; }
+.parent-stats span { grid-column: 2; color: var(--fc-text-secondary); font-size: 12px; }
+.parent-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 22px; align-items: start; }
+.parent-children { padding: 20px 14px; }
+.parent-children > h2, .parent-children > p { padding: 0 8px; }
+.parent-child-list { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+.parent-child-choice { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; padding: 13px 10px; border: 1px solid transparent; border-radius: 12px; }
+.parent-child-choice:hover { background: var(--fc-surface-hover); }
+.parent-child-choice.is-selected { background: var(--fc-accent-soft); border-color: var(--fc-accent-border); }
+.parent-child-choice > span:not(.parent-child-avatar) { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.parent-child-choice strong { font-size: 13px; overflow-wrap: anywhere; }
+.parent-child-choice small { font-size: 11px; color: var(--fc-text-secondary); overflow-wrap: anywhere; }
+.parent-child-choice > svg { flex-shrink: 0; color: var(--fc-accent); }
+.parent-child-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.parent-child-initials { display: grid; place-items: center; font-size: 13px; font-weight: 750; color: var(--fc-accent); background: var(--fc-accent-soft); border: 1px solid var(--fc-accent-border); }
+.parent-link-help { margin-top: 22px; }
+.parent-child-detail { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.parent-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.parent-profile { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.parent-profile .parent-child-avatar { width: 58px; height: 58px; }
+.parent-profile h2 { margin-top: 4px; overflow-wrap: anywhere; }
+.parent-badge { padding: 6px 10px; border-radius: 6px; background: var(--fc-accent-soft); color: var(--fc-accent); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.parent-club-link { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--fc-border); display: flex; gap: 16px; justify-content: space-between; align-items: center; }
+.parent-action { display: flex; align-items: flex-start; gap: 14px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--fc-border); }
+.parent-action > div:not(.parent-icon) { flex: 1; min-width: 0; }
+.parent-action p { margin-top: 5px; font-size: 13px; color: var(--fc-text-secondary); line-height: 1.75; }
+.parent-action .parent-button { margin-top: 14px; }
+.parent-warning, .parent-child-choice small.parent-warning { color: var(--fc-state-warning); }
+.parent-success { color: var(--fc-accent); flex-shrink: 0; }
+.parent-event-list { margin-top: 18px; }
+.parent-event { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-top: 1px solid var(--fc-border); }
+.parent-event-date { display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; width: 48px; min-height: 54px; border-radius: 9px; background: var(--fc-page-bg); }
+.parent-event-date strong { font-size: 21px; font-weight: 700; }
+.parent-event-date span { font-size: 10px; color: var(--fc-text-secondary); text-transform: uppercase; }
+.parent-event p { display: flex; align-items: center; gap: 4px; margin-top: 5px; font-size: 12px; color: var(--fc-text-secondary); line-height: 1.6; }
+.parent-event-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.parent-event-title > span { font-size: 11px; font-weight: 650; }
+.parent-schedule-empty { padding: 32px 10px 12px; text-align: center; font-size: 13px; color: var(--fc-text-secondary); line-height: 1.8; }
+.parent-schedule-empty svg { margin: 0 auto 12px; color: var(--fc-text-muted); }
+.parent-dialog-backdrop { position: fixed; inset: 0; z-index: 300; background: color-mix(in srgb, var(--color-overlay) 65%, transparent); display: grid; place-items: center; padding: 20px; overflow-y: auto; }
+.parent-dialog { width: min(100%, 480px); max-height: calc(100dvh - 40px); overflow-y: auto; background: var(--fc-card-bg); color: var(--fc-text-primary); border: 1px solid var(--fc-border); border-radius: 18px; padding: 26px; }
+.parent-dialog h2 { margin-top: 18px; }
+.parent-icon-button { display: grid; place-items: center; border-radius: 8px; width: 32px; height: 32px; color: var(--fc-text-secondary); }
+.parent-activation-content { display: flex; flex-direction: column; gap: 18px; margin-top: 16px; }
+.parent-activation-content p { font-size: 13px; line-height: 1.8; color: var(--fc-text-secondary); }
+.parent-activation-content label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; font-weight: 600; }
+.parent-activation-content input { width: 100%; padding: 11px 12px; border: 1px solid var(--fc-border); border-radius: 9px; background: var(--fc-page-bg); color: var(--fc-text-primary); font-size: 14px; outline: none; }
+.parent-activation-content input:focus { border-color: var(--fc-accent); }
+.parent-activation-content .parent-error { color: var(--fc-state-danger); }
+@media (max-width: 850px) { .parent-grid { grid-template-columns: 1fr; } .parent-child-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .parent-hub { padding: 24px 14px 48px; } .parent-panel { padding: 18px; } .parent-hub-header { gap: 12px; } .parent-hub-header > button { padding: 9px; font-size: 0; } .parent-hub-header > button svg { width: 17px; height: 17px; } .parent-stats { gap: 7px; } .parent-stats > div { display: flex; flex-direction: column; align-items: flex-start; padding: 14px 10px; } .parent-stats strong { font-size: 18px; } .parent-stats span { font-size: 10px; } .parent-child-list { grid-template-columns: 1fr; } .parent-section-heading { align-items: flex-start; flex-wrap: wrap; gap: 8px; } .parent-club-link { align-items: flex-start; flex-direction: column; } .parent-empty-steps { flex-direction: column; text-align: left; } .parent-actions > .parent-section-heading { flex-direction: column; } }
+
+/* Family overview: children and schedule first, administration in the side rail. */
+.parent-hub{max-width:1640px;padding:28px 32px 64px}.parent-hub-header{margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--fc-border)}.parent-hub-header h1{font-size:32px;margin:0 0 6px}.parent-children-top{padding:0;margin-bottom:24px}.parent-children-top>h2{font-size:13px;color:var(--fc-text-secondary);padding:0}.parent-children-top .parent-child-list{display:flex;flex-direction:row;flex-wrap:wrap;gap:10px;margin-top:12px}.parent-children-top .parent-child-choice{width:auto;min-width:215px;padding:12px 16px;background:var(--fc-card-bg);border-color:var(--fc-border);border-radius:10px}.parent-child-choice.is-selected{background:var(--fc-surface-hover);border-color:var(--fc-text-secondary)}.parent-child-initials{background:var(--fc-page-bg);color:var(--fc-text-primary);border-color:var(--fc-border)}.parent-family-layout{display:grid;grid-template-columns:minmax(0,1fr) 285px;gap:26px;align-items:start}.parent-family-main{min-width:0}.parent-child-detail{gap:16px}.parent-child-detail .parent-panel{padding:20px;border-radius:12px}.parent-child-detail .parent-profile .parent-child-avatar{display:none}.parent-child-detail .parent-badge{display:none}.parent-child-detail .parent-club-link{flex-direction:column;align-items:flex-start;margin-top:16px;padding-top:16px}.parent-actions summary{cursor:pointer;font-size:13px;font-weight:650}.parent-actions .parent-icon{display:none}.parent-family-summary{font-size:12px;line-height:1.7;color:var(--fc-text-secondary);padding:0 4px}.parent-family-summary p+p{margin-top:10px}.parent-button-primary{color:var(--fc-card-bg);background:var(--fc-text-primary);border-color:var(--fc-text-primary)}.parent-button-primary:hover{background:var(--fc-text-primary)}
+@media(max-width:1050px){.parent-family-layout{grid-template-columns:minmax(0,1fr)}.parent-child-detail{display:grid;grid-template-columns:1fr 1fr}.parent-family-summary{grid-column:1/-1}}@media(max-width:600px){.parent-hub{padding:20px 14px 48px}.parent-hub-header h1{font-size:28px}.parent-child-detail{display:flex}.parent-children-top .parent-child-choice{flex:1;min-width:0}.parent-children-top .parent-child-list{display:flex;flex-wrap:nowrap}.parent-children-top .parent-child-avatar{display:none}.parent-children-top .parent-child-choice{padding:12px 10px}.parent-children-top .parent-child-choice>svg{display:none}}
+
+/* Journey 07: keep the child's current context and next commitment above administration. */
+.parent-hub {
+    max-width: 1480px;
+    padding: 28px clamp(16px, 3vw, 40px) 72px;
+}
+.parent-hub-header {
+    align-items: center;
+    margin-bottom: 22px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--fc-border);
+}
+.parent-hub-heading { max-width: 680px; }
+.parent-hub-heading .parent-eyebrow { margin-bottom: 8px; }
+.parent-hub-header h1 {
+    margin: 0;
+    font-size: clamp(28px, 3vw, 36px);
+    line-height: 1.12;
+}
+.parent-hub-heading > p:last-child {
+    margin-top: 8px;
+    color: var(--fc-text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+}
+.parent-refresh { min-width: 104px; }
+.parent-children-top {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 14px;
+}
+.parent-children-heading h2 {
+    margin: 0;
+    padding: 0;
+    font-size: 13px;
+    font-weight: 700;
+}
+.parent-children-heading p {
+    margin-top: 4px;
+    color: var(--fc-text-secondary);
+    font-size: 11px;
+}
+.parent-children-top .parent-child-list {
+    min-width: 0;
+    margin-top: 0;
+    padding: 2px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+}
+.parent-children-top .parent-child-list::-webkit-scrollbar { height: 5px; }
+.parent-children-top .parent-child-choice {
+    min-width: 228px;
+    min-height: 68px;
+    scroll-snap-align: start;
+}
+.parent-context {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 20px;
+    padding: 16px 18px;
+    border: 1px solid var(--fc-border);
+    border-radius: 14px;
+    background: var(--fc-card-bg);
+}
+.parent-context-person {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-width: 0;
+}
+.parent-context-person .parent-child-avatar { width: 48px; height: 48px; }
+.parent-context-person h2 {
+    margin: 2px 0 3px;
+    font-size: 18px;
+    font-weight: 720;
+    letter-spacing: -.02em;
+}
+.parent-context-person > div > p:last-child {
+    color: var(--fc-text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+.parent-context-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+    padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--fc-accent) 32%, var(--fc-border));
+    border-radius: 10px;
+    color: var(--fc-accent);
+    background: var(--fc-accent-soft);
+}
+.parent-context-status.needs-attention {
+    border-color: color-mix(in srgb, var(--fc-state-warning) 38%, var(--fc-border));
+    color: var(--fc-state-warning);
+    background: var(--fc-state-warning-soft);
+}
+.parent-context-status div { display: flex; flex-direction: column; gap: 2px; }
+.parent-context-status span { color: var(--fc-text-secondary); font-size: 10px; }
+.parent-context-status strong { font-size: 12px; font-weight: 700; }
+.parent-family-layout {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: clamp(18px, 2vw, 28px);
+}
+.parent-family-main {
+    overflow: hidden;
+    border: 1px solid var(--fc-border);
+    border-radius: 16px;
+    background: var(--fc-card-bg);
+}
+.parent-week-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px 22px 18px;
+    border-bottom: 1px solid var(--fc-border);
+}
+.parent-week-heading h2 {
+    margin: 5px 0 4px;
+    font-size: 20px;
+    font-weight: 720;
+    letter-spacing: -.025em;
+}
+.parent-week-heading > div > p:last-child {
+    max-width: 680px;
+    color: var(--fc-text-secondary);
+    font-size: 12px;
+    line-height: 1.6;
+}
+.parent-family-main .family-squad-links {
+    margin: 0;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--fc-border);
+    background: color-mix(in srgb, var(--fc-page-bg) 58%, var(--fc-card-bg));
+}
+.parent-family-main .family-squad-links a {
+    flex: 1 1 260px;
+    padding: 10px 12px;
+}
+.parent-hub .parent-family-main .family-squad-links > a {
+    min-height: 76px;
+    padding: 12px 14px;
+    border-left-width: 3px;
+}
+.parent-hub .parent-family-main .family-squad-identity {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+}
+.parent-hub .parent-family-main .family-squad-identity > strong {
+    margin-top: 2px;
+    font-size: 20px;
+}
+.parent-hub .parent-family-main .family-squad-identity .squad-coach-identity { margin: 0; }
+.parent-family-main .squad-schedule-workspace { border: 0; border-radius: 0; }
+.parent-family-main .journey-actions {
+    margin: 0 0 18px;
+    border-color: color-mix(in srgb, var(--fc-accent) 35%, var(--fc-border));
+    background: color-mix(in srgb, var(--fc-accent) 4%, var(--fc-card-bg));
+}
+.parent-family-main .journey-actions h2 { font-size: 16px; }
+.parent-family-main .journey-actions > button {
+    border-color: var(--fc-accent);
+    color: var(--fc-card-bg);
+    background: var(--fc-accent);
+}
+.parent-family-main .journey-actions-links a:first-child {
+    border-color: var(--fc-accent);
+    color: var(--fc-card-bg);
+    background: var(--fc-accent);
+}
+.parent-child-detail { position: sticky; top: calc(var(--app-active-header-height, 100px) + 18px); }
+.parent-child-detail .parent-panel { box-shadow: 0 10px 26px color-mix(in srgb, var(--fc-text-primary) 5%, transparent); }
+.parent-connection .parent-profile { align-items: flex-start; }
+.parent-connection .parent-profile h2 { margin-top: 4px; }
+.parent-connection .parent-badge { display: inline-flex; }
+.parent-connection .parent-club-link h3 { display: none; }
+.parent-family-summary {
+    padding: 4px 6px;
+    border-left: 2px solid var(--fc-border);
+}
+
+@media (max-width: 1050px) {
+    .parent-family-layout { grid-template-columns: minmax(0, 1fr); }
+    .parent-child-detail { position: static; }
+}
+@media (max-width: 720px) {
+    .parent-hub-header { align-items: flex-start; }
+    .parent-refresh { min-width: 42px; padding: 10px; }
+    .parent-refresh span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .parent-children-top { grid-template-columns: 1fr; gap: 9px; }
+    .parent-children-heading { display: flex; align-items: baseline; justify-content: space-between; }
+    .parent-children-top .parent-child-list { scroll-snap-type: x proximity; scrollbar-width: none; }
+    .parent-children-top .parent-child-list::-webkit-scrollbar { display: none; }
+    .parent-children-top .parent-child-choice { flex: 0 0 min(82vw, 248px); min-width: min(82vw, 248px); }
+    .parent-children-top .parent-child-avatar { display: grid; }
+    .parent-context { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+    .parent-context-person .parent-child-avatar { display: none; }
+    .parent-context-status { width: auto; }
+    .parent-context-status span { display: none; }
+    .parent-week-heading { padding: 18px 16px 16px; }
+    .parent-week-heading h2 { font-size: 18px; }
+    .parent-family-main .family-squad-links { padding: 12px; }
+    .parent-hub .parent-family-main .family-squad-links > a { display: grid; grid-template-columns: minmax(0, 1fr) auto; min-height: 74px; gap: 12px; }
+    .parent-hub .parent-family-main .family-squad-identity { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 2px 18px; }
+    .parent-hub .parent-family-main .family-squad-identity > small,
+    .parent-hub .parent-family-main .family-squad-identity > strong { grid-column: 1; }
+    .parent-hub .parent-family-main .family-squad-identity .squad-coach-identity { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+    .parent-hub .parent-family-main .family-squad-open { width: auto; }
+}
+@media (max-width: 520px) {
+    .parent-hub { padding: 20px 12px 48px; }
+    .parent-hub-header h1 { font-size: 29px; }
+    .parent-hub-heading > p:last-child { font-size: 13px; }
+    .parent-context { padding: 13px 14px; }
+    .parent-context-person .parent-child-avatar { width: 42px; height: 42px; }
+    .parent-context-status { padding: 8px 9px; }
+    .parent-context-status svg { display: none; }
+    .parent-child-detail { display: flex; }
+}
+
+/* Journey 07 bounded correction: one compact context, then the real action and calendar. */
+.parent-hub-header {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+}
+.parent-hub-heading .parent-eyebrow { margin-bottom: 4px; }
+.parent-hub-header h1 { font-size: clamp(27px, 2.5vw, 32px); }
+.parent-hub-heading > p:last-child { margin-top: 4px; line-height: 1.4; }
+.parent-children-top {
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 12px;
+    margin-bottom: 10px;
+}
+.parent-children-top .parent-child-choice {
+    min-width: 205px;
+    min-height: 52px;
+    padding: 7px 11px;
+}
+.parent-children-top .parent-child-avatar { width: 34px; height: 34px; }
+.parent-family-main { border-radius: 12px; }
+.parent-family-main .family-squad-links { padding: 7px 12px; }
+.parent-hub .parent-family-main .family-squad-links > a {
+    min-height: 48px;
+    padding: 4px 8px;
+    gap: 12px;
+    border-left: 0;
+}
+.parent-hub .parent-family-main .family-squad-identity {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+}
+.parent-hub .parent-family-main .family-squad-identity > small { color: var(--fc-text-secondary); font-size: 10px; }
+.parent-hub .parent-family-main .family-squad-identity > strong { margin: 0; font-size: 15px; }
+.parent-hub .parent-family-main .family-squad-identity .squad-coach-identity { gap: 7px; }
+.parent-hub .parent-family-main .family-squad-identity .squad-coach-avatar { width: 30px; height: 30px; font-size: 12px; }
+.parent-hub .parent-family-main .family-squad-identity .squad-coach-identity small { display: none; }
+.parent-hub .parent-family-main .family-squad-identity .squad-coach-identity strong { font-size: 12px; }
+.parent-family-main .schedule-direction { padding: 0 16px 24px; }
+.parent-family-main .schedule-direction > .journey-actions:first-child {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    min-height: 72px;
+    margin: 0 0 8px;
+    padding: 10px 12px;
+    border-radius: 9px;
+}
+.parent-family-main .schedule-direction > .journey-actions:first-child h2 { margin: 2px 0; font-size: 15px; }
+.parent-family-main .schedule-direction > .journey-actions:first-child p { display: inline; margin: 0; font-size: 11px; line-height: 1.4; }
+.parent-family-main .schedule-direction > .journey-actions:first-child p + p::before { content: " · "; }
+.parent-family-main .schedule-direction > .journey-actions:first-child > button { min-height: 44px; }
+.parent-family-main .schedule-direction-context { padding-bottom: 10px; }
+.parent-family-main .schedule-direction-weekbar { padding: 10px 0; }
+.parent-family-main .schedule-direction-filters { padding-top: 10px; padding-bottom: 12px; }
+@media (max-width: 720px) {
+    .parent-hub-header { margin-bottom: 10px; padding-bottom: 10px; }
+    .parent-hub-heading > p:last-child { font-size: 12px; }
+    .parent-children-top { grid-template-columns: 1fr; gap: 7px; }
+    .parent-children-top .parent-child-choice { min-height: 52px; }
+    .parent-family-main .family-squad-links { padding: 7px 9px; }
+    .parent-hub .parent-family-main .family-squad-links > a { display: flex; min-height: 48px; padding: 4px 6px; }
+    .parent-hub .parent-family-main .family-squad-identity { display: flex; gap: 3px 9px; }
+    .parent-hub .parent-family-main .family-squad-identity .squad-coach-identity { margin: 0; }
+    .parent-family-main .schedule-direction { padding: 0 12px 22px; }
+    .parent-family-main .schedule-direction > .journey-actions:first-child {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 10px 11px;
+    }
+    .parent-family-main .schedule-direction > .journey-actions:first-child > button { width: 100%; }
+    .parent-family-main .schedule-direction-context { gap: 8px; padding-bottom: 10px; }
+}

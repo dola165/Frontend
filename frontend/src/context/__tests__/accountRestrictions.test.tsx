@@ -7,7 +7,7 @@ import { apiClient } from '../../api/axiosConfig';
 import { requiredAccountStep } from '../../utils/authRedirect';
 
 const server = setupServer(
-    http.get('*/auth/csrf', () => HttpResponse.json({})),
+    http.get('*/auth/csrf', () => HttpResponse.json({ headerName: 'X-XSRF-TOKEN', token: 'masked-request-token' })),
     http.get('*/users/me', () => HttpResponse.json({ id: 1, role: 'PLAYER', fullName: 'Test Player',
         dob: '2000-01-01', profileComplete: true, onboardingRequired: false, mustChangePassword: false })),
 );

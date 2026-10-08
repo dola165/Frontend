@@ -1,14 +1,14 @@
 .store-page.campaigns-page {
-    --op-accent: #92400e;
-    --op-strong: #92400e;
-    --op-soft: #b4530910;
-    --op-border: #b4530966;
+    --op-accent: var(--color-orange);
+    --op-strong: var(--color-orange);
+    --op-soft: color-mix(in srgb, var(--color-orange) 6.27%, transparent);
+    --op-border: color-mix(in srgb, var(--color-orange) 40%, transparent);
 }
 .dark .store-page.campaigns-page {
-    --op-accent: #fbbf24;
-    --op-strong: #92400e;
-    --op-soft: #fbbf2412;
-    --op-border: #fbbf2466;
+    --op-accent: var(--color-orange);
+    --op-strong: var(--color-orange);
+    --op-soft: color-mix(in srgb, var(--color-orange) 7.06%, transparent);
+    --op-border: color-mix(in srgb, var(--color-orange) 40%, transparent);
 }
 .campaign-grid {
     display: grid;

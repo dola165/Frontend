@@ -15,6 +15,7 @@ export interface NotificationItem {
     isRead: boolean;
     createdAt: string;
     linkPath?: string | null;
+    eventId?: number | null;
 }
 
 export interface NotificationQueryOptions {

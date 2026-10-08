@@ -39,7 +39,7 @@ export function StoreFilters({ clubId, params, currency, change, reset }: {
         <details open><summary>Size / variant</summary><label className="store-field"><span className="sr-only">Available size / variant</span><input maxLength={40} placeholder="e.g. M, XL, One size" value={params.get('variant') ?? ''} onChange={e => change('variant', e.target.value)}/></label><p className="store-hint">Matches variants currently in stock.</p></details>
         <details open={!!country || !!city}><summary>Club location</summary><div className="store-filter-fields">
             <p className="store-hint">Where the club is based, not its delivery area.</p>
-            {locationState === 'error' && <p role="alert" className="store-hint">Locations could not load. <button type="button" className="underline" onClick={() => setRetry(n => n + 1)}>Retry locations</button></p>}
+            {locationState === 'error' && <p role="alert" className="store-hint">Locations could not load. <button type="button" className="app-text-action" onClick={() => setRetry(n => n + 1)}>Retry locations</button></p>}
             <label className="store-field">Country<select disabled={locationState !== 'ready'} value={country} onChange={e => change('country', e.target.value)}>
                 <option value="">{locationState === 'loading' ? 'Loading locations...' : 'All countries'}</option>
                 {country && !countries.includes(country) && <option value={country}>{country} (no current products)</option>}

@@ -17,7 +17,7 @@ let previousBodyOverflow = '';
 
 const focusableElements = (dialog: HTMLElement | null) => dialog
     ? Array.from(dialog.querySelectorAll<FocusableElement>(FOCUSABLE_SELECTOR))
-        .filter((element) => !element.hidden && element.getAttribute('aria-hidden') !== 'true')
+        .filter((element) => !element.hidden && !element.closest('[hidden], [inert]') && element.getAttribute('aria-hidden') !== 'true')
     : [];
 
 const suppressBackground = (dialog: HTMLElement) => {
@@ -81,11 +81,11 @@ export function useDialogFocus(
         const focusTimer = window.setTimeout(() => {
             if (!isTopDialog()) return;
             if (initialFocusRef?.current) {
-                initialFocusRef.current.focus();
+                initialFocusRef.current.focus({ preventScroll: true });
                 return;
             }
             const firstFocusable = focusableElements(dialogRef.current)[0];
-            (firstFocusable ?? dialogRef.current)?.focus();
+            (firstFocusable ?? dialogRef.current)?.focus({ preventScroll: true });
         }, 0);
 
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -136,7 +136,7 @@ export function useDialogFocus(
             }
             scrollLockCount = Math.max(0, scrollLockCount - 1);
             if (scrollLockCount === 0) document.body.style.overflow = previousBodyOverflow;
-            previousFocusRef.current?.focus();
+            previousFocusRef.current?.focus({ preventScroll: true });
             previousFocusRef.current = null;
         };
     }, [dialogRef, initialFocusRef, open]);

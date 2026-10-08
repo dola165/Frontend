@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Loader2 } from 'lucide-react';
+import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
     fetchNotifications,
     fetchUnreadNotificationCount,
+    markAllNotificationsAsRead,
     markNotificationAsRead
 } from '../../api/notifications';
 import type { NotificationItem } from '../../types/notifications';
@@ -27,6 +28,8 @@ export const NotificationBell = ({ enabled, light = false }: NotificationBellPro
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [busyId, setBusyId] = useState<number | null>(null);
+    const [markingAll, setMarkingAll] = useState(false);
+    const [readError, setReadError] = useState<string | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const navigate = useNavigate();
     const location = useLocation();
@@ -108,12 +111,13 @@ export const NotificationBell = ({ enabled, light = false }: NotificationBellPro
         const next = !isOpen;
         setIsOpen(next);
         if (next) {
+            setReadError(null);
             void loadPreview();
         }
     };
 
     const handleOpenNotification = async (notification: NotificationItem) => {
-        if (busyId != null) {
+        if (busyId != null || markingAll) {
             return;
         }
 
@@ -137,6 +141,22 @@ export const NotificationBell = ({ enabled, light = false }: NotificationBellPro
         navigate(buildNotificationDestination(notification));
     };
 
+    const handleMarkAllAsRead = async () => {
+        if (markingAll || busyId != null || loadingPreview || unreadCount === 0) return;
+        setMarkingAll(true);
+        setReadError(null);
+        try {
+            await markAllNotificationsAsRead();
+            setNotifications((current) => current.map((notification) => ({ ...notification, isRead: true })));
+            setUnreadCount(0);
+            emitNotificationsChanged({ allRead: true });
+        } catch {
+            setReadError('Could not mark notifications as read. Please try again.');
+        } finally {
+            setMarkingAll(false);
+        }
+    };
+
     if (!enabled) {
         return null;
     }
@@ -146,9 +166,9 @@ export const NotificationBell = ({ enabled, light = false }: NotificationBellPro
             <button
                 type="button"
                 onClick={handleToggle}
-                className={`relative inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#16a34a] ${isNotificationsPage
-                    ? light ? 'border-[#16a34a]/45 bg-[#dcfce7] text-[#166534]' : 'border-[#22c55e]/45 bg-[#354038] text-[#86efac]'
-                    : light ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'border-white/[0.07] bg-[#292d34] text-[#f1f3f5] hover:bg-[#363b44] hover:text-white'}`}
+                className={`relative inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${isNotificationsPage
+                    ? light ? 'border-[var(--color-accent)]/45 bg-[var(--color-inset)] text-[var(--color-accent)]' : 'border-[var(--color-accent)]/45 bg-[var(--color-inset)] text-[var(--color-accent)]'
+                    : light ? 'border-[color:var(--color-border)] bg-[color:var(--color-elevated)] text-[color:var(--color-text)] hover:bg-[color:var(--color-inset)] hover:text-[color:var(--color-text)]' : 'border-[color:var(--color-border)]/[0.07] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-inset)] hover:text-[color:var(--color-text)]'}`}
                 aria-label={t('nav.notifications')}
                 title={t('nav.notifications')}
                 aria-expanded={isOpen}
@@ -156,14 +176,14 @@ export const NotificationBell = ({ enabled, light = false }: NotificationBellPro
             >
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
-                    <span className="absolute -right-1 -top-1 inline-flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-[color:var(--accent-muted)] px-1.5 text-[10px] font-semibold text-white shadow-panel">
+                    <span className="absolute -right-1 -top-1 inline-flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-[var(--color-accent)] px-1.5 text-[10px] font-semibold text-[var(--color-on-accent)] shadow-panel">
                         {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                 )}
             </button>
 
             {isOpen && (
-                <div className="theme-surface theme-border theme-shadow absolute right-0 top-12 z-[120] w-[380px] overflow-hidden border">
+                <div className="app-popover theme-surface theme-border theme-shadow absolute right-0 top-12 z-[120] w-[min(380px,calc(100vw-32px))] overflow-hidden border">
                     <div className="flex items-center justify-between border-b border-[var(--theme-border)] px-4 py-3">
                         <div>
                             <p className="text-sm font-semibold text-[var(--text-primary)]">Notifications</p>
@@ -190,7 +210,7 @@ export const NotificationBell = ({ enabled, light = false }: NotificationBellPro
                                         notification={notification}
                                         compact
                                         showScope={false}
-                                        busy={busyId === notification.id}
+                                        busy={markingAll || busyId === notification.id}
                                         onOpen={handleOpenNotification}
                                     />
                                 ))}
@@ -198,13 +218,26 @@ export const NotificationBell = ({ enabled, light = false }: NotificationBellPro
                         )}
                     </div>
 
-                    <Link
-                        to="/notifications"
-                        onClick={() => setIsOpen(false)}
-                        className="block border-t border-[var(--theme-border)] px-4 py-3 text-center text-[11px] font-semibold text-[#16a34a] transition-colors hover:bg-[var(--theme-surface-muted)]"
-                    >
-                        See all
-                    </Link>
+                    {readError && <p role="alert" className="px-4 py-2 text-xs text-[var(--text-primary)]">{readError}</p>}
+                    <div className="flex items-center justify-between gap-2 border-t border-[var(--theme-border)] px-2">
+                        <Link
+                            to="/notifications"
+                            onClick={() => setIsOpen(false)}
+                            className={`inline-flex min-h-11 items-center px-2 text-[11px] font-semibold transition-colors hover:bg-[var(--theme-surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${light ? 'text-[var(--color-accent)]' : 'text-[var(--color-accent)]'}`}
+                        >
+                            See all
+                        </Link>
+                        <button
+                            type="button"
+                            onClick={() => void handleMarkAllAsRead()}
+                            disabled={unreadCount === 0 || markingAll || loadingPreview || busyId != null}
+                            aria-busy={markingAll}
+                            className={`inline-flex min-h-11 items-center gap-1.5 px-2 text-[11px] font-semibold transition-colors hover:bg-[var(--theme-surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] disabled:cursor-default disabled:opacity-50 ${light ? 'text-[var(--color-accent)]' : 'text-[var(--color-accent)]'}`}
+                        >
+                            {markingAll ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <CheckCheck aria-hidden="true" className="h-4 w-4" />}
+                            Mark all as read
+                        </button>
+                    </div>
                 </div>
             )}
         </div>

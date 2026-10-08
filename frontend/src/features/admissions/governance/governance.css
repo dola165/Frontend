@@ -1,0 +1,15 @@
+.admission-governance { max-width: 72rem; --admission-border:var(--color-border); }
+.admission-governance input:not([type=checkbox]), .admission-governance select, .admission-governance textarea { width:100%; min-height:44px; padding:.65rem .8rem; border:1px solid var(--color-border); border-radius:.6rem; color:var(--color-text); background:var(--color-surface); }
+.admission-governance textarea { min-height:7rem; }
+.admission-governance :focus-visible { outline:2px solid var(--color-accent); outline-offset:3px; }
+.admission-governance nav, .admission-governance .admission-inline { display:flex; flex-wrap:wrap; gap:.75rem; align-items:end; }
+.admission-governance fieldset { display:grid; gap:1rem; border:0; padding:0; min-width:0; }
+.admission-governance label { display:grid; gap:.4rem; }
+.admission-governance label:has(input[type=checkbox]) { display:flex; align-items:start; gap:.65rem; }
+.admission-governance input[type=checkbox] { width:1.2rem; min-width:1.2rem; min-height:1.2rem; margin-top:.2rem; }
+.admission-governance li { margin-block:.75rem; overflow-wrap:anywhere; }
+.admission-governance p { max-width:75ch; overflow-wrap:anywhere; }
+.admission-governance button { min-height:44px; }
+.admission-governance h2, .admission-governance h3, .admission-governance h4 { font-weight:650; }
+.admission-governance h2 { font-size:1.5rem; }
+.admission-governance h3 { font-size:1.2rem; }

@@ -1,0 +1,31 @@
+.world-logo { display:inline-flex; align-items:center; gap:7px; white-space:nowrap; }
+.world-logo__mark { width:34px; height:34px; flex-shrink:0; color:var(--color-accent); }
+.world-logo__ball { fill:var(--color-surface); }
+.world-logo__satellite { fill:var(--color-accent); stroke:var(--color-surface); stroke-width:2; }
+.world-logo__type { display:flex; flex-direction:column; gap:3px; line-height:1; }
+.world-logo__name { color:var(--color-text); font-size:12px; font-weight:750; letter-spacing:-.35px; }
+.world-logo__name > span { color:var(--color-accent); }
+.world-logo__world { color:var(--color-accent); font-size:9px; font-weight:700; letter-spacing:3px; }
+
+/* Keep the World identity quiet and legible in every navigation theme. */
+#app-top-navigation .world-nav-button {
+    border:1px solid color-mix(in srgb,var(--color-accent) 42%,var(--color-border));
+    background:color-mix(in srgb,var(--color-accent) 8%,var(--color-surface));
+    box-shadow:none;
+    animation:none;
+    transition:background-color 160ms ease,border-color 160ms ease;
+}
+#app-top-navigation .world-nav-button::before { display:none; }
+#app-top-navigation .world-nav-button__inner { background:transparent; box-shadow:none; }
+#app-top-navigation .world-nav-button:hover,
+#app-top-navigation .world-nav-button--active {
+    border-color:var(--color-accent);
+    background:color-mix(in srgb,var(--color-accent) 15%,var(--color-surface));
+    transform:none;
+}
+@container top-navigation (max-width:780px) {
+    .world-logo .world-logo__type { display:none; }
+}
+@media (prefers-reduced-motion:reduce) {
+    #app-top-navigation .world-nav-button { transition:none; }
+}

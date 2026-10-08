@@ -1,0 +1,75 @@
+.club-ops.club-ops-embedded { min-height:0; background:transparent; }
+.workspace-section-heading { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px; margin:0 0 26px; }
+.workspace-section-heading h1 { font-size:30px; font-weight:750; letter-spacing:-.04em; line-height:1.2; margin:7px 0 10px; }
+.workspace-section-heading > div > p:last-child { color:var(--fc-text-secondary); font-size:13px; line-height:1.7; max-width:720px; }
+.workspace-section-kicker { color:var(--fc-accent); text-transform:uppercase; letter-spacing:.14em; font-size:10px; font-weight:750; }
+.club-ops-embedded button.workspace-add-button { display:inline-flex; align-items:center; gap:8px; background:var(--fc-accent); color:var(--fc-page-bg); border-color:var(--fc-accent); border-radius:8px; padding:10px 14px; font-size:12px; white-space:nowrap; }
+.workspace-record-tabs,.workspace-staff-tabs { display:flex; gap:20px; border-bottom:1px solid var(--fc-border); overflow-x:auto; margin:0 0 18px; }
+.club-ops-embedded .workspace-record-tabs button,.workspace-staff-tabs button { flex-shrink:0; border:0; border-bottom:2px solid transparent; border-radius:0; padding:10px 0; background:transparent; color:var(--fc-text-secondary); font-size:12px; font-weight:650; }
+.club-ops-embedded .workspace-record-tabs button[aria-current],.workspace-staff-tabs button[aria-current] { color:var(--fc-accent); border-bottom-color:var(--fc-accent); }
+.workspace-record-tools { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:15px; }
+.club-ops-embedded .workspace-record-tools label { display:flex; flex-direction:row; align-items:center; gap:8px; width:min(380px,75%); padding:0 12px; background:var(--fc-card-bg); border:1px solid var(--fc-border); border-radius:8px; color:var(--fc-text-muted); }
+.club-ops-embedded .workspace-record-tools input { background:transparent; padding:10px 0; border:0; border-radius:0; font-size:12px; }
+.workspace-record-tools > span { font-size:11px; color:var(--fc-text-muted); }
+.workspace-record-table { border:1px solid var(--fc-border); border-radius:12px; overflow:hidden; }
+.workspace-record-table table { border-collapse:collapse; width:100%; text-align:left; font-size:12px; }
+.workspace-record-table th { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:var(--fc-text-muted); padding:12px 15px; background:var(--fc-card-bg); }
+.workspace-record-table td { padding:15px; border-top:1px solid var(--fc-border); vertical-align:middle; }
+.workspace-record-table tr:hover td { background:var(--fc-surface-hover); }
+.club-ops-embedded .workspace-record-table td button { padding:0; background:none; border:0; border-radius:0; text-align:left; font-weight:650; }
+.workspace-record-table td:first-child { width:40%; }
+.workspace-record-table small { display:block; font-size:10px; color:var(--fc-text-muted); margin-top:5px; }
+.workspace-list-message { text-align:center; padding:55px 18px; border-top:1px solid var(--fc-border); }
+.workspace-list-message h2 { font-size:17px; font-weight:650; }
+.workspace-list-message p { font-size:13px; color:var(--fc-text-secondary); margin:9px 0 20px; }
+.workspace-create-choices { border:1px solid var(--fc-border); border-radius:12px; padding:18px; margin-bottom:22px; background:var(--fc-card-bg); }
+.workspace-create-choices > div:first-child { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+.workspace-create-choices h2 { font-size:14px; font-weight:650; }
+.workspace-create-choices > div:last-child { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; }
+.workspace-create-choices > div:last-child button { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:15px; text-align:left; }
+.workspace-history-note { padding:12px 15px; border-left:3px solid var(--fc-state-warning); background:var(--fc-state-warning-soft); color:var(--fc-text-secondary); font-size:12px; margin-bottom:20px; }
+.club-ops-embedded .workspace-record-back { display:flex; align-items:center; gap:8px; border:0; background:none; padding:0; margin-bottom:20px; color:var(--fc-text-secondary); }
+.workspace-nav-history { display:flex; gap:8px; align-items:center; padding:12px; font-size:11px; color:var(--fc-text-muted); }
+.club-ops-embedded .workspace-editor { border:0; border-radius:0; background:transparent; }
+.club-ops-embedded .workspace-editor__header { padding:0 0 24px; background:none; border-radius:0; }
+.club-ops-embedded .workspace-editor__layout { padding:22px 0; }
+.club-ops-embedded .workspace-editor__section { padding:22px; border:1px solid var(--fc-border); border-radius:12px; background:var(--fc-card-bg); }
+.club-ops-embedded .workspace-editor__header button { background:none; border:0; padding:0; border-radius:0; }
+.club-ops-embedded .workspace-editor .workspace-editor__button--primary { background:var(--fc-accent); border-color:var(--fc-accent); color:var(--fc-page-bg); }
+.club-ops-embedded .workspace-editor .op-steps button { background:var(--fc-card-bg); border-color:var(--fc-border); }
+.club-ops-embedded .workspace-editor .op-steps button.active { color:var(--fc-accent); background:var(--fc-accent-soft); border-color:var(--fc-accent); }
+.club-ops-embedded .workspace-editor__footer { background:var(--fc-page-bg); }
+.club-ops-embedded .workspace-editor details > summary { cursor:pointer; padding:10px 0; font-size:12px; color:var(--fc-text-secondary); }
+.workspace-review-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+.workspace-review-list dt { color:var(--fc-text-muted); font-size:11px; margin-bottom:5px; }
+.workspace-review-list dd { font-size:13px; overflow-wrap:anywhere; white-space:pre-wrap; }
+.club-ops-embedded .ops-detail{padding:28px;border-top:3px solid var(--fc-color-blue,var(--color-info))}
+.club-ops-embedded .ops-detail>.ops-toolbar{padding-bottom:22px;border-bottom:1px solid var(--fc-border)}
+.club-ops-embedded .ops-detail>.ops-toolbar h3{font-size:23px;margin:8px 0 12px}
+.club-ops-embedded .ops-detail>dl{gap:24px 36px;margin:24px 0 32px}
+.club-ops-embedded .ops-detail dt{font-size:12px;margin:0 0 6px}
+.club-ops-embedded .ops-detail dd{font-size:14px;line-height:1.7}
+.workspace-record-documents,.workspace-record-history{border-top:1px solid var(--fc-border);padding:18px 0;margin-top:12px}
+.workspace-record-documents>summary,.workspace-record-history>summary{cursor:pointer;font-size:13px;font-weight:600}
+.workspace-record-documents>summary span{margin-left:8px;color:var(--fc-text-muted)}
+.workspace-record-documents>p{margin:15px 0}
+.club-ops-embedded .workspace-record-documents input[hidden]{display:none}
+.club-ops-embedded .workspace-editor__section{border-top:3px solid var(--fc-color-blue,var(--color-info));padding:26px}
+.club-ops-embedded .workspace-editor .op-steps button.active{background:var(--fc-card-bg);color:var(--fc-text-primary);border-color:var(--fc-border);border-bottom:2px solid var(--fc-color-blue,var(--color-info))}
+.club-ops-embedded .workspace-editor .op-steps button.active>span{color:var(--fc-color-blue,var(--color-info))}
+.club-ops-embedded .workspace-list-message{border:1px solid var(--fc-border);border-radius:12px;background:var(--fc-card-bg);padding:48px 24px}
+.club-ops-embedded .workspace-record-table table{font-size:13px}
+.club-ops-embedded .workspace-record-table small{font-size:11px}
+.club-ops-embedded .workspace-editor input,.club-ops-embedded .workspace-editor select{min-height:44px}
+@media(max-width:700px) {
+ .workspace-section-heading h1 { font-size:25px; }
+ .workspace-record-table table,.workspace-record-table tbody { display:block; }
+ .workspace-record-table thead { display:none; }
+ .workspace-record-table tr { display:grid; grid-template-columns:1fr auto; padding:12px; border-top:1px solid var(--fc-border); gap:10px; }
+ .workspace-record-table tr:first-child { border-top:0; }
+ .workspace-record-table td { padding:0; border:0; }
+ .workspace-record-table td:first-child { width:auto; grid-column:1/-1; }
+ .workspace-record-table td:last-child { grid-column:1/-1; font-size:10px; color:var(--fc-text-muted); }
+ .workspace-review-list { grid-template-columns:1fr; }
+ .workspace-staff-tabs { gap:16px; }
+}

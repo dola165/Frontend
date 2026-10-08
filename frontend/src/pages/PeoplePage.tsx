@@ -1,3 +1,4 @@
+import { MediaImage } from '../components/ui/MediaImage';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, UserRoundSearch, UsersRound } from 'lucide-react';
@@ -63,7 +64,7 @@ export const PeoplePage = () => {
     }, [trimmedQuery]);
 
     return (
-        <div className="mx-auto w-full max-w-5xl py-2">
+        <div className="people-directory mx-auto w-full max-w-5xl py-2">
             <header className="border-b border-[var(--border-subtle)] pb-6">
                 <div className="flex items-center gap-3 text-[var(--accent-primary)]">
                     <UsersRound className="h-5 w-5" />
@@ -99,7 +100,7 @@ export const PeoplePage = () => {
                     ) : loading ? (
                         <div className="py-16 text-center text-sm text-[var(--text-secondary)]">Searching people…</div>
                     ) : error ? (
-                        <div className="rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-200">{error}</div>
+                        <div className="rounded-xl border border-[color:var(--color-danger)]/25 bg-[color:var(--color-danger)]/10 px-4 py-3 text-sm text-[color:var(--color-danger)] dark:text-[color:var(--color-danger)]">{error}</div>
                     ) : people.length === 0 ? (
                         <div className="py-16 text-center text-sm text-[var(--text-secondary)]">No people match “{trimmedQuery}”.</div>
                     ) : (
@@ -114,7 +115,7 @@ export const PeoplePage = () => {
                                         className="group flex min-w-0 items-center gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--theme-surface-strong)] p-4 shadow-[var(--shadow-panel)] transition-all hover:-translate-y-0.5 hover:border-[var(--accent-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                                     >
                                         <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--accent-primary-soft)] text-sm font-bold text-[var(--accent-primary)] ring-1 ring-[var(--border-subtle)]">
-                                            {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initialsFrom(person)}
+                                            {avatarUrl ? <MediaImage src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initialsFrom(person)}
                                         </span>
                                         <span className="min-w-0">
                                             <span className="block truncate text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-primary)]">{displayName}</span>

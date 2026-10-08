@@ -1,0 +1,63 @@
+{
+  "format": 1,
+  "id": "8ab83834b7c34b03a32d420c16a455c5",
+  "started_utc": "2026-09-13T23:53:04.961431+00:00",
+  "phase": "succeeded",
+  "step": "open_and_verify_web",
+  "previous": {
+    "format": 1,
+    "release": "squads-redesign-20260914",
+    "images": {
+      "app": "sha256:6e1ce8eff166eec3ac6e02e822547083a7f3b6d004c26d20cff44dcc7ae93b91",
+      "web": "sha256:79e72f669921f889e1616ccc0232a88ef726cdd8f50cedba6bb05c154b6b7eff"
+    },
+    "configuration_sha256": {
+      "compose.pilot.yaml": "4f3f83b29c49591852a9dd6e6f269845479265f6cc32d66b23f25e3b6694d413",
+      "compose.tunnel.yaml": "8e7bc0174d98b4f0dc7437866b13308157d1dd2d68504fbaae3534bc8b21ace1",
+      "nginx.conf": "afdb7034a07eeb658d4d0e2d115cad8c878ebad469ba2316325ced16d9a82934"
+    }
+  },
+  "candidate": {
+    "format": 1,
+    "release": "club-workflows-20260914",
+    "images": {
+      "app": "sha256:5e9a0cc2a6125a56d604fa42c0a92375f2ae3a6784eb7a62b3f5ddc2568bf438",
+      "web": "sha256:c175dfc170a0de61ab17ba093ff30b1d6ab3bb9c88aff5cdac00e63ac63620ff"
+    },
+    "configuration_sha256": {
+      "compose.pilot.yaml": "4f3f83b29c49591852a9dd6e6f269845479265f6cc32d66b23f25e3b6694d413",
+      "compose.tunnel.yaml": "8e7bc0174d98b4f0dc7437866b13308157d1dd2d68504fbaae3534bc8b21ace1",
+      "nginx.conf": "afdb7034a07eeb658d4d0e2d115cad8c878ebad469ba2316325ced16d9a82934"
+    }
+  },
+  "data_restore": false,
+  "scope": "workflow UI, Parent persona, verified existing sender",
+  "validation": {
+    "registration": {
+      "status": "passed",
+      "image": "sha256:5e9a0cc2a6125a56d604fa42c0a92375f2ae3a6784eb7a62b3f5ddc2568bf438",
+      "checks": [
+        "Exact API boots with V91.1 and existing migrations",
+        "Email signup persists Parent and requires verification",
+        "Captured verification link enables password login; unverified login is rejected",
+        "Parent Hub starts empty; persona does not grant child access",
+        "Restricted Agent role remains unavailable for self-registration"
+      ],
+      "real_emails_sent": 0,
+      "live_data_accessed": false
+    },
+    "migration": "V91.1 only; existing packaged migrations unchanged",
+    "email_sender_configured": true,
+    "verified_provider_domain": true,
+    "runtime_secret_matches": true,
+    "local_and_public_assets_match": true,
+    "real_test_emails_sent": 0
+  },
+  "backup": {
+    "artifact": "release-20260913T235304Z-3d835fc2.gkenc",
+    "receipt": "release-20260913T235304Z-3d835fc2.receipt.json",
+    "sha256": "5a4f756aca77402ecf10a17d3fffb85fcf4d3ee6d34f0e347ea09808737967c8",
+    "verified": true
+  },
+  "completed_utc": "2026-09-13T23:53:49.261240+00:00"
+}

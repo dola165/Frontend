@@ -1,3 +1,11 @@
+import '../features/squadCommunication/squad-life.css';
+import { MessageActions } from '../components/chat/MessageActions';
+import { ConversationIntakeContext } from '../components/chat/ConversationIntakeContext';
+import { MessageText } from '../components/chat/MessageText';
+import { SquadInboxList, SquadInboxConversation } from '../features/squadCommunication/SquadInbox';
+import { useAuth } from '../context/AuthContext';
+import { formatDate, formatTime as formatClockTime } from '../utils/formatting';
+import { MediaImage } from '../components/ui/MediaImage';
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useChatWebSocket, mergeMessages } from '../hooks/useChatWebSocket';
@@ -19,12 +27,16 @@ function formatTime(iso: string | null): string {
     const d = new Date(iso);
     const now = new Date();
     const isToday = d.toDateString() === now.toDateString();
-    if (isToday) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    if (isToday) return formatClockTime(d);
+    return formatDate(d, { month: 'short', day: 'numeric' });
 }
 
 function getDisplayName(conv: ConversationDto, currentUserId: number): string {
     if (conv.contextType !== 'DIRECT') {
+        if (/^Joining enquiry #\d+$/.test(conv.name ?? '')) {
+            const contacts=conv.participants.filter(person=>person.userId!==currentUserId).map(person=>person.displayName).filter(Boolean);
+            return contacts.length?`${contacts.join(', ')} · Club enquiry`:'Club enquiry';
+        }
         return conv.name || (conv.contextType === 'MATCH_CHALLENGE' ? 'Match Chat' : 'Group');
     }
     const other = conv.participants.find((p) => p.userId !== currentUserId);
@@ -43,9 +55,12 @@ function getAvatarLetter(conv: ConversationDto, currentUserId: number): string {
 // ── Component ──────────────────────────────────────────────────────
 
 export const MessagingPage = () => {
+    const {sessionId} = useAuth();
     const currentUserId = Number(getStoredUserId() || 0);
     const [searchParams, setSearchParams] = useSearchParams();
 
+    const squadParam = Number(searchParams.get('squadId'));
+    const squadId = Number.isSafeInteger(squadParam) && squadParam > 0 ? squadParam : null;
     const [conversations, setConversations] = useState<ConversationDto[]>([]);
     const [activeConvId, setActiveConvId] = useState<number | null>(null);
     const [messages, setMessages] = useState<Record<number, ChatMessageResponse[]>>({});
@@ -155,7 +170,8 @@ export const MessagingPage = () => {
 
     useEffect(() => {
         const id = Number(searchParams.get('conversationId'));
-        if (!Number.isSafeInteger(id) || id <= 0) return;
+        if (squadId || !Number.isSafeInteger(id) || id <= 0) { setActiveConvId(null); setShowInfo(false); return; }
+        if (conversationsRef.current.some(conversation => conversation.id === id)) { setActiveConvId(id); return; }
         let current = true;
         chatApi.getConversation(id).then(response => {
             if (!current) return;
@@ -163,12 +179,13 @@ export const MessagingPage = () => {
             setActiveConvId(id);
         }).catch(() => { if (current) setManagementError('This conversation is no longer available.'); });
         return () => { current = false; };
-    }, [searchParams]);
+    }, [searchParams, squadId]);
 
     const selectConversation = useCallback((id: number) => {
         setActiveConvId(id);
         setShowInfo(false);
-    }, []);
+        setSearchParams({conversationId:String(id)});
+    }, [setSearchParams]);
 
     const sendMessage = useCallback(async (event?: React.FormEvent) => {
         event?.preventDefault();
@@ -192,7 +209,7 @@ export const MessagingPage = () => {
 
     // ── Derived ─────────────────────────────────────────────────────
 
-    const activeConv = conversations.find((c) => c.id === activeConvId) || null;
+    const activeConv = squadId ? null : conversations.find((c) => c.id === activeConvId) || null;
     const activeMessages = activeConvId ? messages[activeConvId] || [] : [];
     useChatScroll(messageViewportRef, activeConvId, !!activeConv && !loadingMessages);
     useChatReadReceipts(activeConvId, !!activeConv && !loadingMessages && !showNewChat, activeMessages, messageViewportRef);
@@ -363,9 +380,9 @@ export const MessagingPage = () => {
     // ── Render ──────────────────────────────────────────────────────
 
     return (
-        <div className="chat-messenger-shell h-full w-full flex overflow-hidden">
+        <div className={`chat-messenger-shell unified-messages ${squadId || activeConv ? 'has-conversation' : ''} h-full w-full flex overflow-hidden`}>
             {/* ── LEFT SIDEBAR ─────────────────────────────────── */}
-            <aside className="w-[320px] shrink-0 border-r border-[var(--chat-card-border)] bg-[var(--chat-sidebar-bg)] flex flex-col">
+            <aside className="messages-sidebar w-[320px] shrink-0 border-r border-[var(--chat-card-border)] bg-[var(--chat-sidebar-bg)] flex flex-col">
                 {/* Header */}
                 <div className="h-14 px-4 border-b border-[var(--chat-card-border)] flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2">
@@ -388,12 +405,14 @@ export const MessagingPage = () => {
                         fill="currentColor"
                     />
                     <span className="text-[var(--chat-text-muted)]">
-                        {connected ? 'Live updates connected' : 'Reconnecting live updates'}
+                        {squadId ? 'Squad messages refresh automatically' : connected ? 'Live updates connected' : 'Reconnecting live updates'}
                     </span>
                 </div>
 
-                {/* Conversation list */}
+                {/* One inbox, with the existing squad membership checks. */}
                 <div className="flex-1 overflow-y-auto">
+                    <SquadInboxList key={sessionId} selected={squadId} />
+                    <h3 className="messages-other-heading">Other conversations</h3>
                     {sidebarLoading ? (
                         <div className="flex flex-col gap-2 px-3 py-2">
                             <SkeletonMessageRow />
@@ -401,11 +420,11 @@ export const MessagingPage = () => {
                             <SkeletonMessageRow />
                             <SkeletonMessageRow />
                         </div>
-                    ) : sidebarLoading ? (
+                    ) : conversations.length === 0 ? (
                         <div className="px-4 py-12 text-center">
                             <MessageSquare className="w-8 h-8 mx-auto mb-3 text-[var(--chat-text-muted)]" />
                             <p className="text-sm text-[var(--chat-text-secondary)] font-medium">
-                                No conversations yet
+                                No other conversations yet
                             </p>
                             <p className="text-xs text-[var(--chat-text-muted)] mt-1">
                                 Start a new chat to begin messaging.
@@ -432,7 +451,7 @@ export const MessagingPage = () => {
                                         {isSharedConversation(conv) ? (
                                             <Users className="w-5 h-5" />
                                         ) : conv.participants[0]?.profilePictureUrl ? (
-                                            <img
+                                            <MediaImage
                                                 src={conv.participants[0].profilePictureUrl}
                                                 alt=""
                                                 className="w-full h-full rounded-full object-cover"
@@ -478,7 +497,7 @@ export const MessagingPage = () => {
                                             </p>
 
                                             {conv.unreadCount > 0 && (
-                                                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[var(--chat-accent)] text-white text-[10px] font-bold leading-none">
+                                                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[var(--chat-accent)] text-[color:var(--color-on-accent)] text-[10px] font-bold leading-none">
                                                     {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
                                                 </span>
                                             )}
@@ -493,10 +512,11 @@ export const MessagingPage = () => {
 
             {/* ── CHAT WINDOW ──────────────────────────────────── */}
             <section className="flex-1 flex flex-col bg-[var(--chat-surface)] min-w-0">
-                {activeConv ? (
+                {squadId ? <SquadInboxConversation key={`${sessionId}:${squadId}`} id={squadId} /> : activeConv ? (
                     <>
                         {/* Header — clickable to toggle info panel */}
                         <div className="h-14 px-5 bg-[var(--chat-card)] border-b border-[var(--chat-card-border)] flex items-center justify-between shrink-0">
+                            <button className="messages-mobile-back" onClick={() => setSearchParams({})} aria-label="Back to all messages">← Chats</button>
                             <button
                                 onClick={() => setShowInfo(!showInfo)}
                                 className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-80 transition-opacity"
@@ -532,6 +552,7 @@ export const MessagingPage = () => {
                             </button>
                         </div>
 
+                        <ConversationIntakeContext key={`${sessionId}:${activeConv.id}`} conversationId={activeConv.id} messageRevision={activeMessages.at(-1)?.id ?? activeConv.lastMessageAt ?? ''} />
                         {/* Messages */}
                         <div ref={messageViewportRef} role="log" aria-label="Conversation messages" style={{ overflowAnchor: 'none' }} className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
                             {!loadingMessages && <OlderMessages available={hasOlder} loading={loadingOlder} error={historyError} onLoad={loadOlder} />}
@@ -567,11 +588,12 @@ export const MessagingPage = () => {
                                                         : 'bg-[var(--chat-bubble-other)] text-[var(--chat-bubble-other-text)] rounded-bl-sm border border-[var(--chat-card-border)]'
                                                 }`}
                                             >
-                                                <p data-chat-message-content className="whitespace-pre-wrap break-words">{msg.content}</p>
+                                                <p data-chat-message-content className="whitespace-pre-wrap break-words"><MessageText text={msg.content} /></p>
                                             </div>
                                             <span className="text-[10px] text-[var(--chat-text-muted)] mt-0.5 mx-1">
                                                 {formatTime(msg.createdAt)}
                                             </span>
+                                            {!isMe && <MessageActions messageId={msg.id} conversationId={msg.conversationId} senderId={msg.senderId} />}
                                         </div>
                                     );
                                 })
@@ -580,7 +602,7 @@ export const MessagingPage = () => {
 
                         {/* Input */}
                         <div className="px-4 py-3 bg-[var(--chat-card)] border-t border-[var(--chat-card-border)] shrink-0">
-                            {deliveryError && <p role="alert" className="mb-2 text-sm text-amber-300">{deliveryError}</p>}
+                            {deliveryError && <p role="alert" className="mb-2 text-sm text-[color:var(--color-warning)]">{deliveryError}</p>}
                             <form onSubmit={sendMessage} className="flex items-center gap-2">
                                 <input
                                     type="text"
@@ -635,7 +657,7 @@ export const MessagingPage = () => {
 
             {/* ── INFO / MANAGEMENT DRAWER ──────────────────────── */}
             {activeConv && (
-                <aside className={`shrink-0 bg-[var(--chat-card)] border-l border-[var(--chat-card-border)] flex flex-col transition-all duration-300 ease-in-out overflow-hidden ${
+                <aside aria-hidden={!showInfo} inert={!showInfo} className={`shrink-0 bg-[var(--chat-card)] border-l border-[var(--chat-card-border)] flex flex-col transition-all duration-300 ease-in-out overflow-hidden ${
                     showInfo ? 'w-[300px] opacity-100' : 'w-0 opacity-0 border-l-0'
                 }`}>
                     {/* Header */}
@@ -646,6 +668,7 @@ export const MessagingPage = () => {
                                 setShowAddPeople(false);
                                 setShowSuggestUser(false);
                             }}
+                            aria-label="Close conversation info"
                             className="p-1.5 rounded-full text-[var(--chat-text-muted)] hover:bg-[var(--chat-card-hover)] transition-colors"
                         >
                             <X className="w-4 h-4" />
@@ -662,9 +685,9 @@ export const MessagingPage = () => {
                     <div className="flex-1 overflow-y-auto">
                         {/* Error */}
                         {managementError && (
-                            <div className="mx-4 mt-3 px-3 py-2 rounded-lg border border-red-500/20 bg-red-500/10 text-red-600 text-xs">
+                            <div className="mx-4 mt-3 px-3 py-2 rounded-lg border border-[color:var(--color-danger)]/20 bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)] text-xs">
                                 {managementError}
-                                <button onClick={() => setManagementError(null)} className="ml-2 underline">Dismiss</button>
+                                <button onClick={() => setManagementError(null)} className="ml-2 app-text-action">Dismiss</button>
                             </div>
                         )}
 
@@ -697,7 +720,7 @@ export const MessagingPage = () => {
                                             >
                                                 <div className="w-9 h-9 rounded-full bg-[var(--chat-accent)]/15 flex items-center justify-center text-[var(--chat-accent)] font-bold text-xs shrink-0">
                                                     {p.profilePictureUrl ? (
-                                                        <img
+                                                        <MediaImage
                                                             src={p.profilePictureUrl}
                                                             alt=""
                                                             className="w-full h-full rounded-full object-cover"
@@ -712,7 +735,7 @@ export const MessagingPage = () => {
                                                             {p.displayName}
                                                         </p>
                                                         {isParticipantCreator && (
-                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 text-[9px] font-bold uppercase tracking-wider">
+                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[color:var(--color-warning)]/15 text-[color:var(--color-warning)] text-[9px] font-bold uppercase tracking-wider">
                                                                 <Crown className="w-2.5 h-2.5" />
                                                                 Admin
                                                             </span>
@@ -729,14 +752,14 @@ export const MessagingPage = () => {
                                                         <button
                                                             onClick={() => handleKickUser(p.userId, p.displayName)}
                                                             title="Remove"
-                                                            className="p-1 rounded text-[var(--chat-text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                                                            className="p-1 rounded text-[var(--chat-text-muted)] hover:text-[color:var(--color-danger)] hover:bg-[color:var(--color-danger)]/10 transition-colors"
                                                         >
                                                             <UserMinus className="w-3.5 h-3.5" />
                                                         </button>
                                                         <button
                                                             onClick={() => handleBlockUser(p.userId, p.displayName)}
                                                             title="Block"
-                                                            className="p-1 rounded text-[var(--chat-text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                                                            className="p-1 rounded text-[var(--chat-text-muted)] hover:text-[color:var(--color-danger)] hover:bg-[color:var(--color-danger)]/10 transition-colors"
                                                         >
                                                             <Ban className="w-3.5 h-3.5" />
                                                         </button>
@@ -880,7 +903,7 @@ export const MessagingPage = () => {
                                     <h3 className="text-xs font-semibold uppercase text-[var(--chat-text-muted)] tracking-wide">
                                         Invite Suggestions
                                         {suggestions.length > 0 && (
-                                            <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500/15 text-amber-600 text-[9px] font-bold">
+                                            <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[color:var(--color-warning)]/15 text-[color:var(--color-warning)] text-[9px] font-bold">
                                                 {suggestions.length}
                                             </span>
                                         )}
@@ -923,14 +946,14 @@ export const MessagingPage = () => {
                                                         <div className="flex items-center gap-1 shrink-0">
                                                             <button
                                                                 onClick={() => handleApproveSuggestion(s.id)}
-                                                                className="p-1 rounded-full text-emerald-500 hover:bg-emerald-500/10 transition-colors"
+                                                                className="p-1 rounded-full text-[color:var(--color-accent)] hover:bg-[color:var(--color-accent)]/10 transition-colors"
                                                                 title="Approve"
                                                             >
                                                                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                                                             </button>
                                                             <button
                                                                 onClick={() => handleRejectSuggestion(s.id)}
-                                                                className="p-1 rounded-full text-red-400 hover:bg-red-500/10 transition-colors"
+                                                                className="p-1 rounded-full text-[color:var(--color-danger)] hover:bg-[color:var(--color-danger)]/10 transition-colors"
                                                                 title="Reject"
                                                             >
                                                                 <X className="w-4 h-4" />
@@ -957,7 +980,7 @@ export const MessagingPage = () => {
                                 setShowSuggestUser(false);
                                 await loadConversations();
                             }}
-                            className="w-full py-2 px-4 rounded-full border border-red-500/30 text-red-500 text-sm font-semibold hover:bg-red-500/10 transition-colors"
+                            className="w-full py-2 px-4 rounded-full border border-[color:var(--color-danger)]/30 text-[color:var(--color-danger)] text-sm font-semibold hover:bg-[color:var(--color-danger)]/10 transition-colors"
                         >
                             Leave {activeConv.contextType === 'GROUP'
                                 ? 'Group'

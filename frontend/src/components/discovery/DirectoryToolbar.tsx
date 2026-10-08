@@ -30,10 +30,10 @@ interface DirectoryToolbarProps {
 }
 
 const accentClasses: Record<DirectoryFilterAccent, string> = {
-    green: 'border-[#16a34a]/60 bg-[#16a34a]/10 text-[#86efac]',
-    amber: 'border-amber-400/60 bg-amber-400/10 text-amber-200',
-    violet: 'border-fuchsia-400/60 bg-fuchsia-400/10 text-fuchsia-200',
-    emerald: 'border-emerald-400/60 bg-emerald-400/10 text-emerald-200'
+    green: 'border-[var(--color-accent)]/60 bg-[var(--color-accent)]/10 text-[var(--color-accent)]',
+    amber: 'border-[color:var(--color-warning)]/60 bg-[color:var(--color-warning)]/10 text-[color:var(--color-warning)]',
+    violet: 'border-[var(--color-pink)]/60 bg-[var(--color-pink)]/10 text-[var(--color-pink)]',
+    emerald: 'border-[color:var(--color-accent)]/60 bg-[color:var(--color-accent)]/10 text-[color:var(--color-accent)]'
 };
 
 export const DirectoryToolbar = ({

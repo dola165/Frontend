@@ -1,0 +1,163 @@
+/* Public club pages share Home's palette. Overview geometry and data stay owned
+   by their existing components; these aliases also cover every public tab. */
+.club-design-scope,
+:root.dark .club-design-scope,
+:root.dark .club-page-shell.club-design-scope {
+    --gk-canvas: var(--color-page);
+    --gk-surface: var(--color-surface);
+    --gk-raised: var(--color-elevated);
+    --gk-border: var(--color-border);
+    --gk-text-primary: var(--color-text);
+    --gk-text-secondary: var(--color-secondary);
+    --gk-text-muted: var(--color-muted);
+    --bg-base: var(--color-page);
+    --bg-surface: var(--color-surface);
+    --bg-elevated: var(--color-elevated);
+    --bg-inset: var(--color-inset);
+    --border-subtle: var(--color-border);
+    --border-strong: color-mix(in srgb, var(--color-border) 85%, var(--color-secondary));
+    --text-primary: var(--color-text);
+    --text-secondary: var(--color-secondary);
+    --text-muted: var(--color-muted);
+    --accent-primary: var(--color-accent);
+    --accent-primary-soft: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    --theme-page: var(--color-page);
+    --theme-surface: var(--color-surface);
+    --theme-surface-muted: var(--color-inset);
+    --theme-surface-strong: var(--color-elevated);
+    --theme-surface-inset: var(--color-inset);
+    --theme-border: var(--color-border);
+    --theme-border-strong: var(--border-strong);
+    --theme-shadow: none;
+    --app-shell-base: var(--color-page);
+    --app-shell-surface: var(--color-surface);
+    --app-shell-elevated: var(--color-elevated);
+    --app-text-secondary: var(--color-secondary);
+    --app-text-muted: var(--color-muted);
+    --club-theme-base: var(--color-page);
+    --club-theme-surface: var(--color-surface);
+    --club-theme-elevated: var(--color-elevated);
+    --club-theme-inset: var(--color-inset);
+    --club-theme-border-subtle: var(--color-border);
+    --club-theme-border-strong: var(--border-strong);
+    --club-theme-text-primary: var(--color-text);
+    --club-theme-text-secondary: var(--color-secondary);
+    --club-theme-text-muted: var(--color-muted);
+    --club-band: var(--color-surface);
+    --club-card: var(--color-surface);
+    --club-left-bg: var(--color-surface);
+    --club-center-bg: var(--color-surface);
+    --club-right-bg: var(--color-surface);
+    --club-shell-top: var(--color-page);
+    --club-shell-bottom: var(--color-page);
+    --club-tone-green: var(--color-accent);
+    --club-tone-green-soft: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    --club-tone-green-border: color-mix(in srgb, var(--color-accent) 25%, var(--color-border));
+    --club-tone-cyan: var(--color-cyan);
+    --club-tone-cyan-soft: color-mix(in srgb, var(--color-cyan) 8%, transparent);
+    --club-tone-cyan-border: color-mix(in srgb, var(--color-cyan) 25%, var(--color-border));
+    --club-tone-blue: var(--color-info);
+    --club-tone-blue-soft: color-mix(in srgb, var(--color-info) 8%, transparent);
+    --club-tone-blue-border: color-mix(in srgb, var(--color-info) 25%, var(--color-border));
+    --club-tone-violet: var(--color-purple);
+    --club-tone-violet-soft: color-mix(in srgb, var(--color-purple) 8%, transparent);
+    --club-tone-violet-border: color-mix(in srgb, var(--color-purple) 25%, var(--color-border));
+    --club-accent-orange: var(--color-orange);
+    --club-accent-orange-soft: color-mix(in srgb, var(--color-orange) 8%, transparent);
+    --club-tone-purple: var(--color-info);
+    --club-tone-purple-soft: color-mix(in srgb, var(--color-info) 8%, transparent);
+    --club-tone-purple-border: color-mix(in srgb, var(--color-info) 25%, var(--color-border));
+    --club-tone-pink: var(--color-secondary);
+    --club-tone-pink-soft: color-mix(in srgb, var(--color-pink) 8%, transparent);
+    --club-tone-pink-border: color-mix(in srgb, var(--color-pink) 25%, var(--color-border));
+    --club-shell-glow: color-mix(in srgb, var(--color-accent) 3%, transparent);
+    --club-upload-action-bg: var(--color-inset);
+    --club-upload-action-border: var(--color-border);
+    --club-upload-action-text: var(--color-text);
+    --club-system-action-bg: var(--color-inset);
+    --club-system-action-border: var(--color-border);
+    --club-system-action-text: var(--color-text);
+    --club-system-action-icon: var(--color-info);
+    --club-divider-dot: var(--color-muted);
+    --club-zone-highlight: color-mix(in srgb, var(--color-accent) 3%, transparent);
+    --club-shadow-panel: none;
+    --feed-bg: var(--color-page);
+    --feed-surface: var(--color-surface);
+    --feed-card: var(--color-surface);
+    --feed-card-soft: var(--color-elevated);
+    --feed-card-muted: var(--color-surface);
+    --feed-input-bg: var(--color-inset);
+    --feed-layer-bg: var(--color-elevated);
+    --feed-card-border: var(--color-border);
+    --feed-divider: color-mix(in srgb, var(--color-border) 65%, transparent);
+    --feed-text-primary: var(--color-text);
+    --feed-text-secondary: var(--color-secondary);
+    --feed-text-muted: var(--color-muted);
+    --feed-text-placeholder: var(--color-muted);
+    --feed-accent: var(--color-accent);
+    --feed-accent-contrast: var(--color-on-accent);
+    --feed-hover-bg: color-mix(in srgb, var(--color-ink) 5%, transparent);
+    color: var(--color-text);
+    background-color: var(--color-page);
+}
+.club-design-scope.club-directory-frame {
+    max-width: 1680px;
+    padding: 30px clamp(16px, 2vw, 32px) 56px;
+    background-image: radial-gradient(ellipse 75% 420px at 50% 0, color-mix(in srgb, var(--color-accent) 3%, transparent), transparent 80%);
+}
+.club-directory-heading { border-color: var(--color-border); }
+.club-directory-heading > div > div > p:first-child { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.club-directory-heading h1 { font-size: clamp(26px, 2.3vw, 34px); letter-spacing: -.03em; }
+.club-directory-context { border-color: var(--color-border); border-radius: 12px; }
+.club-directory-heading > div { align-items: center; }
+.club-directory-context { padding: 14px; }
+.club-directory-context > div:first-of-type { margin-top: 10px; }
+.club-directory-context > div:last-child { margin-top: 12px; }
+.club-directory-context > div:first-of-type p:last-child { font-size: 11px; line-height: 1.5; }
+.club-directory-context > div:first-of-type > div:first-child { background: var(--color-inset); border-color: var(--color-border); border-radius: 8px; }
+.club-design-scope .club-directory-toolbar { border-color: var(--color-border); box-shadow: none; backdrop-filter: none; background: var(--color-surface); }
+.club-directory-search, .club-directory-toolbar select { background: var(--color-inset); border-color: var(--color-border); }
+.club-directory-toolbar [role="group"] { background: var(--color-inset); border-color: var(--color-border); }
+.club-design-scope .club-directory-layout > aside > section { box-shadow: none; border-color: var(--color-border); border-radius: 12px; }
+.club-design-scope .club-directory-layout fieldset { padding-block: 16px; }
+.club-directory-layout legend { font-size: 11px; letter-spacing: .06em; }
+.club-design-scope .club-directory-results { border-color: var(--color-border); }
+.club-design-scope .club-directory-list-heading { border-color: var(--color-border); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+.club-design-scope .club-directory-row { gap: 12px; padding: 16px; transition: background-color 160ms ease; }
+.club-design-scope .club-directory-row > * { min-width: 0; }
+.club-design-scope .club-directory-row:hover { background: color-mix(in srgb, var(--color-ink) 2%, transparent); }
+.club-directory-row > div:nth-child(2) > p { font-size: 12px; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.club-directory-row > div:nth-child(3) { font-size: 12px; }
+.club-directory-row > div:last-child :is(a, button) { border-radius: 7px; }
+.club-design-scope .club-directory-card { border-color: var(--color-border); box-shadow: none; }
+.club-directory-card > p { font-size: 13px; }
+.club-directory-pagination > div { flex-wrap: wrap; row-gap: 12px; }
+.club-design-scope .club-profile-nav { background: var(--color-page); border-color: var(--color-border); }
+.club-design-scope .club-profile-nav button { font-weight: 500; }
+.club-design-scope .club-profile-nav button svg { stroke-width: 1.6; }
+.club-design-scope .club-profile-nav button[aria-current="page"] { color: var(--color-accent); border-color: var(--color-accent); }
+.club-design-scope .club-banner-fallback { background: linear-gradient(120deg, var(--color-inset), color-mix(in srgb, var(--color-accent) 7%, var(--color-inset))); }
+.club-design-scope .opportunity-link { border-color: color-mix(in srgb, var(--opportunity-color) 25%, var(--color-border)); background: color-mix(in srgb, var(--opportunity-color) 2%, var(--color-inset)); box-shadow: none; }
+.club-design-scope .opportunity-link:hover { border-color: color-mix(in srgb, var(--opportunity-color) 55%, var(--color-border)); background: color-mix(in srgb, var(--opportunity-color) 6%, var(--color-inset)); box-shadow: none; }
+.club-posts-canvas > header h2 { font-size: 22px; }
+.club-posts-canvas > header p { font-size: 13px; }
+.club-design-scope.club-page-shell .store-page.jobs-page {
+    --op-accent: var(--color-purple);
+    --op-strong: var(--color-purple);
+    --op-soft: color-mix(in srgb, var(--color-purple) 4%, transparent);
+}
+.club-design-scope.club-page-shell .store-page.opportunity-overview-card {
+    --op-border: color-mix(in srgb, var(--op-accent) 25%, var(--color-border));
+}
+@media (min-width: 1024px) {
+    .club-design-scope :is(.club-directory-list-heading, .club-directory-row) { grid-template-columns: minmax(180px, 1.15fr) minmax(160px, 1.25fr) minmax(85px, .65fr) minmax(105px, .7fr) minmax(145px, .9fr); gap: 12px; }
+}
+@media (max-width: 639px) {
+    .club-design-scope.club-directory-frame { padding-top: 20px; }
+    .club-directory-row > div:last-child :is(a, button) { min-height: 44px; }
+    .club-directory-layout { gap: 16px; }
+    .club-directory-pagination button { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .club-design-scope .club-directory-row { transition: none; }
+}

@@ -1,0 +1,17 @@
+.ev-page { max-width: 960px; margin: 0 auto; padding: 1.5rem; color: var(--text-primary, inherit); }
+.ev-page h1 { margin-block: 1rem; }
+.ev-page p { line-height: 1.5; overflow-wrap: anywhere; }
+.ev-page section { margin-block: 1rem; padding: 1.2rem; border: 1px solid var(--border-color, var(--color-border)); border-radius: 14px; }
+.ev-page a { color: inherit; }
+.ev-page button { color: inherit; background: transparent; border: 1px solid var(--border-color, var(--color-border)); border-radius: 8px; padding: .7rem 1rem; cursor: pointer; }
+.ev-page button[aria-pressed="true"] { border-color: var(--color-accent); outline: 2px solid var(--color-accent); }
+.ev-page button:disabled { opacity: .55; cursor: wait; }
+.ev-form { display: grid; gap: .8rem; margin-block: 1rem; }
+.ev-page label { display: grid; gap: .4rem; }
+.ev-page input, .ev-page textarea { box-sizing: border-box; width: 100%; min-width: 0; border: 1px solid var(--border-color, var(--color-border)); border-radius: 8px; padding: .7rem; background: var(--input-bg, var(--color-elevated)); color: var(--text-primary, var(--color-text)); }
+.ev-options { display: flex; flex-wrap: wrap; gap: .75rem; margin-block: 1rem; }
+.ev-reservation { border-top: 1px solid var(--border-color, var(--color-border)); padding-block: 1rem; }
+.ev-page [role="alert"] { color: var(--state-error, var(--color-danger)); }
+@media(max-width:600px) { .ev-page { padding: 1rem; } .ev-page section { padding: .8rem; } }
+.ev-summary { display: grid; gap: .3rem; grid-column: 1 / -1; margin-block: .75rem; padding: .8rem; border: 1px solid var(--border-color, var(--color-border)); border-radius: 8px; font-size: .9rem; overflow-wrap: anywhere; }
+.ev-summary a { color: inherit; text-decoration: underline; }

@@ -1,0 +1,35 @@
+[
+  {
+    "name": "desktop",
+    "streaming": true,
+    "previewDidNotExecute": true,
+    "revisedDraft": true,
+    "reviewSurvivesRefresh": true,
+    "confirmedOnce": true,
+    "navigationPreserved": true,
+    "confirmationSurvivesClose": true,
+    "errors": []
+  },
+  {
+    "name": "desktop-dark",
+    "streaming": true,
+    "previewDidNotExecute": true,
+    "revisedDraft": true,
+    "reviewSurvivesRefresh": true,
+    "confirmedOnce": true,
+    "navigationPreserved": true,
+    "confirmationSurvivesClose": true,
+    "errors": []
+  },
+  {
+    "name": "mobile",
+    "streaming": true,
+    "previewDidNotExecute": true,
+    "revisedDraft": true,
+    "reviewSurvivesRefresh": true,
+    "confirmedOnce": true,
+    "navigationPreserved": true,
+    "confirmationSurvivesClose": true,
+    "errors": []
+  }
+]

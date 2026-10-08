@@ -1,0 +1,9 @@
+.squad-venue-link { margin-block: 1rem; padding: 1rem; border: 1px solid var(--border, var(--color-border)); border-radius: 12px; }
+.squad-venue-link h3 { margin-top: 0; }
+.squad-venue-link label { display: grid; gap: .5rem; margin-block: .8rem; }
+.squad-venue-link select { width: 100%; min-width: 0; min-height: 44px; }
+.squad-venue-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+.squad-venue-actions button { min-height: 44px; }
+.squad-venue-link a { text-decoration: underline; text-underline-offset: 3px; }
+/* Session dialogs must cover the sticky navigation, including on small screens. */
+body .squad-schedule-overlay { z-index: 2000; }

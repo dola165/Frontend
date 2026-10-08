@@ -1,0 +1,11 @@
+{
+  "staleArchiveRejected": true,
+  "reloadRequiresNewConfirmation": true,
+  "freshArchive": true,
+  "queryRevisions": [
+    "0",
+    "1"
+  ],
+  "keyboardAndNarrow": true,
+  "api": "mocked; actual workspace and API client"
+}

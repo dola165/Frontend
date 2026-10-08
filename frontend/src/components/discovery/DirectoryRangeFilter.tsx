@@ -14,10 +14,10 @@ export interface DirectoryRangeFilterProps {
 }
 
 const accentClasses = {
-    green: 'bg-[#16a34a]',
-    amber: 'bg-amber-400',
-    violet: 'bg-fuchsia-400',
-    emerald: 'bg-emerald-400'
+    green: 'bg-[var(--color-accent)]',
+    amber: 'bg-[color:var(--color-warning)]',
+    violet: 'bg-[var(--color-pink)]',
+    emerald: 'bg-[color:var(--color-accent)]'
 } as const;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));

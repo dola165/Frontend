@@ -1,0 +1,184 @@
+/* Quiet surfaces; color and motion belong to interaction and meaningful state. */
+.squad-page, .parent-hub {
+    --family-ease: cubic-bezier(.2,.7,.2,1);
+    --family-shadow: 0 6px 22px color-mix(in srgb, var(--fc-accent) 9%, transparent);
+}
+.squad-page :is(button, a, input, select, textarea, summary),
+.parent-hub :is(button, a, input, select, summary) {
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease,
+        box-shadow 180ms ease, transform 180ms var(--family-ease);
+}
+.squad-page :is(a,button,summary,input,select,textarea):focus-visible,
+.parent-hub :is(a,button,summary,input,select):focus-visible {
+    outline: 2px solid var(--fc-accent);
+    outline-offset: 4px;
+}
+.squad-page button:not(:disabled):active, .parent-hub button:not(:disabled):active {
+    transform: translateY(1px);
+}
+
+/* A little depth in the header, without tinting the whole workspace. */
+.squad-page .family-room-header {
+    background: linear-gradient(110deg, var(--fc-card-bg) 48%,
+        color-mix(in srgb, var(--fc-accent) 6%, var(--fc-card-bg)));
+    box-shadow: inset 0 1px color-mix(in srgb, var(--fc-accent) 12%, transparent);
+}
+.squad-page .squad-coach-avatar, .parent-hub .squad-coach-avatar {
+    background: linear-gradient(140deg, var(--fc-accent-soft), var(--fc-card-bg));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--fc-accent) 5%, transparent);
+}
+.squad-page .squad-back svg, .family-room-actions svg, .family-squad-open svg, .squad-space-open svg {
+    transition: transform 180ms var(--family-ease);
+}
+.squad-page .squad-space-card, .parent-hub .family-squad-links>a {
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms var(--family-ease);
+}
+
+/* The selected child is unmistakable, including when the avatar is hidden on mobile. */
+.parent-hub .parent-child-choice[aria-pressed=true] {
+    background: var(--fc-accent-soft);
+    border-color: var(--fc-accent);
+    box-shadow: inset 3px 0 var(--fc-accent);
+}
+.parent-hub .parent-child-choice[aria-pressed=true] strong,
+.parent-hub .parent-child-choice[aria-pressed=true]>svg { color: var(--fc-accent); }
+.parent-hub .parent-child-choice[aria-pressed=true] .parent-child-initials {
+    background: var(--fc-accent); color: var(--fc-page-bg); border-color: var(--fc-accent);
+}
+
+/* Selections gain color, shape and an existing semantic pressed/current state. */
+.squad-page .squad-tabs button[aria-pressed=true],
+.squad-page .squad-inbox-channels a[aria-current] {
+    background: var(--fc-accent-soft); color: var(--fc-accent);
+    border-color: var(--fc-accent); box-shadow: inset 0 -2px var(--fc-accent);
+}
+.squad-page[data-channel=coach] .squad-inbox-channels a[aria-current] {
+    color: var(--app-state-info); background: var(--app-state-info-soft);
+    border-color: var(--app-state-info); box-shadow: inset 0 -2px var(--app-state-info);
+}
+.squad-page[data-channel=coach] .squad-channel-intro h2 { color: var(--app-state-info); }
+.squad-page[data-channel=coach] .squad-chat-composer:focus-within {
+    border-top-color: var(--app-state-info);
+}
+.squad-page .squad-chat-composer:focus-within { border-top-color: var(--fc-accent); }
+.squad-page .squad-chat-composer textarea:focus {
+    border-color: var(--fc-accent); box-shadow: 0 0 0 3px var(--fc-accent-soft);
+}
+.unified-messages .squad-inbox-list>div { transition: background-color 180ms ease, border-color 180ms ease; }
+.unified-messages .squad-inbox-list>div.is-selected strong { color: var(--chat-accent); }
+
+/* Session selection and attendance are colored by their actual values. */
+:is(.squad-page,.parent-hub) .family-week-controls button[aria-pressed=true],
+.squad-page .family-schedule .family-browse-dates[aria-expanded=true] {
+    color: var(--fc-accent); background: var(--fc-accent-soft); border-color: var(--fc-accent);
+}
+.squad-page .family-schedule-agenda>button {
+    position: relative; transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+.squad-page .family-room-aside .family-schedule-agenda>button[aria-pressed=true] {
+    background: var(--fc-accent-soft); box-shadow: inset 3px 0 var(--fc-accent);
+    border-radius: 8px; padding-left: 10px;
+}
+.squad-page .family-schedule-agenda>button[aria-pressed=true] strong { color: var(--fc-accent); }
+:is(.squad-page,.parent-hub) .family-event-detail {
+    border-top-color: var(--fc-accent); background: color-mix(in srgb, var(--fc-accent) 3%, transparent);
+    border-radius: 8px; padding: 16px; margin-top: 16px;
+}
+:is(.squad-page,.parent-hub) .family-attendance select { transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease; }
+:is(.squad-page,.parent-hub) .family-attendance[data-response=GOING] select {
+    color: var(--fc-accent); background: var(--fc-accent-soft); border-color: var(--fc-accent);
+}
+:is(.squad-page,.parent-hub) .family-attendance[data-response=UNSURE] select {
+    color: var(--state-warning); background: var(--state-warning-soft); border-color: var(--state-warning);
+}
+:is(.squad-page,.parent-hub) .family-attendance[data-response=NOT_GOING] select {
+    color: var(--state-danger); background: var(--state-danger-soft); border-color: var(--state-danger);
+}
+
+/* Important doesn't mean unread. Warm attention changes to green only after acknowledgement. */
+.squad-page .squad-announcements .squad-message {
+    transition: border-color 200ms ease, background-color 200ms ease;
+}
+.squad-page .squad-announcements .awaiting-acknowledgement { border-left-color: var(--state-warning); }
+.squad-page .squad-announcements .awaiting-acknowledgement :is(.squad-news-bell,.squad-count) {
+    color: var(--state-warning); background: var(--state-warning-soft); border-color: var(--state-warning);
+}
+.squad-page .squad-announcements .is-acknowledged { border-left-color: var(--fc-accent); }
+.squad-page .squad-announcements .is-acknowledged .squad-news-bell {
+    color: var(--fc-accent); background: var(--fc-accent-soft); border-color: var(--fc-accent);
+}
+.squad-page .squad-ack {
+    color: var(--fc-accent); background: var(--fc-accent-soft); border-radius: 20px; padding: 6px 10px;
+}
+.squad-page .squad-news-bell svg { transition: transform 180ms var(--family-ease); }
+
+/* Accessible native checkboxes keep keyboard behavior while looking like switches. */
+.squad-page .squad-check input[type=checkbox] {
+    appearance: none; position: relative; width: 36px; min-width: 36px; height: 22px;
+    margin: 0; padding: 0; border-radius: 20px; border: 1px solid var(--fc-border);
+    background: var(--fc-surface-hover); cursor: pointer;
+}
+.squad-page .squad-check input[type=checkbox]::before {
+    content: ''; position: absolute; width: 14px; height: 14px; top: 3px; left: 3px;
+    border-radius: 50%; background: var(--fc-text-secondary);
+    transition: transform 180ms var(--family-ease), background-color 180ms ease;
+}
+.squad-page .squad-check input[type=checkbox]:checked { background: var(--fc-accent); border-color: var(--fc-accent); }
+.squad-page .squad-check input[type=checkbox]:checked::before { transform: translateX(14px); background: var(--fc-page-bg); }
+.squad-page .squad-check input[type=checkbox]:disabled { cursor: wait; opacity: .65; }
+.squad-page .squad-notification-toggle { margin: 16px 0 12px; padding: 12px; border: 1px solid var(--fc-border); border-radius: 9px; transition: border-color 180ms ease, background-color 180ms ease; }
+.squad-page .squad-notification-toggle[data-enabled=true] { border-color: color-mix(in srgb,var(--fc-accent) 50%,var(--fc-border)); background: color-mix(in srgb,var(--fc-accent) 4%,var(--fc-card-bg)); }
+.squad-page .squad-notification-toggle .squad-check { align-items: center; margin: 0; }
+.squad-page .squad-notification-toggle b { margin-left: auto; color: var(--fc-text-secondary); font-size: 11px; }
+.squad-page .squad-notification-toggle[data-enabled=true] b { color: var(--fc-accent); }
+.squad-preference-status { display: block; min-height: 15px; margin-top: 8px; font-size: 11px; color: var(--fc-text-secondary); }
+
+/* Disclosures gently indicate that something has opened. */
+.squad-page .family-room-aside details, .parent-hub .parent-actions {
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+.squad-page .family-room-aside details[open], .parent-hub .parent-actions[open] {
+    border-color: color-mix(in srgb,var(--fc-accent) 55%,var(--fc-border));
+}
+.squad-page details>summary, .parent-hub details>summary { display: flex; align-items: center; gap: 12px; list-style: none; }
+.squad-page details>summary::-webkit-details-marker, .parent-hub details>summary::-webkit-details-marker { display: none; }
+.squad-page details>summary::after, .parent-hub details>summary::after {
+    content: ''; width: 7px; height: 7px; margin-left: auto; margin-right: 3px;
+    border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg); transition: transform 180ms var(--family-ease);
+}
+.squad-page details[open]>summary, .parent-hub details[open]>summary { color: var(--fc-accent); }
+.squad-page details[open]>summary::after, .parent-hub details[open]>summary::after { transform: rotate(225deg); }
+
+@media(hover:hover) and (pointer:fine) {
+    .squad-page .squad-space-card:hover, .parent-hub .family-squad-links>a:hover {
+        border-color: var(--fc-accent); box-shadow: var(--family-shadow); transform: translateY(-2px);
+    }
+    .parent-hub .parent-child-choice:not([aria-pressed=true]):hover { border-color: var(--fc-accent); background: color-mix(in srgb,var(--fc-accent) 4%,var(--fc-card-bg)); }
+    .squad-page .squad-back:hover { box-shadow: var(--family-shadow); }
+    .squad-page .squad-back:hover svg { transform: translateX(-3px); }
+    .family-squad-links>a:hover .family-squad-open svg, .squad-space-card:hover .squad-space-open svg { transform: translateX(3px); }
+    .squad-page .family-room-actions a:hover, .squad-page .squad-primary:not(:disabled):hover { box-shadow: var(--family-shadow); transform: translateY(-1px); }
+    .squad-page .family-schedule-agenda>button:not([aria-pressed=true]):hover { background: color-mix(in srgb,var(--fc-accent) 4%,var(--fc-card-bg)); }
+    .squad-page .squad-announcements .squad-message:hover { border-top-color: color-mix(in srgb,var(--fc-accent) 32%,var(--fc-border)); }
+    .squad-page .squad-message:hover .squad-news-bell svg { transform: rotate(-6deg); }
+    .unified-messages .squad-inbox-list>div:not(.is-selected):hover { background: var(--chat-card-hover); }
+}
+
+@keyframes family-enter { from { opacity: .55; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+.parent-hub .parent-family-main, .squad-page .family-room-header,
+:is(.squad-page,.parent-hub) .family-event-detail,
+.squad-page details[open]>:not(summary), .parent-hub details[open]>:not(summary) {
+    animation: family-enter 220ms var(--family-ease) both;
+}
+@media(prefers-reduced-motion:reduce) {
+    .squad-page *, .squad-page *::before, .squad-page *::after,
+    .parent-hub *, .parent-hub *::before, .parent-hub *::after,
+    .unified-messages .squad-inbox-list * { animation: none !important; transition: none !important; }
+    .squad-page :is(button,a):active, .parent-hub :is(button,a):active,
+    .squad-page .squad-space-card:hover, .parent-hub .family-squad-links>a:hover,
+    .squad-page .family-room-actions a:hover, .squad-page .squad-primary:hover,
+    .squad-page .squad-back:hover svg, .family-squad-links>a:hover .family-squad-open svg,
+    .squad-space-card:hover .squad-space-open svg, .squad-page .squad-message:hover .squad-news-bell svg { transform: none; }
+}

@@ -1,0 +1,4 @@
+import {competitionInstant} from './competitionTime';
+it('uses the published zone independently of the device zone',()=>{expect(competitionInstant('2026-10-12T12:00','Asia/Tbilisi').toISOString()).toBe('2026-10-12T08:00:00.000Z');expect(competitionInstant('2026-10-12T12:00','America/New_York').toISOString()).toBe('2026-10-12T16:00:00.000Z');});
+it('rejects nonexistent and repeated daylight-saving times',()=>{expect(()=>competitionInstant('2026-03-29T01:30','Europe/London')).toThrow('unambiguous');expect(()=>competitionInstant('2026-10-25T01:30','Europe/London')).toThrow('unambiguous');});
+it('rejects an invalid calendar date and invalid zone',()=>{expect(()=>competitionInstant('2026-02-30T12:00','Asia/Tbilisi')).toThrow();expect(()=>competitionInstant('2026-10-12T12:00','Invalid/Zone')).toThrow();});

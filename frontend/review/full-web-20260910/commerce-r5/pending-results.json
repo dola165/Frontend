@@ -1,0 +1,8 @@
+{
+  "regression": true,
+  "api": "controlled delayed mocked responses; real workspace components and client",
+  "storeConflictRetained": true,
+  "campaignsConflictRetained": true,
+  "jobsPendingTracked": true,
+  "jobsReturnedListUpdated": true
+}

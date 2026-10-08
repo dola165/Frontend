@@ -1,20 +1,35 @@
+import { useClubProfileSearchParams } from '../features/clubs/clubProfilePreviewContext';
+import { useFilterDisclosure } from '../hooks/useFilterDisclosure';
+import { MediaImage } from '../components/ui/MediaImage';
 import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
+import { opportunityReturnState } from '../components/discovery/opportunityReturnContext';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { BriefcaseBusiness, Search, SlidersHorizontal, X, ArrowRight, Building2 } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import {
+    ArrowRight,
+    BadgeDollarSign,
+    BriefcaseBusiness,
+    Building2,
+    CalendarClock,
+    HeartHandshake,
+    MapPin,
+    Search,
+    SlidersHorizontal,
+    UsersRound,
+    X,
+} from 'lucide-react';
 import { DiscoverySectionTabs } from '../components/discovery/DiscoverySectionTabs';
 import { fetchOpenJobDirectory, type ClubJob } from '../features/clubs/api';
 import {
     CATEGORIES,
     ENGAGEMENTS,
     POSTED_OPTIONS,
-    labelForCategory,
-    labelForEngagement,
-    locationLabel,
-    relativeDate,
 } from '../features/clubs/jobLabels';
+import { useJobsOpportunitiesCopy } from '../features/clubs/jobsOpportunitiesCopy';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
+import { resolveExtensionCapability } from '../features/capabilities/extensions';
 import '../features/store/store.css';
+import '../features/clubs/jobs-opportunities.css';
 
 const filterNames: Record<string, string> = {
     search: 'Search',
@@ -34,8 +49,28 @@ const timestamp = (value?: string | null) => {
     return Number.isFinite(n) ? n : 0;
 };
 
-export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: number; clubName?: string }) => {
-    const [params, setParams] = useSearchParams();
+export const JobsDirectoryPage = ({ fixedClubId, clubName, previewMockMode }: {
+    fixedClubId?: number;
+    clubName?: string;
+    previewMockMode?: boolean;
+}) => {
+    const location = useLocation();
+    const volunteerShifts = resolveExtensionCapability(
+        'volunteerShifts',
+        import.meta.env.DEV && previewMockMode !== undefined ? { mockMode: previewMockMode } : undefined,
+    );
+    const {
+        copy,
+        category: categoryLabel,
+        engagement: engagementLabel,
+        applicationMethod,
+        expectedNextStep,
+        eligibility,
+        location: jobLocation,
+        relativeDate: jobRelativeDate,
+        postedOption,
+    } = useJobsOpportunitiesCopy();
+    const [params, setParams] = useClubProfileSearchParams();
     const [jobs, setJobs] = useState<ClubJob[]>([]);
     const [loading, setLoading] = useState(true),
         [error, setError] = useState(''),
@@ -43,6 +78,7 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [asOf, setAsOf] = useState(() => Date.now());
     const trigger = useRef<HTMLButtonElement>(null);
+    useFilterDisclosure(filtersOpen, () => setFiltersOpen(false), trigger);
     useEffect(() => {
         const controller = new AbortController();
         let active = true;
@@ -58,7 +94,7 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
             .catch(() => {
                 if (active) {
                     setJobs([]);
-                    setError('Could not load opportunities. Please try again.');
+                    setError('load');
                 }
             })
             .finally(() => {
@@ -137,7 +173,7 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
             if (clubFilter !== undefined && job.clubId !== clubFilter) return false;
             return (
                 !search.trim() ||
-                `${job.title} ${job.description ?? ''} ${job.clubName ?? ''} ${labelForCategory(job.category)}`
+                `${job.title} ${job.description ?? ''} ${job.clubName ?? ''} ${categoryLabel(job.category)}`
                     .toLowerCase()
                     .includes(search.trim().toLowerCase())
             );
@@ -152,15 +188,15 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
         Math.max(0, Math.ceil(filtered.length / 12) - 1),
     );
     const visible = filtered.slice(page * 12, page * 12 + 12);
-    const selected = visible.find((job) => job.id === Number(params.get('job'))) ?? visible[0];
+    const selected = visible.find((job) => job.id === Number(params.get('job')));
     const chips = Object.entries(filterNames).filter(
         ([key]) => !!params.get(key) && params.get(key) !== 'ALL',
     );
     const chipValue = (key: string) => {
         const value = params.get(key);
-        if (key === 'category') return labelForCategory(value);
-        if (key === 'engagement') return labelForEngagement(value);
-        if (key === 'posted') return POSTED_OPTIONS.find((option) => option.value === value)?.label ?? value;
+        if (key === 'category') return categoryLabel(value);
+        if (key === 'engagement') return engagementLabel(value);
+        if (key === 'posted') return postedOption(value ?? 'ALL');
         if (key === 'clubId')
             return jobs.find((job) => job.clubId === Number(value))?.clubName ?? 'Unavailable club';
         return value;
@@ -175,53 +211,100 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
                 onClick={() => change(key, option.value)}
             >
                 <span aria-hidden="true" />
-                {option.label}
+                {key === 'category'
+                    ? categoryLabel(option.value)
+                    : key === 'engagement'
+                        ? engagementLabel(option.value)
+                        : postedOption(option.value)}
             </button>
         ));
     const Surface = fixedClubId ? 'section' : 'main';
+    const filterLabels: Record<string, string> = {
+        search: copy('searchLabel'),
+        category: copy('footballRole'),
+        engagement: copy('engagement'),
+        posted: copy('postingDate'),
+        ageGroup: copy('ageGroup'),
+        level: copy('experience'),
+        country: copy('country'),
+        city: copy('city'),
+        clubId: copy('club'),
+    };
     return (
         <Surface className={`store-page jobs-page ${fixedClubId ? 'jobs-embedded' : ''}`}>
             {!fixedClubId && <DiscoverySectionTabs />}
-            <header className="store-heading">
+            <header className="store-heading jobs-heading">
                 <div>
-                    <p className="store-eyebrow">Work in football</p>
+                    <p className="store-eyebrow">{copy('eyebrow')}</p>
                     <h1>
                         {fixedClubId
-                            ? 'Jobs & volunteering'
-                            : 'Jobs & volunteer opportunities'}
+                            ? copy('clubTitle', { club: clubName ?? copy('club') })
+                            : copy('title')}
                     </h1>
                     <p className="store-subtitle">
-                        {fixedClubId ? `Open roles at ${clubName ?? 'this club'}. Explore paid roles and volunteering.` : 'Find your place in football. Explore paid roles and volunteering.'}
+                        {copy(fixedClubId ? 'clubSubtitle' : 'subtitle')}
                     </p>
                 </div>
                 <button
-                    className="store-cart-link"
+                    className="store-cart-link jobs-refresh"
                     onClick={() => setReload((n) => n + 1)}
                     disabled={loading}
                 >
-                    Refresh
+                    {copy('refresh')}
                 </button>
             </header>
             {fixedClubId && <OpportunityNavigation section="jobs" clubId={fixedClubId}/>}
+            {!fixedClubId && <nav className="jobs-browse-shortcuts" aria-label={copy('browseByIntent')}>
+                <button type="button" className="jobs-text-link" onClick={() => change('category', 'COACHING')}><UsersRound size={17}/>{copy('coachingAction')}<ArrowRight size={14}/></button>
+                <button type="button" className="jobs-text-link" onClick={() => change('engagement', 'VOLUNTEER')}><HeartHandshake size={17}/>{copy('volunteerAction')}<ArrowRight size={14}/></button>
+                <button type="button" className="jobs-text-link" onClick={reset}><BriefcaseBusiness size={17}/>{copy('otherRolesAction')}<ArrowRight size={14}/></button>
+            </nav>}
+            <aside className={`jobs-engagement-guide ${fixedClubId ? 'is-embedded' : ''}`} aria-label="Volunteer shifts availability">
+                <div className="jobs-engagement-heading">
+                    <span>{copy('engagementGuide')}</span>
+                </div>
+                <div className="jobs-engagement-items">
+                    <div><BadgeDollarSign aria-hidden="true" /><p><strong>{copy('paid')}</strong>{copy('paidBody')}</p></div>
+                    <div><HeartHandshake aria-hidden="true" /><p><strong>{copy('volunteer')}</strong>{copy('volunteerBody')}</p></div>
+                    <div><UsersRound aria-hidden="true" /><p><strong>{copy('flexible')}</strong>{copy('flexibleBody')}</p></div>
+                </div>
+                <details className="jobs-event-shifts">
+                    <summary>
+                        <CalendarClock aria-hidden="true" />
+                        <strong>{copy('eventShifts')}</strong>
+                        <span className={volunteerShifts.available ? 'extension-demo-label' : 'jobs-coming-later'}>
+                            {copy(volunteerShifts.available ? 'localDemo' : 'comingLater')}
+                        </span>
+                        {!volunteerShifts.available && <span className="jobs-event-shifts-status">{copy('eventShiftsUnavailable')}</span>}
+                    </summary>
+                    <div className="jobs-event-shifts-detail">
+                        <p>{copy('eventShiftsBody')}</p>
+                        {volunteerShifts.available && <Link className="jobs-text-link" to="/volunteering">{copy('openEventShifts')}<ArrowRight size={14} /></Link>}
+                    </div>
+                </details>
+            </aside>
+            <div className="jobs-listing-intro">
+                <div><h2>{copy('listings')}</h2><p>{copy('listingsBody')}</p></div>
+            </div>
             <div className="store-toolbar">
                 <label className="store-search">
                     <Search size={18} />
-                    <span className="sr-only">Search jobs</span>
+                    <span className="sr-only">{copy('searchLabel')}</span>
                     <input
                         maxLength={100}
                         value={search}
                         onChange={(e) => change('search', e.target.value)}
-                        placeholder="Job title, club or skill"
+                        placeholder={copy('searchPlaceholder')}
                     />
                 </label>
                 <label className="store-sort">
-                    Sort opportunities
+                    {copy('sort')}
                     <select
                         value={params.get('sort') === 'OLDEST' ? 'OLDEST' : 'NEWEST'}
                         onChange={(e) => change('sort', e.target.value)}
                     >
-                        <option value="NEWEST">Most recent</option>
-                        <option value="OLDEST">Oldest first</option>
+                        <option value="NEWEST">{copy('newest')}</option>
+                        <option value="OLDEST">{copy('oldest')}</option>
                     </select>
                 </label>
                 <button
@@ -232,18 +315,18 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
                     onClick={() => setFiltersOpen((v) => !v)}
                 >
                     <SlidersHorizontal size={16} />
-                    {filtersOpen ? 'Hide filters' : 'Filters'}
+                    {copy(filtersOpen ? 'hideFilters' : 'filters')}
                 </button>
             </div>
             {!!chips.length && (
-                <div className="store-filter-chips" aria-label="Selected job filters">
+                <div className="store-filter-chips" aria-label={copy('selectedFilters')}>
                     {chips.map(([key, label]) => (
                         <button
                             key={key}
                             aria-label={`Remove ${label} filter`}
                             onClick={() => change(key, '')}
                         >
-                            {label}: {chipValue(key)}
+                            {filterLabels[key]}: {chipValue(key)}
                             <X size={13} />
                         </button>
                     ))}
@@ -253,34 +336,34 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
                 <aside
                     id="job-filters"
                     className={`store-filter-panel ${filtersOpen ? 'is-open' : ''}`}
-                    aria-label="Job filters"
+                    aria-label={copy('filters')}
                 >
                     <div className="store-filter-form">
                         <div className="store-filter-title">
                             <h2>
                                 <SlidersHorizontal size={15} />
-                                Filter jobs
+                                {copy('filterRoles')}
                             </h2>
-                            <button onClick={reset}>Reset filters</button>
+                            <button onClick={reset}>{copy('resetFilters')}</button>
                         </div>
                         <details open>
-                            <summary>Football role</summary>
+                            <summary>{copy('footballRole')}</summary>
                             {choices('category', CATEGORIES, category)}
                         </details>
                         <details open>
-                            <summary>Payment & engagement</summary>
+                            <summary>{copy('engagement')}</summary>
                             {choices('engagement', ENGAGEMENTS, engagement)}
                         </details>
                         <details open={posted !== 'ALL'}>
-                            <summary>Posting date</summary>
+                            <summary>{copy('postingDate')}</summary>
                             {choices('posted', POSTED_OPTIONS, posted)}
                         </details>
                         <details open={!!params.get('ageGroup') || !!params.get('level')}>
-                            <summary>Team & experience</summary>
+                            <summary>{copy('teamExperience')}</summary>
                             <div className="store-filter-fields">
                                 {[
-                                    ['ageGroup', 'Team age group', ageOptions],
-                                    ['level', 'Experience', levels],
+                                    ['ageGroup', copy('ageGroup'), ageOptions],
+                                    ['level', copy('experience'), levels],
                                 ].map(([key, label, options]) => (
                                     <label className="store-field" key={key as string}>
                                         {label as string}
@@ -288,7 +371,7 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
                                             value={params.get(key as string) ?? ''}
                                             onChange={(e) => change(key as string, e.target.value)}
                                         >
-                                            <option value="">Any</option>
+                                            <option value="">{copy('any')}</option>
                                             {(options as string[]).map((v) => (
                                                 <option key={v}>{v}</option>
                                             ))}
@@ -298,15 +381,15 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
                             </div>
                         </details>
                         <details open={!!country || !!city || !!params.get('clubId')}>
-                            <summary>Club location</summary>
+                            <summary>{copy('clubLocation')}</summary>
                             <div className="store-filter-fields">
                                 <label className="store-field">
-                                    Country
+                                    {copy('country')}
                                     <select
                                         value={country}
                                         onChange={(e) => change('country', e.target.value)}
                                     >
-                                        <option value="">All countries</option>
+                                        <option value="">{copy('allCountries')}</option>
                                         {country && !countries.includes(country) && (
                                             <option>{country}</option>
                                         )}
@@ -316,14 +399,14 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
                                     </select>
                                 </label>
                                 <label className="store-field">
-                                    City
+                                    {copy('city')}
                                     <select
                                         disabled={!country}
                                         value={city}
                                         onChange={(e) => change('city', e.target.value)}
                                     >
                                         <option value="">
-                                            {country ? 'All cities' : 'Choose a country first'}
+                                            {copy(country ? 'allCities' : 'chooseCountry')}
                                         </option>
                                         {city && !cities.includes(city) && <option>{city}</option>}
                                         {cities.map((v) => (
@@ -333,12 +416,12 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
                                 </label>
                                 {!fixedClubId && (
                                     <label className="store-field">
-                                        Club
+                                        {copy('club')}
                                         <select
                                             value={params.get('clubId') ?? ''}
                                             onChange={(e) => change('clubId', e.target.value)}
                                         >
-                                            <option value="">All clubs</option>
+                                            <option value="">{copy('allClubs')}</option>
                                             {clubs.map((job) => (
                                                 <option key={job.clubId} value={job.clubId ?? ''}>
                                                     {job.clubName}
@@ -357,113 +440,93 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName }: { fixedClubId?: num
                             trigger.current?.focus();
                         }}
                     >
-                        Show opportunities
+                        {copy('showRoles')}
                     </button>
                 </aside>
-                <section className="store-results" aria-label="Opportunities" aria-busy={loading}>
+                <section className="store-results jobs-results" aria-label={copy('listings')} aria-busy={loading}>
                     {loading ? (
-                        <p role="status">Loading opportunities...</p>
+                        <div className="jobs-loading" role="status">
+                            <span aria-hidden="true" />
+                            <span aria-hidden="true" />
+                            <span aria-hidden="true" />
+                            <p>{copy('loadingRoles')}</p>
+                        </div>
                     ) : error ? (
                         <div role="alert" className="store-empty">
-                            {error}
-                            <button onClick={() => setReload((n) => n + 1)}>Try again</button>
+                            <h2>{copy('loadError')}</h2>
+                            <button onClick={() => setReload((n) => n + 1)}>{copy('tryAgain')}</button>
                         </div>
                     ) : (
                         <>
                             <p className="store-result-count" role="status">
-                                {filtered.length} {filtered.length === 1 ? 'opportunity' : 'opportunities'}
+                                {copy('roleCount', { count: filtered.length, suffix: filtered.length === 1 ? '' : 's' })}
                             </p>
-                            <div className="jobs-results-layout">
-                                <div>
-                                    {!visible.length ? (
-                                        <div className="store-empty">
-                                            <BriefcaseBusiness size={30} />
-                                            <h2>No roles match these filters</h2>
-                                            <button onClick={reset}>Clear search and filters</button>
-                                        </div>
-                                    ) : (
-                                        <div className="jobs-list">
-                                            {visible.map((job) => (
-                                                <article
-                                                    key={job.id}
-                                                    className={`job-row ${selected?.id === job.id ? 'is-selected' : ''}`}
-                                                >
-                                                    <Link className="job-row-main" to={`/jobs/${job.id}`}>
-                                                        {job.clubLogoUrl ? (
-                                                            <img
-                                                                className="job-logo"
-                                                                src={resolveMediaUrl(job.clubLogoUrl)}
-                                                                alt=""
-                                                            />
-                                                        ) : (
-                                                            <Building2 className="job-logo" />
-                                                        )}
-                                                        <span className="job-body">
-                                                            <h2>{job.title}</h2>
-                                                            <span className="job-club">{job.clubName}</span>
-                                                            <span className="job-meta">
-                                                                <span>{locationLabel(job)}</span>
-                                                                <span>
-                                                                    {labelForEngagement(job.engagementType)}
-                                                                </span>
-                                                                <span>{relativeDate(job.createdAt)}</span>
-                                                            </span>
-                                                        </span>
-                                                    </Link>
-                                                    <div className="job-row-actions">
-                                                        <Link to={`/jobs/${job.id}`}>
-                                                            View opportunity <ArrowRight size={13} />
-                                                        </Link>
-                                                        <button
-                                                            className="job-preview-trigger"
-                                                            aria-label={`Preview ${job.title}`}
-                                                            aria-pressed={selected?.id === job.id}
-                                                            onClick={() => change('job', String(job.id))}
-                                                        >
-                                                            Preview
-                                                        </button>
-                                                    </div>
-                                                </article>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {filtered.length > 12 && (
-                                        <nav className="store-pagination" aria-label="Opportunity pages">
-                                            <button
-                                                disabled={page === 0}
-                                                onClick={() => change('page', String(page - 1))}
-                                            >
-                                                Previous
-                                            </button>
-                                            <span>
-                                                Page {page + 1} of {Math.ceil(filtered.length / 12)}
-                                            </span>
-                                            <button
-                                                disabled={(page + 1) * 12 >= filtered.length}
-                                                onClick={() => change('page', String(page + 1))}
-                                            >
-                                                Next
-                                            </button>
-                                        </nav>
-                                    )}
+                            {!visible.length ? (
+                                <div className="store-empty jobs-empty">
+                                    <BriefcaseBusiness size={30} />
+                                    <h2>{copy('noMatches')}</h2>
+                                    <p>{copy('noMatchesBody')}</p>
+                                    <button onClick={reset}>{copy('clearFilters')}</button>
                                 </div>
-                                {selected && (
-                                    <aside className="job-preview" aria-label="Selected opportunity">
-                                        <p className="store-eyebrow">Selected opportunity</p>
-                                        <h2>{selected.title}</h2>
-                                        <p>{selected.clubName}</p>
-                                        <p>{locationLabel(selected)}</p>
-                                        <p>{labelForEngagement(selected.engagementType)}</p>
-                                        <p className="job-description">
-                                            {selected.description ||
-                                                'The club has not added a description yet.'}
-                                        </p>
-                                        <Link className="job-action" to={`/jobs/${selected.id}`}>
-                                            View opportunity <ArrowRight size={15} />
-                                        </Link>
-                                    </aside>
-                                )}
-                            </div>
+                            ) : (
+                                <div className="jobs-list">
+                                    {visible.map((job) => {
+                                        const open = selected?.id === job.id;
+                                        const whoItSuits = eligibility(job);
+                                        return <article key={job.id} className={`job-row ${open ? 'is-selected' : ''}`}>
+                                            <div className="job-row-main">
+                                                {job.clubLogoUrl ? (
+                                                    <MediaImage className="job-logo" src={resolveMediaUrl(job.clubLogoUrl)} alt="" />
+                                                ) : (
+                                                    <span className="job-logo job-logo-placeholder"><Building2 aria-hidden="true" /></span>
+                                                )}
+                                                <div className="job-body">
+                                                    <div className="job-badges">
+                                                        <span>{categoryLabel(job.category)}</span>
+                                                        <span>{copy('engagementFact')}: {engagementLabel(job.engagementType)}</span>
+                                                    </div>
+                                                    <Link className="job-title-link" aria-label={`${job.title} ${job.clubName ?? ''}`} to={`/jobs/${job.id}`} state={opportunityReturnState('jobs', location)}>
+                                                        <h2>{job.title}</h2>
+                                                    </Link>
+                                                    <span className="job-club">{job.clubName}</span>
+                                                    <span className="job-location"><MapPin size={14} aria-hidden="true" />{jobLocation(job)} · {jobRelativeDate(job.createdAt)}</span>
+                                                    <span className="job-meta">
+                                                        {whoItSuits && <span>{whoItSuits}</span>}
+                                                        <span>{copy('applicationMethod')}: {applicationMethod(job)}</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="job-row-actions">
+                                                <Link to={`/jobs/${job.id}`} state={opportunityReturnState('jobs', location)}>
+                                                    {copy('viewRole')} <ArrowRight size={13} />
+                                                </Link>
+                                                <button
+                                                    className="job-preview-trigger"
+                                                    aria-label={`${open ? copy('closePreview') : 'Preview'} ${job.title}`}
+                                                    aria-expanded={open}
+                                                    onClick={() => change('job', open ? '' : String(job.id))}
+                                                >
+                                                    {copy(open ? 'closePreview' : 'preview')}
+                                                </button>
+                                            </div>
+                                            {open && <div className="job-inline-preview">
+                                                <div>
+                                                    <span>{copy('nextStep')}</span>
+                                                    <strong>{expectedNextStep(job)}</strong>
+                                                </div>
+                                                <p>{job.description || copy('noDescription')}</p>
+                                            </div>}
+                                        </article>;
+                                    })}
+                                </div>
+                            )}
+                            {filtered.length > 12 && (
+                                <nav className="store-pagination" aria-label={copy('listings')}>
+                                    <button disabled={page === 0} onClick={() => change('page', String(page - 1))}>{copy('previous')}</button>
+                                    <span>{copy('pageOf', { page: page + 1, pages: Math.ceil(filtered.length / 12) })}</span>
+                                    <button disabled={(page + 1) * 12 >= filtered.length} onClick={() => change('page', String(page + 1))}>{copy('next')}</button>
+                                </nav>
+                            )}
                         </>
                     )}
                 </section>

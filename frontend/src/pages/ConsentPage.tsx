@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { activatePlayerCard } from '../features/clubs/api';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { ageFromDob, todayIso } from '../utils/age';
-import { ShieldCheck, Loader2, AlertCircle, Check, Copy } from 'lucide-react';
+import { ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
 import { buildLoginPath, buildSignupPath } from '../utils/authRedirect';
 
 type Stage =
@@ -14,7 +14,7 @@ type Stage =
     | { kind: 'login-required' }
     | { kind: 'confirm' }
     | { kind: 'activate'; cardId: number }
-    | { kind: 'credentials'; username: string; tempPassword: string }
+    | { kind: 'credentials'; username: string; email: string }
     | { kind: 'done-accepted' }
     | { kind: 'done-declined' }
     | { kind: 'error'; message: string };
@@ -33,7 +33,6 @@ export const ConsentPage = () => {
     const [busy, setBusy] = useState(false);
     const [childDob, setChildDob] = useState('');
     const [childEmail, setChildEmail] = useState('');
-    const [copied, setCopied] = useState(false);
     const [activationError, setActivationError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -74,7 +73,7 @@ export const ConsentPage = () => {
         setBusy(true);
         try {
             const creds = await activatePlayerCard(cardId, childDob, childEmail.trim());
-            setStage({ kind: 'credentials', username: creds.username, tempPassword: creds.tempPassword });
+            setStage({ kind: 'credentials', username: creds.username, email: creds.email });
         } catch (err) {
             setActivationError(extractApiErrorMessage(err, t('minors.consent.activationFailed')));
         } finally {
@@ -82,23 +81,23 @@ export const ConsentPage = () => {
         }
     };
 
-    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-[#f4f4f5] outline-none transition-colors focus:border-[#16a34a] placeholder:text-[#a1a1aa]';
+    const inputClass = 'theme-surface-strong theme-border w-full border px-3 py-3 text-sm font-semibold text-[var(--color-text)] outline-none transition-colors focus:border-[var(--color-accent)] placeholder:text-[var(--color-secondary)]';
 
     return (
-        <div className="bg-[#0f1117] flex min-h-screen flex-col items-center justify-center p-6">
+        <div className="bg-[var(--color-surface)] flex min-h-screen flex-col items-center justify-center p-6">
             <div className="w-full max-w-md">
                 <div className="text-center mb-10">
-                    <div className="w-16 h-16 bg-[#16a34a] text-white flex items-center justify-center mx-auto mb-6 border border-[#16a34a]">
+                    <div className="w-16 h-16 bg-[var(--color-accent)] text-[var(--color-on-accent)] flex items-center justify-center mx-auto mb-6 border border-[var(--color-accent)]">
                         <ShieldCheck className="w-8 h-8" />
                     </div>
-                    <h1 className="text-3xl font-semibold uppercase tracking-tight text-[#f4f4f5] mb-2">{t('minors.consent.title')}</h1>
-                    <p className="text-sm text-[#a1a1aa]">{t('minors.consent.intro')}</p>
+                    <h1 className="text-3xl font-semibold uppercase tracking-tight text-[var(--color-text)] mb-2">{t('minors.consent.title')}</h1>
+                    <p className="text-sm text-[var(--color-secondary)]">{t('minors.consent.intro')}</p>
                 </div>
 
                 <div className="theme-surface theme-border border shadow-2xl p-8 rounded-xl">
                     {stage.kind === 'loading' && (
                         <div className="flex justify-center py-10">
-                            <Loader2 className="h-7 w-7 animate-spin text-[#16a34a]" />
+                            <Loader2 className="h-7 w-7 animate-spin text-[var(--color-accent)]" />
                         </div>
                     )}
 
@@ -110,18 +109,18 @@ export const ConsentPage = () => {
 
                     {stage.kind === 'login-required' && (
                         <div className="flex flex-col gap-4 text-center">
-                            <p className="text-sm text-[#a1a1aa]">
+                            <p className="text-sm text-[var(--color-secondary)]">
                                 {t('minors.consent.signInPrompt')}
                             </p>
                             <Link
                                 to={buildSignupPath(`/consent?token=${encodeURIComponent(token)}`)}
-                                className="w-full border border-[#16a34a] bg-[#16a34a] px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-white"
+                                className="w-full border border-[var(--color-accent)] bg-[var(--color-accent)] px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-on-accent)]"
                             >
                                 {t('minors.consent.createParent')}
                             </Link>
                             <Link
                                 to={buildLoginPath(`/consent?token=${encodeURIComponent(token)}`)}
-                                className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#16a34a] hover:underline"
+                                className="text-[11px] font-semibold uppercase tracking-[0.14em] app-text-action"
                             >
                                 {t('minors.consent.haveAccount')}
                             </Link>
@@ -130,7 +129,7 @@ export const ConsentPage = () => {
 
                     {stage.kind === 'confirm' && (
                         <div className="flex flex-col gap-4">
-                            <p className="text-sm text-[#a1a1aa]">
+                            <p className="text-sm text-[var(--color-secondary)]">
                                 {t('minors.consent.agreeLine')}
                             </p>
                             <div className="flex gap-2">
@@ -138,7 +137,7 @@ export const ConsentPage = () => {
                                     type="button"
                                     onClick={() => handleConfirm(true)}
                                     disabled={busy}
-                                    className="flex-1 inline-flex items-center justify-center gap-2 border border-[#16a34a] bg-[#16a34a] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-white disabled:opacity-50"
+                                    className="flex-1 inline-flex items-center justify-center gap-2 border border-[var(--color-accent)] bg-[var(--color-accent)] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-on-accent)] disabled:opacity-50"
                                 >
                                     {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t('minors.consent.confirm')}
                                 </button>
@@ -146,7 +145,7 @@ export const ConsentPage = () => {
                                     type="button"
                                     onClick={() => handleConfirm(false)}
                                     disabled={busy}
-                                    className="flex-1 border border-[#ffffff0d] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a1a1aa] hover:text-[#f4f4f5]"
+                                    className="flex-1 border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-secondary)] hover:text-[var(--color-text)]"
                                 >
                                     {t('minors.consent.decline')}
                                 </button>
@@ -156,12 +155,12 @@ export const ConsentPage = () => {
 
                     {stage.kind === 'activate' && (
                         <form onSubmit={(e) => handleActivate(e, stage.cardId)} className="flex flex-col gap-4">
-                            <p className="text-sm font-semibold text-[#f4f4f5]">
+                            <p className="text-sm font-semibold text-[var(--color-text)]">
                                 {t('minors.consent.cardPrompt')}
                             </p>
                             {activationError && <p role="alert" className="text-sm text-[color:var(--state-danger)]">{activationError}</p>}
                             <div className="space-y-2">
-                                <label htmlFor="consent-child-dob" className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.consent.childDob')}</label>
+                                <label htmlFor="consent-child-dob" className="text-[10px] font-semibold  text-[var(--color-secondary)]">{t('minors.consent.childDob')}</label>
                                 <input
                                     id="consent-child-dob"
                                     type="date"
@@ -173,7 +172,7 @@ export const ConsentPage = () => {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="consent-child-email" className="text-[10px] font-semibold  text-[#a1a1aa]">{t('minors.consent.childEmail')}</label>
+                                <label htmlFor="consent-child-email" className="text-[10px] font-semibold  text-[var(--color-secondary)]">{t('minors.consent.childEmail')}</label>
                                 <input
                                     id="consent-child-email"
                                     type="email"
@@ -187,7 +186,7 @@ export const ConsentPage = () => {
                             <button
                                 type="submit"
                                 disabled={busy}
-                                className="w-full inline-flex items-center justify-center gap-2 border border-[#16a34a] bg-[#16a34a] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-white disabled:opacity-50"
+                                className="w-full inline-flex items-center justify-center gap-2 border border-[var(--color-accent)] bg-[var(--color-accent)] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-on-accent)] disabled:opacity-50"
                             >
                                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t('minors.consent.activate')}
                             </button>
@@ -196,44 +195,25 @@ export const ConsentPage = () => {
 
                     {stage.kind === 'credentials' && (
                         <div className="flex flex-col gap-3">
-                            <p className="text-sm font-semibold text-[#f4f4f5]">{t('minors.consent.activated')}</p>
+                            <p className="text-sm font-semibold text-[var(--color-text)]">Account invitation sent</p>
                             <p className="text-[11px] font-semibold  text-[color:var(--state-danger)]">
-                                {t('minors.consent.credentialsOnce')}
+                                Email verification is required before sign-in.
                             </p>
-                            <div className="flex items-center justify-between border border-[#ffffff0d] bg-elevated px-3 py-2">
-                                <span className="text-sm font-mono text-[#f4f4f5]">{stage.username}</span>
-                                <button
-                                    type="button"
-                                    onClick={() => { void navigator.clipboard.writeText(stage.username); setCopied(true); }}
-                                    className="p-1 text-[#a1a1aa] hover:text-[#f4f4f5]"
-                                >
-                                    {copied ? <Check className="h-4 w-4 text-[#16a34a]" /> : <Copy className="h-4 w-4" />}
-                                </button>
-                            </div>
-                            <div className="flex items-center justify-between border border-[#ffffff0d] bg-elevated px-3 py-2">
-                                <span className="text-sm font-mono text-[#f4f4f5]">{stage.tempPassword}</span>
-                                <button
-                                    type="button"
-                                    onClick={() => { void navigator.clipboard.writeText(stage.tempPassword); setCopied(true); }}
-                                    className="p-1 text-[#a1a1aa] hover:text-[#f4f4f5]"
-                                >
-                                    {copied ? <Check className="h-4 w-4 text-[#16a34a]" /> : <Copy className="h-4 w-4" />}
-                                </button>
-                            </div>
-                            <Link to="/login" className="mt-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[#16a34a] hover:underline">
+                            <p role="status">Account invitation sent to {stage.email}. The recipient must verify this address and use the password setup link sent to their mailbox. Club consent remains separate.</p>
+                            <Link to="/login" className="mt-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] app-text-action">
                                 {t('minors.consent.goLogin')}
                             </Link>
                         </div>
                     )}
 
                     {stage.kind === 'done-accepted' && (
-                        <p className="text-sm text-[#a1a1aa]">
+                        <p className="text-sm text-[var(--color-secondary)]">
                             {t('minors.consent.confirmed')}
                         </p>
                     )}
 
                     {stage.kind === 'done-declined' && (
-                        <p className="text-sm text-[#a1a1aa]">
+                        <p className="text-sm text-[var(--color-secondary)]">
                             {t('minors.consent.declined')}
                         </p>
                     )}

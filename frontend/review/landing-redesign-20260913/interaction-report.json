@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "checks": [
+    "Accessible login fields and recoverable mocked login failure; Playground is not loaded before discovery; reduced motion",
+    "Distinct role scenes; desktop and mobile filter dialog, focus restoration, draft retention, country/city dependency, real filter requests, pick-location handoff, unchanged map size and no overflow",
+    "Touch drag, keyboard aim and shot, pause/resume, modal focus containment, Escape and cleanup"
+  ],
+  "errors": []
+}

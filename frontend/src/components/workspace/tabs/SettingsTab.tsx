@@ -5,6 +5,8 @@ import { apiClient } from '../../../api/axiosConfig';
 import { updateClubSettings } from '../../../features/clubs/api';
 import type { PlayerJoinPolicy } from '../../../features/clubs/domain';
 import { ErrorBlock, PageSpinner, SectionHeader } from '../helpers';
+import { ClubPresentationSettings } from './ClubPresentationSettings';
+import { ClubOrganizationTools } from '../../../features/organizations/setup/ClubOrganizationTools';
 
 interface SettingsTabProps {
     clubId: number;
@@ -77,13 +79,15 @@ export const SettingsTab = ({ clubId, pendingKey }: SettingsTabProps) => {
 
     return (
         <div className="space-y-4">
+            <ClubOrganizationTools clubId={clubId} />
+            <ClubPresentationSettings clubId={clubId} />
             <SectionHeader
                 eyebrow={t('settings.title')}
                 title={t('settings.heading')}
                 description={t('settings.description')}
             />
             {error && <p className="text-xs font-semibold text-[var(--fc-state-danger)]">{error}</p>}
-            {saved && <p className="text-xs font-semibold text-[#16a34a]">{t('settings.saved')}</p>}
+            {saved && <p className="text-xs font-semibold text-[var(--color-accent)]">{t('settings.saved')}</p>}
             <div className="space-y-3">
                 {POLICIES.map((option) => (
                     <button
@@ -95,13 +99,13 @@ export const SettingsTab = ({ clubId, pendingKey }: SettingsTabProps) => {
                         }}
                         className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${
                             policy === option.value
-                                ? 'border-[#16a34a] bg-[#16a34a]/10'
+                                ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10'
                                 : 'border-[var(--fc-border)] bg-[var(--fc-card-bg)] hover:bg-[var(--fc-surface-hover)]'
                         }`}
                     >
                         <span className="flex items-center justify-between gap-3">
                             <span className="text-sm font-semibold text-[var(--fc-text-primary)]">{t(option.labelKey)}</span>
-                            {saving && policy === option.value && <Loader2 className="h-4 w-4 animate-spin text-[#16a34a]" />}
+                            {saving && policy === option.value && <Loader2 className="h-4 w-4 animate-spin text-[var(--color-accent)]" />}
                         </span>
                         <span className="mt-1 block text-xs text-[var(--fc-text-secondary)]">{t(option.explainerKey)}</span>
                     </button>
@@ -112,7 +116,7 @@ export const SettingsTab = ({ clubId, pendingKey }: SettingsTabProps) => {
                     <p><span className="font-semibold text-[var(--fc-text-primary)]">Before you change this:</span> {impactCopy(pendingPolicy)}</p>
                     <div className="mt-3 flex flex-wrap gap-2">
                         <button type="button" onClick={() => setPendingPolicy(null)} className="rounded-lg border border-[var(--fc-border)] px-3 py-1.5 text-xs font-semibold text-[var(--fc-text-secondary)]">Keep current policy</button>
-                        <button type="button" onClick={() => void save(pendingPolicy)} disabled={saving} className="rounded-lg bg-[var(--fc-accent)] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">Confirm change</button>
+                        <button type="button" onClick={() => void save(pendingPolicy)} disabled={saving} className="rounded-lg bg-[var(--fc-accent)] px-3 py-1.5 text-xs font-semibold text-[color:var(--color-on-accent)] disabled:opacity-50">Confirm change</button>
                     </div>
                 </div>
             )}

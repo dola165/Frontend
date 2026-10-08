@@ -9,6 +9,7 @@ import {
     requiredAccountStep,
     resolvePostAuthRedirect,
     sanitizeAuthRedirect,
+    rememberAuthFlow,
 } from '../authRedirect';
 
 class MemoryStorage implements Storage {
@@ -54,7 +55,31 @@ describe('registration destination flow', () => {
         expect(requiredAccountStep({ mustChangePassword: true, onboardingRequired: true })).toBe('/set-password');
         expect(requiredAccountStep({ mustChangePassword: false, onboardingRequired: true })).toBe('/onboarding');
         expect(requiredAccountStep({ profileComplete: true })).toBeNull();
-        expect(completedAuthDestination({ role: 'ORGANIZER' }, null, true)).toBe('/my-club');
-        expect(completedAuthDestination({ role: 'PLAYER' }, null, true)).toBe('/clubs');
+        expect(completedAuthDestination({ role: 'ORGANIZER' }, null, true)).toBe('/roles?setup=1&role=ORGANIZER');
+        expect(completedAuthDestination({ role: 'PLAYER' }, null, true)).toBe('/roles?setup=1&role=PLAYER');
+        expect(completedAuthDestination({ role: 'PARENT' }, null, true)).toBe('/roles?setup=1&role=PARENT');
+        expect(completedAuthDestination({ role: 'PARENT' }, '/consent?token=synthetic-consent', true))
+            .toBe('/consent?token=synthetic-consent');
+    });
+
+    it.each(['/home/../login', '/%6cogin/', '/onboarding/', '/%2fevil.example', '/%5cevil.example', '/bad%00path', '/%zz', '/home/..//evil.example'])('rejects ambiguous or normalized auth-loop path %s', (path) => {
+        expect(sanitizeAuthRedirect(path)).toBeNull();
+    });
+
+    it('normalizes safe destinations while preserving their query and invitation fragment', () => {
+        expect(sanitizeAuthRedirect('/clubs/../requests?tab=incoming')).toBe('/requests?tab=incoming');
+        expect(sanitizeAuthRedirect('/join-squad#private-invitation')).toBe('/join-squad#private-invitation');
+        expect(publicContinuationPath('/requests?%74oken=secret')).toBeUndefined();
+        expect(publicContinuationPath('/%63onsent?code=secret')).toBeUndefined();
+        expect(publicContinuationPath('/requests#private-invitation')).toBeUndefined();
+    });
+
+    it('keeps sign-in and recovery usable when session storage is blocked', () => {
+        vi.stubGlobal('window', { get sessionStorage() { throw new Error('Storage is blocked'); } });
+        clearAuthFlow();
+        expect(() => rememberAuthFlow({ nextPath: '/join-squad#keep-this-private', email: 'account@example.test' })).not.toThrow();
+        expect(buildSignupPath('/join-squad#keep-this-private')).toBe('/signup');
+        expect(resolvePostAuthRedirect(null)).toBe('/join-squad#keep-this-private');
+        clearAuthFlow(); expect(getAuthFlow()).toEqual({});
     });
 });

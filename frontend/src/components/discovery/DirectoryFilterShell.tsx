@@ -5,10 +5,10 @@ export type DirectoryFilterVariant = 'rail' | 'drawer';
 export type DirectoryFilterAccent = 'green' | 'amber' | 'violet' | 'emerald';
 
 const accentClasses: Record<DirectoryFilterAccent, { icon: string; selected: string; border: string; dot: string }> = {
-    green: { icon: 'text-[#16a34a]', selected: 'border-[#16a34a] bg-[#16a34a]/10 text-[#16a34a]', border: 'border-[#16a34a]', dot: 'bg-[#16a34a]' },
-    amber: { icon: 'text-amber-400', selected: 'border-amber-400/60 bg-amber-400/10 text-amber-200', border: 'border-amber-400/60', dot: 'bg-amber-400' },
-    violet: { icon: 'text-fuchsia-300', selected: 'border-fuchsia-400/60 bg-fuchsia-400/10 text-fuchsia-200', border: 'border-fuchsia-400/60', dot: 'bg-fuchsia-400' },
-    emerald: { icon: 'text-emerald-400', selected: 'border-emerald-400/60 bg-emerald-400/10 text-emerald-200', border: 'border-emerald-400/60', dot: 'bg-emerald-400' }
+    green: { icon: 'text-[var(--color-accent)]', selected: 'border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]', border: 'border-[var(--color-accent)]', dot: 'bg-[var(--color-accent)]' },
+    amber: { icon: 'text-[color:var(--color-warning)]', selected: 'border-[color:var(--color-warning)]/60 bg-[color:var(--color-warning)]/10 text-[color:var(--color-warning)]', border: 'border-[color:var(--color-warning)]/60', dot: 'bg-[color:var(--color-warning)]' },
+    violet: { icon: 'text-[var(--color-pink)]', selected: 'border-[var(--color-pink)]/60 bg-[var(--color-pink)]/10 text-[var(--color-pink)]', border: 'border-[var(--color-pink)]/60', dot: 'bg-[var(--color-pink)]' },
+    emerald: { icon: 'text-[color:var(--color-accent)]', selected: 'border-[color:var(--color-accent)]/60 bg-[color:var(--color-accent)]/10 text-[color:var(--color-accent)]', border: 'border-[color:var(--color-accent)]/60', dot: 'bg-[color:var(--color-accent)]' }
 };
 
 interface DirectoryFilterShellProps {
@@ -153,7 +153,7 @@ export const DirectoryFilterChipRow = ({
             {chips.map((chip) => (
                 <span key={chip.id} className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-medium ${accentStyle.selected}`}>
                     {chip.label}
-                    <button type="button" onClick={() => onRemove(chip.id)} aria-label={`${removeLabel} ${chip.label}`} className="inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-white/10">
+                    <button type="button" onClick={() => onRemove(chip.id)} aria-label={`${removeLabel} ${chip.label}`} className="inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-[color:var(--color-ink)]/10">
                         <X className="h-3 w-3" />
                     </button>
                 </span>

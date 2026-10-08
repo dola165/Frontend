@@ -1,7 +1,11 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Loader2, Search, Shield, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../../api/axiosConfig';
+import { squadLabel } from '../../squads/squadLabels';
+import '../../squads/squad-design.css';
+import '../../squads/squad-public.css';
 
 interface SquadDto {
     id: number;
@@ -12,66 +16,117 @@ interface SquadDto {
 }
 
 export const TabTeams = ({ clubId, refreshKey = 0 }: { clubId: number; refreshKey?: number }) => {
-    const navigate = useNavigate();
-    const [squads, setSquads] = useState<SquadDto[]>([]);
-    const [loading, setLoading] = useState(true);
-
+    const { t } = useTranslation();
+    const [result, setResult] = useState<{ scope: string; squads: SquadDto[]; failed: boolean } | null>(null);
+    const [search, setSearch] = useState('');
+    const [retry, setRetry] = useState(0);
+    const scope = `${clubId}:${refreshKey}:${retry}`;
+    const loading = result?.scope !== scope;
+    const failed = !loading && result?.failed;
+    const squads = useMemo(() => (result?.scope === scope ? result.squads : []), [result, scope]);
     useEffect(() => {
-        apiClient.get(`/clubs/${clubId}/squads`)
-            .then((squadsResponse) => {
-                setSquads(squadsResponse.data || []);
+        let cancelled = false;
+        apiClient
+            .get(`/clubs/${clubId}/squads`)
+            .then((response) => {
+                if (!cancelled) setResult({ scope, squads: response.data || [], failed: false });
             })
-            .catch((error) => console.error('Failed to load squad directory', error))
-            .finally(() => setLoading(false));
-    }, [clubId, refreshKey]);
-
-    if (loading) {
-        return (
-            <div className="flex justify-center py-10">
-                <Loader2 className="h-8 w-8 animate-spin text-[#16a34a]" />
-            </div>
+            .catch(() => {
+                if (!cancelled) {
+                    setResult({ scope, squads: [], failed: true });
+                }
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [clubId, scope]);
+    const filtered = useMemo(() => {
+        const query = search.trim().toLocaleLowerCase();
+        return squads.filter((squad) =>
+            `${squad.name} ${squadLabel(squad.category, t)} ${squadLabel(squad.gender, t)}`
+                .toLocaleLowerCase()
+                .includes(query),
         );
-    }
-
-    if (squads.length === 0) {
-        return (
-            <div className="bg-[#16181d] border border-[#ffffff0d] rounded-xl px-5 py-10 text-center">
-                <h3 className="text-base font-semibold text-[#f4f4f5]">No Active Squads</h3>
-                <p className="mt-2 text-sm text-[#a1a1aa]">This club has not registered any squads yet.</p>
-            </div>
-        );
-    }
-
+    }, [squads, search, t]);
     return (
-        <section className="bg-[#16181d] border border-[#ffffff0d] rounded-xl">
-            <div className="border-b border-[#ffffff0d] px-4 py-4">
-                <p className="text-xs text-[#a1a1aa] text-[#16a34a]">Entity Tab</p>
-                <h2 className="text-lg font-semibold text-[#f4f4f5]">Squads</h2>
-                <p className="text-sm text-[#a1a1aa]">Each squad keeps a dedicated roster page, while this tab stays as the club-level squad directory.</p>
-            </div>
-            <div className="divide-y divide-[#ffffff0d]">
-                {squads.map((squad) => (
-                    <article key={squad.id} className="flex flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-                        <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-semibold text-[#f4f4f5]">{squad.name}</p>
+        <section className="squad-design squad-design-public sp-directory">
+            <header className="sp-directory-heading">
+                <div>
+                    <p className="sd-eyebrow">{t('squadDesign.public.ourTeams', { defaultValue: 'Our teams' })}</p>
+                    <h2 className="sp-title">
+                        {t('squadDesign.public.squads', { defaultValue: 'Squads' })}
+                        <span className="sp-dot">.</span>
+                    </h2>
+                    <p className="sd-muted">
+                        {t('squadDesign.public.directoryDescription', {
+                            defaultValue: 'Find your team. Meet the players behind it.',
+                        })}
+                    </p>
+                </div>
+                {!loading && !failed && (
+                    <span className="sp-directory-count">
+                        <Users size={15} />
+                        {t('squadDesign.public.squadCount', { defaultValue: '{{count}} squads', count: squads.length })}
+                    </span>
+                )}
+            </header>
+            {squads.length > 4 && (
+                <label className="sd-search sp-directory-search">
+                    <Search size={16} />
+                    <input
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                        placeholder={t('squadDesign.public.searchSquads', { defaultValue: 'Find a squad' })}
+                        aria-label={t('squadDesign.public.searchSquads', { defaultValue: 'Find a squad' })}
+                    />
+                </label>
+            )}
+            {loading ? (
+                <div className="sd-empty" role="status">
+                    <Loader2 size={24} className="animate-spin" />
+                    <span>{t('squadDesign.public.loading', { defaultValue: 'Loading squads…' })}</span>
+                </div>
+            ) : failed ? (
+                <div className="sd-empty" role="alert">
+                    <p>{t('squadDesign.public.loadFailed', { defaultValue: 'Could not load the squads.' })}</p>
+                    <button type="button" className="sd-button" onClick={() => setRetry((value) => value + 1)}>
+                        {t('squadDesign.public.retry', { defaultValue: 'Try again' })}
+                    </button>
+                </div>
+            ) : filtered.length === 0 ? (
+                <div className="sd-empty">
+                    <Shield size={26} />
+                    <h3>
+                        {search
+                            ? t('squadDesign.public.noMatches', { defaultValue: 'No matching squads' })
+                            : t('squadDesign.public.noSquads', { defaultValue: 'The team starts here' })}
+                    </h3>
+                    <p>
+                        {search
+                            ? t('squadDesign.public.searchHint', { defaultValue: 'Try another name or age group.' })
+                            : t('squadDesign.public.emptyDescription', {
+                                  defaultValue: 'This club has not shared any squads yet.',
+                              })}
+                    </p>
+                </div>
+            ) : (
+                <div className="sp-squad-cards">
+                    {filtered.map((squad) => (
+                        <Link to={`/clubs/${clubId}/squads?squad=${squad.id}`} className="sp-squad-card" key={squad.id}>
+                            <div className="sp-squad-card-top">
+                                <span className="sp-category-mark">{squadLabel(squad.category, t)}</span>
+                                <Shield size={21} strokeWidth={1.5} />
                             </div>
-                            <p className="mt-2 text-[11px] font-semibold text-[#a1a1aa]">
-                                {squad.category} / {squad.gender}
-                            </p>
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={() => navigate(`/clubs/${clubId}/squads?squad=${squad.id}`)}
-                            className="inline-flex items-center gap-2 rounded-xl border border-[#ffffff0d] bg-[var(--fc-card-bg)] px-3 py-1.5 text-xs font-semibold text-[#f4f4f5]"
-                        >
-                            Open Squad View
-                            <ArrowRight className="h-3.5 w-3.5" />
-                        </button>
-                    </article>
-                ))}
-            </div>
+                            <h3>{squad.name}</h3>
+                            <p>{squadLabel(squad.gender, t)}</p>
+                            <span className="sp-card-link">
+                                {t('squadDesign.public.viewSquad', { defaultValue: 'View squad' })}
+                                <ArrowRight size={16} />
+                            </span>
+                        </Link>
+                    ))}
+                </div>
+            )}
         </section>
     );
 };

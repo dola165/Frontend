@@ -1,5 +1,8 @@
+import { usePostReactions } from '../hooks/usePostReactions';
+import { reactionFields } from '../components/feed/reactions';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Compass, Megaphone, RefreshCw, Search, Sparkles, Users } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Compass, Megaphone, RefreshCw, Search, Users } from 'lucide-react';
+import { LeftSidebar } from '../components/layout/LeftSidebar';
 import { Link, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
 import { FeedList } from '../components/feed/FeedList';
@@ -8,23 +11,41 @@ import { type CommentDto, type FeedPostDto } from '../components/feed/FeedPost';
 import { PostComposer } from '../components/feed/PostComposer';
 import { PostTheaterModal } from '../components/PostTheaterModal';
 import { extractApiErrorMessage } from '../utils/apiError';
+import { WorkspaceShortcuts, type ManagedClubLink } from '../components/layout/WorkspaceShortcuts';
+import type { NavigationCapabilities } from '../context/navigationCapabilities';
+import { OpportunityLink } from '../components/ui/OpportunityLink';
+import { isAndroidApp } from '../android/bridge';
+import { AndroidFeedComposer } from '../android/AndroidFeedComposer';
 
 type FeedView = 'for-you' | 'following';
+type FeedCursor = { cursor: number; cursorTime?: string };
+type FeedNavigation = { cursor: FeedCursor | null; page: number; direction: 'older' | 'newer' };
 
 const resolveFeedView = (value: string | null): FeedView => (value === 'following' ? 'following' : 'for-you');
 
 interface FeedPageProps {
- user?: { username?: string; fullName?: string; avatarUrl?: string } | null;
+ managedClubs?: ManagedClubLink[];
+ user?: { id?: number; username?: string; fullName?: string; avatarUrl?: string; navigationCapabilities?: NavigationCapabilities } | null;
 }
 
-export const FeedPage = ({ user = null }: FeedPageProps) => {
+export const FeedPage = (props: FeedPageProps) => {
+ const [searchParams] = useSearchParams();
+ return isAndroidApp && searchParams.get('compose') === '1'
+  ? <AndroidFeedComposer user={props.user} /> : <FeedContent {...props} />;
+};
+
+const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
  const [searchParams] = useSearchParams();
  const [posts, setPosts] = useState<FeedPostDto[]>([]);
  const [loading, setLoading] = useState(true);
+ const [hasLoaded, setHasLoaded] = useState(false);
  const [loadError, setLoadError] = useState(false);
  const [loadingMore, setLoadingMore] = useState(false);
  const [moreError, setMoreError] = useState(false);
- const [nextPage, setNextPage] = useState<{ cursor: number; cursorTime?: string } | null>(null);
+ const [failedDirection, setFailedDirection] = useState<'older' | 'newer' | null>(null);
+ const [nextPage, setNextPage] = useState<FeedCursor | null>(null);
+ const [pageStarts, setPageStarts] = useState<(FeedCursor | null)[]>([null]);
+ const [pageIndex, setPageIndex] = useState(0);
  const requestVersion = useRef(0);
  const requestController = useRef<AbortController | null>(null);
  const morePending = useRef(false);
@@ -57,13 +78,14 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
    emptyGuides: [
     { label: 'Find Clubs', to: '/clubs' },
     { label: 'Browse Map', to: '/map' },
-    { label: 'Discover Events', to: '/tournaments' }
+    { label: 'Your schedule', to: '/calendar' }
    ]
   };
 
- const loadFeed = useCallback(async (more = false) => {
-  if (more && (morePending.current || !nextPage)) return;
-  if (!more) {
+ const loadFeed = useCallback(async (navigation?: FeedNavigation) => {
+  const changingPage = navigation !== undefined;
+  if (changingPage && (morePending.current || (navigation.direction === 'older' && !nextPage))) return;
+  if (!changingPage) {
    requestVersion.current++;
    requestController.current?.abort();
    morePending.current = false;
@@ -71,7 +93,8 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
    setLoadingMore(false);
    setLoadError(false);
    setNextPage(null);
-   setPosts([]);
+   setPageStarts([null]);
+   setPageIndex(0);
    setOpenComments({});
    setCommentsData({});
    setCommentsErrors({});
@@ -83,12 +106,13 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
    setLoadingMore(true);
   }
   setMoreError(false);
+  setFailedDirection(null);
   const version = requestVersion.current;
   const controller = new AbortController();
   requestController.current = controller;
   const current = () => !controller.signal.aborted && requestVersion.current === version && activeEndpoint.current === feedEndpoint;
   try {
-   const response = await apiClient.get(feedEndpoint, { params: { limit: 20, ...(more ? nextPage : {}) }, signal: controller.signal });
+   const response = await apiClient.get(feedEndpoint, { params: { limit: 20, ...(navigation?.cursor ?? {}) }, signal: controller.signal });
    if (!current()) return;
    const raw: FeedPostDto[] = response.data.posts ?? response.data.content ?? [];
    if (!Array.isArray(raw)) throw new Error('Invalid feed page');
@@ -97,21 +121,39 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
     commentCount: post.commentCount ?? 0, isLikedByMe: post.isLikedByMe ?? false }));
    const cursor: number | null = response.data.nextCursor ?? null;
    const boundary = batch.find(post => post.id === cursor);
-   if (cursor !== null && (!Number.isSafeInteger(cursor) || !boundary || (more && cursor === nextPage?.cursor))) throw new Error('Invalid feed cursor');
-   setPosts(existing => more ? [...existing, ...batch.filter(post => !existing.some(item => item.id === post.id))] : batch);
+   if (cursor !== null && (!Number.isSafeInteger(cursor) || !boundary || (navigation?.direction === 'older' && cursor === navigation.cursor?.cursor))) throw new Error('Invalid feed cursor');
+   const seen = new Set(navigation?.direction === 'older' ? posts.map(post => post.id) : []);
+   setPosts(batch.filter(post => {
+    if (seen.has(post.id)) return false;
+    seen.add(post.id);
+    return true;
+   }));
    setNextPage(cursor === null ? null : { cursor, cursorTime: boundary?.createdAt });
+   if (navigation) {
+    setPageIndex(navigation.page);
+    if (navigation.direction === 'older') setPageStarts(history => [...history.slice(0, navigation.page), navigation.cursor]);
+    setOpenComments({});
+    setCommentsData({});
+    setCommentsErrors({});
+    setCommentsLoading({});
+    setSelectedPost(null);
+   }
   } catch {
    if (!current()) return;
-   if (more) setMoreError(true);
+   if (navigation) {
+    setMoreError(true);
+    setFailedDirection(navigation.direction);
+   }
    else setLoadError(true);
   } finally {
    if (current()) {
+    setHasLoaded(true);
     morePending.current = false;
     setLoading(false);
     setLoadingMore(false);
    }
   }
- }, [feedEndpoint, nextPage]);
+ }, [feedEndpoint, nextPage, posts]);
 
  // Pagination state does not restart the first page. A view change invalidates
  // old successes AND failures, even if an adapter ignores AbortSignal.
@@ -131,7 +173,13 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
   setSelectedPost((current) => current ? updatePost(current) : null);
  };
 
- const handleLikeToggle = async (postId: number) => {
+ const reactions = usePostReactions(feedEndpoint, saved => {
+        const update = (post: FeedPostDto) => post.id === saved.id ? reactionFields(post, saved) : post;
+        setPosts(current => current.map(update));
+        setSelectedPost(current => current ? update(current) : null);
+    });
+
+    const handleLikeToggle = async (postId: number) => {
   if (pendingLikes[postId]) return;
   const currentPost = posts.find((post) => post.id === postId) ?? (selectedPost?.id === postId ? selectedPost : null);
   if (!currentPost) return;
@@ -184,43 +232,60 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
  };
 
  return (
-  <div className="mx-auto flex w-full max-w-[680px] flex-col gap-3">
+  <div className="home-feed-canvas mx-auto flex w-full max-w-[680px] flex-col gap-4">
    <h1 className="sr-only">Home</h1>
+   {isAndroidApp ? <div className="lg:hidden"><WorkspaceShortcuts clubs={managedClubs} navigationCapabilities={user?.navigationCapabilities} /></div> :
+    <details className="home-mobile-shortcuts">
+     <summary><span>Your football</span><span className="home-mobile-shortcuts-name">{user?.fullName || user?.username || 'Your shortcuts'}</span><ChevronDown size={16} aria-hidden="true" /></summary>
+     <LeftSidebar user={user} managedClubs={managedClubs} embedded />
+    </details>}
+   {isAndroidApp && <nav aria-label="Opportunities" className="home-opportunity-strip xl:hidden">
+    <OpportunityLink kind="store" to="/store" description="Club merchandise" />
+    <OpportunityLink kind="campaigns" to="/campaigns" description="Club projects" />
+    <OpportunityLink kind="jobs" to="/jobs" description="Find your next step" />
+   </nav>}
 
    <PostComposer
     compact
+    home
     authorName={user?.fullName || user?.username || 'You'}
     avatarUrl={user?.avatarUrl}
     onPostCreated={() => void loadFeed()}
    />
 
-   <nav aria-label="Home posts" className="grid grid-cols-2 border-b border-[var(--feed-divider)] bg-transparent px-1">
+   <nav aria-label="Home posts" className="app-selection-rail feed-selection-rail grid grid-cols-[1fr_1fr_auto] border-b border-[var(--feed-divider)] bg-transparent px-1">
+    <SelectionIndicator value={isFollowingView ? 'following' : 'discover'} />
     <Link
      to="/home"
+     aria-current={!isFollowingView ? 'page' : undefined}
+     title="Discover public posts from beyond your follows, newest first"
      className={`inline-flex min-h-11 items-center justify-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors ${!isFollowingView ? 'border-[var(--feed-accent)] text-[var(--feed-text-primary)]' : 'border-transparent text-[var(--feed-text-muted)] hover:text-[var(--feed-text-primary)]'}`}
     >
-     <Sparkles className="h-4 w-4" /> For You
+     <Compass className="h-4 w-4" /> Discover
     </Link>
     <Link
      to="/home?view=following"
+     aria-current={isFollowingView ? 'page' : undefined}
+     title="Latest posts from people and clubs you follow"
      className={`inline-flex min-h-11 items-center justify-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors ${isFollowingView ? 'border-[var(--feed-accent)] text-[var(--feed-text-primary)]' : 'border-transparent text-[var(--feed-text-muted)] hover:text-[var(--feed-text-primary)]'}`}
     >
      <Users className="h-4 w-4" /> Following
     </Link>
+    <button type="button" onClick={() => void loadFeed()} disabled={loading} aria-label="Refresh feed" title="Refresh feed" className="home-refresh m-1 flex h-10 items-center justify-center gap-2 rounded-lg px-2 text-[var(--feed-text-secondary)] hover:bg-[var(--feed-hover-bg)] disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /><span className="home-refresh-label">Latest updates</span></button>
    </nav>
 
    {loadError && (
-    <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-5 py-4">
+    <div className="rounded-xl border border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 px-5 py-4">
      <div className="flex items-start gap-3">
-      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-400" />
+      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[color:var(--color-danger)]" />
       <div className="min-w-0">
-       <p className="text-sm font-semibold text-rose-300">Home could not load</p>
-       <p className="mt-1 text-xs text-rose-300/80">Check your connection and try again.</p>
+       <p className="text-sm font-semibold text-[color:var(--color-danger)]">Home could not load</p>
+       <p className="mt-1 text-xs text-[color:var(--color-danger)]/80">Check your connection and try again.</p>
       </div>
       <button
        type="button"
        onClick={() => void loadFeed()}
-       className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full border border-rose-500/30 bg-[#16181d] px-3 py-1.5 text-xs font-semibold text-rose-300 transition-colors hover:bg-[#1a1c22]"
+       className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[color:var(--color-danger)]/30 bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[color:var(--color-danger)] transition-colors hover:bg-[var(--color-surface)]"
       >
        <RefreshCw className="h-3.5 w-3.5" />
        Retry
@@ -228,25 +293,28 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
      </div>
     </div>
    )}
-   <div className="flex items-center justify-between gap-3 px-1 text-xs text-[var(--feed-text-secondary)]">
-    <p>{isFollowingView ? 'Latest posts from people and clubs you follow.' : 'Discover public posts from beyond your follows.'} Newest first.</p>
-    <button type="button" onClick={() => void loadFeed()} disabled={loading} className="shrink-0 rounded px-2 py-2 hover:underline disabled:opacity-50">Refresh feed</button>
-   </div>
-   {loading ? (
+   <section aria-label="Feed results" aria-busy={loading} className="relative">
+   {loading && hasLoaded && <div role="status" className="absolute inset-x-0 top-2 z-10 mx-auto w-fit rounded-full bg-[color:var(--theme-surface)] px-3 py-2 text-sm shadow">
+    Loading {isFollowingView ? 'Following' : 'Discover'} posts…
+   </div>}
+   <div inert={loading} className={loading && posts.length > 0 ? 'opacity-50' : ''}>
+   {loading && !hasLoaded ? (
     <div className="flex flex-col gap-3" aria-label="Loading Home posts">
      <SkeletonCard lines={4} />
      <SkeletonCard lines={3} />
      <SkeletonCard lines={5} />
     </div>
    ) : !loadError && <FeedList
+    home
     posts={posts}
     openComments={openComments}
     commentsData={commentsData}
     onLikeToggle={handleLikeToggle}
+    onReactionChange={reactions.change}
     onToggleComments={toggleComments}
     onSubmitComment={submitComment}
-    pendingLikes={pendingLikes}
-    likeErrors={likeErrors}
+    pendingLikes={{ ...pendingLikes, ...reactions.pending }}
+    likeErrors={{ ...likeErrors, ...reactions.errors }}
     commentsErrors={commentsErrors}
     onRetryComments={(postId) => void loadComments(postId)}
     onSelectPost={(post) => {
@@ -255,8 +323,10 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
       void toggleComments(post.id);
      }
     }}
-    emptyState={(
-     <div className="rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] px-5 py-12 text-center">
+    emptyState={pageIndex > 0 ? (
+     <div className="rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] px-5 py-10 text-center text-sm text-[var(--feed-text-secondary)]">No additional posts on this page. Use Newer posts or continue to older posts.</div>
+    ) : (
+     <div className={`rounded-xl border border-[var(--feed-card-border)] bg-[var(--feed-card)] px-5 py-12 text-center ${loading ? 'invisible' : ''}`}>
       <Megaphone className="mx-auto h-10 w-10 text-[var(--feed-icon-muted)]" />
       <h3 className="mt-4 text-lg font-semibold text-[var(--feed-text-primary)]">{feedMeta.emptyTitle}</h3>
       <p className="mt-2 max-w-md mx-auto text-sm leading-6 text-[var(--feed-text-secondary)]">{feedMeta.emptyText}</p>
@@ -277,11 +347,17 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
     className="gap-3"
    />}
 
-   {!loading && !loadError && posts.length > 0 && <div className="py-4 text-center">
-    {moreError && <p role="alert" className="mb-3 text-sm text-amber-400">Older posts could not load. Retry, or refresh the feed to start again.</p>}
-    {nextPage ? <button type="button" disabled={loadingMore} onClick={() => void loadFeed(true)}
+   </div>
+   </section>
+   {!loading && !loadError && (posts.length > 0 || pageIndex > 0) && <div className="flex flex-wrap items-center justify-center gap-3 py-4 text-center">
+    {moreError && <p role="alert" className="mb-3 text-sm text-[color:var(--color-warning)]">{failedDirection === 'newer' ? 'Newer posts could not load. Retry, or return to the latest posts.' : 'Older posts could not load. Retry, or refresh the feed to start again.'}</p>}
+    {pageIndex > 0 && <button type="button" disabled={loadingMore} onClick={() => void loadFeed({ cursor: pageStarts[pageIndex - 1], page: pageIndex - 1, direction: 'newer' })}
+     className="rounded-full border border-[var(--feed-card-border)] px-5 py-2 text-sm text-[var(--feed-text-primary)] disabled:opacity-50">{moreError && failedDirection === 'newer' ? 'Retry newer posts' : 'Newer posts'}</button>}
+    {pageIndex > 1 && <button type="button" disabled={loadingMore} onClick={() => void loadFeed()}
+     className="rounded-full border border-[var(--feed-card-border)] px-5 py-2 text-sm text-[var(--feed-text-primary)] disabled:opacity-50">Back to latest</button>}
+    {nextPage ? <button type="button" disabled={loadingMore} onClick={() => void loadFeed({ cursor: nextPage, page: pageIndex + 1, direction: 'older' })}
      className="rounded-full border border-[var(--feed-card-border)] px-5 py-2 text-sm text-[var(--feed-text-primary)] disabled:opacity-50">
-     {loadingMore ? 'Loading more posts…' : moreError ? 'Retry older posts' : 'Load more posts'}
+     {loadingMore ? 'Loading more posts…' : moreError && failedDirection === 'older' ? 'Retry older posts' : 'Load more posts'}
     </button> : <p role="status" className="text-sm text-[var(--feed-text-secondary)]">You’re all caught up. Refresh to check for new posts.</p>}
    </div>}
 
@@ -292,8 +368,9 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
     commentsData={selectedPost ? commentsData[selectedPost.id] : undefined}
     onSubmitComment={submitComment}
     onLikeToggle={handleLikeToggle}
-    likePending={selectedPost ? pendingLikes[selectedPost.id] === true : false}
-    likeError={selectedPost ? likeErrors[selectedPost.id] : null}
+    onReactionChange={reactions.change}
+    likePending={selectedPost ? reactions.pending[selectedPost.id] === true || pendingLikes[selectedPost.id] === true : false}
+    likeError={selectedPost ? reactions.errors[selectedPost.id] || likeErrors[selectedPost.id] : null}
     commentsLoading={selectedPost ? commentsLoading[selectedPost.id] === true : false}
     commentsError={selectedPost ? commentsErrors[selectedPost.id] : null}
     onRetryComments={(postId) => void loadComments(postId)}
@@ -301,3 +378,4 @@ export const FeedPage = ({ user = null }: FeedPageProps) => {
   </div>
  );
 };
+import { SelectionIndicator } from '../components/ui/SelectionIndicator';

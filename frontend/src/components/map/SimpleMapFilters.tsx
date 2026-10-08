@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { TrainingPriceFields } from './TrainingPriceFields';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
     Building2,
     ChevronDown,
@@ -18,6 +19,7 @@ import type { ClubCategory, MapFilters, MapGender, MapLevel } from './MapFilterS
 import type { SearchCoverage } from './areaSearch';
 
 interface SimpleMapFiltersProps {
+    admissionControls?: ReactNode;
     isVisible: boolean;
     /** Render the drawer inside an embedding surface (for example the landing-page map). */
     embedded?: boolean;
@@ -42,6 +44,7 @@ interface SimpleMapFiltersProps {
     showVerificationFilter?: boolean;
     showDescription?: boolean;
     onOpenAdvanced: () => void;
+    onOpenPlanning?: () => void;
     onClose: () => void;
     originLabel?: string;
     onPickOrigin?: () => void;
@@ -56,6 +59,7 @@ interface SimpleMapFiltersProps {
 
 const ENTITY_OPTIONS: Array<{ value: MapEntityType; label: string; icon: typeof Building2 }> = [
     { value: 'CLUB', label: 'Clubs', icon: Building2 },
+    { value: 'STADIUM', label: 'Stadiums', icon: MapPin },
     { value: 'MATCH', label: 'Matches', icon: Trophy },
     { value: 'TOURNAMENT', label: 'Tournaments', icon: Trophy }
 ];
@@ -77,6 +81,7 @@ const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u0
 const selectClassName = 'atlas-filter-select';
 
 export const SimpleMapFilters = ({
+    admissionControls,
     isVisible,
     embedded = false,
     layout = 'side',
@@ -97,6 +102,7 @@ export const SimpleMapFilters = ({
     showVerificationFilter = true,
     showDescription = true,
     onOpenAdvanced,
+    onOpenPlanning,
     onClose,
     originLabel,
     onPickOrigin,
@@ -250,7 +256,7 @@ export const SimpleMapFilters = ({
     return (
         <>
             <div
-                className={`map-modal-backdrop ${backdropPosition} z-[1080] bg-slate-950/30 backdrop-blur-[2px] transition-opacity ${backdropVisibility}`}
+                className={`map-modal-backdrop ${backdropPosition} z-[1080] bg-[color:var(--color-ink)]/30 backdrop-blur-[2px] transition-opacity ${backdropVisibility}`}
                 onClick={onClose}
             />
             <aside
@@ -279,7 +285,7 @@ export const SimpleMapFilters = ({
                         <span className="text-xs font-semibold text-[var(--text-secondary)]">
                             {applying ? 'Updating the map…' : hasPendingChanges ? 'Changes ready' : `${resultCount ?? 0} loaded results`}
                         </span>
-                        {hasPendingChanges && <span className="h-2 w-2 rounded-full bg-amber-500" aria-label="Unapplied filter changes" />}
+                        {hasPendingChanges && <span className="h-2 w-2 rounded-full bg-[color:var(--color-warning)]" aria-label="Unapplied filter changes" />}
                     </div>
                     {coverageSummary && <p className="atlas-coverage-summary">{coverageSummary}</p>}
                 </header>
@@ -319,6 +325,7 @@ export const SimpleMapFilters = ({
                             {locationError && <p className="atlas-location-error" role="status">{locationError}</p>}
                             {(countryValue || cityValue) && <small className="atlas-origin-region-note">Country/city chooses where to browse. Your location stays available for distances and walks.</small>}
                         </section>}
+                        {admissionControls}
                         <div ref={countryBoxRef} className="relative">
                             <label className="map-simple-label" htmlFor="map-country">Country</label>
                             <div className="map-simple-line">
@@ -388,13 +395,13 @@ export const SimpleMapFilters = ({
 
                         {showSearchField && (
                             <label>
-                                <span className="map-simple-label">Street, address or club name</span>
+                                <span className="map-simple-label">Name, street or address</span>
                                 <span className="map-simple-line">
                                     <Search className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
                                     <input
                                         value={searchValue}
                                         onChange={(event) => onSearchChange(event.target.value)}
-                                        placeholder="Club name or street…"
+                                        placeholder="Club, stadium or street…"
                                         maxLength={100}
                                         onKeyDown={event => { if (event.key === 'Enter') void onApply(); }}
                                         className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
@@ -433,6 +440,8 @@ export const SimpleMapFilters = ({
                                 </select>
                             </label>
                         </div>
+
+                        {draftFilters.entityType.includes('CLUB') && <TrainingPriceFields filters={draftFilters} onChange={onDraftChange} />}
 
                         <div className="atlas-coverage-settings">
                             {onCoverageChange && <fieldset className="atlas-coverage-choice"><legend className="map-simple-label">Search coverage</legend>
@@ -477,7 +486,7 @@ export const SimpleMapFilters = ({
                         )}
 
                         {(draftFilters.clubs.categories.length > 1 || draftFilters.clubs.ageGroups.length > 1 || draftFilters.clubs.genders.length > 1 || draftFilters.clubs.levels.length > 1 || draftFilters.positions.length > 0) && (
-                            <p className="border-l-2 border-violet-500 pl-3 text-xs leading-5 text-[var(--text-secondary)]">Some advanced choices are still active. Open Advanced to review every selected value.</p>
+                            <p className="border-l-2 border-[color:var(--color-purple)] pl-3 text-xs leading-5 text-[var(--text-secondary)]">Some advanced choices are still active. Open Advanced to review every selected value.</p>
                         )}
                     </div>
                 </div>
@@ -490,9 +499,10 @@ export const SimpleMapFilters = ({
                         </button>
                         <button type="button" onClick={onReset} aria-label="Reset map filters" className="map-simple-reset"><RotateCcw className="h-4 w-4" /></button>
                     </div>
+                    {onOpenPlanning && <button type="button" onClick={onOpenPlanning} className="mt-3 flex w-full items-center justify-between border-t border-[var(--map-panel-border)] pt-3 text-xs font-bold text-[var(--text-primary)]"><span className="flex items-center gap-2"><MapPin className="h-4 w-4"/>Plan a football journey</span><span aria-hidden>→</span></button>}
                     {showAdvancedFilters && (
                         <button type="button" onClick={onOpenAdvanced} className="mt-3 flex w-full items-center justify-between border-t border-[var(--map-panel-border)] pt-3 text-xs font-bold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
-                            <span className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4" />Open advanced filters</span>
+                            <span className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4" />More filters · positions, dates and multiple choices</span>
                             <span aria-hidden>→</span>
                         </button>
                     )}

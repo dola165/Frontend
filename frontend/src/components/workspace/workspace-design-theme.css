@@ -1,0 +1,369 @@
+/* Rebind inherited semantic aliases at the scope where the palette changes. */
+.workspace-page-shell.club-workspace-shell.workspace-refresh {
+  --fc-page-bg: var(--color-page);
+  --fc-card-bg: var(--color-surface);
+  --fc-sidebar-bg: var(--color-inset);
+  --fc-surface-hover: var(--color-elevated);
+  --fc-border: var(--color-border);
+  --fc-text-primary: var(--color-text);
+  --fc-text-secondary: var(--color-secondary);
+  --fc-text-muted: var(--color-muted);
+  --fc-accent: var(--color-accent);
+  --fc-accent-soft: color-mix(in srgb, var(--color-accent) 9%, transparent);
+  --fc-accent-border: color-mix(in srgb, var(--color-accent) 28%, var(--color-border));
+  --fc-state-warning: var(--color-warning);
+  --fc-state-warning-soft: color-mix(in srgb, var(--color-warning) 10%, var(--color-inset));
+  --fc-state-danger: var(--color-danger);
+  --fc-state-danger-soft: color-mix(in srgb, var(--color-danger) 10%, var(--color-inset));
+  --fc-state-info: var(--color-info);
+  --fc-state-info-soft: color-mix(in srgb, var(--color-info) 10%, var(--color-inset));
+  --bg-base: var(--color-page);
+  --bg-panel: var(--color-surface);
+  --bg-elevated: var(--color-elevated);
+  --bg-inset: var(--color-inset);
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-secondary);
+  --text-muted: var(--color-muted);
+  --border-subtle: var(--color-border);
+  --accent-primary: var(--color-accent);
+  --accent-primary-soft: var(--fc-accent-soft);
+  --accent-muted: var(--color-muted);
+  --theme-surface-inset: var(--color-inset);
+  --theme-surface-muted: var(--color-elevated);
+  --theme-border: var(--color-border);
+  color: var(--color-text);
+  background: var(--color-page);
+}
+.workspace-refresh .workspace-page-main {
+  background: var(--fc-page-bg);
+}
+.club-workspace-shell.workspace-refresh .workspace-tab-content {
+  max-width: 1424px;
+  margin-inline: auto;
+  padding: 12px clamp(20px, 3vw, 48px) 48px;
+}
+.club-workspace-shell.workspace-refresh .work-breadcrumb {
+  width: 100%;
+  max-width: 1424px;
+  margin-inline: auto;
+  padding-inline: clamp(20px, 3vw, 48px);
+  min-height: 56px;
+}
+.workspace-refresh .workspace-sidebar { background: var(--fc-sidebar-bg); }
+.workspace-refresh .work-navigation button[aria-current="page"] {
+  color: var(--fc-accent);
+  background: var(--fc-accent-soft);
+  border-left: 2px solid var(--fc-accent);
+}
+.workspace-refresh :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--fc-accent);
+  outline-offset: 3px;
+}
+.workspace-refresh :is(.sd-panel, .wo-shortcuts, .wo-personal, .sw-active-squad) { border-radius: 14px; }
+.workspace-refresh :is(.sd-heading, .sw-page-header, .wi-heading, .workspace-section-heading) { margin-bottom: 24px; }
+.workspace-refresh :is(.sd-heading h1, .sw-heading, .wi-heading h1, .workspace-section-heading h1) {
+  font-size: clamp(28px, 2.5vw, 38px);
+  line-height: 1.16;
+  font-weight: 750;
+  letter-spacing: -.04em;
+}
+
+/* Overview keeps real counts, decisions, sampled consent coverage and focus. */
+.workspace-refresh .club-overview-primary { display: grid; gap: 22px; min-width: 0; }
+.workspace-refresh .club-overview-main-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; }
+.workspace-refresh .club-overview-side { gap: 22px; }
+.workspace-refresh .club-overview-heading-actions { flex-direction: row; align-items: center; }
+.workspace-refresh .club-overview-stats { border: 0; gap: 16px; margin-bottom: 24px; }
+.workspace-refresh .club-overview-stat {
+  border: 1px solid var(--sd-border);
+  background: var(--sd-surface);
+  border-radius: 14px;
+  padding: 16px;
+  min-height: 74px;
+  gap: 10px;
+}
+.workspace-refresh .club-overview-stat:first-child { padding-left: 16px; }
+.workspace-refresh .club-overview-stat > span { font-size: 12px; }
+.workspace-refresh .club-overview-stat > span svg {
+  box-sizing: content-box;
+  background: var(--sd-elevated);
+  border-radius: 10px;
+  padding: 10px;
+}
+.workspace-refresh .club-overview-panel-heading .sd-eyebrow + h2 { font-size: 21px; }
+.workspace-refresh .club-overview-event-first { background: var(--color-inset); border-radius: 11px; padding: 16px; }
+.workspace-refresh .club-overview-event-first .club-overview-event-info > strong { font-size: 15px; }
+.workspace-refresh .club-overview-event-date {
+  width: 52px;
+  padding: 10px 6px;
+  background: var(--sd-surface);
+  border: 1px solid var(--sd-border);
+  border-radius: 9px;
+}
+.workspace-refresh .club-overview-event-date strong { font-size: 24px; }
+.workspace-refresh .club-overview-panel-link { background: var(--color-inset); border-radius: 0 0 13px 13px; }
+.workspace-refresh .club-overview-review { border: 1px solid var(--sd-border); border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+.workspace-refresh .club-overview-review-count { font-size: 17px; }
+.workspace-refresh .wo-personal-icon { background: var(--sd-accent-soft); border-color: var(--fc-accent-border); }
+.workspace-refresh .wo-shortcuts { margin: 0; }
+.workspace-refresh .wo-squads > div { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.workspace-refresh .wo-squads > div > button { border-radius: 11px; padding: 14px 12px; background: var(--sd-surface); }
+
+/* The Inbox owns its context rail, so it remains within the bounded canvas. */
+.wi-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.wi-heading h1 { margin: 7px 0 10px; }
+.wi-heading h1 > span, .wi-eyebrow { color: var(--fc-accent); }
+.wi-heading p { color: var(--fc-text-secondary); font-size: 14px; line-height: 1.65; }
+.wi-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; }
+.wi-unread { border-radius: 7px; padding: 7px 10px; color: var(--fc-accent); background: var(--fc-accent-soft); font-size: 12px; white-space: nowrap; }
+.wi-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; align-items: start; }
+.wi-main, .wi-context { min-width: 0; display: grid; gap: 16px; }
+.wi-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px; border: 1px solid var(--fc-border); border-radius: 12px; background: var(--fc-card-bg); }
+.wi-filters label { min-width: 0; }
+.wi-filters select { width: 100%; min-height: 38px; padding: 8px 28px 8px 10px; border: 1px solid var(--fc-border); border-radius: 8px; background: var(--color-inset); color: var(--fc-text-primary); font-size: 12px; }
+.wi-count { font-size: 11px; color: var(--fc-text-muted); }
+.wi-mark-read { display: inline-flex; align-items: center; gap: 7px; margin-left: auto; min-height: 38px; font-size: 12px; color: var(--fc-accent); padding: 8px; }
+.wi-list { display: grid; gap: 12px; }
+.wi-item { border: 1px solid var(--fc-border); border-radius: 12px; background: var(--fc-card-bg); overflow: hidden; }
+.wi-item[data-unread="true"] { border-color: var(--fc-accent-border); }
+.workspace-inbox .wi-item > button { border-left: 0; background: transparent; padding: 18px; }
+.workspace-inbox .wi-item > button:hover { background: var(--color-inset); }
+.workspace-inbox .wi-item > button > div > div:first-child { border-radius: 9px; border-color: var(--fc-border); background: var(--color-inset); }
+.workspace-inbox .wi-item .truncate { white-space: normal; overflow: visible; overflow-wrap: anywhere; font-weight: 650; line-height: 1.5; }
+.workspace-inbox .wi-item p { max-width: none; font-size: 13px; line-height: 1.65; }
+.wi-context-card { border: 1px solid var(--fc-border); border-radius: 12px; background: var(--fc-card-bg); padding: 18px; }
+.wi-context-card h2 { display: flex; align-items: center; gap: 8px; margin: 9px 0; font-size: 13px; font-weight: 650; }
+.wi-context-card h2 svg { color: var(--fc-accent); }
+.wi-context-card p { font-size: 12px; line-height: 1.7; color: var(--fc-text-secondary); }
+.wi-area-links { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+.wi-area-links button { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; border: 1px solid var(--fc-border); border-radius: 7px; padding: 6px 9px; color: var(--fc-text-secondary); font-size: 11px; }
+.wi-area-links button[aria-pressed="true"] { color: var(--fc-accent); border-color: var(--fc-accent-border); background: var(--fc-accent-soft); }
+.wi-pagination { display: flex; justify-content: center; }
+.wi-pagination button, .wi-error button { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--fc-border); border-radius: 8px; padding: 10px 14px; color: var(--fc-text-primary); background: var(--fc-card-bg); font-size: 12px; }
+.wi-pagination button:disabled { opacity: .6; }
+.wi-error { padding: 18px; border: 1px solid var(--fc-state-danger); border-radius: 12px; background: var(--fc-state-danger-soft); font-size: 13px; }
+.wi-error button { margin-top: 10px; }
+
+/* Work queue uses the existing filters, approvals and durable record links. */
+.workspace-refresh[data-workspace-page="actions"] .club-ops {
+  --ops-bg: var(--fc-page-bg);
+  --ops-panel: var(--fc-card-bg);
+  --ops-input: var(--color-inset);
+  --ops-border: var(--fc-border);
+  --ops-text: var(--fc-text-primary);
+  --ops-muted: var(--fc-text-secondary);
+  --ops-accent: var(--fc-accent);
+  max-width: none;
+}
+.workspace-refresh .workspace-section-heading { padding: 0; }
+.workspace-refresh .workspace-section-heading > div > p:last-child { font-size: 14px; }
+.workspace-refresh .workspace-record-table { border: 1px solid var(--fc-border); border-radius: 13px; background: var(--fc-card-bg); }
+.workspace-refresh .workspace-record-table th { background: var(--color-inset); letter-spacing: .06em; font-size: 10px; padding-block: 14px; }
+.workspace-refresh .workspace-record-table td { padding-block: 18px; font-size: 12px; }
+.workspace-refresh .workspace-record-table td button { font-weight: 650; }
+.workspace-refresh .workspace-record-table td { overflow-wrap: anywhere; }
+.workspace-refresh .workspace-record-table td:first-child button { white-space: normal; }
+.workspace-refresh :is(.work-record-filter, .workspace-record-tools) { flex-wrap: wrap; }
+.workspace-refresh :is(.workspace-staff-tabs, .workspace-record-tabs) { gap: 20px; }
+.workspace-refresh :is(.workspace-staff-tabs, .workspace-record-tabs) button { min-height: 44px; }
+.workspace-refresh :is(.staff-administration, .work-panel, .work-context-banner, .ops-card, .ops-detail, .workspace-create-choices) { border-radius: 14px; }
+.workspace-refresh .workspace-editor__section { border-top: 1px solid var(--fc-border); }
+.workspace-refresh .work-context-banner { overflow-wrap: anywhere; }
+.workspace-refresh .workspace-record-table tr:hover td { background: var(--color-inset); }
+.workspace-refresh .workspace-record-tools label, .workspace-refresh .work-record-filter select { background: var(--color-inset); }
+.workspace-refresh .ops-badge { border-radius: 6px; }
+
+/* Every club operations module uses the same bounded records and editor layout. */
+.club-workspace-shell.workspace-refresh .club-ops {
+  --op-accent: var(--color-accent);
+  --op-solid: var(--color-accent);
+  --op-ink: var(--color-on-accent);
+  --op-border: var(--color-border);
+  --op-muted: var(--color-secondary);
+  --bg-surface: var(--color-surface);
+}
+.workspace-refresh .workspace-add-button {
+  min-height: 42px;
+  border-radius: 9px;
+  font-weight: 650;
+  color: var(--color-on-accent);
+}
+.workspace-refresh .gk-empty {
+  padding: clamp(24px, 3vw, 36px);
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+.workspace-refresh .gk-empty__icon { border-radius: 11px; }
+.workspace-refresh .gk-empty__body p { max-width: 70ch; }
+.workspace-refresh .work-record-filter { margin-bottom: 18px; gap: 18px; }
+.workspace-refresh .workspace-record-tools label { width: min(440px, 80%); background: var(--color-inset); }
+.club-workspace-shell.workspace-refresh .workspace-record-tools input { border: 0; background: transparent; padding: 11px 0; box-shadow: none; min-width: 0; }
+.workspace-refresh .work-record-filter label:has(select) { align-items: flex-start; text-align: left; }
+.attendance-sessions { margin-top: 26px; padding: 24px; border: 1px solid var(--fc-border); border-radius: 14px; background: var(--fc-card-bg); }
+.attendance-sessions > header { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-bottom: 20px; }
+.attendance-sessions h2 { font-size: 18px; font-weight: 700; margin: 6px 0; letter-spacing: -.02em; }
+.attendance-sessions > header > div > p:last-child { font-size: 12px; color: var(--fc-text-secondary); line-height: 1.7; }
+.attendance-sessions > header > a { display: inline-flex; align-items: center; gap: 7px; color: var(--fc-accent); min-height: 36px; font-size: 12px; }
+.attendance-session-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 12px; }
+.club-ops .attendance-session { display: flex; align-items: flex-start; gap: 12px; padding: 18px; text-align: left; background: var(--color-inset); border: 1px solid var(--fc-border); border-radius: 11px; min-width: 0; transition: border-color 180ms ease, background-color 180ms ease; }
+.club-ops .attendance-session:hover { border-color: var(--fc-accent-border); background: var(--fc-accent-soft); }
+.attendance-session > span:last-child { display: grid; gap: 7px; min-width: 0; overflow-wrap: anywhere; }
+.attendance-session-icon { display: grid; place-items: center; flex: 0 0 36px; height: 36px; border-radius: 9px; background: var(--fc-accent-soft); color: var(--fc-accent); }
+.attendance-session small { font-size: 10px; color: var(--fc-accent); font-weight: 650; }
+.attendance-session strong { font-size: 13px; font-weight: 650; line-height: 1.55; }
+.attendance-session time { font-size: 11px; color: var(--fc-text-secondary); }
+.attendance-session-action { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--fc-accent); margin-top: 5px; }
+.attendance-session-empty, .attendance-session-timezone { color: var(--fc-text-secondary); font-size: 12px; line-height: 1.7; }
+.attendance-session-timezone { margin-top: 15px; font-size: 11px; }
+.club-workspace-shell.workspace-refresh .workspace-editor {
+  --editor-button: var(--color-accent);
+  --editor-accent: var(--color-accent);
+  --editor-bg: var(--color-surface);
+  --editor-input: var(--color-inset);
+  --editor-soft: var(--color-inset);
+  --editor-line: var(--color-border);
+  --editor-text: var(--color-text);
+  --editor-muted: var(--color-secondary);
+}
+.workspace-refresh .workspace-editor__header h3 { font-size: clamp(26px, 2.4vw, 36px); font-weight: 750; letter-spacing: -.04em; line-height: 1.2; }
+.club-workspace-shell.workspace-refresh .workspace-editor__layout { grid-template-columns: minmax(0, 1fr) 264px; gap: 24px; padding: 0; }
+.club-workspace-shell.workspace-refresh .workspace-editor__section { border: 0; border-radius: 0; padding: 0; }
+.workspace-refresh .workspace-editor__panel { border-radius: 14px; }
+.club-workspace-shell.workspace-refresh .op-steps { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: minmax(0, 1fr); gap: 8px; margin-bottom: 24px; }
+.club-workspace-shell.workspace-refresh .op-steps button { min-width: 0; border-radius: 9px; background: var(--color-inset); font-size: 12px; }
+.club-workspace-shell.workspace-refresh .op-steps button.active { background: var(--fc-accent-soft); border: 1px solid var(--fc-accent-border); color: var(--fc-text-primary); }
+.club-workspace-shell.workspace-refresh .op-steps button.active > span { color: var(--color-on-accent); background: var(--fc-accent); }
+.workspace-refresh .workspace-editor__section > header { background: var(--color-surface); }
+.workspace-refresh .workspace-editor__step { color: var(--fc-accent); background: var(--fc-accent-soft); }
+.workspace-refresh .workspace-editor__preview, .workspace-refresh .workspace-editor__checklist { border-radius: 12px; box-shadow: none; }
+.workspace-refresh .workspace-editor__preview-label { color: var(--fc-accent); flex-wrap: wrap; gap: 8px; }
+.workspace-refresh .workspace-editor__preview-label > span { color: var(--fc-text-secondary); border: 1px solid var(--fc-border); background: var(--color-inset); }
+.workspace-refresh .editor-field-group { padding-top: 20px; border-top: 1px solid var(--fc-border); }
+.workspace-refresh .editor-field-group > header { margin-bottom: 16px; }
+.workspace-refresh .editor-field-group h5 { font-size: 13px; font-weight: 650; }
+.workspace-refresh .workspace-editor__field { min-width: 0; }
+.workspace-refresh .workspace-editor__field :is(input, select, textarea) { border-radius: 8px; }
+.club-workspace-shell.workspace-refresh .workspace-editor__footer { position: sticky; bottom: 0; z-index: 4; background: var(--color-page); border-radius: 12px; box-shadow: 0 -8px 24px color-mix(in srgb, var(--color-page) 75%, transparent); }
+.club-workspace-shell.workspace-refresh .workspace-editor__button--primary { color: var(--color-on-accent); }
+.workspace-refresh :is(.work-panel, .work-context-banner, .ops-detail) { background: var(--color-surface); border-radius: 14px; }
+.workspace-refresh .ops-detail { border-top: 1px solid var(--fc-border); }
+.workspace-refresh .work-register { overflow: hidden; }
+.workspace-refresh .work-register > header { align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+.workspace-refresh .work-register .work-row { gap: 12px; }
+.workspace-refresh .work-person-avatar { background: var(--color-inset); border: 1px solid var(--fc-border); }
+.workspace-refresh[data-workspace-page="finance"] .ops-card dl:has(> .ops-row) { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 12px; margin-block: 20px 16px; }
+.workspace-refresh[data-workspace-page="finance"] .ops-card dl > .ops-row { display: grid; align-content: start; gap: 8px; padding: 16px; border: 1px solid var(--fc-border); border-radius: 10px; background: var(--color-inset); }
+.workspace-refresh[data-workspace-page="finance"] .ops-card .ops-row dt { margin: 0; line-height: 1.5; min-height: 3em; }
+.workspace-refresh[data-workspace-page="finance"] .ops-card .ops-row dd { margin: 0; font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.3; }
+@container (max-width: 760px) {
+  .club-workspace-shell.workspace-refresh .op-steps:has(> button:nth-child(4)) { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .club-workspace-shell.workspace-refresh .workspace-editor__layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .club-workspace-shell.workspace-refresh .workspace-editor__aside { position: static; }
+  .workspace-refresh .ops-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .club-workspace-shell.workspace-refresh .op-steps button { padding: 12px 8px; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .workspace-refresh .op-steps button > svg { display: none; }
+  .workspace-refresh .op-steps strong { font-size: 11px; overflow-wrap: anywhere; }
+}
+@media (max-width: 650px) {
+  .attendance-sessions { padding: 20px 16px; }
+  .workspace-refresh .workspace-record-tools { flex-wrap: wrap; }
+  .workspace-refresh .workspace-record-tools label { width: 100%; }
+  .workspace-refresh .work-register .work-row { flex-wrap: wrap; }
+  .workspace-refresh .work-register-actions { flex-wrap: wrap; justify-content: flex-start; width: calc(100% - 46px); margin: 6px 0 0 46px; }
+}
+@media (prefers-reduced-motion: reduce) { .club-ops .attendance-session { transition: none; } }
+
+/* Refresh the squad shell and roster only. Existing player cards stay intact. */
+.workspace-refresh .sw-workspace { gap: 22px; }
+.workspace-refresh .sw-squad-option { flex-basis: 150px; border-radius: 10px; padding: 14px; }
+.workspace-refresh .sw-squad-option[aria-pressed="true"] { background: var(--color-surface); border-color: var(--fc-accent); box-shadow: inset 0 -2px var(--fc-accent); }
+.workspace-refresh .sw-squad-option[aria-pressed="true"] .sw-squad-category { color: var(--fc-accent); }
+.workspace-refresh .sw-roster-header { background: var(--sd-surface); padding: 22px; border: 1px solid var(--sd-border); border-bottom: 0; border-radius: 14px 14px 0 0; }
+.workspace-refresh .wo-squad-nav { background: var(--sd-surface); border: 1px solid var(--sd-border); border-top: 0; border-radius: 0 0 14px 14px; padding: 0 22px 18px; }
+.workspace-refresh .sw-squad-mark { background: var(--sd-accent-soft); border-color: var(--fc-accent-border); }
+.workspace-refresh .sw-roster-controls { background: var(--color-inset); }
+.workspace-refresh .sr-table-scroll { border-radius: 11px; }
+.workspace-refresh .sr-table th { background: var(--color-inset); }
+.workspace-refresh .sr-table tbody tr:hover { background: var(--sd-elevated); }
+
+/* Position groups aid scanning without adding claims about a player's record. */
+.workspace-refresh .sr-table-groups > section {
+  --sr-position-color: var(--color-secondary);
+  border: 1px solid var(--sd-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--sd-surface);
+}
+.workspace-refresh .sr-table-groups > section + section { margin-top: 18px; }
+.workspace-refresh .sr-table-groups > [data-position-group="Goalkeepers"] { --sr-position-color: var(--color-warning); }
+.workspace-refresh .sr-table-groups > [data-position-group="Defenders"] { --sr-position-color: var(--color-info); }
+.workspace-refresh .sr-table-groups > [data-position-group="Midfielders"] { --sr-position-color: var(--color-purple); }
+.workspace-refresh .sr-table-groups > [data-position-group="Forwards"] { --sr-position-color: var(--color-accent); }
+.workspace-refresh .sr-table-groups .sr-group-heading { gap: 8px; padding: 13px 16px; margin: 0; }
+.workspace-refresh .sr-table-groups .sr-group-heading::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--sr-position-color); flex-shrink: 0; }
+.workspace-refresh .sr-table-groups .sr-group-heading h3 { text-transform: uppercase; letter-spacing: .07em; font-size: 11px; }
+.workspace-refresh .sr-table-groups .sr-group-heading > span { height: 20px; min-width: 20px; background: var(--color-elevated); }
+.workspace-refresh .sr-table-groups .sr-table-scroll { border: 0; border-radius: 0; }
+.workspace-refresh .sr-table-groups .sr-table th { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; padding-block: 10px; border-top: 1px solid var(--sd-border); }
+.workspace-refresh .sr-table-groups :is(.sr-number, .sr-number-button) { display: inline-grid; place-items: center; min-width: 30px; min-height: 30px; font-size: 13px; border-radius: 8px; color: var(--sr-position-color); background: color-mix(in srgb, var(--sr-position-color) 8%, var(--color-inset)); }
+.workspace-refresh .sr-table-groups .sr-avatar { outline: 1px solid color-mix(in srgb, var(--sr-position-color) 50%, var(--color-border)); outline-offset: 2px; }
+.workspace-refresh .sr-position { display: inline-block; border-radius: 5px; padding: 4px 8px; font-size: 11px; font-weight: 600; color: var(--sr-position-color); background: color-mix(in srgb, var(--sr-position-color) 9%, var(--color-inset)); }
+.workspace-refresh .sr-table-groups .sr-col-age { color: var(--sd-text); font-variant-numeric: tabular-nums; }
+.workspace-refresh .wo-next-session { border-color: var(--fc-accent-border); background: var(--color-surface); border-radius: 10px; }
+.workspace-refresh .wo-next-session small { color: var(--sd-accent); }
+.workspace-refresh .wo-next-session > span:last-child { color: var(--sd-accent); }
+.workspace-refresh .wo-squad-nav .sd-segments button[aria-pressed="true"] { color: var(--color-on-accent); background: var(--sd-accent); }
+
+@media (max-width: 1200px) {
+  .workspace-refresh .club-overview-stat > span svg { padding: 7px; }
+  .workspace-refresh .club-overview-stat { padding: 14px 12px; gap: 7px; }
+  .workspace-refresh .wo-squads > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .wi-layout { grid-template-columns: minmax(0, 1fr) 240px; gap: 18px; }
+}
+@media (max-width: 1023px) {
+  .club-workspace-shell.workspace-refresh .workspace-mobile-bar {
+    display: grid;
+    width: 100%;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    padding-inline: 12px;
+  }
+  .workspace-refresh .workspace-mobile-bar > button { min-height: 44px; padding-inline: 9px; }
+  .workspace-refresh .workspace-mobile-bar > div { overflow: hidden; }
+  .club-workspace-shell.workspace-refresh .workspace-tab-content { padding: 12px 20px 40px; }
+  .club-workspace-shell.workspace-refresh .work-breadcrumb { padding-inline: 20px; }
+}
+@media (max-width: 760px) {
+  .workspace-refresh .club-overview-main-grid, .wi-layout { grid-template-columns: minmax(0, 1fr); }
+  .workspace-refresh .club-overview-side { grid-template-columns: minmax(0, 1fr); }
+  .workspace-refresh .club-overview-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .workspace-refresh .club-overview-stat > span { flex-direction: row; align-items: center; font-size: 11px; }
+  .workspace-refresh .club-overview-stat > strong { font-size: 23px; }
+  .workspace-refresh .club-overview-stat > svg { display: none; }
+  .wi-context { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+  .club-workspace-shell.workspace-refresh .workspace-tab-content { padding-inline: 14px; }
+  .club-workspace-shell.workspace-refresh .work-breadcrumb { padding-inline: 14px; }
+  .workspace-refresh .club-overview-heading-actions { flex-wrap: wrap; }
+  .workspace-refresh .club-overview-stat > span { flex-direction: column; align-items: flex-start; }
+  .workspace-refresh .club-overview-event-first { gap: 10px; padding: 12px; }
+  .workspace-refresh .club-overview-panel-heading { padding-inline: 16px; }
+  .workspace-refresh .wo-squads > div { grid-template-columns: minmax(0, 1fr); }
+  .workspace-refresh .sw-roster-header { padding: 16px; }
+  .workspace-refresh .wo-squad-nav { padding-inline: 16px; }
+  .wi-heading { flex-wrap: wrap; }
+  .wi-filters label { flex: 1 1 120px; }
+  .workspace-inbox .wi-item > button { padding: 14px; }
+  .workspace-inbox .wi-item > button > div > div:last-child > div:first-child { flex-direction: column; gap: 7px; }
+  .wi-context { grid-template-columns: minmax(0, 1fr); }
+  .workspace-refresh :is(.sd-button, .sd-primary, .sd-icon-button, .wi-area-links button, .wi-mark-read, .wi-filters select) { min-height: 44px; }
+}
+@container club-overview (max-width: 760px) {
+  .workspace-refresh .club-overview-main-grid { grid-template-columns: minmax(0, 1fr); }
+  .workspace-refresh .club-overview-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspace-refresh .club-overview-stat > span { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-refresh * { scroll-behavior: auto; }
+}

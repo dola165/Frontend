@@ -1,4 +1,21 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { usePostReactions } from '../hooks/usePostReactions';
+import { reactionFields } from '../components/feed/reactions';
+import { usePagedProfilePosts } from '../hooks/usePagedProfilePosts';
+import { ProfilePostPagination } from '../components/profile/ProfilePostPagination';
+import '../components/profile/profile-layout.css';
+import { RepresentationPanel, RepresentationShortcut } from '../features/agents/RepresentationPanel';
+import { ClubApproachesPanel } from '../features/agents/ClubApproachesPanel';
+import { ReportControl } from '../features/moderation/Reporting';
+import { ConnectionsDialog } from '../components/profile/ConnectionsDialog';
+import { RoleProfileSummary } from '../features/roles/RoleProfileSummary';
+import { ProfileCareer } from '../features/roles/ProfileCareer';
+import { roleLabel, profileRoles, isProfessionalRole, type FootballProfile, type RoleProfile } from '../features/roles/domain';
+import { formatDate } from '../utils/formatting';
+import { ImageCropperModal } from '../ui/ImageCropperModal';
+import { CROP_IMAGE_ACCEPT } from '../utils/cropImageHelper';
+import { useIdentityImageEditor } from '../hooks/useIdentityImageEditor';
+import { MediaImage } from '../components/ui/MediaImage';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -14,6 +31,7 @@ import {
     Loader2,
     MapPin,
     MessageCircle,
+    PlayCircle,
     Ruler,
     Share2,
     ShieldCheck,
@@ -43,6 +61,8 @@ interface CareerHistoryDto {
 }
 
 interface UserProfile {
+    footballProfile?: FootballProfile | null;
+    roleProfiles?: RoleProfile[];
     id: number;
     username: string;
     fullName?: string | null;
@@ -84,7 +104,7 @@ interface FollowedClubBrief {
 }
 
 const normalizeTab = (value: string | null): ProfileTab => {
-    if (value === 'stats') return 'stats';
+    if (value === 'stats' || value === 'career' || value === 'portfolio') return 'stats';
     if (value === 'images' || value === 'media') return 'images';
     if (value === 'videos') return 'videos';
     return 'about'; // default + legacy 'feed'/'timeline'
@@ -100,7 +120,7 @@ const timeAgo = (iso: string, t: (key: string, options?: Record<string, unknown>
     if (hours < 24) return t('userProfile.hoursAgo', { count: hours });
     const days = Math.floor(hours / 24);
     if (days < 7) return t('userProfile.daysAgo', { count: days });
-    return new Date(iso).toLocaleDateString();
+    return formatDate(iso);
 };
 
 const StatCard = ({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: string | number }) => (
@@ -151,11 +171,11 @@ export const UserProfilePage = () => {
 
     const bannerInputRef = useRef<HTMLInputElement>(null);
     const avatarInputRef = useRef<HTMLInputElement>(null);
-    const [uploading, setUploading] = useState<'banner' | 'avatar' | null>(null);
     const [profileError, setProfileError] = useState('');
 
     const [profile, setProfile] = useState<UserProfile | null>(null);
-    const [posts, setPosts] = useState<FeedPostDto[]>([]);
+    const postPages = usePagedProfilePosts(`/posts/user/${id}`);
+    const { posts, setPosts } = postPages;
     const [loading, setLoading] = useState(true);
     const [selectedPost, setSelectedPost] = useState<FeedPostDto | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(getStoredUserId());
@@ -167,8 +187,25 @@ export const UserProfilePage = () => {
     const [likeErrors, setLikeErrors] = useState<Record<number, string | null>>({});
     const [followedClubs, setFollowedClubs] = useState<FollowedClubBrief[]>([]);
     const [followedClubsLoading, setFollowedClubsLoading] = useState(false);
+    const [detailsExpanded, setDetailsExpanded] = useState(searchParams.has('representation'));
 
-    const activeTab = normalizeTab(searchParams.get('tab'));
+    useEffect(() => {
+        if (!profile?.id || !searchParams.has('representation')) return;
+        const frame = requestAnimationFrame(() => document.getElementById('representation')?.scrollIntoView({ block: 'center' }));
+        return () => cancelAnimationFrame(frame);
+    }, [profile?.id, searchParams]);
+
+    useEffect(() => {
+        setCommentsData({}); setCommentsErrors({}); setCommentsLoading({}); setOpenComments({}); setPendingLikes({}); setLikeErrors({}); setSelectedPost(null);
+    }, [postPages.pageKey]);
+
+    const connections = searchParams.get('connections');
+    const setConnections = (kind: 'followers' | 'following' | null) => {
+        const params = new URLSearchParams(searchParams);
+        if (kind) params.set('connections', kind); else params.delete('connections');
+        setSearchParams(params, { replace: true, preventScrollReset: true });
+    };
+    const requestedTab = normalizeTab(searchParams.get('tab'));
     const isMyProfile = profile != null && String(profile.id) === currentUserId;
 
     useEffect(() => {
@@ -204,7 +241,7 @@ export const UserProfilePage = () => {
         }
     };
 
-    const fetchProfile = async (showLoading = true) => {
+    const fetchProfile = useCallback(async (showLoading = true, signal?: AbortSignal) => {
         if (!id) return;
 
         if (showLoading) {
@@ -212,29 +249,26 @@ export const UserProfilePage = () => {
         }
 
         try {
-            const [userRes, postsRes] = await Promise.all([
-                apiClient.get(`/users/${id}`),
-                apiClient.get(`/posts/user/${id}`).catch(() => ({ data: { posts: [] } }))
-            ]);
-
+            const userRes = await apiClient.get(`/users/${id}`, { signal });
+            if (signal?.aborted) return;
             setProfile(userRes.data);
-            setPosts(postsRes.data?.posts || []);
         } catch (err) {
+            if (signal?.aborted) return;
             console.error('Failed to fetch user profile', err);
             setProfile(null);
-            setPosts([]);
             setCommentsData({});
         } finally {
-            if (showLoading) {
+            if (showLoading && !signal?.aborted) {
                 setLoading(false);
             }
         }
-    };
+    }, [id]);
 
     useEffect(() => {
-        apiClient.get('/users/me')
+        const controller = new AbortController();
+        apiClient.get('/users/me', { signal: controller.signal })
             .then((res) => {
-                if (res.data?.id != null) {
+                if (!controller.signal.aborted && res.data?.id != null) {
                     const userId = String(res.data.id);
                     setCurrentUserId(userId);
                     setStoredUserId(userId);
@@ -242,8 +276,9 @@ export const UserProfilePage = () => {
             })
             .catch(() => undefined);
 
-        void fetchProfile();
-    }, [id]);
+        void fetchProfile(true, controller.signal);
+        return () => controller.abort();
+    }, [fetchProfile]);
 
     const setActiveTab = (tab: ProfileTab) => {
         const nextParams = new URLSearchParams(searchParams);
@@ -255,41 +290,17 @@ export const UserProfilePage = () => {
         setSearchParams(nextParams, { replace: true });
     };
 
-    const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
-        if (!event.target.files || !event.target.files[0]) return;
-
-        const file = event.target.files[0];
-        setUploading(type);
-
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-            const mediaRes = await apiClient.post('/media/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-                params: { context: type }
-            });
-            const imageUrl = mediaRes.data?.url;
-
-            if (!imageUrl) {
-                throw new Error('Upload did not return a media URL.');
-            }
-
-            await apiClient.put('/users/me', {
-                [type === 'avatar' ? 'avatarUrl' : 'bannerUrl']: imageUrl
-            });
-
-            await fetchProfile(false);
-        } catch (err) {
-            console.error('Upload failed', err);
-            setProfileError('Failed to update profile image.');
-            setTimeout(() => setProfileError(''), 4000);
-        } finally {
-            setUploading(null);
-            if (event.target) {
-                event.target.value = '';
-            }
-        }
+    const imageEditor = useIdentityImageEditor(async (type, url) => {
+        if (!isMyProfile) throw new Error('You can only change your own profile photos.');
+        const field = type === 'avatar' ? 'avatarUrl' : 'bannerUrl';
+        await apiClient.put('/users/me', { [field]: url });
+        setProfile(current => current?.id === profile?.id ? { ...current, [field]: url } : current);
+    }, `user:${id}:${currentUserId}`);
+    const { uploading } = imageEditor;
+    const handleImageUpload = (event: ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (isMyProfile) void imageEditor.select(file, type);
     };
 
     const handleFollowToggle = async () => {
@@ -313,6 +324,12 @@ export const UserProfilePage = () => {
             });
         }
     };
+
+    const reactions = usePostReactions(postPages.pageKey, saved => {
+        const update = (post: FeedPostDto) => post.id === saved.id ? reactionFields(post, saved) : post;
+        setPosts(current => current.map(update));
+        setSelectedPost(current => current ? update(current) : null);
+    });
 
     const handleLikeToggle = async (postId: number) => {
         if (pendingLikes[postId]) return;
@@ -369,7 +386,7 @@ export const UserProfilePage = () => {
                     key: `${post.id}-${index}`,
                     postId: post.id,
                     url,
-                    kind: /\.(mp4|mov|webm)$/i.test(resolvedUrl) ? 'video' : 'image',
+                    kind: /\.(mp4|mov|webm)(?:[?#].*)?$/i.test(resolvedUrl) ? 'video' : 'image',
                     createdAt: post.createdAt,
                     summary: post.content || 'Profile media'
                 };
@@ -413,6 +430,7 @@ export const UserProfilePage = () => {
                     <button
                         key={entry.key}
                         type="button"
+                        aria-label={entry.kind === 'video' ? `Open video from post ${entry.postId}` : `View image from post ${entry.postId}`}
                         onClick={() => {
                             setSelectedPost(relatedPost);
                             if (relatedPost) {
@@ -422,15 +440,18 @@ export const UserProfilePage = () => {
                         className="group relative overflow-hidden rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] aspect-square"
                     >
                         {entry.kind === 'video' ? (
-                            <video src={mediaUrl} className="h-full w-full object-cover" />
+                            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[color:var(--color-elevated)]/85 px-2 text-center text-[color:var(--color-text)]">
+                                <PlayCircle className="h-10 w-10" aria-hidden="true" />
+                                <span className="text-xs font-semibold">Video · Open to play</span>
+                            </div>
                         ) : (
-                            <img src={mediaUrl} alt="Profile media" className="h-full w-full object-cover" />
+                            <MediaImage src={mediaUrl} alt="Profile media" loading="lazy" className="h-full w-full object-cover" />
                         )}
-                        <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/40 flex items-center justify-center">
-                            <span className="opacity-0 group-hover:opacity-100 text-[10px] font-semibold text-white uppercase tracking-[0.08em] transition-opacity">
-                                {entry.kind === 'video' ? 'Play' : 'View Post'}
+                        {entry.kind === 'image' && <div className="absolute inset-0 bg-[color:var(--color-overlay)]/0 transition-colors group-hover:bg-[color:var(--color-overlay)]/40 flex items-center justify-center">
+                            <span className="opacity-0 group-hover:opacity-100 text-[10px] font-semibold text-[color:var(--color-text)] uppercase tracking-[0.08em] transition-opacity">
+                                View Post
                             </span>
-                        </div>
+                        </div>}
                     </button>
                 );
             })}
@@ -463,8 +484,8 @@ export const UserProfilePage = () => {
     // --- Loading state ---
     if (loading) {
         return (
-            <div className="club-page-shell bg-[#0f1117] flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#16a34a] border-t-transparent" />
+            <div className="club-page-shell bg-[var(--color-surface)] flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-[var(--color-accent)] border-t-transparent" />
             </div>
         );
     }
@@ -472,11 +493,11 @@ export const UserProfilePage = () => {
     // --- Not-found state ---
     if (!profile) {
         return (
-            <div className="club-page-shell bg-[#0f1117] flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center px-6">
-                <div className="bg-[#16181d] border border-[#ffffff0d] px-8 py-10 text-center">
-                    <ShieldCheck className="mx-auto mb-4 h-12 w-12 text-[#16a34a]" />
-                    <h2 className="text-xl font-semibold  text-[#f4f4f5]">Profile Not Found</h2>
-                    <button type="button" onClick={() => navigate(-1)} className="mt-4 text-sm font-semibold  text-[#16a34a]">
+            <div className="club-page-shell bg-[var(--color-surface)] flex min-h-[calc(100vh-var(--app-header-height))] items-center justify-center px-6">
+                <div className="bg-[var(--color-surface)] border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-8 py-10 text-center">
+                    <ShieldCheck className="mx-auto mb-4 h-12 w-12 text-[var(--color-accent)]" />
+                    <h2 className="text-xl font-semibold  text-[var(--color-text)]">Profile Not Found</h2>
+                    <button type="button" onClick={() => navigate(-1)} className="mt-4 text-sm font-semibold  text-[var(--color-accent)]">
                         Go Back
                     </button>
                 </div>
@@ -492,11 +513,15 @@ export const UserProfilePage = () => {
         ? Math.floor((Date.now() - new Date(profile.dateOfBirth).getTime()) / 31556952000)
         : null;
 
-    const isPlayer = profile.role === 'PLAYER';
+    const identities = profileRoles(profile);
+    const canSeeDetails = !profile.isPrivate || isMyProfile;
+    const isPlayer = canSeeDetails && identities.includes('PLAYER');
+    const isProfessional = canSeeDetails && (identities.some(isProfessionalRole) || (isMyProfile && !!profile.footballProfile?.entries.length));
+    const activeTab = requestedTab === 'stats' && !isProfessional ? 'about' : requestedTab;
 
     const tabs: Array<{ id: ProfileTab; label: string; icon: typeof Activity }> = [
         { id: 'about', label: t('userProfile.tabs.about'), icon: UserRound },
-        ...(isPlayer ? [{ id: 'stats' as ProfileTab, label: t('userProfile.tabs.career'), icon: Trophy }] : []),
+        ...(isProfessional ? [{ id: 'stats' as ProfileTab, label: 'Career', icon: Trophy }] : []),
         { id: 'images', label: t('userProfile.tabs.images'), icon: Image },
         { id: 'videos', label: t('userProfile.tabs.videos'), icon: Film },
     ];
@@ -512,6 +537,52 @@ export const UserProfilePage = () => {
                     </p>
                 </div>
             )}
+            {(!profile.isPrivate || isMyProfile) && <>
+                                    <RoleProfileSummary profiles={profile.roleProfiles ?? []} />
+                                    {isMyProfile && <Link to="/account/roles" className="text-sm font-semibold text-[var(--club-tone-green)]">Edit football roles →</Link>}
+                                    <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <UserRound className="h-4 w-4 text-[color:var(--club-tone-green)]" />
+                                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)]">{t('userProfile.aboutTitle')}</p>
+                                        </div>
+                                        <p className="mt-3 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
+                                            {profile.bio || t('userProfile.bioEmpty')}
+                                        </p>
+                                        {profile.availabilityStatus && (
+                                            <p className="mt-3 text-xs font-semibold text-[color:var(--club-tone-green)]">{profile.availabilityStatus}</p>
+                                        )}
+                                    </div>
+
+                                    {isProfessional && <ProfileCareer key={`overview-${profile.id}`} profile={profile} isMyProfile={isMyProfile} compact={activeTab !== 'stats'} onChanged={footballProfile => setProfile(current => current?.id === profile.id ? { ...current, footballProfile } : current)} />}
+                                    {activeTab === 'stats' && isPlayer && <>
+                                    {/* Career totals */}
+                                    <div className="profile-stat-grid">
+                                        <StatCard icon={Building2} label="Clubs" value={careerTotals.clubs} />
+                                        <StatCard icon={Activity} label="Apps" value={careerTotals.appearances} />
+                                        <StatCard icon={Trophy} label="Goals" value={careerTotals.goals} />
+                                        <StatCard icon={Users} label="Assists" value={careerTotals.assists} />
+                                        <StatCard icon={ShieldCheck} label="Clean Sheets" value={careerTotals.cleanSheets} />
+                                    </div>
+
+                                    {/* Career history */}
+                                    {(profile.careerHistory || []).length === 0 ? (
+                                        <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
+                                            <BarChart3 className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
+                                            <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
+                                                Career history has not been published for this profile yet.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {(profile.careerHistory || []).map((entry) => (
+                                                <CareerEntryCard key={entry.id} entry={entry} />
+                                            ))}
+                                        </div>
+                                    )}
+                                    </>}
+            </>}
+            <RepresentationPanel profileId={profile.id} own={isMyProfile} roles={profileRoles(profile)} />
+            {isMyProfile && <ClubApproachesPanel mode="participant" />}
             {/* Followed clubs — real follow data on the owner's own profile */}
             {isMyProfile && (
                 <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] p-5">
@@ -545,7 +616,7 @@ export const UserProfilePage = () => {
                                     <li key={club.id}>
                                         <Link to={`/clubs/${club.id}`} className="group flex items-center gap-2.5">
                                             <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-base)] text-[10px] font-bold text-[color:var(--club-theme-text-primary)]">
-                                                {clubLogoUrl ? <img src={clubLogoUrl} alt="" className="h-full w-full object-cover" /> : club.name.substring(0, 2).toUpperCase()}
+                                                {clubLogoUrl ? <MediaImage src={clubLogoUrl} alt="" className="h-full w-full object-cover" /> : club.name.substring(0, 2).toUpperCase()}
                                             </span>
                                             <span className="min-w-0">
                                                 <span className="block truncate text-xs font-semibold text-[color:var(--club-theme-text-primary)] group-hover:underline">{club.name}</span>
@@ -683,7 +754,7 @@ export const UserProfilePage = () => {
                                 <button
                                     type="button"
                                     onClick={() => openPost(post)}
-                                    className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/[0.03]"
+                                    className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[color:var(--color-ink)]/[0.03]"
                                 >
                                     <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--club-tone-green-soft)]">
                                         {(post.mediaUrls && post.mediaUrls.length > 0) || post.image ? (
@@ -710,11 +781,12 @@ export const UserProfilePage = () => {
     );
 
     // --- Client-side action buttons ---
-    const systemBtnClass = 'inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-4 py-3 text-[11px] font-semibold  text-[color:var(--club-theme-text-primary)] transition-colors hover:bg-white/[0.07]';
-    const accentBtnClass = 'inline-flex items-center gap-2 rounded-full border border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green)] px-5 py-3 text-[11px] font-semibold  text-[#04110a] transition-all hover:brightness-105';
+    const systemBtnClass = 'inline-flex items-center gap-2 rounded-full border border-[color:var(--color-border)]/8 bg-[color:var(--color-ink)]/[0.04] px-4 py-3 text-[11px] font-semibold  text-[color:var(--club-theme-text-primary)] transition-colors hover:bg-[color:var(--color-ink)]/[0.07]';
+    const accentBtnClass = 'inline-flex items-center gap-2 rounded-full border border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green)] px-5 py-3 text-[11px] font-semibold  text-[var(--color-on-accent)] transition-all hover:brightness-105';
 
     return (
         <div className="club-page-shell min-h-full bg-[color:var(--club-theme-base)]">
+            {(connections === 'followers' || connections === 'following') && (!profile.isPrivate || isMyProfile) && <ConnectionsDialog key={`${profile.id}-${connections}`} userId={profile.id} kind={connections} showFollowingStatus={connections === 'following' && isMyProfile} onClose={() => setConnections(null)} />}
             {/* Error toast */}
             {profileError && (
                 <div className="mt-4 flex w-full items-center gap-3 rounded-[4px] border border-[color:var(--state-danger)]/30 bg-[color:var(--state-danger-soft)] px-4 py-3 text-sm font-semibold text-[color:var(--state-danger)]">
@@ -725,24 +797,24 @@ export const UserProfilePage = () => {
             {/* ===== HERO SECTION ===== */}
             <section className="border-b border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-band)]">
                 {/* Banner area */}
-                <div className="relative h-[240px] sm:h-[300px] lg:h-[360px] overflow-hidden">
+                <div className={`relative overflow-hidden ${bannerUrl ? 'h-[200px] sm:h-[240px]' : 'h-[120px] sm:h-[150px]'}`}>
                     {bannerUrl ? (
-                        <img src={bannerUrl} alt={`${displayName} banner`} className="h-full w-full object-cover object-top" />
+                        <MediaImage src={bannerUrl} alt={`${displayName} banner`} className="h-full w-full object-cover object-top" />
                     ) : (
                         <div className="h-full w-full bg-[color:var(--club-theme-surface)]" />
                     )}
 
-                    {/* Gradient overlay — dark fade to bottom */}
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,9,16,0.04)_0%,rgba(5,9,16,0.55)_40%,rgba(5,9,16,0.92)_75%,#050910_100%)]" />
+                    {/* Gradient overlay blends into the current theme */}
+                    <div className="absolute inset-0 bg-[image:var(--color-hero-scrim)]" />
 
                     {/* Ambient radial glows */}
-                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(30,144,255,0.08),transparent_30%),radial-gradient(circle_at_top_left,rgba(34,197,94,0.08),transparent_26%)]" />
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,color-mix(in_srgb,_var(--color-info)_8%,_transparent),transparent_30%),radial-gradient(circle_at_top_left,color-mix(in_srgb,_var(--color-accent)_8%,_transparent),transparent_26%)]" />
 
                     {/* Back button */}
                     <button
                         type="button"
                         onClick={() => navigate(-1)}
-                        className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/24 px-3 py-2 text-[11px] font-semibold  text-white backdrop-blur-md transition-colors hover:bg-black/40"
+                        className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-[color:var(--color-on-media)]/20 bg-[color:var(--color-overlay)]/75 px-3 py-2 text-[11px] font-semibold text-[color:var(--color-on-media)] backdrop-blur-md transition-colors hover:bg-[color:var(--color-overlay)]/90"
                     >
                         <ArrowLeft className="h-4 w-4" />
                         Back
@@ -754,27 +826,28 @@ export const UserProfilePage = () => {
                             <button
                                 type="button"
                                 onClick={() => bannerInputRef.current?.click()}
-                                className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/24 px-3 py-2 text-[11px] font-semibold  text-white backdrop-blur-md transition-colors hover:bg-black/40"
+                                disabled={!!uploading}
+                                className="inline-flex items-center gap-2 rounded-full border border-[color:var(--color-on-media)]/20 bg-[color:var(--color-overlay)]/75 px-3 py-2 text-[11px] font-semibold text-[color:var(--color-on-media)] backdrop-blur-md transition-colors hover:bg-[color:var(--color-overlay)]/90"
                             >
                                 {uploading === 'banner' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                                 Banner
                             </button>
-                            <input type="file" ref={bannerInputRef} className="hidden" accept="image/*" onChange={(event) => handleImageUpload(event, 'banner')} />
+                            <input type="file" ref={bannerInputRef} className="hidden" accept={CROP_IMAGE_ACCEPT} onChange={(event) => handleImageUpload(event, 'banner')} />
                         </div>
                     )}
                 </div>
 
                 {/* Hero content area */}
-                <div className="bg-[#050910]">
-                    <div className="relative w-full py-6 lg:py-8">
+                <div className="bg-[color:var(--club-theme-surface)]">
+                    <div className="club-profile-frame mx-auto relative w-full py-6 lg:py-8">
                         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                             {/* Left: Avatar + Identity */}
                             <div className="flex flex-col gap-6 lg:flex-row lg:items-end">
                                 {/* Avatar — overlaps banner bottom */}
                                 <div className="relative -mt-[76px] shrink-0 sm:-mt-[96px] lg:-mt-[112px]">
-                                    <div className="h-24 w-24 sm:h-28 sm:w-28 lg:h-36 lg:w-36 overflow-hidden rounded-xl border-[5px] border-[color:var(--club-band)] bg-[rgba(6,11,18,0.92)] shadow-[0_18px_44px_rgba(2,6,12,0.35)]">
+                                    <div className="h-24 w-24 sm:h-28 sm:w-28 lg:h-36 lg:w-36 overflow-hidden rounded-xl border-[5px] border-[color:var(--club-band)] bg-[color-mix(in_srgb,_var(--color-page)_92%,_transparent)] shadow-[0_18px_44px_color-mix(in_srgb,_var(--color-shadow)_35%,_transparent)]">
                                         {avatarUrl ? (
-                                            <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+                                            <MediaImage src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
                                         ) : (
                                             <div className="flex h-full w-full items-center justify-center text-2xl font-semibold uppercase text-[color:var(--club-theme-text-primary)]">
                                                 {initials}
@@ -785,12 +858,14 @@ export const UserProfilePage = () => {
                                         <>
                                             <button
                                                 type="button"
+                                                aria-label="Change profile photo"
                                                 onClick={() => avatarInputRef.current?.click()}
-                                                className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-black/34 text-[color:var(--club-theme-text-primary)] transition-colors hover:bg-white/[0.12]"
+                                                disabled={!!uploading}
+                                                className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-elevated)] text-[color:var(--color-text)] transition-colors hover:bg-[color:var(--color-inset)]"
                                             >
                                                 {uploading === 'avatar' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                                             </button>
-                                            <input type="file" ref={avatarInputRef} className="hidden" accept="image/*" onChange={(event) => handleImageUpload(event, 'avatar')} />
+                                            <input type="file" ref={avatarInputRef} className="hidden" accept={CROP_IMAGE_ACCEPT} onChange={(event) => handleImageUpload(event, 'avatar')} />
                                         </>
                                     )}
                                 </div>
@@ -803,7 +878,7 @@ export const UserProfilePage = () => {
                                     <p className="mt-0.5 text-sm text-[color:var(--club-theme-text-secondary)]">@{profile.username}</p>
 
                                     <div className="mt-2 flex flex-wrap items-center gap-2">
-                                        <StatusBadge tone="neutral">{profile.role}</StatusBadge>
+                                        {identities.map(role => <StatusBadge key={role} tone={isProfessionalRole(role) ? 'success' : 'neutral'}>{roleLabel(role)}</StatusBadge>)}
                                         {profile.availabilityStatus && <StatusBadge tone="info">{profile.availabilityStatus}</StatusBadge>}
                                     </div>
 
@@ -820,11 +895,13 @@ export const UserProfilePage = () => {
                                     )}
 
                                     <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
-                                        <span className="font-bold text-[color:var(--club-theme-text-primary)]">{profile.followerCount}</span>
-                                        <span className="text-[color:var(--club-theme-text-secondary)]">{t('userProfile.followers')}</span>
+                                        <button type="button" onClick={() => setConnections('followers')} disabled={profile.isPrivate && !isMyProfile} className="rounded-md px-1 py-2 hover:underline focus-visible:outline-2 focus-visible:outline-[color:var(--color-accent)] disabled:cursor-default disabled:no-underline" title={profile.isPrivate && !isMyProfile ? 'Connections are private' : undefined}>
+                                            <strong>{profile.followerCount}</strong> <span className="text-[color:var(--club-theme-text-secondary)]">{t('userProfile.followers')}</span>
+                                        </button>
                                         <span className="h-1 w-1 rounded-full bg-[color:var(--club-divider-dot)]" />
-                                        <span className="font-bold text-[color:var(--club-theme-text-primary)]">{profile.followingCount}</span>
-                                        <span className="text-[color:var(--club-theme-text-secondary)]">{t('userProfile.following')}</span>
+                                        <button type="button" onClick={() => setConnections('following')} disabled={profile.isPrivate && !isMyProfile} className="rounded-md px-1 py-2 hover:underline focus-visible:outline-2 focus-visible:outline-[color:var(--color-accent)] disabled:cursor-default disabled:no-underline" title={profile.isPrivate && !isMyProfile ? 'Connections are private' : undefined}>
+                                            <strong>{profile.followingCount}</strong> <span className="text-[color:var(--club-theme-text-secondary)]">{t('userProfile.following')}</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -841,6 +918,7 @@ export const UserProfilePage = () => {
                                             <ShieldCheck className="h-4 w-4" />
                                             Account Center
                                         </button>
+                                        <Link to="/reports" className={systemBtnClass}>Reports &amp; safety</Link>
                                         <button
                                             type="button"
                                             onClick={() => navigate('/notifications?scope=personal')}
@@ -859,6 +937,8 @@ export const UserProfilePage = () => {
                                         >
                                             {profile.isFollowedByMe ? 'Following' : 'Follow'}
                                         </button>
+                                        <ReportControl targetType="ACCOUNT" targetId={profile.id} personId={profile.id} className={systemBtnClass} />
+                                        <RepresentationShortcut profileId={profile.id} className={accentBtnClass} onOpen={() => { setDetailsExpanded(true); requestAnimationFrame(() => document.getElementById('representation')?.scrollIntoView({block:'center',behavior:'smooth'})); }} />
                                         <button
                                             type="button"
                                             onClick={() => navigate(`/messages?chatWith=${profile.id}`)}
@@ -880,9 +960,9 @@ export const UserProfilePage = () => {
             </section>
 
             {/* ===== STICKY TAB BAR ===== */}
-            <div className="border-b border-[color:var(--club-theme-border-subtle)] bg-[rgba(5,9,16,0.96)]">
-                <div className="w-full overflow-x-auto">
-                    <div className="flex min-w-max items-stretch gap-2.5 py-3">
+            <div className="border-b border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-theme-surface)]">
+                <div className="club-profile-frame mx-auto w-full overflow-x-auto">
+                    <div role="tablist" aria-label="Profile sections" className="flex min-w-max items-stretch gap-2.5 py-3">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
                             const isActive = activeTab === tab.id;
@@ -891,10 +971,24 @@ export const UserProfilePage = () => {
                                     key={tab.id}
                                     type="button"
                                     onClick={() => setActiveTab(tab.id)}
+                                    role="tab"
+                                    id={`profile-tab-${tab.id}`}
+                                    aria-selected={isActive}
+                                    aria-controls="profile-tab-panel"
+                                    tabIndex={isActive ? 0 : -1}
+                                    onKeyDown={event => {
+                                        const index = tabs.findIndex(item => item.id === tab.id);
+                                        const next = event.key === 'ArrowRight' ? (index + 1) % tabs.length
+                                            : event.key === 'ArrowLeft' ? (index - 1 + tabs.length) % tabs.length
+                                            : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : null;
+                                        if (next === null) return;
+                                        event.preventDefault();
+                                        document.getElementById(`profile-tab-${tabs[next].id}`)?.focus();
+                                    }}
                                     className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-left text-[12px] font-semibold transition-all ${
                                         isActive
                                             ? 'border-[color:var(--club-tone-green-border)] bg-[color:var(--club-tone-green-soft)] text-[color:var(--club-theme-text-primary)]'
-                                            : 'border-transparent bg-transparent text-[color:var(--club-theme-text-secondary)] hover:border-white/8 hover:bg-white/[0.04] hover:text-[color:var(--club-theme-text-primary)]'
+                                            : 'border-transparent bg-transparent text-[color:var(--club-theme-text-secondary)] hover:border-[color:var(--color-border)]/8 hover:bg-[color:var(--color-ink)]/[0.04] hover:text-[color:var(--club-theme-text-primary)]'
                                     }`}
                                 >
                                     <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-[color:var(--club-tone-green)]' : 'text-[color:var(--club-theme-text-secondary)]'}`} />
@@ -907,42 +1001,23 @@ export const UserProfilePage = () => {
             </div>
 
             {/* ===== CONTENT GRID ===== */}
-            <div className="w-full pb-10 pt-4">
-                <div className="grid gap-4 xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)_minmax(260px,320px)] xl:items-start">
-                    {/* LEFT PANEL — profile info */}
-                    <div className="hidden xl:block xl:sticky xl:top-[14px]">
-                        {leftPanel}
-                    </div>
-
-                    {/* CENTER — tab content */}
-                    <div className="min-w-0">
-                        {/* Mobile: profile info shown above content */}
-                        <div className="mb-6 xl:hidden">
-                            {leftPanel}
-                        </div>
-
-                        <div className="mx-auto flex w-full max-w-[760px] flex-col gap-4">
+            <div className="club-profile-frame mx-auto w-full pb-10 pt-4">
+                <div className="profile-content-grid">
+                    <aside className="profile-information" aria-label="Profile information">
+                        <button type="button" className="profile-details-toggle" aria-expanded={detailsExpanded || activeTab === 'stats' || searchParams.has('representation')} onClick={() => { const expanded = detailsExpanded || activeTab === 'stats' || searchParams.has('representation') || searchParams.has('representation'); const next = new URLSearchParams(searchParams); next.delete('representation'); if (activeTab === 'stats') next.delete('tab'); setSearchParams(next, { replace:true, preventScrollReset:true }); setDetailsExpanded(!expanded); }}>About & career</button>
+                        <div className={`profile-info-content ${detailsExpanded || activeTab === 'stats' || searchParams.has('representation') ? 'is-open' : ''}`}>{leftPanel}</div>
+                    </aside>
+                    <div className="profile-feed-column" aria-label="Profile feed">
+                        <div id="profile-tab-panel" role="tabpanel" aria-labelledby={`profile-tab-${activeTab}`} tabIndex={0} className="mx-auto flex w-full max-w-[760px] flex-col gap-4">
+                            {(postPages.loading || postPages.error) && <ProfilePostPagination {...postPages}/>}
                             {/* Tab: About me — bio + posts */}
-                            {activeTab === 'about' && (
+                            {(activeTab === 'about' || activeTab === 'stats') && (
                                 <>
-                                    <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <UserRound className="h-4 w-4 text-[color:var(--club-tone-green)]" />
-                                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--club-theme-text-muted)]">{t('userProfile.aboutTitle')}</p>
-                                        </div>
-                                        <p className="mt-3 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
-                                            {profile.bio || t('userProfile.bioEmpty')}
-                                        </p>
-                                        {profile.availabilityStatus && (
-                                            <p className="mt-3 text-xs font-semibold text-[color:var(--club-tone-green)]">{profile.availabilityStatus}</p>
-                                        )}
-                                    </div>
-
                                     {isMyProfile && (
-                                        <PostComposer authorName={displayName} avatarUrl={profile.avatarUrl} onPostCreated={() => void fetchProfile(false)} compact />
+                                        <PostComposer authorName={displayName} avatarUrl={profile.avatarUrl} onPostCreated={postPages.refresh} compact />
                                     )}
 
-                                    {posts.length === 0 ? (
+                                    {postPages.loading || postPages.error ? null : posts.length === 0 ? (
                                         <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
                                             <Activity className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
                                             <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
@@ -957,10 +1032,11 @@ export const UserProfilePage = () => {
                                                 isCommentsOpen={openComments[post.id]}
                                                 commentsData={commentsData[post.id]}
                                                 onLikeToggle={handleLikeToggle}
+    onReactionChange={reactions.change}
                                                 onToggleComments={toggleComments}
                                                 onSubmitComment={submitComment}
-                                                likePending={pendingLikes[post.id] === true}
-                                                likeError={likeErrors[post.id]}
+                                                likePending={reactions.pending[post.id] === true || pendingLikes[post.id] === true}
+                                                likeError={reactions.errors[post.id] || likeErrors[post.id]}
                                                 commentsError={commentsErrors[post.id]}
                                                 onRetryComments={(postId) => void loadComments(postId, true)}
                                                 onImageClick={() => {
@@ -970,36 +1046,6 @@ export const UserProfilePage = () => {
                                                 compact
                                             />
                                         ))
-                                    )}
-                                </>
-                            )}
-
-                            {/* Tab: Career Stats */}
-                            {activeTab === 'stats' && (
-                                <>
-                                    {/* Career totals */}
-                                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                                        <StatCard icon={Building2} label="Clubs" value={careerTotals.clubs} />
-                                        <StatCard icon={Activity} label="Apps" value={careerTotals.appearances} />
-                                        <StatCard icon={Trophy} label="Goals" value={careerTotals.goals} />
-                                        <StatCard icon={Users} label="Assists" value={careerTotals.assists} />
-                                        <StatCard icon={ShieldCheck} label="Clean Sheets" value={careerTotals.cleanSheets} />
-                                    </div>
-
-                                    {/* Career history */}
-                                    {(profile.careerHistory || []).length === 0 ? (
-                                        <div className="rounded-[4px] border border-[color:var(--club-theme-border-subtle)] bg-[color:var(--club-card)] px-5 py-12 text-center">
-                                            <BarChart3 className="mx-auto h-10 w-10 text-[color:var(--club-theme-text-muted)]" />
-                                            <p className="mt-4 text-sm leading-6 text-[color:var(--club-theme-text-secondary)]">
-                                                Career history has not been published for this profile yet.
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            {(profile.careerHistory || []).map((entry) => (
-                                                <CareerEntryCard key={entry.id} entry={entry} />
-                                            ))}
-                                        </div>
                                     )}
                                 </>
                             )}
@@ -1035,16 +1081,22 @@ export const UserProfilePage = () => {
                                     )}
                                 </>
                             )}
+                            {!postPages.loading && !postPages.error && <ProfilePostPagination {...postPages}/>}
                         </div>
                     </div>
 
                     {/* RIGHT PANEL — recent activity */}
-                    <div className="hidden xl:block xl:sticky xl:top-[14px]">
+                    <div className="profile-activity-column">
                         {rightPanel}
                     </div>
                 </div>
             </div>
 
+            {imageEditor.error && !imageEditor.source && <p role="alert" className="px-5 py-3 text-[color:var(--color-danger)]">{imageEditor.error}</p>}
+            {imageEditor.source && <ImageCropperModal isOpen imageUrl={imageEditor.source.imageUrl}
+                title={imageEditor.source.type === 'banner' ? 'Adjust cover photo' : 'Adjust profile photo'}
+                aspectRatio={imageEditor.source.type === 'banner' ? 3 : 1} roundPreview={imageEditor.source.type === 'avatar'}
+                onClose={imageEditor.close} onCropComplete={imageEditor.save} isProcessing={!!uploading} error={imageEditor.error}/>}
             {/* Post theater modal */}
             <PostTheaterModal
                 isOpen={!!selectedPost}
@@ -1053,8 +1105,9 @@ export const UserProfilePage = () => {
                 commentsData={selectedPost ? commentsData[selectedPost.id] : undefined}
                 onSubmitComment={submitComment}
                 onLikeToggle={handleLikeToggle}
-                likePending={selectedPost ? pendingLikes[selectedPost.id] === true : false}
-                likeError={selectedPost ? likeErrors[selectedPost.id] : null}
+    onReactionChange={reactions.change}
+                likePending={selectedPost ? reactions.pending[selectedPost.id] === true || pendingLikes[selectedPost.id] === true : false}
+                likeError={selectedPost ? reactions.errors[selectedPost.id] || likeErrors[selectedPost.id] : null}
                 commentsLoading={selectedPost ? commentsLoading[selectedPost.id] === true : false}
                 commentsError={selectedPost ? commentsErrors[selectedPost.id] : null}
                 onRetryComments={(postId) => void loadComments(postId, true)}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isAndroidApp } from '../../android/bridge';
 import { useTranslation } from 'react-i18next';
 import { Circle, Globe2, Map as MapIcon } from 'lucide-react';
 import type { MapMode } from './MapExperience';
@@ -44,7 +45,7 @@ export const MapModeControl = ({
             {/* Positioning (bottom-left, shifted right of the open drawer) is owned
                 by the route wrapper — this component only paints the pill. */}
             <div className="map-mode-toggle">
-                {MODES.map(({ id, label, icon: Icon }) => (
+                {MODES.filter(({ id }) => !(isAndroidApp && id === 'tilted' && !tiltedAvailable)).map(({ id, label, icon: Icon }) => (
                     <button
                         key={id}
                         type="button"
@@ -62,23 +63,23 @@ export const MapModeControl = ({
             </div>
 
             {pendingMode && (
-                <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-slate-900/50 p-4 dark:bg-black/60" onClick={onCancelWarning}>
+                <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-[color:var(--color-overlay)]/50 p-4 dark:bg-[color:var(--color-overlay)]/60" onClick={onCancelWarning}>
                     <div
-                        className="w-full max-w-sm rounded-[18px] border border-slate-200 bg-white/95 p-6 shadow-[0_8px_32px_rgba(15,23,42,0.12)] backdrop-blur-md dark:border-white/10 dark:bg-[#0d1016]/95 dark:shadow-[0_8px_32px_rgba(0,0,0,0.45)]"
+                        className="w-full max-w-sm rounded-[18px] border border-[color:var(--color-border)] bg-[color:var(--color-elevated)]/95 p-6 shadow-[0_8px_32px_color-mix(in_srgb,_var(--color-shadow)_12%,_transparent)] backdrop-blur-md dark:border-[color:var(--color-border)]/10 dark:bg-[var(--color-overlay)]/95 dark:shadow-[0_8px_32px_color-mix(in_srgb,_var(--color-shadow)_45%,_transparent)]"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{t('map.modes.heavyTitle')}</h2>
-                        <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        <h2 className="text-lg font-semibold text-[color:var(--color-text)] dark:text-[color:var(--color-text)]">{t('map.modes.heavyTitle')}</h2>
+                        <p className="mt-2 text-sm leading-6 text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">
                             {pendingMode === 'globe'
                                 ? t('map.modes.globeWarning')
                                 : t('map.modes.tiltedWarning')}
                         </p>
-                        <label className="mt-4 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                        <label className="mt-4 flex items-center gap-2 text-xs font-medium text-[color:var(--color-muted)] dark:text-[color:var(--color-muted)]">
                             <input
                                 type="checkbox"
                                 checked={dontShow}
                                 onChange={(e) => setDontShow(e.target.checked)}
-                                className="accent-emerald-700"
+                                className="accent-[var(--color-accent)]"
                             />
                             {t('map.modes.dontShowAgain')}
                         </label>
@@ -86,7 +87,7 @@ export const MapModeControl = ({
                             <button
                                 type="button"
                                 onClick={onCancelWarning}
-                                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
+                                className="rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-elevated)] px-4 py-2 text-sm font-medium text-[color:var(--color-text)] hover:bg-[color:var(--color-inset)] dark:border-[color:var(--color-border)]/10 dark:bg-[color:var(--color-ink)]/5 dark:text-[color:var(--color-text)] dark:hover:bg-[color:var(--color-ink)]/10"
                             >
                                 {t('map.modes.cancel')}
                             </button>
@@ -96,7 +97,7 @@ export const MapModeControl = ({
                                     if (dontShow) onDismissWarning(true);
                                     onConfirmMode();
                                 }}
-                                className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+                                className="rounded-full bg-[color:var(--color-accent)] px-4 py-2 text-sm font-semibold text-[color:var(--color-on-accent)] hover:bg-[color:var(--color-accent)]"
                             >
                                 {t('map.modes.switchTo', { mode: pendingMode === 'globe' ? 'Globe' : 'Tilted' })}
                             </button>

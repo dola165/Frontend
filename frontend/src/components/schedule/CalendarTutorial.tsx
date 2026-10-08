@@ -49,16 +49,31 @@ const Spotlight = ({ step, stepIndex, total, onNext, onBack, onSkip, onClose }: 
         const el = document.querySelector(`[data-tutorial="${step.target}"]`) as HTMLElement | null;
         if (!el) { setRect(null); return; }
         const r = el.getBoundingClientRect();
-        setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
+        setRect(previous => previous && previous.top === r.top && previous.left === r.left && previous.width === r.width && previous.height === r.height
+            ? previous : { top: r.top, left: r.left, width: r.width, height: r.height });
     }, [step.target]);
 
     useEffect(() => {
+        // Measure the external DOM before the first animation frame.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         updateRect();
-        const onFrame = () => { updateRect(); rafRef.current = requestAnimationFrame(onFrame); };
-        rafRef.current = requestAnimationFrame(onFrame);
-        window.addEventListener('resize', updateRect);
-        return () => { cancelAnimationFrame(rafRef.current); window.removeEventListener('resize', updateRect); };
-    }, [updateRect]);
+        // Measure only when the target or viewport changes, rather than forcing layout every frame.
+        const measure = () => {
+            cancelAnimationFrame(rafRef.current);
+            rafRef.current = requestAnimationFrame(updateRect);
+        };
+        const target = document.querySelector(`[data-tutorial="${step.target}"]`);
+        const observer = new ResizeObserver(measure);
+        if (target) observer.observe(target);
+        window.addEventListener('resize', measure);
+        document.addEventListener('scroll', measure, true);
+        return () => {
+            cancelAnimationFrame(rafRef.current);
+            observer.disconnect();
+            window.removeEventListener('resize', measure);
+            document.removeEventListener('scroll', measure, true);
+        };
+    }, [step.target, updateRect]);
 
     // Remove highlight from previous target
     useEffect(() => {
@@ -141,7 +156,7 @@ const Spotlight = ({ step, stepIndex, total, onNext, onBack, onSkip, onClose }: 
                             className="rounded-[var(--fc-radius)] px-2 py-1 text-[11px] font-medium text-[var(--fc-text-muted)] transition-colors hover:text-[var(--fc-text-secondary)]">
                             {t('tutorial.calendar.skipButton')}
                         </button>
-                        <button type="button" onClick={onClose}
+                        <button type="button" onClick={onClose} aria-label="Close schedule tutorial"
                             className="flex h-7 w-7 items-center justify-center rounded-[var(--fc-radius)] text-[var(--fc-text-muted)] transition-colors hover:bg-[var(--fc-surface-hover)] hover:text-[var(--fc-text-primary)]">
                             <X className="h-4 w-4" />
                         </button>
@@ -169,7 +184,7 @@ const Spotlight = ({ step, stepIndex, total, onNext, onBack, onSkip, onClose }: 
                             </button>
                         )}
                         <button type="button" onClick={onNext}
-                            className="inline-flex items-center gap-1.5 rounded-[var(--fc-radius)] bg-[var(--fc-accent)] px-3.5 py-1.5 text-xs font-semibold text-white transition-all hover:brightness-110">
+                            className="inline-flex items-center gap-1.5 rounded-[var(--fc-radius)] bg-[var(--fc-accent)] px-3.5 py-1.5 text-xs font-semibold text-[color:var(--color-on-accent)] transition-all hover:brightness-110">
                             {isLast ? (
                                 <>
                                     <Check className="h-3.5 w-3.5" />
@@ -189,12 +204,14 @@ const Spotlight = ({ step, stepIndex, total, onNext, onBack, onSkip, onClose }: 
     );
 };
 
-export const CalendarTutorial = ({ onComplete }: { onComplete: () => void }) => {
+export const CalendarTutorial = ({ onComplete, canCreate = true }: { onComplete: () => void; canCreate?: boolean }) => {
     const [stepIndex, setStepIndex] = useState(0);
     const [visible, setVisible] = useState(true);
+    const steps = canCreate ? STEPS : STEPS.filter(step => step.target !== 'calendar-new-event-btn');
+    const activeIndex = Math.min(stepIndex, steps.length - 1);
 
     const handleNext = () => {
-        if (stepIndex >= STEPS.length - 1) {
+        if (stepIndex >= steps.length - 1) {
             finish();
         } else {
             setStepIndex((s) => s + 1);
@@ -218,9 +235,9 @@ export const CalendarTutorial = ({ onComplete }: { onComplete: () => void }) => 
     return (
         <div className="pointer-events-none fixed inset-0 z-[10000]">
             <Spotlight
-                step={STEPS[stepIndex]}
-                stepIndex={stepIndex}
-                total={STEPS.length}
+                step={steps[activeIndex]}
+                stepIndex={activeIndex}
+                total={steps.length}
                 onNext={handleNext}
                 onBack={handleBack}
                 onSkip={handleSkip}

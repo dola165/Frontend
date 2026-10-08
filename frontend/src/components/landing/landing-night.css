@@ -1,0 +1,108 @@
+/* Charcoal surfaces, white type, and small points of colour. */
+.gk-landing { --landing-ink:var(--color-text); --landing-muted:var(--color-muted); --landing-green:var(--color-accent); --landing-line:color-mix(in srgb, var(--color-border) 7.84%, transparent); background:var(--color-page); color:var(--color-text); color-scheme:dark; }
+.landing-header,.landing-daylight { background:var(--color-page); color:var(--color-text); color-scheme:dark; }
+.landing-header { border-color:color-mix(in srgb, var(--color-border) 5.49%, transparent); }
+.landing-header nav { color:var(--color-secondary); }
+.landing-header nav a:hover,.landing-header nav .landing-nav-login { color:var(--color-text); }
+.landing-header nav .landing-nav-login { border-color:color-mix(in srgb, var(--color-border) 10.98%, transparent); }
+.landing-daylight { background:radial-gradient(ellipse at 80% 0,color-mix(in srgb, var(--color-cyan) 3.92%, transparent),transparent 60%),var(--color-page); }
+.landing-daylight .landing-eyebrow { color:var(--color-secondary); }
+.landing-daylight .landing-live-dot { background:var(--color-accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-shadow) 4.71%, transparent); }
+.landing-intro h1>span,.landing-auth h2>span { color:var(--color-accent); }
+.landing-intro>p { color:var(--color-secondary); }
+.landing-entry-grid { border-color:color-mix(in srgb, var(--color-border) 12.55%, transparent); background:var(--color-surface); box-shadow:0 20px 65px color-mix(in srgb, var(--color-shadow) 26.67%, transparent); }
+.landing-map-card,.landing-auth { background:var(--color-surface); }
+.landing-map-caption,.landing-map-foot { border-color:color-mix(in srgb, var(--color-border) 6.27%, transparent); }
+.landing-map-caption>span,.landing-map-foot { color:var(--color-secondary); }
+.landing-map-caption>span>svg,.landing-map-caption>a,.landing-map-foot>a { color:var(--color-muted); }
+.landing-auth { border-color:color-mix(in srgb, var(--color-border) 8.63%, transparent); background:linear-gradient(135deg,var(--color-surface),var(--color-surface)); }
+.landing-auth h2 { color:var(--color-text); }
+.landing-auth>p:not(.landing-eyebrow),.landing-auth-note { color:var(--color-secondary); }
+.landing-auth label { color:var(--color-muted); }
+.landing-auth input { background:var(--color-surface); color:var(--color-text); border-color:color-mix(in srgb, var(--color-border) 8.63%, transparent); }
+.landing-auth input::placeholder { color:var(--color-muted); }
+.landing-auth input:focus { border-color:var(--color-cyan); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-shadow) 6.27%, transparent); }
+.landing-password-label a { color:var(--color-secondary); }
+.landing-daylight .landing-button-primary { background:var(--color-inset); color:var(--color-on-accent); }
+.landing-daylight .landing-button-primary:hover { background:var(--color-elevated); }
+.landing-auth-divider { color:var(--color-secondary); }
+.landing-auth-divider::before,.landing-auth-divider::after { background:color-mix(in srgb, var(--color-ink) 7.84%, transparent); }
+.landing-daylight .landing-button-outline { color:var(--color-muted); border-color:color-mix(in srgb, var(--color-border) 14.12%, transparent); }
+.landing-daylight .landing-button-outline:hover { background:color-mix(in srgb, var(--color-ink) 2.75%, transparent); border-color:color-mix(in srgb, var(--color-border) 25.1%, transparent); }
+.landing-daylight .landing-text-link { color:var(--color-muted); }
+.landing-auth .landing-auth-error { color:var(--color-danger); }
+.landing-scroll-invite,.landing-motion-toggle { color:var(--color-secondary); }
+.landing-scroll-invite>svg { color:var(--color-muted); }
+.landing-scroll-row .landing-scroll-line { background:color-mix(in srgb, var(--color-ink) 7.84%, transparent); }
+.landing-daylight :is(a,button,input):focus-visible { outline-color:var(--color-accent); }
+.gk-landing em { color:var(--color-text); }
+.landing-origin { background:var(--color-page); border-color:color-mix(in srgb, var(--color-border) 7.06%, transparent); }
+.landing-origin-shade { background:linear-gradient(90deg,color-mix(in srgb, var(--color-page) 94.12%, transparent),color-mix(in srgb, var(--color-page) 54.12%, transparent) 43%,color-mix(in srgb, var(--color-ink) 1.96%, transparent) 80%),linear-gradient(0deg,var(--color-page),transparent 55%,color-mix(in srgb, var(--color-ink) 12.55%, transparent)); }
+.landing-origin h2 em { color:var(--color-muted); }
+.landing-origin-image>img { filter:saturate(.45) brightness(.78); }
+.landing-origin .landing-eyebrow { color:var(--color-muted); }
+.landing-ground-note { border-color:var(--color-cyan); background:color-mix(in srgb, var(--color-surface) 67.06%, transparent); }
+.landing-constellation .constellation-pitch { background:repeating-linear-gradient(90deg,var(--color-surface) 0,var(--color-surface) 70px,var(--color-surface) 70px,var(--color-surface) 140px); border-color:color-mix(in srgb, var(--color-border) 61.18%, transparent); }
+.constellation-pitch-lines { stroke:color-mix(in srgb, var(--color-border) 41.96%, transparent); color:var(--color-text); }
+.constellation-player { background:var(--color-accent); border-color:var(--color-border); box-shadow:0 0 18px color-mix(in srgb, var(--color-shadow) 26.67%, transparent); }
+.constellation-player::after { border-color:color-mix(in srgb, var(--color-accent) 20.78%, transparent); }
+.constellation-player i { background:linear-gradient(0deg,var(--color-accent),transparent); }
+.constellation-center>span { color:var(--color-text); background:linear-gradient(145deg,var(--color-cyan),var(--color-inset)); border-color:color-mix(in srgb, var(--color-border) 49.02%, transparent); }
+.constellation-halo { background:radial-gradient(ellipse,color-mix(in srgb, var(--color-info) 14.12%, transparent),color-mix(in srgb, var(--color-info) 3.14%, transparent) 50%,transparent 70%); }
+.constellation-people>button[aria-selected=true] { border-color:color-mix(in srgb, var(--color-border) 50.98%, transparent); background:linear-gradient(125deg,var(--color-surface),var(--color-surface)); }
+.constellation-person-icon { color:var(--color-muted); background:color-mix(in srgb, var(--color-cyan) 5.49%, transparent); border-color:color-mix(in srgb, var(--color-cyan) 14.51%, transparent); }
+.landing-path-section { background:var(--color-surface); }
+.role-player-map { border-color:var(--color-border); }
+.role-player-map>svg { background:var(--color-inset); }
+.role-player-radius { color:var(--color-muted); background:color-mix(in srgb, var(--color-surface) 92.16%, transparent); border:1px solid color-mix(in srgb, var(--color-border) 25.1%, transparent); }
+.landing-final { background:radial-gradient(ellipse at 50% 115%,color-mix(in srgb, var(--color-info) 21.96%, transparent),transparent 68%),var(--color-surface); }
+.landing-final .landing-button-primary { background:var(--color-inset); color:var(--color-on-accent); }
+.landing-final .landing-button-primary:hover { background:var(--color-elevated); }
+.landing-final .landing-eyebrow { color:var(--color-muted); }
+.landing-footer { background:var(--color-page); }
+.landing-football { background:radial-gradient(circle at 32% 23%,var(--color-elevated),var(--color-inset) 63%,var(--color-inset) 93%); color:var(--color-text); }
+.landing-footer nav a:hover { color:var(--color-text); }
+
+/* An opt-in dark map; the regular World map keeps its daylight presentation. */
+.gk-landing .map-page-shell.map-atlas.map-force-dark,.atlas-embedded-filters.map-force-dark {
+  --text-primary:var(--color-text); --text-secondary:var(--color-secondary); --text-muted:var(--color-muted);
+  --accent-primary:var(--color-accent); --accent-primary-soft:color-mix(in srgb, var(--color-accent) 12%, transparent);
+  --map-panel-bg:var(--color-surface); --map-rail-bg:var(--color-surface); --map-workspace-bg:var(--color-page);
+  --map-card-bg:var(--color-elevated); --map-card-muted:var(--color-inset); --map-panel-border:var(--color-border);
+  --map-pill-bg:var(--color-inset); --map-shadow-strong:0 16px 60px color-mix(in srgb, var(--color-shadow) 46.67%, transparent);
+  background:var(--color-surface); color:var(--color-text); color-scheme:dark;
+}
+.map-atlas.map-force-dark :is(.atlas-command-bar,.atlas-results,.atlas-walking-panel,.atlas-return,.atlas-command-suggestions,.map-simple-suggestions,.atlas-filter-select,.atlas-search-from,.atlas-origin-choices button,.atlas-coverage-choice button,.atlas-result-card,.atlas-view-controls>button,.map-simple-line) { background:var(--color-surface); border-color:var(--color-border); color:var(--color-muted); }
+.map-atlas.map-force-dark :is(.atlas-command-bar button,.atlas-command-bar b,.atlas-command-bar .atlas-browse-toggle,.atlas-area-action>span,.atlas-area-action>small,.map-icon-button,.atlas-filter-select,.atlas-radius-presets button,.atlas-coverage-choice button,.atlas-origin-choices button) { color:var(--color-muted); background:var(--color-surface); }
+.map-atlas.map-force-dark :is(.atlas-command-bar button:hover,.atlas-command-suggestions button:hover,.atlas-command-bar .is-active,.atlas-radius-presets button[aria-pressed=true],.atlas-coverage-choice button[aria-pressed=true]) { background:var(--color-inset); color:var(--color-text); }
+.map-atlas.map-force-dark :is(.atlas-eyebrow,.atlas-filter-title,.atlas-results h2,.map-simple-label,.map-simple-line input,.atlas-coverage-explanation,.atlas-filter-title>span,.atlas-results-summary p,.atlas-results-summary strong,.atlas-results-summary select,.atlas-command-search input,.atlas-command-suggestions strong,.atlas-result-card h3,.atlas-result-card p) { color:var(--color-muted); }
+.map-atlas.map-force-dark :is(.atlas-area-action>button,.map-simple-primary) { background:var(--color-inset); color:var(--color-on-accent); box-shadow:0 5px 20px color-mix(in srgb, var(--color-shadow) 20%, transparent); }
+.map-atlas.map-force-dark .atlas-area-action>button>span { color:var(--color-cyan); }
+.map-atlas.map-force-dark .map-simple-rail { background:var(--color-surface); border-color:var(--color-border); }
+.map-atlas.map-force-dark :is(.map-simple-rail>header,.map-simple-rail>footer,.atlas-results-summary,.atlas-results-scroll) { border-color:var(--color-border); background:var(--color-surface); }
+.map-atlas.map-force-dark .map-simple-rail>header p:not(.atlas-eyebrow),.map-atlas.map-force-dark .map-simple-rail>header>div:nth-child(2) span { color:var(--color-secondary); }
+.map-atlas.map-force-dark .atlas-command-suggestions button { color:var(--color-muted); border-color:var(--color-border); }
+.map-atlas.map-force-dark .atlas-search-from strong { color:var(--color-text); }
+.map-atlas.map-force-dark :is(.atlas-search-from small,.atlas-search-from>div,.atlas-origin-region-note) { color:var(--color-secondary); }
+.map-atlas.map-force-dark .map-simple-rail>header .atlas-coverage-summary { background:var(--color-inset); color:var(--color-muted); }
+.map-atlas.map-force-dark :is(.atlas-results>header,.atlas-results>footer,.atlas-view-controls>section,.atlas-map-legend) { background:var(--color-surface); border-color:var(--color-border); color:var(--color-muted); }
+.map-atlas.map-force-dark :is(.atlas-view-controls,.atlas-view-controls small,.atlas-map-legend span) { color:var(--color-muted); }
+.map-atlas.map-force-dark :is(.atlas-view-controls section>div button,.atlas-view-reset,.atlas-results-heading>button) { background:var(--color-inset); color:var(--color-text); }
+.map-atlas.map-force-dark .atlas-view-controls input { accent-color:var(--color-accent); }
+.landing-map-viewport .atlas-results>header { padding:12px 16px 0; }
+.landing-map-viewport .atlas-results h2 { font-size:18px; margin-top:9px; }
+.landing-map-viewport .atlas-results-summary { margin-top:0; padding:10px 0; }
+.landing-map-viewport .atlas-results>footer { padding:10px 16px; font-size:9px; }
+.landing-map-viewport .atlas-results-scroll { padding-inline:16px; }
+.landing-map-viewport .atlas-results-scroll li { padding-block:13px; }
+.map-atlas.map-force-dark .atlas-results-scroll li { border-color:var(--color-border); }
+.map-atlas.map-force-dark .atlas-results-scroll li:has(.atlas-result-main:hover) { background:var(--color-inset); }
+.map-atlas.map-force-dark :is(.atlas-result-copy>strong,.atlas-results-empty h3) { color:var(--color-text); }
+.map-atlas.map-force-dark :is(.atlas-result-type,.atlas-result-address,.atlas-result-footer,.atlas-result-link,.atlas-result-main>svg,.atlas-results-empty) { color:var(--color-secondary); }
+.map-atlas.map-force-dark :is(.atlas-result-logo,.atlas-result-logo small,.atlas-result-footer button) { background:var(--color-inset); border-color:var(--color-cyan); color:var(--color-muted); }
+.map-atlas.map-force-dark input::placeholder { color:var(--color-muted); }
+.map-atlas.map-force-dark .atlas-external-toolbar>div>button>span { color:var(--color-text); }
+.map-atlas.map-force-dark .maplibregl-ctrl-group { background:var(--color-inset); }
+.map-atlas.map-force-dark .maplibregl-ctrl-attrib { background:color-mix(in srgb, var(--color-inset) 94.12%, transparent); color:var(--color-text); }
+.atlas-embedded-filters.map-force-dark { border-color:var(--color-border); }
+@media(max-width:700px) { .landing-origin-shade { background:linear-gradient(90deg,color-mix(in srgb, var(--color-page) 85.88%, transparent),color-mix(in srgb, var(--color-ink) 18.82%, transparent)),linear-gradient(0deg,var(--color-page),transparent 75%); } }

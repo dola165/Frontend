@@ -60,26 +60,26 @@ export const ClubDirectoryFilters = ({
 
                 <DirectoryFilterSection title={t('browseClubs.location')} className="px-0 py-0">
                     <div className="space-y-2">
-                        <label className="flex items-center gap-2 rounded-lg border border-[#ffffff0d] bg-[#0f1117] px-3 py-2">
-                            <MapPin className="h-4 w-4 shrink-0 text-[#a1a1aa]" />
+                        <label className="flex items-center gap-2 rounded-lg border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] px-3 py-2">
+                            <MapPin className="h-4 w-4 shrink-0 text-[var(--color-secondary)]" />
                             <span className="sr-only">{t('browseClubs.city')}</span>
                             <input
                                 type="text"
                                 value={city}
                                 onChange={(event) => onCityChange(event.target.value)}
                                 placeholder={t('browseClubs.cityPlaceholder')}
-                                className="min-w-0 flex-1 bg-transparent text-sm text-[#f4f4f5] placeholder:text-[#a1a1aa] focus:outline-none"
+                                className="min-w-0 flex-1 bg-transparent text-sm text-[var(--color-text)] placeholder:text-[var(--color-secondary)] focus:outline-none"
                             />
                         </label>
-                        <label className="flex items-center gap-2 rounded-lg border border-[#ffffff0d] bg-[#0f1117] px-3 py-2">
-                            <span className="text-[10px] font-medium text-[#a1a1aa]">CC</span>
+                        <label className="flex items-center gap-2 rounded-lg border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] px-3 py-2">
+                            <span className="text-[10px] font-medium text-[var(--color-secondary)]">CC</span>
                             <span className="sr-only">{t('browseClubs.country')}</span>
                             <input
                                 type="text"
                                 value={country}
                                 onChange={(event) => onCountryChange(event.target.value)}
                                 placeholder={t('browseClubs.countryPlaceholder')}
-                                className="min-w-0 flex-1 bg-transparent text-sm text-[#f4f4f5] placeholder:text-[#a1a1aa] focus:outline-none"
+                                className="min-w-0 flex-1 bg-transparent text-sm text-[var(--color-text)] placeholder:text-[var(--color-secondary)] focus:outline-none"
                             />
                         </label>
                     </div>

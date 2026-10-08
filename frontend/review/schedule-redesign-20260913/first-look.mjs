@@ -1,0 +1,13 @@
+import {chromium, expect} from '@playwright/test';
+const browser=await chromium.launch({channel:'chrome',headless:true});
+const page=await browser.newPage({viewport:{width:1600,height:1000}});
+await page.route('https://api.grasskickz.com/api/**',route=>route.fulfill({json:route.request().url().includes('membership-context')?{hasClubMembership:true,canCreateClub:false,clubId:1,clubName:'FC Dinamo Tbilisi',myRole:'OWNER'}:route.request().url().includes('/squads')?[{id:1,name:'U16 Academy'},{id:2,name:'First Team'}]:{events:[]}}));
+await page.goto('http://127.0.0.1:5300/e2e/fixtures/mobile-schedule.html');
+await page.evaluate(()=>document.documentElement.classList.add('dark'));
+await page.getByRole('button',{name:'New Event',exact:true}).click();
+await page.getByLabel('Event name',{exact:true}).fill('Home match vs City FC');
+await page.screenshot({path:'review/schedule-redesign-20260913/first-look.png',fullPage:true});
+await page.getByRole('button',{name:/Weekly training/}).click();
+await page.getByRole('button',{name:'Continue',exact:true}).click();
+await page.screenshot({path:'review/schedule-redesign-20260913/weekly-first-look.png',fullPage:true});
+await browser.close();

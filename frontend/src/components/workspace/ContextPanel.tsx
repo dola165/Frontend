@@ -58,7 +58,7 @@ export const ContextPanel = (props: ContextPanelProps) => {
       ) : scheduleError ? (
        <>
         <p className="mt-2 text-xs text-[var(--fc-text-secondary)]">Schedule unavailable right now.</p>
-        <button type="button" onClick={onRetrySchedule} className="mt-2 text-xs font-semibold text-[var(--fc-accent)] hover:underline">Retry</button>
+        <button type="button" onClick={onRetrySchedule} className="mt-2 text-xs font-semibold app-text-action">Retry</button>
        </>
       ) : upcomingEvents.length === 0 ? (
        <p className="mt-2 text-xs text-[var(--fc-text-muted)]">No club events scheduled in the next 7 days.</p>
@@ -73,7 +73,7 @@ export const ContextPanel = (props: ContextPanelProps) => {
         ))}
        </div>
       )}
-      <button type="button" onClick={onOpenSchedule} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[var(--fc-accent)] hover:underline">Open calendar <ChevronRight className="h-3.5 w-3.5" /></button>
+      <button type="button" onClick={onOpenSchedule} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold app-text-action">Open calendar <ChevronRight className="h-3.5 w-3.5" /></button>
      </div>
      {overview && (
       <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-3">
@@ -95,7 +95,7 @@ export const ContextPanel = (props: ContextPanelProps) => {
      {/* Awaiting Decision */}
      <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-3">
       <p className="text-xs font-semibold text-[var(--fc-text-primary)]">Awaiting Decision <span className="font-normal text-[var(--fc-text-muted)]">(all)</span></p>
-      <p className="mt-1 text-2xl font-semibold text-amber-500">
+      <p className="mt-1 text-2xl font-semibold text-[color:var(--color-warning)]">
        {overview?.trialistCount ?? 0}
       </p>
       <p className="text-xs text-[var(--fc-text-secondary)]">players pending</p>
@@ -108,7 +108,7 @@ export const ContextPanel = (props: ContextPanelProps) => {
         <button
          type="button"
          onClick={() => { onTabChange('players'); onClose(); }}
-         className="text-xs font-semibold text-[#16a34a] hover:underline shrink-0"
+         className="text-xs font-semibold shrink-0 app-text-action"
         >
          Review
         </button>
@@ -137,7 +137,7 @@ export const ContextPanel = (props: ContextPanelProps) => {
        });
        const maxCount = Math.max(...Object.values(posCounts), 1);
        const colors: Record<string, string> = {
-        GK: '#16a34a', DEF: '#3b82f6', MID: '#d97706', FWD: '#ef4444',
+        GK: 'var(--color-accent)', DEF: 'var(--color-info)', MID: 'var(--color-orange)', FWD: 'var(--color-danger)',
        };
        return (
         <>
@@ -266,9 +266,9 @@ export const ContextPanel = (props: ContextPanelProps) => {
       </div>
      </div>
      {overview && currentRole === 'OWNER' && (
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-       <p className="text-xs font-semibold text-amber-800">Transfer Ownership</p>
-       <p className="mt-1 text-xs text-amber-700">
+      <div className="rounded-xl border border-[color:var(--color-warning)] bg-[color:var(--color-warning-soft)] p-3">
+       <p className="text-xs font-semibold text-[color:var(--color-warning)]">Transfer Ownership</p>
+       <p className="mt-1 text-xs text-[color:var(--color-warning)]">
         Transferring ownership is permanent. You will become a Club Admin after the transfer.
        </p>
       </div>

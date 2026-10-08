@@ -1,0 +1,14 @@
+{
+  "regression": true,
+  "api": "mocked; actual components",
+  "Store": {
+    "pendingDiscardBlocked": true,
+    "discardAfterCompletion": true,
+    "replacementHasNoOldPhoto": true
+  },
+  "Campaigns": {
+    "pendingDiscardBlocked": true,
+    "discardAfterCompletion": true,
+    "replacementHasNoOldPhoto": true
+  }
+}

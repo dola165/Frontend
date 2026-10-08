@@ -1,0 +1,24 @@
+.profile-content-grid{display:grid;grid-template-columns:minmax(240px,320px) minmax(0,760px) minmax(240px,320px);justify-content:space-between;align-items:start;gap:24px}
+.profile-information,.profile-feed-column,.profile-activity-column{min-width:0}
+.profile-feed-column{width:100%;margin:0 auto}
+.profile-details-toggle{display:none}
+.profile-information :is(.career-card,.mx-panel,[aria-label="Football roles"]>article){border-radius:4px;padding:18px}
+.profile-information [aria-label="Football roles"]{grid-template-columns:1fr}
+.profile-information :is(.career-card h2,.mx-panel h2){font-size:16px}
+.profile-information :is(.career-card h3,[aria-label="Football roles"] h3){font-size:15px}
+.profile-information :is(.career-card p,.mx-panel p){font-size:12px;line-height:1.65}
+.profile-information .mx-profile-career{padding:0;margin:0;min-width:0;width:100%}
+.profile-information .career-overview>div{flex-basis:auto}
+.profile-information .career-form-grid{grid-template-columns:1fr}
+.profile-information .career-entry-top{flex-wrap:wrap}
+.profile-information .career-entry-actions{margin-left:auto}
+.profile-information .career-button{max-width:100%;font-size:12px;border-radius:4px}
+.profile-information .career-filters{gap:5px}
+.profile-information .career-filters button{padding:7px 9px;font-size:11px}
+.profile-information .career-club-logo{flex-basis:36px;width:36px;height:36px}
+.profile-information :is(p,h2,h3,strong,dd){overflow-wrap:anywhere}
+.profile-activity-column{position:sticky;top:14px}
+@media(max-width:1279px){.profile-content-grid{grid-template-columns:1fr;gap:16px;max-width:760px;margin-inline:auto}.profile-activity-column{display:none}.profile-details-toggle{display:block;width:100%;text-align:left;padding:14px 16px;border:1px solid var(--club-theme-border-subtle);border-radius:4px;background:var(--club-card);font-size:13px;font-weight:600}.profile-info-content{display:none}.profile-info-content.is-open{display:block;margin-top:16px}.profile-information .career-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.profile-information .career-form-grid{grid-template-columns:1fr}}
+
+.profile-stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.profile-stat-grid>div{min-width:0;padding:12px}.profile-stat-grid span{font-size:10px}

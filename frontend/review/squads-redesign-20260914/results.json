@@ -1,0 +1,32 @@
+{
+  "checks": [
+    "squads-desktop",
+    "squad-cards-desktop",
+    "jersey-save",
+    "new-squad-desktop",
+    "created-squad-selected",
+    "add-existing-player",
+    "edit-squad",
+    "public-teams-desktop",
+    "public-workspace-consistency-and-readonly",
+    "public-roster-desktop",
+    "public-cards-desktop",
+    "players-desktop",
+    "trial-promotion-callback",
+    "squads-mobile-390",
+    "new-squad-mobile-390",
+    "public-teams-mobile-390",
+    "public-roster-mobile-390",
+    "players-mobile-390",
+    "squads-mobile-320",
+    "new-squad-mobile-320",
+    "public-teams-mobile-320",
+    "public-roster-mobile-320",
+    "players-mobile-320",
+    "public-teams-georgian-light",
+    "late-roster-response-discarded"
+  ],
+  "errors": [],
+  "unexpectedNetwork": [],
+  "resolvedHarnessIssue": "Final race selector originally expected table while prior Cards preference persisted; explicitly selected Roster and checked delayed result."
+}

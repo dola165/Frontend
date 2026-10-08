@@ -1,3 +1,4 @@
+import { MediaImage } from '../../ui/MediaImage';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Handshake, MessageCircle, X } from 'lucide-react';
@@ -12,11 +13,11 @@ interface AgentEngagementsTabProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-    PENDING: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    ACTIVE: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    DECLINED: 'bg-red-500/10 text-red-400 border-red-500/20',
-    CANCELLED: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-    TERMINATED: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    PENDING: 'bg-[color:var(--color-warning)]/10 text-[color:var(--color-warning)] border-[color:var(--color-warning)]/20',
+    ACTIVE: 'bg-[color:var(--color-accent)]/10 text-[color:var(--color-accent)] border-[color:var(--color-accent)]/20',
+    DECLINED: 'bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)] border-[color:var(--color-danger)]/20',
+    CANCELLED: 'bg-[color:var(--color-ink)]/10 text-[color:var(--color-muted)] border-[color:var(--color-border)]/20',
+    TERMINATED: 'bg-[color:var(--color-ink)]/10 text-[color:var(--color-muted)] border-[color:var(--color-border)]/20',
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -84,7 +85,7 @@ export const AgentEngagementsTab = ({ clubId }: AgentEngagementsTabProps) => {
                     <button
                         type="button"
                         onClick={() => { void loadEngagements(); }}
-                        className="px-4 py-2 text-xs font-medium rounded-[6px] bg-[var(--fc-accent)] text-white hover:opacity-90 transition-opacity"
+                        className="px-4 py-2 text-xs font-medium rounded-[6px] bg-[var(--fc-accent)] text-[color:var(--color-on-accent)] hover:opacity-90 transition-opacity"
                     >
                         Retry
                     </button>
@@ -108,21 +109,21 @@ export const AgentEngagementsTab = ({ clubId }: AgentEngagementsTabProps) => {
                     {engagements.map((eng) => (
                         <div
                             key={eng.engagementId}
-                            className="rounded-[6px] border border-[#ffffff0d] bg-[#16181d] p-4 flex items-center justify-between"
+                            className="rounded-[6px] border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[var(--color-surface)] p-4 flex items-center justify-between"
                         >
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="h-10 w-10 rounded-full bg-[#ffffff0d] flex items-center justify-center text-sm font-semibold text-[var(--fc-text-secondary)] shrink-0 overflow-hidden">
+                                <div className="h-10 w-10 rounded-full bg-[color-mix(in_srgb,_var(--color-ink)_5.1%,_transparent)] flex items-center justify-center text-sm font-semibold text-[var(--fc-text-secondary)] shrink-0 overflow-hidden">
                                     {eng.agentAvatarUrl ? (
-                                        <img src={eng.agentAvatarUrl} alt={eng.agentName} className="h-full w-full object-cover" />
+                                        <MediaImage src={eng.agentAvatarUrl} alt={eng.agentName} className="h-full w-full object-cover" />
                                     ) : (
                                         (eng.agentName || 'A').charAt(0).toUpperCase()
                                     )}
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-sm font-medium text-[#f4f4f5] truncate">{eng.agentName}</p>
-                                    <p className="text-xs text-[#a1a1aa] truncate">{eng.agencyName || 'Independent Agent'}</p>
-                                    {eng.notes && <p className="mt-2 max-w-xl text-xs leading-5 text-[#a1a1aa]">Request: {eng.notes}</p>}
-                                    {eng.responseNotes && <p className="mt-1 max-w-xl text-xs leading-5 text-[#a1a1aa]">Club response: {eng.responseNotes}</p>}
+                                    <p className="text-sm font-medium text-[var(--color-text)] truncate">{eng.agentName}</p>
+                                    <p className="text-xs text-[var(--color-secondary)] truncate">{eng.agencyName || 'Independent Agent'}</p>
+                                    {eng.notes && <p className="mt-2 max-w-xl text-xs leading-5 text-[var(--color-secondary)]">Request: {eng.notes}</p>}
+                                    {eng.responseNotes && <p className="mt-1 max-w-xl text-xs leading-5 text-[var(--color-secondary)]">Club response: {eng.responseNotes}</p>}
                                 </div>
                             </div>
 
@@ -137,7 +138,7 @@ export const AgentEngagementsTab = ({ clubId }: AgentEngagementsTabProps) => {
                                             type="button"
                                             disabled={pendingId === eng.engagementId}
                                             onClick={() => setDecisionTarget({ engagement: eng, decision: 'ACTIVE' })}
-                                            className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium rounded-[4px] bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition-colors disabled:opacity-50"
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium rounded-[4px] bg-[color:var(--color-accent)]/15 text-[color:var(--color-accent)] hover:bg-[color:var(--color-accent)]/25 transition-colors disabled:opacity-50"
                                         >
                                             <Check className="h-3 w-3" />
                                             Accept
@@ -146,7 +147,7 @@ export const AgentEngagementsTab = ({ clubId }: AgentEngagementsTabProps) => {
                                             type="button"
                                             disabled={pendingId === eng.engagementId}
                                             onClick={() => setDecisionTarget({ engagement: eng, decision: 'DECLINED' })}
-                                            className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium rounded-[4px] bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-colors disabled:opacity-50"
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium rounded-[4px] bg-[color:var(--color-danger)]/15 text-[color:var(--color-danger)] hover:bg-[color:var(--color-danger)]/25 transition-colors disabled:opacity-50"
                                         >
                                             <X className="h-3 w-3" />
                                             Decline

@@ -1,3 +1,4 @@
+import { formatMoney } from '../../utils/formatting';
 import { apiClient } from '../../api/axiosConfig';
 
 // ── Club store (WEB_APP_MASTER_PLAN.md §4.1, Phase 3) ──
@@ -94,8 +95,8 @@ export const updateStoreProduct = async (clubId: number, productId: number, payl
     return response.data;
 };
 
-export const deleteStoreProduct = async (clubId: number, productId: number) => {
-    await apiClient.delete(`/clubs/${clubId}/store/products/${productId}`);
+export const deleteStoreProduct = async (clubId: number, productId: number, version: number | undefined) => {
+    await apiClient.delete(`/clubs/${clubId}/store/products/${productId}`, { params: { version } });
 };
 
 export interface StoreCatalogParams { page?: number; size?: number; clubId?: number; query?: string; category?: string; currency?: string; country?: string; city?: string; variant?: string; minPrice?: number; maxPrice?: number; sort?: string; }
@@ -109,7 +110,7 @@ export const fetchCartQuote = async (items: Array<{variantId:number;quantity:num
     items.forEach(item=>params.append('item',`${item.variantId}:${item.quantity}`));
     return (await apiClient.get<CartQuote>(`/store/cart/quote?${params}`,{signal})).data;
 };
-export const formatStorePrice = (price: number, currency = 'GEL') => new Intl.NumberFormat('en-GB',{style:'currency',currency}).format(price);
+export const formatStorePrice = formatMoney;
 
 export interface StoreLocation { country: string; city: string | null; }
 export const fetchStoreLocations = async (clubId?: number, signal?: AbortSignal): Promise<StoreLocation[]> =>

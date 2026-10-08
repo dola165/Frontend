@@ -1,0 +1,184 @@
+/* Club work: shared navigation and rhythm. Each mature tool keeps its own layout. */
+.club-workspace-shell.workspace-refresh {
+  --work-tone: var(--color-accent);
+  --work-radius: 10px;
+  background: var(--color-page);
+}
+.club-workspace-shell [data-work-area=football], .club-workspace-shell[data-workspace-area=football] { --work-tone: var(--color-info); }
+.club-workspace-shell [data-work-area=people], .club-workspace-shell[data-workspace-area=people] { --work-tone: var(--color-purple); }
+.club-workspace-shell [data-work-area=operations], .club-workspace-shell[data-workspace-area=operations] { --work-tone: var(--color-warning); }
+.club-workspace-shell [data-work-area=recruitment], .club-workspace-shell[data-workspace-area=recruitment] { --work-tone: var(--color-accent); }
+.club-workspace-shell [data-work-area=business], .club-workspace-shell[data-workspace-area=business] { --work-tone: var(--color-warning); }
+.club-workspace-shell [data-work-area=settings], .club-workspace-shell[data-workspace-area=settings] { --work-tone: var(--color-secondary); }
+.club-workspace-shell.workspace-refresh .workspace-alert-stack:empty { padding: 0; display: none; }
+.club-workspace-shell.workspace-refresh .workspace-page-main { scrollbar-gutter: stable; }
+.club-workspace-shell.workspace-refresh .workspace-tab-content { padding: 24px clamp(18px, 2.5vw, 40px) 48px; max-width: 1480px; margin-inline: auto; }
+.club-workspace-shell.workspace-refresh .work-breadcrumb { min-height: 46px; padding: 6px clamp(18px, 2.5vw, 40px); background: var(--color-page); }
+.club-workspace-shell.workspace-refresh .work-breadcrumb > span > b { display: inline-flex; align-items: center; gap: 8px; color: var(--color-secondary); font-weight: 550; }
+.club-workspace-shell.workspace-refresh .work-breadcrumb > span > b::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--work-tone); }
+.club-workspace-shell.workspace-refresh .work-breadcrumb button { min-height: 32px; }
+.club-workspace-shell.workspace-refresh .workspace-sidebar { width: 246px; background: var(--color-surface); }
+.club-workspace-shell .work-club-identity { padding: 16px; }
+.club-workspace-shell .work-club-name { white-space: normal; line-height: 1.45; font-size: 13px; }
+.club-workspace-shell .work-club-identity img { width: 36px; height: 36px; }
+.club-workspace-shell .work-navigation { padding: 12px; }
+.club-workspace-shell.workspace-refresh .work-nav-caption { margin: 22px 10px 8px; font-size: 10px; color: var(--color-muted); }
+.club-workspace-shell.workspace-refresh .work-navigation button { min-height: 39px; line-height: 1.45; font-size: 12px; border-radius: 7px; }
+.club-workspace-shell .work-navigation .work-nav-group { gap: 9px; padding: 7px 8px; font-weight: 550; }
+.club-workspace-shell .work-nav-group > svg:first-child { box-sizing: content-box; flex: none; padding: 5px; border-radius: 7px; color: var(--work-tone); background: color-mix(in srgb, var(--work-tone) 10%, transparent); }
+.club-workspace-shell .work-nav-group > .work-nav-chevron { transform: rotate(-90deg); transition: transform 220ms var(--app-motion-ease); }
+.club-workspace-shell .work-nav-group[aria-expanded=true] > .work-nav-chevron { transform: rotate(0); }
+.club-workspace-shell .work-nav-disclosure { display: grid; grid-template-rows: 0fr; visibility: hidden; transition: grid-template-rows 220ms var(--app-motion-ease), visibility 220ms; }
+.club-workspace-shell .work-nav-disclosure[data-open=true] { grid-template-rows: 1fr; visibility: visible; }
+.club-workspace-shell .work-nav-disclosure > div { min-height: 0; overflow: hidden; }
+.club-workspace-shell .work-nav-children { margin: 3px 0 9px 22px; padding-left: 8px; border-color: color-mix(in srgb, var(--work-tone) 28%, var(--color-border)); }
+.club-workspace-shell .work-nav-children button > svg { color: var(--work-tone); width: 14px; height: 14px; }
+.club-workspace-shell .work-nav-children button > span:not(.work-nav-count) { white-space: normal; }
+.club-workspace-shell .work-nav-footer { margin-top: 18px; }
+/* A title and its actions share one predictable position across internal tools. */
+.club-workspace-shell.workspace-refresh :is(.work-heading, .workspace-section-heading, .role-page-heading, .sd-heading, .staff-heading, .op-heading) { margin: 0 0 22px; gap: 16px; align-items: center; }
+.club-workspace-shell.workspace-refresh :is(.work-heading, .workspace-section-heading, .role-page-heading, .sd-heading, .staff-heading, .op-heading) :is(h1,h2) { font-size: clamp(25px, 2.1vw, 31px); line-height: 1.2; letter-spacing: -.035em; font-weight: 700; }
+.club-workspace-shell.workspace-refresh :is(.work-heading, .workspace-section-heading, .role-page-heading, .sd-heading, .staff-heading, .op-heading) p { font-size: 13px; line-height: 1.6; max-width: 72ch; margin-top: 7px; }
+.club-workspace-shell.workspace-refresh :is(.sd-eyebrow, .workspace-section-kicker) { color: var(--work-tone); font-size: 10px; letter-spacing: .1em; }
+.club-workspace-shell.workspace-refresh :is(.sd-primary,.workspace-add-button,.role-primary) { min-height: 40px; font-size: 12px; padding: 10px 14px; border-radius: 8px; }
+.club-workspace-shell.workspace-refresh :is(button,a,input,select,textarea,summary):focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+.club-workspace-shell :is(button,a,summary) { transition: color 180ms, background-color 180ms, border-color 180ms, box-shadow 180ms; }
+.club-workspace-shell :is(.work-tool,.club-overview-stat,.attendance-session) { transition: border-color 180ms, background-color 180ms; }
+.club-workspace-shell :is(.work-tool,.attendance-session):hover { border-color: color-mix(in srgb, var(--work-tone) 55%, var(--color-border)); }
+/* Overview is a daily briefing: context stays quiet; work and decisions stand out. */
+.club-workspace-shell.workspace-refresh .wo-personal { padding: 12px 16px; margin-bottom: 18px; gap: 18px; background: var(--color-inset); }
+.club-workspace-shell .wo-personal-icon { width: 34px; height: 34px; background: var(--color-purple-soft); color: var(--color-purple); border: 0; border-radius: 8px; }
+.club-workspace-shell .wo-responsibilities { gap: 11px; }
+.club-workspace-shell .wo-responsibilities strong { font-size: 12px; font-weight: 550; }
+.club-workspace-shell .wo-responsibilities button { color: var(--color-secondary); margin-top: 2px; min-height: 28px; font-size: 11px; }
+.club-workspace-shell .wo-caption { text-transform: none; letter-spacing: 0; font-size: 11px; margin-bottom: 3px; }
+.club-workspace-shell .wo-focus { width: 215px; }
+.club-workspace-shell .wo-focus select { min-height: 38px; background: var(--color-surface); }
+.club-workspace-shell.workspace-refresh .club-overview-stats { gap: 12px; margin-bottom: 22px; }
+.club-workspace-shell.workspace-refresh .club-overview-stat { min-height: 70px; padding: 12px 14px; background: var(--color-surface); --stat-tone: var(--color-info); }
+.club-workspace-shell .club-overview-stat[data-stat=trialists] { --stat-tone: var(--color-warning); }
+.club-workspace-shell .club-overview-stat[data-stat=staff] { --stat-tone: var(--color-purple); }
+.club-workspace-shell .club-overview-stat[data-stat=inbox] { --stat-tone: var(--color-accent); }
+.club-workspace-shell.workspace-refresh .club-overview-stat > span > svg { color: var(--stat-tone); background: color-mix(in srgb, var(--stat-tone) 11%, transparent); border-radius: 8px; padding: 8px; }
+.club-workspace-shell.workspace-refresh .club-overview-stat strong { font-size: 23px; font-variant-numeric: tabular-nums; }
+.club-workspace-shell.workspace-refresh .club-overview-main-grid { gap: 20px; grid-template-columns: minmax(0,1.4fr) minmax(310px,1fr); }
+.club-workspace-shell.workspace-refresh .club-overview-panel-heading { padding: 18px 20px 14px; }
+.club-workspace-shell.workspace-refresh .club-overview-panel-heading h2 { font-size: 17px; letter-spacing: -.02em; }
+.club-workspace-shell .club-overview-schedule { border-top: 2px solid color-mix(in srgb, var(--color-info) 65%, var(--color-border)); }
+.club-workspace-shell .club-overview-schedule :is(.sd-eyebrow,.club-overview-panel-icon,.club-overview-event-date strong) { color: var(--color-info); }
+.club-workspace-shell.workspace-refresh .club-overview-event-first { border-left-color: var(--color-info); background: var(--color-inset); }
+.club-workspace-shell .wo-attention { border-top: 2px solid color-mix(in srgb, var(--color-warning) 65%, var(--color-border)); }
+.club-workspace-shell .wo-attention > button { padding: 14px 18px; }
+.club-workspace-shell .wo-attention strong { font-size: 13px; }
+.club-workspace-shell .club-overview-consent { border-top: 2px solid color-mix(in srgb, var(--color-purple) 65%, var(--color-border)); }
+.club-workspace-shell .club-overview-consent .club-overview-panel-heading svg { color: var(--color-purple); }
+.club-workspace-shell.workspace-refresh .wo-shortcuts { margin: 18px 0; padding: 16px 18px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px; }
+.club-workspace-shell .wo-shortcuts h2, .club-workspace-shell .wo-squads h2 { font-size: 16px; }
+/* Record tools share a contained filter area and a readable table. */
+.club-workspace-shell .workspace-record-collection { border: 1px solid var(--color-border); background: var(--color-surface); border-radius: 12px; padding: 16px; margin: 0 0 24px; }
+.club-workspace-shell .workspace-record-collection[hidden] { display: none; }
+.club-workspace-shell .work-record-filter { margin: 0 0 14px; gap: 12px; align-items: end; }
+.club-workspace-shell .work-record-filter label:not(:has(input[type=checkbox])) { display: grid; gap: 6px; flex: 0 1 240px; color: var(--color-secondary); font-size: 11px; }
+.club-workspace-shell .work-record-filter label:has(input[type=checkbox]) { min-height: 40px; margin-left: auto; font-size: 12px; }
+.club-workspace-shell .work-record-filter select { width: 100%; min-height: 40px; font-size: 13px; background: var(--color-inset); border-radius: 7px; }
+.club-workspace-shell .workspace-record-tools { padding-top: 14px; border-top: 1px solid var(--color-border); }
+.club-workspace-shell .workspace-record-tools > label { background: var(--color-inset); width: min(420px,75%); }
+.club-workspace-shell .workspace-record-tools input { font-size: 13px; min-height: 40px; }
+.club-workspace-shell .workspace-record-table { background: var(--color-inset); overflow-x: auto; transition: opacity 180ms; }
+.club-workspace-shell .workspace-record-table[data-updating=true] { opacity: .6; }
+.club-workspace-shell .workspace-record-table table { font-size: 13px; }
+.club-workspace-shell .workspace-record-table th { font-size: 11px; text-transform: none; letter-spacing: 0; padding: 12px 16px; }
+.club-workspace-shell .workspace-record-table td { padding: 14px 16px; }
+.club-workspace-shell .workspace-record-table small { font-size: 11px; }
+.club-workspace-shell .workspace-record-table td button { color: var(--color-text); min-height: 28px; }
+.club-workspace-shell .ops-badge[data-status=PENDING], .club-workspace-shell .ops-badge[data-status=OPEN] { color: var(--color-warning); background: var(--color-warning-soft); }
+.club-workspace-shell .ops-badge[data-status=APPROVED], .club-workspace-shell .ops-badge[data-status=COMPLETED] { color: var(--color-accent); background: var(--color-accent-soft); }
+.club-workspace-shell .workspace-record-collection .gk-empty { border: 0; background: var(--color-inset); border-radius: 8px; margin: 0; }
+.club-workspace-shell .gk-empty__icon { color: var(--work-tone); background: color-mix(in srgb, var(--work-tone) 10%, transparent); }
+.club-workspace-shell .attendance-sessions { border-top: 2px solid color-mix(in srgb, var(--color-info) 65%, var(--color-border)); }
+.club-workspace-shell .attendance-session-icon { color: var(--color-info); background: var(--color-info-soft); }
+/* Roster: the status counts act as useful, distinct filters; identity leads the rows. */
+.club-workspace-shell .players-status-filters { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 10px; border: 0; margin: 18px 0; padding: 0; }
+.club-workspace-shell .players-status-filters button { --roster-tone: var(--color-info); display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 62px; padding: 14px; margin: 0; border: 1px solid var(--color-border); border-radius: 9px; font-size: 13px; background: var(--color-surface); color: var(--color-secondary); }
+.club-workspace-shell .players-status-filters button[data-player-status=ACTIVE] { --roster-tone: var(--color-accent); }
+.club-workspace-shell .players-status-filters button[data-player-status=TRIALIST] { --roster-tone: var(--color-warning); }
+.club-workspace-shell .players-status-filters button[data-player-status=PAST], .club-workspace-shell .players-status-filters button[data-player-status=REMOVED] { --roster-tone: var(--color-secondary); }
+.club-workspace-shell .players-status-filters button[aria-pressed=true] { border-color: var(--roster-tone); color: var(--color-text); background: color-mix(in srgb, var(--roster-tone) 6%, var(--color-surface)); box-shadow: inset 0 2px var(--roster-tone); }
+.club-workspace-shell .players-status-filters button > span { color: var(--roster-tone); font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; background: transparent; padding: 0; }
+.club-workspace-shell .players-roster-links { gap: 18px; }
+.club-workspace-shell .players-roster-links button { min-height: 32px; font-size: 12px; color: var(--color-secondary); }
+.club-workspace-shell .players-roster .sd-toolbar { padding: 14px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px; margin-bottom: 16px; }
+.club-workspace-shell .players-roster .sd-search { background: var(--color-inset); }
+.club-workspace-shell .players-table-head { font-size: 11px; text-transform: none; letter-spacing: 0; background: var(--color-surface); padding-block: 12px; }
+.club-workspace-shell .players-table-row { padding-block: 16px; background: var(--color-surface); }
+.club-workspace-shell .players-identity strong { font-size: 14px; font-weight: 650; }
+.club-workspace-shell .players-trial-note { color: var(--color-warning); background: var(--color-warning-soft); padding: 12px 14px; border-radius: 8px; }
+/* Light polish for established tools; more structure for setup and responsibilities. */
+.club-workspace-shell .work-tool-group { border-top: 1px solid var(--color-border); padding-top: 20px; margin-top: 24px; }
+.club-workspace-shell .work-tool-group h2 { color: var(--work-tone); font-size: 16px; }
+.club-workspace-shell .work-tool { background: var(--color-surface); border-radius: 10px; padding: 16px; }
+.club-workspace-shell .work-tool > svg { color: var(--work-tone); }
+.club-workspace-shell .work-tool strong { font-size: 14px; }
+.club-workspace-shell .role-approved-list article { background: var(--color-surface); border-top: 2px solid var(--color-purple); padding: 20px; }
+.club-workspace-shell .role-approved-list article > strong { font-size: 15px; }
+.club-workspace-shell .role-approved-list article > p { font-size: 13px; line-height: 1.6; margin: 8px 0; }
+.club-workspace-shell .role-request-form { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); padding: 24px; }
+.club-workspace-shell .club-setup-section { padding: 18px 20px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); margin-bottom: 12px; }
+.club-workspace-shell details.club-setup-section:not([open]) > summary { margin: 0; }
+.club-workspace-shell details.club-setup-section > summary { min-height: 30px; }
+.club-workspace-shell .club-setup-section h2 { margin-bottom: 16px; }
+.club-workspace-shell .role-management > .role-page-heading > div { flex: 1 1 480px; }
+.club-workspace-shell .club-setup > .role-page-heading { display: block; }
+.club-workspace-shell .workspace-tab-content .club-approaches { border-top: 2px solid var(--work-tone); }
+@media (max-width: 1150px) {
+  .club-workspace-shell.workspace-refresh .club-overview-main-grid { grid-template-columns: minmax(0,1fr); }
+  .club-workspace-shell .players-status-filters { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@media (max-width: 1023px) {
+  .club-workspace-shell.workspace-refresh .workspace-sidebar { width: min(300px,88vw); }
+}
+@media (max-width: 650px) {
+  .club-workspace-shell.workspace-refresh .workspace-tab-content { padding: 20px 16px 40px; }
+  .club-workspace-shell.workspace-refresh .work-breadcrumb { padding-inline: 16px; font-size: 11px; }
+  .club-workspace-shell.workspace-refresh .work-breadcrumb > button { max-width: 45%; text-align: right; }
+  .club-workspace-shell.workspace-refresh .wo-personal { align-items: stretch; flex-direction: column; gap: 12px; }
+  .club-workspace-shell .wo-focus { width: 100%; }
+  .club-workspace-shell.workspace-refresh .club-overview-stats { gap: 8px; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .club-workspace-shell.workspace-refresh .club-overview-stat { padding: 10px; }
+  .club-workspace-shell.workspace-refresh .club-overview-stat > span > svg { display: none; }
+  .club-workspace-shell .workspace-record-collection { padding: 12px; }
+  .club-workspace-shell .work-record-filter label:not(:has(input[type=checkbox])) { flex: 1 1 120px; }
+  .club-workspace-shell .work-record-filter label:has(input[type=checkbox]) { margin-left: 0; }
+  .club-workspace-shell .workspace-record-tools { align-items: stretch; flex-direction: column; gap: 6px; }
+  .club-workspace-shell .workspace-record-tools > label { width: 100%; }
+  .club-workspace-shell .workspace-record-table table { min-width: 620px; }
+  .club-workspace-shell .players-status-filters { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  .club-workspace-shell .players-status-filters button { min-height: 54px; padding: 10px 12px; }
+  .club-workspace-shell .players-status-filters button:first-child { grid-column: 1 / -1; }
+  .club-workspace-shell .role-request-form { padding: 16px; }
+  .club-workspace-shell :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .club-workspace-shell .work-nav-disclosure, .club-workspace-shell .work-nav-chevron, .club-workspace-shell :is(button,a,summary,.workspace-record-table) { transition: none; }
+}
+.club-workspace-shell .players-roster-links { padding-bottom: 0; }
+.club-workspace-shell .players-trial-age { background: transparent; border-radius: 5px; flex: none; }
+.club-workspace-shell .players-identity > div > div { min-width: 0; }
+.club-workspace-shell .players-identity p + p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.club-workspace-shell .club-approaches-panel { border: 0; background: transparent; padding: 0; border-radius: 0; }
+.club-workspace-shell .club-approaches-panel > div:first-child { margin-bottom: 22px; }
+.club-workspace-shell .club-approaches-panel > div:first-child h2 { font-size: clamp(25px,2.1vw,31px); letter-spacing: -.035em; font-weight: 700; }
+.club-workspace-shell .club-approaches-panel > div:first-child p { font-size: 13px; }
+.club-workspace-shell .club-approaches-panel > div:first-child p:first-child { font-size: 10px; letter-spacing: .1em; }
+@container (min-width: 1100px) {
+  .club-workspace-shell .players-table-grid { grid-template-columns: minmax(220px,1.8fr) 80px minmax(100px,1fr) 85px 32px 125px 85px 150px; gap: 12px; }
+}
+.club-workspace-shell .role-management > .role-page-heading { display: flex; }
+@media (max-width: 650px) {
+  /* The mobile bar already identifies the club and current tool. */
+  .club-workspace-shell.workspace-refresh .work-breadcrumb { display: none; }
+  .club-workspace-shell .players-status-filters { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .club-workspace-shell .players-status-filters button { font-size: 11px; padding: 10px; gap: 5px; }
+  .club-workspace-shell .players-status-filters button > span { font-size: 18px; }
+  .club-workspace-shell .players-status-filters button:first-child { grid-column: auto; }
+}

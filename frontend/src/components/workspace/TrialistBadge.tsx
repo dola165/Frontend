@@ -31,8 +31,8 @@ export const TrialistBadge = ({
     const isOverdue = days !== null && days > OVERDUE_THRESHOLD_DAYS;
 
     const colorClasses = isOverdue
-        ? 'bg-red-950 text-red-400 border-red-800'
-        : 'bg-amber-950 text-amber-400 border-amber-800';
+        ? 'bg-[color:var(--color-danger)] text-[color:var(--color-danger)] border-[color:var(--color-danger)]'
+        : 'bg-[color:var(--color-warning)] text-[color:var(--color-warning)] border-[color:var(--color-warning)]';
 
     // ── popover state (only used when actions are provided) ──
     const [openFor, setOpenFor] = useState<string | null>(null);

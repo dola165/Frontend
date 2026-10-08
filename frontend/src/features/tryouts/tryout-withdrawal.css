@@ -1,0 +1,5 @@
+.gk-tryout-withdrawal{margin-top:.5rem;font-size:.8rem;overflow-wrap:anywhere;color:var(--fc-text-secondary)}
+.gk-tryout-withdrawal p{margin:.4rem 0;max-width:40rem}
+.gk-tryout-withdrawal button{min-height:44px;padding:.5rem .75rem;margin:.25rem .4rem .25rem 0;border:1px solid var(--fc-border);border-radius:.5rem;color:var(--fc-text-primary);background:var(--fc-page-bg)}
+.gk-tryout-withdrawal button:focus-visible{outline:2px solid var(--fc-accent);outline-offset:2px}
+.gk-tryout-withdrawal button:disabled{opacity:.6;cursor:wait}

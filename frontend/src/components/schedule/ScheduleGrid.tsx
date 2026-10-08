@@ -1,6 +1,8 @@
-import { type CSSProperties, type MouseEvent as ReactMouseEvent, useState } from 'react';
-import { CalendarDays, PencilLine, Plus, TriangleAlert } from 'lucide-react';
+import { eventsForDay } from './segments';
+import { type CSSProperties, type MouseEvent as ReactMouseEvent, useEffect, useRef, useState } from 'react';
+import { PencilLine, Plus, TriangleAlert } from 'lucide-react';
 import { eventTypeCopy, type ScheduleWorkspaceEvent, type WorkspaceView } from './workspaceTypes';
+import { formatDate as formatAppDate, formatTime as formatAppTime } from '../../utils/formatting';
 import {
     DndContext,
     DragOverlay,
@@ -44,7 +46,35 @@ const monthGrid = (cursorDate: Date) => {
 };
 
 const formatTime = (value: string) =>
-    parseDate(value).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    formatAppTime(parseDate(value));
+const formatDay = (value: Date) =>
+    formatAppDate(value, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+const useTimelineInitialScroll = (days: Date[], events: ScheduleWorkspaceEvent[]) => {
+    const surface = useRef<HTMLDivElement>(null);
+    const initialized = useRef<{ range: string; hasEvents: boolean; scrollTop: number } | null>(null);
+    const range = days.map(toDateKey).join('|');
+    useEffect(() => {
+        const node = surface.current;
+        if (!node) return;
+        const hours = events.flatMap(event => {
+            const start = parseDate(event.startsAt);
+            return Number.isFinite(start.getTime()) && range.split('|').includes(toDateKey(start)) ? [start.getHours()] : [];
+        });
+        const scrollTop = Math.min(8, ...hours) * SLOT_HEIGHT;
+        const previous = initialized.current;
+        if (previous?.range !== range) {
+            node.scrollTop = scrollTop;
+            initialized.current = { range, hasEvents: hours.length > 0, scrollTop: node.scrollTop };
+        } else if (!previous.hasEvents && hours.length > 0) {
+            // A new date range may first render before its events arrive. Adjust once
+            // for an early session, only if the viewer has not scrolled meanwhile.
+            if (Math.abs(node.scrollTop - previous.scrollTop) < 1) node.scrollTop = scrollTop;
+            initialized.current = { range, hasEvents: true, scrollTop: node.scrollTop };
+        }
+    }, [events, range]);
+    return surface;
+};
 
 const eventStyle = (event: ScheduleWorkspaceEvent, selected: boolean): CSSProperties => {
     const tone = event.conflict
@@ -62,7 +92,7 @@ const eventTimelinePosition = (event: ScheduleWorkspaceEvent) => {
     const start = parseDate(event.startsAt);
     const end = parseDate(event.endsAt);
     const startMinutes = start.getHours() * 60 + start.getMinutes();
-    const endMinutes = end.getHours() * 60 + end.getMinutes();
+    const endMinutes = sameDay(start,end) ? end.getHours() * 60 + end.getMinutes() : 1440;
     const top = (startMinutes / 60) * SLOT_HEIGHT;
     const height = Math.max(((endMinutes - startMinutes) / 60) * SLOT_HEIGHT, SLOT_HEIGHT * 0.8);
     return { top, height };
@@ -124,6 +154,7 @@ const computeTimelineDropTimes = (
 const DraggableMonthEvent = ({
     event,
     selected,
+    onEdit,
 }: {
     event: ScheduleWorkspaceEvent;
     selected: boolean;
@@ -132,13 +163,14 @@ const DraggableMonthEvent = ({
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: event.id,
         data: event,
+        disabled: event.recurring,
     });
 
     const style: CSSProperties = {
         ...eventStyle(event, selected),
         ...(transform ? { transform: CSS.Translate.toString(transform) } : {}),
         opacity: isDragging ? 0.4 : 1,
-        cursor: 'grab',
+        cursor: event.recurring ? 'pointer' : 'grab',
         zIndex: isDragging ? 999 : 1,
         position: 'relative',
     };
@@ -147,18 +179,23 @@ const DraggableMonthEvent = ({
         <button
             ref={setNodeRef}
             type="button"
-            {...listeners}
-            {...attributes}
+            {...(event.recurring ? {} : listeners)}
+            {...(event.recurring ? {} : attributes)}
+            title={event.recurring ? 'Edit training series' : 'Drag to move'}
+            onClick={(clickEvent) => {
+                clickEvent.stopPropagation();
+                if (event.recurring) onEdit(event);
+            }}
             className="rounded-[4px] border px-2 py-1.5 text-left"
             style={style}
         >
             <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-[10px] font-semibold text-[#f4f4f5]">{event.title}</span>
-                <span className="shrink-0 text-[10px] font-semibold text-[#a1a1aa]">{formatTime(event.startsAt)}</span>
+                <span className="truncate text-[10px] font-semibold text-[var(--color-text)]">{event.title}</span>
+                <span className="shrink-0 text-[10px] font-semibold text-[var(--color-secondary)]">{formatTime(event.startsAt)}</span>
             </div>
             <div className="mt-1 flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.18em] text-[var(--fc-accent)]">
                 <PencilLine className="h-2.5 w-2.5" />
-                Drag to move
+                {event.recurring ? 'Edit training series' : 'Drag to move'}
             </div>
         </button>
     );
@@ -190,20 +227,21 @@ const DroppableDayCell = ({
         <div
             ref={setNodeRef}
             onClick={() => canCreate && onCreateAt(date)}
-            className={`flex min-h-[120px] flex-col border-b border-r border-[#ffffff0d] px-2.5 py-2.5 last:border-r-0 ${
+            className={`flex min-h-[120px] flex-col border-b border-r border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-2.5 py-2.5 last:border-r-0 ${
                 inMonth ? 'schedule-board-cell' : 'schedule-board-cell--muted'
             } ${canCreate ? 'cursor-pointer' : ''}`}
-            style={isOver ? { backgroundColor: 'var(--accent-primary-soft, rgba(34,197,94,0.15))', outline: '2px solid var(--accent-primary, #22c55e)', outlineOffset: -2 } : undefined}
+            style={isOver ? { backgroundColor: 'var(--accent-primary-soft, color-mix(in srgb, var(--color-accent) 15%, transparent))', outline: '2px solid var(--accent-primary, var(--color-accent))', outlineOffset: -2 } : undefined}
         >
             <div className="mb-2 flex items-center justify-between gap-2">
                 <button
                     type="button"
+                    aria-label={`Select ${formatDay(date)}`}
                     onClick={(clickEvent) => {
                         clickEvent.stopPropagation();
                         onSelectDate(date);
                     }}
                     className={`schedule-interactive schedule-tone-blue inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[11px] font-semibold ${
-                        activeDay ? 'bg-elevated text-current' : 'text-[#a1a1aa]'
+                        activeDay ? 'bg-elevated text-current' : 'text-[var(--color-secondary)]'
                     }`}
                     data-active={activeDay}
                 >
@@ -213,11 +251,12 @@ const DroppableDayCell = ({
                 {canCreate ? (
                     <button
                         type="button"
+                        aria-label={`Create event on ${formatDay(date)}`}
                         onClick={(clickEvent) => {
                             clickEvent.stopPropagation();
                             onCreateAt(date);
                         }}
-                        className="schedule-interactive schedule-tone-green inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#a1a1aa]"
+                        className="schedule-interactive schedule-tone-green inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[var(--color-secondary)]"
                     >
                         <Plus className="h-3.5 w-3.5" />
                     </button>
@@ -245,8 +284,8 @@ const StaticMonthEvent = ({
         style={eventStyle(event, false)}
     >
         <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-[10px] font-semibold text-[#f4f4f5]">{event.title}</span>
-            <span className="shrink-0 text-[10px] font-semibold text-[#a1a1aa]">{formatTime(event.startsAt)}</span>
+            <span className="truncate text-[10px] font-semibold text-[var(--color-text)]">{event.title}</span>
+            <span className="shrink-0 text-[10px] font-semibold text-[var(--color-secondary)]">{formatTime(event.startsAt)}</span>
         </div>
     </button>
 );
@@ -267,8 +306,8 @@ const StaticTimelineEvent = ({
             style={{ ...eventStyle(event, false), top: position.top + 2, height: position.height - 4 }}
         >
             <div className="min-w-0">
-                <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">{event.title}</p>
-                <p className="mt-1 truncate text-[10px] font-semibold text-[#a1a1aa]">
+                <p className="truncate text-[11px] font-semibold text-[var(--color-text)]">{event.title}</p>
+                <p className="mt-1 truncate text-[10px] font-semibold text-[var(--color-secondary)]">
                     {formatTime(event.startsAt)} - {formatTime(event.endsAt)}
                 </p>
             </div>
@@ -281,6 +320,7 @@ const StaticTimelineEvent = ({
 const DraggableTimelineEvent = ({
     event,
     selected,
+    onEdit,
 }: {
     event: ScheduleWorkspaceEvent;
     selected: boolean;
@@ -290,6 +330,7 @@ const DraggableTimelineEvent = ({
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: event.id,
         data: event,
+        disabled: event.recurring,
     });
 
     const style: CSSProperties = {
@@ -298,7 +339,7 @@ const DraggableTimelineEvent = ({
         height: position.height - 4,
         ...(transform ? { transform: CSS.Translate.toString(transform) } : {}),
         opacity: isDragging ? 0.4 : 1,
-        cursor: 'grab',
+        cursor: event.recurring ? 'pointer' : 'grab',
         zIndex: isDragging ? 999 : 10,
     };
 
@@ -306,15 +347,21 @@ const DraggableTimelineEvent = ({
         <button
             ref={setNodeRef}
             type="button"
-            {...listeners}
-            {...attributes}
+            {...(event.recurring ? {} : listeners)}
+            {...(event.recurring ? {} : attributes)}
+            title={event.recurring ? 'Edit training series' : 'Drag to move'}
+            aria-label={event.recurring ? `Edit training series: ${event.title}, ${formatTime(event.startsAt)} – ${formatTime(event.endsAt)}` : undefined}
+            onClick={(clickEvent) => {
+                clickEvent.stopPropagation();
+                if (event.recurring) onEdit(event);
+            }}
             className="absolute left-1.5 right-1.5 rounded-[4px] border px-2 py-1.5 text-left"
             style={style}
         >
             <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                    <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">{event.title}</p>
-                    <p className="mt-1 truncate text-[10px] font-semibold text-[#a1a1aa]">
+                    <p className="truncate text-[11px] font-semibold text-[var(--color-text)]">{event.title}</p>
+                    <p className="mt-1 truncate text-[10px] font-semibold text-[var(--color-secondary)]">
                         {formatTime(event.startsAt)} - {formatTime(event.endsAt)}
                     </p>
                 </div>
@@ -340,8 +387,8 @@ const DroppableDayColumn = ({
     return (
         <div
             ref={setNodeRef}
-            className="relative border-r border-[#ffffff0d] last:border-r-0"
-            style={isOver ? { backgroundColor: 'var(--accent-primary-soft, rgba(34,197,94,0.15))', outline: '2px solid var(--accent-primary, #22c55e)', outlineOffset: -2 } : undefined}
+            className="relative border-r border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] last:border-r-0"
+            style={isOver ? { backgroundColor: 'var(--accent-primary-soft, color-mix(in srgb, var(--color-accent) 15%, transparent))', outline: '2px solid var(--accent-primary, var(--color-accent))', outlineOffset: -2 } : undefined}
         >
             {children}
         </div>
@@ -439,20 +486,6 @@ export const ScheduleGrid = ({
         onEventDragEnd(draggedEvent.eventId, newStartsAt, newEndsAt);
     };
 
-    if (events.length === 0) {
-        return (
-            <div className="flex h-full items-center justify-center px-6 text-center">
-                <div className="max-w-md">
-                    <CalendarDays className="mx-auto h-10 w-10 text-[#a1a1aa]" />
-                    <h2 className="mt-4 text-lg font-semibold text-[#f4f4f5]">No Schedule Items In View</h2>
-                    <p className="mt-3 text-sm leading-6 text-[#a1a1aa]">
-                        Adjust the current filters, date window, or view mode to reveal schedule items.
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
     if (editMode) {
         return (
             <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -464,6 +497,7 @@ export const ScheduleGrid = ({
                         canCreate={canCreate}
                         onCreateAt={onCreateAt}
                         onOpenPastEvent={onOpenPastEvent}
+                        onEditEvent={onEditEvent}
                     />
                 ) : (
                     <TimelineBoardDnd
@@ -472,6 +506,7 @@ export const ScheduleGrid = ({
                         canCreate={canCreate}
                         onCreateAt={onCreateAt}
                         onOpenPastEvent={onOpenPastEvent}
+                        onEditEvent={onEditEvent}
                     />
                 )}
                 <DragOverlay dropAnimation={null}>
@@ -525,9 +560,9 @@ const MonthBoard = ({
     onCreateAt: (date: Date) => void;
 }) => (
     <div className="schedule-scroll-surface h-full overflow-auto bg-[color:var(--schedule-board-cell)]">
-        <div className="schedule-board-head sticky top-0 z-10 grid min-w-[840px] grid-cols-7 border-b border-[#ffffff0d]">
+        <div className="schedule-board-head sticky top-0 z-10 grid min-w-[840px] grid-cols-7 border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]">
             {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((label) => (
-                <div key={label} className="border-r border-[#ffffff0d] px-3 py-2 text-[10px] font-semibold text-[#a1a1aa] last:border-r-0">
+                <div key={label} className="border-r border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-3 py-2 text-[10px] font-semibold text-[var(--color-secondary)] last:border-r-0">
                     {label}
                 </div>
             ))}
@@ -542,19 +577,20 @@ const MonthBoard = ({
                     <div
                         key={toDateKey(date)}
                         onClick={() => canCreate && onCreateAt(date)}
-                        className={`flex min-h-[120px] flex-col border-b border-r border-[#ffffff0d] px-2.5 py-2.5 last:border-r-0 ${
+                        className={`flex min-h-[120px] flex-col border-b border-r border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-2.5 py-2.5 last:border-r-0 ${
                             inMonth ? 'schedule-board-cell' : 'schedule-board-cell--muted'
                         } ${canCreate ? 'cursor-pointer' : ''}`}
                     >
                         <div className="mb-2 flex items-center justify-between gap-2">
                             <button
                                 type="button"
+                                aria-label={`Select ${formatDay(date)}`}
                                 onClick={(clickEvent) => {
                                     clickEvent.stopPropagation();
                                     onSelectDate(date);
                                 }}
                                 className={`schedule-interactive schedule-tone-blue inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[11px] font-semibold ${
-                                    activeDay ? 'bg-elevated text-current' : 'text-[#a1a1aa]'
+                                    activeDay ? 'bg-elevated text-current' : 'text-[var(--color-secondary)]'
                                 }`}
                                 data-active={activeDay}
                             >
@@ -564,11 +600,12 @@ const MonthBoard = ({
                             {canCreate ? (
                                 <button
                                     type="button"
+                                    aria-label={`Create event on ${formatDay(date)}`}
                                     onClick={(clickEvent) => {
                                         clickEvent.stopPropagation();
                                         onCreateAt(date);
                                     }}
-                                    className="schedule-interactive schedule-tone-green inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[#a1a1aa]"
+                                    className="schedule-interactive schedule-tone-green inline-flex h-7 w-7 items-center justify-center rounded-[4px] text-[var(--color-secondary)]"
                                 >
                                     <Plus className="h-3.5 w-3.5" />
                                 </button>
@@ -584,17 +621,17 @@ const MonthBoard = ({
                                         clickEvent.stopPropagation();
                                         (isPast(event.startsAt) ? onOpenPastEvent : onEditEvent)(event);
                                     }}
-                                    className="rounded-[4px] border px-2 py-1.5 text-left transition-transform duration-150 hover:-translate-y-px hover:shadow-[0_8px_18px_rgba(0,0,0,0.18)]"
+                                    className="rounded-[4px] border px-2 py-1.5 text-left transition-transform duration-150 hover:-translate-y-px hover:shadow-[0_8px_18px_color-mix(in_srgb,_var(--color-shadow)_18%,_transparent)]"
                                     style={eventStyle(event, false)}
                                 >
                                     <div className="flex items-center justify-between gap-2">
-                                        <span className="truncate text-[10px] font-semibold text-[#f4f4f5]">{event.title}</span>
-                                        <span className="shrink-0 text-[10px] font-semibold text-[#a1a1aa]">{formatTime(event.startsAt)}</span>
+                                        <span className="truncate text-[10px] font-semibold text-[var(--color-text)]">{event.title}</span>
+                                        <span className="shrink-0 text-[10px] font-semibold text-[var(--color-secondary)]">{formatTime(event.startsAt)}</span>
                                     </div>
                                 </button>
                             ))}
                             {dayEvents.length > 4 ? (
-                                <div className="text-[10px] font-semibold text-[#a1a1aa]">+{dayEvents.length - 4} more</div>
+                                <div className="text-[10px] font-semibold text-[var(--color-secondary)]">+{dayEvents.length - 4} more</div>
                             ) : null}
                         </div>
                     </div>
@@ -618,30 +655,32 @@ const TimelineBoard = ({
     onOpenPastEvent: (event: ScheduleWorkspaceEvent) => void;
     canCreate: boolean;
     onCreateAt: (date: Date) => void;
-}) => (
+}) => {
+    const scrollSurface = useTimelineInitialScroll(days, events);
+    return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[color:var(--schedule-board-cell)]">
         {/* Sticky day headers */}
-        <div className="sticky top-0 z-10 grid shrink-0 border-b border-[#ffffff0d] bg-[color:var(--schedule-board-head)]" style={{ gridTemplateColumns: `${TIMELINE_GUTTER_WIDTH}px repeat(${days.length}, minmax(${timelineDayMinWidth(days.length)}px, 1fr))`, minWidth: 1008 }}>
-            <div className="border-r border-[#ffffff0d]" />
+        <div className="sticky top-0 z-10 grid shrink-0 border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[color:var(--schedule-board-head)]" style={{ gridTemplateColumns: `${TIMELINE_GUTTER_WIDTH}px repeat(${days.length}, minmax(${timelineDayMinWidth(days.length)}px, 1fr))`, minWidth: 1008 }}>
+            <div className="border-r border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]" />
             {days.map((day) => (
-                <div key={toDateKey(day)} className="border-r border-[#ffffff0d] px-3 py-2 last:border-r-0">
-                    <p className="text-[10px] font-semibold text-[#a1a1aa]">
-                        {day.toLocaleDateString(undefined, { weekday: 'short' })}
+                <div key={toDateKey(day)} className="border-r border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-3 py-2 last:border-r-0">
+                    <p className="text-[10px] font-semibold text-[var(--color-secondary)]">
+                        {formatAppDate(day, { weekday: 'short' })}
                     </p>
-                    <p className="mt-0.5 truncate text-[12px] font-semibold uppercase tracking-[0.12em] text-[#f4f4f5]">
-                        {day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    <p className="mt-0.5 truncate text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text)]">
+                        {formatAppDate(day, { month: 'short', day: 'numeric' })}
                     </p>
                 </div>
             ))}
         </div>
 
         {/* Scrollable body */}
-        <div className="schedule-scroll-surface min-h-0 flex-1 overflow-auto">
+        <div ref={scrollSurface} className="schedule-scroll-surface min-h-0 flex-1 overflow-auto">
             <div style={{ display: 'grid', gridTemplateColumns: `${TIMELINE_GUTTER_WIDTH}px repeat(${days.length}, minmax(${timelineDayMinWidth(days.length)}px, 1fr))`, minWidth: 1008 }}>
                 {/* Time gutter */}
-                <div className="relative border-r border-[#ffffff0d]">
+                <div className="relative border-r border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]">
                     {HOURS.map((hour) => (
-                        <div key={hour} className="flex h-[40px] items-start justify-end border-b border-[#ffffff0d] px-2.5 pt-1 text-[10px] font-semibold text-[#a1a1aa]">
+                        <div key={hour} className="flex h-[40px] items-start justify-end border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-2.5 pt-1 text-[10px] font-semibold text-[var(--color-secondary)]">
                             {pad(hour)}:00
                         </div>
                     ))}
@@ -649,22 +688,24 @@ const TimelineBoard = ({
 
                 {/* Day columns */}
                 {days.map((day) => {
-                    const dayEvents = events.filter((event) => sameDay(parseDate(event.startsAt), day));
+                    const dayEvents = eventsForDay(events,day);
+                    const dayDescription = formatDay(day);
 
                     return (
-                        <div key={toDateKey(day)} className="relative border-r border-[#ffffff0d] last:border-r-0">
+                        <div key={toDateKey(day)} className="relative border-r border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] last:border-r-0">
                             {HOURS.map((hour) =>
                                 canCreate ? (
                                     <button
                                         key={`${toDateKey(day)}-${hour}`}
                                         type="button"
+                                        aria-label={`Create event on ${dayDescription} at ${pad(hour)}:00`}
                                         onClick={(clickEvent) => onCreateAt(resolveSlotDate(day, hour, clickEvent))}
-                                        className="schedule-slot-button block h-[40px] w-full border-b border-[#ffffff0d] text-transparent"
+                                        className="schedule-slot-button block h-[40px] w-full border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] text-transparent"
                                     >
                                         slot
                                     </button>
                                 ) : (
-                                    <div key={`${toDateKey(day)}-${hour}`} className="schedule-board-cell h-[40px] border-b border-[#ffffff0d]" />
+                                    <div key={`${toDateKey(day)}-${hour}`} className="schedule-board-cell h-[40px] border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]" />
                                 )
                             )}
 
@@ -675,13 +716,13 @@ const TimelineBoard = ({
                                         key={event.id}
                                         type="button"
                                         onClick={() => (isPast(event.startsAt) ? onOpenPastEvent(event) : onEditEvent(event))}
-                                        className="absolute left-1.5 right-1.5 rounded-[4px] border px-2 py-1.5 text-left transition-transform duration-150 hover:-translate-y-px hover:shadow-[0_8px_18px_rgba(0,0,0,0.18)]"
+                                        className="absolute left-1.5 right-1.5 rounded-[4px] border px-2 py-1.5 text-left transition-transform duration-150 hover:-translate-y-px hover:shadow-[0_8px_18px_color-mix(in_srgb,_var(--color-shadow)_18%,_transparent)]"
                                         style={{ ...eventStyle(event, false), top: position.top + 2, height: position.height - 4 }}
                                     >
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="min-w-0">
-                                                <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-[#f4f4f5]">{event.title}</p>
-                                                <p className="mt-1 truncate text-[10px] font-semibold text-[#a1a1aa]">
+                                                <p className="truncate text-[11px] font-semibold text-[var(--color-text)]">{event.title}</p>
+                                                <p className="mt-1 truncate text-[10px] font-semibold text-[var(--color-secondary)]">
                                                     {formatTime(event.startsAt)} - {formatTime(event.endsAt)}
                                                 </p>
                                             </div>
@@ -696,7 +737,8 @@ const TimelineBoard = ({
             </div>
         </div>
     </div>
-);
+    );
+};
 
 // ============================================================
 // DnD variants — MonthBoardDnd / TimelineBoardDnd
@@ -709,6 +751,7 @@ const MonthBoardDnd = ({
     canCreate,
     onCreateAt,
     onOpenPastEvent,
+    onEditEvent,
 }: {
     cursorDate: Date;
     monthEvents: Record<string, ScheduleWorkspaceEvent[]>;
@@ -716,11 +759,12 @@ const MonthBoardDnd = ({
     canCreate: boolean;
     onCreateAt: (date: Date) => void;
     onOpenPastEvent: (event: ScheduleWorkspaceEvent) => void;
+    onEditEvent: (event: ScheduleWorkspaceEvent) => void;
 }) => (
     <div className="schedule-scroll-surface h-full overflow-auto bg-[color:var(--schedule-board-cell)]">
-        <div className="schedule-board-head sticky top-0 z-10 grid min-w-[840px] grid-cols-7 border-b border-[#ffffff0d]">
+        <div className="schedule-board-head sticky top-0 z-10 grid min-w-[840px] grid-cols-7 border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]">
             {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((label) => (
-                <div key={label} className="border-r border-[#ffffff0d] px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--fc-accent)] last:border-r-0">
+                <div key={label} className="border-r border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--fc-accent)] last:border-r-0">
                     {label}
                 </div>
             ))}
@@ -750,7 +794,7 @@ const MonthBoardDnd = ({
                                         key={event.id}
                                         event={event}
                                         selected={false}
-                                        onEdit={() => {}}
+                                        onEdit={onEditEvent}
                                     />
                                 )
                             ))}
@@ -768,36 +812,40 @@ const TimelineBoardDnd = ({
     canCreate,
     onCreateAt,
     onOpenPastEvent,
+    onEditEvent,
 }: {
     days: Date[];
     events: ScheduleWorkspaceEvent[];
     canCreate: boolean;
     onCreateAt: (date: Date) => void;
     onOpenPastEvent: (event: ScheduleWorkspaceEvent) => void;
-}) => (
+    onEditEvent: (event: ScheduleWorkspaceEvent) => void;
+}) => {
+    const scrollSurface = useTimelineInitialScroll(days, events);
+    return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[color:var(--schedule-board-cell)]">
         {/* Sticky day headers */}
-        <div className="sticky top-0 z-10 grid shrink-0 border-b border-[#ffffff0d] bg-[color:var(--schedule-board-head)]" style={{ gridTemplateColumns: `${TIMELINE_GUTTER_WIDTH}px repeat(${days.length}, minmax(${timelineDayMinWidth(days.length)}px, 1fr))`, minWidth: 1008 }}>
-            <div className="border-r border-[#ffffff0d]" />
+        <div className="sticky top-0 z-10 grid shrink-0 border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[color:var(--schedule-board-head)]" style={{ gridTemplateColumns: `${TIMELINE_GUTTER_WIDTH}px repeat(${days.length}, minmax(${timelineDayMinWidth(days.length)}px, 1fr))`, minWidth: 1008 }}>
+            <div className="border-r border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]" />
             {days.map((day) => (
-                <div key={toDateKey(day)} className="border-r border-[#ffffff0d] px-3 py-2 last:border-r-0">
-                    <p className="text-[10px] font-semibold text-[#a1a1aa]">
-                        {day.toLocaleDateString(undefined, { weekday: 'short' })}
+                <div key={toDateKey(day)} className="border-r border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-3 py-2 last:border-r-0">
+                    <p className="text-[10px] font-semibold text-[var(--color-secondary)]">
+                        {formatAppDate(day, { weekday: 'short' })}
                     </p>
-                    <p className="mt-0.5 truncate text-[12px] font-semibold uppercase tracking-[0.12em] text-[#f4f4f5]">
-                        {day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    <p className="mt-0.5 truncate text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text)]">
+                        {formatAppDate(day, { month: 'short', day: 'numeric' })}
                     </p>
                 </div>
             ))}
         </div>
 
         {/* Scrollable body */}
-        <div className="schedule-scroll-surface min-h-0 flex-1 overflow-auto">
+        <div ref={scrollSurface} className="schedule-scroll-surface min-h-0 flex-1 overflow-auto">
             <div style={{ display: 'grid', gridTemplateColumns: `${TIMELINE_GUTTER_WIDTH}px repeat(${days.length}, minmax(${timelineDayMinWidth(days.length)}px, 1fr))`, minWidth: 1008 }}>
                 {/* Time gutter */}
-                <div className="relative border-r border-[#ffffff0d]">
+                <div className="relative border-r border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]">
                     {HOURS.map((hour) => (
-                        <div key={hour} className="flex h-[40px] items-start justify-end border-b border-[#ffffff0d] px-2.5 pt-1 text-[10px] font-semibold text-[#a1a1aa]">
+                        <div key={hour} className="flex h-[40px] items-start justify-end border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] px-2.5 pt-1 text-[10px] font-semibold text-[var(--color-secondary)]">
                             {pad(hour)}:00
                         </div>
                     ))}
@@ -805,7 +853,8 @@ const TimelineBoardDnd = ({
 
                 {/* Day columns */}
                 {days.map((day) => {
-                    const dayEvents = events.filter((event) => sameDay(parseDate(event.startsAt), day));
+                    const dayEvents = eventsForDay(events,day);
+                    const dayDescription = formatDay(day);
 
                     return (
                         <DroppableDayColumn key={toDateKey(day)} day={day}>
@@ -814,13 +863,14 @@ const TimelineBoardDnd = ({
                                     <button
                                         key={`${toDateKey(day)}-${hour}`}
                                         type="button"
+                                        aria-label={`Create event on ${dayDescription} at ${pad(hour)}:00`}
                                         onClick={(clickEvent) => onCreateAt(resolveSlotDate(day, hour, clickEvent))}
-                                        className="schedule-slot-button block h-[40px] w-full border-b border-[#ffffff0d] text-transparent"
+                                        className="schedule-slot-button block h-[40px] w-full border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] text-transparent"
                                     >
                                         slot
                                     </button>
                                 ) : (
-                                    <div key={`${toDateKey(day)}-${hour}`} className="schedule-board-cell h-[40px] border-b border-[#ffffff0d]" />
+                                    <div key={`${toDateKey(day)}-${hour}`} className="schedule-board-cell h-[40px] border-b border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)]" />
                                 )
                             )}
 
@@ -832,7 +882,7 @@ const TimelineBoardDnd = ({
                                         key={event.id}
                                         event={event}
                                         selected={false}
-                                        onEdit={() => {}}
+                                        onEdit={onEditEvent}
                                     />
                                 )
                             ))}
@@ -842,4 +892,5 @@ const TimelineBoardDnd = ({
             </div>
         </div>
     </div>
-);
+    );
+};

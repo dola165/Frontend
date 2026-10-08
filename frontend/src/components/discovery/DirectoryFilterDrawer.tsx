@@ -45,7 +45,7 @@ export const DirectoryFilterDrawer = ({
 
     return (
         <div className="fixed inset-0 z-[1800] xl:hidden" role="dialog" aria-modal="true" aria-labelledby={titleId} onKeyDown={handleKeyDown}>
-            <button type="button" tabIndex={-1} aria-label={closeLabel} onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+            <button type="button" tabIndex={-1} aria-label={closeLabel} onClick={onClose} className="absolute inset-0 bg-[color:var(--color-overlay)]/70 backdrop-blur-sm" />
             <section className="relative ml-auto flex h-full w-full max-w-md flex-col border-l border-[color:var(--theme-border)] bg-[color:var(--theme-page)] shadow-2xl">
                 <header className="flex items-center justify-between border-b border-[color:var(--theme-border)] px-5 py-4">
                     <h2 id={titleId} className="text-base font-semibold text-[color:var(--text-primary)]">{title}</h2>

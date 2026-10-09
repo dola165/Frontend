@@ -110,7 +110,7 @@ it('opens the selected album image in the existing post viewer with working medi
     fireEvent.click(screen.getByRole('button', { name: 'Previous post media' }));
     expect(screen.getByAltText('Post media in viewer')).toHaveAttribute('src', 'https://images.test/first.jpg');
     fireEvent.click(screen.getByRole('button', { name: 'Close post viewer' }));
-    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 });
 
 it('ignores a late gallery response after switching clubs', async () => {

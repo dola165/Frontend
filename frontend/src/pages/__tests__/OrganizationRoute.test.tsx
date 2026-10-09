@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import '../../i18n';
 
 const auth = vi.hoisted(() => ({ signedIn: true, onboardingRequired: false, mustChangePassword: false }));
@@ -32,7 +32,8 @@ const openOrganization = () => {
 
 it('opens organization creation for an authenticated non-organizer persona through the actual Android route', async () => {
     openOrganization();
-    expect(await screen.findByRole('textbox', { name: 'Organization Name' })).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+    expect(await screen.findByRole('textbox', { name: 'Name' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/organizations/create');
 });
 

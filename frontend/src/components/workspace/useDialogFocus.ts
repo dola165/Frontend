@@ -11,9 +11,10 @@ const FOCUSABLE_SELECTOR = [
     '[tabindex]:not([tabindex="-1"])',
 ].join(', ');
 
-const dialogStack: symbol[] = [];
+const dialogStack: Array<{ token: symbol; returnFocus: HTMLElement | null }> = [];
 let scrollLockCount = 0;
 let previousBodyOverflow = '';
+const backgroundLocks = new WeakMap<HTMLElement, { count: number; inert: boolean; ariaHidden: string | null }>();
 
 const focusableElements = (dialog: HTMLElement | null) => dialog
     ? Array.from(dialog.querySelectorAll<FocusableElement>(FOCUSABLE_SELECTOR))
@@ -21,14 +22,17 @@ const focusableElements = (dialog: HTMLElement | null) => dialog
     : [];
 
 const suppressBackground = (dialog: HTMLElement) => {
-    const restored: Array<{ element: HTMLElement; inert: boolean; ariaHidden: string | null }> = [];
+    const suppressed: HTMLElement[] = [];
     let activeBranch: HTMLElement = dialog;
     let parent = activeBranch.parentElement;
 
     while (parent) {
         for (const sibling of Array.from(parent.children)) {
             if (sibling === activeBranch || !(sibling instanceof HTMLElement)) continue;
-            restored.push({ element: sibling, inert: sibling.inert, ariaHidden: sibling.getAttribute('aria-hidden') });
+            const lock = backgroundLocks.get(sibling) ?? { count: 0, inert: sibling.inert, ariaHidden: sibling.getAttribute('aria-hidden') };
+            lock.count += 1;
+            backgroundLocks.set(sibling, lock);
+            suppressed.push(sibling);
             sibling.inert = true;
             sibling.setAttribute('aria-hidden', 'true');
         }
@@ -38,10 +42,13 @@ const suppressBackground = (dialog: HTMLElement) => {
     }
 
     return () => {
-        for (const { element, inert, ariaHidden } of restored) {
-            element.inert = inert;
-            if (ariaHidden === null) element.removeAttribute('aria-hidden');
-            else element.setAttribute('aria-hidden', ariaHidden);
+        for (const element of suppressed) {
+            const lock = backgroundLocks.get(element);
+            if (!lock || --lock.count > 0) continue;
+            element.inert = lock.inert;
+            if (lock.ariaHidden === null) element.removeAttribute('aria-hidden');
+            else element.setAttribute('aria-hidden', lock.ariaHidden);
+            backgroundLocks.delete(element);
         }
     };
 };
@@ -53,7 +60,6 @@ export function useDialogFocus(
     onEscape?: () => void,
     initialFocusRef?: RefObject<HTMLElement | null>,
 ) {
-    const previousFocusRef = useRef<HTMLElement | null>(null);
     const onEscapeRef = useRef(onEscape);
     useEffect(() => {
         onEscapeRef.current = onEscape;
@@ -62,11 +68,12 @@ export function useDialogFocus(
     useEffect(() => {
         if (!open) return undefined;
 
-        previousFocusRef.current = document.activeElement instanceof HTMLElement
+        const returnFocus = document.activeElement instanceof HTMLElement
             ? document.activeElement
             : null;
         const token = Symbol('dialog');
-        dialogStack.push(token);
+        const entry = { token, returnFocus };
+        dialogStack.push(entry);
         const dialog = dialogRef.current;
         const restoreBackground = dialog ? suppressBackground(dialog) : () => undefined;
         const previousTabIndex = dialog?.getAttribute('tabindex') ?? null;
@@ -77,7 +84,7 @@ export function useDialogFocus(
         }
         scrollLockCount += 1;
 
-        const isTopDialog = () => dialogStack.at(-1) === token;
+        const isTopDialog = () => dialogStack.at(-1)?.token === token;
         const focusTimer = window.setTimeout(() => {
             if (!isTopDialog()) return;
             if (initialFocusRef?.current) {
@@ -127,8 +134,15 @@ export function useDialogFocus(
             window.clearTimeout(focusTimer);
             document.removeEventListener('keydown', handleKeyDown);
             document.removeEventListener('focusin', handleFocusIn);
-            const stackIndex = dialogStack.lastIndexOf(token);
-            if (stackIndex >= 0) dialogStack.splice(stackIndex, 1);
+            const wasTop = isTopDialog();
+            const stackIndex = dialogStack.findIndex(item => item.token === token);
+            if (stackIndex >= 0) {
+                const next = dialogStack[stackIndex + 1];
+                // A child may close after its parent. Carry the original trigger
+                // forward until the remaining background locks have been released.
+                if (next && (!next.returnFocus?.isConnected || dialog?.contains(next.returnFocus))) next.returnFocus = entry.returnFocus;
+                dialogStack.splice(stackIndex, 1);
+            }
             restoreBackground();
             if (dialog) {
                 if (previousTabIndex === null) dialog.removeAttribute('tabindex');
@@ -136,8 +150,7 @@ export function useDialogFocus(
             }
             scrollLockCount = Math.max(0, scrollLockCount - 1);
             if (scrollLockCount === 0) document.body.style.overflow = previousBodyOverflow;
-            previousFocusRef.current?.focus({ preventScroll: true });
-            previousFocusRef.current = null;
+            if (wasTop && entry.returnFocus?.isConnected) entry.returnFocus.focus({ preventScroll: true });
         };
     }, [dialogRef, initialFocusRef, open]);
 }

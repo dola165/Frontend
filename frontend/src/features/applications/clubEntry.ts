@@ -50,7 +50,7 @@ const reasons: Record<string, [string, string]> = {
 
 export function useEntryCopy() {
   const { i18n } = useTranslation();
-  const georgian = i18n.language.startsWith('ka');
+  const georgian = (i18n.resolvedLanguage ?? i18n.language ?? 'en').startsWith('ka');
   const copy = (en: string, ka: string) => georgian ? ka : en;
   const reason = (decision: EntryDecision) => {
     const pair = reasons[decision.reason ?? ''];

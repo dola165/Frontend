@@ -31,8 +31,8 @@ describe('public club journeys', () => {
     render(route(<TabTraining club={club} onContact={contact} />, '/clubs/1?tab=teams&programme=22'));
     expect(screen.getByRole('heading', { name: 'U12 training' })).toBeVisible();
     expect(await screen.findByRole('link', { name: /U12 mixed/ })).toHaveAttribute('href', '/clubs/1?tab=teams&squad=9');
-    fireEvent.click(screen.getByRole('button', { name: /Ask about this programme/ }));
-    expect(contact).toHaveBeenCalledWith({ name: 'U12 training', path: '/clubs/1?tab=teams&programme=22', squadIds: [9] });
+    fireEvent.click(screen.getByRole('button', { name: /Ask a question/ }));
+    expect(contact).toHaveBeenCalledWith({ name: 'U12 training', path: '/clubs/1?tab=teams&programme=22', squadIds: [9], intent:'question' });
   });
   it('does not turn missing or unpublished programmes into a different offer', () => {
     render(route(<TabTraining club={club} onContact={vi.fn()} />, '/clubs/1?tab=teams&programme=999'));

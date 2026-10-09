@@ -22,10 +22,13 @@ function Field({label,children}:{label:string;children:ReactNode}) {return <labe
 
 export function JoiningConversationPanel({record,onChanged}:{record:ConnectedInquiry;onChanged:()=>void}) {
   const {sessionId,user}=useAuth(),{next}=useInquiryCopy();
-  const [journey,setJourney]=useState<JoiningJourney|null>(null),[failed,setFailed]=useState(false),[revision,setRevision]=useState(0),[open,setOpen]=useState<''|'INVITE'|'OFFER'|'HANDOFF'|'DETAILS'>('');
-  useEffect(()=>{const abort=new AbortController();setJourney(null);setFailed(false);void fetchJoiningJourney(record.id,sessionId,abort.signal).then(result=>{if(!abort.signal.aborted&&isCurrentAuthSession(sessionId))setJourney(result);}).catch(()=>{if(!abort.signal.aborted)setFailed(true);});return()=>abort.abort();},[record.id,record.version,sessionId,revision]);
+  const [revision,setRevision]=useState(0),[open,setOpen]=useState<''|'INVITE'|'OFFER'|'HANDOFF'|'DETAILS'>('');
+  const scope=`${record.id}:${record.version}:${sessionId}:${revision}`;
+  const [result,setResult]=useState<{scope:string;journey:JoiningJourney|null;failed:boolean}|null>(null);
+  const journey=result?.scope===scope?result.journey:null,failed=result?.scope===scope&&result.failed;
+  useEffect(()=>{const abort=new AbortController();void fetchJoiningJourney(record.id,sessionId,abort.signal).then(journey=>{if(!abort.signal.aborted&&isCurrentAuthSession(sessionId))setResult({scope,journey,failed:false});}).catch(()=>{if(!abort.signal.aborted&&isCurrentAuthSession(sessionId))setResult({scope,journey:null,failed:true});});return()=>abort.abort();},[record.id,sessionId,scope]);
   const refresh=()=>{setRevision(v=>v+1);onChanged();};
-  const mutation=useAdmissionMutation<Payload&{expectedVersion:number},JoiningJourney>(record.id,'conversation-action',body=>commandJoiningJourney(record.id,body,sessionId),result=>{setJourney(result);setOpen('DETAILS');onChanged();},refresh);
+  const mutation=useAdmissionMutation<Payload&{expectedVersion:number},JoiningJourney>(record.id,'conversation-action',body=>commandJoiningJourney(record.id,body,sessionId),journey=>{setResult({scope,journey,failed:false});setOpen('DETAILS');onChanged();},refresh);
   const act=(payload:Payload)=>journey&&mutation.run({...payload,expectedVersion:journey.inquiry.version});
   const pending=journey?.pendingHandler;
   return <section className="joining-conversation">

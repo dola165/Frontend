@@ -14,7 +14,8 @@ vi.mock('react-map-gl/maplibre', async () => {
         },
         Layer: (layer: Record<string, unknown>) => {
             const source = React.useContext(SourceId);
-            const { beforeId: _placement, ...style } = layer;
+            const style = { ...layer };
+            delete style.beforeId;
             captured.layers.push({ ...style, source });
             return null;
         },

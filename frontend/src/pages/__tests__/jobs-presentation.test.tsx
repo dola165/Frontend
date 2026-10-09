@@ -1,3 +1,4 @@
+import { apiClient } from '../../api/axiosConfig';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -5,6 +6,7 @@ import { JobsDirectoryPage } from '../JobsDirectoryPage';
 import { JobDetailPage } from '../JobDetailPage';
 import * as api from '../../features/clubs/api';
 
+vi.mock('../../api/axiosConfig',()=>({apiClient:{get:vi.fn()}}));
 const locale = vi.hoisted(() => ({ value: 'en' }));
 const auth = vi.hoisted(() => ({ status: 'authenticated', user: { id: 55 } }));
 
@@ -60,6 +62,7 @@ beforeEach(() => {
     vi.resetAllMocks();
     locale.value = 'en';
     auth.status = 'authenticated';
+    vi.mocked(apiClient.get).mockResolvedValue({data:{allowed:true}});
     auth.user = { id: 55 };
     vi.mocked(api.fetchOpenJobDirectory).mockResolvedValue([role]);
     vi.mocked(api.fetchPublicJob).mockResolvedValue(role);
@@ -67,15 +70,12 @@ beforeEach(() => {
 });
 
 describe('football opportunities presentation', () => {
-    it('puts the truthful referee pathway before coaching and club-role listings', async () => {
+    it('keeps role discovery in the compact opportunities navigation', async () => {
         renderDirectory();
-        const referee = await screen.findByRole('heading', { name: 'Refereeing' });
-        const coaching = screen.getByRole('heading', { name: 'Coaching' });
-        expect(referee.compareDocumentPosition(coaching) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(screen.getByText(/Appointments are invitation-based today/)).toBeVisible();
-        expect(screen.getByText(/do not accept referee applications/)).toBeVisible();
-        expect(screen.getByRole('link', { name: /Open referee workspace/ })).toHaveAttribute('href', '/referees/me');
-        expect(screen.getByRole('link', { name: /How clubs find referees/ })).toHaveAttribute('href', '/match-exchange?tab=referees');
+        await screen.findByRole('link', { name: /Academy coach Tbilisi United/ });
+        expect(screen.getByRole('navigation', { name: 'Opportunities' })).toBeVisible();
+        expect(screen.getByRole('link', { name: /Roles/ })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('button', { name: 'Browse coaching roles' })).toBeVisible();
         expect(screen.queryByRole('button', { name: /Apply.*referee/i })).not.toBeInTheDocument();
     });
 
@@ -103,16 +103,15 @@ describe('football opportunities presentation', () => {
         renderDetail();
         expect(await screen.findByRole('heading', { name: 'Academy coach' })).toBeVisible();
         expect(screen.getByRole('heading', { name: 'About this role' })).toBeVisible();
-        expect(screen.getByRole('heading', { name: 'Apply for this role' })).toBeVisible();
+        expect(await screen.findByRole('heading', { name: 'Apply for this role' })).toBeVisible();
         expect(screen.getByText(/does not confirm the role or grant club access/)).toBeVisible();
-        expect(screen.getByLabelText('Application lifecycle')).toHaveTextContent('never granted automatically');
+        expect(screen.getByLabelText('Application lifecycle')).toHaveTextContent('Guardian consent and active-player registration remain separate');
     });
 
     it('presents the new pathways in Georgian without changing the global locale registry', async () => {
         locale.value = 'ka';
         renderDirectory();
-        expect(await screen.findByRole('heading', { name: 'მსაჯობა' })).toBeVisible();
-        expect(screen.getByRole('heading', { name: 'მწვრთნელობა' })).toBeVisible();
-        expect(screen.getByRole('link', { name: /მსაჯის სამუშაო სივრცის გახსნა/ })).toHaveAttribute('href', '/referees/me');
+        expect(await screen.findByRole('link', { name: /Academy coach Tbilisi United/ })).toBeVisible();
+        expect(screen.getByRole('button', { name: 'მწვრთნელის როლების ნახვა' })).toBeVisible();
     });
 });

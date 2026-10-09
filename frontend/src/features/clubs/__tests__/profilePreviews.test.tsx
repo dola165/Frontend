@@ -59,7 +59,7 @@ describe('club detail panels', () => {
     expect(related).toHaveFocus();
     fireEvent.keyDown(document, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(screen.getByRole('link', { name: 'Find ground' })).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole('link', { name: 'Find ground' })).toHaveFocus());
   });
 
   it('only leaves for the explicit full-tab action', async () => {

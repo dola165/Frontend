@@ -178,7 +178,7 @@ describe('ApplicationsTab — phase A3 triage', () => {
         expect(api.get).toHaveBeenNthCalledWith(3, '/recruitment/applications/501');
         expect(api.refresh).toHaveBeenCalledTimes(1);
         expect(props.onAcceptApplication).not.toHaveBeenCalled();
-        expect(within(dialog).getByText(/Acceptance starts a trial/)).toHaveTextContent('Club activation and any required guardian consent remain separate steps.');
+        expect(within(dialog).getByText(/Acceptance records the old trial request/)).toHaveTextContent('Club participation and any required guardian confirmation remain separate steps.');
         expect(within(dialog).getByRole('article', { name: 'FC Dinamo Tbilisi Academy application' })).toHaveTextContent('Awaiting applicant response');
         expect(within(dialog).queryByRole('button', { name: 'Review acceptance' })).not.toBeInTheDocument();
         expect(within(dialog).queryByRole('button', { name: 'Accept offer' })).not.toBeInTheDocument();

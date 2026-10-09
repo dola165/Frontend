@@ -37,14 +37,14 @@ beforeEach(() => {
   vi.mocked(useAction).mockReturnValue({ busy: false, run: vi.fn(), feedback: <></> });
 });
 
-it("places readiness before match content and secondary administration in document order", () => {
+it("places match summary and readiness before secondary administration in document order", () => {
   vi.mocked(useLoad).mockImplementation((path: string) => ({ data: path === "/match-exchange/12" ? match : [], error: "", reload: vi.fn() }));
   render(<MemoryRouter initialEntries={["/match-exchange/12"]}><Routes><Route path="/match-exchange/:eventId" element={<MatchDetailPage />} /></Routes></MemoryRouter>);
 
   const readiness = screen.getByRole("region", { name: "Match readiness and next action" });
   const details = screen.getByRole("heading", { name: "Match details" }).closest("section")!;
   const secondary = screen.getByText("About match updates").closest("aside")!;
-  expect(readiness.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(details.compareDocumentPosition(readiness) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(details.compareDocumentPosition(secondary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 

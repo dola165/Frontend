@@ -92,7 +92,7 @@ it('keeps a venue workspace linked to My venues and supports keyboard section ch
   const overview = await screen.findByRole('button', { name: 'Overview' });
   expect(screen.getByRole('link', { name: '← My venues' })).toHaveAttribute('href', '/my-organizations?kind=VENUE');
   expect(screen.queryByRole('button', { name: 'Settings' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Team' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Team' })).toBeInTheDocument();
   overview.focus(); await userEvent.setup().keyboard('{ArrowRight}');
   const profileSection = screen.getByRole('button', { name: 'Profile' });
   expect(profileSection).toHaveFocus(); expect(profileSection).toHaveAttribute('aria-current', 'page');

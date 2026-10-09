@@ -1,3 +1,4 @@
+import { apiClient } from '../../api/axiosConfig';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -5,7 +6,9 @@ import { JobsDirectoryPage } from '../JobsDirectoryPage';
 import { JobDetailPage } from '../JobDetailPage';
 import * as api from '../../features/clubs/api';
 import { ROLE_DETAIL_ROUTE_PATHS, ROLE_DIRECTORY_ROUTE_PATHS } from '../../features/roles/routes';
-const auth = vi.hoisted(() => ({ status: 'authenticated', user: { id: 55 } }));
+const auth = vi.hoisted(() => ({ status: 'authenticated', sessionId:null, user: { id: 55 }, refreshNavigationCapabilities:vi.fn() }));
+const server = vi.hoisted(() => ({ status:'PENDING' }));
+vi.mock('../../api/axiosConfig',()=>({apiClient:{get:vi.fn(),post:vi.fn()}}));
 vi.mock('../../context/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../../features/clubs/api', () => ({
     fetchOpenJobDirectory: vi.fn(),
@@ -62,6 +65,9 @@ function detail(path = '/jobs/1') {
 beforeEach(() => {
     vi.resetAllMocks();
     auth.status = 'authenticated';
+    server.status='PENDING'; auth.refreshNavigationCapabilities.mockResolvedValue(undefined);
+    vi.mocked(apiClient.get).mockImplementation(async url=>({data:String(url).includes('/eligibility')?{allowed:true}:{id:77,clubId:10,clubName:'Alpha FC',applicantName:'Test player',role:'PLAYER',jobId:1,jobTitle:'Academy player',status:server.status,canWithdraw:server.status==='PENDING',canRespond:false,canOffer:false,canCancelOffer:false,unavailableReason:null,offer:null}}));
+    vi.mocked(apiClient.post).mockImplementation(async()=>{server.status='CANCELLED';return {data:{status:'CANCELLED'}};});
     auth.user = { id: 55 };
     vi.mocked(api.fetchOpenJobDirectory).mockResolvedValue([job]);
     vi.mocked(api.fetchPublicJob).mockResolvedValue(job);
@@ -138,11 +144,11 @@ describe('Jobs browsing and application recovery', () => {
         expect(message).toHaveValue('I play goalkeeper');
         expect(api.createClubApplication).toHaveBeenCalledWith(10, 'PLAYER', 'I play goalkeeper', {
             jobId: 1,
-        });
-        fireEvent.click(screen.getByRole('button', { name: 'Send application' }));
-        await screen.findByRole('heading', { name: 'Application pending' });
+        }, {_authSessionId:null});
+        fireEvent.click(await screen.findByRole('button', { name: 'Send application' }));
+        await screen.findByText('Awaiting club review');
         expect(screen.queryByLabelText('Message to the club')).not.toBeInTheDocument();
-        expect(screen.getByLabelText('Application lifecycle')).toHaveTextContent('never granted automatically');
+        expect(screen.getByLabelText('Application lifecycle')).toHaveTextContent('Guardian consent and active-player registration remain separate');
     });
     it('loads a pending application even when the posting is closed and confirms withdrawal', async () => {
         vi.mocked(api.fetchPublicJob).mockRejectedValue(new Error('closed'));
@@ -150,16 +156,17 @@ describe('Jobs browsing and application recovery', () => {
         vi.mocked(api.cancelClubApplication).mockResolvedValue({ status: 'CANCELLED' });
         detail();
         fireEvent.click(await screen.findByRole('button', { name: 'Withdraw application' }));
-        expect(api.cancelClubApplication).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByRole('button', { name: 'Confirm withdrawal' }));
-        await screen.findByText('Application withdrawn.');
-        expect(api.cancelClubApplication).toHaveBeenCalledWith(10, 77);
+        expect(apiClient.post).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+        await screen.findByText('Withdrawn');
+        expect(apiClient.post).toHaveBeenCalledWith('/clubs/10/applications/77/cancel');
     });
     it('does not offer a duplicate form after acceptance', async () => {
+        server.status='ACCEPTED';
         vi.mocked(api.fetchMyJobApplication).mockResolvedValue({ id: 77, clubId: 10, status: 'ACCEPTED' });
         detail();
-        await screen.findByRole('heading', { name: 'Application accepted' });
-        expect(screen.getByText(/does not grant club administration/)).toBeInTheDocument();
+        await screen.findByText('Accepted');
+        expect(screen.getByText(/Current access depends on your present club responsibilities/)).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Send application' })).not.toBeInTheDocument();
     });
     it('routes other roles to club contacts instead of silently applying as coach', async () => {

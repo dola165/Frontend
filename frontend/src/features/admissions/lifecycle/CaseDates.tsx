@@ -8,10 +8,14 @@ import { useDurableMutation } from '../club/useDurableMutation';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import './case-dates.css';
 
-export function CaseDates({record,sessionId,groups=[],onChanged}:{record:AdmissionCase;sessionId:AuthSessionId;groups?:Opportunity[];onChanged:(value:AdmissionCase)=>void}) {
+type CaseDateProps={record:AdmissionCase;sessionId:AuthSessionId;groups?:Opportunity[];onChanged:(value:AdmissionCase)=>void};
+export function CaseDates(props:CaseDateProps) {
+  return <ScopedCaseDates key={props.sessionId+":"+props.record.id+":"+props.record.version} {...props}/>;
+}
+function ScopedCaseDates({record,sessionId,groups=[],onChanged}:CaseDateProps) {
   const {copy}=useAdmissionCopy();const [dates,setDates]=useState<LifecycleDates|null>(null),[loadError,setLoadError]=useState(''),[date,setDate]=useState(''),[reason,setReason]=useState(''),[groupId,setGroupId]=useState('');
   const mutation=useDurableMutation(`lifecycle:${sessionId}:${record.organizationId}:${record.id}`);
-  useEffect(()=>{const abort=new AbortController();setDates(null);setLoadError('');fetchLifecycleDates(record.id,sessionId,abort.signal).then(value=>{if(!abort.signal.aborted)setDates(value);}).catch(error=>{if(!abort.signal.aborted)setLoadError(extractApiErrorMessage(error,copy('Could not load current dates. Refresh this case.','მიმდინარე თარიღები ვერ ჩაიტვირთა. განაახლეთ საქმე.')));});return()=>abort.abort();},[record.id,record.version,sessionId]);
+  useEffect(()=>{const abort=new AbortController();fetchLifecycleDates(record.id,sessionId,abort.signal).then(value=>{if(!abort.signal.aborted)setDates(value);}).catch(error=>{if(!abort.signal.aborted)setLoadError(extractApiErrorMessage(error,copy('Could not load current dates. Refresh this case.','მიმდინარე თარიღები ვერ ჩაიტვირთა. განაახლეთ საქმე.')));});return()=>abort.abort();},[record.id,record.version,sessionId,copy]);
   const operation=(body:LifecycleDateCommand)=>commandLifecycleDates(record.id,body,sessionId);
   const apply=async(value:LifecycleDates|null)=>{if(value){setDates(value);setReason('');try{onChanged(await fetchAdmissionCase(record.id,sessionId));}catch{setLoadError(copy('The arrangement was saved. Refresh this case to load its current receipt.','შეთანხმება შენახულია. მიმდინარე ქვითრის ჩასატვირთად განაახლეთ საქმე.'));}}};
   const send=(action:LifecycleDateCommand['action'])=>{if(!dates)return;const group=groups.find(g=>g.id===Number(groupId));void mutation.send<LifecycleDates,LifecycleDateCommand>({expectedVersion:dates.caseVersion,action,reason,...(date?{date}:{}),...(action==='PROPOSE_SEASON'&&group?{groupId:group.id,groupVersion:group.version}:{})},operation).then(apply);};

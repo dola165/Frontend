@@ -10,7 +10,8 @@ import { AdmissionDate, AdmissionEmpty, AdmissionError, AdmissionField, Admissio
 import { ownerCopy, nextCopy, participationCopy, offerCopy, requirementCopy, stageCopy, localInput, utcInput } from './domain';
 import { IntroductionPermission } from '../components/IntroductionPermission';
 import { SessionEditor } from './SessionEditor';
-import { completeOfferTerms, TermsSummary } from './TermsSummary';
+import { TermsSummary } from './TermsSummary';
+import { completeOfferTerms } from './offerTerms';
 import { useDurableMutation } from './useDurableMutation';
 import { AssessmentEditor, type AssessmentDecision } from './AssessmentEditor';
 

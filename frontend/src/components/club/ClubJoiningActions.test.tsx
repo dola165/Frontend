@@ -11,10 +11,10 @@ it('keeps standalone programme groups actionable and preserves the explicitly se
   expect(await screen.findByRole('link',{name:'Review joining & request a place'})).toHaveAttribute('href','/admissions/opportunities/91?player=24');
   expect(screen.getByRole('link',{name:'Review waiting-list request'})).toHaveAttribute('href','/admissions/opportunities/92?player=24');
   expect(screen.queryByText('Other programme')).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button',{name:'Ask about Beginner programme'}));expect(onContact).toHaveBeenCalledWith(context);
+  fireEvent.click(screen.getByRole('button',{name:'Ask a question'}));expect(onContact).toHaveBeenCalledWith({...context,intent:"question"});
 });
 it('explains closed intake and offers an enquiry without an application action',async()=>{
   api.fetchClubJoiningOptions.mockResolvedValue({options:[{squadId:null,squadName:'Closed beginner group',programmeIds:[22],availability:'CLOSED',opportunity:{id:91},destination:'/admissions/opportunities/91'}]});
   render(<MemoryRouter><ClubJoiningActions clubId={1} context={context} onContact={vi.fn()}/></MemoryRouter>);
-  expect(await screen.findByText('Intake is currently closed.')).toBeInTheDocument();expect(screen.queryByRole('link')).not.toBeInTheDocument();expect(screen.getByRole('button',{name:'Ask about Beginner programme'})).toBeEnabled();
+  expect(await screen.findByText('Intake is currently closed.')).toBeInTheDocument();expect(screen.queryByRole('link')).not.toBeInTheDocument();expect(screen.getByRole('button',{name:'Ask a question'})).toBeEnabled();
 });

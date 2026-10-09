@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useDialogFocus } from '../useDialogFocus';
@@ -23,7 +24,47 @@ const DialogHarness = () => {
     );
 };
 
+const PortalDialog = ({ name, children }: { name: string; children: React.ReactNode }) => {
+    const ref = useRef<HTMLDivElement>(null);
+    useDialogFocus(true, ref);
+    return createPortal(<div ref={ref} role="dialog" aria-label={name}>{children}</div>, document.body);
+};
+
+const NestedHarness = () => {
+    const [open, setOpen] = useState(false);
+    const [childOpen, setChildOpen] = useState(false);
+    return <>
+        <button onClick={() => setOpen(true)}>Open parent</button>
+        {open && <PortalDialog name="Parent">
+            <button onClick={() => setChildOpen(true)}>Open child</button>
+            {childOpen && <PortalDialog name="Child"><button onClick={() => setOpen(false)}>Close both</button></PortalDialog>}
+        </PortalDialog>}
+    </>;
+};
+
 describe('useDialogFocus', () => {
+    it('restores the background when parent and nested dialogs close in the same update', async () => {
+        const nativeFocus = HTMLElement.prototype.focus;
+        const focus = vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (this: HTMLElement, options) {
+            // Browsers refuse focus anywhere inside an inert branch; jsdom does not.
+            if (this.inert) return;
+            for (let node = this.parentElement; node; node = node.parentElement) if (node.inert) return;
+            nativeFocus.call(this, options);
+        });
+        const user = userEvent.setup();
+        const view = render(<NestedHarness />);
+        await user.click(screen.getByRole('button', { name: 'Open parent' }));
+        await user.click(screen.getByRole('button', { name: 'Open child' }));
+        expect(view.container).toHaveAttribute('aria-hidden', 'true');
+        expect(view.container.inert).toBe(true);
+        await user.click(screen.getByRole('button', { name: 'Close both' }));
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+        expect(view.container).not.toHaveAttribute('aria-hidden');
+        expect(view.container.inert).not.toBe(true);
+        expect(screen.getByRole('button', { name: 'Open parent' })).toHaveFocus();
+        expect(document.body.style.overflow).toBe('');
+        focus.mockRestore();
+    });
     it('isolates the background, traps Tab, closes on Escape and restores focus', async () => {
         const user = userEvent.setup();
         render(<DialogHarness />);

@@ -22,7 +22,7 @@ it('shows programme training times to a visiting parent without implying private
 it('turns an existing enquiry into a programme card without inventing the sender’s intent',()=>{
  frame(<MessageText text={'Enquiry: U12 programme\nOur academy\nhttps://app.grasskickz.com/clubs/1?tab=teams&programme=22\n\nzd zd'}/>);
  expect(screen.getByText('Question about training')).toBeVisible();expect(screen.getByText('zd zd')).toBeVisible();
- expect(screen.getByRole('link',{name:/View programme/})).toHaveAttribute('href','/clubs/1?tab=teams&programme=22');
+ expect(screen.getByRole('link',{name:/Public programme information/})).toHaveAttribute('href','/clubs/1?tab=teams&programme=22');
  expect(screen.queryByText('Arrange a first visit')).not.toBeInTheDocument();
 });
 it('shows explicit enquiry intent and optional age while escaping user text',()=>{

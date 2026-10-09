@@ -50,12 +50,13 @@ it('aborts an old list so its late result cannot appear in a different profile',
 
 it('supports Escape and profile navigation without a social mutation', async () => {
     get.mockResolvedValue(result([1]));
-    const close = vi.fn(); const user = userEvent.setup(); show(close);
+    const close = vi.fn(); const user = userEvent.setup(); const first = show(close);
     await screen.findByRole('link', { name: /Player 1/ });
     await user.keyboard('{Escape}');
-    expect(close).toHaveBeenCalledTimes(1);
-    await user.click(screen.getByRole('link', { name: /Player 1/ }));
-    expect(close).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(close).toHaveBeenCalledTimes(1));
+    first.unmount(); show(close);
+    await user.click(await screen.findByRole('link', { name: /Player 1/ }));
+    await waitFor(() => expect(close).toHaveBeenCalledTimes(2));
 });
 
 it('filters the visible list and presents Instagram-style following status', async () => {

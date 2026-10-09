@@ -1,14 +1,15 @@
+import '../../i18n';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
 import { FootballRolesPage } from '../FootballRolesPage';
-import { OrganizationProfilePage } from '../OrganizationProfilePage';
+import { OrganizationProfilePage, OrganizationProfileEditor } from '../OrganizationProfilePage';
 import { RoleProfileSummary } from '../../features/roles/RoleProfileSummary';
 import type { RoleProfile } from '../../features/roles/domain';
 import type { OrganizationProfile } from '../../features/organizations/domain';
 
 const account = vi.hoisted(() => ({ id: 17, sessionId: 'first-session' }));
-vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: account.id }, sessionId: account.sessionId }) }));
+vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: { id: account.id }, sessionId: account.sessionId, refreshNavigationCapabilities:()=>Promise.resolve() }) }));
 vi.mock('../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(), put: vi.fn() } }));
 
 const fan: RoleProfile = { role: 'FAN', primary: true, published: false };
@@ -17,9 +18,11 @@ const venue: OrganizationProfile = {
     clubId: null, verificationStatus: 'UNVERIFIED', published: true, website: null, publicEmail: 'venue@example.com',
     publicPhone: null, addressText: 'Tbilisi', focus: 'Two floodlit pitches', canEdit: false, canCreateTournament: false,
 };
+const presentation=(profile:OrganizationProfile)=>({profile,competitions:[],canOpenWorkspace:profile.canEdit,membershipRole:'',portfolio:{venues:[]}});
 const rolesPage = () => <MemoryRouter><FootballRolesPage /></MemoryRouter>;
 const organizationPage = () => <MemoryRouter initialEntries={['/organizations/12']}><Routes>
     <Route path="/organizations/:organizationId" element={<OrganizationProfilePage />} />
+    <Route path="/organizations/:organizationId/workspace" element={<OrganizationProfileEditor id="12"/>}/>
     <Route path="/clubs/:clubId" element={<h1>Club profile</h1>} />
     <Route path="/stadiums/:organizationId" element={<h1>Stadium profile</h1>} />
 </Routes></MemoryRouter>;
@@ -77,20 +80,20 @@ it('discards an earlier account response after the account changes', async () =>
     expect(screen.queryByRole('region', { name: 'Coach details' })).not.toBeInTheDocument();
 });
 
-it('routes venue organizations to their dedicated stadium profile', async () => {
-    vi.mocked(apiClient.get).mockResolvedValue({ data: venue });
+it('shows venue organizations in the shared organization profile', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: presentation(venue) });
     render(organizationPage());
-    expect(await screen.findByRole('heading', { name: 'Stadium profile' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Edit profile' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Riverside pitches' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Edit profile' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /book/i })).not.toBeInTheDocument();
 });
 
 it('saves only editable organization information and surfaces permission revocation', async () => {
-    vi.mocked(apiClient.get).mockResolvedValue({ data: { ...venue, profileKind: 'TOURNAMENT_ORGANIZER', kinds: ['TOURNAMENT_ORGANIZER'], canEdit: true } });
+    vi.mocked(apiClient.get).mockImplementation(async url=>{const profile:OrganizationProfile={...venue,profileKind:'TOURNAMENT_ORGANIZER',kinds:['TOURNAMENT_ORGANIZER'],canEdit:true};return {data:String(url).endsWith('/presentation')?presentation(profile):profile};});
     vi.mocked(apiClient.put).mockRejectedValue({ response: { data: { error: 'Your organization access has ended.' } } });
     render(organizationPage());
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit profile' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Competitions and age groups' }), { target: { value: 'Three divisions' } });
+    fireEvent.click(await screen.findByRole('link', { name: 'Edit profile' }));
+    fireEvent.change(await screen.findByRole('textbox', { name: 'What we do' }), { target: { value: 'Three divisions' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save profile' }));
     await screen.findByRole('alert');
     const payload = vi.mocked(apiClient.put).mock.calls[0][1] as Record<string, unknown>;
@@ -98,19 +101,20 @@ it('saves only editable organization information and surfaces permission revocat
     expect(payload).not.toHaveProperty('canEdit');
     expect(payload).not.toHaveProperty('profileKind');
     expect(payload).not.toHaveProperty('verificationStatus');
-    expect(screen.getByRole('textbox', { name: 'Competitions and age groups' })).toHaveValue('Three divisions');
+    expect(screen.getByRole('textbox', { name: 'What we do' })).toHaveValue('Three divisions');
 });
 
 it('gives tournament organizers their own presentation and authorized tournament action', async () => {
-    vi.mocked(apiClient.get).mockResolvedValue({ data: { ...venue, kinds: ['TOURNAMENT_ORGANIZER'], profileKind: 'TOURNAMENT_ORGANIZER', canCreateTournament: true } });
+    vi.mocked(apiClient.get).mockResolvedValue({ data: presentation({...venue,kinds:['TOURNAMENT_ORGANIZER'],profileKind:'TOURNAMENT_ORGANIZER',canCreateTournament:true,capabilities:{enabledActivities:['PROFILE','TOURNAMENT'],revision:1,venueAvailable:false,canConfigureActivities:false,canEditProfile:false,canConfigureVenue:false,canManageVenueBookings:false,canCreateTournament:true,canInviteVenueOperator:false}}) });
     render(organizationPage());
-    expect(await screen.findByRole('heading', { name: 'Competitions and age groups' })).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('tab', { name: 'Tournaments' }));
+    expect(screen.getByRole('heading', { name: 'Tournaments' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Create a tournament' })).toHaveAttribute('href', '/tournaments/setup?organizer=12');
     expect(screen.queryByRole('heading', { name: 'Facilities and playing spaces' })).not.toBeInTheDocument();
 });
 
 it('routes club-backed organizations to their existing club profile', async () => {
-    vi.mocked(apiClient.get).mockResolvedValue({ data: { ...venue, clubId: 42, profileKind: 'CLUB' } });
+    vi.mocked(apiClient.get).mockResolvedValue({ data: presentation({...venue,clubId:42,profileKind:'CLUB'}) });
     render(organizationPage());
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Club profile' })).toBeInTheDocument());
 });

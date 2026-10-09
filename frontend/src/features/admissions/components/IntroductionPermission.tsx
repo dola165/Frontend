@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Participation, CaseCommand, CommandBase } from '../types';
 import { useAdmissionCopy } from '../applicant/copy';
 
 type PermissionCommand=Extract<CaseCommand,{action:'RECORD_INTRODUCTION_PERMISSION'|'REVOKE_INTRODUCTION_PERMISSION'}>;
 export type PermissionPayload=Omit<PermissionCommand,keyof CommandBase>;
-export function IntroductionPermission({session,playerName,busy=false,onRecord,onRevoke}:{session:Participation;playerName:string;busy?:boolean;onRecord?:(currentClub:string,evidence:string)=>Promise<boolean>;onRevoke?:(reason:string)=>Promise<boolean>}) {
+type PermissionProps={session:Participation;playerName:string;busy?:boolean;onRecord?:(currentClub:string,evidence:string)=>Promise<boolean>;onRevoke?:(reason:string)=>Promise<boolean>};
+export function IntroductionPermission(props:PermissionProps) {
+ return <PermissionForm key={`${props.session.id}:${props.session.version}`} {...props}/>;
+}
+function PermissionForm({session,playerName,busy=false,onRecord,onRevoke}:PermissionProps) {
  const {copy}=useAdmissionCopy();const p=session.introductionPermission;
  const [club,setClub]=useState(''),[evidence,setEvidence]=useState(''),[reason,setReason]=useState('');
- useEffect(()=>{setClub('');setEvidence('');setReason('');},[session.id,session.version]);
  if(!p?.required)return null;
  const labels={PENDING:copy('Evidence needed','საჭიროა მტკიცებულება'),COMPLETE:copy('Permission evidence recorded','ნებართვის მტკიცებულება დაფიქსირდა'),REVOKED:copy('Permission withdrawn — new evidence needed','ნებართვა გაუქმდა — საჭიროა ახალი მტკიცებულება'),STALE:copy('Current club changed — review evidence','მიმდინარე კლუბი შეიცვალა — გადაამოწმეთ მტკიცებულება'),EXPIRED:copy('Session permission has expired','სესიის ნებართვის ვადა გასულია'),HISTORICAL_UNVERIFIED:copy('Historical session — no permission evidence recorded','ისტორიული სესია — ნებართვის მტკიცებულება არ არის დაფიქსირებული'),NOT_REQUIRED:''};
  return <section className="admission-panel admission-notice" aria-label={copy('Current-club permission for this introduction','მიმდინარე კლუბის ნებართვა ამ გაცნობითი ვარჯიშისთვის')}>

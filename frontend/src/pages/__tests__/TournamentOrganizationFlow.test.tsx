@@ -135,7 +135,7 @@ describe('Organization and tournament creation', () => {
         expect(screen.getByRole('textbox', { name: 'Rules' })).toHaveValue('Five players per side');
         await user.click(screen.getByRole('button', { name: 'Review tournament' }));
         expect(screen.getByRole('combobox', { name: /^Visibility/ })).toHaveValue('UNLISTED');
-    });
+    }, 10000); // Multiple complete wizard round trips also run under parallel-suite load.
 
     it('uses only current server capabilities when returning an organization selection', async () => {
         organizations = [organization(42, false), organization(3)];

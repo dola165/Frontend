@@ -13,7 +13,7 @@ it('puts own edit and delete in a visible menu without offering a self-report', 
     const user = userEvent.setup(); mount(card({ canEdit: true })); await user.click(screen.getByLabelText('Actions for post by Academy Coach'));
     expect(screen.getByRole('button', { name: 'Edit post' })).toBeVisible(); expect(screen.getByRole('button', { name: 'Delete post' })).toBeVisible(); expect(screen.queryByRole('button', { name: 'Report post' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Edit post' })); expect(screen.getByRole('dialog', { name: 'Edit post' })).toBeVisible();
-    await user.keyboard('{Escape}'); expect(screen.getByLabelText('Actions for post by Academy Coach')).toHaveFocus();
+    await user.keyboard('{Escape}'); await waitFor(() => expect(screen.getByLabelText('Actions for post by Academy Coach')).toHaveFocus());
 });
 it('reports another post only after reason selection and explicit submission', async () => {
     const user = userEvent.setup(); api.post.mockResolvedValue({ data: { id: 55 } }); mount(card({ authorId: 21 }));

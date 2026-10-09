@@ -42,11 +42,15 @@ function ClubEnquiryForm({ clubId, clubName, context, onClose }: ClubEnquiryModa
   const mutation = useAdmissionMutation<Omit<EnquiryInput, 'requestId'>, ConnectedInquiry>(clubId,
     `public-enquiry:${programmeId ?? ''}:${squadId ?? ''}`, payload => submitClubEnquiry(clubId, payload, sessionId), result => {setSent(result);if(result.conversationDestination)navigate(result.conversationDestination);});
   const busy = mutation.busy;
-  const [joiningContext,setJoiningContext]=useState<JoiningContext|null>(null),[contact,setContact]=useState(''),[venue,setVenue]=useState('');
+  const [joiningResult,setJoiningResult]=useState<{scope:string;value:JoiningContext}|null>(null),[contactChoice,setContactChoice]=useState({scope:'',value:''}),[venueChoice,setVenueChoice]=useState({scope:'',value:''});
   const selectedOption=relevantOption();
   function relevantOption(){const choices=options?.options.filter(o=>squadId?o.squadId===squadId:programmeId?o.programmeIds.includes(programmeId):o.squadId!==null&&context.squadIds.includes(o.squadId))??[];return choices.find(o=>(o.opportunity?`group:${o.opportunity.id}`:`squad:${o.squadId}`)===group)??(choices.length===1?choices[0]:undefined);}
   const contactSquad=selectedOption?.squadId??squadId??(context.squadIds.length===1?context.squadIds[0]:null);
-  useEffect(()=>{const abort=new AbortController();setJoiningContext(null);setContact('');setVenue('');if(status==='authenticated')void fetchJoiningContext(clubId,contactSquad,sessionId,abort.signal).then(value=>{if(!abort.signal.aborted&&isCurrentAuthSession(sessionId)){setJoiningContext(value);if(value.venues.length===1)setVenue(String(value.venues[0].id));}}).catch(()=>{});return()=>abort.abort();},[clubId,contactSquad,sessionId,status]);
+  const joiningScope=sessionId+':'+status+':'+clubId+':'+contactSquad;
+  const joiningContext=joiningResult?.scope===joiningScope?joiningResult.value:null;
+  const contact=contactChoice.scope===joiningScope?contactChoice.value:'',venue=venueChoice.scope===joiningScope?venueChoice.value:'';
+  const setContact=(value:string)=>setContactChoice({scope:joiningScope,value}),setVenue=(value:string)=>setVenueChoice({scope:joiningScope,value});
+  useEffect(()=>{const abort=new AbortController();if(status==='authenticated')void fetchJoiningContext(clubId,contactSquad,sessionId,abort.signal).then(value=>{if(!abort.signal.aborted&&isCurrentAuthSession(sessionId)){setJoiningResult({scope:joiningScope,value});setContactChoice({scope:joiningScope,value:''});setVenueChoice({scope:joiningScope,value:value.venues.length===1?String(value.venues[0].id):''});}}).catch(()=>{});return()=>abort.abort();},[clubId,contactSquad,sessionId,status,joiningScope]);
   const requestClose = () => { if (!busy) motion.close(); };
   useDialogFocus(true, dialog, requestClose);
   const relevant = (loadedScope === loadScope ? options : null)?.options.filter(option => squadId ? option.squadId === squadId : programmeId ? option.programmeIds.includes(programmeId) : option.squadId !== null && context.squadIds.includes(option.squadId)) ?? [];

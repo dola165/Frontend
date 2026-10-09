@@ -23,7 +23,7 @@ describe('Introduction permission task',()=>{
   const save=screen.getByRole('button',{name:'Record session permission'});expect(save).toBeDisabled();fireEvent.change(screen.getByRole('textbox',{name:'Current club / source contact'}),{target:{value:'Synthetic club secretary'}});fireEvent.change(screen.getByRole('textbox',{name:'Actual permission reference'}),{target:{value:'Session-specific reference TEST-001'}});fireEvent.click(save);await waitFor(()=>expect(record).toHaveBeenCalledWith('Synthetic club secretary','Session-specific reference TEST-001'));
  });
  it('ordinary introduction stays simple and current evidence restores personal confirmation',()=>{
-  const c=example();c.actions=['CONFIRM_SESSION'];let s=required(c.sessions[0]);s.introductionPermission={...s.introductionPermission!,status:'COMPLETE',allowsParticipation:true,canRecord:false,evidence:'TEST-001',currentClub:'Synthetic current club'};
+  const c=example();c.actions=['CONFIRM_SESSION'];const s=required(c.sessions[0]);s.introductionPermission={...s.introductionPermission!,status:'COMPLETE',allowsParticipation:true,canRecord:false,evidence:'TEST-001',currentClub:'Synthetic current club'};
   render(<MemoryRouter><SessionResponse admissionCase={c} session={s} onChanged={vi.fn()} refresh={vi.fn()}/></MemoryRouter>);expect(screen.getByRole('button',{name:'Confirm this session'})).toBeVisible();expect(screen.getByText('Permission evidence recorded')).toBeVisible();cleanup();render(<IntroductionPermission session={{...s,introductionPermission:{...s.introductionPermission!,required:false}}} playerName="Synthetic child"/>);expect(screen.queryByText('Current-club permission before this session')).not.toBeInTheDocument();
  });
 });

@@ -15,5 +15,3 @@ export function TermsSummary({terms,location,schedule}:{terms:Terms;location:Loc
     {terms.requirements.length>0 && <div><dt>{c('prerequisites')}</dt><dd>{terms.requirements.map(kind=>c(requirementCopy[kind])).join(' · ')}</dd></div>}
   </dl>;
 }
-
-export const completeOfferTerms=(terms:Terms,schedule:string,location:Location) => terms.feesKnown && Boolean(terms.startDate && terms.cancellation.trim() && terms.participation.trim() && schedule.trim() && location.name.trim() && location.address.trim());

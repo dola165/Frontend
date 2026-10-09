@@ -8,13 +8,14 @@ import { utcInput, zonedInput } from './domain';
 type SessionChoice=NonNullable<AdmissionWorkspace['sessions']>[number];
 export function SessionEditor({group,participation,choices,busy,onSubmit,onCancel}:{group:Opportunity;participation?:Participation;choices?:SessionChoice[];busy:boolean;onSubmit:(session:SessionDetails,reason:string)=>Promise<boolean>;onCancel:()=>void}) {
   const {c,locale}=useClubAdmissionCopy();
-  const [slots,setSlots]=useState<SessionChoice[]>([]),[slotsError,setSlotsError]=useState('');
+  const [fetchedSlots,setSlots]=useState<SessionChoice[]>([]),[slotsError,setSlotsError]=useState('');
+  const slots=choices?choices.filter(row=>row.squadId===group.squadId):fetchedSlots;
   const [title,setTitle]=useState(participation?.title??''),[timezone,setTimezone]=useState(participation?.timezone??group.timezone);
   const [starts,setStarts]=useState(participation?zonedInput(participation.startsAt,participation.timezone):''),[ends,setEnds]=useState(participation?zonedInput(participation.endsAt,participation.timezone):''),[deadline,setDeadline]=useState(participation?zonedInput(participation.responseDeadline,participation.timezone):'');
   const [location,setLocation]=useState(participation?.location??group.location),[contact,setContact]=useState(participation?.contact??''),[preparation,setPreparation]=useState(participation?.preparation??''),[cost,setCost]=useState(participation?.cost??''),[capacity,setCapacity]=useState(participation?.capacity??1),[noPlace,setNoPlace]=useState(participation?.noRegularPlaceGuaranteed??group.remainingPlaces===0),[slot,setSlot]=useState<number|null>(participation?.squadSessionId??null),[reason,setReason]=useState(''),[error,setError]=useState('');
   useEffect(()=>{
     if(!group.squadId)return;
-    if(choices){setSlots(choices.filter(row=>row.squadId===group.squadId));return;}
+    if(choices)return;
     const controller=new AbortController();void fetchSessions(group.squadId,controller.signal).then(rows=>{if(!controller.signal.aborted)setSlots(rows.filter(row=>row.status==='SCHEDULED'&&new Date(utcInput(row.starts_at,group.timezone)).getTime()>Date.now()).map(row=>({id:row.id,squadId:group.squadId!,title:row.title,startsAt:utcInput(row.starts_at,group.timezone),endsAt:utcInput(row.ends_at,group.timezone),location:row.location,revision:row.revision})));}).catch(()=>{if(!controller.signal.aborted)setSlotsError(c('sessionChoiceMissing'));});return()=>controller.abort();
   },[group.squadId,group.timezone,c,choices]);
   const choose=(id:string)=>{

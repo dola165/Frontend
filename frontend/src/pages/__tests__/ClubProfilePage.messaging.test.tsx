@@ -1,3 +1,4 @@
+vi.mock('../../features/joining-contract/conversation',async importOriginal=>({...await importOriginal<typeof import('../../features/joining-contract/conversation')>(),fetchJoiningContext:vi.fn().mockResolvedValue({venues:[],contacts:[]})}));
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ClubProfilePage } from '../ClubProfilePage';

@@ -24,7 +24,9 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || 
 const report = [];
 for (const theme of themes) for (const width of widths) {
   const context = await browser.newContext({ viewport: { width, height: width < 600 ? 844 : 960 }, deviceScaleFactor: 1, locale: 'en-GB', timezoneId: 'Asia/Tbilisi', colorScheme: theme });
-  await context.addInitScript(t => { try { localStorage.setItem('theme-preference', t); localStorage.setItem('i18nextLng', 'en'); } catch {} }, theme);
+  await context.addInitScript(t => { try { localStorage.setItem('theme-preference', t); if (!localStorage.getItem('gk-session-id')) { const id = 'sandbox-session'; localStorage.setItem('gk-session-id', id); } localStorage.setItem('i18nextLng', 'en'); } catch {} }, theme);
+  // Only the sandbox origin is reachable; fail everything else fast (fonts, Google, map tiles).
+  await context.route(url => !url.href.startsWith(base) && !url.href.startsWith('data:') && !url.href.startsWith('blob:'), route => route.abort());
   for (const r of routes) {
     const page = await context.newPage();
     const entry = { name: r.name, path: r.path, theme, width, errors: [], failed: [] };
@@ -32,7 +34,7 @@ for (const theme of themes) for (const width of widths) {
     page.on('console', m => { if (m.type() === 'error') entry.errors.push(m.text().slice(0, 300)); });
     page.on('response', res => { const u = res.url(); if (u.includes('/api/') && res.status() >= 400) entry.failed.push(`${res.status()} ${res.request().method()} ${u.replace(base, '')}`); });
     try {
-      await page.goto(base + r.path, { waitUntil: 'networkidle', timeout: 30000 });
+      await page.goto(base + r.path, { waitUntil: 'networkidle', timeout: 20000 });
     } catch (e) { entry.errors.push('navigation: ' + e.message.split('\n')[0]); }
     if (r.wait) await page.waitForTimeout(r.wait);
     await page.waitForTimeout(600);

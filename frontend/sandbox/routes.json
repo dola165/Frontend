@@ -320,5 +320,25 @@
  {
   "name": "ws-tools",
   "path": "/clubs/1/workspace?tab=tools"
+ },
+ {
+  "name": "match-detail",
+  "path": "/match-exchange/5781"
+ },
+ {
+  "name": "job-detail",
+  "path": "/jobs/401"
+ },
+ {
+  "name": "tryout-detail",
+  "path": "/tryouts/501"
+ },
+ {
+  "name": "tournament-cup",
+  "path": "/tournaments/302"
+ },
+ {
+  "name": "post-detail",
+  "path": "/posts/900"
  }
 ]

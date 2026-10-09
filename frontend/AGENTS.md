@@ -1,13 +1,16 @@
-# Project agent instructions
+# Frontend app instructions
 
-## Development workflow
+Applies to everything under `frontend/`. Shared project rules are in the repository-root `AGENTS.md` and the backend guide it points to.
 
-- Work directly in the current task with the user's selected Codex model and reasoning effort. Do not introduce model-selection machinery or force a different reasoning setting.
-- Work without subagents by default. Use delegation only when the user explicitly asks for it; no standing request to delegate remains.
-- Do not call Jev or any other external service to select development models, allocate work, or advise Codex orchestration. Application features using Jev/Dola have a separate scope and retain their existing credential and spending controls.
-- Use ChatGPT subscription authentication for OpenAI development models. Do not add a separately billed generative API fallback or silently change models or billing.
-- Preserve existing work and use focused verification. Keep required correctness, security, migration, backup and deployment checks; avoid redundant investigation and repeated checks without a concrete reason.
-- Create separate user-visible tasks only when explicitly requested.
+## Code shape — leave the app smaller and clearer
+
+- Before adding a component, hook, API call or style, search `src/` for one that already does the job and extend it.
+- Delete what you replace in the same change: old components, CSS files and selectors, routes, mocks, preview pages and flags. No `*V2`/`*New` copies living side by side.
+- Use idiomatic React and TypeScript: function components, hooks, types derived from the API layer. Keep data fetching in `api/` and hooks, not inside presentational components.
+- A component or page growing past roughly 400 lines, or a stylesheet past 300, is a signal to split it by responsibility. When touching a file already over 1,000 lines (for example `index.css`, `MapExperience.tsx`, `ClubWorkspacePage.tsx`), split the part you work on rather than adding to it.
+- Prefer shared building blocks and design tokens (page header, context navigation, card, empty/error/loading state, form field) over per-feature copies of the same look.
+- Large cleanups are their own reviewable tasks; in feature work, clean up what you touch. Report lines added and removed for non-trivial changes.
+- Never commit generated output: screenshots, inspection JSON, `dist/`, `outputs/`, review builds or test reports.
 
 ## UI layout rules — required for every product change
 

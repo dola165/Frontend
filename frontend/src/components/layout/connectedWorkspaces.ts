@@ -24,7 +24,7 @@ export function connectedWorkspaces(caps?:NavigationCapabilities):ConnectedWorks
     else if(link.capability==='organization.workspace')result.push({...link,label:item.context.label,description:'Organization activities, people and administration.',group:'Organizations'});
     else if(link.capability==='venue.workspace')result.push({...link,label:item.context.label,description:'Venue bookings, availability and operating work.',group:'Venues'});
     else if(link.capability==='tournament.workspace')result.push({...link,label:item.context.label,description:'Your assigned competition work, fixtures and decisions.',group:'Tournaments'});
-    else if(link.capability==='squad.workspace')result.push({...link,label:item.context.label,description:'The team activities shared with you.',group:'Teams'});
+    else if(link.capability==='squad.workspace')result.push({...link,label:item.context.label,description:'Squad schedule, coach updates and messages.',group:'Teams'});
   }
   return result.filter((item,index,all)=>all.findIndex(other=>other.path===item.path)===index);
 }

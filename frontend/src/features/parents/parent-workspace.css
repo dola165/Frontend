@@ -1,0 +1,35 @@
+/* Parent work shares the club workspace's compact context, rows and task sections. */
+.parent-workspace-content .parent-children-top { display:block; padding:0!important; margin:0; }
+.parent-workspace-content .parent-children-heading { display:flex; align-items:baseline; gap:10px; margin-bottom:10px; }
+.parent-workspace-content .parent-children-heading h2 { font-size:13px; margin:0; }
+.parent-workspace-content .parent-children-heading p { margin:0; font-size:11px; color:var(--color-secondary); }
+.parent-workspace-content .parent-children-top .parent-child-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; width:100%; margin:0; max-height:220px; overflow:auto; padding:3px; }
+.parent-workspace-content .parent-children-top .parent-child-choice { width:100%; min-width:0; min-height:68px; padding:12px; border-radius:8px; }
+.parent-workspace-content .parent-child-choice>span:last-child { min-width:0; }
+.parent-workspace-content .parent-children-top .parent-child-choice strong { font-size:13px; }
+.parent-workspace-content .parent-child-choice small { white-space:normal!important; line-height:1.45; }
+.parent-workspace-content .parent-child-avatar { width:36px!important; height:36px!important; flex-shrink:0; }
+.parent-workspace-content .parent-selected-player { background:var(--color-surface); border-left:3px solid var(--color-accent); padding:18px 20px!important; }
+.parent-workspace-content .parent-selected-player h2 { margin:3px 0 5px; font-size:20px!important; }
+.parent-workspace-content .parent-selected-player .parent-eyebrow { margin:0; color:var(--color-accent); letter-spacing:0; font-size:11px; text-transform:none; }
+.parent-workspace-content .parent-family-layout { grid-template-columns:minmax(0,1fr) 260px; gap:18px; border:0; padding:0; align-items:start; }
+.parent-workspace-content .parent-child-detail { position:static; min-width:0; }
+.parent-workspace-content .parent-panel { min-width:0; box-shadow:none; }
+.parent-workspace-content .parent-header-actions { flex-wrap:wrap; }
+.parent-workspace-content .parent-button { min-height:44px; font-size:12px; white-space:normal; line-height:1.4; }
+.parent-workspace-content .family-squad-links { display:grid; margin:14px 0; gap:8px; }
+.parent-workspace-content .family-squad-links>a { min-width:0; padding:14px; justify-content:space-between; gap:16px; background:var(--color-inset); border-radius:8px; }
+.parent-workspace-content .family-squad-identity { min-width:0; }
+.parent-workspace-content .family-squad-identity>strong { display:block; margin:4px 0; font-size:14px; }
+.parent-workspace-content .family-squad-open { flex-shrink:0; color:var(--color-accent); }
+.parent-workspace-content :is(button,a,select,summary):focus-visible { outline:2px solid var(--color-accent); outline-offset:3px; }
+@media(max-width:1150px) { .parent-workspace-content .parent-family-layout { grid-template-columns:1fr; } .parent-workspace-content .parent-child-detail { display:grid; grid-template-columns:1fr 1fr; } }
+@media(max-width:700px) {
+ .parent-workspace-content .parent-children-top .parent-child-list { display:flex; flex-wrap:nowrap; overflow-x:auto; max-height:none; scroll-snap-type:x proximity; }
+ .parent-workspace-content .parent-children-top .parent-child-choice { flex:0 0 230px; scroll-snap-align:start; }
+ .parent-workspace-content .parent-child-detail { grid-template-columns:1fr; }
+ .parent-workspace-content .parent-selected-player { align-items:flex-start; gap:14px; }
+ .parent-workspace-content .parent-profile { width:100%; }
+ .parent-workspace-content .family-squad-links>a { align-items:flex-start; }
+ .parent-workspace-content .family-squad-open { font-size:0; }
+}

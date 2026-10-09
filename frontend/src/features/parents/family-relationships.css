@@ -1,3 +1,40 @@
 .family-connections{margin:0 0 1.4rem;padding:1.3rem;line-height:1.55}.family-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}.family-connections h2{font-size:1.25rem;margin:0}.family-connections h3{font-size:1.03rem;margin:1.15rem 0 .4rem}.family-connections p{margin:.5rem 0}.family-child,.family-history{margin-top:1rem;padding:1rem;border:1px solid var(--fc-border,var(--color-border));border-radius:12px}.family-child>summary{display:flex;flex-wrap:wrap;gap:.4rem 1rem;cursor:pointer}.family-child>summary span{font-size:.9rem;color:var(--fc-text-secondary,var(--color-muted))}.family-history>summary,.family-club-enrollment>summary{cursor:pointer;font-weight:600}.family-connections article{padding:1rem 0;border-bottom:1px solid var(--fc-border,var(--color-border))}.family-connections article:last-child{border:0}.family-actions{display:flex;flex-wrap:wrap;gap:.6rem;margin:.7rem 0}.family-guardian-list{list-style:none;padding:0;margin:0}.family-guardian-list li,.family-club-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:.7rem;padding:.6rem 0}.family-guardian-list small{display:block;color:var(--fc-text-secondary,var(--color-muted))}.family-invite-form,.family-confirm{padding:1rem;border:1px solid var(--color-accent);background:var(--fc-surface-hover,var(--color-elevated));border-radius:10px;margin:1rem 0}.family-connections label,.family-club-enrollment label{display:grid;gap:.45rem;font-weight:600;margin:.7rem 0}.family-connections input,.family-club-enrollment input{width:100%;min-width:0;box-sizing:border-box;background:var(--fc-card-bg,var(--color-elevated));color:var(--fc-text-primary,var(--color-text));border:1px solid var(--fc-border,var(--color-border));border-radius:7px;padding:.7rem;font:inherit}.family-error{color:var(--fc-text-primary,var(--color-text));border-left:3px solid var(--color-danger);padding-left:.65rem}.family-notice{color:var(--fc-text-primary,var(--color-text));border-left:3px solid var(--fc-accent,var(--color-accent));padding-left:.65rem}.family-code{overflow-wrap:anywhere}.family-code small{font-weight:400}.family-club-enrollment{margin:1rem 1.5rem;padding:1rem;border:1px solid var(--fc-border,var(--color-border));border-radius:10px;line-height:1.55}.family-connections button:focus-visible,.family-connections summary:focus-visible,.family-club-enrollment summary:focus-visible{outline:3px solid var(--fc-accent,var(--color-accent));outline-offset:3px}.family-connections button:disabled{opacity:.6;cursor:wait}@media(max-width:600px){.family-connections{padding:1rem}.family-heading{flex-direction:column}.family-child,.family-history{padding:.8rem}.family-actions>*{max-width:100%}.family-guardian-list li{align-items:flex-start;flex-direction:column}.family-club-enrollment{margin:1rem}.family-heading .parent-button{align-self:flex-start}}
 
 .prf-overlay:has(.family-club-enrollment){z-index:1800}
+
+/* Child-focused management shares the application theme and keeps advanced actions secondary. */
+.family-selected-connections { padding:0!important; background:transparent!important; border:0!important; }
+.family-selected-connections .family-heading { padding:0 0 18px; align-items:center; }
+.family-selected-connections .family-heading h2 { font-size:17px; }
+.family-selected-connections .family-heading p { max-width:60ch; color:var(--color-secondary); }
+.family-selected-connections .family-child-selected { margin:0; padding:0; border:0; }
+.family-child-heading { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; padding:14px 18px; background:var(--color-inset); border:1px solid var(--color-border); border-radius:8px; }
+.family-child-heading>strong { font-size:14px; }
+.family-child-heading>span { font-size:12px; color:var(--color-secondary); }
+.family-management-grid { display:grid; grid-template-columns:1fr 1fr; align-items:start; gap:16px; margin:16px 0; }
+.family-management-section { min-width:0; padding:18px; background:var(--color-surface); border:1px solid var(--color-border); border-radius:8px; }
+.family-management-section h3 { display:flex; align-items:center; gap:8px; margin:0 0 12px; font-size:15px; }
+.family-guardians h3 svg { color:var(--color-purple); }
+.family-participation { border-top:2px solid var(--color-accent); }
+.family-guardians { border-top:2px solid var(--color-purple); }
+.family-connections .family-help { font-size:11px; color:var(--color-secondary); margin:8px 0 14px; }
+.family-help summary { min-height:32px; cursor:pointer; }
+.family-guardian-list li { display:grid; gap:12px; padding:14px 0; }
+.family-guardian-list small { font-size:11px; margin-top:4px; }
+.family-guardian-list .family-danger-action { justify-self:start; color:var(--color-danger); background:transparent; }
+.family-connections .family-club-row { align-items:flex-start; flex-direction:column; gap:5px; }
+.family-connections .family-club-row>a { font-weight:600; }
+.family-connections .family-club-row>span { color:var(--color-accent); font-size:12px; }
+.family-connections .family-club-row>.needs-review { color:var(--color-warning); }
+.family-access-options { min-width:0; margin:8px 0; }
+.family-access-options>summary { min-height:44px; display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; color:var(--color-secondary); }
+.family-access-options>summary::after { content:'+'; margin-left:auto; }
+.family-access-options[open]>summary::after { content:'−'; }
+.family-access-options .parent-button { color:var(--color-danger); }
+.family-connections .family-invite-form .parent-button-primary { color:var(--color-on-accent); }
+.family-connections .family-history { margin:10px 0; padding:12px 16px; border-radius:8px; background:var(--color-surface); }
+.family-connections .family-history>summary { min-height:32px; font-size:12px; }
+.family-connections .family-confirm { border-color:var(--color-warning); background:var(--color-warning-soft); }
+.family-connections .family-confirm p { max-width:75ch; }
+
+@media(max-width:700px){.family-connections .family-management-grid{grid-template-columns:1fr}.family-connections .family-heading{align-items:flex-start}}

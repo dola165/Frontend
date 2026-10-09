@@ -11,6 +11,7 @@ import { squadMessageUrl } from '../features/squadCommunication/routes';
 import { SquadCoachIdentity } from '../features/squadCommunication/SquadCoachIdentity';
 import { SquadSchedulePreview } from '../features/squadCommunication/SquadSchedulePreview';
 import { FamilySchedule } from '../features/parents/FamilySchedule';
+import { positivePlayerId } from '../features/parents/playerSelection';
 import { CoachNextActions } from '../features/squadCommunication/CoachNextActions';
 import { useJourneyCopy } from '../features/squadCommunication/journeyCopy';
 import { sessionNavigation } from '../features/squadCommunication/sessionLink';
@@ -43,7 +44,7 @@ export function SquadRoom({id}:{id:number}) {
  if(error)return <main className="squad-page"><Link to="/squads">← {copy('Back to my squads','ჩემს გუნდებში დაბრუნება')}</Link><div role="alert" className="squad-empty"><h1>{copy('Squad space unavailable','გუნდის სივრცე მიუწვდომელია')}</h1><p>{error}</p><button onClick={refresh}>{copy('Try again','სცადეთ ხელახლა')}</button></div></main>;
  if(!space)return <main className="squad-page" role="status">{copy('Opening your squad…','გუნდის სივრცე იხსნება…')}</main>;
  if(tab==='chat'||tab==='coach')return <Navigate replace to={squadMessageUrl(id,tab==='coach',space.can_manage?thread:null)}/>;
- if(tab==='sessions')return <main className="squad-page"><FamilySchedule key={`${id}:${params.get('sessionId')}:${params.get('at')}`} squads={[space]} {...sessionNavigation(params)}/></main>;
+ if(tab==='sessions')return <main className="squad-page"><FamilySchedule key={`${id}:${params.get('sessionId')}:${params.get('at')}`} squads={[space]} playerId={positivePlayerId(params.get('player'))} {...sessionNavigation(params)}/></main>;
  if(!space.can_manage)return <FamilyRoom space={space} onRefresh={refresh}/>;
  const select=(value:Tab)=>setParams({tab:value});
  return <main className="squad-page coach-room">

@@ -38,4 +38,20 @@ describe('Durable family journeys', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Confirm change' }));
         await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith('/family/children/70/clubs/7/depart', { affiliationId: 91 }, { _authSessionId: 'family' }));
     });
+
+    it('keeps selected-child settings and invitation drafts separate while retaining deliberate access confirmation', async () => {
+        const data=family();data.children.push({...data.children[0],childId:71,name:'Saba'});vi.mocked(apiClient.get).mockResolvedValue({data});
+        const view=render(<MemoryRouter><FamilyRelationships selectedChildId={70} onChanged={vi.fn()}/></MemoryRouter>);
+        fireEvent.click(await screen.findByRole('button',{name:'Invite another guardian'}));
+        fireEvent.change(screen.getByLabelText('Guardian’s account email'),{target:{value:'guardian@example.test'}});
+        view.rerender(<MemoryRouter><FamilyRelationships selectedChildId={71} onChanged={vi.fn()}/></MemoryRouter>);
+        expect(screen.queryByRole('textbox',{name:'Guardian’s account email'})).not.toBeInTheDocument();
+        expect(screen.getByText('Saba')).toBeVisible();expect(screen.getByText('Nika')).not.toBeVisible();
+        view.rerender(<MemoryRouter><FamilyRelationships selectedChildId={70} onChanged={vi.fn()}/></MemoryRouter>);
+        expect(screen.getByLabelText('Guardian’s account email')).toHaveValue('guardian@example.test');
+        fireEvent.click(screen.getAllByText('Manage access')[0]);fireEvent.click(screen.getByRole('button',{name:'End my access'}));
+        expect(screen.getByText(/End your guardian access for Nika/)).toBeVisible();expect(apiClient.post).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button',{name:'Confirm change'}));
+        await waitFor(()=>expect(apiClient.post).toHaveBeenCalledWith('/family/children/70/guardians/12/revoke',{}, {_authSessionId:'family'}));
+    });
 });

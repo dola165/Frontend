@@ -177,3 +177,59 @@
   .my-work-page :is(a,button,summary,.mw-place) { transition: none; }
   .my-work-page .mw-more-places[open] .mw-place-list { animation: none; }
 }
+
+/* The daily overview and workspace directory are separate, stable sections. */
+.my-work-page { max-width:1424px; padding-top:24px; }
+.my-work-page .mw-heading { margin-bottom:0; border:0; }
+.mw-view-tabs { display:flex; gap:24px; border-bottom:1px solid var(--mw-border); margin:0 0 24px; }
+.mw-view-tabs>a { display:flex; align-items:center; gap:8px; min-height:48px; border-bottom:2px solid transparent; font-size:13px; color:var(--mw-muted); }
+.mw-view-tabs>a[aria-current=page] { color:var(--mw-accent); border-color:var(--mw-accent); font-weight:650; }
+.mw-view-tabs>a>span { padding:2px 6px; border-radius:5px; background:var(--mw-soft); font-size:11px; color:var(--mw-muted); }
+.my-work-page .mw-briefing { grid-template-columns:minmax(0,1.5fr) minmax(280px,.9fr); align-items:start; gap:20px; }
+.my-work-page .mw-schedule { grid-column:1; grid-row:1; }
+.my-work-page .mw-attention { grid-column:2; grid-row:1; }
+.my-work-page .mw-panel { border-radius:8px; }
+.my-work-page .mw-attention.is-clear .mw-attention-summary { flex:0; padding:16px 0; }
+.my-work-page .mw-attention-summary strong { font-size:14px; }
+.my-work-page .mw-attention-summary p { max-width:42ch; }
+.my-work-page .mw-panel-caption { margin:8px 0 16px; }
+.my-work-page .mw-event { border:0; border-radius:0; margin:0; padding:16px 0; background:transparent; border-top:1px solid var(--mw-border); min-height:90px; }
+.my-work-page .mw-event-info small { font-size:12px; max-width:70ch; }
+.my-work-page .mw-event-info strong { font-size:15px; }
+.mw-event-context { display:block; font-size:12px; font-weight:550; color:var(--text-primary); line-height:1.5; }
+.my-work-page .mw-heading-actions { flex-wrap:wrap; justify-content:flex-end; }
+.my-work-page .mw-event time { width:48px; }
+.my-work-page .mw-event-time { font-size:12px; }
+.my-work-page .mw-schedule .mw-empty { padding:18px 0; }
+.my-work-page .mw-section-heading h2 { font-size:18px; }
+.mw-continue-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.my-work-page .mw-continue .mw-place { border-top:2px solid color-mix(in srgb,var(--mw-place-tone) 60%,var(--mw-border)); }
+.my-work-page .mw-continue .mw-place>a { align-items:flex-start; }
+.my-work-page .mw-continue .mw-team>a { display:flex; padding:16px; }
+.my-work-page .mw-continue .mw-team-footer { display:none; }
+.my-work-page .mw-places .mw-group-teams .mw-place-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.my-work-page .mw-places .mw-team>a { display:flex; align-items:center; padding:16px; }
+.my-work-page .mw-places .mw-team-footer { display:none; }
+.my-work-page .mw-place-icon { margin-top:2px; }
+.my-work-page .mw-state { padding:18px 0; }
+@media(max-width:900px) {
+ .my-work-page .mw-briefing { grid-template-columns:1fr; }
+ .my-work-page .mw-attention { grid-column:1; grid-row:1; }
+ .my-work-page .mw-schedule { grid-column:1; grid-row:2; }
+ .mw-continue-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:650px) {
+ .my-work-page .mw-heading { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; }
+ .my-work-page .mw-heading-actions { gap:6px; flex-wrap:nowrap; align-items:flex-start; }
+ .my-work-page .mw-heading-actions .mw-manage summary { font-size:0; min-width:44px; padding:10px; }
+ .my-work-page .mw-heading-actions .mw-manage summary>svg:last-child { display:none; }
+ .my-work-page .mw-heading-actions .mw-manage { flex:none; }
+ .my-work-page .mw-heading-actions .mw-manage-links { right:0; left:auto; }
+ .mw-continue-list,.my-work-page .mw-places .mw-group-teams .mw-place-list { grid-template-columns:1fr; }
+ .my-work-page .mw-section-heading { gap:8px; }
+ .my-work-page .mw-continue .mw-section-heading { flex-direction:row; align-items:center; }
+ .my-work-page .mw-continue .mw-section-heading>div { min-width:0; }
+ .my-work-page .mw-continue .mw-section-heading p { display:none; }
+ .my-work-page .mw-event { gap:10px; }
+ .my-work-page .mw-event-info small { font-size:11px; }
+}

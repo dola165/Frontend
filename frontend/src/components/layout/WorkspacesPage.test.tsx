@@ -57,6 +57,7 @@ it('does not allow a returned request destination to navigate outside the applic
 it('reveals overflow places and can find a hidden connection without changing access', async () => {
     auth.user.navigationCapabilities.workspaces = Array.from({ length: 7 }, (_, index) => cap('club.player', 'club', index + 1, `Club ${index + 1}`));
     renderPage(); await screen.findByText('No requests awaiting your decision');
+    await userEvent.click(screen.getByRole('link', { name: 'Workspaces 7' }));
     const clubs = screen.getByRole('region', { name: 'Clubs' });
     expect(within(clubs).getByRole('link', { name: /Club 7/ })).not.toBeVisible();
     await userEvent.click(screen.getByText('Show 4 more'));
@@ -78,11 +79,13 @@ it('aborts and discards old-account responses when the session changes', async (
     expect(config.signal?.aborted).toBe(true);
     expect(screen.queryByText(/99 requests/)).not.toBeInTheDocument();
     expect(screen.queryByText('FC Dinamo Tbilisi Academy')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('link', { name: 'Workspaces 0' }));
     expect(screen.getByRole('link', { name: 'Clubs I follow' })).toBeVisible();
 });
 it('lets a person clear a filter after an access refresh reduces the number of connections', async () => {
     auth.user.navigationCapabilities.workspaces = Array.from({ length: 7 }, (_, index) => cap('club.player', 'club', index + 1, `Club ${index + 1}`));
     const view = renderPage(); await screen.findByText('No requests awaiting your decision');
+    await userEvent.click(screen.getByRole('link', { name: 'Workspaces 7' }));
     await userEvent.type(screen.getByRole('textbox', { name: 'Find a workspace' }), 'Club 7');
     auth.user.navigationCapabilities.workspaces = [cap('club.player', 'club', 1, 'Club 1')];
     view.rerender(<MemoryRouter><WorkspacesPage/></MemoryRouter>);

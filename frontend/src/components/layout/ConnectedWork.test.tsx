@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
 import { ConnectedWork, WorkspacesPage, WorkspaceConnectionBar } from './ConnectedWork';
 import { connectedWorkspaces } from './connectedWorkspaces';
@@ -41,9 +42,10 @@ it('offers a return to the club from personal work and removes revoked connectio
  expect(screen.getByRole('link',{name:'All my workspaces'})).toBeVisible();
 });
 
-it('presents every authorized destination once and keeps a useful fan entry',()=>{
+it('presents every authorized destination once and keeps a useful fan entry',async()=>{
  auth.user.navigationCapabilities=full;
  const view=render(<MemoryRouter><WorkspacesPage/></MemoryRouter>);
+ await userEvent.click(screen.getByRole('link',{name:/^Workspaces \d+$/}));
  expect(within(screen.getByRole('region',{name:'Clubs'})).getAllByRole('link')).toHaveLength(2);
  expect(screen.getByRole('link',{name:/^Cup /})).toHaveAttribute('href','/tournaments/40/workspace');
  auth.user={id:8,navigationCapabilities:{version:1,workspaces:[]}};

@@ -1,3 +1,4 @@
+import { HeartHandshake } from 'lucide-react';
 import type { FeedPostDto } from './FeedPost';
 import Glove from './reaction-icons/Glove';
 import Fire from './reaction-icons/Fire';
@@ -17,7 +18,7 @@ export const REACTIONS = [
 ] as const;
 export type Reaction = typeof REACTIONS[number]['type'] | 'CARE';
 // Retain historical Care records in summaries and filters; the new picker has six choices.
-export const ALL_REACTIONS = [...REACTIONS, { type: 'CARE', label: 'Care', Icon: Glove }] as const;
+export const ALL_REACTIONS = [...REACTIONS, { type: 'CARE', label: 'Care', Icon: HeartHandshake }] as const;
 export const reactionDefinition = (type: Reaction | null) => ALL_REACTIONS.find(r => r.type === type);
 export const selectedReaction = (post: FeedPostDto): Reaction | null => post.myReaction ?? (post.isLikedByMe ? 'LIKE' : null);
 export const reactionFields = (post: FeedPostDto, saved: FeedPostDto): FeedPostDto => ({

@@ -24,12 +24,30 @@ it('fetches names only on hover, keeps the preview open under the pointer and di
     await user.hover(summary);
     const preview = await screen.findByRole('tooltip');
     expect(await within(preview).findByText('Jordan Lee')).toBeInTheDocument();
+    expect(within(within(preview).getByRole('region', { name: 'On fire reactions' })).getByText('Jordan Lee')).toBeInTheDocument();
+    expect(within(within(preview).getByRole('region', { name: 'On fire reactions' })).queryByText('Alex Green')).not.toBeInTheDocument();
+    expect(within(within(preview).getByRole('region', { name: 'Safe hands reactions' })).getByText('Alex Green')).toBeInTheDocument();
     expect(get).toHaveBeenCalledWith('/posts/5/reactions', expect.objectContaining({ params: { limit: 8 } }));
     await user.hover(preview);
     await new Promise(resolve => setTimeout(resolve, 160));
     expect(screen.getByRole('tooltip')).toBeInTheDocument();
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+});
+
+it('shows each reaction once and opens its own people tab from the small icon', async () => {
+    const user = userEvent.setup(); mount();
+    const fire = screen.getAllByRole('button', { name: 'On fire, 2 reactions' });
+    expect(fire).toHaveLength(1);
+    get.mockResolvedValue({ data: { ...page, people: [people[0]], availableCount: 2, hasMore: false, nextCursor: null } });
+    await user.hover(fire[0]);
+    const preview = await screen.findByRole('tooltip');
+    expect(await within(preview).findByText('Jordan Lee')).toBeInTheDocument();
+    expect(within(preview).queryByText('Alex Green')).not.toBeInTheDocument();
+    expect(get).toHaveBeenLastCalledWith('/posts/5/reactions', expect.objectContaining({ params: { limit: 8, reaction: 'LOVE' } }));
+    await user.click(fire[0]);
+    expect(screen.getByRole('tab', { name: 'On fire, 2 reactions' })).toHaveAttribute('aria-selected', 'true');
+    await waitFor(() => expect(get).toHaveBeenLastCalledWith('/posts/5/reactions', expect.objectContaining({ params: { limit: 20, reaction: 'LOVE' } })));
 });
 
 it('opens an accessible people list, filters with the keyboard and links to real profiles', async () => {

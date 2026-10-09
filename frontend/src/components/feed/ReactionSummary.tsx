@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent, type RefObject } from 'react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type FocusEvent, type KeyboardEvent, type PointerEvent, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
@@ -26,45 +26,56 @@ export function ReactionSummary({ post }: { post: FeedPostDto }) {
 }
 
 function Summary({ post }: { post: FeedPostDto }) {
-    const [preview, setPreview] = useState(false), [dialog, setDialog] = useState(false);
-    const button = useRef<HTMLButtonElement>(null), timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [preview, setPreview] = useState<Filter | null>(null), [dialog, setDialog] = useState<Filter | null>(null);
+    const anchor = useRef<HTMLButtonElement>(null), timer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const id = useId(), count = post.reactionCount ?? post.likeCount;
     const cancelTimer = () => { if (timer.current) clearTimeout(timer.current); };
     useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
-    const show = () => { cancelTimer(); timer.current = setTimeout(() => setPreview(true), 220); };
-    const hide = () => { cancelTimer(); timer.current = setTimeout(() => setPreview(false), 120); };
+    const show = (filter: Filter, button: HTMLButtonElement) => {
+        cancelTimer(); anchor.current = button; timer.current = setTimeout(() => setPreview(filter), 220);
+    };
+    const hide = () => { cancelTimer(); timer.current = setTimeout(() => setPreview(null), 120); };
+    const open = (filter: Filter) => { cancelTimer(); setPreview(null); setDialog(filter); };
     const counts = post.reactionCounts ?? { LIKE: count };
     const top = REACTIONS.filter(r => (counts[r.type] ?? 0) > 0)
         .sort((a, b) => (counts[b.type] ?? 0) - (counts[a.type] ?? 0)).slice(0, 3);
     if (!count) return null;
+    const handlers = (filter: Filter) => ({
+        'aria-haspopup': 'dialog' as const,
+        'aria-describedby': preview === filter && dialog === null ? id : undefined,
+        onPointerEnter: (event: PointerEvent<HTMLButtonElement>) => { if (event.pointerType === 'mouse') show(filter, event.currentTarget); },
+        onFocus: (event: FocusEvent<HTMLButtonElement>) => show(filter, event.currentTarget),
+        onBlur: hide,
+        onClick: () => open(filter),
+    });
     return <div className="post-liked-by">
-        <button ref={button} type="button" className="post-liked-by-trigger" aria-haspopup="dialog"
-            aria-describedby={preview && !dialog ? id : undefined}
-            onPointerEnter={e => { if (e.pointerType === 'mouse') show(); }} onPointerLeave={hide}
-            onFocus={show} onBlur={hide} onClick={() => { cancelTimer(); setPreview(false); setDialog(true); }}
-            onKeyDown={e => { if (e.key === 'Escape' && preview) { e.preventDefault(); e.stopPropagation(); cancelTimer(); setPreview(false); } }}>
-            <span className="reaction-summary-icons" aria-hidden="true">{top.map(r => <span key={r.type}><r.Icon size={20} /></span>)}</span>
-            <span>Reacted by <strong>{count.toLocaleString()}</strong> {count === 1 ? 'person' : 'people'}</span>
-        </button>
-        {preview && !dialog && <NamesPreview postId={post.id} anchor={button} id={id}
-            onEnter={cancelTimer} onLeave={hide} onDismiss={() => { cancelTimer(); setPreview(false); }} />}
-        {dialog && <ReactionList post={post} onClose={() => setDialog(false)} />}
+        <div className="reaction-summary-control" onPointerLeave={hide}>
+            <span className="reaction-summary-icons">{top.map(r => <button key={r.type} type="button"
+                className="reaction-summary-icon" aria-label={`${r.label}, ${counts[r.type]?.toLocaleString()} reactions`}
+                {...handlers(r.type)}><r.Icon size={14} /></button>)}</span>
+            <button type="button" className="post-liked-by-trigger" {...handlers('ALL')}>
+                <span>Reacted by <strong>{count.toLocaleString()}</strong> {count === 1 ? 'person' : 'people'}</span>
+            </button>
+        </div>
+        {preview !== null && dialog === null && <NamesPreview key={preview} postId={post.id} filter={preview} anchor={anchor} id={id}
+            onEnter={cancelTimer} onLeave={hide} onDismiss={() => { cancelTimer(); setPreview(null); }} />}
+        {dialog !== null && <ReactionList post={post} initialFilter={dialog} onClose={() => setDialog(null)} />}
     </div>;
 }
 
-function NamesPreview({ postId, anchor, id, onEnter, onLeave, onDismiss }: {
-    postId: number; anchor: RefObject<HTMLButtonElement | null>; id: string; onEnter: () => void; onLeave: () => void; onDismiss: () => void;
+function NamesPreview({ postId, filter, anchor, id, onEnter, onLeave, onDismiss }: {
+    postId: number; filter: Filter; anchor: RefObject<HTMLButtonElement | null>; id: string; onEnter: () => void; onLeave: () => void; onDismiss: () => void;
 }) {
     const [page, setPage] = useState<ReactionPage | null>(null), [failed, setFailed] = useState(false);
     const [position, setPosition] = useState({ left: 12, top: 12 });
     const ref = useRef<HTMLDivElement>(null), session = getAuthSessionId();
     useEffect(() => {
         const controller = new AbortController();
-        apiClient.get<ReactionPage>(`/posts/${postId}/reactions`, { params: { limit: 8 }, signal: controller.signal })
+        apiClient.get<ReactionPage>(`/posts/${postId}/reactions`, { params: { limit: 8, ...(filter !== 'ALL' ? { reaction: filter } : {}) }, signal: controller.signal })
             .then(({ data }) => { if (!controller.signal.aborted && session === getAuthSessionId()) setPage(data); })
             .catch(() => { if (!controller.signal.aborted && session === getAuthSessionId()) setFailed(true); });
         return () => controller.abort();
-    }, [postId, session]);
+    }, [postId, filter, session]);
     useEffect(() => {
         const place = () => {
             if (!anchor.current) return;
@@ -81,12 +92,21 @@ function NamesPreview({ postId, anchor, id, onEnter, onLeave, onDismiss }: {
     }, [anchor, page, failed, onDismiss]);
     return createPortal(<div ref={ref} id={id} role="tooltip" className="reaction-names-preview feed-home-shell"
         style={position} onPointerEnter={onEnter} onPointerLeave={onLeave}>
-        <strong>People who reacted</strong>
+        <strong>{filter === 'ALL' ? 'People who reacted' : reactionDefinition(filter)?.label}</strong>
         {failed ? <p>{errorMessage}</p> : !page ? <p>Loading names…</p> : <>
-            {page.people.map(person => <div className="reaction-preview-person" key={person.userId}><span aria-hidden="true">{reactionIcon(person.reaction)}</span><span>{person.name}</span></div>)}
+            {REACTIONS.filter(reaction => (filter === 'ALL' || reaction.type === filter) && (page.reactionCounts[reaction.type] ?? 0) > 0)
+                .sort((a, b) => (page.reactionCounts[b.type] ?? 0) - (page.reactionCounts[a.type] ?? 0)).map(reaction => {
+                    const people = page.people.filter(person => person.reaction === reaction.type);
+                    return <section className="reaction-preview-group" key={reaction.type} aria-label={`${reaction.label} reactions`}>
+                        <header><span aria-hidden="true"><reaction.Icon size={16} /></span><strong>{reaction.label}</strong>
+                            <span>{page.reactionCounts[reaction.type]?.toLocaleString()}</span></header>
+                        {people.length > 0 ? <ul>{people.map(person => <li key={person.userId}>{person.name}</li>)}</ul>
+                            : <p>Open the list to see these profiles.</p>}
+                    </section>;
+                })}
             {page.hasMore && <p>and {(page.availableCount - page.people.length).toLocaleString()} more</p>}
-            {page.availableCount < page.totalCount && <p>Some profiles are unavailable.</p>}
-            {!page.totalCount && <p>No reactions yet.</p>}
+            {page.availableCount < (filter === 'ALL' ? page.totalCount : page.reactionCounts[filter] ?? 0) && <p>Some profiles are unavailable.</p>}
+            {!(filter === 'ALL' ? page.totalCount : page.reactionCounts[filter] ?? 0) && <p>No reactions yet.</p>}
             <small>Click to see all reactions</small>
         </>}
     </div>, document.body);
@@ -100,12 +120,12 @@ function PersonAvatar({ person }: { person: Person }) {
     </span>;
 }
 
-function ReactionList({ post, onClose }: { post: FeedPostDto; onClose: () => void }) {
-    const [filter, setFilter] = useState<Filter>('ALL'), [page, setPage] = useState<ReactionPage | null>(null);
+function ReactionList({ post, initialFilter, onClose }: { post: FeedPostDto; initialFilter: Filter; onClose: () => void }) {
+    const [filter, setFilter] = useState<Filter>(initialFilter), [page, setPage] = useState<ReactionPage | null>(null);
     const [counts, setCounts] = useState(post.reactionCounts ?? { LIKE: post.reactionCount ?? post.likeCount });
     const [total, setTotal] = useState(post.reactionCount ?? post.likeCount);
     const [busy, setBusy] = useState(true), [failed, setFailed] = useState(false), [unavailable, setUnavailable] = useState(false);
-    const [request, setRequest] = useState<{ filter: Filter; cursor: number | null; retry: number }>({ filter: 'ALL', cursor: null, retry: 0 });
+    const [request, setRequest] = useState<{ filter: Filter; cursor: number | null; retry: number }>({ filter: initialFilter, cursor: null, retry: 0 });
     const tabs = useRef<HTMLDivElement>(null), id = useId(), session = getAuthSessionId();
     const viewer = Number(getStoredUserId());
     useEffect(() => {

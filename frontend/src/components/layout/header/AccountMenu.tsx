@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CalendarDays, LogOut, Moon, Settings, ShieldCheck, Sun } from 'lucide-react';
 import { Avatar } from '../../../design/primitives';
@@ -27,10 +27,13 @@ export function AccountMenu({ user, themePreference, setThemePreference, onLogou
     const languages = Object.keys(i18n.options.resources ?? { en: {}, ka: {} });
     const dark = themePreference !== 'light';
     const select = (action: () => void) => () => { action(); close(); };
+    // The person's own places (profile, schedule, settings) have no tab; the avatar shows that you are in one.
+    const { pathname } = useLocation();
+    const inOwnPlace = pathname === `/profile/${user.id}` || pathname === '/calendar' || pathname === '/account' || pathname.startsWith('/account/');
 
     return (
         <div className="gk-hanchor" onKeyDown={onKeyDown}>
-            <button ref={triggerRef} type="button" className="gk-hbtn gk-hbtn--avatar" aria-haspopup="menu" aria-expanded={open}
+            <button ref={triggerRef} type="button" className="gk-hbtn gk-hbtn--avatar" data-current={inOwnPlace || undefined} aria-haspopup="menu" aria-expanded={open}
                 aria-controls={open ? id : undefined} aria-label={copy(`Account menu for ${name}`, `ანგარიშის მენიუ: ${name}`)} title={name} onClick={toggle}>
                 <Avatar src={resolveMediaUrl(user.avatarUrl)} name={name} size={34} />
             </button>

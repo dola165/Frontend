@@ -49,7 +49,7 @@
 .gk .gk-hbtn--dola svg { color: var(--gk-accent); }
 .gk .gk-hbtn--dola .gk-hbtn__label { display: none; }
 .gk .gk-hbtn--avatar .gk-avatar { box-shadow: 0 0 0 1px var(--gk-line); }
-.gk .gk-hbtn--avatar[aria-expanded='true'] .gk-avatar { box-shadow: 0 0 0 2px var(--gk-accent); }
+.gk .gk-hbtn--avatar:is([aria-expanded='true'], [data-current]) .gk-avatar { box-shadow: 0 0 0 2px var(--gk-bg), 0 0 0 4px var(--gk-accent); }
 
 .gk .gk-header__search { flex: none; width: 300px; }
 .gk .gk-header__search-toggle { display: none; }
@@ -176,6 +176,10 @@
 }
 @media (prefers-reduced-motion: reduce) { .gk .gk-htab__body, .gk .gk-hbtn { transition: none; } }
 @media (max-width: 899px) {
+  /* Full-height map panels end above the tab bar instead of behind it. */
+  .product-app-shell[data-tabbar='true'] :is(.map-modal-backdrop, .map-simple-rail, .map-club-rail, .map-advanced-rail).fixed { bottom: var(--app-bottom-bar-height); }
+  /* A modal covers the whole screen, so the tab bar steps aside while one is open and its actions stay reachable. */
+  html:has([aria-modal='true']) .gk.gk-tabbar { display: none; }
   .gk.gk-header--guest .gk-header__nav { display: flex; margin-left: 0; }
   .gk.gk-header--guest .gk-header__brand-name, .gk.gk-header--guest .gk-header__signup { display: none; }
 }

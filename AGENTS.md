@@ -6,7 +6,7 @@ The complete, maintained project guide is `AGENTS.md` at the root of the **paire
 
 Locate the backend checkout on this machine; do not assume the founder's filesystem paths apply. The backend is private and this frontend repository is public. Do not copy private operational records, secrets, production exports or personal chat history into this repository. If the backend guide is inaccessible, state the missing context and proceed only where the available evidence supports the work.
 
-The shared transition branch is `codex/team-baseline-20261008` in both repositories until the baseline is reviewed and merged. Check actual host, branch, commit, local changes and fetched upstream before relying on old chat context. The default branches may still be older. Preserve local work; do not blindly reset, stash or pull a dirty checkout.
+The current accepted web/workflow starting branch is `codex/football-experience-20261009` in both repositories; resolve its freshly fetched heads using the backend current-state note. The older transition baseline and default branches may omit the latest accepted work. Check actual host, branch, commit, local changes and fetched upstream before relying on old chat context. The default branches may still be older. Preserve local work; do not blindly reset, stash or pull a dirty checkout.
 
 ## Application map
 
@@ -28,7 +28,7 @@ The shared transition branch is `codex/team-baseline-20261008` in both repositor
 
 - Close tasks with relevant local verification, reviewed diffs, useful context updates, commits/pushes and clear handoff. Record paired revisions for cross-repository work. Distinguish local, pushed, merged and deployed; a GitHub commit does not identify the running deployment.
 - GitHub Actions is off at the user's request (8 October 2026). Do not add or re-enable hosted test/build/CodeQL workflows without a new request. Keep appropriate local checks and deployment safeguards.
-- Host migration is currently deferred for the team skills workshop. For later functional work, deploy to the authorized live demo as part of completion unless the user says otherwise, after appropriate release, backup and migration checks. Pure UI/UX work may remain local unless publication is requested. Read the backend operations guide before any deployment; never use a development reset or cache cleanup on live data.
+- The mini PC is the authoritative live host and serialized build/release hub after the completed 9 October cutover. The desktop and other team machines develop locally in isolated checkouts. Publish accepted source through Git, then have the mini build/rehearse/promote the exact approved revision with backup, health and rollback safeguards. The old desktop live stack stays retired. An authorized deployment request from the development chat carries through its named scope without a second approval on the mini. Read the private backend workflow and web-only runbook; documentation-only changes do not trigger deployment.
 - Work directly in the current task with the user's selected Codex model and reasoning effort. Do not introduce model-selection machinery or force different settings.
 - Work without subagents unless explicitly asked to delegate. Create separate user-visible tasks only when explicitly requested.
 - Do not call Jev or another external service to choose development models, allocate work or advise orchestration. In-product Jev/Dola has separate credentials and spending controls.

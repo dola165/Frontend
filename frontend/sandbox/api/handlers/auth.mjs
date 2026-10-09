@@ -1,0 +1,22 @@
+import { get, post, reply } from '../router.mjs';
+import { me, clubs } from '../world.mjs';
+
+const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
+export const accessToken = () => `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: String(me.id), exp: Math.floor(Date.now() / 1000) + 86400 })}.sandbox`;
+
+get('/auth/csrf', () => reply(200, { headerName: 'X-XSRF-TOKEN', token: 'sandbox-csrf', parameterName: '_csrf' }, { 'set-cookie': 'XSRF-TOKEN=sandbox-csrf; Path=/' }));
+post('/auth/refresh', () => ({ accessToken: accessToken(), expiresIn: 86400 }));
+post('/auth/login', () => ({ accessToken: accessToken(), expiresIn: 86400 }));
+post('/auth/logout', () => reply(204));
+
+export const meProjection = () => ({
+  id: me.id, username: 'coach.luka', email: me.email, role: 'USER', fullName: me.fullName, name: me.fullName, avatarUrl: me.avatarUrl,
+  dob: '1988-04-12', profileComplete: true, onboardingRequired: false, mustChangePassword: false, emailVerified: true,
+  navigationCapabilities: { version: 1, workspaces: [
+    { id: 'club.workspace', context: { type: 'club', id: 1, label: clubs[0].name } },
+    { id: 'club.operations', context: { type: 'club', id: 1, label: clubs[0].name } },
+    { id: 'squad.workspace', context: { type: 'squad', id: 105, label: 'U16 Boys' } },
+    { id: 'squad.workspace', context: { type: 'squad', id: 103, label: 'U14 Boys' } },
+  ] },
+});
+get('/users/me', meProjection);

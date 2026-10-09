@@ -29,7 +29,7 @@ const server = http.createServer(async (req, res) => {
       const body = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) ? await readBody(req) : null;
       const result = await handleApi({ method: req.method, path: url.pathname.replace(/^\/api/, '') || '/', query: url.searchParams, body, headers: req.headers });
       if (!result) {
-        await appendFile(path.join(runtime, 'unhandled.jsonl'), JSON.stringify({ method: req.method, path: url.pathname, query: url.search, page: req.headers.referer || '' }) + '\n');
+        await appendFile(path.join(runtime, `unhandled-${port}.jsonl`), JSON.stringify({ method: req.method, path: url.pathname, query: url.search, page: req.headers.referer || '' }) + '\n');
         res.writeHead(404, { 'content-type': 'application/json' });
         return res.end(JSON.stringify({ status: 404, message: 'Not available in the sandbox yet.' }));
       }

@@ -34,7 +34,7 @@ html.product-design-active {
 }
 html.product-design-active :is(.product-app-shell, .app-page-shell) { background: var(--color-page); }
 html.product-design-active .product-design-scope { min-width: 0; color: var(--color-text); }
-html.product-design-active :is(.top-nav-force-dark, .product-design-scope .club-page-shell) {
+html.product-design-active .product-design-scope .club-page-shell {
   --gk-canvas: var(--color-page); --gk-surface: var(--color-surface); --gk-raised: var(--color-elevated);
   --gk-border: var(--color-border); --gk-text-primary: var(--color-text); --gk-text-secondary: var(--color-secondary); --gk-text-muted: var(--color-muted);
   --text-primary: var(--color-text); --text-secondary: var(--color-secondary); --text-muted: var(--color-muted);
@@ -57,10 +57,8 @@ html.product-design-active :is(input, textarea, [contenteditable=true])[data-inp
 }
 html.product-design-active :is(input, textarea)::placeholder { color: var(--color-muted); opacity: 1; }
 html.product-design-active :is(input[type=checkbox], input[type=radio]) { accent-color: var(--color-accent); }
-html.product-design-active :is(.top-nav-force-dark, .nav-actions) .lucide { stroke-width: 1.7; flex-shrink: 0; }
-html.product-design-active .top-nav-force-dark { border-color: var(--color-border); box-shadow: none; }
-html.product-design-active :is(.top-nav-force-dark input, .discovery-search-input) { background: var(--color-inset); border-color: var(--color-border); }
-html.product-design-active :is(.app-popover, [role=menu], .settings-choice-panel, .workspace-picker) { border-color: var(--color-border); background-color: var(--color-surface); }
+html.product-design-active .discovery-search-input { background: var(--color-inset); border-color: var(--color-border); }
+html.product-design-active :is(.app-popover, [role=menu], .workspace-picker) { border-color: var(--color-border); background-color: var(--color-surface); }
 html.product-design-active :is(.app-motion-dialog, .app-motion-panel, [role=dialog][aria-modal=true]) {
   --theme-border: var(--color-border); --theme-surface: var(--color-surface); --bg-elevated: var(--color-surface);
 }
@@ -182,11 +180,11 @@ html.product-design-active [data-product-surface=identity] label[for] { font-siz
 html.product-design-active .product-design-scope :is([role=alert], .gk-empty) { border-radius: 12px; }
 html.product-design-active .gk-empty { background: var(--color-surface); border-color: var(--color-border); }
 /* Motion is limited to mounting/revealing content. No layout or glyph animation. */
-html.product-design-active .app-route-arrival > :not(.workspace-connection-bar) { animation: app-page-enter 280ms var(--app-motion-ease) backwards; }
+html.product-design-active .app-route-arrival > * { animation: app-page-enter 280ms var(--app-motion-ease) backwards; }
 html.product-design-active :is(.request-list, .store-product-grid, .campaign-grid, .venue-card-grid, .tryout-results, .volunteer-grid, .jobs-results) > :nth-child(-n+6) { animation: app-content-enter 300ms var(--app-motion-ease) backwards; }
 html.product-design-active :is(.request-list, .store-product-grid, .campaign-grid, .venue-card-grid, .tryout-results, .volunteer-grid, .jobs-results) > :nth-child(2) { animation-delay: 20ms; }
 html.product-design-active :is(.request-list, .store-product-grid, .campaign-grid, .venue-card-grid, .tryout-results, .volunteer-grid, .jobs-results) > :nth-child(n+3):nth-child(-n+6) { animation-delay: 40ms; }
-html.product-design-active :is([role=menu], .app-popover, .workspace-picker, .settings-choice-panel) { animation: app-popover-enter 220ms var(--app-motion-soft) backwards; }
+html.product-design-active :is([role=menu], .app-popover, .workspace-picker) { animation: app-popover-enter 220ms var(--app-motion-soft) backwards; }
 @media (hover:hover) and (pointer:fine) {
   html.product-design-active .product-design-scope :is(.store-product-card, .campaign-card, .venue-card, .volunteer-card, .request-card, .mx-card, .mx-listing):hover { border-color: color-mix(in srgb, var(--color-accent) 28%, var(--color-border)); }
   html.product-design-active :is(.mx-button, .venue-button, .store-cart-link, .career-button):not(:disabled):hover { background-color: var(--color-hover); }

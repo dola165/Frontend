@@ -13,12 +13,12 @@ import { HighlightedText } from './HighlightedText';
 const DEBOUNCE_MS = 250;
 const MIN_QUERY_LENGTH = 2;
 
-export const GlobalSearchBar = (props: { light?: boolean; mobile?: boolean }) => {
+export const GlobalSearchBar = (props: { light?: boolean; mobile?: boolean; className?: string }) => {
   const { sessionId, user } = useAuth();
   return <SearchContent key={`${user?.id}:${sessionId}`} {...props} />;
 };
 
-function SearchContent({ light = false, mobile = false }: { light?: boolean; mobile?: boolean }) {
+function SearchContent({ light = false, mobile = false, className }: { light?: boolean; mobile?: boolean; className?: string }) {
   const { t, i18n } = useTranslation();
   const { user, sessionId } = useAuth();
   const signedIn = !!user;
@@ -168,7 +168,7 @@ function SearchContent({ light = false, mobile = false }: { light?: boolean; mob
   };
 
   return (
-    <div ref={containerRef} className={mobile ? 'relative flex min-w-0 flex-1' : 'relative hidden min-w-0 max-w-xl flex-1 lg:flex'}>
+    <div ref={containerRef} className={className ?? (mobile ? 'relative flex min-w-0 flex-1' : 'relative hidden min-w-0 max-w-xl flex-1 lg:flex')}>
       <div className={`global-search-field ${light ? 'global-search-field--light' : ''} relative w-full`}>
         <Search aria-hidden="true" className="global-search-field__icon absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2" />
         <input

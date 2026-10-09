@@ -1,6 +1,6 @@
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Inbox, ArrowUpRight, RefreshCw, Building2, Flag, Trophy, HeartHandshake, CalendarDays, Handshake, FileCheck2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { requestDestination, requests, type RequestPage, type RequestItem } from './api';
@@ -71,7 +71,7 @@ function Centre() {
     {review && <section ref={reviewPanel} tabIndex={-1} className="request-review" aria-label="Review invitation"><h2>{review.title}</h2><p>{review.context} · Invitation #{review.id}</p><p>{review.family === 'TOURNAMENT_INVITATION' ? 'Accept for the named club, team or yourself. An accepted invitation moves to History; the organiser may still need to approve your entry or place it on a waitlist.' : 'Accept the named responsibility at this club. Your existing responsibilities at other clubs remain separate.'}</p>{termsLoading&&<p role="status">Loading invitation details…</p>}{terms?.requiresSquad&&<label>Team entering the tournament<select aria-label="Team entering the tournament" value={squad} onChange={e=>setSquad(e.target.value)}><option value="">Choose your team</option>{terms.squads.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select>{!terms.squads.length&&<span>This club needs a team before it can enter. Create a team in the club workspace, then reopen this invitation.</span>}</label>}{actionError&&<p role="alert">{actionError}</p>}<div><button disabled={busy||termsLoading||review.family==='TOURNAMENT_INVITATION'&&(!terms||terms.requiresSquad&&!squad)} onClick={() => void respond(true)}>Accept invitation</button><button disabled={busy} onClick={() => void respond(false)}>Decline invitation</button><button disabled={busy} onClick={() => setReview(null)}>Close</button></div></section>}
     {error && <p role="alert">{error} <button type="button" onClick={() => setRevision(r => r + 1)}>Retry</button></p>}
     {data?.unavailableSources.length ? <p role="alert">Some request types are unavailable. <button onClick={() => setRevision(r => r + 1)}>Retry missing requests</button></p> : null}
-    {data && !data.items.length && <EmptyState icon={Inbox} title={data.unavailableSources.length ? 'No requests from available sources' : page ? 'No more requests' : view === 'INCOMING' ? 'You’re up to date' : view === 'OUTGOING' ? 'No requests waiting for a reply' : 'No recorded outcomes yet'} description={data.unavailableSources.length ? 'Some request types could not load. Retry missing requests above to check the complete picture.' : page ? 'Return to an earlier page to see your requests.' : view === 'INCOMING' ? 'Invitations and decisions that need your attention will appear here. You can continue with your clubs and personal workspaces.' : view === 'OUTGOING' ? 'Follow the progress of invitations and applications you send. Completed decisions move to History.' : 'Accepted, declined and completed requests will stay here as a record of what happened.'} action={page ? {label:'Previous page',onClick:()=>navigate(view,page-1)} : {label:view==='HISTORY'?'View incoming requests':'Open my workspaces',to:view==='HISTORY'?'/requests':'/workspaces'}}/>}
+    {data && !data.items.length && <EmptyState icon={Inbox} title={data.unavailableSources.length ? 'No requests from available sources' : page ? 'No more requests' : view === 'INCOMING' ? 'You’re up to date' : view === 'OUTGOING' ? 'No requests waiting for a reply' : 'No recorded outcomes yet'} description={data.unavailableSources.length ? 'Some request types could not load. Retry missing requests above to check the complete picture.' : page ? 'Return to an earlier page to see your requests.' : view === 'INCOMING' ? 'Invitations and decisions that need your attention will appear here.' : view === 'OUTGOING' ? 'Follow the progress of invitations and applications you send. Completed decisions move to History.' : 'Accepted, declined and completed requests will stay here as a record of what happened.'} action={page ? {label:'Previous page',onClick:()=>navigate(view,page-1)} : {label:view==='HISTORY'?'View incoming requests':'Go to Home',to:view==='HISTORY'?'/requests':'/home'}}/>}
     <div className="request-list">{data?.items.map(item => { const destination = requestDestination(item.destination); const Icon = requestIcon(item.family); return <article className="request-card" key={item.key}>
       <span className="request-card-icon" aria-hidden="true"><Icon size={22} strokeWidth={1.7}/></span>
       <div className="request-card-body"><p className="request-context">{item.context}</p><h2>{item.title}</h2><p className="request-reference">{item.family.toLowerCase().replaceAll('_', ' ')} · #{item.id}{item.updatedAt && ` · ${new Date(item.updatedAt).toLocaleDateString()}`}</p></div>
@@ -89,17 +89,4 @@ function requestIcon(family:string) {
   if(family.includes('REPRESENTATION') || family.includes('APPROACH')) return Handshake;
   if(family.includes('CLUB') || family.includes('STAFF')) return Building2;
   return FileCheck2;
-}
-
-export function RequestsLink({ light = false }: { light?: boolean }) {
-  const { sessionId, user } = useAuth();
-  return user ? <RequestCount key={`${user.id}:${sessionId}`} light={light} /> : null;
-}
-function RequestCount({ light }: { light: boolean }) {
-  const { sessionId } = useAuth(); const location = useLocation();
-  const [result, setResult] = useState<{ key: string; count: number } | null>(null), [revision, setRevision] = useState(0);
-  const key = `${sessionId}:${revision}:${location.pathname}`, count = result?.key === key ? result.count : null;
-  useEffect(() => { const refresh = () => setRevision(r => r + 1); window.addEventListener('focus', refresh); window.addEventListener('requests-updated', refresh); const timer = window.setInterval(() => { if (!document.hidden) refresh(); }, 60000); return () => { clearInterval(timer); window.removeEventListener('focus', refresh); window.removeEventListener('requests-updated', refresh); }; }, []);
-  useEffect(() => { const c = new AbortController(); void requests('INCOMING', 0, sessionId, c.signal, 1).then(r => { if (!c.signal.aborted) setResult(r.unavailableSources.length ? null : { key, count: r.counts.actionable }); }).catch(() => { if (!c.signal.aborted) setResult(null); }); return () => c.abort(); }, [sessionId, key]);
-  return <Link to="/requests" className={`requests-nav ${light ? 'requests-nav-light' : ''}`} title="Requests" aria-label={count == null ? 'Requests' : `Requests, ${count} awaiting your action`}><Inbox size={19} /><span className="requests-nav-label">Requests</span>{count != null && count > 0 && <span className="requests-count">{count > 99 ? '99+' : count}</span>}</Link>;
 }

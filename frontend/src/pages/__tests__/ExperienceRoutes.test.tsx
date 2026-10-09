@@ -12,7 +12,7 @@ vi.mock('../../context/AuthContext', () => ({
     logout: vi.fn(),
   }),
 }));
-vi.mock('../../components/layout/TopNav', () => ({ TopNav: () => null }));
+vi.mock('../../components/layout/header/AppHeader', () => ({ AppHeader: () => null }));
 vi.mock('../../features/dola/DolaProvider', () => ({ DolaProvider: ({ children }: { children: ReactNode }) => children }));
 vi.mock('../../features/dola/AgentDolaPage', () => ({ AgentDolaPage: () => null, DolaDock: () => null }));
 vi.mock('../../features/clubs/api', () => ({ fetchMyClubMembershipContext: vi.fn().mockResolvedValue(null) }));

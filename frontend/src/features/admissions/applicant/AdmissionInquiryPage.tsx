@@ -6,7 +6,8 @@ import { apiClient } from '../../../api/axiosConfig';
 import { fetchAdmissionHome, fetchAdmissionInquiry, commandAdmissionInquiry, submitAdmissionInquiry } from '../api';
 import type { AdmissionInquiry, InquiryInput, InquiryCommand, InquiryAction } from '../types';
 import { AddChild } from '../../parents/AddChild';
-import { AdmissionError, AdmissionFrame, AdmissionLoading } from './AdmissionFrame';
+import { useAdmissionTab } from './useAdmissionTab';
+import { AdmissionError, AdmissionFrame, AdmissionLoading, AdmissionSection } from './AdmissionFrame';
 import { PlayerCardEditor } from './PlayerCardEditor';
 import { useAdmissionCopy } from './copy';
 import { useAdmissionData } from './useAdmissionData';
@@ -59,16 +60,17 @@ export function AdmissionInquiryPage() {
 function InquiryContent({id}:{id:number}) {
     const {sessionId}=useAuth();const {copy,status,next}=useInquiryCopy();
     const data=useAdmissionData(useCallback(signal=>fetchAdmissionInquiry(id,sessionId,signal),[id,sessionId]),sessionId);
+    const tab=useAdmissionTab(['overview','conversation','history']);
     const inquiry=data.data;const [detailsParams]=useSearchParams();
     if(inquiry?.conversationDestination&&inquiry.playerId&&detailsParams.get("details")!=="1")return <Navigate to={inquiry.conversationDestination} replace/>;
-    return <AdmissionFrame title={copy('Your club enquiry','თქვენი კითხვა კლუბისთვის')} description={data.error?undefined:inquiry?.organizationName} back="/admissions">
-        {data.loading?<AdmissionLoading/>:data.error?<AdmissionError message={data.error} retry={data.refresh}/>:inquiry&&<div className="admission-stack"><section className="admission-panel"><h2>{inquiry.playerName||copy("General question","ზოგადი კითხვა")}</h2><span className="admission-badge">{status(inquiry)}</span><p>{inquiry.message}</p>
+    return <AdmissionFrame title={copy('Your club enquiry','თქვენი კითხვა კლუბისთვის')} description={data.error?undefined:inquiry?.organizationName} back="/admissions" tabs={[{id:'overview',label:copy('Overview','მიმოხილვა')},{id:'conversation',label:copy('Conversation','საუბარი')},{id:'history',label:copy('History','ისტორია')}]} activeTab={tab}>
+        {data.loading?<AdmissionLoading/>:data.error?<AdmissionError message={data.error} retry={data.refresh}/>:inquiry&&<div className="admission-stack"><AdmissionSection active={tab==='overview'}><section className="admission-panel"><h2>{inquiry.playerName||copy("General question","ზოგადი კითხვა")}</h2><span className="admission-badge">{status(inquiry)}</span><p>{inquiry.message}</p>
             <p role="status">{next(inquiry)}</p>
             {inquiry.conversationDestination&&<Link className="admission-button" to={inquiry.conversationDestination}>{copy("Open club conversation","კლუბთან საუბრის გახსნა")}</Link>}
             {inquiry.caseId&&<><p>{copy('Review the proposed group and its next steps. Routing this inquiry gives no consent to attendance or enrollment.','იხილეთ შემოთავაზებული ჯგუფი და შემდეგი ნაბიჯები. ამ კითხვის საქმეში გადატანა დასწრებაზე ან ჩარიცხვაზე თანხმობა არ არის.')}</p><Link className="admission-button admission-primary" to={`/admissions/cases/${inquiry.caseId}`}>{copy('Review the proposed group','შემოთავაზებული ჯგუფის განხილვა')}</Link></>}
-        </section>{inquiry.actions.includes('ASSOCIATE_PLAYER')&&<AssociateInquiryPlayer inquiry={inquiry} onChanged={data.setData} refresh={data.refresh}/>}
+        </section><Link className="admission-button" to={playerPath('/admissions/inquiries/'+id+'?details=1&tab=conversation',inquiry.playerId)}>{copy('Send more information','დამატებითი ინფორმაციის გაგზავნა')}</Link></AdmissionSection><AdmissionSection active={tab==='conversation'}>{inquiry.actions.includes('ASSOCIATE_PLAYER')&&<AssociateInquiryPlayer inquiry={inquiry} onChanged={data.setData} refresh={data.refresh}/>}
         {(['MESSAGE','RESOLVE','REOPEN','WITHDRAW'] as const).filter(action=>inquiry.actions.includes(action)).map(action=><InquiryResponse key={`${action}:${id}`} inquiry={inquiry} action={action} onChanged={data.setData} refresh={data.refresh}/>)}
-        <section className="admission-panel"><h2>{copy('Inquiry history','კითხვის ისტორია')}</h2><ol className="admission-timeline">{inquiry.history.map(e=><li key={e.id}><time dateTime={e.createdAt}>{new Date(e.createdAt).toLocaleString()}</time><strong>{e.actorName}</strong>{e.message&&<p>{e.message}</p>}</li>)}</ol></section></div>}
+        </AdmissionSection><AdmissionSection active={tab==='history'}><section className="admission-panel"><h2>{copy('Inquiry history','კითხვის ისტორია')}</h2><ol className="admission-timeline">{inquiry.history.map(e=><li key={e.id}><time dateTime={e.createdAt}>{new Date(e.createdAt).toLocaleString()}</time><strong>{e.actorName}</strong>{e.message&&<p>{e.message}</p>}</li>)}</ol></section></AdmissionSection></div>}
     </AdmissionFrame>;
 }
 function InquiryResponse({inquiry:i,action,onChanged,refresh}:{inquiry:AdmissionInquiry;action:Extract<InquiryAction,'MESSAGE'|'WITHDRAW'|'RESOLVE'|'REOPEN'>;onChanged:(i:AdmissionInquiry)=>void;refresh:()=>void}) {

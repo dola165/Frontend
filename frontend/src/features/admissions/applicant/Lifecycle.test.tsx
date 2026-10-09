@@ -30,7 +30,7 @@ describe('Admission lifecycle receipts',()=>{
         const o=(JSON.parse(opportunitiesJson) as OpportunityPage).items[0];o.gender='MALE';o.birthYearFrom=1990;o.birthYearTo=1990;
         const home=incompleteHome();home.participants[0].dateOfBirth='1990-05-01';home.selfCardNeedsDetails=false;
         vi.mocked(fetchOpportunity).mockResolvedValue(o);vi.mocked(fetchAdmissionHome).mockResolvedValue(home);
-        render(<MemoryRouter initialEntries={['/admissions/opportunities/'+o.id+'?player=77']}><Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes></MemoryRouter>);
+        render(<MemoryRouter initialEntries={['/admissions/opportunities/'+o.id+'?tab=join&player=77']}><Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes></MemoryRouter>);
         expect(await screen.findByText(/This group uses a gender category/)).toBeVisible();
         expect(screen.getByRole('button',{name:'Request an introduction'})).toBeDisabled();
         expect(screen.queryByText(/This birth year is outside the published range/)).not.toBeInTheDocument();
@@ -40,8 +40,9 @@ describe('Admission lifecycle receipts',()=>{
     it('shows the incomplete self identity without a crash or invented birth year',async()=>{
         vi.mocked(fetchAdmissionHome).mockResolvedValue(incompleteHome());
         render(<MemoryRouter><AdmissionHomePage/></MemoryRouter>);
-        expect(await screen.findByRole('button',{name:'Synthetic self · Basic details needed'})).toBeVisible();
-        fireEvent.click(screen.getByRole('button',{name:'Synthetic self · Basic details needed'}));
+        expect(await screen.findByRole('link',{name:'Complete player card'})).toBeVisible();
+        fireEvent.click(screen.getByRole('link',{name:'Complete player card'}));
+        fireEvent.change(screen.getByLabelText('Filter cases by player'),{target:{value:'77'}});
         expect(await screen.findAllByLabelText('Date of birth')).toHaveLength(1);
     });
     it('keeps a missing-DOB self card outside map age matching',async()=>{
@@ -55,7 +56,7 @@ describe('Admission lifecycle receipts',()=>{
         const o=(JSON.parse(opportunitiesJson) as OpportunityPage).items[0];o.birthYearFrom=1990;o.birthYearTo=1990;
         const home=incompleteHome();vi.mocked(fetchOpportunity).mockResolvedValue(o);vi.mocked(fetchAdmissionHome).mockResolvedValueOnce(home).mockResolvedValue({...home,selfCardNeedsDetails:false,participants:[{...home.participants[0],dateOfBirth:'1990-05-01'}]});
         vi.mocked(updateAdmissionPlayerCard).mockResolvedValue({...home.participants[0],dateOfBirth:'1990-05-01'});
-        render(<MemoryRouter initialEntries={['/admissions/opportunities/'+o.id]}><Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes></MemoryRouter>);
+        render(<MemoryRouter initialEntries={['/admissions/opportunities/'+o.id+'?tab=join']}><Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes></MemoryRouter>);
         await screen.findByLabelText('Full name');fireEvent.change(screen.getByLabelText('Player card'),{target:{value:'77'}});
         expect(screen.getByText(/Basic details needed/)).toBeVisible();expect(screen.queryByRole('button',{name:'Request an introduction'})).not.toBeInTheDocument();
         fireEvent.change(screen.getByLabelText('Player card'),{target:{value:''}});
@@ -81,7 +82,9 @@ describe('Admission lifecycle receipts',()=>{
         render(<MemoryRouter initialEntries={[`/admissions/cases/${c.id}`]}><Routes><Route path="/admissions/cases/:caseId" element={<AdmissionCasePage/>}/></Routes></MemoryRouter>);
         expect(await screen.findByText('This enrollment is no longer active. Its earlier agreement and the recorded reason remain in this case.')).toBeVisible();
         expect(screen.queryByRole('link',{name:'Open group schedule'})).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('link',{name:'History'}));
         expect(screen.getByRole('link',{name:'Earlier linked attempt'})).toHaveAttribute('href','/admissions/cases/7');
+        fireEvent.click(screen.getByRole('link',{name:'Conversation'}));
         expect(screen.getByRole('link',{name:'Review a new linked request'})).toHaveAttribute('href',`/admissions/opportunities/${c.groupId}?player=${c.playerId}`);
     });
     it('labels a withdrawn offer without offering acceptance',()=>{
@@ -100,6 +103,24 @@ describe('Admission lifecycle receipts',()=>{
         expect(screen.getByText('25 GEL for this session')).toBeVisible();
         expect(screen.getByRole('checkbox')).not.toBeChecked();
         expect(screen.getByRole('button',{name:'Confirm this session'})).toBeDisabled();
+    });
+    it('requires fresh consent when the session or offer version changes',()=>{
+        const c=introCase();c.actions=['CONFIRM_SESSION'];const initial={id:3,version:1,status:'INVITED' as const,title:'Introduction',startsAt:'2026-10-12T12:00:00Z',endsAt:'2026-10-12T13:00:00Z',timezone:'Asia/Tbilisi',location:{name:'Training pitch',address:'Club venue',latitude:null,longitude:null},contact:'Club coach',preparation:'Bring boots',cost:'No charge',capacity:8,responseDeadline:'2026-10-11T12:00:00Z',squadSessionId:null,noRegularPlaceGuaranteed:true,emergencyContact:'Guardian · 555-0100'};
+        const mounted=render(<MemoryRouter><SessionResponse admissionCase={c} session={initial} {...callbacks()}/></MemoryRouter>);
+        fireEvent.click(screen.getByRole('checkbox'));
+        expect(screen.getByRole('checkbox')).toBeChecked();
+        mounted.rerender(<MemoryRouter><SessionResponse admissionCase={c} session={{...initial,version:initial.version+1,status:'RECONFIRM_REQUIRED'}} {...callbacks()}/></MemoryRouter>);
+        expect(screen.getByRole('checkbox')).not.toBeChecked();
+        expect(screen.getByRole('button',{name:'Confirm this session'})).toBeDisabled();
+        mounted.unmount();
+        const offered=offerCase();const offer=offered.offer!;
+        const next=render(<MemoryRouter><OfferResponse admissionCase={offered} offer={offer} {...callbacks()}/></MemoryRouter>);
+        fireEvent.click(screen.getByRole('checkbox'));
+        expect(screen.getByRole('checkbox')).toBeChecked();
+        next.rerender(<MemoryRouter><OfferResponse admissionCase={offered} offer={{...offer,version:offer.version+1}} {...callbacks()}/></MemoryRouter>);
+        expect(screen.getByRole('checkbox')).not.toBeChecked();
+        expect(screen.getByRole('button',{name:'Accept this place'})).toBeDisabled();
+        expect(commandAdmission).not.toHaveBeenCalled();
     });
     it('shows replacement-offer details before accepting the current revision',()=>{
         const c=offerCase();c.offer!.version=2;c.offer!.terms.charges=[{label:'Revised monthly fee',amount:90,currency:'GEL',frequency:'monthly'}];

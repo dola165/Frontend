@@ -1,5 +1,15 @@
 /** Fixed cartography, QR, identity art and exported-image paint. UI surfaces use theme.css. */
 export const visualColors = {
+  reactionTongue: "#ff6b7a",
+  reactionGreen: "#19e07a",
+  reactionInk: "#0a0e11",
+  reactionPaper: "#f2f5f3",
+  reactionWhite: "#fff",
+  reactionOrange: "#ff6a1a",
+  reactionFlame: "#d8ff5a",
+  reactionYellow: "#ffcf3f",
+  reactionRed: "#ff3b30",
+  reactionBlue: "#4cc3ff",
   "paper": "#ffffff",
   "qrInk": "#0f1117",
   "clubDirectoryMappingsPaint2": "#052e16",

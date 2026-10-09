@@ -57,8 +57,8 @@ describe('Applicant invariants',()=>{
         fireEvent.change(screen.getByLabelText('What would you like help finding?'),{target:{value:'Are beginner groups available?'}});fireEvent.click(screen.getByRole('button',{name:'Send general inquiry'}));await waitFor(()=>expect(submitAdmissionInquiry).toHaveBeenCalledWith(1,{requestId:expect.any(String),playerId:null,message:'Are beginner groups available?'},'family-session'));
     });
     it('explicitly associates one authorized child while preserving a general conversation',async()=>{
-        const inquiry={...fixture<AdmissionInquiry>('inquiry'),playerId:null,playerName:null,conversationId:501,conversationDestination:'/messages?conversationId=501',actions:['ASSOCIATE_PLAYER' as const]};vi.mocked(fetchAdmissionInquiry).mockResolvedValue(inquiry);vi.mocked(commandAdmissionInquiry).mockResolvedValue({...inquiry,playerId:101,playerName:'Synthetic child',actions:[]});show(<Routes><Route path="/admissions/inquiries/:inquiryId" element={<AdmissionInquiryPage/>}/></Routes>,'/admissions/inquiries/1');
-        fireEvent.click(await screen.findByText('Discuss a player or arrange a first visit'));fireEvent.change(await screen.findByLabelText('Player'),{target:{value:'101'}});fireEvent.click(screen.getByRole('button',{name:'Share selected player'}));await waitFor(()=>expect(commandAdmissionInquiry).toHaveBeenCalledWith(inquiry.id,expect.objectContaining({requestId:expect.any(String),action:'ASSOCIATE_PLAYER',expectedVersion:inquiry.version,playerId:101}),'family-session'));expect(screen.getByRole('link',{name:'Open club conversation'})).toHaveAttribute('href','/messages?conversationId=501');
+        const inquiry={...fixture<AdmissionInquiry>('inquiry'),playerId:null,playerName:null,conversationId:501,conversationDestination:'/messages?conversationId=501',actions:['ASSOCIATE_PLAYER' as const]};vi.mocked(fetchAdmissionInquiry).mockResolvedValue(inquiry);vi.mocked(commandAdmissionInquiry).mockResolvedValue({...inquiry,playerId:101,playerName:'Synthetic child',actions:[]});show(<Routes><Route path="/admissions/inquiries/:inquiryId" element={<AdmissionInquiryPage/>}/></Routes>,'/admissions/inquiries/1?tab=conversation&details=1');
+        fireEvent.click(await screen.findByText('Discuss a player or arrange a first visit'));fireEvent.change(await screen.findByLabelText('Player'),{target:{value:'101'}});fireEvent.click(screen.getByRole('button',{name:'Share selected player'}));await waitFor(()=>expect(commandAdmissionInquiry).toHaveBeenCalledWith(inquiry.id,expect.objectContaining({requestId:expect.any(String),action:'ASSOCIATE_PLAYER',expectedVersion:inquiry.version,playerId:101}),'family-session'));fireEvent.click(screen.getByRole('link',{name:'Overview'}));expect(screen.getByRole('link',{name:'Open club conversation'})).toHaveAttribute('href','/messages?conversationId=501');
     });
     it('keeps group guidance separate from consent and links the routed case',async()=>{
         vi.mocked(fetchAdmissionInquiry).mockResolvedValue({...fixture<AdmissionInquiry>('inquiry'),status:'ROUTED',caseId:42,actions:[]});show(<Routes><Route path="/admissions/inquiries/:inquiryId" element={<AdmissionInquiryPage/>}/></Routes>,'/admissions/inquiries/1');
@@ -87,13 +87,13 @@ describe('Applicant invariants',()=>{
     it('searches one eligible opportunity with birth-year, gender and active/waitlist criteria',async()=>{
         show(<OpportunityBrowsePage/>);await screen.findByRole('option',{name:'Synthetic child · child'});
         fireEvent.change(screen.getByLabelText('Selected player'),{target:{value:'101'}});
-        fireEvent.change(screen.getByLabelText('Gender category'),{target:{value:'MALE'}});
+        fireEvent.click(screen.getByText('More filters'));fireEvent.change(screen.getByLabelText('Gender category'),{target:{value:'MALE'}});
         fireEvent.click(screen.getByLabelText('Include waiting lists'));fireEvent.click(screen.getByRole('button',{name:'Show groups'}));
         await waitFor(()=>expect(searchOpportunities).toHaveBeenLastCalledWith(expect.objectContaining({birthYear:2018,gender:'MALE',acceptingOnly:true,includeWaitlist:true,page:0}),expect.any(AbortSignal)));
     });
     it('keeps sibling cases separate when selecting a player',async()=>{
         const home=fixture<AdmissionHome>('home');home.participants.push({...home.participants[0],id:102,name:'Second child'});home.cases.push({...home.cases[0],id:200,playerId:102,playerName:'Second child',groupName:'Sibling group'});vi.mocked(fetchAdmissionHome).mockResolvedValue(home);
-        show(<AdmissionHomePage/>);fireEvent.click(await screen.findByRole('button',{name:'Second child · 2018'}));expect(screen.getByRole('heading',{name:'Sibling group'})).toBeVisible();expect(screen.queryByRole('heading',{name:'Beginner group'})).not.toBeInTheDocument();expect(commandAdmission).not.toHaveBeenCalled();
+        show(<AdmissionHomePage/>);fireEvent.change(await screen.findByRole('combobox',{name:'Filter cases by player'}),{target:{value:'102'}});expect(screen.getByRole('heading',{name:'Sibling group'})).toBeVisible();expect(screen.queryByRole('heading',{name:'Beginner group'})).not.toBeInTheDocument();expect(commandAdmission).not.toHaveBeenCalled();
     });
     it('accepts the exact named child, case and offer version while preserving another affiliation',async()=>{
         const c={...base(),primaryAffiliation:{clubId:99,clubName:'Current club'}};vi.mocked(commandAdmission).mockResolvedValue({...c,stage:'ENROLLED'});const changed=vi.fn();
@@ -117,18 +117,18 @@ describe('Applicant invariants',()=>{
         view.rerender(<MemoryRouter><OfferResponse admissionCase={{...c,version:2}} offer={{...c.offer!,version:2,schedule:'New schedule'}} onChanged={vi.fn()} refresh={vi.fn()}/></MemoryRouter>);expect(screen.getByRole('button',{name:'Accept this place'})).toBeDisabled();expect(screen.getByLabelText(`I accept this named group and these terms for ${c.playerName}.`)).not.toBeChecked();
     });
     it('continues an existing same-intake arrangement instead of submitting another request',async()=>{
-        const home=fixture<AdmissionHome>('home');show(<Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes>,'/admissions/opportunities/1?player=101');expect(await screen.findByRole('link',{name:'Open current arrangement'})).toHaveAttribute('href',`/admissions/cases/${home.cases[0].id}?player=101`);expect(screen.queryByRole('button',{name:'Request an introduction'})).not.toBeInTheDocument();expect(submitAdmission).not.toHaveBeenCalled();
+        const home=fixture<AdmissionHome>('home');show(<Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes>,'/admissions/opportunities/1?tab=join&player=101');expect(await screen.findByRole('link',{name:'Open current arrangement'})).toHaveAttribute('href',`/admissions/cases/${home.cases[0].id}?player=101`);expect(screen.queryByRole('button',{name:'Request an introduction'})).not.toBeInTheDocument();expect(submitAdmission).not.toHaveBeenCalled();
     });
     it('changes the selected child without carrying forward a consent checkbox',async()=>{
         const home=fixture<AdmissionHome>('home');home.cases=[];home.participants.push({...home.participants[0],id:102,name:'Second child'});vi.mocked(fetchAdmissionHome).mockResolvedValue(home);const o={...opportunity(),method:'DIRECT' as const,availability:'PLACES_AVAILABLE' as const};vi.mocked(fetchOpportunity).mockResolvedValue(o);
-        show(<Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes>,`/admissions/opportunities/${o.id}?player=101`);
+        show(<Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes>,`/admissions/opportunities/${o.id}?tab=join&player=101`);
         const accept=await screen.findByLabelText('I confirm these terms for Synthetic child.');fireEvent.click(accept);expect(accept).toBeChecked();fireEvent.change(screen.getByLabelText('Player card'),{target:{value:'102'}});
         expect(await screen.findByLabelText('I confirm these terms for Second child.')).not.toBeChecked();expect(submitAdmission).not.toHaveBeenCalled();
     });
     it('routes conditional siblings through review instead of committing one child immediately',async()=>{
         vi.mocked(fetchAdmissionHome).mockResolvedValue({...fixture<AdmissionHome>('home'),cases:[]});
         const o={...opportunity(),method:'DIRECT' as const,availability:'PLACES_AVAILABLE' as const};vi.mocked(fetchOpportunity).mockResolvedValue(o);vi.mocked(submitAdmission).mockResolvedValue(base());
-        show(<Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes>,`/admissions/opportunities/${o.id}?player=101`);
+        show(<Routes><Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage/>}/></Routes>,`/admissions/opportunities/${o.id}?tab=join&player=101`);
         fireEvent.change(await screen.findByLabelText('Sibling or timing request (optional)'),{target:{value:'Only if both children can attend together'}});fireEvent.click(screen.getByRole('button',{name:'Request staff review'}));await waitFor(()=>expect(submitAdmission).toHaveBeenCalledWith(expect.objectContaining({playerId:101,intent:'REQUEST',siblingConstraint:'Only if both children can attend together',message:expect.stringContaining('Only if both children can attend together')}),'family-session'));expect(vi.mocked(submitAdmission).mock.calls[0][0].acceptTerms).toBeUndefined();
     });
     it('does not report enrollment when current guardian authority is rejected',async()=>{

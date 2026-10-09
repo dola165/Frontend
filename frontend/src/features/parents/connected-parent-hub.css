@@ -9,3 +9,14 @@
 .connected-parent-hub>.family-connections{margin-top:28px}.connected-parent-hub .parent-child-list{flex-wrap:wrap}
 .admission-heading nav>[aria-current=page]{display:inline-flex;align-items:center;gap:7px;padding:8px 0;font-weight:700;color:var(--fc-text-primary)}
 @media(max-width:700px){.connected-parent-hub .parent-selected-player,.parent-request-card{flex-direction:column;align-items:flex-start}.connected-parent-hub .parent-selected-player .parent-header-actions{width:100%}.parent-request-card .parent-button{max-width:100%;white-space:normal}.connected-parent-hub .parent-child-list{display:grid;grid-template-columns:1fr}.connected-parent-hub .parent-child-choice{width:100%}}
+
+.admission-applicant .parent-workspace-content { max-width:none; width:100%; margin:0; padding:0; min-height:0; }
+.admission-applicant .parent-workspace-content :is(.parent-panel,.parent-children,.parent-add-child) { border-radius:8px; padding:20px; }
+.admission-applicant .parent-workspace-content .parent-selected-player { margin:20px 0; }
+.admission-applicant .parent-workspace-content .parent-children-top { margin-top:0; }
+.admission-applicant .parent-workspace-content .parent-panel h2 { font-size:17px; font-weight:600; }
+.admission-applicant .parent-workspace-content .parent-panel p { font-size:12px; }
+.admission-applicant .parent-workspace-content .parent-child-choice strong { font-size:12px; }
+.admission-applicant .parent-workspace-content .parent-child-choice small { display:block; max-width:38ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.admission-applicant .parent-hub.parent-hub-refined.parent-workspace-content { padding:0; margin:0; max-width:none; }

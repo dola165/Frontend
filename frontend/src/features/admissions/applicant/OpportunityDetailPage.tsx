@@ -7,8 +7,10 @@ import type { Opportunity, Participant, Submission } from '../types';
 import { AddChild } from '../../parents/AddChild';
 import { useAdmissionData } from './useAdmissionData';
 import { useAdmissionMutation } from './useAdmissionMutation';
-import { AdmissionError, AdmissionFrame, AdmissionLoading } from './AdmissionFrame';
-import { OpportunityFacts, termsComplete } from './OpportunityFacts';
+import { useAdmissionTab } from './useAdmissionTab';
+import { AdmissionError, AdmissionFrame, AdmissionLoading, AdmissionSection } from './AdmissionFrame';
+import { OpportunityFacts, TermsFacts } from './OpportunityFacts';
+import { termsComplete } from './termsComplete';
 import { useAdmissionCopy } from './copy';
 import { PlayerCardEditor } from './PlayerCardEditor';
 import { playerPath, usePlayerSelection } from '../../parents/playerSelection';
@@ -20,6 +22,7 @@ export function OpportunityDetailPage() {
 function OpportunityDetailContent({id}:{id:number}) {
     const {isAuthenticated,sessionId,user}=useAuth();const {copy,availability}=useAdmissionCopy();
     const [params]=useSearchParams();
+    const tab=useAdmissionTab(['overview','terms','join']);
     const {requestedPlayerId,selectPlayer}=usePlayerSelection();
     const opportunity=useAdmissionData(useCallback(signal=>fetchOpportunity(id,signal),[id]));
     const home=useAdmissionData(useCallback(signal=>isAuthenticated?fetchAdmissionHome(sessionId,signal):Promise.resolve({participants:[],cases:[]}),[isAuthenticated,sessionId]),isAuthenticated?sessionId:undefined);
@@ -28,11 +31,12 @@ function OpportunityDetailContent({id}:{id:number}) {
     const select=(id:number)=>selectPlayer(id||undefined);
     const o=opportunity.data;
     const existing=player&&o?home.data?.cases.find(c=>c.playerId===player.id&&c.organizationId===o.organizationId&&c.intake===o.intake&&c.stage!=="CLOSED"&&c.enrollment?.status!=="CANCELLED"):undefined;
-    return <AdmissionFrame title={o?.name||copy('Joining arrangements','მონაწილეობის პირობები')} description={o?.organizationName} back="/admissions/opportunities">
-        {opportunity.loading?<AdmissionLoading/>:opportunity.error?<AdmissionError message={opportunity.error} retry={opportunity.refresh}/>:o&&<div className="admission-columns">
-            <section className="admission-panel"><span className="admission-badge">{availability(o.availability)}</span><OpportunityFacts opportunity={o}/><Link className="admission-button" to={playerPath(`/admissions/organizations/${o.organizationId}/inquire?group=${o.id}`,player?.id)}>{copy("Ask this organization to recommend a group","სთხოვეთ ორგანიზაციას ჯგუფის რეკომენდაცია")}</Link>{o.location.latitude!=null&&o.location.longitude!=null&&<Link className="admission-button" to={`/world?opportunity=${o.id}${player?`&player=${player.id}`:''}`}>{copy('View actual training venue on map','ვარჯიშის რეალური ადგილის ნახვა რუკაზე')}</Link>}
+    return <AdmissionFrame title={o?.name||copy('Joining arrangements','მონაწილეობის პირობები')} description={o?.organizationName} back="/admissions/opportunities" tabs={[{id:'overview',label:copy('Overview','მიმოხილვა')},{id:'terms',label:copy('Training & terms','ვარჯიში და პირობები')},{id:'join',label:copy('Join this group','ამ ჯგუფში ჩარიცხვა')}]} activeTab={tab}
+        action={<Link className="admission-button admission-primary" to={playerPath('/admissions/opportunities/'+id+'?tab=join',player?.id)}>{copy('Join this group','ამ ჯგუფში ჩარიცხვა')}</Link>}>
+        {opportunity.loading?<AdmissionLoading/>:opportunity.error?<AdmissionError message={opportunity.error} retry={opportunity.refresh}/>:o&&<div className="admission-stack"><AdmissionSection active={tab==='overview'}>
+            <section className="admission-panel"><span className="admission-badge">{availability(o.availability)}</span><OpportunityFacts opportunity={o} includeTerms={false}/><Link className="admission-button" to={playerPath(`/admissions/organizations/${o.organizationId}/inquire?group=${o.id}`,player?.id)}>{copy("Ask this organization to recommend a group","სთხოვეთ ორგანიზაციას ჯგუფის რეკომენდაცია")}</Link>{o.location.latitude!=null&&o.location.longitude!=null&&<Link className="admission-button" to={`/world?opportunity=${o.id}${player?`&player=${player.id}`:''}`}>{copy('View actual training venue on map','ვარჯიშის რეალური ადგილის ნახვა რუკაზე')}</Link>}
                 <p>{copy('Exploring or requesting a session keeps an existing club relationship. A session confirmation gives permission for that arrangement; enrollment and official match eligibility are separate.','ძიება ან სესიის მოთხოვნა არსებულ კლუბის კავშირს ინარჩუნებს. სესიის დადასტურება მხოლოდ ამ შეთანხმებას ეხება; ჩარიცხვა და ოფიციალური თამაშის უფლება ცალკეა.')}</p>
-            </section><aside className="admission-stack">
+            </section></AdmissionSection><AdmissionSection active={tab==='terms'}><section className="admission-panel"><h2>{copy('Training & terms','ვარჯიში და პირობები')}</h2><p>{o.schedule} · {o.timezone}</p><p>{o.location.name} · {o.location.address}</p><TermsFacts terms={o.terms}/></section></AdmissionSection><AdmissionSection active={tab==='join'}><div className="admission-columns"><section className="admission-panel"><h2>{copy('Review this group','ჯგუფის განხილვა')}</h2><OpportunityFacts opportunity={o}/><Link className="admission-button" to={playerPath(`/admissions/organizations/${o.organizationId}/inquire?group=${o.id}`,player?.id)}>{copy("Ask this organization to recommend a group","სთხოვეთ ორგანიზაციას ჯგუფის რეკომენდაცია")}</Link>{o.location.latitude!=null&&o.location.longitude!=null&&<Link className="admission-button" to={`/world?opportunity=${o.id}${player?`&player=${player.id}`:''}`}>{copy('View actual training venue on map','ვარჯიშის რეალური ადგილის ნახვა რუკაზე')}</Link>}</section><aside className="admission-stack">
                 {!isAuthenticated?<section className="admission-panel"><h2>{copy('Choose your next step','აირჩიეთ შემდეგი ნაბიჯი')}</h2><p>{copy('Sign in to select yourself or an authorized child. We will keep this group ready for you.','შედით საკუთარი თავის ან დაკავშირებული ბავშვის ასარჩევად. არჩეული ჯგუფი შენარჩუნდება.')}</p><Link className="admission-button admission-primary" to={buildLoginPath(`/admissions/opportunities/${id}${params.size?`?${params}`:''}`)}>{copy('Sign in to continue','შესვლა გასაგრძელებლად')}</Link></section>:<>
                     <section className="admission-panel"><h2>{copy('Who is joining?','ვინ მონაწილეობს?')}</h2>{home.loading?<AdmissionLoading/>:home.error?<AdmissionError message={home.error} retry={home.refresh}/>:<>
                         <div className="admission-field"><label htmlFor="admission-player-card">{copy('Player card','მოთამაშის ბარათი')}</label><select id="admission-player-card" value={player?.id??''} onChange={e=>select(Number(e.target.value))}><option value="">{copy('Choose a player','აირჩიეთ მოთამაშე')}</option>{home.data?.participants.map(p=><option key={p.id} value={p.id}>{p.name}{p.minor?` · ${copy('child','ბავშვი')}`:` · ${copy('adult','სრულწლოვანი')}`}</option>)}</select></div>
@@ -41,12 +45,12 @@ function OpportunityDetailContent({id}:{id:number}) {
                     </>}</section>
                     {existing&&<section className="admission-panel"><h2>{copy('Continue your joining arrangement','გააგრძელეთ არსებული შეთანხმება')}</h2><p>{copy(`${player?.name} already has an arrangement for ${existing.groupName}. Open it to discuss this group or review the next step.`,`${player?.name} — არსებული შეთანხმება: ${existing.groupName}. განიხილეთ ჯგუფი ან შემდეგი ნაბიჯი.`)}</p><Link className="admission-button admission-primary" to={playerPath(`/admissions/cases/${existing.id}`,player?.id)}>{copy('Open current arrangement','მიმდინარე შეთანხმების გახსნა')}</Link></section>}
                     {!existing&&player?.dateOfBirth&&<SubmissionForm key={player.id} opportunity={o} participant={player} refresh={opportunity.refresh}/>}
-                    {home.data?.selfCardNeedsDetails&&user?.id&&<PlayerCardEditor playerId={user.id} initialName={user.fullName||user.username||''} onChanged={()=>{home.refresh();select(user.id);}}/>}
+                    <details className="admission-panel" open={home.data?.selfCardNeedsDetails || Boolean(player && (!player.dateOfBirth || (o.gender !== 'ANY' && !player.gender)))}><summary>{copy('Review player details','მოთამაშის მონაცემების განხილვა')}</summary>{home.data?.selfCardNeedsDetails&&user?.id&&<PlayerCardEditor playerId={user.id} initialName={user.fullName||user.username||''} onChanged={()=>{home.refresh();select(user.id);}}/>}
                     {player&&!(player.id===user?.id&&home.data?.selfCardNeedsDetails)&&<PlayerCardEditor key={`card:${player.id}`} playerId={player.id} participant={player} onChanged={home.refresh}/>}
-                    <AddChild onCreated={id=>{home.refresh();select(id);}}/>
+</details><details className="admission-panel"><summary>{copy('Add a child','ბავშვის დამატება')}</summary><AddChild onCreated={id=>{home.refresh();select(id);}}/></details>
                     <section className="admission-panel"><h3>{copy('Child already recorded?','ბავშვი უკვე რეგისტრირებულია?')}</h3><p>{copy('Ask the current guardian or club for a secure invitation. Review it in Family connections, then return to this group. A matching name or birth date never gives access.','სთხოვეთ მოქმედ მეურვეს ან კლუბს უსაფრთხო მოწვევა. იხილეთ ოჯახურ კავშირებში და დაბრუნდით ამ ჯგუფში. სახელის ან დაბადების თარიღის დამთხვევა წვდომას არ იძლევა.')}</p><Link className="admission-button" to={playerPath("/parent",player?.id)}>{copy('Family connections','ოჯახური კავშირები')}</Link></section>
                 </>}
-            </aside>
+            </aside></div></AdmissionSection>
         </div>}
     </AdmissionFrame>;
 }

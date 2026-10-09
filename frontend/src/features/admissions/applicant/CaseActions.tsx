@@ -1,11 +1,12 @@
 import { IntroductionPermission } from '../components/IntroductionPermission';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { commandAdmission } from '../api';
 import type { AdmissionCase, CaseCommand, Participation, Offer, Requirement } from '../types';
 import { useAdmissionMutation } from './useAdmissionMutation';
 import { AdmissionError } from './AdmissionFrame';
-import { TermsFacts, termsComplete } from './OpportunityFacts';
+import { TermsFacts } from './OpportunityFacts';
+import { termsComplete } from './termsComplete';
 import { useAdmissionCopy } from './copy';
 type WithoutReceipt<T>=T extends unknown?Omit<T,'requestId'>:never;
 export type ApplicantCommand=WithoutReceipt<CaseCommand>;
@@ -19,9 +20,9 @@ function MutationFeedback({mutation}:{mutation:ReturnType<typeof useCommand>}) {
     return <>{mutation.error&&<AdmissionError message={mutation.error}/>} {mutation.pending&&<div className="admission-notice"><p>{copy('The original request is saved. Retry to confirm its result; changing details would be a different action.','საწყისი მოთხოვნა შენახულია. შედეგის დასადასტურებლად გაიმეორეთ; მონაცემების შეცვლა სხვა ქმედება იქნება.')}</p><button type="button" className="admission-button" disabled={mutation.busy} onClick={()=>void mutation.retry()}>{copy('Retry saved request','შენახული მოთხოვნის გამეორება')}</button></div>}</>;
 }
 export function SessionResponse({admissionCase:c,session:s,onChanged,refresh}:Props&{session:Participation}) {
-    const {copy}=useAdmissionCopy();const [contact,setContact]=useState(s.emergencyContact||'');const [accept,setAccept]=useState(false);
+    const {copy}=useAdmissionCopy();const [contact,setContact]=useState(s.emergencyContact||'');const [acceptedTerms,setAcceptedTerms]=useState<string|null>(null);
     const mutation=useCommand(c,`session:${s.id}`,onChanged,refresh);
-    useEffect(()=>setAccept(false),[s.id,s.version]);
+    const termsKey=JSON.stringify([c.id,c.playerId,s.id,s.version]);const accept=acceptedTerms===termsKey;
     const confirm=['INVITED','RECONFIRM_REQUIRED'].includes(s.status)&&c.actions.includes('CONFIRM_SESSION')&&s.introductionPermission?.allowsParticipation!==false;
     const states:Record<string,string>={INVITED:copy('Invited — confirmation needed','მოწვეულია — საჭიროა დადასტურება'),CONFIRMED:copy('Confirmed','დადასტურებული'),RECONFIRM_REQUIRED:copy('Details changed — confirm again','დეტალები შეიცვალა — საჭიროა ხელახალი დადასტურება'),ATTENDED:copy('Attended','დაესწრო'),NO_SHOW:copy('Did not attend','არ დაესწრო'),CANCELLED:copy('Cancelled','გაუქმებული'),DECLINED:copy('Declined','უარყოფილი')};
     return <section className="admission-panel admission-session"><h3>{s.title}</h3><span className="admission-badge">{states[s.status]}</span><dl className="admission-details">
@@ -32,7 +33,7 @@ export function SessionResponse({admissionCase:c,session:s,onChanged,refresh}:Pr
         {confirm&&<form className="admission-stack" onSubmit={e=>{e.preventDefault();void mutation.run({action:'CONFIRM_SESSION',expectedVersion:c.version,participationId:s.id,participationVersion:s.version,acceptTerms:true,emergencyContact:contact.trim()});}}>
             <p>{copy(`Confirm attendance for ${c.playerName}, for these details only (version ${s.version}).`,`დაადასტურეთ ${c.playerName}-ის დასწრება მხოლოდ ამ პირობებით (ვერსია ${s.version}).`)}</p>
             <label>{copy('Emergency contact: name and phone','გადაუდებელი საკონტაქტო პირი: სახელი და ტელეფონი')}<input required maxLength={500} value={contact} disabled={Boolean(mutation.pending)} onChange={e=>setContact(e.target.value)}/></label>
-            <label className="admission-check"><input type="checkbox" required checked={accept} disabled={Boolean(mutation.pending)} onChange={e=>setAccept(e.target.checked)}/>{copy('I agree to participation in this session on the stated details.','ვეთანხმები ამ სესიაში მონაწილეობას მითითებული პირობებით.')}</label>
+            <label className="admission-check"><input type="checkbox" required checked={accept} disabled={Boolean(mutation.pending)} onChange={e=>setAcceptedTerms(e.target.checked?termsKey:null)}/>{copy('I agree to participation in this session on the stated details.','ვეთანხმები ამ სესიაში მონაწილეობას მითითებული პირობებით.')}</label>
             {!mutation.pending&&<button className="admission-button admission-primary" disabled={mutation.busy||!accept||!contact.trim()}>{copy('Confirm this session','ამ სესიის დადასტურება')}</button>}
         </form>}
         <MutationFeedback mutation={mutation}/>
@@ -41,9 +42,9 @@ export function SessionResponse({admissionCase:c,session:s,onChanged,refresh}:Pr
     </section>;
 }
 export function OfferResponse({admissionCase:c,offer:o,onChanged,refresh}:Props&{offer:Offer}) {
-    const {copy}=useAdmissionCopy();const [accept,setAccept]=useState(false);const [contact,setContact]=useState('');
+    const {copy}=useAdmissionCopy();const [acceptedTerms,setAcceptedTerms]=useState<string|null>(null);const [contact,setContact]=useState('');
     const mutation=useCommand(c,`offer:${o.id}`,onChanged,refresh);
-    useEffect(()=>setAccept(false),[o.id,o.version]);
+    const termsKey=JSON.stringify([c.id,c.playerId,o.id,o.version]);const accept=acceptedTerms===termsKey;
     const offerStates:Record<Offer['status'],string>={PENDING:copy('Awaiting your decision','თქვენი გადაწყვეტილების მოლოდინში'),ACCEPTED:copy('Offer accepted','შეთავაზება მიღებულია'),DECLINED:copy('Offer declined','შეთავაზება უარყოფილია'),WITHDRAWN:copy('Offer withdrawn by the club','შეთავაზება კლუბმა გააუქმა'),SUPERSEDED:copy('Replaced by a newer offer','შეცვლილია ახალი შეთავაზებით'),EXPIRED:copy('Offer expired','შეთავაზების ვადა ამოიწურა')};
     const revised=o.status==='PENDING'&&(o.version>1||c.history.filter(e=>e.action==='OFFER').length>1);
     const canAccept=o.status==='PENDING'&&c.actions.includes('ACCEPT_OFFER');const needContact=c.requirements.some(r=>r.kind==='EMERGENCY_CONTACT'&&r.status==='PENDING')||o.terms.requirements.includes('EMERGENCY_CONTACT');
@@ -51,7 +52,7 @@ export function OfferResponse({admissionCase:c,offer:o,onChanged,refresh}:Props&
         <p>{copy('Response deadline','პასუხის ვადა')}: {new Date(o.responseDeadline).toLocaleString()}</p>{o.completionDeadline&&<p>{copy('Completion deadline if requirements remain','დასრულების ვადა დარჩენილი მოთხოვნებისთვის')}: {new Date(o.completionDeadline).toLocaleString()}</p>}
         {canAccept&&<form className="admission-stack" onSubmit={e=>{e.preventDefault();void mutation.run({action:'ACCEPT_OFFER',expectedVersion:c.version,offerId:o.id,offerVersion:o.version,acceptTerms:true,emergencyContact:contact.trim()||undefined});}}>
             {needContact&&<label>{copy('Emergency contact: name and phone','გადაუდებელი საკონტაქტო პირი: სახელი და ტელეფონი')}<input required maxLength={500} value={contact} disabled={Boolean(mutation.pending)} onChange={e=>setContact(e.target.value)}/></label>}
-            <label className="admission-check"><input type="checkbox" required checked={accept} disabled={Boolean(mutation.pending)} onChange={e=>setAccept(e.target.checked)}/>{copy(`I accept this named group and these terms for ${c.playerName}.`,`ვიღებ ამ დასახელებულ ჯგუფსა და პირობებს: ${c.playerName}.`)}</label>
+            <label className="admission-check"><input type="checkbox" required checked={accept} disabled={Boolean(mutation.pending)} onChange={e=>setAcceptedTerms(e.target.checked?termsKey:null)}/>{copy(`I accept this named group and these terms for ${c.playerName}.`,`ვიღებ ამ დასახელებულ ჯგუფსა და პირობებს: ${c.playerName}.`)}</label>
             {!mutation.pending&&<button className="admission-button admission-primary" disabled={mutation.busy||!accept||!termsComplete(o.terms,o.schedule,o.location)}>{copy('Accept this place','ამ ადგილის მიღება')}</button>}
             {!termsComplete(o.terms,o.schedule,o.location)&&<p className="admission-notice">{copy('Essential terms are incomplete. Ask the club to complete them before accepting.','არსებითი პირობები არასრულია. მიღებამდე სთხოვეთ კლუბს შევსება.')}</p>}
         </form>}
@@ -77,8 +78,8 @@ export function RequirementResponse({admissionCase:c,onChanged,refresh,requireme
     return <form className="admission-stack" onSubmit={e=>{e.preventDefault();void mutation.run({action:'COMPLETE_REQUIREMENT',expectedVersion:c.version,requirementId:r.id,evidence:evidence.trim()});}}><label>{requirement(r.kind)}<textarea required maxLength={2000} value={evidence} disabled={Boolean(mutation.pending)} onChange={e=>setEvidence(e.target.value)}/></label><MutationFeedback mutation={mutation}/>{!mutation.pending&&<button className="admission-button" disabled={mutation.busy||!evidence.trim()}>{copy('Provide this information','ინფორმაციის მიწოდება')}</button>}</form>;
 }
 export function PrimaryChangeResponse({admissionCase:c,onChanged,refresh}:Props) {
-    const {copy}=useAdmissionCopy();const [agree,setAgree]=useState(false);const [evidence,setEvidence]=useState('');const mutation=useCommand(c,'primary-change',onChanged,refresh);
-    useEffect(()=>setAgree(false),[c.offer?.id,c.offer?.version,c.primaryAffiliation?.clubId]);
+    const {copy}=useAdmissionCopy();const [agreedTerms,setAgreedTerms]=useState<string|null>(null);const [evidence,setEvidence]=useState('');const mutation=useCommand(c,'primary-change',onChanged,refresh);
+    const termsKey=JSON.stringify([c.id,c.playerId,c.organizationId,c.offer?.id,c.offer?.version,c.primaryAffiliation?.clubId]);const agree=agreedTerms===termsKey;
     if(!c.actions.includes('CONFIRM_PRIMARY_CHANGE')||c.offer?.terms.affiliationEffect!=='PRIMARY_CHANGE')return null;
-    return <section className="admission-panel"><h2>{copy('Separate competitive club decision','სათამაშო კლუბის ცალკე გადაწყვეტილება')}</h2><p>{copy(`Proposed move from ${c.primaryAffiliation?.clubName||'the current club'} to ${c.organizationName}. This is separate from training enrollment. Required external registration must be resolved first.`,`შემოთავაზებული გადასვლა: ${c.primaryAffiliation?.clubName||'მიმდინარე კლუბი'} → ${c.organizationName}. ეს ვარჯიშში ჩარიცხვისგან ცალკეა. ჯერ უნდა შესრულდეს საჭირო გარე რეგისტრაცია.`)}</p><form className="admission-stack" onSubmit={e=>{e.preventDefault();void mutation.run({action:'CONFIRM_PRIMARY_CHANGE',expectedVersion:c.version,evidence:evidence.trim(),acceptTerms:true});}}><label>{copy('Reference for this explicit decision','ამ ცალკე გადაწყვეტილების მითითება')}<textarea required maxLength={2000} disabled={Boolean(mutation.pending)} value={evidence} onChange={e=>setEvidence(e.target.value)}/></label><label className="admission-check"><input type="checkbox" required checked={agree} disabled={Boolean(mutation.pending)} onChange={e=>setAgree(e.target.checked)}/>{copy(`I explicitly agree to change ${c.playerName}’s primary competitive affiliation to ${c.organizationName}, subject to completed prerequisites.`,`ცალკე ვეთანხმები ${c.playerName}-ის ძირითადი სათამაშო წევრობის შეცვლას: ${c.organizationName}, შესრულებული წინაპირობების გათვალისწინებით.`)}</label><MutationFeedback mutation={mutation}/>{!mutation.pending&&<button className="admission-button" disabled={mutation.busy||!agree||!evidence.trim()}>{copy('Confirm the separate competitive move','ცალკე სათამაშო გადასვლის დადასტურება')}</button>}</form></section>;
+    return <section className="admission-panel"><h2>{copy('Separate competitive club decision','სათამაშო კლუბის ცალკე გადაწყვეტილება')}</h2><p>{copy(`Proposed move from ${c.primaryAffiliation?.clubName||'the current club'} to ${c.organizationName}. This is separate from training enrollment. Required external registration must be resolved first.`,`შემოთავაზებული გადასვლა: ${c.primaryAffiliation?.clubName||'მიმდინარე კლუბი'} → ${c.organizationName}. ეს ვარჯიშში ჩარიცხვისგან ცალკეა. ჯერ უნდა შესრულდეს საჭირო გარე რეგისტრაცია.`)}</p><form className="admission-stack" onSubmit={e=>{e.preventDefault();void mutation.run({action:'CONFIRM_PRIMARY_CHANGE',expectedVersion:c.version,evidence:evidence.trim(),acceptTerms:true});}}><label>{copy('Reference for this explicit decision','ამ ცალკე გადაწყვეტილების მითითება')}<textarea required maxLength={2000} disabled={Boolean(mutation.pending)} value={evidence} onChange={e=>setEvidence(e.target.value)}/></label><label className="admission-check"><input type="checkbox" required checked={agree} disabled={Boolean(mutation.pending)} onChange={e=>setAgreedTerms(e.target.checked?termsKey:null)}/>{copy(`I explicitly agree to change ${c.playerName}’s primary competitive affiliation to ${c.organizationName}, subject to completed prerequisites.`,`ცალკე ვეთანხმები ${c.playerName}-ის ძირითადი სათამაშო წევრობის შეცვლას: ${c.organizationName}, შესრულებული წინაპირობების გათვალისწინებით.`)}</label><MutationFeedback mutation={mutation}/>{!mutation.pending&&<button className="admission-button" disabled={mutation.busy||!agree||!evidence.trim()}>{copy('Confirm the separate competitive move','ცალკე სათამაშო გადასვლის დადასტურება')}</button>}</form></section>;
 }

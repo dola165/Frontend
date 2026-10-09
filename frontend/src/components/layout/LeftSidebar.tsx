@@ -105,14 +105,13 @@ export const LeftSidebar = ({ user, managedClubs = [], embedded = false }: LeftS
           <h2 className="home-shortcut-heading">Your football</h2>
           {primary.map(shortcut)}
         </div>
-        <div className="home-shortcut-group home-rail-card" role="group" aria-label="Explore">
+        {user?.role === 'FAN' && <div className="home-shortcut-group home-rail-card" role="group" aria-label="Explore">
           <h2 className="home-shortcut-heading">Explore</h2>
-          {shortcut({ to: '/map', label: 'Map', description: 'Find football near you', icon: 'map' })}
           <button type="button" onClick={() => setShowFollowing(true)} className="feed-side-link home-social-link w-full text-left">
             <HomeIcon kind="following" /><span className="home-shortcut-copy"><span className="feed-side-link__title">Following</span><span className="home-shortcut-description">People you keep up with</span></span>
           </button>
           {shortcut({ to: '/clubs/following', label: 'Followed clubs', description: 'Clubs you keep up with', icon: 'clubs' })}
-        </div>
+        </div>}
       </nav>
       {showFollowing && user?.id && (
         <ConnectionsDialog

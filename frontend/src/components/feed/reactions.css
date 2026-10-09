@@ -9,7 +9,7 @@
 .post-reaction-control {position:relative;display:flex;align-items:center;flex-shrink:0}
 .post-reaction-primary {padding-right:5px}.post-reaction-emoji {font-size:20px;line-height:1}
 .post-reaction-expand {display:grid;place-items:center;width:28px;min-height:44px;border-radius:8px;color:var(--feed-text-secondary)}
-.post-reaction-picker {position:absolute;left:0;bottom:calc(100% + 8px);z-index:80;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));width:min(340px,calc(100vw - 40px));padding:8px;border:1px solid var(--feed-card-border);border-radius:999px;background:var(--feed-card);color:var(--feed-text-primary);box-shadow:0 8px 30px color-mix(in srgb, var(--color-shadow) 33.33%, transparent)}
+.post-reaction-picker {position:absolute;left:0;bottom:calc(100% + 8px);z-index:80;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));width:min(340px,calc(100vw - 40px));padding:8px;border:1px solid var(--feed-card-border);border-radius:999px;background:var(--feed-card);color:var(--feed-text-primary);box-shadow:0 8px 30px color-mix(in srgb, var(--color-shadow) 33.33%, transparent)}
 .post-reaction-picker::after {content:'';position:absolute;left:0;right:0;bottom:-10px;height:12px}
 .post-reaction-picker button {position:relative;display:grid;place-items:center;height:44px;min-width:0;border-radius:50%}
 .post-reaction-picker button:hover,.post-reaction-picker button[aria-pressed=true] {background:var(--feed-hover-bg)}
@@ -26,3 +26,5 @@
 @media(max-width:380px){.post-action-row{gap:1px;padding:6px 9px}.post-action{gap:6px;padding:8px}.post-reaction-primary{padding-right:2px}.post-reaction-expand{width:24px}.post-reaction-picker{grid-template-columns:repeat(4,1fr);width:240px;border-radius:22px}}
 @container post-actions (max-width:360px){.post-reaction-picker{grid-template-columns:repeat(4,1fr);width:240px;border-radius:22px}}
 @media(prefers-reduced-motion:reduce){.post-reaction-picker button>span:first-child{transition:none}}
+
+.post-reaction-emoji svg,.post-reaction-picker svg { display:block; }

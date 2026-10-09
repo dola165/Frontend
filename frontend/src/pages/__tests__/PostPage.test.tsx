@@ -112,10 +112,12 @@ describe('PostPage', () => {
         vi.mocked(apiClient.put).mockResolvedValue({ data: { id: 42, myReaction: 'LIKE', reactionCount: 1, reactionCounts: { LIKE: 1 }, likeCount: 1, isLikedByMe: true } });
         vi.mocked(apiClient.post).mockResolvedValue({ data: comment(12, 'Great album') });
         renderPage();
-        expect(await screen.findByText('0 reactions')).toBeInTheDocument();
+        expect(await screen.findByText('A brand new post')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Reacted by/ })).not.toBeInTheDocument();
         expect(screen.getByText('0 comments')).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: 'Like' }));
-        expect(await screen.findByText('1 reaction')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'React' }));
+        expect(await screen.findByRole('button', { name: 'Reacted by 1 person' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Safe hands' })).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: 'Comment' }));
         await user.type(screen.getByRole('textbox'), 'Great album');
         await user.click(screen.getByRole('button', { name: 'Post comment' }));

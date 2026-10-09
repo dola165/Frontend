@@ -13,3 +13,5 @@
 .admission-governance h2, .admission-governance h3, .admission-governance h4 { font-weight:650; }
 .admission-governance h2 { font-size:1.5rem; }
 .admission-governance h3 { font-size:1.2rem; }
+
+.admission-governance.admission-stack { display:grid; gap:20px; }

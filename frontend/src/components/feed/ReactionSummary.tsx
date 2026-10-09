@@ -5,7 +5,7 @@ import { apiClient } from '../../api/axiosConfig';
 import { getAuthSessionId, getStoredUserId, subscribeAuthSession } from '../../utils/authStorage';
 import { MediaImage } from '../ui/MediaImage';
 import { PostDialog } from './PostDialogs';
-import { REACTIONS, type Reaction } from './reactions';
+import { ALL_REACTIONS as REACTIONS, reactionDefinition, type Reaction } from './reactions';
 import type { FeedPostDto } from './FeedPost';
 import './reaction-summary.css';
 
@@ -15,7 +15,7 @@ interface ReactionPage {
     availableCount: number; nextCursor: number | null; hasMore: boolean;
 }
 type Filter = Reaction | 'ALL';
-const emoji = (type: Reaction) => REACTIONS.find(r => r.type === type)?.emoji;
+const reactionIcon = (type: Reaction, size = 20) => { const definition = reactionDefinition(type); return definition ? <definition.Icon size={size} /> : null; };
 const errorMessage = 'Could not load reactions. Please try again.';
 
 /** Remount private UI on account changes or a new reaction snapshot. No feed-wide prefetch. */
@@ -43,8 +43,8 @@ function Summary({ post }: { post: FeedPostDto }) {
             onPointerEnter={e => { if (e.pointerType === 'mouse') show(); }} onPointerLeave={hide}
             onFocus={show} onBlur={hide} onClick={() => { cancelTimer(); setPreview(false); setDialog(true); }}
             onKeyDown={e => { if (e.key === 'Escape' && preview) { e.preventDefault(); e.stopPropagation(); cancelTimer(); setPreview(false); } }}>
-            <span className="reaction-summary-icons" aria-hidden="true">{top.map(r => <span key={r.type}>{r.emoji}</span>)}</span>
-            <span>Liked by <strong>{count.toLocaleString()}</strong> {count === 1 ? 'person' : 'people'}</span>
+            <span className="reaction-summary-icons" aria-hidden="true">{top.map(r => <span key={r.type}><r.Icon size={20} /></span>)}</span>
+            <span>Reacted by <strong>{count.toLocaleString()}</strong> {count === 1 ? 'person' : 'people'}</span>
         </button>
         {preview && !dialog && <NamesPreview postId={post.id} anchor={button} id={id}
             onEnter={cancelTimer} onLeave={hide} onDismiss={() => { cancelTimer(); setPreview(false); }} />}
@@ -83,7 +83,7 @@ function NamesPreview({ postId, anchor, id, onEnter, onLeave, onDismiss }: {
         style={position} onPointerEnter={onEnter} onPointerLeave={onLeave}>
         <strong>People who reacted</strong>
         {failed ? <p>{errorMessage}</p> : !page ? <p>Loading names…</p> : <>
-            {page.people.map(person => <div className="reaction-preview-person" key={person.userId}><span aria-hidden="true">{emoji(person.reaction)}</span><span>{person.name}</span></div>)}
+            {page.people.map(person => <div className="reaction-preview-person" key={person.userId}><span aria-hidden="true">{reactionIcon(person.reaction)}</span><span>{person.name}</span></div>)}
             {page.hasMore && <p>and {(page.availableCount - page.people.length).toLocaleString()} more</p>}
             {page.availableCount < page.totalCount && <p>Some profiles are unavailable.</p>}
             {!page.totalCount && <p>No reactions yet.</p>}
@@ -96,7 +96,7 @@ function PersonAvatar({ person }: { person: Person }) {
     const [failed, setFailed] = useState(false);
     return <span className="reactor-avatar">
         {person.avatarUrl && !failed ? <MediaImage src={person.avatarUrl} alt="" onError={() => setFailed(true)} /> : <span>{person.name.slice(0, 2).toUpperCase()}</span>}
-        <span className="reactor-badge" aria-hidden="true">{emoji(person.reaction)}</span>
+        <span className="reactor-badge" aria-hidden="true">{reactionIcon(person.reaction)}</span>
     </span>;
 }
 
@@ -144,7 +144,7 @@ function ReactionList({ post, onClose }: { post: FeedPostDto; onClose: () => voi
                     const label = type === 'ALL' ? 'All' : REACTIONS.find(r => r.type === type)!.label;
                     return <button key={type} type="button" role="tab" id={`${id}-${type}`} aria-controls={`${id}-people`}
                         aria-selected={filter === type} tabIndex={filter === type ? 0 : -1} aria-label={`${label}, ${type === 'ALL' ? total : counts[type] ?? 0} reactions`}
-                        onClick={() => select(type)}>{type === 'ALL' ? 'All' : <span aria-hidden="true">{emoji(type)}</span>}<span>{type === 'ALL' ? total : counts[type] ?? 0}</span></button>;
+                        onClick={() => select(type)}>{type === 'ALL' ? 'All' : <span aria-hidden="true">{reactionIcon(type)}</span>}<span>{type === 'ALL' ? total : counts[type] ?? 0}</span></button>;
                 })}
             </div>
             <div id={`${id}-people`} role="tabpanel" aria-labelledby={`${id}-${filter}`} aria-busy={busy} tabIndex={0} className="reactors-panel">

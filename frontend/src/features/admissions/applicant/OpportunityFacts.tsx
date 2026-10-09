@@ -1,7 +1,6 @@
-import type { Location, Opportunity, Terms } from '../types';
+import type { Opportunity, Terms } from '../types';
 import { useAdmissionCopy } from './copy';
 
-export const termsComplete=(terms:Terms,schedule:string,location:Location)=>terms.feesKnown&&Boolean(terms.startDate&&terms.cancellation.trim()&&terms.participation.trim()&&schedule.trim()&&location.name.trim());
 export function TermsFacts({terms}: {terms:Terms}) {
     const {copy,requirement}=useAdmissionCopy();
     return <dl className="admission-details">
@@ -13,7 +12,7 @@ export function TermsFacts({terms}: {terms:Terms}) {
         {!!terms.requirements.length&&<div><dt>{copy('Requirements','მოთხოვნები')}</dt><dd>{terms.requirements.map(v=>requirement(v)).join(' · ')}</dd></div>}
     </dl>;
 }
-export function OpportunityFacts({opportunity:o}: {opportunity:Opportunity}) {
+export function OpportunityFacts({opportunity:o, includeTerms = true}: {opportunity:Opportunity; includeTerms?: boolean}) {
     const {copy,method}=useAdmissionCopy();
     return <><dl className="admission-details">
         <div><dt>{copy('Training venue','ვარჯიშის ადგილი')}</dt><dd>{o.location.name}<p>{o.location.address}</p></dd></div>
@@ -22,5 +21,5 @@ export function OpportunityFacts({opportunity:o}: {opportunity:Opportunity}) {
         <div><dt>{copy('Experience','გამოცდილება')}</dt><dd>{o.beginnerWelcome?copy('Beginners welcome','დამწყებები მისასალმებელია'):copy('Experience expected — ask the club about requirements','საჭიროა გამოცდილება — მოთხოვნები კლუბთან დააზუსტეთ')}</dd></div>
         <div><dt>{copy('Joining method','ჩარიცხვის მეთოდი')}</dt><dd>{method(o.method)}</dd></div>
         <div><dt>{copy('Intake','მიღება')}</dt><dd>{o.intake}</dd></div>
-    </dl>{o.introductionPermission?.required&&<section className="admission-notice"><h3>{copy('Permission before introductory attendance','ნებართვა გაცნობით ვარჯიშზე დასწრებამდე')}</h3><p>{o.introductionPermission.reason}</p><p>{copy('Obtain current-club permission and send the reference to the host staff before confirming a session.','სესიის დადასტურებამდე მიიღეთ მიმდინარე კლუბის ნებართვა და გაუგზავნეთ მითითება მასპინძელ თანამშრომელს.')}</p></section>}<TermsFacts terms={o.terms}/></>;
+    </dl>{o.introductionPermission?.required&&<section className="admission-notice"><h3>{copy('Permission before introductory attendance','ნებართვა გაცნობით ვარჯიშზე დასწრებამდე')}</h3><p>{o.introductionPermission.reason}</p><p>{copy('Obtain current-club permission and send the reference to the host staff before confirming a session.','სესიის დადასტურებამდე მიიღეთ მიმდინარე კლუბის ნებართვა და გაუგზავნეთ მითითება მასპინძელ თანამშრომელს.')}</p></section>}{includeTerms && <TermsFacts terms={o.terms}/>}</>;
 }

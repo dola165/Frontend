@@ -20,7 +20,7 @@ const mount = (value = post) => render(<MemoryRouter><ReactionSummary post={valu
 it('fetches names only on hover, keeps the preview open under the pointer and dismisses on Escape', async () => {
     const user = userEvent.setup(); mount();
     expect(get).not.toHaveBeenCalled();
-    const summary = screen.getByRole('button', { name: 'Liked by 3 people' });
+    const summary = screen.getByRole('button', { name: 'Reacted by 3 people' });
     await user.hover(summary);
     const preview = await screen.findByRole('tooltip');
     expect(await within(preview).findByText('Jordan Lee')).toBeInTheDocument();
@@ -34,7 +34,7 @@ it('fetches names only on hover, keeps the preview open under the pointer and di
 
 it('opens an accessible people list, filters with the keyboard and links to real profiles', async () => {
     const user = userEvent.setup(); mount();
-    await user.click(screen.getByRole('button', { name: 'Liked by 3 people' }));
+    await user.click(screen.getByRole('button', { name: 'Reacted by 3 people' }));
     const dialog = screen.getByRole('dialog', { name: 'Reactions' });
     const link = await within(dialog).findByRole('link', { name: /Jordan Lee/ });
     expect(link).toHaveAttribute('href', '/profile/12');
@@ -42,18 +42,18 @@ it('opens an accessible people list, filters with the keyboard and links to real
     all.focus();
     get.mockResolvedValueOnce({ data: { ...page, people: [people[0]], availableCount: 2, hasMore: false, nextCursor: null } });
     await user.keyboard('{ArrowRight}');
-    expect(within(dialog).getByRole('tab', { name: 'Love, 2 reactions' })).toHaveAttribute('aria-selected', 'true');
+    expect(within(dialog).getByRole('tab', { name: 'On fire, 2 reactions' })).toHaveAttribute('aria-selected', 'true');
     await waitFor(() => expect(get).toHaveBeenLastCalledWith('/posts/5/reactions', expect.objectContaining({ params: { limit: 20, reaction: 'LOVE' } })));
     expect(await within(dialog).findByText('Jordan Lee')).toBeInTheDocument();
     expect(within(dialog).queryByText('Alex Green')).not.toBeInTheDocument();
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Liked by 3 people' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Reacted by 3 people' })).toHaveFocus();
 });
 
 it('paginates without duplicates and retries the failed page', async () => {
     const user = userEvent.setup(); mount();
-    await user.click(screen.getByRole('button', { name: 'Liked by 3 people' }));
+    await user.click(screen.getByRole('button', { name: 'Reacted by 3 people' }));
     await screen.findByText('Jordan Lee');
     get.mockRejectedValueOnce(new Error('offline'));
     await user.click(screen.getByRole('button', { name: 'Show more' }));
@@ -68,7 +68,7 @@ it('paginates without duplicates and retries the failed page', async () => {
 
 it('discards loaded people when access is revoked on the next page', async () => {
     const user = userEvent.setup(); mount();
-    await user.click(screen.getByRole('button', { name: 'Liked by 3 people' }));
+    await user.click(screen.getByRole('button', { name: 'Reacted by 3 people' }));
     await screen.findByText('Jordan Lee');
     get.mockRejectedValueOnce({ response: { status: 404 } });
     await user.click(screen.getByRole('button', { name: 'Show more' }));
@@ -82,7 +82,7 @@ it('aborts an old account request and never renders its late names after a sessi
     let finish!: (response: { data: typeof page }) => void;
     get.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
     const user = userEvent.setup(); mount();
-    await user.click(screen.getByRole('button', { name: 'Liked by 3 people' }));
+    await user.click(screen.getByRole('button', { name: 'Reacted by 3 people' }));
     const signal = get.mock.calls[0][1]?.signal;
     act(() => { localStorage.setItem('gk-session-id', 'second'); window.dispatchEvent(new Event('gk-auth-changed')); });
     expect(signal?.aborted).toBe(true);
@@ -93,13 +93,13 @@ it('aborts an old account request and never renders its late names after a sessi
 
 it('ignores a late result from a previous filter', async () => {
     const user = userEvent.setup(); mount();
-    await user.click(screen.getByRole('button', { name: 'Liked by 3 people' }));
+    await user.click(screen.getByRole('button', { name: 'Reacted by 3 people' }));
     await screen.findByText('Jordan Lee');
     let finish!: (response: { data: typeof page }) => void;
     get.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-    await user.click(screen.getByRole('tab', { name: 'Love, 2 reactions' }));
+    await user.click(screen.getByRole('tab', { name: 'On fire, 2 reactions' }));
     get.mockResolvedValueOnce({ data: { ...page, people: [people[1]], hasMore: false } });
-    await user.click(screen.getByRole('tab', { name: 'Like, 1 reactions' }));
+    await user.click(screen.getByRole('tab', { name: 'Safe hands, 1 reactions' }));
     await screen.findByText('Alex Green');
     await act(async () => finish({ data: page }));
     expect(screen.queryByText('Jordan Lee')).not.toBeInTheDocument();
@@ -108,4 +108,13 @@ it('ignores a late result from a previous filter', async () => {
 it('does not display a summary or fetch for an unreacted post', () => {
     mount({ ...post, likeCount: 0, reactionCount: 0, reactionCounts: {} });
     expect(screen.queryByRole('button')).not.toBeInTheDocument(); expect(get).not.toHaveBeenCalled();
+});
+
+it('keeps existing Care reactions available without adding them to the new chooser', async () => {
+    const user = userEvent.setup();
+    get.mockResolvedValue({ data: { ...page, people: [{ ...people[0], reaction: 'CARE' }], reactionCounts: { CARE: 3 }, hasMore: false } });
+    mount({ ...post, reactionCounts: { CARE: 3 }, myReaction: 'CARE' });
+    await user.click(screen.getByRole('button', { name: 'Reacted by 3 people' }));
+    expect(await screen.findByText('Jordan Lee')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Care, 3 reactions' })).toBeInTheDocument();
 });

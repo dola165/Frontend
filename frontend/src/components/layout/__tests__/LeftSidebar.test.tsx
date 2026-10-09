@@ -22,7 +22,7 @@ describe("LeftSidebar", () => {
     ] }, 9);
     render(<MemoryRouter><LeftSidebar user={{ id: 9, fullName: 'Alex Morgan', navigationCapabilities: caps }} /></MemoryRouter>);
     expect(screen.getAllByRole('link').map(link => link.getAttribute('href'))).toEqual([
-      '/profile/9', '/assistant', '/admissions', '/referees/me', '/agent', '/calendar?scope=personal', '/map', '/clubs/following',
+      '/profile/9', '/assistant', '/admissions', '/referees/me', '/agent', '/calendar?scope=personal',
     ]);
     expect(screen.queryByRole('link', { name: /My squads/ })).not.toBeInTheDocument();
   });
@@ -63,12 +63,12 @@ describe("LeftSidebar", () => {
     expect(screen.getByRole('link', { name: /My squads/ })).toHaveAttribute('href', '/squads');
     expect(screen.queryByRole('link', { name: 'Referee workspace' })).not.toBeInTheDocument();
   });
-  it("keeps Following on Home while other shortcuts remain navigation links", async () => {
+  it("keeps Following for fans while other shortcuts remain navigation links", async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
         <LeftSidebar
-          user={{ id: 9, fullName: "Alex Morgan", role: "PLAYER" }}
+          user={{ id: 9, fullName: "Alex Morgan", role: "FAN" }}
         />
       </MemoryRouter>,
     );
@@ -99,8 +99,8 @@ describe("LeftSidebar", () => {
       }),
     ).toHaveAttribute("href", "/clubs/following");
     expect(
-      screen.getByRole("link", { name: /Map.*Find football near you/ }),
-    ).toHaveAttribute("href", "/map");
+      screen.queryByRole("link", { name: /Map.*Find football near you/ }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /My Schedule.*Your personal calendar/ }),
     ).toHaveAttribute("href", "/calendar?scope=personal");
@@ -134,4 +134,11 @@ describe("LeftSidebar", () => {
       screen.queryByRole("heading", { name: "Followed clubs" }),
     ).not.toBeInTheDocument();
   });
+});
+
+it.each(['COACH','PLAYER','PARENT','REFEREE','AGENT',undefined])('omits following and map from the left rail for %s', role => {
+    render(<MemoryRouter><LeftSidebar user={{id:9,role}} /></MemoryRouter>);
+    expect(screen.queryByRole('button',{name:/Following/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('link',{name:/Followed clubs/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('link',{name:/^Map/})).not.toBeInTheDocument();
 });

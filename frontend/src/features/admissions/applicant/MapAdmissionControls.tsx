@@ -1,3 +1,4 @@
+import './map-admissions.css';
 import { useCallback, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
@@ -10,7 +11,8 @@ export function MapAdmissionControls({playerId,requestedPlayerId,onPlayer,includ
     const {requestedPlayerId:rememberedPlayer,selectPlayer}=usePlayerSelection();
     const requested=requestedPlayerId??rememberedPlayer;
     const home=useAdmissionData(useCallback(signal=>isAuthenticated?fetchAdmissionHome(sessionId,signal):Promise.resolve({participants:[],cases:[]}),[isAuthenticated,sessionId]),isAuthenticated?sessionId:undefined);
-    const onPlayerRef=useRef(onPlayer);onPlayerRef.current=onPlayer;
+    const onPlayerRef=useRef(onPlayer);
+    useEffect(()=>{onPlayerRef.current=onPlayer;},[onPlayer]);
     useEffect(()=>{
         if(requested===undefined||!isAuthenticated||home.loading)return;
         // A deep link chooses context only after the current account can read that card.

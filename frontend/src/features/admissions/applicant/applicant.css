@@ -1,49 +1,91 @@
 .admission-applicant { --admission-border: var(--color-border, var(--border-color)); color:var(--text-primary); max-width:1120px; margin:0 auto; padding:clamp(18px,4vw,44px); }
 .admission-applicant * { box-sizing:border-box; }
-.admission-applicant h1,.admission-applicant h2,.admission-applicant h3,.admission-applicant p { margin:0; }
-.admission-applicant h1 { font-size:clamp(28px,4vw,44px); font-weight:800; letter-spacing:-.035em; line-height:1.15; }
-.admission-applicant h2 { font-size:22px; font-weight:750; letter-spacing:-.025em; }
-.admission-applicant h3 { font-size:17px; font-weight:750; }
-.admission-heading { margin:18px 0 28px; display:grid; gap:14px; }
-.admission-heading>p:not(.admission-eyebrow) { max-width:700px; color:var(--text-secondary); line-height:1.65; }
-.admission-eyebrow { color:var(--color-accent); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.1em; }
-.admission-heading nav,.admission-actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
-.admission-heading nav a,.admission-back { display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:700; }
-.admission-back { color:var(--text-secondary); }
-.admission-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
-.admission-columns { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr); gap:22px; align-items:start; }
-.admission-stack { display:grid; gap:20px; }
-.admission-panel { border:1px solid var(--admission-border); background:var(--color-surface); border-radius:18px; padding:24px; display:grid; gap:16px; min-width:0; }
-.admission-card { display:grid; gap:16px; border:1px solid var(--admission-border); border-radius:18px; padding:22px; background:var(--color-surface); }
-.admission-card header { display:flex; justify-content:space-between; gap:12px; align-items:start; }
-.admission-muted,.admission-card p,.admission-panel>p { color:var(--text-secondary); font-size:14px; line-height:1.6; }
-.admission-details { display:grid; gap:12px; margin:0; font-size:14px; }
-.admission-details>div { display:grid; grid-template-columns:minmax(100px,.6fr) minmax(0,1fr); gap:12px; }
-.admission-details dt { color:var(--text-secondary); }.admission-details dd { margin:0; overflow-wrap:anywhere; font-weight:600; }
-.admission-badge { display:inline-block; width:fit-content; padding:5px 10px; border:1px solid var(--admission-border); border-radius:100px; color:var(--text-primary); font-size:12px; font-weight:700; line-height:1.5; }
-.admission-button { display:inline-flex; justify-content:center; align-items:center; gap:7px; min-height:42px; padding:10px 16px; border:1px solid var(--admission-border); border-radius:10px; background:var(--color-surface); color:var(--text-primary); font-size:13px; font-weight:700; cursor:pointer; }
-.admission-primary { background:var(--color-accent); color:var(--color-on-accent, var(--text-inverse)); border-color:var(--color-accent); }
-.admission-applicant button:disabled { opacity:.6; cursor:wait; }
-.admission-applicant :is(a,button,input,select,textarea,summary):focus-visible { outline:3px solid var(--color-accent); outline-offset:3px; }
-.admission-applicant label { display:grid; gap:7px; font-size:13px; font-weight:650; }
-.admission-applicant :is(input:not([type=checkbox]),select,textarea) { width:100%; min-height:42px; border:1px solid var(--admission-border); border-radius:9px; background:var(--color-surface); color:var(--text-primary); padding:10px 12px; font:inherit; }
-.admission-applicant textarea { min-height:90px; resize:vertical; }
-.admission-check { display:flex!important; align-items:flex-start; gap:10px!important; line-height:1.65; }.admission-check input { margin-top:5px; flex:none; width:18px; height:18px; }
-.admission-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
-.admission-error,.admission-notice { padding:16px; border:1px solid var(--admission-border); border-left:4px solid var(--color-accent); border-radius:8px; display:grid; gap:12px; font-size:14px; line-height:1.6; }
-.admission-loading { display:flex; gap:10px; padding:24px; align-items:center; }
-.admission-timeline { list-style:none; padding:0; margin:0; display:grid; gap:0; }.admission-timeline li { border-left:2px solid var(--admission-border); padding:0 0 22px 18px; display:grid; gap:6px; }.admission-timeline time { color:var(--text-secondary); font-size:12px; }
-.admission-person-list { display:flex; gap:10px; flex-wrap:wrap; }.admission-person-list button[aria-pressed=true] { border-color:var(--color-accent); box-shadow:inset 0 0 0 1px var(--color-accent); }
-.admission-session,.admission-offer { border-top:3px solid var(--color-accent); }
-.admission-map-pin { width:34px; height:34px; border-radius:50%; border:2px solid var(--color-accent); color:var(--text-primary); background:var(--color-surface); cursor:pointer; box-shadow:0 2px 8px var(--color-shadow); display:grid; place-items:center; }
-.admission-map-entry { --admission-border: var(--color-border, var(--border-color)); margin:10px 16px; padding:12px; border:1px solid var(--admission-border); border-radius:10px; display:grid; gap:8px; background:var(--color-surface); }
-.admission-map-entry a { font-size:13px; font-weight:700; }.admission-map-entry p { font-size:12px; color:var(--text-secondary); }
+:is(.admission-applicant,.admission-governance) h1, :is(.admission-applicant,.admission-governance) h2, :is(.admission-applicant,.admission-governance) h3, :is(.admission-applicant,.admission-governance) p { margin:0; }
+:is(.admission-applicant,.admission-governance) h1 { font-size:clamp(28px,4vw,44px); font-weight:800; letter-spacing:-.035em; line-height:1.15; }
+:is(.admission-applicant,.admission-governance) h2 { font-size:22px; font-weight:750; letter-spacing:-.025em; }
+:is(.admission-applicant,.admission-governance) h3 { font-size:17px; font-weight:750; }
+:is(.admission-applicant,.admission-governance) .admission-heading { margin:18px 0 28px; display:grid; gap:14px; }
+:is(.admission-applicant,.admission-governance) .admission-heading>p:not(.admission-eyebrow) { max-width:700px; color:var(--text-secondary); line-height:1.65; }
+:is(.admission-applicant,.admission-governance) .admission-eyebrow { color:var(--color-accent); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.1em; }
+:is(.admission-applicant,.admission-governance) .admission-heading nav, :is(.admission-applicant,.admission-governance) .admission-actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+:is(.admission-applicant,.admission-governance) .admission-heading nav a, :is(.admission-applicant,.admission-governance) .admission-back { display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:700; }
+:is(.admission-applicant,.admission-governance) .admission-back { color:var(--text-secondary); }
+:is(.admission-applicant,.admission-governance) .admission-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+:is(.admission-applicant,.admission-governance) .admission-columns { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr); gap:22px; align-items:start; }
+:is(.admission-applicant,.admission-governance) .admission-stack { display:grid; gap:20px; }
+:is(.admission-applicant,.admission-governance) .admission-panel { border:1px solid var(--admission-border); background:var(--color-surface); border-radius:18px; padding:24px; display:grid; gap:16px; min-width:0; }
+:is(.admission-applicant,.admission-governance) .admission-card { display:grid; gap:16px; border:1px solid var(--admission-border); border-radius:18px; padding:22px; background:var(--color-surface); }
+:is(.admission-applicant,.admission-governance) .admission-card header { display:flex; justify-content:space-between; gap:12px; align-items:start; }
+:is(.admission-applicant,.admission-governance) .admission-muted, :is(.admission-applicant,.admission-governance) .admission-card p, :is(.admission-applicant,.admission-governance) .admission-panel>p { color:var(--text-secondary); font-size:14px; line-height:1.6; }
+:is(.admission-applicant,.admission-governance) .admission-details { display:grid; gap:12px; margin:0; font-size:14px; }
+:is(.admission-applicant,.admission-governance) .admission-details>div { display:grid; grid-template-columns:minmax(100px,.6fr) minmax(0,1fr); gap:12px; }
+:is(.admission-applicant,.admission-governance) .admission-details dt { color:var(--text-secondary); }:is(.admission-applicant,.admission-governance) .admission-details dd { margin:0; overflow-wrap:anywhere; font-weight:600; }
+:is(.admission-applicant,.admission-governance) .admission-badge { display:inline-block; width:fit-content; padding:5px 10px; border:1px solid var(--admission-border); border-radius:100px; color:var(--text-primary); font-size:12px; font-weight:700; line-height:1.5; }
+:is(.admission-applicant,.admission-governance) .admission-button { display:inline-flex; justify-content:center; align-items:center; gap:7px; min-height:42px; padding:10px 16px; border:1px solid var(--admission-border); border-radius:10px; background:var(--color-surface); color:var(--text-primary); font-size:13px; font-weight:700; cursor:pointer; }
+:is(.admission-applicant,.admission-governance) .admission-primary { background:var(--color-accent); color:var(--color-on-accent, var(--text-inverse)); border-color:var(--color-accent); }
+:is(.admission-applicant,.admission-governance) button:disabled { opacity:.6; cursor:wait; }
+:is(.admission-applicant,.admission-governance) :is(a,button,input,select,textarea,summary):focus-visible { outline:3px solid var(--color-accent); outline-offset:3px; }
+:is(.admission-applicant,.admission-governance) label { display:grid; gap:7px; font-size:13px; font-weight:650; }
+:is(.admission-applicant,.admission-governance) :is(input:not([type=checkbox]),select,textarea) { width:100%; min-height:42px; border:1px solid var(--admission-border); border-radius:9px; background:var(--color-surface); color:var(--text-primary); padding:10px 12px; font:inherit; }
+:is(.admission-applicant,.admission-governance) textarea { min-height:90px; resize:vertical; }
+:is(.admission-applicant,.admission-governance) .admission-check { display:flex!important; align-items:flex-start; gap:10px!important; line-height:1.65; }:is(.admission-applicant,.admission-governance) .admission-check input { margin-top:5px; flex:none; width:18px; height:18px; }
+:is(.admission-applicant,.admission-governance) .admission-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+:is(.admission-applicant,.admission-governance) .admission-error, :is(.admission-applicant,.admission-governance) .admission-notice { padding:16px; border:1px solid var(--admission-border); border-left:4px solid var(--color-accent); border-radius:8px; display:grid; gap:12px; font-size:14px; line-height:1.6; }
+:is(.admission-applicant,.admission-governance) .admission-loading { display:flex; gap:10px; padding:24px; align-items:center; }
+:is(.admission-applicant,.admission-governance) .admission-timeline { list-style:none; padding:0; margin:0; display:grid; gap:0; }:is(.admission-applicant,.admission-governance) .admission-timeline li { border-left:2px solid var(--admission-border); padding:0 0 22px 18px; display:grid; gap:6px; }:is(.admission-applicant,.admission-governance) .admission-timeline time { color:var(--text-secondary); font-size:12px; }
+:is(.admission-applicant,.admission-governance) .admission-person-list { display:flex; gap:10px; flex-wrap:wrap; }:is(.admission-applicant,.admission-governance) .admission-person-list button[aria-pressed=true] { border-color:var(--color-accent); box-shadow:inset 0 0 0 1px var(--color-accent); }
+:is(.admission-applicant,.admission-governance) .admission-session, :is(.admission-applicant,.admission-governance) .admission-offer { border-top:3px solid var(--color-accent); }
 .admission-applicant .parent-add-child { margin:0; padding:20px; border:1px solid var(--admission-border); border-radius:18px; background:var(--color-surface); }
 .admission-applicant .parent-section-heading { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:start; gap:14px; }
 .admission-applicant .parent-add-child .parent-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 14px; border:1px solid var(--admission-border); border-radius:10px; color:var(--text-primary); background:var(--color-surface); font-size:13px; font-weight:700; }
 .admission-applicant .parent-add-child .parent-button-primary { color:var(--color-on-accent,var(--text-inverse)); background:var(--color-accent); border-color:var(--color-accent); }
 .admission-applicant .parent-add-child-responsibility { display:flex; align-items:flex-start; gap:12px; }
-@media(max-width:700px) { .admission-grid,.admission-columns,.admission-fields { grid-template-columns:1fr; }.admission-panel,.admission-card { padding:18px; }.admission-details>div { grid-template-columns:1fr; gap:3px; }.admission-actions .admission-button { flex-grow:1; }.admission-applicant { padding:18px 12px; } }
+@media(max-width:700px) { .admission-applicant .admission-grid, .admission-applicant .admission-columns, .admission-applicant .admission-fields { grid-template-columns:1fr; }.admission-applicant .admission-panel, .admission-applicant .admission-card { padding:18px; }.admission-applicant .admission-details>div { grid-template-columns:1fr; gap:3px; }.admission-applicant .admission-actions .admission-button { flex-grow:1; }.admission-applicant { padding:18px 12px; } }
 @media(prefers-reduced-motion:reduce) { .admission-applicant .animate-spin { animation:none; } }
 
-.admission-field { display:grid; gap:7px; min-width:0; }
+.admission-applicant .admission-field { display:grid; gap:7px; min-width:0; }
+
+/* Match the Club workspace rhythm and scope against lazy route styles. */
+.admission-applicant.admission-workspace { max-width:1440px; padding:0; display:grid; grid-template-columns:216px minmax(0,1fr); min-height:calc(100dvh - 100px); }
+.admission-applicant .admission-workspace-rail { background:var(--color-inset); border-right:1px solid var(--color-border); padding:28px 16px; min-width:0; }
+.admission-applicant .admission-rail-label { font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--color-muted); font-weight:650; margin:0 12px 16px; }
+.admission-applicant .admission-workspace-rail nav { display:grid; gap:4px; }
+.admission-applicant .admission-workspace-rail nav a { display:flex; align-items:center; gap:10px; min-height:44px; padding:10px 12px; font-size:12px; border-radius:6px; color:var(--color-secondary); }
+.admission-applicant .admission-workspace-rail nav a[aria-current=page] { background:color-mix(in srgb,var(--color-accent) 9%,transparent); color:var(--color-accent); box-shadow:inset 2px 0 var(--color-accent); }
+.admission-applicant .admission-rail-home { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:28px; padding:12px; font-size:11px; color:var(--color-muted); border-top:1px solid var(--color-border); }
+.admission-applicant .admission-workspace-main { min-width:0; padding:0 clamp(20px,3vw,44px) 48px; }
+.admission-applicant .admission-breadcrumb { display:flex; align-items:center; min-height:56px; border-bottom:1px solid var(--color-border); font-size:11px; color:var(--color-muted); }
+.admission-applicant .admission-page-heading { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:28px 0 24px; }
+.admission-applicant h1 { font-size:28px; font-weight:650; letter-spacing:-.025em; line-height:1.25; overflow-wrap:anywhere; }
+.admission-applicant .admission-page-heading p { max-width:64ch; color:var(--color-secondary); font-size:13px; line-height:1.7; margin-top:8px; }
+.admission-applicant .admission-heading-action { flex:none; }
+.admission-applicant .admission-view-tabs { display:flex; gap:24px; overflow-x:auto; border-bottom:1px solid var(--color-border); }
+.admission-applicant .admission-view-tabs a { display:flex; align-items:center; gap:8px; min-height:48px; border-bottom:2px solid transparent; white-space:nowrap; font-size:12px; font-weight:550; color:var(--color-secondary); }
+.admission-applicant .admission-view-tabs a[aria-current=page] { border-color:var(--color-accent); color:var(--color-accent); }
+.admission-applicant .admission-tab-count { display:inline-flex; justify-content:center; min-width:20px; border-radius:4px; padding:2px 5px; background:var(--color-elevated); color:var(--color-secondary); font-size:10px; }
+.admission-applicant .admission-page-content { padding-top:24px; }
+.admission-applicant .admission-section[hidden] { display:none!important; }
+.admission-applicant :is(.admission-panel,.admission-card) { border-radius:8px; padding:20px; gap:14px; }
+.admission-applicant h2 { font-size:17px; font-weight:600; letter-spacing:-.015em; line-height:1.4; }
+.admission-applicant h3 { font-size:14px; font-weight:600; line-height:1.5; }
+.admission-applicant :is(.admission-card p,.admission-panel>p,.admission-muted) { font-size:12px; line-height:1.75; }
+.admission-applicant .admission-button { border-radius:6px; min-height:40px; padding:9px 14px; font-size:12px; font-weight:550; width:fit-content; }
+.admission-applicant .admission-context-bar { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 16px; border:1px solid var(--color-border); border-radius:8px; background:var(--color-inset); }
+.admission-applicant .admission-context-bar label { display:flex; align-items:center; gap:12px; font-size:11px; flex:1; min-width:0; }
+.admission-applicant .admission-context-bar select { max-width:320px; min-height:36px; font-size:12px; padding:7px 10px; }
+.admission-applicant .admission-overview-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border:1px solid var(--color-border); border-radius:8px; background:var(--color-surface); }
+.admission-applicant .admission-overview-metrics a { display:grid; gap:6px; min-width:0; padding:20px; border-right:1px solid var(--color-border); }
+.admission-applicant .admission-overview-metrics a:last-child { border:0; }
+.admission-applicant .admission-overview-metrics strong { font-size:25px; font-weight:600; line-height:1; }
+.admission-applicant .admission-overview-metrics span { font-size:11px; color:var(--color-secondary); }
+.admission-applicant .admission-section-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.admission-applicant .admission-empty { display:grid; justify-items:start; gap:14px; padding:28px; border:1px solid var(--color-border); border-radius:8px; background:var(--color-surface); }
+.admission-applicant .admission-empty > svg { color:var(--color-accent); }
+.admission-applicant .admission-empty p { font-size:12px; line-height:1.7; color:var(--color-secondary); max-width:58ch; }
+.admission-applicant .admission-panel summary { cursor:pointer; font-size:13px; font-weight:600; line-height:1.6; }
+.admission-applicant .admission-panel[open] > summary { margin-bottom:16px; }
+@media(max-width:900px) { .admission-applicant.admission-workspace { grid-template-columns:180px minmax(0,1fr); }.admission-applicant .admission-page-heading { align-items:flex-start; flex-direction:column; gap:16px; }.admission-applicant .admission-context-bar { flex-wrap:wrap; } }
+@media(max-width:700px) { .admission-applicant.admission-workspace { display:block; }.admission-applicant .admission-workspace-rail { border-right:0; border-bottom:1px solid var(--color-border); padding:8px 12px; }.admission-applicant .admission-workspace-rail nav { display:flex; overflow-x:auto; gap:4px; }.admission-applicant .admission-workspace-rail nav a { flex:none; font-size:11px; padding:8px; }.admission-applicant :is(.admission-rail-label,.admission-rail-home) { display:none; }.admission-applicant .admission-workspace-main { padding:0 16px 32px; }.admission-applicant h1 { font-size:24px; }.admission-applicant .admission-breadcrumb { min-height:44px; }.admission-applicant .admission-page-heading { padding:20px 0; }.admission-applicant .admission-context-bar label { width:100%; flex:auto; }.admission-applicant .admission-context-bar select { max-width:none; }.admission-applicant .admission-overview-metrics a { padding:16px 12px; }.admission-applicant .admission-overview-metrics strong { font-size:22px; }.admission-applicant .admission-button { min-height:44px; }.admission-applicant .admission-empty { padding:22px; } }
+
+.admission-applicant .admission-search-filters summary { cursor:pointer; width:fit-content; color:var(--color-secondary); font-size:12px; }
+.admission-applicant .admission-search-filters[open] > summary { margin-bottom:16px; }

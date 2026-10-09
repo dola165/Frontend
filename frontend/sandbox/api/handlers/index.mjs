@@ -3,3 +3,4 @@ import './auth.mjs';
 import './social.mjs';
 import './club.mjs';
 import './football.mjs';
+import './nav-extra.mjs';

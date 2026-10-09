@@ -223,3 +223,49 @@ html.dark.product-design-active :is(.top-nav-force-dark, .club-page-shell, .club
 .maplibregl-map .maplibregl-popup-anchor-right .maplibregl-popup-tip {
   border-left-color: var(--color-elevated);
 }
+
+/* GrassKickZ design system (src/design). One deterministic palette for every
+   redesigned surface, independent of the legacy scope cascade above. */
+.gk {
+  --gk-bg: #0a0d0f;
+  --gk-surface: #12171c;
+  --gk-raised: #1a2128;
+  --gk-sunken: #0d1114;
+  --gk-line: #222b34;
+  --gk-line-strong: #33404b;
+  --gk-text: #f2f4f6;
+  --gk-text-2: #a9b3bc;
+  --gk-text-3: #77838e;
+  --gk-accent: #00e676;
+  --gk-accent-strong: #3dfa98;
+  --gk-on-accent: #04130b;
+  --gk-warning: #f0bf5a;
+  --gk-danger: #ff7a85;
+  --gk-info: #7fb6f0;
+  --gk-violet: #b99cf6;
+  --gk-pitch: #0f2a1d;
+  --gk-shadow: #000000;
+  color-scheme: dark;
+}
+html:not(.dark) .gk,
+.gk.gk-light {
+  --gk-bg: #f2f4f3;
+  --gk-surface: #ffffff;
+  --gk-raised: #f7f9f8;
+  --gk-sunken: #e9eeeb;
+  --gk-line: #d9e0dc;
+  --gk-line-strong: #b9c5bf;
+  --gk-text: #14211a;
+  --gk-text-2: #4a5d53;
+  --gk-text-3: #6d7d74;
+  --gk-accent: #0f7a42;
+  --gk-accent-strong: #0a6334;
+  --gk-on-accent: #ffffff;
+  --gk-warning: #94600a;
+  --gk-danger: #c22f45;
+  --gk-info: #2563a8;
+  --gk-violet: #6d48b0;
+  --gk-pitch: #e3f1e8;
+  --gk-shadow: #0b1a12;
+  color-scheme: light;
+}

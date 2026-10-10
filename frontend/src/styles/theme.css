@@ -1,6 +1,6 @@
 /* The only application UI palette. Components consume semantic roles, never palette shades.
-   Forced scopes support the public/light Map without changing the account preference. */
-:root, .map-force-light, .theme-force-light {
+   Forced scopes show one part of a page in the other theme without changing the account preference. */
+:root, .theme-force-light {
   color-scheme: light;
   --color-page: #f4f5f3;
   --color-surface: #fafbf9;
@@ -26,7 +26,7 @@
   --color-media-surface: #0c1510;
   --map-control-icon-filter: none;
 }
-:root.dark, .map-force-dark, .theme-force-dark {
+:root.dark, .theme-force-dark {
   color-scheme: dark;
   --color-page: #09090b;
   --color-surface: #18181b;
@@ -141,19 +141,7 @@ html.dark.product-design-active :is(.club-page-shell, .club-design-scope, .venue
   --color-purple: #c084fc;
   --color-orange: #ffc857;
 }
-.map-force-light {
-  --color-page: #e5ddd3;
-  --color-surface: #faf8f1;
-  --color-elevated: #faf8f1;
-  --color-inset: #efece2;
-  --color-border: #dadccf;
-  --color-text: #243d33;
-  --color-secondary: #626c5f;
-  --color-muted: #626c5f;
-  --color-ink: #243d33;
-  --color-accent: #2e6248;
-}
-:root, .map-force-light, .theme-force-light, .map-force-dark, .theme-force-dark {
+:root, .theme-force-light, .theme-force-dark {
   --color-accent-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
   --color-danger-soft: color-mix(in srgb, var(--color-danger) 12%, transparent);
   --color-warning-soft: color-mix(in srgb, var(--color-warning) 12%, transparent);

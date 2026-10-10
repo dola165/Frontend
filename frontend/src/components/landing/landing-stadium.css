@@ -38,15 +38,7 @@
 .landing-map-foot { padding: 11px 20px; color: var(--color-secondary); font-size: 9px; border-top: 1px solid color-mix(in srgb, var(--color-border) 7.45%, transparent); }
 .landing-map-foot > a { color: var(--color-muted); }
 .gk-landing .landing-map-viewport { --landing-map-height: 380px; flex: 1; min-height: var(--landing-map-height); height: auto; position: relative; }
-.gk-landing .landing-map-viewport > .map-experience-embedded { position: absolute; inset: 0; }
-.gk-landing .landing-map-viewport .map-atlas { --map-panel-bg: var(--color-surface); --map-card-bg: var(--color-elevated); --map-panel-border: var(--color-border); }
-.landing-map-viewport .map-experience-embedded > div:first-child > section { padding: 12px 16px; }
 .landing-map-viewport input { font-weight: 400; }
-.landing-map-viewport .map-experience-embedded > div:first-child > section > div > span { font-size: 9px; font-weight: 500; }
-.landing-map-viewport .atlas-command-bar { border-radius: 9px; box-shadow: 0 3px 14px color-mix(in srgb, var(--color-shadow) 7.06%, transparent); }
-.landing-map-viewport .atlas-area-action > button { border-radius: 8px; padding: 11px 17px; font-size: 11px; }
-.landing-map-viewport .atlas-area-action { bottom: 25px; gap: 6px; }
-.landing-map-viewport .atlas-area-action > span { font-size: 7px; }
 .landing-auth { background: var(--color-elevated); border: 0; border-left: 1px solid color-mix(in srgb, var(--color-border) 14.9%, transparent); border-radius: 0; padding: 25px 27px 22px; }
 .landing-auth h2 { color: var(--color-text); font-size: 27px; font-weight: 500; }
 .landing-auth h2 > span { color: var(--color-secondary); }
@@ -250,11 +242,6 @@
   .landing-map-caption { padding: 15px; }
   .landing-map-caption > span { max-width: none; font-size: 9px; }
   .landing-map-caption > a { font-size: 9px; }
-  .landing-map-viewport .atlas-external-toolbar > div { display: grid; grid-template-columns: auto 1fr; gap: 8px; }
-  .landing-map-viewport .atlas-external-toolbar > div > div { grid-column: 1 / -1; }
-  .landing-map-viewport .atlas-external-toolbar > div > button { font-size: 11px; min-height: 35px; padding: 7px 10px; gap: 6px; border-radius: 7px; }
-  .landing-map-viewport .atlas-external-toolbar > div > button > span { min-width: 15px; height: 15px; }
-  .landing-map-viewport .atlas-external-toolbar > div > span { font-size: 8px !important; }
   .gk-landing .landing-map-viewport { --landing-map-height: 400px; flex: none; height: 400px; }
   .landing-map-foot { font-size: 8px; padding: 12px 14px; }
   .landing-scroll-row { gap: 10px; }

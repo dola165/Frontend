@@ -61,6 +61,9 @@ export function PlanEditorBody({ editor, planMap, onPreview, pendingPlace, onPen
         // Focus follows a new validation message only.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [validation]);
+    // The chosen section stays in view when the tabs are wider than the panel.
+    const opened = Boolean(draft);
+    useEffect(() => { root.current?.querySelector('.gk-plan-tabs [aria-selected="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); }, [step, opened]);
     // "Add as a stop" from the map lands on the itinerary, where the new stop opens.
     const { seed } = planMap;
     useEffect(() => { if (seed && step !== 'itinerary') setStep('itinerary'); }, [seed]); // eslint-disable-line react-hooks/exhaustive-deps

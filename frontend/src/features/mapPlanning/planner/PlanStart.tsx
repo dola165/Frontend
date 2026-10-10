@@ -92,7 +92,7 @@ export function PlanStart({ editor, familyHref, pendingPlace, onPendingDone }: {
                                 <FixtureRow key={plan.id} tone={plan.published_version ? 'event' : 'neutral'} time={clock.time} day={clock.day} title={plan.title}
                                     meta={[squadName(plan.squad_id), plan.id === lastOpened ? 'Last opened' : null].filter(Boolean).join(' · ')} onClick={() => editor.open(plan)} label={`Open ${plan.title}`}
                                     trail={plan.published_version
-                                        ? <Badge tone={changed ? 'warning' : 'accent'}>{changed ? 'Changed since sharing' : `Shared · v${plan.published_version}`}</Badge>
+                                        ? <Badge tone={changed ? 'warning' : 'accent'}>{changed ? 'Changed' : `Shared · v${plan.published_version}`}</Badge>
                                         : <Badge>Draft</Badge>} />
                             );
                         })}

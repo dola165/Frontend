@@ -1,6 +1,6 @@
 /* World map page layout: canvas, floating controls and the phone top bar. Scoped under .gk; tokens only. */
 .gk .gk-mapview { position: absolute; inset: 0; overflow: hidden; background: var(--gk-sunken); --gk-map-panel-w: 400px; }
-.gk .gk-mapview[data-mode='plan'] { --gk-map-panel-w: min(520px, 42vw); }
+.gk .gk-mapview[data-mode='plan'] { --gk-map-panel-w: min(520px, max(440px, 42vw)); }
 .gk .gk-mapview[data-mode='plan'] .gk-map-canvas { left: var(--gk-map-panel-w); }
 .gk .gk-map-controls-slot { position: absolute; top: var(--gk-3); right: var(--gk-3); z-index: 5; }
 .gk .gk-map-float { position: absolute; z-index: 25; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: var(--gk-2); pointer-events: auto; }

@@ -1,8 +1,8 @@
-import { useMemo, useState, type RefObject } from 'react';
+import { useEffect, useMemo, useState, type RefObject } from 'react';
 import type { MapRef } from 'react-map-gl/maplibre';
 import { useSearchParams } from 'react-router-dom';
 import type { RouteStop } from '../../world/map/canvas/routeGeometry';
-import type { FamilyItinerary, PlanPlace } from '../api';
+import { planGet, type FamilyItinerary, type PlanContext, type PlanPlace } from '../api';
 import type { PlaceRecord } from '../../world/map/explore/records';
 import { useFamilyJourneys } from '../journey/useFamilyJourneys';
 import { draftItinerary } from '../journeyModel';
@@ -30,6 +30,14 @@ export function usePlanner({ enabled, mapRef, phone, clubId }: { enabled: boolea
     const editor = usePlanEditor({ enabled: staff, initialClubId: clubId });
     const planMap = usePlanMap(editor, mapRef, phone);
     const family = useFamilyJourneys(enabled && (kind === 'family' || editor.contexts?.length === 0));
+    // Whether the way back to planning is offered from the family view.
+    const [planner, setPlanner] = useState(false);
+    useEffect(() => {
+        if (!enabled || kind !== 'family') return;
+        const controller = new AbortController();
+        void planGet<PlanContext[]>('/context', controller.signal).then(list => setPlanner(list.length > 0)).catch(() => undefined);
+        return () => controller.abort();
+    }, [enabled, kind]);
     const view = params.get('view');
     const journeyId = Number(params.get('journey')) || 0, journeyChild = Number(params.get('journeyChild')) || 0;
     const selectedJourney = family.items.find(item => item.plan_id === journeyId && (!journeyChild || item.child_id === journeyChild)) ?? null;
@@ -58,6 +66,7 @@ export function usePlanner({ enabled, mapRef, phone, clubId }: { enabled: boolea
     const route = (mutate: (next: URLSearchParams) => void, replace = false) => setParams(current => { const next = new URLSearchParams(current); mutate(next); return next; }, { replace });
     return {
         mode, editor, planMap, family, stops, places, routeKey, preview, selectedJourney, view, pendingPlace,
+        canPlan: editor.contexts ? editor.contexts.length > 0 : planner,
         /** A journey link that names a journey this person does not have (withdrawn, or another account's). */
         missingJourney: Boolean(journeyId) && !selectedJourney && !family.loading && !family.error,
         clearPending: () => setPendingPlace(null),

@@ -54,6 +54,7 @@ export function useExplore({ mapRef, active, allowed, signedIn, phone, viewSize,
     const [hovered, setHovered] = useState<string | null>(null);
     const [moved, setMoved] = useState(false);
     const [responding, setResponding] = useState<PlaceRecord | null>(null);
+    const [closedKey, setClosedKey] = useState<string | null>(null);
 
     const focus = useCallback((latitude: number, longitude: number, zoom = 14) => {
         const map = mapRef.current;
@@ -114,7 +115,8 @@ export function useExplore({ mapRef, active, allowed, signedIn, phone, viewSize,
             setSnap(phone ? 'half' : snap);
             if (!fromMap && record.latitude != null && record.longitude != null) focus(record.latitude, record.longitude);
         },
-        close: () => { walking.stop(); query.select(null); setSurface('results'); },
+        closedKey,
+        close: () => { walking.stop(); setClosedKey(placeKey); query.select(null); setSurface('results'); },
         searchArea: (bounds?: MapBounds) => {
             const map = mapRef.current;
             const view = bounds ?? (map ? (() => { const b = map.getBounds(); return { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() }; })() : null);

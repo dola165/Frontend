@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { BadgeCheck, CalendarDays, Flag, LandPlot, Shield, Trophy } from 'lucide-react';
 import { Badge, Button, EmptyNote, List, ListRow, Skeleton } from '../../../../design/primitives';
 import { plural } from '../../format';
@@ -37,15 +37,26 @@ function trailFor(record: PlaceRecord) {
 }
 
 /** The places in the search, in sync with the map: hovering or focusing a row lights its point. */
-export function ResultsList({ query, discovery, coverage, selectedKey, onSelect, onHover, onWiden }: {
+export function ResultsList({ query, discovery, coverage, selectedKey, returnKey, onSelect, onHover, onWiden }: {
     query: ExploreQuery; discovery: Discovery; coverage: string; selectedKey: string | null;
+    /** The place just closed: its row takes focus again when the list returns. */
+    returnKey?: string | null;
     onSelect: (record: PlaceRecord) => void; onHover: (key: string | null) => void; onWiden: () => void;
 }) {
     const sortId = useId();
     const { records } = discovery;
     const filtered = query.activeFilters.length > 0 || Boolean(query.q);
+    const root = useRef<HTMLDivElement>(null);
+    const returnIndex = returnKey ? records.findIndex(record => record.key === returnKey) : -1;
+    useEffect(() => {
+        const active = document.activeElement;
+        if (returnIndex < 0 || (active && active !== document.body && !active.closest('.gk-map-panel'))) return;
+        root.current?.querySelectorAll<HTMLElement>('.gk-list-row')[returnIndex]?.focus({ preventScroll: false });
+        // Only when the list first comes back.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     return (
-        <div className="gk-map-results">
+        <div className="gk-map-results" ref={root}>
             <div className="gk-map-results__head">
                 <p role="status" className="gk-map-results__count">
                     {discovery.loading ? 'Searching…' : discovery.error ? 'Search did not finish' : <><strong className="gk-num">{records.length}</strong> {records.length === 1 ? 'place' : 'places'} · {coverage}</>}

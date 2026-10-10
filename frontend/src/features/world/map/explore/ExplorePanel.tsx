@@ -37,7 +37,7 @@ export function ExplorePanel({ explore, phone, allowed, planHref, onSave, embedd
         : discovery.loading || explore.venue.loading
             ? <div className="gk-map-place" role="status" aria-label="Opening the place"><Skeleton height={52} width={52} /><Skeleton height={20} width="60%" /><Skeleton height={14} width="80%" /></div>
             : <EmptyNote title="This place is not in the current results" action={<Button size="sm" onClick={explore.close}>Back to results</Button>}>It may be outside the searched area or hidden by a filter.</EmptyNote>;
-    else body = <ResultsList query={query} discovery={discovery} coverage={explore.coverage} selectedKey={explore.placeKey} onSelect={record => explore.open(record)} onHover={explore.setHovered} onWiden={explore.widen} />;
+    else body = <ResultsList query={query} discovery={discovery} coverage={explore.coverage} selectedKey={explore.placeKey} returnKey={explore.closedKey} onSelect={record => explore.open(record)} onHover={explore.setHovered} onWiden={explore.widen} />;
 
     const summary = discovery.loading ? 'Searching…' : `${discovery.records.length} ${discovery.records.length === 1 ? 'place' : 'places'} · ${explore.coverage}`;
     return (

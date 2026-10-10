@@ -27,7 +27,7 @@ export function PlannerPanel({ planner }: { planner: Planner }) {
     let header = null, body;
     if (mode === 'family') {
         body = <FamilyJourneys journeys={family} selected={planner.selectedJourney} onOpen={planner.openJourney} stop={planMap.selectedStop} onStop={selectStop}
-            onExit={editor.exit} canPlan={Boolean(editor.contexts?.length)} onPlan={planner.toStaff} missing={planner.missingJourney} />;
+            onExit={editor.exit} canPlan={planner.canPlan} onPlan={planner.toStaff} missing={planner.missingJourney} />;
     } else if (mode === 'preview' && planner.preview) {
         const published = Boolean(editor.plan?.published);
         body = (

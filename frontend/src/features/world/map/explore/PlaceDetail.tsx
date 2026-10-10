@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { ArrowLeft, BadgeCheck, BookmarkPlus, ExternalLink, Footprints, MessageCircle, Navigation, Share2 } from 'lucide-react';
 import { apiClient } from '../../../../api/axiosConfig';
 import type { ClubProfile } from '../../../../components/discovery/clubDirectoryTypes';
@@ -57,13 +58,19 @@ export function PlaceDetail({ record, signedIn, canRespond, playerId, onBack, on
         navigator.share?.({ title: record.title, url: url.toString() }).catch(() => undefined);
     };
     const description = details?.description || (record.entityType !== 'CLUB' ? record.subtitle : null);
+    // Opening a place from the list moves focus to it, so keyboard and screen reader users land on what they chose.
+    const heading = useRef<HTMLHeadingElement>(null);
+    useEffect(() => {
+        const active = document.activeElement;
+        if (!active || active === document.body || active.closest('.gk-map-panel')) heading.current?.focus({ preventScroll: true });
+    }, [record.key]);
     return (
-        <article className="gk-map-place" aria-label={record.title}>
+        <article className="gk-map-place" aria-label={record.title} onKeyDown={event => { if (event.key === 'Escape' && !event.defaultPrevented) { event.preventDefault(); onBack(); } }}>
             <div className="gk-map-place__nav"><Button size="sm" variant="ghost" onClick={onBack}><ArrowLeft aria-hidden="true" />All results</Button></div>
             <header className="gk-map-place__head">
                 {record.entityType === 'CLUB' || record.entityType === 'STADIUM' ? <Crest src={logo} name={record.title} size={52} /> : <PlaceLead record={record} />}
                 <div className="gk-map-place__titles">
-                    <h2>{record.title}{record.verified && <BadgeCheck className="gk-world-verified" aria-label="Verified" />}</h2>
+                    <h2 ref={heading} tabIndex={-1}>{record.title}{record.verified && <BadgeCheck className="gk-world-verified" aria-label="Verified" />}</h2>
                     <p>{[typeLabel(record), record.clubName && record.clubName !== record.title ? record.clubName : null].filter(Boolean).join(' · ')}</p>
                     <div className="gk-row gk-map-place__badges">
                         {record.joinPolicy && JOIN[record.joinPolicy] && <Badge tone={record.joinPolicy === 'OPEN_TRIAL' ? 'accent' : 'neutral'}>{JOIN[record.joinPolicy]}</Badge>}

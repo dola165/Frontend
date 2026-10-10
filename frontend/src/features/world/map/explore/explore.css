@@ -61,6 +61,7 @@
 .gk .gk-map-place__head { display: flex; align-items: flex-start; gap: var(--gk-4); }
 .gk .gk-map-place__titles { display: flex; flex-direction: column; gap: var(--gk-1); min-width: 0; }
 .gk .gk-map-place__titles h2 { display: flex; align-items: center; gap: 6px; font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); font-weight: 700; overflow-wrap: anywhere; }
+.gk .gk-map-place__titles h2:focus { outline: none; }
 .gk .gk-map-place__titles p { color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
 .gk .gk-map-place__badges { flex-wrap: wrap; gap: var(--gk-1); }
 .gk .gk-map-place__badges:empty { display: none; }

@@ -8,6 +8,7 @@
 .gk .gk-plan-body { display: flex; flex-direction: column; gap: var(--gk-6); padding: var(--gk-4) var(--gk-5) var(--gk-8); min-width: 0; }
 .gk .gk-plan-editor-root { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .gk .gk-plan-tabs { flex: none; padding-inline: var(--gk-3); }
+.gk .gk-plan-tabs .gk-tab { padding-inline: var(--gk-2); }
 .gk .gk-plan-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .gk .gk-plan-scroll > .gk-notice { margin: var(--gk-4) var(--gk-5) 0; }
 .gk .gk-plan-savebar { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); padding: var(--gk-3) var(--gk-5); border-top: 1px solid var(--gk-line); background: var(--gk-surface); }

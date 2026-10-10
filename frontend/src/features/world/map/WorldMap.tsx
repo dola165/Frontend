@@ -15,11 +15,12 @@ const TONE_LABEL: Record<WorldMapTone, string> = { club: 'Clubs', venue: 'Venues
 /** Positions-only sketch: used while the street map loads and whenever it cannot. */
 function MapSketch({ points, selectedId, onSelect }: { points: WorldMapPoint[]; selectedId?: string; onSelect: (id: string) => void }) {
     const lats = points.map(p => p.lat), lngs = points.map(p => p.lng);
-    const [minLat, maxLat, minLng, maxLng] = [Math.min(...lats), Math.max(...lats), Math.min(...lngs), Math.max(...lngs)];
-    const spanLat = Math.max(maxLat - minLat, 0.01), spanLng = Math.max(maxLng - minLng, 0.01);
+    // Centre the points; a lone point or a tight cluster sits in the middle rather than a corner.
+    const midLat = (Math.min(...lats) + Math.max(...lats)) / 2, midLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+    const spanLat = Math.max(Math.max(...lats) - Math.min(...lats), 0.02), spanLng = Math.max(Math.max(...lngs) - Math.min(...lngs), 0.02);
     const place = (point: WorldMapPoint) => ({
-        left: `${8 + ((point.lng - minLng) / spanLng) * 84}%`,
-        top: `${20 + (1 - (point.lat - minLat) / spanLat) * 60}%`,
+        left: `${50 + ((point.lng - midLng) / spanLng) * 84}%`,
+        top: `${50 - ((point.lat - midLat) / spanLat) * 60}%`,
     });
     return (
         <div className="gk-world-map__sketch" aria-hidden={points.length === 0}>

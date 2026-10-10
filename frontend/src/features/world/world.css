@@ -24,3 +24,11 @@
 .gk .gk-world-past .mh-import > button { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 32px; padding: 0 var(--gk-3); border-radius: var(--gk-r-sm); border: 1px solid var(--gk-line); background: var(--gk-raised); color: var(--gk-text); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
 .gk .gk-world-past .mh-import > button:hover { border-color: var(--gk-line-strong); background: var(--gk-hover); }
 .gk .gk-world-past .mh-import > button svg { width: 16px; height: 16px; }
+@media (max-width: 640px) {
+  /* On phones a row's status moves under its text, as fixture rows do, so names stay readable. */
+  .gk.gk-world .gk-list-row { flex-wrap: wrap; row-gap: var(--gk-1); }
+  .gk.gk-world .gk-list-row__main { flex: 1 1 calc(100% - 64px); }
+  .gk.gk-world .gk-list-row__lead + .gk-list-row__main + .gk-list-row__trail { margin-left: calc(40px + var(--gk-3)); }
+  .gk.gk-world .gk-list-row__trail { flex-wrap: wrap; }
+  .gk .gk-world-row-note { white-space: normal; }
+}

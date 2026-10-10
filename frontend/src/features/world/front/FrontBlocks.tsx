@@ -88,7 +88,8 @@ export function AroundMapBlock({ area, markers }: { area: WorldArea; markers: Wo
 export function NearbyClubsBlock({ area, markers }: { area: WorldArea; markers: WorldData<MapPageResult> }) {
     const { membership } = useWorldSession();
     const ownClub = membership?.clubId ? Number(membership.clubId) : null;
-    const clubs = useWorldData(area.ready ? `near-clubs:${area.city}:${ownClub}` : null,
+    // Wait for the person's club so it can be left out without loading the list twice.
+    const clubs = useWorldData(area.ready && membership !== undefined ? `near-clubs:${area.city}:${ownClub}` : null,
         signal => fetchClubDirectory(new URLSearchParams({ city: area.city, sort: 'MEMBER_COUNT', page: '0', size: '12' }), signal));
     // Distance comes from the map search around the area's centre; clubs it cannot place keep their order.
     const distance = new Map((markers.data?.content ?? []).filter(marker => marker.entityType === 'CLUB').map(marker => [marker.clubId ?? marker.entityId, marker.distanceKm]));

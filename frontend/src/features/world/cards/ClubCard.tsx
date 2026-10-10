@@ -62,13 +62,14 @@ export function ClubCard({ club, compact = false, distanceKm }: { club: ClubProf
                 <Crest src={club.logoUrl} name={club.name} size={compact ? 40 : 48} />
                 <div className="gk-world-card__title">
                     <h3><Link to={`/clubs/${club.id}`}>{club.name}</Link>{club.isOfficial && <BadgeCheck className="gk-world-verified" aria-label="Verified club" />}</h3>
-                    <p>{[clubTypeLabel(club.type), club.cityName || club.addressText?.split(',')[0] || 'Location not published', distanceKm != null ? distanceLabel(distanceKm) : null].filter(Boolean).join(' · ')}</p>
+                    <p>{clubTypeLabel(club.type)} · {club.cityName || club.addressText?.split(',')[0] || 'Location not published'}</p>
                 </div>
             </div>
             {!compact && club.description && <p className="gk-world-card__desc">{club.description}</p>}
             <div className="gk-world-card__facts">
                 {relation ? <Badge tone={relation.tone}>{relation.label}</Badge> : policy && <Badge tone={policy.tone}>{policy.label}</Badge>}
                 <span>{plural(club.memberCount, 'member')}</span>
+                {distanceKm != null && <span>{distanceLabel(distanceKm)}</span>}
                 {!compact && fees && <span className="gk-world-card__fees">{fees}</span>}
             </div>
             {message && <p className={`gk-world-card__message${message.error ? ' is-error' : ''}`} role={message.error ? 'alert' : 'status'}>{message.text}</p>}

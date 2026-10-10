@@ -1,5 +1,8 @@
-import { CalendarDays, ClipboardCheck } from 'lucide-react';
-import { Button, PageFrame, PageHeader } from '../../../design/primitives';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { CalendarDays, ClipboardCheck, LayoutGrid, Shield } from 'lucide-react';
+import { Button, ButtonLink, PageFrame, PageHeader } from '../../../design/primitives';
+import * as squadSpaces from '../../squadCommunication/api';
 import { Tabs } from '../../../design/Tabs';
 import { useUrlTab } from '../../../design/useUrlTab';
 import type { Bootstrap } from '../../clubOperations/api';
@@ -29,7 +32,9 @@ export type HubView = typeof views[number];
  * It follows the responsibilities switched on in Responsibilities; a squad whose responsibility is off
  * leaves the hub (never the person's access) until it is switched back on.
  */
-export function CoachHub({ clubId, roles, boot, focus, events, legacyHub, onOpenCalendar, onOpenEvent, onOpen, onChanged }: {
+export function CoachHub({ page, clubId, roles, boot, focus, events, legacyHub, onOpenCalendar, onOpenEvent, onOpen, onChanged }: {
+    /** Shown as its own page (My squads) rather than inside the workspace. */
+    page?: { clubName: string; workspace: boolean };
     clubId: number; roles: RolesWorkspace; boot: Bootstrap | null; focus: ResponsibilityFocus; events: ScheduleEventOccurrence[];
     /** The hub tab an old personal link (my-role, my-people) stands for, until the address is rewritten. */
     legacyHub?: string;
@@ -50,11 +55,23 @@ export function CoachHub({ clubId, roles, boot, focus, events, legacyHub, onOpen
     const waiting = roles.invitations.length + roles.requests.filter(r => r.status === 'PENDING' && r.user_id === roles.actorId).length;
     const players = new Set(roles.people.filter(p => squads.includes(p.squad_id)).map(p => p.id)).size;
     const takeOn = () => setView('responsibilities');
+    // Unread family messages per squad, from the squad spaces coaches and families share.
+    const [families, setFamilies] = useState<Map<number, number>>(new Map());
+    useEffect(() => {
+        const abort = new AbortController();
+        squadSpaces.spaces(abort.signal).then(list => setFamilies(new Map(list.map(space => [space.id, space.unread_count])))).catch(() => undefined);
+        return () => abort.abort();
+    }, []);
+    const roleOf = (squadId: number) => focus.available.filter(v => !v.clubWide && v.squadIds.includes(squadId)).map(v => v.label).join(", ") || (roles.leadership ? copy('clubAdministration') : "");
+    const header = page
+        ? { title: copy('mySquads'), subtitle: <><Link className="cw-hub-club" to={`/clubs/${clubId}`}>{page.clubName}</Link>{responsibilities.length > 0 && <> · {responsibilities.join(", ")}</>}</>,
+            links: <><ButtonLink variant="ghost" to={`/clubs/${clubId}`}><Shield aria-hidden="true" />{copy('clubPage')}</ButtonLink>{page.workspace && <ButtonLink variant="ghost" to={`/clubs/${clubId}/workspace`}><LayoutGrid aria-hidden="true" />{copy('clubWorkspace')}</ButtonLink>}</> }
+        : { title: copy('title'), subtitle, links: null };
 
     return <PageFrame className="cw-page">
-        <PageHeader title={copy('title')} subtitle={subtitle} actions={register
-            ? <><Button onClick={onOpenCalendar}><CalendarDays aria-hidden="true" />{copy('calendar')}</Button><Button variant="primary" onClick={() => onOpen('attendance', { squad: String(register.squadId), session: String(register.session!.id) })}><ClipboardCheck aria-hidden="true" />{copy('takeAttendance')}</Button></>
-            : <Button variant="primary" onClick={onOpenCalendar}><CalendarDays aria-hidden="true" />{copy('openCalendar')}</Button>} />
+        <PageHeader title={header.title} subtitle={header.subtitle} actions={register
+            ? <>{header.links}<Button onClick={onOpenCalendar}><CalendarDays aria-hidden="true" />{copy('calendar')}</Button><Button variant="primary" onClick={() => onOpen('attendance', { squad: String(register.squadId), session: String(register.session!.id) })}><ClipboardCheck aria-hidden="true" />{copy('takeAttendance')}</Button></>
+            : <>{header.links}<Button variant="primary" onClick={onOpenCalendar}><CalendarDays aria-hidden="true" />{copy('openCalendar')}</Button></>} />
         <Tabs label={copy('title')} value={view} onChange={setView} items={[
             { id: 'work', label: copy('tabWeek') },
             { id: 'players', label: copy('tabPlayers'), count: players || undefined },
@@ -65,8 +82,8 @@ export function CoachHub({ clubId, roles, boot, focus, events, legacyHub, onOpen
                 : view === 'players' ? <CoachPlayers roles={roles} boot={boot} squads={squads} hidden={hiddenSquads.length > 0} onShowAll={focus.showAll} onOpen={onOpen} />
                     : <div className="gk-grid gk-grid--split">
                         <div className="gk-stack">
+                            <CoachSquads title={page ? copy('yourSquads') : undefined} roleOf={roleOf} families={families} roles={roles} boot={boot} squads={squads} hidden={hiddenSquads.length > 0} onShowAll={focus.showAll} onOpen={onOpen} onTakeOn={takeOn} />
                             {mine.length > 0 && <CoachWeek agenda={agenda} boot={boot} onOpen={onOpen} onOpenEvent={onOpenEvent} />}
-                            <CoachSquads roles={roles} boot={boot} squads={squads} hidden={hiddenSquads.length > 0} onShowAll={focus.showAll} onOpen={onOpen} onTakeOn={takeOn} />
                         </div>
                         <div className="gk-stack">
                             <PlayersAttention clubId={clubId} roles={roles} boot={boot} squads={squads} onOpen={onOpen} />

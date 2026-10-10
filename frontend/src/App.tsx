@@ -96,6 +96,7 @@ const RefereePage = lazy(() => import('./pages/RefereePage').then(module => ({de
 const AgentDashboardPage = lazy(() => import('./pages/AgentDashboardPage').then(module => ({default: module.AgentDashboardPage})));
 const OrganizationWorkspacePage = lazy(() => import('./pages/OrganizationWorkspacePage').then(module => ({default: module.OrganizationWorkspacePage})));
 const ClubWorkspacePage = lazy(() => import('./pages/ClubWorkspacePage').then(module => ({default: module.default})));
+const CoachHubPage = lazy(() => import('./pages/ClubWorkspacePage').then(module => ({default: module.CoachHubPage})));
 const FollowedClubsPage = lazy(() => import('./pages/FollowedClubsPage').then(module => ({default: module.FollowedClubsPage})));
 const PostPage = lazy(() => import('./pages/PostPage').then(module => ({default: module.PostPage})));
 const RouteRecoveryPage = lazy(() => import('./pages/RouteRecoveryPage').then(module => ({default: module.RouteRecoveryPage})));
@@ -292,7 +293,7 @@ export function MainLayout() {
         location.pathname === '/join-squad' || location.pathname === '/volunteering' || location.pathname === '/event-venues' ||
         location.pathname.startsWith('/tournament-series/') ||
         location.pathname === '/matches' || location.pathname.startsWith('/match-exchange') || location.pathname === '/match-history' || location.pathname.startsWith('/referees/') ||
-        location.pathname === '/squads' || location.pathname.startsWith('/squads/') ||
+        location.pathname === '/my-squads' || location.pathname === '/squads' || location.pathname.startsWith('/squads/') ||
         location.pathname === '/demo/commerce' || location.pathname === '/design-system' ||
         location.pathname.startsWith('/profile') ||
         location.pathname.startsWith('/posts/') ||
@@ -354,6 +355,7 @@ export function MainLayout() {
             <Route path="/tournament-series/:seriesId" element={<ExtensionRoute capability="tournamentSeries"><TournamentSeriesPage /></ExtensionRoute>} />
             <Route path="/volunteering" element={<ExtensionRoute capability="volunteerShifts"><ProtectedRoute><VolunteerPage /></ProtectedRoute></ExtensionRoute>} />
             <Route path="/event-venues" element={<ExtensionRoute capability="eventVenueAttachment"><ProtectedRoute><EventVenuePage /></ProtectedRoute></ExtensionRoute>} />
+            <Route path="/my-squads" element={<ProtectedRoute><CoachHubPage /></ProtectedRoute>} />
             <Route path="/squads" element={<ProtectedRoute><MySquadsPage /></ProtectedRoute>} />
             <Route path="/squads/:squadId" element={<ProtectedRoute><SquadCommunicationPage /></ProtectedRoute>} />
             <Route path="/design-system" element={<ProtectedRoute><DesignSystemPage /></ProtectedRoute>} />

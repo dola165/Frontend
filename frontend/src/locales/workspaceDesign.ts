@@ -58,7 +58,7 @@ export const workspaceNavKa: Record<keyof typeof workspaceNavEn, string> = {
 };
 
 export const coachHubEn = {
-    title: 'Coach Hub', clubAdministration: 'Club administration', emptySubtitle: 'Take on a responsibility to fill your hub.',
+    title: 'Coach Hub', yourSquads: 'Your squads', clubPage: 'Club page', clubWorkspace: 'Club workspace', families: 'Families', clubAdministration: 'Club administration', emptySubtitle: 'Take on a responsibility to fill your hub.',
     calendar: 'Calendar', openCalendar: 'Open calendar', takeAttendance: 'Take attendance',
     tabWeek: 'My week', tabPlayers: 'My players', tabResponsibilities: 'Responsibilities',
     today: 'Today', thisWeek: 'This week', nextSevenDays: 'Next 7 days',
@@ -98,7 +98,7 @@ export const coachHubEn = {
 };
 
 export const coachHubKa: Record<keyof typeof coachHubEn, string> = {
-    title: 'მწვრთნელის პანელი', clubAdministration: 'კლუბის ადმინისტრირება', emptySubtitle: 'აიღეთ პასუხისმგებლობა, რომ პანელი შეივსოს.',
+    title: 'მწვრთნელის პანელი', yourSquads: 'თქვენი გუნდები', clubPage: 'კლუბის გვერდი', clubWorkspace: 'კლუბის სამუშაო სივრცე', families: 'ოჯახები', clubAdministration: 'კლუბის ადმინისტრირება', emptySubtitle: 'აიღეთ პასუხისმგებლობა, რომ პანელი შეივსოს.',
     calendar: 'კალენდარი', openCalendar: 'კალენდრის გახსნა', takeAttendance: 'დასწრების აღრიცხვა',
     tabWeek: 'ჩემი კვირა', tabPlayers: 'ჩემი მოთამაშეები', tabResponsibilities: 'პასუხისმგებლობები',
     today: 'დღეს', thisWeek: 'ეს კვირა', nextSevenDays: 'მომდევნო 7 დღე',

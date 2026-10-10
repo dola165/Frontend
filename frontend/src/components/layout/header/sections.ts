@@ -2,7 +2,7 @@ import { accessibleClubs } from '../clubAccess';
 import type { LucideIcon } from 'lucide-react';
 import type { NavigationCapabilities } from '../../../context/navigationCapabilities';
 
-export type PrimarySection = 'home' | 'world' | 'my-club';
+export type PrimarySection = 'home' | 'world' | 'my-club' | 'my-squads' | 'parent-hub';
 export interface PrimaryTab { id: PrimarySection; to: string; label: string; icon: LucideIcon; current: boolean }
 
 export interface MyClub { ids: number[]; path: string | null }
@@ -30,7 +30,9 @@ const discoveryRoute = /^\/(?:world|map|people|stadiums|matches|match-history|ma
 /** Which primary tab a location belongs to. Work surfaces outside the three places return null. */
 export function primarySectionFor(pathname: string, ownClubIds: number[]): PrimarySection | null {
     if (pathname === '/home' || pathname === '/feed' || pathname.startsWith('/posts/')) return 'home';
-    if (pathname === '/my-club' || pathname === '/squads' || pathname.startsWith('/squads/')) return 'my-club';
+    if (pathname === '/my-club') return 'my-club';
+    if (pathname === '/my-squads' || pathname === '/squads' || pathname.startsWith('/squads/')) return 'my-squads';
+    if (pathname === '/parent' || pathname.startsWith('/parent/')) return 'parent-hub';
     const club = /^\/clubs\/(\d+)(?:\/|$)/.exec(pathname);
     if (club) return ownClubIds.includes(Number(club[1])) ? 'my-club' : 'world';
     if (/^\/tournaments\/\d+\/workspace$/.test(pathname) || pathname === '/tournaments/setup') return null;

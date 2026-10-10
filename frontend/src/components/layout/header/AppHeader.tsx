@@ -2,7 +2,9 @@ import './header.css';
 import { useContext, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Earth, House, MessageSquare, Shield, Sparkles } from 'lucide-react';
+import { Earth, Heart, House, MessageSquare, Shield, Sparkles, Users } from 'lucide-react';
+import { hasNavigationCapability } from '../../../context/navigationCapabilities';
+import { accessibleClubs } from '../clubAccess';
 import { ButtonLink, Count } from '../../../design/primitives';
 import type { AuthUser } from '../../../context/AuthContext';
 import { DolaLink } from '../../../features/dola/DolaProvider';
@@ -66,6 +68,10 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
         { id: 'home', to: '/home', label: copy('Home', 'მთავარი'), icon: House, current: section === 'home' },
         { id: 'world', to: '/world', label: copy('World', 'მსოფლიო'), icon: Earth, current: section === 'world' },
         ...(club.path ? [{ id: 'my-club' as const, to: club.path, label: copy('My Club', 'ჩემი კლუბი'), icon: Shield, current: section === 'my-club' }] : []),
+        // Role tabs come from relationships: coaching a squad gives My squads, a linked child gives Parent Hub.
+        // Later hubs (referee, organiser) are one more line here.
+        ...(accessibleClubs(capabilities).some(c => c.canOpenWorkspace) ? [{ id: 'my-squads' as const, to: '/my-squads', label: copy('My squads', 'ჩემი გუნდები'), icon: Users, current: section === 'my-squads' }] : []),
+        ...(hasNavigationCapability(capabilities, 'parent.hub') ? [{ id: 'parent-hub' as const, to: '/parent', label: copy('Parent Hub', 'მშობლის სივრცე'), icon: Heart, current: section === 'parent-hub' }] : []),
     ];
     const light = themeForRoute(themePreference) === 'light';
     const dola = useContext(DolaContext);

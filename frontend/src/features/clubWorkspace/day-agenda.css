@@ -1,0 +1,4 @@
+/* Upcoming entries grouped by day: a quiet day heading, then that day's lines. */
+.gk .cw-day-agenda__day + .cw-day-agenda__day { border-top: 1px solid var(--gk-line); }
+.gk .cw-day-agenda__label { margin: 0; padding: var(--gk-3) var(--gk-5) var(--gk-1); color: var(--gk-text-2); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.gk .cw-day-agenda .gk-list > li:first-child { border-top: 0; }

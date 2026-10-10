@@ -6,6 +6,7 @@ import type { ScheduleEventOccurrence } from '../../schedule/api';
 import { coachHubEn } from '../../../locales/workspaceDesign';
 import { useCopy } from '../../../locales/useCopy';
 import { dayLabel, isToday, kindOf, timeLabel, type AgendaEntry } from '../fixtures';
+import { DayAgenda, type DayAgendaItem } from '../DayAgenda';
 
 /** Today's sessions, then the rest of the week, for my squads only: training plus their matches. */
 export function CoachWeek({ agenda, boot, onOpen, onOpenEvent }: {
@@ -29,6 +30,18 @@ export function CoachWeek({ agenda, boot, onOpen, onOpenEvent }: {
             trail={canReadSquad(boot, 'ATTENDANCE', entry.squadId) ? <Button size="sm" onClick={() => onOpen('attendance', context)}>{copy('attendance')}</Button> : <Badge tone="info">{copy('training')}</Badge>} />;
     };
 
+    // The rest of the week reads by day, with same-time entries merged (DayAgenda).
+    const item = (entry: AgendaEntry): DayAgendaItem => {
+        if (entry.event) {
+            const kind = kindOf(entry.event);
+            return { key: entry.key, startsAt: entry.startsAt, title: entry.event.title, meta: [entry.squadName, entry.event.locationName].filter(Boolean).join(" · "), tone: kind.tone,
+                trail: <Badge tone={kind.badge}>{kind.label}</Badge>, onClick: () => onOpenEvent(entry.event!), label: copy('openInCalendar', { name: entry.event.title }), kind: entry.event.eventType, squad: entry.squadName };
+        }
+        const session = entry.session!;
+        return { key: entry.key, startsAt: entry.startsAt, title: session.title, meta: entry.squadName, tone: 'training', trail: <Badge tone="info">{copy('training')}</Badge>,
+            onClick: () => onOpen('squads', { squad: String(entry.squadId), session: String(session.id), view: 'training' }), label: copy('openSession', { name: session.title, squad: entry.squadName }), kind: 'TRAINING', squad: entry.squadName };
+    };
+
     const next = later[0];
     return <>
         <Section title={copy('today')} hint={today.length ? copy('sessions', { count: today.length }) : undefined}>
@@ -36,7 +49,7 @@ export function CoachWeek({ agenda, boot, onOpen, onOpenEvent }: {
                 : <EmptyNote title={copy('nothingToday')}>{next ? copy('nextUp', { day: dayLabel(next.startsAt), time: timeLabel(next.startsAt), name: next.session?.title ?? next.event?.title ?? '', squad: next.squadName }) : copy('weekHint')}</EmptyNote>}</Panel>
         </Section>
         <Section title={copy('thisWeek')} hint={copy('nextSevenDays')}>
-            <Panel flush>{later.length ? <List label={copy('thisWeek')}>{later.slice(0, 8).map(row)}</List>
+            <Panel flush>{later.length ? <DayAgenda label={copy('thisWeek')} items={later.map(item)} limit={8} />
                 : <EmptyNote title={copy('weekEmpty')}>{copy('weekEmptyHint')}</EmptyNote>}</Panel>
         </Section>
     </>;

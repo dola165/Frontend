@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CalendarDays, Send, Shield, Trophy, Users } from 'lucide-react';
-import { Badge, Button, EmptyNote, FixtureRow, List, PageFrame, PageHeader, Panel, Section, Skeleton, StatTile } from '../../../design/primitives';
+import { Badge, Button, EmptyNote, PageFrame, PageHeader, Panel, Section, Skeleton, StatTile } from '../../../design/primitives';
 import type { TabItem } from '../../../components/workspace/types';
 import type { Bootstrap } from '../../clubOperations/api';
 import type { RoleView, RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
@@ -10,7 +10,8 @@ import type { ScheduleEventOccurrence } from '../../schedule/api';
 import { clubOverviewEn } from '../../../locales/clubOverview';
 import { useCopy } from '../../../locales/useCopy';
 import { formatDate } from '../../../utils/formatting';
-import { dayLabel, eventSquadId, kindOf, squadAgenda, timeLabel } from '../fixtures';
+import { eventSquadId, kindOf, squadAgenda } from '../fixtures';
+import { DayAgenda } from '../DayAgenda';
 import { mySquadIds } from '../coachHub/coachData';
 import { OtherWork } from '../coachHub/OtherWork';
 import { NeedsYou } from './NeedsYou';
@@ -72,19 +73,20 @@ export function ClubOverview({ clubId, clubName, overview, roles, boot, schedule
     let comingUp;
     if (schedule.loading && !agenda?.length) comingUp = <div className="cw-skeleton-rows" role="status" aria-label={copy('scheduleLoading')}>{[0, 1, 2].map(i => <Skeleton key={i} height={52} />)}</div>;
     else if (schedule.error && !agenda?.length) comingUp = <div className="cw-panel-notice"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{copy('scheduleError')}</span><Button size="sm" onClick={schedule.retry}>{copy('retry')}</Button></div></div>;
-    else if (agenda) comingUp = agenda.length ? <List label={copy('upcoming')}>{agenda.slice(0, 7).map(entry => entry.event
-        ? <FixtureRow key={entry.key} tone={kindOf(entry.event).tone} time={timeLabel(entry.startsAt)} day={dayLabel(entry.startsAt)} title={entry.event.title} meta={[entry.squadName, entry.event.locationName].filter(Boolean).join(' · ')}
-            onClick={() => schedule.openEvent(entry.event!)} label={copy('openEvent', { name: entry.event.title })} trail={<Badge tone={kindOf(entry.event).badge}>{kindOf(entry.event).label}</Badge>} />
-        : <FixtureRow key={entry.key} tone="training" time={timeLabel(entry.startsAt)} day={dayLabel(entry.startsAt)} title={entry.session!.title} meta={entry.squadName}
-            onClick={() => onOpen('squads', { squad: String(entry.squadId), view: 'training', session: String(entry.session!.id) })} label={copy('openSession', { name: entry.session!.title, squad: entry.squadName })} trail={<Badge tone="info">{kindOf({ eventType: 'TRAINING' }).label}</Badge>} />)}</List>
+    // Grouped by day, and same-kind entries at the same time merge into one line (DayAgenda).
+    else if (agenda) comingUp = agenda.length ? <DayAgenda label={copy('upcoming')} items={agenda.map(entry => entry.event
+        ? { key: entry.key, startsAt: entry.startsAt, title: entry.event.title, meta: [entry.squadName, entry.event.locationName].filter(Boolean).join(' · '), tone: kindOf(entry.event).tone,
+            trail: <Badge tone={kindOf(entry.event).badge}>{kindOf(entry.event).label}</Badge>, onClick: () => schedule.openEvent(entry.event!), label: copy('openEvent', { name: entry.event.title }), kind: entry.event.eventType, squad: entry.squadName }
+        : { key: entry.key, startsAt: entry.startsAt, title: entry.session!.title, meta: entry.squadName, tone: 'training' as const, trail: <Badge tone="info">{kindOf({ eventType: 'TRAINING' }).label}</Badge>,
+            onClick: () => onOpen('squads', { squad: String(entry.squadId), view: 'training', session: String(entry.session!.id) }), label: copy('openSession', { name: entry.session!.title, squad: entry.squadName }), kind: 'TRAINING' as const, squad: entry.squadName })} />
         : <EmptyNote title={copy('squadWeekEmpty')} action={<Button size="sm" onClick={() => onOpen('coach-hub')}>{copy('openCoachHub')}</Button>}>{copy('squadWeekEmptyHint')}</EmptyNote>;
-    else comingUp = clubEvents.length ? <List label={copy('upcoming')}>{clubEvents.slice(0, 7).map(event => {
+    else comingUp = clubEvents.length ? <DayAgenda label={copy('upcoming')} items={clubEvents.map(event => {
         const kind = kindOf(event), started = new Date(event.startsAt).getTime() <= now && new Date(event.endsAt).getTime() > now;
-        // Two squads can play at the same time against the same club; the squad name tells them apart.
-        return <FixtureRow key={`${event.eventId}-${event.occurrenceId}`} tone={kind.tone} time={timeLabel(event.startsAt)} day={dayLabel(event.startsAt)} title={event.title}
-            meta={[squadName(event), event.locationName || copy('locationMissing')].filter(Boolean).join(' · ')} onClick={() => schedule.openEvent(event)} label={copy('openEvent', { name: event.title })}
-            trail={<>{event.conflict && <Badge tone="danger">{copy('scheduleConflict')}</Badge>}{started ? <Badge tone="accent">{copy('inProgress')}</Badge> : <Badge tone={kind.badge}>{kind.label}</Badge>}</>} />;
-    })}</List> : <EmptyNote title={copy('scheduleEmpty')} action={<Button size="sm" onClick={schedule.open}>{copy('openCalendar')}</Button>}>{copy('scheduleEmptyHint')}</EmptyNote>;
+        // Two squads can play at the same time against the same club; the squad name tells them apart. Live or clashing entries keep their own line.
+        return { key: `${event.eventId}-${event.occurrenceId}`, startsAt: event.startsAt, title: event.title, meta: [squadName(event), event.locationName || copy('locationMissing')].filter(Boolean).join(' · '), tone: kind.tone,
+            trail: <>{event.conflict && <Badge tone="danger">{copy('scheduleConflict')}</Badge>}{started ? <Badge tone="accent">{copy('inProgress')}</Badge> : <Badge tone={kind.badge}>{kind.label}</Badge>}</>,
+            onClick: () => schedule.openEvent(event), label: copy('openEvent', { name: event.title }), kind: started || event.conflict ? undefined : event.eventType, squad: squadName(event) };
+    })} /> : <EmptyNote title={copy('scheduleEmpty')} action={<Button size="sm" onClick={schedule.open}>{copy('openCalendar')}</Button>}>{copy('scheduleEmptyHint')}</EmptyNote>;
 
     const suggestions = [
         ...(tabs.some(tab => tab.id === 'squads') ? [{ id: 'squads', label: copy('squads'), hint: copy('squadsHint'), icon: Shield, open: () => onOpen('squads') }] : []),

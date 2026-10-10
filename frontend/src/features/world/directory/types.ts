@@ -55,7 +55,7 @@ export interface DirectorySource<T> {
     key: (item: T) => string;
     Item: ComponentType<{ item: T }>;
     /** Work that belongs beside these results, shown above them (for example adding a past match). */
-    Tools?: ComponentType<{ query: DirectoryQuery }>;
+    Tools?: ComponentType<{ query: DirectoryQuery; refresh: () => void }>;
     /** Map position of a result. Results without one are simply not on the map. */
     point?: (item: T, coords?: { lat: number; lng: number }) => WorldMapPoint | null;
     /** For results that carry no coordinates themselves: positions looked up separately, by item key. */

@@ -107,7 +107,7 @@ function DirectoryBody({ state, signedIn, onReset }: { state: DirectoryState; si
                     {filtered && <Button size="sm" variant="ghost" onClick={clear}>Clear filters</Button>}
                 </div>
             )}
-            {Tools && !gated && <Tools query={query} />}
+            {Tools && !gated && <Tools query={query} refresh={data.retry} />}
             {view === 'split' && hasMap && !gated
                 ? <div className="gk-world-split"><div className="gk-world-split__list">{results}</div>{map('side')}</div>
                 : view === 'map' && hasMap && !gated

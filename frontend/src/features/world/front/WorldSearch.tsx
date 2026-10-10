@@ -6,6 +6,7 @@ import { buildLoginRedirectPath } from '../../../utils/authRedirect';
 import { fetchVenues } from '../../venues/api';
 import { browseCompetitions } from '../../competitions/api';
 import { getMatchHistory } from '../../matchHistory/api';
+import { searchTryouts } from '../../tryouts/api';
 import { fetchClubDirectory, fetchPeople } from '../api';
 import { Crest } from '../Crest';
 import { clubTypeLabel, fixtureDay, fixtureTime, shortDate } from '../format';
@@ -16,6 +17,7 @@ interface Hit { key: string; to: string; row: ReactNode }
 interface Group { id: string; title: string; all: string; hits: Hit[] | null; note?: ReactNode }
 
 const settled = <T,>(result: PromiseSettledResult<T>) => (result.status === 'fulfilled' ? result.value : null);
+const listOf = (items: string[]) => items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} or ${items[items.length - 1]}`;
 
 /** Search across World: the best few clubs, people, venues, competitions and matches, each with a way into its directory. */
 export function WorldSearch({ quickStarts }: { quickStarts: ReactNode }) {
@@ -30,14 +32,15 @@ export function WorldSearch({ quickStarts }: { quickStarts: ReactNode }) {
     const signedIn = status === 'authenticated';
     const search = useWorldData(q.length >= 2 ? `world-search:${signedIn}:${q}` : null, async signal => {
         const clubParams = new URLSearchParams({ search: q, page: '0', size: '4', sort: 'MEMBER_COUNT' });
-        const [clubs, venues, competitions, people, matches] = await Promise.allSettled([
+        const [clubs, venues, competitions, people, matches, trials] = await Promise.allSettled([
             fetchClubDirectory(clubParams, signal),
             fetchVenues({ q, page: 0, size: 3, durationMinutes: 60 }, signal),
             browseCompetitions(new URLSearchParams({ q, page: '0', size: '3' }), signal),
             signedIn ? fetchPeople({ q, size: 4 }, sessionId, signal) : Promise.resolve(null),
             signedIn ? getMatchHistory(new URLSearchParams({ period: 'UPCOMING', q, page: '0', size: '3' }).toString(), signal, sessionId) : Promise.resolve(null),
+            searchTryouts({ q, status: 'OPEN', page: 0, size: 3 }, signal),
         ]);
-        return { clubs: settled(clubs), venues: settled(venues), competitions: settled(competitions), people: settled(people), matches: settled(matches) };
+        return { clubs: settled(clubs), venues: settled(venues), competitions: settled(competitions), people: settled(people), matches: settled(matches), trials: settled(trials) };
     });
     const query = encodeURIComponent(q);
     const groups: Group[] = search.data ? [
@@ -46,9 +49,12 @@ export function WorldSearch({ quickStarts }: { quickStarts: ReactNode }) {
             note: signedIn ? undefined : <Link className="gk-section__action" to={buildLoginRedirectPath('/world', '', '')}>Sign in to search people</Link> },
         { id: 'venues', title: 'Venues', all: `/world/venues?q=${query}`, hits: search.data.venues?.content.map(venue => ({ key: `v${venue.id}`, to: `/stadiums/${venue.id}`, row: <ListRow to={`/stadiums/${venue.id}`} lead={<Crest src={venue.logoUrl} name={venue.displayName} size={32} />} title={venue.displayName} meta={venue.addressText || venue.city} /> })) ?? null },
         { id: 'competitions', title: 'Competitions', all: `/world/competitions?q=${query}`, hits: search.data.competitions?.content.map(card => ({ key: `t${card.id}`, to: `/tournaments/${card.id}`, row: <ListRow to={`/tournaments/${card.id}`} lead={<Crest src={card.bannerImageUrl} name={card.name} size={32} />} title={card.name} meta={[shortDate(card.startDate), card.hostClubName || card.organizerName].filter(Boolean).join(' · ')} /> })) ?? null },
+        { id: 'trials', title: 'Trials', all: `/world/opportunities?type=trials&q=${query}`, hits: search.data.trials?.items.map(trial => ({ key: `r${trial.id}`, to: `/tryouts/${trial.id}`, row: <ListRow to={`/tryouts/${trial.id}`} lead={<span className="gk-world-search__when gk-num">{fixtureTime(trial.tryoutDate)}<small>{fixtureDay(trial.tryoutDate)}</small></span>} title={trial.title} meta={[trial.clubName, trial.ageGroup].filter(Boolean).join(' · ')} /> })) ?? null },
         ...(signedIn ? [{ id: 'matches', title: 'Matches', all: `/world/matches?q=${query}`, hits: search.data.matches?.items.map(match => ({ key: `m${match.id}`, to: match.detailPath, row: <ListRow to={match.detailPath} lead={<span className="gk-world-search__when gk-num">{fixtureTime(match.startsAt)}<small>{fixtureDay(match.startsAt)}</small></span>} title={match.homeClubName && match.awayClubName ? `${match.homeClubName} v ${match.awayClubName}` : match.title} meta={match.locationName ?? undefined} /> })) ?? null }] : []),
     ] : [];
     const firstHit = groups.flatMap(group => group.hits ?? [])[0];
+    const empty = groups.filter(group => !group.note && group.hits?.length === 0);
+    const failed = groups.filter(group => !group.note && group.hits === null);
     const onKey = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Escape') setText('');
         if (event.key === 'Enter' && firstHit) navigate(firstHit.to);
@@ -66,14 +72,18 @@ export function WorldSearch({ quickStarts }: { quickStarts: ReactNode }) {
                     {(search.loading || !search.data ? ['clubs', 'people', 'venues', 'competitions'] : []).map(id => (
                         <Panel key={id} flush><div className="gk-world-search__loading"><Skeleton height={14} width="30%" /><Skeleton height={36} /><Skeleton height={36} /></div></Panel>
                     ))}
-                    {groups.map(group => (
+                    {groups.filter(group => group.note || group.hits?.length).map(group => (
                         <Panel key={group.id} flush title={group.title} action={group.hits?.length ? <Link className="gk-section__action" to={group.all}>See all</Link> : undefined}>
                             {group.note ? <p className="gk-world-search__note">{group.note}</p>
-                                : group.hits === null ? <p className="gk-world-search__note gk-faint">{group.title} could not be searched.</p>
-                                    : group.hits.length === 0 ? <p className="gk-world-search__note gk-faint">No {group.title.toLowerCase()} match “{q}”.</p>
-                                        : <List label={group.title}>{group.hits.map(hit => <Fragment key={hit.key}>{hit.row}</Fragment>)}</List>}
+                                : <List label={group.title}>{group.hits!.map(hit => <Fragment key={hit.key}>{hit.row}</Fragment>)}</List>}
                         </Panel>
                     ))}
+                    {search.data && (empty.length > 0 || failed.length > 0) && (
+                        <p className="gk-world-search__none">
+                            {empty.length > 0 && <>No {listOf(empty.map(group => group.title.toLowerCase()))} match “{q}”. </>}
+                            {failed.length > 0 && <>{listOf(failed.map(group => group.title))} could not be searched.</>}
+                        </p>
+                    )}
                 </div>
             )}
         </div>

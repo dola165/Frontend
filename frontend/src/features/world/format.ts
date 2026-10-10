@@ -70,3 +70,6 @@ export const JOIN_POLICY: Record<ClubJoinPolicy, { label: string; tone: BadgeTon
 };
 
 export const plural = (count: number, one: string, other = `${one}s`) => `${count.toLocaleString(appLocale())} ${count === 1 ? one : other}`;
+
+/** "800 m away", "2.6 km away". */
+export const distanceLabel = (km: number) => km < 1 ? `${Math.max(100, Math.round(km * 10) * 100)} m away` : `${km.toLocaleString(appLocale(), { maximumFractionDigits: km < 10 ? 1 : 0 })} km away`;

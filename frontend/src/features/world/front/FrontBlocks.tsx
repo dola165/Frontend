@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { Badge, Button, ButtonLink, EmptyNote, List, ListRow, Panel, Section, Skeleton } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
-import { fetchNearbyMap } from '../../../api/map';
+import type { MapPageResult } from '../../../api/map';
 import { eventSearch, type EventItem } from '../../requests/api';
 import { browseCompetitions } from '../../competitions/api';
 import { fetchOpenJobDirectory } from '../../clubs/api';
@@ -64,9 +64,7 @@ export function WeekendBlock({ area }: { area: WorldArea }) {
 }
 
 /** A compact map of clubs and venues around the area, with the way into the full map. */
-export function AroundMapBlock({ area }: { area: WorldArea }) {
-    const markers = useWorldData(area.centre ? `around:${area.city}:${area.centre.lat}` : null,
-        signal => fetchNearbyMap({ lat: area.centre!.lat, lng: area.centre!.lng, radius: 25, type: ['CLUB', 'STADIUM'], size: 100 }, signal));
+export function AroundMapBlock({ area, markers }: { area: WorldArea; markers: WorldData<MapPageResult> }) {
     const points: WorldMapPoint[] = (markers.data?.content ?? []).map(marker => ({
         id: `${marker.entityType}:${marker.entityId}`, lat: marker.latitude, lng: marker.longitude, label: marker.title,
         meta: marker.entityType === 'CLUB' ? [marker.subtitle, marker.addressText].filter(Boolean).join(' · ') : [marker.subtitle, marker.fee].filter(Boolean).join(' · '),
@@ -87,17 +85,21 @@ export function AroundMapBlock({ area }: { area: WorldArea }) {
 }
 
 /** A few clubs in the area, as cards with Follow and Open. The person's own club is left out. */
-export function NearbyClubsBlock({ area }: { area: WorldArea }) {
+export function NearbyClubsBlock({ area, markers }: { area: WorldArea; markers: WorldData<MapPageResult> }) {
     const { membership } = useWorldSession();
     const ownClub = membership?.clubId ? Number(membership.clubId) : null;
     const clubs = useWorldData(area.ready ? `near-clubs:${area.city}:${ownClub}` : null,
-        signal => fetchClubDirectory(new URLSearchParams({ city: area.city, sort: 'MEMBER_COUNT', page: '0', size: '5' }), signal));
+        signal => fetchClubDirectory(new URLSearchParams({ city: area.city, sort: 'MEMBER_COUNT', page: '0', size: '12' }), signal));
+    // Distance comes from the map search around the area's centre; clubs it cannot place keep their order.
+    const distance = new Map((markers.data?.content ?? []).filter(marker => marker.entityType === 'CLUB').map(marker => [marker.clubId ?? marker.entityId, marker.distanceKm]));
+    const far = Number.POSITIVE_INFINITY;
     return (
         <Section id="world-clubs" title="Clubs near you" hint={area.city} action={{ label: 'All clubs', to: `/world/clubs?city=${encodeURIComponent(area.city)}` }}>
             <BlockState data={clubs} rows={2}>{page => {
-                const list = page.content.filter(club => club.id !== ownClub).slice(0, 4);
+                const list = page.content.filter(club => club.id !== ownClub)
+                    .sort((a, b) => (distance.get(a.id) ?? far) - (distance.get(b.id) ?? far)).slice(0, 4);
                 return list.length
-                    ? <div className="gk-world-front__clubs">{list.map(club => <ClubCard key={club.id} club={club} compact />)}</div>
+                    ? <div className="gk-world-front__clubs">{list.map(club => <ClubCard key={club.id} club={club} distanceKm={distance.get(club.id)} compact />)}</div>
                     : <Panel><EmptyNote title={`No clubs listed in ${area.city} yet`} action={<ButtonLink size="sm" to="/world/clubs">Browse all clubs</ButtonLink>}>Try another area or browse every club.</EmptyNote></Panel>;
             }}</BlockState>
         </Section>

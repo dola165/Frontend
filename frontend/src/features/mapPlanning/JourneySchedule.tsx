@@ -25,7 +25,7 @@ export function JourneyEventDetails({entries,onClose,onSaved}:{entries:JourneyEn
    {s.canRespond&&entry.status!=='CANCELLED'&&<div><button disabled={busy} onClick={()=>void reply(s.id,'GOING')}>I am going</button><button disabled={busy} onClick={()=>void reply(s.id,'NOT_GOING')}>I cannot go</button></div>}
   </section>)}
   {busy&&<p role="status">Saving your reply…</p>}{error&&<p role="alert">{error}</p>}
-  <Link className="journey-event-open" to={entry.staff?`/map?plans=staff&plan=${entry.planId}&club=${entry.clubId}&squad=${entry.squadId}&view=journey`:`/map?plans=family&journey=${entry.planId}${child?`&journeyChild=${child}`:''}`}><Route size={18}/> View the whole journey on the map</Link>
+  <Link className="journey-event-open" to={entry.staff?`/world/map?plans=staff&plan=${entry.planId}&club=${entry.clubId}&squad=${entry.squadId}&view=journey`:`/world/map?plans=family&journey=${entry.planId}${child?`&journeyChild=${child}`:''}`}><Route size={18}/> View the whole journey on the map</Link>
   {(entry.eventId||entry.sessionId)&&<Link to={entry.sessionId?`/calendar?scope=squad&squadId=${entry.squadId}&sessionId=${entry.sessionId}`:`/calendar?scope=personal&eventId=${entry.eventId}`}>Open the linked {entry.sessionId?'training session':'fixture'}</Link>}
  </div></FamilyPlanWindow>;
 }

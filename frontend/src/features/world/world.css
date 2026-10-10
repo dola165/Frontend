@@ -19,3 +19,8 @@
 .gk .gk-world-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* Existing work components hosted in World keep their own styles; give them room and the page font. */
 .gk .gk-world-legacy { min-width: 0; }
+/* "Add past match" comes from match history; its trigger reads as a small secondary button here. */
+.gk .gk-world-past .mh-import { margin: 0; }
+.gk .gk-world-past .mh-import > button { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 32px; padding: 0 var(--gk-3); border-radius: var(--gk-r-sm); border: 1px solid var(--gk-line); background: var(--gk-raised); color: var(--gk-text); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
+.gk .gk-world-past .mh-import > button:hover { border-color: var(--gk-line-strong); background: var(--gk-hover); }
+.gk .gk-world-past .mh-import > button svg { width: 16px; height: 16px; }

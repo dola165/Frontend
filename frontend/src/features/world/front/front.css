@@ -33,3 +33,4 @@
 }
 .gk .gk-world-front__clubs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--gk-4); }
 .gk .gk-world-front__trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--gk-8) var(--gk-6); align-items: start; }
+.gk .gk-world-search__none { grid-column: 1 / -1; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }

@@ -35,9 +35,9 @@ export function FixtureItem({ item: match }: { item: HistoryMatch }) {
 }
 
 /** Adding a past match is club record-keeping; it is offered beside results to staff who can do it. */
-export function PastMatchTool({ query }: { query: DirectoryQuery }) {
+export function PastMatchTool({ query, refresh }: { query: DirectoryQuery; refresh: () => void }) {
     if (first(query, 'period') === 'UPCOMING' || !first(query, 'period')) return null;
-    return <div className="gk-world-legacy"><HistoricalMatchImport clubId={Number(first(query, 'clubId')) || undefined} onSaved={() => undefined} /></div>;
+    return <div className="gk-world-legacy gk-world-past"><HistoricalMatchImport clubId={Number(first(query, 'clubId')) || undefined} onSaved={refresh} /></div>;
 }
 
 export function ListingItem({ item: m }: { item: Match }) {

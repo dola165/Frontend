@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Check, Plus } from 'lucide-react';
-import { Badge, Button, ButtonLink, FixtureRow } from '../../../design/primitives';
+import { Badge, Button, ButtonLink, FixtureRow, ListRow } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
 import { hasNavigationCapability } from '../../../context/navigationCapabilities';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
@@ -9,9 +9,8 @@ import { extractApiErrorMessage } from '../../../utils/apiError';
 import { appLocale } from '../../../utils/formatting';
 import { ages } from '../../matchExchange/api';
 import { browseCompetitions, browsePersonalCompetitions, familyLabels, structureLabels, type CompetitionCard } from '../../competitions/api';
-import { fetchTournamentHosts, setTournamentHostFollow } from '../../tournaments/api';
-import type { TournamentHost, TournamentSummary } from '../../tournaments/domain';
-import { TournamentInbox } from '../../tournaments/components/TournamentInbox';
+import { fetchMyTournamentInvitations, fetchTournamentHosts, setTournamentHostFollow } from '../../tournaments/api';
+import type { TournamentHost, TournamentInvitationInboxItem, TournamentSummary } from '../../tournaments/domain';
 import { Crest } from '../Crest';
 import { DirectoryPage } from '../directory/DirectoryPage';
 import { first, type DirectorySource } from '../directory/types';
@@ -158,6 +157,36 @@ const organisers: DirectorySource<TournamentHost> = {
     empty: { title: 'No organisers yet', body: 'Clubs and organisations appear here once they publish a competition.' },
 };
 
+function InvitationRow({ item }: { item: TournamentInvitationInboxItem }) {
+    return (
+        <ListRow to="/requests" lead={<Crest name={item.tournamentName} size={40} />} title={item.tournamentName}
+            meta={[item.squadName || item.clubName || 'You, as a player', SCOPE_LABEL[item.participantScope], item.tournamentStatus === 'PLANNING' ? 'In preparation' : 'Already started or finished'].filter(Boolean).join(' · ')}
+            trail={<><span className="gk-world-row-note">Answer in your inbox</span><Badge tone="warning">Invited</Badge></>} />
+    );
+}
+
+/** Pending invitations to enter a competition. Answering stays in the existing request decision flow. */
+const invitations: DirectorySource<TournamentInvitationInboxItem> = {
+    id: 'invitations',
+    label: 'Invitations',
+    noun: ['invitation', 'invitations'],
+    searchLabel: 'Search invitations',
+    searchPlaceholder: 'Search by competition, club or squad',
+    layout: 'rows',
+    pageSize: PAGE,
+    personal: true,
+    filters: [],
+    async load(query, page) {
+        const result = await fetchMyTournamentInvitations(page, PAGE);
+        const text = query.q.toLowerCase();
+        const items = text ? result.content.filter(item => [item.tournamentName, item.clubName, item.squadName].some(value => (value ?? '').toLowerCase().includes(text))) : result.content;
+        return { items, total: text ? items.length : result.totalElements, hasMore: page + 1 < result.totalPages };
+    },
+    key: item => String(item.invitationId),
+    Item: InvitationRow,
+    empty: { title: 'No pending invitations', body: 'Invitations for you, your squads and the clubs you manage appear here.' },
+};
+
 /** World › Competitions: every published competition, my own, invitations to enter, and who runs them. */
 export default function CompetitionsDirectory() {
     const { user } = useAuth();
@@ -165,8 +194,7 @@ export default function CompetitionsDirectory() {
         <DirectoryPage
             title="Competitions"
             subtitle="Leagues, cups, ladders and festivals. See who can enter and when entries close."
-            sources={[competitions, mine, organisers]}
-            extraTabs={[{ id: 'invitations', label: 'Invitations', personal: true, element: <div className="gk-world-legacy"><TournamentInbox /></div> }]}
+            sources={[competitions, mine, invitations, organisers]}
             // Anyone signed in can start: setup helps a new organiser create their organisation first.
             actions={user && <ButtonLink variant={hasNavigationCapability(user.navigationCapabilities, 'tournament.create') ? 'primary' : 'secondary'} to="/tournaments/setup"><Plus aria-hidden="true" />Create a competition</ButtonLink>}
         />

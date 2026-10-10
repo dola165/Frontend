@@ -4,6 +4,7 @@ import { PageHeader } from '../../../design/primitives';
 import { useWorldArea, useWorldCities, type WorldArea } from '../useWorldArea';
 import { WorldSearch } from './WorldSearch';
 import { AroundMapBlock, NearbyClubsBlock, OpenCompetitionsBlock, OpportunitiesBlock, PeopleBlock, WeekendBlock } from './FrontBlocks';
+import { useNearbyPlaces } from './useNearbyPlaces';
 import './front.css';
 
 function AreaPicker({ area, onChange }: { area: WorldArea; onChange: (city: string) => void }) {
@@ -43,6 +44,7 @@ function QuickStarts({ city }: { city: string }) {
 /** GrassKickZ World's front page: search and entry points, then what's on and who's around. */
 export default function WorldFrontPage() {
     const { area, setCity } = useWorldArea();
+    const nearby = useNearbyPlaces(area);
     return (
         <div className="gk-world-front">
             <PageHeader
@@ -53,9 +55,9 @@ export default function WorldFrontPage() {
             <WorldSearch quickStarts={<QuickStarts city={area.city} />} />
             <div className="gk-world-front__lead">
                 <WeekendBlock area={area} />
-                <AroundMapBlock area={area} />
+                <AroundMapBlock area={area} markers={nearby} />
             </div>
-            <NearbyClubsBlock area={area} />
+            <NearbyClubsBlock area={area} markers={nearby} />
             <div className="gk-world-front__trio">
                 <OpenCompetitionsBlock />
                 <OpportunitiesBlock area={area} />

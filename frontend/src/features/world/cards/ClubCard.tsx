@@ -9,7 +9,7 @@ import { createClubApplication, selfRegisterClubPlayer } from '../../clubs/api';
 import { trainingSummary } from '../../clubs/presentation';
 import type { ClubProfile, ClubRelationshipState } from '../../../components/discovery/clubDirectoryTypes';
 import { toggleClubFollow } from '../api';
-import { clubTypeLabel, JOIN_POLICY, plural } from '../format';
+import { clubTypeLabel, distanceLabel, JOIN_POLICY, plural } from '../format';
 import { useWorldSession } from '../worldSession';
 import { Crest } from '../Crest';
 import './cards.css';
@@ -22,7 +22,7 @@ const RELATIONSHIP: Partial<Record<ClubRelationshipState, { label: string; tone:
 };
 
 /** A compact club card: who they are, how to join, and Follow / Open. */
-export function ClubCard({ club, compact = false }: { club: ClubProfile; compact?: boolean }) {
+export function ClubCard({ club, compact = false, distanceKm }: { club: ClubProfile; compact?: boolean; distanceKm?: number }) {
     const { status } = useAuth();
     const { membership } = useWorldSession();
     const navigate = useNavigate();
@@ -62,7 +62,7 @@ export function ClubCard({ club, compact = false }: { club: ClubProfile; compact
                 <Crest src={club.logoUrl} name={club.name} size={compact ? 40 : 48} />
                 <div className="gk-world-card__title">
                     <h3><Link to={`/clubs/${club.id}`}>{club.name}</Link>{club.isOfficial && <BadgeCheck className="gk-world-verified" aria-label="Verified club" />}</h3>
-                    <p>{clubTypeLabel(club.type)} · {club.cityName || club.addressText?.split(',')[0] || 'Location not published'}</p>
+                    <p>{[clubTypeLabel(club.type), club.cityName || club.addressText?.split(',')[0] || 'Location not published', distanceKm != null ? distanceLabel(distanceKm) : null].filter(Boolean).join(' · ')}</p>
                 </div>
             </div>
             {!compact && club.description && <p className="gk-world-card__desc">{club.description}</p>}

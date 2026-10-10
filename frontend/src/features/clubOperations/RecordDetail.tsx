@@ -18,7 +18,7 @@ export function RecordDetail({ club, boot, record, definition, onEdit, onChanged
     finally { setBusy(false); }
   };
   return <section className="ops-card ops-detail" aria-label={record.title}>
-    <div className="ops-toolbar"><div><p className="ops-kicker">{definition.label}</p><h3>{record.title}</h3><span className="ops-badge">{label(record.status)}</span></div><div className="ops-row">{record.map_plan_id ? <Link to={`/map?plans=staff&plan=${record.map_plan_id}`}>Open journey plan</Link> : record.canEdit && <button onClick={onEdit}>Edit details</button>}<button onClick={onClose}>Close record</button></div></div>
+    <div className="ops-toolbar"><div><p className="ops-kicker">{definition.label}</p><h3>{record.title}</h3><span className="ops-badge">{label(record.status)}</span></div><div className="ops-row">{record.map_plan_id ? <Link to={`/world/map?plans=staff&plan=${record.map_plan_id}`}>Open journey plan</Link> : record.canEdit && <button onClick={onEdit}>Edit details</button>}<button onClick={onClose}>Close record</button></div></div>
     {error && <p className="ops-alert" role="alert">{error}</p>}
     <dl className="ops-form-grid">
       {record.subject_user_id&&<div><dt>Person</dt><dd>{boot.people.find(p=>p.id===record.subject_user_id)?.name??'Former club member'}</dd></div>}

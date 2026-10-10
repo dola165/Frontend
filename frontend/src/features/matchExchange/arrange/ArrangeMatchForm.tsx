@@ -55,7 +55,9 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0 }: { mode: 'dir
     }, [mode, opponentId]);
 
     const withCity = (ground: GroundChoice): GroundChoice => 'city' in ground && !ground.city.trim() ? { ...ground, city: data.ownCity } : ground;
-    const effective: Draft = { ...draft, squadId: data.squadId, targetSquadId: data.targetSquadId, ground: withCity(draft.ground) };
+    // Clubs almost always host at their own ground, so it is the starting choice until the person picks another.
+    const starting = (ground: GroundChoice): GroundChoice => ground.kind === 'LATER' && !draft.groundTouched && data.ours.data?.[0] ? { kind: 'OURS', ground: data.ours.data[0] } : ground;
+    const effective: Draft = { ...draft, squadId: data.squadId, targetSquadId: data.targetSquadId, ground: withCity(starting(draft.ground)) };
     const problems = problemsWith(effective, mode, now);
     if (mode === 'direct' && draft.opponent && data.targetSquadId < 0 && data.theirSquads.data) problems.opponent = 'Choose their squad, or let them choose.';
     const shown = checked ? problems : {};
@@ -90,7 +92,7 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0 }: { mode: 'dir
                     <legend className="gk-visually-hidden">Teams</legend>
                     {mode === 'direct' && <OpponentField opponent={draft.opponent} ownClubId={data.ownClubId} squads={data.theirSquads} targetSquadId={data.targetSquadId}
                         suggestedSquadId={data.suggestedTheirs} error={shown.opponent}
-                        onOpponent={opponent => patch({ opponent, targetSquadId: -1, ...(draft.ground.kind === 'THEIRS' ? { ground: { kind: 'LATER', city: '' } } : {}) })}
+                        onOpponent={opponent => patch({ opponent, targetSquadId: -1, ...(draft.ground.kind === 'THEIRS' ? { ground: { kind: 'LATER', city: '' }, groundTouched: false } : {}) })}
                         onTargetSquad={targetSquadId => patch({ targetSquadId })} />}
                     <SquadField squads={data.squads.data} coached={data.coached} value={data.squadId} onChange={id => patch({ squadId: id, minutes: null, format: null })} error={shown.squad} />
                 </fieldset>
@@ -101,7 +103,7 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0 }: { mode: 'dir
                 </fieldset>
                 <fieldset className="gk-arrange__group" disabled={busy}>
                     <legend className="gk-visually-hidden">Where</legend>
-                    <GroundField mode={mode} value={effective.ground} onChange={ground => patch({ ground })} ours={data.ours} theirs={mode === 'direct' && draft.opponent ? data.theirs : null}
+                    <GroundField mode={mode} value={effective.ground} onChange={ground => patch({ ground, groundTouched: true })} ours={data.ours} theirs={mode === 'direct' && draft.opponent ? data.theirs : null}
                         opponentName={draft.opponent?.name} defaultCity={data.ownCity} error={shown.ground} />
                 </fieldset>
                 <fieldset className="gk-arrange__group gk-arrange__group--pair" disabled={busy}>

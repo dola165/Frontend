@@ -13,6 +13,8 @@ export interface Draft {
     opponent: Opponent | null; targetSquadId: number; squadId: number;
     date: string; time: string; minutes: number | null; format: string | null;
     ground: GroundChoice; referee: RefereeChoice; refereeName: string;
+    /** The person picked the ground themselves; until then the club's own ground is the starting choice. */
+    groundTouched?: boolean;
     note: string; title: string; matchType: 'FRIENDLY' | 'COMPETITIVE'; level: string; timezone: string; requestId: string;
 }
 export type Mode = 'direct' | 'open' | 'edit';

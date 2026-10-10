@@ -21,8 +21,8 @@ The founders benchmark is SAP as German clubs use it: one connected system for p
    - Power: Coach Hub, templates, automation, Agent Dola
 4. **Features appear where the need arises.** "Create a training session" lives in an empty squad schedule, not in a global menu.
 5. **Every empty state shows the one next action.**
-6. **The app does the bookkeeping.** Defaults, templates, recurrence and reminders instead of manual entry. If a person types the same thing twice, that's a bug.
-7. **Every action is Dola-ready.** Actions are structured operations with clear inputs, so Agent Dola can later perform them on a person's behalf (see section 10).
+6. **The app does the bookkeeping.** Defaults, templates, recurrence and reminders instead of manual entry. If a person types the same thing twice, that's a bug. Every answer narrows the next question, and the most likely answer is already chosen: inviting a club starts at your own ground, because clubs almost always host at home; choosing to host shows only your facilities.
+7. **Every action is Dola-ready.** Actions are structured operations with clear inputs, so Agent Dola can perform them on a person's behalf (see section 10). Dola works like the agents now built into admin dashboards: it uses the same actions as the screens, within the person's permissions, shows a preview before it changes anything, and its name stays in the history ("done by Dola for Luka").
 8. **One place per destination.** A destination appears once in the navigation; personal shortcuts are pins, chosen by the person.
 9. **SAP depth, consumer surface.** Underneath: one record per person with many roles, positions with dates, seasons, every process a record with a status, approvals and history, one inbox, no double entry. On top: plain football words and actions. Nobody ever sees the data model.
 10. **One pattern everywhere.** Every record works the same way: a list, the record with its status in words, the one next action, and its history. Learn it once, use it everywhere.

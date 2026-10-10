@@ -1,16 +1,31 @@
-# Overnight progress log
+# Overnight overhaul — status (10 October 2026)
 
-## Sprint 0 — sandbox and baseline (done, 02:45)
-- npm was unreachable from the cloud workspace, so dependencies were copied from the desktop checkout and the app is bundled with esbuild + Tailwind's JS compiler (`sandbox/build.mjs`, ~3 s).
-- Synthetic backend (`sandbox/api`, ~4,300 lines) answers all 85 coach routes with invented, coherent data. Built by three parallel workers (social / club / football).
-- Screenshot harness signs in as coach Luka and captures every route. Baseline: 170 captures (1440 + 390 px), 0 failed API calls.
-- Gates available here: TypeScript (clean at baseline), ESLint (clean), colour guard. Unit tests (Vitest) cannot run without Vite's native bundler — run `npm run check` on Windows.
-- Design audit: `DESIGN_AUDIT.md` (7 palettes, 47 font sizes, 33 page widths, no shared Button/Card/PageHeader).
+Branch `claude/overhaul-sandbox` (frontend only). Sandbox: `node sandbox/build.mjs && node sandbox/server.mjs 4300`, guide at `/__guide`; on Windows double-click `sandbox/windows/Start GrassKickZ Sandbox.cmd`.
 
-## Sprint 1 — design system foundation (done, 02:50)
-- `src/design`: one canonical palette (`.gk` in theme.css), type/space/radius/frame scales, and shared primitives; reference page at `/design-system`. Rules in `DESIGN_SYSTEM.md`.
+## Done and merged
+1. Sandbox toolchain + synthetic backend (`sandbox/`), screenshot harness, test shim (`sandbox/vt/run.mjs`).
+2. Design system (`src/design/`, rules in `DESIGN_SYSTEM.md`).
+3. Header: Home · World · My Club, pins, Inbox, phone tab bar; My work removed (+ review fixes).
+4. GrassKickZ World: front page + Clubs/People/Venues/Matches/Competitions/Opportunities directories, list/split/map, Georgian, parent child-aware search (+ review fixes).
+5. World map + journey planner rebuilt (`features/world/map`, `features/mapPlanning/planner`).
+6. Club workspace: WorkspaceShell (also tournament workspace), Overview, Coach Hub, responsibilities, all legacy workspace pages rebuilt (+ review fixes).
+7. Profiles (club/person/organization), club schedule, personal schedule (replaces /calendar), opt-out attendance, roles & professions.
+8. Arrange a match (one form, no stadium booking) + Post an open match + match page rebuilt.
+9. Home: This week + pinned announcements; squad announcements with expiry and read summary.
 
-## Wave 2 — in parallel worktrees (started 02:55)
-- `sprint/nav`: one-row header (Home · World · My Club), pins, Inbox, mobile tab bar; My work removed.
-- `sprint/world`: GrassKickZ World front page and directories with list / split / map views.
-- `sprint/workspace`: one workspace shell, Overview, Coach Hub, responsibilities, worst workspace pages.
+Gates at merge: TypeScript clean, ESLint clean on all of `src`, sandbox build ok, colour guard ok.
+
+## Not done
+- **Unit tests not swept after the final merge.** Each sprint ran its own touched tests in the shim; the full suite (~330 files) has not been run against the merged branch. Run `npm run check` and fix before merging into the real project. Some tests only run under real vitest (the shim lacks `importOriginal`).
+- Playwright e2e specs updated by reading only; not run.
+
+## Backend needed (details in each sprint's sandbox handler file header)
+- `GET /people` public directory (`sandbox/api/handlers/world-extra.mjs`); `GET /clubs?age=N`.
+- Pins sync endpoint (pins are per device today).
+- Journey plan draft fields `staff`, `vehicles`, `bring`; `published` on `GET /map/plans/:id`; from-fixture semantics (`map-extra.mjs`).
+- Professions API and opt-out attendance (`response_requested` defaults, NOT_GOING with reason) (`profile-extra.mjs`).
+- Announcement `expiresAt`; active announcements across my squads; match invitations in `/requests`; confirm `POST /match-arrangements` accepts the new referee modes (`matches-extra.mjs`).
+- Unread messages count endpoint; batched Coach Hub endpoint.
+
+## Reviews
+`REVIEW_NAV.md`, and the World/workspace reviews (fixed in later sprints). Product direction: `PRODUCT_MODEL.md`.

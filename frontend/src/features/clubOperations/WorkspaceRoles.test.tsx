@@ -2,8 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WorkspaceRolesPanel } from './WorkspaceRoleViews';
-import { ResponsibilitiesPanel } from '../clubWorkspace/coachHub/ResponsibilitiesPanel';
-import { useResponsibilityFocus } from './workspaceStructure';
+import { ResponsibilityRequests } from '../clubWorkspace/coachHub/ResponsibilityRequests';
 import { focusedBootstrap, type RolesWorkspace } from './useWorkspaceRoles';
 import { post, type Bootstrap } from './api';
 vi.mock('./api',async()=>{const actual=await vi.importActual<typeof import('./api')>('./api');return {...actual,post:vi.fn().mockResolvedValue({}),get:vi.fn().mockResolvedValue([])};});
@@ -11,9 +10,8 @@ const data:RolesWorkspace={leadership:false,actorId:2,catalog:[{key:'STRENGTH_CO
 afterEach(()=>{cleanup();vi.clearAllMocks();});
 describe('Staff role workflow',()=>{
  it('requests a change with the reviewed original revision, without assigning itself',async()=>{
-  function Harness(){const focus=useResponsibilityFocus(4,2,data.views);return <ResponsibilitiesPanel clubId={4} roles={data} focus={focus} onChanged={()=>{}}/>;}
-  render(<MemoryRouter><Harness/></MemoryRouter>);
-  fireEvent.click(screen.getByRole('button',{name:'Ask for this'}));
+  render(<MemoryRouter><ResponsibilityRequests open clubId={4} roles={data} onClose={()=>{}} onChanged={()=>{}}/></MemoryRouter>);
+  fireEvent.change(screen.getByRole('combobox',{name:'Responsibility'}),{target:{value:'STRENGTH_CONDITIONING'}});
   fireEvent.change(screen.getByRole('combobox',{name:'Change an existing role'}),{target:{value:'5'}});
   fireEvent.click(screen.getByRole('button',{name:'U12'}));
   fireEvent.click(screen.getByRole('button',{name:'U16'}));

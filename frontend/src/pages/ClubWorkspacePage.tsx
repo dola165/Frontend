@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useClubAdmissions } from '../features/admissions/club/useClubAdmissions';
 import { useClubAdmissionCopy } from '../features/admissions/club/copy';
 import { WorkspaceOperations } from '../features/clubOperations/WorkspaceOperations';
@@ -8,7 +8,7 @@ import { WorkspaceRolesPanel } from '../features/clubOperations/WorkspaceRoleVie
 import { useClubOperations } from '../features/clubOperations/useClubOperations';
 import { useWorkspaceRoles, type RoleView } from '../features/clubOperations/useWorkspaceRoles';
 import { operationModule } from '../features/clubOperations/workspaceNavigation';
-import { canonicalWorkspaceTab, legacyTabTarget, useResponsibilityFocus, type OpenWorkspace } from '../features/clubOperations/workspaceStructure';
+import { personalWorkspaceTarget, useResponsibilityFocus, type OpenWorkspace } from '../features/clubOperations/workspaceStructure';
 import { canManageClubOperations, canManagePlayerStatuses, canReviewTryouts, clubRoleLabel, isLeadershipRole, type PlayerAffiliationStatus } from '../features/clubs/domain';
 import { AllTools } from '../features/clubWorkspace/AllTools';
 import { ClubDecisionDialogs } from '../features/clubWorkspace/ClubDecisionDialogs';
@@ -18,7 +18,6 @@ import { buildClubTabs, clubNavigation, navLabel, visibleTabs } from '../feature
 import { guardWorkspaceNavigation } from '../features/clubOperations/workspaceGuard';
 import { useCopy } from '../locales/useCopy';
 import { workspaceNavEn } from '../locales/workspaceDesign';
-import { CoachHub } from '../features/clubWorkspace/coachHub/CoachHub';
 import { ClubOverview } from '../features/clubWorkspace/overview/ClubOverview';
 import { ClubSettingsPage, ProgrammesPage } from '../features/clubWorkspace/settings/ClubSettingsPages';
 import { useClubInbox } from '../features/clubWorkspace/useClubInbox';
@@ -29,8 +28,7 @@ import { useWorkspacePins } from '../features/clubWorkspace/useWorkspacePins';
 import { parseWorkspaceTab, type WorkspaceTab } from '../components/workspace/types';
 import { useAuth } from '../context/AuthContext';
 import { WorkspaceShell } from '../design/workspace/WorkspaceShell';
-import { Button, EmptyNote, GkRoot, PageFrame, Skeleton } from '../design/primitives';
-import { accessibleClubs } from '../components/layout/clubAccess';
+import { Button, EmptyNote, PageFrame, Skeleton } from '../design/primitives';
 import { getStoredUserId, type AuthSessionId } from '../utils/authStorage';
 import '../features/clubWorkspace/club-workspace.css';
 
@@ -47,20 +45,9 @@ export default function ClubWorkspacePage() {
     return <ClubWorkspaceSession key={`${sessionId}:${id}`} sessionId={sessionId} />;
 }
 
-/** My squads: Coach Hub on its own page, for the club where the person has staff responsibilities. */
-export function CoachHubPage() {
-    const { isAuthenticated, sessionId, user } = useAuth();
-    if (!isAuthenticated) return null;
-    const clubId = accessibleClubs(user?.navigationCapabilities).find(club => club.canOpenWorkspace)?.id;
-    if (!clubId) return <GkRoot><PageFrame><EmptyNote title="No squads yet">When a club gives you a squad, it appears here.</EmptyNote></PageFrame></GkRoot>;
-    return <ClubWorkspaceSession key={`${sessionId}:${clubId}:hub`} sessionId={sessionId} hubClubId={clubId} />;
-}
-
-/** `hubClubId` renders only Coach Hub for that club, outside the workspace shell (My squads). */
-function ClubWorkspaceSession({ sessionId, hubClubId }: { sessionId: AuthSessionId; hubClubId?: number }) {
+function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
     const { id: clubIdParam } = useParams<{ id: string }>();
-    const hub = hubClubId !== undefined;
-    const clubId = hubClubId ?? Number(clubIdParam);
+    const clubId = Number(clubIdParam);
     const navigate = useNavigate();
     const copy = useCopy('workspaceNav', workspaceNavEn);
     const [searchParams, setSearchParams] = useSearchParams();
@@ -73,8 +60,10 @@ function ClubWorkspaceSession({ sessionId, hubClubId }: { sessionId: AuthSession
     const [showHiddenSections, setShowHiddenSections] = useState(false);
     // The URL decides the open tool; until access is known, the requested one is shown as loading.
     const parsedTab = parseWorkspaceTab(searchParams.get('tab'));
-    // An old "my squads" link that named a squad opens that squad; without one it opens Coach Hub.
-    const requestedTab = hub ? 'coach-hub' as const : (parsedTab === 'my-squads' && searchParams.get('squad') ? 'squads' : canonicalWorkspaceTab(parsedTab)) ?? 'overview';
+    // An old "my squads" link that named a squad opens that squad here; Coach Hub and the other old personal tabs open My squads.
+    const squadLink = parsedTab === 'my-squads' && Boolean(searchParams.get('squad'));
+    const personal = squadLink ? null : personalWorkspaceTarget(parsedTab, searchParams.get('hub'));
+    const requestedTab = (squadLink ? 'squads' : parsedTab) ?? 'overview';
     const admissions = useClubAdmissions(clubId, sessionId, requestedTab === 'admissions');
 
     const { overview } = club;
@@ -106,7 +95,7 @@ function ClubWorkspaceSession({ sessionId, hubClubId }: { sessionId: AuthSession
     // Editors with unsaved work can cancel navigation inside the workspace.
     const navigateWorkspace = guardWorkspaceNavigation;
     const switchTab = (requested: WorkspaceTab) => navigateWorkspace(() => {
-        const tab = canonicalWorkspaceTab(requested)!;
+        const tab = requested;
         if (overview && !allowedTabIds.has(tab)) return;
         const next = new URLSearchParams(searchParams);
         if (tab !== activeTab) TOOL_CONTEXT.forEach(key => next.delete(key));
@@ -116,12 +105,11 @@ function ClubWorkspaceSession({ sessionId, hubClubId }: { sessionId: AuthSession
     });
     // Opening a tool from another page remembers that page, so the tool can offer the way back to it.
     const openWork: OpenWorkspace = (requested, context = {}) => navigateWorkspace(() => {
-        const tab = canonicalWorkspaceTab(requested)!;
+        const tab = requested;
         if (!allowedTabIds.has(tab)) return;
         const next = new URLSearchParams();
         if (tab !== 'overview') next.set('tab', tab);
         // My squads is its own page: its links open the same tools inside the club workspace.
-        if (hub) { Object.entries(context).forEach(([key, value]) => next.set(key, value)); navigate(`/clubs/${clubId}/workspace${next.toString() ? `?${next}` : ''}`); return; }
         if (tab !== activeTab) {
             const back = new URLSearchParams(searchParams);
             ['return', 'from', 'record'].forEach(key => back.delete(key));
@@ -149,16 +137,14 @@ function ClubWorkspaceSession({ sessionId, hubClubId }: { sessionId: AuthSession
     const openEvent = (event: { startsAt: string; eventId: number }) => navigate(`/calendar?clubId=${clubId}&date=${event.startsAt.slice(0, 10)}&eventId=${event.eventId}`);
 
     useEffect(() => {
-        // Keep the address in step with what is shown: rejected tools fall back, old personal tabs open Coach Hub.
-        if (!accessKnown || hub) return;
-        const parsed = parseWorkspaceTab(searchParams.get('tab'));
-        const legacy = legacyTabTarget(parsed);
+        // Keep the address in step with what is shown: rejected tools fall back to what the person may open.
+        if (!accessKnown || personal) return;
         const next = new URLSearchParams(searchParams);
         if (activeTab === 'overview') next.delete('tab'); else next.set('tab', activeTab);
-        if (legacy?.hub && activeTab === legacy.tab) next.set('hub', legacy.hub);
         if (next.toString() !== searchParams.toString()) setSearchParams(next, { replace: true });
-    }, [accessKnown, activeTab, searchParams, setSearchParams]);
+    }, [accessKnown, activeTab, personal, searchParams, setSearchParams]);
 
+    if (personal) return <Navigate replace to={personal} />;
     if (!clubId) return <PageFrame><EmptyNote title="This club workspace does not exist">Check the address, or open the workspace from your club’s page.</EmptyNote></PageFrame>;
 
     const loading = workspaceRoles.loading || (club.loading && !overview && !operations.boot) || (selectedOperation && operations.loading);
@@ -167,7 +153,7 @@ function ClubWorkspaceSession({ sessionId, hubClubId }: { sessionId: AuthSession
     const returnTo = searchParams.get('return');
     const origin = returnTo !== null ? (() => {
         const back = new URLSearchParams(returnTo);
-        const from = canonicalWorkspaceTab(parseWorkspaceTab(back.get('tab'))) ?? 'overview';
+        const from = parseWorkspaceTab(back.get('tab')) ?? 'overview';
         const squadName = from === 'squads' ? roles?.squads.find(s => String(s.id) === back.get('squad'))?.name : undefined;
         return { label: copy('backTo', { name: squadName ?? navLabel(from) }), onBack: () => navigateWorkspace(() => setSearchParams(back)) };
     })() : undefined;
@@ -178,9 +164,7 @@ function ClubWorkspaceSession({ sessionId, hubClubId }: { sessionId: AuthSession
     else if (activeTab === 'overview') content = <ClubOverview clubId={clubId} clubName={club.clubName ?? operations.boot?.clubName ?? null} overview={overview} roles={roles} boot={operations.boot}
         schedule={{ ...club.schedule, open: openCalendar, openEvent }} unreadInbox={inbox.unreadCount} inboxAllowed={canReadInbox} tryoutPending={membership.tryouts.pendingCount}
         canManageOperations={can.operations} canManageLeadership={can.leadership} tabs={shownTabs} pinned={pins.pinned} focusViews={focus.selectedViews} onOpen={openWork} onOpenPlayers={allowedTabIds.has('players') ? openPlayers : undefined} />;
-    else if (activeTab === 'coach-hub') content = roles && <CoachHub page={hub ? { clubName: club.clubName ?? operations.boot?.clubName ?? `Club #${clubId}`, workspace: allowedTabIds.has('overview') } : undefined} clubId={clubId} roles={roles} boot={operations.boot} focus={focus} events={club.schedule.events} legacyHub={legacyTabTarget(parseWorkspaceTab(searchParams.get('tab')))?.hub}
-        onOpenCalendar={openCalendar} onOpenEvent={openEvent} onOpen={openWork} onChanged={() => { workspaceRoles.refresh(); void operations.refresh(); }} />;
-    else if (activeTab === 'tools') content = <AllTools tabs={shownTabs} pins={pins} focus={focus.tabs} onOpen={openWork} showHidden={showHiddenSections} onShowHidden={setShowHiddenSections}
+    else if (activeTab === 'tools') content = <AllTools tabs={shownTabs} pins={pins} focus={focus.tabs} responsibilities={roles ? { roles, focus } : undefined} onOpen={openWork} showHidden={showHiddenSections} onShowHidden={setShowHiddenSections}
         hasHidden={Boolean(operations.boot?.modules.some(m => !operations.boot?.settings.enabled_modules.includes(m.id)))} />;
     else if (activeTab === 'settings') content = <ClubSettingsPage clubId={clubId} busy={membership.pendingKey != null} />;
     else if (activeTab === 'programmes') content = <ProgrammesPage clubId={clubId} />;
@@ -197,14 +181,6 @@ function ClubWorkspaceSession({ sessionId, hubClubId }: { sessionId: AuthSession
         clearApplicationFocus={() => { const next = new URLSearchParams(searchParams); next.delete('applicationId'); setSearchParams(next); }}
         switchTab={switchTab} openWork={openWork} openPlayers={openPlayers} />;
 
-    if (hub) return <>
-        <GkRoot className="cw-hub-page">
-            <WorkspaceNotices error={membership.errorMessage} success={membership.successMessage} rolesError={workspaceRoles.error || null}
-                onDismissError={() => membership.setErrorMessage(null)} onDismissSuccess={() => membership.setSuccessMessage(null)} onRetryRoles={workspaceRoles.refresh} />
-            {content}
-        </GkRoot>
-        <ClubDecisionDialogs membership={membership} />
-    </>;
 
     const clubName = club.clubName ?? operations.boot?.clubName ?? `Club #${clubId}`;
     const current = [...nav.primary, ...nav.groups.flatMap(g => g.items), ...nav.more.flatMap(g => g.items), ...nav.footer].find(item => item.id === activeTab);

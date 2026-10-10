@@ -3,13 +3,13 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
 import { ClubSettingsPage } from './settings/ClubSettingsPages';
-import { CoachHub } from './coachHub/CoachHub';
+import { ResponsibilityRequests } from './coachHub/ResponsibilityRequests';
 import { WorkspaceOperations } from '../clubOperations/WorkspaceOperations';
 import { RecordTable } from '../clubOperations/records/RecordList';
 import { RecordDetail } from '../clubOperations/RecordDetail';
 import type { Bootstrap, Definition, OperationRecord } from '../clubOperations/api';
 import type { RoleView, RolesWorkspace } from '../clubOperations/useWorkspaceRoles';
-import type { ResponsibilityFocus } from '../clubOperations/workspaceStructure';
+import { personalWorkspaceTarget } from '../clubOperations/workspaceStructure';
 import type { ClubPresentation } from '../clubs/presentation';
 
 vi.mock('../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(), put: vi.fn(), post: vi.fn() } }));
@@ -23,7 +23,6 @@ const roles: RolesWorkspace = {
     requestSquads: [{ id: 11, name: 'U12' }], squads: [{ id: 11, name: 'U12', player_count: 1 }], people: [{ id: 21, name: 'Alex', squad_id: 11, squad_name: 'U12' }],
     sessions: [], requests: [], invitations: [],
 };
-const focus = (selected: RoleView[]): ResponsibilityFocus => ({ available: [coaching], selected: selected.map(v => v.id), selectedViews: selected, tabs: 'all', toggle: vi.fn(), showAll: vi.fn() });
 const definition: Definition = { module: 'GUARDIANS', kind: 'PERMISSION', label: 'Permission', states: [], fields: [] };
 const boot: Bootstrap = {
     clubId: 1, clubName: 'Academy', actorId: 9, leadership: false, definitions: [definition], specialisations: [], permissions: [],
@@ -56,32 +55,24 @@ describe('unsaved work across workspace tabs', () => {
         await waitFor(() => expect(screen.getByRole('tab', { name: 'Joining' })).toHaveAttribute('aria-selected', 'true'));
     });
 
-    it('asks before Coach Hub drops a responsibility request draft', () => {
-        render(<MemoryRouter initialEntries={['/?tab=coach-hub&hub=responsibilities']}><CoachHub clubId={1} roles={roles} boot={null} focus={focus([coaching])} events={[]}
-            onOpenCalendar={vi.fn()} onOpenEvent={vi.fn()} onOpen={vi.fn()} onChanged={vi.fn()} /></MemoryRouter>);
-        fireEvent.click(screen.getByRole('button', { name: 'Ask for this' }));
+    it('asks before closing a responsibility request with a draft', () => {
+        const close = vi.fn();
+        render(<MemoryRouter><ResponsibilityRequests open clubId={1} roles={roles} onClose={close} onChanged={vi.fn()} /></MemoryRouter>);
+        fireEvent.change(screen.getByRole('combobox', { name: 'Responsibility' }), { target: { value: 'ANALYST' } });
         fireEvent.change(screen.getByLabelText('Message to your club admin (optional)'), { target: { value: 'Match analysis on Saturdays' } });
-        fireEvent.click(screen.getByRole('tab', { name: 'My week' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }));
         expect(screen.getByRole('group', { name: 'Discard edits' })).toBeInTheDocument();
         expect(screen.getByLabelText('Message to your club admin (optional)')).toHaveValue('Match analysis on Saturdays');
-        expect(screen.getByRole('tab', { name: 'Responsibilities' })).toHaveAttribute('aria-selected', 'true');
-    });
-
-    it('opens an old responsibilities link on the right Coach Hub tab at once', () => {
-        render(<MemoryRouter initialEntries={['/?tab=my-role']}><CoachHub clubId={1} roles={roles} boot={null} focus={focus([coaching])} events={[]} legacyHub="responsibilities"
-            onOpenCalendar={vi.fn()} onOpenEvent={vi.fn()} onOpen={vi.fn()} onChanged={vi.fn()} /></MemoryRouter>);
-        expect(screen.getByRole('tab', { name: 'Responsibilities' })).toHaveAttribute('aria-selected', 'true');
+        expect(close).not.toHaveBeenCalled();
     });
 });
 
-describe('Coach Hub follows the responsibilities switched on', () => {
-    it('leaves out squads whose responsibility is switched off and offers to show them again', () => {
-        const hidden = focus([]);
-        render(<MemoryRouter><CoachHub clubId={1} roles={roles} boot={null} focus={{ ...hidden, available: [coaching] }} events={[]}
-            onOpenCalendar={vi.fn()} onOpenEvent={vi.fn()} onOpen={vi.fn()} onChanged={vi.fn()} /></MemoryRouter>);
-        expect(screen.queryByText('U12')).not.toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Show all my responsibilities' }));
-        expect(hidden.showAll).toHaveBeenCalled();
+describe('Coach Hub links', () => {
+    it('open My squads, the coach’s own workspace, on the matching page', () => {
+        expect(personalWorkspaceTarget('coach-hub', null)).toBe('/my-squads');
+        expect(personalWorkspaceTarget('coach-hub', 'players')).toBe('/my-squads?tab=players');
+        expect(personalWorkspaceTarget('my-role', null)).toBe('/my-squads?tab=team');
+        expect(personalWorkspaceTarget('actions', null)).toBeNull();
     });
 });
 

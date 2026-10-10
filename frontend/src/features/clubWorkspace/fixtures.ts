@@ -21,6 +21,15 @@ export function daysFromToday(value: string | null | undefined, now: Date | numb
     const day = value?.slice(0, 10);
     return day && !Number.isNaN(Date.parse(`${day}T12:00:00Z`)) ? daysBetween(calendarDay(new Date(now)), day) : null;
 }
+/** A deadline in words that scan down a list: "3 days overdue", "Today", "Tomorrow", "Thu 16", "24 Oct". */
+export function dueWords(value: string | null | undefined, now: Date | number = new Date()) {
+    const days = daysFromToday(value, now);
+    if (days === null || !value) return null;
+    const date = new Date(`${value.slice(0, 10)}T12:00:00`);
+    const text = days < 0 ? `${-days} ${days === -1 ? 'day' : 'days'} overdue` : days === 0 ? 'Today' : days === 1 ? 'Tomorrow'
+        : formatDate(date, days < 7 ? { weekday: 'short', day: 'numeric' } : { day: 'numeric', month: 'short' });
+    return { text, days, late: days < 0, today: days === 0, date };
+}
 
 /** "Today", "Tomorrow" or a short weekday and date, for the fixture line's day column. */
 export function dayLabel(value: string, now: Date | number = new Date(), timeZone?: string | null) {

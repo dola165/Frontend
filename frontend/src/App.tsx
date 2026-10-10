@@ -96,7 +96,7 @@ const RefereePage = lazy(() => import('./pages/RefereePage').then(module => ({de
 const AgentDashboardPage = lazy(() => import('./pages/AgentDashboardPage').then(module => ({default: module.AgentDashboardPage})));
 const OrganizationWorkspacePage = lazy(() => import('./pages/OrganizationWorkspacePage').then(module => ({default: module.OrganizationWorkspacePage})));
 const ClubWorkspacePage = lazy(() => import('./pages/ClubWorkspacePage').then(module => ({default: module.default})));
-const CoachHubPage = lazy(() => import('./pages/ClubWorkspacePage').then(module => ({default: module.CoachHubPage})));
+const CoachWorkspacePage = lazy(() => import('./pages/CoachWorkspacePage'));
 const FollowedClubsPage = lazy(() => import('./pages/FollowedClubsPage').then(module => ({default: module.FollowedClubsPage})));
 const PostPage = lazy(() => import('./pages/PostPage').then(module => ({default: module.PostPage})));
 const RouteRecoveryPage = lazy(() => import('./pages/RouteRecoveryPage').then(module => ({default: module.RouteRecoveryPage})));
@@ -355,7 +355,7 @@ export function MainLayout() {
             <Route path="/tournament-series/:seriesId" element={<ExtensionRoute capability="tournamentSeries"><TournamentSeriesPage /></ExtensionRoute>} />
             <Route path="/volunteering" element={<ExtensionRoute capability="volunteerShifts"><ProtectedRoute><VolunteerPage /></ProtectedRoute></ExtensionRoute>} />
             <Route path="/event-venues" element={<ExtensionRoute capability="eventVenueAttachment"><ProtectedRoute><EventVenuePage /></ProtectedRoute></ExtensionRoute>} />
-            <Route path="/my-squads" element={<ProtectedRoute><CoachHubPage /></ProtectedRoute>} />
+            <Route path="/my-squads" element={<ProtectedRoute><CoachWorkspacePage /></ProtectedRoute>} />
             <Route path="/squads" element={<ProtectedRoute><MySquadsPage /></ProtectedRoute>} />
             <Route path="/squads/:squadId" element={<ProtectedRoute><SquadCommunicationPage /></ProtectedRoute>} />
             <Route path="/design-system" element={<ProtectedRoute><DesignSystemPage /></ProtectedRoute>} />

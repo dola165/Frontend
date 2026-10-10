@@ -1,43 +1,66 @@
 import './announcements.css';
 import { useRef, useState, type FormEvent } from 'react';
 import { Megaphone } from 'lucide-react';
-import { Button, Field, GkRoot } from '../../design/primitives';
+import { Button, Chip, Field, GkRoot } from '../../design/primitives';
 import { ChoiceChips } from '../../design/ChoiceChips';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import * as api from '../squadCommunication/api';
 import { PIN_CHOICES, dayText, expiryFor, localDate, type PinChoice } from './pinning';
 
+type Squad = Pick<api.SquadOverview, 'id' | 'name'>;
+
 /**
- * A coach posts an announcement: separate from chat, pinned on players' and parents' Home and on this
- * page until it expires, and (when asked) each family confirms they have read it.
+ * A coach posts an announcement: separate from chat, pinned at the top of the squad's updates until it
+ * expires, and (when asked) each family confirms they have read it. With several squads to choose from
+ * (My squads), one announcement goes to each chosen squad.
  */
-export function AnnouncementComposer({ space, onPosted }: { space: api.SquadOverview; onPosted: () => void }) {
+export function AnnouncementComposer({ space, spaces, initialSquads, startOpen = false, onPosted }: {
+    space?: Squad; spaces?: Squad[]; initialSquads?: number[]; startOpen?: boolean; onPosted: () => void;
+}) {
+    const choices = spaces ?? (space ? [space] : []);
+    const [targets, setTargets] = useState<number[]>(() => {
+        const chosen = (initialSquads ?? []).filter(id => choices.some(choice => choice.id === id));
+        return chosen.length ? chosen : choices.map(choice => choice.id);
+    });
     const [title, setTitle] = useState(''), [body, setBody] = useState('');
     const [pin, setPin] = useState<PinChoice>('7'), [date, setDate] = useState('');
     const [confirm, setConfirm] = useState(true);
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(startOpen);
     const [busy, setBusy] = useState(false), [error, setError] = useState(''), [posted, setPosted] = useState('');
-    const request = useRef<{ signature: string; id: string } | null>(null);
+    // One request id per squad for the same text, and the squads it already reached, so a retry never posts twice.
+    const request = useRef<{ signature: string; ids: Record<number, string>; done: number[] } | null>(null);
     const sending = useRef(false);
     const now = new Date();
     const until = expiryFor(pin, date, now);
     const dateProblem = pin === 'date' && (!until || until.getTime() <= now.getTime()) ? 'Choose a day from today on.' : '';
+    const names = (ids: number[]) => ids.map(id => choices.find(choice => choice.id === id)?.name ?? `Squad #${id}`).join(' and ');
 
     async function submit(event: FormEvent) {
         event.preventDefault();
-        if (sending.current || dateProblem || !until) return;
+        if (sending.current || dateProblem || !until || !targets.length) return;
         sending.current = true; setBusy(true); setError(''); setPosted('');
-        // The same announcement retried after a failure keeps its request id, so it is never posted twice.
         const signature = JSON.stringify([title, body, confirm, until.toISOString()]);
-        if (request.current?.signature !== signature) request.current = { signature, id: crypto.randomUUID() };
-        try {
-            await api.postMessage(space.id, { requestId: request.current.id, threadUserId: null, kind: 'ANNOUNCEMENT', title: title.trim(), body: body.trim(), important: confirm, expiresAt: until.toISOString() });
+        if (request.current?.signature !== signature) request.current = { signature, ids: {}, done: [] };
+        const current = request.current;
+        let failure = '';
+        for (const id of targets) {
+            if (current.done.includes(id)) continue;
+            current.ids[id] ??= crypto.randomUUID();
+            try {
+                await api.postMessage(id, { requestId: current.ids[id], threadUserId: null, kind: 'ANNOUNCEMENT', title: title.trim(), body: body.trim(), important: confirm, expiresAt: until.toISOString() });
+                current.done.push(id);
+            } catch (cause) { failure ||= extractApiErrorMessage(cause, 'The announcement could not be posted. Your text is kept; try again.'); }
+        }
+        const reached = targets.filter(id => current.done.includes(id)), missed = targets.filter(id => !current.done.includes(id));
+        if (!missed.length) {
             setTitle(''); setBody(''); setPin('7'); setDate(''); setOpen(false); request.current = null;
-            setPosted(`Posted. Pinned for ${space.name} until ${dayText(until, now)}.`);
+            setPosted(`Posted. Pinned for ${names(reached)} until ${dayText(until, now)}.`);
             onPosted();
-        } catch (cause) {
-            setError(extractApiErrorMessage(cause, 'The announcement could not be posted. Your text is kept; try again.'));
-        } finally { sending.current = false; setBusy(false); }
+        } else {
+            setError(reached.length ? `Posted for ${names(reached)}, not yet for ${names(missed)}. Your text is kept; try again.` : failure);
+            if (reached.length) onPosted();
+        }
+        sending.current = false; setBusy(false);
     }
 
     // Closed, the composer is one line; a half-written announcement keeps it open.
@@ -45,7 +68,7 @@ export function AnnouncementComposer({ space, onPosted }: { space: api.SquadOver
         <GkRoot className="gk-announce-compose">
             {posted && <p className="gk-notice gk-announce-compose__posted" role="status">{posted}</p>}
             <button type="button" className="gk-announce-compose__open" onClick={() => { setOpen(true); setPosted(''); }}>
-                <Megaphone aria-hidden="true" /><span><strong>New announcement</strong><span>Pinned on players’ and parents’ Home until it expires</span></span>
+                <Megaphone aria-hidden="true" /><span><strong>New announcement</strong><span>Pinned at the top of the squad’s updates until it expires</span></span>
             </button>
         </GkRoot>
     );
@@ -56,18 +79,24 @@ export function AnnouncementComposer({ space, onPosted }: { space: api.SquadOver
                     <h2 className="gk-announce-compose__title">New announcement</h2>
                     <p className="gk-field__hint">For training changes, kit and travel. Chat stays in Squad chat.</p>
                 </div>
+                {choices.length > 1 && <div className="gk-field">
+                    <span className="gk-field__label" id="announce-to">Send to</span>
+                    <div className="gk-chips" role="group" aria-labelledby="announce-to">{choices.map(choice => <Chip key={choice.id} pressed={targets.includes(choice.id)}
+                        onClick={() => setTargets(current => current.includes(choice.id) ? current.filter(id => id !== choice.id) : [...current, choice.id])}>{choice.name}</Chip>)}</div>
+                    {!targets.length && <span className="gk-field__hint">Choose at least one squad.</span>}
+                </div>}
                 <Field label="Title" htmlFor="announce-title">
                     <input id="announce-title" className="gk-input" required maxLength={140} autoFocus value={title} onChange={event => setTitle(event.target.value)} placeholder="What should families know?" />
                 </Field>
                 <Field label="Message" htmlFor="announce-body">
-                    <textarea id="announce-body" className="gk-input" required maxLength={4000} rows={4} value={body} onChange={event => setBody(event.target.value)} placeholder="Write a clear update for this squad…" />
+                    <textarea id="announce-body" className="gk-input" required maxLength={4000} rows={4} value={body} onChange={event => setBody(event.target.value)} placeholder="Write a clear update for the squad…" />
                 </Field>
                 <div className="gk-field">
                     <span className="gk-field__label" id="announce-pin">Pinned until</span>
                     <ChoiceChips labelledBy="announce-pin" value={pin} onChange={setPin} choices={PIN_CHOICES.map(choice => ({ value: choice.id, label: choice.label }))} />
                     {pin === 'date' && <input aria-label="Last day pinned" className="gk-input gk-announce-compose__date" type="date" min={localDate(now)} value={date} onChange={event => setDate(event.target.value)} aria-invalid={Boolean(dateProblem) || undefined} />}
                     {dateProblem && date ? <span className="gk-field__error" role="alert">{dateProblem}</span>
-                        : <span className="gk-field__hint">{until ? `Shown at the top of players’ and parents’ Home and this page until the end of ${dayText(until, now)}. It stays in the list afterwards.` : 'Choose the last day it stays pinned.'}</span>}
+                        : <span className="gk-field__hint">{until ? `Pinned at the top of the squad’s updates until the end of ${dayText(until, now)}. It stays in the list afterwards.` : 'Choose the last day it stays pinned.'}</span>}
                 </div>
                 <label className="gk-announce-compose__switch">
                     <input type="checkbox" role="switch" className="gk-switch" checked={confirm} onChange={event => setConfirm(event.target.checked)} />
@@ -77,7 +106,7 @@ export function AnnouncementComposer({ space, onPosted }: { space: api.SquadOver
                 {posted && <p className="gk-notice" role="status">{posted}</p>}
                 <div className="gk-announce-compose__actions">
                     <Button variant="ghost" disabled={busy} onClick={() => { setOpen(false); setTitle(''); setBody(''); setError(''); request.current = null; }}>Discard</Button>
-                    <Button variant="primary" type="submit" disabled={busy || !title.trim() || !body.trim() || Boolean(dateProblem) || !until}><Megaphone aria-hidden="true" />{busy ? 'Posting…' : 'Post announcement'}</Button>
+                    <Button variant="primary" type="submit" disabled={busy || !title.trim() || !body.trim() || Boolean(dateProblem) || !until || !targets.length}><Megaphone aria-hidden="true" />{busy ? 'Posting…' : 'Post announcement'}</Button>
                 </div>
             </form>
         </GkRoot>

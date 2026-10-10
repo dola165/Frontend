@@ -15,13 +15,13 @@ We perfect UI/UX on synthetic data. We do not write backend code here, but every
 **Working style**
 - Fast and efficient over perfect. Change, let Vite hot-reload (`.claude/launch.json`: `sandbox-api` on :4301, `web` on :5174), let the owner look, iterate. No per-step test runs or screenshot matrices; `npm run check` once before anything is merged. Commit each piece the owner accepts; never push.
 - The owner judges visually: check the page in the browser pane at 1920×1080 before reporting.
-- Design here, repeat later: once a pattern is decided and shown on one or two screens, rolling it out to the rest (and hardening, tests, backend parameters) waits for the pass that moves this branch into the real app. Add it to "Before release" in `ROUND_2.md` instead of doing it here.
+- This branch is the real frontend code on fake data: what we build here ships after hardening, so changes (rollouts included) can be made right away. Keep "Before release" in `ROUND_2.md` current with whatever is still to do (rollouts, Georgian copy, tests, backend parameters).
 
 **Product philosophy (never lose these)**
 - SAP-level depth underneath (one person with many roles, positions with dates, seasons, every process a record with status, approvals and history, one inbox, no double entry) under a consumer-simple surface. SAP is powerful and confusing; GrassKickZ is powerful and obvious. Hidden complexity rewards those who learn it.
 - Two audiences, one data model: lazy users get a Facebook-familiar social app, power users get the workspace; the workspace produces the social content automatically.
 - Automate: every answer narrows the next question and the likely answer is pre-chosen (inviting a club starts at your own ground). Agent Dola acts through the same actions as the screens, within the person's permissions, previews first and signs the history.
-- Places: Home (100% feed) · World (discovery) · role tabs as default pins: My club (club-wide staff → workspace), My squads (Coach Hub), Parent Hub. Academies are the target audience; every organisation type exists; an academy and its pro club are linked (`ACADEMY_OF`). The club model (sections, seasons, staff scopes) is still being validated with the owner's coaches.
+- Places: Home (100% feed) · World (discovery) · role tabs as default pins: My club (club-wide staff → club workspace), My squads (the coach's own workspace; Coach Hub is no longer in the club workspace), Parent Hub. Academies are the target audience; every organisation type exists; an academy and its pro club are linked (`ACADEMY_OF`). The club model (sections, seasons, staff scopes) is still being validated with the owner's coaches.
 - Football words, not system words (coaches responded to "My squads", not "My Club"). Jobs & volunteering, never "roles". This round covers coach, parent and player.
 
 **Visual language**

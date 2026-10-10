@@ -140,7 +140,7 @@ export const coachHubKa: Record<keyof typeof coachHubEn, string> = {
 /** Responsibilities: the personal focus switches and requests for another responsibility. */
 export const responsibilitiesEn = {
     focusTitle: 'Tools first in your navigation', focusHint: 'A personal view. It never changes your access.',
-    focusFoot: 'Tools for the responsibilities you switch on come first in your navigation and fill Coach Hub. Everything else stays under More tools and All tools.',
+    focusFoot: 'Tools for the responsibilities you switch on come first in the club workspace. Everything else stays under More tools and All tools.',
     keepOne: 'At least one stays on', showFirst: 'Show {{name}} tools first',
     approved: 'Your approved responsibilities', everyTool: 'every club tool', tools_one: '{{count}} tool', tools_other: '{{count}} tools', leadership: 'club leadership',
     noneApproved: 'No approved responsibilities yet', noneApprovedHint: 'Ask for one below. A club admin approves it before any tools change.',
@@ -159,7 +159,7 @@ export const responsibilitiesEn = {
 
 export const responsibilitiesKa: Record<keyof typeof responsibilitiesEn, string> = {
     focusTitle: 'ნავიგაციაში პირველი ინსტრუმენტები', focusHint: 'პირადი ხედი. თქვენს წვდომას არ ცვლის.',
-    focusFoot: 'ჩართული პასუხისმგებლობების ინსტრუმენტები ნავიგაციაში პირველია და მწვრთნელის პანელს ავსებს. დანარჩენი რჩება „სხვა ინსტრუმენტებსა“ და „ყველა ინსტრუმენტში“.',
+    focusFoot: 'ჩართული პასუხისმგებლობების ინსტრუმენტები ნავიგაციაში პირველია. დანარჩენი რჩება „სხვა ინსტრუმენტებსა“ და „ყველა ინსტრუმენტში“.',
     keepOne: 'ერთი მაინც ჩართული რჩება', showFirst: '{{name}} — ინსტრუმენტები პირველად',
     approved: 'თქვენი დამტკიცებული პასუხისმგებლობები', everyTool: 'კლუბის ყველა ინსტრუმენტი', tools_one: '{{count}} ინსტრუმენტი', tools_other: '{{count}} ინსტრუმენტი', leadership: 'კლუბის ხელმძღვანელობა',
     noneApproved: 'დამტკიცებული პასუხისმგებლობები ჯერ არ არის', noneApprovedHint: 'მოითხოვეთ ქვემოთ. ინსტრუმენტები შეიცვლება კლუბის ადმინისტრატორის დამტკიცების შემდეგ.',

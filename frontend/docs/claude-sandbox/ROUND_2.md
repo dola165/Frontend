@@ -127,6 +127,11 @@ The app today, compared with how clubs usually work (coaches to confirm):
   - Person, then a role template that pre-fills access, then squads, then send. Access details sit under "Adjust access".
   - Current access continues while a change waits for acceptance (the real app pauses it).
 
+**My squads, the coach's own workspace** (decided 11 October)
+- **Coach Hub left the club workspace.** The owner: having it there is redundant. My squads (`/my-squads`) is the coach's own workspace, with the same rail as the club workspace: Overview, Updates, Schedule, Players, Coaching team, one page per squad, and the club workspace one link away. Old Coach Hub links open the matching My squads page.
+- **Built around a coach's week:** who's coming (replies per session; matches ask, training is opt-out), updates to families with who has read them, players to plan around (restrictions, consent, reviews), and the colleagues and duties on the same squads. Every item opens the same squad spaces and records the club uses.
+- **Responsibilities:** asking for another one is one short form in a dialog on Coaching team; the "tools first" switches moved to All tools in the club workspace, because they only order that workspace's rail.
+
 **A parent who is also staff** (decided 10 October, delegated by the owner)
 - **One account, many roles.** Being a parent is a relationship (a linked child), not an account type. Parent Hub appears for anyone with a linked child, whatever they registered as; the registration answer only shapes the first experience.
 - **Don't block parents from clubs or ask for two accounts.** Parent-coaches are a large part of grassroots football.
@@ -228,13 +233,14 @@ The app today, compared with how clubs usually work (coaches to confirm):
 
 ## Before release (do it in the real branch, not here)
 
-This branch is the real frontend code on fake data. Repeating a decided pattern on more screens, and hardening, are done once in the pass that moves this branch into the real app, not polished here (the owner, 10 October). Add such work to this list.
+This branch is the real frontend code on fake data, so what is built here ships after hardening. The owner is fine making changes, rollouts included, right away (11 October); this list keeps what is still to do so nothing is forgotten when the branch moves into the real app.
 
 - **Every workspace list as a table** ("Lists" under Across the app):
   - Full lists still on the old look: Staff (`ClubStaffTeam`, unless the one-screen staff work in section 3 redoes it here first), staff invitations (`ManagementInvites`), Club updates (`InboxTab`), Staff roles (`RolesTab`), Joining (`ClubAdmissionWorkspace`), Applications, Tryouts, Jobs & volunteering (`OpenRolesPage`, `RoleApplicants`), Store, Fundraising (`ClubCampaignsPage`), Player cards, Squads (`WorkspaceSquads`) and the squad roster.
   - Previews that open a full list speak the same row language and link to it: Needs you (My club, to the Work queue), players needing attention (My squads), staff appointments needing attention (Work queue), and the record sections of the player panel.
 - **Tests:** run `npm run check` and fix it. Known failure: the squad-focus test in `WorkspacePolish.test.tsx`, since My club dropped its squad chips (bring a squad focus back, or drop the test).
 - **Backend:** the records query (`/workspace-roles/work`) should take `sort` and `dir` and return a total. Until then the table sorts only the loaded page and record views show no counts.
+- **My squads:** Georgian copy for its new pages (written in English for now); tests for its pages; unused `coachHub` locale keys removed. Squad sessions should report friendlies as `FRIENDLY` (the sandbox marks them in the description).
 
 ## Open questions
 

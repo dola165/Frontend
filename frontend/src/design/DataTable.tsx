@@ -45,12 +45,14 @@ interface DataTableProps<T> {
     sort?: TableSort | null;
     onSort?: (by: string) => void;
     footer?: ReactNode;
+    /** Rows whose details start open, for example the one a link pointed at. */
+    defaultOpen?: (string | number)[];
 }
 
 const CONTROLS = 'a, button, input, select, textarea, label, summary, [role="button"]';
 
-export function DataTable<T>({ label, columns, rows, groups, rowKey, onOpen, actions, details, sort, onSort, footer }: DataTableProps<T>) {
-    const [open, setOpen] = useState<ReadonlySet<string | number>>(() => new Set());
+export function DataTable<T>({ label, columns, rows, groups, rowKey, onOpen, actions, details, sort, onSort, footer, defaultOpen }: DataTableProps<T>) {
+    const [open, setOpen] = useState<ReadonlySet<string | number>>(() => new Set(defaultOpen));
     const hasEnd = Boolean(actions || details);
     const style = { '--dt-columns': [...columns.map(column => column.width ?? 'minmax(0, 1fr)'), ...(hasEnd ? ['auto'] : [])].join(' ') } as CSSProperties;
     const toggle = (key: string | number) => setOpen(current => {
@@ -64,7 +66,7 @@ export function DataTable<T>({ label, columns, rows, groups, rowKey, onOpen, act
         const activate = onOpen ? () => onOpen(row) : more !== null ? () => toggle(key) : null;
         const clicked = (event: MouseEvent) => { if (!(event.target as HTMLElement).closest(CONTROLS)) activate?.(); };
         return <Fragment key={key}>
-            <div role="row" className={`gk-dt__row${activate ? ' gk-dt__row--open' : ''}${expanded ? ' gk-dt__row--expanded' : ''}`} onClick={activate ? clicked : undefined}>
+            <div role="row" data-row-key={key} className={`gk-dt__row${activate ? ' gk-dt__row--open' : ''}${expanded ? ' gk-dt__row--expanded' : ''}`} onClick={activate ? clicked : undefined}>
                 {columns.map((column, index) => <div role="cell" key={column.id} className={`gk-dt__cell${index === 0 ? ' gk-dt__cell--primary' : ''}${column.align === 'end' ? ' gk-dt__cell--end' : ''}`}>{column.narrowLabel && <span className="gk-dt__narrow-label">{column.narrowLabel}</span>}{column.render(row)}</div>)}
                 {hasEnd && <div role="cell" className="gk-dt__end">
                     {actions?.(row)}

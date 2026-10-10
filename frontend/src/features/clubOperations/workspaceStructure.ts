@@ -18,11 +18,11 @@ export const workspaceAreas = [
 export const areaFor = (tab: string) => workspaceAreas.find(area => (area.tabs as readonly string[]).includes(tab));
 
 /** Destinations that live at the top of the rail rather than inside an area. */
-export const personalTabs = new Set<WorkspaceTab>(['overview', 'coach-hub', 'inbox', 'actions', 'tools']);
+export const personalTabs = new Set<WorkspaceTab>(['overview', 'inbox', 'actions', 'tools']);
 
 export function toolDescription(tab: Pick<TabItem, 'id' | 'label'>) {
   return operationDescriptions[operationModule(tab.id) ?? ''] ?? ({
-    'coach-hub': 'Your squads, sessions, players and tasks in one place.', squads: 'Rosters, training sessions and squad responsibilities.',
+    squads: 'Rosters, training sessions and squad responsibilities.',
     players: 'Manage club affiliations, trialists and player status.',
     'role-requests': 'Assign staff roles and review requested changes.', personnel: 'Coaches, specialists, referees and management access.',
     roles: 'Manage ownership and club membership.', settings: 'Joining policy, public profile, activities and imports.',
@@ -35,14 +35,15 @@ export function toolDescription(tab: Pick<TabItem, 'id' | 'label'>) {
   } as Partial<Record<WorkspaceTab, string>>)[tab.id] ?? tab.label;
 }
 
-/** Old personal tabs now live in Coach Hub; their links keep working. */
-const legacyTabs: Partial<Record<WorkspaceTab, { tab: WorkspaceTab; hub?: string }>> = {
-  'my-day': { tab: 'coach-hub' }, 'my-squads': { tab: 'coach-hub' },
-  'my-people': { tab: 'coach-hub', hub: 'players' }, 'my-role': { tab: 'coach-hub', hub: 'responsibilities' },
-};
-export const legacyTabTarget = (tab: WorkspaceTab | null) => (tab ? legacyTabs[tab] ?? null : null);
-export function canonicalWorkspaceTab(tab: WorkspaceTab | null): WorkspaceTab | null {
-  return tab ? legacyTabs[tab]?.tab ?? tab : null;
+/**
+ * Coach Hub and the older personal tabs left the club workspace for My squads, the coach's own workspace.
+ * Their links keep working: each opens the matching My squads page.
+ */
+const personalPages: Partial<Record<WorkspaceTab, string>> = { 'coach-hub': '', 'my-day': '', 'my-squads': '', 'my-people': 'players', 'my-role': 'team' };
+export function personalWorkspaceTarget(tab: WorkspaceTab | null, hub: string | null) {
+  if (!tab || personalPages[tab] === undefined) return null;
+  const page = tab === 'coach-hub' ? ({ players: 'players', responsibilities: 'team' } as Record<string, string>)[hub ?? ''] ?? '' : personalPages[tab];
+  return `/my-squads${page ? `?tab=${page}` : ''}`;
 }
 
 // ---------------------------------------------------------------- responsibilities shape the workspace

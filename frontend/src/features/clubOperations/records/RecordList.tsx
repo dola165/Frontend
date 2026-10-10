@@ -8,7 +8,7 @@ import { formatDate } from '../../../utils/formatting';
 import { label, moduleNames, type Bootstrap, type Definition, type OperationRecord } from '../api';
 import { operationTabs } from '../workspaceNavigation';
 import { useNow } from '../../clubWorkspace/useNow';
-import { daysFromToday } from '../../clubWorkspace/fixtures';
+import { daysFromToday, dueWords } from '../../clubWorkspace/fixtures';
 import { isFinished, statusTone } from './recordStatus';
 
 /** Whose records a list shows: everything the person may see, only open ones, or the ones assigned to them. */
@@ -16,7 +16,6 @@ export type RecordView = 'all' | 'open' | 'mine';
 
 const dateOf = (record: OperationRecord) => record.attentionDate ?? record.due_on;
 const moduleIcon = (module: string) => operationTabs.find(tab => tab.module === module)?.icon ?? ClipboardList;
-const noon = (value: string) => new Date(`${value.slice(0, 10)}T12:00:00`);
 
 /** Open work by how soon it is due, then finished records; the order inside each group is the list's sort. */
 const GROUPS = [
@@ -31,12 +30,11 @@ function groupOf(record: OperationRecord, now: number): typeof GROUPS[number]['k
 
 /** The next date in words that scan down a column: "3 days overdue", "Today", "Tomorrow", "Thu 16", "24 Oct". */
 function DueCell({ value, now, finished }: { value: string | null | undefined; now: number; finished: boolean }) {
-    const days = daysFromToday(value, now);
-    if (days === null || !value) return EMPTY_CELL;
-    const date = noon(value), full = formatDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    const text = finished || days > 6 ? formatDate(date, { day: 'numeric', month: 'short' })
-        : days < 0 ? `${-days} ${days === -1 ? 'day' : 'days'} overdue` : days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : formatDate(date, { weekday: 'short', day: 'numeric' });
-    return <span className={`gk-dt-date${!finished && days < 0 ? ' gk-dt-date--late' : !finished && days === 0 ? ' gk-dt-date--soon' : ''}`} title={full}>{text}</span>;
+    const due = dueWords(value, now);
+    if (!due) return EMPTY_CELL;
+    const full = formatDate(due.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    if (finished) return <span className="gk-dt-date" title={full}>{formatDate(due.date, { day: 'numeric', month: 'short' })}</span>;
+    return <span className={`gk-dt-date${due.late ? ' gk-dt-date--late' : due.today ? ' gk-dt-date--soon' : ''}`} title={full}>{due.text}</span>;
 }
 
 /**

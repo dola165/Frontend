@@ -2,14 +2,19 @@ import { useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, Pin, PinOff } from 'lucide-react';
 import { Badge, Button, EmptyNote, List, PageFrame, PageHeader, Panel, SearchInput, Section } from '../../design/primitives';
 import type { TabItem, WorkspaceTab } from '../../components/workspace/types';
-import { personalTabs, toolDescription, workspaceAreas, type OpenWorkspace } from '../clubOperations/workspaceStructure';
+import { personalTabs, toolDescription, workspaceAreas, type OpenWorkspace, type ResponsibilityFocus } from '../clubOperations/workspaceStructure';
+import type { RolesWorkspace } from '../clubOperations/useWorkspaceRoles';
+import { FocusSwitches } from './FocusSwitches';
 import { ClubMatchLinks } from './ClubMatchLinks';
 import type { WorkspacePins } from './useWorkspacePins';
 import './club-workspace.css';
 
-/** Every tool this person may open, grouped by area, with pins for the ones they use most. */
-export function AllTools({ tabs, pins, focus, onOpen, showHidden, onShowHidden, hasHidden }: {
-    tabs: TabItem[]; pins: WorkspacePins; focus: Set<WorkspaceTab> | 'all'; onOpen: OpenWorkspace;
+/**
+ * Every tool this person may open, grouped by area, with pins for the ones they use most and, for people with
+ * several responsibilities, which of them put their tools first.
+ */
+export function AllTools({ tabs, pins, focus, responsibilities, onOpen, showHidden, onShowHidden, hasHidden }: {
+    tabs: TabItem[]; pins: WorkspacePins; focus: Set<WorkspaceTab> | 'all'; responsibilities?: { roles: RolesWorkspace; focus: ResponsibilityFocus }; onOpen: OpenWorkspace;
     showHidden: boolean; onShowHidden: (value: boolean) => void; hasHidden: boolean;
 }) {
     const [query, setQuery] = useState('');
@@ -38,6 +43,7 @@ export function AllTools({ tabs, pins, focus, onOpen, showHidden, onShowHidden, 
                     <Button size="sm" variant="ghost" iconOnly aria-label={`Unpin ${tab.label}`} onClick={() => pins.toggle(tab)}><PinOff aria-hidden="true" /></Button>
                 </>))}</List> : <EmptyNote title="Nothing pinned yet">Pin a tool below and it appears in your rail, on the overview and as a tab in the top bar. Pins are saved on this browser.</EmptyNote>}</Panel>
             </Section>
+            {responsibilities && <FocusSwitches roles={responsibilities.roles} focus={responsibilities.focus} />}
             {hasHidden && <label className="cw-check"><input type="checkbox" checked={showHidden} onChange={event => onShowHidden(event.target.checked)} />Include tools the club has turned off, to see their history</label>}
             {groups.length ? <div className="cw-tool-groups">{groups.map(area => [<Section key={area.id} title={area.label} hint={area.description}>
                 <Panel flush><List label={area.label}>{area.tools.map(tab => {

@@ -2,6 +2,7 @@ import { CalendarCheck2, ClipboardList, Handshake, History, Inbox, Trophy } from
 import { useParams } from 'react-router-dom';
 import { List, ListRow, Panel, Section } from '../../design/primitives';
 import { useWorldCopy } from '../world/copy';
+import './club-match-links.css';
 
 /**
  * The club's own matches. Their lists live in World for now (PRODUCT_MODEL §13, 10 October);
@@ -25,7 +26,7 @@ export function ClubMatchLinks({ filter = '' }: { filter?: string }) {
         <Section title={t('Club matches')} hint={t('Arrangements, results and competitions')}>
             <Panel flush>
                 <List label={t('Club matches')}>
-                    {links.map(link => <ListRow key={link.to} to={link.to} lead={<link.icon aria-hidden="true" />} title={t(link.label)} meta={t(link.meta)} />)}
+                    {links.map(link => <ListRow key={link.to} to={link.to} lead={<span className="gk-world-tool-icon"><link.icon aria-hidden="true" /></span>} title={t(link.label)} meta={t(link.meta)} />)}
                 </List>
             </Panel>
         </Section>

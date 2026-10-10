@@ -33,6 +33,7 @@ export function Tabs<T extends string>({ items, value, onChange, label, classNam
 }
 
 /** Reads and writes one tab id in the query string, falling back to the first allowed value. */
+// eslint-disable-next-line react-refresh/only-export-components -- the tab hook belongs with Tabs; fast refresh reloads this file in full.
 export function useUrlTab<T extends string>(param: string, allowed: readonly T[], fallback: T): [T, (id: T) => void] {
     const [params, setParams] = useSearchParams();
     const raw = params.get(param);

@@ -1,0 +1,3 @@
+/* Club match links in All tools look like the tool rows beside them. Tokens only. */
+.gk .gk-world-tool-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--gk-r); background: var(--gk-raised); color: var(--gk-text-2); }
+.gk .gk-world-tool-icon svg { width: 18px; height: 18px; }

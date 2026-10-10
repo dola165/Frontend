@@ -79,6 +79,7 @@ export function ClubCard({ club, compact = false, distanceKm }: { club: ClubProf
             <div className="gk-world-card__facts">
                 {relation ? <Badge tone={relation.tone}>{t(relation.label)}</Badge> : policy && <Badge tone={policy.tone}>{t(policy.label)}</Badge>}
                 <span>{plural(club.memberCount, 'member')}</span>
+                {!compact && club.followerCount > 0 && <span>{plural(club.followerCount, 'follower')}</span>}
                 {distanceKm != null && <span>{distanceLabel(distanceKm)}</span>}
             </div>
             <ClubProgrammes presentation={club.presentation} child={child} compact={compact} />

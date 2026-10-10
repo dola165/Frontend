@@ -39,6 +39,12 @@ it('searches training groups for the chosen child by birth year and category, ke
     expect(searchOpportunities).toHaveBeenLastCalledWith(expect.objectContaining({ birthYear: 2018, gender: 'FEMALE', acceptingOnly: true, includeWaitlist: true, clubId: 4, page: 0 }), context.signal);
 });
 
+it('lets a person pick the club for places to train once the clubs are known, and keeps a linked club otherwise', () => {
+    const club = (clubs?: { value: string; label: string }[]) => groupsSource([child], undefined, clubs).filters.find(filter => filter.key === 'club');
+    expect(club()?.kind).toBe('scope');
+    expect(club([{ value: '4', label: 'Saburtalo Youth' }])).toMatchObject({ kind: 'choice', options: [{ value: '4', label: 'Saburtalo Youth' }] });
+});
+
 it('offers no child choice to someone searching only for themselves', () => {
     expect(groupsSource([{ ...child, minor: false, guardian: false }]).filters.some(filter => filter.key === 'player')).toBe(false);
 });

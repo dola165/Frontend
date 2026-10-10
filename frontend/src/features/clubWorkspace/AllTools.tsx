@@ -39,7 +39,7 @@ export function AllTools({ tabs, pins, focus, onOpen, showHidden, onShowHidden, 
                 </>))}</List> : <EmptyNote title="Nothing pinned yet">Pin a tool below and it appears in your rail, on the overview and as a tab in the top bar. Pins are saved on this browser.</EmptyNote>}</Panel>
             </Section>
             {hasHidden && <label className="cw-check"><input type="checkbox" checked={showHidden} onChange={event => onShowHidden(event.target.checked)} />Include tools the club has turned off, to see their history</label>}
-            {groups.length ? <div className="cw-tool-groups">{groups.map(area => <Section key={area.id} title={area.label} hint={area.description}>
+            {groups.length ? <div className="cw-tool-groups">{groups.map(area => [<Section key={area.id} title={area.label} hint={area.description}>
                 <Panel flush><List label={area.label}>{area.tools.map(tab => {
                     const isPinned = pins.isPinned(tab.id);
                     return row(tab, <>
@@ -50,7 +50,10 @@ export function AllTools({ tabs, pins, focus, onOpen, showHidden, onShowHidden, 
                         </Button>
                     </>);
                 })}</List></Panel>
-            </Section>)}<ClubMatchLinks filter={query} /></div> : <EmptyNote title={`No tools match “${query}”`} action={<Button size="sm" onClick={() => setQuery('')}>Clear search</Button>}>Try another word, such as attendance, travel or finance.</EmptyNote>}
+            </Section>,
+            // The club's own match work sits beside the Football tools.
+            area.id === 'football' && <ClubMatchLinks key="club-matches" filter={query} />])}
+            {!groups.some(area => area.id === 'football') && <ClubMatchLinks filter={query} />}</div> : <EmptyNote title={`No tools match “${query}”`} action={<Button size="sm" onClick={() => setQuery('')}>Clear search</Button>}>Try another word, such as attendance, travel or finance.</EmptyNote>}
         </div>
     </PageFrame>;
 }

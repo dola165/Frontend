@@ -5,7 +5,7 @@ import { searchOpportunities } from '../../admissions/api';
 import type { DiscoveryQuery, Participant } from '../../admissions/types';
 import { postingLabel } from '../../tryouts/tryoutCopy';
 import { wt } from '../copy';
-import { first, type DirectorySource, type RememberedChoice } from '../directory/types';
+import { first, type DirectorySource, type FilterOption, type RememberedChoice } from '../directory/types';
 import { GroupItem, JobItem, TrialItem, type GroupResult } from './opportunityItems';
 import { clubScope } from './scopes';
 
@@ -92,7 +92,7 @@ const birthYearOf = (participant?: Participant) => participant?.dateOfBirth ? Nu
  * birth year and category then decide which groups fit, and the choice follows them to the group
  * and to other World pages (`remember`).
  */
-export function groupsSource(participants: Participant[], remember?: RememberedChoice): DirectorySource<GroupResult> {
+export function groupsSource(participants: Participant[], remember?: RememberedChoice, clubs?: FilterOption[]): DirectorySource<GroupResult> {
     // Offered to parents: someone searching only for themselves needs no choice here.
     const playerFilter = participants.some(p => p.minor)
         ? [{ kind: 'choice' as const, key: 'player', label: 'Searching for', primary: true, allLabel: 'Anyone', remember, options: participants.map(p => ({ value: String(p.id), label: p.minor ? p.name : wt('{name} (you)', { name: p.name }) })) }]
@@ -111,7 +111,8 @@ export function groupsSource(participants: Participant[], remember?: RememberedC
             ...playerFilter,
             { kind: 'toggle', key: 'beginner', label: 'Beginners welcome', primary: true },
             { kind: 'choice', key: 'gender', label: 'Category', primary: true, allLabel: 'Everyone', when: query => !chosen(first(query, 'player'))?.gender, options: [{ value: 'MALE', label: 'Boys and men' }, { value: 'FEMALE', label: 'Girls and women' }] },
-            clubScope('club'),
+            // With the list of clubs a person can pick one; until then a club from a link shows as a removable scope.
+            clubs?.length ? { kind: 'choice' as const, key: 'club', label: 'Club', allLabel: 'Any club', options: clubs } : clubScope('club'),
             { kind: 'scope', key: 'organization', label: 'One organisation' },
             { kind: 'text', key: 'birthYear', label: 'Player’s birth year', placeholder: 'For example 2015', when: query => !chosen(first(query, 'player')) },
             { kind: 'choice', key: 'method', label: 'How to join', allLabel: 'Any way', options: [{ value: 'DIRECT', label: 'Join directly' }, { value: 'INTRODUCTION', label: 'Introductory session first' }, { value: 'SELECTIVE', label: 'Selection' }] },

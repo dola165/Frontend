@@ -241,5 +241,7 @@ export const WORLD_KA: Record<string, string> = {
     'Tilt': 'დახრა', 'Rotate left': 'მარცხნივ შემობრუნება', 'Rotate right': 'მარჯვნივ შემობრუნება', 'Reset view': 'ხედის აღდგენა', 'Shrink {panel}': 'შემცირება: {panel}', 'Expand {panel}': 'გაშლა: {panel}',
 
     // Added with the parent path and the name-only people search
+    'Professional academy': 'პროფესიული აკადემია', 'Private academy': 'კერძო აკადემია', 'School club': 'სასკოლო კლუბი',
+    'Any club': 'ნებისმიერი კლუბი',
     'Ask about a place': 'ადგილის შესახებ კითხვა', 'Yes': 'დიახ', 'entries': 'მონაწილე', 'pitches': 'მოედანი', '{name} (you)': '{name} (თქვენ)',
 };

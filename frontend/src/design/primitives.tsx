@@ -98,20 +98,21 @@ export function ListRow({ to, onClick, className, ...content }: RowContent & { t
 
 export type FixtureTone = 'match' | 'training' | 'event' | 'trial';
 /** The GrassKickZ fixture line: a time column in scoreboard numerals, then what, where and status. */
-export function FixtureRow({ time, day, title, meta, trail, tone = 'event', to }: { time: ReactNode; day?: ReactNode; title: ReactNode; meta?: ReactNode; trail?: ReactNode; tone?: FixtureTone; to?: string }) {
-    const body = (
-        <>
-            <span className="gk-fixture__when"><span className="gk-fixture__time">{time}</span>{day && <span className="gk-fixture__day">{day}</span>}</span>
-            <span className="gk-fixture__main"><span className="gk-fixture__title">{title}</span>{meta && <span className="gk-fixture__meta">{meta}</span>}</span>
-            {trail && <span className="gk-fixture__trail">{trail}</span>}
-        </>
-    );
-    return <li>{to ? <Link className="gk-fixture" data-tone={tone} to={to}>{body}</Link> : <div className="gk-fixture" data-tone={tone}>{body}</div>}</li>;
+export function FixtureRow({ time, day, title, meta, trail, tone = 'event', to, onClick, label }: { time: ReactNode; day?: ReactNode; title: ReactNode; meta?: ReactNode; trail?: ReactNode; tone?: FixtureTone; to?: string; onClick?: () => void; label?: string }) {
+    const when = <span className="gk-fixture__when"><span className="gk-fixture__time">{time}</span>{day && <span className="gk-fixture__day">{day}</span>}</span>;
+    const main = <span className="gk-fixture__main"><span className="gk-fixture__title">{title}</span>{meta && <span className="gk-fixture__meta">{meta}</span>}</span>;
+    const trailNode = trail && <span className="gk-fixture__trail">{trail}</span>;
+    if (to) return <li><Link className="gk-fixture" data-tone={tone} to={to} aria-label={label}>{when}{main}{trailNode}</Link></li>;
+    // With an action and its own trailing controls, only the time and title open the entry, so the controls stay separate buttons.
+    if (onClick) return <li><div className="gk-fixture gk-fixture--action" data-tone={tone}><button type="button" className="gk-fixture__open" onClick={onClick} aria-label={label}>{when}{main}</button>{trailNode}</div></li>;
+    return <li><div className="gk-fixture" data-tone={tone}>{when}{main}{trailNode}</div></li>;
 }
 
-export function StatTile({ label, value, hint, to, tone }: { label: ReactNode; value: ReactNode; hint?: ReactNode; to?: string; tone?: 'attention' | 'good' }) {
+export function StatTile({ label, value, hint, to, onClick, tone }: { label: ReactNode; value: ReactNode; hint?: ReactNode; to?: string; onClick?: () => void; tone?: 'attention' | 'good' }) {
     const body = <><span className="gk-stat__label">{label}</span><span className="gk-stat__value">{value}</span>{hint && <span className="gk-stat__hint">{hint}</span>}</>;
-    return to ? <Link className="gk-stat" data-tone={tone} to={to}>{body}</Link> : <div className="gk-stat" data-tone={tone}>{body}</div>;
+    if (to) return <Link className="gk-stat" data-tone={tone} to={to}>{body}</Link>;
+    if (onClick) return <button type="button" className="gk-stat" data-tone={tone} onClick={onClick}>{body}</button>;
+    return <div className="gk-stat" data-tone={tone}>{body}</div>;
 }
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';

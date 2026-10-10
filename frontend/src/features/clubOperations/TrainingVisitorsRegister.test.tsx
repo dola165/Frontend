@@ -21,10 +21,10 @@ it('ordinary session register saves the case-bound visitor instead of creating a
 });
 it('a staff member without current admission scope is not asked for private visitor details',async()=>{
     render(<SessionRegister boot={{...boot,modules:[boot.modules[0]]}} session={9} squad={10} onRecord={vi.fn()}/>);
-    await screen.findByText(/No roster is available/);expect(screen.queryByText('Synthetic visitor')).not.toBeInTheDocument();expect(vi.mocked(apiClient.get).mock.calls.every(args=>!String(args[0]).includes('introductory-visitors'))).toBe(true);
+    await screen.findByText(/No roster for this session/);expect(screen.queryByText('Synthetic visitor')).not.toBeInTheDocument();expect(vi.mocked(apiClient.get).mock.calls.every(args=>!String(args[0]).includes('introductory-visitors'))).toBe(true);
 });
 it('later enrollment preserves the historical introductory fact without a second regular row',async()=>{
     vi.mocked(apiClient.get).mockImplementation(async route=>({data:String(route).includes('introductory-visitors')?{sessionRevision:4,visitors:[{...visitor,status:'ATTENDED',permissionStatus:'HISTORICAL',emergencyContact:null,canRecord:false}]}:[]}));
     render(<SessionRegister boot={{...boot,people:[{id:50,name:'Synthetic visitor'}],peopleBySquad:[{id:50,squad_id:10}]}} session={9} squad={10} onRecord={vi.fn()}/>);
-    await screen.findByText('Attended');await waitFor(()=>expect(screen.getAllByText('Synthetic visitor')).toHaveLength(1));expect(screen.queryByRole('button',{name:'Mark arrived'})).not.toBeInTheDocument();
+    await screen.findByText('Attended');await waitFor(()=>expect(screen.getAllByText('Synthetic visitor')).toHaveLength(1));expect(screen.queryByRole('button',{name:/^Mark .+ arrived$/})).not.toBeInTheDocument();
 });

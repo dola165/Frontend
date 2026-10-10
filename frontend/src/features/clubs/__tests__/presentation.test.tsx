@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { apiClient } from '../../../api/axiosConfig';
-import { ClubPresentationSettings } from '../../../components/workspace/tabs/ClubPresentationSettings';
+import { ClubPresentationSettings } from '../../clubWorkspace/settings/presentation/ClubPresentationSettings';
 import { ClubAffiliations, ClubProgrammeSection, ClubSponsors, TrainingPriceHighlight } from '../../../components/club/ClubPresentation';
 import { programmePrice, safePublicUrl, trainingSummary, type ClubPresentation, type TrainingProgramme } from '../presentation';
 

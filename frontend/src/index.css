@@ -3752,17 +3752,7 @@
 }
 
 /* ---- Club workspace responsive shell ---- */
-.workspace-mobile-only,
-.workspace-mobile-bar {
-  display: none;
-}
-
-.workspace-page-main {
-  min-width: 0;
-}
-
-.workspace-sidebar-backdrop,
-.workspace-context-backdrop {
+.workspace-mobile-only {
   display: none;
 }
 
@@ -3773,90 +3763,17 @@
     overflow: hidden;
   }
 
-  .workspace-mobile-only,
-  .workspace-mobile-bar {
+  .workspace-mobile-only {
     display: inline-flex;
-  }
-
-  .workspace-mobile-bar {
-    min-height: 58px;
   }
 
   .workspace-data-table-wrap > .workspace-mobile-only {
     display: block;
   }
 
-  .workspace-page-main {
-    width: 100%;
-    height: 100%;
-  }
-
-  .workspace-sidebar {
-    position: fixed !important;
-    top: var(--app-header-height);
-    bottom: 0;
-    left: 0;
-    z-index: 60;
-    width: min(88vw, 310px) !important;
-    transform: translateX(-105%);
-    transition: transform 180ms ease;
-    box-shadow: 18px 0 40px color-mix(in srgb, var(--color-shadow) 28%, transparent);
-  }
-
-  .workspace-sidebar.is-open {
-    transform: translateX(0);
-  }
-
-  .workspace-sidebar-backdrop,
-  .workspace-context-backdrop {
-    position: fixed;
-    top: var(--app-header-height);
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 55;
-    border: 0;
-    background: color-mix(in srgb, var(--color-overlay) 62%, transparent);
-  }
-
-  .workspace-sidebar-backdrop {
-    display: block;
-  }
-
-  .workspace-context-panel {
-    position: fixed !important;
-    top: var(--app-header-height);
-    right: 0;
-    bottom: 0;
-    z-index: 60;
-    width: min(88vw, 350px) !important;
-    transform: translateX(105%);
-    transition: transform 180ms ease;
-    box-shadow: -18px 0 40px color-mix(in srgb, var(--color-shadow) 28%, transparent);
-  }
-
-  .workspace-context-panel.is-open {
-    transform: translateX(0);
-  }
-
-  .workspace-context-backdrop {
-    display: block;
-  }
-
-  .workspace-alert-stack {
-    top: 58px !important;
-  }
-
   /* Row actions must not depend on hover on touch-sized layouts. */
   .workspace-page-shell .opacity-0 {
     opacity: 1 !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .workspace-sidebar,
-  .workspace-context-panel {
-    transition: none;
   }
 }
 

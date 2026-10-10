@@ -114,11 +114,7 @@ export const PlayerCardsTab = ({ clubId, setParentError, setParentSuccess }: Pla
         <section className="squad-design prc-workspace">
             <header className="prc-heading">
                 <div>
-                    <p className="sd-eyebrow">{t('squadDesign.clubRoster', { defaultValue: 'Club roster' })}</p>
-                    <h2>
-                        {t('minors.playerCard.tabLabel')}
-                        <span>.</span>
-                    </h2>
+                    <h2>{t('minors.playerCard.tabLabel')}</h2>
                     <p>
                         {t('squadDesign.cardsDescription', {
                             defaultValue:

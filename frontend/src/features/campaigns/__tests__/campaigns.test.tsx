@@ -1,7 +1,8 @@
 vi.mock('../../paymentPreview/config', () => ({ paymentPreviewEnabled: () => false }));
 import type { ImgHTMLAttributes } from 'react';
 import {ShoppingBag,HeartHandshake,Briefcase} from 'lucide-react';
-import {WorkspaceSidebar} from '../../../components/workspace/WorkspaceSidebar';
+import { WorkspaceShell } from '../../../design/workspace/WorkspaceShell';
+import { clubNavigation } from '../../clubWorkspace/clubTabs';
 import {ClubOpportunities} from '../../../components/club/ClubOpportunities';
 import type {ClubProfile} from '../../../pages/ClubProfilePage';
 import {act,fireEvent,render,screen,waitFor} from '@testing-library/react';
@@ -54,8 +55,10 @@ it('keeps all three club opportunity entry points scoped to that club',()=>{
  expect(screen.getByRole('link',{name:/Roles/})).toHaveAttribute('href','/clubs/10?tab=business&opportunity=jobs');
 });
 it('makes Store, Campaigns and Roles reachable in the workspace navigation',()=>{
- const onTabChange=vi.fn();render(<WorkspaceSidebar clubId={10} overview={null} activeTab="campaigns" tabs={[{id:'store',label:'Store',icon:ShoppingBag},{id:'campaigns',label:'Campaigns',icon:HeartHandshake},{id:'jobs',label:'Roles',icon:Briefcase}]} unreadInboxCount={0} mobileOpen={false} onTabChange={onTabChange} onNavigate={vi.fn()} onClose={vi.fn()}/>);
- for(const [name,id] of [['Store','store'],['Campaigns','campaigns'],['Roles','jobs']]) {if(id==='jobs')fireEvent.click(screen.getByRole('button',{name:/Recruitment/}));fireEvent.click(screen.getByRole('button',{name}));expect(onTabChange).toHaveBeenLastCalledWith(id);}
+ const onSelect=vi.fn();
+ const nav=clubNavigation([{id:'store',label:'Store',icon:ShoppingBag},{id:'campaigns',label:'Campaigns',icon:HeartHandshake},{id:'jobs',label:'Roles',icon:Briefcase}],{focus:'all',pins:[],inbox:{allowed:false,unread:0}});
+ render(<MemoryRouter><WorkspaceShell label="Club workspace" storageKey="test" context={{name:'Test FC'}} {...nav} active="campaigns" onSelect={onSelect} sectionTitle="Campaigns"><p>Content</p></WorkspaceShell></MemoryRouter>);
+ for(const [name,id] of [['Store','store'],['Campaigns','campaigns'],['Roles','jobs']]) {fireEvent.click(screen.getByRole('button',{name}));expect(onSelect).toHaveBeenLastCalledWith(id);}
 });
 
 // These suites test gallery selection; authenticated byte delivery has its own component and HTTP coverage.

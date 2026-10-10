@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { apiClient } from '../../api/axiosConfig';
 import ClubOperationsPage from '../../pages/ClubOperationsPage';
 import { WorkspaceOperations } from './WorkspaceOperations';
-import { RecordEditor } from './RecordEditor';
+import { RecordForm } from './records/RecordForm';
 import { operationModule, availableOperationTabs } from './workspaceNavigation';
 import type { Bootstrap, Definition } from './api';
 
@@ -38,28 +38,25 @@ it('keeps API failures distinct from an empty club list', async () => {
   expect(screen.queryByText('Nothing here yet')).not.toBeInTheDocument();
 });
 
-it('preserves fields between editor steps and submits the permitted squad without adding a financial currency', async () => {
+it('submits a record from one page with the permitted squad and without adding a financial currency', async () => {
   const saved = vi.fn().mockResolvedValue(undefined);
-  render(<RecordEditor boot={boot} definition={definition} onSaved={saved} onCancel={vi.fn()} />);
+  render(<RecordForm boot={boot} definition={definition} backLabel="Back to equipment" onSaved={saved} onCancel={vi.fn()} />);
   fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Training balls' } });
   fireEvent.change(screen.getByRole('spinbutton', { name: 'Total quantity' }), { target: { value: '8' } });
-  fireEvent.click(screen.getByRole('button', { name: /Continue/ }));
   fireEvent.change(screen.getByLabelText('Squad'), { target: { value: '2' } });
-  fireEvent.click(screen.getByRole('button', { name: /Continue/ }));
-  expect(screen.getAllByText('Training balls').length).toBeGreaterThan(0);
   fireEvent.click(screen.getByRole('button', { name: 'Save club equipment' }));
   await waitFor(() => expect(saved).toHaveBeenCalledOnce());
   expect(apiClient.post).toHaveBeenCalledWith('/clubs/12/operations/records', expect.objectContaining({ title: 'Training balls', squadId: 2, data: { quantity: '8' } }));
 });
 
 it('asks before discarding a changed editor and preserves the draft when kept', () => {
-  const close = vi.fn(); render(<RecordEditor boot={boot} definition={definition} onSaved={vi.fn()} onCancel={close} />);
+  const close = vi.fn(); render(<RecordForm boot={boot} definition={definition} backLabel="Back to equipment" onSaved={vi.fn()} onCancel={close} />);
   fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Unsaved equipment' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Close editor' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(close).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }));
   expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Unsaved equipment');
-  fireEvent.click(screen.getByRole('button', { name: 'Close editor' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   fireEvent.click(screen.getByRole('button', { name: 'Discard edits' }));
   expect(close).toHaveBeenCalledOnce();
 });

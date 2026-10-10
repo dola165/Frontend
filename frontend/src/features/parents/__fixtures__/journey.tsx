@@ -8,7 +8,7 @@ import { setStoredAccessToken } from '../../../utils/authStorage';
 import { applyDocumentTheme } from '../../../theme';
 import i18n from '../../../i18n';
 import { ParentHubPage } from '../../../pages/ParentHubPage';
-import { WorkspaceOverview } from '../../clubOperations/WorkspaceOverview';
+import { ClubOverview } from '../../clubWorkspace/overview/ClubOverview';
 import type { RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
 import type { ChildDirectory } from '../api';
 import type { SquadSpace, SquadSession, SquadOverview } from '../../squadCommunication/api';
@@ -61,6 +61,6 @@ const fixtureQuery=(key:string,value:string)=>{const next=new URLSearchParams(pa
 createRoot(document.getElementById('root')!).render(<AuthProvider><MemoryRouter initialEntries={[route+(params.get('player')?'?player='+params.get('player'):'')]}>
     <header className="local-preview-bar"><strong>Local design preview · synthetic data · writes blocked</strong><nav><Link to="/parent">Parent Hub</Link><Link to="/reference">Club workspace reference</Link><a href={fixtureQuery('theme',dark?'light':'dark')}>{dark?'Light':'Dark'}</a><a href={fixtureQuery('case','long')}>Crowded week</a><a href={fixtureQuery('case','family')}>Normal week</a></nav></header>
     <div className="product-app-shell"><main className="app-page-shell"><div className="app-page-frame app-page-frame--wide"><div className="workspace-design-scope">
-    <Routes><Route path="/parent" element={<ParentHubPage/>}/><Route path="/reference" element={<WorkspaceOverview data={roles} boot={null} tabs={[]} shortcuts={{ids:[],toggle:()=>{},move:()=>{}}} onOpen={()=>{}} overviewProps={{overview:null,clubId:1,onTabChange:()=>{},canManageLeadership:false,canManageOperations:false,upcomingEvents:[],scheduleLoading:false,scheduleError:null,tryoutPendingCount:0,unreadInboxCount:0,onOpenSchedule:()=>{},onRetrySchedule:()=>{}}}/>}/><Route path="*" element={<div style={{padding:24}}><p>This destination is outside the isolated design preview.</p><Link to="/parent">Return to Parent Hub</Link></div>}/></Routes>
+    <Routes><Route path="/parent" element={<ParentHubPage/>}/><Route path="/reference" element={<ClubOverview clubId={1} clubName={null} overview={null} roles={roles} boot={null} schedule={{events:[],loading:false,error:null,retry:()=>{},open:()=>{},openEvent:()=>{}}} unreadInbox={0} inboxAllowed={false} tryoutPending={0} canManageOperations={false} canManageLeadership={false} tabs={[]} pinned={[]} onOpen={()=>{}}/>}/><Route path="*" element={<div style={{padding:24}}><p>This destination is outside the isolated design preview.</p><Link to="/parent">Return to Parent Hub</Link></div>}/></Routes>
     </div></div></main></div>
 </MemoryRouter></AuthProvider>);

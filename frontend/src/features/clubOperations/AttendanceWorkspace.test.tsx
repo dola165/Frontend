@@ -1,9 +1,9 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { apiClient } from '../../api/axiosConfig';
 import { WorkspaceOperations } from './WorkspaceOperations';
-import { RecordEditor } from './RecordEditor';
+import { RecordForm } from './records/RecordForm';
 import type { Bootstrap, Definition } from './api';
 
 vi.mock('../../api/axiosConfig', () => ({ apiClient: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }));
@@ -29,7 +29,7 @@ function list(value=boot, query='?tab=attendance') { return render(<MemoryRouter
 it('offers upcoming readable sessions in time order and opens the actual register with clean context', async () => {
   list(boot,'?tab=attendance&q=old&mine=true&state=open&from=overview');
   await screen.findByText('No matching records');
-  const sessions=within(screen.getByRole('region',{name:'Scheduled sessions'}));
+  const sessions=within(screen.getByRole('region',{name:'Take a register'}));
   const buttons=sessions.getAllByRole('button');
   expect(buttons[0]).toHaveTextContent('Next training');
   expect(buttons[1]).toHaveTextContent('Later training');
@@ -49,29 +49,23 @@ it('distinguishes a filtered empty result from an unused attendance workflow', a
 
 it('keeps read-only session access without offering record creation', async () => {
   list({...boot,modules:[{...boot.modules[0],writable:false,writeSquads:[]}]});
-  await screen.findByText('Start your attendance & collection records');
+  await screen.findByText('No attendance & collection yet');
   expect(screen.queryByRole('button',{name:'Add attendance and collection'})).not.toBeInTheDocument();
   expect(screen.queryByRole('button',{name:'Get started'})).not.toBeInTheDocument();
   expect(screen.getByRole('button',{name:/Next training/})).toBeVisible();
 });
 
-it('keeps mandatory person and activity choices pending and includes them in the saved-record review', () => {
-  render(<RecordEditor boot={boot} definition={definition} onSaved={vi.fn()} onCancel={vi.fn()}/>);
-  expect(screen.getByText('Required details added').closest('li')).toHaveAttribute('data-complete','false');
-  expect(screen.getByText('Event or training session selected').closest('li')).toHaveAttribute('data-complete','false');
+it('keeps mandatory person and activity choices required and saves them with the record', async () => {
+  vi.mocked(apiClient.post).mockResolvedValue({data:{id:5}});
+  const saved=vi.fn().mockResolvedValue(undefined);
+  render(<RecordForm boot={boot} definition={definition} backLabel="Back to attendance" onSaved={saved} onCancel={vi.fn()}/>);
   fireEvent.change(screen.getByRole('textbox',{name:'Title'}),{target:{value:'Giorgi · Next training'}});
-  fireEvent.change(screen.getByLabelText('Person'),{target:{value:'7'}});
-  fireEvent.click(screen.getByRole('button',{name:/Continue/}));
   fireEvent.change(screen.getByLabelText('Squad'),{target:{value:'2'}});
-  expect(screen.getByText('Required details added').closest('li')).toHaveAttribute('data-complete','false');
-  fireEvent.click(screen.getByRole('button',{name:'Details'}));
-  fireEvent.change(screen.getByLabelText('Person'),{target:{value:'7'}});
-  fireEvent.click(screen.getByRole('button',{name:/Continue/}));
-  fireEvent.change(screen.getByLabelText('Training session'),{target:{value:'11'}});
-  expect(screen.getByText('Event or training session selected').closest('li')).toHaveAttribute('data-complete','true');
-  fireEvent.click(screen.getByRole('button',{name:/Continue/}));
-  const review=screen.getByRole('heading',{name:'Review & save'}).closest('section')!;
-  expect(within(review).getByText('Giorgi Beridze')).toBeVisible();
-  expect(within(review).getByText('Next training')).toBeVisible();
+  fireEvent.click(screen.getByRole('button',{name:'Save attendance and collection'}));
   expect(apiClient.post).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText('Person'),{target:{value:'7'}});
+  fireEvent.change(screen.getByLabelText(/^Training session/),{target:{value:'11'}});
+  fireEvent.click(screen.getByRole('button',{name:'Save attendance and collection'}));
+  await waitFor(()=>expect(saved).toHaveBeenCalledOnce());
+  expect(apiClient.post).toHaveBeenCalledWith('/clubs/1/operations/records',expect.objectContaining({subjectUserId:7,sessionId:11,squadId:2}));
 });

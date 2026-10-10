@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { apiClient } from '../api/axiosConfig';
-import { ClubPresentationSettings } from '../components/workspace/tabs/ClubPresentationSettings';
+import { EmptyNote, GkRoot, PageFrame, PageHeader } from '../design/primitives';
+import { ClubPresentationSettings } from '../features/clubWorkspace/settings/presentation/ClubPresentationSettings';
 
-/** Scoped profile editing does not open the club's operational workspace. */
+/** Scoped profile editing (for example a parent club editing its academy) does not open the club's workspace. */
 export const ClubPublicProfileSettingsPage = () => {
     const { id } = useParams();
     const clubId = Number(id);
@@ -17,10 +18,10 @@ export const ClubPublicProfileSettingsPage = () => {
         }
         return () => { current = false; };
     }, [clubId]);
-    if (!Number.isSafeInteger(clubId) || clubId <= 0) return <p>Club not found.</p>;
-    return <main className="mx-auto max-w-4xl space-y-5 px-4 py-8 text-[var(--fc-text-primary)]">
-        <Link to={`/clubs/${clubId}`} className="text-sm text-[var(--fc-accent)]">← Back to club</Link>
-        <h1 className="text-2xl font-bold">{identity?.id === clubId ? identity.name : 'Club'} — profile settings</h1>
+    if (!Number.isSafeInteger(clubId) || clubId <= 0) return <GkRoot><PageFrame><EmptyNote title="Club not found" /></PageFrame></GkRoot>;
+    const name = identity?.id === clubId ? identity.name : 'Club';
+    return <GkRoot className="gk-page"><PageFrame className="rec-page">
+        <PageHeader crumbs={[{ label: name, to: `/clubs/${clubId}` }, { label: 'Profile settings' }]} title={`${name} profile settings`} subtitle="Programmes, fees, sponsors and affiliations shown on the public club page." />
         <ClubPresentationSettings clubId={clubId} />
-    </main>;
+    </PageFrame></GkRoot>;
 };

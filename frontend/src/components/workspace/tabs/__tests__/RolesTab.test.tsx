@@ -31,8 +31,7 @@ describe('RolesTab ownership eligibility', () => {
         render(<RolesTab {...input} />);
         expect(screen.getByText('Eligible organizer')).toBeInTheDocument();
         for (const hidden of input.overview.members.slice(1)) expect(screen.queryByText(hidden.fullName!)).not.toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Transfer ownership' }));
-        fireEvent.click(screen.getByRole('menuitem', { name: /Transfer Ownership/ }));
+        fireEvent.click(screen.getByRole('button', { name: /^Transfer ownership/ }));
         expect(input.onTransferOwnership).not.toHaveBeenCalled();
         fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
         expect(input.onTransferOwnership).toHaveBeenCalledWith(eligible);
@@ -41,7 +40,7 @@ describe('RolesTab ownership eligibility', () => {
     it('shows the empty state when no staff member is eligible', () => {
         render(<RolesTab {...props([member(2, 'Fan administrator', false), member(3, 'Unknown eligibility')])} />);
         expect(screen.getByText('No eligible members available for ownership transfer.')).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Transfer ownership' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /^Transfer ownership/ })).not.toBeInTheDocument();
     });
 
     it('removes a candidate when refreshed eligibility changes', () => {
@@ -55,7 +54,7 @@ describe('RolesTab ownership eligibility', () => {
 
     it('does not offer ownership transfer to a coach', () => {
         render(<RolesTab {...props([member(2, 'Eligible organizer', true)], false)} />);
-        expect(screen.queryByRole('button', { name: 'Transfer ownership' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /^Transfer ownership/ })).not.toBeInTheDocument();
         expect(screen.queryByText('Eligible organizer')).not.toBeInTheDocument();
     });
 });

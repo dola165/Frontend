@@ -53,8 +53,7 @@
     font-weight: 750;
     letter-spacing: -0.045em;
 }
-.prf-header h2 span,
-.prc-heading h2 span {
+.prf-header h2 span {
     color: var(--sd-accent, var(--color-accent));
 }
 .prf-icon {

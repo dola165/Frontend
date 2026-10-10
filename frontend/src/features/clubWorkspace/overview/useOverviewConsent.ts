@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchClubPlayers } from '../../../features/clubs/api';
-import type { ClubPlayerAffiliation } from '../../../features/clubs/domain';
+import { fetchClubPlayers } from '../../clubs/api';
+import type { ClubPlayerAffiliation } from '../../clubs/domain';
 
 interface ConsentOverview {
     clubId: number;

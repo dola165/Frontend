@@ -1,58 +1,77 @@
-import { SquadTrainingSchedule } from '../clubs/SquadTrainingSchedule';
-import { useTranslation } from 'react-i18next';
-import { squadLabel } from '../../components/squads/squadLabels';
-import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, CalendarDays, ChevronRight, ClipboardCheck, Clock3, ExternalLink, Plus, ShieldCheck, X } from 'lucide-react';
+import { useRef, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { CalendarDays, ChevronDown, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Badge, Button, ButtonLink, EmptyNote, FixtureRow, List, ListRow, Panel, Section } from '../../design/primitives';
+import { Tabs } from '../../design/Tabs';
+import { SquadTrainingSchedule } from '../clubs/SquadTrainingSchedule';
 import { SessionRegister } from './SessionRegister';
 import type { RolesWorkspace } from './useWorkspaceRoles';
-import { get, post, root, label, type Bootstrap, type OperationRecord } from './api';
-import { operationTab, operationTabs } from './workspaceNavigation';
-import type { OpenWorkspace } from './WorkspaceHome';
-import { useDialogFocus } from '../../components/workspace/useDialogFocus';
-import type { SquadRosterPlayer } from '../../components/squads/SquadRosterTable';
-import { useClubEditorClose } from './useClubEditorClose';
-import { extractApiErrorMessage } from '../../utils/apiError';
+import type { Bootstrap } from './api';
+import { operationTabs } from './workspaceNavigation';
+import type { OpenWorkspace } from './workspaceStructure';
+import { canReadSquad } from './squadAccess';
+import { LegacyIsland } from './records/LegacyIsland';
+import { dayLabel, timeLabel } from '../clubWorkspace/fixtures';
+import './records/records.css';
 
-function canReadSquad(boot:Bootstrap|null,module:string,squad:number) {
-  return Boolean(boot?.modules.some(m=>m.id===module&&(m.globalRead||m.readSquads?.includes(squad))));
-}
+type View = 'players' | 'training' | 'eligibility';
+const HIDDEN = ['HOME', 'SETTINGS', 'MEDICAL', 'WELFARE', 'STAFF', 'CREDENTIALS', 'SPECIALISTS', 'FINANCE', 'FACILITIES'];
 
-export function SquadWorkbench({data,boot,squad,onOpen,children}:{data:RolesWorkspace;boot:Bootstrap|null;squad:number;onOpen:OpenWorkspace;children:React.ReactNode}) {
-  const [params,setParams]=useSearchParams();
-  const training=params.get('view')==='training';
-  const selectedSession=data.sessions.find(s=>s.id===Number(params.get('session'))&&s.squad_id===squad);
-  const sessions=data.sessions.filter(s=>s.squad_id===squad);
-  const permitted=operationTabs.filter(t=>!['HOME','SETTINGS','MEDICAL','WELFARE','STAFF','CREDENTIALS','SPECIALISTS','FINANCE','FACILITIES'].includes(t.module)&&canReadSquad(boot,t.module,squad)&&boot?.settings.enabled_modules.includes(t.module));
-  const choose=(view:string,session?:number)=>{const next=new URLSearchParams(params);next.set('view',view);if(session)next.set('session',String(session));else next.delete('session');setParams(next);};
-  return <>
-    <nav className="wo-squad-nav" aria-label="Squad workspace"><div className="sd-segments"><button type="button" aria-pressed={!training} onClick={()=>choose('players')}>Players</button><button type="button" aria-pressed={training} onClick={()=>choose('training')}><CalendarDays size={15}/>Training{sessions.length>0&&<span>{sessions.length}</span>}</button></div><div className="wo-squad-links">{permitted.filter(t=>['DEVELOPMENT','AVAILABILITY'].includes(t.module)).map(t=><button type="button" key={t.id} onClick={()=>onOpen(t.id,{squad:String(squad)})}><t.icon size={14}/>{t.id==='development'?'Development':'Restrictions'}</button>)}{permitted.some(t=>!['DEVELOPMENT','AVAILABILITY'].includes(t.module))&&<details className="wo-more"><summary>More tools</summary><nav aria-label="Squad tools">{permitted.filter(t=>!['DEVELOPMENT','AVAILABILITY'].includes(t.module)).map(t=><button type="button" key={t.id} onClick={e=>{e.currentTarget.closest('details')?.removeAttribute('open');onOpen(t.id,{squad:String(squad)});}}><t.icon size={15}/>{t.label}</button>)}</nav></details>}</div></nav>
-    {!training?<>{sessions[0]&&<button type="button" className="wo-next-session" onClick={()=>choose('training',sessions[0].id)}><CalendarDays size={19}/><span><small>Next training · {new Date(sessions[0].starts_at).toLocaleDateString(undefined,{day:'numeric',month:'short'})} · {new Date(sessions[0].starts_at).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}</small><strong>{sessions[0].title}</strong></span><span>Prepare session<ArrowRight size={15}/></span></button>}{children}</>:<section className="wo-squad-training">{boot&&<SquadTrainingSchedule clubId={boot.clubId} squadId={squad} management/>}<header><div><span className="sd-eyebrow">Next 14 days</span><h3>Training sessions</h3></div><Link className="sd-button" to={`/squads/${squad}`}>Plans & replies<ExternalLink size={13}/></Link></header><p className="wo-quiet">Player replies show who expects to attend. The register records actual arrivals and collection.</p><div className="wo-session-list">{sessions.map(s=><button type="button" key={s.id} aria-pressed={s.id===selectedSession?.id} onClick={()=>choose('training',s.id)}><CalendarDays size={16}/><span><strong>{s.title}</strong><small>{new Date(s.starts_at).toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})} · {new Date(s.starts_at).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}</small></span><ChevronRight size={15}/></button>)}</div>{!sessions.length&&<p className="wo-quiet">No upcoming sessions. Open Plans & replies to arrange training.</p>}
-    {selectedSession&&<div className="wo-session-detail"><header><div><span className="sd-eyebrow">Session</span><h3>{selectedSession.title}</h3><p><Clock3 size={13}/>{new Date(selectedSession.starts_at).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'})}</p></div>{canReadSquad(boot,'AVAILABILITY',squad)&&<button type="button" className="sd-button" onClick={()=>onOpen('restrictions',{squad:String(squad),state:'open'})}><ShieldCheck size={15}/>Check restrictions</button>}</header>{boot&&canReadSquad(boot,'ATTENDANCE',squad)?<SessionRegister key={selectedSession.id} boot={{...boot,peopleBySquad:data.people}} session={selectedSession.id} squad={squad} onRecord={r=>onOpen('attendance',{squad:String(squad),session:String(selectedSession.id),record:String(r.id)})}/>:<p className="wo-quiet">The attendance register is available to staff with attendance access.</p>}</div>}
-    </section>}
-  </>;
-}
+/** One squad's work: its players, its training sessions with the register, and (for leadership) its age rules. */
+export function SquadWorkbench({ data, boot, squad, onOpen, eligibility, children }: { data: RolesWorkspace; boot: Bootstrap | null; squad: number; onOpen: OpenWorkspace; eligibility?: ReactNode; children: ReactNode }) {
+  const [params, setParams] = useSearchParams();
+  const requested = params.get('view');
+  const view: View = requested === 'training' ? 'training' : requested === 'eligibility' && eligibility ? 'eligibility' : 'players';
+  const sessions = data.sessions.filter(s => s.squad_id === squad).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const selectedSession = sessions.find(s => s.id === Number(params.get('session')));
+  const permitted = operationTabs.filter(t => !HIDDEN.includes(t.module) && canReadSquad(boot, t.module, squad) && boot?.settings.enabled_modules.includes(t.module));
+  const quick = permitted.filter(t => ['DEVELOPMENT', 'AVAILABILITY'].includes(t.module));
+  const more = permitted.filter(t => !['DEVELOPMENT', 'AVAILABILITY'].includes(t.module));
+  const menu = useRef<HTMLDetailsElement>(null);
+  const choose = (next: View, session?: number) => {
+    const search = new URLSearchParams(params);
+    search.set('view', next);
+    if (session) search.set('session', String(session)); else search.delete('session');
+    setParams(search);
+  };
+  const next = sessions[0];
 
-export function WorkspacePlayerPanel({player,squad,squadName,boot,onClose,onOpen}:{player:SquadRosterPlayer;squad:number;squadName:string;boot:Bootstrap|null;onClose:()=>void;onOpen:OpenWorkspace}) {
-  const {t}=useTranslation();
-  const [observation,setObservation]=useState(''),[nextSteps,setNextSteps]=useState(''),[adding,setAdding]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[saved,setSaved]=useState(false),[revision,setRevision]=useState(0);
-  const [records,setRecords]=useState<{module:string;rows:OperationRecord[];error:string}[]|null>(null);
-  const {requestClose,confirmation}=useClubEditorClose(Boolean(observation.trim()||nextSteps.trim()),busy,onClose);
-  const ref=useRef<HTMLDivElement>(null),closeRef=useRef<HTMLButtonElement>(null),lock=useRef(false);
-  useDialogFocus(true,ref,requestClose,closeRef);
-  const development=canReadSquad(boot,'DEVELOPMENT',squad),restrictions=canReadSquad(boot,'AVAILABILITY',squad);
-  const writable=Boolean(boot?.settings.enabled_modules.includes('DEVELOPMENT')&&boot.modules.some(m=>m.id==='DEVELOPMENT'&&(m.globalWrite||m.writeSquads.includes(squad))));
-  const club=boot?.clubId;
-  useEffect(()=>{const c=new AbortController();const modules=[...(restrictions?['AVAILABILITY']:[]),...(development?['DEVELOPMENT']:[])];void Promise.all(modules.map(async module=>{try{return {module,rows:await get<OperationRecord[]>(`/clubs/${club}/workspace-roles/work?module=${module}&squad=${squad}&person=${player.id}${module==='AVAILABILITY'?'&state=open':''}`,c.signal),error:''};}catch(e){return {module,rows:[],error:extractApiErrorMessage(e,'Could not load player information.')};}})).then(value=>{if(!c.signal.aborted)setRecords(value);});return()=>c.abort();},[club,player.id,squad,development,restrictions,revision]);
-  const save=async()=>{if(lock.current||!writable||!observation.trim())return;lock.current=true;setBusy(true);setError('');try{await post(`${root(club!)}/records`,{kind:'OBSERVATION',title:`Observation · ${player.name} · ${new Date().toLocaleDateString()}`.slice(0,160),squadId:squad,subjectUserId:player.id,data:{observation:observation.trim(),nextSteps:nextSteps.trim()}});setObservation('');setNextSteps('');setAdding(false);setSaved(true);setRevision(v=>v+1);}catch(e){setError(extractApiErrorMessage(e,'Could not save this observation.'));}finally{lock.current=false;setBusy(false);}};
-  const tools=operationTabs.filter(t=>['DEVELOPMENT','ATTENDANCE','GUARDIANS','REGISTRATION','EQUIPMENT','TRAVEL'].includes(t.module)&&canReadSquad(boot,t.module,squad)&&boot?.settings.enabled_modules.includes(t.module));
-  return <div className="wo-dialog-backdrop wo-drawer-backdrop"><div ref={ref} className="squad-design wo-player-panel" role="dialog" aria-modal="true" aria-labelledby="workspace-player-title"><header><div><span className="sd-eyebrow">{squadName}</span><h2 id="workspace-player-title">{player.name}</h2><p>{[player.number!=null?`#${player.number}`:null,player.position?squadLabel(player.position,t):null,player.age!=null?`Age ${player.age}`:null].filter(Boolean).join(' · ')||'Squad player'}</p></div><button type="button" className="sd-icon-button" ref={closeRef} onClick={requestClose} disabled={busy} aria-label="Close player details"><X size={20}/></button></header>
-    <div className="wo-player-body">{player.isRegistered!==false&&<Link className="wo-profile-link" to={`/profile/${player.id}`} onClick={e=>{if(observation.trim()||nextSteps.trim()||busy){e.preventDefault();setError('Save or discard your observation before opening the public profile.');}}}>View public profile<ExternalLink size={13}/></Link>}
-    {saved&&<p role="status" className="wo-success">Observation saved as a draft. Review or share it in Development.</p>}{error&&<p role="alert" className="ops-alert">{error}</p>}
-    {adding?<form className="wo-observation-form" onSubmit={e=>{e.preventDefault();void save();}}><h3>Coach observation</h3><label>Observation<textarea required rows={5} maxLength={4000} placeholder="What did you notice?" value={observation} onChange={e=>setObservation(e.target.value)} disabled={busy}/></label><label>Next steps <span>(optional)</span><textarea rows={2} maxLength={4000} value={nextSteps} onChange={e=>setNextSteps(e.target.value)} disabled={busy}/></label><div><button type="submit" className="sd-primary" disabled={busy||!observation.trim()}>{busy?'Saving…':'Save observation'}</button><button type="button" className="sd-button" disabled={busy} onClick={()=>{if(observation.trim()||nextSteps.trim())requestClose();else setAdding(false);}}>Cancel</button></div></form>:writable&&<button type="button" className="sd-primary wo-observation-add" onClick={()=>{setSaved(false);setAdding(true);}}><Plus size={15}/>Add observation</button>}
-    {records===null?<p role="status" className="wo-quiet">Loading player information…</p>:records.map(group=><section className="wo-player-records" key={group.module}><header><h3>{group.module==='AVAILABILITY'?'Participation restrictions':'Recent development'}</h3><button type="button" onClick={()=>onOpen(operationTab(group.module),{squad:String(squad),person:String(player.id)})}>View all<ArrowRight size={13}/></button></header>{group.error?<p role="alert">{group.error}<button type="button" onClick={()=>setRevision(v=>v+1)}>Retry</button></p>:group.rows.length?group.rows.slice(0,4).map(r=><button type="button" key={r.id} onClick={()=>onOpen(operationTab(r.module),{squad:String(squad),person:String(player.id),record:String(r.id)})}><span><strong>{r.title}</strong><small>{group.module==='AVAILABILITY'?r.data.restrictions:label(r.status)}</small>{r.data.reviewOn&&<small>Review {r.data.reviewOn}</small>}</span><ChevronRight size={14}/></button>):<p className="wo-quiet">{group.module==='AVAILABILITY'?'No open restrictions recorded here.':'No development entries recorded here.'}</p>}</section>)}
-    {tools.length>0&&<section className="wo-player-tools"><h3>Player tools</h3>{tools.map(t=><button type="button" key={t.id} onClick={()=>onOpen(t.id,{squad:String(squad),person:String(player.id)})}><t.icon size={15}/>{t.label}<ChevronRight size={14}/></button>)}</section>}
-    {!boot&&<p className="wo-quiet"><ClipboardCheck size={17}/>Player workflows are temporarily unavailable.</p>}
-    </div>{confirmation}
-  </div></div>;
+  return <div className="gk-stack">
+    <div className="sq-bar">
+      <Tabs label="Squad" value={view} onChange={choose} items={[
+        { id: 'players', label: 'Players' }, { id: 'training', label: 'Training', count: sessions.length || undefined },
+        ...(eligibility ? [{ id: 'eligibility' as const, label: 'Age eligibility' }] : []),
+      ]} />
+      <div className="sq-tools">
+        {quick.map(t => <Button key={t.id} size="sm" variant="ghost" onClick={() => onOpen(t.id, { squad: String(squad) })}><t.icon aria-hidden="true" />{t.id === 'development' ? 'Development' : 'Restrictions'}</Button>)}
+        {more.length > 0 && <details className="sq-more" ref={menu}>
+          <summary className="gk-btn gk-btn--ghost gk-btn--sm">More tools<ChevronDown aria-hidden="true" /></summary>
+          <nav className="sq-more__menu" aria-label="Squad tools"><Panel flush><List label="Squad tools">{more.map(t => <ListRow key={t.id} lead={<t.icon aria-hidden="true" />} title={t.label}
+            onClick={() => { menu.current?.removeAttribute('open'); onOpen(t.id, { squad: String(squad) }); }} />)}</List></Panel></nav>
+        </details>}
+      </div>
+    </div>
+    {view === 'players' ? <>
+      {next && <Panel flush><List label="Next training"><FixtureRow tone="training" time={timeLabel(next.starts_at)} day={dayLabel(next.starts_at)} title={next.title} meta="Next training"
+        onClick={() => choose('training', next.id)} label={`Prepare ${next.title}`} trail={<Badge tone="info">Prepare session</Badge>} /></List></Panel>}
+      {children}
+    </> : view === 'eligibility' ? eligibility : <div className="gk-grid gk-grid--split">
+      <div className="gk-stack">
+        <Section title="Sessions" hint="Next 14 days" action={<Link className="gk-section__action" to={`/squads/${squad}`}>Plans and replies <ExternalLink aria-hidden="true" className="sq-inline-icon" /></Link>}>
+          <Panel flush>{sessions.length ? <List label="Training sessions">{sessions.map(s => <FixtureRow key={s.id} tone="training" time={timeLabel(s.starts_at)} day={dayLabel(s.starts_at)} title={s.title}
+            meta={s.id === selectedSession?.id ? 'Open below' : undefined} onClick={() => choose('training', s.id)} label={`Open ${s.title}`} trail={s.id === selectedSession?.id ? <Badge tone="accent">Open</Badge> : undefined} />)}</List>
+            : <EmptyNote title="No sessions in the next 14 days" action={<ButtonLink size="sm" to={`/squads/${squad}`}>Plan training</ButtonLink>}>Arrange training from the squad’s plans.</EmptyNote>}</Panel>
+        </Section>
+        {selectedSession && <Section title={selectedSession.title} hint={new Date(selectedSession.starts_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+          action={canReadSquad(boot, 'AVAILABILITY', squad) ? <Button size="sm" onClick={() => onOpen('restrictions', { squad: String(squad), state: 'open' })}><ShieldCheck aria-hidden="true" />Check restrictions</Button> : undefined}>
+          {boot && canReadSquad(boot, 'ATTENDANCE', squad)
+            ? <SessionRegister key={selectedSession.id} boot={{ ...boot, peopleBySquad: data.people }} session={selectedSession.id} squad={squad} onRecord={r => onOpen('attendance', { squad: String(squad), session: String(selectedSession.id), record: String(r.id) })} />
+            : <Panel><EmptyNote title="The register is for staff with attendance access">Player replies in Plans and replies show who expects to attend.</EmptyNote></Panel>}
+        </Section>}
+      </div>
+      <Section title="Weekly schedule" hint={<><CalendarDays aria-hidden="true" className="sq-inline-icon" /> Regular training times</>}>
+        <Panel padded>{boot ? <LegacyIsland><SquadTrainingSchedule clubId={boot.clubId} squadId={squad} management /></LegacyIsland> : <EmptyNote title="The schedule is unavailable right now" />}</Panel>
+      </Section>
+    </div>}
+  </div>;
 }

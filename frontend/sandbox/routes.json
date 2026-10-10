@@ -357,6 +357,22 @@
   "path": "/clubs/1/workspace?tab=tools"
  },
  {
+  "name": "ws-coach-hub",
+  "path": "/clubs/1/workspace?tab=coach-hub"
+ },
+ {
+  "name": "ws-coach-hub-players",
+  "path": "/clubs/1/workspace?tab=coach-hub&hub=players"
+ },
+ {
+  "name": "ws-coach-hub-responsibilities",
+  "path": "/clubs/1/workspace?tab=coach-hub&hub=responsibilities"
+ },
+ {
+  "name": "ws-programmes",
+  "path": "/clubs/1/workspace?tab=programmes"
+ },
+ {
   "name": "match-detail",
   "path": "/match-exchange/5781"
  },

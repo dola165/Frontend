@@ -1,40 +1,86 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { TabItem, WorkspaceTab } from '../../components/workspace/types';
-import { operationDescriptions, operationModule } from './workspaceNavigation';
+import type { RoleView } from './useWorkspaceRoles';
+import { operationDescriptions, operationModule, operationTabs } from './workspaceNavigation';
 
-// A tool has one home. Shortcuts are personal links, never a permission source.
+/** Opens a workspace tool, optionally with context such as a squad, session or record. */
+export type OpenWorkspace = (tab: WorkspaceTab, context?: Record<string, string>) => void;
+
+// A tool has one home. Pins are personal links, never a permission source.
 export const workspaceAreas = [
-  { id: 'football', label: 'Football', description: 'Squads, training and player development.', tabs: ['admissions', 'squads', 'attendance', 'development', 'restrictions', 'preparation', 'player-cards'] },
-  { id: 'people', label: 'People', description: 'Players, staff, permissions and care.', tabs: ['players', 'my-people', 'role-requests', 'personnel', 'staff-duties', 'credentials', 'specialists', 'guardians', 'registration', 'education', 'medical', 'welfare', 'departures', 'invites'] },
-  { id: 'operations', label: 'Club operations', description: 'Facilities, travel and equipment.', tabs: ['travel', 'equipment', 'facilities'] },
-  { id: 'recruitment', label: 'Recruitment', description: 'Applications, tryouts and agent approaches.', tabs: ['applications', 'tryouts', 'club-approaches', 'jobs'] },
-  { id: 'business', label: 'Club business', description: 'Finances, the club shop and campaigns.', tabs: ['finance', 'store', 'campaigns'] },
-  { id: 'settings', label: 'Settings', description: 'Club setup, ownership and your responsibilities.', tabs: ['my-role', 'workspace-settings', 'settings', 'roles'] },
+  { id: 'football', label: 'Football', description: 'Squads, training and player development.', tabs: ['squads', 'attendance', 'development', 'restrictions', 'preparation', 'player-cards'] },
+  { id: 'people', label: 'People', description: 'Players, staff, permissions and care.', tabs: ['players', 'personnel', 'staff-duties', 'role-requests', 'credentials', 'specialists', 'guardians', 'registration', 'education', 'medical', 'welfare', 'departures', 'invites'] },
+  { id: 'operations', label: 'Club operations', description: 'Venues, travel and equipment.', tabs: ['facilities', 'travel', 'equipment'] },
+  { id: 'recruitment', label: 'Recruitment', description: 'Joining, applications, tryouts and agent approaches.', tabs: ['admissions', 'applications', 'tryouts', 'club-approaches', 'jobs'] },
+  { id: 'business', label: 'Club business', description: 'Programmes and fees, finance, the club shop and campaigns.', tabs: ['programmes', 'finance', 'store', 'campaigns'] },
+  { id: 'settings', label: 'Settings', description: 'Club setup, the public profile and ownership.', tabs: ['settings', 'workspace-settings', 'roles'] },
 ] as const;
 export const areaFor = (tab: string) => workspaceAreas.find(area => (area.tabs as readonly string[]).includes(tab));
-export function toolDescription(tab: TabItem) {
+
+/** Destinations that live at the top of the rail rather than inside an area. */
+export const personalTabs = new Set<WorkspaceTab>(['overview', 'coach-hub', 'inbox', 'actions', 'tools']);
+
+export function toolDescription(tab: Pick<TabItem, 'id' | 'label'>) {
   return operationDescriptions[operationModule(tab.id) ?? ''] ?? ({
-    'my-squads': 'Open a squad, find its players and prepare for training.', squads: 'Your players, training sessions and squad responsibilities.',
-    'my-people': 'Find players in your assigned squads.', players: 'Manage club affiliations, trialists and player status.',
+    'coach-hub': 'Your squads, sessions, players and tasks in one place.', squads: 'Rosters, training sessions and squad responsibilities.',
+    players: 'Manage club affiliations, trialists and player status.',
     'role-requests': 'Assign staff roles and review requested changes.', personnel: 'Coaches, specialists, referees and management access.',
-    'my-role': 'See your approved responsibilities or request a change.', roles: 'Manage ownership and club membership.',
-    settings: 'Edit the club profile and joining policy.', overview: 'Club totals, applications and the wider schedule.',
+    roles: 'Manage ownership and club membership.', settings: 'Joining policy, public profile, activities and imports.',
+    programmes: 'Training programmes, prices and fees shown on the club profile.',
+    overview: 'Club totals, decisions and the coming week.', inbox: 'Club notifications and requests.',
     'club-approaches': 'Review player-approved approaches from agents.', jobs: 'Post openings and review applicants.',
-    admissions: 'Arrange introductions, agree a place and complete group enrollment.', applications: 'Review earlier club and staff applications.', tryouts: 'Organise tryouts and review players.',
+    admissions: 'Arrange introductions, agree a place and complete group enrollment.', applications: 'Review club and staff applications.', tryouts: 'Organise tryouts and review players.',
     store: 'Manage your public merchandise catalogue.', campaigns: 'Manage fundraising and sponsorship campaigns.',
-    'player-cards': 'Edit football profiles and player information.', invites: 'Invite people to join the club.',
-  } as Partial<Record<WorkspaceTab,string>>)[tab.id] ?? tab.label;
-}
-export function useWorkspaceShortcuts(club:number,user:number|null,tabs:TabItem[]) {
-  const key=`gk-club-shortcuts-v1:${club}:${user}`;
-  const [saved,setSaved]=useState<string[]|null>(()=>{try {const v=JSON.parse(localStorage.getItem(key)??'null');return Array.isArray(v)?v.filter(x=>typeof x==='string'):null;}catch{return null;}});
-  const ids=[...new Set((saved??[]).map(id=>id==='my-squads'?'squads':id))].filter(id=>tabs.some(t=>t.id===id)&&!['overview','my-day','tools'].includes(id)).slice(0,6);
-  const save=(next:string[])=>{setSaved(next);try{localStorage.setItem(key,JSON.stringify(next));}catch{/* Navigation also works without preference storage. */}};
-  const toggle=(tab:WorkspaceTab)=>{if(!tabs.some(t=>t.id===tab)||['overview','my-day','tools'].includes(tab))return;save(ids.includes(tab)?ids.filter(id=>id!==tab):ids.length<6?[...ids,tab]:ids);};
-  const move=(id:string,direction:-1|1)=>{const index=ids.indexOf(id),next=[...ids],target=index+direction;if(index<0||target<0||target>=ids.length)return;[next[index],next[target]]=[next[target],next[index]];save(next);};
-  return {ids,toggle,move};
+    'player-cards': 'Edit football profiles and player information.', invites: 'Invite people to join the club.', tools: 'Every tool your club role allows.',
+  } as Partial<Record<WorkspaceTab, string>>)[tab.id] ?? tab.label;
 }
 
-export function canonicalWorkspaceTab(tab:WorkspaceTab|null):WorkspaceTab|null {
-  return tab==='my-day'?'overview':tab==='my-squads'?'squads':tab;
+/** Old personal tabs now live in Coach Hub; their links keep working. */
+const legacyTabs: Partial<Record<WorkspaceTab, { tab: WorkspaceTab; hub?: string }>> = {
+  'my-day': { tab: 'coach-hub' }, 'my-squads': { tab: 'coach-hub' },
+  'my-people': { tab: 'coach-hub', hub: 'players' }, 'my-role': { tab: 'coach-hub', hub: 'responsibilities' },
+};
+export const legacyTabTarget = (tab: WorkspaceTab | null) => (tab ? legacyTabs[tab] ?? null : null);
+export function canonicalWorkspaceTab(tab: WorkspaceTab | null): WorkspaceTab | null {
+  return tab ? legacyTabs[tab]?.tab ?? tab : null;
 }
+
+// ---------------------------------------------------------------- responsibilities shape the workspace
+
+/** Approved responsibilities a person can work in (not the "all my work" or plain membership views). */
+export const focusableViews = (views: RoleView[]) => views.filter(view => !['all', 'member'].includes(view.id));
+
+/** The tools a set of responsibilities uses. Club administration uses every tool. */
+export function focusTabs(views: RoleView[]): Set<WorkspaceTab> | 'all' {
+  if (!views.length || views.some(view => view.id === 'club')) return 'all';
+  const tabs = new Set<WorkspaceTab>();
+  for (const view of views) {
+    operationTabs.filter(tab => view.modules.includes(tab.module)).forEach(tab => tabs.add(tab.id));
+    if (view.squadIds.length) tabs.add('squads');
+  }
+  return tabs;
+}
+
+/**
+ * Which approved responsibilities shape this person's navigation: a personal presentation
+ * preference on this browser. It never grants or removes access; the server stays authoritative.
+ */
+export function useResponsibilityFocus(club: number, user: number | null, views: RoleView[]) {
+  const key = `gk-ws-focus:v1:${club}:${user ?? 'me'}`;
+  const [hidden, setHidden] = useState<string[]>(() => {
+    try { const value = JSON.parse(localStorage.getItem(key) ?? '[]'); return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : []; } catch { return []; }
+  });
+  const available = useMemo(() => focusableViews(views), [views]);
+  // Hiding everything would leave an empty rail, so at least one responsibility always stays on.
+  const selectedViews = useMemo(() => { const shown = available.filter(view => !hidden.includes(view.id)); return shown.length ? shown : available; }, [available, hidden]);
+  const selected = selectedViews.map(view => view.id);
+  const tabs = useMemo(() => focusTabs(selectedViews), [selectedViews]);
+  const toggle = useCallback((id: string) => setHidden(previous => {
+    const next = previous.includes(id) ? previous.filter(value => value !== id) : [...previous, id];
+    if (available.every(view => next.includes(view.id))) return previous;
+    try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* The choice still applies for this visit. */ }
+    return next;
+  }), [available, key]);
+  return { available, selected, selectedViews, tabs, toggle };
+}
+export type ResponsibilityFocus = ReturnType<typeof useResponsibilityFocus>;

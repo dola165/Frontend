@@ -5,7 +5,10 @@ const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
 export const accessToken = () => `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: String(me.id), exp: Math.floor(Date.now() / 1000) + 86400 })}.sandbox`;
 
 get('/auth/csrf', () => reply(200, { headerName: 'X-XSRF-TOKEN', token: 'sandbox-csrf', parameterName: '_csrf' }, { 'set-cookie': 'XSRF-TOKEN=sandbox-csrf; Path=/' }));
-post('/auth/refresh', () => ({ accessToken: accessToken(), expiresIn: 86400 }));
+// A page opened with `signedout` in its address stays a guest (the screenshot harness skips its sign-in for these too).
+post('/auth/refresh', ({ headers }) => String(headers?.referer ?? '').includes('signedout')
+  ? reply(401, { status: 401, message: 'No session' })
+  : { accessToken: accessToken(), expiresIn: 86400 });
 post('/auth/login', () => ({ accessToken: accessToken(), expiresIn: 86400 }));
 post('/auth/logout', () => reply(204));
 

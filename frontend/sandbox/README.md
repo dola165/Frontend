@@ -9,6 +9,13 @@ node sandbox/shots.mjs <label> [--only=substr] [--widths=1440,390] [--themes=dar
 ```
 
 Screenshots and `report.json` land in `sandbox/shots/<label>/`. API calls the sandbox can't answer are logged to `sandbox/.runtime/unhandled-<port>.jsonl`.
+Signed-out views: put `signedout` in the route's address (for example `/world?signedout=1`, in its own run, since a run shares one browser session); the harness then skips its sign-in and the synthetic `/auth/refresh` answers 401.
+
+```
+node sandbox/vt/run.mjs src/components/layout/header/__tests__/inbox.test.tsx   # run vitest-style tests without vitest
+```
+
+`vt/` bundles each test with esbuild and runs it in jsdom with `@vitest/expect` and the jest-dom matchers, because vitest itself cannot start here (its rollup native binary is missing). It supports `describe`/`it`/`each`, hooks, `vi.fn`/`spyOn`/`mock`/`hoisted`/`stubGlobal`; not fake timers or `importOriginal`. A check while offline, not a replacement for `npm test`.
 
 ## Synthetic API conventions
 

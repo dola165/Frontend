@@ -40,11 +40,13 @@ const itinerary = p => {
     activities: d.activities.map(a => ({ title: a.title, kind: a.kind, startsAt: a.startsAt, endsAt: a.endsAt, place: shown(place(a.placeKey)) || null })), arrangements: d.arrangements.map(a => ({ title: a.title, kind: a.kind, place: '' })) };
 };
 export const snapshot = itinerary;
-const withReplies = p => {
+// Seeded plans show replies families gave already; a plan drafted here only shows replies made in the sandbox.
+const withReplies = (p, seeded = true) => {
+  const answer = id => seeded ? replyFor(p.id, id) : F.planReplies.get(`${p.id}:${id}`) || 'PENDING';
   Object.defineProperty(p, 'journeyResponses', { enumerable: true, configurable: true, get: () => !p.published_version ? [] : p.draft.participants
-    .map(id => ({ id, response: replyFor(p.id, id) })).filter(r => r.response !== 'PENDING')
+    .map(id => ({ id, response: answer(id) })).filter(r => r.response !== 'PENDING')
     .map(r => ({ subject_id: r.id, name: W.personById(r.id)?.fullName ?? 'Player', response: r.response, actor_id: W.parents.find(l => l.childId === r.id)?.parentId ?? r.id, updated_at: W.iso(W.day(-1, 19)) })) });
-  Object.defineProperty(p, 'familyResponses', { enumerable: true, configurable: true, get: () => !p.published_version ? [] : p.draft.participants
+  Object.defineProperty(p, 'familyResponses', { enumerable: true, configurable: true, get: () => !p.published_version || !seeded ? [] : p.draft.participants
     .filter(id => W.parents.some(l => l.childId === id))
     .map(id => { const h = hash(`ack:${p.id}:${id}`) % 10; return { child_id: id, child_name: W.personById(id)?.fullName ?? 'Player', version: p.published_version, acknowledged_at: h < 7 ? W.iso(W.day(-1, 20)) : null, permission_status: h < 6 ? 'GRANTED' : 'PENDING' }; }) });
   return p;
@@ -98,7 +100,7 @@ post('/journeys/from-fixture', ({ body }) => {
     arrangements: Number(prefs.transportMinor) ? [{ key: 'arr:transport', kind: 'TRANSPORT', title: 'Transport', placeKey: null, amountMinor: Number(prefs.transportMinor), notes: '', financeRecordId: null }] : [] };
   const p = withReplies({ id: W.newId(), club_id: DINAMO, squad_id: squad.id, title: draft.title, revision: 1, published_version: 0, published_revision: null, updated_at: W.iso(new Date()), starts_at: draft.startsAt, created_by: W.ME_ID, draft,
     suppliers: {}, totalMinor: draft.arrangements.reduce((n, a) => n + a.amountMinor, 0), budgetApproved: false, approvedBy: null, rights: { edit: true, travel: true, finance: true, publish: true, leadership: true }, issues: [], history: [],
-    playerResponses: [], trip_id: null, trip: null, passengers: [], linkedSchedule: [] });
+    playerResponses: [], trip_id: null, trip: null, passengers: [], linkedSchedule: [] }, false);
   F.plans.push(p);
   return reply(201, p);
 });

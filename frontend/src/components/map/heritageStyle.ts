@@ -1,10 +1,10 @@
 import type { StyleSpecification } from 'maplibre-gl';
 import { prefersLightMapRendering } from './mapPerformance';
-import { MAP_STYLE_DEFAULT, withDarkPaints, withHeritagePaints } from './mapLayers';
+import { MAP_STYLE_DEFAULT, MAP_STYLE_OVERRIDDEN, withDarkPaints, withHeritagePaints } from './mapLayers';
 
 // Cache the recolored style across remounts; retry on a later mount after failure.
 const stylePromises: Partial<Record<string, Promise<StyleSpecification>>> = {};
-export const getHeritageStyle = (theme: 'light' | 'dark' = 'light', { includeTerrain = !prefersLightMapRendering() } = {}): Promise<StyleSpecification> => {
+export const getHeritageStyle = (theme: 'light' | 'dark' = 'light', { includeTerrain = !prefersLightMapRendering() && !MAP_STYLE_OVERRIDDEN } = {}): Promise<StyleSpecification> => {
     const key = `${theme}:${includeTerrain}`;
     if (!stylePromises[key]) {
         stylePromises[key] = fetch(MAP_STYLE_DEFAULT)

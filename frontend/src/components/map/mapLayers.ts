@@ -4,8 +4,13 @@ import { visualColors } from '../../styles/visualColors';
 // dark URL below is kept as a resilient fallback when client-side recoloring
 // cannot be fetched (for example while the landing page is offline).
 // TILTED keeps the keyed MapTiler style.
-export const MAP_STYLE_DEFAULT = 'https://tiles.openfreemap.org/styles/positron';
-export const MAP_STYLE_DARK = 'https://tiles.openfreemap.org/styles/dark';
+// A build may point every map at its own style: the offline sandbox serves a local one
+// because tile hosts are unreachable there. Production builds leave it unset.
+const styleOverride = import.meta.env.VITE_MAP_STYLE_URL as string | undefined;
+export const MAP_STYLE_OVERRIDDEN = Boolean(styleOverride);
+const styleUrl = (url: string) => styleOverride ? new URL(styleOverride, typeof window === 'undefined' ? 'http://localhost' : window.location.origin).href : url;
+export const MAP_STYLE_DEFAULT = styleUrl('https://tiles.openfreemap.org/styles/positron');
+export const MAP_STYLE_DARK = styleUrl('https://tiles.openfreemap.org/styles/dark');
 // Google-Maps-inspired marker set: calm blue cluster/select accent, warm
 // multi-hue data colors that stay distinguishable on the light basemap.
 export const MAP_ENTITY_COLORS: Record<string, string> = {

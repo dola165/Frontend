@@ -51,6 +51,8 @@ const env = {
   DEV: false, PROD: true, MODE: 'sandbox', BASE_URL: '/',
   VITE_API_BASE_URL: '/api', VITE_ENABLE_MOCKS: 'false', VITE_GOOGLE_CLIENT_ID: 'sandbox-google-client',
   VITE_OVERPASS_URL: '/sandbox-overpass', VITE_PAYMENT_PREVIEW: 'true',
+  // Offline basemap served by sandbox/server.mjs; production builds keep the real styles.
+  VITE_MAP_STYLE_URL: '/sandbox-map/style.json',
 };
 
 const sandboxPlugin = {

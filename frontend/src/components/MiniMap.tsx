@@ -4,8 +4,9 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { Expand, Map as MapIcon, Shrink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MapHelpHint } from './map/MapHelpHint';
+import { MAP_STYLE_DARK } from './map/mapLayers';
 
-const MINI_MAP_STYLE = 'https://tiles.openfreemap.org/styles/dark';
+const MINI_MAP_STYLE = MAP_STYLE_DARK;
 
 type MapPoint = [number, number];
 

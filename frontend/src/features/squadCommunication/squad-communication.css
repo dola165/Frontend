@@ -125,5 +125,7 @@
   .coach-room .squad-room-layout{display:flex;flex-direction:column}
   .coach-room .squad-room-aside{position:static;order:2}
   .coach-room .squad-main{order:1}
+  /* Whichever layout wins on phones (flex here, a one-column grid in the workspace scope), keep both in one column. */
+  .coach-room :is(.squad-main,.squad-room-aside){grid-column:1 / -1}
   .coach-room .squad-tabs button{flex:0 0 auto}
 }

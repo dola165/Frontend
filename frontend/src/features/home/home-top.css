@@ -16,3 +16,5 @@
 .gk .gk-home-week__icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--gk-r); background: var(--gk-sunken); color: var(--gk-text-2); }
 .gk .gk-home-week__icon svg { width: 18px; height: 18px; }
 .gk .gk-home-week__action { font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-accent); white-space: nowrap; }
+/* Phones: the whole row opens the request, so its action label gives the title the room. */
+@media (max-width: 560px) { .gk .gk-home-week__action { display: none; } }

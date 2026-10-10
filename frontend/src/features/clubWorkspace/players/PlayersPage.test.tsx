@@ -62,6 +62,8 @@ const renderTab = (overrides: Partial<Parameters<typeof PlayersPage>[0]> = {}) =
         ...overrides,
     };
     render(<MemoryRouter><PlayersPage {...props} /></MemoryRouter>);
+    // Trial dates, consent and status changes open under each row.
+    screen.queryAllByRole('button', { name: 'Show details' }).forEach(button => fireEvent.click(button));
     return props;
 };
 
@@ -69,7 +71,7 @@ describe('Players — trialist actions', () => {
     it('keeps player intake unavailable with an explanation until joining access is ready', () => {
         const props=renderTab({canInvitePlayer:false,joiningUnavailableReason:'Joining access is loading.'});
         expect(screen.getByRole('button',{name:'Invite player'})).toBeDisabled();
-        expect(screen.getByRole('status')).toHaveTextContent('Joining access is loading.');
+        expect(screen.getByText('Joining access is loading.')).toHaveAttribute('role', 'status');
         fireEvent.click(screen.getByRole('button',{name:'Invite player'}));
         expect(props.onTabChange).not.toHaveBeenCalled();
     });

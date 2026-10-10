@@ -16,6 +16,11 @@ const calendarDay = (value: Date, timeZone?: string | null) => {
     return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
 };
 const daysBetween = (from: string, to: string) => Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000);
+/** Whole days from today to a date (negative once it has passed), or null without a valid date. */
+export function daysFromToday(value: string | null | undefined, now: Date | number = new Date()) {
+    const day = value?.slice(0, 10);
+    return day && !Number.isNaN(Date.parse(`${day}T12:00:00Z`)) ? daysBetween(calendarDay(new Date(now)), day) : null;
+}
 
 /** "Today", "Tomorrow" or a short weekday and date, for the fixture line's day column. */
 export function dayLabel(value: string, now: Date | number = new Date(), timeZone?: string | null) {

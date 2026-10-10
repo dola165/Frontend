@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import { Button, EmptyNote, PageFrame, PageHeader, Panel, Skeleton } from '../../design/primitives';
+import { nextSort, type TableSort } from '../../design/tableSort';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { get, root, moduleNames, type Bootstrap, type OperationRecord } from './api';
 import { RecordDetail } from './RecordDetail';
@@ -11,7 +12,7 @@ import { AppointmentActions } from './AppointmentActions';
 import { SessionRegister } from './SessionRegister';
 import { operationDescriptions, operationTabs } from './workspaceNavigation';
 import { RecordForm } from './records/RecordForm';
-import { RecordFilters, RecordList } from './records/RecordList';
+import { RecordTable, RecordToolbar, type RecordView } from './records/RecordList';
 import { SessionRegisters } from './records/SessionRegisters';
 import './records/records.css';
 import '../clubWorkspace/club-workspace.css';
@@ -26,7 +27,10 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin }: {
   const [result, setResult] = useState<{ key: string; records: OperationRecord[]; error: string } | null>(null);
   const [detailError, setDetailError] = useState('');
   const [refresh, setRefresh] = useState(0);
-  const page = Math.max(0, Number(params.get('page')) || 0), search = params.get('q') ?? '', kind = params.get('kind') ?? '', squad = params.get('squad') ?? '', session = params.get('session') ?? '', person = params.get('person') ?? '', mine = params.get('mine') === 'true', state = params.get('state') === 'open' ? 'open' : 'all';
+  const page = Math.max(0, Number(params.get('page')) || 0), search = params.get('q') ?? '', kind = params.get('kind') ?? '', squad = params.get('squad') ?? '', session = params.get('session') ?? '', person = params.get('person') ?? '';
+  const view: RecordView = params.get('mine') === 'true' ? 'mine' : params.get('state') === 'open' && module !== 'HOME' ? 'open' : 'all';
+  // Sorting orders the loaded page; the server keeps its own order across pages until it accepts `sort` and `dir`.
+  const sortBy = params.get('sort'), sort: TableSort | null = sortBy ? { by: sortBy, descending: params.get('dir') === 'desc' } : null;
   const [selected, setSelected] = useState<OperationRecord | null>(null), [editing, setEditing] = useState(false), [newKind, setNewKind] = useState(''), [choosing, setChoosing] = useState(false);
   const [showRecords, setShowRecords] = useState(false);
   const selectRequest = useRef(0);
@@ -41,7 +45,20 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin }: {
     if (key === 'squad') { next.delete('session'); next.delete('person'); }
     setParams(next, { replace: key === 'q' });
   };
-  const query = new URLSearchParams({ module, page: String(page), q: search, kind, mine: String(mine), state });
+  const chooseView = (value: RecordView) => {
+    const next = new URLSearchParams(params);
+    ['mine', 'state', 'page', 'record'].forEach(key => next.delete(key));
+    if (value === 'mine') next.set('mine', 'true'); else if (value === 'open') next.set('state', 'open');
+    setParams(next);
+  };
+  const changeSort = (by: string) => {
+    const next = new URLSearchParams(params), value = nextSort(sort, by);
+    next.delete('sort'); next.delete('dir');
+    if (value) { next.set('sort', value.by); if (value.descending) next.set('dir', 'desc'); }
+    setParams(next, { replace: true });
+  };
+  const clearFilters = () => { const next = new URLSearchParams(params); ['q', 'squad', 'kind', 'session', 'person', 'page'].forEach(key => next.delete(key)); setParams(next); };
+  const query = new URLSearchParams({ module, page: String(page), q: search, kind, mine: String(view === 'mine'), state: view === 'open' ? 'open' : 'all' });
   if (squad) query.set('squad', squad); if (session) query.set('session', session); if (person) query.set('person', person);
   const requestKey = `${club}:${query}:${refresh}`;
   const records = result?.records ?? [], loading = result?.key !== requestKey, error = result?.key === requestKey ? result.error : '';
@@ -71,6 +88,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin }: {
   }, [club, linked]);
   const close = () => { selectRequest.current++; setSelected(null); setEditing(false); setNewKind(''); const next = new URLSearchParams(params); next.delete('record'); next.delete('from'); setParams(next, { replace: true }); };
   // A record opened from this tool's list goes back to the list; one opened from elsewhere goes back there.
+  const hrefFor = (record: OperationRecord) => { const next = new URLSearchParams(params); next.set('record', String(record.id)); next.set('from', 'list'); return `?${next}`; };
   const open = (record: OperationRecord) => { const next = new URLSearchParams(params); next.set('record', String(record.id)); next.set('from', 'list'); setParams(next); };
   const reload = () => { setRefresh(v => v + 1); };
   const changed = async () => { await onRefresh(); close(); reload(); };
@@ -81,7 +99,12 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin }: {
   const backLabel = toOrigin ? origin!.label : listLabel;
   const back = toOrigin ? origin!.onBack : () => close();
   const originBack = origin && <div className="rec-back"><Button variant="ghost" size="sm" onClick={origin.onBack}><ArrowLeft aria-hidden="true" />{origin.label}</Button></div>;
-  const filtered = Boolean(search || kind || squad || mine || state === 'open' || person || page);
+  const narrowed = Boolean(search || kind || squad || person), filtered = narrowed || view !== 'all' || page > 0;
+  const empty = narrowed ? { title: 'No matching records', body: 'Try another search, squad or filter.' }
+    : view === 'mine' ? { title: 'Nothing assigned to you', body: 'Records you are responsible for appear here.' }
+    : view === 'open' ? { title: 'Nothing open', body: 'Finished records are under All.' }
+    : module === 'HOME' ? { title: 'You’re up to date', body: 'New deadlines and decisions appear here.' }
+    : { title: `No ${title.toLowerCase()} yet`, body: canCreate ? operationDescriptions[module] : 'Records shared with your responsibilities appear here.' };
   const openRegister = (s: Bootstrap['sessions'][number]) => {
     const next = new URLSearchParams(params);
     ['q', 'kind', 'mine', 'state', 'person', 'page', 'record'].forEach(key => next.delete(key));
@@ -90,6 +113,9 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin }: {
   };
   const changePage = (to: number) => { const next = new URLSearchParams(params); next.set('page', String(to)); setParams(next); };
   const addLabel = definitions.length === 1 ? `Add ${definitions[0].label.toLowerCase()}` : 'Add a record';
+  const pager = page > 0 || records.length === 100 ? <><span>Page {page + 1}</span><span className="gk-row">
+    <Button size="sm" disabled={page === 0 || loading} onClick={() => changePage(page - 1)}>Previous</Button>
+    <Button size="sm" disabled={records.length < 100 || loading} onClick={() => changePage(page + 1)}>Next</Button></span></> : null;
 
   if (module === 'SETTINGS') return <PageFrame><OperationsSettings key={boot.settings.revision} boot={boot} onSaved={onRefresh} /></PageFrame>;
   if (linked && !selected) return <PageFrame className="rec-page">
@@ -121,16 +147,17 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin }: {
         <div><Button variant="ghost" aria-expanded={showRecords} onClick={() => setShowRecords(v => !v)}>{showRecords ? 'Hide attendance records' : 'Attendance records and more options'}</Button></div></>}
       {module === 'ATTENDANCE' && !isRegister && boot.peopleBySquad && <SessionRegisters boot={boot} squad={squad} onOpen={openRegister} />}
       <section className="gk-stack gk-stack--tight" hidden={isRegister && !showRecords} aria-busy={loading} aria-label={`${title} records`}>
-        <RecordFilters boot={boot} module={module} definitions={definitions} filters={{ search, squad, kind, state, mine }} count={records.length} loading={loading} page={page} onChange={filter} />
-        <Panel flush>
-          {loading && !result ? <div className="cw-skeleton-rows" role="status" aria-label="Loading records">{[0, 1, 2, 3].map(i => <Skeleton key={i} height={44} />)}</div>
-            : records.length ? <div inert={loading} data-updating={loading || undefined}><RecordList records={records} boot={boot} home={module === 'HOME'} onOpen={open} /></div>
-              : !error && <EmptyNote title={filtered ? 'No matching records' : module === 'HOME' ? 'You’re up to date' : `No ${title.toLowerCase()} yet`}
-                action={canCreate && !filtered && definitions.length ? <Button size="sm" onClick={() => definitions.length <= 2 ? create(definitions[0].kind) : setChoosing(true)}><Plus aria-hidden="true" />{definitions.length <= 2 ? `Add ${definitions[0].label.toLowerCase()}` : addLabel}</Button> : undefined}>
-                {filtered ? 'Try another search, squad or filter.' : module === 'HOME' ? 'New deadlines and decisions appear here.' : canCreate ? operationDescriptions[module] : 'Records shared with your responsibilities appear here.'}
-              </EmptyNote>}
-          {(page > 0 || records.length === 100) && <div className="rec-pager"><Button size="sm" disabled={page === 0 || loading} onClick={() => changePage(page - 1)}>Previous</Button><span>Page {page + 1}</span><Button size="sm" disabled={records.length < 100 || loading} onClick={() => changePage(page + 1)}>Next</Button></div>}
-        </Panel>
+        <RecordToolbar boot={boot} module={module} definitions={definitions} view={view} filters={{ search, squad, kind }} count={records.length} loading={loading} page={page}
+          onView={chooseView} onChange={filter} onClear={clearFilters} />
+        {loading && !result ? <Panel><div className="cw-skeleton-rows" role="status" aria-label="Loading records">{[0, 1, 2, 3].map(i => <Skeleton key={i} height={44} />)}</div></Panel>
+          : records.length ? <div inert={loading} data-updating={loading || undefined}>
+            <RecordTable records={records} boot={boot} home={module === 'HOME'} sort={sort} onSort={changeSort} hrefFor={hrefFor} onOpen={open} footer={pager} />
+          </div>
+            : !error && <Panel>
+              <EmptyNote title={empty.title} action={canCreate && !filtered && definitions.length ? <Button size="sm" onClick={() => definitions.length <= 2 ? create(definitions[0].kind) : setChoosing(true)}><Plus aria-hidden="true" />{definitions.length <= 2 ? `Add ${definitions[0].label.toLowerCase()}` : addLabel}</Button>
+                : view === 'open' && !narrowed ? <Button size="sm" onClick={() => chooseView('all')}>Show all records</Button> : undefined}>{empty.body}</EmptyNote>
+              {pager && <div className="rec-pager">{pager}</div>}
+            </Panel>}
       </section>
     </div>
   </PageFrame>;

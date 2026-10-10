@@ -7,7 +7,6 @@
 .gk .rec-toolbar select.gk-input { width: auto; min-width: 180px; max-width: 260px; }
 .gk .rec-toolbar__count { margin-left: auto; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
 .gk .rec-row__due { min-width: 92px; text-align: right; font-size: var(--gk-fs-sm); color: var(--gk-text-2); font-variant-numeric: tabular-nums; }
-.gk .rec-row__due--late { color: var(--gk-danger); font-weight: 600; }
 .gk .rec-pager { display: flex; align-items: center; justify-content: flex-end; gap: var(--gk-3); padding: var(--gk-3) var(--gk-5); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .rec-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: var(--gk-2); padding: var(--gk-3); }
 .gk .rec-choice { display: flex; flex-direction: column; gap: 2px; min-height: 56px; padding: var(--gk-3) var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-raised); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
@@ -54,9 +53,7 @@
 @media (max-width: 640px) {
   .gk .rec-toolbar select.gk-input, .gk .rec-toolbar__search { flex: 1 1 100%; max-width: none; }
   .gk .rec-toolbar__count { margin-left: 0; }
-  .gk .rec-register-row, .gk .rec-list .gk-list-row { flex-wrap: wrap; }
-  .gk .rec-list .gk-list-row__main { flex-basis: 100%; }
-  .gk .rec-list .gk-list-row__trail { width: 100%; justify-content: space-between; }
+  .gk .rec-register-row { flex-wrap: wrap; }
   .gk .rec-register-row .gk-list-row__trail { width: 100%; justify-content: flex-start; padding-left: 48px; }
 }
 .gk .rec-register-head { display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-4) var(--gk-5); }

@@ -5,7 +5,7 @@
 .gk .st-danger { color: var(--gk-danger); }
 .gk .st-danger:hover { background: var(--gk-danger-soft); }
 .gk .st-hint { font-size: var(--gk-fs-sm); }
-.gk .st-pager { padding: 0; }
+.gk .st-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-3); padding: 0; font-size: var(--gk-fs-sm); }
 
 /* One appointment */
 .gk .st-appointment__title { display: inline-flex; align-items: center; gap: var(--gk-2); }

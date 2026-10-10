@@ -1,4 +1,4 @@
-/* Announcements: the coach's composer, read receipts and the pinned strip on Home. Scoped under .gk; tokens only. */
+/* Announcements: the coach's composer, read receipts and pinned state. Scoped under .gk; tokens only. */
 
 /* Composer on the squad page */
 .gk.gk-announce-compose { margin: 0 0 var(--gk-6); }
@@ -26,7 +26,6 @@
 .gk.gk-receipts--compact .gk-receipts__line { justify-content: flex-start; gap: var(--gk-3); }
 .gk.gk-receipts--compact .gk-receipts__bar { flex: 1 1 80px; max-width: 160px; }
 .gk.gk-receipts--compact .gk-receipts__line .gk-btn { margin-left: auto; }
-.gk .gk-home-announce__note { font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
 .gk .gk-receipts__line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2); }
 .gk .gk-receipts__summary { color: var(--gk-text-2); }
 .gk .gk-receipts__summary strong { color: var(--gk-text); font-weight: 700; }
@@ -43,27 +42,3 @@
 .gk .gk-pin svg { width: 14px; height: 14px; color: var(--gk-accent); }
 .gk .gk-pin[data-expired] svg { color: var(--gk-text-3); }
 
-/* Pinned announcements on Home */
-.gk .gk-home-announce { list-style: none; margin: 0; padding: 0; overflow: hidden; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
-.gk .gk-home-announce__item { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: var(--gk-3); padding: var(--gk-4); }
-.gk .gk-home-announce__item[data-unread] { box-shadow: inset 3px 0 0 var(--gk-accent); }
-.gk .gk-home-announce__icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--gk-r); background: var(--gk-accent-soft); color: var(--gk-accent); }
-.gk .gk-home-announce__icon svg { width: 18px; height: 18px; }
-.gk .gk-home-announce__main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.gk .gk-home-announce__meta { display: flex; flex-wrap: wrap; gap: 0 var(--gk-2); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-3); }
-.gk .gk-home-announce__meta > * + *::before { content: '·'; margin-right: var(--gk-2); }
-.gk .gk-home-announce__squad { color: var(--gk-text-2); font-weight: 600; }
-.gk .gk-home-announce__squad:hover, .gk .gk-home-announce__title:hover { text-decoration: underline; text-underline-offset: 3px; }
-.gk .gk-home-announce__title { font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 600; color: var(--gk-text); overflow-wrap: anywhere; }
-.gk .gk-home-announce__body { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); overflow-wrap: anywhere; }
-.gk .gk-home-announce__trail { align-self: start; }
-.gk .gk-home-announce__trail .gk-btn { min-height: 40px; }
-
-.gk .gk-home-announce__item + .gk-home-announce__item { border-top: 1px solid var(--gk-line); }
-.gk .gk-home-announce__more { display: flex; align-items: center; min-height: 44px; font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-accent); }
-
-@media (max-width: 560px) {
-  .gk .gk-home-announce__item { grid-template-columns: 36px minmax(0, 1fr); }
-  .gk .gk-home-announce__trail { grid-column: 2; }
-  .gk .gk-home-announce__trail .gk-btn { min-height: 44px; }
-}

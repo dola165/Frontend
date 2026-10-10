@@ -218,6 +218,13 @@ The app today, compared with how clubs usually work (coaches to confirm):
   - a teen, with their own account and a linked guardian;
   - an adult.
 - **Georgian labels are longer.** The beefier top bar must fit them.
+- **Lists (10 Oct):** every record list follows one pattern (`design/DataTable.tsx`), better than both the old GrassKickZ tables and the first sandbox lists:
+  - views with counts, then one toolbar (search, filter pills showing their value, Clear filters, result count);
+  - a table with sortable column headers; status as a dot and a word; dates in words ("3 days overdue", "Tomorrow");
+  - open work grouped by urgency (Overdue, Today, Next 7 days, Later, No date), finished records last;
+  - the next step stays in view, quieter actions appear on hover, rarer and destructive ones (release, status changes) open under the row;
+  - view, search, filters, sort and page live in the URL, so server-side querying plugs in later.
+  - Done: Work queue, every operations tool, Players. Still on the old toolbar: Inbox, Staff, Applications, Tryouts, Store, Jobs, Campaigns, Player cards, Squad roster.
 
 ## Open questions
 

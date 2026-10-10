@@ -5,7 +5,7 @@ import { apiClient } from '../../api/axiosConfig';
 import { ClubSettingsPage } from './settings/ClubSettingsPages';
 import { CoachHub } from './coachHub/CoachHub';
 import { WorkspaceOperations } from '../clubOperations/WorkspaceOperations';
-import { RecordList } from '../clubOperations/records/RecordList';
+import { RecordTable } from '../clubOperations/records/RecordList';
 import { RecordDetail } from '../clubOperations/RecordDetail';
 import type { Bootstrap, Definition, OperationRecord } from '../clubOperations/api';
 import type { RoleView, RolesWorkspace } from '../clubOperations/useWorkspaceRoles';
@@ -87,12 +87,12 @@ describe('Coach Hub follows the responsibilities switched on', () => {
 
 describe('records', () => {
     it('never marks a closed record overdue', () => {
-        render(<RecordList boot={boot} home={false} onOpen={vi.fn()} records={[
+        render(<MemoryRouter><RecordTable boot={boot} home={false} sort={null} onSort={vi.fn()} hrefFor={() => '#'} onOpen={vi.fn()} records={[
             record({ id: 1, title: 'Wrist fracture', status: 'CLEARED', due_on: '2020-09-28' }),
             record({ id: 2, title: 'Ankle sprain', status: 'ACTIVE', due_on: '2020-09-28' }),
-        ]} />);
-        expect(within(screen.getByRole('button', { name: /Wrist fracture/ })).queryByText(/Overdue/)).toBeNull();
-        expect(within(screen.getByRole('button', { name: /Ankle sprain/ })).getByText(/Overdue since/)).toBeInTheDocument();
+        ]} /></MemoryRouter>);
+        expect(within(screen.getByRole('row', { name: /Wrist fracture/ })).queryByText(/overdue/)).toBeNull();
+        expect(within(screen.getByRole('row', { name: /Ankle sprain/ })).getByText(/overdue/)).toBeInTheDocument();
     });
 
     it('styles actions by what they do and confirms one that stops the record', async () => {

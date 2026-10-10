@@ -7,6 +7,7 @@ import type { UserSearchDto } from '../../../components/workspace/types';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { formatDate } from '../../../utils/formatting';
 import '../records/records.css';
+import './staff.css';
 
 export interface ManagementInvitesProps {
     overview: ClubManagementOverview | null;
@@ -39,7 +40,7 @@ export function ManagementInvites(p: ManagementInvitesProps) {
             </div>
             {p.searchQuery.trim().length < 2 ? <p className="gk-faint st-hint">Type at least two characters to search.</p>
                 : p.searchLoading ? <Panel><div className="cw-skeleton-rows" role="status" aria-label="Searching people"><Skeleton height={44} /><Skeleton height={44} /></div></Panel>
-                    : results?.content.length ? <Panel flush footer={results.totalElements > results.pageSize ? <div className="pl-pager st-pager"><span className="gk-muted">Page {results.pageNumber + 1} of {p.totalSearchPages}</span>
+                    : results?.content.length ? <Panel flush footer={results.totalElements > results.pageSize ? <div className="st-pager"><span className="gk-muted">Page {results.pageNumber + 1} of {p.totalSearchPages}</span>
                         <div className="gk-row"><Button size="sm" disabled={results.pageNumber === 0} onClick={() => p.onSearchPageChange(Math.max(0, results.pageNumber - 1))}>Previous</Button>
                             <Button size="sm" disabled={results.pageNumber + 1 >= p.totalSearchPages} onClick={() => p.onSearchPageChange(results.pageNumber + 1)}>Next</Button></div></div> : undefined}>
                         <List label="People found">{results.content.map(user => {

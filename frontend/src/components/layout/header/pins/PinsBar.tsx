@@ -44,7 +44,6 @@ export function PinsBar({ state, page, work, activePath, crowded, onCrowdedChang
         if (!container || !measure || typeof ResizeObserver === 'undefined') return;
         // The observer reports the initial size too, so the count is never set during render.
         const observer = new ResizeObserver(() => {
-            const style = getComputedStyle(container);
             const divider = container.querySelector<HTMLElement>('.gk-header__divider');
             const dividerSpace = divider ? divider.offsetWidth + (parseFloat(getComputedStyle(divider).marginLeft) || 0) * 2 : 0;
             // The nav is centred between two equal outer columns, so it may use the row's width less twice the

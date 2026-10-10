@@ -25,7 +25,8 @@ We perfect UI/UX on synthetic data. We do not write backend code here, but every
 - Football words, not system words (coaches responded to "My squads", not "My Club"). Jobs & volunteering, never "roles". This round covers coach, parent and player.
 
 **Visual language**
-- Compact like Home (13px body, quiet greys): one bright thing per row; no dashboard theatre (big stat tiles, pill rainbows, coloured side lines). Wide layout without empty side margins; dark theme, green accent; centred top-bar tabs.
+- Show, don't tell (the owner, 11 October): pictures and shapes carry the meaning and words stay few. Use crests, faces (initials on soft colours when there is no photo), the app's football photos, coloured activity symbols, and small visual summaries: faces ringed by their answer, split bars, progress rings. Anything scheduled gets a real calendar (`design/calendar/EventCalendar.tsx`, month and week). Everything extremely simple: one main thing per page, one action per card, no explanatory paragraphs.
+- Compact like Home (13px body, quiet greys): one bright thing per row; no dashboard theatre (big stat tiles, pill rainbows) and never coloured side lines; activity colour shows as a soft tint and its coloured symbol. Wide layout without empty side margins; dark theme, green accent; centred top-bar tabs.
 - Sections: `Section boxed` is one calm surface with the title over a grey hint and a line under the heading; add an icon only where it helps (Coming up: calendar).
 - Activity symbols and colours live in `features/schedule/activityIcons.ts`: every match green (trophy for league/cup/tournament, handshake for friendlies), training blue (cone), club event violet, trial pink, outing cyan; `ActivityLegend` explains them.
 - Waiting items: a dot in front, the status in words (red urgent, amber decide), an arrow behind.

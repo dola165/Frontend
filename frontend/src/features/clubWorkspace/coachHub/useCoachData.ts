@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { apiClient } from '../../../api/axiosConfig';
 import * as squadApi from '../../squadCommunication/api';
 import { get, type Bootstrap, type OperationRecord } from '../../clubOperations/api';
 import { canReadSquad } from '../../clubOperations/squadAccess';
-import type { ScheduleEventType } from '../../schedule/api';
+import type { ScheduleEventOccurrence, ScheduleEventType } from '../../schedule/api';
+import { eventSquadId } from '../fixtures';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 
 const DAY = 86_400_000;
@@ -82,3 +84,54 @@ export function replies(session: squadApi.SquadSession) {
 export const upcoming = (squad: CoachSquad, now: number) => squad.sessions
     .filter(session => session.status === 'SCHEDULED' && new Date(session.ends_at || session.starts_at).getTime() >= now)
     .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+
+const crests = new Map<number, Promise<string | null>>();
+/** Club crests by club id, from each club's public summary, fetched once per club. */
+export function useCrests(ids: number[]) {
+    const key = [...new Set(ids)].sort((a, b) => a - b).join(',');
+    const [found, setFound] = useState<Map<number, string | null>>(() => new Map());
+    useEffect(() => {
+        let alive = true;
+        const list = key ? key.split(',').map(Number) : [];
+        void Promise.all(list.map(id => {
+            if (!crests.has(id)) crests.set(id, apiClient.get<{ logoUrl?: string | null }>(`/clubs/${id}`).then(response => response.data.logoUrl ?? null).catch(() => null));
+            return crests.get(id)!.then(url => [id, url] as const);
+        })).then(entries => { if (alive) setFound(new Map(entries)); });
+        return () => { alive = false; };
+    }, [key]);
+    return found;
+}
+
+/** The other club in a match, from the club calendar entry at the same time for the same squad (or from the title when the calendar has none). */
+export function opponentOf(session: squadApi.SquadSession, squad: number, events: ScheduleEventOccurrence[], clubName: string): { id: number | null; name: string } | null {
+    if (sessionKind(session) === 'TRAINING') return null;
+    const start = new Date(session.starts_at).getTime();
+    const event = events.find(item => item.opponentClubName && eventSquadId(item) === squad && Math.abs(new Date(item.startsAt).getTime() - start) < 60_000);
+    if (event?.opponentClubName) return { id: event.opponentClubId, name: event.opponentClubName };
+    const sides = session.title.split(/\s+vs\.?\s+/i);
+    const other = sides.length === 2 ? sides.find(side => side.trim() !== clubName) : null;
+    return other ? { id: null, name: other.trim() } : null;
+}
+
+/** "in 40 min", "in 14 h", "in 3 days", or "now" once it has started. */
+export function startsIn(start: number, now: number) {
+    const minutes = Math.round((start - now) / 60_000);
+    if (minutes <= 0) return 'now';
+    if (minutes < 60) return `in ${minutes} min`;
+    if (minutes < 24 * 60) return `in ${Math.round(minutes / 60)} h`;
+    const days = Math.round(minutes / (24 * 60));
+    return `in ${days} ${days === 1 ? 'day' : 'days'}`;
+}
+
+/** Sessions of some squads in a window (the calendar's month or week). The last answer stays shown while the next window loads. */
+export function useSquadSessions(squadIds: number[], from: Date, to: Date, revision: number) {
+    const key = `${squadIds.join(',')}|${from.toISOString()}|${to.toISOString()}|${revision}`;
+    const [state, setState] = useState<{ key: string; squads: { id: number; sessions: squadApi.SquadSession[] }[] } | null>(null);
+    useEffect(() => {
+        const controller = new AbortController(), [ids, start, end] = key.split('|');
+        void Promise.all(ids.split(',').filter(Boolean).map(Number).map(async id => ({ id, sessions: await squadApi.sessions(id, controller.signal, { from: start, to: end }).catch(() => []) })))
+            .then(squads => { if (!controller.signal.aborted) setState({ key, squads }); });
+        return () => controller.abort();
+    }, [key]);
+    return { squads: state?.squads ?? null, loading: state?.key !== key };
+}

@@ -71,7 +71,7 @@ describe('Coach Hub links', () => {
     it('open My squads, the coach’s own workspace, on the matching page', () => {
         expect(personalWorkspaceTarget('coach-hub', null)).toBe('/my-squads');
         expect(personalWorkspaceTarget('coach-hub', 'players')).toBe('/my-squads?tab=players');
-        expect(personalWorkspaceTarget('my-role', null)).toBe('/my-squads?tab=team');
+        expect(personalWorkspaceTarget('my-role', null)).toBe('/my-squads?tab=coaches');
         expect(personalWorkspaceTarget('actions', null)).toBeNull();
     });
 });

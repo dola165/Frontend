@@ -130,7 +130,8 @@ The app today, compared with how clubs usually work (coaches to confirm):
 **My squads, the coach's own workspace** (decided 11 October)
 - **Coach Hub left the club workspace.** The owner: having it there is redundant. My squads (`/my-squads`) is the coach's own workspace, with the same rail as the club workspace: Overview, Updates, Schedule, Players, Coaching team, one page per squad, and the club workspace one link away. Old Coach Hub links open the matching My squads page.
 - **Built around a coach's week:** who's coming (replies per session; matches ask, training is opt-out), updates to families with who has read them, players to plan around (restrictions, consent, reviews), and the colleagues and duties on the same squads. Every item opens the same squad spaces and records the club uses.
-- **Responsibilities:** asking for another one is one short form in a dialog on Coaching team; the "tools first" switches moved to All tools in the club workspace, because they only order that workspace's rail.
+- **Pictures over words** (11 October): the owner asked for images, visual formats and a real interactive calendar, with everything extremely simplified. My squads now has five pages (Overview, Calendar, Players, Updates, Coaches) and one squad switcher instead of a page per squad. The overview leads with the next session or match (photo, both crests, a countdown and the squad's faces ringed by their answer), then the week as seven columns. Players are cards, Updates a feed with read rings, Coaches faces.
+- **Responsibilities:** asking for another one is one short form in a dialog on Coaches; the "tools first" switches moved to All tools in the club workspace, because they only order that workspace's rail.
 
 **A parent who is also staff** (decided 10 October, delegated by the owner)
 - **One account, many roles.** Being a parent is a relationship (a linked child), not an account type. Parent Hub appears for anyone with a linked child, whatever they registered as; the registration answer only shapes the first experience.
@@ -241,6 +242,7 @@ This branch is the real frontend code on fake data, so what is built here ships 
 - **Tests:** run `npm run check` and fix it. Known failure: the squad-focus test in `WorkspacePolish.test.tsx`, since My club dropped its squad chips (bring a squad focus back, or drop the test).
 - **Backend:** the records query (`/workspace-roles/work`) should take `sort` and `dir` and return a total. Until then the table sorts only the loaded page and record views show no counts.
 - **My squads:** Georgian copy for its new pages (written in English for now); tests for its pages; unused `coachHub` locale keys removed. Squad sessions should report friendlies as `FRIENDLY` (the sandbox marks them in the description).
+- **One calendar everywhere:** the club and personal schedules (`ScheduleBoard`) should move to `EventCalendar` like My squads. Initials avatars now take soft colours app-wide; check the screens that relied on grey ones.
 
 ## Open questions
 

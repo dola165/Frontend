@@ -5,7 +5,7 @@ import { NavLink, useSearchParams } from 'react-router-dom';
 export interface TabItem<T extends string> { id: T; label: ReactNode; count?: number; icon?: ReactNode }
 
 /**
- * Underline tabs with arrow-key support. Use `useUrlTab` to keep the selection in the URL.
+ * Underline tabs with arrow, Home and End key support. Use `useUrlTab` to keep the selection in the URL.
  * With `idBase`, each tab gets the id `${idBase}-${id}` and controls the panel `${idBase}-${id}-panel`.
  */
 export function Tabs<T extends string>({ items, value, onChange, label, className, idBase }: { items: TabItem<T>[]; value: T; onChange: (id: T) => void; label: string; className?: string; idBase?: string }) {
@@ -13,9 +13,9 @@ export function Tabs<T extends string>({ items, value, onChange, label, classNam
     const onKey = (event: KeyboardEvent<HTMLDivElement>) => {
         const index = items.findIndex(item => item.id === value);
         const delta = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-        if (!delta || index < 0) return;
+        if ((!delta && event.key !== 'Home' && event.key !== 'End') || index < 0) return;
         event.preventDefault();
-        const next = (index + delta + items.length) % items.length;
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + delta + items.length) % items.length;
         onChange(items[next].id);
         refs.current[next]?.focus();
     };

@@ -9,8 +9,10 @@
 .gk .gk-person-record > span { display: flex; flex-direction: column; gap: 2px; padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); font-size: var(--gk-fs-xs); color: var(--gk-text-2); }
 .gk .gk-person-record strong { font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); color: var(--gk-text); }
 .gk .gk-profile__actions .moderation-trigger, .gk .gk-profile__actions button.gk-btn--ghost { min-height: 44px; }
-/* Career keeps its own editor; inside the profile it reads on the design-system palette. */
-.gk .gk-profile__main .mx-profile-career { --club-theme-text-primary: var(--gk-text); }
+/* Career keeps its own editor; inside the profile it sits flush in the column, on the palette, in sentence case. */
+.gk .gk-profile__main .mx-profile-career { --club-theme-text-primary: var(--gk-text); padding: 0; margin: 0; max-width: none; }
+.gk .gk-profile__main .mx-profile-career :is(.career-eyebrow, .mx-eyebrow, .mx-status, h4) { text-transform: none; letter-spacing: 0; }
+.gk .gk-profile__main .mx-profile-career :is(.career-eyebrow, .mx-eyebrow) { font-size: var(--gk-fs-sm); font-weight: 600; }
 /* On phones a status badge moves under the text so names and details keep their width. */
 @media (max-width: 520px) {
     .gk .gk-person-layers .gk-list-row { flex-wrap: wrap; }

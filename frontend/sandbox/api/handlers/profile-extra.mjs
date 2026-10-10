@@ -78,3 +78,22 @@ put('/squad-communication/:id/sessions/:sid', ({ params, body }) => {
   e.revision = (e.revision ?? 1) + 1;
   return { id: e.id, revision: e.revision };
 });
+
+// ---------------------------------------------------------------- organization profiles (public view)
+// Two independent organizations so the shared profile layout can be checked: a league organizer and a sports clinic.
+const capabilitiesFor = activities => ({ enabledActivities: ['PROFILE', ...activities], revision: 1, venueAvailable: false, canConfigureActivities: false, canEditProfile: false,
+  canConfigureVenue: false, canManageVenueBookings: false, canCreateTournament: false, canInviteVenueOperator: false });
+const ORGS = {
+  41: { id: 41, displayName: 'Tbilisi Youth League', description: 'Weekend leagues for U10 to U16 squads across Tbilisi, run by volunteers since 2011.', kinds: ['TOURNAMENT_ORGANIZER'], profileKind: 'TOURNAMENT_ORGANIZER',
+    clubId: null, verificationStatus: 'VERIFIED', published: true, website: 'https://example.org/league', publicEmail: 'league@example.org', publicPhone: '+995 32 200 11 22', addressText: 'Saburtalo, Tbilisi',
+    focus: 'Autumn and spring league seasons, a summer festival and a referee mentoring programme.', canEdit: false, canCreateTournament: false, capabilities: capabilitiesFor(['TOURNAMENT']) },
+  42: { id: 42, displayName: 'Vake Sports Clinic', description: 'Physiotherapy, sports medicine and return-to-play plans for young players.', kinds: ['HEALTHCARE'], profileKind: 'HEALTHCARE',
+    clubId: null, verificationStatus: 'UNVERIFIED', published: true, website: null, publicEmail: 'clinic@example.org', publicPhone: null, addressText: 'Vake, Tbilisi',
+    focus: 'Injury assessment within 48 hours, physiotherapy blocks and a sports psychologist on Thursdays.', canEdit: false, canCreateTournament: false, capabilities: capabilitiesFor([]) },
+};
+get('/organizations/:id/presentation', ({ params }) => {
+  const org = ORGS[Number(params.id)];
+  if (!org) return undefined;
+  return { profile: org, branding: { revision: 1 }, portfolio: { venues: [] }, canOpenWorkspace: false, membershipRole: '',
+    competitions: org.profileKind === 'TOURNAMENT_ORGANIZER' ? [{ id: 801, name: 'Tbilisi Youth League · Autumn 2026', status: 'IN_PROGRESS' }, { id: 802, name: 'Summer Festival 2026', status: 'COMPLETED' }] : [] };
+});

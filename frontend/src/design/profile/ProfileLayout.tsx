@@ -49,8 +49,8 @@ const initials = (name: string) => name.trim().split(/\s+/).filter(part => /^[\p
  * tabs kept in the URL by the page, and a main column with side facts that stacks on phones.
  */
 export function ProfileLayout<T extends string>({ identity, banner, bannerAction, imageAction, actions, notice, tabs, tab, onTab, tabsLabel, side, sideLabel = 'About', children }: ProfileLayoutProps<T>) {
-    const cover = resolveMediaUrl(banner);
-    const image = resolveMediaUrl(identity.image);
+    const cover = banner ? resolveMediaUrl(banner) : undefined;
+    const image = identity.image ? resolveMediaUrl(identity.image) : undefined;
     const facts = (identity.facts ?? []).filter(Boolean);
     return (
         <GkRoot className="gk-page gk-profile">

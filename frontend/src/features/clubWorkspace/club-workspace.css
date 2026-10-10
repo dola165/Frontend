@@ -53,8 +53,8 @@
 .gk .cw-tool-row__open .gk-list-row__meta { white-space: normal; }
 
 /* ---------------------------------------------------------------- coach hub */
-.gk .cw-squads { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--gk-3); margin: 0; padding: 0; list-style: none; }
-.gk .cw-squad { display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); min-width: 0; }
+.gk .cw-squads { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
+.gk .cw-squad { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); min-width: 0; }
 .gk .cw-squad__head { display: flex; align-items: center; gap: var(--gk-3); padding: 0; border: 0; background: none; color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; border-radius: var(--gk-r); min-height: 44px; }
 .gk .cw-squad__head:hover strong { color: var(--gk-accent); }
 .gk .cw-squad__name { display: flex; flex-direction: column; min-width: 0; }
@@ -63,7 +63,7 @@
 .gk .cw-squad__next { display: flex; align-items: flex-start; gap: var(--gk-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); }
 .gk .cw-squad__next svg { flex: none; width: 16px; height: 16px; margin-top: 1px; color: var(--gk-info); }
 .gk .cw-squad__next strong { color: var(--gk-text); font-weight: 600; }
-.gk .cw-squad__links { display: flex; flex-wrap: wrap; gap: var(--gk-1); margin: 0 calc(-1 * var(--gk-2)) calc(-1 * var(--gk-2)); padding-top: var(--gk-2); border-top: 1px solid var(--gk-line); }
+.gk .cw-squad__links { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
 
 /* Responsibilities: a switch per approved responsibility, then the catalogue. */
 .gk .cw-families { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gk-4); align-items: start; }
@@ -93,3 +93,13 @@
 .gk .cw-option__text strong { font-weight: 600; }
 .gk .cw-option__text span { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); }
 .gk .cw-focus-note { padding-top: var(--gk-4); }
+
+/* A status in words with a small dot, instead of a coloured pill on every row. */
+.gk .cw-status { display: inline-flex; align-items: center; gap: 6px; color: var(--gk-text-2); font-size: var(--gk-fs-xs); font-weight: 600; white-space: nowrap; }
+.gk .cw-status::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--gk-line-strong); }
+.gk .cw-status--danger { color: var(--gk-danger); }
+.gk .cw-status--danger::before { background: var(--gk-danger); }
+.gk .cw-status--warning::before { background: var(--gk-warning); }
+.gk .cw-status--info::before { background: var(--gk-info); }
+.gk .cw-status--accent::before { background: var(--gk-accent); }
+

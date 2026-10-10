@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, ClipboardCheck, LayoutGrid, Shield } from 'lucide-react';
-import { Button, ButtonLink, PageFrame, PageHeader } from '../../../design/primitives';
+import { CalendarDays, ClipboardCheck } from 'lucide-react';
+import { Button, PageFrame, PageHeader } from '../../../design/primitives';
 import * as squadSpaces from '../../squadCommunication/api';
 import { Tabs } from '../../../design/Tabs';
 import { useUrlTab } from '../../../design/useUrlTab';
@@ -63,15 +63,16 @@ export function CoachHub({ page, clubId, roles, boot, focus, events, legacyHub, 
         return () => abort.abort();
     }, []);
     const roleOf = (squadId: number) => focus.available.filter(v => !v.clubWide && v.squadIds.includes(squadId)).map(v => v.label).join(", ") || (roles.leadership ? copy('clubAdministration') : "");
+    // The club and its workspace are quiet links in the subtitle; the page keeps one action.
     const header = page
-        ? { title: copy('mySquads'), subtitle: <><Link className="cw-hub-club" to={`/clubs/${clubId}`}>{page.clubName}</Link>{responsibilities.length > 0 && <> · {responsibilities.join(", ")}</>}</>,
-            links: <><ButtonLink variant="ghost" to={`/clubs/${clubId}`}><Shield aria-hidden="true" />{copy('clubPage')}</ButtonLink>{page.workspace && <ButtonLink variant="ghost" to={`/clubs/${clubId}/workspace`}><LayoutGrid aria-hidden="true" />{copy('clubWorkspace')}</ButtonLink>}</> }
-        : { title: copy('title'), subtitle, links: null };
+        ? { title: copy('mySquads'), subtitle: <><Link className="cw-hub-club" to={`/clubs/${clubId}`}>{page.clubName}</Link>{responsibilities.length > 0 && <> · {responsibilities.join(", ")}</>}{page.workspace && <> · <Link className="cw-hub-club" to={`/clubs/${clubId}/workspace`}>{copy('clubWorkspace')}</Link></>}</> }
+        : { title: copy('title'), subtitle };
+
 
     return <PageFrame className="cw-page">
         <PageHeader title={header.title} subtitle={header.subtitle} actions={register
-            ? <>{header.links}<Button onClick={onOpenCalendar}><CalendarDays aria-hidden="true" />{copy('calendar')}</Button><Button variant="primary" onClick={() => onOpen('attendance', { squad: String(register.squadId), session: String(register.session!.id) })}><ClipboardCheck aria-hidden="true" />{copy('takeAttendance')}</Button></>
-            : <>{header.links}<Button variant="primary" onClick={onOpenCalendar}><CalendarDays aria-hidden="true" />{copy('openCalendar')}</Button></>} />
+            ? <><Button onClick={onOpenCalendar}><CalendarDays aria-hidden="true" />{copy('calendar')}</Button><Button variant="primary" onClick={() => onOpen('attendance', { squad: String(register.squadId), session: String(register.session!.id) })}><ClipboardCheck aria-hidden="true" />{copy('takeAttendance')}</Button></>
+            : <Button onClick={onOpenCalendar}><CalendarDays aria-hidden="true" />{copy('openCalendar')}</Button>} />
         <Tabs label={copy('title')} value={view} onChange={setView} items={[
             { id: 'work', label: copy('tabWeek') },
             { id: 'players', label: copy('tabPlayers'), count: players || undefined },
@@ -80,15 +81,15 @@ export function CoachHub({ page, clubId, roles, boot, focus, events, legacyHub, 
         <div className="cw-tab-body">
             {view === 'responsibilities' ? <ResponsibilitiesPanel clubId={clubId} roles={roles} focus={focus} onChanged={onChanged} />
                 : view === 'players' ? <CoachPlayers roles={roles} boot={boot} squads={squads} hidden={hiddenSquads.length > 0} onShowAll={focus.showAll} onOpen={onOpen} />
-                    : <div className="gk-grid gk-grid--split">
-                        <div className="gk-stack">
-                            <CoachSquads title={page ? copy('yourSquads') : undefined} roleOf={roleOf} families={families} roles={roles} boot={boot} squads={squads} hidden={hiddenSquads.length > 0} onShowAll={focus.showAll} onOpen={onOpen} onTakeOn={takeOn} />
-                            {mine.length > 0 && <CoachWeek agenda={agenda} boot={boot} onOpen={onOpen} onOpenEvent={onOpenEvent} />}
-                        </div>
-                        <div className="gk-stack">
-                            <PlayersAttention clubId={clubId} roles={roles} boot={boot} squads={squads} onOpen={onOpen} />
-                            <MyTasks clubId={clubId} roles={roles} onOpen={onOpen} />
-                            <OtherWork />
+                    : <div className="gk-stack">
+                        <CoachSquads title={page ? copy('yourSquads') : undefined} roleOf={roleOf} families={families} roles={roles} boot={boot} squads={squads} hidden={hiddenSquads.length > 0} onShowAll={focus.showAll} onOpen={onOpen} onTakeOn={takeOn} />
+                        <div className="gk-grid gk-grid--split">
+                            {mine.length > 0 ? <CoachWeek agenda={agenda} boot={boot} onOpen={onOpen} onOpenEvent={onOpenEvent} /> : <div />}
+                            <div className="gk-stack">
+                                <PlayersAttention clubId={clubId} roles={roles} boot={boot} squads={squads} onOpen={onOpen} />
+                                <MyTasks clubId={clubId} roles={roles} onOpen={onOpen} />
+                                <OtherWork />
+                            </div>
                         </div>
                     </div>}
         </div>

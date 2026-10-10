@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Avatar, Badge, Button, EmptyNote, List, ListRow, Panel, Section, Skeleton, type BadgeTone } from '../../../design/primitives';
+import { Avatar, Button, EmptyNote, List, ListRow, Panel, Section, Skeleton, type BadgeTone } from '../../../design/primitives';
 import { get, label, moduleNames, type Bootstrap, type OperationRecord } from '../../clubOperations/api';
 import type { RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
 import { operationTab } from '../../clubOperations/workspaceNavigation';
@@ -72,7 +72,7 @@ export function PlayersAttention({ clubId, roles, boot, squads, onOpen }: { club
                 : records.loading ? <div className="cw-skeleton-rows" role="status" aria-label={copy('loadingPlayers')}>{[0, 1, 2].map(i => <Skeleton key={i} height={40} />)}</div>
                     : records.error ? <div className="cw-panel-notice"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{records.error}</span><Button size="sm" onClick={records.retry}>{copy('tryAgain')}</Button></div></div>
                         : items.length ? <List label={copy('playersToCheck')}>{items.slice(0, 8).map(item => <ListRow key={item.record.id}
-                            lead={<Avatar name={item.title} size={32} />} title={item.title} meta={item.meta} trail={<Badge tone={item.tone}>{item.badge}</Badge>}
+                            lead={<Avatar name={item.title} size={32} />} title={item.title} meta={item.meta} trail={<span className={`cw-status cw-status--${item.tone}`}>{item.badge}</span>}
                             onClick={() => onOpen(operationTab(item.record.module), { record: String(item.record.id), ...(item.record.squad_id ? { squad: String(item.record.squad_id) } : {}) })} />)}</List>
                             : <EmptyNote title={copy('allClear')}>{copy('allClearHint')}</EmptyNote>}
             {items.length > 8 && <div className="gk-panel__foot"><button type="button" className="cw-text-button" onClick={() => onOpen('restrictions')}>{copy('moreRecords', { count: items.length - 8 })}</button></div>}
@@ -103,7 +103,7 @@ export function MyTasks({ clubId, roles, onOpen }: { clubId: number; roles: Role
                     : rows.length ? <List label={copy('myTasks')}>{rows.slice(0, 6).map(record => {
                         const due = dueLabel(record.attentionDate ?? record.due_on, now, isFinished(record.status));
                         return <ListRow key={record.id} title={record.title} meta={[moduleNames[record.module], roles.squads.find(s => s.id === record.squad_id)?.name ?? (record.squad_id ? null : copy('clubWide')), label(record.status)].filter(Boolean).join(' · ')}
-                            trail={<Badge tone={record.expired || due?.overdue ? 'danger' : 'neutral'}>{record.expired ? copy('expired') : due?.label ?? label(record.status)}</Badge>}
+                            trail={<span className={`cw-status cw-status--${record.expired || due?.overdue ? 'danger' : 'neutral'}`}>{record.expired ? copy('expired') : due?.label ?? label(record.status)}</span>}
                             onClick={() => onOpen(operationTab(record.module), { record: String(record.id), ...(record.squad_id ? { squad: String(record.squad_id) } : {}) })} />;
                     })}</List>
                         : <EmptyNote title={copy('noTasks')}>{copy('noTasksHint')}</EmptyNote>}

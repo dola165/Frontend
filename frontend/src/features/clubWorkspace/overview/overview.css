@@ -11,15 +11,6 @@
 .gk .cw-fact strong { color: var(--gk-text); font-weight: 650; }
 .gk .cw-fact__alert { color: var(--gk-warning); font-size: var(--gk-fs-xs); }
 
-/* A status in words with a small dot, instead of a coloured pill on every row. */
-.gk .cw-status { display: inline-flex; align-items: center; gap: 6px; color: var(--gk-text-2); font-size: var(--gk-fs-xs); font-weight: 600; white-space: nowrap; }
-.gk .cw-status::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--gk-line-strong); }
-.gk .cw-status--danger { color: var(--gk-danger); }
-.gk .cw-status--danger::before { background: var(--gk-danger); }
-.gk .cw-status--warning::before { background: var(--gk-warning); }
-.gk .cw-status--info::before { background: var(--gk-info); }
-.gk .cw-status--accent::before { background: var(--gk-accent); }
-
 /* Every squad as a small tile. */
 .gk .cw-squad-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
 .gk .cw-squad-tile { display: flex; flex-direction: column; gap: 2px; width: 100%; padding: 10px 12px; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s var(--gk-ease), background-color .15s var(--gk-ease); }

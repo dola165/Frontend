@@ -89,7 +89,7 @@ it('places answered and resolved enquiries in their truthful family/history queu
  const state={data,loading:false,error:'',reload:vi.fn(),setData:vi.fn()} as unknown as ReturnType<typeof useClubAdmissions>;
  render(<MemoryRouter><ClubAdmissionWorkspace state={state} sessionId={null} onOpen={vi.fn()} onRosterChanged={vi.fn()}/></MemoryRouter>);
  expect(screen.getByText('Needs club')).toBeInTheDocument();expect(screen.queryByText('Needs family')).not.toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'Waiting for family'}));
- expect(screen.getByText('Needs family')).toBeInTheDocument();expect(screen.queryByText('Needs club')).not.toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'Players & history'}));expect(screen.getByText('Resolved question')).toBeInTheDocument();
+ expect(screen.getByText('Needs family')).toBeInTheDocument();expect(screen.queryByText('Needs club')).not.toBeInTheDocument();fireEvent.click(screen.getByRole('tab',{name:'Players & history'}));expect(screen.getByText('Resolved question')).toBeInTheDocument();
 });
 it('renders new enquiry actions in Georgian using the existing language selection',()=>{
  lang.value='ka';openQueue(enquiry({playerId:null,playerName:null,actions:['RESOLVE']}));expect(screen.getByRole('button',{name:'კითხვის გადაწყვეტილად მონიშვნა'})).toBeInTheDocument();expect(screen.getByText('კლუბმა უნდა უპასუხოს.')).toBeInTheDocument();
@@ -100,7 +100,7 @@ it('counts a routed enquiry once through its linked player arrangement',()=>{
  const record:AdmissionCase={id:91,version:1,playerId:61,playerName:'Linked player arrangement',dateOfBirth:'2015-01-01',organizationId:1,organizationName:'FC Dinamo Tbilisi Academy',clubId:1,groupId:21,groupName:'Dinamo U12',intake:'2026',method:'INTRODUCTION',stage:'REQUEST_RECEIVED',responsible:null,nextAction:{owner:'CLUB',code:'CLUB_REVIEW',label:'Review next step',dueAt:null},requirements:[],sessions:[],offer:null,enrollment:null,history:[],actions:[],primaryAffiliation:null,previousCaseId:null,submittedAt:'2026-10-04T00:00:00Z',updatedAt:'2026-10-04T00:00:00Z'};data.cases=[record];
  const state={data,loading:false,error:'',reload:vi.fn(),setData:vi.fn()} as unknown as ReturnType<typeof useClubAdmissions>;
  const view=render(<MemoryRouter><ClubAdmissionWorkspace state={state} sessionId={null} onOpen={vi.fn()} onRosterChanged={vi.fn()}/></MemoryRouter>);
- expect(view.container.querySelector('.admission-metric b')).toHaveTextContent('1');expect(screen.queryByText('Duplicated routed enquiry')).not.toBeInTheDocument();expect(screen.getByRole('button',{name:/Open case · Linked player arrangement/})).toBeInTheDocument();
+ expect(view.container.querySelector('.gk-stat__value')).toHaveTextContent('1');expect(screen.queryByText('Duplicated routed enquiry')).not.toBeInTheDocument();expect(screen.getByRole('button',{name:/Open case · Linked player arrangement/})).toBeInTheDocument();
 });
 it('keeps a pending leadership setup request separate from the current reply owner',()=>{
  openQueue(enquiry({setup:{canConfigure:false,canRequest:false,requested:true,destination:null},nextAction:{owner:'APPLICANT',code:'APPLICANT_REPLY',label:'Applicant reply',dueAt:null}}));
@@ -199,7 +199,7 @@ it('keeps leadership setup visible in Needs our action when the family owes the 
  const state={data,loading:false,error:'',reload:vi.fn(),setData:vi.fn()} as unknown as ReturnType<typeof useClubAdmissions>;
  const rendered=render(<MemoryRouter><ClubAdmissionWorkspace state={state} sessionId={null} onOpen={vi.fn()} onRosterChanged={vi.fn()}/></MemoryRouter>);
  expect(screen.getByText('Synthetic child')).toBeInTheDocument();expect(screen.getByText('Leadership setup pending')).toBeInTheDocument();expect(screen.getByText('The player or guardian needs to reply.')).toBeInTheDocument();
- expect(rendered.container.querySelectorAll('.admission-metric b')[0]).toHaveTextContent('1');expect(rendered.container.querySelectorAll('.admission-metric b')[2]).toHaveTextContent('1');
+ expect(rendered.container.querySelectorAll('.gk-stat__value')[0]).toHaveTextContent('1');expect(rendered.container.querySelectorAll('.gk-stat__value')[2]).toHaveTextContent('1');
  fireEvent.click(screen.getByRole('button',{name:'Waiting for family'}));expect(screen.getByText('Synthetic child')).toBeInTheDocument();
  fireEvent.click(screen.getByRole('button',{name:'All ongoing requests'}));expect(screen.getAllByText('Synthetic child')).toHaveLength(1);
 });

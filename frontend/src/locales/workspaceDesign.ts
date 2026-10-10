@@ -35,7 +35,7 @@ export const workspaceNavEn = {
     workspace: 'Club workspace', clubPage: 'Club page', clubStaff: 'Club staff', backTo: 'Back to {{name}}',
     'area-football': 'Football', 'area-people': 'People', 'area-operations': 'Club operations', 'area-recruitment': 'Recruitment', 'area-business': 'Club business', 'area-settings': 'Settings',
     overview: 'Overview', 'coach-hub': 'Coach Hub', inbox: 'Club updates', actions: 'Work queue', tools: 'All tools',
-    personnel: 'Staff', players: 'Players', invites: 'Invites', applications: 'Applications', roles: 'Ownership & access', 'club-approaches': 'Agent approaches',
+    personnel: 'Staff', players: 'Players', invites: 'Invitations', applications: 'Applications', roles: 'Ownership & access', 'club-approaches': 'Agent approaches',
     jobs: 'Open roles', programmes: 'Programmes & fees', store: 'Store', campaigns: 'Campaigns', settings: 'Club settings', squads: 'Squads',
     'player-cards': 'Player cards', tryouts: 'Tryouts', 'role-requests': 'Staff roles',
     'staff-duties': 'Staff duties', credentials: 'Credentials', specialists: 'Specialists', guardians: 'Guardians & permissions', attendance: 'Attendance & collection',

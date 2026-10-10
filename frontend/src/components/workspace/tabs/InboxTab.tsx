@@ -55,9 +55,9 @@ export const InboxTab = ({ notifications, loading, loadingMore, busyId, hasMore,
                                 const action = notificationActionLabel(notification);
                                 return <li key={notification.id} data-unread={!notification.isRead || undefined}>
                                     <button type="button" className="gk-list-row rec-note-row" disabled={busyId === notification.id} onClick={() => onOpen(notification)}>
-                                        <span className="gk-list-row__lead"><span className={`rec-dot${notification.isRead ? '' : ' rec-dot--on'}`} aria-label={notification.isRead ? undefined : 'Unread'} /></span>
+                                        <span className="gk-list-row__lead"><span className={`rec-dot${notification.isRead ? '' : ' rec-dot--on'}`} aria-hidden="true" /></span>
                                         <span className="gk-list-row__main">
-                                            <span className="gk-list-row__title">{notification.title}</span>
+                                            <span className="gk-list-row__title">{notification.title}{!notification.isRead && <span className="gk-visually-hidden"> (unread)</span>}</span>
                                             <span className="rec-request__text">{notification.body}</span>
                                             <span className="gk-list-row__meta">{notificationTypeLabel(notification.type)}</span>
                                         </span>

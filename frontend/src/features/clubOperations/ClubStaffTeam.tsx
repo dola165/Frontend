@@ -125,11 +125,12 @@ export function ClubStaffTeam({ boot, members = [], roles, mode = 'staff', rende
             {loading ? loadingRows : visible.length ? <Panel flush><List label="Club staff">{visible.map(p => {
                 const current = p.appointments.filter(isCurrent);
                 const invited = current.find(a => a.status === 'INVITED');
+                const scope = current.length ? [...new Set(current.map(a => appointmentScope(a, boot.squads)))].join(' · ') : p.member ? 'Club management' : 'Appointment history';
                 const badge = invited ? appointmentBadge(invited) : p.member || current.some(a => appointmentStatus(a) === 'Active') ? { text: 'Active', tone: 'accent' as const } : current.length ? { text: 'Upcoming', tone: 'info' as const } : { text: 'Past', tone: 'neutral' as const };
                 return <ListRow key={p.id} onClick={() => { setPersonId(p.id); setNotice(''); }}
                     lead={isReferee(current) ? <span className="st-referee" aria-hidden="true"><Flag /></span> : <Avatar name={p.name} size={40} />}
                     title={p.name} meta={current.map(a => a.title).join(' · ') || p.member?.publicTitle || (p.member ? clubRoleLabel(p.member.role) : 'Past staff member')}
-                    trail={<><span className="st-scope">{current.length ? [...new Set(current.map(a => appointmentScope(a, boot.squads)))].join(' · ') : p.member ? 'Club management' : 'Appointment history'}</span><Badge tone={badge.tone}>{badge.text}</Badge></>} />;
+                    trail={<><span className="st-scope" title={scope}>{scope}</span><Badge tone={badge.tone}>{badge.text}</Badge></>} />;
             })}</List></Panel>
                 : <Panel><EmptyNote title={query ? 'No staff match this search' : 'Your team starts here'}
                     action={!query && boot.leadership ? <Button size="sm" onClick={() => setEditor({})}><UserPlus aria-hidden="true" />Invite staff</Button> : undefined}>

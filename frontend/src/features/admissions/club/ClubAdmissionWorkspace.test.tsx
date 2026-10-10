@@ -17,10 +17,10 @@ function open(path='/clubs/1/workspace?tab=admissions') {
 it('starts with the coach’s next actions and exposes family waiting and player history separately',()=>{
   open();expect(screen.getByRole('button',{name:/Open case · Player needing coach/})).toBeInTheDocument();expect(screen.queryByRole('button',{name:/Player awaiting family/})).not.toBeInTheDocument();expect(screen.queryByRole('button',{name:/Current player/})).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button',{name:'Waiting for family'}));expect(screen.getByRole('button',{name:/Open case · Player awaiting family/})).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button',{name:'Players & history'}));expect(screen.getByRole('button',{name:/Open case · Current player/})).toBeInTheDocument();expect(screen.getByText('Previous participation history')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('tab',{name:'Players & history'}));expect(screen.getByRole('button',{name:/Open case · Current player/})).toBeInTheDocument();expect(screen.getByText('Previous participation history')).toBeInTheDocument();
 });
 it('resolves the contract caseId link to the exact arrangement',()=>{open('/clubs/1/workspace?tab=admissions&caseId=92');expect(screen.getByRole('heading',{name:'Opened arrangement 92'})).toBeInTheDocument();});
 it('opens code intake beside invitations and closes a URL-opened intake panel',()=>{
   open('/clubs/1/workspace?tab=admissions&intake=1');expect(screen.getByRole('heading',{name:'Guardian code intake'})).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button',{name:'Add / invite player'}));expect(screen.queryByRole('heading',{name:'Guardian code intake'})).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button',{name:'Add or invite a player'}));expect(screen.queryByRole('heading',{name:'Guardian code intake'})).not.toBeInTheDocument();
 });

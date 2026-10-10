@@ -103,3 +103,10 @@
 .gk .cw-status--info::before { background: var(--gk-info); }
 .gk .cw-status--accent::before { background: var(--gk-accent); }
 
+
+/* The icon leading a waiting item, tinted by how urgent it is. */
+.gk .cw-need__icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: var(--gk-raised); color: var(--gk-text-2); }
+.gk .cw-need__icon svg { width: 16px; height: 16px; }
+.gk .cw-need__icon--danger { background: var(--gk-danger-soft); color: var(--gk-danger); }
+.gk .cw-need__icon--warning { background: var(--gk-warning-soft); color: var(--gk-warning); }
+.gk .cw-need__icon--info { background: var(--gk-info-soft); color: var(--gk-info); }

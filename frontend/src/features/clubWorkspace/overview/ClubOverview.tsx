@@ -66,7 +66,7 @@ export function ClubOverview({ clubId, clubName, overview, roles, boot, schedule
         const kind = kindOf(event), started = new Date(event.startsAt).getTime() <= now && new Date(event.endsAt).getTime() > now;
         // Two squads can play at the same time against the same club; the squad name tells them apart. Live or clashing entries keep their own line.
         return { key: `${event.eventId}-${event.occurrenceId}`, startsAt: event.startsAt, title: event.title, meta: [squadName(event), event.locationName || copy('locationMissing')].filter(Boolean).join(' · '), tone: kind.tone,
-            trail: <>{event.conflict && <Badge tone="danger">{copy('scheduleConflict')}</Badge>}{started ? <Badge tone="accent">{copy('inProgress')}</Badge> : <Badge tone={kind.badge}>{kind.label}</Badge>}</>,
+            trail: <>{event.conflict && <Badge tone="danger">{copy('scheduleConflict')}</Badge>}{started ? <Badge tone="accent">{copy('inProgress')}</Badge> : <span className="gk-fixture__tag">{kind.label}</span>}</>,
             onClick: () => schedule.openEvent(event), label: copy('openEvent', { name: event.title }), kind: started || event.conflict ? undefined : event.eventType, squad: squadName(event) };
     })} /> : <EmptyNote title={copy('scheduleEmpty')} action={<Button size="sm" onClick={schedule.open}>{copy('openCalendar')}</Button>}>{copy('scheduleEmptyHint')}</EmptyNote>;
 
@@ -85,7 +85,7 @@ export function ClubOverview({ clubId, clubName, overview, roles, boot, schedule
                 {roles && roles.squads.length > 0 && <SquadGrid className="cw-overview__squads" title={copy('squads')} squads={roles.squads} sessions={roles.sessions} onOpen={onOpen} />}
             </div>
             <div className="gk-stack cw-overview__column">
-                <Section className="cw-overview__coming" title={copy('upcoming')} hint={copy('nextSevenDays')} action={<button type="button" className="gk-section__action cw-text-button" onClick={schedule.open}>{copy('seeFullWeek')}</button>}>
+                <Section className="cw-overview__coming" icon={CalendarDays} tone="info" title={copy('upcoming')} hint={copy('nextSevenDays')} action={<button type="button" className="gk-section__action cw-text-button" onClick={schedule.open}>{copy('seeFullWeek')}</button>}>
                     <Panel flush>{comingUp}</Panel>
                 </Section>
                 <OtherWork className="cw-overview__other" />

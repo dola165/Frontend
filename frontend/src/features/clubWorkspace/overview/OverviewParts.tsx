@@ -1,4 +1,5 @@
 import { EmptyNote, Section } from '../../../design/primitives';
+import { Shield } from 'lucide-react';
 import type { RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
 import type { OpenWorkspace } from '../../clubOperations/workspaceStructure';
 import { clubOverviewEn } from '../../../locales/clubOverview';
@@ -11,7 +12,7 @@ import '../club-workspace.css';
 export function SquadGrid({ squads, sessions, onOpen, title, className }: { squads: { id: number; name: string; player_count: number }[]; sessions: RolesWorkspace['sessions']; onOpen: OpenWorkspace; title: string; className?: string }) {
     const copy = useCopy('clubOverview', clubOverviewEn);
     const now = useNow();
-    return <Section className={className} title={title} hint={squads.length ? `${squads.length}` : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('squads')}>{copy('allSquads')}</button>}>
+    return <Section className={className} icon={Shield} tone="accent" title={title} hint={squads.length ? `${squads.length}` : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('squads')}>{copy('allSquads')}</button>}>
         {squads.length ? <ul className="cw-squad-grid" aria-label={title}>{squads.map(squad => {
             const next = sessions.filter(s => s.squad_id === squad.id && new Date(s.starts_at).getTime() >= now).sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0];
             return <li key={squad.id}><button type="button" className="cw-squad-tile" onClick={() => onOpen('squads', { squad: String(squad.id) })}>

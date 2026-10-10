@@ -1,4 +1,9 @@
-/* Upcoming entries grouped by day: a quiet day heading, then that day's lines. */
+/* Upcoming entries as a calendar: a date block per day beside that day's entries. */
+.gk .cw-day-agenda__day { display: grid; grid-template-columns: 70px minmax(0, 1fr); align-items: start; }
 .gk .cw-day-agenda__day + .cw-day-agenda__day { border-top: 1px solid var(--gk-line); }
-.gk .cw-day-agenda__label { margin: 0; padding: var(--gk-3) var(--gk-5) var(--gk-1); color: var(--gk-text-2); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.gk .cw-day-agenda__date { display: flex; flex-direction: column; align-items: center; padding: var(--gk-3) 0 var(--gk-2) var(--gk-2); text-align: center; }
+.gk .cw-day-agenda__near { color: var(--gk-accent); font-size: 10px; line-height: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.gk .cw-day-agenda__num { font-family: var(--gk-font-display); font-size: 22px; line-height: 26px; font-weight: 700; color: var(--gk-text); font-variant-numeric: tabular-nums; }
+.gk .cw-day-agenda__weekday { color: var(--gk-text-3); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.gk .cw-day-agenda .gk-fixture { padding-left: var(--gk-3); }
 .gk .cw-day-agenda .gk-list > li:first-child { border-top: 0; }

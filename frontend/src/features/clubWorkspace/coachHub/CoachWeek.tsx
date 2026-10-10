@@ -1,4 +1,5 @@
-import { Badge, EmptyNote, Panel, Section } from '../../../design/primitives';
+import { EmptyNote, Panel, Section } from '../../../design/primitives';
+import { CalendarDays } from 'lucide-react';
 import type { Bootstrap } from '../../clubOperations/api';
 import type { OpenWorkspace } from '../../clubOperations/workspaceStructure';
 import type { ScheduleEventOccurrence } from '../../schedule/api';
@@ -16,13 +17,13 @@ export function CoachWeek({ agenda, onOpen, onOpenEvent }: {
         if (entry.event) {
             const kind = kindOf(entry.event);
             return { key: entry.key, startsAt: entry.startsAt, title: entry.event.title, meta: [entry.squadName, entry.event.locationName].filter(Boolean).join(' · '), tone: kind.tone,
-                trail: <Badge tone={kind.badge}>{kind.label}</Badge>, onClick: () => onOpenEvent(entry.event!), label: copy('openInCalendar', { name: entry.event.title }), kind: entry.event.eventType, squad: entry.squadName };
+                trail: <span className="gk-fixture__tag">{kind.label}</span>, onClick: () => onOpenEvent(entry.event!), label: copy('openInCalendar', { name: entry.event.title }), kind: entry.event.eventType, squad: entry.squadName };
         }
         const session = entry.session!;
-        return { key: entry.key, startsAt: entry.startsAt, title: session.title, meta: entry.squadName, tone: 'training', trail: <Badge tone="info">{copy('training')}</Badge>,
+        return { key: entry.key, startsAt: entry.startsAt, title: session.title, meta: entry.squadName, tone: 'training', trail: <span className="gk-fixture__tag">{copy('training')}</span>,
             onClick: () => onOpen('squads', { squad: String(entry.squadId), session: String(session.id), view: 'training' }), label: copy('openSession', { name: session.title, squad: entry.squadName }), kind: 'TRAINING', squad: entry.squadName };
     };
-    return <Section title={copy('thisWeek')} hint={copy('nextSevenDays')}>
+    return <Section icon={CalendarDays} tone="info" title={copy('thisWeek')} hint={copy('nextSevenDays')}>
         <Panel flush>{agenda.length ? <DayAgenda label={copy('thisWeek')} items={agenda.map(item)} limit={8} />
             : <EmptyNote title={copy('weekEmpty')}>{copy('weekEmptyHint')}</EmptyNote>}</Panel>
     </Section>;

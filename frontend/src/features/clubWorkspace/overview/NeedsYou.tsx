@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { CheckCircle2 } from 'lucide-react';
-import { Badge, Button, EmptyNote, List, ListRow, Panel, Section, Skeleton, type BadgeTone } from '../../../design/primitives';
+import { Button, EmptyNote, List, ListRow, Panel, Section, Skeleton, type BadgeTone } from '../../../design/primitives';
 import { label, moduleNames } from '../../clubOperations/api';
 import type { RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
 import { operationTab } from '../../clubOperations/workspaceNavigation';
@@ -77,7 +77,7 @@ export function NeedsYou({ clubId, overview, roles, squads, canManageOperations,
     let body: ReactNode;
     if (work.loading && !items.length) body = <div className="cw-skeleton-rows" role="status" aria-label={copy('needsChecking')}>{[0, 1, 2].map(i => <Skeleton key={i} height={40} />)}</div>;
     else if (!items.length && !work.error) body = <EmptyNote title={copy('needsEmpty')}>{copy('needsEmptyHint')}</EmptyNote>;
-    else body = <List label={copy('needsYou')}>{shown.map(item => <ListRow key={item.key} onClick={item.open} title={item.title} meta={item.meta} trail={<Badge tone={item.tone}>{item.badge}</Badge>} />)}</List>;
+    else body = <List label={copy('needsYou')}>{shown.map(item => <ListRow key={item.key} onClick={item.open} title={item.title} meta={item.meta} trail={<span className={`cw-status cw-status--${item.tone}`}>{item.badge}</span>} />)}</List>;
 
     return <Section className={className} title={copy('needsYou')} hint={items.length ? others ? copy('waitingSplit', { count: items.length - others, others }) : copy('waiting', { count: items.length }) : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('actions')}>{copy('workQueue')}</button>}>
         <Panel flush footer={hidden > 0 ? <button type="button" className="cw-text-button" onClick={() => onOpen('actions')}>{copy('moreInQueue', { count: hidden })}</button> : undefined}>

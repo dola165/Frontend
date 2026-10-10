@@ -4,21 +4,21 @@
   /* Type: Inter for reading, Inter Display (optical size) for headings and numbers. */
   --gk-font: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --gk-font-display: 'Inter Display', Inter, ui-sans-serif, system-ui, sans-serif;
-  --gk-fs-xs: 12px;   --gk-lh-xs: 16px;
-  --gk-fs-sm: 13px;   --gk-lh-sm: 18px;
-  --gk-fs-md: 14px;   --gk-lh-md: 20px;
-  --gk-fs-lg: 16px;   --gk-lh-lg: 24px;
-  --gk-fs-xl: 18px;   --gk-lh-xl: 24px;
-  --gk-fs-2xl: 22px;  --gk-lh-2xl: 28px;
-  --gk-fs-3xl: 28px;  --gk-lh-3xl: 34px;
-  --gk-fs-4xl: 36px;  --gk-lh-4xl: 40px;
+  --gk-fs-xs: 11px;   --gk-lh-xs: 15px;
+  --gk-fs-sm: 12px;   --gk-lh-sm: 16px;
+  --gk-fs-md: 13px;   --gk-lh-md: 18px;
+  --gk-fs-lg: 14px;   --gk-lh-lg: 20px;
+  --gk-fs-xl: 16px;   --gk-lh-xl: 22px;
+  --gk-fs-2xl: 18px;  --gk-lh-2xl: 24px;
+  --gk-fs-3xl: 22px;  --gk-lh-3xl: 28px;
+  --gk-fs-4xl: 28px;  --gk-lh-4xl: 34px;
 
   /* Space: a 4px grid. */
   --gk-1: 4px; --gk-2: 8px; --gk-3: 12px; --gk-4: 16px; --gk-5: 20px; --gk-6: 24px;
   --gk-8: 32px; --gk-10: 40px; --gk-12: 48px; --gk-16: 64px;
 
   /* Shape. Controls are tighter than panels so hierarchy reads at a glance. */
-  --gk-r-sm: 6px; --gk-r: 10px; --gk-r-lg: 14px; --gk-r-pill: 999px;
+  --gk-r-sm: 6px; --gk-r: 8px; --gk-r-lg: 12px; --gk-r-pill: 999px;
 
   /* Frame: full width with a modest gutter, framed only on very large screens. */
   --gk-gutter: clamp(16px, 0.75rem + 1.4vw, 40px);

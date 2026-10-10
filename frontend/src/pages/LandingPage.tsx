@@ -1,12 +1,13 @@
 import { lazy, Suspense, useState, type FormEvent, type MouseEvent } from 'react';
-import { ArrowDown, ArrowRight, ArrowUpRight, Expand, Loader2, Pause, Play } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUpRight, Loader2, Pause, Play } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSecondFactorLogin } from '../components/auth/useSecondFactorLogin';
 import { SecondFactorPrompt } from '../components/auth/SecondFactorPrompt';
 import { GrasskickzLogo } from '../components/layout/GrasskickzLogo';
 import { LandingStory } from '../components/landing/LandingStory';
 import { LandingLightField, LandingLightRails } from '../components/landing/LandingLightField';
-import { MapExperience } from '../components/map/MapExperience';
+import { WorldMapView } from '../features/world/map/WorldMapView';
+import { GkRoot } from '../design/primitives';
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { requiredAccountStep, resolvePostAuthRedirect } from '../utils/authRedirect';
@@ -81,8 +82,7 @@ export const LandingPage = () => {
             </div>
             <div className="landing-entry-grid">
                 <section className="landing-map-card" aria-label="Discover football clubs">
-                    <div id="club-map" className="landing-map-viewport" data-landing-map data-landing-map-viewport><MapExperience darkMode={false} context="guest" allowedEntityTypes={['CLUB']} mapTheme="light" filterLayout="external" embedded compactControls /></div>
-                    <Link className="landing-map-expand" to="/world" aria-label="Open full map" title="Open full map"><Expand size={16} /></Link>
+                    <div id="club-map" className="landing-map-viewport" data-landing-map data-landing-map-viewport><GkRoot className="landing-map-gk"><WorldMapView signedIn={false} embedded allowed={['clubs']} fullMap="/world/map" /></GkRoot></div>
                 </section>
                 <aside className="landing-auth" id="landing-login" tabIndex={-1} aria-label="Your GrassKickZ account">
                     {isAuthenticated ? <><p className="landing-eyebrow">Back where you belong</p><h2>Welcome back,<br />{user?.fullName || user?.username || 'player'}<span>.</span></h2><p>{user?.profileComplete ? 'Your clubs, conversations, and next match are waiting.' : 'A few more details and you’re ready to find your people.'}</p><Link className="landing-button landing-button-primary" to={authenticatedRoute}>{user?.profileComplete ? 'Open Home' : 'Finish setup'} <ArrowRight size={17} /></Link><Link className="landing-text-link" to="/clubs">Explore clubs <ArrowUpRight size={15} /></Link></> : <>

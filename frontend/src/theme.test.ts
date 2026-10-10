@@ -9,13 +9,12 @@ describe('account appearance', () => {
         expect(readThemePreference({ getItem: key => key === 'theme' ? 'light' : 'invalid' })).toBe('light');
         expect(readThemePreference({ getItem: () => { throw new Error('Storage unavailable'); } })).toBe('map-light');
     });
-    it.each(['/calendar', '/profile/1', '/clubs/1/workspace', '/map'])('honours explicit modes on %s', route => {
-        expect(themeForRoute('light', route)).toBe('light');
-        expect(themeForRoute('dark', route)).toBe(route === '/map' ? 'light' : 'dark');
+    it('honours explicit modes on every route', () => {
+        expect(themeForRoute('light')).toBe('light');
+        expect(themeForRoute('dark')).toBe('dark');
     });
-    it('keeps the mixed preference light only on the authenticated map', () => {
-        expect(themeForRoute('map-light', '/map')).toBe('light');
-        expect(themeForRoute('map-light', '/calendar')).toBe('dark');
+    it('treats the stored map-light preference as dark everywhere, the World map included', () => {
+        expect(themeForRoute('map-light')).toBe('dark');
     });
     it('updates both the CSS variant and native-control theme when switching in place', () => {
         applyDocumentTheme('dark');

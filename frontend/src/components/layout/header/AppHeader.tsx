@@ -67,7 +67,7 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
         { id: 'world', to: '/world', label: copy('World', 'მსოფლიო'), icon: Earth, current: section === 'world' },
         ...(club.path ? [{ id: 'my-club' as const, to: club.path, label: copy('My Club', 'ჩემი კლუბი'), icon: Shield, current: section === 'my-club' }] : []),
     ];
-    const light = themeForRoute(themePreference, pathname) === 'light';
+    const light = themeForRoute(themePreference) === 'light';
     const dola = useContext(DolaContext);
     const dolaOpen = pathname === '/assistant' || Boolean(dola?.visible && dola.panel);
 
@@ -119,7 +119,7 @@ function GuestHeader({ themePreference }: { themePreference: ThemePreference }) 
                     <ExploreMenu />
                 </nav>
                 <div className="gk-header__actions">
-                    <HeaderSearch light={themeForRoute(themePreference, pathname) === 'light'} />
+                    <HeaderSearch light={themeForRoute(themePreference) === 'light'} />
                     <button type="button" className="gk-hbtn gk-header__language" lang={georgian ? 'en' : 'ka'} onClick={() => void i18n.changeLanguage(georgian ? 'en' : 'ka')}
                         aria-label={georgian ? 'Use English' : 'ქართულად'} title={georgian ? 'Use English' : 'ქართულად'}>{georgian ? 'EN' : 'ქა'}</button>
                     <ButtonLink variant="ghost" to="/login" className="gk-header__signin">{copy('Sign in', 'შესვლა')}</ButtonLink>

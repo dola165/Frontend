@@ -3,7 +3,6 @@ import { isAndroidApp, nativeCall } from './android/bridge';
 import { lazy, Suspense, useEffect, useLayoutEffect, useState, type CSSProperties, type JSX } from 'react';
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AppHeader } from './components/layout/header/AppHeader';
-import { useMapWorkspaceChrome } from './context/mapWorkspaceChrome';
 import { HomeOpportunities } from './components/layout/HomeOpportunities';
 import './components/layout/home-rails.css';
 import './components/layout/home-feed.css';
@@ -221,7 +220,7 @@ export function MainLayout() {
     }, [location.pathname, navigate, status, user]);
 
     const darkMode = themePreference !== 'light';
-    const effectiveTheme = themeForRoute(themePreference, location.pathname);
+    const effectiveTheme = themeForRoute(themePreference);
 
     useLayoutEffect(() => {
         applyDocumentTheme(effectiveTheme);
@@ -315,11 +314,8 @@ export function MainLayout() {
         canvasWorkspacePages.has(location.pathname) || isWorldMap ||
         /^\/clubs\/\d+\/workspace$/.test(location.pathname) ||
         /^\/tournaments\/\d+\/workspace$/.test(location.pathname);
-    // Map planning is a full-screen tool with its own control for showing the header.
-    const mapChrome = useMapWorkspaceChrome();
-    const isTopNavCollapsed = isWorldMap && mapChrome.planning && !mapChrome.navigationExpanded;
     const hasProductNavigation = !isAndroidApp && !isLandingPage && !isAuthPage;
-    const showsHeader = hasProductNavigation && !isTopNavCollapsed;
+    const showsHeader = hasProductNavigation;
     const activeHeaderHeight = showsHeader ? 'var(--app-header-height)' : '0px';
 
     const fullScreenRoutes = (
@@ -327,7 +323,7 @@ export function MainLayout() {
             <Route path="/workspaces" element={<Navigate to="/home" replace />} />
             <Route path="/assistant" element={<ProtectedRoute><AgentDolaPage /></ProtectedRoute>} />
             <Route path="/map" element={<WorldRedirect to="/world/map" />} />
-            <Route path="/world/*" element={<WorldRoutes darkMode={themePreference === 'dark'} />} />
+            <Route path="/world/*" element={<WorldRoutes />} />
             <Route path="/clubs" element={<WorldRedirect to="/world/clubs" rename={{ search: 'q' }} />} />
             <Route path="/clubs/following" element={<ProtectedRoute><FollowedClubsPage /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute><CalendarPage user={user} darkMode={darkMode} setDarkMode={(value) => setThemePreference(value ? 'dark' : 'light')} /></ProtectedRoute>} />

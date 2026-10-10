@@ -29,7 +29,7 @@ async function startApp() {
     await worker.start({ onUnhandledRequest: 'warn' });
   }
 
-  applyDocumentTheme(themeForRoute(readThemePreference(), window.location.pathname));
+  applyDocumentTheme(themeForRoute(readThemePreference()));
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <ErrorBoundary>

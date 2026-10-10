@@ -49,6 +49,46 @@
   "wait": 2500
  },
  {
+  "name": "world-map-all",
+  "path": "/world/map?layers=clubs,venues,matches,trials,competitions",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-venue",
+  "path": "/world/map?venue=212",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-place",
+  "path": "/world/map?place=club:3",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-plans",
+  "path": "/world/map?plans=staff",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-plan",
+  "path": "/world/map?plans=staff&plan=701&club=1&squad=105",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-plan-share",
+  "path": "/world/map?plans=staff&plan=701&club=1&squad=105&step=share",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-journey",
+  "path": "/world/map?plans=staff&plan=701&club=1&squad=105&view=journey",
+  "wait": 2500
+ },
+ {
+  "name": "world-map-family",
+  "path": "/world/map?plans=family",
+  "wait": 2000
+ },
+ {
   "name": "clubs",
   "path": "/clubs"
  },

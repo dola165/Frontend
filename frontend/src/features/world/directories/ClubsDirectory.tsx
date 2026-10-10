@@ -8,6 +8,7 @@ import { ClubCard } from '../cards/ClubCard';
 import { DirectoryPage } from '../directory/DirectoryPage';
 import { first, type DirectorySource } from '../directory/types';
 import { clubTypeLabel } from '../format';
+import { JOIN_POLICY_FILTER } from './clubFilters';
 import { useWorldSession } from '../worldSession';
 
 const PAGE = 12;
@@ -25,9 +26,7 @@ const clubs: DirectorySource<ClubProfile> = {
             { value: 'ACADEMY', label: 'Academies' }, { value: 'SCHOOL', label: 'Football schools' }, { value: 'GRASSROOTS', label: 'Grassroots' },
             { value: 'AMATEUR', label: 'Amateur' }, { value: 'SEMI_PROFESSIONAL', label: 'Semi-professional' }, { value: 'PROFESSIONAL', label: 'Professional' }, { value: 'OTHER', label: 'Other' },
         ] },
-        { kind: 'choice', key: 'joinPolicy', label: 'How to join', primary: true, multi: true, options: [
-            { value: 'OPEN_TRIAL', label: 'Open trials' }, { value: 'APPLICATION_REQUIRED', label: 'Apply to join' }, { value: 'INVITE_ONLY', label: 'Invite only' },
-        ] },
+        JOIN_POLICY_FILTER,
         { kind: 'text', key: 'city', label: 'City', placeholder: 'Any city' },
         { kind: 'text', key: 'country', label: 'Country', placeholder: 'Any country' },
     ],

@@ -40,10 +40,10 @@ function WorldIndex() {
 }
 
 /** GrassKickZ World: the discovery home, its directories and the full map. */
-export default function WorldRoutes({ darkMode }: { darkMode: boolean }) {
+export default function WorldRoutes() {
     return (
         <WorldSessionProvider><Routes>
-            <Route path="map" element={<Suspense fallback={null}><WorldMapPage darkMode={darkMode} /></Suspense>} />
+            <Route path="map" element={<Suspense fallback={null}><WorldMapPage /></Suspense>} />
             <Route element={<WorldLayout />}>
                 <Route index element={<Suspense fallback={<PageLoading />}><WorldIndex /></Suspense>} />
                 <Route path="clubs" element={<Suspense fallback={<PageLoading />}><ClubsDirectory /></Suspense>} />

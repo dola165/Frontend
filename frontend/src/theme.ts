@@ -14,8 +14,13 @@ export function readThemePreference(storage?: Pick<Storage, 'getItem'>): ThemePr
     }
 }
 
-export const themeForRoute = (preference: ThemePreference, pathname: string): 'light' | 'dark' =>
-    pathname === '/map' || pathname === '/world/map' || preference === 'light' ? 'light' : 'dark';
+/**
+ * Every route follows the person's appearance. The World map used to stay light; it now sits
+ * under the World navigation and follows the theme like its other pages, so 'map-light' is
+ * kept only as the stored name of the dark preference.
+ */
+export const themeForRoute = (preference: ThemePreference): 'light' | 'dark' =>
+    preference === 'light' ? 'light' : 'dark';
 
 export function applyDocumentTheme(theme: 'light' | 'dark') {
     document.documentElement.classList.toggle('dark', theme === 'dark');

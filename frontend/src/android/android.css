@@ -14,11 +14,8 @@ html.android-app { --app-header-height: 0px; --app-active-header-height: 0px; ov
   min-width: 0;
 }
 .android-app :is(input, select):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]) { min-height: 44px; }
-.android-app .atlas-area-action { bottom: 72px; }
-.android-app .atlas-area-action > span, .android-app .atlas-area-action > small { display: none; }
-.android-app .atlas-area-action > button { padding: 12px 18px; }
 @media (max-height: 400px) {
-  .android-app .atlas-view-controls, .android-app .maplibregl-ctrl-group { display: none; }
+  .android-app .maplibregl-ctrl-group { display: none; }
 }
 @media (max-width: 600px) {
   .android-app .store-variant-row { display: grid; grid-template-columns: minmax(0, 1fr) 96px; }

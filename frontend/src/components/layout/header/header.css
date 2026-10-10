@@ -192,7 +192,6 @@
 @media (prefers-reduced-motion: reduce) { .gk .gk-htab__body, .gk .gk-hbtn { transition: none; } }
 @media (max-width: 899px) {
   /* Full-height map panels end above the tab bar instead of behind it. */
-  .product-app-shell[data-tabbar='true'] :is(.map-modal-backdrop, .map-simple-rail, .map-club-rail, .map-advanced-rail).fixed { bottom: var(--app-bottom-bar-height); }
   /* A modal covers the whole screen, so the tab bar steps aside while one is open and its actions stay reachable. */
   html:has([aria-modal='true']:not(.gk-sheet)) .gk.gk-tabbar { display: none; }
   /* Guests keep World and Explore; language and "Create account" move into Explore. */

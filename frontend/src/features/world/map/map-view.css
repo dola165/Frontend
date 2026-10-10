@@ -1,0 +1,24 @@
+/* World map page layout: canvas, floating controls and the phone top bar. Scoped under .gk; tokens only. */
+.gk .gk-mapview { position: absolute; inset: 0; overflow: hidden; background: var(--gk-sunken); --gk-map-panel-w: 400px; }
+.gk .gk-mapview[data-mode='plan'] { --gk-map-panel-w: min(520px, max(440px, 42vw)); }
+.gk .gk-mapview[data-mode='plan'] .gk-map-canvas { left: var(--gk-map-panel-w); }
+.gk .gk-map-controls-slot { position: absolute; top: var(--gk-3); right: var(--gk-3); z-index: 5; }
+.gk .gk-map-float { position: absolute; z-index: 25; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: var(--gk-2); pointer-events: auto; }
+.gk .gk-map-float--top { top: var(--gk-3); }
+.gk .gk-mapview[data-mode='explore'] .gk-map-float--top { left: calc(50% + var(--gk-map-panel-w) / 2); }
+.gk .gk-map-float .gk-btn { box-shadow: var(--gk-elevation); }
+.gk .gk-map-float > .gk-btn--secondary { background: var(--gk-surface); }
+.gk .gk-map-hint { padding: var(--gk-1) var(--gk-1) var(--gk-1) var(--gk-4); border-radius: var(--gk-r-pill); background: var(--gk-surface); border: 1px solid var(--gk-line-strong); box-shadow: var(--gk-elevation); font-size: var(--gk-fs-sm); font-weight: 600; white-space: nowrap; }
+.gk .gk-map-hint > svg { width: 18px; height: 18px; color: var(--gk-accent); }
+
+/* Embedded (landing page): contained, compact. */
+.gk .gk-mapview[data-embedded] { --gk-map-panel-w: 340px; }
+.gk .gk-mapview[data-embedded] .gk-map-panel--floating { top: var(--gk-2); left: var(--gk-2); bottom: var(--gk-2); }
+
+@media (max-width: 899px) {
+  .gk .gk-mapview[data-mode='plan'] .gk-map-canvas { left: 0; }
+  .gk .gk-mapview[data-mode='explore'] .gk-map-float--top { left: 50%; top: calc(var(--gk-3) + 104px); }
+  .gk .gk-map-controls-slot { top: calc(var(--gk-3) + 104px); }
+  .gk .gk-mapview[data-mode='plan'] .gk-map-controls-slot { top: var(--gk-3); }
+  .gk .gk-map-topbar { position: absolute; z-index: 26; top: var(--gk-2); left: var(--gk-2); right: var(--gk-2); padding: var(--gk-2); border-radius: var(--gk-r-lg); background: color-mix(in srgb, var(--gk-surface) 94%, transparent); border: 1px solid var(--gk-line); box-shadow: var(--gk-elevation); }
+}

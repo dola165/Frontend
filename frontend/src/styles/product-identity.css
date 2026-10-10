@@ -96,7 +96,6 @@
   overflow: hidden;
   contain: size layout;
 }
-.landing-map-viewport > .map-experience-embedded { position: absolute; inset: 0; height: 100%; min-height: 0; max-height: 100%; }
 .landing-content-frame > * { min-width: 0; }
 @media (max-width: 639px) { .landing-map-viewport { height: 520px; max-height: 75dvh; } }
 @media (prefers-reduced-motion: reduce) {

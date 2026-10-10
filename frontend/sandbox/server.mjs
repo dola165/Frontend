@@ -37,6 +37,12 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(result.status || 200, headers);
       return res.end(result.body === undefined ? '' : (typeof result.body === 'string' ? result.body : JSON.stringify(result.body)));
     }
+    if (url.pathname === '/sandbox-map/style.json') {
+      const { sandboxMapStyle } = await import('./map-style.mjs');
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(JSON.stringify(sandboxMapStyle(`http://${req.headers.host}`)));
+    }
+    // The sandbox style draws no text; an empty glyph range keeps any label layer quiet.
+    if (url.pathname.startsWith('/sandbox-map/glyphs/')) { res.writeHead(200, { 'content-type': 'application/x-protobuf' }); return res.end(); }
     if (url.pathname.startsWith('/sandbox-overpass')) { res.writeHead(200, { 'content-type': 'application/json' }); return res.end('{"elements":[]}'); }
     if (url.pathname.startsWith('/sandbox-media/')) {
       const { mediaSvg } = await import('./api/media.mjs');

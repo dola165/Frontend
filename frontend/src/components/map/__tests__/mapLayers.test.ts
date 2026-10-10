@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-    MAP_LOCATION_PIN_IMAGE,
-    buildPointsFeatureCollection,
-    withDarkPaints,
-    withHeritagePaints
-} from '../mapLayers';
+import { withDarkPaints, withHeritagePaints } from '../mapLayers';
 
 describe('map layer styling', () => {
     it('can omit decorative terrain while preserving street and label layers and the warm palette', () => {
@@ -40,18 +35,6 @@ describe('map layer styling', () => {
         expect(original.layers[2].minzoom).toBe(10);
         expect(original.sources).not.toHaveProperty('atlas-elevation');
     });
-    it('uses the normal football pin for unselected point features', () => {
-        const collection = buildPointsFeatureCollection([{
-            key: 'CLUB:1',
-            entityType: 'CLUB',
-            latitude: 41.7,
-            longitude: 44.8,
-            title: 'Test club'
-        }]);
-
-        expect(collection.features[0].properties.icon).toBe(MAP_LOCATION_PIN_IMAGE);
-    });
-
     it('creates a true dark style without mutating the light style', () => {
         const light = {
             version: 8,

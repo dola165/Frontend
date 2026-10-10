@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import offerJson from './__fixtures__/place_offered.json?raw';
@@ -11,7 +11,7 @@ import { AdmissionCasePage } from './AdmissionCasePage';
 import { AdmissionHomePage } from './AdmissionHomePage';
 import { fetchPlayerIdentity, savePlayerIdentity } from '../../joining-contract/api';
 import { OpportunityDetailPage } from './OpportunityDetailPage';
-import { MapAdmissionControls } from './MapAdmissionControls';
+import { useApplicant } from '../../world/map/explore/useApplicant';
 vi.mock('../../joining-contract/api',()=>({fetchPlayerIdentity:vi.fn(),savePlayerIdentity:vi.fn(),uploadPlayerPhoto:vi.fn()}));
 const auth=vi.hoisted(()=>({user:{id:77},sessionId:'lifecycle-session',isAuthenticated:true}));
 vi.mock('../../../context/AuthContext',()=>({useAuth:()=>auth}));
@@ -47,10 +47,10 @@ describe('Admission lifecycle receipts',()=>{
     });
     it('keeps a missing-DOB self card outside map age matching',async()=>{
         vi.mocked(fetchAdmissionHome).mockResolvedValue(incompleteHome());
-        render(<MemoryRouter><MapAdmissionControls playerId={undefined} onPlayer={vi.fn()} includeWaitlist={false} onWaitlist={vi.fn()}/></MemoryRouter>);
-        await screen.findByRole('option',{name:'Anyone'});
+        const {result}=renderHook(()=>useApplicant(),{wrapper:MemoryRouter});
         await waitFor(()=>expect(fetchAdmissionHome).toHaveBeenCalled());
-        expect(screen.queryByRole('option',{name:'Synthetic self'})).not.toBeInTheDocument();
+        await waitFor(()=>expect(result.current.loading).toBe(false));
+        expect(result.current.participants).toEqual([]);
     });
     it('completes minimum details and selects the same adult in the chosen opportunity',async()=>{
         const o=(JSON.parse(opportunitiesJson) as OpportunityPage).items[0];o.birthYearFrom=1990;o.birthYearTo=1990;

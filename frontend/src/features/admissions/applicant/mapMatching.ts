@@ -1,5 +1,5 @@
 import type { Opportunity } from '../types';
-import type { MapFilters } from '../../../components/map/MapFilterSidebar';
+import type { MapFilters } from '../../world/map/explore/discoveryFilters';
 export function matchesOpportunity(o:Opportunity,filters:MapFilters) {
     const f=filters.clubs;
     if(o.visibility!=='PUBLIC'||!o.published)return false;

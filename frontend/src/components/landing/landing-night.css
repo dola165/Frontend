@@ -64,45 +64,4 @@
 .landing-footer nav a:hover { color:var(--color-text); }
 
 /* An opt-in dark map; the regular World map keeps its daylight presentation. */
-.gk-landing .map-page-shell.map-atlas.map-force-dark,.atlas-embedded-filters.map-force-dark {
-  --text-primary:var(--color-text); --text-secondary:var(--color-secondary); --text-muted:var(--color-muted);
-  --accent-primary:var(--color-accent); --accent-primary-soft:color-mix(in srgb, var(--color-accent) 12%, transparent);
-  --map-panel-bg:var(--color-surface); --map-rail-bg:var(--color-surface); --map-workspace-bg:var(--color-page);
-  --map-card-bg:var(--color-elevated); --map-card-muted:var(--color-inset); --map-panel-border:var(--color-border);
-  --map-pill-bg:var(--color-inset); --map-shadow-strong:0 16px 60px color-mix(in srgb, var(--color-shadow) 46.67%, transparent);
-  background:var(--color-surface); color:var(--color-text); color-scheme:dark;
-}
-.map-atlas.map-force-dark :is(.atlas-command-bar,.atlas-results,.atlas-walking-panel,.atlas-return,.atlas-command-suggestions,.map-simple-suggestions,.atlas-filter-select,.atlas-search-from,.atlas-origin-choices button,.atlas-coverage-choice button,.atlas-result-card,.atlas-view-controls>button,.map-simple-line) { background:var(--color-surface); border-color:var(--color-border); color:var(--color-muted); }
-.map-atlas.map-force-dark :is(.atlas-command-bar button,.atlas-command-bar b,.atlas-command-bar .atlas-browse-toggle,.atlas-area-action>span,.atlas-area-action>small,.map-icon-button,.atlas-filter-select,.atlas-radius-presets button,.atlas-coverage-choice button,.atlas-origin-choices button) { color:var(--color-muted); background:var(--color-surface); }
-.map-atlas.map-force-dark :is(.atlas-command-bar button:hover,.atlas-command-suggestions button:hover,.atlas-command-bar .is-active,.atlas-radius-presets button[aria-pressed=true],.atlas-coverage-choice button[aria-pressed=true]) { background:var(--color-inset); color:var(--color-text); }
-.map-atlas.map-force-dark :is(.atlas-eyebrow,.atlas-filter-title,.atlas-results h2,.map-simple-label,.map-simple-line input,.atlas-coverage-explanation,.atlas-filter-title>span,.atlas-results-summary p,.atlas-results-summary strong,.atlas-results-summary select,.atlas-command-search input,.atlas-command-suggestions strong,.atlas-result-card h3,.atlas-result-card p) { color:var(--color-muted); }
-.map-atlas.map-force-dark :is(.atlas-area-action>button,.map-simple-primary) { background:var(--color-inset); color:var(--color-on-accent); box-shadow:0 5px 20px color-mix(in srgb, var(--color-shadow) 20%, transparent); }
-.map-atlas.map-force-dark .atlas-area-action>button>span { color:var(--color-cyan); }
-.map-atlas.map-force-dark .map-simple-rail { background:var(--color-surface); border-color:var(--color-border); }
-.map-atlas.map-force-dark :is(.map-simple-rail>header,.map-simple-rail>footer,.atlas-results-summary,.atlas-results-scroll) { border-color:var(--color-border); background:var(--color-surface); }
-.map-atlas.map-force-dark .map-simple-rail>header p:not(.atlas-eyebrow),.map-atlas.map-force-dark .map-simple-rail>header>div:nth-child(2) span { color:var(--color-secondary); }
-.map-atlas.map-force-dark .atlas-command-suggestions button { color:var(--color-muted); border-color:var(--color-border); }
-.map-atlas.map-force-dark .atlas-search-from strong { color:var(--color-text); }
-.map-atlas.map-force-dark :is(.atlas-search-from small,.atlas-search-from>div,.atlas-origin-region-note) { color:var(--color-secondary); }
-.map-atlas.map-force-dark .map-simple-rail>header .atlas-coverage-summary { background:var(--color-inset); color:var(--color-muted); }
-.map-atlas.map-force-dark :is(.atlas-results>header,.atlas-results>footer,.atlas-view-controls>section,.atlas-map-legend) { background:var(--color-surface); border-color:var(--color-border); color:var(--color-muted); }
-.map-atlas.map-force-dark :is(.atlas-view-controls,.atlas-view-controls small,.atlas-map-legend span) { color:var(--color-muted); }
-.map-atlas.map-force-dark :is(.atlas-view-controls section>div button,.atlas-view-reset,.atlas-results-heading>button) { background:var(--color-inset); color:var(--color-text); }
-.map-atlas.map-force-dark .atlas-view-controls input { accent-color:var(--color-accent); }
-.landing-map-viewport .atlas-results>header { padding:12px 16px 0; }
-.landing-map-viewport .atlas-results h2 { font-size:18px; margin-top:9px; }
-.landing-map-viewport .atlas-results-summary { margin-top:0; padding:10px 0; }
-.landing-map-viewport .atlas-results>footer { padding:10px 16px; font-size:9px; }
-.landing-map-viewport .atlas-results-scroll { padding-inline:16px; }
-.landing-map-viewport .atlas-results-scroll li { padding-block:13px; }
-.map-atlas.map-force-dark .atlas-results-scroll li { border-color:var(--color-border); }
-.map-atlas.map-force-dark .atlas-results-scroll li:has(.atlas-result-main:hover) { background:var(--color-inset); }
-.map-atlas.map-force-dark :is(.atlas-result-copy>strong,.atlas-results-empty h3) { color:var(--color-text); }
-.map-atlas.map-force-dark :is(.atlas-result-type,.atlas-result-address,.atlas-result-footer,.atlas-result-link,.atlas-result-main>svg,.atlas-results-empty) { color:var(--color-secondary); }
-.map-atlas.map-force-dark :is(.atlas-result-logo,.atlas-result-logo small,.atlas-result-footer button) { background:var(--color-inset); border-color:var(--color-cyan); color:var(--color-muted); }
-.map-atlas.map-force-dark input::placeholder { color:var(--color-muted); }
-.map-atlas.map-force-dark .atlas-external-toolbar>div>button>span { color:var(--color-text); }
-.map-atlas.map-force-dark .maplibregl-ctrl-group { background:var(--color-inset); }
-.map-atlas.map-force-dark .maplibregl-ctrl-attrib { background:color-mix(in srgb, var(--color-inset) 94.12%, transparent); color:var(--color-text); }
-.atlas-embedded-filters.map-force-dark { border-color:var(--color-border); }
 @media(max-width:700px) { .landing-origin-shade { background:linear-gradient(90deg,color-mix(in srgb, var(--color-page) 85.88%, transparent),color-mix(in srgb, var(--color-ink) 18.82%, transparent)),linear-gradient(0deg,var(--color-page),transparent 75%); } }

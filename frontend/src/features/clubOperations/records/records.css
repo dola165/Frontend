@@ -96,3 +96,9 @@
 .gk .rec-dot { display: block; width: 8px; height: 8px; border-radius: var(--gk-r-pill); background: transparent; }
 .gk .rec-dot--on { background: var(--gk-accent); }
 .gk [data-unread] .rec-note-row .gk-list-row__title { color: var(--gk-text); font-weight: 700; }
+@media (max-width: 760px) {
+  .gk .rec-request, .gk .rec-note-row { flex-wrap: wrap; }
+  .gk .rec-request .gk-list-row__main, .gk .rec-note-row .gk-list-row__main { flex-basis: calc(100% - 40px); }
+  .gk .rec-request .gk-list-row__trail, .gk .rec-note-row .gk-list-row__trail { width: 100%; justify-content: flex-start; }
+  .gk .rec-note-row .gk-list-row__trail { padding-left: 32px; }
+}

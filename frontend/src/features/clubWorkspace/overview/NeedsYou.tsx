@@ -72,7 +72,7 @@ export function NeedsYou({ clubId, overview, roles, squads, canManageOperations,
     else if (!items.length && !work.error) body = <EmptyNote title="Nothing needs you right now">New decisions, deadlines and reviews will appear here.</EmptyNote>;
     else body = <List label="Needs you">{shown.map(item => <ListRow key={item.key} onClick={item.open} title={item.title} meta={item.meta} trail={<Badge tone={item.tone}>{item.badge}</Badge>} />)}</List>;
 
-    return <Section title="Needs you" hint={items.length ? `${items.length} ${items.length === 1 ? 'item' : 'items'}` : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('actions')}>Work queue</button>}>
+    return <Section title="Needs you" hint={items.length ? `${items.length} waiting` : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('actions')}>Work queue</button>}>
         <Panel flush footer={hidden > 0 ? <button type="button" className="cw-link" onClick={() => onOpen('actions')}>{plural(hidden, 'more item')} in the work queue</button> : undefined}>
             {work.error && <div className="cw-panel-notice"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{work.error}</span><Button size="sm" onClick={work.retry}>Try again</Button></div></div>}
             {body}

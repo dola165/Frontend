@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GrassKickZ sandbox — test guide</title>
+<style>
+  :root { --bg: #0a0d0f; --surface: #12171c; --line: #222b34; --text: #f2f4f6; --text2: #a9b3bc; --text3: #77838e; --accent: #00e676; --warn: #f0bf5a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 40px clamp(16px, 3vw, 40px) 80px; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.02em; }
+  h2 { font-size: 20px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  p { margin: 0; }
+  .lead { color: var(--text2); max-width: 70ch; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 34px; }
+  .bar a, .links a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); color: var(--text); text-decoration: none; font-weight: 600; background: var(--surface); }
+  .bar a.primary { background: var(--accent); color: #04130b; border-color: transparent; }
+  .bar a:hover, .links a:hover { border-color: #33404b; }
+  section { border-top: 1px solid var(--line); padding: 26px 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 24px 40px; }
+  @media (max-width: 860px) { section { grid-template-columns: minmax(0, 1fr); } }
+  .what { color: var(--text2); margin-top: 6px; }
+  ol { margin: 0; padding-left: 20px; color: var(--text); }
+  ol li { margin: 4px 0; }
+  .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .links a { min-height: 36px; font-size: 14px; font-weight: 500; }
+  .note { color: var(--warn); font-size: 14px; margin-top: 10px; }
+  .small { color: var(--text3); font-size: 13px; }
+  code { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>GrassKickZ overhaul — test guide</h1>
+  <p class="lead">Everything here runs on invented data in your own browser. You are signed in as coach Luka Gelashvili, Head of Coaching at FC Dinamo Tbilisi Academy (he coaches U14 Boys and U16 Boys). Nothing talks to the mini PC or your real database. Each section below is one sprint: what changed, what to try, and direct links. Links open in this tab; use Back to return here, or bookmark <code>/__guide</code>.</p>
+  <div class="bar">
+    <a class="primary" href="/home">Open the app</a>
+    <a href="/__mode/parent?to=/world/clubs">Switch to parent view</a>
+    <a href="/__mode/coach?to=/home">Back to coach view</a>
+    <a href="/world?signedout=1">See it signed out</a>
+    <a href="/design-system">Design system</a>
+  </div>
+
+  <section>
+    <div>
+      <h2>1 · New header, pins and Inbox</h2>
+      <p class="what">One row instead of two: Home, World, My Club. Your own pinned pages become extra tabs. Requests and notifications are one Inbox. Phones get a bottom tab bar. "My work" is gone.</p>
+    </div>
+    <div>
+      <ol>
+        <li>Open any squad or workspace page, then use <b>Pin</b> in the header to pin it.</li>
+        <li>Open the Inbox (tray icon): "Needs you" vs "Updates".</li>
+        <li>Open the avatar menu: profile, My schedule, theme, language, your workspaces.</li>
+        <li>Make the window narrow (or use your phone's width in dev tools) to see the bottom tab bar.</li>
+      </ol>
+      <div class="links"><a href="/home">Home</a><a href="/squads/105">U16 Boys squad (pin it)</a><a href="/requests">All requests</a></div>
+    </div>
+  </section>
+
+  <section>
+    <div>
+      <h2>2 · GrassKickZ World</h2>
+      <p class="what">World is now the discovery half of the app: a front page plus directories for Clubs, People, Venues, Matches, Competitions and Opportunities. Every directory has the same search, filters and a List / List + map / Map switch. The old list pages redirect here.</p>
+    </div>
+    <div>
+      <ol>
+        <li>On the front page, search "saburtalo", then try a quick start.</li>
+        <li>In Clubs, switch to <b>List + map</b> and hover a card.</li>
+        <li>In People, filter by Referees or Specialists (professions like sports psychologist).</li>
+        <li>Switch to the parent view (top of this page) and open Clubs: pick a child under "Searching for".</li>
+      </ol>
+      <div class="links"><a href="/world">World</a><a href="/world/clubs">Clubs</a><a href="/world/clubs?view=split">Clubs + map</a><a href="/world/people">People</a><a href="/world/venues">Venues</a><a href="/world/matches">Matches</a><a href="/world/competitions">Competitions</a><a href="/world/opportunities">Opportunities</a></div>
+    </div>
+  </section>
+
+  <section>
+    <div>
+      <h2>3 · Map and journey planning</h2>
+      <p class="what">The full map lives at World › Map: one search bar, layer chips, a results list synced with the markers, a place card with actions, and a bottom sheet on phones. Journey planning is a first-class flow: start from a fixture, plan the stops and times, who travels and in which car, what to bring, then publish to families.</p>
+      <p class="note">Map tiles need the internet, so streets may be plain here; markers and routes still show.</p>
+    </div>
+    <div>
+      <ol>
+        <li>Open the map, click a marker, then use "Save to a journey".</li>
+        <li>Open the U16 Boys away trip and walk through Itinerary, Travelling, Kit and notes, Share.</li>
+        <li>Open "the family view" to see what parents get.</li>
+      </ol>
+      <div class="links"><a href="/world/map">Map</a><a href="/world/map?plans=staff">Journeys</a><a href="/world/map?plans=staff&amp;plan=701&amp;club=1&amp;squad=105">U16 trip plan</a><a href="/world/map?plans=staff&amp;plan=701&amp;club=1&amp;squad=105&amp;view=journey">Family view of the trip</a></div>
+    </div>
+  </section>
+
+  <section>
+    <div>
+      <h2>4 · Club workspace and Coach Hub</h2>
+      <p class="what">One workspace layout for every workspace (club and tournament so far): a left rail shaped by your responsibilities, a simpler Overview with one "Needs you" list, and Coach Hub — your squads, your week, your players to check, your tasks. Squads, Staff duties (one form instead of a 3-step wizard), Players, Settings and the rest are rebuilt.</p>
+    </div>
+    <div>
+      <ol>
+        <li>Overview → open something from "Needs you".</li>
+        <li>Coach Hub → "Responsibilities": switch a tool off and watch the rail reorganize.</li>
+        <li>Staff duties → "Add staff duty": one short form. Start typing, then click "Club page" in the rail — it asks before discarding.</li>
+        <li>Squads → U14 Boys → "Age eligibility".</li>
+      </ol>
+      <div class="links"><a href="/clubs/1/workspace">Overview</a><a href="/clubs/1/workspace?tab=coach-hub">Coach Hub</a><a href="/clubs/1/workspace?tab=coach-hub&amp;hub=responsibilities">Responsibilities</a><a href="/clubs/1/workspace?tab=squads">Squads</a><a href="/clubs/1/workspace?tab=staff-duties">Staff duties</a><a href="/clubs/1/workspace?tab=players">Players</a><a href="/clubs/1/workspace?tab=settings">Settings</a><a href="/clubs/1/workspace?tab=programmes">Programmes &amp; fees</a><a href="/tournaments/301/workspace">Tournament workspace</a></div>
+    </div>
+  </section>
+
+  <section>
+    <div>
+      <h2>5 · Profiles, schedules and attendance</h2>
+      <p class="what">Club, person and organization profiles share one layout. A club's Overview now leads with its latest posts and a clear Follow / Join. Clubs get a combined Schedule tab; your own profile has your personal schedule (the old calendar). Person profiles separate football roles, work and skills, and what a club has confirmed. Attendance is opt-out: players are expected unless they tap "Can't come"; coaches ask for confirmation only when it matters.</p>
+    </div>
+    <div>
+      <ol>
+        <li>Open another club and use "Propose a match".</li>
+        <li>Open your schedule, click a session: see "11 of 12 expected" and "Ask for confirmation".</li>
+        <li>Open Roles and work: add a profession like "Video analyst".</li>
+      </ol>
+      <div class="links"><a href="/clubs/1">Dinamo profile</a><a href="/clubs/3">Riverside Academy</a><a href="/clubs/1?tab=schedule">Club schedule</a><a href="/profile/1">Your profile</a><a href="/profile/1?tab=schedule">Your schedule</a><a href="/profile/30">A U16 player</a><a href="/account/roles">Roles and work</a></div>
+    </div>
+  </section>
+
+  <section>
+    <div>
+      <h2>6 · Arrange a match</h2>
+      <p class="what">One short form instead of the three-step wizard: search the opponent club, pick squads, kick-off (length comes from the age group), the ground (your venues, theirs, any venue, a pin on the map, or to be arranged), referee optional. Stadium booking is gone. "Post an open match" is the separate Match Exchange listing. The match page is rebuilt.</p>
+    </div>
+    <div>
+      <ol>
+        <li>Arrange a match: type "kut" in the opponent field.</li>
+        <li>Open the invitation you received and accept it.</li>
+        <li>Open an agreed match: plan the match day, request a referee.</li>
+      </ol>
+      <div class="links"><a href="/world/matches/arrange">Arrange a match</a><a href="/world/matches/arrange?mode=open">Post an open match</a><a href="/match-exchange/5844">Invitation received</a><a href="/match-exchange/5846">Invitation sent</a><a href="/match-exchange/5726">Agreed match</a></div>
+    </div>
+  </section>
+
+  <section>
+    <div>
+      <h2>7 · Home: This week and announcements</h2>
+      <p class="what">The feed is unchanged. Above it: "This week" (your squads' sessions and matches, plus what's waiting for you) and pinned announcements. On a squad page, coaches post an announcement with "Pinned until" and see who has read it.</p>
+    </div>
+    <div>
+      <ol>
+        <li>On Home, look at This week and the announcement read summary.</li>
+        <li>On U16 Boys → Announcements: post a new one pinned for 3 days, asking families to confirm.</li>
+      </ol>
+      <div class="links"><a href="/home">Home</a><a href="/squads/105">U16 Boys announcements</a></div>
+    </div>
+  </section>
+
+  <section>
+    <div>
+      <h2>Good to know</h2>
+      <p class="what">To reset all data, stop the server window and start it again. Light theme and Georgian are in the avatar menu. If a page ever looks stuck on "Loading", reload once.</p>
+    </div>
+    <div>
+      <p class="small">What's not real here: map tiles, Google sign-in, photos (generated placeholders), chat live updates. A few features rely on backend endpoints that don't exist yet; they are listed in the overnight report (<code>frontend/docs/claude-sandbox/</code>).</p>
+    </div>
+  </section>
+</main>
+</body>
+</html>

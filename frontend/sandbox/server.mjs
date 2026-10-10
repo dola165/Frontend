@@ -43,6 +43,18 @@ const server = http.createServer(async (req, res) => {
     }
     // The sandbox style draws no text; an empty glyph range keeps any label layer quiet.
     if (url.pathname.startsWith('/sandbox-map/glyphs/')) { res.writeHead(200, { 'content-type': 'application/x-protobuf' }); return res.end(); }
+    if (url.pathname === '/__guide') {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+      return res.end(await readFile(path.join(here, 'guide.html')));
+    }
+    if (url.pathname === '/__mode/parent' || url.pathname === '/__mode/coach') {
+      // Sandbox personas: the family cookie makes coach Luka also a parent of two children.
+      const to = (url.searchParams.get('to') || '/home');
+      const safe = to.startsWith('/') && !to.startsWith('//') ? to : '/home';
+      const cookie = url.pathname.endsWith('parent') ? 'gk-sandbox-family=1; Path=/' : 'gk-sandbox-family=; Path=/; Max-Age=0';
+      res.writeHead(302, { location: safe, 'set-cookie': cookie, 'cache-control': 'no-store' });
+      return res.end();
+    }
     if (url.pathname.startsWith('/sandbox-overpass')) { res.writeHead(200, { 'content-type': 'application/json' }); return res.end('{"elements":[]}'); }
     if (url.pathname.startsWith('/sandbox-media/')) {
       const { mediaSvg } = await import('./api/media.mjs');
@@ -64,4 +76,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 server.on('upgrade', (req, socket) => socket.destroy());
-server.listen(port, () => console.log(`GrassKickZ sandbox on http://localhost:${port}`));
+server.listen(port, () => console.log(`GrassKickZ sandbox on http://localhost:${port}\nTest guide: http://localhost:${port}/__guide\nStop with Ctrl+C. Restarting resets all data.`));

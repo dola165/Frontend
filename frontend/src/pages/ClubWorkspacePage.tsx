@@ -11,6 +11,7 @@ import { operationModule } from '../features/clubOperations/workspaceNavigation'
 import { personalWorkspaceTarget, useResponsibilityFocus, type OpenWorkspace } from '../features/clubOperations/workspaceStructure';
 import { canManageClubOperations, canManagePlayerStatuses, canReviewTryouts, clubRoleLabel, isLeadershipRole, type PlayerAffiliationStatus } from '../features/clubs/domain';
 import { AllTools } from '../features/clubWorkspace/AllTools';
+import { ClubCalendar } from '../features/clubWorkspace/calendar/ClubCalendar';
 import { ClubDecisionDialogs } from '../features/clubWorkspace/ClubDecisionDialogs';
 import { ClubTools } from '../features/clubWorkspace/ClubTools';
 import { WorkspaceNotices } from '../features/clubWorkspace/WorkspaceNotices';
@@ -133,7 +134,7 @@ function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
         setSearchParams(next);
     });
     const selectedOperation = operationModule(activeTab);
-    const openCalendar = () => navigate(`/calendar?clubId=${clubId}`);
+    const openCalendar = () => switchTab('calendar');
     const openEvent = (event: { startsAt: string; eventId: number }) => navigate(`/calendar?clubId=${clubId}&date=${event.startsAt.slice(0, 10)}&eventId=${event.eventId}`);
 
     useEffect(() => {
@@ -164,6 +165,7 @@ function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
     else if (activeTab === 'overview') content = <ClubOverview clubId={clubId} clubName={club.clubName ?? operations.boot?.clubName ?? null} overview={overview} roles={roles} boot={operations.boot}
         schedule={{ ...club.schedule, open: openCalendar, openEvent }} unreadInbox={inbox.unreadCount} inboxAllowed={canReadInbox} tryoutPending={membership.tryouts.pendingCount}
         canManageOperations={can.operations} canManageLeadership={can.leadership} tabs={shownTabs} pinned={pins.pinned} focusViews={focus.selectedViews} onOpen={openWork} onOpenPlayers={allowedTabIds.has('players') ? openPlayers : undefined} />;
+    else if (activeTab === 'calendar') content = <ClubCalendar clubId={clubId} clubName={club.clubName ?? operations.boot?.clubName ?? `Club #${clubId}`} canManage={can.operations || Boolean(roles?.squads.length)} />;
     else if (activeTab === 'tools') content = <AllTools tabs={shownTabs} pins={pins} focus={focus.tabs} responsibilities={roles ? { roles, focus } : undefined} onOpen={openWork} showHidden={showHiddenSections} onShowHidden={setShowHiddenSections}
         hasHidden={Boolean(operations.boot?.modules.some(m => !operations.boot?.settings.enabled_modules.includes(m.id)))} />;
     else if (activeTab === 'settings') content = <ClubSettingsPage clubId={clubId} busy={membership.pendingKey != null} />;

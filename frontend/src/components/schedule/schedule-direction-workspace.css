@@ -450,3 +450,6 @@
 .schedule-direction-identity .schedule-direction-squad svg { color: var(--fc-accent); }
 .schedule-direction .schedule-direction-filter-types button { min-height: 38px; font-size: 13px; }
 @media(max-width:600px) { .schedule-direction .schedule-direction-heading { padding-bottom: 16px; } .schedule-direction .schedule-direction-heading p { font-size: 13px; } .schedule-direction-identity .schedule-direction-squad select { max-width: calc(100vw - 108px); font-size: 13px; } }
+
+/* Framed by another page: only the actions, on the right. */
+.schedule-direction-context--framed { justify-content: flex-end; }

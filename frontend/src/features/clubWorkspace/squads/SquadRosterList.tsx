@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { CreditCard, Pencil, Trash2 } from 'lucide-react';
 import { Avatar, Badge, Button, Field, Panel, Section } from '../../../design/primitives';
+import { PlayerCard } from './PlayerCard';
 import type { SquadRosterGroup, SquadRosterPlayer } from '../../../components/squads/SquadRosterTable';
 import type { UpdateRosterPlayer } from '../../../components/squads/squadRosterPresentation';
 import { squadLabel } from '../../../components/squads/squadLabels';
@@ -102,13 +103,10 @@ export function SquadRosterList({ groups, cardView, sort, actions }: { groups: S
     const toggle = (player: SquadRosterPlayer) => setEditing(value => value === player.id ? null : player.id);
 
     return <div className="sq-roster">{sorted.map(group => <Section key={group.label} title={squadLabel(group.label, t)} hint={String(group.players.length)}>
-        {cardView ? <ul className="sq-cards" aria-label={squadLabel(group.label, t)}>{group.players.map(player => <li key={player.id} className="sq-card">
-            <div className="sq-card__top"><Avatar src={resolveMediaUrl(player.photoUrl) || null} name={player.name} size={48} /><span className="sq-card__number gk-num" aria-label={t('squadDesign.roster.shirtNumber', { defaultValue: 'Shirt number' })}>{player.number ?? '–'}</span></div>
-            <PlayerName player={player} onOpen={actions.onOpenPlayer} />
-            <span className="sq-card__facts">{facts(player)}</span>
-            <span className="sq-card__badges"><PlayerBadges player={player} /></span>
-            <RowActions player={player} actions={actions} editing={editing === player.id} onEdit={() => toggle(player)} />
-            {editor(player)}
+        {cardView ? <ul className="pc-grid" aria-label={squadLabel(group.label, t)}>{group.players.map(player => <li key={player.id}>
+            <PlayerCard player={player} onOpen={actions.onOpenPlayer ? () => actions.onOpenPlayer!(player) : undefined}
+                signs={player.isRegistered === false ? <span className="pc-sign">{t('squadDesign.roster.cardOnly', { defaultValue: 'Player card' })}</span> : undefined}
+                actions={<RowActions player={player} actions={actions} editing={editing === player.id} onEdit={() => toggle(player)} />}>{editor(player)}</PlayerCard>
         </li>)}</ul>
             : <Panel flush><ul className="gk-list" aria-label={squadLabel(group.label, t)}>{group.players.map(player => <li key={player.id}>
                 <div className="gk-list-row sq-row">

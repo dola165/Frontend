@@ -18,11 +18,11 @@ export const workspaceAreas = [
 export const areaFor = (tab: string) => workspaceAreas.find(area => (area.tabs as readonly string[]).includes(tab));
 
 /** Destinations that live at the top of the rail rather than inside an area. */
-export const personalTabs = new Set<WorkspaceTab>(['overview', 'inbox', 'actions', 'tools']);
+export const personalTabs = new Set<WorkspaceTab>(['overview', 'calendar', 'inbox', 'actions', 'tools']);
 
 export function toolDescription(tab: Pick<TabItem, 'id' | 'label'>) {
   return operationDescriptions[operationModule(tab.id) ?? ''] ?? ({
-    squads: 'Rosters, training sessions and squad responsibilities.',
+    squads: 'Rosters, training sessions and squad responsibilities.', calendar: 'Every squad’s training, matches and club events together.',
     players: 'Manage club affiliations, trialists and player status.',
     'role-requests': 'Assign staff roles and review requested changes.', personnel: 'Coaches, specialists, referees and management access.',
     roles: 'Manage ownership and club membership.', settings: 'Joining policy, public profile, activities and imports.',

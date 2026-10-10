@@ -117,7 +117,7 @@ describe('EventCreationModal', () => {
         const { onSubmit } = renderEditor();
         await user.click(screen.getByRole('button', { name: /Weekly training/ }));
         await user.click(screen.getByRole('button', { name: /One-time event/ }));
-        await user.click(within(screen.getByRole('group', { name: 'Event type' })).getByRole('button', { name: 'Activity' }));
+        await user.click(within(screen.getByRole('group', { name: 'Event type' })).getByRole('button', { name: 'Club event' }));
         expect(screen.getByRole('textbox', { name: 'Event name' })).toHaveValue('Evening session');
         await goToReview(user);
         await user.click(screen.getByRole('button', { name: 'Create event' }));

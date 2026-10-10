@@ -49,3 +49,21 @@
 .session-next-action.is-compact p { font-size: 12px; margin: 0; }
 .session-next-action.is-compact > button { min-height: 38px; font-size: 12px; padding: 8px 12px; }
 @media(max-width:600px) { .session-next-action.is-compact { display: flex; align-items: center; flex-wrap: wrap; } .session-next-action.is-compact > button { width: auto; } }
+
+/* Moving a session by dragging it: old time, new time, who is told, then confirm. */
+.session-move { display: flex; flex-direction: column; gap: 12px; }
+.session-move__times { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0; font-size: 15px; }
+.session-move__times span { color: var(--color-secondary); text-decoration: line-through; }
+.session-move__times strong { color: var(--color-text); font-weight: 700; }
+.session-move__squad, .session-move__preview { margin: 0; color: var(--color-secondary); font-size: 13px; }
+.session-move__error { margin: 0; color: var(--state-danger); font-size: 13px; }
+.session-move__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.session-move__actions button { min-height: 40px; padding: 0 16px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
+.session-move__cancel { border: 1px solid var(--fc-border); background: transparent; color: var(--color-text); }
+.session-move__confirm { border: 0; background: var(--fc-accent); color: var(--color-on-accent); }
+.session-move__actions button:disabled { opacity: .55; cursor: default; }
+
+/* Choosing a squad before planning, when a coach runs several. */
+.session-choose-squad { display: grid; gap: 8px; }
+.session-choose-squad button { min-height: 44px; padding: 0 14px; border: 1px solid var(--fc-border); border-radius: 8px; background: transparent; color: var(--color-text); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.session-choose-squad button:hover { border-color: var(--fc-accent); }

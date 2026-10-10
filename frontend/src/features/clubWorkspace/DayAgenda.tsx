@@ -19,17 +19,23 @@ export interface DayAgendaItem {
 
 const plural: Record<ScheduleEventType, string> = { TRAINING: 'training sessions', MATCH: 'matches', FRIENDLY: 'friendlies', TRYOUT: 'trials', ACTIVITY: 'club events' };
 
-/**
- * Upcoming entries by day: a day heading, then each entry as its time, its symbol and three short lines
- * (what, which kind, who). Four friendlies at 11:00 are one entry naming their squads.
- */
-export function DayAgenda({ items, label, limit = 5 }: { items: DayAgendaItem[]; label: string; limit?: number }) {
+/** Entries of one kind at the same minute become one entry naming their squads. */
+function merged(items: DayAgendaItem[]) {
     const rows: (DayAgendaItem & { count: number; squads: string[] })[] = [];
     for (const item of items) {
         const same = item.kind && !item.status && rows.find(row => row.kind === item.kind && !row.status && row.startsAt.slice(0, 16) === item.startsAt.slice(0, 16));
         if (same) { same.count += 1; if (item.squad) same.squads.push(item.squad); continue; }
         rows.push({ ...item, count: 1, squads: item.squad ? [item.squad] : [] });
     }
+    return rows;
+}
+
+/**
+ * Upcoming entries by day: a day heading, then each entry as its time, its symbol and three short lines
+ * (what, which kind, who). Four friendlies at 11:00 are one entry naming their squads.
+ */
+export function DayAgenda({ items, label, limit = 5 }: { items: DayAgendaItem[]; label: string; limit?: number }) {
+    const rows = merged(items);
     const days: { day: string; date: Date; rows: typeof rows }[] = [];
     for (const row of rows.slice(0, limit)) {
         const day = dayLabel(row.startsAt);

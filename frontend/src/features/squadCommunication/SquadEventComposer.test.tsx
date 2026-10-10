@@ -25,7 +25,7 @@ const next=()=>fireEvent.click(screen.getByRole('button',{name:'Continue'}));
 const mount=()=>render(<MemoryRouter><SquadEventComposer squad={squad} date={new Date('2099-09-21T12:00:00')} onClose={vi.fn()} onSaved={vi.fn()}/></MemoryRouter>);
 
 it('creates a repeating non-training event with a reviewed fixed audience and optional replies',async()=>{
-    mount();fireEvent.click(screen.getByRole('button',{name:'Activity'}));
+    mount();fireEvent.click(screen.getByRole('button',{name:'Club event'}));
     fireEvent.change(screen.getByLabelText('Event name'),{target:{value:'Squad meeting'}});
     fireEvent.click(screen.getByRole('button',{name:/Repeat weekly/}));next();next();
     fireEvent.click(await screen.findByText('Edit invited players'));

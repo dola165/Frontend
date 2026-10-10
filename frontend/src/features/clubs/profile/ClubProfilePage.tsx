@@ -24,7 +24,6 @@ import { ClubActions } from './ClubActions';
 import { ClubContactTab, ClubHonoursTab } from './ClubInfoTabs';
 import { ClubOverviewTab } from './ClubOverviewTab';
 import { ClubPostsTab } from './ClubPostsTab';
-import { ClubScheduleTab } from './ClubScheduleTab';
 import { ClubSide } from './ClubSide';
 import { clubTabFrom, clubTabs, tabFilters, type ClubTab } from './clubTabs';
 import { useClubEnquiry } from './useClubEnquiry';
@@ -119,10 +118,9 @@ function ClubProfileView({ id }: { id: number }) {
             actions={<ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} onSettings={() => setManaging(true)} />}
             notice={<>{notice && <p className="gk-notice gk-notice--danger" role="alert">{notice}</p>}{images.dialogs}</>}
             tabs={clubTabs} tab={tab} onTab={setTab} tabsLabel="Club sections"
-            side={tab === 'schedule' ? undefined : <ClubSide club={club} showContact={tab !== 'contact'} />} sideLabel={`About ${club.name}`}>
+            side={<ClubSide club={club} showContact={tab !== 'contact'} />} sideLabel={`About ${club.name}`}>
             {tab === 'overview' && <ClubOverviewTab club={club} can={can} onFollow={() => void follow()} onJoin={join} />}
             {tab === 'posts' && <ClubPostsTab club={club} can={can} />}
-            {tab === 'schedule' && <ClubScheduleTab club={club} canManage={can.canManage} />}
             {tab === 'teams' && <TabTraining club={club} refreshKey={squadsRevision} onContact={setEnquiry} isAuthenticated={status === 'authenticated'} />}
             {tab === 'people' && <TabPeople clubId={club.id} clubName={club.name} isOwnClubAdmin={can.canManageStaff} />}
             {tab === 'facilities' && <TabFacilities club={club} isOwnClubAdmin={can.canEditFacilities} />}

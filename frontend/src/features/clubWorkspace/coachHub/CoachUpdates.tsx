@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ChevronRight, MessageCircle, Pin } from 'lucide-react';
+import { ChevronRight, Pin, Trash2 } from 'lucide-react';
 import { Avatar, Count, EmptyNote, List, ListRow, PageFrame, PageHeader, Panel, Section, Skeleton } from '../../../design/primitives';
 import { FaceStack, ProgressRing } from '../../../design/visuals';
 import { AnnouncementComposer } from '../../announcements/AnnouncementComposer';
 import { isPinned } from '../../announcements/pinning';
 import * as squadApi from '../../squadCommunication/api';
+import { UpdateInteractions } from '../../squadCommunication/UpdateInteractions';
+import { SquadNotificationToggle } from '../../squadCommunication/SquadNotificationToggle';
+import { extractApiErrorMessage } from '../../../utils/apiError';
 import { dayLabel, isToday, timeLabel } from '../fixtures';
 import { SquadSwitch } from './CoachVisuals';
 import type { CoachData } from './CoachWorkspace';
 import './coach-hub.css';
 
-interface UpdateRow { squad: number; squadName: string; families: number; update: squadApi.SquadMessage }
+interface UpdateRow { squad: number; squadName: string; families: number; update: squadApi.SquadMessage; space: squadApi.SquadOverview }
 
 /** Who hasn't read an important update yet, as faces with names, loaded when asked for. */
 function Readers({ row }: { row: UpdateRow }) {
@@ -30,9 +33,16 @@ function Readers({ row }: { row: UpdateRow }) {
         : <span className="ch-quiet">Every family has read it.</span>}</div>;
 }
 
-/** One update as a card: who posted it where and when, what it says, and how many families have read it. */
-function UpdateCard({ row, now }: { row: UpdateRow; now: number }) {
-    const [open, setOpen] = useState(false);
+/** One update as a card: who posted it where and when, what it says, how many families have read it, reactions and comments. */
+function UpdateCard({ row, now, onChanged }: { row: UpdateRow; now: number; onChanged: () => void }) {
+    const [open, setOpen] = useState(false), [removing, setRemoving] = useState(false), [error, setError] = useState('');
+    const own = row.update.author_id === row.space.viewer_id;
+    const remove = async () => {
+        if (removing || !window.confirm('Delete this update for every family?')) return;
+        setRemoving(true); setError('');
+        try { await squadApi.removeMessage(row.squad, row.update.id); onChanged(); }
+        catch (cause) { setError(extractApiErrorMessage(cause, 'The update could not be deleted.')); setRemoving(false); }
+    };
     const { update } = row, read = Math.min(update.acknowledged_by?.length ?? 0, row.families), pinned = isPinned(update, now);
     return <article className="ch-update">
         <header className="ch-update__head">
@@ -47,10 +57,11 @@ function UpdateCard({ row, now }: { row: UpdateRow; now: number }) {
                 <ProgressRing value={read} total={row.families} tone={read >= row.families ? 'accent' : pinned ? 'warning' : 'neutral'} />
                 <span><strong>{read} of {row.families}</strong> families read it</span>
             </button> : <span className="ch-quiet">No read confirmation asked</span>}
-            {update.comment_count ? <span className="ch-update__comments"><MessageCircle aria-hidden="true" />{update.comment_count}</span> : null}
-            <Link className="cw-text-button ch-update__open" to={`/squads/${row.squad}`}>Open</Link>
+            {own && <button type="button" className="ch-update__delete" disabled={removing} onClick={() => void remove()}><Trash2 aria-hidden="true" />Delete</button>}
         </footer>
         {open && <Readers row={row} />}
+        <UpdateInteractions space={row.space} message={update} onChanged={onChanged} />
+        {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
     </article>;
 }
 
@@ -59,7 +70,7 @@ export function CoachUpdates({ data }: { data: CoachData }) {
     const [params] = useSearchParams();
     const { now, names } = data;
     const squads = data.squads?.filter(squad => data.shown.includes(squad.id)) ?? null;
-    const rows = (squads ?? []).flatMap(squad => squad.updates.map((update): UpdateRow => ({ squad: squad.id, squadName: names.get(squad.id) ?? '', families: squad.overview?.threads.length ?? 0, update })))
+    const rows = (squads ?? []).flatMap(squad => squad.overview ? squad.updates.map((update): UpdateRow => ({ squad: squad.id, squadName: names.get(squad.id) ?? '', families: squad.overview!.threads.length, update, space: squad.overview! })) : [])
         .sort((a, b) => b.update.created_at.localeCompare(a.update.created_at));
     const threads = (squads ?? []).flatMap(squad => (squad.overview?.threads ?? []).filter(thread => thread.unread_count > 0).map(thread => ({ ...thread, squad: squad.id })))
         .sort((a, b) => b.unread_count - a.unread_count);
@@ -72,7 +83,7 @@ export function CoachUpdates({ data }: { data: CoachData }) {
                 <AnnouncementComposer key={`${params.get('compose') ?? ''}:${data.focus ?? ''}`} spaces={data.mine.filter(squad => data.shown.includes(squad.id))}
                     initialSquads={data.focus ? [data.focus] : undefined} startOpen={params.get('compose') === '1'} onPosted={data.refresh} />
                 {!squads ? <Panel><div className="cw-skeleton-rows" role="status" aria-label="Loading updates">{[0, 1].map(i => <Skeleton key={i} height={140} />)}</div></Panel>
-                    : rows.length ? <ul className="ch-feed">{rows.map(row => <li key={`${row.squad}-${row.update.id}`}><UpdateCard row={row} now={now} /></li>)}</ul>
+                    : rows.length ? <ul className="ch-feed">{rows.map(row => <li key={`${row.squad}-${row.update.id}`}><UpdateCard row={row} now={now} onChanged={data.refresh} /></li>)}</ul>
                         : <Panel><EmptyNote title="No updates yet">Your first update to families appears here.</EmptyNote></Panel>}
             </div>
             <div className="gk-stack">
@@ -88,6 +99,10 @@ export function CoachUpdates({ data }: { data: CoachData }) {
                             <Link className="cw-text-button" to={`/messages?squadId=${squad.id}`}>Squad chat</Link>
                         </span>)}</div>
                     </Panel>
+                </Section>
+                <Section boxed title="Chat notifications" hint="Coach updates always notify families">
+                    <Panel>{(squads ?? []).map(squad => squad.overview && <div key={squad.id} className="ch-notify"><strong>{names.get(squad.id)}</strong>
+                        <SquadNotificationToggle id={squad.id} enabled={squad.overview.notify_chat} onSaved={data.refresh} /></div>)}</Panel>
                 </Section>
             </div>
         </div>

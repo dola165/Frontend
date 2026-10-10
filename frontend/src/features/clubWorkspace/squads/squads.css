@@ -21,20 +21,11 @@
 .gk .sq-row__number { flex: none; width: 32px; text-align: right; font-size: var(--gk-fs-xl); font-weight: 650; color: var(--gk-text-2); }
 .gk .sq-name { display: inline-block; max-width: 100%; min-height: 24px; padding: 0; border: 0; background: none; color: var(--gk-text); font: inherit; font-weight: 600; text-align: left; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: var(--gk-r-sm); }
 .gk :is(button, a).sq-name:hover { color: var(--gk-accent); text-decoration: underline; text-underline-offset: 3px; }
-.gk .sq-row__badges, .gk .sq-card__badges { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--gk-1); }
 .gk .sq-row-actions { flex: none; display: flex; align-items: center; gap: 2px; }
 .gk .sq-row-actions .gk-btn--icon { width: 44px; min-height: 44px; }
 .gk .sq-remove:hover { color: var(--gk-danger); background: var(--gk-danger-soft); }
 .gk .sq-editor { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--gk-3) var(--gk-4); margin: 0 var(--gk-5) var(--gk-4); padding: var(--gk-4); border-radius: var(--gk-r); background: var(--gk-sunken); }
 .gk .sq-editor .gk-field { width: min(100%, 200px); }
-.gk .sq-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: var(--gk-3); margin: 0; padding: 0; list-style: none; }
-.gk .sq-card { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
-.gk .sq-card__top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: var(--gk-1); }
-.gk .sq-card__number { font-size: var(--gk-fs-3xl); line-height: var(--gk-lh-3xl); font-weight: 700; color: var(--gk-text-3); }
-.gk .sq-card__facts { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
-.gk .sq-card__badges { justify-content: flex-start; min-height: 22px; }
-.gk .sq-card .sq-row-actions { margin: auto calc(-1 * var(--gk-2)) calc(-1 * var(--gk-2)); padding-top: var(--gk-1); border-top: 1px solid var(--gk-line); }
-.gk .sq-card .sq-editor { margin: 0; padding: var(--gk-3); }
 @media (max-width: 640px) {
   /* Phone: number, photo and name on the first line; badges and actions share the second. */
   .gk .sq-row { flex-wrap: wrap; row-gap: 0; padding-inline: var(--gk-4); }

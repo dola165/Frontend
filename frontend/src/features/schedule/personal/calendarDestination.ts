@@ -13,12 +13,8 @@ export function calendarDestination(search: string) {
         if (params.get('date')) query.set('at', params.get('date')!);
         return `/squads/${squad}?${query}`;
     }
-    if (scope === 'squad' || scope === 'club') return club && /^\d+$/.test(club) ? `/clubs/${club}?tab=schedule` : '/squads';
-    if (club && /^\d+$/.test(club) && !params.has('eventId') && scope !== 'personal') {
-        const query = new URLSearchParams({ tab: 'schedule' });
-        if (params.get('date')) query.set('week', params.get('date')!);
-        return `/clubs/${club}?${query}`;
-    }
+    if (scope === 'squad' || scope === 'club') return club && /^\d+$/.test(club) ? `/clubs/${club}/workspace?tab=calendar` : '/my-squads?tab=calendar';
+    if (club && /^\d+$/.test(club) && !params.has('eventId') && scope !== 'personal') return `/clubs/${club}/workspace?tab=calendar`;
     const query = new URLSearchParams({ tab: 'schedule' });
     for (const key of keep) { const value = params.get(key); if (value) query.set(key, value); }
     return `/profile/me?${query}`;

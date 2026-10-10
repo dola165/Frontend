@@ -66,7 +66,7 @@ const ScheduleBoardEvent = memo(function ScheduleBoardEvent({
             className={`swb-event${cancelled(event) ? ' is-cancelled' : ''}`}
             style={
                 {
-                    '--swb-event-color': event.eventType === 'ACTIVITY' ? 'var(--swb-muted)' : meta.accent,
+                    '--swb-event-color': meta.accent,
                 } as CSSProperties
             }
             onClick={() => onSelect(event)}

@@ -29,7 +29,7 @@ export function coachNeeds({ club, squads, names, records, mine, person, now }: 
             const start = new Date(session.starts_at).getTime(), reply = replies(session);
             if (session.status !== 'SCHEDULED' || start < now || start > now + 7 * DAY || !reply.asked || !reply.none) continue;
             items.push({ key: `reply-${session.id}`, kind: 'reply', tone: 'warning', title: session.title, meta: `${name} · ${dayLabel(session.starts_at, now)} ${timeLabel(session.starts_at)} · ${reply.text}`,
-                status: `${reply.none} no reply`, to: `?tab=calendar&event=s-${session.id}`, rank: 1, date: session.starts_at });
+                status: `${reply.none} no reply`, to: `?tab=calendar&session=${squad.id}:${session.id}&date=${session.starts_at.slice(0, 10)}`, rank: 1, date: session.starts_at });
         }
         // Families waiting for an answer in private messages.
         const waiting = squad.overview?.threads.filter(thread => thread.unread_count > 0) ?? [];

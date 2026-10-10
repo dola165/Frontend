@@ -21,6 +21,8 @@ import { SquadSessionDetails } from '../squadCommunication/SquadSessionDialog';
 import { SquadClubEventEditor } from '../squadCommunication/SquadClubEventEditor';
 import { SquadEventComposer } from '../squadCommunication/SquadEventComposer';
 import { SessionNextActions } from '../squadCommunication/SessionNextActions';
+import { SessionMoveDialog } from '../squadCommunication/SessionMoveDialog';
+import { SessionDialog } from '../squadCommunication/SquadSessionDialog';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { scheduleDestination } from '../schedule/origin';
 import type { ParentChild } from './api';
@@ -89,9 +91,14 @@ function ChildSchedule({ child }: { child: ParentChild }) {
     </>;
 }
 
-/** The exact schedule workspace used by the main calendar, backed by the selected squad. */
-export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, initialSessionId, onSquadChange, inSquadPage = false, prioritizeNextAction = false, embedded = false }: {
+/**
+ * The squad schedule workspace, backed by the selected squad, or by every squad given when `combined` (My squads).
+ * `editable` lets people who manage a squad move its sessions with the mouse (with a confirmation that previews who
+ * is told); `hideContext` leaves out the page's own heading and back link when another page frames it.
+ */
+export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, initialSessionId, onSquadChange, inSquadPage = false, prioritizeNextAction = false, embedded = false, combined = false, editable = false, hideContext = false }: {
     squads: CalendarSquad[]; playerId?: number; initialSquadId?: number; initialDate?: Date; initialSessionId?: number; onSquadChange?: (id: number) => void; inSquadPage?: boolean; prioritizeNextAction?: boolean; embedded?: boolean;
+    combined?: boolean; editable?: boolean; hideContext?: boolean;
 }) {
     const navigate = useNavigate();
     const copy = useJourneyCopy();
@@ -103,7 +110,12 @@ export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, 
     const [types, setTypes] = useState(EVENT_TYPES);
     const [selectedId, setSelectedId] = useState<string | null>(() => squad && initialSessionId ? `squad:${squad.id}:${initialSessionId}` : null);
     const [revision, setRevision] = useState(0);
-    const [eventDraft, setEventDraft] = useState<{date: Date; weekly: boolean} | null>(null);
+    const [eventDraft, setEventDraft] = useState<{date: Date; weekly: boolean; squadId?: number} | null>(null);
+    const [choosing, setChoosing] = useState<{date: Date; weekly: boolean} | null>(null);
+    const [move, setMove] = useState<{ event: import('../squadCommunication/useSquadSchedule').SquadCalendarEvent; startsAt: string; endsAt: string } | null>(null);
+    const [notice, setNotice] = useState('');
+    const managed = squads.filter(item => item.can_manage);
+    const canManage = combined ? managed.length > 0 : !!squad?.can_manage;
     const [help, setHelp] = useState(false);
     const range = useMemo(() => {
         const from = embedded ? new Date(date.getFullYear(), date.getMonth(), date.getDate()) : view === 'month' ? new Date(date.getFullYear(), date.getMonth(), 1) : view === 'day' ? new Date(date.getFullYear(), date.getMonth(), date.getDate()) : weekStart(date);
@@ -111,17 +123,29 @@ export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, 
         if (view === 'month') to.setMonth(to.getMonth() + 1); else to.setDate(to.getDate() + (view === 'day' ? 1 : 7));
         return { from, to };
     }, [date, view, embedded]);
-    const { events, error, loading } = useSquadSchedule(squad ? [squad] : [], `${localDateISO(range.from)}T00:00:00`, `${localDateISO(range.to)}T00:00:00`, revision, playerId);
+    const { events, error, loading } = useSquadSchedule(combined ? squads : squad ? [squad] : [], `${localDateISO(range.from)}T00:00:00`, `${localDateISO(range.to)}T00:00:00`, revision, playerId);
     const days = useMemo(() => Array.from({ length: view === 'day' ? 1 : 7 }, (_, i) => {
         const day = view === 'day' ? new Date(date) : weekStart(date); day.setDate(day.getDate() + i); return day;
     }), [date, view]);
-    const journeys=useJourneyEntries(range.from.toISOString(),range.to.toISOString(),revision,playerId,squad?.id);
+    const journeys=useJourneyEntries(range.from.toISOString(),range.to.toISOString(),revision,playerId,combined?undefined:squad?.id);
     const connected=mergeJourneyEntries(events,journeys.entries);
     const visible = connected.filter(event => types.includes(event.eventType) && new Date(event.startsAt) < range.to && new Date(event.endsAt) > range.from);
     const selected = connected.find(event => event.id === selectedId);
     const rangeLabel = formatDate(date, { month: 'long', year: 'numeric' });
     const refresh = () => setRevision(n => n + 1);
-    const openSessionCreation = (day?: Date) => setEventDraft({ date: day instanceof Date && Number.isFinite(day.getTime()) ? day : date, weekly: false });
+    // With several squads to plan for, the coach first picks which one.
+    const startCreation = (draft: {date: Date; weekly: boolean}) => {
+        const own = combined ? (squad?.can_manage && picked ? [squad] : managed) : squad?.can_manage ? [squad] : [];
+        if (own.length === 1) setEventDraft({ ...draft, squadId: own[0].id }); else if (own.length > 1) setChoosing(draft);
+    };
+    const openSessionCreation = (day?: Date) => startCreation({ date: day instanceof Date && Number.isFinite(day.getTime()) ? day : date, weekly: false });
+    // A session dragged to a new time is only moved once the coach confirms; club events change in the club calendar.
+    const dragged = (eventId: number, startsAt: string, endsAt: string) => {
+        const event = connected.find(item => item.eventId === eventId && item.session);
+        const owner = event && squads.find(item => item.id === event.squadId);
+        if (!event || !owner?.can_manage) { setNotice('Only squad sessions you run can be moved here. Club events change in the club calendar.'); return; }
+        setNotice(''); setMove({ event, startsAt, endsAt });
+    };
     const shift = (amount: number) => {
         const next = new Date(date);
         if (view === 'month') next.setMonth(next.getMonth() + amount, 1); else next.setDate(next.getDate() + amount * (view === 'day' ? 1 : 7));
@@ -133,7 +157,9 @@ export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, 
         if (item?.journeys?.length || (embedded && item?.session)) setSelectedId(event.id); else if (destination) navigate(destination); else setSelectedId(event.id);
     };
     const chooseSquad = (id: number) => { setPicked(id); setSelectedId(null); setEventDraft(null); onSquadChange?.(id); };
-    const editingEvent = selected && !selected.journeys?.length && !selected.session && !scheduleDestination(selected) && squad?.can_manage && selected.owningClubId === squad.club_id;
+    const eventSquad = selected ? squads.find(item => item.id === selected.squadId) ?? squad : squad;
+    const editingEvent = selected && !selected.journeys?.length && !selected.session && !scheduleDestination(selected) && eventSquad?.can_manage && selected.owningClubId === eventSquad.club_id;
+    const draftSquad = eventDraft ? squads.find(item => item.id === eventDraft.squadId) ?? squad : undefined;
     const nextActions = !loading && <SessionNextActions events={events} canManage={!!squad?.can_manage} playerId={playerId} onSelect={select} compact={embedded || !prioritizeNextAction}/>;
     return <section className={embedded ? 'family-agenda' : 'squad-schedule-workspace'} aria-label="Squad schedule">
 
@@ -142,17 +168,17 @@ export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, 
             clubName={squad ? `${squad.academy_name ? squad.academy_name + ' · ' : ''}${squad.name}` : 'Your squads'}
             description="Training, matches and the next time your squad meets."
             backLabel={inSquadPage ? 'Back to my squads' : squad ? 'Back to squad' : 'Back to my squads'}
-            canOpenClub canCreate={!!squad?.can_manage}
+            canOpenClub canCreate={canManage} hideContext={hideContext}
             createLabel={copy('New event', 'ახალი ღონისძიება')} showTraining supportsTrainingPlan
             priorityContent={prioritizeNextAction ? nextActions : undefined}
-            showHeading={!prioritizeNextAction}
+            showHeading={!prioritizeNextAction && !hideContext}
             mobile={mobile} busy={loading} date={date} days={days} view={view} rangeLabel={rangeLabel}
             events={visible} squadNamesById={Object.fromEntries(squads.map(s => [s.id, s.name]))}
             eventTypes={types} publicOnly={false} onTypes={setTypes} onPublicOnly={() => {}}
             onSurface={surface => { if (surface === 'MY_SCHEDULE') navigate('/calendar?scope=personal'); }}
             onView={setView} onDate={setDate} onPrevious={() => shift(-1)} onNext={() => shift(1)} onToday={() => setDate(new Date())}
             onBack={() => navigate(squad && !inSquadPage ? `/squads/${squad.id}` : '/squads')}
-            onHelp={() => setHelp(true)} onCreate={openSessionCreation} onCreateTraining={() => setEventDraft({ date, weekly: true })} onSelect={select}
+            onHelp={() => setHelp(true)} onCreate={openSessionCreation} onCreateTraining={() => startCreation({ date, weekly: true })} onSelect={select}
             squadControl={<label className="schedule-direction-squad"><Users size={15}/><select aria-label="Choose squad" value={squad?.id ?? ''} onChange={event => chooseSquad(Number(event.target.value))}>
                 {!squad && <option value="">Choose a squad</option>}{squads.map(s => <option key={s.id} value={s.id}>{s.name}{s.academy_name ? ` · ${s.academy_name}` : ''}</option>)}
             </select></label>}
@@ -161,14 +187,20 @@ export function FamilySchedule({ squads, playerId, initialSquadId, initialDate, 
                 <ScheduleToolbar workspaceLabel="Squad schedule" rangeLabel={rangeLabel} viewMode={view} stats={[]} scheduleBusy={loading} onViewModeChange={setView} editMode={false} onToggleEditMode={() => {}} canEdit={false}/>
                 <div className="schedule-direction-calendar-grid"><ScheduleGrid viewMode={view} cursorDate={date} days={days} events={items}
                     monthEvents={scheduleMonthEntries(items)}
-                    onSelectDate={setDate} onEditEvent={select} onOpenPastEvent={select} canCreate={!!squad?.can_manage}
-                    onCreateAt={openSessionCreation} editMode={false} onEventDragEnd={() => {}}/></div>
+                    onSelectDate={setDate} onEditEvent={select} onOpenPastEvent={select} canCreate={canManage}
+                    onCreateAt={openSessionCreation} editMode={editable && canManage} onEventDragEnd={dragged}/></div>
             </div>}/>}
         {selectedId && !selected && !loading && <p role="status" className="squad-schedule-notice">{copy('This session is unavailable in the selected week or your invitation has changed. Check your latest coach update.', 'ეს სესია არჩეულ კვირაში მიუწვდომელია ან თქვენი მოწვევა შეიცვალა. ნახეთ მწვრთნელის ბოლო განახლება.')}</p>}
         {!!selected?.journeys?.length && <JourneyEventDetails entries={selected.journeys} onClose={()=>setSelectedId(null)} onSaved={refresh}/>}
         {selected && !selected.journeys?.length && !editingEvent && <SquadSessionDetails key={selected.id} event={selected} playerId={playerId} canManage={!!squad?.can_manage} onClose={() => setSelectedId(null)} onSaved={refresh}/>}
-        {editingEvent && squad && <SquadClubEventEditor key={selected.id} squad={squad} date={date} event={selected} onClose={() => setSelectedId(null)} onSaved={() => { setSelectedId(null); refresh(); }}/ >}
-        {eventDraft && squad?.can_manage && <SquadEventComposer key={`${squad.id}:${eventDraft.date.toISOString()}:${eventDraft.weekly}`} squad={squad} date={eventDraft.date} weekly={eventDraft.weekly} onClose={() => setEventDraft(null)} onSaved={() => { setEventDraft(null); refresh(); }}/ >}
+        {notice && <p role="status" className="squad-schedule-notice">{notice}</p>}
+        {editingEvent && eventSquad && <SquadClubEventEditor key={selected.id} squad={eventSquad} date={date} event={selected} onClose={() => setSelectedId(null)} onSaved={() => { setSelectedId(null); refresh(); }}/ >}
+        {choosing && <SessionDialog title={copy('Plan for which squad?', 'რომელი გუნდისთვის?')} onClose={() => setChoosing(null)}>
+            <div className="session-choose-squad">{managed.map(item => <button key={item.id} type="button" onClick={() => { setEventDraft({ ...choosing, squadId: item.id }); setChoosing(null); }}>{item.name}</button>)}</div>
+        </SessionDialog>}
+        {move?.event.session && <SessionMoveDialog squadId={move.event.squadId!} squadName={move.event.hostSquadName ?? ''} session={move.event.session} startsAt={move.startsAt} endsAt={move.endsAt}
+            onClose={() => setMove(null)} onSaved={() => { setMove(null); refresh(); }} />}
+        {eventDraft && draftSquad?.can_manage && <SquadEventComposer key={`${draftSquad.id}:${eventDraft.date.toISOString()}:${eventDraft.weekly}`} squad={draftSquad} date={eventDraft.date} weekly={eventDraft.weekly} onClose={() => setEventDraft(null)} onSaved={() => { setEventDraft(null); refresh(); }}/ >}
         {help && !selected?.journeys?.length && <CalendarTutorial canCreate={!!squad?.can_manage} onComplete={() => setHelp(false)}/>}
     </section>;
 }

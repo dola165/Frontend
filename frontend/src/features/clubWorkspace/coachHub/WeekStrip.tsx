@@ -24,7 +24,7 @@ export function WeekStrip({ data }: { data: CoachData }) {
                     {items.length ? <ul className="ch-week__items">{items.map(event => {
                         const Icon = activityIcons[event.kind];
                         return <li key={event.key}><Link className="ch-week__item" data-cancelled={event.cancelled || undefined} style={{ '--activity': activityColors[event.kind] } as CSSProperties}
-                            to={data.link('calendar', { view: 'week', date: isoDay(day), event: event.key })} title={`${timeLabel(event.start.toISOString())} ${event.title} · ${event.squad}`}>
+                            to={data.link('calendar', { date: isoDay(day), ...(event.session ? { session: `${event.squadId}:${event.session.id}` } : {}) })} title={`${timeLabel(event.start.toISOString())} ${event.title} · ${event.squad}`}>
                             <span className="ch-week__time"><Icon aria-hidden="true" />{timeLabel(event.start.toISOString())}</span><span className="ch-week__title">{event.short}</span>
                         </Link></li>;
                     })}</ul> : <span className="ch-week__free">Free</span>}

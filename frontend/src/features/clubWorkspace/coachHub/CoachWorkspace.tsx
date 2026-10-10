@@ -14,7 +14,7 @@ import type { ScheduleEventOccurrence } from '../../schedule/api';
 import { useClubOverview } from '../useClubOverview';
 import { useNow } from '../useNow';
 import { mySquadIds, personName } from './coachData';
-import { useCoachRecords, useCoachSquads, type CoachSquad } from './useCoachData';
+import { useCoachRecords, useCoachSquads, useSquadRosters, type CoachSquad, type SquadRoster } from './useCoachData';
 import { CoachOverview } from './CoachOverview';
 import { CoachCalendar } from './CoachCalendar';
 import { CoachPlayers } from './CoachPlayers';
@@ -33,7 +33,7 @@ export interface CoachData {
     mine: RolesWorkspace['squads']; names: Map<number, string>;
     /** The squad picked in the switcher, or null for all of mine; `shown` is what every page shows. */
     focus: number | null; shown: number[];
-    squads: CoachSquad[] | null; revision: number; records: ReturnType<typeof useCoachRecords>; events: ScheduleEventOccurrence[];
+    squads: CoachSquad[] | null; rosters: SquadRoster[] | null; revision: number; records: ReturnType<typeof useCoachRecords>; events: ScheduleEventOccurrence[];
     roleOf: (squad: number) => string; person: (id: number | null) => string | null;
     /** A My squads page, keeping the squad picked in the switcher. */
     link: (tab: string, extra?: Record<string, string>) => string;
@@ -61,6 +61,7 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
     const squadIds = mySquadIds(roles?.views ?? []);
     const squads = useCoachSquads(squadIds, revision);
     const records = useCoachRecords(clubId, squadIds, operations.boot, revision);
+    const rosters = useSquadRosters(clubId, squadIds, revision);
     const canOpenWorkspace = accessibleClubs(user?.navigationCapabilities).some(item => item.id === clubId && item.canOpenWorkspace);
 
     // Older links named the schedule and the team differently.
@@ -92,7 +93,7 @@ export function CoachWorkspace({ clubId }: { clubId: number }) {
     else {
         const data: CoachData = {
             clubId, clubName, clubLogo: club.clubLogoUrl, roles, boot: operations.boot, now, mine, names: new Map(roles.squads.map(squad => [squad.id, squad.name])),
-            focus, shown: focus ? [focus] : squadIds, squads, revision, records, events: club.schedule.events,
+            focus, shown: focus ? [focus] : squadIds, squads, rosters, revision, records, events: club.schedule.events,
             roleOf: squad => responsibilities.filter(view => !view.clubWide && view.squadIds.includes(squad)).map(view => view.label).join(', '),
             person: id => personName(roles, operations.boot, id),
             link: (target, extra = {}) => { const query = new URLSearchParams({ ...(target === 'overview' ? {} : { tab: target }), ...(focus ? { squad: String(focus) } : {}), ...extra }).toString(); return `/my-squads${query ? `?${query}` : ''}`; },

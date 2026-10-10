@@ -131,6 +131,17 @@ The app today, compared with how clubs usually work (coaches to confirm):
 - **Coach Hub left the club workspace.** The owner: having it there is redundant. My squads (`/my-squads`) is the coach's own workspace, with the same rail as the club workspace: Overview, Updates, Schedule, Players, Coaching team, one page per squad, and the club workspace one link away. Old Coach Hub links open the matching My squads page.
 - **Built around a coach's week:** who's coming (replies per session; matches ask, training is opt-out), updates to families with who has read them, players to plan around (restrictions, consent, reviews), and the colleagues and duties on the same squads. Every item opens the same squad spaces and records the club uses.
 - **Pictures over words** (11 October): the owner asked for images, visual formats and a real interactive calendar, with everything extremely simplified. My squads now has five pages (Overview, Calendar, Players, Updates, Coaches) and one squad switcher instead of a page per squad. The overview leads with the next session or match (photo, both crests, a countdown and the squad's faces ringed by their answer), then the week as seven columns. Players are cards, Updates a feed with read rings, Coaches faces.
+- **Player cards** (11 October): football cards like FIFA's, without ratings. A photo sized for real profile photos (portraits stand in), the shirt number and position code, the club crest, and signs a coach plans around (restriction, consent, review). Who's coming is shown only inside a planned session, never on the player list.
+- **One calendar** (11 October): the owner likes the old schedule (week board, calendar, agenda), so it is the calendar everywhere. The duplicate built in this round was deleted.
+  - Drag a session to move it. A confirmation shows the old and new time, asks this one / following / all for a series, and says how many families are told.
+  - Click an empty slot to plan.
+  - Entries at the same time sit side by side.
+  - Colours and symbols are the activity ones.
+- **The squad room folded into My squads** (11 October): it was a page cut off from everything. Coaches opening `/squads/{id}` land on the matching My squads page, and its own parts moved there:
+  - Coaches: the head coach of each squad.
+  - Updates: chat notifications, deleting your own posts, reactions and comments.
+  - Players: joining requests.
+  - Families keep their squad room.
 - **Responsibilities:** asking for another one is one short form in a dialog on Coaches; the "tools first" switches moved to All tools in the club workspace, because they only order that workspace's rail.
 
 **A parent who is also staff** (decided 10 October, delegated by the owner)
@@ -202,9 +213,7 @@ The app today, compared with how clubs usually work (coaches to confirm):
 ## 7. Club profile and squad page
 
 - **Keep "Propose a match"**; the owner calls it one of the best changes.
-- **Club Schedule tab:** the whole club plus each squad is right.
-  - "All squads" already shows everything, including club events with no squad. "Whole-club events" filters to just those (`ClubScheduleTab.tsx`).
-  - Rename "All squads" to "Everything".
+- **No schedule on the club profile** (11 October; the owner: schedule work belongs somewhere more appropriate). The club calendar is now Calendar in the club workspace, after Overview; coaches plan in My squads. The profile keeps "Coming up" on its overview and each squad's training times on its Teams & training page. Old `/calendar?clubId=` links open the workspace calendar; an old `?tab=schedule` link opens the profile overview.
 - **The squad page** (Teams & training, then a squad) is too long and busy. Its readers are outsiders, mostly parents deciding whether to join.
   - The first screen answers: who it's for, when and where, who coaches, cost, how to join.
   - One main button ("Arrange a first visit") and one secondary.
@@ -239,15 +248,29 @@ This branch is the real frontend code on fake data, so what is built here ships 
 - **Every workspace list as a table** ("Lists" under Across the app):
   - Full lists still on the old look: Staff (`ClubStaffTeam`, unless the one-screen staff work in section 3 redoes it here first), staff invitations (`ManagementInvites`), Club updates (`InboxTab`), Staff roles (`RolesTab`), Joining (`ClubAdmissionWorkspace`), Applications, Tryouts, Jobs & volunteering (`OpenRolesPage`, `RoleApplicants`), Store, Fundraising (`ClubCampaignsPage`), Player cards, Squads (`WorkspaceSquads`) and the squad roster.
   - Previews that open a full list speak the same row language and link to it: Needs you (My club, to the Work queue), players needing attention (My squads), staff appointments needing attention (Work queue), and the record sections of the player panel.
-- **Tests:** run `npm run check` and fix it. Known failure: the squad-focus test in `WorkspacePolish.test.tsx`, since My club dropped its squad chips (bring a squad focus back, or drop the test).
+- **Tests:** run `npm run check` and fix it.
+  - The squad-focus test in `WorkspacePolish.test.tsx` fails because My club dropped its squad chips. Bring a squad focus back, or drop the test.
+  - Fourteen tests from earlier rounds already failed at 415e673:
+    - `ClubWorkspacePage.requests`: its i18n mock lacks `resolvedLanguage`.
+    - `ExperienceRoutes`: `/tryouts` now opens World `?tab=trials`.
+    - `jobs` and `jobs-presentation`: the Opportunities list.
+    - `TournamentOrganizationFlow`.
+    - `ClubOverview`: "Open calendar".
+    - `clubProfile`: ways to get involved.
 - **Backend:** the records query (`/workspace-roles/work`) should take `sort` and `dir` and return a total. Until then the table sorts only the loaded page and record views show no counts.
 - **My squads:** Georgian copy for its new pages (written in English for now); tests for its pages; unused `coachHub` locale keys removed. Squad sessions should report friendlies as `FRIENDLY` (the sandbox marks them in the description).
-- **One calendar everywhere:** the club and personal schedules (`ScheduleBoard`) should move to `EventCalendar` like My squads. Initials avatars now take soft colours app-wide; check the screens that relied on grey ones.
+- **One calendar everywhere:**
+  - The personal schedule (`ScheduleBoard`, the profile's Schedule tab) still uses the older board. Move it onto the shared calendar like My squads and the club workspace.
+  - Dragging club events needs the club event API; only squad sessions move today.
+  - Changing the end time by resizing is not supported yet.
+  - Initials avatars now take soft colours app-wide; check the screens that relied on grey ones.
+- **Injuries** (`SCENARIOS.md`): the backend pieces listed there, starting with an injury report record.
 
 ## Open questions
 
 - **Previews of a list** (proposed): the first rows of the same table in the same words (a dot and the status, "3 days overdue"), each row opening the same record, and one link at the bottom naming the list and what is left ("Open work queue · 46 more") instead of a link in the heading and another at the bottom.
 
+- **Injuries:** the questions in `SCENARIOS.md` (medical lead, insurance, calling parents, the age a player sees their own plan, how long to keep reports).
 - **World welcome:** one question (proposed) or an explanatory pop-up?
 - **Journeys:** managed from fixtures and My squads, with the map as the view (proposed)?
 - **Individual fundraisers:** now, or after jobs and requests?

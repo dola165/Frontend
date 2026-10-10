@@ -9,17 +9,13 @@ import {
     Clock,
     Dumbbell,
     Globe,
-    Handshake,
     Loader2,
     Lock,
     MapPin,
     Repeat2,
     ShieldCheck,
-    Swords,
-    Target,
     Users,
     X,
-    Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MiniMap } from '../MiniMap';
@@ -107,13 +103,7 @@ const DAYS: { value: DayOfWeek; short: string; label: string }[] = [
     { value: 'SATURDAY', short: 'Sat', label: 'Saturday' },
     { value: 'SUNDAY', short: 'Sun', label: 'Sunday' },
 ];
-const TYPES = [
-    { value: 'TRAINING', icon: Dumbbell },
-    { value: 'MATCH', icon: Swords },
-    { value: 'FRIENDLY', icon: Handshake },
-    { value: 'TRYOUT', icon: Target },
-    { value: 'ACTIVITY', icon: Zap },
-] as const;
+const TYPES = (['TRAINING', 'MATCH', 'FRIENDLY', 'TRYOUT', 'ACTIVITY'] as const).map(value => ({ value, icon: eventTypeCopy[value].icon }));
 const wallTime = (date: string, time: string) => `${date}T${time.slice(0, 5)}:00`;
 const weekday = (date: string): DayOfWeek => DAYS[(new Date(`${date}T12:00:00`).getDay() + 6) % 7]?.value ?? 'MONDAY';
 type Issue = { step: number; field: string; message: string };
@@ -602,7 +592,7 @@ const EventCreationContent = ({
                                                                 aria-pressed={eventType === value}
                                                                 style={
                                                                     {
-                                                                        '--type-accent': value === 'ACTIVITY' ? 'var(--fc-text-secondary)' : eventTypeCopy[value].accent,
+                                                                        '--type-accent': eventTypeCopy[value].accent,
                                                                     } as CSSProperties
                                                                 }
                                                                 onClick={() => update('eventType', value)}

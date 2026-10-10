@@ -43,7 +43,7 @@ export function NextUp({ data }: { data: CoachData }) {
             <div className="ch-next-up__replies"><ReplyFaces session={session} max={12} /><ReplySummary session={session} /></div>
             <div className="ch-next-up__actions">
                 {register && <ButtonLink variant="primary" size="sm" to={data.workHref('attendance', { squad: String(squad), session: String(session.id) })}><ClipboardCheck aria-hidden="true" />Take register</ButtonLink>}
-                <ButtonLink size="sm" variant={register ? 'secondary' : 'primary'} to={data.link('calendar', { view: 'week', date: isoDay(start), event: `s-${session.id}` })}><Users aria-hidden="true" />Who’s coming</ButtonLink>
+                <ButtonLink size="sm" variant={register ? 'secondary' : 'primary'} to={data.link('calendar', { date: isoDay(start), session: `${squad}:${session.id}` })}><Users aria-hidden="true" />Who’s coming</ButtonLink>
                 <ButtonLink size="sm" variant="ghost" to={`/messages?squadId=${squad}`}><MessageCircle aria-hidden="true" />Squad chat</ButtonLink>
             </div>
         </div>

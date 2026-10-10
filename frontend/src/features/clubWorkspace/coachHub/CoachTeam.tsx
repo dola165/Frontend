@@ -8,6 +8,8 @@ import { requestBadge } from '../../clubOperations/roleAccess';
 import { dueWords } from '../fixtures';
 import { viewSquads } from './coachData';
 import { ResponsibilityRequests } from './ResponsibilityRequests';
+import * as squadApi from '../../squadCommunication/api';
+import { extractApiErrorMessage } from '../../../utils/apiError';
 import { SquadSwitch } from './CoachVisuals';
 import type { CoachData } from './CoachWorkspace';
 import './coach-hub.css';
@@ -19,7 +21,14 @@ interface Coach { id: number; name: string; squads: string[]; head: string[] }
  * each with who has it; and my own responsibilities, with one button to ask for another.
  */
 export function CoachTeam({ data }: { data: CoachData }) {
-    const [asking, setAsking] = useState(false);
+    const [asking, setAsking] = useState(false), [assigning, setAssigning] = useState<number | null>(null), [error, setError] = useState('');
+    // Each squad's head coach, chosen from the club's coaches by whoever may assign it.
+    const assign = async (squad: number, coach: string) => {
+        setAssigning(squad); setError('');
+        try { await squadApi.assignCoach(squad, coach ? Number(coach) : null); data.refresh(); }
+        catch (cause) { setError(extractApiErrorMessage(cause, 'The head coach could not be changed.')); }
+        finally { setAssigning(null); }
+    };
     const { roles, names } = data;
     const coaches = new Map<number, Coach>();
     for (const squad of data.squads ?? []) {
@@ -52,6 +61,16 @@ export function CoachTeam({ data }: { data: CoachData }) {
                         {!me && <ButtonLink size="sm" to={`/messages?chatWith=${coach.id}`}><MessageCircle aria-hidden="true" />Message</ButtonLink>}
                     </li>;
                 })}</ul>}
+            {error && <div className="gk-notice gk-notice--danger" role="alert">{error}</div>}
+            <Section boxed title="Head coach of each squad">
+                <Panel>{(data.squads ?? []).filter(squad => data.shown.includes(squad.id) && squad.overview).map(squad => <label key={squad.id} className="ch-headcoach">
+                    <strong>{names.get(squad.id)}</strong>
+                    <select className="gk-input" value={squad.overview!.head_coach_id ?? ''} disabled={!squad.overview!.can_assign_coach || assigning === squad.id} onChange={event => void assign(squad.id, event.target.value)}>
+                        <option value="">Not assigned</option>
+                        {squad.overview!.available_coaches.map(coach => <option key={coach.user_id} value={coach.user_id}>{coach.full_name}</option>)}
+                    </select>
+                </label>)}</Panel>
+            </Section>
             <div className="gk-grid gk-grid--split">
                 <Section boxed title="Shared jobs" hint="Cover, kit, match day">
                     <Panel flush>{data.records.loading ? <div className="cw-skeleton-rows" role="status" aria-label="Loading jobs">{[0, 1].map(i => <Skeleton key={i} height={44} />)}</div>

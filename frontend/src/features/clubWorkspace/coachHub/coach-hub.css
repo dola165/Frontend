@@ -91,28 +91,8 @@
 .gk .ch-faces__person strong { display: -webkit-box; overflow: hidden; max-width: 100%; font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 600; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .gk .ch-faces__person span { color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
 
-/* ---------------------------------------------------------------- players as cards */
-.gk .ch-players { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--gk-3); margin: 0; padding: 0; list-style: none; }
-.gk .ch-player { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; height: 100%; padding: var(--gk-4) var(--gk-3) var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); color: var(--gk-text); font: inherit; text-align: center; cursor: pointer; transition: border-color .15s var(--gk-ease), transform .15s var(--gk-ease); }
-.gk .ch-player:hover { border-color: var(--gk-line-strong); transform: translateY(-1px); }
-.gk .ch-player__face { --ring: var(--gk-line); display: inline-flex; margin-bottom: 4px; padding: 3px; border-radius: 50%; box-shadow: 0 0 0 2.5px var(--ring); }
-.gk .ch-player__face[data-tone='accent'] { --ring: var(--gk-accent); }
-.gk .ch-player__face[data-tone='danger'] { --ring: var(--gk-danger); }
-.gk .ch-player__face[data-tone='warning'] { --ring: var(--gk-warning); }
-.gk .ch-player__face[data-tone='info'] { --ring: var(--gk-info); }
-.gk .ch-player__name { overflow: hidden; max-width: 100%; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.gk .ch-player__line { font-size: var(--gk-fs-xs); }
-.gk .ch-player__reply { color: var(--gk-text-2); font-weight: 600; }
-.gk .ch-player__reply--accent { color: var(--gk-accent); }
-.gk .ch-player__reply--danger { color: var(--gk-danger); }
-.gk .ch-player__reply--warning { color: var(--gk-warning); }
-.gk .ch-player__reply--info { color: var(--gk-info); }
-.gk .ch-player__signs { display: inline-flex; gap: 4px; min-height: 24px; }
-.gk .ch-sign { --tone: var(--gk-text-2); display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: color-mix(in srgb, var(--tone) 15%, transparent); color: var(--tone); }
-.gk .ch-sign[data-tone='warning'] { --tone: var(--gk-warning); }
-.gk .ch-sign[data-tone='info'] { --tone: var(--gk-info); }
-.gk .ch-sign[data-tone='danger'] { --tone: var(--gk-danger); }
-.gk .ch-sign svg { width: 14px; height: 14px; }
+/* ---------------------------------------------------------------- players */
+.gk .ch-code { color: var(--gk-accent); font-size: var(--gk-fs-xs); letter-spacing: .06em; }
 
 /* ---------------------------------------------------------------- calendar page */
 .gk .ch-calendar { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gk-4); align-items: start; margin-bottom: var(--gk-4); }
@@ -191,3 +171,14 @@
   .gk .ch-week { grid-template-columns: repeat(7, minmax(84px, 1fr)); overflow-x: auto; }
   .gk .ch-match__side strong { font-size: var(--gk-fs-md); }
 }
+
+/* Update cards: delete your own; chat notifications per squad. */
+.gk .ch-update__delete { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; padding: 4px 8px; border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-text-3); font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; }
+.gk .ch-update__delete:hover { background: var(--gk-danger-soft); color: var(--gk-danger); }
+.gk .ch-update__delete svg { width: 14px; height: 14px; }
+.gk .ch-notify { display: flex; flex-direction: column; gap: 6px; }
+.gk .ch-notify + .ch-notify { margin-top: var(--gk-3); padding-top: var(--gk-3); border-top: 1px solid var(--gk-line); }
+
+/* Choosing each squad's head coach. */
+.gk .ch-headcoach { display: grid; grid-template-columns: minmax(120px, 200px) minmax(0, 320px); align-items: center; gap: var(--gk-3); }
+.gk .ch-headcoach + .ch-headcoach { margin-top: var(--gk-2); }

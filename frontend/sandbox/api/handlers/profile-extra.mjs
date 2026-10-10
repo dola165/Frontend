@@ -60,10 +60,15 @@ put('/users/me/professions', ({ body }) => {
 // ---------------------------------------------------------------- squad sessions: ask for confirmation
 const squadFor = id => { const s = W.squadById(Number(id)); return s && s.clubId === 1 ? s : null; };
 const sessionFor = (s, sid) => W.events.find(e => e.squadId === s.id && e.id === Number(sid) && (e.type === 'TRAINING' || e.type === 'MATCH'));
+const moved = (e, body) => {
+  const start = body?.startsAt ? new Date(body.startsAt) : null, end = body?.endsAt ? new Date(body.endsAt) : null;
+  return start && end && !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && (start.getTime() !== e.start.getTime() || end.getTime() !== e.end.getTime()) ? { start, end } : null;
+};
 const consequence = (s, e, body) => {
-  const asking = body?.requestResponses === true && !P.confirmationRequested(e);
-  return { revision: e.revision ?? 1, material: asking, responsePolicy: 'PRESERVE', affectedParticipants: s.playerIds.length, affectedResponses: 0,
-    addedParticipants: 0, removedParticipants: 0, notificationRecipients: asking ? S.familiesOf(s.id).length : 0 };
+  const asking = body?.requestResponses === true && !P.confirmationRequested(e), move = moved(e, body);
+  const otherDay = move && move.start.toDateString() !== e.start.toDateString();
+  return { revision: e.revision ?? 1, material: asking || Boolean(move), responsePolicy: otherDay ? 'RECONFIRM' : 'PRESERVE', affectedParticipants: s.playerIds.length, affectedResponses: otherDay ? s.playerIds.length : 0,
+    addedParticipants: 0, removedParticipants: 0, notificationRecipients: asking || move ? S.familiesOf(s.id).length : 0 };
 };
 post('/squad-communication/:id/sessions/:sid/preview', ({ params, body }) => {
   const s = squadFor(params.id); if (!s) return reply(403, { status: 403, message: 'This squad space is not available to you.' });
@@ -77,8 +82,31 @@ put('/squad-communication/:id/sessions/:sid', ({ params, body }) => {
   if (body?.revision != null && body.revision !== (e.revision ?? 1)) return reply(409, { status: 409, message: 'This session changed. Reload it and try again.' });
   if (typeof body?.requestResponses === 'boolean') P.confirmation.set(e.id, body.requestResponses);
   if (body?.title) e.title = String(body.title).slice(0, 140);
+  const move = moved(e, body);
+  if (move) { e.start = move.start; e.end = move.end; }
   e.revision = (e.revision ?? 1) + 1;
   return { id: e.id, revision: e.revision };
+});
+// A weekly series moved from one session: the same shift applies to that session and the later ones (or all future ones).
+const seriesTargets = (s, e, scope) => W.events.filter(x => x.squadId === s.id && x.type === e.type && x.type === 'TRAINING' && x.start >= (scope === 'ALL_FUTURE' ? W.NOW : e.start)).sort((a, b) => a.start - b.start);
+const seriesPreview = (s, e, body) => {
+  const targets = body?.scope === 'THIS' ? [e] : seriesTargets(s, e, body?.scope);
+  return { expected: targets.map(x => ({ id: x.id, revision: x.revision ?? 1 })), eventCount: targets.length, notificationDeliveries: targets.length * S.familiesOf(s.id).length, affectedResponses: 0, dates: targets.map(x => W.local(x.start)) };
+};
+post('/squad-communication/:id/events/:sid/changes/preview', ({ params, body }) => {
+  const s = squadFor(params.id); if (!s) return reply(403, { status: 403, message: 'This squad space is not available to you.' });
+  const e = sessionFor(s, params.sid); if (!e) return notFound('Session not found.');
+  return seriesPreview(s, e, body);
+});
+post('/squad-communication/:id/events/:sid/changes', ({ params, body }) => {
+  const s = squadFor(params.id); if (!s) return reply(403, { status: 403, message: 'This squad space is not available to you.' });
+  const e = sessionFor(s, params.sid); if (!e) return notFound('Session not found.');
+  const move = moved(e, body?.change);
+  if (move) {
+    const shift = move.start.getTime() - e.start.getTime(), length = move.end.getTime() - move.start.getTime();
+    for (const x of body?.scope === 'THIS' ? [e] : seriesTargets(s, e, body?.scope)) { x.start = new Date(x.start.getTime() + shift); x.end = new Date(x.start.getTime() + length); x.revision = (x.revision ?? 1) + 1; }
+  }
+  return seriesPreview(s, e, body);
 });
 
 // ---------------------------------------------------------------- organization profiles (public view)

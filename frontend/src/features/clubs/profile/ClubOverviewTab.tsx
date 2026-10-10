@@ -59,8 +59,8 @@ export function ClubOverviewTab({ club, can, onFollow, onJoin }: { club: ClubPro
             </div>
         </Panel>}
         <Training club={club} can={can} onJoin={onJoin} />
-        <Section boxed icon={CalendarDays} title="Coming up" hint="Next 30 days" action={{ label: 'Full schedule', to: tabLink(club.id, 'schedule') }}>
-            <Fixtures club={club} source={schedule} />
+        <Section boxed icon={CalendarDays} title="Coming up" hint="Next 30 days" action={can.canManage ? { label: 'Club calendar', to: `/clubs/${club.id}/workspace?tab=calendar` } : undefined}>
+            <Fixtures club={club} source={schedule} canManage={can.canManage} />
         </Section>
         <div className="gk-club-overview-grid">
             <Venues club={club} source={places} />
@@ -70,16 +70,16 @@ export function ClubOverviewTab({ club, can, onFollow, onJoin }: { club: ClubPro
     </>;
 }
 
-function Fixtures({ club, source }: { club: ClubProfile; source: Source<{ events: ScheduleEventOccurrence[] }> }) {
+function Fixtures({ club, source, canManage }: { club: ClubProfile; source: Source<{ events: ScheduleEventOccurrence[] }>; canManage: boolean }) {
     const fixtures = overviewFixtures(source.data?.events ?? []).slice(0, 4);
     if (source.loading) return <Panel flush><div className="gk-panel--pad"><Skeleton height={56} /></div></Panel>;
     if (source.failed) return <Panel flush><EmptyNote title="The schedule couldn’t load" action={<Button size="sm" onClick={source.retry}>Try again</Button>} /></Panel>;
-    if (!fixtures.length) return <Panel flush><EmptyNote title="No public matches in the next 30 days" action={<ButtonLink size="sm" to={tabLink(club.id, 'schedule')}>Open the schedule</ButtonLink>}>Training and club events are in the schedule.</EmptyNote></Panel>;
+    if (!fixtures.length) return <Panel flush><EmptyNote title="No public matches in the next 30 days" action={canManage ? <ButtonLink size="sm" to={`/clubs/${club.id}/workspace?tab=calendar`}>Open the club calendar</ButtonLink> : undefined}>Training times are under Teams & training.</EmptyNote></Panel>;
     return <Panel flush><List label="Upcoming matches">{fixtures.map(f => {
         const squad = f.clubId === club.id ? f.challengerSquadName : f.targetSquadName;
         const kind = kindOf({ eventType: f.eventType });
         return <FixtureRow key={`${f.occurrenceId}:${f.startsAt}`} tone={kind.tone} icon={activityIcons[f.eventType]} iconColor={activityColors[f.eventType]} time={timeLabel(f.startsAt)} day={dayLabel(f.startsAt)} title={f.title}
-            to={f.matchExchangeId ? `/match-exchange/${f.matchExchangeId}` : tabLink(club.id, 'schedule')}
+            to={f.matchExchangeId ? `/match-exchange/${f.matchExchangeId}` : undefined}
             meta={[squad, f.locationName].filter(Boolean).join(' · ')}
             trail={f.challengeStatus && f.challengeStatus !== 'ACCEPTED' ? <Badge tone="warning">Awaiting confirmation</Badge> : <span className="gk-fixture__tag">{kind.label}</span>} />;
     })}</List></Panel>;

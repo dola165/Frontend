@@ -1,5 +1,5 @@
 import {
-    BellRing, Briefcase, BriefcaseBusiness, Bus, CheckCircle2, Compass, Goal, Settings2, ClipboardList, CreditCard, Crown, HeartHandshake, LayoutDashboard, LayoutGrid,
+    BellRing, CalendarDays, Briefcase, BriefcaseBusiness, Bus, CheckCircle2, Compass, Goal, Settings2, ClipboardList, CreditCard, Crown, HeartHandshake, LayoutDashboard, LayoutGrid,
     ReceiptText, Settings, ShieldCheck, ShoppingBag, UserPlus, Users, UserRoundCog,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -34,6 +34,7 @@ export function buildClubTabs({ overview, roles, boot, canManageLeadership, canM
     // Labels follow the app language; a tool without its own entry keeps the name it came with.
     const add = (item: TabItem) => { if (!items.some(existing => existing.id === item.id)) items.push(item.id in workspaceNavEn ? { ...item, label: navLabel(item.id) } : item); };
     if (overview || roles) add({ id: 'overview', label: 'Overview', icon: LayoutDashboard });
+    if (overview || roles) add({ id: 'calendar', label: 'Calendar', icon: CalendarDays });
     if (canManageLeadership || boot?.modules.some(m => m.id === 'STAFF')) add({ id: 'personnel', label: 'Staff', icon: Users });
     if (canManageOperations) {
         add({ id: 'players', label: 'Players', icon: Users });
@@ -81,7 +82,7 @@ const navItem = (tab: TabItem): WorkspaceNavItem => ({ id: tab.id, label: tab.la
 export function clubNavigation(tabs: TabItem[], { focus, pins, inbox }: { focus: Set<WorkspaceTab> | 'all'; pins: TabItem[]; inbox: { allowed: boolean; unread: number } }) {
     const byId = (id: string) => tabs.find(tab => tab.id === id);
     const primary: WorkspaceNavItem[] = [
-        byId('overview'),
+        byId('overview'), byId('calendar'),
         // The club's own notifications. Named "Club updates" so it is never confused with the header Inbox.
         inbox.allowed ? { id: 'inbox' as const, label: navLabel('inbox'), icon: BellRing, count: inbox.unread || undefined } : undefined,
         byId('actions'),

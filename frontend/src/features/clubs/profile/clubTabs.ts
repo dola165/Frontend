@@ -1,11 +1,10 @@
 import type { TabItem } from '../../../design/Tabs';
 
-export type ClubTab = 'overview' | 'posts' | 'schedule' | 'teams' | 'people' | 'facilities' | 'media' | 'business' | 'honours' | 'contact';
+export type ClubTab = 'overview' | 'posts' | 'teams' | 'people' | 'facilities' | 'media' | 'business' | 'honours' | 'contact';
 
 export const clubTabs: TabItem<ClubTab>[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'posts', label: 'Posts' },
-    { id: 'schedule', label: 'Schedule' },
     { id: 'teams', label: 'Teams & training' },
     { id: 'people', label: 'Coaches & staff' },
     { id: 'facilities', label: 'Venues' },
@@ -17,10 +16,9 @@ export const clubTabs: TabItem<ClubTab>[] = [
 
 const ids = new Set<string>(clubTabs.map(tab => tab.id));
 
-/** Old links keep working: `events` is a filter of the schedule now, `pictures`/`videos` are the media tab. */
+/** Old links keep working: `pictures`/`videos` are the media tab; the schedule's fixtures are on the overview (planning is in the club workspace). */
 export function clubTabFrom(value: string | null): ClubTab {
     if (value === 'pictures' || value === 'videos') return 'media';
-    if (value === 'events' || value === 'calendar') return 'schedule';
     return value && ids.has(value) ? value as ClubTab : 'overview';
 }
 

@@ -98,6 +98,24 @@ const eventTimelinePosition = (event: ScheduleWorkspaceEvent) => {
     return { top, height };
 };
 
+type Lane = { lane: number; of: number };
+/** Events that overlap in a day column sit side by side: each gets a lane and the number of lanes it shares. */
+const laneLayout = (events: ScheduleWorkspaceEvent[]) => {
+    const placed = new Map<string, Lane>();
+    let cluster: { id: string; lane: number; end: number }[] = [], clusterEnd = 0;
+    const close = () => { const of = Math.max(0, ...cluster.map(item => item.lane)) + 1; cluster.forEach(item => placed.set(item.id, { lane: item.lane, of })); cluster = []; };
+    for (const event of [...events].sort((a, b) => parseDate(a.startsAt).getTime() - parseDate(b.startsAt).getTime())) {
+        const start = parseDate(event.startsAt).getTime(), end = parseDate(event.endsAt).getTime();
+        if (cluster.length && start >= clusterEnd) close();
+        const used = new Set(cluster.filter(item => item.end > start).map(item => item.lane));
+        let lane = 0; while (used.has(lane)) lane += 1;
+        cluster.push({ id: event.id, lane, end }); clusterEnd = Math.max(clusterEnd, end);
+    }
+    close();
+    return placed;
+};
+const laneStyle = (place?: Lane): CSSProperties => place && place.of > 1 ? { left: `calc(${(place.lane / place.of) * 100}% + 3px)`, width: `calc(${100 / place.of}% - 6px)`, right: 'auto' } : {};
+
 const resolveSlotDate = (day: Date, hour: number, event: ReactMouseEvent<HTMLButtonElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const offset = event.clientY - rect.top;
@@ -163,14 +181,13 @@ const DraggableMonthEvent = ({
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: event.id,
         data: event,
-        disabled: event.recurring,
     });
 
     const style: CSSProperties = {
         ...eventStyle(event, selected),
         ...(transform ? { transform: CSS.Translate.toString(transform) } : {}),
         opacity: isDragging ? 0.4 : 1,
-        cursor: event.recurring ? 'pointer' : 'grab',
+        cursor: 'grab',
         zIndex: isDragging ? 999 : 1,
         position: 'relative',
     };
@@ -179,12 +196,12 @@ const DraggableMonthEvent = ({
         <button
             ref={setNodeRef}
             type="button"
-            {...(event.recurring ? {} : listeners)}
-            {...(event.recurring ? {} : attributes)}
-            title={event.recurring ? 'Edit training series' : 'Drag to move'}
+            {...listeners}
+            {...attributes}
+            title={`${event.title}: drag to move, click for details`}
             onClick={(clickEvent) => {
                 clickEvent.stopPropagation();
-                if (event.recurring) onEdit(event);
+                onEdit(event);
             }}
             className="rounded-[4px] border px-2 py-1.5 text-left"
             style={style}
@@ -192,10 +209,6 @@ const DraggableMonthEvent = ({
             <div className="flex items-center justify-between gap-2">
                 <span className="truncate text-[10px] font-semibold text-[var(--color-text)]">{event.title}</span>
                 <span className="shrink-0 text-[10px] font-semibold text-[var(--color-secondary)]">{formatTime(event.startsAt)}</span>
-            </div>
-            <div className="mt-1 flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.18em] text-[var(--fc-accent)]">
-                <PencilLine className="h-2.5 w-2.5" />
-                {event.recurring ? 'Edit training series' : 'Drag to move'}
             </div>
         </button>
     );
@@ -292,9 +305,11 @@ const StaticMonthEvent = ({
 
 const StaticTimelineEvent = ({
     event,
+    place,
     onOpenPastEvent,
 }: {
     event: ScheduleWorkspaceEvent;
+    place?: Lane;
     onOpenPastEvent: (event: ScheduleWorkspaceEvent) => void;
 }) => {
     const position = eventTimelinePosition(event);
@@ -303,7 +318,7 @@ const StaticTimelineEvent = ({
             type="button"
             onClick={() => onOpenPastEvent(event)}
             className="absolute left-1.5 right-1.5 rounded-[4px] border px-2 py-1.5 text-left opacity-70"
-            style={{ ...eventStyle(event, false), top: position.top + 2, height: position.height - 4 }}
+            style={{ ...eventStyle(event, false), top: position.top + 2, height: position.height - 4, ...laneStyle(place) }}
         >
             <div className="min-w-0">
                 <p className="truncate text-[11px] font-semibold text-[var(--color-text)]">{event.title}</p>
@@ -319,10 +334,12 @@ const StaticTimelineEvent = ({
 
 const DraggableTimelineEvent = ({
     event,
+    place,
     selected,
     onEdit,
 }: {
     event: ScheduleWorkspaceEvent;
+    place?: Lane;
     selected: boolean;
     onEdit: (event: ScheduleWorkspaceEvent) => void;
 }) => {
@@ -330,16 +347,16 @@ const DraggableTimelineEvent = ({
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: event.id,
         data: event,
-        disabled: event.recurring,
     });
 
     const style: CSSProperties = {
         ...eventStyle(event, selected),
         top: position.top + 2,
         height: position.height - 4,
+        ...laneStyle(place),
         ...(transform ? { transform: CSS.Translate.toString(transform) } : {}),
         opacity: isDragging ? 0.4 : 1,
-        cursor: event.recurring ? 'pointer' : 'grab',
+        cursor: 'grab',
         zIndex: isDragging ? 999 : 10,
     };
 
@@ -347,13 +364,13 @@ const DraggableTimelineEvent = ({
         <button
             ref={setNodeRef}
             type="button"
-            {...(event.recurring ? {} : listeners)}
-            {...(event.recurring ? {} : attributes)}
-            title={event.recurring ? 'Edit training series' : 'Drag to move'}
-            aria-label={event.recurring ? `Edit training series: ${event.title}, ${formatTime(event.startsAt)} – ${formatTime(event.endsAt)}` : undefined}
+            {...listeners}
+            {...attributes}
+            title={`${event.title}: drag to move, click for details`}
+            aria-label={`${event.title}, ${formatTime(event.startsAt)} – ${formatTime(event.endsAt)}`}
             onClick={(clickEvent) => {
                 clickEvent.stopPropagation();
-                if (event.recurring) onEdit(event);
+                onEdit(event);
             }}
             className="absolute left-1.5 right-1.5 rounded-[4px] border px-2 py-1.5 text-left"
             style={style}
@@ -475,9 +492,9 @@ export const ScheduleGrid = ({
         } else {
             // Timeline view: extract date from "timeline-YYYY-MM-DD", compute time from pointer position
             const dateKey = overId.startsWith('timeline-') ? overId.slice(9) : overId;
-            const pointerY = evt.activatorEvent && 'clientY' in evt.activatorEvent
+            const pointerY = (evt.activatorEvent && 'clientY' in evt.activatorEvent
                 ? (evt.activatorEvent as PointerEvent).clientY
-                : dragPointerY;
+                : dragPointerY) + evt.delta.y;
             const times = computeTimelineDropTimes(draggedEvent, dateKey, pointerY, over.rect as DOMRect);
             newStartsAt = times.newStartsAt;
             newEndsAt = times.newEndsAt;
@@ -689,6 +706,7 @@ const TimelineBoard = ({
                 {/* Day columns */}
                 {days.map((day) => {
                     const dayEvents = eventsForDay(events,day);
+                    const lanes = laneLayout(dayEvents);
                     const dayDescription = formatDay(day);
 
                     return (
@@ -717,7 +735,7 @@ const TimelineBoard = ({
                                         type="button"
                                         onClick={() => (isPast(event.startsAt) ? onOpenPastEvent(event) : onEditEvent(event))}
                                         className="absolute left-1.5 right-1.5 rounded-[4px] border px-2 py-1.5 text-left transition-transform duration-150 hover:-translate-y-px hover:shadow-[0_8px_18px_color-mix(in_srgb,_var(--color-shadow)_18%,_transparent)]"
-                                        style={{ ...eventStyle(event, false), top: position.top + 2, height: position.height - 4 }}
+                                        style={{ ...eventStyle(event, false), top: position.top + 2, height: position.height - 4, ...laneStyle(lanes.get(event.id)) }}
                                     >
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="min-w-0">
@@ -854,6 +872,7 @@ const TimelineBoardDnd = ({
                 {/* Day columns */}
                 {days.map((day) => {
                     const dayEvents = eventsForDay(events,day);
+                    const lanes = laneLayout(dayEvents);
                     const dayDescription = formatDay(day);
 
                     return (
@@ -876,11 +895,12 @@ const TimelineBoardDnd = ({
 
                             {dayEvents.map((event) => (
                                 isPast(event.startsAt) ? (
-                                    <StaticTimelineEvent key={event.id} event={event} onOpenPastEvent={onOpenPastEvent} />
+                                    <StaticTimelineEvent key={event.id} event={event} place={lanes.get(event.id)} onOpenPastEvent={onOpenPastEvent} />
                                 ) : (
                                     <DraggableTimelineEvent
                                         key={event.id}
                                         event={event}
+                                        place={lanes.get(event.id)}
                                         selected={false}
                                         onEdit={onEditEvent}
                                     />

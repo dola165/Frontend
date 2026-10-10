@@ -5,6 +5,7 @@ import { get, type Bootstrap, type OperationRecord } from '../../clubOperations/
 import { canReadSquad } from '../../clubOperations/squadAccess';
 import type { ScheduleEventOccurrence, ScheduleEventType } from '../../schedule/api';
 import { eventSquadId } from '../fixtures';
+import type { SquadRosterGroup } from '../../../components/squads/SquadRosterTable';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 
 const DAY = 86_400_000;
@@ -123,15 +124,18 @@ export function startsIn(start: number, now: number) {
     return `in ${days} ${days === 1 ? 'day' : 'days'}`;
 }
 
-/** Sessions of some squads in a window (the calendar's month or week). The last answer stays shown while the next window loads. */
-export function useSquadSessions(squadIds: number[], from: Date, to: Date, revision: number) {
-    const key = `${squadIds.join(',')}|${from.toISOString()}|${to.toISOString()}|${revision}`;
-    const [state, setState] = useState<{ key: string; squads: { id: number; sessions: squadApi.SquadSession[] }[] } | null>(null);
+export interface SquadRoster { id: number; groups: SquadRosterGroup[] | null; error: string }
+/** Each squad's players, grouped by position with shirt numbers, ages and photos, from the club's squad roster. */
+export function useSquadRosters(club: number, squadIds: number[], revision: number) {
+    const key = `${club}|${squadIds.join(',')}|${revision}`;
+    const [state, setState] = useState<{ key: string; rosters: SquadRoster[] } | null>(null);
     useEffect(() => {
-        const controller = new AbortController(), [ids, start, end] = key.split('|');
-        void Promise.all(ids.split(',').filter(Boolean).map(Number).map(async id => ({ id, sessions: await squadApi.sessions(id, controller.signal, { from: start, to: end }).catch(() => []) })))
-            .then(squads => { if (!controller.signal.aborted) setState({ key, squads }); });
+        const controller = new AbortController(), [clubId, ids] = key.split('|');
+        void Promise.all(ids.split(',').filter(Boolean).map(Number).map(async (id): Promise<SquadRoster> => {
+            try { return { id, groups: (await apiClient.get<SquadRosterGroup[]>(`/clubs/${clubId}/squads/${id}/roster`, { signal: controller.signal })).data, error: '' }; }
+            catch (error) { return { id, groups: null, error: extractApiErrorMessage(error, 'This squad’s players could not be loaded.') }; }
+        })).then(rosters => { if (!controller.signal.aborted) setState({ key, rosters }); });
         return () => controller.abort();
     }, [key]);
-    return { squads: state?.squads ?? null, loading: state?.key !== key };
+    return state?.key === key ? state.rosters : null;
 }

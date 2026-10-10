@@ -37,6 +37,8 @@ interface Props {
     extraActions?: ReactNode;
     priorityContent?: ReactNode;
     showHeading?: boolean;
+    /** Another page frames the schedule: no back link or schedule switch of its own. */
+    hideContext?: boolean;
     surface: WorkspaceSurface;
     clubName: string;
     canOpenClub: boolean;
@@ -127,7 +129,7 @@ export function ScheduleDirectionWorkspace(props: Props) {
     return (
         <div className="schedule-direction" aria-busy={props.busy}>
             {props.priorityContent}
-            <div className="schedule-direction-context">
+            {props.hideContext ? hasHeadingActions && props.showHeading === false && <div className="schedule-direction-context schedule-direction-context--framed">{headingActions}</div> : <div className="schedule-direction-context">
                 <button type="button" data-tutorial="calendar-back-nav" onClick={props.onBack}>
                     <ArrowLeft size={15} aria-hidden="true" />
                     {props.backLabel ?? (club ? props.clubName : t('schedule.direction.back'))}
@@ -149,7 +151,7 @@ export function ScheduleDirectionWorkspace(props: Props) {
                     )}
                 </div>
                 {props.showHeading === false && hasHeadingActions && headingActions}
-            </div>
+            </div>}
             {props.showHeading !== false && <header className="schedule-direction-heading">
                 <div>
                     <span className="schedule-direction-eyebrow">
@@ -273,7 +275,7 @@ export function ScheduleDirectionWorkspace(props: Props) {
                     ))}
                 </div>
                 <div className="schedule-direction-filter-options">
-                    {props.showHeading === false && props.squadControl}
+                    {props.showHeading === false && !props.hideContext && props.squadControl}
                     {club && !props.squadSchedule && (
                         <>
                             <button

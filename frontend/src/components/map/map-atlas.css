@@ -89,7 +89,6 @@
 .atlas-area-action>button:hover { background:var(--color-accent); }
 .atlas-area-action>button>span { color:var(--color-warning); margin-left:10px; font-size:18px; }
 .atlas-area-action>small { font-size:9px; color:var(--color-muted); background:color-mix(in srgb, var(--color-inset) 78.82%, transparent); padding:2px 6px; border-radius:3px; }
-.atlas-return { position:absolute; right:18px; top:18px; z-index:650; display:flex; align-items:center; gap:7px; padding:13px 15px; font-size:11px; border:1px solid var(--color-border); border-radius:12px; color:var(--color-accent); background:var(--color-elevated); box-shadow:0 5px 20px color-mix(in srgb, var(--color-shadow) 7.45%, transparent); }
 .atlas-results,.atlas-walking-panel { pointer-events:auto; position:absolute; top:88px; bottom:18px; right:18px; width:340px; max-width:calc(100% - 36px); background:var(--color-elevated); border:1px solid var(--color-border); border-radius:16px; z-index:690; box-shadow:0 12px 50px color-mix(in srgb, var(--color-shadow) 14.12%, transparent); display:flex; flex-direction:column; overflow:hidden; }
 .atlas-results>header { padding:19px 19px 0; }
 .atlas-results-heading { display:flex; align-items:center; justify-content:space-between; }

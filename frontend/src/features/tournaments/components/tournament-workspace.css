@@ -1,8 +1,4 @@
-.tw-workspace,
-.tc-directory,
-.tournament-public-page,
-.tw-bracket,
-.tw-modal-backdrop {
+.tw-workspace, .tournament-public-page, .tw-bracket, .tw-modal-backdrop {
   --tw-text: var(--text-primary, var(--fc-text-primary));
   --tw-accent-ink: var(--feed-accent-contrast, var(--color-secondary));
   --tw-bg: var(--bg-base, var(--fc-page-bg));
@@ -798,7 +794,6 @@
   .tw-edit-form { padding: 18px; }
   .tw-edit-form .tw-edit-actions { bottom: -18px; margin: 0 -18px -18px; padding: 16px 18px; }
 }
-
 
 /* Tournament task hierarchy: bounded header actions, consistent inset rows. */
 .tc-workspace .tw-header { align-items:flex-start; }

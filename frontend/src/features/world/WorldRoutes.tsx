@@ -2,8 +2,8 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { buildLoginRedirectPath } from '../../utils/authRedirect';
-import { Skeleton } from '../../design/primitives';
 import { WorldLayout } from './WorldLayout';
+import { WorldLoading as PageLoading } from './WorldLoading';
 import { WorldSessionProvider } from './WorldSessionProvider';
 
 const WorldFrontPage = lazy(() => import('./front/WorldFrontPage'));
@@ -15,12 +15,6 @@ const MatchesDirectory = lazy(() => import('./directories/MatchesDirectory'));
 const CompetitionsDirectory = lazy(() => import('./directories/CompetitionsDirectory'));
 const OpportunitiesDirectory = lazy(() => import('./directories/OpportunitiesDirectory'));
 const ArrangeMatchPage = lazy(() => import('./directories/ArrangeMatchPage'));
-
-const PageLoading = () => (
-    <div className="gk-world-loading" role="status" aria-label="Loading">
-        <Skeleton height={34} width="32%" /><Skeleton height={44} /><Skeleton height={220} />
-    </div>
-);
 
 /** Club work started from World (arranging a match) needs an account. */
 function ProtectedRoute({ children }: { children: ReactNode }) {

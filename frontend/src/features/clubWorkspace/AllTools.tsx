@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Pin, PinOff } from 'lucide-react';
 import { Badge, Button, EmptyNote, List, PageFrame, PageHeader, Panel, SearchInput, Section } from '../../design/primitives';
 import type { TabItem, WorkspaceTab } from '../../components/workspace/types';
 import { personalTabs, toolDescription, workspaceAreas, type OpenWorkspace } from '../clubOperations/workspaceStructure';
+import { ClubMatchLinks } from './ClubMatchLinks';
 import type { WorkspacePins } from './useWorkspacePins';
 import './club-workspace.css';
 
@@ -49,7 +50,7 @@ export function AllTools({ tabs, pins, focus, onOpen, showHidden, onShowHidden, 
                         </Button>
                     </>);
                 })}</List></Panel>
-            </Section>)}</div> : <EmptyNote title={`No tools match “${query}”`} action={<Button size="sm" onClick={() => setQuery('')}>Clear search</Button>}>Try another word, such as attendance, travel or finance.</EmptyNote>}
+            </Section>)}<ClubMatchLinks filter={query} /></div> : <EmptyNote title={`No tools match “${query}”`} action={<Button size="sm" onClick={() => setQuery('')}>Clear search</Button>}>Try another word, such as attendance, travel or finance.</EmptyNote>}
         </div>
     </PageFrame>;
 }

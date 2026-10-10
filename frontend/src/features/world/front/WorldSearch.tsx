@@ -8,8 +8,9 @@ import { browseCompetitions } from '../../competitions/api';
 import { getMatchHistory } from '../../matchHistory/api';
 import { searchTryouts } from '../../tryouts/api';
 import { fetchClubDirectory, fetchPeople } from '../api';
+import { anyOf, useWorldCopy } from '../copy';
 import { Crest } from '../Crest';
-import { clubTypeLabel, fixtureDay, fixtureTime, shortDate } from '../format';
+import { clubTypeLabel, codeLabel, fixtureDay, fixtureTime, shortDate } from '../format';
 import { PersonRow } from '../rows';
 import { useWorldData } from '../useWorldData';
 
@@ -17,16 +18,22 @@ interface Hit { key: string; to: string; row: ReactNode }
 interface Group { id: string; title: string; all: string; hits: Hit[] | null; note?: ReactNode }
 
 const settled = <T,>(result: PromiseSettledResult<T>) => (result.status === 'fulfilled' ? result.value : null);
-const listOf = (items: string[]) => items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} or ${items[items.length - 1]}`;
+const DEBOUNCE = 250;
 
-/** Search across World: the best few clubs, people, venues, competitions and matches, each with a way into its directory. */
+/**
+ * Search across World: the best few clubs, people, venues, competitions and matches, each with a
+ * way into its directory. Enter opens the first result of exactly what was typed: if the results
+ * on screen belong to older text, it searches the new text first and opens its first result.
+ */
 export function WorldSearch({ quickStarts }: { quickStarts: ReactNode }) {
+    const t = useWorldCopy();
     const { status, sessionId } = useAuth();
     const navigate = useNavigate();
     const [text, setText] = useState('');
     const [q, setQ] = useState('');
+    const [enterFor, setEnterFor] = useState<string | null>(null);
     useEffect(() => {
-        const timer = window.setTimeout(() => setQ(text.trim()), 250);
+        const timer = window.setTimeout(() => setQ(text.trim()), DEBOUNCE);
         return () => window.clearTimeout(timer);
     }, [text]);
     const signedIn = status === 'authenticated';
@@ -44,44 +51,58 @@ export function WorldSearch({ quickStarts }: { quickStarts: ReactNode }) {
     });
     const query = encodeURIComponent(q);
     const groups: Group[] = search.data ? [
-        { id: 'clubs', title: 'Clubs', all: `/world/clubs?q=${query}`, hits: search.data.clubs?.content.map(club => ({ key: `c${club.id}`, to: `/clubs/${club.id}`, row: <ListRow to={`/clubs/${club.id}`} lead={<Crest src={club.logoUrl} name={club.name} size={32} />} title={club.name} meta={[clubTypeLabel(club.type), club.cityName].filter(Boolean).join(' · ')} /> })) ?? null },
+        { id: 'clubs', title: 'Clubs', all: `/world/clubs?q=${query}`, hits: search.data.clubs?.content.map(club => ({ key: `c${club.id}`, to: `/clubs/${club.id}`, row: <ListRow to={`/clubs/${club.id}`} lead={<Crest src={club.logoUrl} name={club.name} size={32} />} title={club.name} meta={[t(clubTypeLabel(club.type)), club.cityName].filter(Boolean).join(' · ')} /> })) ?? null },
         { id: 'people', title: 'People', all: `/world/people?q=${query}`, hits: signedIn ? search.data.people?.items.map(person => ({ key: `p${person.id}`, to: `/profile/${person.id}`, row: <PersonRow person={person} compact /> })) ?? null : [],
-            note: signedIn ? undefined : <Link className="gk-section__action" to={buildLoginRedirectPath('/world', '', '')}>Sign in to search people</Link> },
+            note: signedIn ? undefined : <Link className="gk-section__action" to={buildLoginRedirectPath('/world', '', '')}>{t('Sign in to search people')}</Link> },
         { id: 'venues', title: 'Venues', all: `/world/venues?q=${query}`, hits: search.data.venues?.content.map(venue => ({ key: `v${venue.id}`, to: `/stadiums/${venue.id}`, row: <ListRow to={`/stadiums/${venue.id}`} lead={<Crest src={venue.logoUrl} name={venue.displayName} size={32} />} title={venue.displayName} meta={venue.addressText || venue.city} /> })) ?? null },
         { id: 'competitions', title: 'Competitions', all: `/world/competitions?q=${query}`, hits: search.data.competitions?.content.map(card => ({ key: `t${card.id}`, to: `/tournaments/${card.id}`, row: <ListRow to={`/tournaments/${card.id}`} lead={<Crest src={card.bannerImageUrl} name={card.name} size={32} />} title={card.name} meta={[shortDate(card.startDate), card.hostClubName || card.organizerName].filter(Boolean).join(' · ')} /> })) ?? null },
-        { id: 'trials', title: 'Trials', all: `/world/opportunities?type=trials&q=${query}`, hits: search.data.trials?.items.map(trial => ({ key: `r${trial.id}`, to: `/tryouts/${trial.id}`, row: <ListRow to={`/tryouts/${trial.id}`} lead={<span className="gk-world-search__when gk-num">{fixtureTime(trial.tryoutDate)}<small>{fixtureDay(trial.tryoutDate)}</small></span>} title={trial.title} meta={[trial.clubName, trial.ageGroup].filter(Boolean).join(' · ')} /> })) ?? null },
+        { id: 'trials', title: 'Trials', all: `/world/opportunities?tab=trials&q=${query}`, hits: search.data.trials?.items.map(trial => ({ key: `r${trial.id}`, to: `/tryouts/${trial.id}`, row: <ListRow to={`/tryouts/${trial.id}`} lead={<span className="gk-world-search__when gk-num">{fixtureTime(trial.tryoutDate)}<small>{fixtureDay(trial.tryoutDate)}</small></span>} title={trial.title} meta={[trial.clubName, codeLabel(trial.ageGroup)].filter(Boolean).join(' · ')} /> })) ?? null },
         ...(signedIn ? [{ id: 'matches', title: 'Matches', all: `/world/matches?q=${query}`, hits: search.data.matches?.items.map(match => ({ key: `m${match.id}`, to: match.detailPath, row: <ListRow to={match.detailPath} lead={<span className="gk-world-search__when gk-num">{fixtureTime(match.startsAt)}<small>{fixtureDay(match.startsAt)}</small></span>} title={match.homeClubName && match.awayClubName ? `${match.homeClubName} v ${match.awayClubName}` : match.title} meta={match.locationName ?? undefined} /> })) ?? null }] : []),
     ] : [];
     const firstHit = groups.flatMap(group => group.hits ?? [])[0];
     const empty = groups.filter(group => !group.note && group.hits?.length === 0);
     const failed = groups.filter(group => !group.note && group.hits === null);
+
+    // Enter pressed before the results caught up: open the first result once they are for that text.
+    const ready = search.data !== undefined;
+    useEffect(() => {
+        if (enterFor === null || enterFor !== q || !ready) return;
+        setEnterFor(null);
+        if (firstHit) navigate(firstHit.to);
+    }, [enterFor, q, ready, firstHit, navigate]);
     const onKey = (event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Escape') setText('');
-        if (event.key === 'Enter' && firstHit) navigate(firstHit.to);
+        if (event.key === 'Escape') { setText(''); setEnterFor(null); }
+        if (event.key !== 'Enter') return;
+        const wanted = text.trim();
+        if (wanted.length < 2) return;
+        if (wanted === q && ready) { if (firstHit) navigate(firstHit.to); return; }
+        setQ(wanted);
+        setEnterFor(wanted);
     };
     const active = text.trim().length >= 2;
+    const count = groups.reduce((sum, group) => sum + (group.hits?.length ?? 0), 0);
     return (
         <div className="gk-world-search">
-            <SearchInput className="gk-world-search__input" value={text} onChange={event => setText(event.target.value)} onKeyDown={onKey} maxLength={120}
-                placeholder="Search clubs, people, venues, matches…" aria-label="Search GrassKickZ World" aria-describedby="world-search-status" />
+            <SearchInput className="gk-world-search__input" value={text} onChange={event => { setText(event.target.value); setEnterFor(null); }} onKeyDown={onKey} maxLength={120}
+                placeholder={t('Search clubs, people, venues, matches…')} aria-label={t('Search GrassKickZ World')} aria-describedby="world-search-status" />
             <p id="world-search-status" className="gk-visually-hidden" role="status">
-                {active ? search.loading ? 'Searching…' : `${groups.reduce((sum, group) => sum + (group.hits?.length ?? 0), 0)} results. Press Enter to open the first.` : ''}
+                {active ? search.loading ? t('Searching…') : t('{count} results. Press Enter to open the first.', { count }) : ''}
             </p>
             {!active ? quickStarts : (
-                <div className="gk-world-search__results" aria-label="Search results">
+                <div className="gk-world-search__results" aria-label={t('Search results')}>
                     {(search.loading || !search.data ? ['clubs', 'people', 'venues', 'competitions'] : []).map(id => (
                         <Panel key={id} flush><div className="gk-world-search__loading"><Skeleton height={14} width="30%" /><Skeleton height={36} /><Skeleton height={36} /></div></Panel>
                     ))}
                     {groups.filter(group => group.note || group.hits?.length).map(group => (
-                        <Panel key={group.id} flush title={group.title} action={group.hits?.length ? <Link className="gk-section__action" to={group.all}>See all</Link> : undefined}>
+                        <Panel key={group.id} flush title={t(group.title)} action={group.hits?.length ? <Link className="gk-section__action" to={group.all}>{t('See all')}</Link> : undefined}>
                             {group.note ? <p className="gk-world-search__note">{group.note}</p>
-                                : <List label={group.title}>{group.hits!.map(hit => <Fragment key={hit.key}>{hit.row}</Fragment>)}</List>}
+                                : <List label={t(group.title)}>{group.hits!.map(hit => <Fragment key={hit.key}>{hit.row}</Fragment>)}</List>}
                         </Panel>
                     ))}
                     {search.data && (empty.length > 0 || failed.length > 0) && (
                         <p className="gk-world-search__none">
-                            {empty.length > 0 && <>No {listOf(empty.map(group => group.title.toLowerCase()))} match “{q}”. </>}
-                            {failed.length > 0 && <>{listOf(failed.map(group => group.title))} could not be searched.</>}
+                            {empty.length > 0 && <>{t('No {things} match “{q}”.', { things: anyOf(empty.map(group => t(group.title).toLowerCase())), q })} </>}
+                            {failed.length > 0 && t('{things} could not be searched.', { things: anyOf(failed.map(group => t(group.title))) })}
                         </p>
                     )}
                 </div>

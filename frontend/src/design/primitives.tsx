@@ -101,11 +101,15 @@ export function ListRow({ to, onClick, className, current, onHover, ...content }
 
 export type FixtureTone = 'match' | 'training' | 'event' | 'trial' | 'neutral';
 /** The GrassKickZ fixture line: a time column in scoreboard numerals, then what, where and status. */
-export function FixtureRow({ time, day, title, meta, trail, tone = 'event', to, onClick, label }: { time: ReactNode; day?: ReactNode; title: ReactNode; meta?: ReactNode; trail?: ReactNode; tone?: FixtureTone; to?: string; onClick?: () => void; label?: string }) {
+export function FixtureRow({ time, day, title, meta, trail, tone = 'event', to, onClick, label, current, onHover }: { time: ReactNode; day?: ReactNode; title: ReactNode; meta?: ReactNode; trail?: ReactNode; tone?: FixtureTone; to?: string; onClick?: () => void; label?: string;
+    /** Marks the entry that is selected elsewhere, for example on a map. */ current?: boolean;
+    /** Pointer or keyboard focus entering and leaving the entry, to highlight its counterpart. */ onHover?: (active: boolean) => void }) {
     const when = <span className="gk-fixture__when"><span className="gk-fixture__time">{time}</span>{day && <span className="gk-fixture__day">{day}</span>}</span>;
-    const main = <span className="gk-fixture__main"><span className="gk-fixture__title">{title}</span>{meta && <span className="gk-fixture__meta">{meta}</span>}</span>;
+    // A long title keeps its full text for pointer users; on phones it wraps instead (design.css).
+    const main = <span className="gk-fixture__main"><span className="gk-fixture__title" title={typeof title === 'string' ? title : undefined}>{title}</span>{meta && <span className="gk-fixture__meta">{meta}</span>}</span>;
     const trailNode = trail && <span className="gk-fixture__trail">{trail}</span>;
-    if (to) return <li><Link className="gk-fixture" data-tone={tone} to={to} aria-label={label}>{when}{main}{trailNode}</Link></li>;
+    const linked = { 'aria-current': current || undefined, onMouseEnter: onHover && (() => onHover(true)), onMouseLeave: onHover && (() => onHover(false)), onFocus: onHover && (() => onHover(true)), onBlur: onHover && (() => onHover(false)) };
+    if (to) return <li><Link className="gk-fixture" data-tone={tone} to={to} aria-label={label} {...linked}>{when}{main}{trailNode}</Link></li>;
     // With an action and its own trailing controls, only the time and title open the entry, so the controls stay separate buttons.
     if (onClick) return <li><div className="gk-fixture gk-fixture--action" data-tone={tone}><button type="button" className="gk-fixture__open" onClick={onClick} aria-label={label}>{when}{main}</button>{trailNode}</div></li>;
     return <li><div className="gk-fixture" data-tone={tone}>{when}{main}{trailNode}</div></li>;

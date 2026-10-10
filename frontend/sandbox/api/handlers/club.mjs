@@ -33,7 +33,10 @@ get('/clubs/search', ({ query }) => {
 get('/clubs', ({ query }) => {
   const search = (query.get('search') ?? query.get('q') ?? '').trim().toLowerCase();
   const types = query.getAll('type'), policies = query.getAll('joinPolicy'), city = (query.get('city') ?? '').toLowerCase(), country = (query.get('country') ?? '').toLowerCase();
-  let items = W.clubs.map(c => C.directoryItem(c.id)).filter(c => (!search || `${c.name} ${c.cityName} ${c.description}`.toLowerCase().includes(search))
+  // BACKEND NEEDED (World › Clubs for a child): `age` keeps clubs with a published programme for that age.
+  const age = query.has('age') ? Number(query.get('age')) : null;
+  const fits = c => age == null || (c.presentation?.programmes ?? []).some(p => p.published && (p.ageMin != null || p.ageMax != null) && (p.ageMin == null || age >= p.ageMin) && (p.ageMax == null || age <= p.ageMax));
+  let items = W.clubs.map(c => C.directoryItem(c.id)).filter(fits).filter(c => (!search || `${c.name} ${c.cityName} ${c.description}`.toLowerCase().includes(search))
     && (!types.length || types.includes(c.type)) && (!policies.length || policies.includes(c.joinPolicy))
     && (!city || c.cityName.toLowerCase().includes(city)) && (!country || 'georgia ge'.includes(country)));
   const sort = query.get('sort') ?? 'NEWEST';

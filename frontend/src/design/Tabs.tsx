@@ -1,6 +1,6 @@
 import './design.css';
-import { useRef, type KeyboardEvent, type ReactNode } from 'react';
-import { NavLink, useSearchParams } from 'react-router-dom';
+import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { NavLink, useLocation, useSearchParams } from 'react-router-dom';
 
 export interface TabItem<T extends string> { id: T; label: ReactNode; count?: number; icon?: ReactNode }
 
@@ -49,8 +49,17 @@ export interface RouteTabItem { to: string; label: ReactNode; icon?: ReactNode; 
 
 /** Tabs that are destinations: each is a link, and the current route carries the underline. */
 export function RouteTabs({ items, label, className }: { items: RouteTabItem[]; label: string; className?: string }) {
+    const nav = useRef<HTMLElement>(null);
+    const { pathname } = useLocation();
+    // On a narrow screen the row scrolls sideways; keep the current destination in view.
+    useEffect(() => {
+        const row = nav.current, active = row?.querySelector<HTMLElement>('[aria-current="page"]');
+        if (!row || !active || row.scrollWidth <= row.clientWidth) return;
+        const left = active.getBoundingClientRect().left - row.getBoundingClientRect().left + row.scrollLeft, right = left + active.offsetWidth;
+        if (left < row.scrollLeft || right > row.scrollLeft + row.clientWidth) row.scrollLeft = Math.max(0, left - (row.clientWidth - active.offsetWidth) / 2);
+    }, [pathname]);
     return (
-        <nav aria-label={label} className={`gk-tabs${className ? ` ${className}` : ''}`}>
+        <nav ref={nav} aria-label={label} className={`gk-tabs${className ? ` ${className}` : ''}`}>
             {items.map(item => (
                 <NavLink key={item.to} to={item.to} end={item.end} className="gk-tab">{item.icon}{item.label}</NavLink>
             ))}

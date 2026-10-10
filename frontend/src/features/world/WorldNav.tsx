@@ -1,6 +1,8 @@
 import { useLocation } from 'react-router-dom';
 import { BriefcaseBusiness, CalendarDays, Compass, LandPlot, Map as MapIcon, Shield, Trophy, UsersRound } from 'lucide-react';
 import { RouteTabs } from '../../design/Tabs';
+import { useWorldCopy } from './copy';
+import { CARRIED } from './directory/useDirectoryState';
 
 const DESTINATIONS = [
     { path: '/world', label: 'Overview', Icon: Compass, end: true },
@@ -15,13 +17,14 @@ const DESTINATIONS = [
 
 /** World's own navigation, shared by every World page. Keeps the area and player context. */
 export function WorldNav({ className }: { className?: string }) {
+    const t = useWorldCopy();
     const { search } = useLocation();
     const current = new URLSearchParams(search);
     const carried = new URLSearchParams();
-    for (const key of ['near', 'player']) if (current.get(key)) carried.set(key, current.get(key)!);
+    for (const key of CARRIED) if (current.get(key)) carried.set(key, current.get(key)!);
     const suffix = carried.size ? `?${carried}` : '';
     return (
-        <RouteTabs label="GrassKickZ World" className={`gk-world-nav${className ? ` ${className}` : ''}`}
-            items={DESTINATIONS.map(({ path, label, Icon, end }) => ({ to: `${path}${suffix}`, label, end, icon: <Icon aria-hidden="true" /> }))} />
+        <RouteTabs label={t('GrassKickZ World')} className={`gk-world-nav${className ? ` ${className}` : ''}`}
+            items={DESTINATIONS.map(({ path, label, Icon, end }) => ({ to: `${path}${suffix}`, label: t(label), end, icon: <Icon aria-hidden="true" /> }))} />
     );
 }

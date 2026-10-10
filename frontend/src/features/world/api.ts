@@ -27,30 +27,35 @@ export interface PersonSummary {
     headline: string | null; profession: string | null; clubId: number | null; clubName: string | null;
     city: string | null; verified: boolean;
 }
-export interface PeoplePage { items: PersonSummary[]; total: number; page: number; size: number; hasMore: boolean; /** Only name search is available (no directory endpoint). */ searchOnly?: boolean }
+export interface PeoplePage { items: PersonSummary[]; /** Unknown (null) when only a name search is available. */ total: number | null; page: number; size: number; hasMore: boolean; /** Only name search is available (no directory endpoint). */ searchOnly?: boolean }
 
 const USER_TYPE_ROLE: Record<string, PersonRole> = { COACH: 'COACH', PLAYER: 'PLAYER', REFEREE: 'REFEREE', AGENT: 'AGENT', SPECIALIST: 'SPECIALIST', STAFF: 'CLUB_STAFF', CLUB_STAFF: 'CLUB_STAFF' };
+
+/** Statuses that mean the server has no people directory (Spring may answer an unmapped route with any of them). */
+const MISSING = new Set([404, 405, 501]);
 
 /**
  * Backend needed: `GET /people`, the public directory of football people (never minors,
  * parents or private profiles), filterable by role, profession and place. See
  * sandbox/api/handlers/world-extra.mjs for the contract. Until it exists, a name search
- * falls back to the member search (`/users/search`), without role or place filters.
+ * falls back to the member search (`/users/search`) and says so with `searchOnly`: role, place,
+ * profession and confirmation cannot be searched, and the total is unknown because minors are
+ * removed here, after paging.
  */
 export const fetchPeople = async (params: Record<string, string | number | undefined>, sessionId: AuthSessionId, signal?: AbortSignal): Promise<PeoplePage> => {
     try {
         return (await apiClient.get<PeoplePage>('/people', { params, signal, _authSessionId: sessionId } as AuthSessionRequestConfig)).data;
     } catch (error) {
+        if (!isAxiosError(error) || !MISSING.has(error.response?.status ?? 0)) throw error;
         const q = String(params.q ?? '').trim();
-        if (!isAxiosError(error) || error.response?.status !== 404) throw error;
-        if (q.length < 2) return { items: [], total: 0, page: 0, size: 0, hasMore: false, searchOnly: true };
         const page = Number(params.page) || 0, size = Number(params.size) || 24;
+        if (q.length < 2) return { items: [], total: null, page, size, hasMore: false, searchOnly: true };
         const { data } = await apiClient.get<{ content: UserSearchResult[]; totalElements: number; totalPages: number }>('/users/search', { params: { query: q, page, size }, signal, _authSessionId: sessionId } as AuthSessionRequestConfig);
         const items = data.content.filter(user => !user.isMinor).map((user): PersonSummary => ({
             id: user.id, fullName: user.fullName, username: user.username, avatarUrl: user.avatarUrl, role: USER_TYPE_ROLE[user.userType] ?? 'PLAYER',
             headline: user.position, profession: null, clubId: null, clubName: null, city: null, verified: false,
         }));
-        return { items, total: data.totalElements, page, size, hasMore: page + 1 < data.totalPages, searchOnly: true };
+        return { items, total: null, page, size, hasMore: page + 1 < data.totalPages, searchOnly: true };
     }
 };
 

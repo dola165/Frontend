@@ -2,7 +2,9 @@ import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { getHeritageStyle } from '../../../components/map/heritageStyle';
 import { Button } from '../../../design/primitives';
+import { useWorldCopy } from '../copy';
 import { useWorldData } from '../useWorldData';
+import { useAppTheme } from './canvas/useMapTheme';
 import './world-map.css';
 
 const WorldLiveMap = lazy(() => import('./WorldLiveMap'));
@@ -13,7 +15,7 @@ export interface WorldMapPoint { id: string; lat: number; lng: number; label: st
 const TONE_LABEL: Record<WorldMapTone, string> = { club: 'Clubs', venue: 'Venues', match: 'Matches', trial: 'Trials', event: 'Events', person: 'People' };
 
 /** Positions-only sketch: used while the street map loads and whenever it cannot. */
-function MapSketch({ points, selectedId, onSelect }: { points: WorldMapPoint[]; selectedId?: string; onSelect: (id: string) => void }) {
+function MapSketch({ points, selectedId, highlightId, onSelect }: { points: WorldMapPoint[]; selectedId?: string; highlightId?: string; onSelect: (id: string) => void }) {
     const lats = points.map(p => p.lat), lngs = points.map(p => p.lng);
     // Centre the points; a lone point or a tight cluster sits in the middle rather than a corner.
     const midLat = (Math.min(...lats) + Math.max(...lats)) / 2, midLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
@@ -25,7 +27,7 @@ function MapSketch({ points, selectedId, onSelect }: { points: WorldMapPoint[]; 
     return (
         <div className="gk-world-map__sketch" aria-hidden={points.length === 0}>
             {points.map(point => (
-                <button key={point.id} type="button" className="gk-world-pin" data-tone={point.tone} data-selected={point.id === selectedId || undefined}
+                <button key={point.id} type="button" className="gk-world-pin" data-tone={point.tone} data-selected={point.id === selectedId || point.id === highlightId || undefined}
                     style={place(point)} aria-label={`${point.label}${point.meta ? `, ${point.meta}` : ''}`} title={point.label} onClick={() => onSelect(point.id)} />
             ))}
         </div>
@@ -36,10 +38,12 @@ function MapSketch({ points, selectedId, onSelect }: { points: WorldMapPoint[]; 
  * A compact map of World results. Uses the street map when it can load, and otherwise shows
  * the same points on a plain sketch so results stay usable without map tiles.
  */
-export function WorldMap({ points, label, selectedId, onSelect, className, footer }: {
-    points: WorldMapPoint[]; label: string; selectedId?: string; onSelect?: (id?: string) => void; className?: string; footer?: ReactNode;
+export function WorldMap({ points, label, selectedId, highlightId, onSelect, className, footer }: {
+    points: WorldMapPoint[]; label: string; selectedId?: string; /** A point to emphasise, such as the result under the pointer. */ highlightId?: string;
+    onSelect?: (id?: string) => void; className?: string; footer?: ReactNode;
 }) {
-    const theme = typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+    const t = useWorldCopy();
+    const theme = useAppTheme();
     const style = useWorldData(`map-style:${theme}`, () => getHeritageStyle(theme, { includeTerrain: false }));
     const [liveFailed, setLiveFailed] = useState(false);
     const [ownSelection, setOwnSelection] = useState<string>();
@@ -52,19 +56,19 @@ export function WorldMap({ points, label, selectedId, onSelect, className, foote
         <div className={`gk-world-map${className ? ` ${className}` : ''}`} role="region" aria-label={label}>
             <div className="gk-world-map__canvas">
                 {live
-                    ? <Suspense fallback={<MapSketch points={points} selectedId={selected} onSelect={select} />}>
-                        <WorldLiveMap style={style.data!} points={points} selectedId={selected} onSelect={select} onFail={() => setLiveFailed(true)} />
+                    ? <Suspense fallback={<MapSketch points={points} selectedId={selected} highlightId={highlightId} onSelect={select} />}>
+                        <WorldLiveMap style={style.data!} points={points} selectedId={selected} highlightId={highlightId} onSelect={select} onFail={() => setLiveFailed(true)} />
                     </Suspense>
-                    : <MapSketch points={points} selectedId={selected} onSelect={select} />}
+                    : <MapSketch points={points} selectedId={selected} highlightId={highlightId} onSelect={select} />}
                 {tones.length > 1 && (
-                    <ul className="gk-world-map__legend" aria-label="Map key">
-                        {tones.map(tone => <li key={tone}><span className="gk-world-pin gk-world-pin--key" data-tone={tone} aria-hidden="true" />{TONE_LABEL[tone]}</li>)}
+                    <ul className="gk-world-map__legend" aria-label={t('Map key')}>
+                        {tones.map(tone => <li key={tone}><span className="gk-world-pin gk-world-pin--key" data-tone={tone} aria-hidden="true" />{t(TONE_LABEL[tone])}</li>)}
                     </ul>
                 )}
                 {!live && !style.loading && (
                     <p className="gk-world-map__note">
-                        Street map unavailable, showing positions only.
-                        <Button size="sm" variant="ghost" onClick={() => { setLiveFailed(false); style.retry(); }}>Retry</Button>
+                        {t('Street map unavailable, showing positions only.')}
+                        <Button size="sm" variant="ghost" onClick={() => { setLiveFailed(false); style.retry(); }}>{t('Retry')}</Button>
                     </p>
                 )}
                 {point && (
@@ -73,8 +77,8 @@ export function WorldMap({ points, label, selectedId, onSelect, className, foote
                             <strong>{point.label}</strong>
                             {point.meta && <span>{point.meta}</span>}
                         </span>
-                        {point.to && <Link className="gk-section__action" to={point.to}>Open</Link>}
-                        <Button size="sm" variant="ghost" onClick={() => select(undefined)} aria-label="Close">Close</Button>
+                        {point.to && <Link className="gk-section__action" to={point.to}>{t('Open')}</Link>}
+                        <Button size="sm" variant="ghost" onClick={() => select(undefined)}>{t('Close')}</Button>
                     </div>
                 )}
             </div>

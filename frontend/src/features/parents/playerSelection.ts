@@ -5,6 +5,13 @@ const key = (userId: number | undefined, sessionId: string | null) => `family-pl
 export function readSelectedPlayer(userId: number | undefined, sessionId: string | null) {
     try { return positivePlayerId(sessionStorage.getItem(key(userId, sessionId))); } catch { return undefined; }
 }
+/** Remembers (or, without an id, forgets) the chosen player for this account session. */
+export function rememberSelectedPlayer(userId: number | undefined, sessionId: string | null, playerId?: number) {
+    try {
+        if (playerId) sessionStorage.setItem(key(userId, sessionId), String(playerId));
+        else sessionStorage.removeItem(key(userId, sessionId));
+    } catch { /* URL context remains usable when storage is unavailable. */ }
+}
 export function positivePlayerId(value: string | null) {
     const id = Number(value);
     return Number.isSafeInteger(id) && id > 0 ? id : undefined;
@@ -24,10 +31,7 @@ export function usePlayerSelection() {
     const selectPlayer = (playerId?: number) => {
         const next = new URLSearchParams(params);
         if (playerId) next.set('player', String(playerId)); else next.delete('player');
-        try {
-            if (playerId) sessionStorage.setItem(key(user?.id, sessionId), String(playerId));
-            else sessionStorage.removeItem(key(user?.id, sessionId));
-        } catch { /* URL context remains usable when storage is unavailable. */ }
+        rememberSelectedPlayer(user?.id, sessionId, playerId);
         setParams(next, { replace: true });
     };
     return { requestedPlayerId, selectPlayer };

@@ -1,6 +1,7 @@
 import type { BadgeTone } from '../../design/primitives';
 import type { ClubJoinPolicy } from '../../components/discovery/clubDirectoryTypes';
 import { appLocale } from '../../utils/formatting';
+import { wt } from './copy';
 
 const TZ = 'Asia/Tbilisi';
 const ymd = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
@@ -13,16 +14,16 @@ const parse = (value?: string | null) => {
 /** Scoreboard time for a fixture line, e.g. "18:00". */
 export const fixtureTime = (value?: string | null, timeZone = TZ) => {
     const date = parse(value);
-    return date ? date.toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit', hour12: false, timeZone }) : 'TBC';
+    return date ? date.toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit', hour12: false, timeZone }) : wt('TBC');
 };
 
 /** The day under a fixture time: Today, Tomorrow or "Sat 11". */
 export const fixtureDay = (value?: string | null, timeZone = TZ) => {
     const date = parse(value);
-    if (!date) return 'Date to confirm';
+    if (!date) return wt('Date to confirm');
     const today = ymd(new Date()), day = ymd(date);
-    if (day === today) return 'Today';
-    if (day === ymd(new Date(Date.now() + 86_400_000))) return 'Tomorrow';
+    if (day === today) return wt('Today');
+    if (day === ymd(new Date(Date.now() + 86_400_000))) return wt('Tomorrow');
     return date.toLocaleDateString(appLocale(), { weekday: 'short', day: 'numeric', timeZone });
 };
 
@@ -56,6 +57,8 @@ export const sentence = (value?: string | null) => {
     const text = value.replace(/_/g, ' ').toLowerCase();
     return text.charAt(0).toUpperCase() + text.slice(1);
 };
+/** An API code (age group, position, level) in words, in the current language: "SENIOR" → "Senior". */
+export const codeLabel = (value?: string | null) => value ? wt(sentence(value)) : '';
 
 export const CLUB_TYPE_LABEL: Record<string, string> = {
     PROFESSIONAL: 'Professional club', SEMI_PROFESSIONAL: 'Semi-professional club', AMATEUR: 'Amateur club',
@@ -69,7 +72,7 @@ export const JOIN_POLICY: Record<ClubJoinPolicy, { label: string; tone: BadgeTon
     INVITE_ONLY: { label: 'Invite only', tone: 'neutral' },
 };
 
-export const plural = (count: number, one: string, other = `${one}s`) => `${count.toLocaleString(appLocale())} ${count === 1 ? one : other}`;
-
 /** "800 m away", "2.6 km away". */
-export const distanceLabel = (km: number) => km < 1 ? `${Math.max(100, Math.round(km * 10) * 100)} m away` : `${km.toLocaleString(appLocale(), { maximumFractionDigits: km < 10 ? 1 : 0 })} km away`;
+export const distanceLabel = (km: number) => km < 1
+    ? wt('{distance} m away', { distance: Math.max(100, Math.round(km * 10) * 100) })
+    : wt('{distance} km away', { distance: km.toLocaleString(appLocale(), { maximumFractionDigits: km < 10 ? 1 : 0 }) });

@@ -19,7 +19,7 @@ export function AdmissionFrame({ title, description, children, back, tabs, activ
     const tabPath = (id: string) => { const next = new URLSearchParams(params); if (id === 'overview') next.delete('tab'); else next.set('tab', id); return `${location.pathname}${next.size ? '?' + next : ''}`; };
     const destinations = [
         { path: '/admissions', label: copy('Joining football', 'ფეხბურთში მონაწილეობა'), Icon: LayoutDashboard, active: location.pathname.startsWith('/admissions') },
-        { path: '/world/opportunities?type=groups', label: copy('Find groups', 'ჯგუფების მოძებნა'), Icon: MapPin, active: location.pathname === '/world/opportunities' },
+        { path: '/world/opportunities?tab=groups', label: copy('Find groups', 'ჯგუფების მოძებნა'), Icon: MapPin, active: location.pathname === '/world/opportunities' },
         { path: '/parent', label: copy('Parent Hub', 'მშობლის სივრცე'), Icon: HeartHandshake, active: location.pathname === '/parent' },
     ];
     return <main className="admission-applicant admission-workspace">

@@ -4,8 +4,10 @@ import { searchTryouts, type TryoutPosting } from '../../tryouts/api';
 import { searchOpportunities } from '../../admissions/api';
 import type { DiscoveryQuery, Participant } from '../../admissions/types';
 import { postingLabel } from '../../tryouts/tryoutCopy';
-import { first, type DirectorySource } from '../directory/types';
+import { wt } from '../copy';
+import { first, type DirectorySource, type RememberedChoice } from '../directory/types';
 import { GroupItem, JobItem, TrialItem, type GroupResult } from './opportunityItems';
+import { clubScope } from './scopes';
 
 // The open-role list is one request; keep it briefly so paging and refining don't refetch it.
 // It is shared between searches, so it is never cancelled by one of them.
@@ -28,7 +30,7 @@ export const jobs: DirectorySource<ClubJob> = {
     pageSize: PAGE,
     filters: [
         { kind: 'choice', key: 'engagement', label: 'Terms', primary: true, allLabel: 'All roles', options: [{ value: 'PAID', label: 'Paid' }, { value: 'VOLUNTEER', label: 'Volunteering' }, { value: 'FLEXIBLE', label: 'Paid or volunteer' }] },
-        { kind: 'scope', key: 'clubId', label: 'One club' },
+        clubScope('clubId'),
         { kind: 'choice', key: 'category', label: 'Football role', allLabel: 'Any football role', options: CATEGORIES.filter(item => item.value !== 'ALL').map(({ value, label }) => ({ value, label })) },
         { kind: 'text', key: 'country', label: 'Country', placeholder: 'Any country' },
         { kind: 'text', key: 'city', label: 'City', placeholder: 'Any city' },
@@ -67,7 +69,7 @@ export const trials: DirectorySource<TryoutPosting> = {
     pageSize: PAGE,
     filters: [
         { kind: 'choice', key: 'status', label: 'Applications', primary: true, fallback: 'OPEN', options: [{ value: 'OPEN', label: 'Open now' }, { value: 'ALL', label: 'All published' }] },
-        { kind: 'scope', key: 'clubId', label: 'One club' },
+        clubScope('clubId'),
         { kind: 'text', key: 'location', label: 'Place', placeholder: 'City or ground' },
         { kind: 'date', key: 'from', label: 'From' },
         { kind: 'date', key: 'to', label: 'Until' },
@@ -87,12 +89,13 @@ const birthYearOf = (participant?: Participant) => participant?.dateOfBirth ? Nu
 
 /**
  * Training groups taking players. A parent can search for one of their children: the child's
- * birth year and category then decide which groups fit, and the choice follows them to the group.
+ * birth year and category then decide which groups fit, and the choice follows them to the group
+ * and to other World pages (`remember`).
  */
-export function groupsSource(participants: Participant[]): DirectorySource<GroupResult> {
+export function groupsSource(participants: Participant[], remember?: RememberedChoice): DirectorySource<GroupResult> {
     // Offered to parents: someone searching only for themselves needs no choice here.
     const playerFilter = participants.some(p => p.minor)
-        ? [{ kind: 'choice' as const, key: 'player', label: 'Searching for', primary: true, allLabel: 'Anyone', options: participants.map(p => ({ value: String(p.id), label: p.minor ? p.name : `${p.name} (you)` })) }]
+        ? [{ kind: 'choice' as const, key: 'player', label: 'Searching for', primary: true, allLabel: 'Anyone', remember, options: participants.map(p => ({ value: String(p.id), label: p.minor ? p.name : wt('{name} (you)', { name: p.name }) })) }]
         : [];
     const chosen = (value: string) => participants.find(p => String(p.id) === value);
     return {
@@ -108,7 +111,7 @@ export function groupsSource(participants: Participant[]): DirectorySource<Group
             ...playerFilter,
             { kind: 'toggle', key: 'beginner', label: 'Beginners welcome', primary: true },
             { kind: 'choice', key: 'gender', label: 'Category', primary: true, allLabel: 'Everyone', when: query => !chosen(first(query, 'player'))?.gender, options: [{ value: 'MALE', label: 'Boys and men' }, { value: 'FEMALE', label: 'Girls and women' }] },
-            { kind: 'scope', key: 'club', label: 'One club' },
+            clubScope('club'),
             { kind: 'scope', key: 'organization', label: 'One organisation' },
             { kind: 'text', key: 'birthYear', label: 'Player’s birth year', placeholder: 'For example 2015', when: query => !chosen(first(query, 'player')) },
             { kind: 'choice', key: 'method', label: 'How to join', allLabel: 'Any way', options: [{ value: 'DIRECT', label: 'Join directly' }, { value: 'INTRODUCTION', label: 'Introductory session first' }, { value: 'SELECTIVE', label: 'Selection' }] },

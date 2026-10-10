@@ -332,9 +332,9 @@ export function MainLayout() {
             <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
             <Route path="/requests" element={<ProtectedRoute><RequestsCentre /></ProtectedRoute>} />
             <Route path="/events" element={<WorldRedirect to="/world/matches" set={{ tab: 'events' }} />} />
-            <Route path="/tryouts" element={<WorldRedirect to="/world/opportunities" set={{ type: 'trials' }} />} />
+            <Route path="/tryouts" element={<WorldRedirect to="/world/opportunities" set={{ tab: 'trials' }} />} />
             <Route path="/tryouts/:tryoutId" element={<TryoutDetailPage />} />
-            <Route path="/admissions/opportunities" element={<WorldRedirect to="/world/opportunities" set={{ type: 'groups' }} />} />
+            <Route path="/admissions/opportunities" element={<WorldRedirect to="/world/opportunities" set={{ tab: 'groups' }} />} />
             <Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage />} />
             <Route path="/admissions/cases/:caseId" element={<ProtectedRoute><AdmissionCasePage /></ProtectedRoute>} />
             <Route path="/admissions" element={<ProtectedRoute><AdmissionHomePage /></ProtectedRoute>} />
@@ -381,7 +381,7 @@ export function MainLayout() {
             <Route path="/stadiums/:organizationId/manage" element={<ProtectedRoute><StadiumWorkspacePage /></ProtectedRoute>} />
             <Route path="/store/products/:id" element={<StoreProductPage />} />
             <Route path="/store/cart" element={<StoreCartPage />} />
-            {ROLE_DIRECTORY_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<WorldRedirect to="/world/opportunities" rename={{ search: 'q' }} set={{ type: 'jobs' }} />} />)}
+            {ROLE_DIRECTORY_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<WorldRedirect to="/world/opportunities" rename={{ search: 'q' }} set={{ tab: 'jobs' }} detail={{ key: 'job', path: '/jobs' }} />} />)}
             {ROLE_DETAIL_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<JobDetailPage />} />)}
             <Route path="/campaigns" element={<CampaignsPage />} />
             <Route path="/campaigns/:id" element={<CampaignDetailPage />} />

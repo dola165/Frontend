@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from 'react';
 import { BadgeCheck, CalendarDays, Flag, LandPlot, Shield, Trophy } from 'lucide-react';
 import { Badge, Button, EmptyNote, List, ListRow, Skeleton } from '../../../../design/primitives';
-import { plural } from '../../format';
+import { plural } from '../../copy';
 import { SORTS, type ExploreQuery, type PlaceTone } from './exploreQuery';
 import { distanceLabel, typeLabel, type PlaceRecord } from './records';
 import type { Discovery } from './useDiscovery';

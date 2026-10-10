@@ -10,6 +10,7 @@ import { RecordDocuments } from './RecordDocuments';
 import { statusTone, transitionStyle } from './records/recordStatus';
 import { Dialog } from '../../design/Dialog';
 import './records/records.css';
+import { formatDate } from '../../utils/formatting';
 
 /** One record: its facts, the actions its current status allows, supporting documents and history. */
 export function RecordDetail({ club, boot, record, definition, backLabel, onEdit, onChanged, onClose }: { club: number; boot: Bootstrap; record: OperationRecord; definition: Definition; backLabel: string; onEdit: () => void; onChanged: () => Promise<void>; onClose: () => void }) {
@@ -34,7 +35,7 @@ export function RecordDetail({ club, boot, record, definition, backLabel, onEdit
     ...(record.event_id ? [['Event', boot.events.find(e => e.id === record.event_id)?.title ?? 'Past or unavailable event'] as [string, string]] : []),
     ...(record.session_id ? [['Training session', boot.sessions.find(e => e.id === record.session_id)?.title ?? 'Past or unavailable session'] as [string, string]] : []),
     ...(record.related_record_id ? [['Linked record', boot.links.find(l => l.id === record.related_record_id)?.title ?? 'Archived record'] as [string, string]] : []),
-    ...(record.due_on ? [['Next action or review', record.due_on.slice(0, 10)] as [string, string]] : []),
+    ...(record.due_on ? [['Next action or review', formatDate(record.due_on.slice(0, 10))] as [string, string]] : []),
     ...definition.fields.filter(f => record.data[f.key]).map(f => [fieldLabel(f), f.type === 'urls'
       ? <div className="rec-photos">{record.data[f.key].split(/\r?\n/).filter(Boolean).map(url => <MediaImage key={url} src={resolveMediaUrl(url)} alt="Facility photo" />)}</div>
       : reviewValue(f, record.data[f.key], boot), ['textarea', 'urls'].includes(f.type)] as [string, ReactNode, boolean]),

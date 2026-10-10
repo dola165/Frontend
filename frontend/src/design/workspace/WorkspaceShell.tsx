@@ -2,7 +2,7 @@ import './workspace-shell.css';
 import { useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
-import { ArrowLeft, ChevronDown, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Menu, MoreHorizontal, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { Avatar, GkRoot } from '../primitives';
 import { useDialogFocus } from '../../components/workspace/useDialogFocus';
 import { useCopy } from '../../locales/useCopy';
@@ -129,6 +129,9 @@ export function WorkspaceShell({ label, context, primary, pinned = [], groups, m
                     </button>
                     <div id={`gk-ws-more-${storageKey}`} hidden={!moreOpen}>{more.map(group => renderGroup(group, 'more'))}</div>
                 </div>}
+                {/* Collapsed to icons, the rest of the tools are one tap away: it opens the rail at "More tools". */}
+                {more.length > 0 && collapsed && <ul className="gk-ws__items"><li><button type="button" className="gk-ws__item" title={copy('moreTools')}
+                    onClick={() => { toggleCollapsed(); setToggled(previous => ({ ...previous, 'gk-ws-more': true })); }}><MoreHorizontal aria-hidden="true" /><span className="gk-ws__item-label">{copy('moreTools')}</span></button></li></ul>}
                 {footer.length > 0 && <ul className="gk-ws__items gk-ws__items--footer">{footer.map(renderItem)}</ul>}
             </nav>
             <button type="button" className="gk-ws__collapse" onClick={toggleCollapsed} aria-pressed={collapsed} title={collapsed ? copy('expandNavigation') : undefined}>

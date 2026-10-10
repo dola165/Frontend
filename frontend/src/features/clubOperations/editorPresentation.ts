@@ -1,4 +1,5 @@
 import { label, type Field, type Definition, type Bootstrap } from './api';
+import { formatDate, formatDateTime } from '../../utils/formatting';
 
 const explanations: Record<string,string> = {
   FACILITY:'Add a playing venue or a supporting facility. Save a draft, then publish its visitor information. Rental bookings are managed separately by the venue operator.',
@@ -44,7 +45,7 @@ const help: Record<string,string> = {
   currency:'Currency used for every amount on this record.', dueOn:'Optional reminder for the next action or review; this is not an event time.',
   startsAt:'Shown in your current local timezone.', endsAt:'Must be after the start time.',
 };
-export const fieldHelp = (kind:string,key:string) => key==='description' && kind!=='FACILITY' ? 'Describe what happened and relevant facts. Access follows the permissions for this record.' : key==='contact' && kind!=='FACILITY' ? 'Contact details needed for this record.' : help[key];
+export const fieldHelp = (kind:string,key:string) => key==='collectedBy' && kind==='ATTENDANCE' ? 'Check the collection authorisation before you record who collected the player.' : key==='description' && kind!=='FACILITY' ? 'Describe what happened and relevant facts. Access follows the permissions for this record.' : key==='contact' && kind!=='FACILITY' ? 'Contact details needed for this record.' : help[key];
 export const fieldLabel = (f:Field) => ({photos:'Photos',venueId:'Existing venue',collectionReference:'Collection authorisation',permissionReference:'Guardian permission',requirementsReference:'Competition requirements'} as Record<string,string>)[f.key] ?? f.label;
 const groups = [
   {title:'Dates & times', description:'When this applies and when it needs to be reviewed.', keys:['startsAt','endsAt','startsOn','endsOn','issuedOn','expiresOn','reviewOn','reviewedOn','checkedOn','departureAt','returnAt']},
@@ -61,6 +62,7 @@ export function reviewValue(f:Field,value:string,boot:Bootstrap) {
   if(f.key==='venueId') return boot.venues.find(v=>String(v.id)===value)?.name ?? 'Previously linked venue';
   if(['collectionReference','permissionReference','requirementsReference'].includes(f.key)) return boot.links.find(v=>String(v.id)===value)?.title ?? 'Previously linked record';
   if(f.type==='choice') return label(value);
-  if(f.type==='datetime') return new Date(value).toLocaleString();
+  if(f.type==='datetime') return formatDateTime(value);
+  if(f.type==='date') return formatDate(value);
   return value;
 }

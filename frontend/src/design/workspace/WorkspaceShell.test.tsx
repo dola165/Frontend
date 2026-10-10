@@ -6,11 +6,11 @@ import { WorkspaceShell } from './WorkspaceShell';
 
 function Where() { const location = useLocation(); return <output aria-label="Location">{location.pathname}</output>; }
 
-const renderShell = (guard?: (proceed: () => void) => void, onSelect = vi.fn()) => render(<MemoryRouter initialEntries={['/clubs/1/workspace']}>
+const renderShell = (guard?: (proceed: () => void) => void, onSelect = vi.fn(), more: { id: string; label: string; items: { id: string; label: string; icon: typeof Home }[] }[] = []) => render(<MemoryRouter initialEntries={['/clubs/1/workspace']}>
     <Routes><Route path="*" element={<>
         <WorkspaceShell label="Club workspace" storageKey="test" guard={guard} context={{ name: 'Test FC', back: { label: 'Club page', to: '/clubs/1' } }}
             primary={[{ id: 'overview', label: 'Overview', icon: Home }]} groups={[{ id: 'people', label: 'People', items: [{ id: 'players', label: 'Players', icon: Users, count: 3 }] }]}
-            active="overview" onSelect={onSelect} sectionTitle="Overview">
+            more={more} active="overview" onSelect={onSelect} sectionTitle="Overview">
             <p>Page content</p>
         </WorkspaceShell>
         <Where />
@@ -54,5 +54,13 @@ describe('WorkspaceShell', () => {
         fireEvent.click(screen.getByRole('button', { name: /Players/ }));
         expect(onSelect).toHaveBeenCalledWith('players');
         expect(screen.getByLabelText('3 waiting')).toBeInTheDocument();
+    });
+
+    it('keeps the remaining tools one tap away when the rail is collapsed to icons', () => {
+        renderShell(undefined, vi.fn(), [{ id: 'business', label: 'Club business', items: [{ id: 'store', label: 'Store', icon: Users }] }]);
+        fireEvent.click(screen.getByRole('button', { name: 'Collapse' }));
+        fireEvent.click(screen.getByRole('button', { name: 'More tools' }));
+        expect(screen.getByRole('button', { name: 'Collapse' })).toHaveAttribute('aria-pressed', 'false');
+        expect(screen.getByRole('button', { name: 'Store' })).toBeVisible();
     });
 });

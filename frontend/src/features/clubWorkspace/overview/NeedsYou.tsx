@@ -54,14 +54,18 @@ export function NeedsYou({ clubId, overview, roles, squads, canManageOperations,
     });
     if (consentRows.length > 3) items.push({ key: 'consent-more', title: copy('needMoreConsent', { count: consentRows.length - 3 }), meta: copy('consentHint'), badge: copy('consentMissing'), tone: 'warning', rank: 2, open: () => openPlayers('ALL') });
     const consentNote = consent.result ? (consent.result.reviewed >= consent.result.total ? copy('consentComplete') : copy('consentPartial', { reviewed: consent.result.reviewed, total: consent.result.total })) : null;
+    // Club deadlines assigned to someone else stay visible to leadership, after the person's own work.
+    let others = 0;
     for (const record of work.rows) {
         const due = dueLabel(record.attentionDate ?? record.due_on, now, isFinished(record.status));
         const overdue = Boolean(record.expired || due?.overdue);
         const squad = record.squad_id ? roles?.squads.find(s => s.id === record.squad_id)?.name : null;
+        const colleague = Boolean(roles && record.assigned_user_id && record.assigned_user_id !== roles.actorId);
+        if (colleague) others += 1;
         items.push({
             key: `record-${record.id}`, title: record.title,
-            meta: [moduleNames[record.module], squad ?? (record.squad_id ? null : copy('clubWide')), label(record.status)].filter(Boolean).join(' · '),
-            badge: record.expired ? copy('badgeExpired') : due?.label ?? label(record.status), tone: overdue ? 'danger' : 'neutral', rank: overdue ? 0 : 2,
+            meta: [moduleNames[record.module], squad ?? (record.squad_id ? null : copy('clubWide')), label(record.status), colleague ? copy('withColleague') : null].filter(Boolean).join(' · '),
+            badge: record.expired ? copy('badgeExpired') : due?.label ?? label(record.status), tone: overdue ? 'danger' : 'neutral', rank: (overdue ? 0 : 2) + (colleague ? 0.5 : 0),
             date: record.attentionDate ?? record.due_on,
             open: () => onOpen(operationTab(record.module), { record: String(record.id), ...(record.squad_id ? { squad: String(record.squad_id) } : {}) }),
         });
@@ -75,7 +79,7 @@ export function NeedsYou({ clubId, overview, roles, squads, canManageOperations,
     else if (!items.length && !work.error) body = <EmptyNote title={copy('needsEmpty')}>{copy('needsEmptyHint')}</EmptyNote>;
     else body = <List label={copy('needsYou')}>{shown.map(item => <ListRow key={item.key} onClick={item.open} title={item.title} meta={item.meta} trail={<Badge tone={item.tone}>{item.badge}</Badge>} />)}</List>;
 
-    return <Section className={className} title={copy('needsYou')} hint={items.length ? copy('waiting', { count: items.length }) : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('actions')}>{copy('workQueue')}</button>}>
+    return <Section className={className} title={copy('needsYou')} hint={items.length ? others ? copy('waitingSplit', { count: items.length - others, others }) : copy('waiting', { count: items.length }) : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('actions')}>{copy('workQueue')}</button>}>
         <Panel flush footer={hidden > 0 ? <button type="button" className="cw-text-button" onClick={() => onOpen('actions')}>{copy('moreInQueue', { count: hidden })}</button> : undefined}>
             {work.error && <div className="cw-panel-notice"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{work.error}</span><Button size="sm" onClick={work.retry}>{copy('retry')}</Button></div></div>}
             {body}

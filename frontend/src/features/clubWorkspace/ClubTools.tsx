@@ -14,12 +14,12 @@ import type { AuthSessionId } from '../../utils/authStorage';
 import { CampaignsTab } from '../../components/workspace/tabs/CampaignsTab';
 import { InboxTab } from '../../components/workspace/tabs/InboxTab';
 import { JobsTab } from '../../components/workspace/tabs/JobsTab';
-import { PlayerCardsTab } from '../../components/workspace/tabs/PlayerCardsTab';
 import { RolesTab } from '../../components/workspace/tabs/RolesTab';
 import { StoreTab } from '../../components/workspace/tabs/StoreTab';
 import { Button, PageFrame, PageHeader } from '../../design/primitives';
 import type { ClubMembership } from './useClubMembership';
 import { PlayersPage } from './players/PlayersPage';
+import { PlayerCardsPage } from './players/PlayerCardsPage';
 import { ApplicationsPage } from './recruitment/ApplicationsPage';
 import { TryoutsPage } from './recruitment/TryoutsPage';
 import type { useClubInbox } from './useClubInbox';
@@ -96,7 +96,7 @@ export function ClubTools(ctx: ClubToolsContext) {
         case 'jobs': return <JobsTab clubId={clubId} pendingKey={m.pendingKey} currentUserId={ctx.currentUserId} canReviewAllApplications={can.leadership} />;
         case 'store': return can.leadership ? <StoreTab key={clubId} clubId={clubId} /> : null;
         case 'campaigns': return can.leadership ? <CampaignsTab key={clubId} clubId={clubId} /> : null;
-        case 'player-cards': return <PlayerCardsTab clubId={clubId} setParentError={m.setErrorMessage} setParentSuccess={m.setSuccessMessage} />;
+        case 'player-cards': return <PlayerCardsPage clubId={clubId} setParentError={m.setErrorMessage} setParentSuccess={m.setSuccessMessage} />;
         case 'tryouts': return <>
             {ctx.focusedApplicationId != null && focusNote(!m.tryouts.loading && !m.tryouts.applicants.some(a => a.id === ctx.focusedApplicationId) ? 'This application is unavailable or you no longer have access.' : 'Showing the application from your notification.')}
             <TryoutsPage clubId={clubId} tryoutApplicants={ctx.focusedApplicationId != null ? m.tryouts.applicants.filter(a => a.id === ctx.focusedApplicationId) : m.tryouts.applicants}

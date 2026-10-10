@@ -35,7 +35,7 @@ import '../features/clubWorkspace/club-workspace.css';
 
 const NO_VIEWS: RoleView[] = [];
 // Tools already built on the design system bring their own page frame.
-const FRAMED_TOOLS = new Set<WorkspaceTab>(['roles', 'inbox', 'players', 'personnel', 'invites', 'admissions', 'applications', 'tryouts']);
+const FRAMED_TOOLS = new Set<WorkspaceTab>(['roles', 'inbox', 'players', 'personnel', 'invites', 'admissions', 'applications', 'tryouts', 'player-cards']);
 // Context that belongs to one tool and must not follow the person to another.
 const TOOL_CONTEXT = ['applicationId', 'case', 'caseId', 'admissionView', 'admissionGroup', 'record', 'approach', 'squad', 'session', 'person', 'kind', 'q', 'mine', 'state', 'view', 'playerSearch', 'position', 'return', 'from', 'hub', 'section', 'page', 'intake'];
 

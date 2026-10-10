@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { useMap } from 'react-map-gl/maplibre';
-import { Layers3, LocateFixed, Loader2, Minus, Plus, RotateCcw } from 'lucide-react';
-import { Button } from '../../../../design/primitives';
+import { Expand, Layers3, LocateFixed, Loader2, Minus, Plus, RotateCcw } from 'lucide-react';
+import { Button, ButtonLink } from '../../../../design/primitives';
 import { Segmented } from '../../../../design/Tabs';
 import { usePersistedState } from '../../../../utils/usePersistedState';
 import { reducedMotion } from './useMapTheme';
@@ -9,8 +9,8 @@ import './canvas.css';
 
 type Projection = 'flat' | 'globe';
 
-/** Zoom, your location and the map view (globe, tilt, rotation), as keyboard-reachable buttons. */
-export function MapControls({ onLocate, locating = false, showView = true }: { onLocate?: () => void; locating?: boolean; showView?: boolean }) {
+/** Zoom, your location and the map view (globe, tilt, rotation), as keyboard-reachable buttons. A contained map can link to the full one. */
+export function MapControls({ onLocate, locating = false, showView = true, fullMap }: { onLocate?: () => void; locating?: boolean; showView?: boolean; fullMap?: string }) {
     const { current: map } = useMap();
     const [open, setOpen] = useState(false);
     const [projection, setProjection] = usePersistedState<Projection>('map.projection', 'flat');
@@ -38,6 +38,7 @@ export function MapControls({ onLocate, locating = false, showView = true }: { o
                     {locating ? <Loader2 className="gk-spin" aria-hidden="true" /> : <LocateFixed aria-hidden="true" />}
                 </Button>
             )}
+            {fullMap && <ButtonLink iconOnly variant="secondary" to={fullMap} aria-label="Open the full map" title="Open the full map"><Expand aria-hidden="true" /></ButtonLink>}
             {showView && (
                 <div className="gk-map-controls__view">
                     <Button iconOnly variant="secondary" aria-label="Map view" title="Map view" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(value => !value)}><Layers3 aria-hidden="true" /></Button>

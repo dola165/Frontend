@@ -21,7 +21,7 @@ import './map-view.css';
  * The World map: a full-height canvas with search, results and the selected place beside it
  * (a bottom sheet on phones). `embedded` is the contained guest version used on the landing page.
  */
-export function WorldMapView({ signedIn, embedded = false, allowed = LAYERS.map(layer => layer.id) }: { signedIn: boolean; embedded?: boolean; allowed?: LayerId[] }) {
+export function WorldMapView({ signedIn, embedded = false, allowed = LAYERS.map(layer => layer.id), fullMap }: { signedIn: boolean; embedded?: boolean; allowed?: LayerId[]; /** A contained map's link to the full map. */ fullMap?: string }) {
     const mapRef = useRef<MapRef | null>(null);
     const phone = usePhoneLayout();
     const theme = useAppTheme();
@@ -59,7 +59,7 @@ export function WorldMapView({ signedIn, embedded = false, allowed = LAYERS.map(
                 }}>
                 {palette && !planning && <ExploreLayers explore={explore} palette={palette} />}
                 {palette && planning && <PlannerLayers planner={planner} palette={palette} />}
-                <div className="gk-map-controls-slot"><MapControls onLocate={explore.locate} locating={walking.locating} showView={!embedded} /></div>
+                <div className="gk-map-controls-slot"><MapControls onLocate={explore.locate} locating={walking.locating} showView={!embedded} fullMap={fullMap} /></div>
             </MapCanvas>}
             {planning ? <PlannerPanel planner={planner} /> : <ExplorePanel explore={explore} phone={phone} allowed={allowed} planHref={planHref} embedded={embedded}
                 onSave={signedIn && !embedded ? record => planner.save(record) : undefined} />}

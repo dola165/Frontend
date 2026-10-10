@@ -345,44 +345,6 @@
   color: var(--text-secondary);
   background: var(--bg-inset);
 }
-.venue-directory-hero {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  background: var(--color-cyan);
-  border: 1px solid var(--color-accent);
-  border-radius: 18px;
-  color: var(--color-on-accent);
-  padding: 35px 38px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  min-height: 220px;
-}
-.venue-directory-hero .venue-eyebrow {
-  color: var(--color-muted);
-}
-.venue-directory-hero > div:first-child {
-  max-width: 660px;
-  position: relative;
-  z-index: 2;
-}
-.venue-directory-hero h1 {
-  font-size: clamp(32px, 3.3vw, 49px);
-}
-.venue-directory-hero p:not(.venue-eyebrow) {
-  max-width: 480px;
-  font-size: 14px;
-  line-height: 1.7;
-  margin-top: 16px;
-  color: var(--color-muted);
-}
-.venue-directory-hero > .venue-button {
-  position: relative;
-  z-index: 2;
-  align-self: flex-start;
-}
 .venue-pitch-lines {
   position: absolute;
   right: 70px;
@@ -424,35 +386,6 @@
   width: 90px;
   height: 90px;
 }
-.venue-filter-toolbar {
-  display: flex;
-  justify-content: space-between;
-  gap: 15px;
-  align-items: center;
-  padding-top: 16px;
-}
-.venue-filter-toolbar p {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-.venue-card {
-  min-width: 0;
-  border: 1px solid var(--border-subtle);
-  border-radius: 13px;
-  overflow: hidden;
-  background: var(--bg-elevated);
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
-}
-.venue-card:hover,
-.venue-card.is-selected {
-  border-color: var(--venue-accent);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-shadow) 3.14%, transparent);
-}
 .venue-photo-placeholder {
   width: 100%;
   height: 100%;
@@ -487,11 +420,6 @@
   display: flex;
   align-items: center;
   gap: 5px;
-}
-.venue-card h3 {
-  font-size: 17px;
-  margin: 6px 0 13px;
-  line-height: 1.35;
 }
 .venue-map {
   width: 100%;
@@ -1298,17 +1226,6 @@
   }
 }
 @media (max-width: 800px) {
-  .venue-directory-hero {
-    padding: 28px;
-    align-items: flex-start;
-    flex-direction: column;
-  }
-  .venue-directory-hero > .venue-button {
-    align-self: auto;
-  }
-  .venue-directory-hero p:not(.venue-eyebrow) {
-    max-width: 95%;
-  }
   .venue-profile-details,
   .venue-booking-layout,
   .venue-editor {
@@ -1400,47 +1317,9 @@
   .venue-page h2 {
     font-size: 21px;
   }
-  .venue-directory-hero {
-    padding: 27px 23px;
-    border-radius: 13px;
-    min-height: 270px;
-  }
-  .venue-directory-hero h1 {
-    font-size: 37px;
-  }
   .venue-eyebrow {
     font-size: 9px;
     letter-spacing: 1.5px;
-  }
-  .venue-directory-hero p:not(.venue-eyebrow) {
-    font-size: 13px;
-  }
-  
-  
-  
-  
-  .venue-filter-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  
-  
-  
-  
-  
-  
-  
-  .venue-card h3 {
-    font-size: 15px;
-  }
-  .venue-card .venue-tags {
-    gap: 4px;
-  }
-  .venue-card .venue-tags span {
-    font-size: 9px;
-    padding: 4px 6px;
   }
   
   
@@ -1639,9 +1518,6 @@
 }
 
 /* Stadium discovery uses the same Opportunities rhythm, with pitch-specific filters. */
-@media(max-width:1050px) { .venue-directory-body{grid-template-columns:210px minmax(0,1fr);gap:18px;} .venue-directory .venue-discovery-layout.with-map{display:flex;flex-direction:column-reverse;} .venue-directory .venue-discovery-map{position:relative;top:0;height:380px;} }
-@media(max-width:700px) { .venue-directory{padding:24px 16px;} .venue-directory-heading{align-items:flex-start;flex-direction:column;gap:16px;} .venue-directory-search{align-items:stretch;flex-direction:column;gap:8px;} .venue-directory-body{grid-template-columns:minmax(0,1fr);} .venue-directory .venue-search-main,.venue-directory .venue-extra-filters.is-open{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));} .venue-directory .venue-search-main > .venue-field:first-child{grid-column:auto;} .venue-directory .venue-extra-filters > .venue-field:nth-child(3){grid-column:auto;} .venue-directory .venue-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));} }
-@media(max-width:440px) { .venue-directory .venue-card-grid{grid-template-columns:minmax(0,1fr);} }
 
 /* A focused booking journey, separate from the venue's photo and information page. */
 .venue-booking-page { max-width: 1160px; }

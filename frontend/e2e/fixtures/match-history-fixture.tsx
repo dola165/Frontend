@@ -3,12 +3,15 @@ import { createInstance } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { apiClient } from '../../src/api/axiosConfig';
-import { MatchHistoryPage } from '../../src/pages/MatchHistoryPage';
+import { GkRoot, PageFrame } from '../../src/design/primitives';
+import { DirectoryPage } from '../../src/features/world/directory/DirectoryPage';
+import { fixtures } from '../../src/features/world/directories/matchSources';
 import { MatchResultSection } from '../../src/features/matchExchange/MatchResultSection';
 import type { Match, MatchResultState, ResultSuggestion } from '../../src/features/matchExchange/api';
 import type { HistoryMatch } from '../../src/features/matchHistory/api';
 import '../../src/index.css';
 import '../../src/styles/product-identity.css';
+import '../../src/features/world/world.css';
 
 if (!import.meta.env.DEV || !['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)) throw new Error('Local fixture only');
 const params = new URLSearchParams(location.search), language = params.get('lang') === 'ka' ? 'ka' : 'en';
@@ -26,7 +29,8 @@ apiClient.interceptors.request.clear(); apiClient.interceptors.response.clear();
 apiClient.defaults.adapter = async config => {
   const path = config.url ?? '', body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
   let data: unknown;
-  if (path === '/match-history/import/options') data = { clubs: params.has('import') ? [{ id: 1, name: 'Tbilisi Football Academy', squads: [{ id: 7, name: 'Under 16' }] }] : [] };
+  if (path === '/match-exchange/squads') data = [];
+  else if (path === '/match-history/import/options') data = { clubs: params.has('import') ? [{ id: 1, name: 'Tbilisi Football Academy', squads: [{ id: 7, name: 'Under 16' }] }] : [] };
   else if (path === '/clubs') data = { content: [{ id: 2, name: 'Black Sea Juniors', city: 'Batumi' }], totalElements: 1 };
   else if (path === '/match-history/import') data = { eventId: 99, detailPath: '/calendar?eventId=99', resultStatus: 'RECORDED', historicalImport: true, homeScore: body.homeScore, awayScore: body.awayScore };
   else if (path.startsWith('/match-history?')) {
@@ -47,4 +51,4 @@ apiClient.defaults.adapter = async config => {
 };
 const root = createRoot(document.getElementById('root')!);
 if (import.meta.hot) import.meta.hot.dispose(() => root.unmount());
-root.render(<I18nextProvider i18n={i18n}><MemoryRouter initialEntries={[detail ? '/match-exchange/12' : '/match-history']}><Routes><Route path="/match-history" element={<MatchHistoryPage />} /><Route path="/match-exchange/12" element={<main className="mx-page" style={{ maxWidth: 800 }}><header className="mh-hero"><div><span className="mx-eyebrow">LOCAL REVIEW FIXTURE</span><h1>U16 autumn friendly</h1><p>Tbilisi Football Academy · Black Sea Juniors</p></div></header><div className="mx-stack"><MatchResultSection match={match} reload={() => {}} /></div></main>} /><Route path="*" element={<main className="mx-page">Local review destination</main>} /></Routes></MemoryRouter></I18nextProvider>);
+root.render(<I18nextProvider i18n={i18n}><MemoryRouter initialEntries={[detail ? '/match-exchange/12' : '/world/matches?period=HISTORY']}><Routes><Route path="/world/matches" element={<GkRoot className="gk-page gk-world"><PageFrame><DirectoryPage title="Matches" subtitle="Local review fixture: World › Matches, fixtures and results" sources={[fixtures]} /></PageFrame></GkRoot>} /><Route path="/match-exchange/12" element={<main className="mx-page" style={{ maxWidth: 800 }}><header><div><span className="mx-eyebrow">LOCAL REVIEW FIXTURE</span><h1>U16 autumn friendly</h1><p>Tbilisi Football Academy · Black Sea Juniors</p></div></header><div className="mx-stack"><MatchResultSection match={match} reload={() => {}} /></div></main>} /><Route path="*" element={<main className="mx-page">Local review destination</main>} /></Routes></MemoryRouter></I18nextProvider>);

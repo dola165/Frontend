@@ -25,7 +25,6 @@ import type {
     TournamentTieContest,
     TournamentTieDecision,
     TournamentTieState,
-    TournamentSummary,
     UpdateEntryStatusPayload,
     UpdateDraftTeamPayload,
     UpdateEntrySquadPayload,
@@ -157,11 +156,6 @@ export const reopenFixture = async (tournamentId: number, fixtureId: number) => 
     return response.data;
 };
 
-export const fetchTournaments = async (params?: { page?: number; size?: number; scope?: string; visibility?: string; status?: string; search?: string; dateFrom?: string; dateTo?: string }) => {
-    const response = await apiClient.get<PageResult<TournamentSummary>>('/tournaments', { params });
-    return response.data;
-};
-
 export const fetchTournamentInvitations = async (tournamentId: number) => {
     const response = await apiClient.get<TournamentInvitationDto[]>(`/tournaments/${tournamentId}/invitations`);
     return response.data;
@@ -237,17 +231,8 @@ export const replaceEntry = async (tournamentId: number, fixtureId: number, payl
     return response.data;
 };
 
-export const fetchTournamentDiscovery = async () =>
-    (await apiClient.get<import('./domain').TournamentDiscoveryOverview>('/tournaments/overview')).data;
-
 export const fetchTournamentHosts = async (params: { page: number; size: number; search?: string; following?: boolean }) =>
     (await apiClient.get<PageResult<import('./domain').TournamentHost>>('/tournaments/hosts', { params })).data;
-
-export const fetchHostTournaments = async (params: { kind: 'CLUB' | 'ORGANIZATION'; id: number; page: number; size: number }) =>
-    (await apiClient.get<PageResult<TournamentSummary>>('/tournaments/host-tournaments', { params })).data;
-
-export const fetchTournamentHost = async (kind: 'CLUB' | 'ORGANIZATION', id: number) =>
-    (await apiClient.get<import('./domain').TournamentHost>('/tournaments/host', { params: { kind, id } })).data;
 
 export const setTournamentHostFollow = async (kind: 'CLUB' | 'ORGANIZATION', id: number, following: boolean) =>
     (await apiClient.put<{ following: boolean }>(`/tournaments/hosts/${kind}/${id}/follow`, { following })).data;

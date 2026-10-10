@@ -4,7 +4,7 @@ import { Link, MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom
 import i18n from '../../i18n';
 import { TournamentSetupPage } from '../TournamentSetupPage';
 import { CreateOrganizationPage } from '../CreateOrganizationPage';
-import { fetchMyOrganizations, fetchTournamentHostClubs, fetchTournaments,fetchTournamentDiscovery } from '../../features/tournaments/api';
+import { fetchMyOrganizations, fetchTournamentHostClubs } from '../../features/tournaments/api';
 import { useAuth } from '../../context/AuthContext';
 import type { MyOrganization, TournamentDetail } from '../../features/tournaments/domain';
 import type { TournamentSetupDraft } from '../../features/tournaments/setupDraft';
@@ -18,7 +18,7 @@ vi.mock('../../features/organizations/activities/api', () => ({ getInvitations: 
 
 vi.mock('../../features/tournaments/api', () => ({
     createCompetition: vi.fn(), fetchMyOrganizations: vi.fn(),
-    fetchTournamentHostClubs: vi.fn(), fetchTournaments: vi.fn(), fetchTournamentDiscovery:vi.fn().mockResolvedValue({highlights:[],followedHosts:[],suggestedHosts:[],shelves:[]}), registerPlayer: vi.fn(),
+    fetchTournamentHostClubs: vi.fn(), registerPlayer: vi.fn(),
 }));
 import {createCompetition} from '../../features/competitions/api';
 vi.mock('../../features/competitions/api',async importOriginal=>{const actual=await importOriginal<typeof import('../../features/competitions/api')>();return {...actual,createCompetition:vi.fn(),defaultRules:()=>({...actual.defaultRules(),ruleset:'Published organiser rules for adult football',seasonPolicy:'This single event retains historical results; withdrawals reviewed by organiser.'})};});
@@ -73,8 +73,6 @@ describe('Organization and tournament creation', () => {
         vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true, user: { id: 17, role: 'FAN' }, refreshNavigationCapabilities: vi.fn().mockResolvedValue(undefined) } as unknown as ReturnType<typeof useAuth>);
         vi.mocked(fetchMyOrganizations).mockImplementation(async () => [...organizations]);
         vi.mocked(fetchTournamentHostClubs).mockResolvedValue([]);
-        vi.mocked(fetchTournamentDiscovery).mockResolvedValue({highlights:[],followedHosts:[],suggestedHosts:[],shelves:[]});
-        vi.mocked(fetchTournaments).mockResolvedValue({ content: [], pageNumber: 0, pageSize: 12, totalPages: 1, totalElements: 0 });
         vi.mocked(apiClient.post).mockImplementation(async (_path, payload) => {
             const body = payload as { displayName: string; organizationType: MyOrganization['primaryKind'] };
             organizations.push({ ...organization(42), displayName: body.displayName, kinds: [body.organizationType!], primaryKind: body.organizationType });

@@ -119,7 +119,7 @@ createRoot(document.getElementById('root')!).render(
         </header>}
         <MemoryRouter initialEntries={[startPath]}>
             <Routes>
-                <Route path="/jobs" element={<JobsDirectoryPage previewMockMode={scenario === 'demo'} />} />
+                <Route path="/jobs" element={<JobsDirectoryPage fixedClubId={7} clubName="Riverside Football Academy" previewMockMode={scenario === 'demo'} />} />
                 <Route path="/jobs/:id" element={<JobDetailPage previewAuth={{ status: anonymous ? 'anonymous' : 'authenticated', user: anonymous ? null : { id: 55 } }} />} />
                 <Route path="*" element={<main className="store-page jobs-page"><p>This destination is outside the isolated fixture.</p></main>} />
             </Routes>

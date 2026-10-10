@@ -39,8 +39,8 @@ export default async function globalSetup() {
                 throw new Error(`No mock E2E persona is registered for ${role.email}.`);
             }
 
-            await page.goto(`${BASE_URL}/clubs`);
-            await page.getByRole('heading', { name: /club directory/i }).waitFor({ state: 'visible', timeout: 15000 });
+            await page.goto(`${BASE_URL}/world/clubs`);
+            await page.getByRole('heading', { name: 'Clubs', exact: true }).waitFor({ state: 'visible', timeout: 15000 });
             const tokenPayload = Buffer.from(JSON.stringify({
                 sub: persona.id,
                 role: persona.role,

@@ -3,6 +3,7 @@ import { MapPin, Search, SlidersHorizontal, X } from 'lucide-react';
 import { geocodePlace, type GeocodeResult } from '../../../../api/map';
 import { searchRank } from '../../../../components/map/areaSearch';
 import { Button, Chip } from '../../../../design/primitives';
+import { useWorldCopy } from '../../copy';
 import { LAYERS, type ExploreQuery, type LayerId } from './exploreQuery';
 import { typeLabel, type PlaceRecord } from './records';
 
@@ -29,6 +30,7 @@ export function SearchBar({ query, records, allowed, filtersOpen, onFilters, onP
     query: ExploreQuery; records: PlaceRecord[]; allowed: LayerId[]; filtersOpen: boolean; onFilters: () => void;
     onPick: (record: PlaceRecord) => void; onArea: (area: GeocodeResult) => void; compact?: boolean;
 }) {
+    const t = useWorldCopy();
     const [draft, setDraft] = useState(query.q);
     const [open, setOpen] = useState(false);
     const [active, setActive] = useState(0);
@@ -44,11 +46,11 @@ export function SearchBar({ query, records, allowed, filtersOpen, onFilters, onP
         const matches = records.filter(record => searchRank(record.searchText, text) > 0)
             .sort((a, b) => searchRank(b.title, text) - searchRank(a.title, text)).slice(0, 5);
         return [
-            { id: 'search', label: `Search for “${text}”`, meta: 'In the places on this map', kind: 'search' as const },
+            { id: 'search', label: t('Search for “{text}”', { text }), meta: t('In the places on this map'), kind: 'search' as const },
             ...matches.map(record => ({ id: record.key, label: record.title, meta: [typeLabel(record), record.city].filter(Boolean).join(' · '), kind: 'place' as const, record })),
-            ...areas.map(area => ({ id: `area:${area.name}`, label: area.name, meta: area.type === 'CITY' ? 'Go to this city' : 'Go to this country', kind: 'area' as const, area })),
+            ...areas.map(area => ({ id: `area:${area.name}`, label: area.name, meta: area.type === 'CITY' ? t('Go to this city') : t('Go to this country'), kind: 'area' as const, area })),
         ];
-    }, [draft, records, areas]);
+    }, [draft, records, areas, t]);
     const choose = (item: Suggestion | undefined) => {
         setOpen(false);
         if (!item || item.kind === 'search') { query.setQ(draft); return; }
@@ -68,18 +70,18 @@ export function SearchBar({ query, records, allowed, filtersOpen, onFilters, onP
             <div className="gk-map-search__row">
                 <span className="gk-search gk-map-search__field">
                     <Search aria-hidden="true" />
-                    <input className="gk-input" type="search" role="combobox" aria-label="Search the map" placeholder="Search the map"
+                    <input className="gk-input" type="search" role="combobox" aria-label={t('Search the map')} placeholder={t('Search the map')}
                         aria-expanded={showList} aria-controls={listId} aria-autocomplete="list" aria-activedescendant={showList ? `${listId}-${active}` : undefined}
                         value={draft} maxLength={120} onFocus={() => setOpen(true)}
                         onChange={event => { setDraft(event.target.value); setOpen(true); setActive(0); if (!event.target.value && query.q) query.setQ(''); }} onKeyDown={onKey} />
-                    {draft && <button type="button" className="gk-map-search__clear" aria-label="Clear search" onClick={() => { setDraft(''); query.setQ(''); }}><X aria-hidden="true" /></button>}
+                    {draft && <button type="button" className="gk-map-search__clear" aria-label={t('Clear search')} onClick={() => { setDraft(''); query.setQ(''); }}><X aria-hidden="true" /></button>}
                 </span>
-                <Button variant={filtersOpen || filterCount ? 'secondary' : 'ghost'} iconOnly={compact} aria-expanded={filtersOpen} aria-label={compact ? `Filters${filterCount ? `, ${filterCount} on` : ''}` : undefined} onClick={onFilters} className="gk-map-search__filters">
-                    <SlidersHorizontal aria-hidden="true" />{!compact && 'Filters'}{filterCount > 0 && <span className="gk-count">{filterCount}</span>}
+                <Button variant={filtersOpen || filterCount ? 'secondary' : 'ghost'} iconOnly={compact} aria-expanded={filtersOpen} aria-label={compact ? `${t('Filters')}${filterCount ? `, ${t('{count} on', { count: filterCount })}` : ''}` : undefined} onClick={onFilters} className="gk-map-search__filters">
+                    <SlidersHorizontal aria-hidden="true" />{!compact && t('Filters')}{filterCount > 0 && <span className="gk-count">{filterCount}</span>}
                 </Button>
             </div>
             {showList && (
-                <ul className="gk-map-suggest" role="listbox" id={listId} aria-label="Suggestions">
+                <ul className="gk-map-suggest" role="listbox" id={listId} aria-label={t('Suggestions')}>
                     {suggestions.map((item, index) => (
                         <li key={item.id} id={`${listId}-${index}`} role="option" aria-selected={index === active}
                             onMouseDown={event => event.preventDefault()} onClick={() => choose(item)} onMouseEnter={() => setActive(index)}>
@@ -90,10 +92,10 @@ export function SearchBar({ query, records, allowed, filtersOpen, onFilters, onP
                 </ul>
             )}
             {allowed.length > 1 && (
-                <div className="gk-chips gk-map-layers" role="group" aria-label="Show on the map">
+                <div className="gk-chips gk-map-layers" role="group" aria-label={t('Show on the map')}>
                     {LAYERS.filter(layer => allowed.includes(layer.id)).map(layer => (
                         <Chip key={layer.id} pressed={query.layers.includes(layer.id)} onClick={() => query.toggleLayer(layer.id)}>
-                            <span className="gk-map-dot" data-tone={layer.tone} aria-hidden="true" />{layer.label}
+                            <span className="gk-map-dot" data-tone={layer.tone} aria-hidden="true" />{t(layer.label)}
                         </Chip>
                     ))}
                 </div>

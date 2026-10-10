@@ -362,12 +362,6 @@ export interface TournamentHost {
     tournamentCount: number;
     following: boolean;
 }
-export interface TournamentDiscoveryOverview {
-    highlights: TournamentSummary[];
-    followedHosts: TournamentHost[];
-    suggestedHosts: TournamentHost[];
-    shelves: { scope: TournamentParticipantScope; tournaments: TournamentSummary[]; total: number }[];
-}
 
 export type TournamentInvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
 

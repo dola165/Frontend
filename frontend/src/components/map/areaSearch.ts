@@ -6,9 +6,6 @@ export const REGION_BOUNDS: MapBounds = { west: -180, south: -90, east: 180, nor
 export function coverageBounds(coverage: SearchCoverage, area: MapBounds | null) {
     return coverage === 'region' ? REGION_BOUNDS : coverage === 'area' ? area ?? undefined : undefined;
 }
-export function coverageLabel(coverage: SearchCoverage, radius: number, region: string) {
-    return coverage === 'area' ? 'Searched map area' : coverage === 'region' ? `All of ${region}` : `Within ${radius} km`;
-}
 export function containsPoint(bounds: MapBounds, latitude: number, longitude: number) {
     const lng = ((longitude + 180) % 360 + 360) % 360 - 180;
     return latitude >= bounds.south && latitude <= bounds.north && (bounds.west <= bounds.east

@@ -3,6 +3,7 @@ import { Layer, Marker, Source, useMap } from 'react-map-gl/maplibre';
 import type { ExpressionSpecification, GeoJSONSource, MapLayerMouseEvent } from 'maplibre-gl';
 import type { PlacePalette } from './useMapTheme';
 import { reducedMotion } from './useMapTheme';
+import { wt } from '../../copy';
 import './canvas.css';
 
 export interface MapPlace { key: string; latitude: number; longitude: number; title: string; tone: 'club' | 'venue' | 'match' | 'trial' | 'competition' }
@@ -96,7 +97,7 @@ export function PlacesLayer({ places, palette, selectedKey, hoveredKey, onSelect
             {clusters.map(cluster => (
                 <Marker key={cluster.id} longitude={cluster.longitude} latitude={cluster.latitude} anchor="center">
                     <button type="button" className="gk-map-cluster" data-size={cluster.count >= 50 ? 'lg' : cluster.count >= 10 ? 'md' : 'sm'}
-                        aria-label={`${cluster.count} places here. Zoom in`} onClick={event => { event.stopPropagation(); zoomInto(cluster); }}>
+                        aria-label={wt('{count} places here. Zoom in', { count: cluster.count })} onClick={event => { event.stopPropagation(); zoomInto(cluster); }}>
                         {cluster.count > 99 ? '99+' : cluster.count}
                     </button>
                 </Marker>

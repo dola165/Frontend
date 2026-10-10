@@ -52,6 +52,27 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, view:
         return () => controller.abort();
     }, [key, attempt, source.label]);
 
+    // A live list reloads what is on screen in the background; a failed refresh keeps the last results.
+    const refresh = useEffectEvent((signal: AbortSignal) => {
+        if (!key || !loaded || loaded.key !== key || loaded.error || (more?.key === key && more.busy)) return;
+        void loadPages(source, query, loaded.page + 1, { signal, sessionId, authenticated })
+            .then(result => { if (!signal.aborted) setLoaded(previous => previous && previous.key === key ? { ...previous, items: result.items, total: result.total, hasMore: result.hasMore, page: result.page, notice: result.notice ?? '' } : previous); })
+            .catch(() => undefined);
+    });
+    useEffect(() => {
+        if (!key || !source.refreshMs) return;
+        let controller: AbortController | null = null;
+        const run = () => {
+            if (document.visibilityState === 'hidden') return;
+            controller?.abort();
+            controller = new AbortController();
+            refresh(controller.signal);
+        };
+        const timer = window.setInterval(run, source.refreshMs);
+        window.addEventListener('focus', run);
+        return () => { window.clearInterval(timer); window.removeEventListener('focus', run); controller?.abort(); };
+    }, [key, source.refreshMs]);
+
     const current = loaded && loaded.key === key && loaded.attempt === attempt ? loaded : undefined;
     const loadMore = () => {
         if (!current || !key || (more?.key === key && more.busy)) return;

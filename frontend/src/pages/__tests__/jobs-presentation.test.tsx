@@ -1,5 +1,5 @@
 import { apiClient } from '../../api/axiosConfig';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { JobsDirectoryPage } from '../JobsDirectoryPage';
@@ -48,7 +48,7 @@ function LocationProbe() {
 const renderDirectory = () => render(
     <MemoryRouter initialEntries={['/jobs']}>
         <LocationProbe />
-        <JobsDirectoryPage />
+        <JobsDirectoryPage fixedClubId={7} clubName="Tbilisi United" />
     </MemoryRouter>,
 );
 
@@ -70,20 +70,18 @@ beforeEach(() => {
 });
 
 describe('football opportunities presentation', () => {
-    it('keeps role discovery in the compact opportunities navigation', async () => {
+    it('keeps the club role list in the compact opportunities navigation', async () => {
         renderDirectory();
         await screen.findByRole('link', { name: /Academy coach Tbilisi United/ });
-        expect(screen.getByRole('navigation', { name: 'Opportunities' })).toBeVisible();
-        expect(screen.getByRole('link', { name: /Roles/ })).toHaveAttribute('aria-current', 'page');
-        expect(screen.getByRole('button', { name: 'Browse coaching roles' })).toBeVisible();
+        const navigation = within(screen.getByRole('navigation', { name: 'Browse and return' }));
+        expect(navigation.getByRole('link', { name: 'Back to club opportunities' })).toHaveAttribute('href', '/clubs/7?tab=business');
+        expect(navigation.getByRole('link', { name: 'Browse all roles' })).toHaveAttribute('href', '/jobs');
         expect(screen.queryByRole('button', { name: /Apply.*referee/i })).not.toBeInTheDocument();
     });
 
-    it('routes coaching discovery through the supported category and keeps engagement meaning visible', async () => {
+    it('keeps engagement meaning visible beside the club roles', async () => {
         renderDirectory();
         await screen.findByRole('link', { name: /Academy coach Tbilisi United/ });
-        fireEvent.click(screen.getByRole('button', { name: 'Browse coaching roles' }));
-        await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/jobs?category=COACHING'));
         const engagementGuide = within(screen.getByLabelText('Volunteer shifts availability'));
         expect(engagementGuide.getByText('Paid role')).toBeVisible();
         expect(engagementGuide.getByText('Ongoing volunteer role')).toBeVisible();
@@ -112,6 +110,6 @@ describe('football opportunities presentation', () => {
         locale.value = 'ka';
         renderDirectory();
         expect(await screen.findByRole('link', { name: /Academy coach Tbilisi United/ })).toBeVisible();
-        expect(screen.getByRole('button', { name: 'მწვრთნელის როლების ნახვა' })).toBeVisible();
+        expect(screen.getByLabelText('Volunteer shifts availability')).not.toHaveTextContent('Paid role');
     });
 });

@@ -4,6 +4,7 @@ import { distanceKm, type Coordinate } from '../../../../components/map/walkingG
 import type { Opportunity } from '../../../admissions/types';
 import { matchesOpportunity } from '../../../admissions/applicant/mapMatching';
 import type { MapFilters, MapTimeWindow } from './discoveryFilters';
+import { wt } from '../../copy';
 import { layerOf, type PlaceTone } from './exploreQuery';
 
 /** One place on the map: a club, venue, fixture, trial, competition or a training group at its venue. */
@@ -110,14 +111,15 @@ export function sortRecords(records: PlaceRecord[], mode: MapFilters['sortBy'], 
 
 export const distanceLabel = (km: number | null) => km == null ? null : km < 1 ? `${Math.round(km * 1000)} m` : `${km < 10 ? km.toFixed(1) : Math.round(km)} km`;
 
+/** What kind of place it is, in the current language. */
 export const typeLabel = (record: PlaceRecord) => {
-    if (record.opportunity) return 'Training group';
+    if (record.opportunity) return wt('Training group');
     switch (record.entityType) {
-        case 'CLUB': return record.subtitle || 'Club';
-        case 'STADIUM': return 'Venue';
-        case 'TRYOUT': return 'Trial';
-        case 'MATCH': return record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Match';
-        case 'TOURNAMENT': return 'Competition';
-        default: return 'Place';
+        case 'CLUB': return wt(record.subtitle || 'Club');
+        case 'STADIUM': return wt('Venue');
+        case 'TRYOUT': return wt('Trial');
+        case 'MATCH': return wt(record.matchSubtype === 'FRIENDLY' ? 'Friendly' : 'Match');
+        case 'TOURNAMENT': return wt('Competition');
+        default: return wt('Place');
     }
 };

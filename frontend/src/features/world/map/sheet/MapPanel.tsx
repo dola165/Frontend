@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { usePhoneLayout, type SheetSnap } from './usePhoneLayout';
+import { useWorldCopy } from '../../copy';
 import './sheet.css';
 
 const ORDER: SheetSnap[] = ['peek', 'half', 'full'];
@@ -13,6 +14,7 @@ export function MapPanel({ label, variant = 'floating', header, children, footer
     label: string; variant?: 'floating' | 'docked'; header?: ReactNode; children: ReactNode; footer?: ReactNode;
     snap: SheetSnap; onSnap: (snap: SheetSnap) => void; collapsed?: boolean; className?: string;
 }) {
+    const t = useWorldCopy();
     const phone = usePhoneLayout();
     const sheet = useRef<HTMLElement>(null);
     const drag = useRef<{ y: number; start: number; height: number; moved: boolean } | null>(null);
@@ -54,7 +56,7 @@ export function MapPanel({ label, variant = 'floating', header, children, footer
     };
     return (
         <section ref={sheet} className={`gk-map-sheet${className ? ` ${className}` : ''}`} aria-label={label} data-snap={snap} style={offset != null ? { top: offset, transition: 'none' } : undefined}>
-            <button type="button" className="gk-map-sheet__handle" aria-label={snap === 'full' ? `Shrink ${label.toLowerCase()}` : `Expand ${label.toLowerCase()}`}
+            <button type="button" className="gk-map-sheet__handle" aria-label={snap === 'full' ? t('Shrink {panel}', { panel: label.toLowerCase() }) : t('Expand {panel}', { panel: label.toLowerCase() })}
                 onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { drag.current = null; setOffset(null); }}
                 onKeyDown={event => { if (event.key === 'ArrowUp') { event.preventDefault(); onSnap(snap === 'peek' ? 'half' : 'full'); } if (event.key === 'ArrowDown') { event.preventDefault(); onSnap(snap === 'full' ? 'half' : 'peek'); } }}>
                 <span aria-hidden="true" />

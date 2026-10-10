@@ -1,10 +1,8 @@
-import { Badge, ListRow } from '../../../design/primitives';
-import { formats, type Referee } from '../../matchExchange/api';
-import { fetchPeople, fetchReferees, type PersonSummary } from '../api';
-import { useWorldCopy, wt } from '../copy';
-import { PersonRow } from '../rows';
-import { Crest } from '../Crest';
+import { formats } from '../../matchExchange/api';
+import { fetchPeople, fetchReferees } from '../api';
+import { wt } from '../copy';
 import { first, type DirectoryQuery, type DirectorySource, type FilterDef } from '../directory/types';
+import { PersonItemRow, type PersonItem } from './peopleItems';
 import { valueScope } from './scopes';
 
 const PAGE = 24;
@@ -14,25 +12,6 @@ const ROLES = [
     { value: 'COACH', label: 'Coaches' }, { value: 'PLAYER', label: 'Players' }, { value: 'REFEREE', label: 'Referees' },
     { value: 'AGENT', label: 'Agents' }, { value: 'SPECIALIST', label: 'Specialists' }, { value: 'CLUB_STAFF', label: 'Club staff' },
 ];
-
-export type PersonItem =
-    | { kind: 'person'; person: PersonSummary }
-    | { kind: 'referee'; referee: Referee };
-
-function PersonItemRow({ item }: { item: PersonItem }) {
-    const t = useWorldCopy();
-    if (item.kind === 'referee') {
-        const r = item.referee;
-        const terms = [r.accepts_paid && r.fee ? `${r.fee} ${r.currency}` : r.accepts_paid ? t('Paid') : null, r.accepts_volunteer ? t('Volunteer') : null].filter(Boolean).join(` ${t('or')} `);
-        return (
-            <ListRow to={`/referees/${r.user_id}`} lead={<Crest name={r.full_name} round size={40} />}
-                title={r.full_name}
-                meta={[r.qualifications, r.service_area && `${t('Covers {area}', { area: r.service_area })}${r.travel_km ? ` +${r.travel_km} km` : ''}`, r.formats && r.formats.split(',').map(code => t(formats[code.trim()] ?? code.trim())).join(', ')].filter(Boolean).join(' · ')}
-                trail={<>{terms && <span className="gk-world-row-note">{terms}</span>}<Badge tone="info">{t('Referee')}</Badge></>} />
-        );
-    }
-    return <PersonRow person={item.person} />;
-}
 
 const isReferee = (query: DirectoryQuery) => first(query, 'role') === 'REFEREE';
 const refereeFilters: FilterDef[] = [

@@ -18,7 +18,6 @@ import {
     UsersRound,
     X,
 } from 'lucide-react';
-import { DiscoverySectionTabs } from '../components/discovery/DiscoverySectionTabs';
 import { fetchOpenJobDirectory, type ClubJob } from '../features/clubs/api';
 import {
     CATEGORIES,
@@ -40,7 +39,6 @@ const filterNames: Record<string, string> = {
     level: 'Experience',
     country: 'Country',
     city: 'City',
-    clubId: 'Club',
 };
 const readChoice = (value: string | null, options: readonly { value: string }[]) =>
     options.some((o) => o.value === value) ? value! : 'ALL';
@@ -49,8 +47,12 @@ const timestamp = (value?: string | null) => {
     return Number.isFinite(n) ? n : 0;
 };
 
+/**
+ * A club's open roles, on its profile. The public list of every club's roles is World ›
+ * Opportunities; old `/jobs` links redirect there.
+ */
 export const JobsDirectoryPage = ({ fixedClubId, clubName, previewMockMode }: {
-    fixedClubId?: number;
+    fixedClubId: number;
     clubName?: string;
     previewMockMode?: boolean;
 }) => {
@@ -112,11 +114,7 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName, previewMockMode }: {
             else next.delete(key);
             if (key !== 'page' && key !== 'job') next.delete('page');
             if (key !== 'job') next.delete('job');
-            if (key === 'country') {
-                next.delete('city');
-                next.delete('clubId');
-            }
-            if (key === 'city') next.delete('clubId');
+            if (key === 'country') next.delete('city');
             return next;
         });
     const reset = () =>
@@ -131,8 +129,7 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName, previewMockMode }: {
     const search = params.get('search') ?? '',
         country = params.get('country') ?? '',
         city = params.get('city') ?? '';
-    const clubFilter = fixedClubId ?? (params.get('clubId') ? Number(params.get('clubId')) : undefined);
-    const scope = fixedClubId ? jobs.filter((job) => job.clubId === fixedClubId) : jobs;
+    const scope = jobs.filter((job) => job.clubId === fixedClubId);
     const countries = [
         ...new Set(scope.map((job) => job.clubCountryName).filter((v): v is string => !!v)),
     ].sort();
@@ -144,16 +141,6 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName, previewMockMode }: {
                 .filter((v): v is string => !!v),
         ),
     ].sort();
-    const clubs = [
-        ...new Map(
-            scope
-                .filter(
-                    (job) =>
-                        (!country || job.clubCountryName === country) && (!city || job.clubCityName === city),
-                )
-                .map((job) => [job.clubId, job]),
-        ).values(),
-    ];
     const ageOptions = [...new Set(scope.map((job) => job.ageGroup).filter((v): v is string => !!v))].sort();
     const levels = [...new Set(scope.map((job) => job.level).filter((v): v is string => !!v))].sort();
     const filtered = scope
@@ -170,7 +157,6 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName, previewMockMode }: {
             if (params.get('level') && job.level !== params.get('level')) return false;
             if ((country && country !== job.clubCountryName) || (city && city !== job.clubCityName))
                 return false;
-            if (clubFilter !== undefined && job.clubId !== clubFilter) return false;
             return (
                 !search.trim() ||
                 `${job.title} ${job.description ?? ''} ${job.clubName ?? ''} ${categoryLabel(job.category)}`
@@ -197,8 +183,6 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName, previewMockMode }: {
         if (key === 'category') return categoryLabel(value);
         if (key === 'engagement') return engagementLabel(value);
         if (key === 'posted') return postedOption(value ?? 'ALL');
-        if (key === 'clubId')
-            return jobs.find((job) => job.clubId === Number(value))?.clubName ?? 'Unavailable club';
         return value;
     };
     const choices = (key: string, options: readonly { value: string; label: string }[], value: string) =>
@@ -218,7 +202,6 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName, previewMockMode }: {
                         : postedOption(option.value)}
             </button>
         ));
-    const Surface = fixedClubId ? 'section' : 'main';
     const filterLabels: Record<string, string> = {
         search: copy('searchLabel'),
         category: copy('footballRole'),
@@ -228,22 +211,14 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName, previewMockMode }: {
         level: copy('experience'),
         country: copy('country'),
         city: copy('city'),
-        clubId: copy('club'),
     };
     return (
-        <Surface className={`store-page jobs-page ${fixedClubId ? 'jobs-embedded' : ''}`}>
-            {!fixedClubId && <DiscoverySectionTabs />}
+        <section className="store-page jobs-page jobs-embedded">
             <header className="store-heading jobs-heading">
                 <div>
                     <p className="store-eyebrow">{copy('eyebrow')}</p>
-                    <h1>
-                        {fixedClubId
-                            ? copy('clubTitle', { club: clubName ?? copy('club') })
-                            : copy('title')}
-                    </h1>
-                    <p className="store-subtitle">
-                        {copy(fixedClubId ? 'clubSubtitle' : 'subtitle')}
-                    </p>
+                    <h1>{copy('clubTitle', { club: clubName ?? copy('club') })}</h1>
+                    <p className="store-subtitle">{copy('clubSubtitle')}</p>
                 </div>
                 <button
                     className="store-cart-link jobs-refresh"
@@ -253,13 +228,8 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName, previewMockMode }: {
                     {copy('refresh')}
                 </button>
             </header>
-            {fixedClubId && <OpportunityNavigation section="jobs" clubId={fixedClubId}/>}
-            {!fixedClubId && <nav className="jobs-browse-shortcuts" aria-label={copy('browseByIntent')}>
-                <button type="button" className="jobs-text-link" onClick={() => change('category', 'COACHING')}><UsersRound size={17}/>{copy('coachingAction')}<ArrowRight size={14}/></button>
-                <button type="button" className="jobs-text-link" onClick={() => change('engagement', 'VOLUNTEER')}><HeartHandshake size={17}/>{copy('volunteerAction')}<ArrowRight size={14}/></button>
-                <button type="button" className="jobs-text-link" onClick={reset}><BriefcaseBusiness size={17}/>{copy('otherRolesAction')}<ArrowRight size={14}/></button>
-            </nav>}
-            <aside className={`jobs-engagement-guide ${fixedClubId ? 'is-embedded' : ''}`} aria-label="Volunteer shifts availability">
+            <OpportunityNavigation section="jobs" clubId={fixedClubId}/>
+            <aside className="jobs-engagement-guide is-embedded" aria-label="Volunteer shifts availability">
                 <div className="jobs-engagement-heading">
                     <span>{copy('engagementGuide')}</span>
                 </div>
@@ -414,22 +384,6 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName, previewMockMode }: {
                                         ))}
                                     </select>
                                 </label>
-                                {!fixedClubId && (
-                                    <label className="store-field">
-                                        {copy('club')}
-                                        <select
-                                            value={params.get('clubId') ?? ''}
-                                            onChange={(e) => change('clubId', e.target.value)}
-                                        >
-                                            <option value="">{copy('allClubs')}</option>
-                                            {clubs.map((job) => (
-                                                <option key={job.clubId} value={job.clubId ?? ''}>
-                                                    {job.clubName}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </label>
-                                )}
                             </div>
                         </details>
                     </div>
@@ -531,6 +485,6 @@ export const JobsDirectoryPage = ({ fixedClubId, clubName, previewMockMode }: {
                     )}
                 </section>
             </div>
-        </Surface>
+        </section>
     );
 };

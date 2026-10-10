@@ -4,14 +4,21 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { searchOpportunities } from '../../admissions/api';
 import type { Participant } from '../../admissions/types';
+import { apiClient } from '../../../api/axiosConfig';
 import { eventSearch } from '../../requests/api';
-import { groupsSource } from '../directories/opportunitySources';
-import { events } from '../directories/matchSources';
+import { competitions } from '../directories/competitionSources';
+import { groupsSource, jobs, trials } from '../directories/opportunitySources';
+import { arrangements, events, exchange, fixtures } from '../directories/matchSources';
+import { clubsSource } from '../directories/clubSources';
+import { peopleSource } from '../directories/peopleSource';
+import { quickStarts } from '../front/quickStarts';
 import { LegacyMatchesRedirect, WorldRedirect } from '../WorldRedirect';
-import type { DirectoryQuery, LoadContext } from '../directory/types';
+import { readQuery, useDirectoryState } from '../directory/useDirectoryState';
+import type { AnySource, DirectoryQuery, LoadContext } from '../directory/types';
 
-vi.mock('../../admissions/api', () => ({ searchOpportunities: vi.fn() }));
-vi.mock('../../requests/api', async original => ({ ...await original<typeof import('../../requests/api')>(), eventSearch: vi.fn() }));
+vi.mock('../../admissions/api', () => ({ searchOpportunities: vi.fn(), fetchAdmissionHome: vi.fn() }));
+vi.mock('../../requests/api', () => ({ eventSearch: vi.fn(), eventDestination: () => null }));
+vi.mock('../../../api/axiosConfig', () => ({ apiClient: { get: vi.fn() } }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ status: 'authenticated', sessionId: 'world', user: { id: 1, navigationCapabilities: undefined } }) }));
 
 const context: LoadContext = { signal: new AbortController().signal, sessionId: 'world', authenticated: true };
@@ -22,6 +29,7 @@ beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(searchOpportunities).mockResolvedValue({ items: [], total: 0, page: 0, size: 20, hasMore: false } as never);
     vi.mocked(eventSearch).mockResolvedValue({ items: [], total: 41, hasMore: true });
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { content: [], totalElements: 0, totalPages: 0 } });
 });
 
 it('searches training groups for the chosen child by birth year and category, keeping waiting lists optional', async () => {
@@ -41,6 +49,56 @@ it('asks the server for the requested page of events rather than filtering the f
     expect(page).toEqual({ items: [], total: 41, hasMore: true });
 });
 
+/** The outgoing competition search for a URL, through the same query reading the directory uses. */
+async function competitionParams(search: string) {
+    await competitions.load(readQuery(competitions, new URLSearchParams(search)).query, 0, context);
+    const url = String(vi.mocked(apiClient.get).mock.lastCall![0]);
+    expect(url.startsWith('/competitions?')).toBe(true);
+    return Object.fromEntries(new URLSearchParams(url.split('?')[1]));
+}
+
+it('sends a fee currency only with a fee to compare', async () => {
+    expect(await competitionParams('')).toEqual({ page: '0', size: '12' });
+    expect(await competitionParams('currency=USD&feeBasis=TEAM')).toEqual({ page: '0', size: '12' });
+    expect(await competitionParams('maxFee=50')).toEqual({ maxFee: '50', currency: 'GEL', page: '0', size: '12' });
+    expect(await competitionParams('minFee=10&currency=EUR&feeBasis=PLAYER')).toMatchObject({ minFee: '10', currency: 'EUR', feeBasis: 'PLAYER' });
+});
+
+it('sends a competition organiser, eligibility and a distance search as the server names them', async () => {
+    expect(await competitionParams('host=CLUB:4&eligibilityCategory=Girls&around=41.7,44.8')).toMatchObject({ hostKind: 'CLUB', hostId: '4', eligibilityCategory: 'Girls', latitude: '41.7', longitude: '44.8', radiusKm: '25' });
+    expect(await competitionParams('host=CLUB:abc')).not.toHaveProperty('hostKind');
+});
+
+function Opened({ sources, alias }: { sources: AnySource[]; alias?: string }) {
+    const state = useDirectoryState(sources, { tabAlias: alias });
+    return <p>{state.source.id}:{JSON.stringify(Object.fromEntries(Object.entries(state.query.values).filter(([, values]) => values.length)))}</p>;
+}
+const DIRECTORIES: Record<string, { sources: AnySource[]; alias?: string }> = {
+    '/world/clubs': { sources: [clubsSource({ children: [child], remember: { read: () => undefined, write: () => undefined } })] },
+    '/world/people': { sources: [peopleSource({ searchOnly: false })] },
+    '/world/matches': { sources: [fixtures, exchange, arrangements, events] },
+    '/world/opportunities': { sources: [jobs, trials, groupsSource([child])], alias: 'type' },
+    '/world/venues': { sources: [] },
+};
+
+it.each(quickStarts('Tbilisi', [child], child).filter(start => !start.to.startsWith('/world/venues')).map(start => [start.label, start.to]))('the quick start "%s" opens its intended tab and filters', (_label, to) => {
+    const url = new URL(to, 'http://world');
+    const directory = DIRECTORIES[url.pathname];
+    render(<MemoryRouter initialEntries={[to]}><Opened sources={directory.sources} alias={directory.alias} /></MemoryRouter>);
+    const [tab, values] = screen.getByText(/:/).textContent!.split(/:(.*)/s);
+    const wanted = url.searchParams.get('tab') ?? directory.sources[0].id;
+    expect(tab).toBe(wanted);
+    // Every filter in the link is one the opened tab applies.
+    const applied = JSON.parse(values) as Record<string, string[]>;
+    for (const [key, value] of url.searchParams) if (key !== 'tab') expect(applied[key]).toContain(value);
+});
+
+it('offers a parent the places to train and clubs for the chosen child first', () => {
+    const [places, clubs] = quickStarts('Tbilisi', [child], child);
+    expect(places).toMatchObject({ label: 'Places to train for {name}', name: 'Nino', to: '/world/opportunities?tab=groups&player=101' });
+    expect(clubs.to).toBe('/world/clubs?player=101&city=Tbilisi');
+});
+
 function Where() {
     const location = useLocation();
     return <p>{location.pathname}{location.search}{location.hash}</p>;
@@ -52,10 +110,14 @@ const visit = (path: string, element: ReactNode) => render(
 it.each([
     ['/matches', 'hub', '/world/matches'],
     ['/matches?section=find&tab=mine', 'hub', '/world/matches?tab=mine'],
+    ['/matches?section=fixtures', 'hub', '/world/matches?period=HISTORY'],
     ['/match-exchange?format=SEVEN_A_SIDE', 'exchange', '/world/matches?format=SEVEN_A_SIDE&tab=exchange'],
+    ['/match-exchange?lat=41.7&lng=44.8&radiusKm=50', 'exchange', '/world/matches?tab=exchange&around=41.7%2C44.8'],
     ['/match-exchange?tab=referees&q=gff', 'exchange', '/world/people?q=gff&role=REFEREE'],
     ['/match-history?clubId=1', 'history', '/world/matches?clubId=1&period=HISTORY'],
     ['/matches?section=competitions&view=hosts&kind=CLUB&host=4', 'hub', '/world/competitions?host=CLUB%3A4'],
+    ['/tournaments?hostKind=CLUB&hostId=4', 'competitions', '/world/competitions?host=CLUB%3A4'],
+    ['/tournaments?latitude=41.7&longitude=44.8&radiusKm=25', 'competitions', '/world/competitions?around=41.7%2C44.8'],
     ['/tournaments?view=invitations', 'competitions', '/world/competitions?tab=invitations'],
 ] as const)('sends %s to its World page', (path, kind, expected) => {
     visit(path, <LegacyMatchesRedirect kind={kind} />);
@@ -65,4 +127,12 @@ it.each([
 it('renames old club directory keys and keeps the rest of the search', () => {
     visit('/clubs?search=dinamo&type=ACADEMY', <WorldRedirect to="/world/clubs" rename={{ search: 'q' }} />);
     expect(screen.getByText('/world/clubs?type=ACADEMY&q=dinamo')).toBeInTheDocument();
+});
+
+it('opens the role an old jobs link selected, and the jobs tab otherwise', () => {
+    const jobsRedirect = <WorldRedirect to="/world/opportunities" rename={{ search: 'q' }} set={{ tab: 'jobs' }} detail={{ key: 'job', path: '/jobs' }} />;
+    visit('/jobs?job=5', jobsRedirect);
+    expect(screen.getByText('/jobs/5')).toBeInTheDocument();
+    visit('/roles?search=coach', jobsRedirect);
+    expect(screen.getByText('/world/opportunities?q=coach&tab=jobs')).toBeInTheDocument();
 });

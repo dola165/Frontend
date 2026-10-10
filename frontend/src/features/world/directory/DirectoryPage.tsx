@@ -16,10 +16,10 @@ export interface DirectoryExtraTab { id: string; label: string; personal?: boole
  * The World directory engine: one page shape for clubs, people, venues, matches, competitions
  * and opportunities. Each source supplies its loader, filters and item renderer.
  */
-export function DirectoryPage({ title, subtitle, sources: allSources, extraTabs = [], tabAlias, actions, above }: {
+export function DirectoryPage({ title, subtitle, sources: allSources, extraTabs = [], tabAlias, actions }: {
     title: string; subtitle: ReactNode; sources: AnySource[]; extraTabs?: DirectoryExtraTab[];
     /** An older name of the `tab` parameter that links may still use. */ tabAlias?: string;
-    actions?: ReactNode; /** Context shown above the tabs, such as who a parent is searching for. */ above?: ReactNode;
+    actions?: ReactNode;
 }) {
     const t = useWorldCopy();
     const { status } = useAuth();
@@ -34,7 +34,6 @@ export function DirectoryPage({ title, subtitle, sources: allSources, extraTabs 
     return (
         <div className="gk-world-directory">
             <PageHeader title={title} subtitle={subtitle} actions={actions} />
-            {above}
             {tabs.length > 1 && <Tabs label={title} value={extra?.id ?? state.source.id} onChange={id => { state.setTab(id); setResetKey(value => value + 1); }} items={tabs} />}
             {extra ? extra.element : <DirectoryBody key={`${state.source.id}:${resetKey}`} state={state} signedIn={signedIn} onReset={() => setResetKey(value => value + 1)} />}
         </div>

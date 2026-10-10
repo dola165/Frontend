@@ -16,8 +16,13 @@
 .gk .gk-world-filters__more > .gk-field:has(.gk-chips) { grid-column: 1 / -1; }
 .gk .gk-world-check { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 40px; font-size: var(--gk-fs-sm); font-weight: 500; cursor: pointer; }
 .gk .gk-world-check input { width: 18px; height: 18px; accent-color: var(--gk-accent); }
+.gk .gk-world-filters__note { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+/* The result whose pin is selected on the map beside the list. */
+.gk .gk-world-split .gk-list-row[aria-current='true'], .gk .gk-world-split .gk-fixture[aria-current='true'],
+.gk .gk-world-directory .gk-stack .gk-list-row[aria-current='true'], .gk .gk-world-directory .gk-stack .gk-fixture[aria-current='true'] { background: var(--gk-accent-soft); box-shadow: inset 3px 0 0 var(--gk-accent); }
 
 .gk .gk-world-summary { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); min-height: 32px; }
+.gk .gk-world-summary:has(> .gk-world-summary__count:empty):not(:has(button)) { display: none; }
 .gk .gk-world-summary__count { font-size: var(--gk-fs-sm); color: var(--gk-text-2); font-variant-numeric: tabular-nums; }
 
 /* Results */

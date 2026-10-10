@@ -21,6 +21,8 @@ export const fixtures: DirectorySource<HistoryMatch> = {
     layout: 'rows',
     pageSize: 24,
     signInReason: 'Fixtures and results are visible to signed-in members.',
+    // Scores and kick-off changes arrive without a reload, as on the old match history.
+    refreshMs: 30_000,
     filters: [
         { kind: 'choice', key: 'period', label: 'When', primary: true, fallback: 'UPCOMING', options: [{ value: 'UPCOMING', label: 'Upcoming' }, { value: 'HISTORY', label: 'Results' }, { value: 'NEEDS_RESULT', label: 'Needs a result', signedIn: true }] },
         { kind: 'choice', key: 'source', label: 'Kind of match', primary: true, allLabel: 'All matches', options: [{ value: 'TOURNAMENT', label: 'Competitions' }, { value: 'SCHEDULE', label: 'Club fixtures' }, { value: 'MATCH_EXCHANGE', label: 'Friendlies' }] },

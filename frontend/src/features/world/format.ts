@@ -1,7 +1,7 @@
 import type { BadgeTone } from '../../design/primitives';
 import type { ClubJoinPolicy } from '../../components/discovery/clubDirectoryTypes';
 import { appLocale } from '../../utils/formatting';
-import { wt } from './copy';
+import { isGeorgian, wt } from './copy';
 
 const TZ = 'Asia/Tbilisi';
 const ymd = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
@@ -76,3 +76,30 @@ export const JOIN_POLICY: Record<ClubJoinPolicy, { label: string; tone: BadgeTon
 export const distanceLabel = (km: number) => km < 1
     ? wt('{distance} m away', { distance: Math.max(100, Math.round(km * 10) * 100) })
     : wt('{distance} km away', { distance: km.toLocaleString(appLocale(), { maximumFractionDigits: km < 10 ? 1 : 0 }) });
+
+/** Existing two-language labels (en, ka) follow the World language. */
+export const bilingual = (en: string, ka: string) => (isGeorgian() ? ka : en);
+
+/** "Posted today", "Posted 3 days ago". */
+export function postedLabel(value?: string | null) {
+    const date = value ? new Date(value) : null;
+    if (!date || Number.isNaN(date.getTime())) return wt('Recently posted');
+    const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / 86_400_000));
+    return days === 0 ? wt('Posted today') : days === 1 ? wt('Posted yesterday') : wt('Posted {days} days ago', { days });
+}
+
+/** Who can enter a competition. */
+export const SCOPE_LABEL: Record<string, string> = { CLUB: 'Club teams', SQUAD: 'Squads', PLAYER: 'Individual players' };
+/** A competition's published status as a badge. */
+export const COMPETITION_STATUS: Record<string, { label: string; tone: BadgeTone }> = {
+    PLANNING: { label: 'Planning', tone: 'violet' }, ACTIVE: { label: 'In progress', tone: 'accent' }, COMPLETED: { label: 'Completed', tone: 'neutral' }, CANCELLED: { label: 'Cancelled', tone: 'danger' },
+};
+
+/** A date on the fixture line: the day number over the month, or "to confirm". */
+export function dateColumn(value?: string | null) {
+    const start = value ? new Date(value) : null;
+    const valid = Boolean(start && !Number.isNaN(start.getTime()));
+    return valid
+        ? { time: start!.toLocaleDateString(appLocale(), { day: 'numeric' }), day: start!.toLocaleDateString(appLocale(), { month: 'short' }) }
+        : { time: wt('TBC'), day: wt('Dates to confirm') };
+}

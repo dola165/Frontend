@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import type { MapRef } from 'react-map-gl/maplibre';
 import { toast } from 'sonner';
 import type { GeocodeResult, MapMarkerDto } from '../../../../api/map';
-import { coverageLabel, type MapBounds } from '../../../../components/map/areaSearch';
+import type { MapBounds } from '../../../../components/map/areaSearch';
+import { wt } from '../../copy';
 import { isLeadershipRole } from '../../../clubs/domain';
 import { fetchOpportunity } from '../../../admissions/api';
 import type { Opportunity } from '../../../admissions/types';
@@ -77,7 +78,7 @@ export function useExplore({ mapRef, active, allowed, signedIn, phone, viewSize,
             if (controller.signal.aborted) return;
             setPinnedGroups(list => [...list.filter(item => item.id !== o.id), o]);
             if (o.location.latitude != null && o.location.longitude != null) focus(o.location.latitude, o.location.longitude);
-        }).catch(cause => { if (!controller.signal.aborted) toast.error(extractApiErrorMessage(cause, 'This group could not be loaded.')); });
+        }).catch(cause => { if (!controller.signal.aborted) toast.error(extractApiErrorMessage(cause, wt('This group could not be loaded.'))); });
         return () => controller.abort();
     }, [opportunityId, focus]);
     const placeKey = query.place ?? (query.venueId ? `stadium:${query.venueId}` : query.opportunityId ? `opportunity:${query.opportunityId}` : null);
@@ -108,7 +109,7 @@ export function useExplore({ mapRef, active, allowed, signedIn, phone, viewSize,
         query, applicant, walking, discovery, filters, selected, placeKey, venue, hovered, setHovered, responding, setResponding, canRespond, membership,
         surface: shownSurface, setSurface, collapsed, setCollapsed, snap, setSnap, moved, setMoved, center: start, centerReady: Boolean(center), signedIn,
         setMapReady,
-        coverage: coverageLabel(query.coverage.kind, query.coverage.kind === 'radius' ? query.coverage.km : 0, regionName),
+        coverage: query.coverage.kind === 'area' ? wt('Searched map area') : query.coverage.kind === 'region' ? wt('All of {region}', { region: regionName }) : wt('Within {km} km', { km: query.coverage.km }),
         open: (record: PlaceRecord, fromMap = false) => {
             framed.current = record.key;
             walking.stop(); query.select(record.key, record); setSurface('place'); setCollapsed(false);

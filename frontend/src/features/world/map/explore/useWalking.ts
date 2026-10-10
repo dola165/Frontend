@@ -3,6 +3,7 @@ import type { MapRef } from 'react-map-gl/maplibre';
 import { loadWalkingRoute } from '../../../../components/map/walkingRoutes';
 import type { Coordinate, WalkingRoute } from '../../../../components/map/walkingGraph';
 import { reducedMotion } from '../canvas/useMapTheme';
+import { wt } from '../../copy';
 
 export interface WalkTarget { key: string; title: string; latitude: number; longitude: number }
 
@@ -50,13 +51,13 @@ export function useWalking(mapRef: RefObject<MapRef | null>, autoLocate: boolean
             const lngs = path.map(point => point[0]), lats = path.map(point => point[1]);
             mapRef.current?.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 72, maxZoom: 16, duration: reducedMotion() ? 0 : 500 });
         } catch (cause) {
-            if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Walking route unavailable.');
+            if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : wt('Walking route unavailable.'));
         } finally {
             if (!controller.signal.aborted) setLoading(false);
         }
     };
     const locate = (then?: (point: Coordinate) => void) => {
-        if (!navigator.geolocation) { setLocationError('Location is unavailable here. Choose a point on the map instead.'); return; }
+        if (!navigator.geolocation) { setLocationError(wt('Location is unavailable here. Choose a point on the map instead.')); return; }
         const ticket = ++locateRequest.current;
         setLocating(true); setLocationError('');
         navigator.geolocation.getCurrentPosition(position => {
@@ -66,7 +67,7 @@ export function useWalking(mapRef: RefObject<MapRef | null>, autoLocate: boolean
         }, failure => {
             if (ticket !== locateRequest.current) return;
             setLocating(false);
-            setLocationError(failure.code === 1 ? 'Location access is off. Allow it in your browser, or choose a point on the map.' : 'Your location could not be found. Try again or choose a point on the map.');
+            setLocationError(failure.code === 1 ? wt('Location access is off. Allow it in your browser, or choose a point on the map.') : wt('Your location could not be found. Try again or choose a point on the map.'));
         }, { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true });
     };
     const stop = () => { request.current?.abort(); setTarget(null); setRoute(null); setPicking(false); setLoading(false); setError(''); };

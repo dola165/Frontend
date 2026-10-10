@@ -23,8 +23,8 @@ test.beforeEach(async ({ page }, testInfo) => {
     // The first public navigation lets the browser worker claim the context;
     // logging in through the mock API then establishes both the browser token
     // and the worker-side session before the actual smoke destination boots.
-    await page.goto('/clubs');
-    await expect(page.getByRole('heading', { name: /club directory/i })).toBeVisible({ timeout: 15000 });
+    await page.goto('/world/clubs');
+    await expect(page.getByRole('heading', { name: 'Clubs', exact: true })).toBeVisible({ timeout: 15000 });
 
     const titlePath = testInfo.titlePath.join(' ').toLowerCase();
     const email = titlePath.includes('system admin') ? adminEmail : titlePath.includes('— player') ? playerEmail : leaderEmail;
@@ -99,9 +99,10 @@ test.describe('Talanti smoke flows — leader', () => {
     test('organizer sees the full map category set', async ({ page }) => {
         test.skip(!leaderEmail || !leaderPassword, 'Seeded leader credentials are required for this smoke flow.');
 
-        await page.goto('/map');
-        await expect(page.getByRole('button', { name: /^Matches$/i })).toBeVisible();
-        await expect(page.getByRole('button', { name: /^Tournaments$/i })).toBeVisible();
+        await page.goto('/world/map');
+        const layers = page.getByRole('group', { name: 'Show on the map' });
+        await expect(layers.getByRole('button', { name: /^Matches$/i })).toBeVisible();
+        await expect(layers.getByRole('button', { name: /^Competitions$/i })).toBeVisible();
     });
 
     test('calendar opens past events read-only with a complete action', async ({ page }) => {
@@ -162,14 +163,14 @@ test.describe('Talanti smoke flows — leader', () => {
 test.describe('Talanti smoke flows — player', () => {
     test.use({ storageState: 'playwright/.auth/player.json' });
 
-    test('player map is limited to clubs and tryouts', async ({ page }) => {
+    test('player map shows clubs and trials', async ({ page }) => {
         test.skip(!playerEmail || !playerPassword, 'Seeded player credentials are required for this smoke flow.');
 
-        await page.goto('/map');
-        await expect(page.getByRole('button', { name: /^Clubs$/i })).toBeVisible();
-        await expect(page.getByRole('button', { name: /^Tryouts$/i })).toBeVisible();
-        await expect(page.getByRole('button', { name: /^Matches$/i })).toHaveCount(0);
-        await expect(page.getByRole('button', { name: /^Tournaments$/i })).toHaveCount(0);
+        // The World map offers every public layer to everyone; what a person may do on a place is decided there.
+        await page.goto('/world/map');
+        const layers = page.getByRole('group', { name: 'Show on the map' });
+        await expect(layers.getByRole('button', { name: /^Clubs$/i })).toBeVisible();
+        await expect(layers.getByRole('button', { name: /^Trials$/i })).toBeVisible();
     });
 });
 

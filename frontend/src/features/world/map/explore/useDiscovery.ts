@@ -12,6 +12,7 @@ import { useWorldData } from '../../useWorldData';
 import type { MapFilters } from './discoveryFilters';
 import type { Coverage } from './exploreQuery';
 import { groupRecord, keepRecord, markerRecord, sortRecords } from './records';
+import { wt } from '../../copy';
 
 const toIsoWindow = (date: Date) => {
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -55,9 +56,9 @@ export function useDiscovery({ filters, q, coverage, center, origin, joinPolicie
 }) {
     const region = useWorldData(coverage.kind === 'region' ? `map-region:${coverage.name.toLowerCase()}` : null, async () => {
         const [top] = await geocodePlace(coverage.kind === 'region' ? coverage.name : '');
-        if (!top) throw new Error(`No place found for “${coverage.kind === 'region' ? coverage.name : ''}”.`);
+        if (!top) throw new Error(wt('No place found for “{name}”.', { name: coverage.kind === 'region' ? coverage.name : '' }));
         return top;
-    }, 'That place could not be found.');
+    }, wt('That place could not be found.'));
     const area: MapBounds | null = coverage.kind === 'area' ? coverage.bounds ?? { west: center[1] - 0.22, south: center[0] - 0.15, east: center[1] + 0.22, north: center[0] + 0.15 } : null;
     const searchCentre: [number, number] = coverage.kind === 'region' && region.data ? [region.data.latitude, region.data.longitude] : origin ? [origin[1], origin[0]] : center;
     const base: NearbyMapParams | null = coverage.kind === 'region' && !region.data ? null : {
@@ -94,7 +95,7 @@ export function useDiscovery({ filters, q, coverage, center, origin, joinPolicie
                 nextClubPage: pages.find(item => item.nextPage != null)?.nextPage, nextGroupPage: page.hasMore ? 1 : undefined,
                 limited: pages.some(item => item.resultsLimited) || page.hasMore, error: '' });
         }).catch(cause => {
-            if (!controller.signal.aborted) setLoaded({ key, attempt, markers: [], groups: [], limited: false, error: extractApiErrorMessage(cause, 'Places could not load.') });
+            if (!controller.signal.aborted) setLoaded({ key, attempt, markers: [], groups: [], limited: false, error: extractApiErrorMessage(cause, wt('Places could not load.')) });
         });
         return () => controller.abort();
         // `base`, `area` and `filters` are captured by `key`.
@@ -123,7 +124,7 @@ export function useDiscovery({ filters, q, coverage, center, origin, joinPolicie
                 limited: clubsLeft || Boolean(groups?.hasMore),
             } : previous);
         } catch (cause) {
-            if (!controller.signal.aborted) toast.error(extractApiErrorMessage(cause, 'More places could not load. Try again.'));
+            if (!controller.signal.aborted) toast.error(extractApiErrorMessage(cause, wt('More places could not load. Try again.')));
         } finally {
             if (!controller.signal.aborted) setMore({ key, busy: false });
         }

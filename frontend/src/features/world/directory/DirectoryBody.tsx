@@ -11,7 +11,7 @@ import { DirectorySearch } from './DirectorySearch';
 import { DirectoryResults } from './DirectoryResults';
 import { DirectorySelectionContext } from './selection';
 import { useDirectoryData } from './useDirectoryData';
-import type { DirectoryState } from './useDirectoryState';
+import { CARRIED, type DirectoryState } from './useDirectoryState';
 import type { DirectoryView } from './types';
 import { useRestoredScroll } from './useRestoredScroll';
 
@@ -29,14 +29,17 @@ export function DirectoryBody({ state, signedIn, onReset }: { state: DirectorySt
     const sortId = useId();
     const gated = Boolean(source.signInReason) && !signedIn;
     const data = useDirectoryData(source, query, view, gated, { pages: state.shown, onPages: state.setShown });
-    useRestoredScroll(!data.loading);
+    // Scroll returns once the results (with every page that was shown) are back, or cannot come back.
+    useRestoredScroll(gated || (!data.loading && (data.items.length > 0 || Boolean(data.error || data.notice))));
     const [selectedId, setSelectedId] = useState<string>();
     const [hoverId, setHoverId] = useState<string>();
     const listRef = useRef<HTMLDivElement>(null);
     // A pin chosen on the map brings its result into view in the list beside it.
     useEffect(() => { if (selectedId) listRef.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, [selectedId]);
 
-    const filtered = Boolean(query.q) || state.activeFilters.length > 0;
+    // The child a parent searches for narrows results but is kept by Clear filters, like the area.
+    const clearable = Boolean(query.q) || state.activeFilters.some(filter => !CARRIED.includes(filter.key));
+    const filtered = clearable || state.activeFilters.length > 0;
     const clear = () => { state.clearFilters(); onReset(); };
     const hasMap = Boolean(source.point);
     const nouns = [source.noun[0], source.noun[1]] as const;
@@ -55,7 +58,7 @@ export function DirectoryBody({ state, signedIn, onReset }: { state: DirectorySt
         </Panel>
     );
 
-    const results = <DirectoryResults source={source} data={data} filtered={filtered} onClear={clear} />;
+    const results = <DirectoryResults source={source} data={data} filtered={filtered} onClear={clearable ? clear : undefined} />;
     const map = (variant: 'side' | 'wide') => (
         <WorldMap className={`gk-world-directory__map gk-world-directory__map--${variant}`} label={t('{things} on the map', { things: t(source.label) })} points={data.points}
             selectedId={selectedId} onSelect={setSelectedId} highlightId={hoverId}
@@ -86,7 +89,7 @@ export function DirectoryBody({ state, signedIn, onReset }: { state: DirectorySt
             <DirectoryFilters state={state} signedIn={signedIn} />
             <div className="gk-world-summary">
                 <p role="status" className="gk-world-summary__count">{count}{query.q && count && !data.loading ? ` · “${query.q}”` : ''}</p>
-                {filtered && <Button size="sm" variant="ghost" onClick={clear}>{t('Clear filters')}</Button>}
+                {clearable && <Button size="sm" variant="ghost" onClick={clear}>{t('Clear filters')}</Button>}
             </div>
             {Tools && <Tools query={query} refresh={data.retry} />}
             <DirectorySelectionContext.Provider value={view !== 'list' && hasMap ? selection : null}>

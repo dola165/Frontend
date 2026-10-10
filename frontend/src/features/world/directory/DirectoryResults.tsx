@@ -36,7 +36,7 @@ function LoadingResults({ source }: { source: AnySource }) {
 }
 
 /** Results of one source with honest loading, error, notice, empty and load-more states. */
-export function DirectoryResults({ source, data, filtered, onClear }: { source: AnySource; data: DirectoryData; filtered: boolean; onClear: () => void }) {
+export function DirectoryResults({ source, data, filtered, onClear }: { source: AnySource; data: DirectoryData; filtered: boolean; /** Absent when nothing can be cleared. */ onClear?: () => void }) {
     const t = useWorldCopy();
     const things = t(source.noun[1]);
     if (data.notice) return <div className="gk-notice" role="status">{data.notice}</div>;
@@ -45,7 +45,7 @@ export function DirectoryResults({ source, data, filtered, onClear }: { source: 
     if (!data.items.length) return (
         <Panel>
             <EmptyNote title={filtered ? t('No {things} match this search', { things }) : t(source.empty.title)}
-                action={filtered ? <Button size="sm" onClick={onClear}>{t('Clear filters')}</Button> : source.empty.action}>
+                action={filtered ? onClear && <Button size="sm" onClick={onClear}>{t('Clear filters')}</Button> : source.empty.action}>
                 {filtered ? t('Try a wider search or remove a filter.') : t(source.empty.body)}
             </EmptyNote>
         </Panel>

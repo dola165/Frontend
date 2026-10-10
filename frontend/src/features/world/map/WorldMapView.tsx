@@ -14,6 +14,7 @@ import { ExplorePanel } from './explore/ExplorePanel';
 import { LAYERS, type LayerId } from './explore/exploreQuery';
 import { useExplore } from './explore/useExplore';
 import { usePhoneLayout } from './sheet/usePhoneLayout';
+import { wt } from '../copy';
 import './map-view.css';
 
 
@@ -41,7 +42,7 @@ export function WorldMapView({ signedIn, embedded = false, allowed = LAYERS.map(
     return (
         <div ref={stage} className="gk-mapview" data-mode={planning ? 'plan' : 'explore'} data-embedded={embedded || undefined}>
             {!explore.centerReady && <div className="gk-map-canvas"><div className="gk-map-canvas__waiting" /></div>}
-            {explore.centerReady && <MapCanvas mapRef={mapRef} initialView={{ latitude: explore.center[0], longitude: explore.center[1], zoom }} embedded={embedded} label="World map"
+            {explore.centerReady && <MapCanvas mapRef={mapRef} initialView={{ latitude: explore.center[0], longitude: explore.center[1], zoom }} embedded={embedded} label={wt('World map')}
                 cursor={picking ? 'crosshair' : undefined}
                 onLoad={map => {
                     const shared = query.coverage.kind === 'area' ? query.coverage.bounds : null;

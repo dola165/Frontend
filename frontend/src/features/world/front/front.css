@@ -1,6 +1,7 @@
 /* World front page. Scoped under .gk-world-front; tokens only. */
 .gk .gk-world-front { display: flex; flex-direction: column; gap: var(--gk-8); padding-bottom: var(--gk-16); }
 .gk .gk-world-front .gk-page-header { padding-bottom: 0; }
+.gk .gk-world-front__context { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-4); }
 .gk .gk-world-area { display: inline-flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
 .gk .gk-world-area .gk-input { width: auto; min-width: 150px; }
 
@@ -15,7 +16,7 @@
 .gk .gk-world-search__when { display: flex; flex-direction: column; align-items: flex-start; width: 52px; font-weight: 650; }
 .gk .gk-world-search__when small { font-size: var(--gk-fs-xs); font-weight: 500; color: var(--gk-text-3); font-family: var(--gk-font); }
 .gk .gk-world-starts { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
-.gk .gk-world-starts .gk-chip { min-height: 36px; }
+.gk .gk-world-starts .gk-chip { min-height: 40px; }
 @media (max-width: 640px) {
   .gk .gk-world-starts { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--gk-gutter)); padding-inline: var(--gk-gutter); }
   .gk .gk-world-starts::-webkit-scrollbar { display: none; }

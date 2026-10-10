@@ -1,5 +1,7 @@
 import { currentProgramme, money, type ClubPresentation, type TrainingProgramme } from '../../clubs/presentation';
+import type { Participant } from '../../admissions/types';
 import { wt } from '../copy';
+import { ageOn } from '../players';
 
 /** Published programmes that are running now, as the club profile lists them. */
 export const publicProgrammes = (presentation?: ClubPresentation | null) =>
@@ -34,4 +36,10 @@ export function enquiryPath(clubId: number, playerId?: number, programmeId?: num
     params.set('enquire', '1');
     if (playerId) params.set('player', String(playerId));
     return `/clubs/${clubId}?${params}`;
+}
+
+/** The programmes that fit a child's age, if any; otherwise none. */
+export function fittingProgrammes(presentation: ClubPresentation | null | undefined, child?: Participant) {
+    const age = ageOn(child?.dateOfBirth);
+    return age == null ? [] : publicProgrammes(presentation).filter(programme => fitsAge(programme, age));
 }

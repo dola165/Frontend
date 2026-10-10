@@ -76,6 +76,8 @@ export interface DirectorySource<T> {
     personal?: boolean;
     /** Changes when something outside the query changes what `load` returns, so results reload. */
     version?: string;
+    /** A live list (fixtures and results): reloaded quietly this often, and when the window regains focus. */
+    refreshMs?: number;
     load: (query: DirectoryQuery, page: number, context: LoadContext) => Promise<DirectoryPage<T>>;
     key: (item: T) => string;
     Item: ComponentType<{ item: T }>;

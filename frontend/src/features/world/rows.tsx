@@ -1,6 +1,5 @@
 import { BadgeCheck } from 'lucide-react';
 import { Badge, FixtureRow, ListRow, type BadgeTone, type FixtureTone } from '../../design/primitives';
-import { appLocale } from '../../utils/formatting';
 import type { ClubJob } from '../clubs/api';
 import { labelForCategory } from '../clubs/jobLabels';
 import { structureLabels, type CompetitionCard } from '../competitions/api';
@@ -8,24 +7,13 @@ import { postingLabel } from '../tryouts/tryoutCopy';
 import type { TryoutPosting } from '../tryouts/api';
 import { eventDestination, type EventItem } from '../requests/api';
 import type { PersonRole, PersonSummary } from './api';
-import { isGeorgian, useWorldCopy, wt } from './copy';
+import { useWorldCopy } from './copy';
 import { Crest } from './Crest';
-import { codeLabel, daysUntil, fixtureDay, fixtureTime, shortDate } from './format';
-
-/** Existing two-language labels (en, ka) follow the World language. */
-export const bilingual = (en: string, ka: string) => (isGeorgian() ? ka : en);
+import { bilingual, codeLabel, COMPETITION_STATUS, dateColumn, daysUntil, fixtureDay, fixtureTime, postedLabel, SCOPE_LABEL, shortDate } from './format';
 
 const ENGAGEMENT: Record<string, { label: string; tone: BadgeTone }> = {
     PAID: { label: 'Paid', tone: 'accent' }, VOLUNTEER: { label: 'Volunteer', tone: 'violet' }, FLEXIBLE: { label: 'Paid or volunteer', tone: 'info' }, UNSPECIFIED: { label: 'Terms to discuss', tone: 'neutral' },
 };
-
-/** "Posted today", "Posted 3 days ago". */
-export function postedLabel(value?: string | null) {
-    const date = value ? new Date(value) : null;
-    if (!date || Number.isNaN(date.getTime())) return wt('Recently posted');
-    const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / 86_400_000));
-    return days === 0 ? wt('Posted today') : days === 1 ? wt('Posted yesterday') : wt('Posted {days} days ago', { days });
-}
 
 /** An open club role: who posted it, what it is, paid or volunteer. */
 export function JobRow({ job, compact = false }: { job: ClubJob; compact?: boolean }) {
@@ -51,13 +39,6 @@ export function TrialRow({ trial }: { trial: TryoutPosting }) {
     );
 }
 
-/** Who can enter a competition. */
-export const SCOPE_LABEL: Record<string, string> = { CLUB: 'Club teams', SQUAD: 'Squads', PLAYER: 'Individual players' };
-/** A competition's published status as a badge. */
-export const COMPETITION_STATUS: Record<string, { label: string; tone: BadgeTone }> = {
-    PLANNING: { label: 'Planning', tone: 'violet' }, ACTIVE: { label: 'In progress', tone: 'accent' }, COMPLETED: { label: 'Completed', tone: 'neutral' }, CANCELLED: { label: 'Cancelled', tone: 'danger' },
-};
-
 /** Entry state in words, from the published status and closing date. */
 function EntryState({ card }: { card: CompetitionCard & { registrationClosesAt?: string | null } }) {
     const t = useWorldCopy();
@@ -66,15 +47,6 @@ function EntryState({ card }: { card: CompetitionCard & { registrationClosesAt?:
     if (left != null && left < 0) return <Badge>{t('Entries closed')}</Badge>;
     if (left != null) return <Badge tone={left <= 7 ? 'warning' : 'violet'}>{t('Closes {date}', { date: shortDate(card.registrationClosesAt) ?? '' })}</Badge>;
     return <Badge tone="violet">{t('Upcoming')}</Badge>;
-}
-
-/** A date on the fixture line: the day number over the month, or "to confirm". */
-export function dateColumn(value?: string | null) {
-    const start = value ? new Date(value) : null;
-    const valid = Boolean(start && !Number.isNaN(start.getTime()));
-    return valid
-        ? { time: start!.toLocaleDateString(appLocale(), { day: 'numeric' }), day: start!.toLocaleDateString(appLocale(), { month: 'short' }) }
-        : { time: wt('TBC'), day: wt('Dates to confirm') };
 }
 
 /** A competition on the fixture line, dated by its first day. */

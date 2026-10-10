@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { MediaImage } from '../../components/ui/MediaImage';
 import { footballStock } from './footballMedia';
 import type { Discipline } from './api';
-import './competition-directory.css';
 import './competition-detail.css';
 
 /** Preserve host uploads; stock illustrates the sport, never the named event or venue. */

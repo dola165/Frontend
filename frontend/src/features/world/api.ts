@@ -33,6 +33,9 @@ const USER_TYPE_ROLE: Record<string, PersonRole> = { COACH: 'COACH', PLAYER: 'PL
 
 /** Statuses that mean the server has no people directory (Spring may answer an unmapped route with any of them). */
 const MISSING = new Set([404, 405, 501]);
+let peopleDirectoryMissing = false;
+/** True once this page load has learned that the server has no people directory. */
+export const knownWithoutPeopleDirectory = () => peopleDirectoryMissing;
 
 /**
  * Backend needed: `GET /people`, the public directory of football people (never minors,
@@ -47,6 +50,7 @@ export const fetchPeople = async (params: Record<string, string | number | undef
         return (await apiClient.get<PeoplePage>('/people', { params, signal, _authSessionId: sessionId } as AuthSessionRequestConfig)).data;
     } catch (error) {
         if (!isAxiosError(error) || !MISSING.has(error.response?.status ?? 0)) throw error;
+        peopleDirectoryMissing = true;
         const q = String(params.q ?? '').trim();
         const page = Number(params.page) || 0, size = Number(params.size) || 24;
         if (q.length < 2) return { items: [], total: null, page, size, hasMore: false, searchOnly: true };

@@ -366,64 +366,6 @@
 .mx-profile-career .mx-career-add {
   justify-self: start;
 }
-.mx-listing-banner {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 35%;
-  opacity: .58;
-}
-.mx-listing-top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  color: var(--mx-muted);
-  font-size: 12px;
-}
-.mx-listing-columns {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 28px;
-}
-.mx-listing-column h4,
-.mx-listing-description h4 {
-  color: var(--mx-muted);
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: .09em;
-  text-transform: uppercase;
-  margin: 0 0 4px;
-}
-.mx-listing-column dl {
-  margin: 0;
-}
-.mx-listing-column dl > div {
-  padding: 9px 0;
-  border-bottom: 1px solid var(--mx-border);
-}
-.mx-listing-column dt {
-  font-size: 11px;
-  color: var(--mx-muted);
-  margin-bottom: 3px;
-}
-.mx-listing-column dd {
-  font-size: 13px;
-  font-weight: 600;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-.mx-listing-description {
-  margin-top: 20px;
-}
-.mx-listing-description p {
-  margin: 4px 0 0;
-  font-size: 13px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
 @media (max-width: 1000px) {
   .mx-layout {
     grid-template-columns: 1fr;
@@ -431,14 +373,6 @@
   
 }
 @media (max-width: 640px) {
-  
-  
-  .mx-listing-columns {
-    grid-template-columns: 1fr;
-  }
-  .mx-listing-columns {
-    gap: 20px;
-  }
   
   
   
@@ -476,51 +410,13 @@
 
 /* Journey 02 visual refinement, continuing Journey 07's readiness-first document order.
    All overrides stay inside the three operational surfaces. */
-.mx-page:is(.mx-exchange, .mx-detail, .mx-referee) {
-  --mx-bg: var(--app-shell-elevated);
-  --mx-accent: var(--app-state-info);
-  max-width: 1440px;
-  padding-top: 24px;
-  font-size: 14px;
-}
-.mx-page:is(.mx-exchange, .mx-detail, .mx-referee) .mx-head {
-  align-items: center;
-  margin: 4px 0 22px;
-  padding: 0;
-  border: 0;
-}
-.mx-page:is(.mx-exchange, .mx-detail, .mx-referee) .mx-head h1 {
-  font-size: clamp(27px, 2.6vw, 35px);
-  line-height: 1.22;
-  letter-spacing: -.035em;
-  margin: 0 0 8px;
-  max-width: 38ch;
-  overflow-wrap: anywhere;
-}
-.mx-page:is(.mx-exchange, .mx-detail, .mx-referee) .mx-head > div { min-width: 0; }
-.mx-page:is(.mx-exchange, .mx-detail, .mx-referee) .mx-head p { margin: 0; font-size: 14px; }
+
 .mx-page:is(.mx-detail, .mx-referee) .mx-back {
   border: 0; background: transparent; padding: 0; margin-bottom: 18px; min-height: 28px;
   color: var(--mx-muted);
 }
 .mx-page:is(.mx-detail, .mx-referee) .mx-eyebrow {
   color: var(--mx-muted); font-size: 11px; letter-spacing: .045em;
-}
-.mx-page:is(.mx-exchange, .mx-detail, .mx-referee) .mx-panel {
-  border-radius: 13px; padding: 22px; box-shadow: none;
-}
-.mx-page:is(.mx-exchange, .mx-detail, .mx-referee) .mx-status {
-  font-size: 11px; font-weight: 600; letter-spacing: 0; text-transform: none;
-  padding: 4px 8px; white-space: normal; line-height: 1.35;
-  border-color: transparent; border-radius: 5px;
-  color: var(--mx-muted); background: color-mix(in srgb, var(--mx-text) 6%, transparent);
-}
-.mx-page:is(.mx-exchange, .mx-detail, .mx-referee) .mx-status.is-good {
-  color: var(--app-state-success); background: var(--app-state-success-soft);
-  border-color: transparent;
-}
-.mx-page:is(.mx-exchange, .mx-detail, .mx-referee) .mx-notice {
-  color: var(--mx-text); background: color-mix(in srgb, var(--mx-accent) 5%, var(--mx-bg));
 }
 .mx-referee .mx-workspace-nav button {
   padding: 11px 1px 13px; border: 0; border-radius: 0; font-size: 14px;
@@ -606,12 +502,6 @@
   .mx-availability-layout { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
-  .mx-page:is(.mx-exchange, .mx-detail, .mx-referee) { padding: 18px 16px 40px; }
-  .mx-page:is(.mx-exchange, .mx-detail, .mx-referee) .mx-head { gap: 13px; align-items: flex-start; margin-bottom: 18px; }
-  .mx-page:is(.mx-exchange, .mx-detail, .mx-referee) .mx-head h1 { font-size: 27px; line-height: 1.25; }
-  .mx-page:is(.mx-exchange, .mx-detail, .mx-referee) .mx-head p { font-size: 13px; }
-  
-  .mx-page:is(.mx-exchange, .mx-detail, .mx-referee) .mx-panel { padding: 17px; }
   
   
   

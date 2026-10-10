@@ -5,12 +5,14 @@ import { Button, ButtonLink } from '../../../../design/primitives';
 import { Segmented } from '../../../../design/Tabs';
 import { usePersistedState } from '../../../../utils/usePersistedState';
 import { reducedMotion } from './useMapTheme';
+import { useWorldCopy } from '../../copy';
 import './canvas.css';
 
 type Projection = 'flat' | 'globe';
 
 /** Zoom, your location and the map view (globe, tilt, rotation), as keyboard-reachable buttons. A contained map can link to the full one. */
 export function MapControls({ onLocate, locating = false, showView = true, fullMap }: { onLocate?: () => void; locating?: boolean; showView?: boolean; fullMap?: string }) {
+    const t = useWorldCopy();
     const { current: map } = useMap();
     const [open, setOpen] = useState(false);
     const [projection, setProjection] = usePersistedState<Projection>('map.projection', 'flat');
@@ -29,32 +31,32 @@ export function MapControls({ onLocate, locating = false, showView = true, fullM
     }, [map, projection]);
     return (
         <div className="gk-map-controls">
-            <div className="gk-map-controls__group" role="group" aria-label="Zoom">
-                <Button iconOnly variant="secondary" aria-label="Zoom in" onClick={() => map?.zoomIn({ duration: duration() })}><Plus aria-hidden="true" /></Button>
-                <Button iconOnly variant="secondary" aria-label="Zoom out" onClick={() => map?.zoomOut({ duration: duration() })}><Minus aria-hidden="true" /></Button>
+            <div className="gk-map-controls__group" role="group" aria-label={t('Zoom')}>
+                <Button iconOnly variant="secondary" aria-label={t('Zoom in')} onClick={() => map?.zoomIn({ duration: duration() })}><Plus aria-hidden="true" /></Button>
+                <Button iconOnly variant="secondary" aria-label={t('Zoom out')} onClick={() => map?.zoomOut({ duration: duration() })}><Minus aria-hidden="true" /></Button>
             </div>
             {onLocate && (
-                <Button iconOnly variant="secondary" aria-label={locating ? 'Finding your location' : 'Use my location'} title="Use my location" onClick={onLocate} disabled={locating}>
+                <Button iconOnly variant="secondary" aria-label={locating ? t('Finding your location') : t('Use my location')} title={t('Use my location')} onClick={onLocate} disabled={locating}>
                     {locating ? <Loader2 className="gk-spin" aria-hidden="true" /> : <LocateFixed aria-hidden="true" />}
                 </Button>
             )}
-            {fullMap && <ButtonLink iconOnly variant="secondary" to={fullMap} aria-label="Open the full map" title="Open the full map"><Expand aria-hidden="true" /></ButtonLink>}
+            {fullMap && <ButtonLink iconOnly variant="secondary" to={fullMap} aria-label={t('Open the full map')} title={t('Open the full map')}><Expand aria-hidden="true" /></ButtonLink>}
             {showView && (
                 <div className="gk-map-controls__view">
-                    <Button iconOnly variant="secondary" aria-label="Map view" title="Map view" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(value => !value)}><Layers3 aria-hidden="true" /></Button>
+                    <Button iconOnly variant="secondary" aria-label={t('Map view')} title={t('Map view')} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(value => !value)}><Layers3 aria-hidden="true" /></Button>
                     {open && (
-                        <section id={panelId} className="gk-map-popover" aria-label="Map view">
-                            <Segmented label="Projection" value={projection} onChange={setProjection} items={[{ id: 'flat', label: 'Flat' }, { id: 'globe', label: 'Globe' }]} />
-                            {projection === 'globe' && <p className="gk-faint">The globe uses more battery and data on phones.</p>}
+                        <section id={panelId} className="gk-map-popover" aria-label={t('Map view')}>
+                            <Segmented label={t('Projection')} value={projection} onChange={setProjection} items={[{ id: 'flat', label: t('Flat') }, { id: 'globe', label: t('Globe') }]} />
+                            {projection === 'globe' && <p className="gk-faint">{t('The globe uses more battery and data on phones.')}</p>}
                             <label className="gk-map-popover__range">
-                                <span>Tilt <span className="gk-num">{pitch}°</span></span>
+                                <span>{t('Tilt')} <span className="gk-num">{pitch}°</span></span>
                                 <input type="range" min={0} max={60} value={pitch} onChange={event => { const value = Number(event.target.value); setPitch(value); map?.easeTo({ pitch: value, duration: 0 }); }} />
                             </label>
                             <div className="gk-row">
-                                <Button size="sm" onClick={() => map?.easeTo({ bearing: (map.getBearing() ?? 0) - 30, duration: duration() })}>Rotate left</Button>
-                                <Button size="sm" onClick={() => map?.easeTo({ bearing: (map.getBearing() ?? 0) + 30, duration: duration() })}>Rotate right</Button>
+                                <Button size="sm" onClick={() => map?.easeTo({ bearing: (map.getBearing() ?? 0) - 30, duration: duration() })}>{t('Rotate left')}</Button>
+                                <Button size="sm" onClick={() => map?.easeTo({ bearing: (map.getBearing() ?? 0) + 30, duration: duration() })}>{t('Rotate right')}</Button>
                             </div>
-                            <Button size="sm" variant="ghost" onClick={() => { setPitch(0); map?.easeTo({ bearing: 0, pitch: 0, duration: duration() }); }}><RotateCcw aria-hidden="true" />Reset view</Button>
+                            <Button size="sm" variant="ghost" onClick={() => { setPitch(0); map?.easeTo({ bearing: 0, pitch: 0, duration: duration() }); }}><RotateCcw aria-hidden="true" />{t('Reset view')}</Button>
                         </section>
                     )}
                 </div>

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { List, ListRow, Panel, SearchInput, Skeleton } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
@@ -31,7 +31,8 @@ export function WorldSearch({ quickStarts }: { quickStarts: ReactNode }) {
     const navigate = useNavigate();
     const [text, setText] = useState('');
     const [q, setQ] = useState('');
-    const [enterFor, setEnterFor] = useState<string | null>(null);
+    // Text Enter was pressed for while its results were still on the way.
+    const enterFor = useRef<string | null>(null);
     useEffect(() => {
         const timer = window.setTimeout(() => setQ(text.trim()), DEBOUNCE);
         return () => window.clearTimeout(timer);
@@ -66,24 +67,24 @@ export function WorldSearch({ quickStarts }: { quickStarts: ReactNode }) {
     // Enter pressed before the results caught up: open the first result once they are for that text.
     const ready = search.data !== undefined;
     useEffect(() => {
-        if (enterFor === null || enterFor !== q || !ready) return;
-        setEnterFor(null);
+        if (enterFor.current === null || enterFor.current !== q || !ready) return;
+        enterFor.current = null;
         if (firstHit) navigate(firstHit.to);
-    }, [enterFor, q, ready, firstHit, navigate]);
+    }, [q, ready, firstHit, navigate]);
     const onKey = (event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Escape') { setText(''); setEnterFor(null); }
+        if (event.key === 'Escape') { setText(''); enterFor.current = null; }
         if (event.key !== 'Enter') return;
         const wanted = text.trim();
         if (wanted.length < 2) return;
         if (wanted === q && ready) { if (firstHit) navigate(firstHit.to); return; }
+        enterFor.current = wanted;
         setQ(wanted);
-        setEnterFor(wanted);
     };
     const active = text.trim().length >= 2;
     const count = groups.reduce((sum, group) => sum + (group.hits?.length ?? 0), 0);
     return (
         <div className="gk-world-search">
-            <SearchInput className="gk-world-search__input" value={text} onChange={event => { setText(event.target.value); setEnterFor(null); }} onKeyDown={onKey} maxLength={120}
+            <SearchInput className="gk-world-search__input" value={text} onChange={event => { setText(event.target.value); enterFor.current = null; }} onKeyDown={onKey} maxLength={120}
                 placeholder={t('Search clubs, people, venues, matches…')} aria-label={t('Search GrassKickZ World')} aria-describedby="world-search-status" />
             <p id="world-search-status" className="gk-visually-hidden" role="status">
                 {active ? search.loading ? t('Searching…') : t('{count} results. Press Enter to open the first.', { count }) : ''}

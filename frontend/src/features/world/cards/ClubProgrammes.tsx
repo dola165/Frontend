@@ -5,12 +5,6 @@ import { useWorldCopy } from '../copy';
 import { ageOn } from '../players';
 import { fitsAge, programmeAges, programmeFee, publicProgrammes } from './programmes';
 
-/** The programmes that fit a child's age, if any; otherwise none. */
-export function fittingProgrammes(presentation: ClubPresentation | null | undefined, child?: Participant) {
-    const age = ageOn(child?.dateOfBirth);
-    return age == null ? [] : publicProgrammes(presentation).filter(programme => fitsAge(programme, age));
-}
-
 const line = (programme: TrainingProgramme) => [programme.name, programmeAges(programme), programmeFee(programme)].join(' · ');
 
 /**

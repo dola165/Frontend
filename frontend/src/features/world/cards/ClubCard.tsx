@@ -14,8 +14,8 @@ import { clubTypeLabel, distanceLabel, JOIN_POLICY } from '../format';
 import { useWorldChild } from '../players';
 import { useWorldSession } from '../worldSession';
 import { Crest } from '../Crest';
-import { ClubProgrammes, fittingProgrammes } from './ClubProgrammes';
-import { enquiryPath } from './programmes';
+import { ClubProgrammes } from './ClubProgrammes';
+import { enquiryPath, fittingProgrammes } from './programmes';
 import './cards.css';
 
 const RELATIONSHIP: Partial<Record<ClubRelationshipState, { label: string; tone: 'accent' | 'warning' | 'info' | 'violet' }>> = {

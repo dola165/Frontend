@@ -12,15 +12,17 @@ export function DirectorySearch({ state, delay = 300 }: { state: Pick<DirectoryS
     const committed = state.query.q;
     const [draft, setDraft] = useState(committed);
     const [last, setLast] = useState(committed);
+    // What this box last sent to the URL; the router may apply it a render later.
+    const [sent, setSent] = useState<string | null>(null);
     if (committed !== last) {
         setLast(committed);
-        setDraft(committed);
+        if (committed === sent) setSent(null);
+        else setDraft(committed);
     }
     const commitNow = () => {
         const value = draft.trim();
         if (value === committed) return;
-        // Remember what this box committed, so only outside changes reset the text.
-        setLast(value);
+        setSent(value);
         state.setSearch(value);
     };
     const commit = useEffectEvent(commitNow);

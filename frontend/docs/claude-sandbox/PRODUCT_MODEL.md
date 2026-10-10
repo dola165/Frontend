@@ -156,3 +156,10 @@ Each step: proposal and mockup → owner decision → build plan → small slice
 - Renting a stadium is for training only and is removed from match creation.
 - Match creation lets the club pick its own venues and search the opponent club with autocomplete, separate from Match Exchange.
 - People can change roles; professions are free text, labelled later and searchable.
+
+### Made (10 October 2026, World review sprint, under the owner's delegation)
+
+- The club's own match work (arrangements, competitions it runs or enters, invitations to enter, results still needed, adding a past match) belongs to My Club. Until My Club has its own home for it, it stays reachable as World tabs, and the club workspace links to it (All tools › Club matches). Discovery stays in World.
+- World is bilingual like the rest of the app: every World string has a Georgian translation (`features/world/copy.ka.ts`).
+- A parent searches World for a child: the chosen child follows them across World pages (and Parent Hub), clubs show which programmes fit the child's age, and club actions ask the club through its enquiry for that child instead of joining the parent.
+

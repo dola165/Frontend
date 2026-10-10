@@ -44,7 +44,8 @@ function Location() {
         </>
     );
 }
-function directory(path = '/jobs', club?: number) {
+/** A club's own roles (the public list of every club's roles is World › Opportunities). */
+function directory(path = '/jobs', club = 10) {
     return render(
         <MemoryRouter initialEntries={[path]}>
             <Location />
@@ -100,9 +101,9 @@ describe('Jobs browsing and application recovery', () => {
     it('restores filters through history and clears dependent location selections', async () => {
         vi.mocked(api.fetchOpenJobDirectory).mockResolvedValue([
             job,
-            { ...job, id: 2, clubId: 20, clubCountryName: 'France', clubCityName: 'Paris' },
+            { ...job, id: 2, clubCountryName: 'France', clubCityName: 'Paris' },
         ]);
-        directory('/jobs?country=Georgia&city=Tbilisi&clubId=10');
+        directory('/jobs?country=Georgia&city=Tbilisi');
         await screen.findByRole('button', { name: 'Preview Academy player' });
         fireEvent.change(screen.getByLabelText('Country'), { target: { value: 'France' } });
         expect(screen.getByTestId('location')).toHaveTextContent('/jobs?country=France');

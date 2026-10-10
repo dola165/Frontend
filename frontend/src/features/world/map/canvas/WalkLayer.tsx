@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Layer, Marker, Source } from 'react-map-gl/maplibre';
 import type { Coordinate, WalkingRoute } from '../../../../components/map/walkingGraph';
 import type { PlacePalette } from './useMapTheme';
+import { wt } from '../../copy';
 import './canvas.css';
 
 const lines = (paths: Coordinate[][]) => ({
@@ -16,7 +17,7 @@ function StartMarker({ origin, onChange }: { origin: Coordinate; onChange: (poin
         <Marker longitude={point[0]} latitude={point[1]} anchor="center" draggable
             onDrag={event => setPoint([event.lngLat.lng, event.lngLat.lat])}
             onDragEnd={event => { const next: Coordinate = [event.lngLat.lng, event.lngLat.lat]; setPoint(next); onChange(next); }}>
-            <span className="gk-map-start" role="img" aria-label="Your start. Drag to move it." title="Your start · drag to move"><span /></span>
+            <span className="gk-map-start" role="img" aria-label={wt('Your start. Drag to move it.')} title={wt('Your start · drag to move')}><span /></span>
         </Marker>
     );
 }

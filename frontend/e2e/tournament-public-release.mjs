@@ -46,7 +46,7 @@ try {
         (item.css ?? []).forEach(file => files.add(file));
         (item.imports ?? []).forEach(collect);
     };
-    ['index.html', 'src/pages/TournamentWorkspacePage.tsx', 'src/pages/TournamentSetupPage.tsx', 'src/pages/TournamentDetailPage.tsx', 'src/pages/BrowseTournamentsPage.tsx'].forEach(collect);
+    ['index.html', 'src/pages/TournamentWorkspacePage.tsx', 'src/pages/TournamentSetupPage.tsx', 'src/pages/TournamentDetailPage.tsx', 'src/features/world/directories/CompetitionsDirectory.tsx'].forEach(collect);
     // Scoped releases re-export the three routes through a new shared overlay.
     // Those direct imports and the added stylesheet are outside the baseline
     // Vite manifest, so include them explicitly in the byte comparison.

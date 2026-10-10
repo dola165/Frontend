@@ -25,6 +25,11 @@
 .gk .gk-world-past .mh-import > button:hover { border-color: var(--gk-line-strong); background: var(--gk-hover); }
 .gk .gk-world-past .mh-import > button svg { width: 16px; height: 16px; }
 @media (max-width: 640px) {
+  /* Touch targets reach 44px on phones (DESIGN_SYSTEM rule 10). */
+  .gk.gk-world .gk-chip, .gk.gk-world .gk-btn--sm, .gk.gk-world .gk-segmented__item { min-height: 44px; }
+  .gk.gk-world .gk-btn--sm.gk-btn--icon, .gk.gk-world .gk-segmented__item:has(> svg) { min-width: 44px; }
+  /* A long fixture title wraps to a second line instead of losing its end. */
+  .gk.gk-world .gk-fixture__title { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
   /* On phones a row's status moves under its text, as fixture rows do, so names stay readable. */
   .gk.gk-world .gk-list-row { flex-wrap: wrap; row-gap: var(--gk-1); }
   .gk.gk-world .gk-list-row__main { flex: 1 1 calc(100% - 64px); }

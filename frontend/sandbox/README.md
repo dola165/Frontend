@@ -35,3 +35,4 @@ node sandbox/vt/run.mjs src/components/layout/header/__tests__/inbox.test.tsx   
 - A handler returns plain data (200 JSON) or `reply(status, body, headers)`. Returning `undefined` passes to the next matching route.
 - Response shapes come from the frontend's own TypeScript types and API clients, not guesses.
 - Mutations work in memory, so forms can be exercised; a server restart resets the world.
+- Parent view: a browser with the cookie `gk-sandbox-family=1` sees coach Luka as the parent of two children (`api/world-family.mjs`, `api/handlers/family.mjs`); without it nothing changes.

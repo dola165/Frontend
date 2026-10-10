@@ -15,10 +15,18 @@ export function useRestoredScroll(ready: boolean) {
     const navigation = useNavigationType();
     const restored = useRef(false);
     useEffect(() => {
-        let frame = 0;
-        const onScroll = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => save(key)); };
+        // A new entry for the same list (more pages shown, a filter) starts where the page is now.
+        if (restored.current) save(key);
+        // Until the list is back, scrolling is the page settling (or the browser clamping), not the person.
+        // Saving happens as the person scrolls: by the time a page change could be noticed here, the next
+        // page has already replaced this one and moved the scroll.
+        // A scroll after the address moved on is the next page replacing this one, not the person.
+        const onScroll = () => {
+            const entry = (window.history.state as { key?: string } | null)?.key;
+            if (restored.current && (entry === undefined || entry === key)) save(key);
+        };
         window.addEventListener('scroll', onScroll, { passive: true });
-        return () => { window.removeEventListener('scroll', onScroll); cancelAnimationFrame(frame); save(key); };
+        return () => window.removeEventListener('scroll', onScroll);
     }, [key]);
     useEffect(() => {
         if (!ready || restored.current) return;

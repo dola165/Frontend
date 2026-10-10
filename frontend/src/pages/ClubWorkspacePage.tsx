@@ -31,6 +31,8 @@ import { Button, EmptyNote, PageFrame, Skeleton } from '../design/primitives';
 import { getStoredUserId, type AuthSessionId } from '../utils/authStorage';
 
 const NO_VIEWS: RoleView[] = [];
+// Tools already built on the design system bring their own page frame.
+const FRAMED_TOOLS = new Set<WorkspaceTab>(['roles', 'inbox']);
 // Context that belongs to one tool and must not follow the person to another.
 const TOOL_CONTEXT = ['applicationId', 'case', 'caseId', 'admissionView', 'admissionGroup', 'record', 'approach', 'squad', 'session', 'person', 'kind', 'q', 'mine', 'state', 'view', 'playerSearch', 'position', 'return', 'hub', 'section', 'page', 'intake'];
 
@@ -143,6 +145,7 @@ function ClubWorkspaceSession({ darkMode, sessionId }: { darkMode: boolean; sess
     const loading = workspaceRoles.loading || (club.loading && !overview && !operations.boot) || (selectedOperation && operations.loading);
     const failed = club.error && !overview && !operations.boot && !roles;
     const legacy = (children: ReactNode) => <LegacyFrame darkMode={darkMode} area={areaFor(activeTab)?.id ?? 'overview'} tab={activeTab}>{children}</LegacyFrame>;
+    const framed = (tool: ReactNode) => FRAMED_TOOLS.has(activeTab) ? tool : legacy(tool);
     const squadBack = selectedOperation && workSquad ? {
         label: `Back to ${roles?.squads.find(s => String(s.id) === workSquad)?.name ?? 'squad'}`,
         onClick: () => navigateWorkspace(() => {
@@ -167,14 +170,14 @@ function ClubWorkspaceSession({ darkMode, sessionId }: { darkMode: boolean; sess
     else if (activeTab === 'squads' && can.operations) content = <SquadsPage key={clubId} clubId={clubId} overview={overview} setParentError={membership.setErrorMessage} setParentSuccess={membership.setSuccessMessage}
         workspace={roles ? { data: roles, boot: operations.boot, onOpen: openWork } : undefined} />;
     else if (activeTab === 'squads') content = roles && <WorkspaceSquads data={roles} boot={operations.boot} squad={workSquad} onSquad={chooseWorkSquad} onOpen={openWork} />;
-    else if (activeTab === 'role-requests') content = roles && legacy(<WorkspaceRolesPanel club={clubId} data={roles} admin onChanged={() => { workspaceRoles.refresh(); void operations.refresh(); }} />);
+    else if (activeTab === 'role-requests') content = roles && (<WorkspaceRolesPanel club={clubId} data={roles} onChanged={() => { workspaceRoles.refresh(); void operations.refresh(); }} />);
     else if (selectedOperation) content = <>
         {squadBack && <PageFrame><div className="rec-back"><Button variant="ghost" size="sm" onClick={squadBack.onClick}><ArrowLeft aria-hidden="true" />{squadBack.label}</Button></div></PageFrame>}
         {operations.boot
             ? <WorkspaceOperations key={`${clubId}-${selectedOperation}-${workSquad}-${searchParams.get('session') ?? ''}-${searchParams.get('person') ?? ''}`} boot={{ ...operations.boot, peopleBySquad: roles?.people }} module={selectedOperation} onRefresh={operations.refresh} />
             : <PageFrame className="cw-page"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{operations.error || 'This section is unavailable for your account.'}</span><Button size="sm" onClick={() => { void operations.refresh(); }}>Try again</Button></div></PageFrame>}
     </>;
-    else content = legacy(<ClubTools tab={activeTab} clubId={clubId} sessionId={sessionId} currentUserId={currentUserId} overview={overview} reloadOverview={club.reload}
+    else content = framed(<ClubTools tab={activeTab} clubId={clubId} sessionId={sessionId} currentUserId={currentUserId} overview={overview} reloadOverview={club.reload}
         roles={roles} refreshRoles={workspaceRoles.refresh} boot={operations.boot} refreshBoot={() => { void operations.refresh(); }} admissions={admissions} admissionCopy={admissionCopy}
         membership={membership} inbox={inbox} can={can} allowed={tab => allowedTabIds.has(tab)} focusedApplicationId={focusedApplicationId}
         clearApplicationFocus={() => { const next = new URLSearchParams(searchParams); next.delete('applicationId'); setSearchParams(next); }}

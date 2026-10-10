@@ -6,7 +6,7 @@ import { dueText, statusTone } from './recordStatus';
 /** Records as one list: what it is, where it applies and who is responsible, then its status and next date. */
 export function RecordList({ records, boot, home, onOpen }: { records: OperationRecord[]; boot: Bootstrap; home: boolean; onOpen: (record: OperationRecord) => void }) {
     const now = useNow();
-    return <List label="Records">{records.map(r => {
+    return <List label="Records" className="rec-list">{records.map(r => {
         const due = dueText(r.attentionDate ?? r.due_on, now);
         const responsible = boot.staff.find(s => s.id === r.assigned_user_id)?.name ?? boot.guardians.find(g => g.id === r.assigned_user_id)?.name;
         const meta = [home ? moduleNames[r.module] : boot.definitions.find(d => d.kind === r.kind)?.label,

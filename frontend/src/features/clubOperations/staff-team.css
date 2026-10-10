@@ -7,3 +7,5 @@
 .staff-scope-picker .staff-scope-teams label{display:flex;flex-direction:row;align-items:center;gap:10px;min-height:44px;padding:8px;border-radius:8px;background:var(--fc-surface-hover);color:var(--fc-text-primary);overflow-wrap:anywhere}
 .staff-scope-picker .staff-scope-teams input[type=checkbox]{width:18px!important;height:18px;min-height:18px;padding:0;margin:0;flex:0 0 18px;accent-color:var(--fc-accent)}
 .staff-scope-picker select{max-width:100%;min-height:44px}.staff-scope-teams label:focus-within{outline:2px solid var(--fc-accent);outline-offset:2px}
+.club-ops-embedded .workspace-section-kicker {display:none}
+.workspace-section-heading h1 {font-size:26px;letter-spacing:-.025em}

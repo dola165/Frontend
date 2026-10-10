@@ -36,9 +36,9 @@ it('retains a departed player in the register and shows a server rejection witho
 it('record detail exposes the audited correction action even while collected details remain immutable',async()=>{
     vi.mocked(apiClient.get).mockImplementation(async url=>({data:String(url).endsWith('/history')?[{id:20,action:'TRANSITION',to_status:'COLLECTED',actor:'Synthetic coach',created_at:'2026-10-03T14:00:00Z',note:'Original record'}]:[]}));
     vi.mocked(apiClient.post).mockResolvedValue({data:{...collected,status:'EXPECTED',revision:3}});const changed=vi.fn().mockResolvedValue(undefined);
-    render(<MemoryRouter><RecordDetail club={1} boot={boot} record={collected} definition={definition} onEdit={vi.fn()} onChanged={changed} onClose={vi.fn()}/></MemoryRouter>);
+    render(<MemoryRouter><RecordDetail club={1} boot={boot} record={collected} definition={definition} backLabel="Back to attendance" onEdit={vi.fn()} onChanged={changed} onClose={vi.fn()}/></MemoryRouter>);
     expect(screen.queryByRole('button',{name:'Edit details'})).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Decision or action note'),{target:{value:'Correcting collection'}});fireEvent.click(screen.getByRole('button',{name:/Correct attendance/}));
+    fireEvent.change(screen.getByLabelText(/^Decision or action note/),{target:{value:'Correcting collection'}});fireEvent.click(screen.getByRole('button',{name:/Correct attendance/}));
     await waitFor(()=>expect(changed).toHaveBeenCalledOnce());
     expect(apiClient.post).toHaveBeenCalledWith('/clubs/1/operations/records/18/transition',{status:'EXPECTED',revision:2,note:'Correcting collection'});
     expect(await screen.findByText('Original record')).toBeInTheDocument();

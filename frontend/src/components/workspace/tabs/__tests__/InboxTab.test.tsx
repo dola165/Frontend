@@ -14,9 +14,9 @@ describe('Club inbox', () => {
     it('combines unread and area filters without changing notification destinations', () => {
         const p = props();
         render(<MemoryRouter><InboxTab {...p}/></MemoryRouter>);
-        fireEvent.change(screen.getByRole('combobox', { name: 'Inbox filter' }), { target: { value: 'UNREAD' } });
+        fireEvent.click(screen.getByRole('button', { name: /^Unread/ }));
         expect(screen.queryByText('Squad updated')).toBeNull();
-        fireEvent.click(screen.getByRole('button', { name: /^Squad/ }));
+        fireEvent.change(screen.getByRole('combobox', { name: 'Inbox area' }), { target: { value: 'SQUAD' } });
         expect(screen.getByText('No notifications match these filters.')).toBeInTheDocument();
         fireEvent.change(screen.getByRole('combobox', { name: 'Inbox area' }), { target: { value: 'PLAYER' } });
         fireEvent.click(screen.getByRole('button', { name: /Permission required/ }));

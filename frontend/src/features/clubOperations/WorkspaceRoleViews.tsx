@@ -1,42 +1,92 @@
-import { AppointmentSummary } from './AppointmentSummary';
-import { EmptyState } from '../../components/ui/EmptyState';
-import { MailOpen } from 'lucide-react';
-import { StaffScopePicker, type StaffScopeSelection } from './StaffScopePicker';
-import { scopePayload } from './api';
-import { appointmentScope } from './api';
 import { useRef, useState } from 'react';
+import { Plus, Search } from 'lucide-react';
+import { Badge, Button, EmptyNote, Field, List, PageFrame, PageHeader, Panel, Section } from '../../design/primitives';
+import { ScopeChips } from './ScopeChips';
+import type { StaffScopeSelection } from './StaffScopePicker';
 import { useClubEditorClose } from './useClubEditorClose';
-import { Link } from 'react-router-dom';
-import { type RolesWorkspace, rolesRoot } from './useWorkspaceRoles';
-import { get, post, root, moduleNames, label, type Choice } from './api';
+import { type RoleRequest, type RolesWorkspace, rolesRoot } from './useWorkspaceRoles';
+import { appointmentScope, get, post, root, moduleNames, label, scopePayload, type Choice } from './api';
 import { extractApiErrorMessage } from '../../utils/apiError';
-import './workspace-roles.css';
+import './records/records.css';
 
-export function WorkspaceRolesPanel({club,data,admin=false,onChanged}:{club:number;data:RolesWorkspace;admin?:boolean;onChanged:()=>void}) {
- const [role,setRole]=useState(data.catalog[0]?.key??''),[scope,setScope]=useState<StaffScopeSelection>({clubWide:false,squadIds:[]}),[replace,setReplace]=useState(''),[note,setNote]=useState('');
- const [query,setQuery]=useState(''),[matches,setMatches]=useState<Choice[]>([]),[person,setPerson]=useState(''),[ends,setEnds]=useState('');
- const [mode,setMode]=useState<'list'|'request'|'assign'>('list'),[busy,setBusy]=useState(false),[error,setError]=useState('');
- const [decision,setDecision]=useState<{id:number;revision:number;status:string}|null>(null),[reviewNote,setReviewNote]=useState('');
- const draft=JSON.stringify({role,scope,replace,note,query,person,ends}),initial=useRef(draft);
- const {requestClose,confirmation}=useClubEditorClose(mode!=='list'&&draft!==initial.current,busy,()=>{setMode('list');setRole(data.catalog[0]?.key??'');setScope({clubWide:false,squadIds:[]});setReplace('');setNote('');setQuery('');setMatches([]);setPerson('');setEnds('');});
- const pending=data.requests.find(r=>r.user_id===data.actorId&&r.status==='PENDING');
- const selected=data.catalog.find(r=>r.key===role);
- const run=async(work:()=>Promise<unknown>)=>{if(busy)return;setBusy(true);setError('');try{await work();setMode('list');setDecision(null);onChanged();}catch(e){setError(extractApiErrorMessage(e,'Could not update this role.'));}finally{setBusy(false);}};
- const submit=()=>{if(!scope.clubWide&&!scope.squadIds.length)throw new Error("Select at least one team or choose whole-club responsibility.");const original=data.views.find(v=>String(v.appointmentId)===replace);return mode==='assign'?post(`${rolesRoot(club)}/assignments`,{userId:Number(person),roleKey:role,...scopePayload(scope),startsOn:new Date().toISOString().slice(0,10),endsOn:ends||null}):post(`${rolesRoot(club)}/requests`,{roleKey:role,...scopePayload(scope),replaceAppointmentId:original?.appointmentId??null,replaceRevision:original?.revision??null,note:note||null});};
- const requests=admin?data.requests:data.requests.filter(r=>r.user_id===data.actorId);
- return <section className="role-management"><header className="role-page-heading"><div><h1>{admin?'Staff roles':'Your roles'}</h1><p>{admin?'Assign responsibilities and review staff requests.':'Choose your staff specialisation and ask your club to approve changes to your responsibilities.'}</p></div>{mode==='list'&&(admin?<button type="button" className="role-primary" onClick={()=>setMode('assign')}>Assign a role</button>:<button type="button" className="role-primary" disabled={Boolean(pending)} onClick={()=>setMode('request')}>Request a role change</button>)}</header>
- {error&&<p role="alert" className="ops-alert">{error}</p>}
- {mode!=='list'?<form className="role-request-form" onSubmit={e=>{e.preventDefault();void run(submit);}}><fieldset disabled={busy}><button type="button" className="role-text-button" onClick={requestClose}>← Back to roles</button><h2>{mode==='assign'?'Assign a staff role':'Request a role change'}</h2>
- {mode==='assign'&&<><div className="role-filters"><label>Find a person<input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Name or username"/></label><button type="button" disabled={query.trim().length<2} onClick={()=>{setError('');void get<Choice[]>(`${root(club)}/staff-candidates?q=${encodeURIComponent(query)}`).then(setMatches).catch(e=>setError(extractApiErrorMessage(e,'Search failed.')));}}>Search</button></div><label>Person<select required value={person} onChange={e=>setPerson(e.target.value)}><option value="">Choose a person</option>{matches.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label></>}
- {mode==='request'&&data.views.some(v=>v.appointmentId)&&<label>Change an existing role<select value={replace} onChange={e=>setReplace(e.target.value)}><option value="">Add another responsibility</option>{data.views.filter(v=>v.appointmentId).map(v=><option key={v.id} value={v.appointmentId!}>{v.label}</option>)}</select></label>}
- <label>Role<select required value={role} onChange={e=>setRole(e.target.value)}>{data.catalog.map(r=><option key={r.key} value={r.key}>{r.title}</option>)}</select></label><p className="role-muted">{selected?.description}</p>
- <StaffScopePicker squads={data.requestSquads} value={scope} onChange={setScope} disabled={busy}/>
- {mode==='assign'?<label>End date (optional)<input type="date" min={new Date().toISOString().slice(0,10)} value={ends} onChange={e=>setEnds(e.target.value)}/></label>:<label>Message to your admin<textarea maxLength={1000} rows={3} value={note} onChange={e=>setNote(e.target.value)} placeholder="What will you be helping with?"/></label>}
- <div className="role-access-preview"><h3>Access included</h3>{selected?.permissions.map(p=><p key={p}><span>{moduleNames[p.split(':')[0]]}</span><span>{p.endsWith(':WRITE')?'Read & manage':'Read'}</span></p>)}</div>
- <p className="role-muted">{mode==='assign'?'The staff member accepts before access starts. This creates a volunteer appointment; employment and custom permissions can be set in Appointments & duties.':'Sending this request confirms you accept the responsibilities shown. Access changes only after a club admin approves. Existing roles stay active while you wait.'}</p><button type="submit" className="role-primary">{busy?'Saving…':mode==='assign'?'Send role invitation':'Send for approval'}</button></fieldset></form>:<>
- {!admin&&<><div className="role-approved-list">{data.views.filter(v=>v.id!=='member').map(v=><article key={v.id}><strong>{v.label}</strong><p>{v.clubWide?'Whole club':data.requestSquads.filter(s=>v.squadIds.includes(s.id)).map(s=>s.name).join(', ')}</p><span className="role-muted">{v.appointmentId?'Active appointment':v.id==='club'?'Club leadership':'Recorded squad assignment'}</span></article>)}</div>{data.invitations.map(a=><AppointmentSummary key={a.id} appointment={a} squads={data.requestSquads}><Link className="appointment-summary__primary" to={`/club-operations?appointmentId=${a.id}`}>Review &amp; accept role</Link><button className="appointment-summary__quiet" disabled={busy} onClick={()=>void run(()=>post(`${root(club)}/appointments/${a.id}/transition`,{status:'DECLINED',revision:a.revision}))}>Decline</button></AppointmentSummary>)}</>}
- <h2>{admin?'Role requests':'Your requests'}</h2>{!requests.length&&<EmptyState compact icon={MailOpen} title={admin?'No role requests to review.':'No requests yet.'} description={admin?'Staff requests for additional responsibilities will appear here for your approval.':'When you request another responsibility, follow its review here. Your current access stays available.'}/>}
- {requests.map(r=><article className="role-review-row" key={r.id}><div><h3>{data.catalog.find(c=>c.key===r.role_key)?.title??label(r.role_key)}</h3><p>{admin?`${r.name} · `:''}{appointmentScope({squad_id:r.squad_id??null,...r},data.requestSquads)} · {label(r.effective_status??r.status)}</p>{r.replace_appointment_id&&<p>Replaces an existing appointment after approval.</p>}{r.unavailable_reason&&<p>{r.unavailable_reason}</p>}{r.note&&<p>{r.note}</p>}{r.review_note&&<p>Admin reply: {r.review_note}</p>}<details><summary>Requested access</summary>{r.permissions.map(p=><p key={p}>{moduleNames[p.split(':')[0]]} · {p.endsWith(':WRITE')?'Read & manage':'Read'}</p>)}</details></div>{r.status==='PENDING'&&<div>{admin&&r.user_id!==data.actorId&&r.effective_status!=='UNAVAILABLE'&&<><button disabled={busy} onClick={()=>{setReviewNote('');setDecision({id:r.id,revision:r.revision,status:'APPROVED'});}}>Review & approve</button><button disabled={busy} onClick={()=>{setReviewNote('');setDecision({id:r.id,revision:r.revision,status:'DECLINED'});}}>Decline</button></>}{r.user_id===data.actorId&&<button disabled={busy} onClick={()=>void run(()=>post(`${rolesRoot(club)}/requests/${r.id}`,{status:'WITHDRAWN',revision:r.revision}))}>Withdraw request</button>}</div>}</article>)}
- {decision&&<form className="role-decision" onSubmit={e=>{e.preventDefault();void run(()=>post(`${rolesRoot(club)}/requests/${decision.id}`,{status:decision.status,revision:decision.revision,note:reviewNote||null}));}}><h2>{decision.status==='APPROVED'?'Approve this role change?':'Decline this request?'}</h2><p>{decision.status==='APPROVED'?'The requested permissions and squad scope will take effect immediately. A replaced appointment will end.':'Their current access will stay unchanged.'}</p><label>Reply (optional)<textarea value={reviewNote} maxLength={1000} onChange={e=>setReviewNote(e.target.value)}/></label><div><button type="button" disabled={busy} onClick={()=>setDecision(null)}>Go back</button><button disabled={busy} className="role-primary">{decision.status==='APPROVED'?'Confirm approval':'Confirm decline'}</button></div></form>}
- </>}{confirmation}</section>;
+const tone = (status: string) => status === 'PENDING' ? 'warning' as const : status === 'APPROVED' ? 'accent' as const : status === 'DECLINED' ? 'danger' as const : 'neutral' as const;
+const access = (permissions: string[]) => permissions.map(p => `${moduleNames[p.split(':')[0]] ?? label(p.split(':')[0])}${p.endsWith(':WRITE') ? '' : ' (view)'}`).join(', ');
+
+/** Club leadership's view of staff responsibilities: assign a role, and decide on the changes staff ask for. */
+export function WorkspaceRolesPanel({ club, data, onChanged }: { club: number; data: RolesWorkspace; onChanged: () => void }) {
+  const [assigning, setAssigning] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [done, setDone] = useState('');
+  const [role, setRole] = useState(data.catalog[0]?.key ?? ''), [scope, setScope] = useState<StaffScopeSelection>({ clubWide: false, squadIds: [] }), [ends, setEnds] = useState('');
+  const [query, setQuery] = useState(''), [matches, setMatches] = useState<Choice[]>([]), [person, setPerson] = useState('');
+  const [decision, setDecision] = useState<{ request: RoleRequest; status: 'APPROVED' | 'DECLINED' } | null>(null), [reply, setReply] = useState('');
+  const draft = JSON.stringify({ role, scope, ends, query, person }), initial = useRef(draft);
+  const reset = () => { setAssigning(false); setRole(data.catalog[0]?.key ?? ''); setScope({ clubWide: false, squadIds: [] }); setEnds(''); setQuery(''); setMatches([]); setPerson(''); };
+  const { requestClose, confirmation } = useClubEditorClose(assigning && draft !== initial.current, busy, reset);
+  const selected = data.catalog.find(r => r.key === role);
+  const run = async (work: () => Promise<unknown>, success: string) => {
+    if (busy) return; setBusy(true); setError(''); setDone('');
+    try { await work(); reset(); setDecision(null); setDone(success); onChanged(); }
+    catch (e) { setError(extractApiErrorMessage(e, 'Could not update this role.')); }
+    finally { setBusy(false); }
+  };
+  const assign = () => {
+    if (!scope.clubWide && !scope.squadIds.length) { setError('Choose the whole club or at least one squad.'); return; }
+    void run(() => post(`${rolesRoot(club)}/assignments`, { userId: Number(person), roleKey: role, ...scopePayload(scope), startsOn: new Date().toISOString().slice(0, 10), endsOn: ends || null }), 'Role invitation sent. The person accepts before any access starts.');
+  };
+  const waiting = data.requests.filter(r => r.status === 'PENDING' && r.user_id !== data.actorId);
+  const others = data.requests.filter(r => !waiting.includes(r));
+  const title = (r: RoleRequest) => data.catalog.find(c => c.key === r.role_key)?.title ?? label(r.role_key);
+  const request = (r: RoleRequest, controls: boolean) => <li key={r.id}><div className="gk-list-row rec-request">
+    <span className="gk-list-row__main">
+      <span className="gk-list-row__title">{r.name} · {title(r)}</span>
+      <span className="rec-request__text">{appointmentScope({ squad_id: r.squad_id ?? null, ...r }, data.requestSquads)}{r.replace_appointment_id ? ' · replaces an existing appointment after approval' : ''}</span>
+      {r.note && <span className="rec-request__text">“{r.note}”</span>}
+      {r.review_note && <span className="rec-request__text">Reply: {r.review_note}</span>}
+      {r.unavailable_reason && <span className="rec-request__text">{r.unavailable_reason}</span>}
+      <span className="rec-request__text gk-faint">Access: {access(r.permissions) || 'no club workspace tools'}</span>
+    </span>
+    <span className="gk-list-row__trail rec-trail-wrap">
+      <Badge tone={tone(r.effective_status ?? r.status)}>{label(r.effective_status ?? r.status)}</Badge>
+      {controls && r.status === 'PENDING' && r.user_id !== data.actorId && r.effective_status !== 'UNAVAILABLE' && <>
+        <Button size="sm" disabled={busy} onClick={() => { setReply(''); setDecision({ request: r, status: 'APPROVED' }); }}>Review & approve</Button>
+        <Button size="sm" variant="ghost" disabled={busy} onClick={() => { setReply(''); setDecision({ request: r, status: 'DECLINED' }); }}>Decline</Button></>}
+      {r.status === 'PENDING' && r.user_id === data.actorId && <Button size="sm" variant="ghost" disabled={busy} onClick={() => void run(() => post(`${rolesRoot(club)}/requests/${r.id}`, { status: 'WITHDRAWN', revision: r.revision }), 'Request withdrawn.')}>Withdraw request</Button>}
+    </span>
+  </div></li>;
+
+  return <PageFrame className="rec-page">
+    <PageHeader title="Staff roles" subtitle="Assign responsibilities to your staff and decide on the changes they ask for. Nothing changes until the person or a club admin confirms."
+      actions={!assigning && <Button variant="primary" onClick={() => { initial.current = draft; setAssigning(true); }}><Plus aria-hidden="true" />Assign a role</Button>} />
+    <div className="gk-stack">
+      {error && <div className="gk-notice gk-notice--danger" role="alert">{error}</div>}
+      {done && <div className="gk-notice cw-notices__success" role="status">{done}</div>}
+      {assigning && <Panel flush title="Assign a staff role">
+        <form className="rec-form__group" onSubmit={e => { e.preventDefault(); assign(); }}><fieldset disabled={busy} className="gk-stack gk-stack--tight">
+          <div className="rec-fields">
+            <Field label="Find a person" htmlFor="role-person-search"><div className="gk-row"><input id="role-person-search" className="gk-input" value={query} onChange={e => setQuery(e.target.value)} placeholder="Name or username" />
+              <Button disabled={query.trim().length < 2} onClick={() => { setError(''); void get<Choice[]>(`${root(club)}/staff-candidates?q=${encodeURIComponent(query)}`).then(setMatches).catch(e => setError(extractApiErrorMessage(e, 'Search failed.'))); }}><Search aria-hidden="true" />Search</Button></div></Field>
+            <Field label="Person" htmlFor="role-person"><select id="role-person" className="gk-input" required value={person} onChange={e => setPerson(e.target.value)}><option value="">{matches.length ? 'Choose a person' : 'Search first'}</option>{matches.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+            <Field label="Role" htmlFor="role-key" hint={selected?.description}><select id="role-key" className="gk-input" required value={role} onChange={e => setRole(e.target.value)}>{data.catalog.map(r => <option key={r.key} value={r.key}>{r.title}</option>)}</select></Field>
+            <Field label={<>End date <span className="rec-optional">(optional)</span></>} htmlFor="role-ends"><input id="role-ends" className="gk-input" type="date" min={new Date().toISOString().slice(0, 10)} value={ends} onChange={e => setEnds(e.target.value)} /></Field>
+            <div className="rec-wide"><ScopeChips squads={data.requestSquads} value={scope} onChange={setScope} disabled={busy} /></div>
+          </div>
+          <p className="gk-muted">Includes: {access(selected?.permissions ?? []) || 'no club workspace tools'}. The person accepts before access starts. This creates a volunteer appointment; employment terms and custom access are set in Staff.</p>
+          <div className="gk-row"><Button type="submit" variant="primary" disabled={busy}>{busy ? 'Sending…' : 'Send role invitation'}</Button><Button variant="ghost" disabled={busy} onClick={requestClose}>Cancel</Button></div>
+          {confirmation}
+        </fieldset></form>
+      </Panel>}
+      {decision && <Panel flush title={decision.status === 'APPROVED' ? 'Approve this role change?' : 'Decline this request?'}>
+        <form className="rec-form__group" onSubmit={e => { e.preventDefault(); void run(() => post(`${rolesRoot(club)}/requests/${decision.request.id}`, { status: decision.status, revision: decision.request.revision, note: reply || null }), decision.status === 'APPROVED' ? 'Role change approved.' : 'Request declined.'); }}>
+          <p className="gk-muted">{decision.status === 'APPROVED' ? `${decision.request.name} gets ${title(decision.request).toLowerCase()} access straight away. A replaced appointment ends.` : 'Their current access stays as it is.'}</p>
+          <Field label={<>Reply <span className="rec-optional">(optional)</span></>} htmlFor="role-reply"><textarea id="role-reply" className="gk-input" value={reply} maxLength={1000} onChange={e => setReply(e.target.value)} /></Field>
+          <div className="gk-row"><Button type="submit" variant={decision.status === 'APPROVED' ? 'primary' : 'danger'} disabled={busy}>{decision.status === 'APPROVED' ? 'Confirm approval' : 'Confirm decline'}</Button><Button variant="ghost" disabled={busy} onClick={() => setDecision(null)}>Go back</Button></div>
+        </form>
+      </Panel>}
+      <Section title="Waiting for a decision" hint={waiting.length ? `${waiting.length}` : undefined}>
+        <Panel flush>{waiting.length ? <List label="Waiting for a decision">{waiting.map(r => request(r, true))}</List> : <EmptyNote title="No role requests to review">Requests staff send for new responsibilities appear here.</EmptyNote>}</Panel>
+      </Section>
+      <Section title="Earlier requests">
+        <Panel flush>{others.length ? <List label="Earlier requests">{others.map(r => request(r, false))}</List> : <EmptyNote title="No earlier requests" />}</Panel>
+      </Section>
+    </div>
+  </PageFrame>;
 }

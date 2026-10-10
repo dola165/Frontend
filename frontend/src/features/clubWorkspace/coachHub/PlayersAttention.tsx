@@ -60,7 +60,7 @@ export function PlayersAttention({ clubId, roles, boot, squads, onOpen }: { club
     const counts = { restricted: items.filter(i => i.rank === 0).length, consent: items.filter(i => i.rank === 1).length, development: items.filter(i => i.rank === 2).length };
     const hint = [counts.restricted && `${counts.restricted} restricted`, counts.consent && `${counts.consent} consents pending`, counts.development && `${counts.development} development`].filter(Boolean).join(' · ');
 
-    return <Section title="Players who need attention" hint={hint || undefined}>
+    return <Section title="Players to check" hint={hint || undefined}>
         <Panel flush>
             {!records.any ? <EmptyNote title="Player records aren’t shared with your responsibilities">Restrictions, consent and development notes appear here when your role includes them.</EmptyNote>
                 : records.loading ? <div className="cw-skeleton-rows" role="status" aria-label="Loading players who need attention">{[0, 1, 2].map(i => <Skeleton key={i} height={40} />)}</div>

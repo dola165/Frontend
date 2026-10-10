@@ -1,8 +1,10 @@
-import { CheckCheck, Inbox, Loader2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { NotificationListItem } from '../../notifications/NotificationListItem';
+import { CheckCheck } from 'lucide-react';
 import type { NotificationItem } from '../../../types/notifications';
-import { EmptyState, PageSpinner } from '../helpers';
+import { JourneyReminderActions } from '../../../features/mapPlanning/JourneyReminderActions';
+import { formatNotificationTime, notificationActionLabel, notificationTypeLabel } from '../../../utils/notifications';
+import { Badge, Button, Chip, EmptyNote, List, PageFrame, PageHeader, Panel, Skeleton } from '../../../design/primitives';
+import '../../../features/clubOperations/records/records.css';
 
 interface InboxTabProps {
     notifications: NotificationItem[];
@@ -19,45 +21,52 @@ interface InboxTabProps {
 }
 
 const areaNames: Record<string, string> = { CLUB_MEMBERSHIP_APPLICATION: 'Applications', PLAYER_CLUB_AFFILIATION: 'Players', SCHEDULE_EVENT: 'Calendar' };
-const areaLabel = (value: string) => areaNames[value] ?? value.toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+const areaLabel = (value: string) => areaNames[value] ?? value.toLowerCase().replaceAll('_', ' ').replace(/^\w/, letter => letter.toUpperCase());
+const filters = [['ALL', 'All'], ['UNREAD', 'Unread'], ['PRIORITY', 'Needs action']] as const;
 
-export const InboxTab = ({
-    notifications, loading, loadingMore, busyId, hasMore,
-    unreadCount, error, onOpen, onLoadMore, onMarkAllRead, onRetry,
-}: InboxTabProps) => {
+/** The club's notifications: filter by read state or area, open one to go to its record. */
+export const InboxTab = ({ notifications, loading, loadingMore, busyId, hasMore, unreadCount, error, onOpen, onLoadMore, onMarkAllRead, onRetry }: InboxTabProps) => {
     const [filter, setFilter] = useState<'ALL' | 'UNREAD' | 'PRIORITY'>('ALL');
     const [area, setArea] = useState('ALL');
     const areas = useMemo(() => Array.from(new Set(notifications.map(item => item.entityType).filter(Boolean) as string[])).sort(), [notifications]);
-    const visibleNotifications = useMemo(() => notifications.filter(item => {
-        const filterMatches = filter === 'ALL' || (filter === 'UNREAD' && !item.isRead) || (filter === 'PRIORITY' && /urgent|action|required|failed|warning/i.test(`${item.title} ${item.body}`));
-        return filterMatches && (area === 'ALL' || item.entityType === area);
+    const visible = useMemo(() => notifications.filter(item => {
+        const matches = filter === 'ALL' || (filter === 'UNREAD' && !item.isRead) || (filter === 'PRIORITY' && /urgent|action|required|failed|warning/i.test(`${item.title} ${item.body}`));
+        return matches && (area === 'ALL' || item.entityType === area);
     }), [area, filter, notifications]);
 
-    return <section className="workspace-inbox" aria-labelledby="workspace-inbox-title">
-        <header className="wi-heading">
-            <div><span className="wi-eyebrow">Club inbox</span><h1 id="workspace-inbox-title">Notifications<span aria-hidden="true">.</span></h1><p>Club updates, decisions and alerts, together in one place.</p></div>
-            {unreadCount > 0 && <span className="wi-unread">{unreadCount} unread</span>}
-        </header>
-        <div className="wi-layout">
-            <div className="wi-main">
-                <div className="wi-filters">
-                    <label><span className="sr-only">Inbox filter</span><select value={filter} onChange={e => setFilter(e.target.value as typeof filter)}><option value="ALL">All notifications</option><option value="UNREAD">Unread</option><option value="PRIORITY">Priority</option></select></label>
-                    <label><span className="sr-only">Inbox area</span><select value={area} onChange={e => setArea(e.target.value)}><option value="ALL">All areas</option>{areas.map(item => <option key={item} value={item}>{areaLabel(item)}</option>)}</select></label>
-                    <span role="status" className="wi-count">{loading ? 'Loading…' : `${visibleNotifications.length} shown${hasMore ? ' · more available' : ''}`}</span>
-                    {unreadCount > 0 && <button type="button" className="wi-mark-read" onClick={onMarkAllRead}><CheckCheck size={15} aria-hidden="true"/>Mark all as read</button>}
-                </div>
-                {error && <div className="wi-error" role="alert"><p>{error}</p><button type="button" onClick={onRetry}>Retry</button></div>}
-                {loading && notifications.length === 0 ? <PageSpinner /> : !error && notifications.length === 0 ? <EmptyState message="Your club inbox is up to date" description="New club notifications will appear here." icon={<Inbox size={26}/>} /> : visibleNotifications.length === 0 ? <EmptyState message="No notifications match these filters." description="Try all notifications or choose another area." /> : <div className="wi-list" role="group" aria-label="Club notifications" aria-busy={loading}>
-                    {visibleNotifications.map(notification => <div className="wi-item" key={notification.id} data-unread={!notification.isRead}>
-                        <NotificationListItem notification={notification} compact showScope={false} busy={busyId === notification.id} onOpen={onOpen}/>
-                    </div>)}
-                </div>}
-                {hasMore && <div className="wi-pagination"><button type="button" disabled={loadingMore} onClick={onLoadMore}>{loadingMore && <Loader2 size={15} className="animate-spin" aria-hidden="true"/>}{loadingMore ? 'Loading…' : 'Load more notifications'}</button></div>}
+    return <PageFrame className="rec-page">
+        <PageHeader title="Inbox" subtitle={unreadCount ? `${unreadCount} unread · club updates, decisions and alerts` : 'Club updates, decisions and alerts, in one place.'}
+            actions={unreadCount > 0 && <Button onClick={onMarkAllRead}><CheckCheck aria-hidden="true" />Mark all as read</Button>} />
+        <div className="gk-stack gk-stack--tight">
+            <div className="rec-toolbar">
+                <div className="gk-chips" role="group" aria-label="Inbox filter">{filters.map(([value, text]) => <Chip key={value} pressed={filter === value} onClick={() => setFilter(value)}>{text}{value === 'UNREAD' && unreadCount ? ` ${unreadCount}` : ''}</Chip>)}</div>
+                <select className="gk-input" aria-label="Inbox area" value={area} onChange={e => setArea(e.target.value)}>
+                    <option value="ALL">All areas</option>{areas.map(item => <option key={item} value={item}>{areaLabel(item)} ({notifications.filter(n => n.entityType === item).length})</option>)}
+                </select>
+                <span role="status" className="rec-toolbar__count">{loading ? 'Loading…' : `${visible.length} shown${hasMore ? ' · more available' : ''}`}</span>
             </div>
-            <aside className="wi-context" aria-label="Inbox context">
-                <section className="wi-context-card"><span className="wi-eyebrow">In this club</span><h2><Inbox size={17} aria-hidden="true"/>Club inbox</h2><p>Open a notification to go to the relevant record or page. Marking it as read clears its unread indicator.</p></section>
-                {areas.length > 0 && <section className="wi-context-card"><h2>Browse by area</h2><p>{hasMore ? 'Areas in the notifications loaded so far.' : 'Areas in your club notifications.'}</p><div className="wi-area-links"><button type="button" aria-pressed={area === 'ALL'} onClick={() => setArea('ALL')}>All areas</button>{areas.map(item => <button key={item} type="button" aria-pressed={area === item} onClick={() => setArea(item)}>{areaLabel(item)}<span>{notifications.filter(n => n.entityType === item).length}</span></button>)}</div></section>}
-            </aside>
+            {error && <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error}</span><Button size="sm" onClick={onRetry}>Retry</Button></div>}
+            <Panel flush>
+                {loading && notifications.length === 0 ? <div className="cw-skeleton-rows" role="status" aria-label="Loading notifications">{[0, 1, 2, 3].map(i => <Skeleton key={i} height={52} />)}</div>
+                    : !error && notifications.length === 0 ? <EmptyNote title="Your club inbox is up to date">New club notifications appear here.</EmptyNote>
+                        : visible.length === 0 ? <EmptyNote title="No notifications match these filters." action={<Button size="sm" onClick={() => { setFilter('ALL'); setArea('ALL'); }}>Show all</Button>}>Try all notifications or another area.</EmptyNote>
+                            : <List label="Club notifications">{visible.map(notification => {
+                                const action = notificationActionLabel(notification);
+                                return <li key={notification.id} data-unread={!notification.isRead || undefined}>
+                                    <button type="button" className="gk-list-row rec-note-row" disabled={busyId === notification.id} onClick={() => onOpen(notification)}>
+                                        <span className="gk-list-row__lead"><span className={`rec-dot${notification.isRead ? '' : ' rec-dot--on'}`} aria-label={notification.isRead ? undefined : 'Unread'} /></span>
+                                        <span className="gk-list-row__main">
+                                            <span className="gk-list-row__title">{notification.title}</span>
+                                            <span className="rec-request__text">{notification.body}</span>
+                                            <span className="gk-list-row__meta">{notificationTypeLabel(notification.type)}</span>
+                                        </span>
+                                        <span className="gk-list-row__trail rec-trail-wrap"><span className="rec-row__due">{formatNotificationTime(notification.createdAt)}</span>{action && <Badge tone="accent">{action}</Badge>}</span>
+                                    </button>
+                                    <JourneyReminderActions notification={notification} />
+                                </li>;
+                            })}</List>}
+                {hasMore && <div className="rec-pager"><Button size="sm" disabled={loadingMore} onClick={onLoadMore}>{loadingMore ? 'Loading…' : 'Load more notifications'}</Button></div>}
+            </Panel>
         </div>
-    </section>;
+    </PageFrame>;
 };

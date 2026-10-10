@@ -1,10 +1,10 @@
+import { useState } from 'react';
 import { Briefcase, Crown, LogOut } from 'lucide-react';
 import type { ClubManagedMember, ClubManagementOverview } from '../../../features/clubs/domain';
 import { clubRoleLabel } from '../../../features/clubs/domain';
-import { DataTable, EmptyState, Pill, SectionHeader } from '../helpers';
-import { UserIdentityCell } from '../UserIdentityCell';
-import { OverflowActions } from '../../ui/OverflowActions';
 import { useAuth } from '../../../context/AuthContext';
+import { Avatar, Badge, Button, EmptyNote, List, ListRow, PageFrame, PageHeader, Panel, Section } from '../../../design/primitives';
+import '../../../features/clubOperations/records/records.css';
 
 interface RolesTabProps {
     overview: ClubManagementOverview;
@@ -21,120 +21,50 @@ interface RolesTabProps {
     onOpenJobs?: () => void;
 }
 
-export const RolesTab = ({
-    overview, pendingKey, currentUserId,
-    confirmingSelfLeave, isOwner,
-    onTransferOwnership,
-    onConfirmSelfLeave, onLeaveClub, onOpenJobs
-}: RolesTabProps) => {
+/** Your club role, handing ownership to an eligible organiser, and ending your own staff membership. */
+export const RolesTab = ({ overview, pendingKey, currentUserId, confirmingSelfLeave, isOwner, onTransferOwnership, onConfirmSelfLeave, onLeaveClub, onOpenJobs }: RolesTabProps) => {
     const { refreshNavigationCapabilities } = useAuth();
-    const endStaffMembership = async () => {
-        await onLeaveClub();
-        await refreshNavigationCapabilities().catch(() => undefined);
-    };
-    const transferCandidates = overview.members.filter((member) =>
-        member.ownershipTransferEligible === true && member.userId !== currentUserId
-        && (member.role === 'CLUB_ADMIN' || member.role === 'COACH'));
+    const [transferTo, setTransferTo] = useState<ClubManagedMember | null>(null);
+    const endStaffMembership = async () => { await onLeaveClub(); await refreshNavigationCapabilities().catch(() => undefined); };
+    // Only staff the server marks as eligible (active organisers with complete accounts) are offered.
+    const candidates = overview.members.filter(member => member.ownershipTransferEligible === true && member.userId !== currentUserId && (member.role === 'CLUB_ADMIN' || member.role === 'COACH'));
+    const target = transferTo && candidates.find(member => member.userId === transferTo.userId);
 
-    return (
-    <div className="space-y-4">
-        <SectionHeader
-            eyebrow="Roles"
-            title="Authority & Ownership"
-            description="View your clearance, manage role assignments, transfer ownership, or leave the club."
-            action={
-                onOpenJobs ? (
-                    <button
-                        type="button"
-                        onClick={onOpenJobs}
-                        className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-3 py-2 text-xs font-semibold text-[var(--color-accent)] hover:bg-[var(--color-accent)]/20"
-                    >
-                        <Briefcase className="h-3.5 w-3.5" /> Looking for a coach?
-                    </button>
-                ) : undefined
-            }
-        />
-        <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
-                <p className="text-xs font-medium text-[var(--fc-text-muted)]">Your Clearance</p>
-                <p className="mt-1 text-lg font-semibold text-[var(--fc-text-primary)]">{clubRoleLabel(overview.currentUserRole)}</p>
-            </div>
-            <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] px-4 py-3">
-                <p className="text-xs font-medium text-[var(--fc-text-muted)]">Assignable Roles</p>
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                    {overview.assignableStaffRoles.length === 0 ? (
-                        <span className="text-xs text-[var(--fc-text-muted)]">None</span>
-                    ) : (
-                        overview.assignableStaffRoles.map((role) => (
-                            <Pill key={role} label={clubRoleLabel(role)} tone="success" />
-                        ))
-                    )}
-                </div>
-            </div>
-            <div className="rounded-xl border border-[var(--fc-state-warning-soft)] bg-[var(--fc-state-warning-soft)] px-4 py-3">
-                <p className="text-xs font-medium text-[var(--fc-state-warning)]">Membership Exit</p>
-                <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">
-                    {isOwner ? 'Transfer ownership before you can leave.' : 'Leave this club when ready.'}
-                </p>
-            </div>
-        </div>
-
-        {isOwner && (
-            <div className="space-y-4">
-                <SectionHeader eyebrow="Ownership" title="Transfer Ownership" description="Transfer ownership to an active organizer on your staff who has completed account setup. You will remain a club admin." />
-                {transferCandidates.length === 0 ? (
-                    <EmptyState message="No eligible members available for ownership transfer." />
-                ) : (
-                    <div className="rounded-xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] overflow-hidden">
-                        <DataTable columns={['Member', 'Current Role', '']}>
-                            {transferCandidates.map((member) => (
-                                <tr key={member.userId} className="group h-11 hover:bg-[var(--fc-surface-hover)] transition-colors">
-                                    <td className="px-4">
-                                        <UserIdentityCell avatarUrl={member.avatarUrl} fullName={member.fullName} username={member.username} />
-                                    </td>
-                                    <td className="px-4"><Pill label={clubRoleLabel(member.role)} /></td>
-                                    <td className="px-4 w-12">
-                                        <div className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
-                                            <OverflowActions
-                                                triggerIcon="vertical"
-                                                label="Transfer ownership"
-                                                items={[
-                                                    { id: 'transfer', label: 'Transfer Ownership', description: `Hand over club ownership to ${member.fullName || member.username}`, icon: <Crown className="h-3.5 w-3.5" />, tone: 'warning', disabled: pendingKey === `transfer-${member.userId}`, confirm: { title: 'Transfer Ownership?', body: 'This will transfer ownership. You will lose owner privileges and be redirected.' }, onSelect: () => void onTransferOwnership(member) },
-                                                ]}
-                                            />
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </DataTable>
-                    </div>
-                )}
-            </div>
-        )}
-
-        <div className="rounded-xl border border-[var(--fc-state-danger-soft)] bg-[var(--fc-state-danger-soft)] px-4 py-3">
-            <div className="flex items-start gap-3">
-                <LogOut className="mt-0.5 h-4 w-4 shrink-0 text-[var(--fc-state-danger)]" />
-                <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-[var(--fc-text-primary)]">End Staff Membership</p>
-                    <p className="mt-1 text-xs text-[var(--fc-text-secondary)]">
-                        {isOwner ? 'Transfer ownership before leaving. The owner cannot leave directly.' : 'This ends your staff access and coaching assignments. Any playing membership and squad places remain.'}
-                    </p>
-                    {!isOwner && (
-                        <div className="mt-3">
-                            {confirmingSelfLeave ? (
-                                <div className="flex gap-2">
-                                    <button type="button" onClick={() => onConfirmSelfLeave(false)} disabled={pendingKey === 'leave-club'} className="rounded-xl border border-[var(--fc-border)] px-3 py-1.5 text-xs font-medium text-[var(--fc-text-secondary)] disabled:opacity-50">Cancel</button>
-                                    <button type="button" onClick={() => void endStaffMembership()} disabled={pendingKey === 'leave-club'} className="rounded-xl bg-[var(--fc-state-danger)] px-3 py-1.5 text-xs font-semibold text-[color:var(--color-text)] hover:opacity-90 disabled:opacity-50">{pendingKey === 'leave-club' ? 'Leaving...' : 'Confirm departure'}</button>
-                                </div>
-                            ) : (
-                                <button type="button" onClick={() => onConfirmSelfLeave(true)} className="rounded-xl border border-[var(--fc-state-danger)] px-3 py-1.5 text-xs font-semibold text-[var(--fc-state-danger)] hover:bg-[var(--fc-state-danger)] hover:text-[color:var(--color-text)] transition-colors">End Staff Membership</button>
-                            )}
+    return <PageFrame className="rec-page">
+        <PageHeader title="Ownership & access" subtitle="Your club role, who can take over the club, and leaving it."
+            actions={onOpenJobs && <Button onClick={onOpenJobs}><Briefcase aria-hidden="true" />Post an open role</Button>} />
+        <div className="gk-grid gk-grid--split">
+            <div className="gk-stack">
+                {isOwner && <Section title="Transfer ownership" hint="You stay on as a club admin.">
+                    {target && <div className="gk-notice gk-notice--warning rec-prompt" role="group" aria-label="Confirm ownership transfer">
+                        <p className="rec-prompt__text"><strong>Transfer ownership to {target.fullName || target.username}?</strong> You lose owner privileges and return to the club page.</p>
+                        <Button size="sm" variant="ghost" onClick={() => setTransferTo(null)}>Cancel</Button>
+                        <Button size="sm" variant="primary" disabled={pendingKey === `transfer-${target.userId}`} onClick={() => void onTransferOwnership(target)}>Confirm</Button>
+                    </div>}
+                    <Panel flush>{candidates.length ? <List label="Eligible organisers">{candidates.map(member => <ListRow key={member.userId}
+                        lead={<Avatar src={member.avatarUrl} name={member.fullName || member.username} size={36} />} title={member.fullName || member.username} meta={`@${member.username}`}
+                        trail={<><Badge>{clubRoleLabel(member.role)}</Badge><Button size="sm" disabled={pendingKey != null} onClick={() => setTransferTo(member)}><Crown aria-hidden="true" />Transfer ownership<span className="gk-visually-hidden"> to {member.fullName || member.username}</span></Button></>} />)}</List>
+                        : <EmptyNote title="No eligible members available for ownership transfer.">Ownership can go to an active club admin or coach who has finished setting up their account.</EmptyNote>}</Panel>
+                </Section>}
+                <Section title="End staff membership">
+                    <Panel padded>
+                        <div className="gk-stack gk-stack--tight">
+                            <p className="gk-muted">{isOwner ? 'Transfer ownership before leaving. The owner cannot leave directly.' : 'This ends your staff access and coaching assignments. Any playing membership and squad places remain.'}</p>
+                            {!isOwner && (confirmingSelfLeave
+                                ? <div className="gk-row"><Button variant="ghost" onClick={() => onConfirmSelfLeave(false)} disabled={pendingKey === 'leave-club'}>Cancel</Button>
+                                    <Button variant="danger" onClick={() => void endStaffMembership()} disabled={pendingKey === 'leave-club'}>{pendingKey === 'leave-club' ? 'Leaving…' : 'Confirm departure'}</Button></div>
+                                : <div><Button variant="danger" onClick={() => onConfirmSelfLeave(true)}><LogOut aria-hidden="true" />End staff membership</Button></div>)}
                         </div>
-                    )}
-                </div>
+                    </Panel>
+                </Section>
             </div>
+            <Panel flush title="Your club role">
+                <dl className="rec-facts">
+                    <div><dt>Your role</dt><dd>{clubRoleLabel(overview.currentUserRole)}</dd></div>
+                    <div className="rec-wide"><dt>Roles you can assign</dt><dd className="rec-badges">{overview.assignableStaffRoles.length ? overview.assignableStaffRoles.map(role => <Badge key={role} tone="accent">{clubRoleLabel(role)}</Badge>) : 'None'}</dd></div>
+                    <div className="rec-wide"><dt>Leaving</dt><dd>{isOwner ? 'Transfer ownership before you can leave.' : 'You can leave this club when ready.'}</dd></div>
+                </dl>
+            </Panel>
         </div>
-    </div>
-    );
+    </PageFrame>;
 };

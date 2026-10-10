@@ -56,6 +56,10 @@
     .gk .gk-board__range { font-size: var(--gk-fs-lg); }
     .gk .gk-board__bar { align-items: flex-start; }
     .gk .gk-board__filters select.gk-input { min-width: 0; flex: 1 1 160px; }
+    /* Filter chips stay on one line and scroll sideways rather than stacking above the schedule. */
+    .gk .gk-board__filters > .gk-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+    .gk .gk-board__filters > .gk-chips::-webkit-scrollbar { display: none; }
+    .gk .gk-board__filters .gk-chip { flex: none; }
 }
 
 /* Read-only event details. */

@@ -16,6 +16,8 @@
 //     the usual preview (POST …/preview), which notifies families only when confirmation is turned on.
 //   * PUT …/sessions/{id}/attendance accepts NOT_GOING (and GOING to undo) even when no reply was requested, plus an
 //     optional `reason` (≤ 140 characters) stored with NOT_GOING and shown only to the squad's coaches as attendance[].reason.
+//   * GET /squad-communication/{squad} attention.replies_needed counts only unanswered players on events that ask for
+//     confirmation (and reconfirmations), so a coach is never chased for training nobody was asked to confirm.
 import { get, post, put, reply } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as S from '../world-social.mjs';

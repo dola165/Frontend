@@ -524,7 +524,7 @@ function overviewDto(s) {
     threads: families.map(id => ({ user_id: id, full_name: person(id).role === 'PARENT' ? `${displayName(id)} (${person(S.childOf(id))?.firstName ?? 'family'})` : displayName(id), unread_count: S.squadUnread.get(s.id)?.get(id) ?? 0 })),
     attention: {
       upcoming_sessions: week.length,
-      replies_needed: week.reduce((n, e) => n + s.playerIds.filter(id => responseOf(e, id) === 'UNANSWERED').length, 0),
+      replies_needed: week.filter(e => P.confirmationRequested(e)).reduce((n, e) => n + s.playerIds.filter(id => responseOf(e, id) === 'UNANSWERED').length, 0),
       acknowledgements_needed: latestImportant ? families.filter(id => !latestImportant.acknowledged.has(id)).length : 0,
     },
   };

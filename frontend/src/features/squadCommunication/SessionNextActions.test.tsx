@@ -30,7 +30,7 @@ it('does not ask for a reply when the coach did not ask for confirmation', () =>
 });
 it('links a coach to response gaps, acknowledgements and their existing private inbox', () => {
     render(<MemoryRouter><CoachNextActions space={{ id: 11, can_manage: true, attention: { upcoming_sessions: 3, replies_needed: 2, acknowledgements_needed: 4 }, threads: [{ user_id: 10, unread_count: 1 }] } as SquadOverview}/></MemoryRouter>);
-    expect(screen.getByRole('link', { name: 'Plan sessions & review replies' })).toHaveAttribute('href', '/squads/11?tab=sessions');
+    expect(screen.getByRole('link', { name: 'Plan sessions & check availability' })).toHaveAttribute('href', '/squads/11?tab=sessions');
     expect(screen.getByRole('link', { name: '4 update acknowledgements pending' })).toHaveAttribute('href', '#coach-updates');
     expect(screen.getByRole('link', { name: '1 unread family conversations' })).toBeInTheDocument();
 });

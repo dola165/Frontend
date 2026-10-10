@@ -15,3 +15,6 @@
 .gk .gk-availability__more > summary:hover { color: var(--gk-text); }
 .gk .gk-availability__record { display: flex; flex-direction: column; gap: var(--gk-2); padding-bottom: var(--gk-1); }
 .gk .gk-availability__record .gk-row { flex-wrap: wrap; }
+/* Inside the squad session dialog the block lines up with the dialog's own sections. */
+.squad-schedule-dialog > .gk.gk-availability { margin: var(--gk-4) 28px var(--gk-6); }
+@media (max-width: 600px) { .squad-schedule-dialog > .gk.gk-availability { margin: var(--gk-4) 20px var(--gk-5); } }

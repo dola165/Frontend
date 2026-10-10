@@ -85,17 +85,6 @@
     border-top-color: var(--fc-accent); background: color-mix(in srgb, var(--fc-accent) 3%, transparent);
     border-radius: 8px; padding: 16px; margin-top: 16px;
 }
-:is(.squad-page,.parent-hub) .family-attendance select { transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease; }
-:is(.squad-page,.parent-hub) .family-attendance[data-response=GOING] select {
-    color: var(--fc-accent); background: var(--fc-accent-soft); border-color: var(--fc-accent);
-}
-:is(.squad-page,.parent-hub) .family-attendance[data-response=UNSURE] select {
-    color: var(--state-warning); background: var(--state-warning-soft); border-color: var(--state-warning);
-}
-:is(.squad-page,.parent-hub) .family-attendance[data-response=NOT_GOING] select {
-    color: var(--state-danger); background: var(--state-danger-soft); border-color: var(--state-danger);
-}
-
 /* Important doesn't mean unread. Warm attention changes to green only after acknowledgement. */
 .squad-page .squad-announcements .squad-message {
     transition: border-color 200ms ease, background-color 200ms ease;

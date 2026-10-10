@@ -23,11 +23,39 @@ beforeEach(() => {
 it('shows reconfirmation and submits the revision the participant saw', async () => {
     const saved = vi.fn();
     render(<MemoryRouter><SquadSessionDetails event={sessionEvent(squad, session)} onClose={vi.fn()} onSaved={saved}/></MemoryRouter>);
-    expect(screen.getByText(/Session changed. Please confirm again/)).toHaveTextContent('previous reply: going');
-    expect(screen.getByLabelText('Reply for Nika')).toHaveValue('RECONFIRMATION_REQUIRED');
-    fireEvent.change(screen.getByLabelText('Reply for Nika'), { target: { value: 'GOING' } });
-    await waitFor(() => expect(api.attendance).toHaveBeenCalledWith(10, 9, 61, 'GOING', 4, expect.any(String), getAuthSessionId()));
+    expect(screen.getByText('The event changed. Please confirm again.')).toBeInTheDocument();
+    expect(screen.getByText(/Previous answer: coming/)).toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Coming' }));
+    await waitFor(() => expect(api.attendance).toHaveBeenCalledWith(10, 9, 61, 'GOING', 4, expect.any(String), getAuthSessionId(), undefined));
     await waitFor(() => expect(saved).toHaveBeenCalledOnce());
+});
+
+it('assumes a player is coming and sends one-tap can’t come with an optional reason for the coach', async () => {
+    const quiet = { ...session, response_requested: false, attendance: [{ ...session.attendance[0], response: 'UNANSWERED', response_status: 'CURRENT', previous_response: null }] };
+    render(<MemoryRouter><SquadSessionDetails event={sessionEvent(squad, quiet)} onClose={vi.fn()} onSaved={vi.fn()}/></MemoryRouter>);
+    expect(screen.getByText('Nika is expected')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Coming' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Can’t come' }));
+    await waitFor(() => expect(api.attendance).toHaveBeenCalledWith(10, 9, 61, 'NOT_GOING', 4, expect.any(String), getAuthSessionId(), undefined));
+    fireEvent.change(await screen.findByLabelText('Reason for the coach (optional)'), { target: { value: 'School trip' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send reason' }));
+    await waitFor(() => expect(api.attendance).toHaveBeenLastCalledWith(10, 9, 61, 'NOT_GOING', 4, expect.any(String), getAuthSessionId(), 'School trip'));
+});
+
+it('lets the coach ask for confirmation only after seeing who will be notified', async () => {
+    const quiet = { ...session, response_requested: false, attendance: [{ ...session.attendance[0], response: 'NOT_GOING', reason: 'Injured', response_status: 'CURRENT', previous_response: null }, { id: 62, name: 'Saba', response: 'UNANSWERED', active: true }] };
+    const saved = vi.fn();
+    render(<MemoryRouter><SquadSessionDetails event={sessionEvent(squad, quiet)} canManage onClose={vi.fn()} onSaved={saved}/></MemoryRouter>);
+    expect(screen.getByText('1 can’t come')).toBeInTheDocument();
+    expect(screen.getByText(/Injured/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Ask for confirmation' }));
+    expect(await screen.findByText(/Ask 2 families to confirm/)).toBeInTheDocument();
+    expect(api.editSession).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Send request' }));
+    await waitFor(() => expect(api.editSession).toHaveBeenCalledWith(10, 9, expect.objectContaining({ requestResponses: true, revision: 4, playerIds: null, startsAt: session.starts_at })));
+    expect(vi.mocked(api.editSession).mock.calls[0][2].requestId).toBe(vi.mocked(api.previewSession).mock.calls[0][2].requestId);
+    expect(saved).toHaveBeenCalledOnce();
 });
 
 it('does not offer replies or editing for a cancelled session', () => {
@@ -37,10 +65,10 @@ it('does not offer replies or editing for a cancelled session', () => {
     expect(screen.queryByRole('button', { name: 'Edit or reschedule' })).not.toBeInTheDocument();
 });
 
-it('does not show reply controls or promise availability for an informational series', () => {
-    render(<MemoryRouter><SquadSessionDetails event={sessionEvent(squad,{...session,series_id:'series',response_requested:false})} onClose={vi.fn()} onSaved={vi.fn()}/></MemoryRouter>);
-    expect(screen.getByText('No availability reply is requested for this event.')).toBeInTheDocument();
-    expect(screen.getByText('Part of a repeating series.')).toBeInTheDocument();
+it('does not ask an informational series for replies', () => {
+    render(<MemoryRouter><SquadSessionDetails event={sessionEvent(squad,{...session,series_id:'series',response_requested:false,attendance:[{...session.attendance[0],response:'UNANSWERED',response_status:'CURRENT',previous_response:null}]})} onClose={vi.fn()} onSaved={vi.fn()}/></MemoryRouter>);
+    expect(screen.getByText(/No need to reply/)).toBeInTheDocument();
+    expect(screen.getByText('Part of a repeating series. Availability is kept separately for each date.')).toBeInTheDocument();
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
 });
 
@@ -116,10 +144,10 @@ it('keeps the edit visible on a revision conflict and offers an explicit reload'
     expect(saved).toHaveBeenCalledOnce();
 });
 
-it('labels coach-recorded intent and offers the session reservation controls to its coach', () => {
+it('labels coach-recorded answers and offers the session reservation controls to its coach', () => {
     render(<MemoryRouter><SquadSessionDetails event={sessionEvent(squad, { ...session, attendance: [{ ...session.attendance[0], recorded_by: 'COACH' }] })} canManage onClose={vi.fn()} onSaved={vi.fn()}/></MemoryRouter>);
-    expect(screen.getByText('Recorded by the coach')).toBeInTheDocument();
-    expect(screen.getByText(/They do not record actual attendance/)).toBeInTheDocument();
+    expect(screen.getByText('1 to confirm')).toBeInTheDocument();
+    expect(screen.getByText('Answers you record are labelled as recorded by the coach.')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /^Stadium reservation/ })).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Session reservation' })).toBeInTheDocument();
 });

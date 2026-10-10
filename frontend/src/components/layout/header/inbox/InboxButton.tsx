@@ -5,29 +5,26 @@ import { Count } from '../../../../design/primitives';
 import { useJourneyCopy } from '../../../../features/squadCommunication/journeyCopy';
 import { usePopover } from '../usePopover';
 import { InboxPanel } from './InboxPanel';
-import { useInboxCounts } from './useInbox';
+import { inboxBadge, inboxLabel, useInboxCounts } from './useInbox';
 
-/** Requests and notifications behind one button, with one combined count. */
+/** Requests and notifications behind one button. The badge counts decisions only; unread updates show as a dot. */
 export function InboxButton() {
     const copy = useJourneyCopy();
     const { pathname } = useLocation();
     const counts = useInboxCounts();
-    const { open, toggle, close, triggerRef, panelRef, onKeyDown } = usePopover('panel');
+    const { open, toggle, close, triggerRef, panelRef, onKeyDown } = usePopover({ initialFocus: 'panel' });
     const id = useId();
-    const total = (counts.needsYou ?? 0) + (counts.updates ?? 0);
+    const badge = inboxBadge(counts);
     const known = counts.needsYou !== null || counts.updates !== null;
-    const label = known
-        ? copy(`Inbox: ${counts.needsYou ?? 0} need you, ${counts.updates ?? 0} unread updates`, `შემოსულები: ${counts.needsYou ?? 0} გელოდებათ, ${counts.updates ?? 0} სიახლე`)
-        : copy('Inbox', 'შემოსულები');
     const onInboxPage = pathname === '/requests' || pathname === '/notifications';
 
     return (
         <div className="gk-hanchor" onKeyDown={onKeyDown}>
-            <button ref={triggerRef} type="button" className="gk-hbtn" aria-label={label} title={copy('Inbox', 'შემოსულები')}
+            <button ref={triggerRef} type="button" className="gk-hbtn" aria-label={known ? inboxLabel(counts, copy) : copy('Inbox', 'შემოსულები')} title={copy('Inbox', 'შემოსულები')}
                 aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}
                 aria-current={onInboxPage ? 'page' : undefined} onClick={toggle}>
                 <Inbox aria-hidden="true" />
-                <Count value={total} />
+                {badge === 'dot' ? <span className="gk-hdot" aria-hidden="true" /> : badge && <Count value={badge.count} atLeast={badge.atLeast} />}
             </button>
             {open && (
                 <div ref={panelRef} id={id} role="dialog" aria-labelledby={`${id}-title`} tabIndex={-1} className="gk-pop">

@@ -72,6 +72,15 @@ function write(key: string, value: unknown) {
     persist(key, value);
 }
 
+// Visit history belongs to one sign-in: sign-in and sign-out remove it from storage (`clearStoredAuth`), so the
+// in-memory copy is dropped as well. Pins are the person's own choice and stay.
+if (typeof window !== 'undefined') {
+    window.addEventListener('gk-auth-changed', () => {
+        for (const key of [...cache.keys()]) if (key.startsWith('gk-visits:')) cache.delete(key);
+        listeners.forEach(listener => listener());
+    });
+}
+
 export function subscribePins(listener: () => void) {
     listeners.add(listener);
     const onStorage = (event: StorageEvent) => {
@@ -91,7 +100,10 @@ export function writePins(userId: number, pins: Pin[]) {
     persist(pinKey(userId), { pins: next });
 }
 
-/** Count a visit at most once per ten minutes per page, keeping two weeks of history. */
+/**
+ * Count a visit at most once per ten minutes per page, keeping two weeks of history. A page the route can name
+ * is stored without a label (it is named in the current language when shown); others keep their visible title.
+ */
 export function recordVisit(userId: number, path: string, icon: PinIcon, label: string | null) {
     const now = Date.now();
     const current = readVisits(userId);

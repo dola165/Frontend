@@ -1,9 +1,10 @@
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Inbox, ArrowUpRight, RefreshCw, Building2, Flag, Trophy, HeartHandshake, CalendarDays, Handshake, FileCheck2 } from 'lucide-react';
+import { Inbox, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { requestDestination, requests, type RequestPage, type RequestItem } from './api';
+import { requestIcon } from './requestIcon';
 import { apiClient, type AuthSessionRequestConfig } from '../../api/axiosConfig';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import './requests.css';
@@ -81,12 +82,3 @@ function Centre() {
   </main>;
 }
 
-function requestIcon(family:string) {
-  if(family.includes('TOURNAMENT')) return Trophy;
-  if(family.includes('REFEREE') || family.includes('OFFICIAL')) return Flag;
-  if(family.includes('FAMILY') || family.includes('GUARDIAN') || family.includes('CONSENT')) return HeartHandshake;
-  if(family.includes('BOOKING') || family.includes('VENUE')) return CalendarDays;
-  if(family.includes('REPRESENTATION') || family.includes('APPROACH')) return Handshake;
-  if(family.includes('CLUB') || family.includes('STAFF')) return Building2;
-  return FileCheck2;
-}

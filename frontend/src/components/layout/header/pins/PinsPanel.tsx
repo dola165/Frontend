@@ -29,7 +29,7 @@ function PinLink({ pin, meta, onNavigate }: { pin: Pin; meta?: string; onNavigat
     );
 }
 
-/** Pin this page, manage pins, take a suggestion or browse everything that can become a tab. */
+/** Pin this page, manage pins, take a suggestion, open your own work, or browse everything that can become a tab. */
 export function PinsPanel({ state, page, work, titleId, onNavigate }: PinsPanelProps) {
     const copy = useJourneyCopy();
     const { pins, suggestions, isPinned, pin, unpin, move, full } = state;
@@ -44,17 +44,16 @@ export function PinsPanel({ state, page, work, titleId, onNavigate }: PinsPanelP
             </Button>
         );
     };
-    const catalogue = (title: string, items: Pin[]) => items.length > 0 && (
-        <>
-            <h4 className="gk-pop__label">{title}</h4>
-            <ul className="gk-list">{items.map(item => <li key={item.path} className="gk-prow"><PinLink pin={item} onNavigate={onNavigate} />{pinButton(item, 'ghost')}</li>)}</ul>
-        </>
+    const rows = (items: Pin[], emphasis: 'secondary' | 'ghost') => (
+        <ul className="gk-list">{items.map(item => <li key={item.path} className="gk-prow"><PinLink pin={item} onNavigate={onNavigate} />{pinButton(item, emphasis)}</li>)}</ul>
     );
+    // Work already suggested above is not listed twice.
+    const ownWork = work.filter(item => !suggestions.some(suggestion => suggestion.path === item.path));
 
     return (
         <>
-            <div className="gk-pop__head"><h2 id={titleId} className="gk-pop__title">{copy('Pins', 'მიმაგრებული')}</h2></div>
-            <p className="gk-pop__hint">{copy('Your own tabs next to Home, World and My Club.', 'თქვენი ჩანართები მთავარის, სამყაროსა და ჩემი კლუბის გვერდით.')}</p>
+            <div className="gk-pop__head"><h2 id={titleId} className="gk-pop__title">{copy('Pins', 'პინები')}</h2></div>
+            <p className="gk-pop__hint">{copy('Your own tabs next to Home, World and My Club.', 'თქვენი ჩანართები მთავარის, მსოფლიოსა და ჩემი კლუბის გვერდით.')}</p>
 
             {page.pinnable && (
                 <section className="gk-pop__section" aria-label={copy('This page', 'ეს გვერდი')}>
@@ -73,7 +72,7 @@ export function PinsPanel({ state, page, work, titleId, onNavigate }: PinsPanelP
             <section className="gk-pop__section" aria-labelledby={`${titleId}-yours`}>
                 <h3 id={`${titleId}-yours`} className="gk-pop__label">{copy('Your pins', 'თქვენი პინები')}</h3>
                 {pins.length === 0
-                    ? <p className="gk-pop__note">{copy('Nothing pinned yet. Open a page you use often and pin it, or pick one below.', 'ჯერ არაფერია მიმაგრებული. გახსენით ხშირად გამოყენებული გვერდი და მიამაგრეთ.')}</p>
+                    ? <p className="gk-pop__note">{copy('Nothing pinned yet. Open a page you use often and pin it, or pick one below.', 'ჯერ არაფერია მიმაგრებული. გახსენით ხშირად გამოყენებული გვერდი და მიამაგრეთ, ან აირჩიეთ ქვემოთ.')}</p>
                     : <ul className="gk-list">{pins.map((item, index) => (
                         <li key={item.path} className="gk-prow">
                             <PinLink pin={item} onNavigate={onNavigate} />
@@ -101,11 +100,17 @@ export function PinsPanel({ state, page, work, titleId, onNavigate }: PinsPanelP
                 </section>
             )}
 
+            {ownWork.length > 0 && (
+                <section className="gk-pop__section" aria-labelledby={`${titleId}-work`}>
+                    <h3 id={`${titleId}-work`} className="gk-pop__label">{copy('Your work', 'თქვენი საქმე')}</h3>
+                    {rows(ownWork, 'ghost')}
+                </section>
+            )}
+
             <section className="gk-pop__section">
                 <details>
                     <summary>{copy('More places to pin', 'სხვა გვერდები')}<ChevronDown aria-hidden="true" /></summary>
-                    {catalogue(copy('Your work', 'თქვენი საქმე'), work)}
-                    {catalogue(copy('Explore', 'აღმოაჩინეთ'), exploreDestinations)}
+                    {rows(exploreDestinations(copy), 'ghost')}
                 </details>
             </section>
         </>

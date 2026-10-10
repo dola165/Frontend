@@ -280,7 +280,7 @@ export function MainLayout() {
         /^\/organizations\/\d+$/.test(location.pathname) ||
         /^\/profile\/\d+$/.test(location.pathname);
     const isFullScreenPage =
-        location.pathname === '/workspaces' || location.pathname === '/reports' || isWorldPage ||
+        location.pathname === '/reports' || isWorldPage ||
         location.pathname === '/requests' || location.pathname === '/events' ||
         location.pathname === '/tryouts' || location.pathname.startsWith('/tryouts/') ||
         location.pathname === '/admissions' || location.pathname.startsWith('/admissions/') ||

@@ -1,11 +1,14 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
-import { hasNavigationCapability, type NavigationCapabilities } from '../../../../context/navigationCapabilities';
+import type { NavigationCapabilities } from '../../../../context/navigationCapabilities';
+import { useJourneyCopy } from '../../../../features/squadCommunication/journeyCopy';
+import { pinLabel, type Copy } from './describeRoute';
+import { workspaceDestinations } from './pinCatalog';
 import { MAX_PINS, readPins, readVisits, subscribePins, writePins, type Pin, type Visits } from './pinStore';
 
 export type { Pin } from './pinStore';
-export const VISIBLE_PINS = 5;
 const SUGGEST_AFTER_VISITS = 3;
-const MAX_SUGGESTIONS = 6;
+const MAX_WORK_SUGGESTIONS = 6;
+const MAX_VISIT_SUGGESTIONS = 3;
 const NO_PINS: Pin[] = [];
 const NO_VISITS: Visits = {};
 
@@ -13,54 +16,60 @@ const NO_VISITS: Visits = {};
 export interface Suggestion extends Pin { visits: number | null; reason?: string }
 
 /**
- * Work the person already has that used to be a tab of its own (Parent Hub, officiating, agent and venue work).
- * It is suggested from the start so nothing is lost, but it only becomes a tab when the person pins it.
+ * The person's own work, suggested from the start so nothing is lost: hubs that used to be tabs, and every squad,
+ * tournament, organization and venue they work in. It only becomes a tab when the person pins it.
  */
-function workSuggestions(capabilities: NavigationCapabilities | undefined): Suggestion[] {
-    const has = (id: string) => hasNavigationCapability(capabilities, id);
-    const venues = capabilities?.workspaces.some(item => item.id === 'venue.workspace');
-    const organizations = capabilities?.workspaces.some(item => item.id === 'organization.workspace');
-    return [
-        ...(has('parent.hub') || has('club.family') ? [{ path: '/parent', label: 'Parent Hub', icon: 'family' as const, visits: null, reason: 'Your children and their football' }] : []),
-        ...(has('referee.workspace') ? [{ path: '/referees/me', label: 'Officiating', icon: 'flag' as const, visits: null, reason: 'Your appointments and availability' }] : []),
-        ...(has('agent.hub') ? [{ path: '/agent', label: 'Agent Hub', icon: 'briefcase' as const, visits: null, reason: 'Your players and opportunities' }] : []),
-        ...(venues ? [{ path: '/my-organizations?kind=VENUE', label: 'My venues', icon: 'venue' as const, visits: null, reason: 'Bookings and pitches you run' }]
-            : organizations ? [{ path: '/my-organizations', label: 'My organizations', icon: 'building' as const, visits: null, reason: 'Organizations you work for' }] : []),
+export function workSuggestions(capabilities: NavigationCapabilities | undefined, myClubPath: string | null, copy: Copy): Suggestion[] {
+    const places = workspaceDestinations(capabilities, myClubPath, copy).map(place => ({ path: place.path, label: place.label, icon: place.icon, visits: null, reason: place.kind }));
+    const venues = capabilities?.workspaces.filter(item => item.id === 'venue.workspace').length ?? 0;
+    const organizations = capabilities?.workspaces.filter(item => item.id === 'organization.workspace').length ?? 0;
+    // Several venues or organizations also get their overview page.
+    const overviews: Suggestion[] = [
+        ...(venues > 1 ? [{ path: '/my-organizations?kind=VENUE', label: copy('My venues', 'ჩემი მოედნები'), icon: 'venue' as const, visits: null, reason: copy('All the venues you run', 'ყველა თქვენი მოედანი') }] : []),
+        ...(organizations > 1 ? [{ path: '/my-organizations', label: copy('My organizations', 'ჩემი ორგანიზაციები'), icon: 'building' as const, visits: null, reason: copy('All the organizations you work for', 'ყველა თქვენი ორგანიზაცია') }] : []),
     ];
+    return [...places, ...overviews];
 }
 
 /**
- * Personal pins next to the primary tabs. Nothing is ever pinned for the person:
- * suggestions come from their own recent visits and their own work, and wait for a tap.
+ * Personal pins next to the primary tabs. Nothing is ever pinned for the person: suggestions come from their own
+ * work and their recent visits on this device, and wait for a tap. Labels follow the current language.
  */
-export function usePins(userId: number | undefined, capabilities: NavigationCapabilities | undefined) {
-    const pins = useSyncExternalStore(subscribePins, () => userId ? readPins(userId) : NO_PINS, () => NO_PINS);
+export function usePins(userId: number | undefined, capabilities: NavigationCapabilities | undefined, myClubPath: string | null = null) {
+    const copy = useJourneyCopy();
+    const stored = useSyncExternalStore(subscribePins, () => userId ? readPins(userId) : NO_PINS, () => NO_PINS);
     const visits = useSyncExternalStore(subscribePins, () => userId ? readVisits(userId) : NO_VISITS, () => NO_VISITS);
+    const context = useMemo(() => ({ capabilities, userId, myClubPath, copy }), [capabilities, userId, myClubPath, copy]);
+
+    const pins = useMemo(() => stored.map(pin => ({ ...pin, label: pinLabel(pin.path, pin.label, context) ?? pin.label })), [stored, context]);
 
     const suggestions = useMemo<Suggestion[]>(() => {
+        const pinned = (path: string) => stored.some(pin => pin.path === path);
+        const work = workSuggestions(capabilities, myClubPath, copy).filter(item => !pinned(item.path)).slice(0, MAX_WORK_SUGGESTIONS);
         const visited = Object.entries(visits)
-            .map(([path, visit]) => ({ path, label: visit.label, icon: visit.icon ?? 'bookmark', visits: visit.t.length }))
+            .map(([path, visit]) => ({ path, label: pinLabel(path, visit.label, context), icon: visit.icon ?? 'bookmark', visits: visit.t.length }))
             .filter((item): item is Suggestion & { label: string; visits: number } => item.visits >= SUGGEST_AFTER_VISITS && !!item.label)
-            .sort((a, b) => b.visits - a.visits);
-        return [...workSuggestions(capabilities), ...visited]
-            .filter((item, index, all) => !pins.some(pin => pin.path === item.path) && all.findIndex(other => other.path === item.path) === index)
-            .slice(0, MAX_SUGGESTIONS);
-    }, [visits, pins, capabilities]);
+            .filter(item => !pinned(item.path) && !work.some(other => other.path === item.path) && item.path !== myClubPath)
+            .sort((a, b) => b.visits - a.visits)
+            .slice(0, MAX_VISIT_SUGGESTIONS);
+        return [...work, ...visited];
+    }, [visits, stored, capabilities, myClubPath, copy, context]);
 
+    // Writes keep each pin's own stored label; only the display follows the language.
     const save = useCallback((next: Pin[]) => { if (userId) writePins(userId, next); }, [userId]);
-    const isPinned = useCallback((path: string) => pins.some(pin => pin.path === path), [pins]);
+    const isPinned = useCallback((path: string) => stored.some(pin => pin.path === path), [stored]);
     const pin = useCallback((item: Pin) => {
-        if (pins.some(existing => existing.path === item.path) || pins.length >= MAX_PINS) return;
-        save([...pins, { path: item.path, label: item.label.slice(0, 60), icon: item.icon }]);
-    }, [pins, save]);
-    const unpin = useCallback((path: string) => save(pins.filter(item => item.path !== path)), [pins, save]);
+        if (stored.some(existing => existing.path === item.path) || stored.length >= MAX_PINS) return;
+        save([...stored, { path: item.path, label: item.label.slice(0, 60), icon: item.icon }]);
+    }, [stored, save]);
+    const unpin = useCallback((path: string) => save(stored.filter(item => item.path !== path)), [stored, save]);
     const move = useCallback((path: string, direction: -1 | 1) => {
-        const index = pins.findIndex(item => item.path === path), target = index + direction;
-        if (index < 0 || target < 0 || target >= pins.length) return;
-        const next = [...pins];
+        const index = stored.findIndex(item => item.path === path), target = index + direction;
+        if (index < 0 || target < 0 || target >= stored.length) return;
+        const next = [...stored];
         [next[index], next[target]] = [next[target], next[index]];
         save(next);
-    }, [pins, save]);
+    }, [stored, save]);
 
-    return { pins, suggestions, isPinned, pin, unpin, move, full: pins.length >= MAX_PINS };
+    return { pins, suggestions, isPinned, pin, unpin, move, full: stored.length >= MAX_PINS };
 }

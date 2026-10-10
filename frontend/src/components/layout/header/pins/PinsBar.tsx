@@ -3,27 +3,39 @@ import { Link } from 'react-router-dom';
 import { ChevronDown, Plus } from 'lucide-react';
 import { useJourneyCopy } from '../../../../features/squadCommunication/journeyCopy';
 import { HeaderTab } from '../HeaderTab';
-import { moveMenuFocus, usePopover } from '../usePopover';
+import { moveMenuFocus, openMenuFromKey, usePopover } from '../usePopover';
 import { readPageTitle, type RouteDescription } from './describeRoute';
 import { pinIcons } from './pinIcons';
 import { PinGlyph, PinsPanel } from './PinsPanel';
-import { VISIBLE_PINS, type Pin, type usePins } from './usePins';
+import { fitPins } from './fitPins';
+import type { Pin, usePins } from './usePins';
 
-const OVERFLOW_BUTTON = 104;
-const PIN_TOOLS = 64;
+interface PinsBarProps {
+    state: ReturnType<typeof usePins>;
+    page: RouteDescription;
+    work: Pin[];
+    activePath: string | null;
+    /** Pins would not all fit beside the search field, so the header shows search as an icon instead. */
+    crowded: boolean;
+    onCrowdedChange: (crowded: boolean) => void;
+}
 
-interface PinsBarProps { state: ReturnType<typeof usePins>; page: RouteDescription; work: Pin[]; activePath: string | null }
-
-/** Up to five pins as tabs, as many as fit; the rest stay one click away in "More". */
-export function PinsBar({ state, page, work, activePath }: PinsBarProps) {
+/** Up to five pins as tabs, as many as fit; the rest stay one click away in "more". */
+export function PinsBar({ state, page, work, activePath, crowded, onCrowdedChange }: PinsBarProps) {
     const copy = useJourneyCopy();
     const { pins } = state;
     const containerRef = useRef<HTMLDivElement>(null);
     const measureRef = useRef<HTMLUListElement>(null);
+    const moreMeasureRef = useRef<HTMLSpanElement>(null);
+    const crowdedRef = useRef(crowded);
+    useLayoutEffect(() => { crowdedRef.current = crowded; }, [crowded]);
     const [fit, setFit] = useState(0);
     const [title, setTitle] = useState<string | null>(null);
+    // A popover opens rightwards from its button, unless that would run past the window; then it opens leftwards.
+    const [alignEnd, setAlignEnd] = useState({ panel: false, overflow: false });
+    const opensLeft = (trigger: HTMLElement | null, width: number) => Boolean(trigger && trigger.getBoundingClientRect().left + width + 16 > window.innerWidth);
     const { open: panelOpen, toggle: panelToggle, close: panelClose, triggerRef: panelTriggerRef, panelRef: panelPanelRef, onKeyDown: panelOnKeyDown } = usePopover();
-    const { open: overflowOpen, toggle: overflowToggle, triggerRef: overflowTriggerRef, panelRef: overflowPanelRef, onKeyDown: overflowOnKeyDown } = usePopover();
+    const { open: overflowOpen, toggle: overflowToggle, show: overflowShow, triggerRef: overflowTriggerRef, panelRef: overflowPanelRef, onKeyDown: overflowOnKeyDown } = usePopover();
     const panelId = useId();
     const overflowId = useId();
 
@@ -32,33 +44,41 @@ export function PinsBar({ state, page, work, activePath }: PinsBarProps) {
         if (!container || !measure || typeof ResizeObserver === 'undefined') return;
         // The observer reports the initial size too, so the count is never set during render.
         const observer = new ResizeObserver(() => {
-            const available = container.clientWidth - PIN_TOOLS;
-            const widths = Array.from(measure.children, child => (child as HTMLElement).offsetWidth + 4);
-            let used = 0, count = 0;
-            for (const [index, width] of widths.entries()) {
-                if (index >= VISIBLE_PINS) break;
-                const reserve = index < widths.length - 1 ? OVERFLOW_BUTTON : 0;
-                if (used + width + reserve > available) break;
-                used += width;
-                count += 1;
-            }
-            setFit(count);
+            const style = getComputedStyle(container);
+            const divider = container.querySelector<HTMLElement>('.gk-header__divider');
+            const dividerSpace = divider ? divider.offsetWidth + (parseFloat(getComputedStyle(divider).marginLeft) || 0) * 2 : 0;
+            const result = fitPins({
+                available: container.clientWidth - dividerSpace,
+                pins: Array.from(measure.children, child => (child as HTMLElement).offsetWidth),
+                more: moreMeasureRef.current?.offsetWidth ?? 0,
+                plus: (panelTriggerRef.current?.offsetWidth ?? 44) + 4,
+                gap: 4,
+                searchField: parseFloat(style.getPropertyValue('--gk-hsearch')) || 0,
+            }, crowdedRef.current);
+            setFit(result.fit);
+            onCrowdedChange(result.crowded);
         });
         observer.observe(container);
         observer.observe(measure);
         return () => observer.disconnect();
-    }, [pins]);
+    }, [pins, onCrowdedChange, panelTriggerRef]);
 
     const visible = pins.slice(0, fit);
     const hidden = pins.slice(fit);
     const hiddenActive = hidden.some(pin => pin.path === activePath);
+    const moreLabel = (count: number) => visible.length || count < pins.length
+        ? copy(`${count} more`, `კიდევ ${count}`)
+        : copy(`${count} ${count === 1 ? 'pin' : 'pins'}`, `${count} პინი`);
 
     return (
         <div ref={containerRef} className="gk-header__pins">
             <span className="gk-header__divider" aria-hidden="true" />
-            <ul ref={measureRef} className="gk-pins gk-pins--measure" aria-hidden="true">
-                {pins.map(pin => <li key={pin.path} className="gk-htab gk-htab--pin"><span className="gk-htab__body"><PinGlyph icon={pin.icon} /><span className="gk-htab__label">{pin.label}</span></span></li>)}
-            </ul>
+            <div className="gk-pins--measure" aria-hidden="true">
+                <ul ref={measureRef} className="gk-pins">
+                    {pins.map(pin => <li key={pin.path} className="gk-htab gk-htab--pin"><span className="gk-htab__body"><PinGlyph icon={pin.icon} /><span className="gk-htab__label">{pin.label}</span></span></li>)}
+                </ul>
+                <span ref={moreMeasureRef} className="gk-hbtn gk-hbtn--text">{moreLabel(pins.length)}<ChevronDown /></span>
+            </div>
             {visible.length > 0 && (
                 <ul className="gk-pins" aria-label={copy('Your pins', 'თქვენი პინები')}>
                     {visible.map(pin => <li key={pin.path}><HeaderTab pin to={pin.path} label={pin.label} icon={pinIcons[pin.icon]} current={pin.path === activePath} /></li>)}
@@ -68,13 +88,13 @@ export function PinsBar({ state, page, work, activePath }: PinsBarProps) {
                 {hidden.length > 0 && (
                     <div className="gk-hanchor" onKeyDown={overflowOnKeyDown}>
                         <button ref={overflowTriggerRef} type="button" className="gk-hbtn gk-hbtn--text" aria-haspopup="menu" aria-expanded={overflowOpen}
-                            aria-controls={overflowOpen ? overflowId : undefined} aria-current={hiddenActive ? 'page' : undefined} onClick={overflowToggle}>
-                            {visible.length
-                                ? copy(`${hidden.length} more`, `კიდევ ${hidden.length}`)
-                                : copy(`${hidden.length} ${hidden.length === 1 ? 'pin' : 'pins'}`, `${hidden.length} პინი`)}<ChevronDown aria-hidden="true" />
+                            aria-controls={overflowOpen ? overflowId : undefined} aria-current={hiddenActive ? 'page' : undefined}
+                            onClick={event => { setAlignEnd(current => ({ ...current, overflow: opensLeft(event.currentTarget, 300) })); overflowToggle(); }}
+                            onKeyDown={event => { if (event.key.startsWith('Arrow')) setAlignEnd(current => ({ ...current, overflow: opensLeft(event.currentTarget, 300) })); openMenuFromKey(event, overflowShow); }}>
+                            {moreLabel(hidden.length)}<ChevronDown aria-hidden="true" />
                         </button>
                         {overflowOpen && (
-                            <div ref={overflowPanelRef} id={overflowId} role="menu" aria-label={visible.length ? copy('More pins', 'სხვა პინები') : copy('Your pins', 'თქვენი პინები')} className="gk-pop gk-pop--menu gk-pop--start" onKeyDown={moveMenuFocus}>
+                            <div ref={overflowPanelRef} id={overflowId} role="menu" tabIndex={-1} aria-label={visible.length ? copy('More pins', 'სხვა პინები') : copy('Your pins', 'თქვენი პინები')} className={`gk-pop gk-pop--menu${alignEnd.overflow ? '' : ' gk-pop--start'}`} onKeyDown={moveMenuFocus}>
                                 {hidden.map(pin => (
                                     <Link key={pin.path} role="menuitem" to={pin.path} className="gk-menu__item" aria-current={pin.path === activePath ? 'page' : undefined}>
                                         <PinGlyph icon={pin.icon} /><span className="gk-prow__title">{pin.label}</span>
@@ -85,13 +105,15 @@ export function PinsBar({ state, page, work, activePath }: PinsBarProps) {
                     </div>
                 )}
                 <div className="gk-hanchor" onKeyDown={panelOnKeyDown}>
+                    {/* With nothing pinned the button reads "Pin"; once there are pins it is an icon named "Manage pins". */}
                     <button ref={panelTriggerRef} type="button" className={pins.length ? 'gk-hbtn' : 'gk-hbtn gk-hbtn--text'} aria-haspopup="dialog" aria-expanded={panelOpen}
-                        aria-controls={panelOpen ? panelId : undefined} aria-label={copy('Pins: add or manage your tabs', 'პინები: ჩანართების დამატება')} title={copy('Pins', 'პინები')}
-                        onClick={() => { setTitle(readPageTitle()); panelToggle(); }}>
+                        aria-controls={panelOpen ? panelId : undefined} aria-label={pins.length ? copy('Manage pins', 'პინების მართვა') : undefined}
+                        title={copy('Pin a page as your own tab', 'გვერდის ჩანართად მიმაგრება')}
+                        onClick={event => { setTitle(readPageTitle()); setAlignEnd(current => ({ ...current, panel: opensLeft(event.currentTarget, 400) })); panelToggle(); }}>
                         <Plus aria-hidden="true" />{pins.length === 0 && <span>{copy('Pin', 'მიმაგრება')}</span>}
                     </button>
                     {panelOpen && (
-                        <div ref={panelPanelRef} id={panelId} role="dialog" aria-labelledby={`${panelId}-title`} className="gk-pop gk-pop--start">
+                        <div ref={panelPanelRef} id={panelId} role="dialog" tabIndex={-1} aria-labelledby={`${panelId}-title`} className={alignEnd.panel ? 'gk-pop' : 'gk-pop gk-pop--start'}>
                             <PinsPanel state={state} page={{ ...page, title }} work={work} titleId={`${panelId}-title`} onNavigate={() => panelClose(false)} />
                         </div>
                     )}

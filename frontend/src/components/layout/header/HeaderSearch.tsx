@@ -7,7 +7,7 @@ import { usePopover } from './usePopover';
 /** The global search: a field on wide screens, an icon that opens the same search below the header elsewhere. */
 export function HeaderSearch({ light }: { light: boolean }) {
     const copy = useJourneyCopy();
-    const { open, toggle, close, triggerRef, panelRef, onKeyDown } = usePopover('first');
+    const { open, toggle, close, triggerRef, panelRef, onKeyDown } = usePopover();
     const id = useId();
     return (
         <>

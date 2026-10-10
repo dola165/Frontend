@@ -4,8 +4,11 @@ import { NavLink, useSearchParams } from 'react-router-dom';
 
 export interface TabItem<T extends string> { id: T; label: ReactNode; count?: number; icon?: ReactNode }
 
-/** Underline tabs with arrow-key support. Use `useUrlTab` to keep the selection in the URL. */
-export function Tabs<T extends string>({ items, value, onChange, label, className }: { items: TabItem<T>[]; value: T; onChange: (id: T) => void; label: string; className?: string }) {
+/**
+ * Underline tabs with arrow-key support. Use `useUrlTab` to keep the selection in the URL.
+ * With `idBase`, each tab gets the id `${idBase}-${id}` and controls the panel `${idBase}-${id}-panel`.
+ */
+export function Tabs<T extends string>({ items, value, onChange, label, className, idBase }: { items: TabItem<T>[]; value: T; onChange: (id: T) => void; label: string; className?: string; idBase?: string }) {
     const refs = useRef<Array<HTMLButtonElement | null>>([]);
     const onKey = (event: KeyboardEvent<HTMLDivElement>) => {
         const index = items.findIndex(item => item.id === value);
@@ -20,6 +23,7 @@ export function Tabs<T extends string>({ items, value, onChange, label, classNam
         <div role="tablist" aria-label={label} className={`gk-tabs${className ? ` ${className}` : ''}`} onKeyDown={onKey}>
             {items.map((item, index) => (
                 <button key={item.id} ref={node => { refs.current[index] = node; }} role="tab" type="button" className="gk-tab"
+                    id={idBase && `${idBase}-${item.id}`} aria-controls={idBase && item.id === value ? `${idBase}-${item.id}-panel` : undefined}
                     aria-selected={item.id === value} tabIndex={item.id === value ? 0 : -1} onClick={() => onChange(item.id)}>
                     {item.icon}{item.label}{typeof item.count === 'number' && <span className="gk-tab__count">{item.count}</span>}
                 </button>

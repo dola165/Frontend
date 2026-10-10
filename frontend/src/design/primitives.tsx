@@ -129,9 +129,10 @@ export type BadgeTone = 'neutral' | 'accent' | 'warning' | 'danger' | 'info' | '
 export function Badge({ tone = 'neutral', children, className }: { tone?: BadgeTone; children: ReactNode; className?: string }) {
     return <span className={cx('gk-badge', tone !== 'neutral' && `gk-badge--${tone}`, className)}>{children}</span>;
 }
-export function Count({ value, label }: { value: number; label?: string }) {
+/** A small count badge. `atLeast` marks a number that may be higher (some sources could not load). */
+export function Count({ value, label, atLeast = false }: { value: number; label?: string; atLeast?: boolean }) {
     if (!value) return null;
-    return <span className="gk-count" aria-label={label}>{value > 99 ? '99+' : value}</span>;
+    return <span className="gk-count" aria-label={label}>{value > 99 ? '99+' : atLeast ? `${value}+` : value}</span>;
 }
 
 const initials = (name?: string | null) => (name ?? '?').trim().split(/\s+/).slice(0, 2).map(part => part[0]?.toUpperCase() ?? '').join('') || '?';

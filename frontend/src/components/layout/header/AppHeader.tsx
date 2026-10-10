@@ -1,5 +1,5 @@
 import './header.css';
-import { useContext, useMemo } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Earth, House, MessageSquare, Shield, Sparkles } from 'lucide-react';
@@ -10,12 +10,13 @@ import { DolaContext } from '../../../features/dola/DolaContext';
 import { useJourneyCopy } from '../../../features/squadCommunication/journeyCopy';
 import { themeForRoute, type ThemePreference } from '../../../theme';
 import { AccountMenu } from './AccountMenu';
+import { ExploreMenu } from './ExploreMenu';
 import { HeaderBrand, HeaderTab } from './HeaderTab';
 import { HeaderSearch } from './HeaderSearch';
 import { InboxButton } from './inbox/InboxButton';
 import { PhoneTabBar } from './PhoneTabBar';
 import { describeRoute, normalizePath } from './pins/describeRoute';
-import { workDestinations } from './pins/pinCatalog';
+import { workDestinations, workspaceDestinations } from './pins/pinCatalog';
 import { PinsBar } from './pins/PinsBar';
 import { usePins, type Pin } from './pins/usePins';
 import { useVisitRecorder } from './pins/useVisitRecorder';
@@ -52,11 +53,13 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
     const { pathname, search } = useLocation();
     const capabilities = user.navigationCapabilities;
     const club = useMemo(() => myClub(capabilities, myClubId), [capabilities, myClubId]);
-    const pins = usePins(user.id, capabilities);
+    const pins = usePins(user.id, capabilities, club.path);
+    const [crowded, setCrowded] = useState(false);
     useVisitRecorder(user.id, capabilities, club.path);
-    const unread = useUnreadMessages(true);
-    const work = useMemo(() => workDestinations(capabilities, club.path), [capabilities, club.path]);
-    const page = describeRoute(pathname, search, { capabilities, userId: user.id, myClubPath: club.path });
+    const unread = useUnreadMessages();
+    const work = useMemo(() => workDestinations(capabilities, club.path, copy), [capabilities, club.path, copy]);
+    const workspaces = useMemo(() => workspaceDestinations(capabilities, club.path, copy), [capabilities, club.path, copy]);
+    const page = describeRoute(pathname, search, { capabilities, userId: user.id, myClubPath: club.path, copy });
     const pinned = currentPin(pins.pins, pathname, search);
     const section = pinned ? null : primarySectionFor(pathname, club.ids);
     const tabs: PrimaryTab[] = [
@@ -70,14 +73,14 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
 
     return (
         <>
-            <header className="gk gk-header" data-pins={pins.pins.length ? 'some' : 'none'}>
+            <header className="gk gk-header" data-pins={!pins.pins.length ? 'none' : crowded ? 'crowded' : 'some'}>
                 <div className="gk-frame gk-header__row">
                     <HeaderBrand to="/home" />
                     <nav className="gk-header__nav" aria-label={copy('Main', 'მთავარი ნავიგაცია')}>
                         <ul className="gk-header__tabs">
                             {tabs.map(tab => <li key={tab.id}><HeaderTab to={tab.to} label={tab.label} icon={tab.icon} current={tab.current} /></li>)}
                         </ul>
-                        <PinsBar state={pins} page={page} work={work} activePath={pinned?.path ?? null} />
+                        <PinsBar state={pins} page={page} work={work} activePath={pinned?.path ?? null} crowded={crowded} onCrowdedChange={setCrowded} />
                     </nav>
                     <div className="gk-header__actions">
                         <HeaderSearch light={light} />
@@ -90,7 +93,7 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
                             aria-label={unread ? copy(`Messages, ${unread} unread conversations`, `მიმოწერა, ${unread} წაუკითხავი`) : copy('Messages', 'მიმოწერა')}>
                             <MessageSquare aria-hidden="true" /><Count value={unread ?? 0} />
                         </Link>
-                        <AccountMenu user={user} themePreference={themePreference} setThemePreference={setThemePreference} onLogout={onLogout} />
+                        <AccountMenu user={user} workspaces={workspaces} themePreference={themePreference} setThemePreference={setThemePreference} onLogout={onLogout} />
                     </div>
                 </div>
             </header>
@@ -99,6 +102,7 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
     );
 }
 
+/** Signed out: World, everything public behind Explore, search, language and the way in. */
 function GuestHeader({ themePreference }: { themePreference: ThemePreference }) {
     const copy = useJourneyCopy();
     const { i18n } = useTranslation();
@@ -112,12 +116,13 @@ function GuestHeader({ themePreference }: { themePreference: ThemePreference }) 
                     <ul className="gk-header__tabs">
                         <li><HeaderTab to="/world" label={copy('World', 'მსოფლიო')} icon={Earth} current={primarySectionFor(pathname, []) === 'world'} /></li>
                     </ul>
+                    <ExploreMenu />
                 </nav>
                 <div className="gk-header__actions">
                     <HeaderSearch light={themeForRoute(themePreference, pathname) === 'light'} />
-                    <button type="button" className="gk-hbtn" lang={georgian ? 'en' : 'ka'} onClick={() => void i18n.changeLanguage(georgian ? 'en' : 'ka')}
+                    <button type="button" className="gk-hbtn gk-header__language" lang={georgian ? 'en' : 'ka'} onClick={() => void i18n.changeLanguage(georgian ? 'en' : 'ka')}
                         aria-label={georgian ? 'Use English' : 'ქართულად'} title={georgian ? 'Use English' : 'ქართულად'}>{georgian ? 'EN' : 'ქა'}</button>
-                    <ButtonLink variant="ghost" to="/login">{copy('Sign in', 'შესვლა')}</ButtonLink>
+                    <ButtonLink variant="ghost" to="/login" className="gk-header__signin">{copy('Sign in', 'შესვლა')}</ButtonLink>
                     <ButtonLink variant="primary" to="/signup" className="gk-header__signup">{copy('Create account', 'ანგარიშის შექმნა')}</ButtonLink>
                 </div>
             </div>

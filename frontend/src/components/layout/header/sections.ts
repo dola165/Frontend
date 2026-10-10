@@ -10,6 +10,8 @@ export interface MyClub { ids: number[]; path: string | null }
 /**
  * A person belongs to one club in the product model, so the tab always says "My Club".
  * Staff land on the private workspace; members on the club page. Agent engagements are not membership.
+ * A workspace the person can open wins over a membership elsewhere: capabilities are known at sign-in while the
+ * membership loads later, so the tab's target stays the same once the page has loaded.
  */
 export function myClub(capabilities: NavigationCapabilities | undefined, membershipClubId: number | null): MyClub {
     if (capabilities === undefined) {
@@ -17,7 +19,7 @@ export function myClub(capabilities: NavigationCapabilities | undefined, members
     }
     const clubs = accessibleClubs(capabilities).filter(club => club.relationships.some(relation => relation !== 'Agent engagement'));
     const ids = [...new Set([...clubs.map(item => item.id), ...(membershipClubId ? [membershipClubId] : [])])];
-    const club = clubs.find(item => item.id === membershipClubId) ?? clubs.find(item => item.canOpenWorkspace) ?? clubs[0];
+    const club = clubs.find(item => item.canOpenWorkspace) ?? clubs.find(item => item.id === membershipClubId) ?? clubs[0];
     // A membership the capability list does not describe still makes it the person's club.
     if (!club) return { ids, path: membershipClubId ? `/clubs/${membershipClubId}` : null };
     return { ids, path: club.canOpenWorkspace ? `/clubs/${club.id}/workspace` : `/clubs/${club.id}` };

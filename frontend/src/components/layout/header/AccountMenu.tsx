@@ -8,19 +8,28 @@ import type { AuthUser } from '../../../context/AuthContext';
 import { useJourneyCopy } from '../../../features/squadCommunication/journeyCopy';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import type { ThemePreference } from '../../../theme';
-import { moveMenuFocus, usePopover } from './usePopover';
+import { PinGlyph } from './pins/PinsPanel';
+import type { WorkPlace } from './pins/pinCatalog';
+import { moveMenuFocus, openMenuFromKey, usePopover } from './usePopover';
 
-interface AccountMenuProps { user: AuthUser; themePreference: ThemePreference; setThemePreference: (value: ThemePreference) => void; onLogout: () => void }
+interface AccountMenuProps {
+    user: AuthUser;
+    /** Squads, tournaments, organizations, venues and hubs the person works in, other than the My Club tab. */
+    workspaces: WorkPlace[];
+    themePreference: ThemePreference;
+    setThemePreference: (value: ThemePreference) => void;
+    onLogout: () => void;
+}
 
 // Each language is named in itself, so a person can always find their own.
 const languageNames: Record<string, string> = { en: 'English', ka: 'ქართული' };
 const languageName = (code: string) => languageNames[code] ?? code.toUpperCase();
 
-/** The person's own corner: profile, schedule, settings, appearance, language and signing out. */
-export function AccountMenu({ user, themePreference, setThemePreference, onLogout }: AccountMenuProps) {
+/** The person's own corner: profile, schedule, settings, their workspaces, appearance, language and signing out. */
+export function AccountMenu({ user, workspaces, themePreference, setThemePreference, onLogout }: AccountMenuProps) {
     const copy = useJourneyCopy();
     const { i18n } = useTranslation();
-    const { open, toggle, close, triggerRef, panelRef, onKeyDown } = usePopover();
+    const { open, toggle, show, close, triggerRef, panelRef, onKeyDown } = usePopover();
     const id = useId();
     const name = user.fullName || user.name || user.username || copy('Your profile', 'თქვენი პროფილი');
     const language = (i18n.resolvedLanguage ?? i18n.language ?? 'en').split('-')[0];
@@ -34,11 +43,12 @@ export function AccountMenu({ user, themePreference, setThemePreference, onLogou
     return (
         <div className="gk-hanchor" onKeyDown={onKeyDown}>
             <button ref={triggerRef} type="button" className="gk-hbtn gk-hbtn--avatar" data-current={inOwnPlace || undefined} aria-haspopup="menu" aria-expanded={open}
-                aria-controls={open ? id : undefined} aria-label={copy(`Account menu for ${name}`, `ანგარიშის მენიუ: ${name}`)} title={name} onClick={toggle}>
+                aria-controls={open ? id : undefined} aria-label={copy(`Account menu for ${name}`, `ანგარიშის მენიუ: ${name}`)} title={name} onClick={toggle}
+                onKeyDown={event => openMenuFromKey(event, show)}>
                 <Avatar src={resolveMediaUrl(user.avatarUrl)} name={name} size={34} />
             </button>
             {open && (
-                <div ref={panelRef} id={id} role="menu" aria-label={copy('Account', 'ანგარიში')} className="gk-pop gk-pop--menu" onKeyDown={moveMenuFocus}>
+                <div ref={panelRef} id={id} role="menu" tabIndex={-1} aria-label={copy('Account', 'ანგარიში')} className="gk-pop gk-pop--menu" onKeyDown={moveMenuFocus}>
                     <Link role="menuitem" to={`/profile/${user.id}`} className="gk-menu__item gk-menu__profile">
                         <Avatar src={resolveMediaUrl(user.avatarUrl)} name={name} size={36} />
                         <span className="gk-menu__profile-text"><strong>{name}</strong><span>{copy('View your profile', 'პროფილის ნახვა')}</span></span>
@@ -47,6 +57,19 @@ export function AccountMenu({ user, themePreference, setThemePreference, onLogou
                     <Link role="menuitem" to="/account" className="gk-menu__item"><Settings aria-hidden="true" />{copy('Account & settings', 'ანგარიში და პარამეტრები')}</Link>
                     {hasNavigationCapability(user.navigationCapabilities, 'admin.console') && (
                         <Link role="menuitem" to="/admin" className="gk-menu__item"><ShieldCheck aria-hidden="true" />{copy('Administration', 'ადმინისტრირება')}</Link>
+                    )}
+                    {workspaces.length > 0 && (
+                        <>
+                            <div className="gk-menu__sep" role="separator" />
+                            <div role="group" aria-labelledby={`${id}-work`}>
+                                <p className="gk-menu__label" id={`${id}-work`}>{copy('Your workspaces', 'თქვენი სამუშაო სივრცეები')}</p>
+                                {workspaces.map(place => (
+                                    <Link key={place.path} role="menuitem" to={place.path} className="gk-menu__item gk-menu__item--work" aria-current={pathname === place.path.split('?')[0] ? 'page' : undefined}>
+                                        <PinGlyph icon={place.icon} /><span className="gk-menu__work"><span>{place.label}</span><span>{place.kind}</span></span>
+                                    </Link>
+                                ))}
+                            </div>
+                        </>
                     )}
                     <div className="gk-menu__sep" role="separator" />
                     <p className="gk-menu__label" id={`${id}-theme`}>{copy('Appearance', 'იერსახე')}</p>

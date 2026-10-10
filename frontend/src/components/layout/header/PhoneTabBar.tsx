@@ -22,7 +22,7 @@ interface PhoneTabBarProps {
 export function PhoneTabBar({ tabs, unreadMessages, pins, page, work, onPinnedPage }: PhoneTabBarProps) {
     const copy = useJourneyCopy();
     const { pathname } = useLocation();
-    const { open: sheetOpen, toggle: sheetToggle, close: sheetClose, triggerRef: sheetTriggerRef, panelRef: sheetPanelRef, onKeyDown: sheetOnKeyDown } = usePopover();
+    const { open: sheetOpen, toggle: sheetToggle, close: sheetClose, triggerRef: sheetTriggerRef, panelRef: sheetPanelRef, onKeyDown: sheetOnKeyDown } = usePopover({ modal: true });
     const [title, setTitle] = useState<string | null>(null);
     const id = useId();
     return (
@@ -47,14 +47,14 @@ export function PhoneTabBar({ tabs, unreadMessages, pins, page, work, onPinnedPa
                         aria-controls={sheetOpen ? id : undefined} aria-current={onPinnedPage ? 'page' : undefined}
                         onClick={() => { setTitle(readPageTitle()); sheetToggle(); }}>
                         <Pin aria-hidden="true" /><span className="gk-tabbar__label">{copy('Pins', 'პინები')}</span>
-                        {pins.pins.length > 0 && <span className="gk-visually-hidden">{copy(`, ${pins.pins.length} pinned`, `, ${pins.pins.length} მიმაგრებული`)}</span>}
+                        {pins.pins.length > 0 && <span className="gk-visually-hidden">{copy(`, ${pins.pins.length} pinned`, `, ${pins.pins.length} პინი`)}</span>}
                     </button>
                 </li>
             </ul>
             {sheetOpen && (
                 <>
                     <div className="gk-scrim" aria-hidden="true" />
-                    <div ref={sheetPanelRef} id={id} role="dialog" aria-labelledby={`${id}-title`} className="gk-sheet" onKeyDown={sheetOnKeyDown}>
+                    <div ref={sheetPanelRef} id={id} role="dialog" aria-modal="true" tabIndex={-1} aria-labelledby={`${id}-title`} className="gk-sheet" onKeyDown={sheetOnKeyDown}>
                         <PinsPanel state={pins} page={{ ...page, title }} work={work} titleId={`${id}-title`} onNavigate={() => sheetClose(false)} />
                     </div>
                 </>

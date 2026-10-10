@@ -8,6 +8,8 @@ One place where everyone in football can do their own job without being shown ev
 
 People who invest in the workspace are rewarded: everything they currently track across dashboards, Excel, the calendar on the wall, Facebook groups and WhatsApp chats lives in one place, and the app does the repetitive work for them.
 
+The founders benchmark is SAP as German clubs use it: one connected system for people, roles, seasons and processes. GrassKickZ matches that depth underneath, with a consumer-simple surface on top. SAP is powerful and confusing; GrassKickZ is powerful and obvious. The social side is the other half of the same system: the workspace produces the content (results, schedules, squad news), and the social side brings the people who make the workspace worth using.
+
 ## 2. Principles
 
 1. **Built around what people came to do, not around features.** Each screen answers "what does this person need right now?"
@@ -22,6 +24,11 @@ People who invest in the workspace are rewarded: everything they currently track
 6. **The app does the bookkeeping.** Defaults, templates, recurrence and reminders instead of manual entry. If a person types the same thing twice, that's a bug.
 7. **Every action is Dola-ready.** Actions are structured operations with clear inputs, so Agent Dola can later perform them on a person's behalf (see section 10).
 8. **One place per destination.** A destination appears once in the navigation; personal shortcuts are pins, chosen by the person.
+9. **SAP depth, consumer surface.** Underneath: one record per person with many roles, positions with dates, seasons, every process a record with a status, approvals and history, one inbox, no double entry. On top: plain football words and actions. Nobody ever sees the data model.
+10. **One pattern everywhere.** Every record works the same way: a list, the record with its status in words, the one next action, and its history. Learn it once, use it everywhere.
+11. **Learning pays off at the moment it would help.** When someone repeats work, the app offers the power tool right there ("You have added Tuesday training four times: make it weekly?"). Bulk actions, templates, saved views, automation and Dola reward people who go deeper without cluttering the simple path.
+12. **Safe to explore.** Previews before big changes ("this moves 12 players to U15 next season"), undo, drafts and history, so nobody is afraid to try.
+13. **Measured, not argued.** A new coach does a first real task in under a minute without help. A parent can do everything from a notification. A club admin rolls a season over in ten minutes.
 
 ## 3. The four places
 

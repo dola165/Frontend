@@ -1,5 +1,6 @@
 import { get, post, reply } from '../router.mjs';
 import { me, clubs } from '../world.mjs';
+import { familyRequest } from '../world-family.mjs';
 
 const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
 export const accessToken = () => `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: String(me.id), exp: Math.floor(Date.now() / 1000) + 86400 })}.sandbox`;
@@ -12,7 +13,8 @@ post('/auth/refresh', ({ headers }) => String(headers?.referer ?? '').includes('
 post('/auth/login', () => ({ accessToken: accessToken(), expiresIn: 86400 }));
 post('/auth/logout', () => reply(204));
 
-export const meProjection = () => ({
+// The parent view (family cookie) also makes Luka a parent, so Parent Hub joins his tabs.
+export const meProjection = ({ headers } = {}) => ({
   id: me.id, username: 'coach.luka', email: me.email, role: 'USER', fullName: me.fullName, name: me.fullName, avatarUrl: me.avatarUrl,
   dob: '1988-04-12', profileComplete: true, onboardingRequired: false, mustChangePassword: false, emailVerified: true,
   navigationCapabilities: { version: 1, workspaces: [
@@ -20,6 +22,7 @@ export const meProjection = () => ({
     { id: 'club.operations', context: { type: 'club', id: 1, label: clubs[0].name } },
     { id: 'squad.workspace', context: { type: 'squad', id: 105, label: 'U16 Boys' } },
     { id: 'squad.workspace', context: { type: 'squad', id: 103, label: 'U14 Boys' } },
+    ...(familyRequest(headers) ? [{ id: 'parent.hub', context: { type: 'user', id: me.id, label: me.fullName } }] : []),
   ] },
 });
 get('/users/me', meProjection);

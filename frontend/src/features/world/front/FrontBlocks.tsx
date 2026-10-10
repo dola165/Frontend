@@ -73,6 +73,8 @@ export function AroundMapBlock({ area }: { area: WorldArea }) {
         tone: marker.entityType === 'CLUB' ? 'club' : 'venue',
         to: marker.entityType === 'CLUB' ? `/clubs/${marker.clubId ?? marker.entityId}` : `/stadiums/${marker.entityId}`,
     }));
+    // Clubs usually sit at a venue; draw them last so they are not hidden under it.
+    points.sort((a, b) => Number(a.tone === 'club') - Number(b.tone === 'club'));
     const clubs = points.filter(point => point.tone === 'club').length;
     return (
         <Section id="world-around" title={`Around ${area.city}`} action={{ label: 'Open full map', to: '/world/map' }}>

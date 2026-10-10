@@ -23,7 +23,13 @@
 
 /* Sections in a grid */
 .gk .gk-world-front__lead { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gk-8) var(--gk-6); align-items: start; }
-@media (min-width: 1100px) { .gk .gk-world-front__lead { grid-template-columns: minmax(0, 1.5fr) minmax(360px, 1fr); } }
-.gk .gk-world-front__map { --gk-world-map-h: 360px; }
+.gk .gk-world-front__map { --gk-world-map-h: 320px; }
+@media (min-width: 1100px) {
+  .gk .gk-world-front__lead { grid-template-columns: minmax(0, 1.5fr) minmax(360px, 1fr); align-items: stretch; }
+  /* The map grows to the height of the fixtures beside it. */
+  .gk .gk-world-front__lead > #world-around { min-height: 0; }
+  .gk .gk-world-front__lead > #world-around .gk-world-map { flex: 1; }
+  .gk .gk-world-front__lead > #world-around .gk-world-map__canvas { flex: 1; height: auto; min-height: 320px; }
+}
 .gk .gk-world-front__clubs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--gk-4); }
 .gk .gk-world-front__trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--gk-8) var(--gk-6); align-items: start; }

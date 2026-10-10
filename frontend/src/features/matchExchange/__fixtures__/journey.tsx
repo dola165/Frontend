@@ -4,7 +4,6 @@ import { I18nextProvider } from "react-i18next";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { apiClient } from "../../../api/axiosConfig";
 import { MatchDetailPage } from "../../../pages/MatchDetailPage";
-import { MatchExchangePage } from "../../../pages/MatchExchangePage";
 import { RefereePage } from "../../../pages/RefereePage";
 import type { Appointment, ChangeImpact, Match, RefereeHub } from "../api";
 import "../../../index.css";
@@ -14,7 +13,7 @@ import "../../../styles/product-identity.css";
 if (!import.meta.env.DEV || !["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) throw new Error("Local development fixture only");
 const params = new URLSearchParams(location.search), scenario = params.get("case") || "invited";
 const language = params.get("lang") === "ka" ? "ka" : "en", dark = params.get("theme") === "dark";
-const surface = params.get("surface") === "workspace" ? "workspace" : params.get("surface") === "browse" ? "browse" : "detail";
+const surface = params.get("surface") === "workspace" ? "workspace" : "detail";
 const clean = params.get("clean") === "1";
 document.documentElement.classList.toggle("dark", dark);
 document.documentElement.lang = language;
@@ -129,8 +128,8 @@ createRoot(document.getElementById("root")!).render(<I18nextProvider i18n={i18n}
   {!clean && <div className="mx-page"><strong>LOCAL SYNTHETIC FIXTURE — no service writes</strong><nav className="mx-actions" aria-label="Fixture scenarios">
     {["invited", "availability", "accepted", "late", "host", "host-started", "cancelled", "opponent", "family", "empty"].map(value => <a key={value} href={`?case=${value}&theme=${dark ? "dark" : "light"}&lang=${language}&surface=${surface}`}>{value}</a>)}
   </nav></div>}
-  <MemoryRouter initialEntries={[surface === "workspace" ? "/referees/me#appointment-91" : surface === "browse" ? "/match-exchange" : "/match-exchange/12#appointment-91"]}><Routes>
-    <Route path="/match-exchange" element={<MatchExchangePage />} /><Route path="/match-exchange/:eventId" element={<MatchDetailPage />} /><Route path="/referees/:refereeId" element={<RefereePage />} />
+  <MemoryRouter initialEntries={[surface === "workspace" ? "/referees/me#appointment-91" : "/match-exchange/12#appointment-91"]}><Routes>
+    <Route path="/match-exchange/:eventId" element={<MatchDetailPage />} /><Route path="/referees/:refereeId" element={<RefereePage />} />
     <Route path="*" element={<main className="mx-page">This destination is outside the isolated fixture.</main>} />
   </Routes></MemoryRouter>
 </I18nextProvider>);

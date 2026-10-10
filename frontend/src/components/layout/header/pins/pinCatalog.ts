@@ -24,15 +24,16 @@ export function workDestinations(capabilities: NavigationCapabilities | undefine
 
 /** Public football destinations. They also live in World; pinning one keeps it a click away. */
 export const exploreDestinations: Pin[] = [
-    { path: '/clubs', label: 'Clubs', icon: 'club' },
-    { path: '/matches', label: 'Matches & competitions', icon: 'goal' },
-    { path: '/stadiums', label: 'Venues', icon: 'venue' },
-    { path: '/people', label: 'People', icon: 'people' },
-    { path: '/tryouts', label: 'Tryouts', icon: 'goal' },
-    { path: '/events', label: 'Events', icon: 'calendar' },
-    { path: '/jobs', label: 'Roles', icon: 'briefcase' },
+    { path: '/world/clubs', label: 'Clubs', icon: 'club' },
+    { path: '/world/matches', label: 'Matches', icon: 'goal' },
+    { path: '/world/competitions', label: 'Competitions', icon: 'trophy' },
+    { path: '/world/venues', label: 'Venues', icon: 'venue' },
+    { path: '/world/people', label: 'People', icon: 'people' },
+    { path: '/world/opportunities?type=trials', label: 'Trials', icon: 'goal' },
+    { path: '/world/matches?tab=events', label: 'Events', icon: 'calendar' },
+    { path: '/world/opportunities', label: 'Jobs and volunteering', icon: 'briefcase' },
     { path: '/store', label: 'Store', icon: 'store' },
     { path: '/campaigns', label: 'Campaigns', icon: 'family' },
     { path: '/clubs/following', label: 'Followed clubs', icon: 'club' },
-    { path: '/map', label: 'Map', icon: 'map' },
+    { path: '/world/map', label: 'Map', icon: 'map' },
 ];

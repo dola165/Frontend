@@ -2,7 +2,6 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { RequestsCentre } from './RequestsCentre';
-import { EventDiscoveryPage } from './EventDiscoveryPage';
 import { requestDestination, eventDestination } from './api';
 import { apiClient } from '../../api/axiosConfig';
 const auth = vi.hoisted(() => ({ sessionId: 'one', user: { id: 1 }, refreshNavigationCapabilities: vi.fn().mockResolvedValue(undefined) }));
@@ -26,10 +25,6 @@ it('reviews terms before reusing the domain invitation command and refreshes cap
   expect(apiClient.post).toHaveBeenCalledWith('/club-memberships/invites/7/accept', {}, { _authSessionId: 'one' }); expect(auth.refreshNavigationCapabilities).toHaveBeenCalled();
 });
 it('warns when only part of the requests projection is available', async () => { vi.mocked(apiClient.get).mockResolvedValue({ data: { ...empty, unavailableSources: ['family'] } }); render(<MemoryRouter><RequestsCentre /></MemoryRouter>); expect(await screen.findByRole('alert')).toHaveTextContent('Some request types are unavailable'); });
-it('uses page two from the server rather than filtering the first page', async () => {
-  vi.mocked(apiClient.get).mockResolvedValue({ data: { items: [], total: 41, hasMore: true } }); render(<MemoryRouter initialEntries={['/events?q=%E1%83%93%E1%83%98%E1%83%9C%E1%83%90%E1%83%9B%E1%83%9D&page=1']}><EventDiscoveryPage /></MemoryRouter>);
-  await screen.findByText('41 events found'); expect(apiClient.get).toHaveBeenCalledWith('/tournaments/discovery', expect.objectContaining({ params: expect.objectContaining({ q: 'დინამო', page: 1, size: 20 }) }));
-});
 it.each(['https://evil.test/requests', '//evil.test', '/account?next=https://evil.test', '/profile/1?representation=bad', '/account/%2e%2e', '/account?tab=profile&tab=security'])('rejects unsafe request destination %s', value => { expect(requestDestination(value)).toBeNull(); });
 it('accepts precise current-domain destinations and rejects malformed event destinations', () => {
   expect(requestDestination('/notifications?venueId=2&bookingId=9')).toBe('/notifications?venueId=2&bookingId=9');

@@ -16,9 +16,8 @@ vi.mock('../../components/layout/header/AppHeader', () => ({ AppHeader: () => nu
 vi.mock('../../features/dola/DolaProvider', () => ({ DolaProvider: ({ children }: { children: ReactNode }) => children }));
 vi.mock('../../features/dola/AgentDolaPage', () => ({ AgentDolaPage: () => null, DolaDock: () => null }));
 vi.mock('../../features/clubs/api', () => ({ fetchMyClubMembershipContext: vi.fn().mockResolvedValue(null) }));
-vi.mock('../../features/tryouts/TryoutBrowsePage', () => ({ default: () => <h1>Public tryout directory</h1> }));
+vi.mock('../../features/world/WorldRoutes', () => ({ default: () => <h1>GrassKickZ World</h1> }));
 vi.mock('../../features/tryouts/TryoutDetailPage', () => ({ default: () => <h1>Public tryout details</h1> }));
-vi.mock('../../features/requests/EventDiscoveryPage', () => ({ EventDiscoveryPage: () => <h1>Public event discovery</h1> }));
 vi.mock('../../features/requests/RequestsCentre', () => ({ RequestsCentre: () => <h1>Private Requests centre</h1> }));
 vi.mock('../../features/moderation/ReportReceipts', () => ({ ReportReceipts: () => <h1>Private report receipts</h1> }));
 vi.mock('../LoginPage', () => ({ LoginPage: () => <h1>Sign in first</h1> }));
@@ -28,9 +27,16 @@ beforeEach(() => { auth.signedIn = false; clearAuthFlow(); });
 afterEach(() => { cleanup(); clearAuthFlow(); window.history.replaceState({}, '', '/'); });
 const open = (path: string) => { window.history.replaceState({}, '', path); render(<App />); };
 it.each([
-  ['/tryouts', 'Public tryout directory', 'Tryouts'],
+  ['/tryouts', '/world/opportunities', '?type=trials'],
+  ['/tryouts?clubId=4', '/world/opportunities', '?clubId=4&type=trials'],
+  ['/events?location=Tbilisi', '/world/matches', '?location=Tbilisi&tab=events'],
+])('sends the public directory %s into World without asking to sign in', async (path, pathname, search) => {
+  open(path); await screen.findByRole('heading', { name: 'GrassKickZ World' });
+  expect(window.location.pathname).toBe(pathname); expect(window.location.search).toBe(search);
+  expect(getAuthFlow().nextPath).toBeUndefined();
+});
+it.each([
   ['/tryouts/51', 'Public tryout details', 'Tryouts'],
-  ['/events', 'Public event discovery', 'Events'],
 ])('keeps %s public inside the destination shell', async (path, heading, title) => {
   open(path); const result = await screen.findByRole('heading', { name: heading });
   expect(result.closest('.app-route-frame')).toBeInTheDocument();

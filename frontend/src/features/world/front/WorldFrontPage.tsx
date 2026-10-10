@@ -1,8 +1,6 @@
 import { useId } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ButtonLink, PageHeader } from '../../../design/primitives';
-import { useAuth } from '../../../context/AuthContext';
-import { buildLoginRedirectPath } from '../../../utils/authRedirect';
+import { Link } from 'react-router-dom';
+import { PageHeader } from '../../../design/primitives';
 import { useWorldArea, useWorldCities, type WorldArea } from '../useWorldArea';
 import { WorldSearch } from './WorldSearch';
 import { AroundMapBlock, NearbyClubsBlock, OpenCompetitionsBlock, OpportunitiesBlock, PeopleBlock, WeekendBlock } from './FrontBlocks';
@@ -44,20 +42,13 @@ function QuickStarts({ city }: { city: string }) {
 
 /** GrassKickZ World's front page: search and entry points, then what's on and who's around. */
 export default function WorldFrontPage() {
-    const { status } = useAuth();
-    const location = useLocation();
     const { area, setCity } = useWorldArea();
-    const signedOut = status === 'anonymous';
     return (
         <div className="gk-world-front">
             <PageHeader
                 title="GrassKickZ World"
                 subtitle={`Clubs, people, pitches and matches near ${area.city}.`}
-                actions={<>
-                    <AreaPicker area={area} onChange={setCity} />
-                    {signedOut && <ButtonLink variant="ghost" to={buildLoginRedirectPath(location.pathname, location.search, location.hash)}>Sign in</ButtonLink>}
-                    {signedOut && <ButtonLink variant="primary" to="/signup">Join GrassKickZ</ButtonLink>}
-                </>}
+                actions={<AreaPicker area={area} onChange={setCity} />}
             />
             <WorldSearch quickStarts={<QuickStarts city={area.city} />} />
             <div className="gk-world-front__lead">

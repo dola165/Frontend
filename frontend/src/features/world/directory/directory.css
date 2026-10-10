@@ -34,3 +34,11 @@
   .gk .gk-world-split .gk-world-cards { grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
 }
 .gk .gk-world-directory__map--wide { --gk-world-map-h: clamp(320px, 60dvh, 640px); }
+@media (max-width: 640px) {
+  /* One swipeable line of filters instead of a wall of wrapped chips. */
+  .gk .gk-world-filters__row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--gk-gutter)); padding-inline: var(--gk-gutter); }
+  .gk .gk-world-filters__row::-webkit-scrollbar { display: none; }
+  .gk .gk-world-filters__row > .gk-chips { flex-wrap: nowrap; }
+  .gk .gk-world-filters__row > .gk-chip { flex: none; }
+  .gk .gk-world-toolbar__tools { margin-left: 0; width: 100%; justify-content: space-between; }
+}

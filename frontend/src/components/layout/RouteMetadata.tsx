@@ -3,12 +3,17 @@ import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { appLanguage } from '../../utils/formatting';
 
+const WORLD_TITLES: Record<string, string> = {
+    clubs: 'Clubs', people: 'People', venues: 'Venues', matches: 'Matches', competitions: 'Competitions', opportunities: 'Opportunities', map: 'Map',
+};
+
 export const RouteMetadata = () => {
     const { pathname, search } = useLocation();
     const { t, i18n } = useTranslation();
     useEffect(() => {
         let label = '';
         if (pathname === '/parent') label = t('nav.parentHub', 'Parent Hub');
+        else if (pathname === '/world' || pathname.startsWith('/world/')) label = WORLD_TITLES[pathname.split('/')[2] ?? ''] ?? 'World';
         else if (pathname === '/my-organizations' && new URLSearchParams(search).get('kind') === 'VENUE') label = t('experience.navigation.venues');
         else if (pathname === '/requests') label = t('experience.navigation.requests');
         else if (pathname === '/reports') label = t('experience.navigation.reports');

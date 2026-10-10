@@ -1,6 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { MatchHistoryPage, HistoryCard } from '../../../pages/MatchHistoryPage';
 import { getMatchHistory, getHistoricalImportOptions, type HistoryMatch } from '../api';
 import { ResultSummary } from '../ResultSummary';
 import { ScheduleResult } from '../ScheduleResult';
@@ -20,27 +19,6 @@ it('keeps missing results separate from a confirmed goalless draw and legacy pro
   expect(screen.getByLabelText('Score 0 to 0')).toBeInTheDocument(); expect(screen.getByText('Confirmed result')).toBeInTheDocument();
   rerender(<ResultSummary homeScore={2} awayScore={1} status="CONFIRMED" legacy />);
   expect(screen.queryByText('Confirmed result')).not.toBeInTheDocument(); expect(screen.getByText(/Confirmation evidence is unavailable/)).toBeInTheDocument();
-});
-
-it('shows tournament byes and unscheduled dates without inventing a score or kickoff', () => {
-  render(<MemoryRouter><HistoryCard match={{ ...fixture, source: 'TOURNAMENT', startsAt: null, endsAt: null, homeScore: null, awayScore: null, resultStatus: 'BYE', detailPath: '/tournaments/8?fixtureId=5' }} upcoming={false} /></MemoryRouter>);
-  expect(screen.getByText('Date to be confirmed')).toBeInTheDocument(); expect(screen.getByText(/advances without a match/)).toBeInTheDocument(); expect(screen.queryByText('Result not recorded')).not.toBeInTheDocument();
-});
-
-it('preserves Dola/team filters, switches period with page reset and follows the canonical result path', async () => {
-  render(<MemoryRouter initialEntries={['/match-history?period=NEEDS_RESULT&mine=true&clubId=1&squadId=7&q=friendly&page=2']}><MatchHistoryPage /></MemoryRouter>);
-  expect(await screen.findByRole('link', { name: /Review result/ })).toHaveAttribute('href', '/match-exchange/5#result');
-  expect(getMatchHistory).toHaveBeenCalledWith(expect.stringContaining('period=NEEDS_RESULT'), expect.any(AbortSignal), 'session-a');
-  fireEvent.click(screen.getByRole('button', { name: 'History' }));
-  await waitFor(() => { const query = new URLSearchParams(vi.mocked(getMatchHistory).mock.calls.at(-1)![0]); expect(query.get('period')).toBe('HISTORY'); expect(query.get('page')).toBe('0'); expect(query.get('mine')).toBe('true'); expect(query.get('clubId')).toBe('1'); expect(query.get('squadId')).toBe('7'); expect(query.get('q')).toBe('friendly'); });
-});
-
-it('retains actionable error and retry instead of stale history when the request fails', async () => {
-  vi.mocked(getMatchHistory).mockRejectedValueOnce(new Error('offline'));
-  render(<MemoryRouter><MatchHistoryPage /></MemoryRouter>);
-  expect(await screen.findByRole('alert')).toHaveTextContent('Could not load match history');
-  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-  expect(await screen.findByText('Saturday friendly')).toBeInTheDocument();
 });
 
 it('requires two explicit scores and a reason when recovering a completed legacy result', async () => {

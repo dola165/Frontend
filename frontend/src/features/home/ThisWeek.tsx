@@ -3,14 +3,16 @@ import { Badge, Button, EmptyNote, FixtureRow, List, ListRow, Section, Skeleton 
 import { requestDestination } from '../requests/api';
 import { requestIcon } from '../requests/requestIcon';
 import { dayLabel, timeLabel } from '../clubWorkspace/fixtures';
+import type { WorldData } from '../world/useWorldData';
+import type { SquadSpace } from '../squadCommunication/api';
 import { useThisWeek } from './useThisWeek';
 
 const SHOWN = 4;
 const DECISIONS = 2;
 
 /** The first block on Home: what is on in the next seven days, and the decisions waiting for me. */
-export function ThisWeek() {
-    const week = useThisWeek();
+export function ThisWeek({ spaces }: { spaces: WorldData<SquadSpace[]> }) {
+    const week = useThisWeek(spaces);
     const shown = week.entries.slice(0, SHOWN);
     const more = week.entries.length - shown.length;
     const decisions = week.decisions.slice(0, DECISIONS);

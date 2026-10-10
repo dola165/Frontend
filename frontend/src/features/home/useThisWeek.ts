@@ -6,7 +6,7 @@ import { fetchMySchedule } from '../schedule/api';
 import * as squadApi from '../squadCommunication/api';
 import { useSquadSchedule, type SquadCalendarEvent } from '../squadCommunication/useSquadSchedule';
 import { eventKind } from '../clubWorkspace/fixtures';
-import { useWorldData } from '../world/useWorldData';
+import { useWorldData, type WorldData } from '../world/useWorldData';
 
 export interface WeekEntry { key: string; startsAt: string; title: string; meta: string; tone: FixtureTone; badge: { label: string; tone: BadgeTone }; to: string }
 
@@ -40,14 +40,13 @@ function squadEntry(event: SquadCalendarEvent): WeekEntry {
  * their children's), my own calendar entries, and the decisions waiting for me. Each part loads on
  * its own, so one failure never hides the others.
  */
-export function useThisWeek() {
+export function useThisWeek(spaces: WorldData<squadApi.SquadSpace[]>) {
     const { sessionId } = useAuth();
     const [range] = useState(() => {
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         return { now: now.getTime(), from: stamp(start), to: stamp(new Date(start.getTime() + 8 * 86_400_000)) };
     });
-    const spaces = useWorldData(`home-spaces:${sessionId}`, signal => squadApi.spaces(signal), 'Your squads could not load.');
     const squads = useSquadSchedule(spaces.data ?? [], range.from, range.to, 0, undefined, false);
     const personal = useWorldData(`home-personal:${sessionId}:${range.from}`, signal => fetchMySchedule(range.from, range.to, signal), 'Your calendar could not load.');
     const waiting = useWorldData(`home-waiting:${sessionId}`, signal => requests('INCOMING', 0, sessionId, signal, 10), 'Decisions waiting for you could not load.');

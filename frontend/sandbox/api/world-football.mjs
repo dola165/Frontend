@@ -377,7 +377,7 @@ u16g.proposals.push(proposal(squadById(134), 'Mtskheta U16 girls are free that e
 listing({ hostSquad: squadById(105), start: at(14, 18, 30), minutes: 90, venueId: 207, title: 'U16 Boys away friendly at Saburtalo', level: 'ELITE', description: 'Agreed with Saburtalo Youth. Kick-off 18:30, arrive by 17:30.', venuePreference: 'AWAY', opponentSquad: squadFor(4, 'U16', 'MALE'), status: 'ARRANGED', referee: referees[2].id });
 export const listingById = id => exchange.find(l => l.id === Number(id));
 const venueStatusOf = l => l.venuePreference === 'AWAY' && !l.opponentSquadId ? 'NEEDED' : l.booked ? 'BOOKED' : l.venueId || l.externalConfirmed ? 'HOST_CONFIRMED' : 'NEEDED';
-const refereeStatusOf = l => !l.refereeRequired ? 'NOT_REQUIRED' : l.refereeId ? 'ACCEPTED' : l.status === 'ARRANGED' ? 'INVITED' : 'NEEDED';
+const refereeStatusOf = l => !l.refereeRequired ? 'NOT_REQUIRED' : l.refereeId ? 'ACCEPTED' : 'NEEDED';
 export const involvesDinamo = l => squadById(l.hostSquadId).clubId === DINAMO || l.requestedClubId === DINAMO || (l.opponentSquadId && squadById(l.opponentSquadId).clubId === DINAMO) || l.proposals.some(p => p.club_id === DINAMO);
 export const listingView = (l, { detail = false } = {}) => {
   const host = squadById(l.hostSquadId), club = clubById(host.clubId), v = l.venueId ? venueById(l.venueId) : null, opp = l.opponentSquadId ? squadById(l.opponentSquadId) : null;

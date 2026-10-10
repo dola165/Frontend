@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import * as api from '../squadCommunication/api';
-import { useWorldData } from '../world/useWorldData';
+import { useWorldData, type WorldData } from '../world/useWorldData';
 import { isPinned, pinnedUntil } from './pinning';
 
 export interface PinnedAnnouncement { squad: api.SquadSpace; message: api.SquadMessage }
@@ -11,14 +11,15 @@ export interface PinnedAnnouncement { squad: api.SquadSpace; message: api.SquadM
  * Announcements still pinned in the squads I belong to (as coach, player or parent), newest first.
  * Backend needed: one `active announcements` endpoint would replace a request per squad.
  */
-export function useHomeAnnouncements() {
+export function useHomeAnnouncements(spaces: WorldData<api.SquadSpace[]>) {
     const { sessionId } = useAuth();
     const [now] = useState(() => Date.now());
     const [read, setRead] = useState<Record<number, string>>({});
     const [busy, setBusy] = useState<number | null>(null);
     const [failed, setFailed] = useState<{ id: number; message: string } | null>(null);
-    const pinned = useWorldData<PinnedAnnouncement[]>(`home-announcements:${sessionId}`, async signal => {
-        const squads = await api.spaces(signal);
+    const squads = spaces.data;
+    const pinned = useWorldData<PinnedAnnouncement[]>(squads ? `home-announcements:${sessionId}:${squads.map(squad => squad.id).join(',')}` : null, async signal => {
+        if (!squads) return [];
         const lists = await Promise.all(squads.map(async squad => (await api.messages(squad.id, 'ANNOUNCEMENT', null, signal))
             .filter(message => isPinned(message, now)).map(message => ({ squad, message }))));
         return lists.flat().sort((a, b) => Date.parse(b.message.created_at) - Date.parse(a.message.created_at));
@@ -36,6 +37,7 @@ export function useHomeAnnouncements() {
     }
 
     const items = (pinned.data ?? []).map(item => read[item.message.id] ? { ...item, message: { ...item.message, acknowledged_at: read[item.message.id] } } : item);
-    return { items, loading: pinned.loading, error: pinned.error, retry: pinned.retry, markRead, busy, failed, until: (item: PinnedAnnouncement) => pinnedUntil(item.message) };
+    // A failure to read the squads is reported once, by "This week"; here it only means nothing to show.
+    return { items, loading: spaces.loading || pinned.loading, error: pinned.error, retry: pinned.retry, markRead, busy, failed, until: (item: PinnedAnnouncement) => pinnedUntil(item.message) };
 }
 export type HomeAnnouncementsState = ReturnType<typeof useHomeAnnouncements>;

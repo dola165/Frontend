@@ -41,19 +41,31 @@ export const beforeAll = hook => current.beforeAll.push(hook);
 export const afterAll = hook => current.afterAll.push(hook);
 
 const stubbed = [];
+// Some window properties (navigator) only have getters, so stubs are defined rather than assigned.
+const setGlobal = (key, value) => {
+  for (const target of [globalThis, window]) {
+    try { Object.defineProperty(target, key, { value, configurable: true, writable: true }); } catch { try { target[key] = value; } catch { /* left as it is */ } }
+  }
+};
 export const vi = {
   fn, spyOn,
   hoisted: factory => factory(),
   mocked: value => value,
   mock: () => { /* Registered by run.mjs. */ },
+  importActual: async spec => { const load = globalThis.__vtActual?.[spec]; if (!load) throw new Error('importActual needs a vi.mock of ' + spec); return load(); },
   clearAllMocks, restoreAllMocks, resetAllMocks,
-  stubGlobal: (key, value) => { stubbed.push([key, globalThis[key]]); globalThis[key] = value; window[key] = value; },
-  unstubAllGlobals: () => { while (stubbed.length) { const [key, value] = stubbed.pop(); globalThis[key] = value; window[key] = value; } },
+  stubGlobal: (key, value) => { stubbed.push([key, globalThis[key]]); setGlobal(key, value); },
+  unstubAllGlobals: () => { while (stubbed.length) { const [key, value] = stubbed.pop(); setGlobal(key, value); } },
   waitFor: async (check, { timeout = 1000 } = {}) => { const start = Date.now(); for (;;) { try { return await check(); } catch (error) { if (Date.now() - start > timeout) throw error; await new Promise(r => setTimeout(r, 20)); } } },
 };
 Object.assign(globalThis, { describe, it, test, expect, vi, beforeEach, afterEach, beforeAll, afterAll });
 
 export async function run(filter) {
+  // Async vi.mock factories (for example ones that spread vi.importActual) settle before the tests start.
+  for (const [spec, factory] of Object.entries(globalThis.__vtMocks ?? {})) {
+    if (!('v' in factory)) factory.v = factory(async () => globalThis.__vtActual[spec]());
+    if (factory.v && typeof factory.v.then === 'function') factory.v = await factory.v;
+  }
   const results = [];
   const chain = suite => { const list = []; for (let s = suite; s; s = s.parent) list.unshift(s); return list; };
   async function visit(suite, prefix) {

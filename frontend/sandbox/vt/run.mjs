@@ -71,6 +71,11 @@ async function bundle(testFile) {
       build.onResolve({ filter: /^vt:test$/ }, () => ({ path: testFile, namespace: 'vt-test' }));
       build.onLoad({ filter: /.*/, namespace: 'vt' }, () => ({ contents: `import 'vitest';\nimport 'vt:test';\nexport { run } from 'vitest';`, loader: 'js', resolveDir: dir }));
       build.onLoad({ filter: /.*/, namespace: 'vt-test' }, () => ({ contents: testBody, loader: testFile.endsWith('x') ? 'tsx' : 'ts', resolveDir: dir }));
+      // Vite worker imports become an inert Worker class: jsdom has no workers, and tests never run them.
+      build.onResolve({ filter: /\?worker/ }, args => ({ path: args.path, namespace: 'vt-worker' }));
+      build.onLoad({ filter: /.*/, namespace: 'vt-worker' }, () => ({ loader: 'js', contents: 'export default class { postMessage() {} terminate() {} addEventListener() {} removeEventListener() {} }' }));
+      // vi.importActual: the real module behind a mock, loaded on request.
+      build.onResolve({ filter: /^vt-actual:/ }, args => ({ path: args.path.slice('vt-actual:'.length) }));
       build.onResolve({ filter: /.*/ }, async args => {
         if (args.pluginData?.vt || args.namespace === 'vt-mock') return undefined;
         const result = await build.resolve(args.path, { resolveDir: args.resolveDir, kind: args.kind, importer: args.importer, pluginData: { vt: true } });
@@ -87,8 +92,9 @@ async function bundle(testFile) {
         const names = await exportsOf(args.path);
         const spec = JSON.stringify(args.pluginData.spec);
         return { loader: 'js', contents: `
+          (globalThis.__vtActual ??= {})[${spec}] = () => require(${JSON.stringify('vt-actual:' + args.path)});
           const names = ${JSON.stringify(names)};
-          const value = () => { const factory = globalThis.__vtMocks[${spec}]; if (!factory) throw new Error('No mock factory for ' + ${spec}); if (!('v' in factory)) factory.v = factory(); return factory.v; };
+          const value = () => { const factory = globalThis.__vtMocks[${spec}]; if (!factory) throw new Error('No mock factory for ' + ${spec}); if (!('v' in factory)) factory.v = factory(async () => globalThis.__vtActual[${spec}]()); if (factory.v && typeof factory.v.then === 'function') throw new Error('The async mock of ' + ${spec} + ' is used before the tests start'); return factory.v; };
           module.exports = new Proxy({}, {
             ownKeys: () => names,
             getOwnPropertyDescriptor: (_, key) => names.includes(key) ? { configurable: true, enumerable: true, get: () => value()[key] } : undefined,

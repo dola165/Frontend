@@ -142,6 +142,12 @@ The app today, compared with how clubs usually work (coaches to confirm):
   - Updates: chat notifications, deleting your own posts, reactions and comments.
   - Players: joining requests.
   - Families keep their squad room.
+- **Work never leaves the page** (11 October; the owner: "I can't have a very useful page which just forces you away with every button").
+  - A player's tools, "View all" and records open in a drawer that slides in from the left and fills the space up to the player sheet, instead of jumping to the club workspace.
+  - It is the same club tool, filtered to that player, with its search, filters and open record in the URL under `tool.`.
+  - Escape closes the drawer first, then the sheet. Unsaved records still ask before closing.
+  - The public profile opens in a new tab.
+  - Built into the shared player sheet, so My squads and the club workspace's squads both have it.
 - **Responsibilities:** asking for another one is one short form in a dialog on Coaches; the "tools first" switches moved to All tools in the club workspace, because they only order that workspace's rail.
 
 **A parent who is also staff** (decided 10 October, delegated by the owner)
@@ -250,13 +256,14 @@ This branch is the real frontend code on fake data, so what is built here ships 
   - Previews that open a full list speak the same row language and link to it: Needs you (My club, to the Work queue), players needing attention (My squads), staff appointments needing attention (Work queue), and the record sections of the player panel.
 - **Tests:** run `npm run check` and fix it.
   - The squad-focus test in `WorkspacePolish.test.tsx` fails because My club dropped its squad chips. Bring a squad focus back, or drop the test.
-  - Fourteen tests from earlier rounds already failed at 415e673:
+  - Fifteen tests from earlier rounds already failed at 415e673:
     - `ClubWorkspacePage.requests`: its i18n mock lacks `resolvedLanguage`.
     - `ExperienceRoutes`: `/tryouts` now opens World `?tab=trials`.
     - `jobs` and `jobs-presentation`: the Opportunities list.
     - `TournamentOrganizationFlow`.
     - `ClubOverview`: "Open calendar".
     - `clubProfile`: ways to get involved.
+    - `WorkspaceShell`: the phone menu button.
 - **Backend:** the records query (`/workspace-roles/work`) should take `sort` and `dir` and return a total. Until then the table sorts only the loaded page and record views show no counts.
 - **My squads:** Georgian copy for its new pages (written in English for now); tests for its pages; unused `coachHub` locale keys removed. Squad sessions should report friendlies as `FRIENDLY` (the sandbox marks them in the description).
 - **One calendar everywhere:**

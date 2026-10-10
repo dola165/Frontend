@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { DiscardPrompt } from './records/DiscardPrompt';
+import { EditorScope } from './workspaceGuard';
 
 /** Unsaved sensitive fields stay in component memory; navigation asks before discarding. */
 export function useClubEditorClose(dirty: boolean, busy: boolean, onClose: () => void) {
   const [pending, setPending] = useState<(() => void) | null>(null);
+  const scope = useContext(EditorScope);
   useEffect(() => {
     const navigate = (event: Event) => {
-      if (!dirty && !busy) return;
+      const asked = (event as CustomEvent<{ scope?: string }>).detail?.scope;
+      if (!dirty && !busy || asked && asked !== scope) return;
       event.preventDefault();
       if (!busy) setPending(() => (event as CustomEvent<{ proceed: () => void }>).detail.proceed);
     };
@@ -14,7 +17,7 @@ export function useClubEditorClose(dirty: boolean, busy: boolean, onClose: () =>
     window.addEventListener('club-workspace-navigate', navigate);
     window.addEventListener('beforeunload', unload);
     return () => { window.removeEventListener('club-workspace-navigate', navigate); window.removeEventListener('beforeunload', unload); };
-  }, [dirty, busy]);
+  }, [dirty, busy, scope]);
   return {
     /**
      * Closes the editor, asking first when there are unsaved changes. A function argument replaces the close,

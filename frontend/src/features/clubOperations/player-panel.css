@@ -8,3 +8,7 @@
 .gk .wpp-records .gk-list-row__meta { white-space: normal; }
 .gk .wpp-quiet { font-size: var(--gk-fs-sm); }
 .gk .wpp-tool-icon { width: 18px; height: 18px; color: var(--gk-text-3); }
+/* The tool or record open in the drawer beside the sheet. */
+.gk .wpp-records .gk-list-row[aria-current] { background: var(--gk-accent-soft); }
+.gk .wpp-records .gk-list-row[aria-current] .gk-list-row__title { font-weight: 600; }
+.gk .wpp-records .gk-list-row[aria-current] .wpp-tool-icon { color: var(--gk-accent); }

@@ -167,7 +167,7 @@ export function SquadsPage({ clubId, overview, setParentError, setParentSuccess,
                                 : <>{leadership && <SquadAgePolicy key={selectedSquad.id} club={clubId} squad={selectedSquad.id} />}{roster}</>}
                         </section>}
                     </div>}
-        {activePlayer && selectedSquad && workspace && <WorkspacePlayerPanel key={activePlayer.id} player={activePlayer} squad={selectedSquad.id} squadName={selectedSquad.name} boot={workspace.boot} onClose={() => setActivePlayer(null)} onOpen={workspace.onOpen} />}
+        {activePlayer && selectedSquad && workspace && <WorkspacePlayerPanel key={activePlayer.id} player={activePlayer} squad={selectedSquad.id} squadName={selectedSquad.name} boot={workspace.boot} onClose={() => setActivePlayer(null)} />}
         {squadEditor && <SquadEditorModal initial={squadEditor === 'new' ? undefined : squadEditor} onClose={() => setSquadEditor(null)} onSave={handleSaveSquad} />}
         {selectedSquad && <AddPlayerToSquadModal key={selectedSquad.id} clubId={clubId} squadId={selectedSquad.id} squadName={selectedSquad.name} existingPlayerIds={rosterGroups.flatMap(group => group.players.map(player => player.id))}
             isOpen={showAddPlayers} onClose={() => setShowAddPlayers(false)} onPlayersAdded={async () => { await Promise.all([loadRoster(selectedSquad.id), loadCards()]); setParentSuccess(t('squads.design.playersAdded', { defaultValue: 'Players added to squad.' })); }} />}

@@ -32,6 +32,6 @@ export function WorkspaceSquads({ data, boot, squad, onSquad, onOpen }: { data: 
         {data.people.length >= 1500 && <p className="gk-faint">Showing the first 1,500 squad memberships.</p>}
       </div>
     </SquadWorkbench>
-    {player && <WorkspacePlayerPanel key={`${player.id}-${player.squad_id}`} player={player} squad={player.squad_id} squadName={player.squad_name} boot={boot} onClose={() => setPlayer(null)} onOpen={onOpen} />}
+    {player && <WorkspacePlayerPanel key={`${player.id}-${player.squad_id}`} player={player} squad={player.squad_id} squadName={player.squad_name} boot={boot} onClose={() => setPlayer(null)} />}
   </PageFrame>;
 }

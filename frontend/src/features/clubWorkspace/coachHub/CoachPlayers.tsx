@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronRight, Goal, HeartPulse, LayoutGrid, List as ListIcon, PenLine } from 'lucide-react';
@@ -10,6 +10,7 @@ import type { OperationRecord } from '../../clubOperations/api';
 import type { SquadRosterPlayer } from '../../../components/squads/SquadRosterTable';
 import { positionCode, squadLabel } from '../../../components/squads/squadLabels';
 import { WorkspacePlayerPanel } from '../../clubOperations/WorkspacePlayerPanel';
+import { withoutScope } from '../../clubOperations/scopedParams';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { PlayerCard } from '../squads/PlayerCard';
 import { SquadEnrollmentManager } from '../../squadEnrollment/SquadEnrollment';
@@ -37,16 +38,16 @@ const FILTERS: { id: string; label: string; test: (row: PlayerRow) => boolean }[
 export function CoachPlayers({ data, embedded }: { data: CoachData; embedded?: boolean }) {
     const { t } = useTranslation();
     const [params, setParams] = useSearchParams();
-    const [open, setOpen] = useState<{ row: PlayerRow } | null>(null);
     const query = embedded ? '' : params.get('q') ?? '';
     const filter = (!embedded && FILTERS.find(item => item.id === params.get('view'))) || FILTERS[0];
     const table = !embedded && params.get('layout') === 'table';
     const sortBy = params.get('sort'), descending = params.get('dir') === 'desc';
     const sort = useMemo<TableSort | null>(() => sortBy ? { by: sortBy, descending } : null, [sortBy, descending]);
-    const set = (changes: Record<string, string | null>) => {
-        const next = new URLSearchParams(params);
+    const set = (changes: Record<string, string | null>, push = false) => {
+        // A tool opened beside a player closes with the player.
+        const next = 'player' in changes && !changes.player ? withoutScope(params, 'tool') : new URLSearchParams(params);
         Object.entries(changes).forEach(([key, value]) => { if (value) next.set(key, value); else next.delete(key); });
-        setParams(next, { replace: true });
+        setParams(next, { replace: !push });
     };
 
     const rosters = data.rosters?.filter(roster => data.shown.includes(roster.id)) ?? null;
@@ -69,7 +70,8 @@ export function CoachPlayers({ data, embedded }: { data: CoachData; embedded?: b
             {row.review && <span className={`pc-sign${due?.late ? ' pc-sign--injury' : ''}`} title={`${row.review.title}${due ? ` · ${due.late ? due.text : `review ${due.text}`}` : ''}`}><Goal aria-hidden="true" /><span className="gk-visually-hidden">Development review</span></span>}
         </>;
     };
-    const openRow = (row: PlayerRow) => setOpen({ row });
+    const openRow = (row: PlayerRow) => set({ player: `${row.squad}-${row.player.id}` }, true);
+    const open = rows.find(row => `${row.squad}-${row.player.id}` === params.get('player'));
     const card = (row: PlayerRow) => <li key={`${row.squad}-${row.player.id}`}><PlayerCard player={row.player} crest={data.clubLogo} subtitle={several ? data.names.get(row.squad) : undefined}
         signs={signs(row)} onOpen={() => openRow(row)} /></li>;
     const grouped = [...GROUPS, ...new Set(shown.map(row => row.group).filter(group => !GROUPS.includes(group)))]
@@ -93,8 +95,8 @@ export function CoachPlayers({ data, embedded }: { data: CoachData; embedded?: b
                 onOpen={openRow} actions={() => <ChevronRight className="gk-dt__chevron gk-dt__keep" aria-hidden="true" />} />
                 : embedded ? <ul className="pc-grid">{grouped.flatMap(item => item.rows).map(card)}</ul>
                     : <div className="gk-stack">{grouped.map(item => <Section key={item.group} title={squadLabel(item.group, t)} hint={`${item.rows.length}`}><ul className="pc-grid">{item.rows.map(card)}</ul></Section>)}</div>;
-    const person = open && { id: open.row.player.id, name: open.row.player.name, squad_id: open.row.squad, squad_name: data.names.get(open.row.squad) ?? '' };
-    const panel = person && <WorkspacePlayerPanel key={`${person.id}-${person.squad_id}`} player={person} squad={person.squad_id} squadName={person.squad_name} boot={data.boot} onClose={() => setOpen(null)} onOpen={data.openWork} />;
+    const panel = open && <WorkspacePlayerPanel key={`${open.squad}-${open.player.id}`} player={open.player} squad={open.squad} squadName={data.names.get(open.squad) ?? ''} boot={data.boot}
+        onClose={() => set({ player: null })} onChanged={data.refresh} />;
 
     if (embedded) return <Section boxed title="Players" hint={`${rows.length}`}>{body}{panel}</Section>;
     return <PageFrame className="cw-page ch-page">

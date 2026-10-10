@@ -12,8 +12,8 @@
 .gk .gk-dialog__body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--gk-4); padding: var(--gk-2) var(--gk-5) var(--gk-5); }
 .gk .gk-dialog__foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--gk-2); padding: var(--gk-3) var(--gk-5); border-top: 1px solid var(--gk-line); }
 /* Sheet: docked to the right at full height on wider screens. */
-.gk.gk-dialog-layer--sheet { place-items: stretch end; padding: 0; }
-.gk .gk-dialog--sheet { width: min(520px, 100vw); max-width: none; height: 100dvh; max-height: none; border-width: 0 0 0 1px; border-radius: 0; }
+.gk.gk-dialog-layer--sheet { --gk-sheet-width: min(520px, 100vw); place-items: stretch end; padding: 0; }
+.gk .gk-dialog--sheet { width: var(--gk-sheet-width); max-width: none; height: 100dvh; max-height: none; border-width: 0 0 0 1px; border-radius: 0; }
 @media (max-width: 640px) {
   .gk.gk-dialog-layer { place-items: end stretch; padding: 0; }
   .gk .gk-dialog { max-width: none; max-height: 92dvh; border-radius: var(--gk-r-lg) var(--gk-r-lg) 0 0; }

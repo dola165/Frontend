@@ -1,20 +1,23 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ExternalLink, Plus } from 'lucide-react';
-import { Badge, Button, EmptyNote, Field, List, ListRow, Section, Skeleton } from '../../design/primitives';
+import { Avatar, Badge, Button, EmptyNote, Field, List, ListRow, Section, Skeleton } from '../../design/primitives';
 import { Dialog } from '../../design/Dialog';
 import { squadLabel } from '../../components/squads/squadLabels';
 import type { SquadRosterPlayer } from '../../components/squads/SquadRosterTable';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { formatDate } from '../../utils/formatting';
+import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { coachHubEn } from '../../locales/workspaceDesign';
 import { useCopy } from '../../locales/useCopy';
 import { get, post, root, label, type Bootstrap, type OperationRecord } from './api';
-import { operationTab, operationTabs } from './workspaceNavigation';
-import type { OpenWorkspace } from './workspaceStructure';
+import { operationTabs } from './workspaceNavigation';
 import { useClubEditorClose } from './useClubEditorClose';
+import { guardWorkspaceNavigation } from './workspaceGuard';
 import { canReadSquad } from './squadAccess';
+import { withoutScope } from './scopedParams';
+import { WorkDrawer } from './WorkDrawer';
 import './records/records.css';
 import './player-panel.css';
 import '../clubWorkspace/club-workspace.css';
@@ -25,20 +28,36 @@ const TOOL_MODULES = ['DEVELOPMENT', 'ATTENDANCE', 'GUARDIANS', 'REGISTRATION', 
 /**
  * One squad player's notes and tools, beside the list that opened it: their open restrictions, recent
  * development, a quick observation (saved as a draft to review in Development) and the tools for them.
- * Only records this person may read are requested; an unsaved observation is never dropped silently.
+ * A tool or record opens in a drawer that slides in beside the sheet, so the coach never leaves the page;
+ * which one is open lives in the URL (`tool`, `tool.record`). Only records this person may read are
+ * requested; an unsaved observation or record is never dropped silently.
  */
-export function WorkspacePlayerPanel({ player, squad, squadName, boot, onClose, onOpen }: { player: SquadRosterPlayer; squad: number; squadName: string; boot: Bootstrap | null; onClose: () => void; onOpen: OpenWorkspace }) {
+export function WorkspacePlayerPanel({ player, squad, squadName, boot, onClose, onChanged }: {
+    player: SquadRosterPlayer; squad: number; squadName: string; boot: Bootstrap | null; onClose: () => void;
+    /** A record was saved in a tool opened from here, so the page behind may refresh its signs. */ onChanged?: () => void;
+}) {
     const { t } = useTranslation();
     const copy = useCopy('coachHub', coachHubEn);
+    const [params, setParams] = useSearchParams();
     const [observation, setObservation] = useState(''), [nextSteps, setNextSteps] = useState(''), [adding, setAdding] = useState(false);
     const [busy, setBusy] = useState(false), [error, setError] = useState(''), [saved, setSaved] = useState(false), [revision, setRevision] = useState(0);
     const [records, setRecords] = useState<RecordGroup[] | null>(null);
+    const [closing, setClosing] = useState(false);
     const draft = Boolean(observation.trim() || nextSteps.trim());
     const { requestClose, confirmation } = useClubEditorClose(draft, busy, onClose);
     const lock = useRef(false);
     const development = canReadSquad(boot, 'DEVELOPMENT', squad), restrictions = canReadSquad(boot, 'AVAILABILITY', squad);
     const writable = development && Boolean(boot?.modules.some(m => m.id === 'DEVELOPMENT' && (m.globalWrite || m.writeSquads.includes(squad))));
     const club = boot?.clubId;
+    const tools = operationTabs.filter(tool => TOOL_MODULES.includes(tool.module) && canReadSquad(boot, tool.module, squad));
+
+    // The open tool belongs to this player and squad, and to a module this person may read.
+    const readable = [...(restrictions ? ['AVAILABILITY'] : []), ...(development ? ['DEVELOPMENT'] : []), ...tools.map(tool => tool.module)];
+    const asked = params.get('tool'), forThisPlayer = params.get('tool.person') === String(player.id) && params.get('tool.squad') === String(squad);
+    const module = boot && asked && forThisPlayer && readable.includes(asked) ? asked : null;
+    const openRecord = module ? params.get('tool.record') : null;
+    const listedHere = (id: string | null) => Boolean(id && records?.some(item => item.rows.some(record => String(record.id) === id)));
+    const toolLabel = operationTabs.find(tool => tool.module === module)?.label ?? '';
 
     useEffect(() => {
         const controller = new AbortController();
@@ -52,6 +71,24 @@ export function WorkspacePlayerPanel({ player, squad, squadName, boot, onClose, 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [club, player.id, squad, development, restrictions, revision]);
 
+    /** Opens a tool (or one of its records) in the drawer; a changed record in the open drawer asks first. */
+    const openTool = (target: string, record?: number) => {
+        const go = () => {
+            const next = withoutScope(params, 'tool');
+            next.set('tool', target); next.set('tool.squad', String(squad)); next.set('tool.person', String(player.id));
+            if (record) next.set('tool.record', String(record));
+            setClosing(false); setParams(next);
+        };
+        if (module) guardWorkspaceNavigation(go, 'tool'); else go();
+    };
+    const closeTool = () => guardWorkspaceNavigation(() => setClosing(true), 'tool');
+    const closedTool = () => { setClosing(false); setParams(withoutScope(params, 'tool'), { replace: true }); };
+    // Closing the sheet closes its drawer too, asking about unsaved work in either.
+    const closeSheet = () => guardWorkspaceNavigation(() => requestClose(() => {
+        if (asked) setParams(withoutScope(params, 'tool'), { replace: true });
+        onClose();
+    }), 'tool');
+
     const save = async (event: FormEvent) => {
         event.preventDefault();
         if (lock.current || !writable || !observation.trim()) return;
@@ -64,28 +101,26 @@ export function WorkspacePlayerPanel({ player, squad, squadName, boot, onClose, 
     };
     const cancelObservation = () => requestClose(() => { setObservation(''); setNextSteps(''); setAdding(false); });
     const facts = [squadName, player.number != null ? copy('shirt', { number: player.number }) : null, player.position ? squadLabel(player.position, t) : null, player.age != null ? copy('age', { age: player.age }) : null].filter(Boolean);
-    const tools = operationTabs.filter(tool => TOOL_MODULES.includes(tool.module) && canReadSquad(boot, tool.module, squad));
-    const context = { squad: String(squad), person: String(player.id) };
 
     const group = (item: RecordGroup): ReactNode => {
         const isRestriction = item.module === 'AVAILABILITY';
         return <Section key={item.module} title={isRestriction ? copy('restrictionsTitle') : copy('developmentTitle')}
-            action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen(operationTab(item.module), context)}>{copy('viewAll')}</button>}>
+            action={<button type="button" className="gk-section__action cw-text-button" onClick={() => openTool(item.module)}>{copy('viewAll')}</button>}>
             {item.error ? <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{item.error}</span><Button size="sm" onClick={() => setRevision(value => value + 1)}>{copy('retry')}</Button></div>
                 : item.rows.length ? <List label={isRestriction ? copy('restrictionsTitle') : copy('developmentTitle')} className="wpp-records">{item.rows.slice(0, 4).map(record => <ListRow key={record.id}
                     title={record.title} meta={[isRestriction ? record.data.restrictions : label(record.status), record.data.reviewOn ? copy('reviewOn', { date: formatDate(record.data.reviewOn.slice(0, 10), { day: 'numeric', month: 'short' }) }) : null].filter(Boolean).join(' · ')}
-                    trail={isRestriction ? <Badge tone="warning">{label(record.status)}</Badge> : undefined}
-                    onClick={() => onOpen(operationTab(record.module), { ...context, record: String(record.id) })} />)}</List>
+                    trail={isRestriction ? <Badge tone="warning">{label(record.status)}</Badge> : undefined} current={openRecord === String(record.id)}
+                    onClick={() => openTool(record.module, record.id)} />)}</List>
                     : <p className="gk-muted wpp-quiet">{isRestriction ? copy('noRestrictions') : copy('noDevelopment')}</p>}
         </Section>;
     };
 
-    return <Dialog open size="sheet" title={player.name} closeLabel={copy('panelClose')} onClose={() => requestClose()}
+    return <Dialog open size="sheet" title={player.name} closeLabel={copy('panelClose')} onClose={closeSheet} onEscape={() => module ? closeTool() : closeSheet()}
         description={<span className="wpp-facts">{facts.length ? facts.map(fact => <Badge key={String(fact)}>{fact}</Badge>) : copy('panelFallback')}</span>}>
         <div className="wpp-actions">
             {writable && !adding && <Button variant="primary" onClick={() => { setSaved(false); setAdding(true); }}><Plus aria-hidden="true" />{copy('addObservation')}</Button>}
-            {player.isRegistered !== false && <Link className="gk-btn gk-btn--ghost" to={`/profile/${player.id}`}
-                onClick={event => { if (draft || busy) { event.preventDefault(); setError(copy('saveFirst')); } }}>{copy('publicProfile')}<ExternalLink aria-hidden="true" /></Link>}
+            {/* The public profile opens in a new tab, so the work here stays where it is. */}
+            {player.isRegistered !== false && <Link className="gk-btn gk-btn--ghost" to={`/profile/${player.id}`} target="_blank" rel="noreferrer">{copy('publicProfile')}<ExternalLink aria-hidden="true" /></Link>}
         </div>
         {saved && <p role="status" className="gk-notice cw-notices__success">{copy('observationSaved')}</p>}
         {error && <p role="alert" className="gk-notice gk-notice--danger">{error}</p>}
@@ -106,7 +141,11 @@ export function WorkspacePlayerPanel({ player, squad, squadName, boot, onClose, 
             : records === null ? <div className="cw-skeleton-rows" role="status" aria-label={copy('loadingInfo')}><Skeleton height={40} /><Skeleton height={40} /></div>
                 : records.map(group)}
         {tools.length > 0 && <Section title={copy('playerTools')}>
-            <List label={copy('playerTools')} className="wpp-records">{tools.map(tool => <ListRow key={tool.id} lead={<tool.icon aria-hidden="true" className="wpp-tool-icon" />} title={tool.label} onClick={() => onOpen(tool.id, context)} />)}</List>
+            <List label={copy('playerTools')} className="wpp-records">{tools.map(tool => <ListRow key={tool.id} lead={<tool.icon aria-hidden="true" className="wpp-tool-icon" />} title={tool.label}
+                current={module === tool.module && !listedHere(openRecord)} onClick={() => openTool(tool.module)} />)}</List>
         </Section>}
+        {module && boot && <WorkDrawer boot={boot} module={module} label={`${toolLabel}: ${player.name}`} closing={closing} onClose={closeTool} onClosed={closedTool}
+            context={<><Avatar src={resolveMediaUrl(player.photoUrl) || null} name={player.name} size={24} /><strong>{player.name}</strong><span>{squadName}</span></>}
+            onRefresh={async () => { setRevision(value => value + 1); onChanged?.(); }} />}
     </Dialog>;
 }

@@ -10,14 +10,15 @@ import { Button, GkRoot } from './primitives';
  * Focus is contained and returned, Escape closes, and the page behind is inert.
  * `role="alertdialog"` is for confirmations that interrupt work (unsaved changes).
  * `size="sheet"` docks it to the right edge at full height (a bottom sheet on phones), for detail beside a list.
+ * `onEscape` replaces closing on Escape, for a sheet that first closes what it opened beside it.
  */
-export function Dialog({ open, title, description, onClose, children, footer, size = 'md', role = 'dialog', closeLabel = 'Close' }: {
-    open: boolean; title: ReactNode; description?: ReactNode; onClose: () => void; children?: ReactNode; footer?: ReactNode;
+export function Dialog({ open, title, description, onClose, onEscape, children, footer, size = 'md', role = 'dialog', closeLabel = 'Close' }: {
+    open: boolean; title: ReactNode; description?: ReactNode; onClose: () => void; onEscape?: () => void; children?: ReactNode; footer?: ReactNode;
     size?: 'sm' | 'md' | 'lg' | 'sheet'; role?: 'dialog' | 'alertdialog'; closeLabel?: string;
 }) {
     const ref = useRef<HTMLElement>(null);
     const titleId = useId(), descriptionId = useId();
-    useDialogFocus(open, ref, onClose);
+    useDialogFocus(open, ref, onEscape ?? onClose);
     if (!open) return null;
     return createPortal(
         <GkRoot className={`gk-dialog-layer${size === 'sheet' ? ' gk-dialog-layer--sheet' : ''}`}>

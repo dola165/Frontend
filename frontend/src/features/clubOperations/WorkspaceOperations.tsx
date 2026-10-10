@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Plus, X } from 'lucide-react';
 import { Button, EmptyNote, PageFrame, PageHeader, Panel, Skeleton } from '../../design/primitives';
 import { nextSort, type TableSort } from '../../design/tableSort';
@@ -14,16 +13,19 @@ import { operationDescriptions, operationTabs } from './workspaceNavigation';
 import { RecordForm } from './records/RecordForm';
 import { RecordTable, RecordToolbar, type RecordView } from './records/RecordList';
 import { SessionRegisters } from './records/SessionRegisters';
+import { useScopedSearchParams } from './scopedParams';
 import './records/records.css';
 import '../clubWorkspace/club-workspace.css';
 
 /** One club tool (staff duties, attendance, travel and the rest): its records, filters, a register where it has one, and a record or form when one is open. */
-export function WorkspaceOperations({ boot, module, onRefresh, origin }: {
+export function WorkspaceOperations({ boot, module, onRefresh, origin, scope }: {
   boot: Bootstrap; module: string; onRefresh: () => Promise<void>;
+  /** Opened inside another page (a drawer beside a player): its URL parameters live under this prefix. */
+  scope?: string;
   /** Where the person came from (Coach Hub, the overview, a squad): the way back, when they did not open this tool from the rail. */
   origin?: { label: string; onBack: () => void };
 }) {
-  const [params, setParams] = useSearchParams();
+  const [params, setParams, hrefOf] = useScopedSearchParams(scope);
   const [result, setResult] = useState<{ key: string; records: OperationRecord[]; error: string } | null>(null);
   const [detailError, setDetailError] = useState('');
   const [refresh, setRefresh] = useState(0);
@@ -88,7 +90,7 @@ export function WorkspaceOperations({ boot, module, onRefresh, origin }: {
   }, [club, linked]);
   const close = () => { selectRequest.current++; setSelected(null); setEditing(false); setNewKind(''); const next = new URLSearchParams(params); next.delete('record'); next.delete('from'); setParams(next, { replace: true }); };
   // A record opened from this tool's list goes back to the list; one opened from elsewhere goes back there.
-  const hrefFor = (record: OperationRecord) => { const next = new URLSearchParams(params); next.set('record', String(record.id)); next.set('from', 'list'); return `?${next}`; };
+  const hrefFor = (record: OperationRecord) => { const next = new URLSearchParams(params); next.set('record', String(record.id)); next.set('from', 'list'); return hrefOf(next); };
   const open = (record: OperationRecord) => { const next = new URLSearchParams(params); next.set('record', String(record.id)); next.set('from', 'list'); setParams(next); };
   const reload = () => { setRefresh(v => v + 1); };
   const changed = async () => { await onRefresh(); close(); reload(); };

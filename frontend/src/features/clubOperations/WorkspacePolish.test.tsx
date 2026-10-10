@@ -60,7 +60,7 @@ it('focusing on one squad narrows the overview without changing access or submit
 });
 
 it('saves a draft observation with the exact squad and player, and only loads permitted coach information',async()=>{
-  render(<MemoryRouter><WorkspacePlayerPanel player={{id:21,name:'Alex'}} squad={11} squadName="U12" boot={boot} onClose={vi.fn()} onOpen={onOpen}/></MemoryRouter>);
+  render(<MemoryRouter><WorkspacePlayerPanel player={{id:21,name:'Alex'}} squad={11} squadName="U12" boot={boot} onClose={vi.fn()}/></MemoryRouter>);
   fireEvent.click(screen.getByRole('button',{name:'Add observation'}));
   fireEvent.change(screen.getByLabelText('Observation'),{target:{value:'Good first touch under pressure.'}});
   fireEvent.change(screen.getByLabelText(/Next steps/),{target:{value:'Practise receiving on the half turn.'}});
@@ -71,7 +71,7 @@ it('saves a draft observation with the exact squad and player, and only loads pe
 });
 
 it('does not offer observations or request player records for another squad’s permission',async()=>{
-  render(<MemoryRouter><WorkspacePlayerPanel player={{id:22,name:'Sam'}} squad={12} squadName="U16" boot={boot} onClose={vi.fn()} onOpen={onOpen}/></MemoryRouter>);
+  render(<MemoryRouter><WorkspacePlayerPanel player={{id:22,name:'Sam'}} squad={12} squadName="U16" boot={boot} onClose={vi.fn()}/></MemoryRouter>);
   await waitFor(()=>expect(screen.queryByText('Loading player information…')).not.toBeInTheDocument());
   expect(screen.queryByRole('button',{name:'Add observation'})).not.toBeInTheDocument();
   expect(apiClient.get).not.toHaveBeenCalled();

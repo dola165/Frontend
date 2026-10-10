@@ -69,9 +69,10 @@
 /* ---------------------------------------------------------------- phone and tablet: the rail becomes a drawer */
 @media (max-width: 1023px) {
   .gk.gk-ws, .gk.gk-ws[data-collapsed] { grid-template-columns: minmax(0, 1fr); --gk-ws-rail: min(86vw, 320px); }
-  .gk .gk-ws__rail { position: fixed; top: var(--app-active-header-height, 0px); bottom: var(--app-bottom-bar-height, 0px); left: 0; z-index: 70; width: var(--gk-ws-rail); height: auto; transform: translateX(-105%); transition: transform .2s var(--gk-ease); box-shadow: var(--gk-elevation); }
-  .gk .gk-ws__rail[data-open] { transform: none; }
-  .gk .gk-ws__backdrop { position: fixed; inset: var(--app-active-header-height, 0px) 0 var(--app-bottom-bar-height, 0px) 0; z-index: 65; border: 0; background: color-mix(in srgb, var(--gk-shadow) 55%, transparent); }
+  /* Closed, the drawer is hidden after it slides away, so its links leave the tab order and the accessibility tree. */
+  .gk .gk-ws__rail { position: fixed; top: var(--app-active-header-height, 0px); bottom: var(--app-bottom-bar-height, 0px); left: 0; z-index: 70; width: var(--gk-ws-rail); height: auto; transform: translateX(-105%); visibility: hidden; transition: transform .2s var(--gk-ease), visibility 0s linear .2s; box-shadow: var(--gk-elevation); }
+  .gk .gk-ws__rail[data-open] { transform: none; visibility: visible; transition: transform .2s var(--gk-ease), visibility 0s; }
+  .gk .gk-ws__backdrop { position: fixed; inset: var(--app-active-header-height, 0px) 0 var(--app-bottom-bar-height, 0px) 0; z-index: 65; background: color-mix(in srgb, var(--gk-shadow) 55%, transparent); cursor: pointer; }
   .gk .gk-ws__close { display: inline-grid; place-items: center; position: absolute; top: var(--gk-3); right: var(--gk-3); width: 44px; height: 44px; border: 0; border-radius: var(--gk-r); background: none; color: var(--gk-text-2); cursor: pointer; }
   .gk .gk-ws__close:hover { background: var(--gk-hover); color: var(--gk-text); }
   .gk .gk-ws__close svg { width: 20px; height: 20px; }
@@ -88,4 +89,4 @@
   .gk .gk-ws__bar-title strong { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .gk .gk-ws__bar-title span { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
-@media (prefers-reduced-motion: reduce) { .gk .gk-ws__rail { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .gk .gk-ws__rail, .gk .gk-ws__rail[data-open] { transition: none; } }

@@ -61,7 +61,6 @@
 .entity-competition>svg,.entity-competition>span { color:var(--club-tone-green,var(--color-accent)); }
 .entity-competition>span { font-size:12px; }
 .entity-section { max-width:1260px;margin:0 auto; }
-.entity-section .org-portfolio { margin:0 0 24px; }
 .entity-detail { max-width:960px;margin:0 auto; }
 .entity-profile :is(button,a):focus-visible { outline:2px solid var(--club-tone-green,var(--color-accent));outline-offset:4px; }
 .entity-profile [role=tabpanel]:focus-visible { outline:2px solid var(--club-tone-green,var(--color-accent));outline-offset:-4px; }

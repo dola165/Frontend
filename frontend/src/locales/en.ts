@@ -1,6 +1,7 @@
 import { squadDesignEn, squadsDesignEn } from './squadDesign';
 import { authRoleEn } from './authRoles';
 import { clubOverviewEn } from './clubOverview';
+import { coachHubEn, fixtureCopyEn, responsibilitiesEn, workspaceNavEn, workspaceShellEn } from './workspaceDesign';
 import { recruitmentDesignEn } from './recruitmentDesign';
 
 const en = {
@@ -13,6 +14,11 @@ const en = {
     you: 'You',
   },
   clubOverview: clubOverviewEn,
+  workspaceShell: workspaceShellEn,
+  workspaceNav: workspaceNavEn,
+  coachHub: coachHubEn,
+  responsibilities: responsibilitiesEn,
+  fixtureCopy: fixtureCopyEn,
   recruitmentDesign: recruitmentDesignEn,
   authRoles: authRoleEn,
   squadDesign: squadDesignEn,

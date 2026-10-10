@@ -1,6 +1,6 @@
 import './design.css';
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
-import { NavLink, useLocation, useSearchParams } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 
 export interface TabItem<T extends string> { id: T; label: ReactNode; count?: number; icon?: ReactNode }
 
@@ -30,20 +30,6 @@ export function Tabs<T extends string>({ items, value, onChange, label, classNam
             ))}
         </div>
     );
-}
-
-/** Reads and writes one tab id in the query string, falling back to the first allowed value. */
-// eslint-disable-next-line react-refresh/only-export-components -- the tab hook belongs with Tabs; fast refresh reloads this file in full.
-export function useUrlTab<T extends string>(param: string, allowed: readonly T[], fallback: T): [T, (id: T) => void] {
-    const [params, setParams] = useSearchParams();
-    const raw = params.get(param);
-    const value = raw && (allowed as readonly string[]).includes(raw) ? raw as T : fallback;
-    const set = (id: T) => {
-        const next = new URLSearchParams(params);
-        if (id === fallback) next.delete(param); else next.set(param, id);
-        setParams(next, { replace: false });
-    };
-    return [value, set];
 }
 
 export interface RouteTabItem { to: string; label: ReactNode; icon?: ReactNode; /** Match the path exactly, for an index destination. */ end?: boolean }

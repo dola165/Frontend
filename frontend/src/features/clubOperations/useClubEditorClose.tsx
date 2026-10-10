@@ -16,7 +16,15 @@ export function useClubEditorClose(dirty: boolean, busy: boolean, onClose: () =>
     return () => { window.removeEventListener('club-workspace-navigate', navigate); window.removeEventListener('beforeunload', unload); };
   }, [dirty, busy]);
   return {
-    requestClose: () => { if (busy) return; if (dirty) setPending(() => onClose); else onClose(); },
+    /**
+     * Closes the editor, asking first when there are unsaved changes. A function argument replaces the close,
+     * for example to discard only a sub-form; anything else (such as a click event) is ignored.
+     */
+    requestClose: (then?: unknown) => {
+      const proceed = typeof then === 'function' ? then as () => void : onClose;
+      if (busy) return;
+      if (dirty) setPending(() => proceed); else proceed();
+    },
     confirmation: pending ? <DiscardPrompt disabled={busy} onKeepEditing={() => setPending(null)} onDiscard={() => { const proceed = pending; setPending(null); proceed(); }} /> : undefined,
   };
 }

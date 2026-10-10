@@ -10,7 +10,7 @@ import {
     clubRoleLabel, type ClubManagedMember, type ClubManagementOverview, type ClubMembershipApplication, type ClubMembershipRole,
     type ClubPlayerAffiliation, type PageResult, type PlayerAffiliationStatus,
 } from '../clubs/domain';
-import type { ApplicationFilters } from '../../components/workspace/tabs/ApplicationsTab';
+import type { ApplicationFilters } from './recruitment/ApplicationsPage';
 import type { TryoutApplicantDto, UserSearchDto, WorkspaceTab } from '../../components/workspace/types';
 import { extractApiErrorMessage } from '../../utils/apiError';
 

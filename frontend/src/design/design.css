@@ -26,6 +26,8 @@
 /* ---------------------------------------------------------------- section & panel */
 .gk .gk-section { display: flex; flex-direction: column; gap: var(--gk-3); min-width: 0; }
 .gk .gk-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--gk-4); min-height: 28px; }
+/* A long hint wraps under the title instead of squeezing it onto two lines. */
+.gk .gk-section__heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--gk-2); min-width: 0; }
 .gk .gk-section__title { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 600; }
 .gk .gk-section__hint { font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
 .gk .gk-section__action { font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-accent); white-space: nowrap; }

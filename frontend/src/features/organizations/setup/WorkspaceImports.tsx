@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { apiClient } from '../../../api/axiosConfig';
 import { useAuth } from '../../../context/AuthContext';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { Badge, Button, Field, GkRoot } from '../../../design/primitives';
 import { ImportMapping } from './ImportMapping';
+import '../org-tools.css';
 import { squadFields, venueFields } from './domain';
 import { clearSetupRecovery, isRecord, isRequestId, readSetupRecovery, writeSetupRecovery } from './setupRecovery';
 
@@ -82,21 +84,26 @@ function ImportWorkspace({ id, clubId, blocked }: Props) {
       }
     } finally { submitting.current = false; if (active.current) setBusy(false); }
   }
-  return <section className="org-setup-card"><h2>Import setup data</h2>
-    <p>Preview and validate your spreadsheet before creating records. Existing names are skipped. Venues start as drafts, and ownership is recorded as your declaration.</p>
-    <label>What are you importing?<select disabled={busy || uncertain} value={kind} onChange={e => reset(e.target.value)}>{clubId && <option value="SQUADS">Club squads</option>}<option value="VENUES">Venues owned or operated</option></select></label>
-    {kind === 'SQUADS' && <p>Import squad names, age groups and gender categories. Add players and approved staff using the club workspace.</p>}
-    {!storageAvailable && <p role="status">This browser could not save the import for recovery. Keep this page open until the result is confirmed.</p>}
-    {uncertain && <p role="status">An import is awaiting confirmation. Retry the same import to recover its receipt. The same rows will not be created twice.</p>}
-    {blocked && kind === 'VENUES' ? <p role="status">Facility profile imports require content review for this organization.</p> : <>
-      {!uncertain && !preview && !receipt && <fieldset disabled={busy}><ImportMapping key={kind} fields={kind === 'SQUADS' ? squadFields : venueFields} onMapped={(rows, numbers) => void validate(rows, numbers)} /></fieldset>}
-      {preview && <><h3>Review before importing</h3><p>{preview.ready} ready · {preview.duplicates} duplicates · {preview.errors} invalid</p>
-        {storageAvailable && <p>Your reviewed rows are saved for this account in this browser tab. You can return to this organization’s Import tab later.</p>}
-        {preview.errors > 0 && <p role="alert">Correct the listed rows in your file, then choose “Change file or mapping” to validate again. No rows have been imported.</p>}
-        <div className="org-setup-table"><table><thead><tr><th>File row</th><th>Name</th><th>Result</th><th>Details</th></tr></thead><tbody>{preview.rows.map(row => <tr key={row.row}><td>{rowNumbers[row.row - 1] ?? row.row + 1}</td><td>{row.values.name}</td><td>{row.status === 'READY' ? 'Ready to create' : row.status === 'DUPLICATE' ? 'Will be skipped' : 'Needs correction'}</td><td>{row.issues.length ? row.issues.join(' ') : Object.entries(row.values).filter(([key]) => key !== 'name').map(([, value]) => value).filter(Boolean).join(' · ')}</td></tr>)}</tbody></table></div>
-        <div className="org-setup-actions"><button type="button" className="org-setup-primary" disabled={busy || preview.errors > 0 || (!preview.ready && !uncertain)} onClick={() => void commit()}>{busy ? 'Importing…' : uncertain ? 'Retry same import' : `Create ${preview.ready} ${kind === 'SQUADS' ? 'squads' : 'venues'}`}</button><button type="button" disabled={busy || uncertain} onClick={() => reset()}>Change file or mapping</button></div></>}
+  const noun = kind === 'SQUADS' ? 'squads' : 'venues';
+  return <GkRoot className="org-tool"><section className="org-tool__section" aria-labelledby={`imports-${id}`}>
+    <header className="org-tool__head"><div><h2 id={`imports-${id}`} className="org-tool__title">Import setup data</h2>
+      <p className="org-tool__hint">Check a spreadsheet before any records are created. Existing names are skipped. Venues start as drafts, and ownership is recorded as your declaration.</p></div></header>
+    <Field label="What are you importing?" htmlFor={`imports-${id}-kind`} hint={kind === 'SQUADS' ? 'Squad names, age groups and gender categories. Add players and staff in the club workspace.' : undefined}>
+      <select id={`imports-${id}-kind`} className="gk-input org-tool__select" disabled={busy || uncertain} value={kind} onChange={e => reset(e.target.value)}>{clubId && <option value="SQUADS">Club squads</option>}<option value="VENUES">Venues owned or operated</option></select></Field>
+    {!storageAvailable && <p className="gk-notice gk-notice--warning" role="status">This browser could not save the import for recovery. Keep this page open until the result is confirmed.</p>}
+    {uncertain && <p className="gk-notice gk-notice--warning" role="status">An import is awaiting confirmation. Retry the same import to recover its receipt. The same rows will not be created twice.</p>}
+    {blocked && kind === 'VENUES' ? <p className="gk-notice" role="status">Facility profile imports require content review for this organization.</p> : <>
+      {!uncertain && !preview && !receipt && <fieldset className="org-tool__fieldset" disabled={busy}><ImportMapping key={kind} fields={kind === 'SQUADS' ? squadFields : venueFields} onMapped={(rows, numbers) => void validate(rows, numbers)} /></fieldset>}
+      {preview && <div className="org-tool__card org-tool__review">
+        <h3 className="org-tool__subtitle">Review before importing</h3>
+        <p className="org-tool__facts"><Badge tone="accent">{preview.ready} ready</Badge><Badge>{preview.duplicates} duplicates</Badge><Badge tone={preview.errors ? 'danger' : 'neutral'}>{preview.errors} invalid</Badge></p>
+        {storageAvailable && <p className="org-tool__hint">Your reviewed rows are saved for this account in this browser tab, so you can come back to this import later.</p>}
+        {preview.errors > 0 && <p className="gk-notice gk-notice--danger" role="alert">Correct the listed rows in your file, then choose “Change file or mapping” to validate again. No rows have been imported.</p>}
+        <div className="org-tool__table"><table><thead><tr><th>File row</th><th>Name</th><th>Result</th><th>Details</th></tr></thead><tbody>{preview.rows.map(row => <tr key={row.row}><td className="gk-num">{rowNumbers[row.row - 1] ?? row.row + 1}</td><td>{row.values.name}</td><td>{row.status === 'READY' ? 'Ready to create' : row.status === 'DUPLICATE' ? 'Will be skipped' : 'Needs correction'}</td><td>{row.issues.length ? row.issues.join(' ') : Object.entries(row.values).filter(([key]) => key !== 'name').map(([, value]) => value).filter(Boolean).join(' · ')}</td></tr>)}</tbody></table></div>
+        <div className="org-tool__actions"><Button variant="primary" disabled={busy || preview.errors > 0 || (!preview.ready && !uncertain)} onClick={() => void commit()}>{busy ? 'Importing…' : uncertain ? 'Retry same import' : `Create ${preview.ready} ${noun}`}</Button><Button disabled={busy || uncertain} onClick={() => reset()}>Change file or mapping</Button></div>
+      </div>}
     </>}
-    {busy && !preview && <p role="status">Validating rows…</p>}{error && <p role="alert">{error}</p>}
-    {receipt && <><p role="status" className="org-setup-notice">{receipt.created} {kind === 'SQUADS' ? 'squads' : 'venues'} created. {receipt.skipped} duplicate rows skipped.</p><button type="button" onClick={() => reset()}>Import another file</button></>}
-  </section>;
+    {busy && !preview && <p className="org-tool__hint" role="status">Validating rows…</p>}{error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
+    {receipt && <div className="gk-notice org-tool__receipt"><span role="status" className="org-tool__grow">{receipt.created} {noun} created. {receipt.skipped} duplicate rows skipped.</span><Button size="sm" onClick={() => reset()}>Import another file</Button></div>}
+  </section></GkRoot>;
 }

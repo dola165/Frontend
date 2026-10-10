@@ -39,7 +39,7 @@ describe('Tournament workspace navigation and editor', () => {
     it('opens a direct matchday link', async () => {
         renderWorkspace('/tournaments/3/workspace?view=schedule');
         const navigation = await screen.findByRole('navigation', { name: 'Tournament workspace sections' });
-        expect(within(navigation).getByRole('button', { name: 'Matchday' })).toHaveAttribute('aria-pressed', 'true');
+        expect(within(navigation).getByRole('button', { name: 'Matchday' })).toHaveAttribute('aria-current', 'page');
         expect(screen.getByRole('heading', { name: 'Every match. One schedule.' })).toBeVisible();
     });
 
@@ -53,10 +53,10 @@ describe('Tournament workspace navigation and editor', () => {
         expect(screen.queryByRole('button', { name: 'Settings' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /^Matches & results/ })).not.toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: /Match schedule.*Set times/ }));
-        expect(within(navigation).getByRole('button', { name: 'Matchday' })).toHaveAttribute('aria-pressed', 'true');
+        expect(within(navigation).getByRole('button', { name: 'Matchday' })).toHaveAttribute('aria-current', 'page');
         expect(screen.getByRole('heading', { name: 'Every match. One schedule.' })).toBeVisible();
         await user.click(screen.getAllByRole('button', { name: 'Open competition' })[0]);
-        expect(within(navigation).getByRole('button', { name: 'Competition' })).toHaveAttribute('aria-pressed', 'true');
+        expect(within(navigation).getByRole('button', { name: 'Competition' })).toHaveAttribute('aria-current', 'page');
         expect(screen.getByText('Scoring enabled')).toBeVisible();
     });
 
@@ -127,7 +127,7 @@ describe('Tournament workspace navigation and editor', () => {
         expect(screen.getByText('Add at least one match to the competition.')).toBeInTheDocument();
         expect(screen.getByText('Confirm at least two active teams.')).toBeInTheDocument();
         await user.click(screen.getAllByRole('button', { name: 'Open Competition' })[0]);
-        expect(screen.getByRole('button', { name: 'Competition' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', { name: 'Competition' })).toHaveAttribute('aria-current', 'page');
     });
 
     it('blocks completion and explains the authoritative tie state in the workspace', async () => {

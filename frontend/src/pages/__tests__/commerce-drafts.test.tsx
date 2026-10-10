@@ -5,9 +5,9 @@ import {apiClient} from '../../api/axiosConfig';
 import { act, fireEvent, render, screen, cleanup } from '@testing-library/react';
 import { MemoryRouter, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
-import { StoreTab } from '../../components/workspace/tabs/StoreTab';
-import { CampaignsTab } from '../../components/workspace/tabs/CampaignsTab';
-import { JobsTab } from '../../components/workspace/tabs/JobsTab';
+import { StoreProductsPage } from '../../features/clubWorkspace/commerce/StoreProductsPage';
+import { ClubCampaignsPage } from '../../features/clubWorkspace/commerce/ClubCampaignsPage';
+import { OpenRolesPage } from '../../features/clubWorkspace/commerce/OpenRolesPage';
 import * as store from '../../features/store/api';
 import * as campaigns from '../../features/campaigns/api';
 import * as jobs from '../../features/clubs/api';
@@ -21,7 +21,7 @@ vi.mock('../../components/ui/MediaImage',()=>({MediaImage:({src,alt}:{src:string
 const campaign = {id:1,clubId:10,title:'Pitch',summary:'Summary',description:'Purpose',beneficiary:'Youth',useOfFunds:'Goals',category:'FACILITIES',currency:'GEL',goalAmount:100,reportedAmount:null,reportedNote:'',startsOn:null,endsOn:null,images:[],status:'PUBLISHED',phase:'ACTIVE',version:3,publishedAt:'2026-09-09T12:00:00Z',updates:[]} as unknown as campaigns.Campaign;
 function Page() {
  const {id,feature}=useParams();const navigate=useNavigate();
- return <><Link to="/away">Leave workspace</Link><button onClick={()=>navigate(-1)}>Browser back</button><Link to={`/clubs/${id}/Store`}>Store tab</Link><Link to={`/clubs/${id}/Campaigns`}>Campaigns tab</Link><Link to={`/clubs/${id}/Jobs`}>Jobs tab</Link><Link to="/clubs/20/Store">Other club</Link>{feature==='Store'?<StoreTab clubId={Number(id)}/>:feature==='Campaigns'?<CampaignsTab clubId={Number(id)}/>:<JobsTab clubId={Number(id)} currentUserId={55} canReviewAllApplications pendingKey={null}/>}</>;
+ return <><Link to="/away">Leave workspace</Link><button onClick={()=>navigate(-1)}>Browser back</button><Link to={`/clubs/${id}/Store`}>Store tab</Link><Link to={`/clubs/${id}/Campaigns`}>Campaigns tab</Link><Link to={`/clubs/${id}/Jobs`}>Jobs tab</Link><Link to="/clubs/20/Store">Other club</Link>{feature==='Store'?<StoreProductsPage clubId={Number(id)}/>:feature==='Campaigns'?<ClubCampaignsPage clubId={Number(id)}/>:<OpenRolesPage clubId={Number(id)} currentUserId={55} canReviewAllApplications pendingKey={null}/>}</>;
 }
 function Away(){const navigate=useNavigate();return <button onClick={()=>navigate(-1)}>Return to workspace</button>;}
 const setup=(feature='Store')=>render(<MemoryRouter initialEntries={[`/clubs/10/${feature}`]}><Routes><Route path="/clubs/:id/:feature" element={<Page/>}/><Route path="/away" element={<Away/>}/></Routes></MemoryRouter>);

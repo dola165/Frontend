@@ -1,15 +1,18 @@
 import { PageFrame, PageHeader } from '../../../design/primitives';
-import { Tabs, useUrlTab } from '../../../design/Tabs';
+import { Tabs } from '../../../design/Tabs';
+import { useUrlTab } from '../../../design/useUrlTab';
 import { ClubPresentationSettings } from './presentation/ClubPresentationSettings';
 import { ClubOrganizationSection } from './ClubOrganizationSection';
 import { JoiningPolicy } from './JoiningPolicy';
+import { guardWorkspaceNavigation } from '../../clubOperations/workspaceGuard';
 import '../club-workspace.css';
 
 const sections = ['joining', 'profile', 'activities', 'facilities', 'imports'] as const;
 
 /** Club configuration only: how players join, the public profile, activities, venue links and imports. Fees live in Club business. */
 export function ClubSettingsPage({ clubId, busy }: { clubId: number; busy: boolean }) {
-    const [section, setSection] = useUrlTab('section', sections, 'joining');
+    // A section switch unmounts its editor, so unsaved edits are asked about first.
+    const [section, setSection] = useUrlTab('section', sections, 'joining', guardWorkspaceNavigation);
     return <PageFrame className="cw-page">
         <PageHeader title="Club settings" subtitle="Owner and admin decisions. Programmes and fees are in Club business." />
         <Tabs label="Club settings" value={section} onChange={setSection} items={[

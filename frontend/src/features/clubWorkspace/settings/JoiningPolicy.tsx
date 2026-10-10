@@ -5,6 +5,7 @@ import { apiClient } from '../../../api/axiosConfig';
 import { Button, Panel, Skeleton } from '../../../design/primitives';
 import { updateClubSettings } from '../../clubs/api';
 import type { PlayerJoinPolicy } from '../../clubs/domain';
+import '../club-workspace.css';
 
 const POLICIES: Array<{ value: PlayerJoinPolicy; labelKey: string; explainerKey: string; impact: string }> = [
     { value: 'OPEN_TRIAL', labelKey: 'settings.openTrial', explainerKey: 'settings.openTrialDescription', impact: 'Anyone can start a trial immediately. Existing applications and invitations remain unchanged.' },

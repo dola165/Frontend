@@ -3,6 +3,8 @@ import { apiClient } from '../../api/axiosConfig';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { Button, Field, Panel, Skeleton } from '../../design/primitives';
 import './records/records.css';
+import '../clubWorkspace/club-workspace.css';
+import { formatDate } from '../../utils/formatting';
 
 interface Policy { cutoffOn: string | null; effectiveCutoff: string; revision: number; rule: string }
 
@@ -29,7 +31,7 @@ export function SquadAgePolicy({ club, squad }: { club: number; squad: number })
       {error && <div className="gk-notice gk-notice--danger" role="alert">{error}</div>}
       {saved && <div className="gk-notice cw-notices__success" role="status">Season cutoff saved.</div>}
       {!policy && !error ? <Skeleton height={64} /> : policy && <>
-        <dl className="rec-facts rec-facts--bare"><div><dt>Cutoff in use</dt><dd className="gk-num">{policy.effectiveCutoff}</dd></div><div><dt>Set for this squad</dt><dd>{policy.cutoffOn ?? 'No, the club’s admission date applies'}</dd></div></dl>
+        <dl className="rec-facts rec-facts--bare"><div><dt>Cutoff in use</dt><dd className="gk-num">{formatDate(policy.effectiveCutoff)}</dd></div><div><dt>Set for this squad</dt><dd>{policy.cutoffOn ? formatDate(policy.cutoffOn) : 'No, the club’s admission date applies'}</dd></div></dl>
         <div className="rec-fields">
           <Field label="Season cutoff date" htmlFor={`age-cutoff-${squad}`} hint="Leave blank to use the club’s admission date."><input id={`age-cutoff-${squad}`} className="gk-input" type="date" disabled={busy} value={cutoff} onChange={e => { setCutoff(e.target.value); setSaved(false); }} /></Field>
         </div>

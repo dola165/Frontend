@@ -5,8 +5,8 @@ import { get, post, root, label, type Bootstrap, type OperationRecord } from './
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useClubEditorClose } from './useClubEditorClose';
 import { TrainingVisitorsRegister } from './TrainingVisitorsRegister';
-import { LegacyIsland } from './records/LegacyIsland';
 import './records/records.css';
+import '../clubWorkspace/club-workspace.css';
 
 const tone = (status: string) => status === 'ARRIVED' || status === 'COLLECTED' ? 'accent' as const : status === 'ABSENT' ? 'danger' as const : 'neutral' as const;
 
@@ -87,7 +87,7 @@ export function SessionRegister({ boot, session, squad, onRecord }: { boot: Boot
         </div></li>;
       })}</List>
         : <EmptyNote title={query ? 'No player matches this search' : 'No roster for this session'}>{query ? 'Try another name.' : 'Use the attendance records below to add a player.'}</EmptyNote>}
-    {canSeeVisitors && <div className="rec-disclosure__body"><LegacyIsland><TrainingVisitorsRegister squad={squad} session={session} revision={revision} onHistoricalPlayers={recordHistoricalPlayers} /></LegacyIsland></div>}
+    {canSeeVisitors && <TrainingVisitorsRegister squad={squad} session={session} revision={revision} onHistoricalPlayers={recordHistoricalPlayers} />}
     {confirmation && <div className="rec-disclosure__body">{confirmation}</div>}
   </Panel>;
 }

@@ -5,12 +5,12 @@ import { ScopeChips } from './ScopeChips';
 import type { StaffScopeSelection } from './StaffScopePicker';
 import { useClubEditorClose } from './useClubEditorClose';
 import { type RoleRequest, type RolesWorkspace, rolesRoot } from './useWorkspaceRoles';
-import { appointmentScope, get, post, root, moduleNames, label, scopePayload, type Choice } from './api';
+import { appointmentScope, get, post, root, label, scopePayload, type Choice } from './api';
+import { accessSummary, requestBadge } from './roleAccess';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import './records/records.css';
+import '../clubWorkspace/club-workspace.css';
 
-const tone = (status: string) => status === 'PENDING' ? 'warning' as const : status === 'APPROVED' ? 'accent' as const : status === 'DECLINED' ? 'danger' as const : 'neutral' as const;
-const access = (permissions: string[]) => permissions.map(p => `${moduleNames[p.split(':')[0]] ?? label(p.split(':')[0])}${p.endsWith(':WRITE') ? '' : ' (view)'}`).join(', ');
 
 /** Club leadership's view of staff responsibilities: assign a role, and decide on the changes staff ask for. */
 export function WorkspaceRolesPanel({ club, data, onChanged }: { club: number; data: RolesWorkspace; onChanged: () => void }) {
@@ -42,10 +42,10 @@ export function WorkspaceRolesPanel({ club, data, onChanged }: { club: number; d
       {r.note && <span className="rec-request__text">“{r.note}”</span>}
       {r.review_note && <span className="rec-request__text">Reply: {r.review_note}</span>}
       {r.unavailable_reason && <span className="rec-request__text">{r.unavailable_reason}</span>}
-      <span className="rec-request__text gk-faint">Access: {access(r.permissions) || 'no club workspace tools'}</span>
+      <span className="rec-request__text gk-faint">Access: {accessSummary(r.permissions) || 'no club workspace tools'}</span>
     </span>
     <span className="gk-list-row__trail rec-trail-wrap">
-      <Badge tone={tone(r.effective_status ?? r.status)}>{label(r.effective_status ?? r.status)}</Badge>
+      <Badge tone={requestBadge(r.effective_status ?? r.status).tone}>{requestBadge(r.effective_status ?? r.status).text}</Badge>
       {controls && r.status === 'PENDING' && r.user_id !== data.actorId && r.effective_status !== 'UNAVAILABLE' && <>
         <Button size="sm" disabled={busy} onClick={() => { setReply(''); setDecision({ request: r, status: 'APPROVED' }); }}>Review & approve</Button>
         <Button size="sm" variant="ghost" disabled={busy} onClick={() => { setReply(''); setDecision({ request: r, status: 'DECLINED' }); }}>Decline</Button></>}
@@ -69,7 +69,7 @@ export function WorkspaceRolesPanel({ club, data, onChanged }: { club: number; d
             <Field label={<>End date <span className="rec-optional">(optional)</span></>} htmlFor="role-ends"><input id="role-ends" className="gk-input" type="date" min={new Date().toISOString().slice(0, 10)} value={ends} onChange={e => setEnds(e.target.value)} /></Field>
             <div className="rec-wide"><ScopeChips squads={data.requestSquads} value={scope} onChange={setScope} disabled={busy} /></div>
           </div>
-          <p className="gk-muted">Includes: {access(selected?.permissions ?? []) || 'no club workspace tools'}. The person accepts before access starts. This creates a volunteer appointment; employment terms and custom access are set in Staff.</p>
+          <p className="gk-muted">Includes: {accessSummary(selected?.permissions ?? []) || 'no club workspace tools'}. The person accepts before access starts. This creates a volunteer appointment; employment terms and custom access are set in Staff.</p>
           <div className="gk-row"><Button type="submit" variant="primary" disabled={busy}>{busy ? 'Sending…' : 'Send role invitation'}</Button><Button variant="ghost" disabled={busy} onClick={requestClose}>Cancel</Button></div>
           {confirmation}
         </fieldset></form>

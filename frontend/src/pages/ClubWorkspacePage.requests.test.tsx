@@ -19,7 +19,7 @@ vi.mock('../features/schedule/api', () => ({ fetchClubSchedule: vi.fn().mockReso
 vi.mock('../api/notifications', () => ({ fetchNotifications: vi.fn(), fetchUnreadNotificationCount: vi.fn(), markNotificationAsRead: vi.fn(), markAllNotificationsAsRead: vi.fn() }));
 
 const overview = (role: ClubManagementOverview['currentUserRole']): ClubManagementOverview => ({ currentUserRole: role, assignableInviteRoles: [], assignableStaffRoles: [], activePlayerCount: 0, trialistCount: 0, overdueTrialistCount: 0, pendingTryoutCount: 0, members: [], pendingInvitations: [], pendingApplications: [] });
-function Page() { return <><Link to='/clubs/2/workspace?tab=inbox'>Switch club</Link><ClubWorkspacePage darkMode /></>; }
+function Page() { return <><Link to='/clubs/2/workspace?tab=inbox'>Switch club</Link><ClubWorkspacePage /></>; }
 const view = () => render(<MemoryRouter initialEntries={['/clubs/1/workspace?tab=inbox']}><Routes><Route path='/clubs/:id/workspace' element={<Page />} /></Routes></MemoryRouter>);
 beforeEach(() => {
     vi.clearAllMocks();
@@ -62,6 +62,6 @@ it('cancels pending inbox work when the account is retired', async () => {
     await waitFor(() => expect(fetchUnreadNotificationCount).toHaveBeenCalledTimes(1));
     const signal = vi.mocked(fetchUnreadNotificationCount).mock.calls[0][1]!.signal!;
     auth.isAuthenticated = false;
-    rendered.rerender(<MemoryRouter><ClubWorkspacePage darkMode /></MemoryRouter>);
+    rendered.rerender(<MemoryRouter><ClubWorkspacePage /></MemoryRouter>);
     expect(signal.aborted).toBe(true);
 });

@@ -7,13 +7,16 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 import { fieldLabel, reviewValue } from './editorPresentation';
 import { get, post, root, label, transitionLabel, type OperationRecord, type Definition, type History, type Bootstrap } from './api';
 import { RecordDocuments } from './RecordDocuments';
-import { statusTone } from './records/recordStatus';
+import { statusTone, transitionStyle } from './records/recordStatus';
+import { Dialog } from '../../design/Dialog';
 import './records/records.css';
+import { formatDate } from '../../utils/formatting';
 
 /** One record: its facts, the actions its current status allows, supporting documents and history. */
 export function RecordDetail({ club, boot, record, definition, backLabel, onEdit, onChanged, onClose }: { club: number; boot: Bootstrap; record: OperationRecord; definition: Definition; backLabel: string; onEdit: () => void; onChanged: () => Promise<void>; onClose: () => void }) {
   const [history, setHistory] = useState<History[]>([]), [note, setNote] = useState('');
-  const [error, setError] = useState(''), [busy, setBusy] = useState(false);
+  const [error, setError] = useState(''), [busy, setBusy] = useState(false), [confirming, setConfirming] = useState<string | null>(null);
+  const style = transitionStyle(record.transitions);
   useEffect(() => {
     const controller = new AbortController();
     void get<History[]>(`${root(club)}/records/${record.id}/history`, controller.signal).then(setHistory).catch(() => { if (!controller.signal.aborted) setError('Could not load the record history.'); });
@@ -32,7 +35,7 @@ export function RecordDetail({ club, boot, record, definition, backLabel, onEdit
     ...(record.event_id ? [['Event', boot.events.find(e => e.id === record.event_id)?.title ?? 'Past or unavailable event'] as [string, string]] : []),
     ...(record.session_id ? [['Training session', boot.sessions.find(e => e.id === record.session_id)?.title ?? 'Past or unavailable session'] as [string, string]] : []),
     ...(record.related_record_id ? [['Linked record', boot.links.find(l => l.id === record.related_record_id)?.title ?? 'Archived record'] as [string, string]] : []),
-    ...(record.due_on ? [['Next action or review', record.due_on.slice(0, 10)] as [string, string]] : []),
+    ...(record.due_on ? [['Next action or review', formatDate(record.due_on.slice(0, 10))] as [string, string]] : []),
     ...definition.fields.filter(f => record.data[f.key]).map(f => [fieldLabel(f), f.type === 'urls'
       ? <div className="rec-photos">{record.data[f.key].split(/\r?\n/).filter(Boolean).map(url => <MediaImage key={url} src={resolveMediaUrl(url)} alt="Facility photo" />)}</div>
       : reviewValue(f, record.data[f.key], boot), ['textarea', 'urls'].includes(f.type)] as [string, ReactNode, boolean]),
@@ -52,7 +55,8 @@ export function RecordDetail({ club, boot, record, definition, backLabel, onEdit
         {record.transitions.length > 0 && <Panel padded title="Next step">
           <div className="gk-stack gk-stack--tight">
             <Field label={<>Decision or action note <span className="rec-optional">(optional)</span></>} htmlFor="rec-transition-note"><textarea id="rec-transition-note" className="gk-input" value={note} maxLength={2000} onChange={e => setNote(e.target.value)} /></Field>
-            <div className="rec-transitions">{record.transitions.map((state, index) => <Button key={state} variant={index === 0 ? 'primary' : 'secondary'} disabled={busy} onClick={() => { void transition(state); }}>{transitionLabel(record.kind, state)}</Button>)}</div>
+            <div className="rec-transitions">{record.transitions.map(state => <Button key={state} variant={style(state).variant} disabled={busy}
+              onClick={() => { if (style(state).confirm) setConfirming(state); else void transition(state); }}>{transitionLabel(record.kind, state)}</Button>)}</div>
           </div>
         </Panel>}
         <Panel flush><details className="rec-disclosure"><summary>Record history <span className="gk-faint gk-num">{history.length}</span></summary>
@@ -63,5 +67,9 @@ export function RecordDetail({ club, boot, record, definition, backLabel, onEdit
         </details></Panel>
       </div>
     </div>
+    <Dialog open={confirming !== null} role="alertdialog" size="sm" onClose={() => setConfirming(null)}
+      title={confirming ? `${transitionLabel(record.kind, confirming)}?` : ''} description={`“${record.title}” changes to “${confirming ? label(confirming) : ''}”${note.trim() ? ', with your note' : ''}. The change is kept in the record history.`}
+      footer={<><Button variant="ghost" onClick={() => setConfirming(null)}>Keep as it is</Button>
+        <Button variant="danger" disabled={busy} onClick={() => { const state = confirming!; setConfirming(null); void transition(state); }}>{confirming ? transitionLabel(record.kind, confirming) : ''}</Button></>} />
   </div>;
 }

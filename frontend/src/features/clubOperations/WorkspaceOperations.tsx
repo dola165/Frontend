@@ -14,9 +14,14 @@ import { RecordForm } from './records/RecordForm';
 import { RecordFilters, RecordList } from './records/RecordList';
 import { SessionRegisters } from './records/SessionRegisters';
 import './records/records.css';
+import '../clubWorkspace/club-workspace.css';
 
 /** One club tool (staff duties, attendance, travel and the rest): its records, filters, a register where it has one, and a record or form when one is open. */
-export function WorkspaceOperations({ boot, module, onRefresh }: { boot: Bootstrap; module: string; onRefresh: () => Promise<void>; roleView?: string }) {
+export function WorkspaceOperations({ boot, module, onRefresh, origin }: {
+  boot: Bootstrap; module: string; onRefresh: () => Promise<void>;
+  /** Where the person came from (Coach Hub, the overview, a squad): the way back, when they did not open this tool from the rail. */
+  origin?: { label: string; onBack: () => void };
+}) {
   const [params, setParams] = useSearchParams();
   const [result, setResult] = useState<{ key: string; records: OperationRecord[]; error: string } | null>(null);
   const [detailError, setDetailError] = useState('');
@@ -64,13 +69,18 @@ export function WorkspaceOperations({ boot, module, onRefresh }: { boot: Bootstr
     }).catch(e => { if (!c.signal.aborted) setDetailError(extractApiErrorMessage(e, 'This record is unavailable.')); });
     return () => c.abort();
   }, [club, linked]);
-  const close = () => { selectRequest.current++; setSelected(null); setEditing(false); setNewKind(''); const next = new URLSearchParams(params); next.delete('record'); setParams(next, { replace: true }); };
-  const open = (record: OperationRecord) => { const next = new URLSearchParams(params); next.set('record', String(record.id)); setParams(next); };
+  const close = () => { selectRequest.current++; setSelected(null); setEditing(false); setNewKind(''); const next = new URLSearchParams(params); next.delete('record'); next.delete('from'); setParams(next, { replace: true }); };
+  // A record opened from this tool's list goes back to the list; one opened from elsewhere goes back there.
+  const open = (record: OperationRecord) => { const next = new URLSearchParams(params); next.set('record', String(record.id)); next.set('from', 'list'); setParams(next); };
   const reload = () => { setRefresh(v => v + 1); };
   const changed = async () => { await onRefresh(); close(); reload(); };
   const create = (value: string) => { setNewKind(value); setEditing(true); setSelected(null); setChoosing(false); };
   const title = module === 'HOME' ? 'Work queue' : operationTabs.find(t => t.module === module)?.label ?? moduleNames[module];
-  const backLabel = `Back to ${title.toLowerCase()}`;
+  const listLabel = `Back to ${title.toLowerCase()}`;
+  const toOrigin = Boolean(origin) && params.get('from') !== 'list';
+  const backLabel = toOrigin ? origin!.label : listLabel;
+  const back = toOrigin ? origin!.onBack : () => close();
+  const originBack = origin && <div className="rec-back"><Button variant="ghost" size="sm" onClick={origin.onBack}><ArrowLeft aria-hidden="true" />{origin.label}</Button></div>;
   const filtered = Boolean(search || kind || squad || mine || state === 'open' || person || page);
   const openRegister = (s: Bootstrap['sessions'][number]) => {
     const next = new URLSearchParams(params);
@@ -83,14 +93,15 @@ export function WorkspaceOperations({ boot, module, onRefresh }: { boot: Bootstr
 
   if (module === 'SETTINGS') return <PageFrame><OperationsSettings key={boot.settings.revision} boot={boot} onSaved={onRefresh} /></PageFrame>;
   if (linked && !selected) return <PageFrame className="rec-page">
-    <div className="rec-back"><Button variant="ghost" size="sm" onClick={close}><ArrowLeft aria-hidden="true" />{backLabel}</Button></div>
+    <div className="rec-back"><Button variant="ghost" size="sm" onClick={back}><ArrowLeft aria-hidden="true" />{backLabel}</Button></div>
     {detailError ? <div className="gk-notice gk-notice--danger" role="alert">{detailError}</div> : <div className="cw-loading" role="status" aria-label="Opening record"><Skeleton height={34} width="40%" /><Skeleton height={200} /></div>}
   </PageFrame>;
-  if (editing && definition) return <PageFrame><RecordForm key={`${newKind}-${selected?.id ?? 'new'}`} boot={editorBoot} definition={definition} record={selected ?? undefined} backLabel={backLabel} onSaved={changed} onCancel={close} /></PageFrame>;
-  if (selected && definition) return <PageFrame><RecordDetail club={club} boot={boot} record={selected} definition={definition} backLabel={backLabel} onEdit={() => setEditing(true)} onChanged={changed} onClose={close} /></PageFrame>;
+  if (editing && definition) return <PageFrame><RecordForm key={`${newKind}-${selected?.id ?? 'new'}`} boot={editorBoot} definition={definition} record={selected ?? undefined} backLabel={listLabel} onSaved={changed} onCancel={close} /></PageFrame>;
+  if (selected && definition) return <PageFrame><RecordDetail club={club} boot={boot} record={selected} definition={definition} backLabel={backLabel} onEdit={() => setEditing(true)} onChanged={changed} onClose={back} /></PageFrame>;
 
   const contextName = person ? (boot.people.find(p => String(p.id) === person)?.name ?? `Player #${person}`) : (selectedSession?.title ?? `Training session #${session}`);
   return <PageFrame className="rec-page" aria-label={title}>
+    {originBack}
     <PageHeader title={title} subtitle={operationDescriptions[module]}
       actions={canCreate && definitions.length > 0 && (definitions.length <= 2
         ? <>{definitions.slice(1).map(d => <Button key={d.kind} onClick={() => create(d.kind)}>Add {d.label.toLowerCase()}</Button>)}<Button variant="primary" onClick={() => create(definitions[0].kind)}><Plus aria-hidden="true" />Add {definitions[0].label.toLowerCase()}</Button></>

@@ -10,7 +10,7 @@ import {MemoryRouter,Routes,Route} from 'react-router-dom';
 import {beforeEach,afterEach,expect,it,vi} from 'vitest';
 import {CampaignsPage} from '../../../pages/CampaignsPage';
 import {CampaignDetailPage} from '../../../pages/CampaignDetailPage';
-import {CampaignsTab} from '../../../components/workspace/tabs/CampaignsTab';
+import {ClubCampaignsPage} from '../../clubWorkspace/commerce/ClubCampaignsPage';
 import * as api from '../api';
 vi.mock('../api',async original=>({...await original<typeof import('../api')>(),fetchCampaigns:vi.fn(),fetchCampaign:vi.fn(),fetchCampaignLocations:vi.fn(),fetchManagedCampaigns:vi.fn(),fetchManagedCampaign:vi.fn(),createCampaign:vi.fn(),editCampaign:vi.fn(),changeCampaignState:vi.fn(),postCampaignUpdate:vi.fn()}));
 vi.mock('../../../api/axiosConfig',()=>({DEPLOYMENT_URLS:{mediaBaseUrl:'http://localhost:8080'},apiClient:{get:vi.fn(async()=>({data:{name:'Alpha FC'}}))}}));
@@ -19,7 +19,7 @@ beforeEach(()=>{vi.clearAllMocks();vi.mocked(api.fetchCampaigns).mockResolvedVal
 afterEach(()=>vi.unstubAllGlobals());
 const browse=(path='/campaigns')=>render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/campaigns" element={<CampaignsPage/>}/><Route path="/clubs/:id/campaigns" element={<CampaignsPage/>}/></Routes></MemoryRouter>);
 const detail=()=>render(<MemoryRouter initialEntries={['/campaigns/1']}><Routes><Route path="/campaigns/:id" element={<CampaignDetailPage/>}/></Routes></MemoryRouter>);
-const manage=()=>render(<MemoryRouter><CampaignsTab clubId={10}/></MemoryRouter>);
+const manage=()=>render(<MemoryRouter><ClubCampaignsPage clubId={10}/></MemoryRouter>);
 it('uses server pagination, exact details and one club scope with a general exit',async()=>{
  vi.mocked(api.fetchCampaigns).mockResolvedValue({content:[campaign],totalElements:13});browse('/clubs/10/campaigns?query=pitch');
  expect(await screen.findByRole('link',{name:'A pitch for everyone'})).toHaveAttribute('href','/campaigns/1');expect(screen.getByRole('link',{name:'Browse all campaigns'})).toHaveAttribute('href','/campaigns');

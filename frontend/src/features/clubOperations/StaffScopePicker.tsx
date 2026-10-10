@@ -1,5 +1,5 @@
 import type { Choice } from './api';
-import './staff-team.css';
+import './staff-scope-picker.css';
 
 export interface StaffScopeSelection { clubWide: boolean; squadIds: number[] }
 

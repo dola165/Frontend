@@ -5,9 +5,13 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 import { getAuthSessionId, subscribeAuthSession } from '../../utils/authStorage';
 import './IntroductoryVisitors.css';
 
-export function IntroductoryVisitors({ squadId, sessionId, revision, visitors, onSaved }: {
-    squadId: number; sessionId: number; revision: number; visitors: IntroductoryVisitor[]; onSaved: () => void;
-}) {
+type Props = { squadId: number; sessionId: number; revision: number; visitors: IntroductoryVisitor[]; onSaved: () => void };
+
+/**
+ * Recording what happened at an introductory session, for any presentation: each save is one idempotent command
+ * bound to the case, participation and session versions, retried as the same command, and dropped when the account changes.
+ */
+export function useVisitorAttendance({ squadId, sessionId, revision, visitors, onSaved }: Props) {
     const copy=useJourneyCopy(), authSessionId=useSyncExternalStore(subscribeAuthSession,getAuthSessionId);
     const [rows,setRows]=useState(visitors),[choice,setChoice]=useState<Record<number,'ATTENDED'|'NO_SHOW'>>({}),[busy,setBusy]=useState<number|null>(null),[error,setError]=useState('');
     const pending=useRef(new Map<number,VisitorAttendanceCommand>()),saving=useRef(false),scope=useRef(authSessionId);
@@ -32,6 +36,14 @@ export function IntroductoryVisitors({ squadId, sessionId, revision, visitors, o
         } catch(e) { if(getAuthSessionId()===authSessionId)setError(extractApiErrorMessage(e,copy('Attendance could not be checked. Retry the same recording or reload the session.','დასწრების შემოწმება ვერ მოხერხდა. ხელახლა სცადეთ იგივე ჩანაწერი ან განაახლეთ სესია.'))); }
         finally { saving.current=false;setBusy(null); }
     };
+    const pendingFor=(row:IntroductoryVisitor)=>pending.current.get(row.participationId);
+    const select=(row:IntroductoryVisitor,value:'ATTENDED'|'NO_SHOW')=>setChoice(current=>({...current,[row.participationId]:value}));
+    return { copy, rows, choice, busy, error, permission, record, pendingFor, select };
+}
+
+/** Introductory visitors in the squad's session dialog. The club workspace register shows the same rows in its own list. */
+export function IntroductoryVisitors(props: Props) {
+    const { copy, rows, choice, busy, error, permission, record, pendingFor, select } = useVisitorAttendance(props);
     if(!rows.length)return null;
     return <section aria-label={copy('Introductory visitors','გაცნობითი სესიის სტუმრები')} className="introductory-visitors">
         <h3>{copy('Introductory visitors','გაცნობითი სესიის სტუმრები')}</h3>
@@ -40,12 +52,12 @@ export function IntroductoryVisitors({ squadId, sessionId, revision, visitors, o
             <strong>{row.name}</strong><p>{permission(row)}</p>
             {row.emergencyContact&&<p>{copy('Emergency contact','საგანგებო კონტაქტი')}: {row.emergencyContact}</p>}
             {row.status==='ATTENDED'||row.status==='NO_SHOW'?<p role="status">{row.status==='ATTENDED'?copy('Attended','დაესწრო'):copy('Did not attend','არ დაესწრო')}</p>:row.canRecord?<>
-                <label>{copy('Actual attendance for','ფაქტობრივი დასწრება მოთამაშისთვის')} {row.name}<select disabled={busy!==null||pending.current.has(row.participationId)} value={pending.current.get(row.participationId)?.attendance??choice[row.participationId]??''} onChange={e=>setChoice(current=>({...current,[row.participationId]:e.target.value as 'ATTENDED'|'NO_SHOW'}))}>
+                <label>{copy('Actual attendance for','ფაქტობრივი დასწრება მოთამაშისთვის')} {row.name}<select disabled={busy!==null||Boolean(pendingFor(row))} value={pendingFor(row)?.attendance??choice[row.participationId]??''} onChange={e=>select(row,e.target.value as 'ATTENDED'|'NO_SHOW')}>
                     <option value="" disabled>{copy('Choose actual attendance','აირჩიეთ ფაქტობრივი დასწრება')}</option><option value="ATTENDED">{copy('Attended','დაესწრო')}</option><option value="NO_SHOW">{copy('Did not attend','არ დაესწრო')}</option>
                 </select></label>
-                <button type="button" disabled={busy!==null||(!choice[row.participationId]&&!pending.current.has(row.participationId))} onClick={()=>void record(row)}>{pending.current.has(row.participationId)?copy('Retry attendance for','დასწრების ხელახლა შემოწმება მოთამაშისთვის'):copy('Save attendance for','დასწრების შენახვა მოთამაშისთვის')} {row.name}</button>
+                <button type="button" disabled={busy!==null||(!choice[row.participationId]&&!pendingFor(row))} onClick={()=>void record(row)}>{pendingFor(row)?copy('Retry attendance for','დასწრების ხელახლა შემოწმება მოთამაშისთვის'):copy('Save attendance for','დასწრების შენახვა მოთამაშისთვის')} {row.name}</button>
             </>:row.permissionStatus==='CURRENT'&&<p>{copy('Actual attendance can be recorded after the session starts.','ფაქტობრივი დასწრების ჩაწერა შესაძლებელია სესიის დაწყების შემდეგ.')}</p>}
         </article>)}
-        {error&&<p role="alert">{error} <button type="button" disabled={busy!==null} onClick={onSaved}>{copy('Reload latest session','სესიის განახლება')}</button></p>}
+        {error&&<p role="alert">{error} <button type="button" disabled={busy!==null} onClick={props.onSaved}>{copy('Reload latest session','სესიის განახლება')}</button></p>}
     </section>;
 }

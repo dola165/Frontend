@@ -1,41 +1,139 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, ChevronRight, Flag, Search, UserPlus, Users, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Flag, UserPlus } from 'lucide-react';
+import { Avatar, Badge, Button, EmptyNote, List, ListRow, PageFrame, PageHeader, Panel, SearchInput, Section, Skeleton } from '../../design/primitives';
+import { Dialog } from '../../design/Dialog';
 import type { ClubManagedMember } from '../clubs/domain';
 import { clubRoleLabel } from '../clubs/domain';
 import type { StaffRole } from './useWorkspaceRoles';
 import { StaffAppointmentForm } from './StaffAppointmentForm';
-import { get, post, root, label, dateOnly, appointmentStatus, appointmentScope, moduleNames, type Appointment, type Bootstrap, type Choice } from './api';
+import { get, post, root, label, appointmentStatus, appointmentScope, type Appointment, type Bootstrap, type Choice } from './api';
+import { AppointmentPanel, appointmentBadge, appointmentDates } from './staff/AppointmentPanel';
 import { extractApiErrorMessage } from '../../utils/apiError';
-import './operations.css';
-import './workspace-operations.css';
-import './staff-team.css';
+import './records/records.css';
+import './staff/staff.css';
+import '../clubWorkspace/club-workspace.css';
 
-export function ClubStaffTeam({boot,members=[],roles,mode='staff',renderAdministration,onChanged,children}:{
-  boot:Bootstrap;members?:ClubManagedMember[];roles?:StaffRole[];mode?:'staff'|'invites';renderAdministration?:(member:ClubManagedMember)=>ReactNode;onChanged?:()=>void;children?:ReactNode;
-}){
-  const [items,setItems]=useState<Appointment[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[revision,setRevision]=useState(0);
-  const [personId,setPersonId]=useState<number|null>(null),[query,setQuery]=useState(''),[filter,setFilter]=useState('current');
-  const [editor,setEditor]=useState<{appointment?:Appointment;person?:Choice}|null>(null),[ending,setEnding]=useState<Appointment|null>(null),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
-  useEffect(()=>{const c=new AbortController();setLoading(true);setError('');void get<Appointment[]>(`${root(boot.clubId)}/appointments`,c.signal).then(rows=>{if(!c.signal.aborted)setItems(rows);}).catch(e=>{if(!c.signal.aborted)setError(extractApiErrorMessage(e,'Could not load the staff team.'));}).finally(()=>{if(!c.signal.aborted)setLoading(false);});return()=>c.abort();},[boot.clubId,revision]);
-  const current=(a:Appointment)=>['Active','Upcoming','Invited'].includes(appointmentStatus(a));
-  const people=useMemo(()=>{
-    const rows=new Map<number,{id:number;name:string;member?:ClubManagedMember;appointments:Appointment[]}>();
-    for(const member of members)rows.set(member.userId,{id:member.userId,name:member.fullName||member.username,member,appointments:[]});
-    for(const a of items){if(!rows.has(a.user_id))rows.set(a.user_id,{id:a.user_id,name:a.name??`Staff #${a.user_id}`,appointments:[]});rows.get(a.user_id)!.appointments.push(a);}
-    return [...rows.values()].sort((a,b)=>a.name.localeCompare(b.name));
-  },[members,items]);
-  const selected=people.find(p=>p.id===personId),pending=items.filter(a=>appointmentStatus(a)==='Invited');
-  const visible=people.filter(p=>(filter==='all'||p.member||p.appointments.some(current))&&`${p.name} ${p.appointments.map(a=>`${a.title} ${a.specialisations.map(label).join(' ')} ${appointmentScope(a,boot.squads)}`).join(' ')}`.toLowerCase().includes(query.toLowerCase()));
-  const refresh=()=>{setRevision(v=>v+1);onChanged?.();};
-  async function end(){if(!ending||busy)return;setBusy(true);setError('');try{await post(`${root(boot.clubId)}/appointments/${ending.id}/transition`,{status:'ENDED',revision:ending.revision,note:ending.status==='INVITED'?'Invitation cancelled by club leadership.':'Appointment ended by club leadership.'});setEnding(null);setNotice('Appointment closed. Its access has ended.');refresh();}catch(e){setError(extractApiErrorMessage(e,'Could not close this appointment.'));}finally{setBusy(false);}}
-  if(editor)return <section className="club-ops club-ops-embedded staff-team"><StaffAppointmentForm boot={boot} roles={roles} appointment={editor.appointment} initialPerson={editor.person} onCancel={()=>setEditor(null)} onSaved={()=>{setEditor(null);setNotice('Invitation sent. The person can review it in My responsibilities.');refresh();}}/></section>;
-  const appointmentCard=(a:Appointment)=><article className="staff-appointment" key={a.id}><div className="ops-toolbar"><div><span className="ops-badge" data-status={appointmentStatus(a)}>{appointmentStatus(a)==='Invited'?'Awaiting acceptance':appointmentStatus(a)}</span><h3>{a.title}</h3><p>{a.specialisations.map(label).join(' · ')}</p></div>{a.specialisations.includes('REFEREE')?<Flag size={22}/>:<ShieldCheck size={22}/>}</div><dl className="workspace-review-list"><div><dt>Teams</dt><dd>{appointmentScope(a,boot.squads)}</dd></div><div><dt>Engagement</dt><dd>{label(a.engagement)}</dd></div><div><dt>Dates</dt><dd>{dateOnly(a.starts_on)} → {dateOnly(a.ends_on)||'Ongoing'}</dd></div><div><dt>Public profile</dt><dd>{a.published?'Published by staff member':'Not published by staff member'}</dd></div></dl>{a.unavailable_reason&&<p className="staff-access-note">{a.unavailable_reason}</p>}<details><summary>Workspace access · {a.permissions.length} areas</summary><ul className="staff-access-list">{a.permissions.map(p=><li key={p}><span>{moduleNames[p.split(':')[0]]}</span><strong>{p.endsWith(':WRITE')?'View and manage':'View only'}</strong></li>)}</ul>{!a.permissions.length&&<p>No club workspace access on this appointment.</p>}</details>{a.specialisations.includes('REFEREE')&&<p className="staff-access-note">Choose this referee when arranging a friendly. They receive the match invitation in their referee workspace and confirm each fixture.</p>}{boot.leadership&&['ACTIVE','INVITED'].includes(a.status)&&<div className="ops-footer"><button onClick={()=>setEditor({appointment:a})}>Change appointment</button><button onClick={()=>setEnding(a)}>{a.status==='INVITED'?'Cancel invitation':'End appointment'}</button></div>}{ending?.id===a.id&&<div className="staff-access-note" role="group" aria-label="Confirm appointment closure"><strong>{a.status==='INVITED'?'Cancel this invitation?':'End this appointment and its access?'}</strong><p>Other appointments and management memberships remain separate.</p><div className="ops-row"><button disabled={busy} onClick={()=>setEnding(null)}>Keep appointment</button><button disabled={busy} onClick={()=>{void end();}}>Confirm closure</button></div></div>}</article>;
-  return <section className="club-ops club-ops-embedded staff-team">
-    {selected&&mode==='staff'?<><button className="workspace-record-back" onClick={()=>{setPersonId(null);setEnding(null);}}><ArrowLeft size={16}/>All staff</button><header className="workspace-section-heading"><div><p className="workspace-section-kicker">People / Staff</p><h1>{selected.name}</h1><p>{selected.appointments.filter(current).map(a=>a.title).join(' · ')||selected.member?.publicTitle||'Club management'}</p></div>{boot.leadership&&<button className="workspace-add-button" onClick={()=>setEditor({person:{id:selected.id,name:selected.name}})}><UserPlus size={16}/>Add responsibility</button>}</header></>:<header className="workspace-section-heading"><div><p className="workspace-section-kicker">Club workspace / People</p><h1>{mode==='invites'?'Invitations':'Your staff team'}</h1><p>{mode==='invites'?'Invite a person with a clear role, teams and access. Follow their response here.':'Coaches, specialists, referees and club leadership, together.'}</p></div>{boot.leadership&&<button className="workspace-add-button" onClick={()=>setEditor({})}><UserPlus size={16}/>Invite staff</button>}</header>}
-    {notice&&<p role="status" className="staff-access-note">{notice}</p>}{error&&<p role="alert" className="ops-alert">{error} <button onClick={()=>setRevision(v=>v+1)}>Retry</button></p>}
-    {loading?<p role="status">Loading staff…</p>:selected&&mode==='staff'?<div className="staff-person-detail">{selected.appointments.map(appointmentCard)}{!selected.appointments.length&&<div className="staff-access-note"><strong>No specialist appointment yet</strong><p>Add a football responsibility to define their squad and specialist tools.</p></div>}{selected.member&&renderAdministration&&<details className="staff-administration"><summary>Management access & public profile · {clubRoleLabel(selected.member.role)}</summary><p>These are administrative permissions. Coaching specialisations, travel duties and refereeing belong in appointments above.</p>{renderAdministration(selected.member)}</details>}</div>:mode==='invites'?<><h2 className="staff-subheading">Awaiting acceptance <span>{pending.length}</span></h2><p className="ops-muted">Recipients accept in My responsibilities. A sent invitation does not yet grant access.</p>{pending.length?<div className="staff-invitation-list">{pending.map(a=><section key={a.id}><h2>{a.name}</h2>{appointmentCard(a)}</section>)}</div>:<div className="staff-empty"><UserPlus size={26}/><h2>No outstanding staff invitations</h2><p>Invite a coach, referee or specialist to join your team.</p></div>}{children}</>:<>
-      <div className="staff-roster-tools"><label><Search size={17}/><input aria-label="Find staff" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Name, responsibility or squad"/></label><label className="staff-roster-filter"><span>Show</span><select value={filter} onChange={e=>setFilter(e.target.value)}><option value="current">Current team & invitations</option><option value="all">Including past appointments</option></select></label><span>{visible.length} people</span></div>
-      <div className="staff-roster" role="list" aria-label="Club staff">{visible.map(p=>{const appointments=p.appointments.filter(current);return <button type="button" role="listitem" key={p.id} className="staff-person-row" onClick={()=>{setPersonId(p.id);setNotice('');}}><span className="staff-avatar" data-referee={appointments.some(a=>a.specialisations.includes('REFEREE'))}>{appointments.some(a=>a.specialisations.includes('REFEREE'))?<Flag size={21}/>:p.name.split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('')}</span><span className="staff-person-name"><strong>{p.name}</strong><small>{appointments.map(a=>a.title).join(' · ')||p.member?.publicTitle||(p.member?clubRoleLabel(p.member.role):'Past staff member')}</small></span><span className="staff-person-scope">{appointments.length?[...new Set(appointments.map(a=>appointmentScope(a,boot.squads)))].join(' · '):p.member?'Club management':'Appointment history'}</span><span className="ops-badge">{appointments.some(a=>a.status==='INVITED')?'Invitation pending':p.member||appointments.some(a=>appointmentStatus(a)==='Active')?'Active':appointments.length?'Upcoming':'Past'}</span><ChevronRight size={16}/></button>;})}</div>{!visible.length&&<div className="staff-empty"><Users size={26}/><h2>{query?'No staff match this search':'Your team starts here'}</h2><p>{query?'Try a name, responsibility or squad.':'Invite a person and choose their football responsibilities.'}</p></div>}
-    </>}
-  </section>;
+interface Person { id: number; name: string; member?: ClubManagedMember; appointments: Appointment[] }
+const isCurrent = (a: Appointment) => ['Active', 'Upcoming', 'Invited'].includes(appointmentStatus(a));
+const isReferee = (appointments: Appointment[]) => appointments.some(a => a.specialisations.includes('REFEREE'));
+
+/**
+ * The club's staff, one person per row: their football appointments (role, squads, tools) and any management
+ * membership. Leadership invites, changes and ends appointments here; `mode="invites"` shows what is still awaiting
+ * an answer. Nothing grants access until the person accepts, and ending an appointment asks first.
+ */
+export function ClubStaffTeam({ boot, members = [], roles, mode = 'staff', renderAdministration, onChanged, children }: {
+    boot: Bootstrap; members?: ClubManagedMember[]; roles?: StaffRole[]; mode?: 'staff' | 'invites';
+    renderAdministration?: (member: ClubManagedMember) => ReactNode; onChanged?: () => void; children?: ReactNode;
+}) {
+    const [items, setItems] = useState<Appointment[]>([]), [loading, setLoading] = useState(true), [error, setError] = useState(''), [revision, setRevision] = useState(0);
+    const [personId, setPersonId] = useState<number | null>(null), [query, setQuery] = useState(''), [filter, setFilter] = useState<'current' | 'all'>('current');
+    const [editor, setEditor] = useState<{ appointment?: Appointment; person?: Choice } | null>(null), [ending, setEnding] = useState<Appointment | null>(null);
+    const [busy, setBusy] = useState(false), [notice, setNotice] = useState('');
+    useEffect(() => {
+        const controller = new AbortController(); setLoading(true); setError('');
+        void get<Appointment[]>(`${root(boot.clubId)}/appointments`, controller.signal).then(rows => { if (!controller.signal.aborted) setItems(rows); })
+            .catch(failure => { if (!controller.signal.aborted) setError(extractApiErrorMessage(failure, 'Could not load the staff team.')); })
+            .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+        return () => controller.abort();
+    }, [boot.clubId, revision]);
+    const people = useMemo(() => {
+        const rows = new Map<number, Person>();
+        for (const member of members) rows.set(member.userId, { id: member.userId, name: member.fullName || member.username, member, appointments: [] });
+        for (const a of items) { if (!rows.has(a.user_id)) rows.set(a.user_id, { id: a.user_id, name: a.name ?? `Staff #${a.user_id}`, appointments: [] }); rows.get(a.user_id)!.appointments.push(a); }
+        return [...rows.values()].sort((a, b) => a.name.localeCompare(b.name));
+    }, [members, items]);
+    const selected = people.find(p => p.id === personId);
+    const pending = items.filter(a => appointmentStatus(a) === 'Invited');
+    const needle = query.toLowerCase();
+    const visible = people.filter(p => (filter === 'all' || p.member || p.appointments.some(isCurrent))
+        && `${p.name} ${p.appointments.map(a => `${a.title} ${a.specialisations.map(label).join(' ')} ${appointmentScope(a, boot.squads)}`).join(' ')}`.toLowerCase().includes(needle));
+    const refresh = () => { setRevision(v => v + 1); onChanged?.(); };
+    const end = async () => {
+        if (!ending || busy) return;
+        setBusy(true); setError('');
+        try {
+            await post(`${root(boot.clubId)}/appointments/${ending.id}/transition`, { status: 'ENDED', revision: ending.revision, note: ending.status === 'INVITED' ? 'Invitation cancelled by club leadership.' : 'Appointment ended by club leadership.' });
+            setNotice(ending.status === 'INVITED' ? 'Invitation cancelled.' : 'Appointment ended. Its access has ended.'); setEnding(null); refresh();
+        } catch (failure) { setError(extractApiErrorMessage(failure, 'Could not close this appointment.')); }
+        finally { setBusy(false); }
+    };
+
+    if (editor) return <PageFrame className="cw-page"><StaffAppointmentForm boot={boot} roles={roles} appointment={editor.appointment} initialPerson={editor.person} onCancel={() => setEditor(null)}
+        onSaved={() => { setEditor(null); setNotice('Invitation sent. The person reviews it in Coach Hub › Responsibilities before any access starts.'); refresh(); }} /></PageFrame>;
+
+    const notices = <>
+        {notice && <p role="status" className="gk-notice cw-notices__success">{notice}</p>}
+        {error && <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error}</span><Button size="sm" onClick={() => setRevision(v => v + 1)}>Try again</Button></div>}
+    </>;
+    const loadingRows = <Panel><div className="cw-skeleton-rows" role="status" aria-label="Loading staff">{[0, 1, 2].map(i => <Skeleton key={i} height={48} />)}</div></Panel>;
+    const confirmEnd = <Dialog open={ending !== null} role="alertdialog" size="sm" onClose={() => setEnding(null)}
+        title={ending?.status === 'INVITED' ? 'Cancel this invitation?' : 'End this appointment and its access?'}
+        description={ending ? `${ending.name ?? 'The person'} · ${ending.title}. Their other appointments and any management membership stay as they are.` : undefined}
+        footer={<><Button variant="ghost" disabled={busy} onClick={() => setEnding(null)}>Keep appointment</Button>
+            <Button variant="danger" disabled={busy} onClick={() => void end()}>{ending?.status === 'INVITED' ? 'Cancel invitation' : 'End appointment'}</Button></>} />;
+
+    if (selected && mode === 'staff') {
+        const current = selected.appointments.filter(isCurrent);
+        return <PageFrame className="cw-page st-page">
+            <div className="rec-back"><Button variant="ghost" size="sm" onClick={() => { setPersonId(null); setEnding(null); }}><ArrowLeft aria-hidden="true" />All staff</Button></div>
+            <PageHeader title={selected.name} subtitle={current.map(a => a.title).join(' · ') || selected.member?.publicTitle || (selected.member ? clubRoleLabel(selected.member.role) : 'Past staff member')}
+                actions={boot.leadership && <Button variant="primary" onClick={() => setEditor({ person: { id: selected.id, name: selected.name } })}><UserPlus aria-hidden="true" />Add responsibility</Button>} />
+            <div className="gk-stack">
+                {notices}
+                {loading ? loadingRows : selected.appointments.length
+                    ? <Section title="Football appointments" hint={String(selected.appointments.length)}><div className="gk-stack gk-stack--tight">{selected.appointments.map(a => <AppointmentPanel key={a.id} appointment={a} boot={boot}
+                        onChange={() => setEditor({ appointment: a })} onEnd={() => setEnding(a)} />)}</div></Section>
+                    : <Panel><EmptyNote title="No football appointment yet">{boot.leadership ? 'Add a responsibility to give them squads and specialist tools.' : 'Club leadership adds responsibilities.'}</EmptyNote></Panel>}
+                {selected.member && renderAdministration && <Section title="Club membership" hint={clubRoleLabel(selected.member.role)}><Panel padded>{renderAdministration(selected.member)}</Panel></Section>}
+            </div>
+            {confirmEnd}
+        </PageFrame>;
+    }
+
+    if (mode === 'invites') return <PageFrame className="cw-page st-page">
+        <PageHeader title="Invitations" subtitle="Staff appointments and management memberships waiting for an answer. Recipients accept in Coach Hub › Responsibilities; nothing is granted before that."
+            actions={boot.leadership && <Button variant="primary" onClick={() => setEditor({})}><UserPlus aria-hidden="true" />Invite staff</Button>} />
+        <div className="gk-stack">
+            {notices}
+            <Section title="Staff appointments awaiting acceptance" hint={pending.length ? String(pending.length) : undefined}>
+                {loading ? loadingRows : <Panel flush>{pending.length ? <List label="Staff appointments awaiting acceptance">{pending.map(a => <li key={a.id}><div className="gk-list-row st-invite">
+                    <Avatar name={a.name ?? a.title} size={36} />
+                    <span className="gk-list-row__main"><span className="gk-list-row__title">{a.name ?? `Staff #${a.user_id}`} · {a.title}</span>
+                        <span className="gk-list-row__meta">{[appointmentScope(a, boot.squads), label(a.engagement), appointmentDates(a), `${a.permissions.length} ${a.permissions.length === 1 ? 'tool' : 'tools'}`].join(' · ')}</span></span>
+                    {boot.leadership && <span className="gk-list-row__trail st-invite__actions"><Button size="sm" onClick={() => setEditor({ appointment: a })}>Change</Button>
+                        <Button size="sm" variant="ghost" className="st-danger" onClick={() => setEnding(a)}>Cancel invitation</Button></span>}
+                </div></li>)}</List> : <EmptyNote title="No staff invitations waiting">{boot.leadership ? 'Invite a coach, referee or specialist with a clear role, squads and tools.' : 'Invitations club leadership sends appear here.'}</EmptyNote>}</Panel>}
+            </Section>
+            {children}
+        </div>
+        {confirmEnd}
+    </PageFrame>;
+
+    return <PageFrame className="cw-page st-page">
+        <PageHeader title="Staff" subtitle="Coaches, specialists, referees and club leadership. Open a person to see or change their responsibilities."
+            actions={boot.leadership && <Button variant="primary" onClick={() => setEditor({})}><UserPlus aria-hidden="true" />Invite staff</Button>} />
+        <div className="gk-stack">
+            {notices}
+            <div className="rec-toolbar">
+                <SearchInput className="rec-toolbar__search" aria-label="Find staff" value={query} onChange={event => setQuery(event.target.value)} placeholder="Name, responsibility or squad" />
+                <select className="gk-input" aria-label="Show" value={filter} onChange={event => setFilter(event.target.value as 'current' | 'all')}>
+                    <option value="current">Current team and invitations</option><option value="all">Including past appointments</option>
+                </select>
+                <span className="rec-toolbar__count" role="status">{visible.length} {visible.length === 1 ? 'person' : 'people'}</span>
+            </div>
+            {loading ? loadingRows : visible.length ? <Panel flush><List label="Club staff">{visible.map(p => {
+                const current = p.appointments.filter(isCurrent);
+                const invited = current.find(a => a.status === 'INVITED');
+                const badge = invited ? appointmentBadge(invited) : p.member || current.some(a => appointmentStatus(a) === 'Active') ? { text: 'Active', tone: 'accent' as const } : current.length ? { text: 'Upcoming', tone: 'info' as const } : { text: 'Past', tone: 'neutral' as const };
+                return <ListRow key={p.id} onClick={() => { setPersonId(p.id); setNotice(''); }}
+                    lead={isReferee(current) ? <span className="st-referee" aria-hidden="true"><Flag /></span> : <Avatar name={p.name} size={40} />}
+                    title={p.name} meta={current.map(a => a.title).join(' · ') || p.member?.publicTitle || (p.member ? clubRoleLabel(p.member.role) : 'Past staff member')}
+                    trail={<><span className="st-scope">{current.length ? [...new Set(current.map(a => appointmentScope(a, boot.squads)))].join(' · ') : p.member ? 'Club management' : 'Appointment history'}</span><Badge tone={badge.tone}>{badge.text}</Badge></>} />;
+            })}</List></Panel>
+                : <Panel><EmptyNote title={query ? 'No staff match this search' : 'Your team starts here'}
+                    action={!query && boot.leadership ? <Button size="sm" onClick={() => setEditor({})}><UserPlus aria-hidden="true" />Invite staff</Button> : undefined}>
+                    {query ? 'Try a name, responsibility or squad.' : 'Invite a person and choose their football responsibilities.'}</EmptyNote></Panel>}
+        </div>
+    </PageFrame>;
 }

@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import '../../../../i18n';
-import { PlayersTab } from '../PlayersTab';
-import type { ClubPlayerAffiliation, PageResult } from '../../../../features/clubs/domain';
+import { MemoryRouter } from 'react-router-dom';
+import '../../../i18n';
+import { PlayersPage } from './PlayersPage';
+import type { ClubPlayerAffiliation, PageResult } from '../../clubs/domain';
 
 const trialist: ClubPlayerAffiliation = {
     userId: 7,
@@ -43,7 +44,7 @@ const makeDirectory = (content: ClubPlayerAffiliation[]): PageResult<ClubPlayerA
     totalElements: content.length,
 });
 
-const renderTab = (overrides: Partial<Parameters<typeof PlayersTab>[0]> = {}) => {
+const renderTab = (overrides: Partial<Parameters<typeof PlayersPage>[0]> = {}) => {
     const props = {
         playerDirectory: makeDirectory([trialist, active]),
         playerLoading: false,
@@ -60,11 +61,11 @@ const renderTab = (overrides: Partial<Parameters<typeof PlayersTab>[0]> = {}) =>
         onTabChange: vi.fn(),
         ...overrides,
     };
-    render(<PlayersTab {...props} />);
+    render(<MemoryRouter><PlayersPage {...props} /></MemoryRouter>);
     return props;
 };
 
-describe('PlayersTab — phase A1 trialist actions', () => {
+describe('Players — trialist actions', () => {
     it('keeps player intake unavailable with an explanation until joining access is ready', () => {
         const props=renderTab({canInvitePlayer:false,joiningUnavailableReason:'Joining access is loading.'});
         expect(screen.getByRole('button',{name:'Invite player'})).toBeDisabled();
@@ -181,7 +182,7 @@ describe('PlayersTab — phase A1 trialist actions', () => {
 });
 
 
-describe('PlayersTab consent delivery states', () => {
+describe('Players — consent delivery', () => {
     it('keeps the entered email after a failed send and clears it only after success', async () => {
         const send = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
         renderTab({ playerDirectory: makeDirectory([trialist]), onSendConsentEmail: send });

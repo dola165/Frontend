@@ -7,6 +7,7 @@ import { Dialog } from '../../design/Dialog';
 import { squadLabel } from '../../components/squads/squadLabels';
 import type { SquadRosterPlayer } from '../../components/squads/SquadRosterTable';
 import { extractApiErrorMessage } from '../../utils/apiError';
+import { formatDate } from '../../utils/formatting';
 import { coachHubEn } from '../../locales/workspaceDesign';
 import { useCopy } from '../../locales/useCopy';
 import { get, post, root, label, type Bootstrap, type OperationRecord } from './api';
@@ -72,7 +73,7 @@ export function WorkspacePlayerPanel({ player, squad, squadName, boot, onClose, 
             action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen(operationTab(item.module), context)}>{copy('viewAll')}</button>}>
             {item.error ? <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{item.error}</span><Button size="sm" onClick={() => setRevision(value => value + 1)}>{copy('retry')}</Button></div>
                 : item.rows.length ? <List label={isRestriction ? copy('restrictionsTitle') : copy('developmentTitle')} className="wpp-records">{item.rows.slice(0, 4).map(record => <ListRow key={record.id}
-                    title={record.title} meta={[isRestriction ? record.data.restrictions : label(record.status), record.data.reviewOn ? copy('reviewOn', { date: record.data.reviewOn }) : null].filter(Boolean).join(' · ')}
+                    title={record.title} meta={[isRestriction ? record.data.restrictions : label(record.status), record.data.reviewOn ? copy('reviewOn', { date: formatDate(record.data.reviewOn.slice(0, 10), { day: 'numeric', month: 'short' }) }) : null].filter(Boolean).join(' · ')}
                     trail={isRestriction ? <Badge tone="warning">{label(record.status)}</Badge> : undefined}
                     onClick={() => onOpen(operationTab(record.module), { ...context, record: String(record.id) })} />)}</List>
                     : <p className="gk-muted wpp-quiet">{isRestriction ? copy('noRestrictions') : copy('noDevelopment')}</p>}

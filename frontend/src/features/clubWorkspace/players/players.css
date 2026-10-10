@@ -1,0 +1,26 @@
+/* Club players: one row per player with status, consent and the next action; details in the row's disclosure.
+   Scoped under `.gk`; tokens only. */
+.gk .pl-row__line { align-items: center; }
+.gk .pl-name { font-weight: 600; color: var(--gk-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: var(--gk-r-sm); }
+.gk .pl-name:hover { color: var(--gk-accent); text-decoration: underline; text-underline-offset: 3px; }
+.gk .pl-row__badges { flex: none; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--gk-1); max-width: 40%; }
+.gk .pl-row__actions { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: var(--gk-2); min-width: 44px; }
+.gk .pl-row__actions .gk-btn--icon { width: 44px; min-height: 44px; }
+.gk .pl-quiet { font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .pl-details { margin: calc(-1 * var(--gk-2)) var(--gk-5) var(--gk-3) calc(var(--gk-5) + 40px + var(--gk-3)); }
+.gk .pl-details > summary { display: inline-flex; align-items: center; gap: var(--gk-1); min-height: 32px; font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-2); cursor: pointer; border-radius: var(--gk-r-sm); }
+.gk .pl-details > summary:hover { color: var(--gk-text); }
+.gk .pl-details__body { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--gk-4); margin-top: var(--gk-2); padding: var(--gk-4); border-radius: var(--gk-r); background: var(--gk-sunken); }
+.gk .pl-details__body .gk-field { width: min(100%, 220px); }
+.gk .pl-consent { display: flex; flex-direction: column; gap: 6px; }
+.gk .pl-consent__form .gk-input { width: min(100%, 240px); }
+.gk .pl-status-actions { flex-wrap: wrap; margin-left: auto; }
+.gk .pl-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-3); font-size: var(--gk-fs-sm); }
+@media (max-width: 760px) {
+  /* Phone: the player on the first line; status and actions share the second. */
+  .gk .pl-row__line { flex-wrap: wrap; row-gap: var(--gk-2); padding-inline: var(--gk-4); }
+  .gk .pl-row__line .gk-list-row__main { flex-basis: calc(100% - 40px - var(--gk-3)); }
+  .gk .pl-row__badges { max-width: none; flex: 1; justify-content: flex-start; padding-left: calc(40px + var(--gk-3)); }
+  .gk .pl-details { margin-inline: calc(var(--gk-4) + 40px + var(--gk-3)) var(--gk-4); }
+  .gk .pl-status-actions { margin-left: 0; }
+}

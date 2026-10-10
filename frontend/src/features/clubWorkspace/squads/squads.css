@@ -50,3 +50,8 @@
 .gk .sq-week .gk-btn--icon { width: 44px; min-height: 44px; }
 .gk .sq-visibility { display: inline-flex; align-items: center; gap: var(--gk-1); }
 .gk .sq-visibility svg { width: 14px; height: 14px; }
+@media (max-width: 640px) {
+  /* Phone: the squad switcher stays one line and scrolls sideways, so the roster starts sooner. */
+  .gk .sq-switcher { flex-wrap: nowrap; overflow-x: auto; margin-inline: calc(-1 * var(--gk-gutter)); padding-inline: var(--gk-gutter); scrollbar-width: none; }
+  .gk .sq-switcher > * { flex: none; }
+}

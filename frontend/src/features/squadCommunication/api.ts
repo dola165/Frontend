@@ -35,7 +35,8 @@ export interface IntroductoryVisitorRegister {sessionRevision:number;visitors:In
 export const introductoryVisitors=async(squad:number,session:number,signal?:AbortSignal)=>(await apiClient.get<IntroductoryVisitorRegister>(`/squad-communication/${squad}/sessions/${session}/introductory-visitors`,{signal})).data;
 export const recordVisitorAttendance=async(squad:number,session:number,participation:number,command:VisitorAttendanceCommand,authSessionId:AuthSessionId)=>(await apiClient.put<IntroductoryVisitor>(`/squad-communication/${squad}/sessions/${session}/introductory-visitors/${participation}/attendance`,command,{_authSessionId:authSessionId} as AuthSessionRequestConfig)).data;
 export interface SquadOverview extends SquadSpace { viewer_id:number; member_count:number; notify_chat:boolean; head_coach_id:number|null;can_assign_coach:boolean;available_coaches:{user_id:number;full_name:string}[];coaches:{user_id:number;full_name:string}[]; players:Person[]; threads:{user_id:number;full_name:string;unread_count:number}[];attention?:{upcoming_sessions:number;replies_needed:number;acknowledgements_needed:number} }
-export interface SquadMessage { id:number;author_id:number;author_name:string;thread_user_id:number|null;kind:'CHAT'|'ANNOUNCEMENT';title:string|null;body:string;important:boolean;created_at:string;acknowledgement_requested:boolean;acknowledged_at:string|null; acknowledged_by?:Receipt[]; reactions?:UpdateReaction[]; comment_count?:number }
+/** `expires_at`: when an announcement stops being pinned on Home and the squad page (backend needed: older servers omit it). */
+export interface SquadMessage { id:number;author_id:number;author_name:string;thread_user_id:number|null;kind:'CHAT'|'ANNOUNCEMENT';title:string|null;body:string;important:boolean;created_at:string;acknowledgement_requested:boolean;acknowledged_at:string|null; acknowledged_by?:Receipt[]; reactions?:UpdateReaction[]; comment_count?:number; expires_at?:string|null }
 export type ReactionKind='LIKE'|'DISLIKE'|'LAUGH'|'CELEBRATE'|'CONFUSED'|'HEART'|'ROCKET'|'EYES';
 export interface UpdateReaction {user_id:number;full_name:string;reaction:ReactionKind}
 export interface UpdateComment {id:number;author_id:number;author_name:string;body:string;created_at:string}
@@ -48,7 +49,7 @@ export const spaces=async(signal?:AbortSignal)=>(await apiClient.get<SquadSpace[
 export const overview=async(id:number,signal?:AbortSignal)=>(await apiClient.get<SquadOverview>(`${root}/${id}`,{signal})).data;
 export const messages=async(id:number,kind:string,threadUserId:number|null,signal?:AbortSignal,before?:number)=>(await apiClient.get<SquadMessage[]>(`${root}/${id}/messages`,{params:{kind,threadUserId,before},signal})).data;
 export const sessions=async(id:number,signal?:AbortSignal,window?:{from:string;to:string;playerId?:number})=>(await apiClient.get<SquadSession[]>(`${root}/${id}/sessions`,{signal,params:window})).data;
-export const postMessage=async(id:number,data:{requestId:string;threadUserId:number|null;kind:string;title:string|null;body:string;important:boolean})=>apiClient.post(`${root}/${id}/messages`,data);
+export const postMessage=async(id:number,data:{requestId:string;threadUserId:number|null;kind:string;title:string|null;body:string;important:boolean;expiresAt?:string|null})=>apiClient.post(`${root}/${id}/messages`,data);
 export const markRead=async(id:number,messageId:number,threadUserId:number|null)=>apiClient.post(`${root}/${id}/read`,{messageId,threadUserId});
 export const acknowledge=async(id:number,messageId:number)=>apiClient.post(`${root}/${id}/messages/${messageId}/acknowledge`);
 export const removeMessage=async(id:number,messageId:number)=>apiClient.delete(`${root}/${id}/messages/${messageId}`);

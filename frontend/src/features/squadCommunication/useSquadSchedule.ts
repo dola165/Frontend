@@ -31,8 +31,11 @@ function assignedEvent(event: ScheduleEventOccurrence, squad: CalendarSquad): Sq
         mapEligible: false, appearsOnMap: event.publicNow, conflictingEventIds: event.conflictingEventIds ?? [] };
 }
 
-/** Read the existing sources. Never copy sessions into personal or club event tables. */
-export function useSquadSchedule(squads: CalendarSquad[], from: string, to: string, revision = 0, playerId?: number) {
+/**
+ * Read the existing sources. Never copy sessions into personal or club event tables.
+ * `poll` keeps an open schedule current every few seconds; a summary (Home) refreshes on focus only.
+ */
+export function useSquadSchedule(squads: CalendarSquad[], from: string, to: string, revision = 0, playerId?: number, poll = true) {
     const identity = JSON.stringify(squads.map(({ id, name, club_id }) => ({ id, name, club_id })));
     const [state, setState] = useState<{ key: string; events: SquadCalendarEvent[]; error: string; loading: boolean }>({ key: '', events: [], error: '', loading: true });
     const key = `${identity}:${from}:${to}:${playerId ?? ''}`;
@@ -73,9 +76,9 @@ export function useSquadSchedule(squads: CalendarSquad[], from: string, to: stri
         };
         void load();
         const refresh = () => { if (!document.hidden) void load(); };
-        const timer = setInterval(refresh, 5000);
+        const timer = poll ? setInterval(refresh, 5000) : undefined;
         window.addEventListener('focus', refresh);
         return () => { abort.abort(); clearInterval(timer); window.removeEventListener('focus', refresh); };
-    }, [identity, from, to, revision, key, playerId]);
+    }, [identity, from, to, revision, key, playerId, poll]);
     return state.key === key ? state : { events: [], error: '', loading: true };
 }

@@ -21,11 +21,6 @@
 .gk .gk-arrange__fieldset > legend { padding: 0; margin-bottom: var(--gk-1); }
 .gk .gk-arrange__sublabel { margin-top: var(--gk-3); }
 
-/* Single choices as chips. A chosen chip carries a tick so the state never rests on colour alone. */
-.gk .gk-arrange__chips .gk-chip { min-height: 44px; padding: 0 var(--gk-4); font-size: var(--gk-fs-md); }
-.gk .gk-arrange__chips .gk-chip[aria-checked='true'] { background: var(--gk-accent-soft); border-color: color-mix(in srgb, var(--gk-accent) 55%, transparent); color: var(--gk-text); font-weight: 600; }
-.gk .gk-arrange__chips .gk-chip[aria-checked='true']::before { content: ''; width: 10px; height: 6px; margin: -3px 2px 0 -2px; border-left: 2px solid var(--gk-accent); border-bottom: 2px solid var(--gk-accent); transform: rotate(-45deg); }
-.gk .gk-arrange__chips[aria-invalid='true'] .gk-chip { border-color: color-mix(in srgb, var(--gk-danger) 55%, transparent); }
 .gk .gk-arrange__other-squad { max-width: 320px; }
 .gk .gk-input[aria-invalid='true'] { border-color: var(--gk-danger); }
 

@@ -25,6 +25,8 @@ vi.mock('../../components/feed/PostComposer', () => ({
     ),
 }));
 
+// "This week" and announcements above the feed load their own data and have their own tests.
+vi.mock('../../features/home/HomeTop', () => ({ HomeTop: () => null }));
 vi.mock('../../components/feed/FeedList', () => ({
     FeedList: ({ posts, emptyState, onLikeToggle, likeErrors, onSelectPost }: {
         posts: FeedPostDto[];

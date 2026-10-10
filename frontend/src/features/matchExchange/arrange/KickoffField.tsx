@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '../../../design/primitives';
 import { formats } from '../api';
-import { ChoiceChips } from './ChoiceChips';
+import { ChoiceChips } from '../../../design/ChoiceChips';
 import { LENGTHS, addMinutes, dayLabel, defaultFormat, defaultMinutes, formatLabel, halvesLabel, weekendDays } from './matchPlan';
 
 /** Match day and kick-off. The end follows from the age group's usual length, which can be changed. */

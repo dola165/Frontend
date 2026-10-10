@@ -3,6 +3,7 @@
 import { get, post, put, patch, del, reply } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as F from '../world-football.mjs';
+import * as S from '../world-social.mjs';
 
 const { iso, local, isoDate, clubs, venues, squads, matches, clubById, venueById, personById } = W;
 const squadById = F.sq;
@@ -706,6 +707,8 @@ const listingAction = fn => ({ params, body }) => { const l = F.listingById(para
 post('/match-arrangements/:id/response', listingAction((l, body) => {
   const action = body.action ?? body.decision ?? (body.accept === true ? 'ACCEPT' : body.withdraw ? 'WITHDRAW' : null);
   const entry = (name, reason = null) => l.history.push({ id: W.newId(), action: name, created_at: iso(new Date()), reason });
+  const request = S.requestItems.find(i => i.key === `MATCH_INVITATION:${l.id}`);
+  if (request && ['ACCEPT', 'DECLINE'].includes(action)) Object.assign(request, { status: action === 'ACCEPT' ? 'ACCEPTED' : 'DECLINED', actionable: false, updatedAt: iso(new Date()) });
   if (action === 'ACCEPT') { const s = squadById(body.squadId) ?? squadById(l.requestedSquadId); if (s?.clubId === DINAMO) l.opponentSquadId = s.id; l.status = 'ARRANGED'; entry('OPPONENT_AGREED'); }
   else if (action === 'DECLINE') { l.status = 'CLOSED'; entry('CHALLENGE_DECLINED'); }
   else if (action === 'WITHDRAW') { l.opponentSquadId = null; l.status = 'OPEN'; entry('OPPONENT_WITHDRAWN', body.reason || null); }

@@ -1,0 +1,18 @@
+/* Home, above the feed: announcements and "This week". Scoped under .gk.gk-home-top; tokens only. */
+.gk.gk-home-top { display: flex; flex-direction: column; gap: var(--gk-6); background: transparent; }
+
+/* This week */
+.gk .gk-home-week { overflow: hidden; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+.gk .gk-home-week .gk-fixture { min-height: 64px; padding-inline: var(--gk-4); }
+.gk .gk-home-week .gk-list > li + li { border-top: 1px solid var(--gk-line); }
+.gk .gk-home-week .gk-list-row { padding-inline: var(--gk-4); }
+.gk .gk-home-week .gk-empty { padding: var(--gk-4); }
+.gk .gk-home-week__loading { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3) var(--gk-4); }
+.gk .gk-home-week__notice { margin: var(--gk-3) var(--gk-4); align-items: center; }
+.gk .gk-home-week__more { display: flex; align-items: center; min-height: 44px; padding: 0 var(--gk-4); border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-accent); }
+.gk .gk-home-week__more:hover { background: var(--gk-hover); }
+.gk .gk-home-week__waiting { padding-top: var(--gk-3); border-top: 1px solid var(--gk-line); background: color-mix(in srgb, var(--gk-warning) 4%, transparent); }
+.gk .gk-home-week__label { padding: 0 var(--gk-4) var(--gk-1); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 600; color: var(--gk-text-2); }
+.gk .gk-home-week__icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--gk-r); background: var(--gk-sunken); color: var(--gk-text-2); }
+.gk .gk-home-week__icon svg { width: 18px; height: 18px; }
+.gk .gk-home-week__action { font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-accent); white-space: nowrap; }

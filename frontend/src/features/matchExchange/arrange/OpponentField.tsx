@@ -5,7 +5,7 @@ import { useSearch } from '../../../design/useSearch';
 import type { PublicSquad } from '../../clubs/publicJourney';
 import type { ClubSearchResult } from '../../tournaments/domain';
 import { searchClubs } from './api';
-import { ChoiceChips } from './ChoiceChips';
+import { ChoiceChips } from '../../../design/ChoiceChips';
 import type { Opponent } from './matchPlan';
 
 interface Load<T> { data: T | undefined; loading: boolean; error: string; retry: () => void }

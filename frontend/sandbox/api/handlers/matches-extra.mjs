@@ -12,6 +12,7 @@
 import { post, reply } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as F from '../world-football.mjs';
+import * as S from '../world-social.mjs';
 
 const { iso } = W;
 const when = value => { if (!value) return null; const d = new Date(value); return Number.isNaN(d.getTime()) ? null : d; };
@@ -48,25 +49,38 @@ post('/match-arrangements', ({ body }) => {
   };
   F.exchange.push(rec);
   if (m.requestId) seen.set(m.requestId, rec.id);
+  if (target) requestFor(rec, 'OUTGOING');
   return reply(201, F.listingView(rec, { detail: true }));
 });
 
 const seed = rec => { rec.end = F.plusMin(rec.start, rec.minutes); delete rec.minutes; rec.history.push({ id: W.newId(), action: 'CHALLENGE_SENT', created_at: iso(rec.created), reason: null }); F.exchange.push(rec); return rec; };
 const base = { proposals: [], booked: false, refereeId: null, opponentSquadId: null, status: 'OPEN', score: null, kind: 'FRIENDLY', revision: 1, externalRefereeName: null, history: [] };
 
+// Match invitations travel through Requests like other decisions: incoming ones need an answer.
+const fmt = d => new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: F.TZ }).format(d);
+const requestFor = (rec, direction) => {
+  const host = W.clubById(F.sq(rec.hostSquadId).clubId), invited = W.clubById(rec.requestedClubId);
+  S.requestItems.push({ key: `MATCH_INVITATION:${rec.id}`, family: 'MATCH_INVITATION', id: rec.id, title: `Match invitation · ${rec.title}`,
+    context: direction === 'INCOMING' ? `${host.name} · ${fmt(rec.start)}` : `Sent to ${invited.name} · ${fmt(rec.start)}`, status: 'PENDING', direction,
+    actionable: direction === 'INCOMING', updatedAt: iso(rec.created), destination: `/match-exchange/${rec.id}`, actionLabel: direction === 'INCOMING' ? 'Answer invitation' : 'Open request' });
+};
+
 // An invitation waiting for Luka: Locomotive's U14 coach would like to play Dinamo U14 Boys.
 const locoU14 = F.squadFor(5, 'U14', 'MALE');
-seed({
+const incoming = seed({
   ...base, id: W.newId(), hostSquadId: locoU14.id, start: F.at(F.nextDow(0, 8), 11), minutes: 80, venueId: 203, place: null,
   title: 'U14 friendly: Locomotive v Dinamo', description: 'Two halves of 35 minutes on the main pitch. We provide the referee and match balls. Changing rooms open from 10:00.',
   level: 'COMPETITIVE', venuePreference: 'HOME', hostingChoice: 'HOME', refereeRequired: true, refereeResponsibility: 'HOST',
   requestedClubId: F.DINAMO, requestedSquadId: 103, ageGroup: 'U14', format: '9_A_SIDE', created: W.day(-1, 18, 40),
 });
 
+requestFor(incoming, 'INCOMING');
+
 // One Luka sent: Dinamo U16 Boys invited Batumi Seaside to Digomi; Batumi has not answered yet.
-seed({
+const sent = seed({
   ...base, id: W.newId(), hostSquadId: 105, start: F.at(F.nextDow(6, 9), 15), minutes: 95, venueId: 202, place: null,
   title: 'U16 Boys v Batumi Seaside', description: 'Happy to play 3 × 30 minutes if you bring a big squad. Kit: we wear white.',
   level: 'COMPETITIVE', venuePreference: 'HOME', hostingChoice: 'HOME', refereeRequired: true, refereeResponsibility: 'HOST',
   requestedClubId: 12, requestedSquadId: F.squadFor(12, 'U16', 'MALE').id, ageGroup: 'U16', format: '11_A_SIDE', created: W.day(-2, 20, 5),
 });
+requestFor(sent, 'OUTGOING');

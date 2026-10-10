@@ -1,6 +1,6 @@
 import { Field } from '../../../design/primitives';
 import { label, levels } from '../api';
-import { ChoiceChips } from './ChoiceChips';
+import { ChoiceChips } from '../../../design/ChoiceChips';
 import type { Draft, Mode, RefereeChoice } from './matchPlan';
 
 /** The referee is optional now: arrange later, leave it to them, record one already arranged, or play without. */

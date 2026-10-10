@@ -4,7 +4,7 @@ import { Badge, Button, Field, List, ListRow, Panel, Section, type BadgeTone } f
 import { Crest } from '../../world/Crest';
 import { post, type Match, type Squad } from '../api';
 import { useAction } from '../hooks';
-import { ChoiceChips } from '../arrange/ChoiceChips';
+import { ChoiceChips } from '../../../design/ChoiceChips';
 
 const PROPOSAL: Record<string, { label: string; tone: BadgeTone }> = {
     PENDING: { label: 'Waiting for a decision', tone: 'warning' }, ACCEPTED: { label: 'Accepted', tone: 'accent' },

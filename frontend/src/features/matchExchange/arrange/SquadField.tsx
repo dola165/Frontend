@@ -1,6 +1,6 @@
 import { Field } from '../../../design/primitives';
 import type { Squad } from '../api';
-import { ChoiceChips } from './ChoiceChips';
+import { ChoiceChips } from '../../../design/ChoiceChips';
 
 /** Our squad: the squads I coach as quick choices, every other club squad in a list. */
 export function SquadField({ squads, coached, value, onChange, error, locked }: {

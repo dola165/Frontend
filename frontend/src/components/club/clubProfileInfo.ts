@@ -46,7 +46,7 @@ export const buildClubProfileLinks = (club: ClubProfile): ClubProfileActionLink[
                 opportunity.type === 'FUNDRAISING'
                     ? 'Fundraising'
                     : opportunity.type === 'JOB'
-                        ? 'Roles'
+                        ? 'Job'
                         : opportunity.type === 'VOLUNTEER'
                             ? 'Volunteer'
                             : null;

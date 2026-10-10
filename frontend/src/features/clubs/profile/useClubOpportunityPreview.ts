@@ -19,8 +19,8 @@ export function useClubOpportunityPreview(clubId: number) {
             count: campaigns.data?.totalElements, unit: 'active campaigns', empty: 'No active campaigns',
             name: campaign?.title, detail: campaign?.summary, image: campaign?.images?.[0], itemTo: campaign && `/campaigns/${campaign.id}`,
             action: 'Explore campaigns', note: 'Fundraising & community projects' },
-        { key: 'jobs' as const, title: 'Roles', icon: BriefcaseBusiness, to: `/clubs/${clubId}?tab=business&opportunity=jobs`, source: jobs, jobs: jobs.data ?? [],
-            count: jobs.data?.length, unit: 'open roles', empty: 'No open roles published',
+        { key: 'jobs' as const, title: 'Jobs & volunteering', icon: BriefcaseBusiness, to: `/clubs/${clubId}?tab=business&opportunity=jobs`, source: jobs, jobs: jobs.data ?? [],
+            count: jobs.data?.length, unit: 'openings', empty: 'No jobs or volunteering published',
             name: job?.title, detail: job && labelForEngagement(job.engagementType), image: undefined, itemTo: job && `/jobs/${job.id}`,
             action: 'Explore roles', note: 'Paid & ongoing volunteer positions' },
     ];

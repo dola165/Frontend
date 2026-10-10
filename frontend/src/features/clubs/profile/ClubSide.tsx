@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Globe2, Instagram, Mail, MessageCircle, Phone } from 'lucide-react';
-import { Badge, ButtonLink, List, ListRow } from '../../../design/primitives';
+import { ButtonLink, List, ListRow } from '../../../design/primitives';
 import { Fact, SideBlock } from '../../../design/profile/ProfileLayout';
 import { Crest } from '../../world/Crest';
 import { profileKindLabel, safePublicUrl } from '../presentation';
@@ -34,9 +34,8 @@ export function ClubSide({ club, showContact = true }: { club: ClubProfile; show
                 lead={<span className="gk-club-icon"><item.icon aria-hidden="true" /></span>} title={item.title}
                 meta={item.source.loading ? 'Loading…' : item.source.failed ? 'Currently unavailable' : item.count ? `${item.count} ${item.count === 1 ? item.unit.replace(/s$/, '') : item.unit}` : item.empty} />)}</List>
         </SideBlock>
-        {affiliations.length > 0 && <SideBlock title={club.presentation?.profileKind === 'ACADEMY' ? 'Affiliated club' : 'Our academies'}>
-            <List label="Affiliations">{affiliations.map(a => <ListRow key={a.id} to={`/clubs/${a.clubId}`} lead={<Crest src={a.logoUrl} name={a.name} size={36} />}
-                title={a.name} meta={a.profileKind === 'ACADEMY' ? 'Training, programmes and coaches' : 'News, teams and club history'} trail={<Badge tone="accent">Confirmed by both</Badge>} />)}</List>
+        {/* The academy link itself sits under the club name; only managing it stays here. */}
+        {affiliations.some(a => a.canManageProfile) && <SideBlock title="Academy profile">
             {affiliations.filter(a => a.canManageProfile).map(a => <ButtonLink key={a.id} size="sm" to={`/clubs/${a.clubId}/profile-settings`}>Manage {a.name} profile</ButtonLink>)}
         </SideBlock>}
         {sponsors.length > 0 && <SideBlock title="Sponsors">

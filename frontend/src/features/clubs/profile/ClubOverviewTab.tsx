@@ -12,7 +12,7 @@ import { staffTitle, trainingPath, type PublicSquad, type PublicStaff } from '..
 import type { PublicFacility } from '../ClubPlaceCard';
 import { placeType } from '../clubPlaceTypes';
 import { useOverviewSource } from '../useOverviewSource';
-import { ProfilePosts } from '../../profiles/ProfilePosts';
+import { ClubPostStrip } from './ClubPostStrip';
 import { useProfilePostFeed } from '../../profiles/useProfilePostFeed';
 import { ClubFamilyWeek } from './ClubFamilyWeek';
 import type { ClubPermissions } from './useClubProfile';
@@ -27,7 +27,7 @@ const tabLink = (club: number, tab: string) => `/clubs/${club}?tab=${tab}`;
  */
 export function ClubOverviewTab({ club, can, onFollow, onJoin }: { club: ClubProfile; can: ClubPermissions; onFollow: () => void; onJoin: () => void }) {
     const { user } = useAuth();
-    const feed = useProfilePostFeed(`/posts/club/${club.id}`, 3);
+    const feed = useProfilePostFeed(`/posts/club/${club.id}`, 6);
     const lead = overviewLead(club.id, user?.role, user?.navigationCapabilities);
     const [window] = useState(() => {
         const start = new Date(), end = new Date(start); end.setDate(end.getDate() + 30);
@@ -43,8 +43,8 @@ export function ClubOverviewTab({ club, can, onFollow, onJoin }: { club: ClubPro
 
     return <>
         {lead === 'family' && <ClubFamilyWeek clubId={club.id} />}
-        <Section title="Latest posts" action={can.canPost ? <Link className="gk-section__action gk-row" to={tabLink(club.id, 'posts')}><PenLine size={15} aria-hidden="true" />Write a post</Link> : undefined}>
-            <ProfilePosts feed={feed} preview={{ count: 2, allTo: tabLink(club.id, 'posts') }}
+        <Section title="Latest posts" action={<span className="gk-row">{can.canPost && <Link className="gk-section__action gk-row" to={tabLink(club.id, 'posts')}><PenLine size={15} aria-hidden="true" />Write a post</Link>}<Link className="gk-section__action" to={tabLink(club.id, 'posts')}>See all posts</Link></span>}>
+            <ClubPostStrip posts={feed.posts} loading={feed.pages.loading} allTo={tabLink(club.id, 'posts')}
                 empty={{ title: 'No posts yet', body: can.canPost ? 'Share the first update from the Posts tab. It appears here and in your followers’ Home feed.' : 'When the club shares news, photos and results, they appear here.' }} />
         </Section>
         {newcomer && <Panel padded className="gk-club-call">
@@ -57,10 +57,10 @@ export function ClubOverviewTab({ club, can, onFollow, onJoin }: { club: ClubPro
                 {join && <Button variant="primary" onClick={onJoin}>See how to join</Button>}
             </div>
         </Panel>}
+        <Training club={club} can={can} onJoin={onJoin} />
         <Section title="Coming up" hint="Next 30 days" action={{ label: 'Full schedule', to: tabLink(club.id, 'schedule') }}>
             <Fixtures club={club} source={schedule} />
         </Section>
-        <Training club={club} can={can} onJoin={onJoin} />
         <div className="gk-club-overview-grid">
             <Venues club={club} source={places} />
             <Staff club={club} source={people} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { MapPin, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../../context/AuthContext';
@@ -100,13 +100,15 @@ function ClubProfileView({ id }: { id: number }) {
     if (!club) return <ClubUnavailable failed={failed} onRetry={refresh} />;
 
     const kind = club.presentation ? profileKindLabel[club.presentation.profileKind] : club.type || 'Football club';
+    // The academy and its club point at each other right under the name, not at the bottom of the page.
+    const linked = club.presentation?.affiliations.find(a => a.status === 'ACTIVE');
     const place = club.addressText || [club.cityName, club.countryName].filter(Boolean).join(', ');
     return <>
         <ProfileLayout
             identity={{
                 name: club.name, image: club.logoUrl, square: true,
                 badge: club.isOfficial ? <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />Verified club</Badge> : undefined,
-                line: can.role ? `${kind} · Your role: ${clubRoleLabel(can.role)}` : kind,
+                line: <>{kind}{linked && <> · {club.presentation?.profileKind === 'ACADEMY' ? 'Academy of ' : 'Academy: '}<Link className="gk-profile__link" to={`/clubs/${linked.clubId}`}>{linked.name}</Link></>}{can.role && <> · Your role: {clubRoleLabel(can.role)}</>}</>,
                 facts: [
                     place ? <><MapPin aria-hidden="true" />{place}</> : null,
                     <><strong>{club.followerCount.toLocaleString()}</strong>{club.followerCount === 1 ? 'follower' : 'followers'}</>,

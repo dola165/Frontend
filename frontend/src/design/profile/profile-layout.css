@@ -2,17 +2,19 @@
    URL tabs and a main column with side facts. Scoped under `.gk-profile`. */
 
 .gk .gk-profile__head { position: relative; padding-top: var(--gk-6); }
-.gk .gk-profile__cover { position: relative; height: clamp(104px, 11vw, 168px); border-radius: var(--gk-r-lg); overflow: hidden; background: var(--gk-pitch); border: 1px solid var(--gk-line); }
+.gk .gk-profile__cover { position: relative; height: clamp(80px, 6vw, 112px); border-radius: var(--gk-r-lg); overflow: hidden; background: var(--gk-pitch); border: 1px solid var(--gk-line); }
 .gk .gk-profile__cover-image { width: 100%; height: 100%; object-fit: cover; display: block; }
 .gk .gk-profile__cover-action { position: absolute; top: var(--gk-3); right: var(--gk-3); display: flex; gap: var(--gk-2); }
 
 .gk .gk-profile__identity { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: var(--gk-3) var(--gk-5); padding: var(--gk-5) 0 var(--gk-5); }
 .gk .gk-profile__head--cover .gk-profile__identity { padding-top: 0; padding-left: var(--gk-5); }
-.gk .gk-profile__image { position: relative; flex: none; width: 104px; height: 104px; border-radius: var(--gk-r-pill); background: var(--gk-raised); border: 4px solid var(--gk-bg); display: grid; place-items: center; overflow: visible; color: var(--gk-text-2); font-family: var(--gk-font-display); font-size: 36px; font-weight: 650; }
+.gk .gk-profile__image { position: relative; flex: none; width: 80px; height: 80px; border-radius: var(--gk-r-pill); background: var(--gk-raised); border: 4px solid var(--gk-bg); display: grid; place-items: center; overflow: visible; color: var(--gk-text-2); font-family: var(--gk-font-display); font-size: 26px; font-weight: 650; }
 .gk .gk-profile__image > img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .gk .gk-profile__image--square { border-radius: var(--gk-r-lg); background: var(--gk-surface); }
 .gk .gk-profile__image--square > img { object-fit: contain; padding: 6px; }
-.gk .gk-profile__head--cover .gk-profile__image { margin-top: -44px; }
+.gk .gk-profile__head--cover .gk-profile__image { margin-top: -32px; }
+.gk .gk-profile__link { color: var(--gk-accent); font-weight: 600; }
+.gk .gk-profile__link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .gk .gk-profile__image-action { position: absolute; right: -6px; bottom: -6px; }
 .gk .gk-profile__text { min-width: 0; display: flex; flex-direction: column; gap: var(--gk-1); padding-bottom: 2px; }
 .gk .gk-profile__name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); font-size: var(--gk-fs-3xl); line-height: var(--gk-lh-3xl); font-weight: 700; letter-spacing: -0.02em; }

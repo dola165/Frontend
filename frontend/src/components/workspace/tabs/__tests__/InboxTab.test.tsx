@@ -10,15 +10,15 @@ const notifications: NotificationItem[] = [
 ];
 const props = () => ({ notifications, loading: false, loadingMore: false, busyId: null, hasMore: true, unreadCount: 1, onOpen: vi.fn(), onLoadMore: vi.fn(), onMarkAllRead: vi.fn(), onRetry: vi.fn() });
 
-describe('Club inbox', () => {
+describe('Club updates', () => {
     it('combines unread and area filters without changing notification destinations', () => {
         const p = props();
         render(<MemoryRouter><InboxTab {...p}/></MemoryRouter>);
         fireEvent.click(screen.getByRole('button', { name: /^Unread/ }));
         expect(screen.queryByText('Squad updated')).toBeNull();
-        fireEvent.change(screen.getByRole('combobox', { name: 'Inbox area' }), { target: { value: 'SQUAD' } });
+        fireEvent.change(screen.getByRole('combobox', { name: 'Club updates area' }), { target: { value: 'SQUAD' } });
         expect(screen.getByText('No notifications match these filters.')).toBeInTheDocument();
-        fireEvent.change(screen.getByRole('combobox', { name: 'Inbox area' }), { target: { value: 'PLAYER' } });
+        fireEvent.change(screen.getByRole('combobox', { name: 'Club updates area' }), { target: { value: 'PLAYER' } });
         fireEvent.click(screen.getByRole('button', { name: /Permission required/ }));
         expect(p.onOpen).toHaveBeenCalledWith(notifications[0]);
     });

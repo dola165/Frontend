@@ -27,7 +27,7 @@ export function toolDescription(tab: Pick<TabItem, 'id' | 'label'>) {
     'role-requests': 'Assign staff roles and review requested changes.', personnel: 'Coaches, specialists, referees and management access.',
     roles: 'Manage ownership and club membership.', settings: 'Joining policy, public profile, activities and imports.',
     programmes: 'Training programmes, prices and fees shown on the club profile.',
-    overview: 'Club totals, decisions and the coming week.', inbox: 'Club notifications and requests.',
+    overview: 'Club totals, decisions and the coming week.', inbox: 'Decisions and alerts for the club.',
     'club-approaches': 'Review player-approved approaches from agents.', jobs: 'Post openings and review applicants.',
     admissions: 'Arrange introductions, agree a place and complete group enrollment.', applications: 'Review club and staff applications.', tryouts: 'Organise tryouts and review players.',
     store: 'Manage your public merchandise catalogue.', campaigns: 'Manage fundraising and sponsorship campaigns.',

@@ -35,12 +35,12 @@ export const InboxTab = ({ notifications, loading, loadingMore, busyId, hasMore,
     }), [area, filter, notifications]);
 
     return <PageFrame className="rec-page">
-        <PageHeader title="Inbox" subtitle={unreadCount ? `${unreadCount} unread · club updates, decisions and alerts` : 'Club updates, decisions and alerts, in one place.'}
+        <PageHeader title="Club updates" subtitle={unreadCount ? `${unreadCount} unread · decisions and alerts for the club` : 'Decisions and alerts for the club, in one place.'}
             actions={unreadCount > 0 && <Button onClick={onMarkAllRead}><CheckCheck aria-hidden="true" />Mark all as read</Button>} />
         <div className="gk-stack gk-stack--tight">
             <div className="rec-toolbar">
-                <div className="gk-chips" role="group" aria-label="Inbox filter">{filters.map(([value, text]) => <Chip key={value} pressed={filter === value} onClick={() => setFilter(value)}>{text}{value === 'UNREAD' && unreadCount ? ` ${unreadCount}` : ''}</Chip>)}</div>
-                <select className="gk-input" aria-label="Inbox area" value={area} onChange={e => setArea(e.target.value)}>
+                <div className="gk-chips" role="group" aria-label="Club updates filter">{filters.map(([value, text]) => <Chip key={value} pressed={filter === value} onClick={() => setFilter(value)}>{text}{value === 'UNREAD' && unreadCount ? ` ${unreadCount}` : ''}</Chip>)}</div>
+                <select className="gk-input" aria-label="Club updates area" value={area} onChange={e => setArea(e.target.value)}>
                     <option value="ALL">All areas</option>{areas.map(item => <option key={item} value={item}>{areaLabel(item)} ({notifications.filter(n => n.entityType === item).length})</option>)}
                 </select>
                 <span role="status" className="rec-toolbar__count">{loading ? 'Loading…' : `${visible.length} shown${hasMore ? ' · more available' : ''}`}</span>
@@ -48,7 +48,7 @@ export const InboxTab = ({ notifications, loading, loadingMore, busyId, hasMore,
             {error && <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error}</span><Button size="sm" onClick={onRetry}>Retry</Button></div>}
             <Panel flush>
                 {loading && notifications.length === 0 ? <div className="cw-skeleton-rows" role="status" aria-label="Loading notifications">{[0, 1, 2, 3].map(i => <Skeleton key={i} height={52} />)}</div>
-                    : !error && notifications.length === 0 ? <EmptyNote title="Your club inbox is up to date">New club notifications appear here.</EmptyNote>
+                    : !error && notifications.length === 0 ? <EmptyNote title="No club updates yet">New club notifications appear here.</EmptyNote>
                         : visible.length === 0 ? <EmptyNote title="No notifications match these filters." action={<Button size="sm" onClick={() => { setFilter('ALL'); setArea('ALL'); }}>Show all</Button>}>Try all notifications or another area.</EmptyNote>
                             : <List label="Club notifications">{visible.map(notification => {
                                 const action = notificationActionLabel(notification);

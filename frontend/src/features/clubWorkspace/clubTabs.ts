@@ -1,5 +1,5 @@
 import {
-    Briefcase, BriefcaseBusiness, Bus, CheckCircle2, Compass, Goal, Settings2, ClipboardList, CreditCard, Crown, Gauge, HeartHandshake, Inbox, LayoutDashboard, LayoutGrid,
+    BellRing, Briefcase, BriefcaseBusiness, Bus, CheckCircle2, Compass, Goal, Settings2, ClipboardList, CreditCard, Crown, Gauge, HeartHandshake, LayoutDashboard, LayoutGrid,
     ReceiptText, Settings, ShieldCheck, ShoppingBag, UserPlus, Users, UserRoundCog,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -77,7 +77,8 @@ export function clubNavigation(tabs: TabItem[], { focus, pins, inbox }: { focus:
     const byId = (id: string) => tabs.find(tab => tab.id === id);
     const primary: WorkspaceNavItem[] = [
         byId('overview'), byId('coach-hub'),
-        inbox.allowed ? { id: 'inbox' as const, label: 'Inbox', icon: Inbox, count: inbox.unread || undefined } : undefined,
+        // The club's own notifications. Named "Club updates" so it is never confused with the header Inbox.
+        inbox.allowed ? { id: 'inbox' as const, label: 'Club updates', icon: BellRing, count: inbox.unread || undefined } : undefined,
         byId('actions'),
     ].filter((tab): tab is TabItem => Boolean(tab)).map(navItem);
     const pinned = pins.filter(tab => !personalTabs.has(tab.id)).map(navItem);

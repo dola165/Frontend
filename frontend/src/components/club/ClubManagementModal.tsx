@@ -256,7 +256,7 @@ export const ClubManagementModal = ({
                     <div className="grid grid-cols-2 gap-2">
                         <button type="button" onClick={goWorkspaceInbox} className="rounded-[2px] border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[color-mix(in_srgb,_var(--color-ink)_3%,_transparent)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-secondary)] hover:border-[color-mix(in_srgb,_var(--color-border)_7.84%,_transparent)] hover:text-[var(--color-text)] transition-colors">
                             <BellRing className="mr-2 inline-block h-3.5 w-3.5" />
-                            Club Inbox
+                            Club updates
                         </button>
                         {(canManageLeadership || debugActive) && (
                             <button type="button" onClick={goSquads} className="rounded-[2px] border border-[color-mix(in_srgb,_var(--color-border)_5.1%,_transparent)] bg-[color-mix(in_srgb,_var(--color-ink)_3%,_transparent)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-secondary)] hover:border-[color-mix(in_srgb,_var(--color-border)_7.84%,_transparent)] hover:text-[var(--color-text)] transition-colors">

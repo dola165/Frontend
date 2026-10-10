@@ -9,7 +9,7 @@ import { isCurrentAuthSession, type AuthSessionId } from '../../utils/authStorag
 const PAGE_SIZE = 20;
 
 /**
- * The club-scoped inbox: unread count for the navigation and the list for the Inbox page.
+ * The club's own notifications ("Club updates"): unread count for the navigation and the list for its page.
  * Nothing loads until management access is confirmed, and every request belongs to one
  * account session so a retired session can never update this club's inbox.
  */
@@ -46,7 +46,7 @@ export function useClubInbox(clubId: number, sessionId: AuthSessionId, canRead: 
                 setNotifications(previous => append ? [...previous, ...response.content] : response.content);
             }
         } catch (failure) {
-            if (current(controller)) setError(extractApiErrorMessage(failure, 'Could not load club inbox.'));
+            if (current(controller)) setError(extractApiErrorMessage(failure, 'Could not load club updates.'));
         } finally {
             requests.current.delete(controller);
             if (current(controller)) { setLoading(false); setLoadingMore(false); }

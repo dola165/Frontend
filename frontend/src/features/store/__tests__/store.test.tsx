@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StorePage } from '../../../pages/StorePage';
 import { StoreProductPage } from '../../../pages/StoreProductPage';
 import { StoreCartPage } from '../../../pages/StoreCartPage';
-import { StoreTab } from '../../../components/workspace/tabs/StoreTab';
+import { StoreProductsPage } from '../../clubWorkspace/commerce/StoreProductsPage';
 import { addCartItem, readCart, saveCart } from '../cart';
 import * as api from '../api';
 vi.mock('../api', async original => ({ ...await original<typeof import('../api')>(), deleteStoreProduct: vi.fn(), fetchStoreLocations: vi.fn(), fetchStoreProduct: vi.fn(), fetchStoreCatalog: vi.fn(), fetchAllClubStoreProducts: vi.fn(), updateStoreProduct: vi.fn(), fetchCartQuote: vi.fn() }));
@@ -29,7 +29,7 @@ describe('Store safety and recovery', () => {
     it('keeps stock edits and the original version after a failed save', async () => {
         vi.mocked(api.fetchAllClubStoreProducts).mockResolvedValue([product]);
         vi.mocked(api.updateStoreProduct).mockRejectedValue({response:{data:{error:'This product changed. Reload its latest version before saving.'}}});
-        render(<MemoryRouter><StoreTab clubId={10}/></MemoryRouter>);
+        render(<MemoryRouter><StoreProductsPage clubId={10}/></MemoryRouter>);
         fireEvent.click(await screen.findByRole('button',{name:'Edit Home shirt'}));
         fireEvent.change(screen.getByLabelText('Stock 1'),{target:{value:'4'}});
         fireEvent.click(screen.getByRole('button',{name:'Save product'}));
@@ -43,7 +43,7 @@ describe('Store safety and recovery', () => {
     });
     it('requires explicit confirmation before discarding a draft', async () => {
         vi.mocked(api.fetchAllClubStoreProducts).mockResolvedValue([]);
-        render(<MemoryRouter><StoreTab clubId={10}/></MemoryRouter>);
+        render(<MemoryRouter><StoreProductsPage clubId={10}/></MemoryRouter>);
         fireEvent.click(await screen.findByRole('button',{name:'Add product'}));
         fireEvent.change(screen.getByLabelText('Product name'),{target:{value:'Unfinished kit'}});
         expect(screen.getByLabelText('Published in the Store')).not.toBeChecked();
@@ -130,7 +130,7 @@ vi.mock('../../../components/ui/MediaImage', () => ({ MediaImage: (props: ImgHTM
 it('rejects stale archive and requires a new confirmation after loading the newer product', async () => {
     vi.mocked(api.fetchAllClubStoreProducts).mockResolvedValue([product]);
     vi.mocked(api.deleteStoreProduct).mockRejectedValueOnce({response:{status:409,data:{error:'Product changed; it was not archived.'}}}).mockResolvedValueOnce(undefined);
-    render(<MemoryRouter><StoreTab clubId={10}/></MemoryRouter>);
+    render(<MemoryRouter><StoreProductsPage clubId={10}/></MemoryRouter>);
     fireEvent.click(await screen.findByRole('button',{name:'Archive Home shirt'}));
     expect(api.deleteStoreProduct).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button',{name:'Confirm archive'}));

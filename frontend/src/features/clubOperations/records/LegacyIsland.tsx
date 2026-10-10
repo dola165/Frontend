@@ -11,7 +11,7 @@ const subscribe = (change: () => void) => {
 const isLight = () => !document.documentElement.classList.contains('dark');
 
 /**
- * Hosts a small older component (uploads, maps, facility cards) inside a design-system page.
+ * Hosts an older public component inside a design-system page (the facility card preview in the record form).
  * It supplies the older palette those components read, scoped to this block only.
  */
 export function LegacyIsland({ children, className }: { children: ReactNode; className?: string }) {

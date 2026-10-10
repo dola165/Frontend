@@ -53,8 +53,11 @@ async function bundle(testFile) {
     mocks.push(match[2]);
     const call = body.slice(index, end + 1);
     const replaced = call.replace(/^vi\.mock\((['"])([^'"]+)\1\s*,\s*/, (_, q, spec) => `globalThis.__vtMocks[${JSON.stringify(spec)}] = (`);
-    body = body.slice(0, index) + replaced + body.slice(end + 1);
-    from = index + replaced.length;
+    // An async factory is settled right where it is registered, as vitest does before the module body runs,
+    // so a test may read the mocked module at its top level.
+    const settled = /^vi\.mock\((['"])[^'"]+\1\s*,\s*async\b/.test(call) ? `;await globalThis.__vtResolveMock(${JSON.stringify(match[2])});` : '';
+    body = body.slice(0, index) + replaced + settled + body.slice(end + 1);
+    from = index + replaced.length + settled.length;
   }
   const dir = path.dirname(testFile);
   const resolved = new Map();

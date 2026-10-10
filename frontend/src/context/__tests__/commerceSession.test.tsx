@@ -6,7 +6,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { AuthProvider, useAuth } from '../AuthContext';
 import { AuthSessionBoundary } from '../AuthSessionBoundary';
-import { StoreTab } from '../../components/workspace/tabs/StoreTab';
+import { StoreProductsPage } from '../../features/clubWorkspace/commerce/StoreProductsPage';
 import { CommerceDraftScope } from '../../components/workspace/CommerceDraftScope';
 import { useCommerceDraftState } from '../../components/workspace/commerceDraftState';
 import { apiClient } from '../../api/axiosConfig';
@@ -37,7 +37,7 @@ function CaptureAuth() {
     return <output>{auth.status}:{auth.user?.fullName ?? '-'}</output>;
 }
 function AuthenticatedStore({ visit }: { visit: number }) {
-    return useAuth().isAuthenticated ? <StoreTab key={visit} clubId={10} /> : null;
+    return useAuth().isAuthenticated ? <StoreProductsPage key={visit} clubId={10} /> : null;
 }
 const storeApp = (visit: number) => <MemoryRouter><AuthProvider><CaptureAuth />
     <AuthSessionBoundary><AuthenticatedStore visit={visit} /></AuthSessionBoundary>

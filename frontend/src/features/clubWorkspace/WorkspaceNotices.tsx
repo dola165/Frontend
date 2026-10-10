@@ -1,26 +1,6 @@
-import type { ReactNode } from 'react';
-import { ArrowLeft, X } from 'lucide-react';
-import { Button, PageFrame, PageHeader } from '../../design/primitives';
-import '../../components/workspace/workspace-design-theme.css';
-import '../clubOperations/workspace-experience.css';
+import { X } from 'lucide-react';
+import { Button, PageFrame } from '../../design/primitives';
 import './club-workspace.css';
-
-/**
- * Hosts a club tool that has not moved to the design system yet. It keeps the legacy
- * palette and styles those tools rely on, inside the shared workspace frame and gutter.
- */
-export function LegacyFrame({ darkMode, area, tab, title, subtitle, back, children }: {
-    darkMode: boolean; area: string; tab: string; title?: string; subtitle?: string;
-    back?: { label: string; onClick: () => void }; children: ReactNode;
-}) {
-    return <PageFrame className="cw-legacy">
-        {back && <div className="cw-legacy__back"><Button variant="ghost" size="sm" onClick={back.onClick}><ArrowLeft aria-hidden="true" />{back.label}</Button></div>}
-        {title && <PageHeader title={title} subtitle={subtitle} />}
-        <div data-workspace-area={area} data-workspace-page={tab} className={`workspace-page-shell club-workspace-shell workspace-refresh${darkMode ? '' : ' workspace-light'}`}>
-            <div className="workspace-tab-content">{children}</div>
-        </div>
-    </PageFrame>;
-}
 
 /** Results of workspace actions, announced and dismissible, above whichever page is open. */
 export function WorkspaceNotices({ error, success, rolesError, onDismissError, onDismissSuccess, onRetryRoles }: {

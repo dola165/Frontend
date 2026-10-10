@@ -129,10 +129,10 @@ export function RecordForm({ boot, definition, record, backLabel, onSaved, onCan
                             </PlainField>}
                             {!facility && definition.fields.filter(f => main.fields.includes(f) || dates?.fields.includes(f)).map(renderField)}
                         </div>
-                        {facility && <LegacyIsland><FacilityFields mode="place" boot={boot} definition={definition} data={data} change={values => setData(previous => ({ ...previous, ...values }))} renderField={renderField} onUploading={setUploading} /></LegacyIsland>}
+                        {facility && <FacilityFields mode="place" boot={boot} definition={definition} data={data} change={values => setData(previous => ({ ...previous, ...values }))} renderField={renderField} onUploading={setUploading} />}
                     </Group>
                     {facility && <Group title="Visitor information" description="Optional photos and practical details for players, families and visiting teams.">
-                        <LegacyIsland><FacilityFields mode="visitors" boot={boot} definition={definition} data={data} change={values => setData(previous => ({ ...previous, ...values }))} renderField={renderField} onUploading={setUploading} /></LegacyIsland>
+                        <FacilityFields mode="visitors" boot={boot} definition={definition} data={data} change={values => setData(previous => ({ ...previous, ...values }))} renderField={renderField} onUploading={setUploading} />
                     </Group>}
                     {responsibility}
                     {!facility && others.map(group => <Group key={group.title} title={group.title} description={group.description}><div className="rec-fields">{group.fields.map(renderField)}</div></Group>)}

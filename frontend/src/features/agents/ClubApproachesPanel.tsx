@@ -1,96 +1,145 @@
-import { EmptyState } from '../../components/ui/EmptyState';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Building2, ChevronLeft, ChevronRight, Loader2, MessageCircle, Plus, RefreshCw, ShieldCheck } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useId, type ReactNode } from 'react';
+import { ChevronLeft, ChevronRight, MessageCircle, Plus, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
-import { isCurrentAuthSession } from '../../utils/authStorage';
-import { extractApiErrorMessage } from '../../utils/apiError';
-import { searchClubs } from './api';
-import { actOnClubApproach, createClubApproach, fetchClubApproach, fetchClubApproachMessages, fetchClubApproachOptions, fetchClubApproaches, postClubApproachMessage, type ClubApproach, type ClubApproachAction, type ClubApproachMessage } from './clubApproachesApi';
-import './clubApproaches.css';
+import { Badge, Button, EmptyNote, Field, GkRoot, PageFrame, PageHeader, Skeleton, type BadgeTone } from '../../design/primitives';
+import { Segmented } from '../../design/Tabs';
+import type { ClubApproachAction, ClubApproachStatus } from './clubApproachesApi';
+import { PAGE_SIZE, useClubApproaches, type ApproachMode } from './useClubApproaches';
+import './club-approaches.css';
 
-type Mode = 'agent' | 'participant' | 'club';
-interface Props { mode: Mode; clubId?: number; }
+interface Props { mode: ApproachMode; clubId?: number }
 const phrase = (ka: boolean, en: string, ge: string) => ka ? ge : en;
-const actionLabels: Record<ClubApproachAction, string> = { APPROVE: 'Approve', ACCEPT: 'Accept', DECLINE: 'Decline', CANCEL: 'Cancel', END: 'End', REVOKE: 'Revoke' };
-const localizedAction = (action: ClubApproachAction, ka: boolean) => ka ? ({ APPROVE: 'დადასტურება', ACCEPT: 'მიღება', DECLINE: 'უარყოფა', CANCEL: 'გაუქმება', END: 'დასრულება', REVOKE: 'გაუქმება' }[action]) : actionLabels[action];
-const confirmationRequired = new Set<ClubApproachAction>(['APPROVE', 'DECLINE', 'CANCEL', 'END', 'REVOKE']);
-const auditLabel = (kind: string | null | undefined, ka: boolean) => {
-    const key = kind || 'MESSAGE';
-    const labels: Record<string, [string, string]> = {
-        PROPOSED: ['Approach proposed', 'მიმართვა შემოთავაზებულია'], APPROVE: ['Approved by player', 'მოთამაშემ დაადასტურა'],
-        ACCEPT: ['Accepted', 'მიღებულია'], DECLINE: ['Declined', 'უარყოფილია'], CANCEL: ['Cancelled', 'გაუქმებულია'],
-        END: ['Ended', 'დასრულებულია'], REVOKE: ['Revoked', 'გაუქმებულია'], REPRESENTATION_ENDED: ['Representation ended', 'წარმომადგენლობა დასრულდა'], MESSAGE: ['Message', 'შეტყობინება']
-    };
-    return (labels[key] || [key.replaceAll('_', ' '), key.replaceAll('_', ' ')])[ka ? 1 : 0];
+const ACTIONS: Record<ClubApproachAction, [string, string]> = {
+    APPROVE: ['Approve', 'დადასტურება'], ACCEPT: ['Accept', 'მიღება'], DECLINE: ['Decline', 'უარყოფა'], CANCEL: ['Cancel', 'გაუქმება'], END: ['End', 'დასრულება'], REVOKE: ['Revoke', 'გაუქმება'],
 };
+const CONFIRM = new Set<ClubApproachAction>(['APPROVE', 'DECLINE', 'CANCEL', 'END', 'REVOKE']);
+const STATUS: Record<ClubApproachStatus, [string, string, BadgeTone]> = {
+    PENDING_PLAYER: ['Waiting for the player', 'მოთამაშის მოლოდინში', 'warning'], PENDING_CLUB: ['Waiting for the club', 'კლუბის მოლოდინში', 'warning'],
+    ACTIVE: ['Active', 'აქტიური', 'accent'], DECLINED: ['Declined', 'უარყოფილია', 'neutral'], CANCELLED: ['Cancelled', 'გაუქმებულია', 'neutral'],
+    ENDED: ['Ended', 'დასრულებულია', 'neutral'], REVOKED: ['Revoked', 'გაუქმებულია', 'neutral'],
+};
+const AUDIT: Record<string, [string, string]> = {
+    PROPOSED: ['Approach proposed', 'მიმართვა შემოთავაზებულია'], APPROVE: ['Approved by player', 'მოთამაშემ დაადასტურა'], ACCEPT: ['Accepted', 'მიღებულია'],
+    DECLINE: ['Declined', 'უარყოფილია'], CANCEL: ['Cancelled', 'გაუქმებულია'], END: ['Ended', 'დასრულებულია'], REVOKE: ['Revoked', 'გაუქმებულია'],
+    REPRESENTATION_ENDED: ['Representation ended', 'წარმომადგენლობა დასრულდა'], MESSAGE: ['Message', 'შეტყობინება'],
+};
+// Older approaches carry a code such as TRIAL as their scope; show it as words.
+const scopeText = (scope: string) => /^[A-Z][A-Z_]+$/.test(scope.trim()) ? scope.trim().charAt(0) + scope.trim().slice(1).toLowerCase().replaceAll('_', ' ') : scope;
+const auditLabel = (kind: string | null | undefined, ka: boolean) => { const key = kind || 'MESSAGE'; return (AUDIT[key] ?? [key.replaceAll('_', ' '), key.replaceAll('_', ' ')])[ka ? 1 : 0]; };
 
+/**
+ * Approaches between an agent, a player and a club. A club sees an approach only after the player approves
+ * sharing it. Agents propose; players approve; clubs accept or decline; every step can carry a note and
+ * irreversible steps are confirmed first. In the club workspace this is the Agent approaches page.
+ */
 export function ClubApproachesPanel(props: Props) {
     const { sessionId } = useAuth();
-    return <ClubApproachesPanelContent key={`${sessionId}:${props.mode}:${props.clubId ?? 'self'}`} {...props} />;
+    return <ClubApproachesContent key={`${sessionId}:${props.mode}:${props.clubId ?? 'self'}`} {...props} />;
 }
 
-function ClubApproachesPanelContent({ mode, clubId }: Props) {
+function ClubApproachesContent({ mode, clubId }: Props) {
     const { i18n } = useTranslation();
-    const { sessionId: session } = useAuth();
-    const [params, setParams] = useSearchParams();
-    const [open, setOpen] = useState<ClubApproach[]>([]); const [history, setHistory] = useState<ClubApproach[]>([]);
-    const [page, setPage] = useState(0); const [total, setTotal] = useState(0); const [view, setView] = useState<'OPEN'|'HISTORY'>('OPEN');
-    const [selected, setSelected] = useState<ClubApproach | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
-    const [optionsOpen, setOptionsOpen] = useState(false); const [options, setOptions] = useState<Array<{representationRequestId:number; playerName:string}>>([]); const [clubs, setClubs] = useState<Array<{id:number;name:string}>>([]);
-    const [player, setPlayer] = useState(''); const [clubQuery, setClubQuery] = useState(''); const [club, setClub] = useState<{id:number;name:string}|null>(null); const [scope, setScope] = useState(''); const [message, setMessage] = useState('');
-    const [messages, setMessages] = useState<ClubApproachMessage[]>([]); const [messagePage, setMessagePage] = useState(0); const [messageTotal, setMessageTotal] = useState(0); const [messageBody, setMessageBody] = useState(''); const [busy, setBusy] = useState(false); const [pendingAction, setPendingAction] = useState<ClubApproachAction | null>(null); const [note, setNote] = useState('');
-    const request = useRef(0); const messageRequest = useRef(0); const selectedIdRef = useRef<number | null>(null); const activeRef = useRef(true); const ka = (i18n.resolvedLanguage ?? i18n.language ?? 'en').startsWith('ka'); const focused = Number(params.get('approach')) || null;
-    const commitSelected = useCallback((value: ClubApproach | null) => {
-        if (selectedIdRef.current !== (value?.id ?? null)) {
-            setPendingAction(null); setNote(''); setMessages([]); setMessagePage(0); setMessageTotal(0); setMessageBody('');
-        }
-        selectedIdRef.current = value?.id ?? null;
-        setSelected(previous => previous?.id === value?.id && previous && value && previous.version > value.version ? previous : value);
-    }, []);
-    useEffect(() => { activeRef.current = true; return () => { activeRef.current = false; request.current += 1; }; }, []);
+    const { sessionId } = useAuth();
+    const ka = (i18n.resolvedLanguage ?? i18n.language ?? 'en').startsWith('ka');
+    const s = useClubApproaches(mode, clubId, sessionId, ka);
+    const { proposal, discussion, action, selected } = s;
+    const titleId = useId();
     const title = mode === 'agent' ? phrase(ka, 'Player–club approaches', 'მოთამაშე–კლუბის მიმართვები') : mode === 'club' ? phrase(ka, 'Agent approaches', 'აგენტის მიმართვები') : phrase(ka, 'Approaches about you', 'თქვენთან დაკავშირებული მიმართვები');
-    const load = useCallback(async (nextView=view, nextPage=page) => { const seq=++request.current; const controller=new AbortController(); setLoading(true); setError(''); try { const data=await fetchClubApproaches({clubId, view:nextView, page:nextPage, size:20},{_authSessionId:session,signal:controller.signal}); if(seq!==request.current || !isCurrentAuthSession(session)) return; if(nextView==='OPEN') setOpen(data.items); else setHistory(data.items); setTotal(data.total); } catch(e) { if(seq===request.current && isCurrentAuthSession(session)) setError(extractApiErrorMessage(e, phrase(ka,'Approaches could not load.','მიმართვები ვერ ჩაიტვირთა.'))); } finally { if(seq===request.current && isCurrentAuthSession(session)) setLoading(false); } }, [clubId, ka, page, session, view]);
-    useEffect(()=>{ void load(); },[load]);
-    useEffect(()=>{ if(!focused) {commitSelected(null);return;} const controller=new AbortController(); fetchClubApproach(focused,{_authSessionId:session,signal:controller.signal}).then(item=>{if(!controller.signal.aborted&&activeRef.current&&isCurrentAuthSession(session))commitSelected(item);}).catch(()=>{if(!controller.signal.aborted&&activeRef.current&&isCurrentAuthSession(session)){commitSelected(null);setError(phrase(ka,'This approach is unavailable or you no longer have access.','ეს მიმართვა მიუწვდომელია ან წვდომა აღარ გაქვთ.'));}}); return()=>controller.abort(); },[focused,ka,session,commitSelected]);
-    useEffect(()=>{ if(!optionsOpen || mode!=='agent') return; const controller=new AbortController(); fetchClubApproachOptions({_authSessionId:session,signal:controller.signal}).then(data=>{if(!controller.signal.aborted&&isCurrentAuthSession(session))setOptions(data);}).catch(()=>{if(!controller.signal.aborted&&isCurrentAuthSession(session))setError(phrase(ka,'Eligible players could not load.','შესაბამისი მოთამაშეები ვერ ჩაიტვირთა.'));}); return()=>controller.abort(); },[optionsOpen,mode,ka,session]);
-    useEffect(()=>{
-        setClubs([]);
-        if(mode!=='agent'||clubQuery.trim().length<2||club) return;
-        const controller=new AbortController();
-        const timer=window.setTimeout(()=>searchClubs(clubQuery,{_authSessionId:session,signal:controller.signal})
-            .then(data=>{if(!controller.signal.aborted&&isCurrentAuthSession(session))setClubs(data.map(c=>({id:c.id,name:c.name})));})
-            .catch(()=>{if(!controller.signal.aborted&&isCurrentAuthSession(session))setError(phrase(ka,'Club search could not load. Change the search to retry.','კლუბების ძებნა ვერ ჩაიტვირთა. ხელახლა საცდელად შეცვალეთ საძიებო ტექსტი.'));}),250);
-        return()=>{clearTimeout(timer);controller.abort();};
-    },[clubQuery,mode,club,session,ka]);
-    useEffect(()=>{ if(!selected) {setMessages([]);setMessageTotal(0);return;} const controller=new AbortController(); const seq=++messageRequest.current; const approachId=selected.id; fetchClubApproachMessages(approachId,messagePage,20,{_authSessionId:session,signal:controller.signal}).then(data=>{if(!controller.signal.aborted&&seq===messageRequest.current&&isCurrentAuthSession(session)){setMessages(data.items);setMessageTotal(data.total);}}).catch(()=>{if(!controller.signal.aborted&&seq===messageRequest.current&&isCurrentAuthSession(session))setError(phrase(ka,'Discussion could not load.','განხილვა ვერ ჩაიტვირთა.'));}); return()=>controller.abort(); },[selected,ka,messagePage,session]);
-    const items = view==='OPEN'?open:history; const pages=Math.max(1,Math.ceil(total/20));
-    const select = (item:ClubApproach) => { commitSelected(item); setPendingAction(null); setNote(''); setMessages([]); setMessagePage(0); setMessageTotal(0); setMessageBody(''); const next=new URLSearchParams(params);next.set('approach',String(item.id));setParams(next,{replace:true}); };
-    const refresh = async () => { await load(); if(selected){const id=selected.id;try{const updated=await fetchClubApproach(id,{_authSessionId:session});if(activeRef.current&&isCurrentAuthSession(session)&&selectedIdRef.current===id)commitSelected(updated);}catch{/* list refresh still useful */}} };
-    useEffect(() => {
-        const controller = new AbortController();
-        const onFocus = () => {
-            if (busy || document.hidden) return;
-            void load();
-            const id = selectedIdRef.current;
-            if (id) void fetchClubApproach(id,{_authSessionId:session,signal:controller.signal})
-                .then(value=>{if(!controller.signal.aborted&&activeRef.current&&isCurrentAuthSession(session)&&selectedIdRef.current===id)commitSelected(value);})
-                .catch(()=>{if(!controller.signal.aborted&&activeRef.current&&isCurrentAuthSession(session))setError(phrase(ka,'Refresh the approach to check its latest status.','უახლესი სტატუსის სანახავად განაახლეთ მიმართვა.'));});
-        };
-        window.addEventListener('focus',onFocus);
-        return () => {controller.abort();window.removeEventListener('focus',onFocus);};
-    },[busy,load,session,ka,commitSelected]);
-    const submit = async () => { const choice=options.find(x=>String(x.representationRequestId)===player); if(busy||!choice||!club||!scope.trim()) return; setBusy(true);try{const created=await createClubApproach({representationRequestId:choice.representationRequestId,clubId:club.id,scope:scope.trim(),message:message.trim()||undefined},{_authSessionId:session});if(!activeRef.current||!isCurrentAuthSession(session))return;setOptionsOpen(false);setScope('');setMessage('');setPlayer('');setClub(null);select(created);window.dispatchEvent(new Event('club-approaches-updated'));await load();}catch(e){if(activeRef.current&&isCurrentAuthSession(session))setError(extractApiErrorMessage(e,phrase(ka,'Approach could not be sent.','მიმართვა ვერ გაიგზავნა.')));}finally{if(activeRef.current&&isCurrentAuthSession(session))setBusy(false);}};
-    const runAction = async (action:ClubApproachAction) => { if(busy||!selected)return; const approachId=selected.id; setBusy(true); try{const updated=await actOnClubApproach(approachId,{action,version:selected.version,note:note.trim()||undefined},{_authSessionId:session});if(!activeRef.current||!isCurrentAuthSession(session))return;if(selectedIdRef.current===approachId){commitSelected(updated);setPendingAction(null);setNote('');}window.dispatchEvent(new Event('club-approaches-updated'));await load();}catch(e){if(activeRef.current&&isCurrentAuthSession(session))setError(extractApiErrorMessage(e,phrase(ka,'The approach changed. Refresh and try again.','მიმართვა შეიცვალა. განაახლეთ და სცადეთ თავიდან.')));}finally{if(activeRef.current&&isCurrentAuthSession(session))setBusy(false);}};
-    const sendMessage=async()=>{if(busy||!selected||!messageBody.trim())return;const approachId=selected.id;setBusy(true);try{await postClubApproachMessage(approachId,messageBody.trim(),{_authSessionId:session});if(!activeRef.current||!isCurrentAuthSession(session)||selectedIdRef.current!==approachId)return;setMessageBody('');window.dispatchEvent(new Event('club-approaches-updated'));setMessagePage(0);const data=await fetchClubApproachMessages(approachId,0,20,{_authSessionId:session});if(activeRef.current&&isCurrentAuthSession(session)&&selectedIdRef.current===approachId){setMessages(data.items);setMessageTotal(data.total);}}catch(e){if(activeRef.current&&isCurrentAuthSession(session))setError(extractApiErrorMessage(e,phrase(ka,'Message could not be sent.','შეტყობინება ვერ გაიგზავნა.')));}finally{if(activeRef.current&&isCurrentAuthSession(session))setBusy(false);}};
-    return <section className="club-approaches-panel rounded-2xl border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-4" aria-label={title}>
-        <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-[var(--fc-accent)]">{phrase(ka,'Consented contact','თანხმობითი კონტაქტი')}</p><h2 className="mt-1 text-lg font-semibold text-[var(--fc-text-primary)]">{title}</h2><p className="mt-1 text-sm text-[var(--fc-text-secondary)]">{phrase(ka,'The club sees this approach only after the player approves sharing it.','კლუბი ამ მიმართვას ხედავს მხოლოდ მას შემდეგ, რაც მოთამაშე გაზიარებას დაადასტურებს.')}</p></div>{mode==='agent'&&<button type="button" onClick={()=>setOptionsOpen(v=>!v)} className="inline-flex items-center gap-2 rounded-lg bg-[var(--fc-accent)] px-3 py-2 text-sm font-semibold text-[color:var(--color-on-accent)]"><Plus className="h-4 w-4"/>{phrase(ka,'New approach','ახალი მიმართვა')}</button>}</div>
-        {optionsOpen&&<div className="mt-4 grid gap-3 rounded-xl bg-[var(--fc-surface-hover)] p-3"><label className="text-sm font-medium">{phrase(ka,'Player','მოთამაშე')}<select value={player} onChange={e=>setPlayer(e.target.value)} className="mt-1 w-full rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-2"><option value="">{phrase(ka,'Select consenting player','აირჩიეთ თანხმობის მქონე მოთამაშე')}</option>{options.map(o=><option key={o.representationRequestId} value={o.representationRequestId}>{o.playerName}</option>)}</select>{options.length===0&&<p className="mt-1 text-xs text-[var(--fc-text-secondary)]">{phrase(ka,'No eligible player is available. End any legacy recorded connection, then send and accept a new mutual representation request.','შესაბამისი მოთამაშე მიუწვდომელია. დაასრულეთ ძველი კავშირი, შემდეგ გაგზავნეთ და დაადასტურეთ ახალი ორმხრივი წარმომადგენლობის მოთხოვნა.')}</p>}</label><label className="text-sm font-medium">{phrase(ka,'Club','კლუბი')}<input value={clubQuery} onChange={e=>{setClubQuery(e.target.value);setClub(null);}} placeholder={phrase(ka,'Search clubs','მოძებნეთ კლუბი')} className="mt-1 w-full rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-2"/>{clubs.length>0&&<div className="mt-1 rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)]">{clubs.map(c=><button type="button" key={c.id} onClick={()=>{setClub(c);setClubQuery(c.name);setClubs([]);}} className="block w-full px-3 py-2 text-left text-sm hover:bg-[var(--fc-surface-hover)]">{c.name}</button>)}</div>}</label><label className="text-sm font-medium">{phrase(ka,'Scope','საკითხი')}<textarea required maxLength={500} value={scope} onChange={e=>setScope(e.target.value)} className="mt-1 w-full rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-2" rows={2}/></label><label className="text-sm font-medium">{phrase(ka,'Message (optional)','შეტყობინება (არასავალდებულო)')}<textarea maxLength={2000} value={message} onChange={e=>setMessage(e.target.value)} className="mt-1 w-full rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-2" rows={3}/></label><button type="button" disabled={busy||!player||!club||!scope.trim()} onClick={()=>void submit()} className="w-fit rounded-lg bg-[var(--fc-accent)] px-3 py-2 text-sm font-semibold text-[color:var(--color-on-accent)] disabled:opacity-50">{busy?phrase(ka,'Sending…','იგზავნება…'):phrase(ka,'Send for player approval','გაგზავნა მოთამაშის დასადასტურებლად')}</button></div>}
-        <div className="mt-4 flex gap-2 border-b border-[var(--fc-border)]"><button type="button" disabled={busy} onClick={()=>{setView('OPEN');setPage(0);}} className={`px-3 py-2 text-sm font-semibold ${view==='OPEN'?'border-b-2 border-[var(--fc-accent)] text-[var(--fc-accent)]':'text-[var(--fc-text-secondary)]'}`}>{phrase(ka,'Open','აქტიური')}</button><button type="button" disabled={busy} onClick={()=>{setView('HISTORY');setPage(0);}} className={`px-3 py-2 text-sm font-semibold ${view==='HISTORY'?'border-b-2 border-[var(--fc-accent)] text-[var(--fc-accent)]':'text-[var(--fc-text-secondary)]'}`}>{phrase(ka,'History','ისტორია')}</button><button type="button" onClick={()=>void refresh()} aria-label={phrase(ka,'Refresh approaches','მიმართვების განახლება')} className="ml-auto p-2 text-[var(--fc-text-secondary)]"><RefreshCw className="h-4 w-4"/></button></div>
-        {error&&<div role="alert" className="mt-3 rounded-lg bg-[var(--fc-state-danger-soft)] p-3 text-sm">{error} <button className="app-text-action" onClick={()=>void refresh()}>{phrase(ka,'Retry','თავიდან ცდა')}</button></div>}
-        {loading?<div className="flex justify-center p-8"><Loader2 className="animate-spin"/></div>:error&&items.length===0?null:items.length===0?<EmptyState compact icon={ShieldCheck} title={phrase(ka,'No approaches here yet.','აქ მიმართვები ჯერ არ არის.')} description={phrase(ka,'An agent can propose contact with a club. The player reviews it first; once approved, the club can respond here.','აგენტს შეუძლია კლუბთან დაკავშირება შესთავაზოს მოთამაშეს. მოთამაშის თანხმობის შემდეგ კლუბს აქ შეუძლია პასუხის გაცემა.')}/>:<div className="mt-3 grid gap-2">{items.map(item=><button type="button" key={item.id} onClick={()=>select(item)} className={`club-approach-card rounded-xl border border-[var(--fc-border)] p-3 text-left ${selected?.id===item.id?'bg-[var(--fc-accent-soft)]':'hover:bg-[var(--fc-surface-hover)]'}`}><div className="flex justify-between gap-2"><span className="font-semibold text-[var(--fc-text-primary)]">{mode==='club'?item.playerName:item.clubName}</span><span className="text-xs font-bold text-[var(--fc-accent)]">{phrase(ka,item.status.replace('_',' '),({PENDING_PLAYER:'მოთამაშის მოლოდინში',PENDING_CLUB:'კლუბის მოლოდინში',ACTIVE:'აქტიური',DECLINED:'უარყოფილია',CANCELLED:'გაუქმებულია',ENDED:'დასრულებულია',REVOKED:'გაუქმებულია'}[item.status]))}</span></div><p className="mt-1 line-clamp-2 text-sm text-[var(--fc-text-secondary)]">{item.scope}</p></button>)}</div>}
-        <div className="mt-3 flex items-center justify-end gap-2 text-sm"><button type="button" disabled={busy||page===0} onClick={()=>setPage(p=>p-1)} aria-label={phrase(ka,'Previous page','წინა გვერდი')}><ChevronLeft className="h-4 w-4"/></button><span>{page+1} / {pages}</span><button type="button" disabled={busy||page+1>=pages} onClick={()=>setPage(p=>p+1)} aria-label={phrase(ka,'Next page','შემდეგი გვერდი')}><ChevronRight className="h-4 w-4"/></button></div>
-        {selected&&<div className="mt-4 rounded-xl border border-[var(--fc-border)] p-4"><div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-[var(--fc-accent)]"/><h3 className="font-semibold">{selected.playerName} · {selected.clubName}</h3></div><p className="mt-3 text-sm"><strong>{phrase(ka,'Scope: ','საკითხი: ')}</strong>{selected.scope}</p>{selected.message&&<p className="mt-2 whitespace-pre-wrap text-sm text-[var(--fc-text-secondary)]">{selected.message}</p>}<p className="mt-2 text-xs text-[var(--fc-text-muted)]">{new Intl.DateTimeFormat(ka?'ka-GE':'en-GB',{dateStyle:'medium'}).format(new Date(selected.updatedAt))}</p><div className="club-approach-actions mt-3 flex flex-wrap gap-2">{selected.allowedActions.filter(a=>a!=='MESSAGE').map(raw=>{const action=raw as ClubApproachAction;return <button type="button" key={action} disabled={busy} onClick={()=>confirmationRequired.has(action)?setPendingAction(action):void runAction(action)} className="rounded-lg border border-[var(--fc-border)] px-3 py-2 text-sm font-semibold hover:bg-[var(--fc-surface-hover)]">{localizedAction(action,ka)||action}</button>})}</div>{pendingAction&&<div className="mt-3 rounded-lg bg-[var(--fc-state-warning-soft)] p-3"><p className="text-sm font-medium">{phrase(ka,`Confirm ${actionLabels[pendingAction].toLowerCase()}? ${pendingAction === 'APPROVE' ? 'This shares the approach with the club.' : 'This cannot be undone.'}`,`დაადასტუროთ ${localizedAction(pendingAction,true)}? ${pendingAction === 'APPROVE' ? 'ეს მიმართვას კლუბს გაუზიარებს.' : 'ამ ქმედების გაუქმება შეუძლებელია.'}`)}</p><textarea maxLength={2000} value={note} onChange={e=>setNote(e.target.value)} placeholder={phrase(ka,'Note (optional)','შენიშვნა (არასავალდებულო)')} className="mt-2 w-full rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-2" rows={2}/><div className="mt-2 flex gap-2"><button type="button" disabled={busy} onClick={()=>void runAction(pendingAction)} className="rounded-lg bg-[var(--fc-state-danger)] px-3 py-2 text-sm font-semibold text-[color:var(--color-text)]">{phrase(ka,'Confirm','დადასტურება')}</button><button type="button" onClick={()=>setPendingAction(null)} className="rounded-lg border border-[var(--fc-border)] px-3 py-2 text-sm">{phrase(ka,'Cancel','გაუქმება')}</button></div></div>}<div className="mt-4 border-t border-[var(--fc-border)] pt-3"><p className="flex items-center gap-2 text-sm font-semibold"><MessageCircle className="h-4 w-4"/>{phrase(ka,'Approach discussion and record','მიმართვის განხილვა და ჩანაწერი')}</p><div className="mt-2 max-h-48 space-y-2 overflow-y-auto">{messages.map(m=><div key={m.id} className="rounded-lg bg-[var(--fc-surface-hover)] p-2 text-sm"><p><strong>{auditLabel(m.kind,ka)}</strong><span className="text-[var(--fc-text-muted)]"> · {m.authorName}</span></p>{m.body&&<p className="mt-1 whitespace-pre-wrap">{m.body}</p>}</div>)}</div>{messageTotal>20&&<div className="mt-2 flex justify-end gap-2"><button type="button" aria-label={phrase(ka,'Previous discussion page','წინა განხილვის გვერდი')} disabled={messagePage===0} onClick={()=>setMessagePage(value=>value-1)}><ChevronLeft className="h-4 w-4"/></button><span className="text-xs">{messagePage+1} / {Math.ceil(messageTotal/20)}</span><button type="button" aria-label={phrase(ka,'Next discussion page','შემდეგი განხილვის გვერდი')} disabled={(messagePage+1)*20>=messageTotal} onClick={()=>setMessagePage(value=>value+1)}><ChevronRight className="h-4 w-4"/></button></div>}{selected.allowedActions.includes('MESSAGE')&&<div className="mt-2 flex gap-2"><input maxLength={2000} value={messageBody} onChange={e=>setMessageBody(e.target.value)} className="flex-1 rounded-lg border border-[var(--fc-border)] bg-[var(--fc-card-bg)] p-2 text-sm" placeholder={phrase(ka,'Write a message','დაწერეთ შეტყობინება')}/><button type="button" disabled={busy||!messageBody.trim()} onClick={()=>void sendMessage()} className="rounded-lg bg-[var(--fc-accent)] px-3 text-sm font-semibold text-[color:var(--color-on-accent)]">{phrase(ka,'Send','გაგზავნა')}</button></div>}</div></div>}
+    const intro = phrase(ka, 'A club sees an approach only after the player approves sharing it.', 'კლუბი მიმართვას ხედავს მხოლოდ მას შემდეგ, რაც მოთამაშე გაზიარებას დაადასტურებს.');
+    const newApproach = mode === 'agent' && <Button variant="primary" aria-expanded={proposal.open} onClick={() => proposal.setOpen(value => !value)}><Plus aria-hidden="true" />{phrase(ka, 'New approach', 'ახალი მიმართვა')}</Button>;
+
+    let list: ReactNode;
+    if (s.loading) list = <div className="gk-panel ca-list" role="status" aria-label={phrase(ka, 'Loading approaches', 'მიმართვები იტვირთება')}><div className="ca-skeletons">{[0, 1].map(i => <Skeleton key={i} height={56} />)}</div></div>;
+    else if (s.error && !s.items.length) list = null;
+    else if (!s.items.length) list = <div className="gk-panel ca-list"><EmptyNote title={phrase(ka, 'No approaches here yet.', 'აქ მიმართვები ჯერ არ არის.')}>{phrase(ka, 'An agent can propose contact with a club. The player reviews it first; once approved, the club can respond here.', 'აგენტს შეუძლია კლუბთან დაკავშირება შესთავაზოს მოთამაშეს. მოთამაშის თანხმობის შემდეგ კლუბს აქ შეუძლია პასუხის გაცემა.')}</EmptyNote></div>;
+    else list = <div className="gk-panel ca-list"><ul className="gk-list">{s.items.map(item => {
+        const [en, ge, tone] = STATUS[item.status] ?? [item.status, item.status, 'neutral'];
+        return <li key={item.id}><button type="button" className="gk-list-row ca-row" aria-current={selected?.id === item.id || undefined} onClick={() => s.select(item)}>
+            <span className="gk-list-row__main">
+                <span className="gk-list-row__title">{mode === 'club' ? item.playerName : item.clubName}</span>
+                <span className="gk-list-row__meta">{scopeText(item.scope)}</span>
+            </span>
+            <span className="gk-list-row__trail"><Badge tone={tone}>{ka ? ge : en}</Badge><ChevronRight aria-hidden="true" className="ca-chevron" /></span>
+        </button></li>;
+    })}</ul></div>;
+
+    const detail = selected && <section className="gk-panel ca-detail" aria-labelledby={`${titleId}-detail`}>
+        <header className="ca-detail__head">
+            <h3 id={`${titleId}-detail`} className="ca-detail__title">{selected.playerName} · {selected.clubName}</h3>
+            <Badge tone={STATUS[selected.status]?.[2] ?? 'neutral'}>{(STATUS[selected.status] ?? [selected.status, selected.status])[ka ? 1 : 0]}</Badge>
+        </header>
+        <div className="ca-detail__body">
+            <dl className="ca-facts">
+                <div><dt>{phrase(ka, 'Agent', 'აგენტი')}</dt><dd>{selected.agentName}</dd></div>
+                <div><dt>{phrase(ka, 'Scope', 'საკითხი')}</dt><dd>{scopeText(selected.scope)}</dd></div>
+                <div><dt>{phrase(ka, 'Last change', 'ბოლო ცვლილება')}</dt><dd>{new Intl.DateTimeFormat(ka ? 'ka-GE' : 'en-GB', { dateStyle: 'medium' }).format(new Date(selected.updatedAt))}</dd></div>
+            </dl>
+            {selected.message && <p className="ca-message">{selected.message}</p>}
+            {selected.allowedActions.some(raw => raw !== 'MESSAGE') && <div className="ca-actions">{selected.allowedActions.filter(raw => raw !== 'MESSAGE').map(raw => {
+                const next = raw as ClubApproachAction;
+                return <Button key={next} variant={next === 'APPROVE' || next === 'ACCEPT' ? 'primary' : 'secondary'} disabled={s.busy}
+                    onClick={() => CONFIRM.has(next) ? action.setPending(next) : void action.run(next)}>{ACTIONS[next]?.[ka ? 1 : 0] ?? next}</Button>;
+            })}</div>}
+            {action.pending && <div className="gk-notice gk-notice--warning ca-confirm" role="group" aria-label={phrase(ka, 'Confirm the change', 'ცვლილების დადასტურება')}>
+                <p><strong>{phrase(ka, `${ACTIONS[action.pending][0]} this approach?`, `${ACTIONS[action.pending][1]}?`)}</strong> {action.pending === 'APPROVE' ? phrase(ka, 'This shares the approach with the club.', 'ეს მიმართვას კლუბს გაუზიარებს.') : phrase(ka, 'This cannot be undone.', 'ამ ქმედების გაუქმება შეუძლებელია.')}</p>
+                <Field label={phrase(ka, 'Note (optional)', 'შენიშვნა (არასავალდებულო)')} htmlFor={`${titleId}-note`}><textarea id={`${titleId}-note`} className="gk-input" maxLength={2000} rows={2} value={action.note} onChange={event => action.setNote(event.target.value)} /></Field>
+                <div className="ca-actions">
+                    <Button variant="ghost" onClick={() => action.setPending(null)}>{phrase(ka, 'Cancel', 'გაუქმება')}</Button>
+                    <Button variant={action.pending === 'APPROVE' ? 'primary' : 'danger'} disabled={s.busy} onClick={() => action.pending && void action.run(action.pending)}>{phrase(ka, 'Confirm', 'დადასტურება')}</Button>
+                </div>
+            </div>}
+            <section className="ca-discussion" aria-labelledby={`${titleId}-discussion`}>
+                <h4 id={`${titleId}-discussion`} className="ca-discussion__title"><MessageCircle aria-hidden="true" />{phrase(ka, 'Discussion and record', 'განხილვა და ჩანაწერი')}</h4>
+                {discussion.messages.length > 0 ? <ul className="ca-messages">{discussion.messages.map(item => <li key={item.id}>
+                    <p><strong>{auditLabel(item.kind, ka)}</strong><span className="ca-faint"> · {item.authorName}</span></p>{item.body && <p className="ca-message">{item.body}</p>}
+                </li>)}</ul> : <p className="ca-faint">{phrase(ka, 'No messages yet.', 'შეტყობინებები ჯერ არ არის.')}</p>}
+                {discussion.total > PAGE_SIZE && <div className="ca-pages">
+                    <Button size="sm" variant="ghost" iconOnly aria-label={phrase(ka, 'Previous discussion page', 'წინა განხილვის გვერდი')} disabled={discussion.page === 0} onClick={() => discussion.setPage(value => value - 1)}><ChevronLeft aria-hidden="true" /></Button>
+                    <span className="gk-num">{discussion.page + 1} / {Math.ceil(discussion.total / PAGE_SIZE)}</span>
+                    <Button size="sm" variant="ghost" iconOnly aria-label={phrase(ka, 'Next discussion page', 'შემდეგი განხილვის გვერდი')} disabled={(discussion.page + 1) * PAGE_SIZE >= discussion.total} onClick={() => discussion.setPage(value => value + 1)}><ChevronRight aria-hidden="true" /></Button>
+                </div>}
+                {selected.allowedActions.includes('MESSAGE') && <form className="ca-compose" onSubmit={event => { event.preventDefault(); void discussion.send(); }}>
+                    <input className="gk-input" maxLength={2000} value={discussion.body} onChange={event => discussion.setBody(event.target.value)} aria-label={phrase(ka, 'Message', 'შეტყობინება')} placeholder={phrase(ka, 'Write a message', 'დაწერეთ შეტყობინება')} />
+                    <Button type="submit" disabled={s.busy || !discussion.body.trim()}>{phrase(ka, 'Send', 'გაგზავნა')}</Button>
+                </form>}
+            </section>
+        </div>
     </section>;
+
+    const body = <div className="ca-stack">
+        {proposal.open && <form className="gk-panel ca-new" aria-label={phrase(ka, 'New approach', 'ახალი მიმართვა')} onSubmit={event => { event.preventDefault(); void proposal.submit(); }}>
+            <Field label={phrase(ka, 'Player', 'მოთამაშე')} htmlFor={`${titleId}-player`} hint={proposal.options.length === 0 ? phrase(ka, 'No eligible player is available. End any legacy recorded connection, then send and accept a new mutual representation request.', 'შესაბამისი მოთამაშე მიუწვდომელია. დაასრულეთ ძველი კავშირი, შემდეგ გაგზავნეთ და დაადასტურეთ ახალი ორმხრივი წარმომადგენლობის მოთხოვნა.') : undefined}>
+                <select id={`${titleId}-player`} className="gk-input" value={proposal.player} onChange={event => proposal.setPlayer(event.target.value)}><option value="">{phrase(ka, 'Select consenting player', 'აირჩიეთ თანხმობის მქონე მოთამაშე')}</option>{proposal.options.map(option => <option key={option.representationRequestId} value={option.representationRequestId}>{option.playerName}</option>)}</select></Field>
+            <Field label={phrase(ka, 'Club', 'კლუბი')} htmlFor={`${titleId}-club`}>
+                <input id={`${titleId}-club`} className="gk-input" value={proposal.clubQuery} onChange={event => { proposal.setClubQuery(event.target.value); proposal.setClub(null); }} placeholder={phrase(ka, 'Search clubs', 'მოძებნეთ კლუბი')} />
+                {proposal.clubs.length > 0 && <ul className="gk-panel ca-suggestions">{proposal.clubs.map(item => <li key={item.id}><button type="button" className="gk-list-row" onClick={() => { proposal.setClub(item); proposal.setClubQuery(item.name); proposal.setClubs([]); }}>{item.name}</button></li>)}</ul>}</Field>
+            <Field label={phrase(ka, 'Scope', 'საკითხი')} htmlFor={`${titleId}-scope`}><textarea id={`${titleId}-scope`} className="gk-input" required maxLength={500} rows={2} value={proposal.scope} onChange={event => proposal.setScope(event.target.value)} /></Field>
+            <Field label={phrase(ka, 'Message (optional)', 'შეტყობინება (არასავალდებულო)')} htmlFor={`${titleId}-message`}><textarea id={`${titleId}-message`} className="gk-input" maxLength={2000} rows={3} value={proposal.message} onChange={event => proposal.setMessage(event.target.value)} /></Field>
+            <div><Button type="submit" variant="primary" disabled={s.busy || !proposal.player || !proposal.club || !proposal.scope.trim()}>{s.busy ? phrase(ka, 'Sending…', 'იგზავნება…') : phrase(ka, 'Send for player approval', 'გაგზავნა მოთამაშის დასადასტურებლად')}</Button></div>
+        </form>}
+        <div className="ca-toolbar">
+            <Segmented label={phrase(ka, 'Approaches to show', 'საჩვენებელი მიმართვები')} value={s.view} onChange={view => { if (!s.busy) { s.setView(view); s.setPage(0); } }}
+                items={[{ id: 'OPEN', label: phrase(ka, 'Open', 'აქტიური') }, { id: 'HISTORY', label: phrase(ka, 'History', 'ისტორია') }]} />
+            <Button variant="ghost" iconOnly aria-label={phrase(ka, 'Refresh approaches', 'მიმართვების განახლება')} onClick={() => void s.refresh()}><RefreshCw aria-hidden="true" /></Button>
+        </div>
+        {s.error && <div className="gk-notice gk-notice--danger" role="alert"><span className="ca-grow">{s.error}</span><Button size="sm" onClick={() => void s.refresh()}>{phrase(ka, 'Retry', 'თავიდან ცდა')}</Button></div>}
+        <div className={selected ? 'ca-layout ca-layout--detail' : 'ca-layout'}>
+            <div className="ca-stack ca-stack--tight">
+                {list}
+                {s.pages > 1 && <div className="ca-pages">
+                    <Button size="sm" variant="ghost" iconOnly disabled={s.busy || s.page === 0} onClick={() => s.setPage(p => p - 1)} aria-label={phrase(ka, 'Previous page', 'წინა გვერდი')}><ChevronLeft aria-hidden="true" /></Button>
+                    <span className="gk-num">{s.page + 1} / {s.pages}</span>
+                    <Button size="sm" variant="ghost" iconOnly disabled={s.busy || s.page + 1 >= s.pages} onClick={() => s.setPage(p => p + 1)} aria-label={phrase(ka, 'Next page', 'შემდეგი გვერდი')}><ChevronRight aria-hidden="true" /></Button>
+                </div>}
+            </div>
+            {detail}
+        </div>
+    </div>;
+
+    if (mode === 'club') return <PageFrame className="cw-page"><PageHeader title={title} subtitle={intro} />{body}</PageFrame>;
+    return <GkRoot className="ca-panel"><section className="gk-panel ca-section" aria-labelledby={titleId}>
+        <header className="ca-section__head"><div><h2 id={titleId} className="ca-section__title">{title}</h2><p className="ca-faint">{intro}</p></div>{newApproach}</header>
+        <div className="ca-section__body">{body}</div>
+    </section></GkRoot>;
 }

@@ -60,6 +60,13 @@ export const vi = {
 };
 Object.assign(globalThis, { describe, it, test, expect, vi, beforeEach, afterEach, beforeAll, afterAll });
 
+// Settles an async vi.mock factory where it is registered (see run.mjs), before the test body reads it.
+globalThis.__vtResolveMock = async spec => {
+  const factory = globalThis.__vtMocks[spec];
+  if (!('v' in factory)) factory.v = factory(async () => globalThis.__vtActual[spec]());
+  if (factory.v && typeof factory.v.then === 'function') factory.v = await factory.v;
+};
+
 export async function run(filter) {
   // Async vi.mock factories (for example ones that spread vi.importActual) settle before the tests start.
   for (const [spec, factory] of Object.entries(globalThis.__vtMocks ?? {})) {

@@ -11,13 +11,13 @@ import type { OpenWorkspace } from '../clubOperations/workspaceStructure';
 import type { ClubManagementOverview, PlayerAffiliationStatus } from '../clubs/domain';
 import type { WorkspaceTab } from '../../components/workspace/types';
 import type { AuthSessionId } from '../../utils/authStorage';
-import { CampaignsTab } from '../../components/workspace/tabs/CampaignsTab';
 import { InboxTab } from '../../components/workspace/tabs/InboxTab';
-import { JobsTab } from '../../components/workspace/tabs/JobsTab';
 import { RolesTab } from '../../components/workspace/tabs/RolesTab';
-import { StoreTab } from '../../components/workspace/tabs/StoreTab';
 import { Button, PageFrame, PageHeader } from '../../design/primitives';
 import type { ClubMembership } from './useClubMembership';
+import { ClubCampaignsPage } from './commerce/ClubCampaignsPage';
+import { OpenRolesPage } from './commerce/OpenRolesPage';
+import { StoreProductsPage } from './commerce/StoreProductsPage';
 import { PlayersPage } from './players/PlayersPage';
 import { PlayerCardsPage } from './players/PlayerCardsPage';
 import { ApplicationsPage } from './recruitment/ApplicationsPage';
@@ -93,9 +93,9 @@ export function ClubTools(ctx: ClubToolsContext) {
             onConfirmOwnershipTransfer={m.decisions.setConfirmingOwnershipTransferUserId} onTransferOwnership={m.actions.transferOwnership}
             onConfirmSelfLeave={m.actions.confirmSelfLeave} onLeaveClub={m.actions.leaveClub} onOpenJobs={() => ctx.switchTab('jobs')} /> : null;
         case 'club-approaches': return can.leadership ? <ClubApproachesPanel mode="club" clubId={clubId} /> : null;
-        case 'jobs': return <JobsTab clubId={clubId} pendingKey={m.pendingKey} currentUserId={ctx.currentUserId} canReviewAllApplications={can.leadership} />;
-        case 'store': return can.leadership ? <StoreTab key={clubId} clubId={clubId} /> : null;
-        case 'campaigns': return can.leadership ? <CampaignsTab key={clubId} clubId={clubId} /> : null;
+        case 'jobs': return <OpenRolesPage clubId={clubId} pendingKey={m.pendingKey} currentUserId={ctx.currentUserId} canReviewAllApplications={can.leadership} />;
+        case 'store': return can.leadership ? <StoreProductsPage key={clubId} clubId={clubId} /> : null;
+        case 'campaigns': return can.leadership ? <ClubCampaignsPage key={clubId} clubId={clubId} /> : null;
         case 'player-cards': return <PlayerCardsPage clubId={clubId} setParentError={m.setErrorMessage} setParentSuccess={m.setSuccessMessage} />;
         case 'tryouts': return <>
             {ctx.focusedApplicationId != null && focusNote(!m.tryouts.loading && !m.tryouts.applicants.some(a => a.id === ctx.focusedApplicationId) ? 'This application is unavailable or you no longer have access.' : 'Showing the application from your notification.')}

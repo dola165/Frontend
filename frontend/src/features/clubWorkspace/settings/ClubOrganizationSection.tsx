@@ -6,9 +6,6 @@ import { Button, EmptyNote, Panel, Skeleton } from '../../../design/primitives';
 import { OrganizationActivitySettings } from '../../organizations/activities/OrganizationActivitySettings';
 import { OrganizationPortfolio } from '../../organizations/OrganizationPortfolio';
 import { WorkspaceImports } from '../../organizations/setup/WorkspaceImports';
-import { LegacyIsland } from '../../clubOperations/records/LegacyIsland';
-import '../../organizations/setup/setup.css';
-import '../../organizations/presentation/entity-profile.css';
 import '../club-workspace.css';
 
 interface OrganizationWorkspace { id: number; clubId: number | null; canManage: boolean; promotionBlocked: boolean }
@@ -32,9 +29,9 @@ export function ClubOrganizationSection({ clubId, section }: { clubId: number; s
     if (error) return <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error}</span><Button size="sm" onClick={() => { setError(''); setAttempt(n => n + 1); }}>Try again</Button></div>;
     if (!workspace) return <Panel padded><Skeleton height={140} /></Panel>;
     if (!workspace.canManage) return <Panel><EmptyNote title="Current club leadership manages these settings" /></Panel>;
-    return <Panel padded><LegacyIsland className="club-organization-tools">
+    return <Panel padded>
         {section === 'imports' ? <WorkspaceImports key={`${workspace.id}:imports`} id={workspace.id} clubId={clubId} blocked={workspace.promotionBlocked} />
             : section === 'facilities' ? <OrganizationPortfolio id={workspace.id} />
                 : <OrganizationActivitySettings id={workspace.id} onChanged={() => { void refreshNavigationCapabilities().catch(() => undefined); }} />}
-    </LegacyIsland></Panel>;
+    </Panel>;
 }

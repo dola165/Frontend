@@ -19,10 +19,6 @@
 @media (max-width: 1023px) { .gk .cw-notices { top: 60px; } }
 
 /* Tools that have not moved to the design system keep their own styles in the shared frame. */
-.gk .cw-legacy { padding-bottom: var(--gk-16); }
-.gk .cw-legacy__back { padding-top: var(--gk-4); }
-.gk .cw-legacy .workspace-page-shell { background: transparent; }
-.gk .cw-legacy .workspace-tab-content { padding: var(--gk-6) 0 0; }
 
 /* ---------------------------------------------------------------- overview */
 .gk .cw-loading { display: flex; flex-direction: column; gap: var(--gk-4); padding-top: var(--gk-8); }

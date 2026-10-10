@@ -1,0 +1,23 @@
+/* The tournament workspace inside the shared workspace shell: a design-system header, with the tournament
+   tools below it keeping their own styles. Scoped under `.gk`; tokens only. */
+.gk .tws-page { padding-bottom: var(--gk-16); }
+.gk .tws-header .gk-page-header__subtitle { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .tws-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-4); color: var(--gk-text-2); }
+.gk .tws-meta__link, .gk .tws-meta__item { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; }
+.gk .tws-meta__link { color: var(--gk-text); font-weight: 600; }
+.gk .tws-meta__link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.gk .tws-meta svg { width: 14px; height: 14px; color: var(--gk-text-3); }
+.gk .tws-header .gk-page-header__actions .gk-btn { min-height: 44px; }
+.gk .tws-header .gk-page-header__actions .gk-btn svg { width: 16px; height: 16px; }
+.gk .tws-blockers { margin-bottom: var(--gk-5); }
+.gk .tws-blockers__text { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
+.gk .tws-blockers ul { margin: 0; padding-left: var(--gk-5); }
+.gk .tws-blockers li { overflow-wrap: anywhere; }
+.gk .tws-blockers li .gk-btn { min-height: 32px; margin-left: var(--gk-1); color: var(--gk-accent); }
+.gk .tws-error { margin-bottom: var(--gk-4); }
+/* The tournament tools keep their own palette; the shell supplies the page frame and spacing. */
+.gk .tws-body.tw-workspace { padding: 0; min-height: 0; background: transparent; max-width: none; }
+.gk .tws-sections { min-width: 0; }
+.gk .tws-state { padding-block: var(--gk-8); }
+.gk .tws-state__body { display: flex; flex-direction: column; gap: var(--gk-4); max-width: 720px; }
+.gk .tws-state__actions { display: flex; flex-wrap: wrap; gap: var(--gk-2); }

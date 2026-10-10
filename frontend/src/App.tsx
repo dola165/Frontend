@@ -392,7 +392,7 @@ export function MainLayout() {
             <Route path="/clubs/:id/profile-settings" element={<ProtectedRoute><ClubPublicProfileSettingsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/operations" element={<ProtectedRoute><ClubOperationsPage /></ProtectedRoute>} />
             <Route path="/club-operations" element={<ProtectedRoute><MyClubOperationsPage /></ProtectedRoute>} />
-            <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage darkMode={darkMode} /></ProtectedRoute>} />
+            <Route path="/clubs/:id/workspace" element={<ProtectedRoute><ClubWorkspacePage /></ProtectedRoute>} />
             <Route path="/clubs/:id" element={<ClubProfilePage />} />
             <Route path="/clubs/create" element={<ProtectedRoute><Navigate to="/organizations/create?kind=CLUB" replace /></ProtectedRoute>} />
             <Route path="/my-organizations" element={<ProtectedRoute><MyOrganizationsPage /></ProtectedRoute>} />

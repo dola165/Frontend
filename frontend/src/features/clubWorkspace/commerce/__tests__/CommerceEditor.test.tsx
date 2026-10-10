@@ -1,8 +1,8 @@
 import { StrictMode } from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
-import { StoreProductForm } from '../../tabs/StoreTab';
-import { CampaignForm } from '../../tabs/CampaignsTab';
+import { StoreProductForm } from '../StoreProductForm';
+import { CampaignForm } from '../CampaignForm';
 
 it('Escape asks before discarding a product and Keep editing returns keyboard focus to the unchanged field', () => {
     const onCancel = vi.fn();

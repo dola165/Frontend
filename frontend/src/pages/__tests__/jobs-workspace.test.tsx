@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
-import { JobsTab } from '../../components/workspace/tabs/JobsTab';
+import { OpenRolesPage } from '../../features/clubWorkspace/commerce/OpenRolesPage';
 import * as api from '../../features/clubs/api';
 vi.mock('react-i18next', () => { const t = (key: string) => key; return { useTranslation: () => ({ t }) }; });
 vi.mock('../../features/clubs/api', () => ({
@@ -26,7 +26,7 @@ beforeEach(() => {
     vi.mocked(api.fetchAllClubJobs).mockResolvedValue([job]);
 });
 const setup = () =>
-    render(<JobsTab clubId={10} currentUserId={55} canReviewAllApplications pendingKey={null} />);
+    render(<OpenRolesPage clubId={10} currentUserId={55} canReviewAllApplications pendingKey={null} />);
 it('surfaces close failures and retains the open posting', async () => {
     vi.mocked(api.updateClubJob).mockRejectedValue({
         response: { data: { error: 'Posting could not be closed' } },
@@ -91,8 +91,9 @@ it('sends the displayed version for close and the confirmed version for delete',
     await screen.findByRole('alert');
     expect(api.updateClubJob).toHaveBeenCalledWith(10, 1, { status: 'CLOSED', version: 0 });
     fireEvent.click(screen.getByRole('button', { name: 'Delete Youth coach' }));
+    // The list refreshes behind the open confirmation (the dialog keeps the page behind it inert).
     vi.mocked(api.fetchAllClubJobs).mockResolvedValue([{ ...job, version: 2, title: 'Newer title' }]);
-    fireEvent.click(screen.getByRole('button', { name: 'Reload jobs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reload jobs', hidden: true }));
     await screen.findByText('Newer title');
     fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
     expect(api.deleteClubJob).toHaveBeenCalledWith(10, 1, 0);

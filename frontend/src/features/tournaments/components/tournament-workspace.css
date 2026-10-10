@@ -47,49 +47,12 @@
   color: var(--tw-green) !important;
   font-weight: 700;
 }
-.tw-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 24px;
-  padding-bottom: 22px;
-}
-.tw-header-meta,
 .tw-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
-.tw-header-meta {
-  color: var(--tw-muted);
-  font-size: 12px;
-  gap: 16px;
-  margin-top: 12px;
-}
-.tw-header-meta > span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.tw-start-control {
-  position: relative;
-  align-self: flex-start;
-}
-.tw-start-blockers {
-  width: min(380px, calc(100vw - 32px));
-  margin-top: 8px;
-  padding: 12px 14px;
-  border: 1px solid var(--tw-line);
-  border-radius: 10px;
-  background: var(--tw-surface);
-  color: var(--tw-muted);
-  font-size: 11px;
-  line-height: 1.5;
-}
-.tw-start-blockers strong { color: var(--tw-text); }
-.tw-start-blockers ul { margin: 6px 0 0; padding-left: 18px; }
-.tw-start-blockers button { color: var(--tw-green); text-decoration: underline; text-underline-offset: 2px; }
 .tw-tabs {
   display: flex;
   gap: 6px;
@@ -643,14 +606,6 @@
   .tw-workspace {
     padding: 16px 12px;
   }
-  .tw-header {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .tw-header-meta {
-    gap: 10px;
-  }
   .tw-tabs {
     margin-bottom: 16px;
   }
@@ -795,13 +750,9 @@
   .tw-edit-form .tw-edit-actions { bottom: -18px; margin: 0 -18px -18px; padding: 16px 18px; }
 }
 
-/* Tournament task hierarchy: bounded header actions, consistent inset rows. */
-.tc-workspace .tw-header { align-items:flex-start; }
-.tc-workspace .tw-header>.tw-actions { max-width:460px; justify-content:flex-end; }
-.tc-workspace .tw-header-meta>a { display:inline-flex; align-items:center; gap:6px; }
+/* Tournament task hierarchy: consistent inset rows. */
 .tc-workspace .tw-progress { background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:12px; padding:14px; margin-bottom:20px; }
 .tc-workspace .tw-entry-row { padding:18px 20px; }
-.tc-workspace .tw-start-blockers { width:100%; max-width:440px; background:var(--bg-inset); }
 .tc-workspace .tw-panel { border-radius:12px; }
 .tc-workspace .tw-toolbar h2 { font-size:22px; }
-@media(max-width:900px) { .tc-workspace .tw-header { flex-direction:column; gap:18px; } .tc-workspace .tw-header>.tw-actions { max-width:none; justify-content:flex-start; } }
+

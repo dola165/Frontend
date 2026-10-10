@@ -67,8 +67,14 @@ function Editor({ clubId, part }: { clubId: number; part: Part }) {
         catch (e) { if (active.current) setError(extractApiErrorMessage(e, 'Could not save the changes. Your draft is still here.')); }
         finally { submitting.current = false; if (active.current) setBusy(false); }
     };
-    const save = (event: FormEvent) => {
+    const save = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault(); if (!profile) return;
+        // Collapsed programmes and sponsors may hold the field that needs correction: open it, then focus.
+        const invalid = Array.from(event.currentTarget.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea')).find(control => control.willValidate && !control.validity.valid);
+        if (invalid) {
+            for (let parent = invalid.parentElement; parent && parent !== event.currentTarget; parent = parent.parentElement) if (parent instanceof HTMLDetailsElement) parent.open = true;
+            invalid.focus(); invalid.reportValidity(); return;
+        }
         const { revision, profileKind, programmes, sponsors } = profile;
         const editableSponsors = sponsors.map(({ id, name, logoUrl, websiteUrl, organizationId, published }) => ({ id, name, logoUrl, websiteUrl, organizationId, published }));
         void mutate(() => apiClient.put(`/clubs/${clubId}/presentation`, { revision, profileKind, programmes, sponsors: editableSponsors }), 'Public profile settings saved.');
@@ -84,7 +90,7 @@ function Editor({ clubId, part }: { clubId: number; part: Part }) {
         {error && <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error}</span><Button size="sm" disabled={busy} onClick={() => setAttempt(a => a + 1)}>Discard draft & reload</Button></div>}
         {message && <div className="gk-notice cw-notices__success" role="status">{message}</div>}
         {!own && <div className="gk-notice" role="status">You are editing this academy’s public profile through access granted to its parent club.</div>}
-        <form onSubmit={save} className="rec-form rec-form--wide" aria-label={part === 'programmes' ? 'Programmes and fees' : 'Public profile settings'}>
+        <form onSubmit={save} noValidate className="rec-form rec-form--wide" aria-label={part === 'programmes' ? 'Programmes and fees' : 'Public profile settings'}>
             <fieldset disabled={busy || uploading} className="gk-stack">
                 {showProfile && <Panel flush title="Profile purpose" action={<ButtonLink size="sm" variant="ghost" to={`/clubs/${clubId}`}>View profile</ButtonLink>}>
                     <div className="rec-form__group">
@@ -93,16 +99,15 @@ function Editor({ clubId, part }: { clubId: number; part: Part }) {
                         </Field>
                     </div>
                 </Panel>}
-                {showProgrammes && <div className="gk-stack gk-stack--tight">
-                    {profile.programmes.length ? profile.programmes.map((p, index) => <ProgrammeEditor key={p.id ?? `new-${index}`} programme={p} index={index} squads={squads}
+                {showProgrammes && <Panel flush title="Training programmes" action={<Button size="sm" disabled={profile.programmes.length >= 30} onClick={() => change({ programmes: [...profile.programmes, emptyProgramme()] })}><Plus aria-hidden="true" />Add training programme</Button>}>
+                    {profile.programmes.length ? <div className="pp-list">{profile.programmes.map((p, index) => <ProgrammeEditor key={p.id ?? `new-${index}`} programme={p} index={index} squads={squads}
                         onChange={value => change({ programmes: profile.programmes.map((x, i) => i === index ? { ...x, ...value } : x) })}
-                        onRemove={() => change({ programmes: profile.programmes.filter((_, i) => i !== index) })} />)
-                        : <Panel><EmptyNote title="No training programmes yet">Add a programme so families can see ages, sessions and fees on the club page.</EmptyNote></Panel>}
-                    <div><Button disabled={profile.programmes.length >= 30} onClick={() => change({ programmes: [...profile.programmes, emptyProgramme()] })}><Plus aria-hidden="true" />Add training programme</Button></div>
-                </div>}
+                        onRemove={() => change({ programmes: profile.programmes.filter((_, i) => i !== index) })} />)}</div>
+                        : <EmptyNote title="No training programmes yet">Add a programme so families can see ages, sessions and fees on the club page.</EmptyNote>}
+                </Panel>}
                 {showProfile && <SponsorsEditor sponsors={profile.sponsors} onChange={sponsors => change({ sponsors })} onUploading={setUploading} />}
                 <div className="rec-actions"><Button type="submit" variant="primary" disabled={!dirty || busy}>{busy ? 'Saving…' : part === 'programmes' ? 'Save programmes' : 'Save profile settings'}</Button>
-                    <p className="rec-actions__note">{dirty ? 'You have unsaved changes.' : 'Everything is saved.'}</p></div>
+                    <p className="rec-actions__note">{uploading ? 'Uploading the logo…' : dirty ? 'You have unsaved changes. They are not on the club page until you save.' : 'Everything is saved.'}</p></div>
             </fieldset>
         </form>
         {showProfile && <AffiliationsEditor profile={profile} own={own} locked={dirty} busy={busy || uploading} query={query} matches={matches} searchError={searchError}

@@ -4,8 +4,9 @@ export function CommerceDraftScope({ clubId, feature, children }: { clubId: numb
     const {key, store} = useScopedDraftStore(clubId, feature);
     return <CommerceDraftContext.Provider key={key} value={store}>{children}</CommerceDraftContext.Provider>;
 }
+/** Shown while an editor is open: the draft survives switching pages, but not closing the app. */
 export function CommerceDraftNotice() {
     const store = useContext(CommerceDraftContext);
     const active = useSyncExternalStore(store?.subscribe ?? (() => () => {}), () => Boolean(store?.values.get('editing') || store?.values.get('updates')));
-    return active ? <p role="status" className="text-sm">Your unfinished work stays here when you switch pages. Save it before closing or reloading the app.</p> : null;
+    return active ? <p role="status" className="gk-notice">Your unfinished work stays here when you switch pages. Save it before closing or reloading the app.</p> : null;
 }

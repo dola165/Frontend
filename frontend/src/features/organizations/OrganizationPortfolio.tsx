@@ -1,10 +1,9 @@
-import { EmptyState } from '../../components/ui/EmptyState';
-import { MapPin } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
 import { extractApiErrorMessage } from '../../utils/apiError';
-import './organization-portfolio.css';
+import { Dialog } from '../../design/Dialog';
+import { Badge, Button, ButtonLink, EmptyNote, Field, GkRoot, Skeleton } from '../../design/primitives';
+import './org-tools.css';
 
 interface Venue { relationshipId: number; id: number; name: string; city: string | null; relationship: 'OWNS' | 'OPERATES'; source: string; revision: number; published: boolean; canManage: boolean; canEnd: boolean }
 interface Portfolio { clubId: number | null; canManageRelationships: boolean; venues: Venue[] }
@@ -47,14 +46,42 @@ export function OrganizationPortfolio({ id, revision = 0, hideWhenEmpty = false 
   }
   const venues = [...new Map(data?.venues.map(v => [v.id, v]) ?? []).values()];
   if (hideWhenEmpty && !error && !venues.length) return null;
-  return <section className="org-portfolio" aria-labelledby={`portfolio-${id}`}>
-    <div className="org-portfolio-heading"><div><p className="org-profile-kicker">Facilities</p><h2 id={`portfolio-${id}`}>Venues owned or operated</h2></div>{data?.canManageRelationships && (venues.length > 0 || adding) && <button className="org-profile-action" type="button" onClick={() => setAdding(v => !v)}>{adding ? 'Close form' : 'Link a venue'}</button>}</div>
-    <p className="org-portfolio-help">See the venues connected to this organization and open the workspace you have access to. Ownership declarations are recorded separately from verification.</p>
-    {error && <p role="alert">{error} <button type="button" onClick={() => setAttempt(v => v + 1)}>Retry</button></p>}
-    {!data && !error && <p role="status">Loading venues…</p>}
-    {adding && <form onSubmit={save} className="org-portfolio-form"><fieldset disabled={busy}><legend>Link an existing venue</legend><p>You must be an owner or administrator of both organizations. Linking a venue does not change anyone’s access.</p><label>Venue<select required value={venue} onChange={e => setVenue(e.target.value)}><option value="">{options === null ? 'Loading…' : 'Choose a venue'}</option>{options?.map(v => <option key={v.id} value={v.id}>{v.name}{v.city ? ` · ${v.city}` : ''}</option>)}</select></label><label>Relationship<select value={relationship} onChange={e => setRelationship(e.target.value as 'OWNS' | 'OPERATES')}><option value="OPERATES">Operates this venue</option><option value="OWNS">Owns this venue · declared, not verified</option></select></label>{options?.length === 0 && <p>No venues are available with your current owner or administrator access.</p>}<button className="org-profile-action org-profile-action--primary" disabled={busy || !venue}>{busy ? 'Saving…' : 'Save relationship'}</button></fieldset></form>}
-    {data && !venues.length && !adding && <EmptyState icon={MapPin} title="No venues are listed here yet." description={data.canManageRelationships ? "Connect an existing venue to show where your organization operates. The venue keeps its own bookings and access." : "Venues connected to this organization will appear here when its team adds them."} action={data.canManageRelationships ? {label:"Link a venue",onClick:()=>setAdding(true)} : undefined}/>}
-    <div className="org-portfolio-grid">{venues.map(v => <article key={v.id} className="org-portfolio-venue"><p className="org-profile-kicker">{v.published ? 'Venue' : 'Draft venue'}</p><h3>{v.name}</h3>{v.city && <p>{v.city}</p>}<ul className="org-portfolio-relations">{data?.venues.filter(r => r.id === v.id).map(r => <li key={r.relationshipId}><span>{r.relationship === 'OWNS' ? 'Owned · declared, not verified' : 'Operated'}</span>{r.canEnd && <button type="button" onClick={() => setEnding(r)} aria-label={`End ${r.relationship === 'OWNS' ? 'ownership' : 'operation'} relationship with ${r.name}`}>End relationship</button>}</li>)}</ul><div className="org-profile-actions">{v.canManage && <Link className="org-profile-action org-profile-action--primary" to={`/stadiums/${v.id}/manage`}>Manage venue</Link>}<Link className="org-profile-action" to={`/stadiums/${v.id}`}>View venue</Link></div></article>)}</div>
-    {ending && <section className="org-portfolio-confirm" aria-label="End venue relationship"><h3>End this {ending.relationship === 'OWNS' ? 'ownership' : 'operation'} relationship?</h3><p>{ending.name} will no longer be listed under this relationship. Existing bookings and access remain unchanged.</p><button type="button" disabled={busy} className="org-profile-action" onClick={() => void end()}>{busy ? 'Saving…' : 'End relationship'}</button><button type="button" disabled={busy} className="org-profile-action" onClick={() => setEnding(null)}>Keep relationship</button></section>}
-  </section>;
+  const relationName = (relation: Venue) => relation.relationship === 'OWNS' ? 'ownership' : 'operation';
+  return <GkRoot className="org-tool"><section className="org-tool__section" aria-labelledby={`portfolio-${id}`}>
+    <header className="org-tool__head">
+      <div><h2 id={`portfolio-${id}`} className="org-tool__title">Venues owned or operated</h2>
+        <p className="org-tool__hint">The venues connected to this organization. Ownership is a declaration and is recorded separately from verification.</p></div>
+      {data?.canManageRelationships && (venues.length > 0 || adding) && <Button onClick={() => setAdding(v => !v)}>{adding ? 'Close form' : 'Link a venue'}</Button>}
+    </header>
+    {error && <div className="gk-notice gk-notice--danger"><span role="alert" className="org-tool__grow">{error}</span><Button size="sm" onClick={() => setAttempt(v => v + 1)}>Retry</Button></div>}
+    {!data && !error && <div role="status" aria-label="Loading venues"><Skeleton height={72} /></div>}
+    {adding && <form onSubmit={save} className="org-tool__card">
+      <fieldset className="org-tool__fieldset" disabled={busy}>
+        <legend className="org-tool__legend">Link an existing venue</legend>
+        <p className="org-tool__hint">You must be an owner or administrator of both organizations. Linking a venue does not change anyone’s access.</p>
+        <div className="org-tool__pair">
+          <Field label="Venue" htmlFor={`portfolio-${id}-venue`}><select id={`portfolio-${id}-venue`} className="gk-input" required value={venue} onChange={e => setVenue(e.target.value)}><option value="">{options === null ? 'Loading…' : 'Choose a venue'}</option>{options?.map(v => <option key={v.id} value={v.id}>{v.name}{v.city ? ` · ${v.city}` : ''}</option>)}</select></Field>
+          <Field label="Relationship" htmlFor={`portfolio-${id}-relationship`}><select id={`portfolio-${id}-relationship`} className="gk-input" value={relationship} onChange={e => setRelationship(e.target.value as 'OWNS' | 'OPERATES')}><option value="OPERATES">Operates this venue</option><option value="OWNS">Owns this venue · declared, not verified</option></select></Field>
+        </div>
+        {options?.length === 0 && <p className="org-tool__hint">No venues are available with your current owner or administrator access.</p>}
+        <div><Button type="submit" variant="primary" disabled={busy || !venue}>{busy ? 'Saving…' : 'Save relationship'}</Button></div>
+      </fieldset>
+    </form>}
+    {data && !venues.length && !adding && <div className="org-tool__card"><EmptyNote title="No venues are listed here yet." action={data.canManageRelationships ? <Button size="sm" onClick={() => setAdding(true)}>Link a venue</Button> : undefined}>
+      {data.canManageRelationships ? 'Connect an existing venue to show where your organization operates. The venue keeps its own bookings and access.' : 'Venues connected to this organization appear here when its team adds them.'}</EmptyNote></div>}
+    {venues.length > 0 && <ul className="org-tool__list">{venues.map(v => <li key={v.id}><article className="org-tool__venue">
+      <div className="org-tool__venue-main">
+        <h3 className="org-tool__name">{v.name}</h3>
+        <p className="org-tool__hint">{[v.published ? 'Venue' : 'Draft venue', v.city].filter(Boolean).join(' · ')}</p>
+        <ul className="org-tool__relations">{data?.venues.filter(r => r.id === v.id).map(r => <li key={r.relationshipId}>
+          <Badge tone={r.relationship === 'OWNS' ? 'info' : 'neutral'}>{r.relationship === 'OWNS' ? 'Owned · declared, not verified' : 'Operated'}</Badge>
+          {r.canEnd && <Button size="sm" variant="ghost" onClick={() => setEnding(r)} aria-label={`End ${relationName(r)} relationship with ${r.name}`}>End relationship</Button>}
+        </li>)}</ul>
+      </div>
+      <div className="org-tool__actions">{v.canManage && <ButtonLink size="sm" to={`/stadiums/${v.id}/manage`}>Manage venue</ButtonLink>}<ButtonLink size="sm" variant="ghost" to={`/stadiums/${v.id}`}>View venue</ButtonLink></div>
+    </article></li>)}</ul>}
+    <Dialog open={ending !== null} role="alertdialog" size="sm" title={ending ? `End this ${relationName(ending)} relationship?` : ''} onClose={() => { if (!busy) setEnding(null); }}
+      description={ending ? `${ending.name} will no longer be listed under this relationship. Existing bookings and access stay as they are.` : undefined}
+      footer={<><Button variant="ghost" disabled={busy} onClick={() => setEnding(null)}>Keep relationship</Button><Button variant="danger" disabled={busy} onClick={() => void end()}>{busy ? 'Saving…' : 'End relationship'}</Button></>} />
+  </section></GkRoot>;
 }

@@ -5,3 +5,22 @@
 .editor-location input{box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:10px 12px;border:1px solid var(--fc-border,var(--border-subtle));border-radius:8px;background:var(--fc-page-bg,var(--bg-base));color:inherit;font:inherit}
 .editor-location-search>button,.editor-location-status>button{border:1px solid var(--fc-border,var(--border-subtle));border-radius:8px;background:var(--fc-card-bg,var(--bg-surface));color:inherit;font-size:13px;font-weight:600;padding:10px 14px}
 .editor-location-search>button:disabled{opacity:.5;cursor:not-allowed}
+/* Inside design-system pages the same fields use the design tokens. */
+.gk .editor-images > p, .gk .editor-location > p, .gk .editor-location details > p, .gk .editor-field-heading > span { color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .editor-field-heading h5 { font-family: var(--gk-font); font-size: var(--gk-fs-sm); font-weight: 600; }
+.gk .editor-images figure, .gk .editor-location-map { border-color: var(--gk-line); border-radius: var(--gk-r); }
+.gk .editor-images figure img { background: var(--gk-sunken); }
+.gk .editor-images figcaption { color: var(--gk-text-2); }
+.gk .editor-images figcaption button { min-width: 44px; min-height: 44px; border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-text-2); cursor: pointer; }
+.gk .editor-images figcaption button:hover { background: var(--gk-hover); color: var(--gk-text); }
+.gk .editor-upload-button, .gk .editor-location-search > button, .gk .editor-location-status > button { border: 1px solid var(--gk-line) !important; border-radius: var(--gk-r) !important; background: var(--gk-raised) !important; color: var(--gk-text) !important; font-weight: 600 !important; min-height: 44px; }
+.gk .editor-upload-button:hover, .gk .editor-location-search > button:hover:not(:disabled) { background: var(--gk-hover) !important; }
+.gk .editor-upload-button:focus-within { outline: none; box-shadow: var(--gk-focus); }
+.gk .editor-images [role=alert] { color: var(--gk-danger); font-size: var(--gk-fs-sm); }
+.gk .editor-location label { font-size: var(--gk-fs-sm); color: var(--gk-text); }
+.gk .editor-location input { border-color: var(--gk-line); border-radius: var(--gk-r); background: var(--gk-sunken); color: var(--gk-text); }
+.gk .editor-location input:focus { border-color: var(--gk-accent); outline: none; box-shadow: 0 0 0 3px var(--gk-accent-soft); }
+.gk .editor-location-results button { min-height: 44px; border: 0; background: none; color: var(--gk-text); cursor: pointer; }
+.gk .editor-location-results button:hover { background: var(--gk-hover); }
+.gk .editor-location-status { color: var(--gk-text-2); font-size: var(--gk-fs-sm); }
+.gk .editor-location summary { min-height: 44px; display: flex; align-items: center; font-size: var(--gk-fs-sm); font-weight: 600; }

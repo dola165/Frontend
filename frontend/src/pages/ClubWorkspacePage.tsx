@@ -8,12 +8,12 @@ import { WorkspaceRolesPanel } from '../features/clubOperations/WorkspaceRoleVie
 import { useClubOperations } from '../features/clubOperations/useClubOperations';
 import { useWorkspaceRoles, type RoleView } from '../features/clubOperations/useWorkspaceRoles';
 import { operationModule } from '../features/clubOperations/workspaceNavigation';
-import { areaFor, canonicalWorkspaceTab, legacyTabTarget, useResponsibilityFocus, type OpenWorkspace } from '../features/clubOperations/workspaceStructure';
+import { canonicalWorkspaceTab, legacyTabTarget, useResponsibilityFocus, type OpenWorkspace } from '../features/clubOperations/workspaceStructure';
 import { canManageClubOperations, canManagePlayerStatuses, canReviewTryouts, clubRoleLabel, isLeadershipRole, type PlayerAffiliationStatus } from '../features/clubs/domain';
 import { AllTools } from '../features/clubWorkspace/AllTools';
 import { ClubDecisionDialogs } from '../features/clubWorkspace/ClubDecisionDialogs';
 import { ClubTools } from '../features/clubWorkspace/ClubTools';
-import { LegacyFrame, WorkspaceNotices } from '../features/clubWorkspace/LegacyFrame';
+import { WorkspaceNotices } from '../features/clubWorkspace/WorkspaceNotices';
 import { buildClubTabs, clubNavigation, navLabel, visibleTabs } from '../features/clubWorkspace/clubTabs';
 import { guardWorkspaceNavigation } from '../features/clubOperations/workspaceGuard';
 import { useCopy } from '../locales/useCopy';
@@ -35,19 +35,18 @@ import '../features/clubWorkspace/club-workspace.css';
 
 const NO_VIEWS: RoleView[] = [];
 // Tools already built on the design system bring their own page frame.
-const FRAMED_TOOLS = new Set<WorkspaceTab>(['roles', 'inbox', 'players', 'personnel', 'invites', 'admissions', 'applications', 'tryouts', 'player-cards']);
 // Context that belongs to one tool and must not follow the person to another.
 const TOOL_CONTEXT = ['applicationId', 'case', 'caseId', 'admissionView', 'admissionGroup', 'record', 'approach', 'squad', 'session', 'person', 'kind', 'q', 'mine', 'state', 'view', 'playerSearch', 'position', 'return', 'from', 'hub', 'section', 'page', 'intake'];
 
-export default function ClubWorkspacePage({ darkMode }: { darkMode: boolean }) {
+export default function ClubWorkspacePage() {
     const { id } = useParams();
     const { isAuthenticated, sessionId } = useAuth();
     if (!isAuthenticated) return null;
     // A new club or account establishes access afresh and never inherits inbox state.
-    return <ClubWorkspaceSession key={`${sessionId}:${id}`} darkMode={darkMode} sessionId={sessionId} />;
+    return <ClubWorkspaceSession key={`${sessionId}:${id}`} sessionId={sessionId} />;
 }
 
-function ClubWorkspaceSession({ darkMode, sessionId }: { darkMode: boolean; sessionId: AuthSessionId }) {
+function ClubWorkspaceSession({ sessionId }: { sessionId: AuthSessionId }) {
     const { id: clubIdParam } = useParams<{ id: string }>();
     const clubId = Number(clubIdParam);
     const navigate = useNavigate();
@@ -150,8 +149,6 @@ function ClubWorkspaceSession({ darkMode, sessionId }: { darkMode: boolean; sess
 
     const loading = workspaceRoles.loading || (club.loading && !overview && !operations.boot) || (selectedOperation && operations.loading);
     const failed = club.error && !overview && !operations.boot && !roles;
-    const legacy = (children: ReactNode) => <LegacyFrame darkMode={darkMode} area={areaFor(activeTab)?.id ?? 'overview'} tab={activeTab}>{children}</LegacyFrame>;
-    const framed = (tool: ReactNode) => FRAMED_TOOLS.has(activeTab) ? tool : legacy(tool);
     // The way back only exists when the tool was opened from somewhere (never just because a squad is in the address).
     const returnTo = searchParams.get('return');
     const origin = returnTo !== null ? (() => {
@@ -180,11 +177,11 @@ function ClubWorkspaceSession({ darkMode, sessionId }: { darkMode: boolean; sess
     else if (selectedOperation) content = operations.boot
         ? <WorkspaceOperations key={`${clubId}-${selectedOperation}-${workSquad}-${searchParams.get('session') ?? ''}-${searchParams.get('person') ?? ''}`} boot={{ ...operations.boot, peopleBySquad: roles?.people }} module={selectedOperation} onRefresh={operations.refresh} origin={origin} />
         : <PageFrame className="cw-page"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{operations.error || 'This section is unavailable for your account.'}</span><Button size="sm" onClick={() => { void operations.refresh(); }}>Try again</Button></div></PageFrame>;
-    else content = framed(<ClubTools tab={activeTab} clubId={clubId} sessionId={sessionId} currentUserId={currentUserId} overview={overview} reloadOverview={club.reload}
+    else content = <ClubTools tab={activeTab} clubId={clubId} sessionId={sessionId} currentUserId={currentUserId} overview={overview} reloadOverview={club.reload}
         roles={roles} refreshRoles={workspaceRoles.refresh} boot={operations.boot} refreshBoot={() => { void operations.refresh(); }} admissions={admissions} admissionCopy={admissionCopy}
         membership={membership} inbox={inbox} can={can} allowed={tab => allowedTabIds.has(tab)} focusedApplicationId={focusedApplicationId}
         clearApplicationFocus={() => { const next = new URLSearchParams(searchParams); next.delete('applicationId'); setSearchParams(next); }}
-        switchTab={switchTab} openWork={openWork} openPlayers={openPlayers} />);
+        switchTab={switchTab} openWork={openWork} openPlayers={openPlayers} />;
 
     const clubName = club.clubName ?? operations.boot?.clubName ?? `Club #${clubId}`;
     const current = [...nav.primary, ...nav.groups.flatMap(g => g.items), ...nav.more.flatMap(g => g.items), ...nav.footer].find(item => item.id === activeTab);

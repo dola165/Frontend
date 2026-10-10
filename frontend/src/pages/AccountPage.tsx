@@ -788,7 +788,7 @@ export const AccountPage = () => {
                         </Section>
 
                         <div className="flex flex-col gap-5">
-                            <Section title="My Clubs" description="Your club journey — applications, invitations, trials and memberships.">
+                            <Section title="My Club" description="Your club journey: applications, invitations, trials and membership.">
                                 <ClubJourneyPanel />
                             </Section>
 

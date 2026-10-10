@@ -6,7 +6,7 @@ import { fetchMyClubMembershipContext } from '../features/clubs/api';
 import type { ClubMembershipContext } from '../features/clubs/domain';
 import { MyClubInvitationsPanel } from '../features/invites/components/MyClubInvitationsPanel';
 import { useAuth } from '../context/AuthContext';
-import { ClubAccessEntry } from '../components/layout/ClubSwitcher';
+import { ClubAccessEntry } from '../components/layout/ClubAccessEntry';
 import { accessibleClubs } from '../components/layout/clubAccess';
 
 const journeySteps = [

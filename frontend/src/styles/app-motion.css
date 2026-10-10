@@ -48,7 +48,6 @@
     animation: app-popover-enter 260ms var(--app-motion-soft) backwards;
     transform-origin: 50% 0;
 }
-.club-switch-panel { animation: app-popover-enter 260ms var(--app-motion-soft) backwards; }
 :where(.product-app-shell) :is(.home-social-link, .recent-contact-link, .opportunity-link, .my-club-gallery article, .connected-work-grid article, .mx-listing, .mx-card) {
     transition: background-color 220ms var(--app-motion-ease), border-color 220ms var(--app-motion-ease), box-shadow 220ms var(--app-motion-ease), translate 220ms var(--app-motion-ease);
 }
@@ -91,10 +90,10 @@
 }
 @media (prefers-reduced-motion: reduce) {
     [role="dialog"][aria-modal="true"], [role="dialog"][aria-modal="true"] * { animation: none !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
-    :is(.product-app-shell, .app-motion-portal, .club-switch-panel),
-    :is(.product-app-shell, .app-motion-portal, .club-switch-panel) *,
-    :is(.product-app-shell, .app-motion-portal, .club-switch-panel) *::before,
-    :is(.product-app-shell, .app-motion-portal, .club-switch-panel) *::after {
+    :is(.product-app-shell, .app-motion-portal),
+    :is(.product-app-shell, .app-motion-portal) *,
+    :is(.product-app-shell, .app-motion-portal) *::before,
+    :is(.product-app-shell, .app-motion-portal) *::after {
         animation: none !important; transition-duration: .01ms !important; animation-delay: 0ms !important; scroll-behavior: auto !important;
     }
     :is(.product-app-shell, .app-motion-portal) :is(.home-social-link, .recent-contact-link, .opportunity-link, .home-shortcut-emblem, .feed-side-link__visual, .post-action > svg, .opportunity-link svg:last-child, .post-reaction-picker button > span:first-child) { translate: none !important; scale: none !important; transform: none; }

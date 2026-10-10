@@ -1,14 +1,12 @@
 export const experienceEn = {
   navigation: {
-    switchActivity: 'Switch football activity', tryouts: 'Tryouts', events: 'Events', requests: 'Requests', reports: 'My reports',
-    myClub: 'My Club', myClubs: 'My Clubs', parent: 'Parent Hub', referee: 'Officiating',
-    agent: 'Agent Hub', venues: 'My Venues', organizations: 'My Organizations', following: 'Following',
+    tryouts: 'Tryouts', events: 'Events', requests: 'Requests', reports: 'My reports',
+    referee: 'Referee workspace', agent: 'Agent Hub', venues: 'My Venues',
   },
   clubs: {
-    switch: 'Switch club', choose: 'Choose your club', title: 'My clubs', close: 'Close club switcher',
-    navigation: 'Your clubs', current: 'Current club', profile: 'View profile', workspace: 'Open workspace',
-    all: 'View all my clubs →', description: 'Choose a club to view its profile or open the workspace for your responsibilities.',
-    workspaceAccess: 'Your club profile and workspace.', memberAccess: 'Your club profile and football community.',
+    // Only for someone still connected to several clubs; navigation always says "My Club".
+    title: 'Your clubs', profile: 'View profile', workspace: 'Open workspace',
+    description: 'Choose a club to view its profile or open the workspace for your responsibilities.',
   },
   workspace: {
     title: '{{type}} workspace', responsibility: 'Your responsibility: {{role}}', back: 'My organizations', backVenues: 'My venues',
@@ -58,15 +56,12 @@ export const experienceEn = {
 
 export const experienceKa = {
   navigation: {
-    switchActivity: 'საფეხბურთო საქმიანობის არჩევა', tryouts: 'გასინჯვები', events: 'ღონისძიებები', requests: 'მოთხოვნები', reports: 'ჩემი შეტყობინებები დარღვევებზე',
-    myClub: 'ჩემი კლუბი', myClubs: 'ჩემი კლუბები', parent: 'მშობლის სივრცე', referee: 'მსაჯობა',
-    agent: 'აგენტის სივრცე', venues: 'ჩემი მოედნები', organizations: 'ჩემი ორგანიზაციები', following: 'გამოწერები',
+    tryouts: 'გასინჯვები', events: 'ღონისძიებები', requests: 'მოთხოვნები', reports: 'ჩემი შეტყობინებები დარღვევებზე',
+    referee: 'მსაჯის სამუშაო სივრცე', agent: 'აგენტის სივრცე', venues: 'ჩემი მოედნები',
   },
   clubs: {
-    switch: 'კლუბის შეცვლა', choose: 'აირჩიეთ თქვენი კლუბი', title: 'ჩემი კლუბები', close: 'კლუბის არჩევის დახურვა',
-    navigation: 'თქვენი კლუბები', current: 'მიმდინარე კლუბი', profile: 'პროფილის ნახვა', workspace: 'სამუშაო სივრცის გახსნა',
-    all: 'ყველა ჩემი კლუბის ნახვა →', description: 'აირჩიეთ კლუბი მისი პროფილის ან თქვენი უფლებების შესაბამისი სამუშაო სივრცის გასახსნელად.',
-    workspaceAccess: 'თქვენი კლუბის პროფილი და სამუშაო სივრცე.', memberAccess: 'თქვენი კლუბის პროფილი და საფეხბურთო საზოგადოება.',
+    title: 'თქვენი კლუბები', profile: 'პროფილის ნახვა', workspace: 'სამუშაო სივრცის გახსნა',
+    description: 'აირჩიეთ კლუბი მისი პროფილის ან თქვენი უფლებების შესაბამისი სამუშაო სივრცის გასახსნელად.',
   },
   workspace: {
     title: '{{type}} — სამუშაო სივრცე', responsibility: 'თქვენი პასუხისმგებლობა: {{role}}', back: 'ჩემი ორგანიზაციები', backVenues: 'ჩემი მოედნები',

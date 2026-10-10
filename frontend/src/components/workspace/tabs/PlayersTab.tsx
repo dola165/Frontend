@@ -1,6 +1,6 @@
 import { useCallback, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, ArrowLeft, Check, MessageSquare, Search, UserPlus, UserX, Users, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, Check, MessageSquare, UserPlus, UserX, Users, X } from 'lucide-react';
 import type { ClubPlayerAffiliation, PlayerAffiliationStatus, PageResult } from '../../../features/clubs/domain';
 import { ErrorBlock, formatMetaTime, PageSpinner, Pill } from '../helpers';
 import type { SortState } from '../helpers';
@@ -11,6 +11,8 @@ import { OverflowActions, type OverflowActionItem } from '../../ui/OverflowActio
 import { TrialistBadge } from '../TrialistBadge';
 import type { WorkspaceTab } from '../types';
 import { squadLabel } from '../../squads/squadLabels';
+import { Button, Chip, PageHeader, SearchInput } from '../../../design/primitives';
+import '../../../features/clubOperations/records/records.css';
 import '../../squads/squad-design.css';
 import './players-roster.css';
 
@@ -158,97 +160,30 @@ export const PlayersTab = ({
 
     return (
         <div className="squad-design players-roster" aria-busy={playerLoading}>
-            <header className="sd-heading">
-                <div>
-                    <span className="sd-eyebrow">{t('squadDesign.players.eyebrow', 'Club workspace / People')}</span>
-                    <h1>{t('squadDesign.players.title', 'Players')}</h1>
-                    <p>
-                        {t(
-                            'squadDesign.players.description',
-                            'Your players, their progress and the next decision. All in one place.',
-                        )}
-                    </p>
+            <PageHeader title={t('squadDesign.players.title', 'Players')}
+                subtitle={t('squadDesign.players.description', 'Your players, their progress and the next decision. All in one place.')}
+                actions={<>
+                    <Button variant="ghost" onClick={() => onTabChange('squads')}>{t('squadDesign.players.squads', 'Manage squads')}</Button>
+                    <Button variant="ghost" onClick={() => onTabChange('player-cards')}>{t('squadDesign.players.cards', 'Player cards')}</Button>
+                    <Button variant="primary" disabled={!canInvitePlayer} aria-describedby={!canInvitePlayer && joiningUnavailableReason ? joiningReasonId : undefined} onClick={() => onTabChange('admissions')}><UserPlus aria-hidden="true" />{t('squadDesign.players.invite', 'Invite player')}</Button>
+                </>} />
+            {!canInvitePlayer && joiningUnavailableReason && <p id={joiningReasonId} role="status" className="gk-notice">{joiningUnavailableReason}</p>}
+            <div className="gk-stack gk-stack--tight">
+                <div className="gk-chips" role="group" aria-label={t('squadDesign.players.filter', 'Filter players by status')}>
+                    {FILTERS.map(status => <Chip key={status} data-player-status={status} pressed={playerStatusFilter === status} onClick={() => { setSearchQuery(''); onStatusFilterChange(status); }}>
+                        {t(`squadDesign.players.status.${status}`, { defaultValue: status === 'ALL' ? 'All players' : status === 'TRIALIST' ? 'On trial' : status.charAt(0) + status.slice(1).toLowerCase() })}
+                        <span className="gk-num gk-faint"> {counts[status] ?? 0}</span>
+                    </Chip>)}
                 </div>
-                <button type="button" disabled={!canInvitePlayer} aria-describedby={!canInvitePlayer && joiningUnavailableReason ? joiningReasonId : undefined} onClick={() => onTabChange('admissions')} className="sd-primary">
-                    <UserPlus size={16} />
-                    {t('squadDesign.players.invite', 'Invite player')}
-                </button>
-            </header>
-            {!canInvitePlayer && joiningUnavailableReason && <p id={joiningReasonId} role="status">{joiningUnavailableReason}</p>}
-            <div className="players-roster-links">
-                <button type="button" onClick={() => onTabChange('squads')}>
-                    {t('squadDesign.players.squads', 'Manage squads')} <ArrowDown size={13} className="-rotate-90" />
-                </button>
-                <button type="button" onClick={() => onTabChange('player-cards')}>
-                    {t('squadDesign.players.cards', 'Player cards')} <ArrowDown size={13} className="-rotate-90" />
-                </button>
-            </div>
-            <div
-                className="players-status-filters"
-                aria-label={t('squadDesign.players.filter', 'Filter players by status')}
-            >
-                {FILTERS.map((status) => (
-                    <button
-                        key={status}
-                        data-player-status={status}
-                        type="button"
-                        aria-pressed={playerStatusFilter === status}
-                        onClick={() => {
-                            setSearchQuery('');
-                            onStatusFilterChange(status);
-                        }}
-                    >
-                        {t(`squadDesign.players.status.${status}`, {
-                            defaultValue:
-                                status === 'ALL'
-                                    ? 'All players'
-                                    : status === 'TRIALIST'
-                                      ? 'On trial'
-                                      : status.charAt(0) + status.slice(1).toLowerCase(),
-                        })}
-                        <span>{counts[status] ?? 0}</span>
-                    </button>
-                ))}
-            </div>
-            <div className="sd-toolbar">
-                <label className="sd-search">
-                    <Search size={16} />
-                    <input
-                        type="search"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        aria-label={t('squadDesign.players.search', 'Search players on this page')}
-                        placeholder={t('squadDesign.players.search', 'Search players on this page')}
-                    />
-                </label>
-                <label className="players-sort">
-                    <span>{t('squadDesign.players.sort', 'Sort by')}</span>
-                    <select
-                        value={sort?.column ?? ''}
-                        onChange={(e) =>
-                            setSort(e.target.value === '' ? null : { column: Number(e.target.value), direction: 'asc' })
-                        }
-                    >
+                <div className="rec-toolbar">
+                    <SearchInput className="rec-toolbar__search" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                        aria-label={t('squadDesign.players.search', 'Search players on this page')} placeholder={t('squadDesign.players.search', 'Search players on this page')} />
+                    <select className="gk-input" aria-label={t('squadDesign.players.sort', 'Sort by')} value={sort?.column ?? ''} onChange={e => setSort(e.target.value === '' ? null : { column: Number(e.target.value), direction: 'asc' })}>
                         <option value="">{t('squadDesign.players.defaultOrder', 'Default order')}</option>
-                        {['Player', 'Status', 'Consent', 'Position', 'Shirt number', 'Trial ends', 'Joined'].map(
-                            (label, col) => (
-                                <option key={col} value={col}>
-                                    {t(`squadDesign.players.sort${col}`, label)}
-                                </option>
-                            ),
-                        )}
+                        {['Player', 'Status', 'Consent', 'Position', 'Shirt number', 'Trial ends', 'Joined'].map((label, col) => <option key={col} value={col}>{t(`squadDesign.players.sort${col}`, label)}</option>)}
                     </select>
-                    {sort && (
-                        <button
-                            type="button"
-                            className="sd-icon-button"
-                            onClick={() => handleSort(sort.column)}
-                            aria-label={t('squadDesign.players.reverseSort', 'Reverse sort order')}
-                        >
-                            <ArrowDown size={14} className={sort.direction === 'desc' ? 'rotate-180' : ''} />
-                        </button>
-                    )}
-                </label>
+                    {sort && <Button size="sm" variant="ghost" iconOnly onClick={() => handleSort(sort.column)} aria-label={t('squadDesign.players.reverseSort', 'Reverse sort order')}><ArrowDown aria-hidden="true" className={sort.direction === 'desc' ? 'rotate-180' : ''} /></Button>}
+                </div>
             </div>
             {trialistCount > 0 && playerStatusFilter === 'TRIALIST' && (
                 <div className="players-trial-note">

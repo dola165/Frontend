@@ -9,7 +9,6 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 import './operations.css';
 import './workspace-operations.css';
 import './staff-team.css';
-import './workspace-home.css';
 
 export function ClubStaffTeam({boot,members=[],roles,mode='staff',renderAdministration,onChanged,children}:{
   boot:Bootstrap;members?:ClubManagedMember[];roles?:StaffRole[];mode?:'staff'|'invites';renderAdministration?:(member:ClubManagedMember)=>ReactNode;onChanged?:()=>void;children?:ReactNode;

@@ -13,9 +13,9 @@
 .schedule-compose {
     --compose-bg: var(--fc-sidebar-bg, var(--color-surface));
     --compose-card: var(--fc-card-bg, var(--color-elevated));
-    --compose-input: var(--color-inset);
+    --compose-input: var(--fc-page-bg, var(--color-inset));
     --compose-line: var(--fc-border, var(--color-border));
-    --compose-text: var(--fc-text-primary, var(--color-secondary));
+    --compose-text: var(--fc-text-primary, var(--color-text));
     --compose-muted: var(--fc-text-muted, var(--color-muted));
     --compose-accent: var(--fc-accent, var(--color-accent));
     width: min(1080px, 100%);
@@ -138,7 +138,7 @@
 }
 .schedule-compose-steps > button.active > span {
     background: var(--compose-accent);
-    color: var(--color-text);
+    color: var(--color-on-accent);
     border-color: var(--compose-accent);
 }
 .schedule-compose-steps > button.visited > span {
@@ -251,7 +251,7 @@
 .selected > .schedule-compose-choice-dot {
     background: var(--compose-accent);
     border-color: var(--compose-accent);
-    color: var(--color-accent);
+    color: var(--color-on-accent);
 }
 .schedule-compose-field {
     display: flex;
@@ -388,7 +388,7 @@
     font-weight: 600;
 }
 .schedule-compose-weekdays > button[aria-pressed='true'] {
-    color: var(--color-accent);
+    color: var(--color-on-accent);
     background: var(--compose-accent);
     border-color: var(--compose-accent);
 }

@@ -250,3 +250,39 @@ html:not(.dark) .gk,
   --gk-shadow: #0b1a12;
   color-scheme: light;
 }
+
+/* The schedule's own dark paint, restored on 11 October 2026 from 82d6c8c: near-black neutral surfaces, a
+   lighter board with visible hairlines, a three-step text hierarchy and its neon accents. The October colour
+   rewrite had mapped these to roles that read flat and grey. Declared on the engine's own roots (the calendar
+   and its event editor), because the workspace scopes above them redefine the --fc-* tokens. */
+.dark :is(.schedule-direction, .schedule-compose-backdrop) {
+  --fc-page-bg: #070809;
+  --fc-sidebar-bg: #101113;
+  --fc-card-bg: #191b1f;
+  --fc-surface-hover: #1a1c22;
+  --fc-border: #26282d;
+  --fc-text-primary: #f4f5f7;
+  --fc-text-secondary: #bdc1cb;
+  --fc-text-muted: #979eab;
+  --schedule-board-head: #27272a;
+  --schedule-board-cell: #18181b;
+  --schedule-board-muted: #18181b;
+  --schedule-chip: #1e293b;
+  --schedule-chip-border: #ffffff14;
+  --schedule-zone-highlight: #ffffff0a;
+  --schedule-accent-green: #00c853;
+  --schedule-accent-green-soft: #00c8531a;
+  --schedule-accent-green-border: #00c8533d;
+  --schedule-accent-pink: #ff4b86;
+  --schedule-accent-pink-soft: #ff4b861f;
+  --schedule-accent-pink-border: #ff4b8642;
+  --schedule-accent-blue: #5478cf;
+  --schedule-accent-blue-soft: #5478cf1f;
+  --schedule-accent-blue-border: #5478cf42;
+  --schedule-accent-purple: #9076ff;
+  --schedule-accent-purple-soft: #9076ff1f;
+  --schedule-accent-purple-border: #9076ff42;
+  --schedule-shell-glow: #00c8530a;
+  --schedule-shadow-panel: 0 10px 26px #00000066;
+  --schedule-shadow-float: 0 18px 38px #00000080;
+}

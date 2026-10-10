@@ -8,7 +8,7 @@ export const activityIcons: Record<ScheduleEventType, LucideIcon> = { MATCH: Tro
  * Each kind of activity has its own colour. Every match shares the match colour, whether it is a league,
  * cup, tournament or friendly match; the symbol tells which (a trophy or a handshake).
  */
-export const activityColors: Record<ScheduleEventType, string> = { MATCH: 'var(--gk-accent)', FRIENDLY: 'var(--gk-accent)', TRAINING: 'var(--gk-info)', ACTIVITY: 'var(--gk-violet)', TRYOUT: 'var(--color-pink)' };
+export const activityColors: Record<ScheduleEventType, string> = { MATCH: 'var(--gk-accent, var(--color-accent))', FRIENDLY: 'var(--gk-accent, var(--color-accent))', TRAINING: 'var(--gk-info, var(--color-info))', ACTIVITY: 'var(--gk-violet, var(--color-purple))', TRYOUT: 'var(--color-pink)' };
 
 /** The symbols with their meaning and colour, for the legend people learn them from. */
 export const activityLegend: { icon: LucideIcon; name: string; meaning: string; color: string }[] = [

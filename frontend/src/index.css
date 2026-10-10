@@ -188,16 +188,16 @@
     --schedule-accent-green: var(--color-accent);
     --schedule-accent-green-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
     --schedule-accent-green-border: color-mix(in srgb, var(--color-accent) 24%, transparent);
-    --schedule-accent-pink: var(--color-secondary);
+    --schedule-accent-pink: var(--color-pink);
     --schedule-accent-pink-soft: color-mix(in srgb, var(--color-pink) 12%, transparent);
     --schedule-accent-pink-border: color-mix(in srgb, var(--color-pink) 24%, transparent);
     --schedule-accent-blue: var(--color-info);
     --schedule-accent-blue-soft: color-mix(in srgb, var(--color-info) 12%, transparent);
     --schedule-accent-blue-border: color-mix(in srgb, var(--color-info) 24%, transparent);
-    --schedule-accent-purple: var(--color-info);
-    --schedule-accent-purple-soft: color-mix(in srgb, var(--color-info) 12%, transparent);
-    --schedule-accent-purple-border: color-mix(in srgb, var(--color-border) 24%, transparent);
-    --schedule-shell-glow: color-mix(in srgb, var(--color-surface) 10%, transparent);
+    --schedule-accent-purple: var(--color-purple);
+    --schedule-accent-purple-soft: color-mix(in srgb, var(--color-purple) 12%, transparent);
+    --schedule-accent-purple-border: color-mix(in srgb, var(--color-purple) 24%, transparent);
+    --schedule-shell-glow: color-mix(in srgb, var(--color-info) 10%, transparent);
     --schedule-shell-top: var(--color-page);
     --schedule-shell-bottom: var(--color-page);
     --schedule-left-bg: var(--color-surface);
@@ -207,7 +207,7 @@
     --schedule-card-muted: var(--color-inset);
     --schedule-board-head: var(--color-inset);
     --schedule-board-cell: var(--color-elevated);
-    --schedule-board-muted: var(--color-muted);
+    --schedule-board-muted: var(--color-inset);
     --schedule-chip: var(--color-inset);
     --schedule-chip-border: color-mix(in srgb, var(--color-border) 16%, transparent);
     --schedule-zone-highlight: color-mix(in srgb, var(--color-info) 14%, transparent);
@@ -435,16 +435,16 @@
     --schedule-accent-green: var(--color-accent);
     --schedule-accent-green-soft: color-mix(in srgb, var(--color-accent) 10%, transparent);
     --schedule-accent-green-border: color-mix(in srgb, var(--color-accent) 24%, transparent);
-    --schedule-accent-pink: var(--color-secondary);
+    --schedule-accent-pink: var(--color-pink);
     --schedule-accent-pink-soft: color-mix(in srgb, var(--color-pink) 12%, transparent);
     --schedule-accent-pink-border: color-mix(in srgb, var(--color-pink) 26%, transparent);
     --schedule-accent-blue: var(--color-info);
     --schedule-accent-blue-soft: color-mix(in srgb, var(--color-info) 12%, transparent);
     --schedule-accent-blue-border: color-mix(in srgb, var(--color-info) 26%, transparent);
-    --schedule-accent-purple: var(--color-info);
-    --schedule-accent-purple-soft: color-mix(in srgb, var(--color-info) 12%, transparent);
-    --schedule-accent-purple-border: color-mix(in srgb, var(--color-border) 26%, transparent);
-    --schedule-shell-glow: color-mix(in srgb, var(--color-surface) 4%, transparent);
+    --schedule-accent-purple: var(--color-purple);
+    --schedule-accent-purple-soft: color-mix(in srgb, var(--color-purple) 12%, transparent);
+    --schedule-accent-purple-border: color-mix(in srgb, var(--color-purple) 26%, transparent);
+    --schedule-shell-glow: color-mix(in srgb, var(--color-accent) 4%, transparent);
     --schedule-shell-top: var(--color-page);
     --schedule-shell-bottom: var(--color-page);
     --schedule-left-bg: var(--color-surface);
@@ -454,7 +454,7 @@
     --schedule-card-muted: var(--color-inset);
     --schedule-board-head: var(--color-inset);
     --schedule-board-cell: var(--color-elevated);
-    --schedule-board-muted: var(--color-muted);
+    --schedule-board-muted: var(--color-inset);
     --schedule-chip: var(--color-inset);
     --schedule-chip-border: color-mix(in srgb, var(--color-border) 8%, transparent);
     --schedule-zone-highlight: color-mix(in srgb, var(--color-text) 4%, transparent);
@@ -1470,7 +1470,7 @@
   .tutorial-highlight {
     position: relative;
     z-index: 10001 !important;
-    box-shadow: 0 0 0 4px var(--fc-accent, var(--color-shadow)), 0 0 20px color-mix(in srgb, var(--color-shadow) 35%, transparent) !important;
+    box-shadow: 0 0 0 4px var(--fc-accent, var(--color-accent)), 0 0 20px color-mix(in srgb, var(--fc-accent, var(--color-accent)) 35%, transparent) !important;
     border-radius: var(--fc-radius, 6px) !important;
     transition: box-shadow 300ms ease;
   }

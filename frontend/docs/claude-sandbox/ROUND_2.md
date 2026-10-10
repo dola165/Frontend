@@ -247,6 +247,11 @@ The app today, compared with how clubs usually work (coaches to confirm):
   - view, search, filters, sort and page live in the URL, so server-side querying plugs in later.
   - Built here on the Work queue, every operations tool and Players. The other lists follow when this branch moves to the real app ("Before release" below).
 
+- **Landing and schedule colours restored** (11 October; the owner: both were "caught in the fire" of the global colour change).
+  - The 8 October rewrite (`f9037e3`) had swapped every hex colour for a theme token, and many swaps inverted roles: dark veils became the text colour (grey slabs), glows became black, gold became sand, the grid's hairlines nearly vanished, and the month view's quiet days became light-grey slabs.
+  - **Landing:** the six stylesheets are back to their 26 September colours (`82d6c8c`), keeping the 10 October map. It is a fixed dark scene, so the colour guard now treats its stylesheets as art, like `visualColors.ts`.
+  - **Schedule:** its original dark paint is declared on the engine's own roots in `styles/theme.css`: near-black neutral surfaces, a lighter board with visible hairlines, a three-step text hierarchy, and pink, purple and green accents. Token fixes cover the light theme and the event editor's selected states. The activity colours (matches green, training blue) stay.
+
 ## Before release (do it in the real branch, not here)
 
 This branch is the real frontend code on fake data, so what is built here ships after hardening. The owner is fine making changes, rollouts included, right away (11 October); this list keeps what is still to do so nothing is forgotten when the branch moves into the real app.
@@ -272,6 +277,10 @@ This branch is the real frontend code on fake data, so what is built here ships 
   - Changing the end time by resizing is not supported yet.
   - Initials avatars now take soft colours app-wide; check the screens that relied on grey ones.
 - **Injuries** (`SCENARIOS.md`): the backend pieces listed there, starting with an injury report record.
+- **Colours after the restore:**
+  - Check the schedule in the light theme (only its tokens were fixed there).
+  - Decide whether the landing's literal palette should become named tokens; today it is exempt from the colour guard.
+  - Other screens converted by the same rewrite may hide the same inversions (a text colour used as a background, black glows); look for `color-mix` over `--color-ink`, `--color-shadow` and `--color-muted` used as fills.
 
 ## Open questions
 

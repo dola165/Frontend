@@ -1,7 +1,7 @@
 /* The club week board uses the existing workspace theme in both light and dark modes. */
 .swb-root {
     --swb-text: var(--fc-text-primary);
-    --swb-muted: var(--color-secondary);
+    --swb-muted: color-mix(in srgb, var(--fc-text-primary) 64%, var(--fc-page-bg));
     --swb-accent: var(--fc-accent);
     --swb-line: var(--fc-border);
     container-type: inline-size;

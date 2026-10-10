@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 const source = fileURLToPath(new URL('../src/', import.meta.url));
 const definitions = new Set(['styles/theme.css', 'styles/visualColors.ts']);
+// The signed-out landing is a fixed dark scene (art, like visualColors.ts), not themed UI: its stylesheets keep
+// their literal paint. Mapping it to theme roles turned its veils grey and its glows black (restored 11 October 2026).
+const art = /^components\/landing\/[^/]+\.css$/;
 const literal = /#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{4}|[0-9a-f]{3})(?![0-9a-f])|(?:rgb|hsl)a?\(/i;
 const utility = /(?:^|[\s:])(?:bg|text|border(?:-[trblxy])?|ring(?:-offset)?|divide|outline|fill|stroke|decoration|placeholder|accent|from|via|to|shadow)-(?:white|black|gray|slate|zinc|stone|neutral|green|emerald|red|blue|amber|yellow|orange|purple|indigo|pink|cyan|teal|violet|lime|rose|sky|fuchsia)(?:-\d+)?(?=\b|\/)/;
 const named = /^(?:white|black|gray|grey|red|green|blue|orange|yellow|purple|pink|gold|lime|cyan|navy)$/i;
@@ -13,7 +16,7 @@ const failures = [];
 let files = 0;
 for (const relative of fs.readdirSync(source, { recursive: true })) {
     const name = relative.replaceAll('\\', '/');
-    if (!/\.(?:css|tsx?|jsx?)$/.test(name) || /(?:__tests__|__fixtures__|\.test\.)/.test(name) || definitions.has(name)) continue;
+    if (!/\.(?:css|tsx?|jsx?)$/.test(name) || /(?:__tests__|__fixtures__|\.test\.)/.test(name) || definitions.has(name) || art.test(name)) continue;
     const text = fs.readFileSync(path.join(source, relative), 'utf8');
     files++;
     const fail = (line, value) => failures.push(`${name}:${line}: ${value.slice(0, 130)}`);

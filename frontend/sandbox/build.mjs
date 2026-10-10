@@ -10,7 +10,10 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const src = path.join(root, 'src');
 const out = path.join(here, 'dist');
-const ESBUILD = process.env.SANDBOX_ESBUILD || '/opt/npm-tools/node_modules/esbuild/lib/main.js';
+// The project's own esbuild works on Windows/macOS/Linux after `npm ci`; the cloud sandbox
+// (no native packages for Linux) uses a system copy instead.
+const systemEsbuild = '/opt/npm-tools/node_modules/esbuild/lib/main.js';
+const ESBUILD = process.env.SANDBOX_ESBUILD || (existsSync(systemEsbuild) ? systemEsbuild : createRequire(import.meta.url).resolve('esbuild'));
 const esbuild = (await import(pathToFileURL(ESBUILD).href)).default ?? await import(pathToFileURL(ESBUILD).href);
 const { compile } = await import(pathToFileURL(path.join(root, 'node_modules/tailwindcss/dist/lib.mjs')).href);
 

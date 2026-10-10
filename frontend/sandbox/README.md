@@ -2,6 +2,17 @@
 
 Runs the web app on synthetic data with no backend and no Vite native binaries.
 
+## Try it on your own computer (Windows, macOS or Linux)
+
+From `frontend/` after `npm ci`:
+
+```
+node sandbox/build.mjs
+node sandbox/server.mjs 4300
+```
+
+Open http://localhost:4300/home. You are signed in as coach Luka Gelashvili of FC Dinamo Tbilisi Academy; everything is invented and nothing touches a real server. Restart the server to reset the data. The design system reference is at `/design-system`.
+
 ```
 node sandbox/build.mjs            # bundle src/ into sandbox/dist (≈2 s)
 node sandbox/server.mjs 4300      # serve dist + synthetic /api on http://localhost:4300

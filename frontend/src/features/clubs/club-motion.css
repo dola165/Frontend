@@ -13,11 +13,9 @@
 .club-motion-backdrop { animation:club-scrim-enter 320ms var(--club-motion-ease) backwards; }
 .club-motion-panel { animation:club-panel-enter 380ms var(--club-motion-ease) backwards; }
 .club-motion-dialog { animation:club-dialog-enter 300ms var(--club-motion-soft) backwards; }
-.match-challenge-backdrop.club-motion-backdrop > .match-compose { animation:club-dialog-enter 300ms var(--club-motion-soft) backwards; }
 .club-motion-backdrop[data-closing="true"] { animation:club-scrim-exit 220ms ease-in forwards; }
 .club-motion-panel[data-closing="true"] { animation:club-panel-exit 220ms var(--club-motion-soft) forwards; }
 .club-motion-dialog[data-closing="true"] { animation:club-dialog-exit 220ms var(--club-motion-soft) forwards; }
-.match-challenge-backdrop.club-motion-backdrop[data-closing="true"] > .match-compose { animation:club-dialog-exit 220ms var(--club-motion-soft) forwards; }
 .club-motion-backdrop { overflow:hidden; }
 /* Animate arrivals without retaining a transform around nested fixed panels. */
 :is(.club-preview-body:not([hidden]),[data-club-section]:not([hidden])) > *,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { MessagesSquare, Pencil, Plus, Trash2 } from 'lucide-react';
+import { CalendarPlus, MessagesSquare, Pencil, Plus, Trash2 } from 'lucide-react';
 import { apiClient } from '../../../api/axiosConfig';
 import { Avatar, Button, ButtonLink, Chip, EmptyNote, PageFrame, PageHeader, Panel, Skeleton } from '../../../design/primitives';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
@@ -156,6 +156,7 @@ export function SquadsPage({ clubId, overview, setParentError, setParentSuccess,
                                     <div><h2 id="sq-title">{selectedSquad.name}</h2><p>{squadLabel(selectedSquad.category, t)} · {genderLabel(selectedSquad.gender)} · {rosterLoading ? '…' : t('squads.design.playerCount', { defaultValue: '{{count}} players', count: playerCount })}</p></div></div>
                                 <div className="sq-actions">
                                     <ButtonLink to={`/squads/${selectedSquad.id}`} variant="ghost"><MessagesSquare aria-hidden="true" />Messages & plans</ButtonLink>
+                                    <ButtonLink to={`/world/matches/arrange?squad=${selectedSquad.id}`} variant="ghost"><CalendarPlus aria-hidden="true" />Arrange a match</ButtonLink>
                                     <Button onClick={() => setSquadEditor(selectedSquad)}><Pencil aria-hidden="true" />{t('squads.design.editSquad', { defaultValue: 'Edit squad' })}</Button>
                                     <Button variant="ghost" iconOnly disabled={deletingSquadId != null} aria-label={t('squads.design.deleteSquad', { defaultValue: 'Delete squad' })} title={t('squads.design.deleteSquad', { defaultValue: 'Delete squad' })} onClick={() => setPendingDelete(selectedSquad)}><Trash2 aria-hidden="true" /></Button>
                                     <Button variant="primary" onClick={() => setShowAddPlayers(true)}><Plus aria-hidden="true" />{t('squads.design.addPlayers', { defaultValue: 'Add players' })}</Button>

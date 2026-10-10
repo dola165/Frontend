@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { MatchShare } from '../MatchShare';
-import { RefereeInvite } from '../../../pages/MatchDetailPage';
+import { RefereeInvite } from '../detail/RefereeInvite';
 import { useAction, useLoad } from '../hooks';
 import { post, type Match, type Referee } from '../api';
 

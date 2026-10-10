@@ -1,0 +1,88 @@
+import { lazy, Suspense, useState, type ReactNode } from 'react';
+import { Badge, Button, Skeleton } from '../../../design/primitives';
+import { Combobox } from '../../../design/Combobox';
+import { useSearch } from '../../../design/useSearch';
+import { searchVenues, type Ground } from './api';
+import type { GroundChoice, Mode } from './matchPlan';
+
+const PinPicker = lazy(() => import('./PinPicker'));
+interface Load<T> { data: T | undefined; loading: boolean; error: string; retry: () => void }
+
+const choiceKey = (value: GroundChoice) => value.kind === 'OURS' || value.kind === 'THEIRS' ? `${value.kind}:${value.ground.key}` : value.kind;
+
+function Option({ id, checked, onSelect, title, detail, badge, children }: { id: string; checked: boolean; onSelect: () => void; title: ReactNode; detail?: ReactNode; badge?: ReactNode; children?: ReactNode }) {
+    return (
+        <li className="gk-arrange__ground" data-checked={checked || undefined}>
+            <label className="gk-arrange__ground-row" htmlFor={id}>
+                <input id={id} type="radio" name="arrange-ground" checked={checked} onChange={onSelect} />
+                <span className="gk-arrange__option-text"><strong>{title}</strong>{detail && <span>{detail}</span>}</span>
+                {badge}
+            </label>
+            {checked && children && <div className="gk-arrange__ground-more">{children}</div>}
+        </li>
+    );
+}
+
+/**
+ * Where the match is played: one of our grounds, theirs, any venue on GrassKickZ, a pin on the map,
+ * or to be arranged. Choosing a ground never books or rents it; rentals are for training.
+ */
+export function GroundField({ mode, value, onChange, ours, theirs, opponentName, defaultCity, error }: {
+    mode: Mode; value: GroundChoice; onChange: (value: GroundChoice) => void; ours: Load<Ground[]>; theirs: Load<Ground[]> | null;
+    opponentName?: string; defaultCity: string; error?: string;
+}) {
+    const [query, setQuery] = useState('');
+    const venues = useSearch(query, (q, signal) => searchVenues(q, signal));
+    const current = choiceKey(value);
+    const city = 'city' in value ? value.city : defaultCity;
+    const cityInput = (id: string) => (
+        <div className="gk-field">
+            <label className="gk-field__label" htmlFor={id}>City</label>
+            <input id={id} className="gk-input" maxLength={120} value={city} onChange={event => onChange({ ...value, city: event.target.value } as GroundChoice)} />
+        </div>
+    );
+    return (
+        <fieldset className="gk-arrange__fieldset" aria-describedby={error ? 'arrange-ground-error' : 'arrange-ground-hint'}>
+            <legend className="gk-field__label">Ground</legend>
+            <ul className="gk-arrange__grounds">
+                {ours.loading && <li className="gk-arrange__ground"><Skeleton height={44} /></li>}
+                {ours.data?.map(ground => <Option key={ground.key} id={`arrange-ground-ours-${ground.key}`} checked={current === `OURS:${ground.key}`}
+                    onSelect={() => onChange({ kind: 'OURS', ground })} title={ground.name} detail={ground.detail} badge={<Badge tone="accent">You host</Badge>} />)}
+                {theirs?.loading && <li className="gk-arrange__ground"><Skeleton height={44} /></li>}
+                {theirs?.data?.map(ground => <Option key={ground.key} id={`arrange-ground-theirs-${ground.key}`} checked={current === `THEIRS:${ground.key}`}
+                    onSelect={() => onChange({ kind: 'THEIRS', ground })} title={ground.name} detail={[`${opponentName ?? 'Their'} ground`, ground.detail].filter(Boolean).join(' · ')} badge={<Badge tone="info">You travel</Badge>} />)}
+                {mode === 'open' && <Option id="arrange-ground-travel" checked={current === 'TRAVEL'} onSelect={() => onChange({ kind: 'TRAVEL', city })}
+                    title="We travel to the opponent" detail="The team you choose hosts the match" badge={<Badge tone="info">You travel</Badge>}>{cityInput('arrange-travel-city')}</Option>}
+                <Option id="arrange-ground-other" checked={current === 'OTHER'} onSelect={() => onChange({ kind: 'OTHER', ground: null })}
+                    title="Another venue on GrassKickZ" detail={value.kind === 'OTHER' && value.ground ? `${value.ground.name} · ${value.ground.city}` : 'A neutral ground or a venue another club uses'}>
+                    {value.kind === 'OTHER' && value.ground
+                        ? <div className="gk-arrange__picked"><span className="gk-arrange__option-text"><strong>{value.ground.name}</strong><span>{value.ground.detail || value.ground.city}</span></span>
+                            <Button size="sm" variant="ghost" onClick={() => onChange({ kind: 'OTHER', ground: null })}>Change</Button></div>
+                        : <Combobox label="Venues" query={query} onQuery={setQuery} items={venues.items} itemKey={venue => venue.key} status={venues.status}
+                            placeholder="Search venues by name or area" emptyText="No venue matches that search. Drop a pin instead." errorText="Venue search is unavailable. Drop a pin instead."
+                            renderItem={venue => <span className="gk-arrange__option-text"><strong>{venue.name}</strong><span>{[venue.detail, venue.city].filter(Boolean).join(' · ')}</span></span>}
+                            onSelect={venue => { onChange({ kind: 'OTHER', ground: venue }); setQuery(''); }} />}
+                </Option>
+                <Option id="arrange-ground-pin" checked={current === 'PIN'} onSelect={() => onChange({ kind: 'PIN', name: '', city, latitude: '', longitude: '' })}
+                    title="A ground that isn’t listed" detail="Drop a pin on the map">
+                    {value.kind === 'PIN' && <>
+                        <div className="gk-arrange__kickoff">
+                            <div className="gk-field">
+                                <label className="gk-field__label" htmlFor="arrange-pin-name">Ground name</label>
+                                <input id="arrange-pin-name" className="gk-input" maxLength={255} value={value.name} placeholder="For example, School No. 51 pitch" onChange={event => onChange({ ...value, name: event.target.value })} />
+                            </div>
+                            {cityInput('arrange-pin-city')}
+                        </div>
+                        <Suspense fallback={<Skeleton height={260} />}><PinPicker latitude={value.latitude} longitude={value.longitude} onChange={(latitude, longitude) => onChange({ ...value, latitude, longitude })} /></Suspense>
+                    </>}
+                </Option>
+                <Option id="arrange-ground-later" checked={current === 'LATER'} onSelect={() => onChange({ kind: 'LATER', city })}
+                    title="To be arranged" detail={mode === 'direct' ? 'Agree the ground with them after they accept' : 'Agree the ground later'}>{cityInput('arrange-later-city')}</Option>
+            </ul>
+            {ours.error && <p className="gk-notice gk-notice--warning" role="status">Your club’s grounds could not load. <Button size="sm" onClick={ours.retry}>Try again</Button></p>}
+            {theirs?.error && <p className="gk-notice gk-notice--warning" role="status">{opponentName ?? 'Their'} grounds could not load. <Button size="sm" onClick={theirs.retry}>Try again</Button></p>}
+            {error ? <span id="arrange-ground-error" className="gk-field__error" role="alert">{error}</span>
+                : <span id="arrange-ground-hint" className="gk-field__hint">Choosing a ground doesn’t book it. Confirm the time with whoever runs it.</span>}
+        </fieldset>
+    );
+}

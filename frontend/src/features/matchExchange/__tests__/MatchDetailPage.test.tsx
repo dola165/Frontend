@@ -38,22 +38,27 @@ it('shows only the public result state to an ordinary match viewer', async () =>
   expect(getMatchResult).not.toHaveBeenCalled();
 });
 
-it('keeps both teams and the result ahead of readiness and secondary match details', async () => {
-  const {container}=renderPage({...match,can_arrange:false});
-  const result=await screen.findByRole('heading',{name:'Match result'});
-  const readiness=screen.getByRole('heading',{name:'Match readiness'});
-  expect(result.compareDocumentPosition(readiness)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(container.querySelector('.mx-match-lead .match-scoreboard')).toHaveTextContent('Alpha FC');
-  expect(container.querySelector('.mx-match-lead .match-scoreboard')).toHaveTextContent('Beta FC');
+it('keeps both teams and the result in the fixture band ahead of readiness and secondary match details', async () => {
+  vi.mocked(getPublicMatchResult).mockResolvedValue({ eventId: 12, status: 'CONFIRMED', fixtureStatus: 'COMPLETED', revision: 2, homeScore: 3, awayScore: 1, official: true, legacy: false, canReadAudit: false });
+  renderPage({ ...match, can_arrange: false, starts_at_iso: '2098-09-20T10:00:00Z', ends_at_iso: '2098-09-20T12:00:00Z' });
+  const fixture = screen.getByRole('region', { name: 'Fixture' });
+  expect(await screen.findByText('Confirmed result')).toBeInTheDocument();
+  expect(fixture).toHaveTextContent('Alpha FC');
+  expect(fixture).toHaveTextContent('Beta FC');
+  const readiness = screen.getByRole('heading', { name: 'Match readiness' });
+  expect(fixture.compareDocumentPosition(readiness) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
-it('places the proposal form in the opening group for an eligible visiting squad', async () => {
-  const open={...match,can_arrange:false,opponent_name:null,opponent_club_id:null,listing_status:'OPEN' as const};
-  vi.mocked(useLoad).mockImplementation((path:string)=>({data:path==='/match-exchange/12'?open:path==='/match-exchange/squads'?[{id:2,club_id:11,club_name:'Beta FC',name:'U16'}]:[],error:'',reload:vi.fn()}));
-  const {container}=render(<MemoryRouter initialEntries={['/match-exchange/12']}><Routes><Route path="/match-exchange/:eventId" element={<MatchDetailPage/>}/></Routes></MemoryRouter>);
-  expect(await screen.findByText('Opponent to be confirmed')).toBeInTheDocument();
-  expect(container.querySelector('.mx-match-lead')).toContainElement(screen.getByRole('button',{name:'Send proposal'}));
-  expect(screen.queryByText('Match broadcast')).not.toBeInTheDocument();
+it('opens with the proposal form for an eligible visiting squad, before the match-day plan', async () => {
+  const open = { ...match, can_arrange: false, opponent_name: null, opponent_club_id: null, listing_status: 'OPEN' as const };
+  vi.mocked(useLoad).mockImplementation((path: string) => ({ data: path === '/match-exchange/12' ? open : path === '/match-exchange/squads' ? [{ id: 2, club_id: 11, club_name: 'Beta FC', name: 'U16' }] : [], error: '', reload: vi.fn() }));
+  render(<MemoryRouter initialEntries={['/match-exchange/12']}><Routes><Route path="/match-exchange/:eventId" element={<MatchDetailPage/>}/></Routes></MemoryRouter>);
+  expect(await screen.findByText('Opponent to be agreed')).toBeInTheDocument();
+  const send = screen.getByRole('button', { name: 'Send proposal' });
+  const plan = screen.getByRole('heading', { name: 'Plan your match day' });
+  expect(send.compareDocumentPosition(plan) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Propose to play' })).toHaveAttribute('href', '#match-proposal');
+  expect(screen.queryByText('Broadcast and filming')).not.toBeInTheDocument();
 });
 
 it('summarizes opponent, venue, officials and communication and opens the exact durable conversation', async () => {

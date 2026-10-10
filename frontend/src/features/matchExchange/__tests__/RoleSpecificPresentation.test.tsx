@@ -36,15 +36,19 @@ beforeEach(() => {
   vi.mocked(useAction).mockReturnValue({ busy: false, run: vi.fn(), feedback: <></> });
 });
 
-it("places match summary and readiness before secondary administration in document order", () => {
+it("places the fixture and the match-day plan before readiness and secondary administration in document order", () => {
   vi.mocked(useLoad).mockImplementation((path: string) => ({ data: path === "/match-exchange/12" ? match : [], error: "", reload: vi.fn() }));
   render(<MemoryRouter initialEntries={["/match-exchange/12"]}><Routes><Route path="/match-exchange/:eventId" element={<MatchDetailPage />} /></Routes></MemoryRouter>);
 
+  const fixture = screen.getByRole("region", { name: "Fixture" });
+  const plan = screen.getByRole("heading", { name: "Plan your match day" }).closest("section")!;
   const readiness = screen.getByRole("region", { name: "Match readiness and next action" });
-  const details = screen.getByRole("heading", { name: "Match details" }).closest("section")!;
   const secondary = screen.getByText("About match updates").closest("aside")!;
-  expect(details.compareDocumentPosition(readiness) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(details.compareDocumentPosition(secondary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(fixture).toHaveTextContent("Home Academy");
+  expect(fixture).toHaveTextContent("Away Academy");
+  expect(fixture.compareDocumentPosition(plan) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(plan.compareDocumentPosition(readiness) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(plan.compareDocumentPosition(secondary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
 it("marks an invitation card for priority presentation without changing its actions", () => {

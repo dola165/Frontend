@@ -376,9 +376,9 @@ const u16g = listing({ hostSquad: squadById(106), start: at(11, 17), minutes: 90
 u16g.proposals.push(proposal(squadById(134), 'Mtskheta U16 girls are free that evening.'), proposal(squadById(142), 'Zugdidi U16 girls will be in Tbilisi that week.'));
 listing({ hostSquad: squadById(105), start: at(14, 18, 30), minutes: 90, venueId: 207, title: 'U16 Boys away friendly at Saburtalo', level: 'ELITE', description: 'Agreed with Saburtalo Youth. Kick-off 18:30, arrive by 17:30.', venuePreference: 'AWAY', opponentSquad: squadFor(4, 'U16', 'MALE'), status: 'ARRANGED', referee: referees[2].id });
 export const listingById = id => exchange.find(l => l.id === Number(id));
-const venueStatusOf = l => l.venuePreference === 'AWAY' && !l.opponentSquadId ? 'NEEDED' : l.booked ? 'BOOKED' : l.venueId ? 'HOST_CONFIRMED' : 'NEEDED';
+const venueStatusOf = l => l.venuePreference === 'AWAY' && !l.opponentSquadId ? 'NEEDED' : l.booked ? 'BOOKED' : l.venueId || l.externalConfirmed ? 'HOST_CONFIRMED' : 'NEEDED';
 const refereeStatusOf = l => !l.refereeRequired ? 'NOT_REQUIRED' : l.refereeId ? 'ACCEPTED' : l.status === 'ARRANGED' ? 'INVITED' : 'NEEDED';
-export const involvesDinamo = l => squadById(l.hostSquadId).clubId === DINAMO || (l.opponentSquadId && squadById(l.opponentSquadId).clubId === DINAMO) || l.proposals.some(p => p.club_id === DINAMO);
+export const involvesDinamo = l => squadById(l.hostSquadId).clubId === DINAMO || l.requestedClubId === DINAMO || (l.opponentSquadId && squadById(l.opponentSquadId).clubId === DINAMO) || l.proposals.some(p => p.club_id === DINAMO);
 export const listingView = (l, { detail = false } = {}) => {
   const host = squadById(l.hostSquadId), club = clubById(host.clubId), v = l.venueId ? venueById(l.venueId) : null, opp = l.opponentSquadId ? squadById(l.opponentSquadId) : null;
   const past = l.end.getTime() < Date.now(), mineHost = club.id === DINAMO, mineGuest = opp?.clubId === DINAMO;
@@ -386,14 +386,15 @@ export const listingView = (l, { detail = false } = {}) => {
   const listingStatus = l.status === 'OPEN' && past ? 'EXPIRED' : l.status;
   const head = mineHost ? personById(host.headCoachId) : null;
   const out = {
-    requested_club_id: l.requestedClubId, requested_squad_id: null, external_referee_name: null, referee_responsibility: 'HOST', hosting_choice: l.venuePreference,
+    requested_club_id: l.requestedClubId, requested_squad_id: l.requestedSquadId ?? null, external_referee_name: l.externalRefereeName ?? null, referee_responsibility: l.refereeResponsibility ?? 'HOST', hosting_choice: l.hostingChoice ?? l.venuePreference,
     can_respond: !mineHost && listingStatus === 'OPEN' && l.requestedClubId === DINAMO, can_arrange_official: mineHost || mineGuest,
     home_score: l.score ? l.score[0] : null, away_score: l.score ? l.score[1] : null, result_status: l.score ? 'CONFIRMED' : null, result_legacy: false,
     event_id: l.id, squad_id: host.id, squad_name: host.name, club_id: club.id, club_name: club.name, club_profile_kind: CATEGORY_LABEL[clubCategory(club)], club_logo_url: club.logoUrl, club_banner_url: club.bannerUrl,
     title: l.title, description: l.description, starts_at: local(l.start), ends_at: local(l.end), starts_at_iso: iso(l.start), ends_at_iso: iso(l.end), timezone: TZ,
-    city: v?.city ?? club.city, location_name: v ? v.name : (l.venuePreference === 'AWAY' ? 'Your ground' : ''), location_lat: v?.lat ?? club.lat, location_lng: v?.lng ?? club.lng,
+    city: v?.city ?? l.place?.city ?? club.city, location_name: v ? v.name : l.place ? l.place.name : (l.venuePreference === 'AWAY' ? 'Your ground' : ''),
+    location_lat: v?.lat ?? (l.place ? l.place.lat : club.lat), location_lng: v?.lng ?? (l.place ? l.place.lng : club.lng),
     age_group: l.ageGroup, level: l.level, format: l.format, venue_preference: l.venuePreference, referee_required: l.refereeRequired, venue_id: v?.id ?? null, booking_id: l.booked ? 1400 + (l.id % 97) : null,
-    external_venue_confirmed: false, revision: l.revision, listing_status: listingStatus, event_status: eventStatus, venue_status: venueStatusOf(l), referee_status: refereeStatusOf(l),
+    external_venue_confirmed: Boolean(l.externalConfirmed), revision: l.revision, listing_status: listingStatus, event_status: eventStatus, venue_status: venueStatusOf(l), referee_status: refereeStatusOf(l),
     opponent_name: opp ? clubById(opp.clubId).name : null, opponent_club_id: opp?.clubId ?? null, opponent_squad_name: opp?.name ?? null, target_squad_id: opp?.id ?? null,
     head_coach_id: head?.id ?? null, coach_name: head ? head.fullName : clubCoachName(club.id), can_manage: mineHost, can_arrange: mineHost || mineGuest, can_record_result: (mineHost || mineGuest) && past && !l.score,
   };

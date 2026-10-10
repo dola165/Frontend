@@ -4,6 +4,7 @@ import {useSearchParams} from 'react-router-dom';
 import {apiClient} from '../../api/axiosConfig';
 import {extractApiErrorMessage} from '../../utils/apiError';
 import {useCompetitionCommand} from './useCompetitionCommand';
+import './competition-operations.css';
 type Assignment={id:number;tournament_id:number;fixture_id:number;competition:string;status:string;starts_at:string;ends_at:string;revision:number;volunteer:boolean;fee:number;currency:string;terms:string;report?:string};
 export function CompetitionOfficialAssignments(){
  const {i18n}=useTranslation();const copy=(en:string,ka:string)=>i18n.language.startsWith('ka')?ka:en;const [params]=useSearchParams();

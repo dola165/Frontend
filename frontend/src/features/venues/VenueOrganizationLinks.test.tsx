@@ -20,7 +20,7 @@ it('opens the recorded organization portfolio and prices without confusing publi
     expect(await screen.findByText('Listed owner and operator')).toBeVisible();
     expect(screen.getByRole('link', { name: 'View all venues' })).toHaveAttribute('href', '/organizations/17?tab=venues');
     expect(screen.getByRole('link', { name: 'Compare prices' })).toHaveAttribute('href', '/organizations/17?tab=prices');
-    expect(screen.getByRole('link', { name: 'Open in GrassKickZ Map' })).toHaveAttribute('href', '/map?venue=123');
+    expect(screen.getByRole('link', { name: 'Open in GrassKickZ Map' })).toHaveAttribute('href', '/world/map?venue=123');
     expect(screen.queryByRole('link', { name: 'Manage stadium' })).not.toBeInTheDocument();
 });
 it('labels a legacy operator accurately and uses the existing club facilities profile', () => {

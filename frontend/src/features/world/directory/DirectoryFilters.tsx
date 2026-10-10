@@ -1,0 +1,101 @@
+import { useId, useState } from 'react';
+import { SlidersHorizontal, X } from 'lucide-react';
+import { Chip, Field } from '../../../design/primitives';
+import type { ChoiceFilter, FilterDef } from './types';
+import type { DirectoryState } from './useDirectoryState';
+
+const offered = (filter: ChoiceFilter, signedIn: boolean) => filter.options.filter(option => signedIn || !option.signedIn);
+
+function ChoiceChips({ filter, state, signedIn }: { filter: ChoiceFilter; state: DirectoryState; signedIn: boolean }) {
+    const values = state.query.values[filter.key] ?? [];
+    return (
+        <div className="gk-chips" role="group" aria-label={filter.label}>
+            {!filter.multi && !filter.fallback && <Chip pressed={values.length === 0} onClick={() => state.setValues(filter.key, [])}>{filter.allLabel ?? 'All'}</Chip>}
+            {offered(filter, signedIn).map(option => (
+                <Chip key={option.value} pressed={values.includes(option.value)} onClick={() => filter.multi || !filter.fallback ? state.toggleValue(filter.key, option.value, Boolean(filter.multi)) : state.setValues(filter.key, [option.value])}>
+                    {option.label}
+                </Chip>
+            ))}
+        </div>
+    );
+}
+
+/** A text filter commits on blur or Enter, so typing never reloads results per keystroke. */
+function TextField({ filter, value, onCommit }: { filter: FilterDef & { placeholder?: string }; value: string; onCommit: (value: string) => void }) {
+    const id = useId();
+    const [draft, setDraft] = useState(value);
+    return (
+        <Field label={filter.label} htmlFor={id}>
+            <input id={id} className="gk-input" value={draft} maxLength={100} placeholder={filter.placeholder}
+                onChange={event => setDraft(event.target.value)}
+                onBlur={() => draft.trim() !== value && onCommit(draft.trim())}
+                onKeyDown={event => { if (event.key === 'Enter') onCommit(draft.trim()); }} />
+        </Field>
+    );
+}
+
+function MoreField({ filter, state, signedIn }: { filter: FilterDef; state: DirectoryState; signedIn: boolean }) {
+    const id = useId();
+    const value = state.query.values[filter.key]?.[0] ?? '';
+    if (filter.kind === 'choice' && filter.multi) return <div className="gk-field"><span className="gk-field__label">{filter.label}</span><ChoiceChips filter={filter} state={state} signedIn={signedIn} /></div>;
+    if (filter.kind === 'choice') return (
+        <Field label={filter.label} htmlFor={id}>
+            <select id={id} className="gk-input" value={value} onChange={event => state.setValues(filter.key, [event.target.value])}>
+                {!filter.fallback && <option value="">{filter.allLabel ?? 'Any'}</option>}
+                {offered(filter, signedIn).map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+        </Field>
+    );
+    if (filter.kind === 'toggle') return (
+        <label className="gk-world-check">
+            <input type="checkbox" checked={value === 'true'} onChange={event => state.setValues(filter.key, event.target.checked ? ['true'] : [])} />
+            {filter.label}
+        </label>
+    );
+    if (filter.kind === 'date') return (
+        <Field label={filter.label} htmlFor={id}>
+            <input id={id} type="date" className="gk-input" value={value} onChange={event => state.setValues(filter.key, event.target.value ? [event.target.value] : [])} />
+        </Field>
+    );
+    return <TextField key={value} filter={filter} value={value} onCommit={next => state.setValues(filter.key, next ? [next] : [])} />;
+}
+
+/** Primary filters as chips; everything else behind a More filters disclosure. Scopes from links show as removable chips. */
+export function DirectoryFilters({ state, signedIn }: { state: DirectoryState; signedIn: boolean }) {
+    const [open, setOpen] = useState(false);
+    const panelId = useId();
+    const visible = state.source.filters.filter(filter => filter.kind !== 'scope' && (!filter.when || filter.when(state.query)));
+    const scopes = state.activeFilters.filter(filter => filter.kind === 'scope');
+    const isPrimary = (filter: FilterDef) => (filter.kind === 'choice' || filter.kind === 'toggle') && filter.primary;
+    const primary = visible.filter(isPrimary), secondary = visible.filter(filter => !isPrimary(filter));
+    const secondaryActive = state.activeFilters.filter(filter => secondary.includes(filter)).length;
+    if (!visible.length && !scopes.length) return null;
+    return (
+        <div className="gk-world-filters">
+            <div className="gk-world-filters__row">
+                {scopes.length > 0 && (
+                    <div className="gk-chips" role="group" aria-label="Showing only">
+                        {scopes.map(filter => (
+                            <Chip key={filter.key} pressed onClick={() => state.setValues(filter.key, [])} aria-label={`Remove filter: ${filter.label}`}>
+                                {filter.label}<X aria-hidden="true" />
+                            </Chip>
+                        ))}
+                    </div>
+                )}
+                {primary.map(filter => filter.kind === 'choice'
+                    ? <ChoiceChips key={filter.key} filter={filter} state={state} signedIn={signedIn} />
+                    : <Chip key={filter.key} pressed={state.query.values[filter.key]?.[0] === 'true'} onClick={() => state.setValues(filter.key, state.query.values[filter.key]?.[0] === 'true' ? [] : ['true'])}>{filter.label}</Chip>)}
+                {secondary.length > 0 && (
+                    <Chip pressed={open || secondaryActive > 0} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(value => !value)}>
+                        <SlidersHorizontal aria-hidden="true" />More filters{secondaryActive > 0 && <span className="gk-num"> · {secondaryActive}</span>}
+                    </Chip>
+                )}
+            </div>
+            {open && secondary.length > 0 && (
+                <div id={panelId} className="gk-world-filters__more">
+                    {secondary.map(filter => <MoreField key={filter.key} filter={filter} state={state} signedIn={signedIn} />)}
+                </div>
+            )}
+        </div>
+    );
+}

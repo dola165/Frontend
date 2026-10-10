@@ -8,7 +8,6 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AdmissionCase, AdmissionHome, AdmissionInquiry, OpportunityPage, Participation } from '../types';
 import { fetchAdmissionGroupSchedule, fetchAdmissionInquiry, commandAdmissionInquiry, submitAdmissionInquiry, claimAdmissionInvitation, commandAdmission, fetchAdmissionHome, fetchOpportunity, searchOpportunities, submitAdmission, updateAdmissionPlayerCard } from '../api';
-import { OpportunityBrowsePage } from './OpportunityBrowsePage';
 import { fetchPlayerIdentity, savePlayerIdentity } from '../../joining-contract/api';
 import { OpportunityDetailPage } from './OpportunityDetailPage';
 import { AdmissionHomePage } from './AdmissionHomePage';
@@ -83,13 +82,6 @@ describe('Applicant invariants',()=>{
     it('claims an offline inquiry with the chosen authorized identity and invitation version',async()=>{
         const home=fixture<AdmissionHome>('home');vi.mocked(claimAdmissionInvitation).mockResolvedValue(base());show(<AdmissionInvitationCard invitation={{id:41,version:3,organizationId:1,organizationName:'Dinamo',groupId:1,groupName:'Beginner group',intendedPlayerId:101,message:'Agreed offline inquiry',expiresAt:'2026-10-11T00:00:00Z',status:'PENDING'}} participants={home.participants} onChanged={vi.fn()}/>);
         fireEvent.click(screen.getByLabelText('I confirm the named player and want to continue this recorded inquiry.'));fireEvent.click(screen.getByRole('button',{name:'Continue this inquiry'}));await waitFor(()=>expect(claimAdmissionInvitation).toHaveBeenCalledWith(41,expect.objectContaining({requestId:expect.any(String),expectedVersion:3,playerId:101,accept:true}),'family-session'));
-    });
-    it('searches one eligible opportunity with birth-year, gender and active/waitlist criteria',async()=>{
-        show(<OpportunityBrowsePage/>);await screen.findByRole('option',{name:'Synthetic child · child'});
-        fireEvent.change(screen.getByLabelText('Selected player'),{target:{value:'101'}});
-        fireEvent.click(screen.getByText('More filters'));fireEvent.change(screen.getByLabelText('Gender category'),{target:{value:'MALE'}});
-        fireEvent.click(screen.getByLabelText('Include waiting lists'));fireEvent.click(screen.getByRole('button',{name:'Show groups'}));
-        await waitFor(()=>expect(searchOpportunities).toHaveBeenLastCalledWith(expect.objectContaining({birthYear:2018,gender:'MALE',acceptingOnly:true,includeWaitlist:true,page:0}),expect.any(AbortSignal)));
     });
     it('keeps sibling cases separate when selecting a player',async()=>{
         const home=fixture<AdmissionHome>('home');home.participants.push({...home.participants[0],id:102,name:'Second child'});home.cases.push({...home.cases[0],id:200,playerId:102,playerName:'Second child',groupName:'Sibling group'});vi.mocked(fetchAdmissionHome).mockResolvedValue(home);

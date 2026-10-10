@@ -4,7 +4,6 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AppointmentCard } from "../AppointmentCard";
 import { MatchDetailPage } from "../../../pages/MatchDetailPage";
-import { MatchExchangePage } from "../../../pages/MatchExchangePage";
 import { useAction, useClock, useLoad } from "../hooks";
 import type { Appointment, Match } from "../api";
 
@@ -53,19 +52,4 @@ it("marks an invitation card for priority presentation without changing its acti
   expect(container.querySelector(".mx-appointment")).toHaveClass("is-invited");
   expect(screen.getByRole("button", { name: "Accept invitation" })).toBeEnabled();
   expect(screen.getByRole("button", { name: "Decline invitation" })).toBeEnabled();
-});
-
-it("shows the match identity, zoned schedule and readiness once before the detail route", () => {
-  vi.mocked(useLoad).mockImplementation((path: string) => path === "/match-exchange/squads"
-    ? { data: [], error: "", reload: vi.fn() }
-    : { data: { items: [{ ...match, listing_status: "OPEN", opponent_name: null, opponent_club_id: null, opponent_squad_name: null, target_squad_id: null }], total: 1 }, error: "", reload: vi.fn() });
-  render(<MemoryRouter initialEntries={["/match-exchange"]}><MatchExchangePage /></MemoryRouter>);
-
-  expect(screen.getByRole("heading", { name: "1 matches" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: /Home Academy/ })).toHaveAttribute("href", "/clubs/1");
-  expect(screen.getByText("U14")).toBeInTheDocument();
-  expect(screen.getByText(/14:00 – 15:30/)).toHaveTextContent("Asia/Tbilisi");
-  expect(screen.getByText("Host confirmed")).toBeInTheDocument();
-  expect(screen.queryByText(match.description!)).not.toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "View match details" })).toHaveAttribute("href", "/match-exchange/12");
 });

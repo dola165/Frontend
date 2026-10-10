@@ -21,7 +21,7 @@ export function JourneyLauncher({eventId}:{eventId:number}){
  const start=async()=>{if(!choice||busy||loading)return;setBusy(true);setError('');try{
   if(remember)await apiClient.put(`/journeys/squads/${choice.id}/preferences`,{revision,preferences:prefs});
   const r=await apiClient.post<Plan>('/journeys/from-fixture',{eventId,clubId:choice.club,squadId:choice.id,preferences:prefs},{timeout:25000});
-  navigate(`/map?plans=staff&plan=${r.data.id}&club=${choice.club}&squad=${choice.id}`);
+  navigate(`/world/map?plans=staff&plan=${r.data.id}&club=${choice.club}&squad=${choice.id}`);
  }catch(e){setError(extractApiErrorMessage(e,'The journey could not open. Retry safely; this fixture reuses its existing draft.'));}finally{setBusy(false);}};
  if(!choice)return null;
  return <><button type="button" className="mx-button journey-launch" onClick={()=>setOpen(true)}><Route size={16}/> Plan team travel</button><FamilyPlanWindow className="journey-floating-window" open={open} onClose={()=>{if(!busy)setOpen(false);}} title="Plan team travel"><form className="journey-event-details" onSubmit={e=>{e.preventDefault();void start();}}>

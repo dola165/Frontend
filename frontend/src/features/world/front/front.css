@@ -1,0 +1,36 @@
+/* World front page. Scoped under .gk-world-front; tokens only. */
+.gk .gk-world-front { display: flex; flex-direction: column; gap: var(--gk-8); padding-bottom: var(--gk-16); }
+.gk .gk-world-front .gk-page-header { padding-bottom: 0; }
+.gk .gk-world-area { display: inline-flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
+.gk .gk-world-area .gk-input { width: auto; min-width: 150px; }
+
+/* Search band */
+.gk .gk-world-search { display: flex; flex-direction: column; gap: var(--gk-4); margin-top: calc(-1 * var(--gk-4)); }
+.gk .gk-world-search__input .gk-input { min-height: 56px; padding-left: 48px; border-radius: var(--gk-r-lg); font-size: var(--gk-fs-lg); background: var(--gk-surface); border-color: var(--gk-line-strong); }
+.gk .gk-world-search__input svg { left: 16px; width: 20px; height: 20px; }
+.gk .gk-world-search__results { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--gk-4); align-items: start; }
+.gk .gk-world-search__loading { display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-4) var(--gk-5); }
+.gk .gk-world-search__note { padding: var(--gk-4) var(--gk-5); font-size: var(--gk-fs-sm); }
+.gk .gk-world-search__results .gk-list-row { min-height: 52px; padding-block: var(--gk-2); }
+.gk .gk-world-search__when { display: flex; flex-direction: column; align-items: flex-start; width: 52px; font-weight: 650; }
+.gk .gk-world-search__when small { font-size: var(--gk-fs-xs); font-weight: 500; color: var(--gk-text-3); font-family: var(--gk-font); }
+.gk .gk-world-starts { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .gk-world-starts .gk-chip { min-height: 36px; }
+@media (max-width: 640px) {
+  .gk .gk-world-starts { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--gk-gutter)); padding-inline: var(--gk-gutter); }
+  .gk .gk-world-starts::-webkit-scrollbar { display: none; }
+}
+
+/* Sections in a grid */
+.gk .gk-world-front__lead { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gk-8) var(--gk-6); align-items: start; }
+.gk .gk-world-front__map { --gk-world-map-h: 320px; }
+@media (min-width: 1100px) {
+  .gk .gk-world-front__lead { grid-template-columns: minmax(0, 1.5fr) minmax(360px, 1fr); align-items: stretch; }
+  /* The map grows to the height of the fixtures beside it. */
+  .gk .gk-world-front__lead > #world-around { min-height: 0; }
+  .gk .gk-world-front__lead > #world-around .gk-world-map { flex: 1; }
+  .gk .gk-world-front__lead > #world-around .gk-world-map__canvas { flex: 1; height: auto; min-height: 320px; }
+}
+.gk .gk-world-front__clubs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--gk-4); }
+.gk .gk-world-front__trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--gk-8) var(--gk-6); align-items: start; }
+.gk .gk-world-search__none { grid-column: 1 / -1; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }

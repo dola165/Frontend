@@ -4,7 +4,6 @@ import { Link, MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom
 import i18n from '../../i18n';
 import { TournamentSetupPage } from '../TournamentSetupPage';
 import { CreateOrganizationPage } from '../CreateOrganizationPage';
-import { BrowseTournamentsPage } from '../BrowseTournamentsPage';
 import { fetchMyOrganizations, fetchTournamentHostClubs, fetchTournaments,fetchTournamentDiscovery } from '../../features/tournaments/api';
 import { useAuth } from '../../context/AuthContext';
 import type { MyOrganization, TournamentDetail } from '../../features/tournaments/domain';
@@ -24,7 +23,6 @@ vi.mock('../../features/tournaments/api', () => ({
 import {createCompetition} from '../../features/competitions/api';
 vi.mock('../../features/competitions/api',async importOriginal=>{const actual=await importOriginal<typeof import('../../features/competitions/api')>();return {...actual,createCompetition:vi.fn(),defaultRules:()=>({...actual.defaultRules(),ruleset:'Published organiser rules for adult football',seasonPolicy:'This single event retains historical results; withdrawals reviewed by organiser.'})};});
 vi.mock('../../context/AuthContext', () => ({ useAuth: vi.fn() }));
-vi.mock('../../features/tournaments/components/TournamentDiscovery',()=>({TournamentDiscovery:()=> <p>No tournaments found</p>,TournamentHosts:()=> <p>No public hosts</p>}));
 
 const organization = (id: number, available = true): MyOrganization => ({
     id, slug: `org-${id}`, displayName: `Organization ${id}`, membershipRole: available ? 'OWNER' : 'MEMBER',
@@ -52,7 +50,7 @@ function renderFlow(path = '/tournaments/setup', state?: unknown) {
         <BackButton />
         <Routes>
             <Route path="/" element={<Link to="/tournaments">Tournaments</Link>} />
-            <Route path="/tournaments" element={<BrowseTournamentsPage />} />
+            <Route path="/tournaments" element={<Link to="/tournaments/setup">Tournament setup</Link>} />
             <Route path="/tournaments/setup" element={<TournamentSetupPage />} />
             <Route path="/organizations/create" element={<CreateOrganizationPage />} />
             <Route path="/my-organizations" element={<Link to="/tournaments">Tournaments</Link>} />

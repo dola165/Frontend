@@ -60,7 +60,7 @@ function PermissionCard({ request: p, selected, journey, busy, onAction }: {
         </button>
         <div className="permission-reveal" data-open={expanded} id={`permission-body-${p.id}`} inert={!expanded} aria-hidden={!expanded}><div><div className="permission-body">
             {journey && <>
-                <div className="permission-journey-heading"><span><ShieldCheck size={16} />Published journey · version {journey.version}</span><Link to={`/map?plans=family&journey=${journey.plan_id}&journeyChild=${journey.child_id}`}>View journey <ArrowUpRight size={15} /></Link></div>
+                <div className="permission-journey-heading"><span><ShieldCheck size={16} />Published journey · version {journey.version}</span><Link to={`/world/map?plans=family&journey=${journey.plan_id}&journeyChild=${journey.child_id}`}>View journey <ArrowUpRight size={15} /></Link></div>
                 <dl className="permission-arrangements">
                     <div><dt><CalendarDays size={16} />When</dt><dd>{dateTime(journey.itinerary.startsAt, journey.itinerary.timezone)}<span>Return {dateTime(journey.itinerary.endsAt, journey.itinerary.timezone)} · {journey.itinerary.timezone}</span></dd></div>
                     <div><dt><MapPin size={16} />Destination</dt><dd>{journey.itinerary.destination}</dd></div>

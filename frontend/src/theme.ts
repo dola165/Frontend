@@ -15,7 +15,7 @@ export function readThemePreference(storage?: Pick<Storage, 'getItem'>): ThemePr
 }
 
 export const themeForRoute = (preference: ThemePreference, pathname: string): 'light' | 'dark' =>
-    pathname === '/map' || preference === 'light' ? 'light' : 'dark';
+    pathname === '/map' || pathname === '/world/map' || preference === 'light' ? 'light' : 'dark';
 
 export function applyDocumentTheme(theme: 'light' | 'dark') {
     document.documentElement.classList.toggle('dark', theme === 'dark');

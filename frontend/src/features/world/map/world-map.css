@@ -1,0 +1,38 @@
+/* World map block. Scoped to .gk; colours are design tokens only. */
+.gk .gk-world-map { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; }
+.gk .gk-world-map__canvas { position: relative; height: var(--gk-world-map-h, 320px); min-height: 200px; background: var(--gk-sunken); isolation: isolate; }
+.gk .gk-world-map__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-4); padding: var(--gk-3) var(--gk-4); border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+
+.gk .gk-world-map__sketch {
+  position: absolute; inset: 0;
+  background-color: var(--gk-pitch);
+  background-image:
+    linear-gradient(var(--gk-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--gk-line) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: -1px -1px;
+}
+.gk .gk-world-map__sketch::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 40%, color-mix(in srgb, var(--gk-bg) 55%, transparent)); pointer-events: none; }
+.gk .gk-world-map__sketch .gk-world-pin { position: absolute; transform: translate(-50%, -50%); z-index: 1; }
+.gk .gk-world-map__sketch .gk-world-pin[data-selected] { z-index: 2; }
+
+/* A pin is a 28px hit area around a small dot. */
+.gk .gk-world-pin { --pin: var(--gk-accent); display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--gk-r-pill); background: transparent; cursor: pointer; }
+.gk .gk-world-pin::after { content: ''; width: 12px; height: 12px; border-radius: var(--gk-r-pill); background: var(--pin); box-shadow: 0 0 0 2px var(--gk-surface), 0 1px 6px color-mix(in srgb, var(--gk-shadow) 40%, transparent); transition: transform .15s var(--gk-ease); }
+.gk .gk-world-pin:hover::after, .gk .gk-world-pin[data-selected]::after { transform: scale(1.45); }
+.gk .gk-world-pin[data-selected]::after { box-shadow: 0 0 0 2px var(--gk-surface), 0 0 0 5px color-mix(in srgb, var(--pin) 45%, transparent); }
+.gk .gk-world-pin[data-tone='venue'] { --pin: var(--gk-info); }
+.gk .gk-world-pin[data-tone='trial'] { --pin: var(--gk-warning); }
+.gk .gk-world-pin[data-tone='event'] { --pin: var(--gk-violet); }
+.gk .gk-world-pin[data-tone='person'] { --pin: var(--gk-text-2); }
+.gk .gk-world-pin--key { width: 12px; height: 12px; cursor: default; }
+.gk .gk-world-pin--key::after { width: 8px; height: 8px; box-shadow: none; }
+
+.gk .gk-world-map__legend { position: absolute; top: var(--gk-3); left: var(--gk-3); z-index: 3; display: flex; flex-wrap: wrap; gap: var(--gk-1) var(--gk-3); margin: 0; padding: 6px var(--gk-3); list-style: none; border-radius: var(--gk-r); background: color-mix(in srgb, var(--gk-surface) 88%, transparent); border: 1px solid var(--gk-line); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-2); }
+.gk .gk-world-map__legend li { display: inline-flex; align-items: center; gap: 6px; }
+.gk .gk-world-map__note { position: absolute; left: var(--gk-3); bottom: var(--gk-3); z-index: 3; display: flex; align-items: center; gap: var(--gk-2); max-width: calc(100% - 2 * var(--gk-3)); padding: 2px 2px 2px var(--gk-3); border-radius: var(--gk-r); background: color-mix(in srgb, var(--gk-surface) 88%, transparent); border: 1px solid var(--gk-line); font-size: var(--gk-fs-xs); color: var(--gk-text-2); }
+.gk .gk-world-map__card { position: absolute; left: var(--gk-3); right: var(--gk-3); bottom: var(--gk-3); z-index: 4; display: flex; align-items: center; gap: var(--gk-3); padding: var(--gk-2) var(--gk-2) var(--gk-2) var(--gk-4); border-radius: var(--gk-r); background: var(--gk-surface); border: 1px solid var(--gk-line-strong); box-shadow: var(--gk-elevation); }
+.gk .gk-world-map__card-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gk .gk-world-map__card-text strong, .gk .gk-world-map__card-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-world-map__card-text span { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-world-map .maplibregl-ctrl-group { background: var(--gk-surface); border: 1px solid var(--gk-line); box-shadow: none; }

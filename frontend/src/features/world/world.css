@@ -1,0 +1,34 @@
+/* GrassKickZ World shell. Scoped under .gk-world / .world-mapview; tokens only. */
+.gk .gk-world-nav { margin-top: var(--gk-3); }
+.gk .gk-world-loading { display: flex; flex-direction: column; gap: var(--gk-4); padding-block: var(--gk-8); }
+.gk .gk-world-row-title { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+.gk .gk-world-row-title > :first-child { overflow: hidden; text-overflow: ellipsis; }
+.gk .gk-world-row-note { font-size: var(--gk-fs-sm); color: var(--gk-text-2); white-space: nowrap; }
+.gk .gk-world-verified { flex: none; width: 16px; height: 16px; color: var(--gk-accent); }
+.gk .gk-world-grow { flex: 1; min-width: 0; }
+.gk .gk-world-skeleton-row { display: flex; align-items: center; gap: var(--gk-3); padding: var(--gk-4) var(--gk-5); }
+.gk .gk-world-skeleton-row + .gk-world-skeleton-row { border-top: 1px solid var(--gk-line); }
+.gk .gk-world-skeleton-row > span { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+
+/* Full-map view: the World navigation above the map canvas. */
+.world-mapview { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.world-mapview__canvas { position: relative; flex: 1; min-height: 0; }
+.gk.gk-world-mapbar { flex: none; background: var(--gk-bg); border-bottom: 1px solid var(--gk-line); }
+.gk.gk-world-mapbar .gk-world-nav { margin-top: 0; border-bottom: 0; }
+@media (max-width: 640px) { .gk .gk-world-nav { margin-inline: calc(-1 * var(--gk-gutter)); padding-inline: var(--gk-gutter); } }
+.gk .gk-world-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* Existing work components hosted in World keep their own styles; give them room and the page font. */
+.gk .gk-world-legacy { min-width: 0; }
+/* "Add past match" comes from match history; its trigger reads as a small secondary button here. */
+.gk .gk-world-past .mh-import { margin: 0; }
+.gk .gk-world-past .mh-import > button { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 32px; padding: 0 var(--gk-3); border-radius: var(--gk-r-sm); border: 1px solid var(--gk-line); background: var(--gk-raised); color: var(--gk-text); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
+.gk .gk-world-past .mh-import > button:hover { border-color: var(--gk-line-strong); background: var(--gk-hover); }
+.gk .gk-world-past .mh-import > button svg { width: 16px; height: 16px; }
+@media (max-width: 640px) {
+  /* On phones a row's status moves under its text, as fixture rows do, so names stay readable. */
+  .gk.gk-world .gk-list-row { flex-wrap: wrap; row-gap: var(--gk-1); }
+  .gk.gk-world .gk-list-row__main { flex: 1 1 calc(100% - 64px); }
+  .gk.gk-world .gk-list-row__lead + .gk-list-row__main + .gk-list-row__trail { margin-left: calc(40px + var(--gk-3)); }
+  .gk.gk-world .gk-list-row__trail { flex-wrap: wrap; }
+  .gk .gk-world-row-note { white-space: normal; }
+}

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Ban, BadgeCheck, BellRing, Bus, CheckCircle2, ClipboardCheck, ClipboardList, FileText, GraduationCap, HeartHandshake, HeartPulse, IdCard, LogOut, MailOpen, MapPin, Package, ShieldAlert, ShieldCheck, Stethoscope, Swords, TrendingUp, TriangleAlert, UserCheck, UserCog, UserPlus, Users, Wallet, type LucideIcon } from 'lucide-react';
+import { CheckCircle2, ChevronRight } from 'lucide-react';
 import { Button, EmptyNote, List, ListRow, Panel, Section, Skeleton, type BadgeTone } from '../../../design/primitives';
 import { label, moduleNames } from '../../clubOperations/api';
 import type { RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
@@ -15,15 +15,7 @@ import { useOutstandingWork } from './useOutstandingWork';
 import { useNow } from '../useNow';
 import '../club-workspace.css';
 
-interface NeedItem { key: string; title: string; meta: string; badge: string; tone: BadgeTone; rank: number; date?: string | null; module?: string; open: () => void }
-
-/** Every kind of waiting item has its own icon, so the list can be scanned by shape before reading. */
-const keyIcons: Record<string, LucideIcon> = { 'overdue-trials': TriangleAlert, applications: ClipboardList, tryouts: UserPlus, trials: UserCheck, invitations: MailOpen, 'role-requests': UserCog };
-const moduleIcons: Record<string, LucideIcon> = { STAFF: Users, CREDENTIALS: BadgeCheck, FACILITIES: MapPin, READINESS: ShieldAlert, GUARDIANS: ShieldCheck, ATTENDANCE: ClipboardCheck, WELFARE: HeartHandshake, MEDICAL: HeartPulse, AVAILABILITY: Ban, DEVELOPMENT: TrendingUp, EDUCATION: GraduationCap, REGISTRATION: IdCard, EQUIPMENT: Package, FINANCE: Wallet, TRAVEL: Bus, SPECIALISTS: Stethoscope, DEPARTURES: LogOut, MATCHES: Swords };
-function NeedIcon({ item }: { item: NeedItem }) {
-    const Icon = item.module ? moduleIcons[item.module] ?? FileText : item.key.startsWith('consent') ? ShieldCheck : keyIcons[item.key] ?? FileText;
-    return <span className={`cw-need__icon cw-need__icon--${item.tone}`}><Icon aria-hidden="true" /></span>;
-}
+interface NeedItem { key: string; title: string; meta: string; badge: string; tone: BadgeTone; rank: number; date?: string | null; open: () => void }
 const consentStates = { PENDING: ['consentPending', 'info'], EXPIRED: ['consentExpired', 'danger'], DECLINED: ['consentDeclined', 'danger'] } as const;
 
 /**
@@ -74,7 +66,7 @@ export function NeedsYou({ clubId, overview, roles, squads, canManageOperations,
             key: `record-${record.id}`, title: record.title,
             meta: [moduleNames[record.module], squad ?? (record.squad_id ? null : copy('clubWide')), label(record.status), colleague ? copy('withColleague') : null].filter(Boolean).join(' · '),
             badge: record.expired ? copy('badgeExpired') : due?.label ?? label(record.status), tone: overdue ? 'danger' : 'neutral', rank: (overdue ? 0 : 2) + (colleague ? 0.5 : 0),
-            date: record.attentionDate ?? record.due_on, module: record.module,
+            date: record.attentionDate ?? record.due_on,
             open: () => onOpen(operationTab(record.module), { record: String(record.id), ...(record.squad_id ? { squad: String(record.squad_id) } : {}) }),
         });
     }
@@ -85,9 +77,9 @@ export function NeedsYou({ clubId, overview, roles, squads, canManageOperations,
     let body: ReactNode;
     if (work.loading && !items.length) body = <div className="cw-skeleton-rows" role="status" aria-label={copy('needsChecking')}>{[0, 1, 2].map(i => <Skeleton key={i} height={40} />)}</div>;
     else if (!items.length && !work.error) body = <EmptyNote title={copy('needsEmpty')}>{copy('needsEmptyHint')}</EmptyNote>;
-    else body = <List label={copy('needsYou')}>{shown.map(item => <ListRow key={item.key} onClick={item.open} lead={<NeedIcon item={item} />} title={item.title} meta={item.meta} trail={<span className={`cw-status cw-status--${item.tone}`}>{item.badge}</span>} />)}</List>;
+    else body = <List label={copy('needsYou')}>{shown.map(item => <ListRow key={item.key} onClick={item.open} lead={<span className={`cw-dot cw-dot--${item.tone}`} aria-hidden="true" />} title={item.title} meta={item.meta} trail={<><span className={`cw-status cw-status--${item.tone}`}>{item.badge}</span><ChevronRight className="cw-chevron" aria-hidden="true" /></>} />)}</List>;
 
-    return <Section className={className} icon={BellRing} tone="warning" title={copy('needsYou')} hint={items.length ? others ? copy('waitingSplit', { count: items.length - others, others }) : copy('waiting', { count: items.length }) : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('actions')}>{copy('workQueue')}</button>}>
+    return <Section className={className} boxed title={copy('needsYou')} hint={items.length ? others ? copy('waitingSplit', { count: items.length - others, others }) : copy('waiting', { count: items.length }) : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('actions')}>{copy('workQueue')}</button>}>
         <Panel flush footer={hidden > 0 ? <button type="button" className="cw-text-button" onClick={() => onOpen('actions')}>{copy('moreInQueue', { count: hidden })}</button> : undefined}>
             {work.error && <div className="cw-panel-notice"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{work.error}</span><Button size="sm" onClick={work.retry}>{copy('retry')}</Button></div></div>}
             {body}

@@ -1,5 +1,5 @@
 import './design.css';
-import type { ComponentPropsWithoutRef, ReactNode } from 'react';
+import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from 'react';
 import { Link, type LinkProps } from 'react-router-dom';
 import { CalendarDays, Cone, Search as SearchIcon, Swords, UserPlus, Users, type LucideIcon } from 'lucide-react';
 
@@ -41,14 +41,14 @@ export function PageHeader({ title, subtitle, crumbs, actions, className }: { ti
 export type SectionTone = 'accent' | 'info' | 'warning' | 'violet' | 'danger';
 /**
  * A titled group of content. The title is plain sentence case; `action` is an optional link at the right.
- * With an `icon`, the section becomes its own tinted box led by that icon, so sections read apart at a glance.
+ * `boxed` makes it one calm surface with the title over its hint; `icon` adds a small symbol before the title.
  */
-export function Section({ title, hint, action, icon: Icon, tone = 'accent', children, className, id }: { title?: ReactNode; hint?: ReactNode; action?: { label: string; to: string } | ReactNode; icon?: LucideIcon; tone?: SectionTone; children: ReactNode; className?: string; id?: string }) {
+export function Section({ title, hint, action, boxed, icon: Icon, tone = 'accent', children, className, id }: { title?: ReactNode; hint?: ReactNode; action?: { label: string; to: string } | ReactNode; boxed?: boolean; icon?: LucideIcon; tone?: SectionTone; children: ReactNode; className?: string; id?: string }) {
     const actionNode = action && typeof action === 'object' && 'to' in (action as object) && 'label' in (action as object)
         ? <Link className="gk-section__action" to={(action as { to: string }).to}>{(action as { label: string }).label}</Link>
         : action as ReactNode;
     return (
-        <section className={cx('gk-section', Icon && 'gk-section--boxed', className)} data-tone={Icon ? tone : undefined} id={id} aria-labelledby={id && title ? `${id}-title` : undefined}>
+        <section className={cx('gk-section', boxed && 'gk-section--boxed', className)} data-tone={Icon ? tone : undefined} id={id} aria-labelledby={id && title ? `${id}-title` : undefined}>
             {(title || actionNode) && (
                 <div className="gk-section__head">
                     {Icon && <span className="gk-section__icon" aria-hidden="true"><Icon /></span>}
@@ -109,11 +109,12 @@ export type FixtureTone = 'match' | 'training' | 'event' | 'trial' | 'neutral';
 /** What an entry is, at a glance: a match, training, a club event or a trial. */
 const fixtureIcons: Record<FixtureTone, LucideIcon> = { match: Swords, training: Cone, event: Users, trial: UserPlus, neutral: CalendarDays };
 
-export function FixtureRow({ time, day, title, meta, trail, tone = 'event', to, onClick, label, current, onHover }: { time: ReactNode; day?: ReactNode; title: ReactNode; meta?: ReactNode; trail?: ReactNode; tone?: FixtureTone; to?: string; onClick?: () => void; label?: string;
+export function FixtureRow({ time, day, title, meta, trail, tone = 'event', icon, iconColor, to, onClick, label, current, onHover }: { time: ReactNode; day?: ReactNode; title: ReactNode; meta?: ReactNode; trail?: ReactNode; tone?: FixtureTone; to?: string; onClick?: () => void; label?: string;
+    /** The symbol for what the entry is (defaults to one per tone) and its colour. */ icon?: LucideIcon; iconColor?: string;
     /** Marks the entry that is selected elsewhere, for example on a map. */ current?: boolean;
     /** Pointer or keyboard focus entering and leaving the entry, to highlight its counterpart. */ onHover?: (active: boolean) => void }) {
-    const Kind = fixtureIcons[tone];
-    const when = <><span className="gk-fixture__when"><span className="gk-fixture__time">{time}</span>{day && <span className="gk-fixture__day">{day}</span>}</span><span className="gk-fixture__kind" aria-hidden="true"><Kind /></span></>;
+    const Kind = icon ?? fixtureIcons[tone];
+    const when = <><span className="gk-fixture__when"><span className="gk-fixture__time">{time}</span>{day && <span className="gk-fixture__day">{day}</span>}</span><span className="gk-fixture__kind" style={iconColor ? { '--gk-fixture-kind': iconColor } as CSSProperties : undefined} aria-hidden="true"><Kind /></span></>;
     // A long title keeps its full text for pointer users; on phones it wraps instead (design.css).
     const main = <span className="gk-fixture__main"><span className="gk-fixture__title" title={typeof title === 'string' ? title : undefined}>{title}</span>{meta && <span className="gk-fixture__meta">{meta}</span>}</span>;
     const trailNode = trail && <span className="gk-fixture__trail">{trail}</span>;

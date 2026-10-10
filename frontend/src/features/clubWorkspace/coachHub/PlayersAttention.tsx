@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { UserCheck, ListChecks } from 'lucide-react';
 import { Avatar, Button, EmptyNote, List, ListRow, Panel, Section, Skeleton, type BadgeTone } from '../../../design/primitives';
 import { get, label, moduleNames, type Bootstrap, type OperationRecord } from '../../clubOperations/api';
 import type { RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
@@ -67,7 +66,7 @@ export function PlayersAttention({ clubId, roles, boot, squads, onOpen }: { club
     const counts = { restricted: items.filter(i => i.rank === 0).length, consent: items.filter(i => i.rank === 1).length, development: items.filter(i => i.rank === 2).length };
     const hint = [counts.restricted && copy('restricted', { count: counts.restricted }), counts.consent && copy('consents', { count: counts.consent }), counts.development && copy('developmentCount', { count: counts.development })].filter(Boolean).join(' · ');
 
-    return <Section className="cw-attention" icon={UserCheck} tone="violet" title={copy('playersToCheck')} hint={hint || undefined}>
+    return <Section className="cw-attention" boxed title={copy('playersToCheck')} hint={hint || undefined}>
         <Panel flush>
             {!records.any ? <EmptyNote title={copy('notShared')}>{copy('notSharedHint')}</EmptyNote>
                 : records.loading ? <div className="cw-skeleton-rows" role="status" aria-label={copy('loadingPlayers')}>{[0, 1, 2].map(i => <Skeleton key={i} height={40} />)}</div>
@@ -97,7 +96,7 @@ export function MyTasks({ clubId, roles, onOpen }: { clubId: number; roles: Role
     }, [clubId, key]);
     const current = result?.key === key ? result : null;
     const rows = current?.rows ?? [];
-    return <Section icon={ListChecks} tone="warning" title={copy('myTasks')} hint={rows.length ? copy('assigned', { count: rows.length }) : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('actions', { mine: 'true' })}>{copy('workQueue')}</button>}>
+    return <Section boxed title={copy('myTasks')} hint={rows.length ? copy('assigned', { count: rows.length }) : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('actions', { mine: 'true' })}>{copy('workQueue')}</button>}>
         <Panel flush>
             {!current ? <div className="cw-skeleton-rows" role="status" aria-label={copy('loadingTasks')}>{[0, 1].map(i => <Skeleton key={i} height={40} />)}</div>
                 : current.error ? <div className="cw-panel-notice"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{current.error}</span><Button size="sm" onClick={() => setRevision(v => v + 1)}>{copy('tryAgain')}</Button></div></div>

@@ -9,7 +9,7 @@
 .gk button.cw-fact { cursor: pointer; }
 .gk button.cw-fact:hover { color: var(--gk-text); }
 .gk .cw-fact strong { color: var(--gk-text); font-weight: 650; }
-.gk .cw-fact__alert { color: var(--gk-warning); font-size: var(--gk-fs-xs); }
+.gk .cw-fact--alert { padding-left: 16px; border-left: 1px solid var(--gk-line); color: var(--gk-warning); }
 
 /* Every squad as a small tile. */
 .gk .cw-squad-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
@@ -17,6 +17,9 @@
 .gk .cw-squad-tile:hover { border-color: var(--gk-line-strong); background: var(--gk-raised); }
 .gk .cw-squad-tile__name { font-weight: 650; }
 .gk .cw-squad-tile__meta, .gk .cw-squad-tile__next { color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .cw-squad-tile__next { display: flex; align-items: center; gap: 6px; color: var(--gk-text-3); }
+.gk .cw-squad-tile__next svg { flex: none; width: 14px; height: 14px; color: var(--gk-info); }
+.gk .gk-section--boxed .cw-squad-tile { background: var(--gk-bg); }
 
 @media (max-width: 1099px) {
   .gk .cw-overview > .cw-overview__column { display: contents; }

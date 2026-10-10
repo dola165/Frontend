@@ -15,6 +15,7 @@ import { coachHubEn } from '../../../locales/workspaceDesign';
 import { useCopy } from '../../../locales/useCopy';
 import { isToday, squadAgenda } from '../fixtures';
 import { CoachWeek } from './CoachWeek';
+import { ActivityLegend } from '../DayAgenda';
 import { CoachSquads } from './CoachSquads';
 import { CoachPlayers } from './CoachPlayers';
 import { MyTasks, PlayersAttention } from './PlayersAttention';
@@ -91,6 +92,7 @@ export function CoachHub({ page, clubId, roles, boot, focus, events, legacyHub, 
                                 <OtherWork />
                             </div>
                         </div>
+                        <ActivityLegend />
                     </div>}
         </div>
     </PageFrame>;

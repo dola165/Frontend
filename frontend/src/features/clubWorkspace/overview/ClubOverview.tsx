@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { CalendarDays, Shield } from 'lucide-react';
-import { Badge, Button, ButtonLink, EmptyNote, PageFrame, PageHeader, Panel, Section, Skeleton } from '../../../design/primitives';
+import { CalendarDays, Link2 } from 'lucide-react';
+import { Badge, Button, EmptyNote, PageFrame, PageHeader, Panel, Section, Skeleton } from '../../../design/primitives';
 import type { TabItem } from '../../../components/workspace/types';
 import type { Bootstrap } from '../../clubOperations/api';
 import type { RoleView, RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
@@ -12,7 +12,7 @@ import { coachHubEn } from '../../../locales/workspaceDesign';
 import { useCopy } from '../../../locales/useCopy';
 import { formatDate } from '../../../utils/formatting';
 import { eventSquadId, kindOf } from '../fixtures';
-import { DayAgenda } from '../DayAgenda';
+import { ActivityLegend, DayAgenda } from '../DayAgenda';
 import { OtherWork } from '../coachHub/OtherWork';
 import { NeedsYou } from './NeedsYou';
 import { SquadGrid } from './OverviewParts';
@@ -51,10 +51,10 @@ export function ClubOverview({ clubId, clubName, overview, roles, boot, schedule
     };
     const facts = overview && <span className="cw-facts">
         {fact('players', copy('activePlayers'), overview.activePlayerCount ?? 0, canManageOperations ? () => openPlayers('ACTIVE') : undefined)}
-        {fact('trialists', copy('trialists'), overview.trialistCount ?? 0, canManageOperations ? () => openPlayers('TRIALIST') : undefined,
-            overview.overdueTrialistCount ? <span className="cw-fact__alert">{copy('overdueCount', { count: overview.overdueTrialistCount })}</span> : null)}
+        {fact('trialists', copy('trialists'), overview.trialistCount ?? 0, canManageOperations ? () => openPlayers('TRIALIST') : undefined)}
         {fact('staff', copy('staff'), (boot?.leadership ? boot.staff.length : overview.members.length) ?? 0, canManageLeadership ? () => onOpen(boot?.leadership ? 'staff-duties' : 'personnel') : undefined)}
-        {inboxAllowed && fact('inbox', copy('inbox'), unreadInbox, () => onOpen('inbox'))}
+        {/* What needs attention stands apart after a divider, in amber. */}
+        {overview.overdueTrialistCount ? <button type="button" className="cw-fact cw-fact--alert" onClick={() => openPlayers('TRIALIST')}>{copy('trialists')}: {copy('overdueCount', { count: overview.overdueTrialistCount })}</button> : null}
     </span>;
 
     const squadName = (event: ScheduleEventOccurrence) => roles?.squads.find(s => s.id === eventSquadId(event))?.name;
@@ -65,9 +65,10 @@ export function ClubOverview({ clubId, clubName, overview, roles, boot, schedule
     else comingUp = schedule.events.length ? <DayAgenda label={copy('upcoming')} items={schedule.events.map(event => {
         const kind = kindOf(event), started = new Date(event.startsAt).getTime() <= now && new Date(event.endsAt).getTime() > now;
         // Two squads can play at the same time against the same club; the squad name tells them apart. Live or clashing entries keep their own line.
-        return { key: `${event.eventId}-${event.occurrenceId}`, startsAt: event.startsAt, title: event.title, meta: [squadName(event), event.locationName || copy('locationMissing')].filter(Boolean).join(' · '), tone: kind.tone,
-            trail: <>{event.conflict && <Badge tone="danger">{copy('scheduleConflict')}</Badge>}{started ? <Badge tone="accent">{copy('inProgress')}</Badge> : <span className="gk-fixture__tag">{kind.label}</span>}</>,
-            onClick: () => schedule.openEvent(event), label: copy('openEvent', { name: event.title }), kind: started || event.conflict ? undefined : event.eventType, squad: squadName(event) };
+        return { key: `${event.eventId}-${event.occurrenceId}`, startsAt: event.startsAt, title: event.title, meta: [squadName(event), event.locationName || copy('locationMissing')].filter(Boolean).join(' · '),
+            kind: event.eventType, kindLabel: kind.label, squad: squadName(event),
+            status: event.conflict || started ? <>{event.conflict && <Badge tone="danger">{copy('scheduleConflict')}</Badge>}{started && <Badge tone="accent">{copy('inProgress')}</Badge>}</> : undefined,
+            onClick: () => schedule.openEvent(event), label: copy('openEvent', { name: event.title }) };
     })} /> : <EmptyNote title={copy('scheduleEmpty')} action={<Button size="sm" onClick={schedule.open}>{copy('openCalendar')}</Button>}>{copy('scheduleEmptyHint')}</EmptyNote>;
 
     const today = formatDate(new Date(), { weekday: 'long', day: 'numeric', month: 'long' });
@@ -75,22 +76,20 @@ export function ClubOverview({ clubId, clubName, overview, roles, boot, schedule
     // Below the two-column width, the columns dissolve so "Needs you" comes first (see overview.css).
     return <PageFrame className="cw-page cw-club">
         <PageHeader title={clubName ?? copy('workspaceTitle')} subtitle={<><span>{today}</span>{facts}</>}
-            actions={<>
-                <ButtonLink variant="ghost" to={`/clubs/${clubId}`}><Shield aria-hidden="true" />{hubCopy('clubPage')}</ButtonLink>
-                <Button onClick={schedule.open}><CalendarDays aria-hidden="true" />{copy('openCalendar')}</Button>
-            </>} />
+            actions={inboxAllowed ? <Button onClick={() => onOpen('inbox')}><Link2 aria-hidden="true" />{hubCopy('clubUpdates')}{unreadInbox ? ` · ${unreadInbox}` : ''}</Button> : undefined} />
         <div className="gk-grid gk-grid--split cw-overview">
             <div className="gk-stack cw-overview__column">
                 <NeedsYou className="cw-overview__needs" clubId={clubId} overview={overview} roles={roles} squads={null} canManageOperations={canManageOperations} tryoutPending={tryoutPending} onOpen={onOpen} onOpenPlayers={onOpenPlayers} limit={6} />
                 {roles && roles.squads.length > 0 && <SquadGrid className="cw-overview__squads" title={copy('squads')} squads={roles.squads} sessions={roles.sessions} onOpen={onOpen} />}
             </div>
             <div className="gk-stack cw-overview__column">
-                <Section className="cw-overview__coming" icon={CalendarDays} tone="info" title={copy('upcoming')} hint={copy('nextSevenDays')} action={<button type="button" className="gk-section__action cw-text-button" onClick={schedule.open}>{copy('seeFullWeek')}</button>}>
+                <Section className="cw-overview__coming" boxed icon={CalendarDays} title={copy('upcoming')} hint={copy('nextSevenDays')} action={<button type="button" className="gk-section__action cw-text-button" onClick={schedule.open}>{copy('seeFullWeek')}</button>}>
                     <Panel flush>{comingUp}</Panel>
                 </Section>
                 <OtherWork className="cw-overview__other" />
             </div>
         </div>
+        <ActivityLegend />
         {!roles && !overview && <EmptyNote title={copy('accessPending')}>{copy('accessPendingHint')}</EmptyNote>}
     </PageFrame>;
 }

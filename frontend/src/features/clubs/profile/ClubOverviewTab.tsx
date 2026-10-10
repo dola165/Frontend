@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, PenLine, Shirt, Trophy, Newspaper, CalendarDays, Cone, Users } from 'lucide-react';
+import { CalendarDays, MapPin, PenLine, Shirt, Trophy } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { Badge, Button, ButtonLink, EmptyNote, FixtureRow, List, ListRow, Panel, Section, Skeleton } from '../../../design/primitives';
 import { Crest } from '../../world/Crest';
@@ -16,6 +16,7 @@ import { ClubPostStrip } from './ClubPostStrip';
 import { useProfilePostFeed } from '../../profiles/useProfilePostFeed';
 import { ClubFamilyWeek } from './ClubFamilyWeek';
 import type { ClubPermissions } from './useClubProfile';
+import { activityColors, activityIcons } from '../../schedule/activityIcons';
 import type { ClubProfile } from './types';
 
 type Source<T> = ReturnType<typeof useOverviewSource<T>>;
@@ -43,7 +44,7 @@ export function ClubOverviewTab({ club, can, onFollow, onJoin }: { club: ClubPro
 
     return <>
         {lead === 'family' && <ClubFamilyWeek clubId={club.id} />}
-        <Section icon={Newspaper} tone="accent" title="Latest posts" action={<span className="gk-row">{can.canPost && <Link className="gk-section__action gk-row" to={tabLink(club.id, 'posts')}><PenLine size={15} aria-hidden="true" />Write a post</Link>}<Link className="gk-section__action" to={tabLink(club.id, 'posts')}>See all posts</Link></span>}>
+        <Section boxed title="Latest posts" action={<span className="gk-row">{can.canPost && <Link className="gk-section__action gk-row" to={tabLink(club.id, 'posts')}><PenLine size={15} aria-hidden="true" />Write a post</Link>}<Link className="gk-section__action" to={tabLink(club.id, 'posts')}>See all posts</Link></span>}>
             <ClubPostStrip posts={feed.posts} loading={feed.pages.loading} allTo={tabLink(club.id, 'posts')}
                 empty={{ title: 'No posts yet', body: can.canPost ? 'Share the first update from the Posts tab. It appears here and in your followers’ Home feed.' : 'When the club shares news, photos and results, they appear here.' }} />
         </Section>
@@ -58,7 +59,7 @@ export function ClubOverviewTab({ club, can, onFollow, onJoin }: { club: ClubPro
             </div>
         </Panel>}
         <Training club={club} can={can} onJoin={onJoin} />
-        <Section icon={CalendarDays} tone="info" title="Coming up" hint="Next 30 days" action={{ label: 'Full schedule', to: tabLink(club.id, 'schedule') }}>
+        <Section boxed icon={CalendarDays} title="Coming up" hint="Next 30 days" action={{ label: 'Full schedule', to: tabLink(club.id, 'schedule') }}>
             <Fixtures club={club} source={schedule} />
         </Section>
         <div className="gk-club-overview-grid">
@@ -77,7 +78,7 @@ function Fixtures({ club, source }: { club: ClubProfile; source: Source<{ events
     return <Panel flush><List label="Upcoming matches">{fixtures.map(f => {
         const squad = f.clubId === club.id ? f.challengerSquadName : f.targetSquadName;
         const kind = kindOf({ eventType: f.eventType });
-        return <FixtureRow key={`${f.occurrenceId}:${f.startsAt}`} tone={kind.tone} time={timeLabel(f.startsAt)} day={dayLabel(f.startsAt)} title={f.title}
+        return <FixtureRow key={`${f.occurrenceId}:${f.startsAt}`} tone={kind.tone} icon={activityIcons[f.eventType]} iconColor={activityColors[f.eventType]} time={timeLabel(f.startsAt)} day={dayLabel(f.startsAt)} title={f.title}
             to={f.matchExchangeId ? `/match-exchange/${f.matchExchangeId}` : tabLink(club.id, 'schedule')}
             meta={[squad, f.locationName].filter(Boolean).join(' · ')}
             trail={f.challengeStatus && f.challengeStatus !== 'ACCEPTED' ? <Badge tone="warning">Awaiting confirmation</Badge> : <span className="gk-fixture__tag">{kind.label}</span>} />;
@@ -88,7 +89,7 @@ function Training({ club, can, onJoin }: { club: ClubProfile; can: ClubPermissio
     const programmes = overviewProgrammes(club.presentation?.programmes);
     const squads = useOverviewSource<PublicSquad[]>(`/clubs/${club.id}/squads`);
     const foot = can.canJoin && !can.canChallenge ? <div className="gk-row gk-club-training-foot"><span className="gk-muted">Choose a group to see its timetable, then arrange a first visit or ask the club.</span><Button variant="primary" size="sm" onClick={onJoin}>See how to join</Button></div> : undefined;
-    return <Section icon={Cone} tone="warning" title="Squads and training" action={{ label: 'All squads and training', to: tabLink(club.id, 'teams') }}>
+    return <Section boxed title="Squads and training" action={{ label: 'All squads and training', to: tabLink(club.id, 'teams') }}>
         <Panel flush footer={foot}>
             {programmes.length ? <List label="Training programmes" className="gk-club-programmes">{programmes.slice(0, 4).map((p, i) => <ListRow key={p.id ?? i} to={trainingPath(club.id, { programme: p.id })}
                 title={p.name}
@@ -104,7 +105,7 @@ function Training({ club, can, onJoin }: { club: ClubProfile; can: ClubPermissio
 
 function Venues({ club, source }: { club: ClubProfile; source: Source<PublicFacility[]> }) {
     const venues = (source.data ?? []).filter(place => placeType(place) !== 'FACILITY');
-    return <Section icon={MapPin} tone="violet" title="Venues" action={{ label: 'All venues', to: tabLink(club.id, 'facilities') }}>
+    return <Section boxed title="Venues" action={{ label: 'All venues', to: tabLink(club.id, 'facilities') }}>
         <Panel flush>{source.loading ? <div className="gk-panel--pad"><Skeleton height={48} /></div>
             : source.failed ? <EmptyNote title="Venues couldn’t load" action={<Button size="sm" onClick={source.retry}>Try again</Button>} />
             : venues.length ? <List label="Venues">{venues.slice(0, 3).map(v => <ListRow key={v.id} to={tabLink(club.id, 'facilities')}
@@ -114,7 +115,7 @@ function Venues({ club, source }: { club: ClubProfile; source: Source<PublicFaci
 }
 
 function Staff({ club, source }: { club: ClubProfile; source: Source<PublicStaff[]> }) {
-    return <Section icon={Users} tone="accent" title="Coaches and staff" action={{ label: 'Meet the team', to: tabLink(club.id, 'people') }}>
+    return <Section boxed title="Coaches and staff" action={{ label: 'Meet the team', to: tabLink(club.id, 'people') }}>
         <Panel flush>{source.loading ? <div className="gk-panel--pad"><Skeleton height={48} /></div>
             : source.failed ? <EmptyNote title="Staff couldn’t load" action={<Button size="sm" onClick={source.retry}>Try again</Button>} />
             : source.data?.length ? <List label="Coaches and staff">{source.data.slice(0, 4).map(p => <ListRow key={p.userId} to={`/profile/${p.userId}`}
@@ -125,7 +126,7 @@ function Staff({ club, source }: { club: ClubProfile; source: Source<PublicStaff
 
 function Honours({ club }: { club: ClubProfile }) {
     const honours = [...(club.honours ?? [])].sort((a, b) => b.yearWon - a.yearWon);
-    return <Section icon={Trophy} tone="warning" title="Honours" action={honours.length > 3 ? { label: 'All honours', to: tabLink(club.id, 'honours') } : undefined}>
+    return <Section boxed title="Honours" action={honours.length > 3 ? { label: 'All honours', to: tabLink(club.id, 'honours') } : undefined}>
         <Panel flush>{honours.length ? <List label="Honours">{honours.slice(0, 3).map(h => <ListRow key={h.id}
             lead={<span className="gk-club-icon gk-club-icon--warning"><Trophy aria-hidden="true" /></span>} title={h.title} meta={String(h.yearWon)} />)}</List>
             : <EmptyNote title="No honours recorded yet" />}</Panel>

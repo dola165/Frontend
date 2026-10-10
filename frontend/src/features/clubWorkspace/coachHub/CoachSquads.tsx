@@ -1,4 +1,4 @@
-import { CalendarDays, MessageCircle, Shield } from 'lucide-react';
+import { CalendarDays, MessageCircle } from 'lucide-react';
 import { Button, ButtonLink, Count, EmptyNote, Panel, Section } from '../../../design/primitives';
 import type { Bootstrap } from '../../clubOperations/api';
 import type { RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
@@ -20,12 +20,12 @@ export function CoachSquads({ title, roleOf, families, roles, squads, hidden, on
     const mine = roles.squads.filter(s => squads.includes(s.id));
     const now = useNow();
     const showAll = hidden && <Button size="sm" variant="ghost" onClick={onShowAll}>{copy('showAll')}</Button>;
-    if (!mine.length) return <Section icon={Shield} tone="accent" title={title ?? copy('mySquads')}>
+    if (!mine.length) return <Section boxed title={title ?? copy('mySquads')}>
         <Panel><EmptyNote title={copy('noSquads')} action={hidden ? <Button size="sm" onClick={onShowAll}>{copy('showAll')}</Button> : <Button size="sm" onClick={onTakeOn}>{copy('takeOn')}</Button>}>
             {hidden ? copy('focusHidden') : roles.leadership ? copy('noSquadsLeadership') : copy('noSquadsStaff')}
         </EmptyNote></Panel>
     </Section>;
-    return <Section icon={Shield} tone="accent" title={title ?? copy('mySquads')} hint={copy('squads', { count: mine.length })} action={showAll || undefined}>
+    return <Section boxed title={title ?? copy('mySquads')} hint={copy('squads', { count: mine.length })} action={showAll || undefined}>
         <ul className="cw-squads" aria-label={copy('mySquads')}>{mine.map(squad => {
             const next = roles.sessions.filter(s => s.squad_id === squad.id && new Date(s.starts_at).getTime() >= now).sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0];
             const context = { squad: String(squad.id) };

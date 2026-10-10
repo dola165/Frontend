@@ -90,9 +90,12 @@ const RowBody = ({ lead, title, meta, trail }: RowContent) => (
     </>
 );
 /** One line of a list: optional leading visual, title, one line of detail, trailing status. */
-export function ListRow({ to, onClick, className, ...content }: RowContent & { to?: string; onClick?: () => void; className?: string }) {
-    if (to) return <li><Link className={cx('gk-list-row', className)} to={to}><RowBody {...content} /></Link></li>;
-    if (onClick) return <li><button type="button" className={cx('gk-list-row', className)} onClick={onClick}><RowBody {...content} /></button></li>;
+export function ListRow({ to, onClick, className, current, onHover, ...content }: RowContent & { to?: string; onClick?: () => void; className?: string;
+    /** Marks the row that is selected elsewhere, for example on a map. */ current?: boolean;
+    /** Pointer or keyboard focus entering and leaving the row, to highlight its counterpart. */ onHover?: (active: boolean) => void }) {
+    const linked = { 'aria-current': current || undefined, onMouseEnter: onHover && (() => onHover(true)), onMouseLeave: onHover && (() => onHover(false)), onFocus: onHover && (() => onHover(true)), onBlur: onHover && (() => onHover(false)) };
+    if (to) return <li><Link className={cx('gk-list-row', className)} to={to} {...linked}><RowBody {...content} /></Link></li>;
+    if (onClick) return <li><button type="button" className={cx('gk-list-row', className)} onClick={onClick} {...linked}><RowBody {...content} /></button></li>;
     return <li><div className={cx('gk-list-row', className)}><RowBody {...content} /></div></li>;
 }
 

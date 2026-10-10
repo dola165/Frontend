@@ -1,12 +1,19 @@
 import { useId, useState } from 'react';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { Chip, Field } from '../../../design/primitives';
-import type { ChoiceFilter, FilterDef } from './types';
+import type { ChoiceFilter, DirectoryQuery, FilterDef } from './types';
 import type { DirectoryState } from './useDirectoryState';
+
+/** What a filter control needs: the current values and how to change them. The World map shares these controls. */
+export interface FilterControls {
+    query: DirectoryQuery;
+    setValues: (key: string, values: string[]) => void;
+    toggleValue: (key: string, value: string, multi: boolean) => void;
+}
 
 const offered = (filter: ChoiceFilter, signedIn: boolean) => filter.options.filter(option => signedIn || !option.signedIn);
 
-function ChoiceChips({ filter, state, signedIn }: { filter: ChoiceFilter; state: DirectoryState; signedIn: boolean }) {
+export function ChoiceChips({ filter, state, signedIn }: { filter: ChoiceFilter; state: FilterControls; signedIn: boolean }) {
     const values = state.query.values[filter.key] ?? [];
     return (
         <div className="gk-chips" role="group" aria-label={filter.label}>
@@ -34,7 +41,8 @@ function TextField({ filter, value, onCommit }: { filter: FilterDef & { placehol
     );
 }
 
-function MoreField({ filter, state, signedIn }: { filter: FilterDef; state: DirectoryState; signedIn: boolean }) {
+/** One filter as a form control: multi-choice chips, a select, a checkbox, a date or a text field. */
+export function FilterField({ filter, state, signedIn }: { filter: FilterDef; state: FilterControls; signedIn: boolean }) {
     const id = useId();
     const value = state.query.values[filter.key]?.[0] ?? '';
     if (filter.kind === 'choice' && filter.multi) return <div className="gk-field"><span className="gk-field__label">{filter.label}</span><ChoiceChips filter={filter} state={state} signedIn={signedIn} /></div>;
@@ -93,7 +101,7 @@ export function DirectoryFilters({ state, signedIn }: { state: DirectoryState; s
             </div>
             {open && secondary.length > 0 && (
                 <div id={panelId} className="gk-world-filters__more">
-                    {secondary.map(filter => <MoreField key={filter.key} filter={filter} state={state} signedIn={signedIn} />)}
+                    {secondary.map(filter => <FilterField key={filter.key} filter={filter} state={state} signedIn={signedIn} />)}
                 </div>
             )}
         </div>

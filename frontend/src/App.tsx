@@ -221,7 +221,7 @@ export function MainLayout() {
     }, [location.pathname, navigate, status, user]);
 
     const darkMode = themePreference !== 'light';
-    const effectiveTheme = themeForRoute(themePreference, location.pathname);
+    const effectiveTheme = themeForRoute(themePreference);
 
     useLayoutEffect(() => {
         applyDocumentTheme(effectiveTheme);
@@ -327,7 +327,7 @@ export function MainLayout() {
             <Route path="/workspaces" element={<Navigate to="/home" replace />} />
             <Route path="/assistant" element={<ProtectedRoute><AgentDolaPage /></ProtectedRoute>} />
             <Route path="/map" element={<WorldRedirect to="/world/map" />} />
-            <Route path="/world/*" element={<WorldRoutes darkMode={themePreference === 'dark'} />} />
+            <Route path="/world/*" element={<WorldRoutes />} />
             <Route path="/clubs" element={<WorldRedirect to="/world/clubs" rename={{ search: 'q' }} />} />
             <Route path="/clubs/following" element={<ProtectedRoute><FollowedClubsPage /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute><CalendarPage user={user} darkMode={darkMode} setDarkMode={(value) => setThemePreference(value ? 'dark' : 'light')} /></ProtectedRoute>} />

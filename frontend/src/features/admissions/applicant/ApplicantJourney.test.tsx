@@ -15,12 +15,12 @@ import { OfferResponse, SessionResponse, PrimaryChangeResponse } from './CaseAct
 import { PlayerCardEditor } from './PlayerCardEditor';
 import { AdmissionInvitationCard } from './AdmissionInvitationCard';
 import { matchesOpportunity } from './mapMatching';
-import { MapAdmissionControls } from './MapAdmissionControls';
+import { toMapFilters } from '../../world/map/explore/exploreQuery';
 import { GeneralAdmissionInquiryPage, GeneralInquiryForm, AdmissionInquiryPage } from './AdmissionInquiryPage';
 import { AdmissionGroupSchedulePage } from './AdmissionGroupSchedulePage';
 import { admissionMapQuery } from './discoveryQuery';
 import { apiClient } from '../../../api/axiosConfig';
-import { defaultMapFilters } from '../../../components/map/MapFilterSidebar';
+import { defaultMapFilters } from '../../world/map/explore/discoveryFilters';
 import { buildLoginPath, getAuthFlow } from '../../../utils/authRedirect';
 vi.mock('../../joining-contract/api',()=>({fetchPlayerIdentity:vi.fn(),savePlayerIdentity:vi.fn(),uploadPlayerPhoto:vi.fn()}));
 const auth=vi.hoisted(()=>({user:{id:77},sessionId:'family-session',isAuthenticated:true,refreshNavigationCapabilities:vi.fn()}));
@@ -67,12 +67,10 @@ describe('Applicant invariants',()=>{
         const o=opportunity();vi.mocked(fetchAdmissionGroupSchedule).mockResolvedValue({groupId:1,playerId:101,groupName:'School training',location:o.location,schedule:'Thursday at 17:00',timezone:'Asia/Tbilisi',terms:o.terms,sessions:[]});show(<Routes><Route path="/admissions/groups/:groupId/schedule" element={<AdmissionGroupSchedulePage/>}/></Routes>,'/admissions/groups/1/schedule?playerId=101');
         expect(await screen.findByText(/Thursday at 17:00/)).toBeInTheDocument();expect(screen.getByText(/No individual occurrences have been recorded/)).toBeInTheDocument();expect(fetchAdmissionGroupSchedule).toHaveBeenCalledWith(1,101,'family-session',expect.any(AbortSignal));
     });
-    it('uses declared player gender and year on the map without guessing from names',async()=>{
-        const home=fixture<AdmissionHome>('home');home.participants[0].gender='FEMALE';vi.mocked(fetchAdmissionHome).mockResolvedValue(home);const selected=vi.fn();
-        show(<MapAdmissionControls playerId={undefined} onPlayer={selected} includeWaitlist={false} onWaitlist={vi.fn()}/>);
-        await screen.findByRole('option',{name:home.participants[0].name});fireEvent.change(screen.getByLabelText('Find a group for'),{target:{value:String(home.participants[0].id)}});
-        const birth=home.participants[0].dateOfBirth;if(!birth)throw new Error('This recorded-player fixture requires a birth date');
-        expect(selected).toHaveBeenCalledWith(home.participants[0].id,Number(birth.slice(0,4)),'FEMALE',home.participants[0].minor);
+    it('uses declared player gender and year on the map without guessing from names',()=>{
+        const filters=toMapFilters({layers:['clubs'],values:{age:['U16']},sort:'best',coverage:{kind:'area',bounds:null}},{birthYear:2014,gender:'FEMALE',minor:true});
+        expect(filters.clubs).toMatchObject({birthYear:2014,genders:['Girls'],ageGroups:[]});
+        expect(filters.matches.ageGroups).toEqual(['U16']);
     });
     it('creates a minimum adult card without a photo or invented career',async()=>{
         vi.mocked(updateAdmissionPlayerCard).mockResolvedValue({id:77,name:'Adult beginner',dateOfBirth:'1990-01-01',minor:false,guardian:false,provenance:null});show(<PlayerCardEditor playerId={77} onChanged={vi.fn()}/>);

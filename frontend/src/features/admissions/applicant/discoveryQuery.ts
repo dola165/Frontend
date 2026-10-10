@@ -1,5 +1,5 @@
 import type { DiscoveryQuery } from '../types';
-import type { MapFilters } from '../../../components/map/MapFilterSidebar';
+import type { MapFilters } from '../../world/map/explore/discoveryFilters';
 import { coverageBounds, type MapBounds, type SearchCoverage } from '../../../components/map/areaSearch';
 /** Spatial predicates refer to the opportunity's venue. Multiple sporting choices remain same-group client predicates. */
 export function admissionMapQuery(filters:MapFilters,center:[number,number],area:MapBounds|null,coverage:SearchCoverage,q:string,page=0):DiscoveryQuery {

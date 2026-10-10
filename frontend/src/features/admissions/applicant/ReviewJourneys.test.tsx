@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import opportunitiesJson from './__fixtures__/opportunities.json?raw';
@@ -7,7 +8,7 @@ import type { AdmissionCase, AdmissionHome, OpportunityPage } from '../types';
 import { fetchAdmissionCase, fetchAdmissionHome, fetchOpportunity } from '../api';
 import { AdmissionCasePage } from './AdmissionCasePage';
 import { OpportunityDetailPage } from './OpportunityDetailPage';
-import { MapAdmissionControls } from './MapAdmissionControls';
+import { useApplicant } from '../../world/map/explore/useApplicant';
 vi.mock('../../players/PlayerIdentityEditor',()=>({PlayerIdentityEditor:()=>null}));
 const auth=vi.hoisted(()=>({user:{id:77},sessionId:'review-session',isAuthenticated:true}));
 vi.mock('../../../context/AuthContext',()=>({useAuth:()=>auth}));
@@ -45,17 +46,15 @@ describe('Review: selected player and recoverable eligibility',()=>{
     expect(screen.getByRole('link',{name:'View actual training venue on map'})).toHaveAttribute('href',`/world?opportunity=${o.id}&player=88`);
   });
   it('resolves an incoming map child against the current authorized cards',async()=>{
-    const onPlayer=vi.fn();
-    render(<MemoryRouter><MapAdmissionControls {...{requestedPlayerId:88}} playerId={undefined} onPlayer={onPlayer} includeWaitlist={false} onWaitlist={vi.fn()}/></MemoryRouter>);
-    await screen.findByRole('option',{name:'Synthetic first child'});
-    await waitFor(()=>expect(onPlayer).toHaveBeenCalledWith(88,2014,'MALE',true));
+    const wrapper=({children}:{children:ReactNode})=><MemoryRouter initialEntries={['/world/map?player=88']}>{children}</MemoryRouter>;
+    const {result}=renderHook(()=>useApplicant(),{wrapper});
+    await waitFor(()=>expect(result.current.player).toEqual({id:88,name:'Synthetic first child',birthYear:2014,gender:'MALE',minor:true}));
   });
   it('does not restore an incoming map child outside current family authority',async()=>{
-    const onPlayer=vi.fn();
-    render(<MemoryRouter><MapAdmissionControls {...{requestedPlayerId:999}} playerId={undefined} onPlayer={onPlayer} includeWaitlist={false} onWaitlist={vi.fn()}/></MemoryRouter>);
-    await screen.findByRole('option',{name:'Synthetic first child'});
-    await waitFor(()=>expect(onPlayer).toHaveBeenCalledWith(undefined,undefined,undefined,undefined));
-    expect(screen.queryByRole('option',{name:'999'})).not.toBeInTheDocument();
+    const wrapper=({children}:{children:ReactNode})=><MemoryRouter initialEntries={['/world/map?player=999']}>{children}</MemoryRouter>;
+    const {result}=renderHook(()=>useApplicant(),{wrapper});
+    await waitFor(()=>expect(result.current.participants.map(p=>p.id)).toEqual([88,89]));
+    expect(result.current.player).toBeUndefined();
   });
   it('explains a known category mismatch and leaves the inquiry route available',async()=>{
     const o=opportunity();o.gender='FEMALE';vi.mocked(fetchOpportunity).mockResolvedValue(o);

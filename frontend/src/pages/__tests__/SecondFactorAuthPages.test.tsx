@@ -15,7 +15,7 @@ vi.mock('../../context/AuthContext', () => ({ useAuth: vi.fn() }));
 vi.mock('@react-oauth/google', () => ({ GoogleLogin: ({ onSuccess }: { onSuccess: (value: { credential: string }) => void }) => <button onClick={() => onSuccess({ credential: 'synthetic-google-proof' })}>Test Google sign-in</button> }));
 vi.mock('../../components/auth/AuthSplitShell', () => ({ AuthSplitShell: ({ children }: { children: React.ReactNode }) => <main>{children}</main> }));
 vi.mock('../../components/layout/GrasskickzLogo', () => ({ GrasskickzLogo: () => <span>GrassKickZ</span> }));
-vi.mock('../../components/map/MapExperience', () => ({ MapExperience: () => <div>Map</div> }));
+vi.mock('../../features/world/map/WorldMapView', () => ({ WorldMapView: () => <div>Map</div> }));
 vi.mock('../../components/landing/LandingStory', () => ({ LandingStory: () => <div /> }));
 
 const login = vi.fn();

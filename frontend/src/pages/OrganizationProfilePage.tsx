@@ -1,17 +1,17 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { Building2, Camera, Mail, MapPin, Phone, Settings, ShieldCheck, Trophy, Globe, BriefcaseBusiness, CalendarDays, Banknote } from 'lucide-react';
+import { Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Building2, Camera, Mail, MapPin, Phone, Settings, ShieldCheck, Trophy, Globe } from 'lucide-react';
 import { apiClient } from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
-import { ConnectedWork } from '../components/layout/ConnectedWork';
-import { MediaImage } from '../components/ui/MediaImage';
+import { Badge, Button, ButtonLink, EmptyNote, GkRoot, List, ListRow, PageFrame, Panel, Section, Skeleton } from '../design/primitives';
+import { ProfileLayout, SideBlock } from '../design/profile/ProfileLayout';
+import type { TabItem } from '../design/Tabs';
 import { extractApiErrorMessage } from '../utils/apiError';
 import type { OrganizationProfile, OrganizationProfileDraft } from '../features/organizations/domain';
 import { OrganizationVenues } from '../features/organizations/presentation/OrganizationVenues';
 import { OrganizationBranding } from '../features/organizations/setup/OrganizationBranding';
 import '../features/organizations/presentation/organization-profile.css';
-import '../features/organizations/presentation/entity-profile.css';
 
 interface Presentation {
   profile: OrganizationProfile;
@@ -48,53 +48,75 @@ function OrganizationProfileContent({ id }: { id: string }) {
       .catch(e => { if (!controller.signal.aborted) setError(extractApiErrorMessage(e, '') || 'loadError'); });
     return () => controller.abort();
   }, [id, attempt]);
-  if (!data) return <main className="entity-profile-loading"><Link to="/my-organizations">{t('myOrganizations')}</Link>{error ? <><p role="alert">{error === 'loadError' ? t('loadError') : error}</p><button onClick={() => { setError(''); setAttempt(n => n + 1); }}>{t('retry')}</button></> : <p role="status">{t('loading')}</p>}</main>;
+  if (!data) return <GkRoot className="gk-page gk-profile"><PageFrame width="profile"><div className="gk-org-state">
+    {error ? <Panel><EmptyNote title={<span role="alert">{error === 'loadError' ? t('loadError') : error}</span>} action={<Button onClick={() => { setError(''); setAttempt(n => n + 1); }}>{t('retry')}</Button>} /></Panel>
+      : <div role="status" aria-label={t('loading')} className="gk-stack gk-stack--tight"><Skeleton height={104} width={104} /><Skeleton height={28} width="40%" /><Skeleton height={160} /></div>}
+    <ButtonLink variant="ghost" to="/my-organizations">{t('myOrganizations')}</ButtonLink>
+  </div></PageFrame></GkRoot>;
   const p = data.profile;
   if (p.clubId) return <Navigate replace to={`/clubs/${p.clubId}${search.has('tab') ? `?tab=${encodeURIComponent(search.get('tab') ?? '')}` : ''}`} />;
   const blocked = p.promotionBlocked === true, editable = p.canEdit && !blocked;
   const venueCount = new Set(data.portfolio?.venues.map(v => v.id)).size;
   const hasFacilities = !blocked && (venueCount > 0 || p.capabilities?.venueAvailable === true);
   const hasTournaments = !blocked && (data.competitions.length > 0 || p.capabilities?.enabledActivities.includes('TOURNAMENT'));
-  const tabs = [{ id: 'overview', label: t('overview'), icon: Building2 }, ...(!blocked && p.focus ? [{ id: 'focus', label: focusLabel(p.profileKind, t), icon: BriefcaseBusiness }] : []), ...(hasFacilities ? [{ id: 'venues', label: t('venues'), icon: Building2 }, { id: 'schedule', label: t('schedule'), icon: CalendarDays }, { id: 'prices', label: t('prices'), icon: Banknote }] : []), ...(hasTournaments ? [{ id: 'tournaments', label: t('tournaments'), icon: Trophy }] : []), ...(!blocked ? [{ id: 'contact', label: t('contact'), icon: Phone }] : [])];
-  const selected = search.get('tab') === 'facilities' ? 'venues' : search.get('tab') ?? 'overview', tab = tabs.some(t => t.id === selected) ? selected : 'overview';
+  const tabs: TabItem<string>[] = [{ id: 'overview', label: t('overview') }, ...(!blocked && p.focus ? [{ id: 'focus', label: focusLabel(p.profileKind, t) }] : []),
+    ...(hasFacilities ? [{ id: 'venues', label: t('venues') }, { id: 'schedule', label: t('schedule') }, { id: 'prices', label: t('prices') }] : []),
+    ...(hasTournaments ? [{ id: 'tournaments', label: t('tournaments') }] : []), ...(!blocked ? [{ id: 'contact', label: t('contact') }] : [])];
+  const selected = search.get('tab') === 'facilities' ? 'venues' : search.get('tab') ?? 'overview', tab = tabs.some(item => item.id === selected) ? selected : 'overview';
   const selectTab = (next: string) => {
     const params = new URLSearchParams(search);
     if (next === 'overview') params.delete('tab'); else params.set('tab', next);
     setSearch(params);
   };
-  const changeTabWithKeyboard = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-    event.preventDefault();
-    const index = tabs.findIndex(item => item.id === tab);
-    const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
-      : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
-    selectTab(tabs[next].id);
-    event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
-  };
   const settings = `/organizations/${id}/workspace?tab=profile`, workspace = `/organizations/${id}/workspace`;
   const website = safeWebsite(p.website);
-  const contacts = <div className="entity-contact-list">{p.addressText && <p><MapPin size={16} /><span>{p.addressText}</span></p>}{p.publicPhone && <a href={`tel:${p.publicPhone.replace(/[^+\d]/g, '')}`}><Phone size={16} />{p.publicPhone}</a>}{p.publicEmail && <a href={`mailto:${p.publicEmail}`}><Mail size={16} />{p.publicEmail}</a>}{website && <a href={website} target="_blank" rel="noopener noreferrer"><Globe size={16} />{t('website')}</a>}{!p.addressText && !p.publicPhone && !p.publicEmail && !website && <p>{t('noContact')}</p>}</div>;
-  return <main className="club-page-shell entity-profile" aria-label={t('profileLabel', { name: p.displayName })}>
-    <header className="entity-profile-header">
-      <div className={`entity-profile-cover ${!blocked && data.branding?.bannerUrl ? 'entity-profile-cover--image' : ''}`}>{!blocked && data.branding?.bannerUrl && <MediaImage src={data.branding.bannerUrl} alt="" />}{!data.branding?.bannerUrl && <div className="entity-cover-shade" />}{editable && <Link className="entity-cover-edit" to={settings}><Camera size={15} />{t('editCover')}</Link>}</div>
-      <div className="entity-profile-frame entity-identity">
-        <div className="entity-logo">{!blocked && data.branding?.logoUrl ? <MediaImage src={data.branding.logoUrl} alt={t('logo', { name: p.displayName })} /> : <span aria-hidden="true">{p.displayName.substring(0, 2).toUpperCase()}</span>}{editable && <Link to={settings} aria-label={t('editLogo')}><Camera size={15} /></Link>}</div>
-        <div className="entity-identity-copy"><div className="entity-title-row"><h1>{p.displayName}</h1>{p.verificationStatus === 'VERIFIED' && <span className="entity-verified"><ShieldCheck size={14} />{t('verified')}</span>}</div>
-          <div className="entity-identity-meta"><span>{t(`type.${p.profileKind}`, { defaultValue: t('type.OTHER') })}</span>{!blocked && p.addressText && <span><MapPin size={13} />{p.addressText}</span>}{data.membershipRole && <span>{t(`membership.${data.membershipRole}`, { defaultValue: data.membershipRole.toLowerCase().replaceAll('_', ' ') })}</span>}{!blocked && (data.canOpenWorkspace || !p.published) && <span className="entity-publication-status">{p.published ? t('published') : t('draft')}</span>}</div>
-          {!blocked && p.description && <p className="entity-description">{p.description}</p>}
-        </div>
-        <div className="entity-profile-actions">{editable && <Link className="entity-button" to={settings}><Settings size={15} />{t('edit')}</Link>}{data.canOpenWorkspace && <Link className="entity-button entity-button-primary" to={workspace}>{t('workspace')}</Link>}</div>
-      </div>
-    </header>
-    <nav className="entity-profile-tabs" aria-label={t('sections')}><div className="entity-profile-frame" role="tablist" aria-label={t('sections')} onKeyDown={changeTabWithKeyboard}>{tabs.map(({ id: key, label, icon: Icon }) => <button type="button" role="tab" key={key} id={`organization-${id}-tab-${key}`} aria-controls={`organization-${id}-panel`} aria-selected={tab === key} tabIndex={tab === key ? 0 : -1} onClick={() => selectTab(key)}><Icon size={16} aria-hidden="true" />{label}</button>)}</div></nav>
-    <div className="entity-profile-frame entity-profile-body" id={`organization-${id}-panel`} role="tabpanel" aria-labelledby={`organization-${id}-tab-${tab}`} tabIndex={0}>
-      {blocked ? <section className="entity-panel" role="status"><h2>{t('restricted')}</h2><p>{t('operational')}</p></section> : tab === 'overview' ? <>{data.canOpenWorkspace && <section className="entity-overview-work"><div><p className="entity-eyebrow">Your connection</p><h2>Your organization. Your next move.</h2><p>Your responsibilities and personal work stay connected.</p></div><Link className="entity-button entity-button-primary" to={workspace}>Continue in workspace</Link><ConnectedWork/></section>}<div className="entity-profile-grid entity-overview-grid">
-        <aside className="entity-panel"><p className="entity-eyebrow">{t('information')}</p><h2>{t('glance')}</h2>{contacts}</aside>
-        <section className="entity-panel entity-introduction"><h2>{t('about', { name: p.displayName })}</h2><p>{p.description || t('noIntroduction')}</p>{p.focus && <><hr /><h3>{focusLabel(p.profileKind, t)}</h3><p>{p.focus}</p></>}{editable && !p.description && <Link className="entity-button" to={settings}>{t('complete')}</Link>}</section>
-        <aside className="entity-panel"><h2>{t('activities')}</h2><div className="entity-activity-links">{hasTournaments && <Link to={`?tab=tournaments`}><Trophy size={18} /><span>{t('tournaments')}<small>{data.competitions.length ? t('competitionCount', { count: data.competitions.length }) : t('competitionHint')}</small></span></Link>}{hasFacilities && <Link to="?tab=venues"><Building2 size={18} /><span>{t('venues')}<small>{venueCount ? t('venueCount', { count: venueCount }) : t('venueHint')}</small></span></Link>}{!hasTournaments && !hasFacilities && <p>{t(`type.${p.profileKind}`, { defaultValue: t('type.OTHER') })}{p.focus ? ` · ${focusLabel(p.profileKind, t).toLowerCase()}` : ''}</p>}<Link to="?tab=contact"><Phone size={18} /><span>{t('contactAction')}</span></Link></div></aside>
-      </div></> : ['venues', 'schedule', 'prices'].includes(tab) ? <><OrganizationVenues venues={data.portfolio?.venues.length ? data.portfolio.venues : p.capabilities?.venueAvailable ? [{ id: p.id }] : []} view={tab as 'venues' | 'schedule' | 'prices'} />{data.canOpenWorkspace && <div className="entity-profile-actions"><Link className="entity-button" to={`${workspace}?tab=facilities`}>{t('manageVenues')}</Link></div>}</> : tab === 'tournaments' ? <section className="entity-section"><h2>{t('tournaments')}</h2>{data.competitions.length ? <div className="entity-competition-grid">{data.competitions.map(c => <Link className="entity-panel entity-competition" key={c.id} to={`/tournaments/${c.id}`}><Trophy size={24} /><h3>{c.name}</h3><p>{c.status.replaceAll('_', ' ').toLowerCase()}</p><span>{t('viewTournament')}</span></Link>)}</div> : <p>{t('noTournaments')}</p>}{p.canCreateTournament && <Link className="entity-button" to={`/tournaments/setup?organizer=${id}`}>{t('createTournament')}</Link>}</section> : <section className="entity-panel entity-detail"><h2>{tab === 'contact' ? t('contact') : focusLabel(p.profileKind, t)}</h2>{tab === 'contact' ? contacts : <p>{p.focus}</p>}</section>}
-    </div>
-  </main>;
+  const kind = t(`type.${p.profileKind}`, { defaultValue: t('type.OTHER') });
+  const role = data.membershipRole ? t(`membership.${data.membershipRole}`, { defaultValue: data.membershipRole.toLowerCase().replaceAll('_', ' ') }) : null;
+  const contacts = <List label={t('contact')}>
+    {p.addressText && <ListRow lead={<MapPin size={18} aria-hidden="true" />} title={p.addressText} />}
+    {p.publicPhone && <li><a className="gk-list-row" href={`tel:${p.publicPhone.replace(/[^+\d]/g, '')}`}><Phone size={18} aria-hidden="true" /><span className="gk-list-row__main"><span className="gk-list-row__title">{p.publicPhone}</span></span></a></li>}
+    {p.publicEmail && <li><a className="gk-list-row" href={`mailto:${p.publicEmail}`}><Mail size={18} aria-hidden="true" /><span className="gk-list-row__main"><span className="gk-list-row__title">{p.publicEmail}</span></span></a></li>}
+    {website && <li><a className="gk-list-row" href={website} target="_blank" rel="noopener noreferrer"><Globe size={18} aria-hidden="true" /><span className="gk-list-row__main"><span className="gk-list-row__title">{t('website')}</span></span></a></li>}
+    {!p.addressText && !p.publicPhone && !p.publicEmail && !website && <ListRow title={t('noContact')} />}
+  </List>;
+  const side = blocked ? undefined : <>
+    <SideBlock title={t('glance')}>{contacts}</SideBlock>
+    <SideBlock title={t('activities')}><List label={t('activities')}>
+      {hasTournaments && <ListRow to="?tab=tournaments" lead={<Trophy size={18} aria-hidden="true" />} title={t('tournaments')} meta={data.competitions.length ? t('competitionCount', { count: data.competitions.length }) : t('competitionHint')} />}
+      {hasFacilities && <ListRow to="?tab=venues" lead={<Building2 size={18} aria-hidden="true" />} title={t('venues')} meta={venueCount ? t('venueCount', { count: venueCount }) : t('venueHint')} />}
+      <ListRow to="?tab=contact" lead={<Phone size={18} aria-hidden="true" />} title={t('contactAction')} />
+    </List></SideBlock>
+  </>;
+  return <ProfileLayout
+    identity={{ name: p.displayName, image: blocked ? null : data.branding?.logoUrl, square: true,
+      badge: p.verificationStatus === 'VERIFIED' ? <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />{t('verified')}</Badge> : undefined,
+      line: [kind, role].filter(Boolean).join(' · '),
+      facts: [!blocked && p.addressText ? <><MapPin aria-hidden="true" />{p.addressText}</> : null,
+        !blocked && (data.canOpenWorkspace || !p.published) ? <Badge tone={p.published ? 'accent' : 'warning'}>{p.published ? t('published') : t('draft')}</Badge> : null] }}
+    banner={blocked ? null : data.branding?.bannerUrl}
+    bannerAction={editable ? <ButtonLink size="sm" to={settings}><Camera aria-hidden="true" />{t('editCover')}</ButtonLink> : undefined}
+    imageAction={editable ? <ButtonLink size="sm" iconOnly to={settings} aria-label={t('editLogo')}><Camera aria-hidden="true" /></ButtonLink> : undefined}
+    actions={<>{editable && <ButtonLink to={settings}><Settings aria-hidden="true" />{t('edit')}</ButtonLink>}{data.canOpenWorkspace && <ButtonLink variant="primary" to={workspace}>{t('workspace')}</ButtonLink>}</>}
+    tabs={tabs} tab={tab} onTab={selectTab} tabsLabel={t('sections')} side={tab === 'contact' ? undefined : side} sideLabel={t('information')}>
+    {blocked ? <div className="gk-notice gk-notice--warning" role="status"><span><strong>{t('restricted')}</strong> {t('operational')}</span></div>
+      : tab === 'overview' ? <Section title={t('about', { name: p.displayName })}>
+          <p className="gk-org-about">{p.description || t('noIntroduction')}</p>
+          {p.focus && <><h3 className="gk-org-focus">{focusLabel(p.profileKind, t)}</h3><p className="gk-org-about">{p.focus}</p></>}
+          {editable && !p.description && <ButtonLink size="sm" to={settings}>{t('complete')}</ButtonLink>}
+        </Section>
+      : ['venues', 'schedule', 'prices'].includes(tab) ? <>
+        <OrganizationVenues venues={data.portfolio?.venues.length ? data.portfolio.venues : p.capabilities?.venueAvailable ? [{ id: p.id }] : []} view={tab as 'venues' | 'schedule' | 'prices'} />
+        {data.canOpenWorkspace && <ButtonLink className="gk-org-manage" to={`${workspace}?tab=facilities`}>{t('manageVenues')}</ButtonLink>}
+      </>
+      : tab === 'tournaments' ? <Section title={t('tournaments')} action={p.canCreateTournament ? <ButtonLink size="sm" variant="primary" to={`/tournaments/setup?organizer=${id}`}>{t('createTournament')}</ButtonLink> : undefined}>
+        <Panel flush>{data.competitions.length ? <List label={t('tournaments')}>{data.competitions.map(c => <ListRow key={c.id} to={`/tournaments/${c.id}`}
+          lead={<Trophy size={18} aria-hidden="true" />} title={c.name} meta={c.status.replaceAll('_', ' ').toLowerCase().replace(/^./, letter => letter.toUpperCase())} />)}</List>
+          : <EmptyNote title={t('noTournaments')} />}</Panel>
+      </Section>
+      : <Section title={tab === 'contact' ? t('contact') : focusLabel(p.profileKind, t)}>
+        {tab === 'contact' ? <Panel flush>{contacts}</Panel> : <p className="gk-org-about">{p.focus}</p>}
+      </Section>}
+  </ProfileLayout>;
 }
 
 /** Workspace editing never embeds a second public profile. */

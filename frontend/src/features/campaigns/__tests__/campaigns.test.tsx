@@ -3,8 +3,6 @@ import type { ImgHTMLAttributes } from 'react';
 import {ShoppingBag,HeartHandshake,Briefcase} from 'lucide-react';
 import { WorkspaceShell } from '../../../design/workspace/WorkspaceShell';
 import { clubNavigation } from '../../clubWorkspace/clubTabs';
-import {ClubOpportunities} from '../../../components/club/ClubOpportunities';
-import type {ClubProfile} from '../../../pages/ClubProfilePage';
 import {act,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import {MemoryRouter,Routes,Route} from 'react-router-dom';
 import {beforeEach,afterEach,expect,it,vi} from 'vitest';
@@ -48,12 +46,6 @@ it('retains update drafts after a failed publication',async()=>{
  vi.mocked(api.fetchManagedCampaign).mockResolvedValue(campaign);vi.mocked(api.postCampaignUpdate).mockRejectedValue(new Error('offline'));manage();fireEvent.click(await screen.findByRole('button',{name:'Updates for A pitch for everyone'}));fireEvent.change(await screen.findByLabelText('Update title'),{target:{value:'A milestone'}});fireEvent.change(screen.getByLabelText('Update message'),{target:{value:'The work is underway.'}});fireEvent.click(screen.getByRole('button',{name:'Publish update'}));await screen.findByRole('alert');expect(screen.getByLabelText('Update message')).toHaveValue('The work is underway.');expect(api.postCampaignUpdate).toHaveBeenCalledWith(10,campaign,'A milestone','The work is underway.');
 });
 
-it('keeps all three club opportunity entry points scoped to that club',()=>{
- render(<MemoryRouter><ClubOpportunities club={{id:10} as ClubProfile}/></MemoryRouter>);
- expect(screen.getByRole('link',{name:/Fundraising & campaigns/})).toHaveAttribute('href','/clubs/10/campaigns');
- expect(screen.getByRole('link',{name:/Store/})).toHaveAttribute('href','/clubs/10/store');
- expect(screen.getByRole('link',{name:/Roles/})).toHaveAttribute('href','/clubs/10?tab=business&opportunity=jobs');
-});
 it('makes Store, Campaigns and Roles reachable in the workspace navigation',()=>{
  const onSelect=vi.fn();
  const nav=clubNavigation([{id:'store',label:'Store',icon:ShoppingBag},{id:'campaigns',label:'Campaigns',icon:HeartHandshake},{id:'jobs',label:'Roles',icon:Briefcase}],{focus:'all',pins:[],inbox:{allowed:false,unread:0}});

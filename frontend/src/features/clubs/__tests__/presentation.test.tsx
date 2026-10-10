@@ -2,7 +2,6 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { MemoryRouter } from 'react-router-dom';
 import { apiClient } from '../../../api/axiosConfig';
 import { ClubPresentationSettings } from '../../clubWorkspace/settings/presentation/ClubPresentationSettings';
-import { ClubAffiliations, ClubProgrammeSection, ClubSponsors, TrainingPriceHighlight } from '../../../components/club/ClubPresentation';
 import { programmePrice, safePublicUrl, trainingSummary, type ClubPresentation, type TrainingProgramme } from '../presentation';
 
 const session = vi.hoisted(() => ({ id: 7, sessionId: 'one' }));
@@ -20,30 +19,11 @@ it('distinguishes fixed, free, variable and unpublished prices without guessing 
     expect(programmePrice({ ...programme, priceType: 'UNPUBLISHED', amount: null })).toBe('Price not published');
     expect(trainingSummary({ ...profile, programmes: [] })).toBeNull();
     expect(trainingSummary({ ...profile, profileKind: 'PROFESSIONAL' })).toContain('U12');
-    render(<ClubProgrammeSection presentation={profile} />);
-    expect(screen.queryByText('Free trial')).not.toBeInTheDocument();
-    expect(screen.queryByText('Not published')).not.toBeInTheDocument();
-    expect(screen.queryByText('10 GEL')).not.toBeInTheDocument();
 });
 
-it('keeps training prices visible without opening a disclosure and excludes drafts', () => {
-    const { container } = render(<TrainingPriceHighlight presentation={{ ...profile, programmes: [programme, { ...programme, id: 9, amount: '1', published: false }] }} />);
-    expect(screen.getByText(/150[.,]25 GEL/)).toBeVisible();
-    expect(container.querySelector('details')).toBeNull();
-    expect(screen.getByText(/Joining fee:/)).toBeVisible();
-    expect(screen.getByRole('link')).toHaveAttribute('href', '?tab=teams&programme=8');
-});
 
-it('only shows confirmed affiliations and explicitly published sponsors', () => {
-    const presentation: ClubPresentation = { ...profile, profileKind: 'PROFESSIONAL', affiliations: [
-        { id: 1, clubId: 2, name: 'Confirmed academy', logoUrl: null, profileKind: 'ACADEMY', status: 'ACTIVE', canRespond: false },
-        { id: 2, clubId: 3, name: 'Pending academy', logoUrl: null, profileKind: 'ACADEMY', status: 'PENDING', canRespond: false },
-    ], sponsors: [{ id: 1, name: 'Local business', logoUrl: null, websiteUrl: 'https://example.com', organizationId: null, published: true }, { id: 2, name: 'Draft sponsor', logoUrl: null, websiteUrl: null, organizationId: null, published: false }] };
-    render(<MemoryRouter><ClubAffiliations presentation={presentation} /><ClubSponsors presentation={presentation} /></MemoryRouter>);
-    expect(screen.getByRole('link', { name: /Confirmed academy/ })).toHaveAttribute('href', '/clubs/2');
-    expect(screen.queryByText('Pending academy')).not.toBeInTheDocument();
-    expect(screen.queryByText('Draft sponsor')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Local business' })).toHaveAttribute('rel', 'noopener noreferrer');
+
+it('rejects unsafe public links', () => {
     expect(safePublicUrl('javascript:alert(1)')).toBeUndefined();
     expect(safePublicUrl('https://user:password@example.com')).toBeUndefined();
 });
@@ -55,10 +35,6 @@ it('does not expose a save form after a failed initial load', async () => {
     expect(screen.queryByRole('button', { name: 'Save profile settings' })).not.toBeInTheDocument();
 });
 
-it('withholds restricted sponsorship even if a management payload reaches public rendering', () => {
-    const { container } = render(<ClubSponsors presentation={{ ...profile, sponsors: [{ id: 3, name: 'Restricted sponsor', logoUrl: 'https://example.com/private.png', websiteUrl: 'https://example.com', organizationId: null, published: true, promotionBlocked: true }] }}/>);
-    expect(container).toBeEmptyDOMElement();
-});
 
 it('allows only unpublication of a restricted sponsor and omits read-only metadata from the request', async () => {
     const restricted = { id: 3, name: 'Retained sponsor', logoUrl: null, websiteUrl: null, organizationId: 4, published: true, contentClassification: 'RESTRICTED', contentRevision: 2, promotionBlocked: true };
@@ -138,8 +114,4 @@ it('allows delegated price editing but hides leadership and affiliation controls
     expect(screen.queryByRole('textbox', { name: 'Find a parent club' })).not.toBeInTheDocument();
 });
 
-it('links professional managers directly to an authorized academy profile editor', () => {
-    render(<MemoryRouter><ClubAffiliations presentation={{ ...profile, profileKind: 'PROFESSIONAL', affiliations: [{ id: 4, clubId: 2, name: 'Academy', logoUrl: null, profileKind: 'ACADEMY', status: 'ACTIVE', canRespond: false, canManageProfile: true }] }} /></MemoryRouter>);
-    expect(screen.getByRole('link', { name: /Manage academy profile/ })).toHaveAttribute('href', '/clubs/2/profile-settings');
-});
 

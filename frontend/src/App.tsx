@@ -59,14 +59,15 @@ const SquadCommunicationPage = lazy(() => import('./pages/SquadCommunicationPage
 const ClubPublicProfileSettingsPage = lazy(() => import('./pages/ClubPublicProfileSettingsPage').then(module => ({default: module.ClubPublicProfileSettingsPage})));
 const ClubOperationsPage = lazy(() => import('./pages/ClubOperationsPage'));
 const MyClubOperationsPage = lazy(() => import('./pages/MyClubOperationsPage'));
-const ClubProfilePage = lazy(() => import('./pages/ClubProfilePage').then(module => ({default: module.ClubProfilePage})));
-const UserProfilePage = lazy(() => import('./pages/UserProfilePage').then(module => ({default: module.UserProfilePage})));
+const ClubProfilePage = lazy(() => import('./features/clubs/profile/ClubProfilePage').then(module => ({default: module.ClubProfilePage})));
+const PersonProfilePage = lazy(() => import('./features/profiles/person/PersonProfilePage').then(module => ({default: module.PersonProfilePage})));
+const MyProfileRedirect = lazy(() => import('./features/profiles/person/PersonProfilePage').then(module => ({default: module.MyProfileRedirect})));
 const AgentProfilePage = lazy(() => import('./pages/AgentProfilePage').then(module => ({default: module.AgentProfilePage})));
 const FeedPage = lazy(() => import('./pages/FeedPage').then(module => ({default: module.FeedPage})));
 const LandingPage = lazy(() => import('./pages/LandingPage').then(module => ({default: module.LandingPage})));
 const MessagingPage = lazy(() => import('./pages/MessagingPage').then(module => ({default: module.MessagingPage})));
 const MyClubPage = lazy(() => import('./pages/MyClubPage').then(module => ({default: module.MyClubPage})));
-const CalendarPage = lazy(() => import('./pages/CalendarPage').then(module => ({default: module.CalendarPage})));
+const CalendarRedirect = lazy(() => import('./features/schedule/personal/CalendarRedirect').then(module => ({default: module.CalendarRedirect})));
 const ClubSquadsPage = lazy(() => import('./pages/ClubSquadsPage').then(module => ({default: module.ClubSquadsPage})));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then(module => ({default: module.NotificationsPage})));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage').then(module => ({default: module.OnboardingPage})));
@@ -89,7 +90,7 @@ const TournamentWorkspacePage = lazy(() => import('./pages/TournamentWorkspacePa
 const TournamentDetailPage = lazy(() => import('./pages/TournamentDetailPage').then(module => ({default: module.TournamentDetailPage})));
 const CreateOrganizationPage = lazy(() => import('./pages/CreateOrganizationPage').then(module => ({default: module.CreateOrganizationPage})));
 const OrganizationProfilePage = lazy(() => import('./pages/OrganizationProfilePage').then(module => ({default: module.OrganizationProfilePage})));
-const FootballRolesPage = lazy(() => import('./pages/FootballRolesPage').then(module => ({default: module.FootballRolesPage})));
+const AccountRolesPage = lazy(() => import('./features/profiles/account/AccountRolesPage').then(module => ({default: module.AccountRolesPage})));
 const MatchDetailPage = lazy(() => import('./pages/MatchDetailPage').then(module => ({default: module.MatchDetailPage})));
 const RefereePage = lazy(() => import('./pages/RefereePage').then(module => ({default: module.RefereePage})));
 const AgentDashboardPage = lazy(() => import('./pages/AgentDashboardPage').then(module => ({default: module.AgentDashboardPage})));
@@ -100,7 +101,7 @@ const PostPage = lazy(() => import('./pages/PostPage').then(module => ({default:
 const RouteRecoveryPage = lazy(() => import('./pages/RouteRecoveryPage').then(module => ({default: module.RouteRecoveryPage})));
 
 const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/consent']);
-const boundedCanvasPages = new Set(['/messages', '/calendar']);
+const boundedCanvasPages = new Set(['/messages']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-surface)]">
@@ -308,7 +309,7 @@ export function MainLayout() {
     // W6 â€” one shell: browse/list/destination pages share a single App-level
     // frame (app-page-shell + AppPageFrame, one max-width); the map, chat,
     // schedule and the management workspaces stay full-width canvases.
-    const canvasWorkspacePages = new Set(['/map', '/calendar', '/messages', '/onboarding', '/dob', '/set-password']);
+    const canvasWorkspacePages = new Set(['/map', '/messages', '/onboarding', '/dob', '/set-password']);
     const isImmersiveCanvasPage =
         /^\/clubs\/\d+\/operations$/.test(location.pathname) ||
         canvasWorkspacePages.has(location.pathname) || isWorldMap ||
@@ -326,7 +327,7 @@ export function MainLayout() {
             <Route path="/world/*" element={<WorldRoutes />} />
             <Route path="/clubs" element={<WorldRedirect to="/world/clubs" rename={{ search: 'q' }} />} />
             <Route path="/clubs/following" element={<ProtectedRoute><FollowedClubsPage /></ProtectedRoute>} />
-            <Route path="/calendar" element={<ProtectedRoute><CalendarPage user={user} darkMode={darkMode} setDarkMode={(value) => setThemePreference(value ? 'dark' : 'light')} /></ProtectedRoute>} />
+            <Route path="/calendar" element={<ProtectedRoute><CalendarRedirect /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute>{isAndroidApp ? <PageBootSpinner label="Opening messages" /> : <MessagingPage />}</ProtectedRoute>} />
             <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
@@ -342,7 +343,7 @@ export function MainLayout() {
             <Route path="/admissions/organizations/:organizationId/inquire" element={<ProtectedRoute><GeneralAdmissionInquiryPage /></ProtectedRoute>} />
             <Route path="/admissions/inquiries/:inquiryId" element={<ProtectedRoute><AdmissionInquiryPage /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><ReportReceipts /></ProtectedRoute>} />
-            <Route path="/account/roles" element={<ProtectedRoute><FootballRolesPage /></ProtectedRoute>} />
+            <Route path="/account/roles" element={<ProtectedRoute><AccountRolesPage /></ProtectedRoute>} />
             <Route path="/matches" element={<LegacyMatchesRedirect kind="hub" />} />
             <Route path="/match-exchange" element={<LegacyMatchesRedirect kind="exchange" />} />
             <Route path="/match-history" element={<LegacyMatchesRedirect kind="history" />} />
@@ -367,7 +368,8 @@ export function MainLayout() {
             <Route path="/organizations/:organizationId/workspace" element={<ProtectedRoute><OrganizationWorkspacePage /></ProtectedRoute>} />
             <Route path="/organizations/:organizationId" element={<ProtectedRoute><OrganizationProfilePage /></ProtectedRoute>} />
             <Route path="/admin" element={<SystemAdminRoute><AdminPage /></SystemAdminRoute>} />
-            <Route path="/profile/:id" element={<UserProfilePage />} />
+            <Route path="/profile/me" element={<ProtectedRoute><MyProfileRedirect /></ProtectedRoute>} />
+            <Route path="/profile/:id" element={<PersonProfilePage />} />
             <Route path="/agents/:id" element={<AgentProfilePage />} />
             <Route path="/posts/:postId" element={<PostPage />} />
             <Route path="/agent" element={<ProtectedRoute><AgentDashboardPage /></ProtectedRoute>} />

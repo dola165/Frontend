@@ -1,0 +1,69 @@
+/* Schedule board: a week of day columns or a day-by-day agenda on the fixture line. */
+.gk .gk-board { display: flex; flex-direction: column; gap: var(--gk-4); min-width: 0; }
+.gk .gk-board__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-3); }
+.gk .gk-board__period { display: flex; align-items: center; gap: var(--gk-1); min-width: 0; }
+.gk .gk-board__period .gk-btn--icon { width: 44px; min-height: 44px; }
+.gk .gk-board__period .gk-btn--sm { min-height: 36px; }
+.gk .gk-board__range { margin-left: var(--gk-2); font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 650; white-space: nowrap; }
+.gk .gk-board__tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .gk-board__tools .gk-btn { min-height: 40px; }
+.gk .gk-board__filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-4); }
+.gk .gk-board__filters .gk-chip { min-height: 36px; }
+.gk .gk-board__filters select.gk-input { width: auto; min-width: 180px; min-height: 36px; }
+.gk .gk-board__loading { display: grid; gap: var(--gk-3); }
+
+.gk .gk-board__agenda { display: flex; flex-direction: column; gap: var(--gk-5); }
+.gk .gk-board__day { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-board__day-title { font-family: var(--gk-font); font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 650; color: var(--gk-text-2); letter-spacing: 0; }
+.gk .gk-board__day-title[data-today] { color: var(--gk-accent); }
+
+.gk .gk-board__week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; }
+.gk .gk-board__column { display: flex; flex-direction: column; min-width: 0; min-height: 240px; border-left: 1px solid var(--gk-line); }
+.gk .gk-board__column:first-child { border-left: 0; }
+.gk .gk-board__column[data-past] { background: color-mix(in srgb, var(--gk-sunken) 55%, transparent); }
+.gk .gk-board__column-head { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-1); min-height: 52px; padding: var(--gk-2) var(--gk-2) var(--gk-2) var(--gk-3); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-board__column-head > span { display: flex; align-items: baseline; gap: 6px; }
+.gk .gk-board__weekday { font-size: var(--gk-fs-sm); color: var(--gk-text-2); font-weight: 600; }
+.gk .gk-board__date { font-size: var(--gk-fs-xl); font-weight: 700; }
+.gk .gk-board__column[data-today] .gk-board__column-head { box-shadow: inset 0 3px 0 var(--gk-accent); }
+.gk .gk-board__column[data-today] .gk-board__date, .gk .gk-board__column[data-today] .gk-board__weekday { color: var(--gk-accent); }
+.gk .gk-board__items { list-style: none; margin: 0; padding: var(--gk-2); display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-board__free { padding: var(--gk-3); font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .gk-board__item { display: flex; flex-direction: column; gap: 2px; width: 100%; min-height: 44px; padding: var(--gk-2) var(--gk-2) var(--gk-2) var(--gk-3); border: 1px solid var(--gk-line); border-left: 3px solid var(--gk-board-tone, var(--gk-line-strong)); border-radius: var(--gk-r-sm); background: var(--gk-raised); color: var(--gk-text); font: inherit; text-align: left; }
+.gk :is(a, button).gk-board__item { cursor: pointer; transition: background-color .15s var(--gk-ease), border-color .15s var(--gk-ease); }
+.gk :is(a, button).gk-board__item:hover { background: var(--gk-hover); border-color: var(--gk-line-strong); border-left-color: var(--gk-board-tone, var(--gk-line-strong)); }
+.gk .gk-board__item[data-tone='match'] { --gk-board-tone: var(--gk-accent); }
+.gk .gk-board__item[data-tone='training'] { --gk-board-tone: var(--gk-info); }
+.gk .gk-board__item[data-tone='event'] { --gk-board-tone: var(--gk-violet); }
+.gk .gk-board__item[data-tone='trial'] { --gk-board-tone: var(--gk-warning); }
+.gk .gk-board__item[data-cancelled] .gk-board__title { text-decoration: line-through; color: var(--gk-text-2); }
+.gk .gk-board__time { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-2); font-weight: 600; }
+.gk .gk-board__title { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 600; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.gk .gk-board__meta { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-3); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gk .gk-board__trail { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.gk .gk-board__trail .gk-badge { height: 20px; }
+
+/* Below a wide desktop the week reads top to bottom, one day after another. */
+@media (max-width: 1099px) {
+    .gk .gk-board__week { grid-template-columns: minmax(0, 1fr); }
+    .gk .gk-board__column { min-height: 0; border-left: 0; border-top: 1px solid var(--gk-line); }
+    .gk .gk-board__column:first-child { border-top: 0; }
+    .gk .gk-board__column-head { min-height: 44px; border-bottom: 0; padding-bottom: 0; }
+    .gk .gk-board__items { padding-top: var(--gk-1); }
+    .gk .gk-board__free { padding-top: 0; }
+}
+@media (max-width: 640px) {
+    .gk .gk-board__range { font-size: var(--gk-fs-lg); }
+    .gk .gk-board__bar { align-items: flex-start; }
+    .gk .gk-board__filters select.gk-input { min-width: 0; flex: 1 1 160px; }
+    /* Filter chips stay on one line and scroll sideways rather than stacking above the schedule. */
+    .gk .gk-board__filters > .gk-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+    .gk .gk-board__filters > .gk-chips::-webkit-scrollbar { display: none; }
+    .gk .gk-board__filters .gk-chip { flex: none; }
+}
+
+/* Read-only event details. */
+.gk .gk-event-details { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .gk-event-details .gk-row { align-items: flex-start; color: var(--gk-text); }
+.gk .gk-event-details .gk-row svg { flex: none; margin-top: 1px; color: var(--gk-text-2); }
+.gk .gk-event-details__notes { white-space: pre-wrap; color: var(--gk-text-2); line-height: var(--gk-lh-md); }

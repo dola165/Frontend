@@ -35,17 +35,17 @@ describe('Family schedule', () => {
         expect(api.sessions).toHaveBeenCalledTimes(1);
         expect(api.sessions).toHaveBeenCalledWith(10, expect.any(AbortSignal), expect.objectContaining({ from: expect.stringMatching(/Z$/), to: expect.stringMatching(/Z$/), playerId: 61 }));
         fireEvent.click(screen.getByText('Passing practice'));
-        expect(screen.getByLabelText('Reply for Nika')).toBeInTheDocument();
-        expect(screen.queryByLabelText('Reply for Saba')).not.toBeInTheDocument();
-        fireEvent.change(screen.getByLabelText('Reply for Nika'), { target: { value: 'GOING' } });
-        await waitFor(() => expect(api.attendance).toHaveBeenCalledWith(10, 9, 61, 'GOING', 0, expect.any(String), getAuthSessionId()));
+        expect(screen.getByRole('region', { name: 'Attendance for Nika' })).toBeInTheDocument();
+        expect(screen.queryByRole('region', { name: 'Attendance for Saba' })).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Can’t come' }));
+        await waitFor(() => expect(api.attendance).toHaveBeenCalledWith(10, 9, 61, 'NOT_GOING', 0, expect.any(String), getAuthSessionId(), undefined));
     });
     it('shows the cancellation reason without allowing an attendance response', async () => {
         vi.mocked(api.sessions).mockResolvedValue([training('CANCELLED')]);
         render(<MemoryRouter><FamilySchedule squads={[{ id: 10, name: 'U12' }]} playerId={61} /></MemoryRouter>);
         fireEvent.click(await screen.findByText('Passing practice'));
         expect(screen.getByText('Cancelled · Pitch flooded')).toBeInTheDocument();
-        expect(screen.queryByLabelText('Reply for Nika')).not.toBeInTheDocument();
+        expect(screen.queryByRole('region', { name: 'Attendance for Nika' })).not.toBeInTheDocument();
     });
     it('uses the shared full schedule and switches squads without leaking the previous selection', async () => {
         vi.mocked(api.sessions).mockImplementation(async id => [{ ...training(), title: id === 10 ? 'Passing practice' : 'U16 match preparation' }]);

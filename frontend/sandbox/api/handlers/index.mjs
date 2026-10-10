@@ -7,3 +7,4 @@ import './football.mjs';
 import './nav-extra.mjs';
 import './world-extra.mjs';
 import './map-extra.mjs';
+import './profile-extra.mjs';

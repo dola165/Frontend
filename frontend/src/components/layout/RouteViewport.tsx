@@ -17,7 +17,6 @@ const workspaceSurface = (pathname: string): string | undefined => {
     if (pathname === '/referees/me') return 'referee';
     if (pathname === '/agent' || pathname === '/agent/dashboard') return 'agent';
     if (pathname === '/parent' || pathname === '/parent/enrollment') return 'family';
-    if (pathname === '/calendar') return 'schedule';
     if (pathname === '/messages') return 'messages';
     if (pathname === '/admin') return 'admin';
     if (['/club-operations', '/my-club', '/my-organizations', '/volunteering', '/event-venues'].includes(pathname)) return 'connections';

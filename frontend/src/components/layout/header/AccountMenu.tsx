@@ -38,7 +38,7 @@ export function AccountMenu({ user, workspaces, themePreference, setThemePrefere
     const select = (action: () => void) => () => { action(); close(); };
     // The person's own places (profile, schedule, settings) have no tab; the avatar shows that you are in one.
     const { pathname } = useLocation();
-    const inOwnPlace = pathname === `/profile/${user.id}` || pathname === '/calendar' || pathname === '/account' || pathname.startsWith('/account/');
+    const inOwnPlace = pathname === `/profile/${user.id}` || pathname === '/account' || pathname.startsWith('/account/');
 
     return (
         <div className="gk-hanchor" onKeyDown={onKeyDown}>
@@ -53,7 +53,7 @@ export function AccountMenu({ user, workspaces, themePreference, setThemePrefere
                         <Avatar src={resolveMediaUrl(user.avatarUrl)} name={name} size={36} />
                         <span className="gk-menu__profile-text"><strong>{name}</strong><span>{copy('View your profile', 'პროფილის ნახვა')}</span></span>
                     </Link>
-                    <Link role="menuitem" to="/calendar" className="gk-menu__item"><CalendarDays aria-hidden="true" />{copy('My schedule', 'ჩემი განრიგი')}</Link>
+                    <Link role="menuitem" to={`/profile/${user.id}?tab=schedule`} className="gk-menu__item"><CalendarDays aria-hidden="true" />{copy('My schedule', 'ჩემი განრიგი')}</Link>
                     <Link role="menuitem" to="/account" className="gk-menu__item"><Settings aria-hidden="true" />{copy('Account & settings', 'ანგარიში და პარამეტრები')}</Link>
                     {hasNavigationCapability(user.navigationCapabilities, 'admin.console') && (
                         <Link role="menuitem" to="/admin" className="gk-menu__item"><ShieldCheck aria-hidden="true" />{copy('Administration', 'ადმინისტრირება')}</Link>

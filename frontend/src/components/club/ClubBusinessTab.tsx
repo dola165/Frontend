@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { JobsDirectoryPage } from '../../pages/JobsDirectoryPage';
 import { canManageClubOperations, type ClubMembershipRole } from '../../features/clubs/domain';
-import type { ClubProfile } from '../../pages/ClubProfilePage';
+import type { ClubProfile } from '../../features/clubs/profile/types';
 import '../../features/store/store.css';
 
 export const ClubBusinessTab = ({ club, ownClubRole, isAuthenticated }: {

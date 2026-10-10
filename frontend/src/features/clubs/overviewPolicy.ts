@@ -12,14 +12,6 @@ export function overviewLead(clubId: number, role?: string, caps?: NavigationCap
     if (role === 'COACH' || contexts.some(w => ['club.workspace', 'club.operations', 'club.agent'].includes(w.id))) return 'teams';
     return role === 'PLAYER' ? 'training' : 'club';
 }
-/** Only the default destination changes. Explicit links always win. */
-export function clubLandingTab(clubId: number, role?: string, caps?: NavigationCapabilities): 'overview' | 'posts' {
-    const contexts = caps?.workspaces ?? [];
-    if (contexts.some(w => w.context.type === 'club' && w.context.id === clubId)) return 'overview';
-    if (role && role !== 'FAN') return 'overview';
-    if (contexts.some(w => ['parent.hub', 'referee.workspace', 'agent.hub', 'club.workspace', 'club.operations', 'club.agent', 'organization.workspace', 'venue.workspace', 'tournament.workspace', 'squad.workspace'].includes(w.id))) return 'overview';
-    return 'posts';
-}
 export const overviewProgrammes = (items: TrainingProgramme[] = [], today?: string) => items.filter(p => p.published && currentProgramme(p, today));
 export function overviewFixtures(items: ScheduleEventOccurrence[], now = Date.now()) {
     return items.filter(e => e.publicNow === true && ['MATCH', 'FRIENDLY'].includes(e.eventType)

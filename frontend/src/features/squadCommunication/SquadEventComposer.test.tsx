@@ -31,10 +31,10 @@ it('creates a repeating non-training event with a reviewed fixed audience and op
     fireEvent.click(await screen.findByText('Edit invited players'));
     await screen.findByText('Alex');
     fireEvent.click(screen.getByLabelText('Nika'));
-    fireEvent.click(screen.getByLabelText(/Request availability/));
+    fireEvent.click(screen.getByLabelText(/Ask families to confirm/));
     await waitFor(()=>expect(screen.getByRole('button',{name:'Create & send invitations'})).toBeEnabled());
     fireEvent.click(screen.getByRole('button',{name:'Create & send invitations'}));
-    await waitFor(()=>expect(api.createSquadEvent).toHaveBeenCalledWith(11,expect.objectContaining({eventType:'ACTIVITY',playerIds:[41],requestResponses:false,repeat:expect.objectContaining({intervalWeeks:1,endDate:expect.stringMatching(/^2099-/)})})));
+    await waitFor(()=>expect(api.createSquadEvent).toHaveBeenCalledWith(11,expect.objectContaining({eventType:'ACTIVITY',playerIds:[41],requestResponses:true,repeat:expect.objectContaining({intervalWeeks:1,endDate:expect.stringMatching(/^2099-/)})})));
     expect(createClubEvent).not.toHaveBeenCalled();
 });
 it('retains publication through the same editor without creating duplicate invitations',async()=>{

@@ -109,6 +109,14 @@
   "path": "/clubs/3"
  },
  {
+  "name": "club-schedule",
+  "path": "/clubs/1?tab=schedule"
+ },
+ {
+  "name": "club-other-schedule",
+  "path": "/clubs/3?tab=schedule"
+ },
+ {
   "name": "people",
   "path": "/people"
  },
@@ -119,6 +127,14 @@
  {
   "name": "profile-player",
   "path": "/profile/30"
+ },
+ {
+  "name": "profile-schedule",
+  "path": "/profile/1?tab=schedule"
+ },
+ {
+  "name": "profile-player-career",
+  "path": "/profile/30?tab=career"
  },
  {
   "name": "stadiums",
@@ -207,6 +223,10 @@
  {
   "name": "squad",
   "path": "/squads/105"
+ },
+ {
+  "name": "squad-sessions",
+  "path": "/squads/105?tab=sessions"
  },
  {
   "name": "assistant",

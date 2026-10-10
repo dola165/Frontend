@@ -763,7 +763,7 @@
 .schedule-compose-button.primary {
     background: var(--compose-accent);
     border-color: var(--compose-accent);
-    color: var(--color-accent);
+    color: var(--color-on-accent);
 }
 .schedule-compose-button.danger {
     color: var(--fc-state-danger, var(--color-danger));

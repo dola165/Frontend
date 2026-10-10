@@ -90,10 +90,10 @@ const ScheduleBoardEvent = memo(function ScheduleBoardEvent({
                 </span>
             )}
             {cancelled(event) && <span className="swb-event-status">{labels.cancelled}</span>}
-            {!cancelled(event) && event.responseSummary && event.responseSummary.total > 0 && <span className="swb-event-response">
-                <Users size={13} aria-hidden="true"/>{t('schedule.direction.availabilityCount', { defaultValue: '{{going}}/{{total}} going', ...event.responseSummary })}
-                {event.responseSummary.pending > 0 && <small>{t('schedule.direction.pendingReplies', { defaultValue: '{{count}} awaiting reply', count: event.responseSummary.pending })}</small>}
-            </span>}
+            {!cancelled(event) && event.responseSummary && (event.responseSummary.cantCome || event.responseSummary.pending) ? <span className="swb-event-response">
+                <Users size={13} aria-hidden="true"/>{event.responseSummary.cantCome ? t('schedule.direction.cantCome', { defaultValue: '{{count}} can’t come', count: event.responseSummary.cantCome }) : null}
+                {event.responseSummary.pending > 0 && <small>{t('schedule.direction.toConfirm', { defaultValue: '{{count}} to confirm', count: event.responseSummary.pending })}</small>}
+            </span> : null}
             {event.conflict && (
                 <span className="swb-event-conflict">
                     <TriangleAlert size={12} aria-hidden="true" />

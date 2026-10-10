@@ -91,7 +91,7 @@ export const ApplicationsTab = ({ applications, applicationsLoading, application
     const clearFilters = () => { setQuery(''); onFiltersChange({ position: '', ageGroup: '', status: 'PENDING', jobId: '' }); };
 
     return <div className="squad-design recruitment-design">
-        <header className="sd-heading"><div><span className="sd-eyebrow">{r('recruitment')}</span><h2>{r('applications')}</h2><p>{r('applicationsIntro')}</p></div></header>
+        <header className="sd-heading"><div><h2>{r('applications')}</h2><p>{r('applicationsIntro')}</p></div></header>
         <RecruitmentNavigation active="applications" onOpenTryouts={onOpenTryouts} onOpenPlayers={onOpenPlayers} onOpenSquads={onOpenSquads} />
         <div className="rc-metrics" aria-label={r('loadedApplications')}>
             <div className="rc-metric"><strong>{applicationsLoading ? '—' : pendingIds.length}</strong><span>{r('awaitingDecision')}</span></div>

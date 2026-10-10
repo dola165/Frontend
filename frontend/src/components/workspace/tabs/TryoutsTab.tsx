@@ -100,7 +100,7 @@ export const TryoutsTab = ({ clubId, tryoutApplicants, tryoutsLoading, pendingKe
     const statusLabel = (value: string) => { const key = recruitmentStatusKey(value); return key ? r(key) : value.replaceAll('_', ' '); };
 
     return <div className="squad-design recruitment-design">
-        <header className="sd-heading"><div><span className="sd-eyebrow">{r('recruitment')}</span><h2>{r('tryouts')}</h2><p>{r('tryoutsIntro')}</p></div>{postingSummary.canManage && <button type="button" className="sd-primary" onClick={() => setEditing('new')}><Plus size={16} />{r('postTryout')}</button>}</header>
+        <header className="sd-heading"><div><h2>{r('tryouts')}</h2><p>{r('tryoutsIntro')}</p></div>{postingSummary.canManage && <button type="button" className="sd-primary" onClick={() => setEditing('new')}><Plus size={16} />{r('postTryout')}</button>}</header>
         <RecruitmentNavigation active="tryouts" onOpenApplications={onOpenApplications} onOpenPlayers={onOpenPlayers} onOpenSquads={onOpenSquads} />
         <div className="rc-metrics">
             <div className="rc-metric"><strong>{tryoutsLoading ? '—' : pendingCount}</strong><span>{r('reviewApplicants')}</span></div>

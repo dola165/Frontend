@@ -27,14 +27,14 @@ People who invest in the workspace are rewarded: everything they currently track
 
 | Place | Purpose | Who sees it |
 | --- | --- | --- |
-| **Home** | What's happening for me: this week, announcements, feed | Everyone |
+| **Home** | The social feed, exactly like the real app ("this week" and announcements live in the hubs) | Everyone |
 | **World** | Discovery and public football: directories, map, matches, tournaments, opportunities | Everyone; works signed-out *(decision pending)* |
 | **My Club** | My club's private side: squads, schedule, workspace tools for staff | Club members and staff |
 | **Me** (avatar) | Profile, personal schedule, children, settings | Everyone |
 
 ### Navigation
 
-- Default tabs: **Home · World · My Club** (My Club only for club members). Matches & Competitions is not a tab *(decision pending)*: discovery moves to World, the club's own matches to My Club.
+- Fixed tabs: **Home · World**. Role tabs (**My club**, **My squads**, **Parent Hub**) arrive as default pins for the people they apply to (section 13, `ROUND_2.md` section 1). Matches & Competitions is not a tab: discovery moves to World, the club's own matches to My Club.
 - Right side: search, Agent Dola, **Inbox** (requests and notifications merged into "things that need you"), Messages, avatar.
 - Removed: My work (deleted), Shortcuts (replaced by pins), Schedule tab (moves to profile and club), the duplicate Agent Dola, Parent Hub and schedule entries on Home's left rail.
 - **Pins:** a person can pin a squad, a child, Coach Hub, a tournament or a saved World search as extra tabs. The app suggests pins from usage but never adds them on its own. Around five pins, then an overflow menu. Same model as the workspace overview shortcuts, so build it once and use it in both places.
@@ -125,6 +125,8 @@ Jobs, trials, volunteering and services, posted by clubs, organizations and indi
 
 ## 12. Build order
 
+Round 2 (from 10 October) follows the order in `ROUND_2.md`. The list below is the original plan.
+
 Each step: proposal and mockup → owner decision → build plan → small slices → old code deleted in the same change.
 
 0. Quick wins: delete My work; hide demo markers from user-facing content; remove the duplicate Agent Dola card.
@@ -144,7 +146,7 @@ Each step: proposal and mockup → owner decision → build plan → small slice
 
 1. **One club per person:** strictly one, or one per football role (a coach at two academies, a player at a club and a school)?
 2. **World without sign-in:** public front door for the open demo and search engines?
-3. **Matches & Competitions as a tab:** drop it (recommended) or keep it as the fourth default?
+3. **What a club is:** sections, academies, seasons, staff scopes, several roles per person, and what My club opens for each person. Validate with experienced coaches first (`ROUND_2.md` section 2).
 
 ### Made (9 October 2026, owner)
 
@@ -156,6 +158,23 @@ Each step: proposal and mockup → owner decision → build plan → small slice
 - Renting a stadium is for training only and is removed from match creation.
 - Match creation lets the club pick its own venues and search the opponent club with autocomplete, separate from Match Exchange.
 - People can change roles; professions are free text, labelled later and searchable.
+
+### Made (10 October 2026, owner's review of the sandbox; brief in `ROUND_2.md`)
+
+These replace the older lines above and in sections 3, 7 and 12 where they disagree.
+
+- **Home** stays 100% feed, exactly like the real app. The "This week / Waiting for you / Announcements" block moves into the hubs.
+- **Top bar:** the redesign's one-row bar with pins, made beefier, with search beside the logo. Matches & Competitions is not a tab.
+- **Tabs:** Home and World are fixed. Role tabs come as default pins for the people they apply to:
+  - My squads: opens Coach Hub, for coaches.
+  - Parent Hub: for anyone with a linked child.
+  - Later hubs (referee, organiser) follow the same rule.
+  - What **My club** is and opens is on hold until the club model is settled (Open, item 3).
+- **Coach Hub** is a separate page like Parent Hub, labelled "My squads". Experienced coaches found "My Club" confusing and responded to "My squads". It owns no tools or data; its items open the workspace's records.
+- **One account, many roles.** Parent Hub follows a linked child, not the registration choice. Parents may be club members and staff. The one-club rule covers membership and staff roles, not being a guardian.
+- **Map:** keep the real app's map, and drop the redesign's map panel. Journeys stay and become much stronger.
+- **"Propose a match"** stays.
+- **Opportunities** are open to everyone (clubs, parents, players) and work in both directions. Venues move out of Opportunities.
 
 ### Made (10 October 2026, World review sprint, under the owner's delegation)
 

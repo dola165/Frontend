@@ -1,5 +1,7 @@
 # Overnight overhaul — status (10 October 2026)
 
+**Next session: start with `HANDOFF.md`.** The owner reviews with the Keep / Revert / Change checklist on `/__guide`.
+
 Branch `claude/overhaul-sandbox` (frontend only). Sandbox: `node sandbox/build.mjs && node sandbox/server.mjs 4300`, guide at `/__guide`; on Windows double-click `sandbox/windows/Start GrassKickZ Sandbox.cmd`.
 
 ## Done and merged

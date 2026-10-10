@@ -11,7 +11,7 @@
 .gk .gk-match-band__team--home { flex-direction: row-reverse; text-align: right; }
 .gk a.gk-match-band__team:hover strong { text-decoration: underline; text-underline-offset: 3px; }
 .gk .gk-match-band__name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.gk .gk-match-band__name strong { font-family: var(--gk-font-display); font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 650; overflow-wrap: anywhere; }
+.gk .gk-match-band__name strong { font-family: var(--gk-font-display); font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 650; overflow-wrap: break-word; }
 .gk .gk-match-band__name span { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); }
 .gk .gk-match-band__slot { flex: none; width: 56px; height: 56px; border: 1px dashed var(--gk-line-strong); border-radius: var(--gk-r); }
 .gk .gk-match-band__team--open .gk-match-band__name strong { color: var(--gk-text-2); }
@@ -119,8 +119,25 @@
   .gk .gk-match-band__name span { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); }
   .gk .gk-match-band__centre { min-width: 0; }
   .gk .gk-match-band__time, .gk .gk-match-band .result-summary-score { font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); }
+}
+/* Phones: the kick-off (or score) first, then each team on its own line, so names never break mid-word. */
+@media (max-width: 640px) {
+  .gk .gk-match-band { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'centre' 'home' 'away'; gap: var(--gk-3); padding: var(--gk-4); }
+  .gk .gk-match-band__centre { grid-area: centre; flex-direction: row; flex-wrap: wrap; align-items: baseline; justify-content: flex-start; column-gap: var(--gk-3); padding-bottom: var(--gk-3); border-bottom: 1px solid var(--gk-line); text-align: left; }
+  .gk .gk-match-band__team--home { grid-area: home; }
+  .gk .gk-match-band__team--away { grid-area: away; }
+  .gk .gk-match-band__team, .gk .gk-match-band__team--home { flex-direction: row; align-items: center; gap: var(--gk-3); text-align: left; }
+  .gk .gk-match-band__name strong { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); }
+  .gk .gk-match-band .result-summary { flex-direction: row; align-items: baseline; gap: var(--gk-2); }
+}
+@media (max-width: 760px) {
   .gk.gk-match .gk-list-row { flex-wrap: wrap; row-gap: var(--gk-2); }
   .gk.gk-match .gk-list-row__main { flex: 1 1 calc(100% - 48px); }
   .gk.gk-match .gk-list-row__trail { flex-wrap: wrap; margin-left: calc(20px + var(--gk-3)); }
   .gk .gk-match-sent { flex-wrap: wrap; }
 }
+
+/* An open referee request and its offers */
+.gk .gk-match-request { display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-4) var(--gk-5); border: 1px solid color-mix(in srgb, var(--gk-warning) 40%, var(--gk-line)); border-radius: var(--gk-r-lg); background: var(--gk-surface); }
+.gk .gk-match-request__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2); }
+.gk .gk-match-request .gk-list-row { padding-inline: 0; }

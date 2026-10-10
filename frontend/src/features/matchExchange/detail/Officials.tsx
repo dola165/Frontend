@@ -3,8 +3,8 @@ import { Badge, Button, EmptyNote, List, ListRow, Panel, Section, type BadgeTone
 import { Crest } from '../../world/Crest';
 import { label, post, type Match } from '../api';
 import { useAction } from '../hooks';
-import { OfficialRecruitment } from '../OfficialRequests';
 import { RefereeInvite } from './RefereeInvite';
+import { RefereeRequest } from './RefereeRequest';
 
 const APPOINTMENT: Record<string, { label: string; tone: BadgeTone }> = {
     INVITED: { label: 'Invited', tone: 'info' }, ACCEPTED: { label: 'Accepted', tone: 'accent' }, DECLINED: { label: 'Declined', tone: 'neutral' },
@@ -33,8 +33,8 @@ export function Officials({ match: m, active, reload }: { match: Match; active: 
                 {others.some(a => a.report) && <div className="gk-match-reports">{others.filter(a => a.report).map(a => <details key={a.id} className="gk-match-disclosure"><summary>Match report from {a.full_name}</summary><p>{a.report}</p></details>)}</div>}
             </Panel>
             <div className="gk-mx gk-match-feedback">{feedback}</div>
+            {manage && m.referee_required && <RefereeRequest match={m} reload={reload} />}
             {manage && <RefereeInvite match={m} reload={reload} />}
-            {manage && m.referee_required && !others.some(a => a.duty === 'REFEREE' && ['INVITED', 'ACCEPTED'].includes(a.status)) && <div className="gk-mx"><OfficialRecruitment match={m} reload={reload} /></div>}
         </Section>
     );
 }

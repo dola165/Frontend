@@ -1,8 +1,8 @@
 import { EmptyState } from '../../components/ui/EmptyState';
-import { Compass, Inbox } from 'lucide-react';
+import { Compass } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useLoad, useAction } from './hooks';
+import { useAction } from './hooks';
 import { post, when, type Match } from './api';
 import './arrangement.css';
 import { useRefereeWorkspace } from '../refereeWorkspace/WorkspaceContext';
@@ -22,21 +22,6 @@ export function OfficialOpportunities({ availability = [], onChanged }: { availa
     {!data && !error && <p role="status">Loading requests…</p>}{data && !requests.length && <EmptyState icon={Compass} title={data.length ? 'No requests match your filters.' : 'No open requests right now'} description={data.length ? 'Try another area or appointment type to broaden your search.' : 'Clubs publish paid and volunteer opportunities here. Direct invitations are available in My assignments.'} action={{label:'View my assignments',to:'#invitations'}}/>}
     <div className="mx-official-list">{requests.map(r => <article key={r.event_id}>{workspace ? <button className="rw-title-button" onClick={()=>workspace.openMatch(r.event_id)}><strong>{r.title}</strong></button> : <Link to={`/match-exchange/${r.event_id}`}><strong>{r.title}</strong></Link>}<p>{when(r.starts_at_iso)} – {when(r.ends_at_iso)} · {r.timezone}</p><p>{r.location_name} · {r.city}</p><p>{r.volunteer ? 'Volunteer appointment' : `${r.fee} ${r.currency} · payment arranged directly`}</p>{r.application_status === 'PENDING' ? <><strong>Offer submitted</strong><Link className="mx-button" to={r.offer_id ? `/referees/me#offer-${r.offer_id}` : "/referees/me#offers"}>Review your offer</Link></> : <><p className="mx-muted">{covers(availability,r.starts_at_iso,r.ends_at_iso) ? 'Your availability covers this match. Other commitments are checked when you offer.' : <Link to="/referees/me#availability">Add availability covering the whole match →</Link>}</p><button disabled={busy} onClick={() => void run(() => post(`/match-arrangements/${r.event_id}/official-request/apply`, { revision: r.revision }), 'Offer sent to the coaching team')}>Offer to referee on these terms</button></>}</article>)}</div>
   </section>;
-}
-
-export function OfficialRecruitment({ match, reload }: { match: Match; reload: () => void }) {
-  const { data, reload: refresh } = useLoad<Request>(`/match-arrangements/${match.event_id}/official-request`);
-  const [volunteer, setVolunteer] = useState(true), [fee, setFee] = useState('0'), [currency, setCurrency] = useState('GEL');
-  const { run, busy, feedback } = useAction(() => { refresh(); reload(); });
-  const occupied = match.appointments?.some(a => a.duty === 'REFEREE' && ['INVITED','ACCEPTED'].includes(a.status));
-  return <section className="mx-panel"><h2>Recruit an official</h2>{feedback}{data?.status === 'OPEN' ? <><p>This request is visible to eligible referees.</p><p>{data.volunteer ? 'Volunteer' : `${data.fee} ${data.currency}`}</p>{data.applications?.filter(a => a.status === 'PENDING').map(a => <article className="mx-row" key={a.referee_id}><Link to={`/profile/${a.referee_id}`}>{a.full_name}</Link><button disabled={busy} onClick={() => void run(() => post(`/match-arrangements/${match.event_id}/official-request/select`, { refereeId: a.referee_id, revision: match.revision }), 'Referee appointed')}>Select and confirm appointment</button></article>)}{!data.applications?.some(a => a.status === 'PENDING') && <EmptyState compact icon={Inbox} title="No offers yet." description="Your request is open. Referee offers will appear here for you to review before confirming an appointment."/>}<button disabled={busy} onClick={() => void run(() => post(`/match-arrangements/${match.event_id}/official-request/close`, { revision: match.revision }), 'Recruitment closed')}>Close request</button></> : occupied ? <p>An official is already invited or appointed. Cancel that appointment before opening a new request.</p> : <form className="mx-form" onSubmit={e => { e.preventDefault(); void run(() => post(`/match-arrangements/${match.event_id}/official-request`, { volunteer, fee: volunteer ? 0 : Number(fee), currency, revision: match.revision }), 'Referee request published'); }}><label className="mx-check mx-wide"><input type="checkbox" checked={volunteer} onChange={e => setVolunteer(e.target.checked)} />Volunteer appointment</label>{!volunteer && <><label>Fee<input aria-label="Fee" type="number" required min={0} max={1000000} value={fee} onChange={e => setFee(e.target.value)} /></label><label>Currency<input aria-label="Currency" required maxLength={3} value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} /></label></>}<p className="mx-wide mx-muted">Publishing makes the time and location discoverable to referees. Applying does not appoint someone until you select their offer.</p><button disabled={busy} className="mx-primary">Publish referee request</button></form>}</section>;
-}
-
-export function ChallengeResponse({ match, squads, reload }: { match: Match; squads: { id: number; name: string; club_id: number }[]; reload: () => void }) {
-  const available = squads.filter(s => s.club_id === match.requested_club_id && (!match.requested_squad_id || s.id === match.requested_squad_id));
-  const [selected, setSelected] = useState(match.requested_squad_id?.toString() ?? '');
-  const { run, busy, feedback } = useAction(reload);
-  return <section className="mx-panel"><h2>Your club has been challenged</h2><p>Review the kickoff, ground and referee arrangements, then choose the squad accepting these terms.</p>{feedback}<label>Your squad<select aria-label="Your squad" value={selected} onChange={e => setSelected(e.target.value)}><option value="">Choose your squad</option>{available.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label><div className="mx-actions"><button disabled={busy || !selected} onClick={() => void run(() => post(`/match-arrangements/${match.event_id}/response`, { action: 'ACCEPT', squadId: Number(selected), revision: match.revision }), 'Challenge accepted')}>Accept challenge</button><button disabled={busy} onClick={() => void run(() => post(`/match-arrangements/${match.event_id}/response`, { action: 'DECLINE', revision: match.revision }), 'Challenge declined')}>Decline challenge</button></div></section>;
 }
 
 export function OpponentRecovery({ match, reload }: { match: Match; reload: () => void }) {

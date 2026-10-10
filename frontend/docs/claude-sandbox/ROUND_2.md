@@ -224,9 +224,21 @@ The app today, compared with how clubs usually work (coaches to confirm):
   - open work grouped by urgency (Overdue, Today, Next 7 days, Later, No date), finished records last;
   - the next step stays in view, quieter actions appear on hover, rarer and destructive ones (release, status changes) open under the row;
   - view, search, filters, sort and page live in the URL, so server-side querying plugs in later.
-  - Done: Work queue, every operations tool, Players. Still on the old toolbar: Inbox, Staff, Applications, Tryouts, Store, Jobs, Campaigns, Player cards, Squad roster.
+  - Built here on the Work queue, every operations tool and Players. The other lists follow when this branch moves to the real app ("Before release" below).
+
+## Before release (do it in the real branch, not here)
+
+This branch is the real frontend code on fake data. Repeating a decided pattern on more screens, and hardening, are done once in the pass that moves this branch into the real app, not polished here (the owner, 10 October). Add such work to this list.
+
+- **Every workspace list as a table** ("Lists" under Across the app):
+  - Full lists still on the old look: Staff (`ClubStaffTeam`, unless the one-screen staff work in section 3 redoes it here first), staff invitations (`ManagementInvites`), Club updates (`InboxTab`), Staff roles (`RolesTab`), Joining (`ClubAdmissionWorkspace`), Applications, Tryouts, Jobs & volunteering (`OpenRolesPage`, `RoleApplicants`), Store, Fundraising (`ClubCampaignsPage`), Player cards, Squads (`WorkspaceSquads`) and the squad roster.
+  - Previews that open a full list speak the same row language and link to it: Needs you (My club, to the Work queue), players needing attention (My squads), staff appointments needing attention (Work queue), and the record sections of the player panel.
+- **Tests:** run `npm run check` and fix it. Known failure: the squad-focus test in `WorkspacePolish.test.tsx`, since My club dropped its squad chips (bring a squad focus back, or drop the test).
+- **Backend:** the records query (`/workspace-roles/work`) should take `sort` and `dir` and return a total. Until then the table sorts only the loaded page and record views show no counts.
 
 ## Open questions
+
+- **Previews of a list** (proposed): the first rows of the same table in the same words (a dot and the status, "3 days overdue"), each row opening the same record, and one link at the bottom naming the list and what is left ("Open work queue · 46 more") instead of a link in the heading and another at the bottom.
 
 - **World welcome:** one question (proposed) or an explanatory pop-up?
 - **Journeys:** managed from fixtures and My squads, with the map as the view (proposed)?

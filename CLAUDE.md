@@ -15,6 +15,7 @@ We perfect UI/UX on synthetic data. We do not write backend code here, but every
 **Working style**
 - Fast and efficient over perfect. Change, let Vite hot-reload (`.claude/launch.json`: `sandbox-api` on :4301, `web` on :5174), let the owner look, iterate. No per-step test runs or screenshot matrices; `npm run check` once before anything is merged. Commit each piece the owner accepts; never push.
 - The owner judges visually: check the page in the browser pane at 1920×1080 before reporting.
+- Design here, repeat later: once a pattern is decided and shown on one or two screens, rolling it out to the rest (and hardening, tests, backend parameters) waits for the pass that moves this branch into the real app. Add it to "Before release" in `ROUND_2.md` instead of doing it here.
 
 **Product philosophy (never lose these)**
 - SAP-level depth underneath (one person with many roles, positions with dates, seasons, every process a record with status, approvals and history, one inbox, no double entry) under a consumer-simple surface. SAP is powerful and confusing; GrassKickZ is powerful and obvious. Hidden complexity rewards those who learn it.

@@ -56,7 +56,7 @@ export function buildClubTabs({ overview, roles, boot, canManageLeadership, canM
     if (roles) {
         add({ id: 'tools', label: 'All tools', icon: LayoutGrid });
         if (roles.squads.length && !canManageOperations) add({ id: 'squads', label: 'Squads', icon: ShieldCheck });
-        if (roles.leadership) add({ id: 'role-requests', label: 'Staff roles & requests', icon: UserRoundCog, count: roles.requests.filter(r => r.status === 'PENDING' && r.user_id !== roles.actorId).length || undefined });
+        if (roles.leadership) add({ id: 'role-requests', label: 'Staff roles', icon: UserRoundCog, count: roles.requests.filter(r => r.status === 'PENDING' && r.user_id !== roles.actorId).length || undefined });
     }
     return items;
 }

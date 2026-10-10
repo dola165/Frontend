@@ -25,6 +25,7 @@ import { useWorkspacePins } from '../features/clubWorkspace/useWorkspacePins';
 import { parseWorkspaceTab, type WorkspaceTab } from '../components/workspace/types';
 import { useAuth } from '../context/AuthContext';
 import { WorkspaceShell } from '../design/workspace/WorkspaceShell';
+import { ArrowLeft } from 'lucide-react';
 import { Button, EmptyNote, PageFrame, Skeleton } from '../design/primitives';
 import { getStoredUserId, type AuthSessionId } from '../utils/authStorage';
 
@@ -140,8 +141,7 @@ function ClubWorkspaceSession({ darkMode, sessionId }: { darkMode: boolean; sess
 
     const loading = workspaceRoles.loading || (club.loading && !overview && !operations.boot) || (selectedOperation && operations.loading);
     const failed = club.error && !overview && !operations.boot && !roles;
-    const legacy = (children: ReactNode, back?: { label: string; onClick: () => void }) =>
-        <LegacyFrame darkMode={darkMode} area={areaFor(activeTab)?.id ?? 'overview'} tab={activeTab} back={back}>{children}</LegacyFrame>;
+    const legacy = (children: ReactNode) => <LegacyFrame darkMode={darkMode} area={areaFor(activeTab)?.id ?? 'overview'} tab={activeTab}>{children}</LegacyFrame>;
     const squadBack = selectedOperation && workSquad ? {
         label: `Back to ${roles?.squads.find(s => String(s.id) === workSquad)?.name ?? 'squad'}`,
         onClick: () => navigateWorkspace(() => {
@@ -165,9 +165,12 @@ function ClubWorkspaceSession({ darkMode, sessionId }: { darkMode: boolean; sess
     else if (activeTab === 'programmes') content = <ProgrammesSettings clubId={clubId} />;
     else if (activeTab === 'squads' && !can.operations) content = roles && legacy(<WorkspaceSquads data={roles} boot={operations.boot} squad={workSquad} onSquad={chooseWorkSquad} onOpen={openWork} canManage={false} />);
     else if (activeTab === 'role-requests') content = roles && legacy(<WorkspaceRolesPanel club={clubId} data={roles} admin onChanged={() => { workspaceRoles.refresh(); void operations.refresh(); }} />);
-    else if (selectedOperation) content = legacy(operations.boot
-        ? <WorkspaceOperations key={`${clubId}-${selectedOperation}-${workSquad}-${searchParams.get('session') ?? ''}-${searchParams.get('person') ?? ''}`} boot={{ ...operations.boot, peopleBySquad: roles?.people }} module={selectedOperation} onRefresh={operations.refresh} />
-        : <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{operations.error || 'This section is unavailable for your account.'}</span><Button size="sm" onClick={() => { void operations.refresh(); }}>Try again</Button></div>, squadBack);
+    else if (selectedOperation) content = <>
+        {squadBack && <PageFrame><div className="rec-back"><Button variant="ghost" size="sm" onClick={squadBack.onClick}><ArrowLeft aria-hidden="true" />{squadBack.label}</Button></div></PageFrame>}
+        {operations.boot
+            ? <WorkspaceOperations key={`${clubId}-${selectedOperation}-${workSquad}-${searchParams.get('session') ?? ''}-${searchParams.get('person') ?? ''}`} boot={{ ...operations.boot, peopleBySquad: roles?.people }} module={selectedOperation} onRefresh={operations.refresh} />
+            : <PageFrame className="cw-page"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{operations.error || 'This section is unavailable for your account.'}</span><Button size="sm" onClick={() => { void operations.refresh(); }}>Try again</Button></div></PageFrame>}
+    </>;
     else content = legacy(<ClubTools tab={activeTab} clubId={clubId} sessionId={sessionId} currentUserId={currentUserId} overview={overview} reloadOverview={club.reload}
         roles={roles} refreshRoles={workspaceRoles.refresh} boot={operations.boot} refreshBoot={() => { void operations.refresh(); }} admissions={admissions} admissionCopy={admissionCopy}
         membership={membership} inbox={inbox} can={can} allowed={tab => allowedTabIds.has(tab)} focusedApplicationId={focusedApplicationId}

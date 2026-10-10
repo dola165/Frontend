@@ -62,7 +62,7 @@ export const moduleGroups = [
 ];
 export const transitionLabel = (kind: string, state: string) => {
   if(kind==='ATTENDANCE'&&state==='EXPECTED')return 'Correct attendance (reason required)';
-  const names: Record<string, string> = { PUBLISHED: 'Publish facility', DRAFT: 'Unpublish', GRANTED: 'Give permission', DECLINED: 'Decline', REVOKED: 'Withdraw permission', ARRIVED: kind === 'ATTENDANCE' ? 'Record arrival' : 'Record destination arrival', COLLECTED: 'Record collection', ABSENT: 'Mark absent', CLUB_CHECKED: 'Record club evidence review', APPROVED: 'Approve', SUBMITTED: 'Submit for approval', PAID: 'Record manual settlement', RETURNED: kind === 'TRIP' || kind === 'PASSENGER' ? 'Record return' : 'Record equipment return', CLEARED: 'Record professional clearance', BOARDED: 'Record boarding', ENDED: 'End', ARCHIVED: 'Archive' };
+  const names: Record<string, string> = { PUBLISHED: 'Publish facility', DRAFT: 'Unpublish', GRANTED: 'Give permission', DECLINED: 'Decline', REVOKED: 'Withdraw permission', ARRIVED: kind === 'ATTENDANCE' ? 'Record arrival' : 'Record destination arrival', COLLECTED: 'Record collection', ABSENT: 'Mark absent', CLUB_CHECKED: 'Record club evidence review', APPROVED: 'Approve', SUBMITTED: 'Submit for approval', PAID: 'Record manual settlement', RETURNED: kind === 'TRIP' || kind === 'PASSENGER' ? 'Record return' : 'Record equipment return', CLEARED: 'Record professional clearance', BOARDED: 'Record boarding', ENDED: 'End', ARCHIVED: 'Archive', CONFIRMED: 'Mark as confirmed', COMPLETED: 'Mark as completed', CANCELLED: 'Mark as cancelled', READY: 'Mark as ready' };
   return names[state] ?? label(state);
 };
 

@@ -1,6 +1,6 @@
 import { Chip } from '../../design/primitives';
-import type { Choice } from '../clubOperations/api';
-import type { StaffScopeSelection } from '../clubOperations/StaffScopePicker';
+import type { Choice } from './api';
+import type { StaffScopeSelection } from './StaffScopePicker';
 
 /** Where a responsibility applies: the whole club, or chosen squads. Labelled for screen readers as one group. */
 export function ScopeChips({ squads, value, onChange, disabled = false, legend = 'Where it applies' }: {

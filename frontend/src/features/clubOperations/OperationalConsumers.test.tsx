@@ -19,7 +19,7 @@ it('uses the offered correction route on the existing collected record and sends
     const save=screen.getByRole('button',{name:'Save correction'});expect(save).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Why is this attendance being corrected?'),{target:{value:'Collection marked on the wrong player'}});fireEvent.click(save);
     await waitFor(()=>expect(apiClient.post).toHaveBeenCalledWith('/clubs/1/operations/records/18/transition',{status:'EXPECTED',revision:2,note:'Collection marked on the wrong player'}));
-    expect(await screen.findByRole('button',{name:'Mark arrived'})).toBeVisible();
+    expect(await screen.findByRole('button',{name:/^Mark .+ arrived$/})).toBeVisible();
     expect(apiClient.post).toHaveBeenCalledTimes(1);
 });
 
@@ -29,7 +29,7 @@ it('retains a departed player in the register and shows a server rejection witho
     expect(await screen.findByText('Former player #4')).toBeVisible();fireEvent.click(screen.getByRole('button',{name:'Correct'}));
     fireEvent.change(screen.getByLabelText('Why is this attendance being corrected?'),{target:{value:'Correction'}});fireEvent.click(screen.getByRole('button',{name:'Save correction'}));
     expect(await screen.findByRole('alert')).toHaveTextContent('This record changed. Reload before saving.');
-    expect(screen.queryByRole('button',{name:'Mark arrived'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:/^Mark .+ arrived$/})).not.toBeInTheDocument();
     expect(screen.getByLabelText('Why is this attendance being corrected?')).toHaveValue('Correction');
 });
 

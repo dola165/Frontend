@@ -26,5 +26,5 @@ it('a staff member without current admission scope is not asked for private visi
 it('later enrollment preserves the historical introductory fact without a second regular row',async()=>{
     vi.mocked(apiClient.get).mockImplementation(async route=>({data:String(route).includes('introductory-visitors')?{sessionRevision:4,visitors:[{...visitor,status:'ATTENDED',permissionStatus:'HISTORICAL',emergencyContact:null,canRecord:false}]}:[]}));
     render(<SessionRegister boot={{...boot,people:[{id:50,name:'Synthetic visitor'}],peopleBySquad:[{id:50,squad_id:10}]}} session={9} squad={10} onRecord={vi.fn()}/>);
-    await screen.findByText('Attended');await waitFor(()=>expect(screen.getAllByText('Synthetic visitor')).toHaveLength(1));expect(screen.queryByRole('button',{name:'Mark arrived'})).not.toBeInTheDocument();
+    await screen.findByText('Attended');await waitFor(()=>expect(screen.getAllByText('Synthetic visitor')).toHaveLength(1));expect(screen.queryByRole('button',{name:/^Mark .+ arrived$/})).not.toBeInTheDocument();
 });

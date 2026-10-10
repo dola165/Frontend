@@ -11,7 +11,7 @@ export function WorkspaceEditor({
     closeLabel = 'Close editor', backLabel, feedback, confirmation, stepLabels,
 }: {
     title: string; eyebrow: string; description: string; formLabel: string;
-    accent: 'store' | 'campaign' | 'job' | 'club'; children: ReactNode; preview: ReactNode;
+    accent: 'store' | 'campaign' | 'job'; children: ReactNode; preview: ReactNode;
     saveLabel: string; saving: boolean; disabled?: boolean; footerNote: string;
     onSubmit: FormEventHandler<HTMLFormElement>; onRequestClose: () => void;
     closeLabel?: string; backLabel: string; feedback?: ReactNode; confirmation?: ReactNode;
@@ -41,9 +41,9 @@ export function WorkspaceEditor({
         });
         return false;
     };
-    return <form ref={form} noValidate className={`op-workspace workspace-editor workspace-editor--${accent}`} data-section={accent === 'club' ? 'club' : accent === 'store' ? 'store' : accent === 'campaign' ? 'campaigns' : 'jobs'} aria-label={formLabel}
+    return <form ref={form} noValidate className={`op-workspace workspace-editor workspace-editor--${accent}`} data-section={accent === 'store' ? 'store' : accent === 'campaign' ? 'campaigns' : 'jobs'} aria-label={formLabel}
         aria-describedby={descriptionId} aria-busy={disabled}
-        onSubmit={event => {if(accent==='club' && currentStep < panels.length - 1){event.preventDefault();if(!disabled && validate(false))showStep(currentStep+1);return;}if (disabled || !validate(true)) {event.preventDefault(); return;} onSubmit(event);}}
+        onSubmit={event => {if (disabled || !validate(true)) {event.preventDefault(); return;} onSubmit(event);}}
         onKeyDown={event => {if (event.key === 'Escape' && !disabled && !event.defaultPrevented) {event.preventDefault(); onRequestClose();}}}>
         <header className="workspace-editor__header">
             <button type="button" className="workspace-editor__back" disabled={disabled} onClick={onRequestClose}><ArrowLeft size={16} aria-hidden="true"/>{backLabel}</button>
@@ -55,7 +55,7 @@ export function WorkspaceEditor({
         <footer className="workspace-editor__footer"><div className="workspace-editor__savebar"><p>{footerNote}</p><div className="workspace-editor__actions">
             <button type="button" className="workspace-editor__button" disabled={disabled} onClick={onRequestClose}>{closeLabel}</button>
             {currentStep > 0 && <button type="button" className="workspace-editor__button" disabled={disabled} onClick={() => showStep(currentStep - 1)}><ArrowLeft size={15}/>Back</button>}
-            {(accent!=='club' || currentStep === panels.length - 1) && <button type="submit" className={`workspace-editor__button ${currentStep === panels.length - 1 ? 'workspace-editor__button--primary' : ''}`} disabled={disabled}>{saving && <Loader2 size={16} className="animate-spin" aria-hidden="true"/>}{saving ? 'Saving...' : saveLabel}</button>}
+            {<button type="submit" className={`workspace-editor__button ${currentStep === panels.length - 1 ? 'workspace-editor__button--primary' : ''}`} disabled={disabled}>{saving && <Loader2 size={16} className="animate-spin" aria-hidden="true"/>}{saving ? 'Saving...' : saveLabel}</button>}
             {currentStep < panels.length - 1 && <button type="button" className="workspace-editor__button workspace-editor__button--primary" disabled={disabled} onClick={() => {if (validate(false)) showStep(currentStep + 1);}}>Continue<ArrowRight size={16}/></button>}
         </div></div>{confirmation}</footer>
     </form>;

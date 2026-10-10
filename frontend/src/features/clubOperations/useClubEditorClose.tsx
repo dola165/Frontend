@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { EditorDiscardPrompt } from '../../components/workspace/editor/WorkspaceEditor';
+import { DiscardPrompt } from './records/DiscardPrompt';
 
 /** Unsaved sensitive fields stay in component memory; navigation asks before discarding. */
 export function useClubEditorClose(dirty: boolean, busy: boolean, onClose: () => void) {
@@ -17,6 +17,6 @@ export function useClubEditorClose(dirty: boolean, busy: boolean, onClose: () =>
   }, [dirty, busy]);
   return {
     requestClose: () => { if (busy) return; if (dirty) setPending(() => onClose); else onClose(); },
-    confirmation: pending ? <EditorDiscardPrompt disabled={busy} onKeepEditing={() => setPending(null)} onDiscard={() => { const proceed = pending; setPending(null); proceed(); }} /> : undefined,
+    confirmation: pending ? <DiscardPrompt disabled={busy} onKeepEditing={() => setPending(null)} onDiscard={() => { const proceed = pending; setPending(null); proceed(); }} /> : undefined,
   };
 }

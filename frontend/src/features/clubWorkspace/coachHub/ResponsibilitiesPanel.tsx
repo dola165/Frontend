@@ -9,7 +9,7 @@ import { focusTabs, type ResponsibilityFocus } from '../../clubOperations/worksp
 import { useClubEditorClose } from '../../clubOperations/useClubEditorClose';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { viewScope } from './coachData';
-import { ScopeChips } from '../ScopeChips';
+import { ScopeChips } from '../../clubOperations/ScopeChips';
 
 const access = (permissions: string[]) => permissions.map(p => `${moduleNames[p.split(':')[0]] ?? label(p.split(':')[0])}${p.endsWith(':WRITE') ? '' : ' (view)'}`).join(', ');
 const requestStatus: Record<string, { tone: 'accent' | 'warning' | 'danger' | 'neutral'; text: string }> = {
@@ -61,7 +61,7 @@ export function ResponsibilitiesPanel({ clubId, roles, focus, onChanged }: { clu
                         <span className="gk-list-row__title">{view.label}</span>
                         <span className="gk-list-row__meta">{viewScope(view, roles)} · {tools === 'all' ? 'every club tool' : `${tools.size} tools`}{view.appointmentId ? '' : view.id === 'club' ? ' · club leadership' : ''}</span>
                     </span>
-                    <input type="checkbox" role="switch" className="cw-switch" checked={on} disabled={last} onChange={() => focus.toggle(view.id)} aria-describedby="cw-focus-hint" />
+                    <input type="checkbox" role="switch" className="gk-switch" checked={on} disabled={last} onChange={() => focus.toggle(view.id)} aria-describedby="cw-focus-hint" />
                     <span className="gk-visually-hidden">Show {view.label} first</span>
                 </label></li>;
             })}</List> : <EmptyNote title="No approved responsibilities yet">Ask for one below. A club admin approves it before any tools change.</EmptyNote>}

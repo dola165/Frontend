@@ -25,6 +25,6 @@ it('queries all matching records on the server and carries session context into 
  render(<MemoryRouter initialEntries={['/?tab=attendance&squad=11&session=31&person=21&q=Alex']}><WorkspaceOperations boot={boot} module="ATTENDANCE" onRefresh={vi.fn()}/></MemoryRouter>);
  await waitFor(()=>expect(apiClient.get).toHaveBeenCalledWith(expect.stringMatching(/work\?.*q=Alex.*squad=11.*session=31.*person=21/),expect.anything()));
  fireEvent.click(screen.getByRole('button',{name:'Add attendance'}));expect(screen.getByLabelText('Person')).toHaveValue('21');
- fireEvent.change(screen.getByRole('textbox',{name:'Title'}),{target:{value:'Alex training'}});fireEvent.click(screen.getByRole('button',{name:/Continue/}));
- expect(screen.getByLabelText('Squad')).toHaveValue('11');expect(screen.getByLabelText('Training session')).toHaveValue('31');
+ fireEvent.change(screen.getByRole('textbox',{name:'Title'}),{target:{value:'Alex training'}});
+ expect(screen.getByLabelText('Squad')).toHaveValue('11');expect(screen.getByLabelText(/^Training session/)).toHaveValue('31');
 });

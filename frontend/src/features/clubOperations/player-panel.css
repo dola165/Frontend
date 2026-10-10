@@ -1,0 +1,10 @@
+/* A squad player's notes and tools, in a design-system sheet. Scoped under `.gk`; tokens only. */
+.gk .wpp-facts { display: flex; flex-wrap: wrap; gap: var(--gk-1); margin-top: var(--gk-1); }
+.gk .wpp-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .wpp-actions svg { width: 16px; height: 16px; }
+.gk .wpp-observation { display: flex; flex-direction: column; gap: var(--gk-4); padding: var(--gk-4); border-radius: var(--gk-r); background: var(--gk-sunken); }
+/* Lists run edge to edge in the sheet, so their rows line up with its padding. */
+.gk .wpp-records { margin-inline: calc(-1 * var(--gk-5)); border-block: 1px solid var(--gk-line); }
+.gk .wpp-records .gk-list-row__meta { white-space: normal; }
+.gk .wpp-quiet { font-size: var(--gk-fs-sm); }
+.gk .wpp-tool-icon { width: 18px; height: 18px; color: var(--gk-text-3); }

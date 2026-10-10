@@ -3,6 +3,7 @@ import { apiClient } from '../../api/axiosConfig';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { Button, Field, Panel, Skeleton } from '../../design/primitives';
 import './records/records.css';
+import '../clubWorkspace/club-workspace.css';
 
 interface Policy { cutoffOn: string | null; effectiveCutoff: string; revision: number; rule: string }
 

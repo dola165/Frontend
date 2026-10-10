@@ -22,6 +22,7 @@ import { usePersistedState } from '../../../utils/usePersistedState';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { SquadRoster } from './SquadRoster';
 import '../club-workspace.css';
+import './squads.css';
 
 interface SquadDto extends SquadDetails { id: number; clubId: number }
 interface Props { clubId: number; overview: ClubManagementOverview | null; setParentError: (msg: string | null) => void; setParentSuccess: (msg: string | null) => void; workspace?: { data: RolesWorkspace; boot: Bootstrap | null; onOpen: OpenWorkspace } }
@@ -141,7 +142,7 @@ export function SquadsPage({ clubId, overview, setParentError, setParentSuccess,
 
     return <PageFrame className="cw-page">
         <PageHeader title={t('squads.design.title', { defaultValue: 'Squads' })} subtitle={`${squads.length} ${squads.length === 1 ? 'squad' : 'squads'} · ${overview?.activePlayerCount ?? '—'} ${t('squads.design.clubPlayers', { defaultValue: 'club players' })}`}
-            actions={<Button variant="primary" onClick={() => setSquadEditor('new')}><Plus aria-hidden="true" />{t('squads.design.newSquad', { defaultValue: 'New squad' })}</Button>} />
+            actions={<Button onClick={() => setSquadEditor('new')}><Plus aria-hidden="true" />{t('squads.design.newSquad', { defaultValue: 'New squad' })}</Button>} />
         {squadsLoading ? <div className="cw-loading" role="status" aria-label={t('squads.design.loadingSquads', { defaultValue: 'Loading squads…' })}><Skeleton height={36} /><Skeleton height={240} /></div>
             : squadsError ? <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{squadsError}</span><Button size="sm" onClick={() => void loadSquads()}>{t('squads.design.retry', { defaultValue: 'Try again' })}</Button></div>
                 : squads.length === 0 ? <Panel><EmptyNote title={t('squads.design.firstSquad', { defaultValue: 'Start with your first team' })} action={<Button size="sm" onClick={() => setSquadEditor('new')}><Plus aria-hidden="true" />{t('squads.design.createSquad', { defaultValue: 'Create squad' })}</Button>}>

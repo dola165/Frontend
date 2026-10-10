@@ -23,6 +23,7 @@ import { TryoutsTab } from '../../components/workspace/tabs/TryoutsTab';
 import { Button } from '../../design/primitives';
 import type { ClubMembership } from './useClubMembership';
 import type { useClubInbox } from './useClubInbox';
+import './club-workspace.css';
 
 export interface ClubToolsContext {
     tab: WorkspaceTab; clubId: number; sessionId: AuthSessionId; currentUserId: number | null;

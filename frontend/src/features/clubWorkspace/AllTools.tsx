@@ -43,9 +43,10 @@ export function AllTools({ tabs, pins, focus, onOpen, showHidden, onShowHidden, 
                     const isPinned = pins.isPinned(tab.id);
                     return row(tab, <>
                         {focus !== 'all' && focus.has(tab.id) && <Badge tone="accent">Your work</Badge>}
-                        <Button size="sm" variant={isPinned ? 'secondary' : 'ghost'} aria-pressed={isPinned} disabled={!pins.available || (!isPinned && pins.full)} onClick={() => pins.toggle(tab)}
+                        {/* A toggle: its name stays "Pin <tool>" and the pressed state says whether it is pinned. */}
+                        <Button size="sm" variant={isPinned ? 'secondary' : 'ghost'} aria-pressed={isPinned} aria-label={`Pin ${tab.label}`} disabled={!pins.available || (!isPinned && pins.full)} onClick={() => pins.toggle(tab)}
                             title={!isPinned && pins.full ? 'Your pins are full. Unpin something first.' : undefined}>
-                            <Pin aria-hidden="true" /><span>{isPinned ? 'Pinned' : 'Pin'}</span><span className="gk-visually-hidden"> {tab.label}</span>
+                            <Pin aria-hidden="true" /><span>{isPinned ? 'Pinned' : 'Pin'}</span>
                         </Button>
                     </>);
                 })}</List></Panel>

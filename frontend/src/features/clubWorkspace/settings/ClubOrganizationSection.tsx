@@ -9,6 +9,7 @@ import { WorkspaceImports } from '../../organizations/setup/WorkspaceImports';
 import { LegacyIsland } from '../../clubOperations/records/LegacyIsland';
 import '../../organizations/setup/setup.css';
 import '../../organizations/presentation/entity-profile.css';
+import '../club-workspace.css';
 
 interface OrganizationWorkspace { id: number; clubId: number | null; canManage: boolean; promotionBlocked: boolean }
 

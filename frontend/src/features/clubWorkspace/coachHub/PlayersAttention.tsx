@@ -6,8 +6,13 @@ import { operationTab } from '../../clubOperations/workspaceNavigation';
 import type { OpenWorkspace } from '../../clubOperations/workspaceStructure';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { dueLabel } from '../fixtures';
-import { canReadSquad, personName } from './coachData';
+import { isFinished } from '../../clubOperations/records/recordStatus';
+import { coachHubEn } from '../../../locales/workspaceDesign';
+import { useCopy } from '../../../locales/useCopy';
+import { personName } from './coachData';
+import { canReadSquad } from '../../clubOperations/squadAccess';
 import { useNow } from '../useNow';
+import '../club-workspace.css';
 
 const SOURCES = [
     { module: 'AVAILABILITY', query: 'state=open' },
@@ -37,6 +42,7 @@ interface Attention { record: OperationRecord; title: string; meta: string; badg
 
 /** Players in my squads who need something from me: restrictions, missing consent, development reviews. */
 export function PlayersAttention({ clubId, roles, boot, squads, onOpen }: { clubId: number; roles: RolesWorkspace; boot: Bootstrap | null; squads: number[]; onOpen: OpenWorkspace }) {
+    const copy = useCopy('coachHub', coachHubEn);
     const records = useSquadRecords(clubId, squads, boot);
     const now = useNow();
     if (!squads.length) return null;
@@ -46,36 +52,38 @@ export function PlayersAttention({ clubId, roles, boot, squads, onOpen }: { club
     for (const record of records.rows) {
         const player = personName(roles, boot, record.subject_user_id);
         const squad = squadName(record.squad_id);
-        if (record.module === 'AVAILABILITY') items.push({ record, title: player ?? record.title, meta: [record.data.restrictions || record.title, squad].filter(Boolean).join(' · '), badge: 'Restricted', tone: 'warning', rank: 0, date: record.data.reviewOn ?? '' });
-        else if (record.module === 'GUARDIANS' && record.status === 'PENDING') items.push({ record, title: player ?? record.title, meta: [`Consent: ${record.title}`, squad].filter(Boolean).join(' · '), badge: 'Awaiting parent', tone: 'info', rank: 1, date: record.due_on ?? '' });
+        if (record.module === 'AVAILABILITY') items.push({ record, title: player ?? record.title, meta: [record.data.restrictions || record.title, squad].filter(Boolean).join(' · '), badge: copy('badgeRestricted'), tone: 'warning', rank: 0, date: record.data.reviewOn ?? '' });
+        else if (record.module === 'GUARDIANS' && record.status === 'PENDING') items.push({ record, title: player ?? record.title, meta: [copy('consentFor', { name: record.title }), squad].filter(Boolean).join(' · '), badge: copy('badgeAwaitingParent'), tone: 'info', rank: 1, date: record.due_on ?? '' });
         else if (record.module === 'DEVELOPMENT') {
             const date = record.data.reviewOn ?? record.due_on ?? '';
             const draft = record.status === 'DRAFT';
             if (!draft && (!date || date > soon)) continue;
-            const due = dueLabel(date);
-            items.push({ record, title: player ?? record.title, meta: [record.title.split(' — ')[0].replace(/^Observation · .*/, 'Observation'), squad].filter(Boolean).join(' · '), badge: draft ? 'Draft to share' : due?.label ?? 'Review due', tone: due?.overdue ? 'danger' : 'neutral', rank: 2, date: date || '9999' });
+            const due = dueLabel(date, now, isFinished(record.status));
+            items.push({ record, title: player ?? record.title, meta: [record.title.split(' — ')[0].replace(/^Observation · .*/, copy('observation')), squad].filter(Boolean).join(' · '), badge: draft ? copy('badgeDraft') : due?.label ?? copy('badgeReview'), tone: due?.overdue ? 'danger' : 'neutral', rank: 2, date: date || '9999' });
         }
     }
     items.sort((a, b) => a.rank - b.rank || a.date.localeCompare(b.date));
     const counts = { restricted: items.filter(i => i.rank === 0).length, consent: items.filter(i => i.rank === 1).length, development: items.filter(i => i.rank === 2).length };
-    const hint = [counts.restricted && `${counts.restricted} restricted`, counts.consent && `${counts.consent} consents pending`, counts.development && `${counts.development} development`].filter(Boolean).join(' · ');
+    const hint = [counts.restricted && copy('restricted', { count: counts.restricted }), counts.consent && copy('consents', { count: counts.consent }), counts.development && copy('developmentCount', { count: counts.development })].filter(Boolean).join(' · ');
 
-    return <Section title="Players to check" hint={hint || undefined}>
+    return <Section className="cw-attention" title={copy('playersToCheck')} hint={hint || undefined}>
         <Panel flush>
-            {!records.any ? <EmptyNote title="Player records aren’t shared with your responsibilities">Restrictions, consent and development notes appear here when your role includes them.</EmptyNote>
-                : records.loading ? <div className="cw-skeleton-rows" role="status" aria-label="Loading players who need attention">{[0, 1, 2].map(i => <Skeleton key={i} height={40} />)}</div>
-                    : records.error ? <div className="cw-panel-notice"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{records.error}</span><Button size="sm" onClick={records.retry}>Try again</Button></div></div>
-                        : items.length ? <List label="Players who need attention">{items.slice(0, 8).map(item => <ListRow key={item.record.id}
+            {!records.any ? <EmptyNote title={copy('notShared')}>{copy('notSharedHint')}</EmptyNote>
+                : records.loading ? <div className="cw-skeleton-rows" role="status" aria-label={copy('loadingPlayers')}>{[0, 1, 2].map(i => <Skeleton key={i} height={40} />)}</div>
+                    : records.error ? <div className="cw-panel-notice"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{records.error}</span><Button size="sm" onClick={records.retry}>{copy('tryAgain')}</Button></div></div>
+                        : items.length ? <List label={copy('playersToCheck')}>{items.slice(0, 8).map(item => <ListRow key={item.record.id}
                             lead={<Avatar name={item.title} size={32} />} title={item.title} meta={item.meta} trail={<Badge tone={item.tone}>{item.badge}</Badge>}
                             onClick={() => onOpen(operationTab(item.record.module), { record: String(item.record.id), ...(item.record.squad_id ? { squad: String(item.record.squad_id) } : {}) })} />)}</List>
-                            : <EmptyNote title="All your players are clear">No open restrictions, missing consent or development reviews due in the next 14 days.</EmptyNote>}
-            {items.length > 8 && <div className="gk-panel__foot"><button type="button" className="cw-text-button" onClick={() => onOpen('restrictions')}>{items.length - 8} more in Participation restrictions, Guardians and Development</button></div>}
+                            : <EmptyNote title={copy('allClear')}>{copy('allClearHint')}</EmptyNote>}
+            {items.length > 8 && <div className="gk-panel__foot"><button type="button" className="cw-text-button" onClick={() => onOpen('restrictions')}>{copy('moreRecords', { count: items.length - 8 })}</button></div>}
         </Panel>
     </Section>;
 }
 
 /** Records assigned to me, soonest first. */
 export function MyTasks({ clubId, roles, onOpen }: { clubId: number; roles: RolesWorkspace; onOpen: OpenWorkspace }) {
+    const copy = useCopy('coachHub', coachHubEn);
+    const now = useNow();
     const [revision, setRevision] = useState(0);
     const [result, setResult] = useState<{ key: string; rows: OperationRecord[]; error: string } | null>(null);
     const key = `${clubId}:${roles.actorId}:${revision}`;
@@ -88,18 +96,18 @@ export function MyTasks({ clubId, roles, onOpen }: { clubId: number; roles: Role
     }, [clubId, key]);
     const current = result?.key === key ? result : null;
     const rows = current?.rows ?? [];
-    return <Section title="My tasks" hint={rows.length ? `${rows.length} assigned to you` : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('actions', { mine: 'true' })}>Work queue</button>}>
+    return <Section title={copy('myTasks')} hint={rows.length ? copy('assigned', { count: rows.length }) : undefined} action={<button type="button" className="gk-section__action cw-text-button" onClick={() => onOpen('actions', { mine: 'true' })}>{copy('workQueue')}</button>}>
         <Panel flush>
-            {!current ? <div className="cw-skeleton-rows" role="status" aria-label="Loading your tasks">{[0, 1].map(i => <Skeleton key={i} height={40} />)}</div>
-                : current.error ? <div className="cw-panel-notice"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{current.error}</span><Button size="sm" onClick={() => setRevision(v => v + 1)}>Try again</Button></div></div>
-                    : rows.length ? <List label="My tasks">{rows.slice(0, 6).map(record => {
-                        const due = dueLabel(record.attentionDate ?? record.due_on);
-                        return <ListRow key={record.id} title={record.title} meta={[moduleNames[record.module], roles.squads.find(s => s.id === record.squad_id)?.name ?? (record.squad_id ? null : 'Club-wide'), label(record.status)].filter(Boolean).join(' · ')}
-                            trail={<Badge tone={record.expired || due?.overdue ? 'danger' : 'neutral'}>{record.expired ? 'Expired' : due?.label ?? label(record.status)}</Badge>}
+            {!current ? <div className="cw-skeleton-rows" role="status" aria-label={copy('loadingTasks')}>{[0, 1].map(i => <Skeleton key={i} height={40} />)}</div>
+                : current.error ? <div className="cw-panel-notice"><div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{current.error}</span><Button size="sm" onClick={() => setRevision(v => v + 1)}>{copy('tryAgain')}</Button></div></div>
+                    : rows.length ? <List label={copy('myTasks')}>{rows.slice(0, 6).map(record => {
+                        const due = dueLabel(record.attentionDate ?? record.due_on, now, isFinished(record.status));
+                        return <ListRow key={record.id} title={record.title} meta={[moduleNames[record.module], roles.squads.find(s => s.id === record.squad_id)?.name ?? (record.squad_id ? null : copy('clubWide')), label(record.status)].filter(Boolean).join(' · ')}
+                            trail={<Badge tone={record.expired || due?.overdue ? 'danger' : 'neutral'}>{record.expired ? copy('expired') : due?.label ?? label(record.status)}</Badge>}
                             onClick={() => onOpen(operationTab(record.module), { record: String(record.id), ...(record.squad_id ? { squad: String(record.squad_id) } : {}) })} />;
                     })}</List>
-                        : <EmptyNote title="Nothing is assigned to you">Records where you are the responsible person appear here.</EmptyNote>}
-            {rows.length > 6 && <div className="gk-panel__foot"><button type="button" className="cw-text-button" onClick={() => onOpen('actions', { mine: 'true' })}>{rows.length - 6} more in the work queue</button></div>}
+                        : <EmptyNote title={copy('noTasks')}>{copy('noTasksHint')}</EmptyNote>}
+            {rows.length > 6 && <div className="gk-panel__foot"><button type="button" className="cw-text-button" onClick={() => onOpen('actions', { mine: 'true' })}>{copy('moreTasks', { count: rows.length - 6 })}</button></div>}
         </Panel>
     </Section>;
 }

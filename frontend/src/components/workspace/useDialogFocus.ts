@@ -28,12 +28,13 @@ const suppressBackground = (dialog: HTMLElement) => {
 
     while (parent) {
         for (const sibling of Array.from(parent.children)) {
-            if (sibling === activeBranch || !(sibling instanceof HTMLElement)) continue;
-            const lock = backgroundLocks.get(sibling) ?? { count: 0, inert: sibling.inert, ariaHidden: sibling.getAttribute('aria-hidden') };
+            // A dialog's own backdrop stays interactive, so a tap outside the dialog can close it.
+            if (sibling === activeBranch || !(sibling instanceof HTMLElement) || sibling.hasAttribute('data-dialog-backdrop')) continue;
+            const lock = backgroundLocks.get(sibling) ?? { count: 0, inert: sibling.hasAttribute('inert'), ariaHidden: sibling.getAttribute('aria-hidden') };
             lock.count += 1;
             backgroundLocks.set(sibling, lock);
             suppressed.push(sibling);
-            sibling.inert = true;
+            sibling.toggleAttribute('inert', true);
             sibling.setAttribute('aria-hidden', 'true');
         }
         if (parent === document.body) break;
@@ -45,7 +46,7 @@ const suppressBackground = (dialog: HTMLElement) => {
         for (const element of suppressed) {
             const lock = backgroundLocks.get(element);
             if (!lock || --lock.count > 0) continue;
-            element.inert = lock.inert;
+            element.toggleAttribute('inert', lock.inert);
             if (lock.ariaHidden === null) element.removeAttribute('aria-hidden');
             else element.setAttribute('aria-hidden', lock.ariaHidden);
             backgroundLocks.delete(element);

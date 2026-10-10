@@ -1,6 +1,7 @@
 import { Trash2 } from 'lucide-react';
 import { Button, Chip, Field, Panel } from '../../../../design/primitives';
 import type { TrainingProgramme } from '../../../clubs/presentation';
+import '../../club-workspace.css';
 
 const fees = [['trialAmount', 'Trial session fee'], ['joiningFee', 'Joining fee'], ['equipmentFee', 'Equipment fee']] as const;
 

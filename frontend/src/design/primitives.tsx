@@ -47,7 +47,7 @@ export function Section({ title, hint, action, children, className, id }: { titl
         <section className={cx('gk-section', className)} id={id} aria-labelledby={id && title ? `${id}-title` : undefined}>
             {(title || actionNode) && (
                 <div className="gk-section__head">
-                    <div className="gk-row" style={{ gap: 'var(--gk-2)', alignItems: 'baseline' }}>
+                    <div className="gk-section__heading">
                         {title && <h2 className="gk-section__title" id={id ? `${id}-title` : undefined}>{title}</h2>}
                         {hint && <span className="gk-section__hint">{hint}</span>}
                     </div>
@@ -118,7 +118,7 @@ export function StatTile({ label, value, hint, to, onClick, tone }: { label: Rea
     return <div className="gk-stat" data-tone={tone}>{body}</div>;
 }
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 const buttonClass = (variant: ButtonVariant, size: 'md' | 'sm', iconOnly: boolean, className?: string) =>
     cx('gk-btn', `gk-btn--${variant}`, size === 'sm' && 'gk-btn--sm', iconOnly && 'gk-btn--icon', className);
 export function Button({ variant = 'secondary', size = 'md', iconOnly = false, className, type = 'button', ...rest }: ComponentPropsWithoutRef<'button'> & { variant?: ButtonVariant; size?: 'md' | 'sm'; iconOnly?: boolean }) {

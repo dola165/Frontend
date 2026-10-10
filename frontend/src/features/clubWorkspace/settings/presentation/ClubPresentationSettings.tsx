@@ -8,7 +8,9 @@ import { profileKindLabel, type ClubPresentation, type ProfileKind, type Trainin
 import { ProgrammeEditor } from './ProgrammeEditor';
 import { SponsorsEditor } from './SponsorsEditor';
 import { AffiliationsEditor } from './AffiliationsEditor';
+import { useClubEditorClose } from '../../../clubOperations/useClubEditorClose';
 import '../../../clubOperations/records/records.css';
+import '../../club-workspace.css';
 
 type Part = 'all' | 'profile' | 'programmes';
 const emptyProgramme = (): TrainingProgramme => ({ name: '', ageMin: null, ageMax: null, sessionsPerWeek: null, priceType: 'UNPUBLISHED', amount: null, currency: '', billingPeriod: 'MONTH', trialAmount: null, joiningFee: null, equipmentFee: null, details: null, published: false, squadIds: [], validFrom: null, validUntil: null });
@@ -31,6 +33,8 @@ function Editor({ clubId, part }: { clubId: number; part: Part }) {
     const [query, setQuery] = useState(''), [matches, setMatches] = useState<Array<{ id: number; name: string }>>([]), [searchError, setSearchError] = useState('');
     const [squads, setSquads] = useState<Array<{ id: number; name: string }>>([]);
     const active = useRef(true), submitting = useRef(false);
+    // Leaving with unsaved edits (another settings section, a rail item, the club page) asks first.
+    const { confirmation } = useClubEditorClose(dirty, busy || uploading, () => undefined);
     useEffect(() => {
         let current = true; active.current = true; setLoading(true); setError('');
         void apiClient.get<ClubPresentation>(`/clubs/${clubId}/presentation/manage`).then(r => { if (current) { setProfile(r.data); setDirty(false); } })
@@ -76,6 +80,7 @@ function Editor({ clubId, part }: { clubId: number; part: Part }) {
     const own = profile.canManageAffiliations === true;
     const showProfile = part !== 'programmes', showProgrammes = part !== 'profile';
     return <div className="gk-stack">
+        {confirmation}
         {error && <div className="gk-notice gk-notice--danger" role="alert"><span className="cw-notices__text">{error}</span><Button size="sm" disabled={busy} onClick={() => setAttempt(a => a + 1)}>Discard draft & reload</Button></div>}
         {message && <div className="gk-notice cw-notices__success" role="status">{message}</div>}
         {!own && <div className="gk-notice" role="status">You are editing this academy’s public profile through access granted to its parent club.</div>}

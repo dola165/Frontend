@@ -1,6 +1,7 @@
 import { squadDesignKa, squadsDesignKa } from './squadDesign';
 import { authRoleKa } from './authRoles';
 import { clubOverviewKa } from './clubOverview';
+import { coachHubKa, fixtureCopyKa, responsibilitiesKa, workspaceNavKa, workspaceShellKa } from './workspaceDesign';
 import { recruitmentDesignKa } from './recruitmentDesign';
 
 const ka = {
@@ -13,6 +14,11 @@ const ka = {
     you: 'თქვენ',
   },
   clubOverview: clubOverviewKa,
+  workspaceShell: workspaceShellKa,
+  workspaceNav: workspaceNavKa,
+  coachHub: coachHubKa,
+  responsibilities: responsibilitiesKa,
+  fixtureCopy: fixtureCopyKa,
   recruitmentDesign: recruitmentDesignKa,
   authRoles: authRoleKa,
   squadDesign: squadDesignKa,

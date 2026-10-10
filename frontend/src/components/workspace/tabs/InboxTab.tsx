@@ -5,6 +5,7 @@ import { JourneyReminderActions } from '../../../features/mapPlanning/JourneyRem
 import { formatNotificationTime, notificationActionLabel, notificationTypeLabel } from '../../../utils/notifications';
 import { Badge, Button, Chip, EmptyNote, List, PageFrame, PageHeader, Panel, Skeleton } from '../../../design/primitives';
 import '../../../features/clubOperations/records/records.css';
+import '../../../features/clubWorkspace/club-workspace.css';
 
 interface InboxTabProps {
     notifications: NotificationItem[];

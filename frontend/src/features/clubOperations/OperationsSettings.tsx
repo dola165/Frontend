@@ -4,6 +4,7 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 import { label, moduleNames, moduleGroups, put, root, type Bootstrap } from './api';
 import { operationDescriptions } from './workspaceNavigation';
 import './records/records.css';
+import '../clubWorkspace/club-workspace.css';
 
 const SETTINGS = ['UNSPECIFIED', 'SCHOOL', 'COMMUNITY', 'INDEPENDENT_ACADEMY', 'CLUB_ACADEMY', 'CLUB', 'OTHER'];
 const LEVELS = ['UNSPECIFIED', 'RECREATIONAL', 'AMATEUR', 'SEMI_PROFESSIONAL', 'PROFESSIONAL', 'MIXED'];

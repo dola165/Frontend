@@ -7,6 +7,7 @@ import { useClubEditorClose } from './useClubEditorClose';
 import { TrainingVisitorsRegister } from './TrainingVisitorsRegister';
 import { LegacyIsland } from './records/LegacyIsland';
 import './records/records.css';
+import '../clubWorkspace/club-workspace.css';
 
 const tone = (status: string) => status === 'ARRIVED' || status === 'COLLECTED' ? 'accent' as const : status === 'ABSENT' ? 'danger' as const : 'neutral' as const;
 

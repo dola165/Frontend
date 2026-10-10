@@ -1,0 +1,12 @@
+/* Club overview layout. Scoped under `.gk`; tokens only.
+   Wide screens: the coming week and pins on the left, what needs you and the squads on the right.
+   Narrower: one column where "Needs you" comes first and the coming week shows its next three entries. */
+@media (max-width: 1099px) {
+  .gk .cw-overview > .cw-overview__column { display: contents; }
+  .gk .cw-overview__needs { order: 1; }
+  .gk .cw-overview__coming { order: 2; }
+  .gk .cw-overview__squads { order: 3; }
+  .gk .cw-overview__pins { order: 4; }
+  .gk .cw-overview__other { order: 5; }
+  .gk .cw-overview__coming .gk-list > li:nth-child(n + 4) { display: none; }
+}

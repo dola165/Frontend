@@ -81,6 +81,10 @@ export function useResponsibilityFocus(club: number, user: number | null, views:
     try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* The choice still applies for this visit. */ }
     return next;
   }), [available, key]);
-  return { available, selected, selectedViews, tabs, toggle };
+  const showAll = useCallback(() => {
+    setHidden([]);
+    try { localStorage.removeItem(key); } catch { /* The choice still applies for this visit. */ }
+  }, [key]);
+  return { available, selected, selectedViews, tabs, toggle, showAll };
 }
 export type ResponsibilityFocus = ReturnType<typeof useResponsibilityFocus>;

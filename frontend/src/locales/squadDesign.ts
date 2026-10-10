@@ -53,6 +53,10 @@ export const squadDesignEn = {
         age: 'Age',
         actions: 'Actions',
         editNumber: 'Edit shirt number for {{name}}',
+        trialDays_one: 'Trial · day {{count}}',
+        trialDays_other: 'Trial · day {{count}}',
+        saving: 'Saving…',
+        openPlayer: 'Open {{name}}: notes and tools',
     },
     players: {
         eyebrow: 'Club workspace / People',
@@ -257,6 +261,11 @@ export const squadsDesignEn = {
     remove: 'Remove',
     playerCount_one: '{{count}} player',
     playerCount_other: '{{count}} players',
+    order: 'Order',
+    orderSquad: 'Squad order',
+    orderNumber: 'Shirt number',
+    orderName: 'Name',
+    orderAge: 'Age',
 };
 
 export const squadDesignKa = {
@@ -314,6 +323,10 @@ export const squadDesignKa = {
         age: 'ასაკი',
         actions: 'მოქმედებები',
         editNumber: '{{name}} — მაისურის ნომრის შეცვლა',
+        trialDays_one: 'სინჯი · დღე {{count}}',
+        trialDays_other: 'სინჯი · დღე {{count}}',
+        saving: 'ინახება…',
+        openPlayer: '{{name}} — ჩანაწერები და ინსტრუმენტები',
     },
     players: {
         eyebrow: 'კლუბის სამუშაო სივრცე / ადამიანები',
@@ -519,4 +532,9 @@ export const squadsDesignKa = {
     remove: 'ამოყვანა',
     playerCount_one: '{{count}} მოთამაშე',
     playerCount_other: '{{count}} მოთამაშე',
+    order: 'რიგი',
+    orderSquad: 'გუნდის რიგით',
+    orderNumber: 'მაისურის ნომრით',
+    orderName: 'სახელით',
+    orderAge: 'ასაკით',
 };

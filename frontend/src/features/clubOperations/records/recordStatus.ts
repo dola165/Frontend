@@ -1,9 +1,13 @@
-import type { BadgeTone } from '../../../design/primitives';
+import type { BadgeTone, ButtonVariant } from '../../../design/primitives';
 import type { OperationRecord } from '../api';
 
 const done = new Set(['COMPLETED', 'APPROVED', 'PUBLISHED', 'GRANTED', 'ARRIVED', 'COLLECTED', 'CONFIRMED', 'PAID', 'RETURNED', 'CLEARED', 'READY', 'ACTIVE', 'RECORDED', 'CLUB_CHECKED', 'BOARDED']);
 const waiting = new Set(['PENDING', 'SUBMITTED', 'INVITED', 'DUE', 'PLANNED', 'ASSIGNED', 'DRAFT', 'OPEN', 'REQUESTED', 'EXPECTED', 'ISSUED']);
 const stopped = new Set(['DECLINED', 'REVOKED', 'ABSENT', 'CANCELLED', 'ARCHIVED', 'ENDED', 'WITHDRAWN']);
+// Done states that end the work. Others in `done` (active, granted, confirmed…) stay in force and keep their review dates.
+const finishedDone = new Set(['COMPLETED', 'PAID', 'RETURNED', 'CLEARED', 'COLLECTED', 'ARRIVED', 'BOARDED', 'RECORDED', 'CLOSED', 'ACHIEVED', 'WAIVED', 'LOST', 'RETIRED']);
+// Moving a record here cannot be taken back from the record itself, so the person confirms first.
+const irreversible = new Set(['DECLINED', 'REVOKED', 'CANCELLED', 'ARCHIVED', 'ENDED', 'WITHDRAWN', 'CLOSED', 'RETIRED', 'LOST']);
 
 /** A status colour that repeats what the badge text says, never replacing it. */
 export function statusTone(record: Pick<OperationRecord, 'status' | 'expired'>): BadgeTone {
@@ -14,13 +18,16 @@ export function statusTone(record: Pick<OperationRecord, 'status' | 'expired'>):
     return 'info';
 }
 
-const startOfDay = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
-/** "Overdue", "Today", "Tomorrow" or a short date for a record's next action, without inventing a time. */
-export function dueText(value: string | null | undefined, now: number) {
-    if (!value) return null;
-    const date = new Date(`${value.slice(0, 10)}T12:00:00`);
-    if (Number.isNaN(date.getTime())) return null;
-    const days = Math.round((startOfDay(date) - startOfDay(new Date(now))) / 86_400_000);
-    const short = date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-    return { text: days < 0 ? `Overdue · ${short}` : days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : short, late: days < 0 };
+/** Whether a record's work is over, so its dates are history rather than deadlines. */
+export const isFinished = (status: string) => stopped.has(status) || finishedDone.has(status);
+
+/**
+ * How a transition button looks, from what it does rather than where the server lists it:
+ * stopping states are danger and need a confirmation; the first completing state is the one primary action.
+ */
+export function transitionStyle(targets: string[]) {
+    const primary = targets.find(state => done.has(state) && !irreversible.has(state)) ?? null;
+    return (state: string): { variant: ButtonVariant; confirm: boolean } => irreversible.has(state)
+        ? { variant: 'danger', confirm: true }
+        : { variant: state === primary ? 'primary' : 'secondary', confirm: false };
 }

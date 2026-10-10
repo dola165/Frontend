@@ -8,6 +8,7 @@ import type { StaffScopeSelection } from './StaffScopePicker';
 import type { StaffRole } from './useWorkspaceRoles';
 import { ScopeChips } from './ScopeChips';
 import './records/records.css';
+import '../clubWorkspace/club-workspace.css';
 
 const specialisationFor = (key: string) => key === 'TRAVEL_COORDINATOR' ? 'TEAM_MANAGER' : key === 'FACILITIES_COORDINATOR' ? 'OTHER' : key;
 

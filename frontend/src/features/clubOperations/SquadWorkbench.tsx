@@ -1,18 +1,18 @@
 import { useRef, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CalendarDays, ChevronDown, ExternalLink, ShieldCheck } from 'lucide-react';
+import { ChevronDown, ExternalLink, ShieldCheck } from 'lucide-react';
 import { Badge, Button, ButtonLink, EmptyNote, FixtureRow, List, ListRow, Panel, Section } from '../../design/primitives';
 import { Tabs } from '../../design/Tabs';
-import { SquadTrainingSchedule } from '../clubs/SquadTrainingSchedule';
 import { SessionRegister } from './SessionRegister';
 import type { RolesWorkspace } from './useWorkspaceRoles';
 import type { Bootstrap } from './api';
 import { operationTabs } from './workspaceNavigation';
 import type { OpenWorkspace } from './workspaceStructure';
 import { canReadSquad } from './squadAccess';
-import { LegacyIsland } from './records/LegacyIsland';
+import { SquadTimetable } from '../clubWorkspace/squads/SquadTimetable';
 import { dayLabel, timeLabel } from '../clubWorkspace/fixtures';
 import './records/records.css';
+import '../clubWorkspace/squads/squads.css';
 
 type View = 'players' | 'training' | 'eligibility';
 const HIDDEN = ['HOME', 'SETTINGS', 'MEDICAL', 'WELFARE', 'STAFF', 'CREDENTIALS', 'SPECIALISTS', 'FINANCE', 'FACILITIES'];
@@ -69,9 +69,8 @@ export function SquadWorkbench({ data, boot, squad, onOpen, eligibility, childre
             : <Panel><EmptyNote title="The register is for staff with attendance access">Player replies in Plans and replies show who expects to attend.</EmptyNote></Panel>}
         </Section>}
       </div>
-      <Section title="Weekly schedule" hint={<><CalendarDays aria-hidden="true" className="sq-inline-icon" /> Regular training times</>}>
-        <Panel padded>{boot ? <LegacyIsland><SquadTrainingSchedule clubId={boot.clubId} squadId={squad} management /></LegacyIsland> : <EmptyNote title="The schedule is unavailable right now" />}</Panel>
-      </Section>
+      {boot ? <SquadTimetable clubId={boot.clubId} squadId={squad} />
+        : <Section title="Weekly schedule"><Panel><EmptyNote title="The schedule is unavailable right now" /></Panel></Section>}
     </div>}
   </div>;
 }

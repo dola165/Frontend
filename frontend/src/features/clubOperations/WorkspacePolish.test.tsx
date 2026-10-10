@@ -52,7 +52,7 @@ it('focusing on one squad narrows the overview without changing access or submit
     canManageOperations={false} canManageLeadership tabs={tabs} pinned={[]} onOpen={onOpen}/></MemoryRouter>);
   expect(screen.getByRole('button',{name:/^U16/})).toBeVisible();
   fireEvent.click(screen.getByRole('button',{name:'U12',pressed:false}));
-  expect(screen.getByRole('button',{name:/^U12 Next training|^U12 No training/})).toBeVisible();
+  expect(screen.getByRole('button',{name:/^U12\s*(Next training|No training)/})).toBeVisible();
   expect(screen.queryByRole('button',{name:/^U16/})).not.toBeInTheDocument();
   expect(localStorage.getItem('gk-club-overview:1:9')).toBe('squad:11');
   expect(apiClient.post).not.toHaveBeenCalled();

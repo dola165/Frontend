@@ -64,8 +64,15 @@ describe('Club overview', () => {
         await screen.findByText(/All current players checked\./);
     });
 
+    it('lists tryout reviews from the server count before the applicant list has loaded', async () => {
+        // The applicant list only loads on the Tryouts page, so on first load the page passes 0.
+        renderOverview({ overview: { ...overview, pendingTryoutCount: 7 }, tryoutPending: 0 });
+        expect(screen.getByRole('button', { name: /7 tryout reviews/ })).toBeInTheDocument();
+        await screen.findByText(/All current players checked\./);
+    });
+
     it('puts overdue work first and uses the authoritative tryout count', async () => {
-        const props = renderOverview({ overview: { ...overview, pendingTryoutCount: 4 }, tryoutPending: 4 });
+        const props = renderOverview({ overview: { ...overview, pendingTryoutCount: 4 }, tryoutPending: 2 });
         const rows = screen.getAllByRole('listitem').map(item => item.textContent ?? '').filter(text => /overdue trial|tryout review/.test(text));
         expect(rows[0]).toMatch(/1 overdue trial decision/);
         fireEvent.click(screen.getByRole('button', { name: /4 tryout reviews/ }));

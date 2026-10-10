@@ -1,18 +1,19 @@
 import { Badge, Chip, List, ListRow, SearchInput } from '../../../design/primitives';
 import { label, moduleNames, type Bootstrap, type Definition, type OperationRecord } from '../api';
 import { useNow } from '../../clubWorkspace/useNow';
-import { dueText, statusTone } from './recordStatus';
+import { dueLabel } from '../../clubWorkspace/fixtures';
+import { isFinished, statusTone } from './recordStatus';
 
 /** Records as one list: what it is, where it applies and who is responsible, then its status and next date. */
 export function RecordList({ records, boot, home, onOpen }: { records: OperationRecord[]; boot: Bootstrap; home: boolean; onOpen: (record: OperationRecord) => void }) {
     const now = useNow();
     return <List label="Records" className="rec-list">{records.map(r => {
-        const due = dueText(r.attentionDate ?? r.due_on, now);
+        const due = dueLabel(r.attentionDate ?? r.due_on, now, isFinished(r.status));
         const responsible = boot.staff.find(s => s.id === r.assigned_user_id)?.name ?? boot.guardians.find(g => g.id === r.assigned_user_id)?.name;
         const meta = [home ? moduleNames[r.module] : boot.definitions.find(d => d.kind === r.kind)?.label,
             r.squad_id ? boot.squads.find(s => s.id === r.squad_id)?.name ?? `Squad #${r.squad_id}` : 'Club-wide', responsible ?? 'Unassigned'].filter(Boolean).join(' · ');
         return <ListRow key={r.id} onClick={() => onOpen(r)} title={r.title} meta={meta}
-            trail={<><Badge tone={statusTone(r)}>{r.expired ? 'Expired · ' : ''}{label(r.status)}</Badge><span className={`rec-row__due${due?.late ? ' rec-row__due--late' : ''}`}>{due?.text ?? '—'}</span></>} />;
+            trail={<><Badge tone={statusTone(r)}>{r.expired ? 'Expired · ' : ''}{label(r.status)}</Badge><span className={`rec-row__due${due?.overdue ? ' rec-row__due--late' : ''}`}>{due?.label ?? '—'}</span></>} />;
     })}</List>;
 }
 

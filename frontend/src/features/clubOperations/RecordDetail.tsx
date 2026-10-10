@@ -7,13 +7,15 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 import { fieldLabel, reviewValue } from './editorPresentation';
 import { get, post, root, label, transitionLabel, type OperationRecord, type Definition, type History, type Bootstrap } from './api';
 import { RecordDocuments } from './RecordDocuments';
-import { statusTone } from './records/recordStatus';
+import { statusTone, transitionStyle } from './records/recordStatus';
+import { Dialog } from '../../design/Dialog';
 import './records/records.css';
 
 /** One record: its facts, the actions its current status allows, supporting documents and history. */
 export function RecordDetail({ club, boot, record, definition, backLabel, onEdit, onChanged, onClose }: { club: number; boot: Bootstrap; record: OperationRecord; definition: Definition; backLabel: string; onEdit: () => void; onChanged: () => Promise<void>; onClose: () => void }) {
   const [history, setHistory] = useState<History[]>([]), [note, setNote] = useState('');
-  const [error, setError] = useState(''), [busy, setBusy] = useState(false);
+  const [error, setError] = useState(''), [busy, setBusy] = useState(false), [confirming, setConfirming] = useState<string | null>(null);
+  const style = transitionStyle(record.transitions);
   useEffect(() => {
     const controller = new AbortController();
     void get<History[]>(`${root(club)}/records/${record.id}/history`, controller.signal).then(setHistory).catch(() => { if (!controller.signal.aborted) setError('Could not load the record history.'); });
@@ -52,7 +54,8 @@ export function RecordDetail({ club, boot, record, definition, backLabel, onEdit
         {record.transitions.length > 0 && <Panel padded title="Next step">
           <div className="gk-stack gk-stack--tight">
             <Field label={<>Decision or action note <span className="rec-optional">(optional)</span></>} htmlFor="rec-transition-note"><textarea id="rec-transition-note" className="gk-input" value={note} maxLength={2000} onChange={e => setNote(e.target.value)} /></Field>
-            <div className="rec-transitions">{record.transitions.map((state, index) => <Button key={state} variant={index === 0 ? 'primary' : 'secondary'} disabled={busy} onClick={() => { void transition(state); }}>{transitionLabel(record.kind, state)}</Button>)}</div>
+            <div className="rec-transitions">{record.transitions.map(state => <Button key={state} variant={style(state).variant} disabled={busy}
+              onClick={() => { if (style(state).confirm) setConfirming(state); else void transition(state); }}>{transitionLabel(record.kind, state)}</Button>)}</div>
           </div>
         </Panel>}
         <Panel flush><details className="rec-disclosure"><summary>Record history <span className="gk-faint gk-num">{history.length}</span></summary>
@@ -63,5 +66,9 @@ export function RecordDetail({ club, boot, record, definition, backLabel, onEdit
         </details></Panel>
       </div>
     </div>
+    <Dialog open={confirming !== null} role="alertdialog" size="sm" onClose={() => setConfirming(null)}
+      title={confirming ? `${transitionLabel(record.kind, confirming)}?` : ''} description={`“${record.title}” changes to “${confirming ? label(confirming) : ''}”${note.trim() ? ', with your note' : ''}. The change is kept in the record history.`}
+      footer={<><Button variant="ghost" onClick={() => setConfirming(null)}>Keep as it is</Button>
+        <Button variant="danger" disabled={busy} onClick={() => { const state = confirming!; setConfirming(null); void transition(state); }}>{confirming ? transitionLabel(record.kind, confirming) : ''}</Button></>} />
   </div>;
 }

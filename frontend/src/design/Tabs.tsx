@@ -1,6 +1,6 @@
 import './design.css';
 import { useRef, type KeyboardEvent, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { NavLink, useSearchParams } from 'react-router-dom';
 
 export interface TabItem<T extends string> { id: T; label: ReactNode; count?: number; icon?: ReactNode }
 
@@ -39,4 +39,32 @@ export function useUrlTab<T extends string>(param: string, allowed: readonly T[]
         setParams(next, { replace: false });
     };
     return [value, set];
+}
+
+export interface RouteTabItem { to: string; label: ReactNode; icon?: ReactNode; /** Match the path exactly, for an index destination. */ end?: boolean }
+
+/** Tabs that are destinations: each is a link, and the current route carries the underline. */
+export function RouteTabs({ items, label, className }: { items: RouteTabItem[]; label: string; className?: string }) {
+    return (
+        <nav aria-label={label} className={`gk-tabs${className ? ` ${className}` : ''}`}>
+            {items.map(item => (
+                <NavLink key={item.to} to={item.to} end={item.end} className="gk-tab">{item.icon}{item.label}</NavLink>
+            ))}
+        </nav>
+    );
+}
+
+export interface SegmentItem<T extends string> { id: T; label: string; icon?: ReactNode }
+
+/** A small set of mutually exclusive views, such as list or map. Icons stay; labels hide on narrow screens. */
+export function Segmented<T extends string>({ items, value, onChange, label, className }: { items: SegmentItem<T>[]; value: T; onChange: (id: T) => void; label: string; className?: string }) {
+    return (
+        <div role="group" aria-label={label} className={`gk-segmented${className ? ` ${className}` : ''}`}>
+            {items.map(item => (
+                <button key={item.id} type="button" className="gk-segmented__item" aria-pressed={item.id === value} title={item.label} onClick={() => onChange(item.id)}>
+                    {item.icon}<span className="gk-segmented__label">{item.label}</span>
+                </button>
+            ))}
+        </div>
+    );
 }

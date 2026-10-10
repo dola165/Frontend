@@ -23,7 +23,7 @@ describe('Canonical Parent Hub selection',()=>{
     it('shows a child with no club and keeps their identity through group and map links',async()=>{
         show();expect(await screen.findByRole('button',{name:'Nika No club yet'})).toHaveAttribute('aria-pressed','true');
         expect(screen.getByRole('link',{name:'Find a club'})).toHaveAttribute('href','/map?player=61');
-        expect(screen.getByRole('link',{name:'Explore the map'})).toHaveAttribute('href','/world?player=61');
+        expect(screen.getByRole('link',{name:'Find a group'})).toHaveAttribute('href','/world/opportunities?type=groups&player=61');
         expect(screen.queryByText(/schedule for/)).not.toBeInTheDocument();
     });
     it('immediately selects a newly created child after directory refresh',async()=>{

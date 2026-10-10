@@ -28,7 +28,7 @@ function GeneralInquiryContent({organizationId}:{organizationId:number}) {
     const people:{id:number;name:string}[]=home.error?[]:[...(home.data?.participants??[])];
     if(!home.error&&user?.id&&!people.some(p=>p.id===user.id))people.unshift({id:user.id,name:user.fullName||user.username||copy('Myself','მე')});
     const person=people.find(p=>p.id===selected);
-    return <AdmissionFrame title={copy('Ask for a suitable football arrangement','შესაფერისი საფეხბურთო მონაწილეობის შესახებ კითხვა')} description={organization.data?.profile.displayName} back="/map">
+    return <AdmissionFrame title={copy('Ask for a suitable football arrangement','შესაფერისი საფეხბურთო მონაწილეობის შესახებ კითხვა')} description={organization.data?.profile.displayName} back="/world/opportunities?type=groups">
         {organization.loading?<AdmissionLoading/>:organization.error?<AdmissionError message={organization.error} retry={organization.refresh}/>:<section className="admission-panel">
             <p>{copy('You can ask the organization to recommend a group before choosing one. This inquiry agrees to no schedule, fees, attendance or enrollment.','შეგიძლიათ ჯგუფის არჩევამდე ორგანიზაციას რჩევა სთხოვოთ. კითხვა განრიგზე, გადასახადზე, დასწრებაზე ან ჩარიცხვაზე თანხმობა არ არის.')}</p>
             {home.loading?<AdmissionLoading/>:home.error?<AdmissionError message={home.error} retry={home.refresh}/>:<>

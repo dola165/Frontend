@@ -1,4 +1,3 @@
-import { MatchesHub, LegacyMatchesRoute } from './features/competitions/MatchesHub';
 import { useTranslation } from 'react-i18next';
 import { isAndroidApp, nativeCall } from './android/bridge';
 import { lazy, Suspense, useEffect, useLayoutEffect, useState, type CSSProperties, type JSX } from 'react';
@@ -18,6 +17,7 @@ import { applyDocumentTheme, readThemePreference, themeForRoute, isThemePreferen
 import { AppSettingsPage } from './android/AppSettingsPage';
 import { ExtensionRoute } from './features/capabilities/ExtensionBoundary';
 import { ROLE_DETAIL_ROUTE_PATHS, ROLE_DIRECTORY_ROUTE_PATHS } from './features/roles/routes';
+import { LegacyMatchesRedirect, WorldRedirect } from './features/world/WorldRedirect';
 
 import { RouteViewport } from './components/layout/RouteViewport';
 import { RouteMetadata } from './components/layout/RouteMetadata';
@@ -35,7 +35,6 @@ const CampaignsPage = lazy(() => import('./pages/CampaignsPage').then(module => 
 const CampaignDetailPage = lazy(() => import('./pages/CampaignDetailPage').then(module => ({default: module.CampaignDetailPage})));
 const JobDetailPage = lazy(() => import('./pages/JobDetailPage').then(module => ({default: module.JobDetailPage})));
 const StorePage = lazy(() => import('./pages/StorePage').then(module => ({default: module.StorePage})));
-const StadiumsPage = lazy(() => import('./pages/StadiumsPage').then(module => ({default: module.StadiumsPage})));
 const MyOrganizationsPage = lazy(() => import('./pages/MyOrganizationsPage').then(module => ({default: module.MyOrganizationsPage})));
 const StadiumProfilePage = lazy(() => import('./pages/StadiumProfilePage').then(module => ({default: module.StadiumProfilePage})));
 const StadiumWorkspacePage = lazy(() => import('./pages/StadiumWorkspacePage').then(module => ({default: module.StadiumWorkspacePage})));
@@ -46,7 +45,6 @@ const DesignSystemPage = lazy(() => import('./design/DesignSystemPage'));
 const CommerceDemoPage = lazy(() => import('./pages/CommerceDemoPage').then(module => ({default: module.CommerceDemoPage})));
 const ParentHubPage = lazy(() => import('./pages/ParentHubPage').then(module => ({default: module.ParentHubPage})));
 const AdmissionHomePage = lazy(() => import('./features/admissions/applicant/AdmissionHomePage').then(module => ({default: module.AdmissionHomePage})));
-const OpportunityBrowsePage = lazy(() => import('./features/admissions/applicant/OpportunityBrowsePage').then(module => ({default: module.OpportunityBrowsePage})));
 const OpportunityDetailPage = lazy(() => import('./features/admissions/applicant/OpportunityDetailPage').then(module => ({default: module.OpportunityDetailPage})));
 const AdmissionCasePage = lazy(() => import('./features/admissions/applicant/AdmissionCasePage').then(module => ({default: module.AdmissionCasePage})));
 const AdmissionGroupSchedulePage = lazy(() => import('./features/admissions/applicant/AdmissionGroupSchedulePage').then(module => ({default: module.AdmissionGroupSchedulePage})));
@@ -65,10 +63,8 @@ const MyClubOperationsPage = lazy(() => import('./pages/MyClubOperationsPage'));
 const ClubProfilePage = lazy(() => import('./pages/ClubProfilePage').then(module => ({default: module.ClubProfilePage})));
 const UserProfilePage = lazy(() => import('./pages/UserProfilePage').then(module => ({default: module.UserProfilePage})));
 const AgentProfilePage = lazy(() => import('./pages/AgentProfilePage').then(module => ({default: module.AgentProfilePage})));
-const MapPage = lazy(() => import('./pages/MapPage').then(module => ({default: module.MapPage})));
 const FeedPage = lazy(() => import('./pages/FeedPage').then(module => ({default: module.FeedPage})));
 const LandingPage = lazy(() => import('./pages/LandingPage').then(module => ({default: module.LandingPage})));
-const BrowseClubsPage = lazy(() => import('./pages/BrowseClubsPage').then(module => ({default: module.BrowseClubsPage})));
 const MessagingPage = lazy(() => import('./pages/MessagingPage').then(module => ({default: module.MessagingPage})));
 const MyClubPage = lazy(() => import('./pages/MyClubPage').then(module => ({default: module.MyClubPage})));
 const CalendarPage = lazy(() => import('./pages/CalendarPage').then(module => ({default: module.CalendarPage})));
@@ -86,8 +82,7 @@ const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(module
 const ReportReceipts = lazy(() => import('./features/moderation/ReportReceipts').then(module => ({default: module.ReportReceipts})));
 const AccountPage = lazy(() => import('./pages/AccountPage').then(module => ({default: module.AccountPage})));
 const RequestsCentre = lazy(() => import('./features/requests/RequestsCentre').then(module => ({default: module.RequestsCentre})));
-const EventDiscoveryPage = lazy(() => import('./features/requests/EventDiscoveryPage').then(module => ({default: module.EventDiscoveryPage})));
-const TryoutBrowsePage = lazy(() => import('./features/tryouts/TryoutBrowsePage'));
+const WorldRoutes = lazy(() => import('./features/world/WorldRoutes'));
 const TryoutDetailPage = lazy(() => import('./features/tryouts/TryoutDetailPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage').then(module => ({default: module.AdminPage})));
 const TournamentSetupPage = lazy(() => import('./pages/TournamentSetupPage').then(module => ({default: module.TournamentSetupPage})));
@@ -102,14 +97,11 @@ const AgentDashboardPage = lazy(() => import('./pages/AgentDashboardPage').then(
 const OrganizationWorkspacePage = lazy(() => import('./pages/OrganizationWorkspacePage').then(module => ({default: module.OrganizationWorkspacePage})));
 const ClubWorkspacePage = lazy(() => import('./pages/ClubWorkspacePage').then(module => ({default: module.default})));
 const FollowedClubsPage = lazy(() => import('./pages/FollowedClubsPage').then(module => ({default: module.FollowedClubsPage})));
-const JobsDirectoryPage = lazy(() => import('./pages/JobsDirectoryPage').then(module => ({default: module.JobsDirectoryPage})));
-const PeoplePage = lazy(() => import('./pages/PeoplePage').then(module => ({default: module.PeoplePage})));
 const PostPage = lazy(() => import('./pages/PostPage').then(module => ({default: module.PostPage})));
-const PublicWorldMapPage = lazy(() => import('./pages/PublicWorldMapPage').then(module => ({default: module.PublicWorldMapPage})));
 const RouteRecoveryPage = lazy(() => import('./pages/RouteRecoveryPage').then(module => ({default: module.RouteRecoveryPage})));
 
 const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/consent']);
-const boundedCanvasPages = new Set(['/map', '/messages', '/calendar']);
+const boundedCanvasPages = new Set(['/messages', '/calendar']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-surface)]">
@@ -275,19 +267,20 @@ export function MainLayout() {
     };
 
     const isLandingPage = location.pathname === '/';
-    const isPublicWorldMap = location.pathname === '/world';
+    const isWorldPage = location.pathname === '/world' || location.pathname.startsWith('/world/');
+    const isWorldMap = location.pathname === '/world/map';
     const isAuthPage = authRoutePaths.has(location.pathname) || location.pathname === '/oauth2/callback';
     const isHomeFeed = location.pathname === '/home' || location.pathname === '/feed';
     const isClubSurfaceRoute = /^\/clubs\/\d+(\/squads|\/workspace|\/operations|\/profile-settings|\/store|\/campaigns)?$/.test(location.pathname);
     // Public destination pages with full-bleed heroes (banner + tab bars) render
     // edge-to-edge; everything else keeps the bounded wide frame.
     const isBleedDestinationPage =
-        location.pathname === '/clubs' ||
+        (isWorldPage && !isWorldMap) ||
         /^\/clubs\/\d+$/.test(location.pathname) ||
         /^\/organizations\/\d+$/.test(location.pathname) ||
         /^\/profile\/\d+$/.test(location.pathname);
     const isFullScreenPage =
-        location.pathname === '/workspaces' || location.pathname === '/reports' ||
+        location.pathname === '/workspaces' || location.pathname === '/reports' || isWorldPage ||
         location.pathname === '/requests' || location.pathname === '/events' ||
         location.pathname === '/tryouts' || location.pathname.startsWith('/tryouts/') ||
         location.pathname === '/admissions' || location.pathname.startsWith('/admissions/') ||
@@ -295,7 +288,7 @@ export function MainLayout() {
         location.pathname === '/assistant' ||
         location.pathname === '/account/roles' ||
         (isAndroidApp && location.pathname === '/app-settings') ||
-        ['/map', '/world', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/tournaments', '/tournaments/setup', '/marketplace', '/needs', '/store', '/jobs', '/roles', '/campaigns', '/people'].includes(location.pathname) ||
+        ['/map', '/messages', '/clubs', '/clubs/following', '/clubs/create', '/my-club', '/my-organizations', '/calendar', '/notifications', '/onboarding', '/dob', '/set-password', '/account', '/admin', '/tournaments', '/tournaments/setup', '/marketplace', '/needs', '/store', '/jobs', '/roles', '/campaigns', '/people'].includes(location.pathname) ||
         location.pathname === '/parent' || location.pathname === '/parent/enrollment' ||
         location.pathname === '/join-squad' || location.pathname === '/volunteering' || location.pathname === '/event-venues' ||
         location.pathname.startsWith('/tournament-series/') ||
@@ -312,20 +305,20 @@ export function MainLayout() {
         location.pathname.startsWith('/tournaments/') ||
         location.pathname.startsWith('/agent') ||
         isClubSurfaceRoute;
-    const isBoundedCanvasPage = boundedCanvasPages.has(location.pathname);
+    const isBoundedCanvasPage = boundedCanvasPages.has(location.pathname) || isWorldMap;
     // W6 â€” one shell: browse/list/destination pages share a single App-level
     // frame (app-page-shell + AppPageFrame, one max-width); the map, chat,
     // schedule and the management workspaces stay full-width canvases.
-    const canvasWorkspacePages = new Set(['/map', '/world', '/calendar', '/messages', '/onboarding', '/dob', '/set-password']);
+    const canvasWorkspacePages = new Set(['/map', '/calendar', '/messages', '/onboarding', '/dob', '/set-password']);
     const isImmersiveCanvasPage =
         /^\/clubs\/\d+\/operations$/.test(location.pathname) ||
-        canvasWorkspacePages.has(location.pathname) ||
+        canvasWorkspacePages.has(location.pathname) || isWorldMap ||
         /^\/clubs\/\d+\/workspace$/.test(location.pathname) ||
         /^\/tournaments\/\d+\/workspace$/.test(location.pathname);
     // Map planning is a full-screen tool with its own control for showing the header.
     const mapChrome = useMapWorkspaceChrome();
-    const isTopNavCollapsed = location.pathname === '/map' && mapChrome.planning && !mapChrome.navigationExpanded;
-    const hasProductNavigation = !isAndroidApp && !isLandingPage && !isAuthPage && !(isPublicWorldMap && !user);
+    const isTopNavCollapsed = isWorldMap && mapChrome.planning && !mapChrome.navigationExpanded;
+    const hasProductNavigation = !isAndroidApp && !isLandingPage && !isAuthPage;
     const showsHeader = hasProductNavigation && !isTopNavCollapsed;
     const activeHeaderHeight = showsHeader ? 'var(--app-header-height)' : '0px';
 
@@ -333,19 +326,19 @@ export function MainLayout() {
         <RouteViewport><Routes>
             <Route path="/workspaces" element={<Navigate to="/home" replace />} />
             <Route path="/assistant" element={<ProtectedRoute><AgentDolaPage /></ProtectedRoute>} />
-            <Route path="/map" element={<ProtectedRoute><MapPage darkMode={themePreference === 'dark'} /></ProtectedRoute>} />
-            <Route path="/world" element={<PublicWorldMapPage />} />
-            <Route path="/clubs" element={<BrowseClubsPage />} />
+            <Route path="/map" element={<WorldRedirect to="/world/map" />} />
+            <Route path="/world/*" element={<WorldRoutes darkMode={themePreference === 'dark'} />} />
+            <Route path="/clubs" element={<WorldRedirect to="/world/clubs" rename={{ search: 'q' }} />} />
             <Route path="/clubs/following" element={<ProtectedRoute><FollowedClubsPage /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute><CalendarPage user={user} darkMode={darkMode} setDarkMode={(value) => setThemePreference(value ? 'dark' : 'light')} /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute>{isAndroidApp ? <PageBootSpinner label="Opening messages" /> : <MessagingPage />}</ProtectedRoute>} />
             <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
             <Route path="/requests" element={<ProtectedRoute><RequestsCentre /></ProtectedRoute>} />
-            <Route path="/events" element={<EventDiscoveryPage />} />
-            <Route path="/tryouts" element={<TryoutBrowsePage />} />
+            <Route path="/events" element={<WorldRedirect to="/world/matches" set={{ tab: 'events' }} />} />
+            <Route path="/tryouts" element={<WorldRedirect to="/world/opportunities" set={{ type: 'trials' }} />} />
             <Route path="/tryouts/:tryoutId" element={<TryoutDetailPage />} />
-            <Route path="/admissions/opportunities" element={<OpportunityBrowsePage />} />
+            <Route path="/admissions/opportunities" element={<WorldRedirect to="/world/opportunities" set={{ type: 'groups' }} />} />
             <Route path="/admissions/opportunities/:opportunityId" element={<OpportunityDetailPage />} />
             <Route path="/admissions/cases/:caseId" element={<ProtectedRoute><AdmissionCasePage /></ProtectedRoute>} />
             <Route path="/admissions" element={<ProtectedRoute><AdmissionHomePage /></ProtectedRoute>} />
@@ -354,9 +347,9 @@ export function MainLayout() {
             <Route path="/admissions/inquiries/:inquiryId" element={<ProtectedRoute><AdmissionInquiryPage /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><ReportReceipts /></ProtectedRoute>} />
             <Route path="/account/roles" element={<ProtectedRoute><FootballRolesPage /></ProtectedRoute>} />
-            <Route path="/matches" element={<MatchesHub />} />
-            <Route path="/match-exchange" element={<ProtectedRoute><LegacyMatchesRoute kind="matches" /></ProtectedRoute>} />
-            <Route path="/match-history" element={<ProtectedRoute><LegacyMatchesRoute kind="history" /></ProtectedRoute>} />
+            <Route path="/matches" element={<LegacyMatchesRedirect kind="hub" />} />
+            <Route path="/match-exchange" element={<LegacyMatchesRedirect kind="exchange" />} />
+            <Route path="/match-history" element={<LegacyMatchesRedirect kind="history" />} />
             <Route path="/match-exchange/:eventId" element={<ProtectedRoute><MatchDetailPage /></ProtectedRoute>} />
             <Route path="/referees/:refereeId" element={<ProtectedRoute><RefereePage /></ProtectedRoute>} />
             <Route path="/parent" element={<ProtectedRoute><ParentHubPage /></ProtectedRoute>} />
@@ -370,7 +363,7 @@ export function MainLayout() {
             <Route path="/design-system" element={<ProtectedRoute><DesignSystemPage /></ProtectedRoute>} />
             <Route path="/demo/commerce" element={<ProtectedRoute><CommerceDemoPage /></ProtectedRoute>} />
             {isAndroidApp && <Route path="/app-settings" element={<AppSettingsPage theme={themePreference} />} />}
-            <Route path="/tournaments" element={<LegacyMatchesRoute kind="competitions" />} />
+            <Route path="/tournaments" element={<LegacyMatchesRedirect kind="competitions" />} />
             <Route path="/tournaments/setup" element={<ProtectedRoute><TournamentSetupPage /></ProtectedRoute>} />
             <Route path="/tournaments/:tournamentId" element={<TournamentDetailPage />} />
             <Route path="/tournaments/:tournamentId/workspace" element={<ProtectedRoute><TournamentWorkspacePage /></ProtectedRoute>} />
@@ -387,17 +380,17 @@ export function MainLayout() {
             <Route path="/marketplace" element={<RouteRecoveryPage feature="The marketplace" />} />
             <Route path="/needs" element={<RouteRecoveryPage feature="Player needs" />} />
             <Route path="/store" element={<StorePage />} />
-            <Route path="/stadiums" element={<StadiumsPage />} />
+            <Route path="/stadiums" element={<WorldRedirect to="/world/venues" />} />
             <Route path="/stadiums/:organizationId" element={<StadiumProfilePage />} />
             <Route path="/stadiums/:organizationId/manage" element={<ProtectedRoute><StadiumWorkspacePage /></ProtectedRoute>} />
             <Route path="/store/products/:id" element={<StoreProductPage />} />
             <Route path="/store/cart" element={<StoreCartPage />} />
-            {ROLE_DIRECTORY_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<JobsDirectoryPage />} />)}
+            {ROLE_DIRECTORY_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<WorldRedirect to="/world/opportunities" rename={{ search: 'q' }} set={{ type: 'jobs' }} />} />)}
             {ROLE_DETAIL_ROUTE_PATHS.map(path => <Route key={path} path={path} element={<JobDetailPage />} />)}
             <Route path="/campaigns" element={<CampaignsPage />} />
             <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
             <Route path="/clubs/:id/campaigns" element={<CampaignsPage />} />
-            <Route path="/people" element={<ProtectedRoute><PeoplePage /></ProtectedRoute>} />
+            <Route path="/people" element={<WorldRedirect to="/world/people" />} />
             <Route path="/clubs/:id/store" element={<ClubStorePage />} />
             <Route path="/clubs/:id/squads" element={<ProtectedRoute><ClubSquadsPage /></ProtectedRoute>} />
             <Route path="/clubs/:id/profile-settings" element={<ProtectedRoute><ClubPublicProfileSettingsPage /></ProtectedRoute>} />

@@ -14,6 +14,41 @@
   "wait": 2500
  },
  {
+  "name": "world-clubs",
+  "path": "/world/clubs",
+  "wait": 1200
+ },
+ {
+  "name": "world-people",
+  "path": "/world/people",
+  "wait": 1200
+ },
+ {
+  "name": "world-venues",
+  "path": "/world/venues",
+  "wait": 1200
+ },
+ {
+  "name": "world-matches",
+  "path": "/world/matches",
+  "wait": 1200
+ },
+ {
+  "name": "world-competitions",
+  "path": "/world/competitions",
+  "wait": 1200
+ },
+ {
+  "name": "world-opportunities",
+  "path": "/world/opportunities",
+  "wait": 1200
+ },
+ {
+  "name": "world-map",
+  "path": "/world/map",
+  "wait": 2500
+ },
+ {
   "name": "clubs",
   "path": "/clubs"
  },

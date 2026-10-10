@@ -1,6 +1,6 @@
 import './design.css';
 import { useRef, type KeyboardEvent, type ReactNode } from 'react';
-import { NavLink, useSearchParams } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 
 export interface TabItem<T extends string> { id: T; label: ReactNode; count?: number; icon?: ReactNode }
 
@@ -30,25 +30,6 @@ export function Tabs<T extends string>({ items, value, onChange, label, classNam
             ))}
         </div>
     );
-}
-
-/**
- * Reads and writes one tab id in the query string, falling back to the first allowed value.
- * `guard` lets open editors object before a switch unmounts them: it receives the switch and runs it when allowed.
- */
-export function useUrlTab<T extends string>(param: string, allowed: readonly T[], fallback: T, guard?: (proceed: () => void) => void): [T, (id: T) => void] {
-    const [params, setParams] = useSearchParams();
-    const raw = params.get(param);
-    const value = raw && (allowed as readonly string[]).includes(raw) ? raw as T : fallback;
-    const set = (id: T) => {
-        const go = () => setParams(previous => {
-            const next = new URLSearchParams(previous);
-            if (id === fallback) next.delete(param); else next.set(param, id);
-            return next;
-        }, { replace: false });
-        if (guard && id !== value) guard(go); else go();
-    };
-    return [value, set];
 }
 
 export interface RouteTabItem { to: string; label: ReactNode; icon?: ReactNode; /** Match the path exactly, for an index destination. */ end?: boolean }

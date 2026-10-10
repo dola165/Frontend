@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Avatar, Badge, Button, Skeleton } from '../../design/primitives';
-import { useVisitorAttendance } from '../squadCommunication/IntroductoryVisitors';
+import { useVisitorAttendance } from '../squadCommunication/useVisitorAttendance';
 import { introductoryVisitors, type IntroductoryVisitor, type IntroductoryVisitorRegister } from '../squadCommunication/api';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { extractApiErrorMessage } from '../../utils/apiError';

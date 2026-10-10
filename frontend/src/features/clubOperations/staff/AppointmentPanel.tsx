@@ -1,15 +1,7 @@
 import { Flag, ShieldCheck } from 'lucide-react';
-import { Badge, Button, List, ListRow, Panel, type BadgeTone } from '../../../design/primitives';
-import { formatDate } from '../../../utils/formatting';
-import { appointmentScope, appointmentStatus, dateOnly, label, moduleNames, type Appointment, type Bootstrap } from '../api';
-
-const tones: Record<string, BadgeTone> = { Active: 'accent', Upcoming: 'info', Invited: 'warning', Expired: 'neutral', Ended: 'neutral' };
-export const appointmentBadge = (appointment: Appointment) => {
-    const status = appointmentStatus(appointment);
-    return { text: status === 'Invited' ? 'Awaiting acceptance' : status, tone: tones[status] ?? 'neutral' };
-};
-const day = (value?: string | null) => value ? formatDate(dateOnly(value), { day: 'numeric', month: 'short', year: 'numeric' }) : null;
-export const appointmentDates = (appointment: Appointment) => `${day(appointment.starts_on)} – ${day(appointment.ends_on) ?? 'ongoing'}`;
+import { Badge, Button, List, ListRow, Panel } from '../../../design/primitives';
+import { appointmentScope, label, moduleNames, type Appointment, type Bootstrap } from '../api';
+import { appointmentBadge, appointmentDates } from './appointmentLabels';
 
 /**
  * One staff appointment: the role, where it applies, its terms and the workspace access it gives.

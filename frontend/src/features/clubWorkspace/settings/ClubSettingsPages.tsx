@@ -1,5 +1,6 @@
 import { PageFrame, PageHeader } from '../../../design/primitives';
-import { Tabs, useUrlTab } from '../../../design/Tabs';
+import { Tabs } from '../../../design/Tabs';
+import { useUrlTab } from '../../../design/useUrlTab';
 import { ClubPresentationSettings } from './presentation/ClubPresentationSettings';
 import { ClubOrganizationSection } from './ClubOrganizationSection';
 import { JoiningPolicy } from './JoiningPolicy';

@@ -1,6 +1,7 @@
 import { CalendarDays, ClipboardCheck } from 'lucide-react';
 import { Button, PageFrame, PageHeader } from '../../../design/primitives';
-import { Tabs, useUrlTab } from '../../../design/Tabs';
+import { Tabs } from '../../../design/Tabs';
+import { useUrlTab } from '../../../design/useUrlTab';
 import type { Bootstrap } from '../../clubOperations/api';
 import type { RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
 import type { OpenWorkspace, ResponsibilityFocus } from '../../clubOperations/workspaceStructure';

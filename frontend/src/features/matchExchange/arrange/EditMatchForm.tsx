@@ -63,7 +63,7 @@ export function EditMatchForm({ match, onClose, onSaved }: { match: Match; onClo
             <Panel className="gk-arrange__fields">
                 <fieldset className="gk-arrange__group gk-arrange__group--pair" disabled={busy}>
                     <legend className="gk-visually-hidden">Teams</legend>
-                    <Field label="Opponent" htmlFor="arrange-opponent-fixed" hint={match.opponent_name ? 'Agreed. To change opponent, use “Find another opponent” on the match page.' : 'No opponent has agreed yet.'}>
+                    <Field label="Opponent" htmlFor="arrange-opponent-fixed" hint={match.opponent_name ? 'Agreed. To change opponent, use “Find another opponent” on the match page.' : match.requested_club_id ? 'Invitation sent; waiting for their answer.' : 'Squads propose to play on the match page.'}>
                         <input id="arrange-opponent-fixed" className="gk-input" readOnly value={match.opponent_name ? `${match.opponent_name}${match.opponent_squad_name ? ` · ${match.opponent_squad_name}` : ''}` : 'Not agreed yet'} />
                     </Field>
                     <SquadField squads={data.squads.data ?? []} coached={data.coached} value={match.squad_id} onChange={() => undefined} locked />

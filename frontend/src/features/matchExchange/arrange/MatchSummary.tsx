@@ -30,7 +30,7 @@ export function MatchSummary({ mode, draft, squad, ageGroup, targetSquadName, ti
                     <span className="gk-arrange__team">{squad ? <Avatar name={squad.club_name} size={28} square /> : <span className="gk-arrange__crest-slot" aria-hidden="true" />}
                         <span><strong>{squad?.name ?? 'Your squad'}</strong><small>{squad?.club_name ?? 'Choose a squad'}</small></span></span>
                     {mode !== 'open' && <span className="gk-arrange__team">{draft.opponent ? <Avatar src={draft.opponent.logoUrl} name={draft.opponent.name} size={28} square /> : <span className="gk-arrange__crest-slot" aria-hidden="true" />}
-                        <span><strong>{draft.opponent?.name ?? 'Opponent'}</strong><small>{draft.opponent ? targetSquadName ?? 'They choose the squad' : 'Search for a club'}</small></span></span>}
+                        <span><strong>{draft.opponent?.name ?? 'Opponent'}</strong><small>{draft.opponent ? targetSquadName ?? 'They choose the squad' : mode === 'edit' ? 'Not agreed yet' : 'Search for a club'}</small></span></span>}
                 </span>
             </div>
             <dl className="gk-arrange__facts">

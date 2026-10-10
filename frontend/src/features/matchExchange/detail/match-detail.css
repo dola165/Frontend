@@ -2,7 +2,7 @@
 .gk.gk-match { padding-bottom: var(--gk-12); }
 .gk .gk-match-layout { margin-top: var(--gk-6); }
 .gk .gk-match-side { position: relative; }
-.gk .gk-match-edit { padding-bottom: var(--gk-8); }
+.gk .gk-match-edit { margin-top: var(--gk-6); padding-bottom: var(--gk-8); }
 
 /* The fixture band: home team, kick-off or score, away team. */
 .gk .gk-match-band { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: var(--gk-6); padding: var(--gk-6) var(--gk-8);

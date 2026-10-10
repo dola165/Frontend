@@ -260,7 +260,6 @@ get('/match-exchange/:id/coordination', ({ params }) => {
   return { eventId: l.id, status: 'OPEN', readOnly: false, participants: [{ userId: W.ME_ID, fullName: W.me.fullName, role: 'STAFF', squadId: l.hostSquadId, squadName: squadById(l.hostSquadId).name }, ...(ref ? [{ userId: ref.id, fullName: ref.fullName, role: 'OFFICIAL', duty: 'REFEREE' }] : [])], messages, page: 0, size: 30, totalElements: messages.length, totalPages: 1, hasMore: false };
 });
 post('/match-exchange/:id/coordination', ({ body }) => ({ id: W.newId(), authorId: W.ME_ID, authorName: W.me.fullName, body: body?.body || '', createdAt: iso(new Date()) }));
-get('/match-arrangements/bookings', () => F.bookings.filter(b => b.userId === W.ME_ID && b.start.getTime() > now() && b.status === 'CONFIRMED').map(b => ({ ...F.bookingView(b), allocatedEventId: null })));
 // Match players per squad, in the frontend's `Team` shape (MatchParticipants.tsx); only our own squads.
 const matchSelections = new Map(); // `${eventId}:${squadId}` -> Set(playerId)
 const teamView = (l, s) => {
@@ -714,9 +713,6 @@ post('/match-arrangements/:id/response', listingAction((l, body) => {
   else if (action === 'WITHDRAW') { l.opponentSquadId = null; l.status = 'OPEN'; entry('OPPONENT_WITHDRAWN', body.reason || null); }
 }));
 post('/match-arrangements/:id/open-opponent-search', listingAction(l => { l.requestedClubId = null; l.status = 'OPEN'; }));
-post('/match-arrangements/:id/ground-preview', ({ params }) => { const l = F.listingById(params.id); if (!l) return notFound(); return { action: 'REVISE', revision: l.revision, material: true, changedFields: ['venue'], dependencies: [], needsAttention: [], confirmationRequired: false, confirmationToken: `ground-${l.id}` }; });
-post('/match-arrangements/:id/ground', listingAction((l, body) => { if (body.venueId) l.venueId = Number(body.venueId); l.booked = Boolean(body.bookingId || body.venueId); }));
-post('/match-arrangements/bookings/:id/allocate', ({ params, body }) => { const l = F.listingById(body?.eventId); if (l) { l.booked = true; const b = F.bookings.find(x => x.id === Number(params.id)); if (b) l.venueId = b.venueId; } return { allocated: true }; });
 for (const kind of ['attendance', 'participants']) post(`/match-arrangements/:id/squads/:squadId/${kind}`, ({ params, body }) => {
   const l = F.listingById(params.id), s = squadById(params.squadId); if (!l || !s || s.clubId !== DINAMO) return notFound();
   if (kind === 'participants' && Array.isArray(body?.playerIds)) matchSelections.set(`${l.id}:${s.id}`, new Set(body.playerIds.map(Number)));

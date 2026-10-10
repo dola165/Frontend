@@ -47,8 +47,11 @@ export function PinsBar({ state, page, work, activePath, crowded, onCrowdedChang
             const style = getComputedStyle(container);
             const divider = container.querySelector<HTMLElement>('.gk-header__divider');
             const dividerSpace = divider ? divider.offsetWidth + (parseFloat(getComputedStyle(divider).marginLeft) || 0) * 2 : 0;
+            // The tabs and pins sit centred in the nav, so the pins' room is the nav's width less the main tabs.
+            const nav = container.parentElement;
+            const tabsWidth = nav?.querySelector<HTMLElement>('.gk-header__tabs')?.offsetWidth ?? 0;
             const result = fitPins({
-                available: container.clientWidth - dividerSpace,
+                available: (nav ? nav.clientWidth - tabsWidth : container.clientWidth) - dividerSpace,
                 pins: Array.from(measure.children, child => (child as HTMLElement).offsetWidth),
                 more: moreMeasureRef.current?.offsetWidth ?? 0,
                 plus: (panelTriggerRef.current?.offsetWidth ?? 44) + 4,
@@ -58,7 +61,7 @@ export function PinsBar({ state, page, work, activePath, crowded, onCrowdedChang
             setFit(result.fit);
             onCrowdedChange(result.crowded);
         });
-        observer.observe(container);
+        observer.observe(container.parentElement ?? container);
         observer.observe(measure);
         return () => observer.disconnect();
     }, [pins, onCrowdedChange, panelTriggerRef]);

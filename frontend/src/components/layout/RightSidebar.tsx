@@ -128,9 +128,8 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
 
                         <div className="space-y-2.5 p-3" role="group" aria-label="Supported destinations">
                             <OpportunityLink compact kind="store" to="/store" description="Club kit & merchandise" />
-                            <OpportunityLink compact kind="stadiums" to="/stadiums" description="Find a pitch & book a time" />
+                            <OpportunityLink compact kind="jobs" to="/jobs" description="Work and volunteer in football" />
                             <OpportunityLink compact kind="campaigns" to="/campaigns" description="Support club projects" />
-                            <OpportunityLink compact kind="jobs" to="/jobs" description="Football roles from clubs" />
                         </div>
                     </section>
 

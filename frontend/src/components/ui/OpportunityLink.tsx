@@ -6,7 +6,7 @@ const categories = {
     store: { label: 'Store', icon: ShoppingBag },
     stadiums: { label: 'Stadiums', icon: LandPlot },
     campaigns: { label: 'Fundraising & campaigns', icon: HeartHandshake },
-    jobs: { label: 'Roles', icon: BriefcaseBusiness },
+    jobs: { label: 'Jobs & volunteering', icon: BriefcaseBusiness },
 };
 
 export function OpportunityLink({ kind, to, description, preview = false, compact = false }: {
@@ -19,7 +19,7 @@ export function OpportunityLink({ kind, to, description, preview = false, compac
             store: { label: 'Club Store', icon: Shirt },
             stadiums: { label: 'Venues & pitches', icon: MapPin },
             campaigns: { label: 'Fundraising', icon: Coins },
-            jobs: { label: 'Open roles', icon: BriefcaseBusiness },
+            jobs: { label: 'Jobs & volunteering', icon: BriefcaseBusiness },
         };
         const { label: compactLabel, icon: CompactIcon } = compactCategories[kind];
         return <Link to={to} className={`opportunity-link opportunity-link--${kind} home-opportunity-link`}>

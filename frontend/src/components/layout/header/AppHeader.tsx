@@ -43,7 +43,7 @@ function currentPin(pins: Pin[], pathname: string, search: string) {
         .sort((a, b) => b.path.length - a.path.length)[0] ?? null;
 }
 
-/** One header row: brand, Home · World · My Club, personal pins, then search, Dola, Inbox, Messages and the account. */
+/** One header row: brand and search on the left, Home · World · My Club and personal pins centred, then Dola, Inbox, Messages and the account. */
 export function AppHeader(props: AppHeaderProps) {
     return props.user ? <SignedInHeader {...props} user={props.user} /> : <GuestHeader themePreference={props.themePreference} />;
 }
@@ -75,7 +75,10 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
         <>
             <header className="gk gk-header" data-pins={!pins.pins.length ? 'none' : crowded ? 'crowded' : 'some'}>
                 <div className="gk-frame gk-header__row">
-                    <HeaderBrand to="/home" />
+                    <div className="gk-header__start">
+                        <HeaderBrand to="/home" />
+                        <HeaderSearch light={light} />
+                    </div>
                     <nav className="gk-header__nav" aria-label={copy('Main', 'მთავარი ნავიგაცია')}>
                         <ul className="gk-header__tabs">
                             {tabs.map(tab => <li key={tab.id}><HeaderTab to={tab.to} label={tab.label} icon={tab.icon} current={tab.current} /></li>)}
@@ -83,7 +86,6 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
                         <PinsBar state={pins} page={page} work={work} activePath={pinned?.path ?? null} crowded={crowded} onCrowdedChange={setCrowded} />
                     </nav>
                     <div className="gk-header__actions">
-                        <HeaderSearch light={light} />
                         <DolaLink className="gk-hbtn gk-hbtn--dola" aria-label="Agent Dola" title={copy('Ask Agent Dola', 'ჰკითხეთ Agent Dola-ს')}
                             aria-current={pathname === '/assistant' ? 'page' : undefined} data-open={dolaOpen || undefined}>
                             <Sparkles aria-hidden="true" /><span className="gk-hbtn__label">Agent Dola</span>

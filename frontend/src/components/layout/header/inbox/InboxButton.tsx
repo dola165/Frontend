@@ -20,7 +20,7 @@ export function InboxButton() {
 
     return (
         <div className="gk-hanchor" onKeyDown={onKeyDown}>
-            <button ref={triggerRef} type="button" className="gk-hbtn" aria-label={known ? inboxLabel(counts, copy) : copy('Inbox', 'შემოსულები')} title={copy('Inbox', 'შემოსულები')}
+            <button ref={triggerRef} type="button" className="gk-hbtn gk-header__inbox" aria-label={known ? inboxLabel(counts, copy) : copy('Inbox', 'შემოსულები')} title={copy('Inbox', 'შემოსულები')}
                 aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}
                 aria-current={onInboxPage ? 'page' : undefined} onClick={toggle}>
                 <Inbox aria-hidden="true" />

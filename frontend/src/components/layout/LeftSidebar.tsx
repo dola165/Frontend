@@ -3,11 +3,13 @@ import { MediaImage } from "../ui/MediaImage";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import type { ShortcutKind } from './ShortcutEmblem';
-import { BriefcaseBusiness, Flag, Heart, Shield, UserCheck, Users } from 'lucide-react';
+import { BriefcaseBusiness, CalendarDays, Flag, Heart, MapPinned, Shield, Sparkles, UserCheck, Users } from 'lucide-react';
 import { resolveMediaUrl } from "../../utils/resolveMediaUrl";
 import { hasNavigationCapability, type NavigationCapabilities } from '../../context/navigationCapabilities';
 import { ConnectionsDialog } from "../profile/ConnectionsDialog";
 import { type ManagedClubLink } from "./WorkspaceShortcuts";
+import { WorkspaceAccess } from './FootballActivity';
+import { DolaLink } from '../../features/dola/DolaProvider';
 import { useJourneyCopy } from '../../features/squadCommunication/journeyCopy';
 
 interface LeftSidebarProps {
@@ -33,7 +35,7 @@ const initialsFrom = (value: string) =>
     .join("")
     .toUpperCase() || "GK";
 
-const shortcutIcons = { family: Heart, squads: Users, following: UserCheck, clubs: Shield, referee: Flag, agent: BriefcaseBusiness };
+const shortcutIcons = { family: Heart, squads: Users, schedule: CalendarDays, map: MapPinned, following: UserCheck, clubs: Shield, dola: Sparkles, referee: Flag, agent: BriefcaseBusiness };
 const HomeIcon = ({ kind }: { kind: ShortcutKind }) => {
   const Icon = shortcutIcons[kind as keyof typeof shortcutIcons] ?? Shield;
   return <span className={`home-nav-icon home-nav-icon--${kind}`}><Icon size={19} aria-hidden="true" /></span>;
@@ -49,6 +51,7 @@ export const LeftSidebar = ({ user, managedClubs = [], embedded = false }: LeftS
     ...(showSquadNavigation(capabilities) ? [{ to: '/squads', label: 'My squads', description: 'Coach updates, families and chat', icon: 'squads' as const }] : []),
     ...(hasNavigationCapability(capabilities, 'referee.workspace') ? [{ to: '/referees/me', label: 'Referee workspace', description: 'Your appointments and availability', icon: 'referee' as const }] : []),
     ...(hasNavigationCapability(capabilities, 'agent.hub') ? [{ to: '/agent', label: 'Agent Hub', description: 'Your players and opportunities', icon: 'agent' as const }] : []),
+    { to: '/calendar?scope=personal', label: 'My Schedule', description: 'Your personal calendar', icon: 'schedule' },
   ];
   const shortcut = (item: typeof primary[number]) => <Link key={item.to} to={item.to} className="feed-side-link home-social-link">
     <HomeIcon kind={item.icon} /><span className="home-shortcut-copy"><span className="feed-side-link__title">{item.label}</span><span className="home-shortcut-description">{item.description}</span></span>
@@ -93,7 +96,11 @@ export const LeftSidebar = ({ user, managedClubs = [], embedded = false }: LeftS
         {managedClubs.length > 0 && <Link className="home-club-context" to={`/clubs/${managedClubs[0].clubId}`}>
           <Shield size={16} aria-hidden="true" /><span>{managedClubs[0].clubName}</span>
         </Link>}
+        <WorkspaceAccess key={user?.id} userId={user?.id} caps={capabilities} className="feed-side-link home-social-link workspace-shortcut w-full" />
         </div>
+        <DolaLink className="feed-side-link home-social-link home-dola-shortcut">
+          <HomeIcon kind="dola" /><span className="home-shortcut-copy"><span className="feed-side-link__title">Agent Dola</span><span className="home-shortcut-description">Your football assistant</span></span>
+        </DolaLink>
         <div className="home-shortcut-group home-rail-card" role="group" aria-label="Your football">
           <h2 className="home-shortcut-heading">Your football</h2>
           {primary.map(shortcut)}

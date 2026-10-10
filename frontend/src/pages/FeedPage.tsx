@@ -16,7 +16,6 @@ import type { NavigationCapabilities } from '../context/navigationCapabilities';
 import { OpportunityLink } from '../components/ui/OpportunityLink';
 import { isAndroidApp } from '../android/bridge';
 import { AndroidFeedComposer } from '../android/AndroidFeedComposer';
-import { HomeTop } from '../features/home/HomeTop';
 
 type FeedView = 'for-you' | 'following';
 type FeedCursor = { cursor: number; cursorTime?: string };
@@ -245,8 +244,6 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
     <OpportunityLink kind="campaigns" to="/campaigns" description="Club projects" />
     <OpportunityLink kind="jobs" to="/jobs" description="Find your next step" />
    </nav>}
-
-   <HomeTop />
 
    <PostComposer
     compact

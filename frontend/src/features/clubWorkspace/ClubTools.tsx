@@ -20,7 +20,6 @@ import { PlayersTab } from '../../components/workspace/tabs/PlayersTab';
 import { RolesTab } from '../../components/workspace/tabs/RolesTab';
 import { StoreTab } from '../../components/workspace/tabs/StoreTab';
 import { TryoutsTab } from '../../components/workspace/tabs/TryoutsTab';
-import { SquadsTab } from '../../components/workspace/tabs/SquadsTab';
 import { Button } from '../../design/primitives';
 import type { ClubMembership } from './useClubMembership';
 import type { useClubInbox } from './useClubInbox';
@@ -101,8 +100,6 @@ export function ClubTools(ctx: ClubToolsContext) {
         case 'jobs': return <JobsTab clubId={clubId} pendingKey={m.pendingKey} currentUserId={ctx.currentUserId} canReviewAllApplications={can.leadership} />;
         case 'store': return can.leadership ? <StoreTab key={clubId} clubId={clubId} /> : null;
         case 'campaigns': return can.leadership ? <CampaignsTab key={clubId} clubId={clubId} /> : null;
-        case 'squads': return can.operations ? <SquadsTab key={clubId} clubId={clubId} overview={overview} setParentError={m.setErrorMessage} setParentSuccess={m.setSuccessMessage}
-            workspace={ctx.roles ? { data: ctx.roles, boot: ctx.boot, onOpen: ctx.openWork } : undefined} /> : null;
         case 'player-cards': return <PlayerCardsTab clubId={clubId} setParentError={m.setErrorMessage} setParentSuccess={m.setSuccessMessage} />;
         case 'tryouts': return <>
             {ctx.focusedApplicationId != null && focusNote(!m.tryouts.loading && !m.tryouts.applicants.some(a => a.id === ctx.focusedApplicationId) ? 'This application is unavailable or you no longer have access.' : 'Showing the application from your notification.')}

@@ -66,3 +66,22 @@
 .gk .rec-switch > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .gk .rec-switch strong { font-weight: 600; }
 .gk .rec-switch > span > span { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); }
+.gk .rec-form__group-head--split { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2); }
+.gk .rec-trail-wrap { flex-wrap: wrap; justify-content: flex-end; }
+
+/* Squad view: tabs with the squad's tools beside them. */
+.gk .sq-bar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--gk-2) var(--gk-4); border-bottom: 1px solid var(--gk-line); }
+.gk .sq-bar .gk-tabs { border-bottom: 0; }
+.gk .sq-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-1); padding-bottom: var(--gk-1); }
+.gk .sq-more { position: relative; }
+.gk .sq-more > summary { list-style: none; }
+.gk .sq-more > summary::-webkit-details-marker { display: none; }
+.gk .sq-more__menu { position: absolute; right: 0; top: calc(100% + var(--gk-1)); z-index: 20; width: 280px; box-shadow: var(--gk-elevation); border-radius: var(--gk-r-lg); }
+.gk .sq-inline-icon { display: inline; width: 14px; height: 14px; vertical-align: -2px; }
+.gk .sq-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-3) var(--gk-6); }
+.gk .sq-header__id { display: flex; align-items: center; gap: var(--gk-3); min-width: 0; }
+.gk .sq-header h2 { font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); font-weight: 700; }
+.gk .sq-header p { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .sq-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .sq-switcher { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .rec-facts--bare { padding: 0; }

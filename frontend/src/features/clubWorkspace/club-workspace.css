@@ -83,3 +83,16 @@
   .gk .cw-toolbar__count { margin-left: 0; }
 }
 .gk .cw-switch-row { cursor: pointer; }
+
+/* ---------------------------------------------------------------- choices (one of several options, each explained) */
+.gk .cw-options { display: flex; flex-direction: column; }
+.gk .cw-option { display: flex; align-items: flex-start; gap: var(--gk-3); width: 100%; min-height: 64px; padding: var(--gk-4) var(--gk-5); border: 0; background: none; color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
+.gk .cw-option + .cw-option { border-top: 1px solid var(--gk-line); }
+.gk .cw-option:hover { background: var(--gk-hover); }
+.gk .cw-option:disabled { cursor: not-allowed; opacity: .6; }
+.gk .cw-option__mark { flex: none; display: grid; place-items: center; width: 22px; height: 22px; margin-top: 1px; border-radius: var(--gk-r-pill); border: 2px solid var(--gk-line-strong); color: var(--gk-on-accent); }
+.gk .cw-option[aria-checked='true'] .cw-option__mark { background: var(--gk-accent); border-color: var(--gk-accent); }
+.gk .cw-option__mark svg { width: 14px; height: 14px; }
+.gk .cw-option__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .cw-option__text strong { font-weight: 600; }
+.gk .cw-option__text span { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); }

@@ -17,10 +17,11 @@ import { LegacyFrame, WorkspaceNotices } from '../features/clubWorkspace/LegacyF
 import { buildClubTabs, clubNavigation, visibleTabs } from '../features/clubWorkspace/clubTabs';
 import { CoachHub } from '../features/clubWorkspace/coachHub/CoachHub';
 import { ClubOverview } from '../features/clubWorkspace/overview/ClubOverview';
-import { ClubProfileSettings, ProgrammesSettings } from '../features/clubWorkspace/settings/ClubSettingsPages';
+import { ClubSettingsPage, ProgrammesPage } from '../features/clubWorkspace/settings/ClubSettingsPages';
 import { useClubInbox } from '../features/clubWorkspace/useClubInbox';
 import { useClubMembership } from '../features/clubWorkspace/useClubMembership';
 import { useClubOverview } from '../features/clubWorkspace/useClubOverview';
+import { SquadsPage } from '../features/clubWorkspace/squads/SquadsPage';
 import { useWorkspacePins } from '../features/clubWorkspace/useWorkspacePins';
 import { parseWorkspaceTab, type WorkspaceTab } from '../components/workspace/types';
 import { useAuth } from '../context/AuthContext';
@@ -161,9 +162,11 @@ function ClubWorkspaceSession({ darkMode, sessionId }: { darkMode: boolean; sess
         onOpenCalendar={openCalendar} onOpenEvent={openEvent} onOpen={openWork} onChanged={() => { workspaceRoles.refresh(); void operations.refresh(); }} />;
     else if (activeTab === 'tools') content = <AllTools tabs={shownTabs} pins={pins} focus={focus.tabs} onOpen={openWork} showHidden={showHiddenSections} onShowHidden={setShowHiddenSections}
         hasHidden={Boolean(operations.boot?.modules.some(m => !operations.boot?.settings.enabled_modules.includes(m.id)))} />;
-    else if (activeTab === 'settings') content = <ClubProfileSettings clubId={clubId} pendingKey={membership.pendingKey} darkMode={darkMode} />;
-    else if (activeTab === 'programmes') content = <ProgrammesSettings clubId={clubId} />;
-    else if (activeTab === 'squads' && !can.operations) content = roles && legacy(<WorkspaceSquads data={roles} boot={operations.boot} squad={workSquad} onSquad={chooseWorkSquad} onOpen={openWork} canManage={false} />);
+    else if (activeTab === 'settings') content = <ClubSettingsPage clubId={clubId} busy={membership.pendingKey != null} />;
+    else if (activeTab === 'programmes') content = <ProgrammesPage clubId={clubId} />;
+    else if (activeTab === 'squads' && can.operations) content = <SquadsPage key={clubId} clubId={clubId} overview={overview} setParentError={membership.setErrorMessage} setParentSuccess={membership.setSuccessMessage}
+        workspace={roles ? { data: roles, boot: operations.boot, onOpen: openWork } : undefined} />;
+    else if (activeTab === 'squads') content = roles && <WorkspaceSquads data={roles} boot={operations.boot} squad={workSquad} onSquad={chooseWorkSquad} onOpen={openWork} />;
     else if (activeTab === 'role-requests') content = roles && legacy(<WorkspaceRolesPanel club={clubId} data={roles} admin onChanged={() => { workspaceRoles.refresh(); void operations.refresh(); }} />);
     else if (selectedOperation) content = <>
         {squadBack && <PageFrame><div className="rec-back"><Button variant="ghost" size="sm" onClick={squadBack.onClick}><ArrowLeft aria-hidden="true" />{squadBack.label}</Button></div></PageFrame>}

@@ -17,7 +17,7 @@ it('opens actual session attendance with squad and session context',()=>{
  fireEvent.click(screen.getByRole('button',{name:'Attendance'}));expect(open).toHaveBeenCalledWith('attendance',{squad:'11',session:'31'});
 });
 it('keeps the selected squad and only offers that squad’s permitted workflows',()=>{
- const open=vi.fn();render(<MemoryRouter><WorkspaceSquads data={data} boot={boot} squad="11" onSquad={()=>{}} onOpen={open} canManage={false}/></MemoryRouter>);
+ const open=vi.fn();render(<MemoryRouter><WorkspaceSquads data={data} boot={boot} squad="11" onSquad={()=>{}} onOpen={open}/></MemoryRouter>);
  expect(screen.getByRole('heading',{name:'U12'})).toBeVisible();expect(screen.queryByText('Sam')).not.toBeInTheDocument();expect(screen.queryByRole('button',{name:'Travel'})).not.toBeInTheDocument();
  fireEvent.click(screen.getByText('More tools'));fireEvent.click(within(screen.getByRole('navigation',{name:'Squad tools'})).getByRole('button',{name:'Attendance & collection'}));expect(open).toHaveBeenCalledWith('attendance',{squad:'11'});
 });

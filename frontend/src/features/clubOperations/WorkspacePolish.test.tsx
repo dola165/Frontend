@@ -2,7 +2,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Users } from 'lucide-react';
-import { WorkspacePlayerPanel } from './SquadWorkbench';
+import { WorkspacePlayerPanel } from './WorkspacePlayerPanel';
 import { ClubOverview } from '../clubWorkspace/overview/ClubOverview';
 import { AllTools } from '../clubWorkspace/AllTools';
 import { useWorkspacePins } from '../clubWorkspace/useWorkspacePins';

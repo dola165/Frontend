@@ -3,7 +3,7 @@ import { Avatar, Button, Chip, EmptyNote, List, ListRow, Panel, SearchInput } fr
 import type { Bootstrap } from '../../clubOperations/api';
 import type { RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
 import type { OpenWorkspace } from '../../clubOperations/workspaceStructure';
-import { WorkspacePlayerPanel } from '../../clubOperations/SquadWorkbench';
+import { WorkspacePlayerPanel } from '../../clubOperations/WorkspacePlayerPanel';
 
 type Person = RolesWorkspace['people'][number];
 

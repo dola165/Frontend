@@ -8,3 +8,4 @@ import './nav-extra.mjs';
 import './world-extra.mjs';
 import './map-extra.mjs';
 import './profile-extra.mjs';
+import './matches-extra.mjs';

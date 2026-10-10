@@ -1,0 +1,9 @@
+/* Design system combobox (search with suggestions). Scoped under .gk; tokens only. */
+.gk .gk-combobox { position: relative; min-width: 0; }
+.gk .gk-combobox__popup { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; right: 0; max-height: 320px; overflow-y: auto; padding: var(--gk-1); background: var(--gk-surface); border: 1px solid var(--gk-line-strong); border-radius: var(--gk-r); box-shadow: var(--gk-elevation); }
+.gk .gk-combobox__popup[hidden] { display: none; }
+.gk .gk-combobox__list { list-style: none; margin: 0; padding: 0; }
+.gk .gk-combobox__option { display: flex; align-items: center; gap: var(--gk-3); min-height: 48px; padding: var(--gk-2) var(--gk-3); border-radius: var(--gk-r-sm); cursor: pointer; }
+.gk .gk-combobox__option[aria-selected='true'] { background: var(--gk-hover); }
+.gk .gk-combobox__note { padding: var(--gk-3); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-combobox__list:not(:empty) + .gk-combobox__note { display: none; }

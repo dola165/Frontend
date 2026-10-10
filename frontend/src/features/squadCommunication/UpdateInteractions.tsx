@@ -49,7 +49,8 @@ export function UpdateInteractions({space,message,onChanged}:{space:api.SquadOve
   catch(e){setError(errorMessage(e));}finally{busy.current=false;setPending(false);}
  };
  return <div className="update-interactions">
-  {message.important&&<AcknowledgedBy people={message.acknowledged_by??[]}/>}
+  {/* The coaching team sees full read receipts beside the announcement instead. */}
+  {message.important&&!space.can_manage&&<AcknowledgedBy people={message.acknowledged_by??[]}/>}
   <div className="update-social-actions">
    {reactions.map(({kind,emoji,label})=>{
     const people=(message.reactions??[]).filter(r=>r.reaction===kind);

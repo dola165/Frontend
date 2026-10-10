@@ -533,7 +533,7 @@ const squadMessageDto = m => {
   const reactions = [...m.reactions.entries()].map(([user_id, reaction]) => ({ user_id, full_name: displayName(user_id), reaction }));
   return {
     id: m.id, author_id: m.authorId, author_name: displayName(m.authorId), thread_user_id: m.threadUserId, kind: m.kind, title: m.title, body: m.body, important: m.important,
-    created_at: iso(m.createdAt), acknowledgement_requested: m.important && m.authorId !== ME, acknowledged_at: m.acknowledged.has(ME) ? iso(m.acknowledged.get(ME)) : null,
+    created_at: iso(m.createdAt), expires_at: m.expiresAt ? iso(m.expiresAt) : null, acknowledgement_requested: m.important && m.authorId !== ME, acknowledged_at: m.acknowledged.has(ME) ? iso(m.acknowledged.get(ME)) : null,
     acknowledged_by: [...m.acknowledged.entries()].map(([user_id, at]) => ({ user_id, full_name: displayName(user_id), acknowledged_at: iso(at) })),
     reactions, comment_count: m.comments.length,
   };
@@ -553,7 +553,13 @@ get('/squad-communication/:id/messages', withSquad((s, { query }) => {
 post('/squad-communication/:id/messages', withSquad((s, { body }) => {
   const text = String(body?.body ?? '').trim();
   if (!text) return badRequest('Write a message first.');
-  const m = { id: S.newSquadMessageId(), squadId: s.id, authorId: ME, threadUserId: body?.threadUserId ?? null, kind: body?.kind === 'CHAT' ? 'CHAT' : 'ANNOUNCEMENT', title: body?.title ?? null, body: text, important: !!body?.important, createdAt: new Date(), reactions: new Map(), comments: [], acknowledged: new Map() };
+  const kind = body?.kind === 'CHAT' ? 'CHAT' : 'ANNOUNCEMENT';
+  const expiresAt = kind === 'ANNOUNCEMENT' && body?.expiresAt ? new Date(body.expiresAt) : null;
+  if (expiresAt && (Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date())) return badRequest('Choose a pinned-until day from today on.');
+  // A retried post with the same request id returns the first one.
+  const repeat = body?.requestId && S.squadMessages.find(x => x.requestId === body.requestId);
+  if (repeat) return created({ id: repeat.id });
+  const m = { id: S.newSquadMessageId(), squadId: s.id, authorId: ME, threadUserId: body?.threadUserId ?? null, kind, title: body?.title ?? null, body: text, important: !!body?.important, createdAt: new Date(), expiresAt, requestId: body?.requestId ?? null, reactions: new Map(), comments: [], acknowledged: new Map() };
   S.squadMessages.push(m);
   return created({ id: m.id });
 }));

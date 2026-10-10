@@ -17,7 +17,7 @@ import { createMyEvent, updateScheduleEvent, type ScheduleEventUpsertInput } fro
 import { scheduleDestination } from '../origin';
 import { ScheduleBoard, type BoardEntry } from '../board/ScheduleBoard';
 import { EventDetailsDialog } from '../board/EventDetailsDialog';
-import { eventKind, matchesType, typeFilterFrom, typeFilters } from '../board/scheduleEvents';
+import { kindOf, matchesType, typeFilterFrom, typeFilters } from '../board/scheduleEvents';
 import { useScheduleRange } from '../board/scheduleRange';
 import { editPersonalEvent, newPersonalEvent } from './personalEventForm';
 import { usePersonalSchedule } from './usePersonalSchedule';
@@ -81,7 +81,7 @@ export function PersonalSchedule() {
     const entries: BoardEntry[] = (data.events as Event[]).filter(event => matchesType(event.eventType, type))
         .filter(event => whose === 'all' || (whose === 'me' ? event.ownerLabel === 'Only you' : String(event.hostSquadId ?? event.squadId) === whose))
         .map(event => {
-            const kind = event.journeys?.length ? { tone: 'event' as const, badge: 'violet' as const, label: 'Trip' } : eventKind[event.eventType] ?? eventKind.ACTIVITY;
+            const kind = event.journeys?.length ? { tone: 'event' as const, badge: 'violet' as const, label: 'Trip' } : kindOf(event);
             const cancelled = event.status.toUpperCase() === 'CANCELLED';
             return { key: event.id, startsAt: event.startsAt, endsAt: event.endsAt, title: event.title, tone: kind.tone, cancelled,
                 meta: [event.hostSquadName ?? event.ownerLabel, event.locationText].filter(Boolean).join(' · '),

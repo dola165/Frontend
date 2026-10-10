@@ -1,8 +1,8 @@
 import type { ScheduleWorkspaceEvent } from '../../../components/schedule/workspaceTypes';
-import { eventKind } from '../../clubWorkspace/fixtures';
+import { kindOf } from '../../clubWorkspace/fixtures';
 import type { ScheduleEventOccurrence, ScheduleEventType } from '../api';
 
-export { eventKind };
+export { kindOf };
 
 const sentence = (value: string) => value.replaceAll('_', ' ').toLowerCase().replace(/^./, letter => letter.toUpperCase());
 

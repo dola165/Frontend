@@ -3,6 +3,7 @@
 import { get, post, put, patch, del, reply } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as F from '../world-football.mjs';
+import * as S from '../world-social.mjs';
 
 const { iso, local, isoDate, clubs, venues, squads, matches, clubById, venueById, personById } = W;
 const squadById = F.sq;
@@ -202,7 +203,8 @@ get('/match-exchange/:id', ({ params }) => { const l = F.listingById(params.id);
 put('/match-exchange/:id', ({ params, body }) => {
   const l = F.listingById(params.id); if (!l) return notFound();
   const { squad, start, end, error } = listingFromBody(body, l); if (error) return error;
-  Object.assign(l, { hostSquadId: squad.id, start, end, title: body.title ?? l.title, description: body.description ?? l.description, level: body.level ?? l.level, venuePreference: body.venuePreference ?? l.venuePreference, ageGroup: body.ageGroup ?? l.ageGroup, format: body.format ?? l.format, refereeRequired: body.refereeRequired ?? l.refereeRequired, venueId: Number(body.venueId) || l.venueId, revision: l.revision + 1 });
+  Object.assign(l, { hostSquadId: squad.id, start, end, title: body.title ?? l.title, description: body.description ?? l.description, level: body.level ?? l.level, venuePreference: body.venuePreference ?? l.venuePreference, ageGroup: body.ageGroup ?? l.ageGroup, format: body.format ?? l.format, refereeRequired: body.refereeRequired ?? l.refereeRequired, venueId: body.venueId === null ? null : Number(body.venueId) || l.venueId, revision: l.revision + 1 });
+  if (!l.venueId) l.place = { name: String(body.locationName ?? l.place?.name ?? '').trim() || 'Ground to be arranged', city: body.city ?? l.place?.city ?? '', lat: body.latitude ?? null, lng: body.longitude ?? null };
   l.history.push({ id: W.newId(), action: 'REVISE', created_at: iso(new Date()), reason: null });
   return F.listingView(l, { detail: true });
 });
@@ -231,7 +233,7 @@ post('/match-exchange/:id/referees', ({ params, body }) => {
   l.history.push({ id: W.newId(), action: 'REFEREE_INVITED', created_at: iso(new Date()), reason: null });
   return F.listingView(l, { detail: true });
 });
-post('/match-exchange/:id/venue', ({ params }) => { const l = F.listingById(params.id); if (!l) return notFound(); l.booked = true; l.revision++; return F.listingView(l, { detail: true }); });
+post('/match-exchange/:id/venue', ({ params, body }) => { const l = F.listingById(params.id); if (!l) return notFound(); if (body?.bookingId) l.booked = true; else l.externalConfirmed = Boolean(body?.externalConfirmed); l.revision++; return F.listingView(l, { detail: true }); });
 post('/match-exchange/:id/close-preview', ({ params }) => { const l = F.listingById(params.id); if (!l) return notFound(); return { action: 'CANCEL', revision: l.revision, material: true, changedFields: ['status'], dependencies: [], needsAttention: [], confirmationRequired: false, confirmationToken: `close-${l.id}` }; });
 post('/match-exchange/:id/close', ({ params }) => { const l = F.listingById(params.id); if (!l) return notFound(); l.status = 'CANCELLED'; l.revision++; l.history.push({ id: W.newId(), action: 'CANCEL', created_at: iso(new Date()), reason: 'Closed by the host' }); return F.listingView(l, { detail: true }); });
 const resultState = l => {
@@ -258,10 +260,16 @@ get('/match-exchange/:id/coordination', ({ params }) => {
   return { eventId: l.id, status: 'OPEN', readOnly: false, participants: [{ userId: W.ME_ID, fullName: W.me.fullName, role: 'STAFF', squadId: l.hostSquadId, squadName: squadById(l.hostSquadId).name }, ...(ref ? [{ userId: ref.id, fullName: ref.fullName, role: 'OFFICIAL', duty: 'REFEREE' }] : [])], messages, page: 0, size: 30, totalElements: messages.length, totalPages: 1, hasMore: false };
 });
 post('/match-exchange/:id/coordination', ({ body }) => ({ id: W.newId(), authorId: W.ME_ID, authorName: W.me.fullName, body: body?.body || '', createdAt: iso(new Date()) }));
-get('/match-arrangements/bookings', () => F.bookings.filter(b => b.userId === W.ME_ID && b.start.getTime() > now() && b.status === 'CONFIRMED').map(b => ({ ...F.bookingView(b), allocatedEventId: null })));
+// Match players per squad, in the frontend's `Team` shape (MatchParticipants.tsx); only our own squads.
+const matchSelections = new Map(); // `${eventId}:${squadId}` -> Set(playerId)
+const teamView = (l, s) => {
+  const key = `${l.id}:${s.id}`; if (!matchSelections.has(key)) matchSelections.set(key, new Set(s.playerIds.slice(0, 14)));
+  const chosen = matchSelections.get(key);
+  return { squadId: s.id, squadName: s.name, canManage: true, players: s.playerIds.map((id, i) => ({ id, name: personById(id).fullName, selected: chosen.has(id), response: !chosen.has(id) ? 'NOT_INVITED' : i % 5 === 3 ? 'UNANSWERED' : 'GOING', revision: l.revision, canRespond: false })) };
+};
 get('/match-arrangements/:id/participants', ({ params }) => {
   const l = F.listingById(params.id); if (!l) return [];
-  return [l.hostSquadId, l.opponentSquadId].filter(Boolean).map(id => squadById(id)).map(s => ({ squadId: s.id, squadName: s.name, clubId: s.clubId, clubName: clubById(s.clubId).name, canManage: s.clubId === DINAMO, attendance: s.clubId === DINAMO ? 'CONFIRMED' : 'PENDING', participants: s.clubId === DINAMO ? s.playerIds.slice(0, 14).map(id => ({ id, name: personById(id).fullName, status: 'SELECTED' })) : [] }));
+  return [l.hostSquadId, l.opponentSquadId].filter(Boolean).map(id => squadById(id)).filter(s => s?.clubId === DINAMO).map(s => teamView(l, s));
 });
 get('/match-arrangements/:id/official-request', () => null);
 get('/match-arrangements/squads/:id/fixtures', ({ params, query: q }) => {
@@ -694,11 +702,21 @@ for (const action of ['apply', 'select', 'close']) post(`/match-arrangements/:id
   return requestView(l);
 });
 const listingAction = fn => ({ params, body }) => { const l = F.listingById(params.id); if (!l) return notFound(); fn(l, body || {}); l.revision++; return F.listingView(l, { detail: true }); };
-post('/match-arrangements/:id/response', listingAction((l, body) => { if (body.decision === 'ACCEPT' || body.accept === true) { l.status = 'ARRANGED'; } else if (body.withdraw || body.decision === 'WITHDRAW') { l.opponentSquadId = null; l.status = 'OPEN'; } }));
+// The invited club answers (ACCEPT with its squad, or DECLINE); an agreed guest squad can WITHDRAW.
+post('/match-arrangements/:id/response', listingAction((l, body) => {
+  const action = body.action ?? body.decision ?? (body.accept === true ? 'ACCEPT' : body.withdraw ? 'WITHDRAW' : null);
+  const entry = (name, reason = null) => l.history.push({ id: W.newId(), action: name, created_at: iso(new Date()), reason });
+  const request = S.requestItems.find(i => i.key === `MATCH_INVITATION:${l.id}`);
+  if (request && ['ACCEPT', 'DECLINE'].includes(action)) Object.assign(request, { status: action === 'ACCEPT' ? 'ACCEPTED' : 'DECLINED', actionable: false, updatedAt: iso(new Date()) });
+  if (action === 'ACCEPT') { const s = squadById(body.squadId) ?? squadById(l.requestedSquadId); if (s?.clubId === DINAMO) l.opponentSquadId = s.id; l.status = 'ARRANGED'; entry('OPPONENT_AGREED'); }
+  else if (action === 'DECLINE') { l.status = 'CLOSED'; entry('CHALLENGE_DECLINED'); }
+  else if (action === 'WITHDRAW') { l.opponentSquadId = null; l.status = 'OPEN'; entry('OPPONENT_WITHDRAWN', body.reason || null); }
+}));
 post('/match-arrangements/:id/open-opponent-search', listingAction(l => { l.requestedClubId = null; l.status = 'OPEN'; }));
-post('/match-arrangements/:id/ground-preview', ({ params }) => { const l = F.listingById(params.id); if (!l) return notFound(); return { action: 'REVISE', revision: l.revision, material: true, changedFields: ['venue'], dependencies: [], needsAttention: [], confirmationRequired: false, confirmationToken: `ground-${l.id}` }; });
-post('/match-arrangements/:id/ground', listingAction((l, body) => { if (body.venueId) l.venueId = Number(body.venueId); l.booked = Boolean(body.bookingId || body.venueId); }));
-post('/match-arrangements/bookings/:id/allocate', ({ params, body }) => { const l = F.listingById(body?.eventId); if (l) { l.booked = true; const b = F.bookings.find(x => x.id === Number(params.id)); if (b) l.venueId = b.venueId; } return { allocated: true }; });
-for (const kind of ['attendance', 'participants']) post(`/match-arrangements/:id/squads/:squadId/${kind}`, ({ params }) => { const s = squadById(params.squadId); return s ? { squadId: s.id, squadName: s.name, clubId: s.clubId, clubName: clubById(s.clubId).name, canManage: s.clubId === DINAMO, attendance: 'CONFIRMED', participants: s.playerIds.slice(0, 14).map(id => ({ id, name: personById(id).fullName, status: 'SELECTED' })) } : notFound(); });
+for (const kind of ['attendance', 'participants']) post(`/match-arrangements/:id/squads/:squadId/${kind}`, ({ params, body }) => {
+  const l = F.listingById(params.id), s = squadById(params.squadId); if (!l || !s || s.clubId !== DINAMO) return notFound();
+  if (kind === 'participants' && Array.isArray(body?.playerIds)) matchSelections.set(`${l.id}:${s.id}`, new Set(body.playerIds.map(Number)));
+  l.revision++; return teamView(l, s);
+});
 post('/match-exchange/:id/referees/:refereeId/cancel', listingAction(l => { l.refereeId = null; }));
 post('/match-exchange/:id/external-venue-resolution', listingAction(l => { l.history.push({ id: W.newId(), action: 'EXTERNAL_VENUE', created_at: iso(new Date()), reason: 'Resolved with the ground owner' }); }));

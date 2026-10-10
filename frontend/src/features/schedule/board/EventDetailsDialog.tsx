@@ -5,14 +5,14 @@ import { visibilityCopy, type ScheduleWorkspaceEvent } from '../../../components
 import { JourneyLauncher } from '../../mapPlanning/JourneyLauncher';
 import { ScheduleScore } from '../../matchHistory/ScheduleResult';
 import { formatDate, formatTime } from '../../../utils/formatting';
-import { eventKind } from './scheduleEvents';
+import { kindOf } from './scheduleEvents';
 import './schedule-board.css';
 
 const visibility = (value: ScheduleWorkspaceEvent['visibility']) => value === 'CLUB_ONLY' ? 'Club members' : value === 'SCHEDULED_PUBLICATION' ? 'Published later' : visibilityCopy[value];
 
 /** A read-only look at a calendar event for people who can see it but not change it. */
 export function EventDetailsDialog({ event, onClose }: { event: ScheduleWorkspaceEvent; onClose: () => void }) {
-    const kind = eventKind[event.eventType] ?? eventKind.ACTIVITY;
+    const kind = kindOf(event);
     const match = event.eventType === 'MATCH' || event.eventType === 'FRIENDLY';
     return <Dialog open title={event.title} description={event.subtitle ?? undefined} onClose={onClose} closeLabel="Close event details"
         footer={event.matchExchangeId ? <ButtonLink variant="primary" to={`/match-exchange/${event.matchExchangeId}`}>Open match page</ButtonLink> : undefined}>

@@ -34,6 +34,21 @@
   "wait": 1200
  },
  {
+  "name": "world-matches-arrange",
+  "path": "/world/matches/arrange",
+  "wait": 1500
+ },
+ {
+  "name": "world-matches-arrange-open",
+  "path": "/world/matches/arrange?mode=open",
+  "wait": 1500
+ },
+ {
+  "name": "world-matches-arrange-opponent",
+  "path": "/world/matches/arrange?opponent=12",
+  "wait": 1500
+ },
+ {
   "name": "world-competitions",
   "path": "/world/competitions",
   "wait": 1200
@@ -434,7 +449,23 @@
  },
  {
   "name": "match-detail",
-  "path": "/match-exchange/5781"
+  "path": "/match-exchange/5781",
+  "wait": 1500
+ },
+ {
+  "name": "match-invitation",
+  "path": "/match-exchange/5844",
+  "wait": 1500
+ },
+ {
+  "name": "match-sent",
+  "path": "/match-exchange/5846?sent=direct",
+  "wait": 1500
+ },
+ {
+  "name": "match-agreed",
+  "path": "/match-exchange/5726",
+  "wait": 1500
  },
  {
   "name": "job-detail",

@@ -1,5 +1,6 @@
 import { hasBlockingAttention, label, type ChangeImpact } from "./api";
 import { journeyLabel, useJourneyCopy } from "./journeyCopy";
+import "./match-impact.css";
 
 const consequences: Record<string, string> = {
   PRESERVE: "Keep the current arrangement",
@@ -28,19 +29,19 @@ export function MatchChangeImpact({ impact }: { impact: ChangeImpact }) {
   const { copy, language } = useJourneyCopy();
   const blocked = hasBlockingAttention(impact);
   return (
-    <div className="mx-notice" role="status">
-      <h3>{copy(blocked ? "resolveFirst" : "reviewImpact")}</h3>
+    <div className={`gk-notice gk-impact${blocked ? " gk-notice--warning" : ""}`} role="status">
+      <h3 className="gk-impact__title">{copy(blocked ? "resolveFirst" : "reviewImpact")}</h3>
       {impact.needsAttention.map((item) => <p key={item.code}>{language !== "ka" ? item.message
         : item.code === "CANCELLATION_REASON_REQUIRED" ? copy("cancelReason")
         : item.code === "RESOLVE_VENUE_BOOKING" ? copy(impact.action === "CANCEL" ? "bookingFollowup" : "bookingBeforeEdit")
         : item.code === "RESOLVE_EXTERNAL_VENUE" ? copy(impact.action === "CANCEL" ? "externalFollowup" : "externalBeforeEdit") : item.message}</p>)}
-      <ul>
+      {impact.dependencies.length > 0 && <ul className="gk-impact__list">
         {impact.dependencies.map((item, index) => (
           <li key={`${item.domain}-${item.id}-${index}`}>
             {journeyLabel(item.domain, language)}{item.id != null ? ` #${item.id}` : ""} ({journeyLabel(item.state, language)}): {(language === "ka" ? georgianConsequences : consequences)[item.consequence] || label(item.consequence)}.
           </li>
         ))}
-      </ul>
+      </ul>}
       <p>{copy("unchanged")} {copy(blocked ? "resolveReload" : "confirmImpact")}</p>
     </div>
   );

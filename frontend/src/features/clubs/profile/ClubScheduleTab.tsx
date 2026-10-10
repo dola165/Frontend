@@ -6,7 +6,7 @@ import type { ScheduleWorkspaceEvent } from '../../../components/schedule/worksp
 import { matchHistoryPath } from '../../matchHistory/api';
 import { ScheduleBoard, type BoardEntry } from '../../schedule/board/ScheduleBoard';
 import { EventDetailsDialog } from '../../schedule/board/EventDetailsDialog';
-import { eventKind, matchesType, toWorkspaceEvent, typeFilterFrom, typeFilters, type TypeFilter } from '../../schedule/board/scheduleEvents';
+import { kindOf, matchesType, toWorkspaceEvent, typeFilterFrom, typeFilters, type TypeFilter } from '../../schedule/board/scheduleEvents';
 import { useScheduleRange } from '../../schedule/board/scheduleRange';
 import { scheduleDestination } from '../../schedule/origin';
 import type { ScheduleEventOccurrence } from '../../schedule/api';
@@ -33,7 +33,7 @@ export function ClubScheduleTab({ club, canManage }: { club: ClubProfile; canMan
     const inSquad = (id: number | null | undefined) => squad === 'all' || (squad === 'club' ? id == null : String(id) === squad);
 
     const events: BoardEntry[] = data.events.filter(event => matchesType(event.eventType, type) && inSquad(ownSquad(event).id)).map(event => {
-        const kind = eventKind[event.eventType] ?? eventKind.ACTIVITY;
+        const kind = kindOf(event);
         const destination = scheduleDestination(event) ?? (event.matchExchangeId ? `/match-exchange/${event.matchExchangeId}` : undefined);
         const cancelled = event.status === 'CANCELLED' || event.challengeStatus === 'REJECTED';
         return {

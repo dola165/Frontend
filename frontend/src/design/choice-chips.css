@@ -1,0 +1,5 @@
+/* One choice from a few, shown as chips (a radio group). The chosen chip carries a tick so the state never rests on colour alone. */
+.gk .gk-choice-chips .gk-chip { min-height: 44px; padding: 0 var(--gk-4); font-size: var(--gk-fs-md); }
+.gk .gk-choice-chips .gk-chip[aria-checked='true'] { background: var(--gk-accent-soft); border-color: color-mix(in srgb, var(--gk-accent) 55%, transparent); color: var(--gk-text); font-weight: 600; }
+.gk .gk-choice-chips .gk-chip[aria-checked='true']::before { content: ''; width: 10px; height: 6px; margin: -3px 2px 0 -2px; border-left: 2px solid var(--gk-accent); border-bottom: 2px solid var(--gk-accent); transform: rotate(-45deg); }
+.gk .gk-choice-chips[aria-invalid='true'] .gk-chip { border-color: color-mix(in srgb, var(--gk-danger) 55%, transparent); }

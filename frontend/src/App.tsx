@@ -220,7 +220,6 @@ export function MainLayout() {
         }
     }, [location.pathname, navigate, status, user]);
 
-    const darkMode = themePreference !== 'light';
     const effectiveTheme = themeForRoute(themePreference);
 
     useLayoutEffect(() => {

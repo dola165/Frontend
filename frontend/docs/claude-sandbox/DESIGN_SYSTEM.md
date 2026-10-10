@@ -24,4 +24,4 @@ Kept from the owner's brief: the dark theme with the floodlight-green accent, th
 
 ## Primitives (`src/design/primitives.tsx`, `src/design/Tabs.tsx`)
 
-`GkRoot`, `PageFrame`, `PageHeader`, `Section`, `Panel`, `List`, `ListRow`, `FixtureRow`, `StatTile`, `Button`, `ButtonLink`, `Badge`, `Count`, `Avatar`, `Field` (+ `.gk-input` on input/select/textarea), `SearchInput`, `Chip`, `EmptyNote`, `Skeleton`, `Tabs`, `useUrlTab`. Extend these rather than creating parallel versions; if a new shared primitive is needed, add it to `src/design/` with its CSS in `design.css`.
+`GkRoot`, `PageFrame`, `PageHeader`, `Section`, `Panel`, `List`, `ListRow`, `FixtureRow`, `StatTile`, `Button`, `ButtonLink`, `Badge`, `Count`, `Avatar`, `Field` (+ `.gk-input` on input/select/textarea), `SearchInput`, `Chip`, `EmptyNote`, `Skeleton`, `Tabs`, `useUrlTab`. Also `Combobox` + `useSearch` (search with suggestions, for example the opponent club) and `ChoiceChips` (one choice from a few, as a radio group of chips). Extend these rather than creating parallel versions; if a new shared primitive is needed, add it to `src/design/` with its CSS in `design.css`.

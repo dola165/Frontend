@@ -1,0 +1,4 @@
+/* What a change or cancellation affects, before anything is saved. Scoped under .gk; tokens only. */
+.gk .gk-impact { flex-direction: column; gap: var(--gk-2); }
+.gk .gk-impact__title { font-family: var(--gk-font); font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); font-weight: 600; }
+.gk .gk-impact__list { margin: 0; padding-left: var(--gk-5); display: flex; flex-direction: column; gap: var(--gk-1); }

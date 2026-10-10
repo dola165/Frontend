@@ -4,7 +4,7 @@ import { MapPin, PenLine, Shirt, Trophy } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { Badge, Button, ButtonLink, EmptyNote, FixtureRow, List, ListRow, Panel, Section, Skeleton } from '../../../design/primitives';
 import { Crest } from '../../world/Crest';
-import { dayLabel, eventKind, timeLabel } from '../../clubWorkspace/fixtures';
+import { dayLabel, kindOf, timeLabel } from '../../clubWorkspace/fixtures';
 import type { ScheduleEventOccurrence } from '../../schedule/api';
 import { overviewFixtures, overviewLead, overviewProgrammes } from '../overviewPolicy';
 import { money, programmeAge, programmePrice } from '../presentation';
@@ -76,7 +76,7 @@ function Fixtures({ club, source }: { club: ClubProfile; source: Source<{ events
     if (!fixtures.length) return <Panel flush><EmptyNote title="No public matches in the next 30 days" action={<ButtonLink size="sm" to={tabLink(club.id, 'schedule')}>Open the schedule</ButtonLink>}>Training and club events are in the schedule.</EmptyNote></Panel>;
     return <Panel flush><List label="Upcoming matches">{fixtures.map(f => {
         const squad = f.clubId === club.id ? f.challengerSquadName : f.targetSquadName;
-        const kind = eventKind[f.eventType] ?? eventKind.MATCH;
+        const kind = kindOf({ eventType: f.eventType });
         return <FixtureRow key={`${f.occurrenceId}:${f.startsAt}`} tone={kind.tone} time={timeLabel(f.startsAt)} day={dayLabel(f.startsAt)} title={f.title}
             to={f.matchExchangeId ? `/match-exchange/${f.matchExchangeId}` : tabLink(club.id, 'schedule')}
             meta={[squad, f.locationName].filter(Boolean).join(' · ')}

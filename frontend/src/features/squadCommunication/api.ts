@@ -39,7 +39,7 @@ export interface SquadMessage { id:number;author_id:number;author_name:string;th
 export type ReactionKind='LIKE'|'DISLIKE'|'LAUGH'|'CELEBRATE'|'CONFUSED'|'HEART'|'ROCKET'|'EYES';
 export interface UpdateReaction {user_id:number;full_name:string;reaction:ReactionKind}
 export interface UpdateComment {id:number;author_id:number;author_name:string;body:string;created_at:string}
-export interface SquadSession { introductory_visitors?:IntroductoryVisitor[];event_type?:ScheduleEventType;description?:string|null;response_requested?:boolean;series_id?:string|null;id:number;title:string;starts_at:string;ends_at:string;location:string|null;status:'SCHEDULED'|'CANCELLED';cancellation_reason:string|null;revision:number;response_revision?:number;response_kind?:'INTENT';attendance:(Person&{response:string;active?:boolean;response_status?:string;response_valid?:boolean;previous_response?:string|null;recorded_by?:'PLAYER'|'GUARDIAN'|'COACH'|null;responded_at?:string|null})[];venue_reservation?:VenueReservationSummaryValue|null }
+export interface SquadSession { introductory_visitors?:IntroductoryVisitor[];event_type?:ScheduleEventType;description?:string|null;response_requested?:boolean;series_id?:string|null;id:number;title:string;starts_at:string;ends_at:string;location:string|null;status:'SCHEDULED'|'CANCELLED';cancellation_reason:string|null;revision:number;response_revision?:number;response_kind?:'INTENT';attendance:(Person&{response:string;reason?:string|null;active?:boolean;response_status?:string;response_valid?:boolean;previous_response?:string|null;recorded_by?:'PLAYER'|'GUARDIAN'|'COACH'|null;responded_at?:string|null})[];venue_reservation?:VenueReservationSummaryValue|null }
 export interface SessionChange {eventType?:ScheduleEventType;description?:string;requestResponses?:boolean;requestId:string;revision:number;title:string;startsAt:string;endsAt:string;location:string;playerIds:number[]|null}
 export interface SessionConsequence {revision:number;material:boolean;responsePolicy:'PRESERVE'|'RECONFIRM'|'INVALIDATE';affectedParticipants:number;affectedResponses:number;addedParticipants:number;removedParticipants:number;notificationRecipients:number}
 export interface Receipt {user_id:number;full_name:string;acknowledged_at:string|null}
@@ -64,8 +64,9 @@ export const cancelSession=async(id:number,sessionId:number,revision:number,reas
 export const previewCancellation=async(id:number,sessionId:number,revision:number,reason:string,requestId:string)=>(await apiClient.post<SessionConsequence>(`${root}/${id}/sessions/${sessionId}/cancel/preview`,{requestId,revision,reason})).data;
 export const previewSession=async(id:number,sessionId:number,data:SessionChange)=>(await apiClient.post<SessionConsequence>(`${root}/${id}/sessions/${sessionId}/preview`,data)).data;
 export const editSession=async(id:number,sessionId:number,data:SessionChange)=>apiClient.put(`${root}/${id}/sessions/${sessionId}`,data);
-export const attendance=async(id:number,sessionId:number,playerId:number,response:string,revision:number,requestId:string,authSessionId?:AuthSessionId)=>{
-    const url=`${root}/${id}/sessions/${sessionId}/attendance`, command={playerId,response,revision,requestId};
+/** A reply for one player. `reason` goes with "can't come" and is shown only to the squad's coaches (backend: optional, ≤ 140 characters). */
+export const attendance=async(id:number,sessionId:number,playerId:number,response:string,revision:number,requestId:string,authSessionId?:AuthSessionId,reason?:string)=>{
+    const url=`${root}/${id}/sessions/${sessionId}/attendance`, command={playerId,response,revision,requestId,...(reason?{reason}:{})};
     return authSessionId === undefined ? apiClient.put(url,command)
         : apiClient.put(url,command,{_authSessionId:authSessionId} as AuthSessionRequestConfig);
 };

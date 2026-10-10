@@ -47,7 +47,8 @@ export interface ScheduleWorkspaceEvent {
     canRecordResult?: boolean;
     resultClubId?: number | null;
     seriesId?: string | null;
-    responseSummary?: { total: number; going: number; pending: number };
+    /** Squad availability in opt-out terms: `going` are expected, `pending` were asked to confirm and have not. */
+    responseSummary?: { total: number; going: number; pending: number; cantCome?: number };
     journeys?: import('../../features/mapPlanning/journeyScheduleData').JourneyEntry[];
     origin?: 'CLUB_CALENDAR' | 'PERSONAL_CALENDAR' | 'MATCH_EXCHANGE' | 'SQUAD_SESSION' | 'JOURNEY';
     originId?: number | null;

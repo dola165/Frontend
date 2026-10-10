@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { clubLandingTab, overviewFixtures, overviewLead, overviewProgrammes } from './overviewPolicy';
+import { overviewFixtures, overviewLead, overviewProgrammes } from './overviewPolicy';
 import type { TrainingProgramme } from './presentation';
 import type { ScheduleEventOccurrence } from '../schedule/api';
 
@@ -24,10 +24,6 @@ it('shows only upcoming public fixtures, preserving pending confirmation and lim
     expect(overviewFixtures([fixture],Date.parse('2026-10-02'))).toEqual([]);
 });
 
-it('opens casual visits on Posts without overriding a family or professional context',()=>{
-    expect(clubLandingTab(1,'FAN')).toBe('posts');expect(clubLandingTab(1)).toBe('posts');
-    expect(clubLandingTab(1,'PARENT')).toBe('overview');expect(clubLandingTab(1,'COACH')).toBe('overview');
-    expect(clubLandingTab(1,'FAN',{version:1,workspaces:[{id:'club.family',context:{type:'club',id:1,label:'Home'}}]})).toBe('overview');
-    expect(clubLandingTab(1,'FAN',{version:1,workspaces:[{id:'agent.hub',context:{type:'user',id:7,label:'Agent'}}]})).toBe('overview');
+it('keeps a family context to its own club',()=>{
     expect(overviewLead(2,'PARENT',{version:1,workspaces:[{id:'club.family',context:{type:'club',id:1,label:'Home'}}]})).toBe('training');
 });

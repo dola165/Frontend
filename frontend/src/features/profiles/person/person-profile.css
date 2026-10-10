@@ -1,0 +1,13 @@
+/* Person profile: about, the three identity layers and the side facts. */
+.gk .gk-person-loading { display: grid; gap: var(--gk-4); padding-block: var(--gk-8); }
+.gk .gk-person-bio { white-space: pre-line; font-size: var(--gk-fs-lg); line-height: 1.6; color: var(--gk-text); max-width: 72ch; }
+.gk .gk-person-layers { display: flex; flex-direction: column; gap: var(--gk-8); }
+.gk .gk-person-layers .gk-list-row__meta { white-space: normal; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.gk .gk-person-layers .gk-list-row__title { white-space: normal; }
+.gk .gk-person-layers .gk-list-row__trail .gk-badge { white-space: nowrap; }
+.gk .gk-person-record { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gk-2); }
+.gk .gk-person-record > span { display: flex; flex-direction: column; gap: 2px; padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); font-size: var(--gk-fs-xs); color: var(--gk-text-2); }
+.gk .gk-person-record strong { font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); color: var(--gk-text); }
+.gk .gk-profile__actions .moderation-trigger, .gk .gk-profile__actions button.gk-btn--ghost { min-height: 44px; }
+/* Career keeps its own editor; inside the profile it reads on the design-system palette. */
+.gk .gk-profile__main .mx-profile-career { --club-theme-text-primary: var(--gk-text); }

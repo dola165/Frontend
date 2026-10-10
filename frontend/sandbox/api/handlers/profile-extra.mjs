@@ -1,0 +1,80 @@
+// Synthetic API: profiles, professions and opt-out attendance. Imported last, so it only adds
+// routes nobody else registers. Shared state lives in ../world-profile.mjs.
+//
+// BACKEND NEEDED — professions, the second layer of a person's profile (separate from football
+// roles and from club permissions):
+//   GET  /users/{id}/professions → Profession[]  (published entries only, unless it is your own profile)
+//   PUT  /users/me/professions   { professions: ProfessionInput[] } → Profession[]  (replaces the list; ≤ 10)
+//   Profession = { id, title (free text ≤ 80), label (searchable label set by admins or Dola, null until mapped),
+//                  detail (≤ 600) | null, since ('YYYY') | null, published, verification: 'SELF_REPORTED' |
+//                  'CLUB_CONFIRMED' | 'DOCUMENT_CHECKED', verifiedBy (organization name) | null }
+//   ProfessionInput = { id?, title, detail, since, published }. Verification and label are never accepted from the
+//   client; editing a confirmed entry's title returns it to SELF_REPORTED. Feeds the People directory and opportunity matching.
+// BACKEND NEEDED — opt-out attendance on squad sessions:
+//   * Training does not ask for replies by default (response_requested=false); matches and trips do. A coach turns
+//     confirmation on or off per event with PUT /squad-communication/{squad}/sessions/{id} { requestResponses } after
+//     the usual preview (POST …/preview), which notifies families only when confirmation is turned on.
+//   * PUT …/sessions/{id}/attendance accepts NOT_GOING (and GOING to undo) even when no reply was requested, plus an
+//     optional `reason` (≤ 140 characters) stored with NOT_GOING and shown only to the squad's coaches as attendance[].reason.
+import { get, post, put, reply } from '../router.mjs';
+import * as W from '../world.mjs';
+import * as S from '../world-social.mjs';
+import * as P from '../world-profile.mjs';
+
+const ME = W.ME_ID;
+const notFound = (message = 'Not found.') => reply(404, { status: 404, message });
+const badRequest = message => reply(400, { status: 400, message });
+
+// ---------------------------------------------------------------- professions
+const visible = (userId, viewer) => (P.professions.get(userId) ?? []).filter(item => userId === viewer || item.published);
+get('/users/:id/professions', ({ params }) => {
+  const id = params.id === 'me' ? ME : Number(params.id);
+  if (!Number.isSafeInteger(id) || !W.people.some(p => p.id === id)) return notFound('Profile not found.');
+  return visible(id, ME);
+});
+put('/users/me/professions', ({ body }) => {
+  const input = Array.isArray(body?.professions) ? body.professions : null;
+  if (!input) return badRequest('Send the list of professions.');
+  if (input.length > 10) return badRequest('Add up to 10 professions.');
+  const current = P.professions.get(ME) ?? [];
+  const next = [];
+  for (const raw of input) {
+    const title = String(raw?.title ?? '').trim().slice(0, 80);
+    if (!title) return badRequest('Each profession needs a name.');
+    const previous = current.find(item => item.id === raw?.id);
+    const sameTitle = previous && previous.title === title;
+    next.push({
+      id: previous?.id ?? P.newProfessionId(), title, label: sameTitle ? previous.label : P.labelFor(title),
+      detail: String(raw?.detail ?? '').trim().slice(0, 600) || null,
+      since: /^\d{4}$/.test(String(raw?.since ?? '')) ? String(raw.since) : null,
+      published: raw?.published !== false,
+      verification: sameTitle ? previous.verification : 'SELF_REPORTED', verifiedBy: sameTitle ? previous.verifiedBy : null,
+    });
+  }
+  P.professions.set(ME, next);
+  return next;
+});
+
+// ---------------------------------------------------------------- squad sessions: ask for confirmation
+const squadFor = id => { const s = W.squadById(Number(id)); return s && s.clubId === 1 ? s : null; };
+const sessionFor = (s, sid) => W.events.find(e => e.squadId === s.id && e.id === Number(sid) && (e.type === 'TRAINING' || e.type === 'MATCH'));
+const consequence = (s, e, body) => {
+  const asking = body?.requestResponses === true && !P.confirmationRequested(e);
+  return { revision: e.revision ?? 1, material: asking, responsePolicy: 'PRESERVE', affectedParticipants: s.playerIds.length, affectedResponses: 0,
+    addedParticipants: 0, removedParticipants: 0, notificationRecipients: asking ? S.familiesOf(s.id).length : 0 };
+};
+post('/squad-communication/:id/sessions/:sid/preview', ({ params, body }) => {
+  const s = squadFor(params.id); if (!s) return reply(403, { status: 403, message: 'This squad space is not available to you.' });
+  const e = sessionFor(s, params.sid); if (!e) return notFound('Session not found.');
+  if (body?.revision != null && body.revision !== (e.revision ?? 1)) return reply(409, { status: 409, message: 'This session changed. Reload it and try again.' });
+  return consequence(s, e, body);
+});
+put('/squad-communication/:id/sessions/:sid', ({ params, body }) => {
+  const s = squadFor(params.id); if (!s) return reply(403, { status: 403, message: 'This squad space is not available to you.' });
+  const e = sessionFor(s, params.sid); if (!e) return notFound('Session not found.');
+  if (body?.revision != null && body.revision !== (e.revision ?? 1)) return reply(409, { status: 409, message: 'This session changed. Reload it and try again.' });
+  if (typeof body?.requestResponses === 'boolean') P.confirmation.set(e.id, body.requestResponses);
+  if (body?.title) e.title = String(body.title).slice(0, 140);
+  e.revision = (e.revision ?? 1) + 1;
+  return { id: e.id, revision: e.revision };
+});

@@ -1,0 +1,28 @@
+/* Club profile: overview blocks and side facts. Layout comes from the profile layout. */
+.gk .gk-club-loading { display: grid; gap: var(--gk-4); padding-block: var(--gk-8); }
+.gk .gk-club-about { white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+.gk .gk-club-icon { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: var(--gk-r); background: var(--gk-accent-soft); color: var(--gk-accent); }
+.gk .gk-club-icon svg { width: 18px; height: 18px; }
+.gk .gk-club-icon--warning { background: var(--gk-warning-soft); color: var(--gk-warning); }
+.gk .gk-club-price { color: var(--gk-text); font-weight: 650; font-size: var(--gk-fs-md); white-space: nowrap; }
+.gk .gk-club-year { display: inline-grid; place-items: center; min-width: 52px; height: 32px; padding: 0 var(--gk-2); border-radius: var(--gk-r-sm); background: var(--gk-warning-soft); color: var(--gk-warning); font-weight: 700; font-size: var(--gk-fs-sm); }
+.gk .gk-club-training-foot { justify-content: space-between; flex-wrap: wrap; width: 100%; }
+.gk .gk-club-training-foot .gk-btn { min-height: 40px; }
+
+.gk .gk-club-call { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-4); border-color: color-mix(in srgb, var(--gk-accent) 35%, var(--gk-line)); background: linear-gradient(100deg, var(--gk-accent-soft), transparent 70%), var(--gk-surface); }
+.gk .gk-club-call .gk-panel--pad { width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-4); }
+.gk .gk-club-call__text { max-width: 60ch; display: flex; flex-direction: column; gap: var(--gk-1); }
+.gk .gk-club-call__text h2 { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 650; }
+.gk .gk-club-call__text p { color: var(--gk-text-2); }
+.gk .gk-club-call__actions .gk-btn { min-height: 44px; }
+
+.gk .gk-club-overview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--gk-6) var(--gk-5); align-items: start; }
+
+/* Legacy club tab content sits inside the design-system main column. */
+.gk .gk-profile__main > .club-public, .gk .gk-profile__main > section { min-width: 0; }
+
+/* Teams, people and venues keep their own components; inside the profile they read as design-system sections. */
+.gk .gk-profile__main .club-public h2 { font-family: var(--gk-font-display); font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); letter-spacing: -0.01em; }
+.gk .gk-profile__main .club-public .cp-heading { margin-bottom: var(--gk-5); }
+.gk .gk-profile__main .club-public .cp-heading-title > .cp-section-icon { display: none; }
+.gk .gk-profile__main .club-public .cp-eyebrow { text-transform: none; letter-spacing: 0; font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-3); }

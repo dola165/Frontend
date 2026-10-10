@@ -59,7 +59,7 @@ export function SquadEventEditComposer({ squad, session: currentSession, onClose
         isRecurring:false,locationName:session.location??'',locationLat:'',locationLng:'',visibility:'PRIVATE',publishAt:'',description:session.description??'',hostSquadId:squad.id }));
     const [roster,setRoster]=useState<api.Person[]|null>(null),[error,setError]=useState(''),[retry,setRetry]=useState(0);
     const [playerIds,setPlayerIds]=useState(session.attendance.filter(p=>p.active!==false).map(p=>p.id));
-    const [audienceChanged,setAudienceChanged]=useState(false),[responses,setResponses]=useState(session.response_requested!==false);
+    const [audienceChanged,setAudienceChanged]=useState(false),[responses,setResponses]=useState(session.response_requested===true);
     const [scope,setScope]=useState<api.SeriesScope>('THIS');
     const [reviewed,setReviewed]=useState<{signature:string;expected?:api.ExpectedSession[]}|null>(null);
     const [saveFailed,setSaveFailed]=useState(false);
@@ -74,7 +74,7 @@ export function SquadEventEditComposer({ squad, session: currentSession, onClose
     };
     return <EventCreationModal isOpen fixedSquad mode="edit" surface="CLUB_SCHEDULE" clubId={squad.club_id??null} subjectLabel={squad.name}
         initialValues={initial} onClose={onClose} audience={{privateInvitations:true,privacyLabel:copy('Invited squad · private','მოწვეული გუნდი · პირადი'),
-            saveLabel:copy('Confirm changes','ცვლილებების დადასტურება'),dirty:audienceChanged||scope!=='THIS'||responses!==(session.response_requested!==false),ready:!!reviewed,
+            saveLabel:copy('Confirm changes','ცვლილებების დადასტურება'),dirty:audienceChanged||scope!=='THIS'||responses!==(session.response_requested===true),ready:!!reviewed,
             planContent:session.series_id?<SeriesScope value={scope} onChange={setScope}/>:null,
             reviewContent:form=><div className="squad-event-audience">
                 {saveFailed && <p>{copy('Your draft is kept. Retry saving, or discard this draft to review the latest saved event.', 'თქვენი მონახაზი შენარჩუნებულია. სცადეთ შენახვა ან უარყავით მონახაზი ბოლო შენახული ვერსიის სანახავად.')} <button type="button" onClick={()=>{onSaved();onClose();}}>{copy('Discard draft & review latest', 'მონახაზის უარყოფა და ბოლო ვერსიის ნახვა')}</button></p>}
@@ -82,7 +82,7 @@ export function SquadEventEditComposer({ squad, session: currentSession, onClose
                 <details className="squad-event-people" open={error ? true : undefined}><summary>{copy('Edit invited players', 'მოწვეული მოთამაშეების შეცვლა')} <span>{playerIds.length} {copy('selected', 'არჩეულია')}</span></summary><fieldset><legend className="sr-only">{copy('Invited players','მოწვეული მოთამაშეები')}</legend>
                 {error?<p role="alert">{error} <button type="button" onClick={()=>setRetry(n=>n+1)}>{copy('Retry roster','სიის ხელახლა ჩატვირთვა')}</button></p>:!roster?<p role="status">{copy('Loading squad roster…','გუნდის სია იტვირთება…')}</p>:<div className="squad-event-roster">{roster.map(player=><label className="squad-event-check" key={player.id}><input type="checkbox" checked={playerIds.includes(player.id)} onChange={event=>{setAudienceChanged(true);setPlayerIds(ids=>event.target.checked?[...ids,player.id]:ids.filter(id=>id!==player.id));}}/>{player.name}</label>)}</div>}
                 <p>{copy('Unchanged invitation lists are preserved separately for each event. Selecting players replaces the list on every affected date.','უცვლელი მოწვევები თითოეული ღონისძიებისთვის ინახება. მოთამაშეების არჩევა ყველა არჩეულ თარიღზე სიას შეცვლის.')}</p>
-            </fieldset></details><label className="squad-event-check"><input type="checkbox" checked={responses} onChange={e=>setResponses(e.target.checked)}/>{copy('Request availability','ხელმისაწვდომობის მოთხოვნა')}</label></div>}}
+            </fieldset></details><label className="squad-event-check"><input type="checkbox" checked={responses} onChange={e=>setResponses(e.target.checked)}/>{copy('Ask families to confirm','ოჯახებს დადასტურების თხოვნა')}</label></div>}}
         onSubmit={async payload=>{const change=command(payload);if(reviewed?.signature!==JSON.stringify({change,scope}))throw new Error(copy('Review the updated change before saving.','შენახვამდე გადახედეთ განახლებულ ცვლილებას.'));
             try { if(session.series_id)await api.changeSeries(squad.id,session.id,{change,scope,expected:reviewed.expected});else await api.editSession(squad.id,session.id,change);onSaved();onClose(); }
             catch(error) { setSaveFailed(true); throw error; } }}/ >;

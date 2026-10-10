@@ -4,16 +4,23 @@ import type { ScheduleWorkspaceEvent } from '../../components/schedule/workspace
 import { extractApiErrorMessage } from '../../utils/apiError';
 import * as api from './api';
 import { apiClient } from '../../api/axiosConfig';
+import { availability } from './attendance';
 
 export type CalendarSquad = Pick<api.SquadSpace, 'id' | 'name'> & Partial<api.SquadSpace>;
 export type SquadCalendarEvent = ScheduleWorkspaceEvent & { squadId?: number; owningClubId?: number | null; session?: api.SquadSession };
+
+/** Opt-out: who is expected, who can't come and, when the coach asked, who still has to confirm. */
+function responseSummary(session: api.SquadSession) {
+    const value = availability(session);
+    return { total: value.invited.length, going: value.expected, cantCome: value.cantCome.length, pending: value.toConfirm.length };
+}
 
 export function sessionEvent(squad: CalendarSquad, session: api.SquadSession): SquadCalendarEvent {
     const rental = session.venue_reservation;
     const location = rental ? rental.status === 'CONFIRMED' ? `${rental.venueName} · ${rental.pitchName}` : null : session.location;
     return { id: `squad:${squad.id}:${session.id}`, eventId: session.id, origin: 'SQUAD_SESSION', title: session.title,
         eventType: session.event_type ?? 'TRAINING', description: session.description, startsAt: session.starts_at, endsAt: session.ends_at, locationText: location,
-        status: session.status, visibility: 'CLUB_ONLY', publicationState: 'PRIVATE', recurring: !!session.series_id, seriesId: session.series_id, responseSummary: session.response_requested === false ? undefined : { total: session.attendance.filter(p => p.active !== false).length, going: session.attendance.filter(p => p.active !== false && p.response === 'GOING').length, pending: session.attendance.filter(p => p.active !== false && ['UNANSWERED', 'RECONFIRMATION_REQUIRED'].includes(p.response)).length },
+        status: session.status, visibility: 'CLUB_ONLY', publicationState: 'PRIVATE', recurring: !!session.series_id, seriesId: session.series_id, responseSummary: responseSummary(session),
         ownerLabel: squad.name, hostSquadId: squad.id, hostSquadName: squad.name, squadId: squad.id, session,
         mapEligible: false, appearsOnMap: false, conflictingEventIds: [] };
 }

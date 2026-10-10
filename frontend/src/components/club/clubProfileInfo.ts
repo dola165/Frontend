@@ -1,4 +1,4 @@
-import type { ClubProfile } from '../../pages/ClubProfilePage';
+import type { ClubProfile } from '../../features/clubs/profile/types';
 
 export interface ClubProfileActionLink {
     href: string;

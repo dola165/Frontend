@@ -5,6 +5,7 @@
 import { get, post, put, patch, del, reply } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as S from '../world-social.mjs';
+import * as P from '../world-profile.mjs';
 
 const ME = W.ME_ID;
 /** The club domain's live store (applications, tryouts, invitations, role requests, club inbox).
@@ -506,7 +507,9 @@ const defaultResponse = (event, playerId) => {
   const days = (event.start - W.NOW) / 86400000;
   return days > 6 ? (h < 6 ? 'GOING' : 'UNANSWERED') : h < 16 ? 'GOING' : h < 18 ? 'NOT_GOING' : 'UNANSWERED';
 };
-const responseOf = (event, playerId) => S.sessionResponses.get(`${event.id}:${playerId}`) ?? defaultResponse(event, playerId);
+// Opt-out attendance: where nobody was asked to confirm, families only ever say "can't come".
+const optOutDefault = (event, playerId) => { const r = defaultResponse(event, playerId); return r === 'GOING' && !P.confirmationRequested(event) ? 'UNANSWERED' : r; };
+const responseOf = (event, playerId) => S.sessionResponses.get(`${event.id}:${playerId}`) ?? optOutDefault(event, playerId);
 function overviewDto(s) {
   const families = S.familiesOf(s.id);
   const coaches = coachesOf(s);
@@ -592,8 +595,8 @@ function sessionDto(s, e) {
     id: e.id, title: e.type === 'MATCH' ? e.title : e.title, event_type: e.type, description: e.type === 'MATCH' ? `${e.competition} · ${e.kind === 'LEAGUE' ? 'League match' : 'Friendly'}` : e.notes ?? null,
     starts_at: W.local(e.start), ends_at: W.local(e.end), location: venue ? `${venue.name}${e.pitch ? ` · ${e.pitch}` : ''}` : null,
     status: e.cancelled ? 'CANCELLED' : 'SCHEDULED', cancellation_reason: e.cancelled ?? null, revision: e.revision ?? 1, response_revision: 1, response_kind: 'INTENT',
-    response_requested: true, series_id: e.type === 'TRAINING' ? `squad-${s.id}-training` : null,
-    attendance: s.playerIds.map(id => ({ id, name: displayName(id), response: responseOf(e, id), active: true, response_status: 'CURRENT', response_valid: true, previous_response: null, recorded_by: responseOf(e, id) === 'UNANSWERED' ? null : 'PLAYER', responded_at: null })),
+    response_requested: P.confirmationRequested(e), series_id: e.type === 'TRAINING' ? `squad-${s.id}-training` : null,
+    attendance: s.playerIds.map(id => ({ id, name: displayName(id), response: responseOf(e, id), reason: responseOf(e, id) === 'NOT_GOING' ? P.replyReasons.get(`${e.id}:${id}`) ?? (S.sessionResponses.has(`${e.id}:${id}`) ? null : P.defaultReason(e.id, id)) : null, active: true, response_status: 'CURRENT', response_valid: true, previous_response: null, recorded_by: responseOf(e, id) === 'UNANSWERED' ? null : 'PLAYER', responded_at: null })),
     venue_reservation: null, introductory_visitors: [],
   };
 }
@@ -606,7 +609,8 @@ put('/squad-communication/:id/sessions/:sid/attendance', withSquad((s, { params,
   const e = sessionEvents(s).find(x => x.id === Number(params.sid));
   if (!e) return notFound('Session not found.');
   if (!s.playerIds.includes(Number(body?.playerId))) return badRequest('This player is not in the squad.');
-  S.sessionResponses.set(`${e.id}:${Number(body.playerId)}`, body?.response === 'NOT_GOING' ? 'NOT_GOING' : body?.response === 'GOING' ? 'GOING' : 'UNANSWERED');
+  S.sessionResponses.set(`${e.id}:${Number(body.playerId)}`, body?.response === 'NOT_GOING' ? 'NOT_GOING' : body?.response === 'GOING' ? 'GOING' : body?.response === 'UNSURE' ? 'UNSURE' : 'UNANSWERED');
+  if (body?.response === 'NOT_GOING' && body?.reason) P.replyReasons.set(`${e.id}:${Number(body.playerId)}`, String(body.reason).trim().slice(0, 140)); else if (body?.response !== 'NOT_GOING') P.replyReasons.delete(`${e.id}:${Number(body.playerId)}`);
   return sessionDto(s, e);
 }));
 post('/squad-communication/:id/sessions/:sid/cancel', withSquad((s, { params, body }) => {

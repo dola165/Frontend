@@ -5,6 +5,8 @@ export interface ReplyScope { actorId: number; sessionId: string | null }
 export interface UncertainReply extends ReplyScope {
     squadId: number; occurrenceId: number; playerId: number;
     revision: number; response: string; requestId: string;
+    /** Optional note with "can't come", shown only to the squad's coaches. */
+    reason?: string;
 }
 export const REPLY_RECOVERY_PREFIX = 'gk-availability-uncertain:';
 export class ReplyRecoveryError extends Error {}
@@ -45,23 +47,25 @@ export function readUncertainReply(scope: ReplyScope, squad: number, occurrence:
         const v = JSON.parse(raw) as UncertainReply;
         if (v.actorId !== scope.actorId || v.sessionId !== scope.sessionId || v.squadId !== squad || v.occurrenceId !== occurrence || v.playerId !== player
             || !positive(squad) || !positive(occurrence) || !positive(player) || !Number.isSafeInteger(v.revision) || v.revision < 0
-            || !['GOING', 'NOT_GOING', 'UNSURE'].includes(v.response) || !uuid.test(v.requestId)) throw new Error();
+            || !['GOING', 'NOT_GOING', 'UNSURE'].includes(v.response) || !uuid.test(v.requestId)
+            || (v.reason !== undefined && (typeof v.reason !== 'string' || v.reason.length > 140))) throw new Error();
         return v;
     } catch { throw new ReplyRecoveryError('The earlier reply could not be recovered. Review a new reply before sending another.'); }
 }
 /** Persist before dispatch. An uncertain command is never rebound to a later revision. */
-export function beginReply(scope: ReplyScope, squadId: number, occurrenceId: number, playerId: number, response: string, revision: number): UncertainReply {
+export function beginReply(scope: ReplyScope, squadId: number, occurrenceId: number, playerId: number, response: string, revision: number, reason?: string): UncertainReply {
     if (!positive(squadId) || !positive(occurrenceId) || !positive(playerId) || !Number.isSafeInteger(revision) || revision < 0 || !['GOING', 'NOT_GOING', 'UNSURE'].includes(response))
         throw new ReplyRecoveryError('Review the current session before replying.');
     const existing = readUncertainReply(scope, squadId, occurrenceId, playerId);
     if (existing) {
-        if (existing.response !== response || existing.revision !== revision)
+        if (existing.response !== response || existing.revision !== revision || (existing.reason ?? '') !== (reason ?? ''))
             throw new ReplyRecoveryError('Retry the earlier reply or review a new reply first.');
         return existing;
     }
     if (Object.keys(localStorage).filter(k => k.startsWith(REPLY_RECOVERY_PREFIX)).length >= MAX_PENDING)
         throw new ReplyRecoveryError('Review your earlier replies before sending another.');
-    const command: UncertainReply = { ...scope, squadId, occurrenceId, playerId, response, revision, requestId: crypto.randomUUID() };
+    const note = reason?.trim().slice(0, 140) || undefined;
+    const command: UncertainReply = { ...scope, squadId, occurrenceId, playerId, response, revision, requestId: crypto.randomUUID(), ...(note ? { reason: note } : {}) };
     try { localStorage.setItem(key(scope, squadId, occurrenceId, playerId), JSON.stringify(command)); }
     catch { throw new ReplyRecoveryError('Your browser could not retain this reply for recovery. Enable browser storage and try again.'); }
     return command;

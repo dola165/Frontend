@@ -2,19 +2,18 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { expect, it, vi } from 'vitest';
 import { ClubBusinessTab } from '../../club/ClubBusinessTab';
-import { ClubProfileStickyHeader } from '../../club/ClubProfileStickyHeader';
+import { clubTabs } from '../../../features/clubs/profile/clubTabs';
 import { OpportunityNavigation } from '../OpportunityNavigation';
 import { DiscoverySectionTabs } from '../DiscoverySectionTabs';
-import type { ClubProfile } from '../../../pages/ClubProfilePage';
+import type { ClubProfile } from '../../../features/clubs/profile/types';
 vi.mock('../../../pages/JobsDirectoryPage', () => ({ JobsDirectoryPage: ({ fixedClubId }: { fixedClubId: number }) => <div>Jobs for club {fixedClubId}</div> }));
 vi.mock('../../../features/store/api', async original => ({...await original<typeof import('../../../features/store/api')>(),fetchStoreCatalog:vi.fn(async()=>({content:[],totalElements:0}))}));
 vi.mock('../../../features/campaigns/api', async original => ({...await original<typeof import('../../../features/campaigns/api')>(),fetchCampaigns:vi.fn(async()=>({content:[],totalElements:0}))}));
 vi.mock('../../../features/clubs/api',()=>({fetchClubJobs:vi.fn(async()=>[])}));
 const club = { id: 10, name: 'Alpha FC' } as ClubProfile;
 it('shows one Opportunities tab instead of three separate profile tabs', () => {
- const change=vi.fn();render(<ClubProfileStickyHeader activeTab="overview" onTabChange={change} club={{}}/>);
- fireEvent.click(screen.getByRole('button',{name:'Opportunities'}));expect(change).toHaveBeenCalledWith('business');
- for(const name of ['Store','Campaigns','Roles']) expect(screen.queryByRole('button',{name})).not.toBeInTheDocument();
+ expect(clubTabs.filter(tab => tab.label === 'Opportunities').map(tab => tab.id)).toEqual(['business']);
+ for(const name of ['Store','Campaigns','Roles']) expect(clubTabs.some(tab => tab.label === name)).toBe(false);
 });
 it('offers three scoped choices and opens Roles inside the club area', () => {
  render(<MemoryRouter initialEntries={['/clubs/10?tab=business']}><ClubBusinessTab club={club} ownClubRole={null} isAuthenticated={false}/></MemoryRouter>);

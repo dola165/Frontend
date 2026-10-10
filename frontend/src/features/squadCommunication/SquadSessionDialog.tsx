@@ -17,6 +17,7 @@ import './journey-actions.css';
 import './session-details.css';
 import { getAuthSessionId, subscribeAuthSession } from '../../utils/authStorage';
 import { acknowledgeReply, beginReply, readUncertainReply, replyScope, requireReplyScope, reviewNewReply, ReplyRecoveryError, type UncertainReply } from './availabilityRecovery';
+import { SessionAvailability } from './SessionAvailability';
 
 export function SessionDialog({ title, children, onClose, busy = false, detail = false }: { title: string; children: ReactNode; onClose: () => void; busy?: boolean; detail?: boolean }) {
     const ref = useRef<HTMLDivElement>(null);
@@ -57,7 +58,7 @@ export function SquadSessionDetails({ event, playerId, canManage = false, onClos
     }, [authSessionId, event.squadId, event.session?.id, event.session?.attendance]);
     const sendReply = async (command: UncertainReply) => {
         requireReplyScope(command);
-        await api.attendance(command.squadId, command.occurrenceId, command.playerId, command.response, command.revision, command.requestId, command.sessionId);
+        await api.attendance(command.squadId, command.occurrenceId, command.playerId, command.response, command.revision, command.requestId, command.sessionId, command.reason);
         acknowledgeReply(command);
         setReplyRequests(previous => {
             const next = new Map(previous);
@@ -71,6 +72,31 @@ export function SquadSessionDetails({ event, playerId, canManage = false, onClos
         try { await action(); setRecovered(recovery); setSaved(true); onSaved(); } catch (e) { setError(e instanceof ReplyRecoveryError ? e.message : extractApiErrorMessage(e, copy('Your change could not be saved.', 'ცვლილების შენახვა ვერ მოხერხდა.'))); }
         finally { saving.current = false; setBusy(false); }
     };
+    const reply = (person: api.SquadSession['attendance'][number], response: string, reason?: string) => void act(async () => {
+        const scope = replyScope();
+        if (!scope) throw new ReplyRecoveryError('Reopen the session in your current account before replying.');
+        const request = beginReply(scope, event.squadId!, event.session!.id, person.id, response, event.session!.revision, reason);
+        setReplyRequests(previous => new Map(previous).set(person.id, request));
+        await sendReply(request);
+    });
+    // Turning confirmation on notifies families, so the coach sees how many first. Turning it off is quiet.
+    const [askReview, setAskReview] = useState<{ requestId: string; recipients: number } | null>(null);
+    const changeAsking = async (asking: boolean, confirmed = false) => {
+        const session = event.session;
+        if (saving.current || !session || !event.squadId) return;
+        saving.current = true; setBusy(true); setError(''); setSaved(false);
+        try {
+            const change: api.SessionChange = { requestId: confirmed && askReview ? askReview.requestId : crypto.randomUUID(), revision: session.revision, title: session.title,
+                startsAt: session.starts_at, endsAt: session.ends_at, location: session.location ?? '', playerIds: null, eventType: session.event_type, description: session.description ?? '', requestResponses: asking };
+            if (!confirmed) {
+                const consequence = await api.previewSession(event.squadId, session.id, change);
+                if (asking && consequence.notificationRecipients > 0) { setAskReview({ requestId: change.requestId, recipients: consequence.notificationRecipients }); return; }
+            }
+            await api.editSession(event.squadId, session.id, change);
+            setAskReview(null); onSaved();
+        } catch (e) { setError(extractApiErrorMessage(e, copy('The change could not be saved.', 'ცვლილების შენახვა ვერ მოხერხდა.'))); }
+        finally { saving.current = false; setBusy(false); }
+    };
     if (editing && event.session) return <SquadEventEditComposer squad={{ id: event.squadId!, name: event.hostSquadName ?? 'Squad' }} session={event.session} onClose={() => setEditing(false)} onSaved={onSaved}/>;
     return <Dialog title={event.title} onClose={onClose} busy={busy} detail>
         <div className="session-context"><span>{event.hostSquadName}</span><span className="session-type">{event.eventType?.replaceAll('_', ' ').toLowerCase()}</span></div>
@@ -80,10 +106,9 @@ export function SquadSessionDetails({ event, playerId, canManage = false, onClos
         <VenueReservationSummary value={event.session?.venue_reservation}/>
         {!event.session && <ScheduleResult event={event} clubId={event.owningClubId} onSaved={onSaved} />}
         {destination && <Link to={destination}>{copy('Open match details & next actions', 'მატჩის დეტალები და შემდეგი ნაბიჯები')} →</Link>}
-        {event.session && <p className="session-reply-help">{event.session.response_requested === false ? copy('No availability reply is requested for this event.', 'ამ ღონისძიებაზე ხელმისაწვდომობის პასუხი არ მოითხოვება.') : copy('Replies express plans to attend. They do not record actual attendance.', 'პასუხი გამოხატავს დასწრების გეგმას და არა ფაქტობრივ დასწრებას.')}{canManage && event.session.response_requested !== false && ` ${copy('Replies you enter are labelled as recorded by the coach.', 'თქვენი შეყვანილი პასუხი მოინიშნება, როგორც მწვრთნელის მიერ ჩაწერილი.')}`}</p>}
-        {event.session?.series_id && <p className="squad-schedule-series-note">{event.session.response_requested === false ? copy('Part of a repeating series.', 'განმეორებადი სერიის ნაწილია.') : copy('Part of a repeating series. Availability is recorded separately for each date.', 'განმეორებადი სერიის ნაწილია. ხელმისაწვდომობა თითოეულ თარიღზე ცალკე ინახება.')}</p>}
+        {event.session?.series_id && <p className="squad-schedule-series-note">{copy('Part of a repeating series. Availability is kept separately for each date.', 'განმეორებადი სერიის ნაწილია. ხელმისაწვდომობა თითოეულ თარიღზე ცალკე ინახება.')}</p>}
         {canManage&&event.session&&event.squadId&&<IntroductoryVisitors squadId={event.squadId} sessionId={event.session.id} revision={event.session.revision} visitors={event.session.introductory_visitors??[]} onSaved={onSaved}/>}
-        {saved && <p className="session-saved" role="status">{recovered ? copy('Earlier reply checked. Latest reply loaded.', 'წინა პასუხი შემოწმდა. ბოლო პასუხი ჩაიტვირთა.') : copy('Reply saved.', 'პასუხი შენახულია.')}</p>}
+        {saved && <p className="session-saved" role="status">{recovered ? copy('Earlier reply checked. Latest reply loaded.', 'წინა პასუხი შემოწმდა. ბოლო პასუხი ჩაიტვირთა.') : canManage ? copy('Answer recorded.', 'პასუხი ჩაიწერა.') : copy('Saved. The coach sees your answer.', 'შენახულია. მწვრთნელი ხედავს თქვენს პასუხს.')}</p>}
         {error && <p role="alert">{error} <button type="button" onClick={onSaved}>{copy('Reload latest session', 'სესიის განახლება')}</button></p>}
         {canManage && event.session && event.status !== 'CANCELLED' && new Date(event.startsAt) > new Date() && <SquadVenueReservationPanel key={`${event.session.id}:${event.session.revision}`} squadId={event.squadId!} sessionId={event.session.id} revision={event.session.revision} onSaved={onSaved}/>}
         {event.session?.attendance.filter(person => (playerId == null || person.id === playerId) && (replyRequests.has(person.id) || replyRecoveryErrors.has(person.id))).map(person => {
@@ -103,21 +128,9 @@ export function SquadSessionDetails({ event, playerId, canManage = false, onClos
         })}
         {event.status === 'CANCELLED' ? <p className="squad-schedule-notice">{copy('Cancelled', 'გაუქმებულია')}{event.session?.cancellation_reason && ` · ${event.session.cancellation_reason}`}</p> : <>
             {event.session && new Date(event.endsAt) <= new Date() && <p role="status">{copy('This session has ended. Its replies are read-only.', 'ეს სესია დასრულდა. პასუხების შეცვლა შეუძლებელია.')}</p>}
-            {event.session?.response_requested !== false && event.session?.attendance.filter(person => playerId == null || person.id === playerId).map(person => <label className="family-attendance" data-response={person.response} key={person.id}>
-                <span>{person.name} · {copy('planning to attend?', 'გეგმავს დასწრებას?')}{person.response_status === 'RECONFIRMATION_REQUIRED' && <small>{copy('Session changed. Please confirm again', 'სესია შეიცვალა. გთხოვთ, ხელახლა დაადასტუროთ')} ({copy('previous reply', 'წინა პასუხი')}: {person.previous_response === 'GOING' ? copy('going', 'დაესწრება') : person.previous_response === 'NOT_GOING' ? copy('can’t make it', 'ვერ დაესწრება') : copy('unsure', 'ჯერ არ იცის')}).</small>}{person.previous_response && <small className="journey-reply-source">{person.recorded_by === 'COACH' ? copy('Recorded by the coach', 'ჩაწერილია მწვრთნელის მიერ') : person.recorded_by === 'GUARDIAN' ? copy('Replied by guardian', 'პასუხი მეურვისგან') : person.recorded_by === 'PLAYER' ? copy('Replied by player', 'პასუხი მოთამაშისგან') : copy('Reply recorded; source not recorded', 'პასუხი ჩაწერილია; წყარო მითითებული არ არის')}</small>}</span><select aria-label={`${copy('Reply for', 'პასუხი მოთამაშისთვის')} ${person.name}`} value={person.response} disabled={busy || replyRequests.has(person.id) || replyRecoveryErrors.has(person.id) || person.active === false || new Date(event.endsAt) <= new Date()}
-                    onChange={e => {
-                        const response = e.target.value;
-                        void act(async () => {
-                            const scope = replyScope();
-                            if (!scope) throw new ReplyRecoveryError('Reopen the session in your current account before replying.');
-                            const request = beginReply(scope, event.squadId!, event.session!.id, person.id, response, event.session!.revision);
-                            setReplyRequests(previous => new Map(previous).set(person.id, request));
-                            await sendReply(request);
-                        });
-                    }}>
-                    <option value="RECONFIRMATION_REQUIRED" disabled>{copy('Please confirm again', 'დაადასტურეთ ხელახლა')}</option><option value="INVALIDATED" disabled>{copy('Invitation removed', 'მოწვევა გაუქმებულია')}</option>
-                    <option value="UNANSWERED" disabled>{copy('No reply yet', 'ჯერ პასუხი არ არის')}</option><option value="GOING">{copy('Going', 'დავესწრები')}</option><option value="NOT_GOING">{copy('Can’t make it', 'ვერ დავესწრები')}</option><option value="UNSURE">{copy('Not sure yet', 'ჯერ არ ვიცი')}</option>
-                </select></label>)}
+            {event.session && <SessionAvailability session={event.session} canManage={canManage} playerId={playerId} busy={busy} ended={new Date(event.endsAt) <= new Date()}
+                pending={new Set([...replyRequests.keys(), ...replyRecoveryErrors])} onReply={reply}
+                ask={canManage ? { review: askReview, onAsk: asking => void changeAsking(asking), onConfirm: () => void changeAsking(true, true), onCancel: () => setAskReview(null) } : undefined} />}
             {canManage && event.session && new Date(event.endsAt) > new Date() && (cancel ? <form onSubmit={async e => {
                 e.preventDefault(); if (saving.current) return;
                 const signature = JSON.stringify([event.session!.id, event.session!.revision, reason, scope]);

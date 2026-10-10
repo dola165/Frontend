@@ -1,0 +1,32 @@
+import { Navigate, useLocation } from 'react-router-dom';
+
+const keep = ['eventId', 'newEvent', 'date', 'journey', 'journeyChild'];
+
+/**
+ * `/calendar` moved: your schedule lives on your profile, a squad's on its squad page and a club's
+ * on the club profile. Every old link, notification and bookmark lands in the right place.
+ */
+export function calendarDestination(search: string) {
+    const params = new URLSearchParams(search);
+    const scope = params.get('scope'), squad = params.get('squadId'), club = params.get('clubId'), session = params.get('sessionId');
+    if ((scope === 'squad' || scope === 'club') && squad && /^\d+$/.test(squad)) {
+        const query = new URLSearchParams({ tab: 'sessions' });
+        if (session && /^\d+$/.test(session)) query.set('sessionId', session);
+        if (params.get('date')) query.set('at', params.get('date')!);
+        return `/squads/${squad}?${query}`;
+    }
+    if (scope === 'squad' || scope === 'club') return club && /^\d+$/.test(club) ? `/clubs/${club}?tab=schedule` : '/squads';
+    if (club && /^\d+$/.test(club) && !params.has('eventId') && scope !== 'personal') {
+        const query = new URLSearchParams({ tab: 'schedule' });
+        if (params.get('date')) query.set('week', params.get('date')!);
+        return `/clubs/${club}?${query}`;
+    }
+    const query = new URLSearchParams({ tab: 'schedule' });
+    for (const key of keep) { const value = params.get(key); if (value) query.set(key, value); }
+    return `/profile/me?${query}`;
+}
+
+export function CalendarRedirect() {
+    const location = useLocation();
+    return <Navigate replace to={calendarDestination(location.search)} />;
+}

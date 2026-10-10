@@ -10,19 +10,23 @@ import { fetchProfessions, type PersonProfile, type Profession } from '../api';
  */
 export function usePersonProfile(id: number) {
     const { user, sessionId } = useAuth();
-    const [profile, setProfile] = useState<PersonProfile | null>(null);
-    const [status, setStatus] = useState<'loading' | 'ready' | 'missing' | 'failed'>('loading');
     const [revision, setRevision] = useState(0);
+    // Answers are kept with the person they belong to; a reload keeps the profile on screen until the new answer arrives.
+    const key = `${id}:${sessionId}:${revision}`;
+    const [result, setResult] = useState<{ key: string; id: number; profile: PersonProfile | null; status: 'ready' | 'missing' | 'failed' } | null>(null);
     const [professions, setProfessions] = useState<{ id: number; items: Profession[] | null; failed: boolean }>({ id, items: null, failed: false });
 
     useEffect(() => {
         const controller = new AbortController();
-        setStatus(current => current === 'ready' ? current : 'loading');
         void apiClient.get<PersonProfile>(`/users/${id}`, { signal: controller.signal })
-            .then(response => { if (!controller.signal.aborted) { setProfile(response.data); setStatus('ready'); } })
-            .catch(error => { if (!controller.signal.aborted) { setProfile(null); setStatus(error?.response?.status === 404 ? 'missing' : 'failed'); } });
+            .then(response => { if (!controller.signal.aborted) setResult({ key, id, profile: response.data, status: 'ready' }); })
+            .catch(error => { if (!controller.signal.aborted) setResult({ key, id, profile: null, status: error?.response?.status === 404 ? 'missing' : 'failed' }); });
         return () => controller.abort();
-    }, [id, sessionId, revision]);
+    }, [id, key]);
+    const current = result?.id === id ? result : null;
+    const profile = current?.profile ?? null;
+    const status = current ? current.status : 'loading';
+    const setProfile = (change: (previous: PersonProfile | null) => PersonProfile | null) => setResult(previous => previous ? { ...previous, profile: change(previous.profile) } : previous);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -41,9 +45,9 @@ export function usePersonProfile(id: number) {
     const toggleFollow = async () => {
         if (!profile) return;
         const previous = profile;
-        setProfile({ ...profile, isFollowedByMe: !profile.isFollowedByMe, followerCount: Math.max(0, profile.followerCount + (profile.isFollowedByMe ? -1 : 1)) });
+        setProfile(() => ({ ...profile, isFollowedByMe: !profile.isFollowedByMe, followerCount: Math.max(0, profile.followerCount + (profile.isFollowedByMe ? -1 : 1)) }));
         try { await apiClient.post(`/users/${profile.id}/follow`); }
-        catch (error) { setProfile(previous); throw error; }
+        catch (error) { setProfile(() => previous); throw error; }
     };
     const updateImage = async (field: 'banner' | 'avatar', url: string) => {
         if (!own) throw new Error('You can only change your own profile photos.');

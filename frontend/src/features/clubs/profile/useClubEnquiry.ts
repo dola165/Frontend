@@ -17,18 +17,24 @@ export function useClubEnquiry(club: ClubProfile | null) {
     useEffect(() => {
         if (status !== 'authenticated' || !club || !requested) return;
         const controller = new AbortController();
-        const finish = () => setParams(current => { const next = new URLSearchParams(current); next.delete('enquire'); return next; }, { replace: true });
-        const programme = club.presentation?.programmes.find(p => p.published && String(p.id) === params.get('programme'));
-        const squadId = params.get('squad');
-        if (programme) { setEnquiry({ name: programme.name, path: `/clubs/${club.id}?tab=teams&programme=${programme.id}`, squadIds: programme.squadIds ?? [] }); finish(); }
-        else if (squadId) void apiClient.get<PublicSquad[]>(`/clubs/${club.id}/squads`, { signal: controller.signal }).then(response => {
+        void enquiryFor(club, params.get('programme'), params.get('squad'), controller.signal).then(context => {
             if (controller.signal.aborted) return;
-            const squad = response.data.find(s => String(s.id) === squadId);
-            if (squad) setEnquiry({ name: squad.name, path: `/clubs/${club.id}?tab=teams&squad=${squad.id}`, squadIds: [squad.id] });
-            finish();
-        }).catch(() => { if (!controller.signal.aborted) finish(); });
-        else { if (!params.get('programme')) setEnquiry({ name: club.name, path: `/clubs/${club.id}?tab=teams`, squadIds: [] }); finish(); }
+            if (context) setEnquiry(context);
+            setParams(current => { const next = new URLSearchParams(current); next.delete('enquire'); return next; }, { replace: true });
+        });
         return () => controller.abort();
     }, [status, club, requested, params, setParams]);
     return [enquiry, setEnquiry] as const;
+}
+
+/** The programme, squad or general enquiry a link asks for. A programme or squad that no longer exists opens nothing. */
+async function enquiryFor(club: ClubProfile, programmeId: string | null, squadId: string | null, signal: AbortSignal): Promise<ClubEnquiryContext | null> {
+    const programme = club.presentation?.programmes.find(p => p.published && String(p.id) === programmeId);
+    if (programme) return { name: programme.name, path: `/clubs/${club.id}?tab=teams&programme=${programme.id}`, squadIds: programme.squadIds ?? [] };
+    if (squadId) {
+        const squads = await apiClient.get<PublicSquad[]>(`/clubs/${club.id}/squads`, { signal }).then(response => response.data).catch(() => []);
+        const squad = squads.find(s => String(s.id) === squadId);
+        return squad ? { name: squad.name, path: `/clubs/${club.id}?tab=teams&squad=${squad.id}`, squadIds: [squad.id] } : null;
+    }
+    return programmeId ? null : { name: club.name, path: `/clubs/${club.id}?tab=teams`, squadIds: [] };
 }

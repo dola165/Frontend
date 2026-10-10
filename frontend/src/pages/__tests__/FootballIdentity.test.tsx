@@ -1,5 +1,5 @@
 import '../../i18n';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { apiClient } from '../../api/axiosConfig';
 import { OrganizationProfilePage, OrganizationProfileEditor } from '../OrganizationProfilePage';

@@ -7,7 +7,8 @@
 .gk .gk-club-price { color: var(--gk-text); font-weight: 650; font-size: var(--gk-fs-md); white-space: nowrap; }
 .gk .gk-club-year { display: inline-grid; place-items: center; min-width: 52px; height: 32px; padding: 0 var(--gk-2); border-radius: var(--gk-r-sm); background: var(--gk-warning-soft); color: var(--gk-warning); font-weight: 700; font-size: var(--gk-fs-sm); }
 .gk .gk-club-training-foot { justify-content: space-between; flex-wrap: wrap; width: 100%; }
-.gk .gk-club-training-foot .gk-btn { min-height: 40px; }
+.gk .gk-club-training-foot .gk-btn { min-height: 44px; }
+@media (max-width: 520px) { .gk .gk-club-programmes .gk-list-row__meta { white-space: normal; } }
 
 .gk .gk-club-call { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-4); border-color: color-mix(in srgb, var(--gk-accent) 35%, var(--gk-line)); background: linear-gradient(100deg, var(--gk-accent-soft), transparent 70%), var(--gk-surface); }
 .gk .gk-club-call .gk-panel--pad { width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-4); }

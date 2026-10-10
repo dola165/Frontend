@@ -48,7 +48,7 @@ function ClubProfileView({ id }: { id: number }) {
     const location = useLocation();
     const { status, sessionId } = useAuth();
     const [params, setParams] = useSearchParams();
-    const { club, loading, failed, permissions: can, refresh, toggleFollow, leftClub, updateImage, setMembership } = useClubProfile(id);
+    const { club, loading, failed, permissions: can, refresh, toggleFollow, leftClub, updateImage, forgetMembership } = useClubProfile(id);
     const [enquiry, setEnquiry] = useClubEnquiry(club);
     const [notice, setNotice] = useState('');
     const [squadsRevision, setSquadsRevision] = useState(0);
@@ -89,7 +89,7 @@ function ClubProfileView({ id }: { id: number }) {
         try {
             await dissolveClub(club.id);
             setDissolveOpen(false);
-            setMembership({ clubId: null, role: null });
+            forgetMembership();
             toast.success('Club dissolved');
             navigate('/world/clubs', { replace: true });
         } catch (error) { toast.error(extractApiErrorMessage(error, 'The club could not be dissolved.')); }

@@ -22,6 +22,9 @@ import { useScheduleRange } from '../board/scheduleRange';
 import { editPersonalEvent, newPersonalEvent } from './personalEventForm';
 import { usePersonalSchedule } from './usePersonalSchedule';
 
+/** Read when an event is opened, so a page left open still treats it correctly. */
+const hasStarted = (iso: string) => Date.parse(iso) < Date.now();
+
 type Event = ScheduleWorkspaceEvent & { journeys?: JourneyEntry[]; session?: SquadCalendarEvent['session']; squadId?: number };
 type Editor = { mode: 'create' | 'edit'; values: EventCreationFormValues; eventId?: number; clubId?: number | null; startsAt?: string };
 
@@ -50,8 +53,11 @@ export function PersonalSchedule() {
     };
     const create = (day?: Date) => setEditor({ mode: 'create', values: newPersonalEvent(day ?? (range.isCurrent ? new Date() : range.from)) });
 
-    // Links from notifications, the composer and trips open the right thing once.
-    useEffect(() => { if (params.get('newEvent') === '1') { create(); setFilter('newEvent', null); } }, [params.get('newEvent')]); // eslint-disable-line react-hooks/exhaustive-deps
+    // "New event" links (the post composer, Dola) open the editor once, then the link is tidied away.
+    const requestedNew = params.get('newEvent') === '1';
+    const [openedNew, setOpenedNew] = useState(false);
+    if (requestedNew !== openedNew) { setOpenedNew(requestedNew); if (requestedNew) create(); }
+    useEffect(() => { if (requestedNew) setFilter('newEvent', null); }, [requestedNew]); // eslint-disable-line react-hooks/exhaustive-deps
     const linkedJourney = data.events.flatMap(event => event.journeys ?? []).find(entry => String(entry.planId) === params.get('journey') && (!params.get('journeyChild') || entry.subjects.some(subject => String(subject.id) === params.get('journeyChild'))));
 
     const openEvent = (event: Event) => {
@@ -61,7 +67,7 @@ export function PersonalSchedule() {
         if (event.id.startsWith('tournament-referee:')) return navigate('/referees/me');
         if (data.isSquadEvent(event)) return setOpen({ kind: 'squad', event });
         if (data.isClubEvent(event)) return setOpen({ kind: 'read', event });
-        if (Date.parse(event.startsAt) < Date.now()) return setOpen({ kind: 'past', event });
+        if (hasStarted(event.startsAt)) return setOpen({ kind: 'past', event });
         setEditor({ mode: 'edit', values: editPersonalEvent(event), eventId: event.eventId, clubId: null, startsAt: event.startsAt });
     };
     const save = async (payload: ScheduleEventUpsertInput) => {

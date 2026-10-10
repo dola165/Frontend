@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiClient } from '../../../api/axiosConfig';
 import { useAuth } from '../../../context/AuthContext';
 import { clubViewerRole } from '../../../components/club/clubViewerRole';
@@ -15,48 +15,54 @@ interface WorkspaceEntry { canOpenWorkspace: boolean; canEditFacilities: boolean
  */
 export function useClubProfile(id: number) {
     const { status, sessionId } = useAuth();
-    const [club, setClub] = useState<ClubProfile | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [failed, setFailed] = useState(false);
     const [revision, setRevision] = useState(0);
-    const [membership, setMembership] = useState<{ clubId: number | null; role: string | null }>({ clubId: null, role: null });
-    const [entry, setEntry] = useState<WorkspaceEntry | null>(null);
+    // Each answer is kept with the request it belongs to, so a newer club, account or retry never shows an older answer.
+    const clubKey = `${id}:${sessionId}:${revision}`;
+    const [result, setResult] = useState<{ key: string; club: ClubProfile | null; failed: boolean } | null>(null);
+    const memberKey = `${sessionId}:${status}:${revision}`;
+    const [membershipResult, setMembershipResult] = useState<{ key: string; clubId: number | null; role: string | null } | null>(null);
+    const entryKey = `${id}:${sessionId}:${status}`;
+    const [entryResult, setEntryResult] = useState<{ key: string; value: WorkspaceEntry | null } | null>(null);
 
     useEffect(() => {
         const controller = new AbortController();
-        setLoading(true);
         void apiClient.get<ClubProfile>(`/clubs/${id}`, { signal: controller.signal })
-            .then(response => { if (!controller.signal.aborted) { setClub(response.data); setFailed(false); } })
-            .catch(error => { if (!controller.signal.aborted) { setClub(null); setFailed(error?.response?.status !== 404); } })
-            .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+            .then(response => { if (!controller.signal.aborted) setResult({ key: clubKey, club: response.data, failed: false }); })
+            .catch(error => { if (!controller.signal.aborted) setResult({ key: clubKey, club: null, failed: error?.response?.status !== 404 }); });
         return () => controller.abort();
-    }, [id, sessionId, revision]);
-
-    const loadMembership = useCallback(async () => {
-        const context = await fetchMyClubMembershipContext().catch(() => null);
-        setMembership({ clubId: context?.clubId ?? null, role: context?.myRole ?? null });
-    }, []);
-    useEffect(() => {
-        if (status !== 'authenticated') { setMembership({ clubId: null, role: null }); return; }
-        void loadMembership();
-    }, [id, status, loadMembership]);
+    }, [id, clubKey]);
 
     useEffect(() => {
-        setEntry(null);
+        if (status !== 'authenticated') return;
+        let current = true;
+        void fetchMyClubMembershipContext().catch(() => null)
+            .then(context => { if (current) setMembershipResult({ key: memberKey, clubId: context?.clubId ?? null, role: context?.myRole ?? null }); });
+        return () => { current = false; };
+    }, [status, memberKey]);
+
+    useEffect(() => {
         if (status !== 'authenticated') return;
         const controller = new AbortController();
         void apiClient.get<WorkspaceEntry>(`/clubs/${id}/workspace-entry`, { signal: controller.signal })
-            .then(response => { if (!controller.signal.aborted) setEntry(response.data); })
-            .catch(() => { if (!controller.signal.aborted) setEntry(null); });
+            .then(response => { if (!controller.signal.aborted) setEntryResult({ key: entryKey, value: response.data }); })
+            .catch(() => { if (!controller.signal.aborted) setEntryResult({ key: entryKey, value: null }); });
         return () => controller.abort();
-    }, [id, status, sessionId]);
+    }, [id, status, entryKey]);
+
+    // While a refresh is on its way the page keeps showing the club it has.
+    const club = result && result.key.startsWith(`${id}:${sessionId}:`) ? result.club : null;
+    const loading = result?.key !== clubKey;
+    const failed = result?.key === clubKey && result.failed;
+    const setClub = (change: (previous: ClubProfile | null) => ClubProfile | null) => setResult(previous => previous ? { ...previous, club: change(previous.club) } : previous);
+    const membership = status === 'authenticated' && membershipResult && membershipResult.key.startsWith(`${sessionId}:${status}:`) ? membershipResult : { clubId: null, role: null };
+    const entry = status === 'authenticated' && entryResult?.key === entryKey ? entryResult.value : null;
 
     // Viewing your own club without a role on the profile: confirm the role through the management overview.
     useEffect(() => {
         if (!club || status !== 'authenticated' || membership.clubId !== id || club.myRole) return;
         let cancelled = false;
         void fetchClubManagementOverview(id).then(overview => {
-            if (!cancelled && overview.currentUserRole) setClub(previous => previous ? { ...previous, myRole: overview.currentUserRole } : previous);
+            if (!cancelled && overview.currentUserRole) setResult(previous => previous?.club ? { ...previous, club: { ...previous.club, myRole: overview.currentUserRole } } : previous);
         }).catch(() => undefined);
         return () => { cancelled = true; };
     }, [club, id, membership.clubId, status]);
@@ -91,16 +97,18 @@ export function useClubProfile(id: number) {
     const toggleFollow = async () => {
         if (!club) return;
         const previous = club;
-        setClub({ ...club, isFollowedByMe: !club.isFollowedByMe, followerCount: Math.max(0, club.followerCount + (club.isFollowedByMe ? -1 : 1)) });
+        setClub(() => ({ ...club, isFollowedByMe: !club.isFollowedByMe, followerCount: Math.max(0, club.followerCount + (club.isFollowedByMe ? -1 : 1)) }));
         try { await apiClient.post(`/clubs/${id}/follow`); refresh(); }
-        catch (error) { setClub(previous); throw error; }
+        catch (error) { setClub(() => previous); throw error; }
     };
-    const leftClub = async () => { await loadMembership(); refresh(); };
+    // Leaving the club changes the membership as well as the club, so both are asked again.
+    const leftClub = async () => { refresh(); };
+    const forgetMembership = () => setMembershipResult({ key: memberKey, clubId: null, role: null });
     const updateImage = async (field: 'banner' | 'logo', url: string) => {
         await apiClient.put(`/clubs/${id}`, field === 'banner' ? { bannerUrl: url } : { logoUrl: url });
         refresh();
     };
-    return { club, loading, failed, permissions, refresh, toggleFollow, leftClub, updateImage, setMembership };
+    return { club, loading, failed, permissions, refresh, toggleFollow, leftClub, updateImage, forgetMembership };
 }
 
 export type ClubPermissions = ReturnType<typeof useClubProfile>['permissions'];

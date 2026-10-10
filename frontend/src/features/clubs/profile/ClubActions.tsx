@@ -1,10 +1,8 @@
 import { Check, LayoutGrid, MessageSquare, Plus, Settings, Swords, UserPlus } from 'lucide-react';
 import { Button, ButtonLink } from '../../../design/primitives';
+import { proposeMatchPath } from './clubTabs';
 import type { ClubPermissions } from './useClubProfile';
 import type { ClubProfile } from './types';
-
-/** Where a club's staff arrange a match against this club. The form lives in World. */
-export const proposeMatchPath = (clubId: number) => `/world/matches/arrange?opponent=${clubId}`;
 
 /**
  * The header actions, chosen from the viewer's verified relationship: staff open the workspace,

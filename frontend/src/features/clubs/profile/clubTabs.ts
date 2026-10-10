@@ -26,3 +26,6 @@ export function clubTabFrom(value: string | null): ClubTab {
 
 /** Filters that belong to one tab; switching tabs clears them so the next tab starts clean. */
 export const tabFilters = ['programme', 'squad', 'age', 'q', 'staff', 'enquire', 'kind', 'type', 'period', 'week', 'view', 'opportunity', 'roleId', 'roleTitle'];
+
+/** Where another club's staff arrange a match against this club. The form lives in World. */
+export const proposeMatchPath = (clubId: number) => `/world/matches/arrange?opponent=${clubId}`;

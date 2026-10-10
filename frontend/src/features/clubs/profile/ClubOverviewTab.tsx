@@ -38,6 +38,8 @@ export function ClubOverviewTab({ club, can, onFollow, onJoin }: { club: ClubPro
     const places = useOverviewSource<PublicFacility[]>(`/clubs/${club.id}/facilities`);
     const people = useOverviewSource<PublicStaff[]>(`/clubs/${club.id}/staff-directory`);
     const newcomer = !can.connected && !can.own && !club.isFollowedByMe;
+    // Another club's staff are offered a match in the header; joining is for players and families.
+    const join = can.canJoin && !can.canChallenge;
 
     return <>
         {lead === 'family' && <ClubFamilyWeek clubId={club.id} />}
@@ -48,11 +50,11 @@ export function ClubOverviewTab({ club, can, onFollow, onJoin }: { club: ClubPro
         {newcomer && <Panel padded className="gk-club-call">
             <div className="gk-club-call__text">
                 <h2>Keep up with {club.name}</h2>
-                <p>Follow to see their posts, results and news in your Home feed.{can.canJoin ? ' Want to play or train here? See the groups, fees and how to join.' : ''}</p>
+                <p>Follow to see their posts, results and news in your Home feed.{join ? ' Want to play or train here? See the groups, fees and how to join.' : ''}</p>
             </div>
             <div className="gk-row gk-club-call__actions">
-                {can.canFollow && <Button variant={can.canJoin ? 'secondary' : 'primary'} onClick={onFollow}>Follow</Button>}
-                {can.canJoin && <Button variant="primary" onClick={onJoin}>See how to join</Button>}
+                {can.canFollow && <Button variant={join ? 'secondary' : 'primary'} onClick={onFollow}>Follow</Button>}
+                {join && <Button variant="primary" onClick={onJoin}>See how to join</Button>}
             </div>
         </Panel>}
         <Section title="Coming up" hint="Next 30 days" action={{ label: 'Full schedule', to: tabLink(club.id, 'schedule') }}>
@@ -85,10 +87,10 @@ function Fixtures({ club, source }: { club: ClubProfile; source: Source<{ events
 function Training({ club, can, onJoin }: { club: ClubProfile; can: ClubPermissions; onJoin: () => void }) {
     const programmes = overviewProgrammes(club.presentation?.programmes);
     const squads = useOverviewSource<PublicSquad[]>(`/clubs/${club.id}/squads`);
-    const foot = can.canJoin ? <div className="gk-row gk-club-training-foot"><span className="gk-muted">Choose a group to see its timetable, then arrange a first visit or ask the club.</span><Button variant="primary" size="sm" onClick={onJoin}>See how to join</Button></div> : undefined;
+    const foot = can.canJoin && !can.canChallenge ? <div className="gk-row gk-club-training-foot"><span className="gk-muted">Choose a group to see its timetable, then arrange a first visit or ask the club.</span><Button variant="primary" size="sm" onClick={onJoin}>See how to join</Button></div> : undefined;
     return <Section title="Squads and training" action={{ label: 'All squads and training', to: tabLink(club.id, 'teams') }}>
         <Panel flush footer={foot}>
-            {programmes.length ? <List label="Training programmes">{programmes.slice(0, 4).map((p, i) => <ListRow key={p.id ?? i} to={trainingPath(club.id, { programme: p.id })}
+            {programmes.length ? <List label="Training programmes" className="gk-club-programmes">{programmes.slice(0, 4).map((p, i) => <ListRow key={p.id ?? i} to={trainingPath(club.id, { programme: p.id })}
                 title={p.name}
                 meta={[programmeAge(p), p.sessionsPerWeek ? `${p.sessionsPerWeek} ${p.sessionsPerWeek === 1 ? 'session' : 'sessions'} a week` : null, p.trialAmount != null ? `Trial ${Number(p.trialAmount) === 0 ? 'free' : money(p.trialAmount, p.currency)}` : null].filter(Boolean).join(' · ')}
                 trail={<span className="gk-club-price gk-num">{programmePrice(p)}</span>} />)}</List>

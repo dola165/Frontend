@@ -11,3 +11,9 @@
 .gk .gk-profile__actions .moderation-trigger, .gk .gk-profile__actions button.gk-btn--ghost { min-height: 44px; }
 /* Career keeps its own editor; inside the profile it reads on the design-system palette. */
 .gk .gk-profile__main .mx-profile-career { --club-theme-text-primary: var(--gk-text); }
+/* On phones a status badge moves under the text so names and details keep their width. */
+@media (max-width: 520px) {
+    .gk .gk-person-layers .gk-list-row { flex-wrap: wrap; }
+    .gk .gk-person-layers .gk-list-row__main { flex-basis: calc(100% - 56px); }
+    .gk .gk-person-layers .gk-list-row__trail { flex-basis: 100%; padding-left: 52px; }
+}

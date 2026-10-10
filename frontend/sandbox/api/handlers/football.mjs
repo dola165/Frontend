@@ -551,7 +551,7 @@ post('/schedule/challenges/:id/response', ({ params, body }) => { const e = club
 // ============================================================== journeys & travel plans
 const planItinerary = p => {
   const d = p.draft, place = key => d.places.find(x => x.key === key), pub = x => x && { name: x.name, address: x.address, latitude: x.latitude, longitude: x.longitude, photoUrl: x.photoUrl };
-  return { title: d.title, timezone: d.timezone, startsAt: d.startsAt, endsAt: d.endsAt, destination: d.destination, meetingPoint: d.meetingPoint, collectionPoint: d.collectionPoint, supervisionContact: d.supervisionContact, message: d.familyMessage,
+  return { title: d.title, timezone: d.timezone, startsAt: d.startsAt, endsAt: d.endsAt, destination: d.destination, meetingPoint: d.meetingPoint, collectionPoint: d.collectionPoint, supervisionContact: d.supervisionContact, message: d.familyMessage, bring: d.bring || [],
     locations: Object.fromEntries(['meeting', 'destination', 'collection'].map(r => [r, pub(place(`plan:${r}`))])),
     activities: d.activities.map(a => ({ title: a.title, kind: a.kind, startsAt: a.startsAt, endsAt: a.endsAt, place: pub(place(a.placeKey)) })), arrangements: d.arrangements.map(a => ({ title: a.title, kind: a.kind, place: '' })) };
 };
@@ -568,13 +568,7 @@ post('/journeys/:id/reply', ({ params, body }) => { const p = F.planById(params.
 const preferences = new Map();
 get('/journeys/squads/:id/preferences', ({ params }) => ({ revision: 1, preferences: preferences.get(Number(params.id)) || { meetingPoint: 'Dinamo Academy Training Centre, Gate 2', meetMinutesBefore: 75, transport: 'MINIBUS', notifyFamilies: true } }));
 put('/journeys/squads/:id/preferences', ({ params, body }) => { preferences.set(Number(params.id), body?.preferences || body); return { revision: 2, preferences: preferences.get(Number(params.id)) }; });
-post('/journeys/from-fixture', ({ body }) => {
-  const squad = squadById(body?.squadId) || squadById(105), m = matches.find(x => x.id === Number(body?.eventId)) || matches.find(x => x.squadId === squad.id && x.status === 'SCHEDULED');
-  const v = venueById(m?.venueId) || venueById(202);
-  const p = { ...JSON.parse(JSON.stringify(F.plans[0])), id: W.newId(), squad_id: squad.id, title: `${squad.name}: ${m ? m.opponentName : 'match day'}`, published_version: 0, published_revision: null };
-  p.draft.title = p.title; p.draft.destination = v.name; p.draft.places[1] = { ...p.draft.places[1], name: v.name, address: `${v.district}, ${v.city}`, latitude: v.lat, longitude: v.lng };
-  F.plans.push(p); return reply(201, p);
-});
+// POST /journeys/from-fixture lives in map-extra.mjs.
 const planContext = () => [{ id: DINAMO, name: clubById(DINAMO).name, settings: { currency: 'GEL', timezone: TZ }, squads: F.DINAMO_SQUADS.map(s => ({ id: s.id, name: s.name, canEdit: true })),
   participants: F.DINAMO_SQUADS.flatMap(s => s.playerIds.map(id => ({ id, name: personById(id).fullName, squad_id: s.id }))),
   events: matches.filter(m => m.status === 'SCHEDULED').map(m => { const v = venueById(m.venueId); return { id: m.id, title: historyFromMatch(m).title, starts_at: iso(m.start), ends_at: iso(m.end), challenger_squad_id: m.squadId, target_squad_id: F.squadFor(m.opponentClubId, squadById(m.squadId).ageGroup, squadById(m.squadId).gender)?.id ?? 0, location_name: v?.name, location_lat: v?.lat ?? null, location_lng: v?.lng ?? null }; }),
@@ -589,13 +583,13 @@ get('/map/plans/:id/changes', () => ({ changes: [], revision: 1 }));
 put('/map/plans/:id', ({ params, body }) => { const p = F.planById(params.id); if (!p) return notFound(); if (body?.revision != null && body.revision !== p.revision) return conflict('Someone else saved this journey. Reload to see their changes.'); p.draft = body?.draft || p.draft; p.title = p.draft.title || p.title; p.revision++; p.updated_at = iso(new Date()); p.starts_at = p.draft.startsAt; return p; });
 post('/map/plans', ({ body }) => {
   const squad = squadById(body?.squadId) || squadById(105);
-  const p = { ...JSON.parse(JSON.stringify(F.plans[0])), id: W.newId(), squad_id: squad.id, title: body?.draft?.title || body?.title || `${squad.name} journey`, revision: 1, published_version: 0, published_revision: null, history: [] };
+  const p = { ...JSON.parse(JSON.stringify(F.plans[0])), id: W.newId(), squad_id: squad.id, title: body?.draft?.title || body?.title || `${squad.name} journey`, revision: 1, published_version: 0, published_revision: null, published: undefined, history: [], journeyResponses: [], familyResponses: [] };
   if (body?.draft) p.draft = body.draft; else p.draft.title = p.title;
   F.plans.push(p); return reply(201, p);
 });
 post('/map/plans/:id/:action', ({ params }) => {
   const p = F.planById(params.id); if (!p) return notFound();
-  if (params.action === 'publish') { p.published_version++; p.published_revision = p.revision; p.history.unshift({ id: W.newId(), revision: p.revision, action: 'PUBLISHED', note: 'Shared with families', created_at: iso(new Date()), actor: W.me.fullName }); }
+  if (params.action === 'publish') { p.published_version++; p.published_revision = p.revision; p.published = planItinerary(p); p.history.unshift({ id: W.newId(), revision: p.revision, action: 'PUBLISHED', note: 'Shared with families', created_at: iso(new Date()), actor: W.me.fullName }); }
   if (params.action === 'approve-budget') { p.budgetApproved = true; p.approvedBy = W.ME_ID; }
   return p;
 });

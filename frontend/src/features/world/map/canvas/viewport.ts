@@ -32,3 +32,17 @@ export function useElementSize(ref: RefObject<HTMLElement | null>) {
     }, [ref]);
     return size;
 }
+
+/**
+ * The smallest box around some points, going the short way round: a journey from Fiji to
+ * Samoa spans a few degrees across the date line, not the whole world. West stays within
+ * −180…180; east may pass 180, which the map understands.
+ */
+export function pointsBounds(points: { latitude: number; longitude: number }[]): [[number, number], [number, number]] {
+    const around = points.map(point => (point.longitude + 360) % 360).sort((a, b) => a - b);
+    let gap = -1, start = around[0];
+    around.forEach((lng, i) => { const next = i === around.length - 1 ? around[0] + 360 : around[i + 1]; if (next - lng > gap) { gap = next - lng; start = next % 360; } });
+    const lngs = around.map(lng => (lng < start ? lng + 360 : lng)), lats = points.map(point => point.latitude);
+    const shift = Math.min(...lngs) >= 180 ? 360 : 0;
+    return [[Math.min(...lngs) - shift, Math.min(...lats)], [Math.max(...lngs) - shift, Math.max(...lats)]];
+}

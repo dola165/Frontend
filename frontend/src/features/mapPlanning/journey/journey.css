@@ -1,0 +1,6 @@
+/* A journey as families read it, and place photos. Scoped under .gk; tokens only. */
+.gk .gk-journey__message { white-space: pre-line; color: var(--gk-text); line-height: var(--gk-lh-lg); }
+.gk .gk-journey__stop { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3) var(--gk-4) var(--gk-4); background: var(--gk-sunken); border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); }
+.gk .gk-place-photo { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--gk-r); background: var(--gk-raised); }
+.gk .gk-place-photo-editor { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-place-photo-editor .gk-place-photo { max-width: 320px; }

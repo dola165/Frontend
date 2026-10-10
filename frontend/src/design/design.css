@@ -68,6 +68,7 @@
 .gk .gk-fixture[data-tone='training'] { --gk-fixture-tone: var(--gk-info); }
 .gk .gk-fixture[data-tone='event'] { --gk-fixture-tone: var(--gk-violet); }
 .gk .gk-fixture[data-tone='trial'] { --gk-fixture-tone: var(--gk-warning); }
+.gk .gk-fixture[data-tone='neutral'] { --gk-fixture-tone: var(--gk-line-strong); }
 @media (max-width: 520px) { .gk .gk-fixture { grid-template-columns: 64px minmax(0, 1fr); } .gk .gk-fixture__trail { grid-column: 2; } .gk .gk-fixture--action { grid-template-columns: minmax(0, 1fr); } .gk .gk-fixture--action .gk-fixture__trail { grid-column: 1; padding-left: calc(64px + var(--gk-4)); } .gk .gk-fixture__open { grid-template-columns: 64px minmax(0, 1fr); } }
 
 /* ---------------------------------------------------------------- stat tile */
@@ -97,7 +98,8 @@
 .gk .gk-segmented__item svg { width: 16px; height: 16px; flex: none; }
 .gk .gk-segmented__item:hover { color: var(--gk-text); }
 .gk .gk-segmented__item[aria-pressed='true'] { background: var(--gk-raised); color: var(--gk-text); box-shadow: 0 0 0 1px var(--gk-line); }
-@media (max-width: 640px) { .gk .gk-segmented__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } .gk .gk-segmented__item { min-width: 44px; padding: 0; } }
+/* On phones an icon switch shows icons only; a text-only switch keeps its words and may wrap. */
+@media (max-width: 640px) { .gk .gk-segmented__item:has(> svg) .gk-segmented__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } .gk .gk-segmented__item:has(> svg) { min-width: 44px; padding: 0; } .gk .gk-segmented:not(:has(svg)) { flex-wrap: wrap; } }
 
 /* ---------------------------------------------------------------- buttons */
 .gk .gk-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--gk-2); min-height: 40px; padding: 0 var(--gk-4); border-radius: var(--gk-r); border: 1px solid transparent; font: inherit; font-weight: 600; font-size: var(--gk-fs-md); line-height: 1; white-space: nowrap; cursor: pointer; text-decoration: none; transition: background-color .15s var(--gk-ease), border-color .15s var(--gk-ease), color .15s var(--gk-ease); }

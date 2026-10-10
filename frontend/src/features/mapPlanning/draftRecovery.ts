@@ -12,6 +12,10 @@ function validDraft(value:unknown):value is PlanDraft{
  try{new Intl.DateTimeFormat(undefined,{timeZone:value.timezone as string});new Intl.NumberFormat(undefined,{style:'currency',currency:value.currency as string});if(!Number.isFinite(Date.parse(value.startsAt as string))||!Number.isFinite(Date.parse(value.endsAt as string)))return false;}catch{return false;}
  const lists=[['places',60],['activities',100],['arrangements',60]] as const;
  if(!lists.every(([key,limit])=>Array.isArray(value[key])&&(value[key] as unknown[]).length<=limit))return false;
+ // Optional additions: who else travels, vehicles and seats, and what to bring.
+ if(value.staff!==undefined&&!(Array.isArray(value.staff)&&value.staff.length<=50&&value.staff.every(Number.isSafeInteger)))return false;
+ if(value.vehicles!==undefined&&!(Array.isArray(value.vehicles)&&value.vehicles.length<=20&&value.vehicles.every(v=>object(v)&&strings(v,['key','label','driver'])&&Number.isSafeInteger(v.seats))))return false;
+ if(value.bring!==undefined&&!(Array.isArray(value.bring)&&value.bring.length<=40&&value.bring.every(item=>typeof item==='string')))return false;
  return (value.places as unknown[]).every(p=>object(p)&&strings(p,['key','name','address','type','notes'])&&typeof p.latitude==='number'&&typeof p.longitude==='number'&&Number.isFinite(p.latitude)&&Number.isFinite(p.longitude)&&Math.abs(p.latitude)<=90&&Math.abs(p.longitude)<=180)
   &&(value.activities as unknown[]).every(a=>object(a)&&strings(a,['key','title','kind','startsAt','endsAt','notes'])&&Number.isFinite(Date.parse(a.startsAt as string))&&Number.isFinite(Date.parse(a.endsAt as string)))
   &&(value.arrangements as unknown[]).every(a=>object(a)&&strings(a,['key','kind','title','notes'])&&Number.isSafeInteger(a.amountMinor));

@@ -99,7 +99,7 @@ export function ListRow({ to, onClick, className, current, onHover, ...content }
     return <li><div className={cx('gk-list-row', className)}><RowBody {...content} /></div></li>;
 }
 
-export type FixtureTone = 'match' | 'training' | 'event' | 'trial';
+export type FixtureTone = 'match' | 'training' | 'event' | 'trial' | 'neutral';
 /** The GrassKickZ fixture line: a time column in scoreboard numerals, then what, where and status. */
 export function FixtureRow({ time, day, title, meta, trail, tone = 'event', to, onClick, label }: { time: ReactNode; day?: ReactNode; title: ReactNode; meta?: ReactNode; trail?: ReactNode; tone?: FixtureTone; to?: string; onClick?: () => void; label?: string }) {
     const when = <span className="gk-fixture__when"><span className="gk-fixture__time">{time}</span>{day && <span className="gk-fixture__day">{day}</span>}</span>;

@@ -1,15 +1,53 @@
-import { useRef,useState } from 'react';
-import { createPortal } from 'react-dom';
-import { ArrowRight,RefreshCw,X } from 'lucide-react';
-import { useDialogFocus } from '../../components/workspace/useDialogFocus';
+import { useState } from 'react';
+import { RefreshCw } from 'lucide-react';
+import { Dialog } from '../../design/Dialog';
+import { Button, List, ListRow } from '../../design/primitives';
 import { extractApiErrorMessage } from '../../utils/apiError';
-import { dateTime,planGet,planPost,type Plan,type PlanDraft } from './api';
+import { dateTime, planGet, planPost, type Plan, type PlanDraft } from './api';
 
-interface Proposal { revision:number;fingerprint:string;draft:PlanDraft;changes:{activity:string;oldStart:string;newStart:string;oldEnd:string;newEnd:string;location:string}[];consequences:string[] }
-export function ChangeReview({plan,busy,onApplied,portalTarget}:{plan:Plan;busy:boolean;onApplied:(p:Plan)=>void;portalTarget:HTMLElement|null}){
-  const [proposal,setProposal]=useState<Proposal|null>(null),[working,setWorking]=useState(false),[error,setError]=useState('');const dialog=useRef<HTMLElement>(null);
-  useDialogFocus(Boolean(proposal),dialog,()=>setProposal(null));
-  const load=async()=>{setWorking(true);setError('');try{setProposal(await planGet<Proposal>(`/${plan.id}/changes`));}catch(e){setError(extractApiErrorMessage(e,'Could not review current schedule changes.'));}finally{setWorking(false);}};
-  const apply=async()=>{if(!proposal)return;setWorking(true);setError('');try{onApplied(await planPost(`/${plan.id}/apply-changes`,{revision:proposal.revision,fingerprint:proposal.fingerprint}));setProposal(null);}catch(e){setError(extractApiErrorMessage(e,'This proposal is no longer current. Review it again.'));}finally{setWorking(false);}};
-  return <><button className="mp-secondary" disabled={busy||working} onClick={()=>void load()}><RefreshCw size={14}/>{working?'Checking source…':'Review schedule changes'}</button>{error&&!proposal&&<p role="alert" className="mp-alert">{error}</p>}{proposal&&createPortal(<div className="mp-modal-backdrop"><section ref={dialog} className="mp-dialog" role="dialog" aria-modal="true" aria-labelledby="mp-change-heading"><button className="mp-dialog-close" aria-label="Close change review" onClick={()=>setProposal(null)}><X size={18}/></button><span className="atlas-eyebrow">CONNECTED SCHEDULE REVIEW</span><h2 id="mp-change-heading">A change, with its consequences.</h2><p>The draft and family version remain intact while you review the current schedule.</p>{proposal.changes.length?proposal.changes.map((c,i)=><article className="mp-inset" key={i}><h3>{c.activity}</h3><p>{dateTime(c.oldStart,plan.draft.timezone)} <ArrowRight size={12} style={{display:'inline'}}/> {dateTime(c.newStart,plan.draft.timezone)}</p><p>{c.location||'No ground specified by the schedule'}</p></article>):<p className="mp-note">No current timing or ground update can be applied. Cancelled or unavailable entries need a manual replacement or removal.</p>}<ul className="mp-change-consequences">{proposal.consequences.map(c=><li key={c}>{c}</li>)}</ul>{error&&<p role="alert" className="mp-alert">{error}</p>}<div className="mp-actions"><button className="mp-secondary" onClick={()=>setProposal(null)}>Keep current draft</button><button className="mp-primary" disabled={working||!proposal.changes.length} onClick={()=>void apply()}>Apply to draft</button></div><p className="mp-muted" style={{marginTop:12}}>After applying, edit the itinerary and arrangements as needed. This does not confirm suppliers, approve costs or publish to families.</p></section></div>,portalTarget||document.body)}</>;
+interface Proposal {
+    revision: number; fingerprint: string; draft: PlanDraft;
+    changes: { activity: string; oldStart: string; newStart: string; oldEnd: string; newEnd: string; location: string }[];
+    consequences: string[];
+}
+
+/**
+ * When a linked fixture or session moves, this shows the change and what follows from it,
+ * and applies it to the draft only when the coach agrees. Nothing is published.
+ */
+export function ChangeReview({ plan, busy, onApplied }: { plan: Plan; busy: boolean; onApplied: (plan: Plan) => void }) {
+    const [proposal, setProposal] = useState<Proposal | null>(null);
+    const [working, setWorking] = useState(false);
+    const [error, setError] = useState('');
+    const zone = plan.draft.timezone;
+    const load = async () => {
+        setWorking(true); setError('');
+        try { setProposal(await planGet<Proposal>(`/${plan.id}/changes`)); }
+        catch (cause) { setError(extractApiErrorMessage(cause, 'The schedule changes could not load.')); }
+        finally { setWorking(false); }
+    };
+    const apply = async () => {
+        if (!proposal) return;
+        setWorking(true); setError('');
+        try { onApplied(await planPost(`/${plan.id}/apply-changes`, { revision: proposal.revision, fingerprint: proposal.fingerprint })); setProposal(null); }
+        catch (cause) { setError(extractApiErrorMessage(cause, 'These changes are no longer current. Review them again.')); }
+        finally { setWorking(false); }
+    };
+    return (
+        <>
+            <Button size="sm" disabled={busy || working} onClick={() => void load()}><RefreshCw aria-hidden="true" />{working && !proposal ? 'Checking the calendar…' : 'Review schedule changes'}</Button>
+            {error && !proposal && <p className="gk-field__error" role="alert">{error}</p>}
+            <Dialog open={Boolean(proposal)} title="Schedule changes" description="The draft and the version families have stay as they are until you apply." onClose={() => setProposal(null)}
+                footer={<><Button variant="ghost" onClick={() => setProposal(null)}>Keep the draft</Button><Button variant="primary" disabled={working || !proposal?.changes.length} onClick={() => void apply()}>Apply to the draft</Button></>}>
+                {proposal?.changes.length ? (
+                    <List label="Changes">
+                        {proposal.changes.map((change, index) => <ListRow key={index} title={change.activity} meta={`${dateTime(change.oldStart, zone)} → ${dateTime(change.newStart, zone)}${change.location ? ` · ${change.location}` : ''}`} />)}
+                    </List>
+                ) : <p className="gk-muted">No timing or ground change can be applied. A cancelled or missing entry needs replacing or removing by hand.</p>}
+                {proposal && proposal.consequences.length > 0 && <ul className="gk-plan-consequences">{proposal.consequences.map(item => <li key={item}>{item}</li>)}</ul>}
+                {error && <div className="gk-notice gk-notice--danger" role="alert">{error}</div>}
+                <p className="gk-faint">Applying does not confirm suppliers, approve costs or publish to families.</p>
+            </Dialog>
+        </>
+    );
 }

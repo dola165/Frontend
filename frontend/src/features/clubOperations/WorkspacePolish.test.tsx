@@ -1,10 +1,11 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Users } from 'lucide-react';
-import { WorkspaceOverview } from './WorkspaceOverview';
 import { WorkspacePlayerPanel } from './SquadWorkbench';
-import { useWorkspaceShortcuts } from './workspaceStructure';
+import { ClubOverview } from '../clubWorkspace/overview/ClubOverview';
+import { AllTools } from '../clubWorkspace/AllTools';
+import { useWorkspacePins } from '../clubWorkspace/useWorkspacePins';
 import { apiClient } from '../../api/axiosConfig';
 import type { Bootstrap } from './api';
 import type { RolesWorkspace } from './useWorkspaceRoles';
@@ -13,42 +14,47 @@ import '../../i18n';
 
 vi.mock('../../api/axiosConfig',()=>({apiClient:{get:vi.fn().mockResolvedValue({data:[]}),post:vi.fn().mockResolvedValue({data:{}})}}));
 vi.mock('../clubs/api',()=>({fetchClubPlayers:vi.fn().mockResolvedValue({content:[],pageNumber:0,pageSize:50,totalElements:0})}));
-// Personal-work links require account context; these cases exercise club focus and shortcuts.
-vi.mock('../../components/layout/ConnectedWork',()=>({ConnectedWork:()=>null}));
+const account={id:9};
+vi.mock('../../context/AuthContext',()=>({useAuth:()=>({user:{id:account.id,navigationCapabilities:{version:1,workspaces:[]}}})}));
 const data:RolesWorkspace={leadership:true,actorId:9,current:{id:'all',label:'All',modules:['DEVELOPMENT'],squadIds:[11,12],clubWide:true,appointmentId:null,revision:null},views:[{id:'coaching',label:'Squad coach',modules:['DEVELOPMENT'],squadIds:[11],clubWide:false,appointmentId:null,revision:null}],catalog:[],requestSquads:[],squads:[{id:11,name:'U12',player_count:1},{id:12,name:'U16',player_count:1}],people:[{id:21,name:'Alex',squad_id:11,squad_name:'U12'},{id:22,name:'Sam',squad_id:12,squad_name:'U16'}],sessions:[],requests:[],invitations:[]};
 const boot:Bootstrap={clubId:1,clubName:'Academy',actorId:9,leadership:false,definitions:[],specialisations:[],permissions:[],settings:{setting:'COMMUNITY',playing_level:'AMATEUR',enabled_modules:['DEVELOPMENT','AVAILABILITY'],revision:0},modules:[{id:'DEVELOPMENT',writable:true,globalWrite:false,writeSquads:[11],readSquads:[11]},{id:'AVAILABILITY',writable:false,globalWrite:false,writeSquads:[],readSquads:[11]}],squads:data.squads,people:data.people,staff:[],guardians:[],events:[],sessions:[],venues:[],links:[]};
 const tabs:TabItem[]=[{id:'squads',label:'Squads',icon:Users},{id:'travel',label:'Travel',icon:Users},{id:'finance',label:'Finance',icon:Users}];
 const onOpen=vi.fn();
-function Home({user=9}:{user?:number}) {
-  const shortcuts=useWorkspaceShortcuts(1,user,tabs);
-  return <WorkspaceOverview data={{...data,actorId:user}} boot={boot} tabs={tabs} shortcuts={shortcuts} onOpen={onOpen} overviewProps={{overview:null,clubId:1,onTabChange:vi.fn(),canManageLeadership:true,canManageOperations:false,upcomingEvents:[],scheduleLoading:false,scheduleError:null,tryoutPendingCount:0,unreadInboxCount:0,onOpenSchedule:vi.fn(),onRetrySchedule:vi.fn()}}/>;
+function Tools() {
+  const pins=useWorkspacePins(1,tabs,true);
+  return <AllTools tabs={tabs} pins={pins} focus="all" onOpen={onOpen} showHidden={false} onShowHidden={vi.fn()} hasHidden={false}/>;
 }
-afterEach(()=>{cleanup();vi.clearAllMocks();localStorage.clear();});
+const schedule={events:[],loading:false,error:null,retry:vi.fn(),open:vi.fn(),openEvent:vi.fn()};
+afterEach(()=>{cleanup();vi.clearAllMocks();localStorage.clear();account.id=9;});
 
-it('starts with no assigned shortcuts, saves the chosen order and isolates accounts',async()=>{
-  const first=render(<MemoryRouter><Home/></MemoryRouter>);
-  fireEvent.click(screen.getByRole('button',{name:'Choose shortcuts'}));
-  const dialog=screen.getByRole('dialog',{name:'Your shortcuts'});
-  fireEvent.click(within(dialog).getByRole('button',{name:/Squads Your players/}));
-  fireEvent.click(within(dialog).getByRole('button',{name:/Travel Organise trips/}));
-  fireEvent.click(within(dialog).getByRole('button',{name:'Move Travel up'}));
-  expect(JSON.parse(localStorage.getItem('gk-club-shortcuts-v1:1:9')!)).toEqual(['travel','squads']);
-  fireEvent.click(within(dialog).getByRole('button',{name:'Done'}));
-  expect(within(screen.getByRole('region',{name:'Personal shortcuts'})).getAllByRole('button').slice(1).map(b=>b.textContent)).toEqual(['Travel','Squads']);
-  await waitFor(()=>expect(apiClient.get).toHaveBeenCalled());first.unmount();
-  render(<MemoryRouter><Home user={10}/></MemoryRouter>);
-  expect(screen.getByRole('button',{name:'Choose shortcuts'})).toBeVisible();
-  await waitFor(()=>expect(apiClient.get).toHaveBeenCalled());
+it('pins tools as top-bar pins, keeps the chosen order and isolates accounts',()=>{
+  const first=render(<MemoryRouter><Tools/></MemoryRouter>);
+  fireEvent.click(screen.getByRole('button',{name:'Pin Squads'}));
+  fireEvent.click(screen.getByRole('button',{name:'Pin Travel'}));
+  fireEvent.click(screen.getByRole('button',{name:'Move Travel up'}));
+  expect(JSON.parse(localStorage.getItem('gk-pins:v1:9')!).pins.map((pin:{path:string})=>pin.path)).toEqual(['/clubs/1/workspace?tab=travel','/clubs/1/workspace?tab=squads']);
+  first.unmount();
+  account.id=10;
+  render(<MemoryRouter><Tools/></MemoryRouter>);
+  expect(screen.getByText('Nothing pinned yet')).toBeVisible();
 });
 
-it('personal coaching focus narrows the overview without changing access or submitting role requests',async()=>{
-  render(<MemoryRouter><Home/></MemoryRouter>);
-  fireEvent.change(screen.getByRole('combobox',{name:'Overview focus'}),{target:{value:'view:coaching'}});
-  expect(screen.getByRole('button',{name:/U12 1 players/})).toBeVisible();
-  expect(screen.queryByRole('button',{name:/U16 1 players/})).not.toBeInTheDocument();
-  expect(localStorage.getItem('gk-club-overview:1:9')).toBe('view:coaching');
-  fireEvent.click(screen.getByRole('button',{name:'Choose shortcuts'}));
-  expect(within(screen.getByRole('dialog')).getByRole('button',{name:/Finance/})).toBeVisible();
+it('carries shortcuts chosen before pins existed over once',()=>{
+  account.id=11;
+  localStorage.setItem('gk-club-shortcuts-v1:1:11',JSON.stringify(['travel','unknown']));
+  render(<MemoryRouter><Tools/></MemoryRouter>);
+  expect(JSON.parse(localStorage.getItem('gk-pins:v1:11')!).pins.map((pin:{path:string})=>pin.path)).toEqual(['/clubs/1/workspace?tab=travel']);
+  expect(localStorage.getItem('gk-club-shortcuts-v1:1:11')).toBeNull();
+});
+
+it('focusing on one squad narrows the overview without changing access or submitting role requests',async()=>{
+  render(<MemoryRouter><ClubOverview clubId={1} clubName="Academy" overview={null} roles={data} boot={boot} schedule={schedule} unreadInbox={0} inboxAllowed={false} tryoutPending={0}
+    canManageOperations={false} canManageLeadership tabs={tabs} pinned={[]} onOpen={onOpen}/></MemoryRouter>);
+  expect(screen.getByRole('button',{name:/^U16/})).toBeVisible();
+  fireEvent.click(screen.getByRole('button',{name:'U12',pressed:false}));
+  expect(screen.getByRole('button',{name:/^U12 Next training|^U12 No training/})).toBeVisible();
+  expect(screen.queryByRole('button',{name:/^U16/})).not.toBeInTheDocument();
+  expect(localStorage.getItem('gk-club-overview:1:9')).toBe('squad:11');
   expect(apiClient.post).not.toHaveBeenCalled();
   await waitFor(()=>expect(apiClient.get).toHaveBeenCalledWith(expect.stringContaining('module=HOME&squad=11'),expect.anything()));
 });

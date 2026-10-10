@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { ArrowLeft, ArrowRight, Search, Shield, Users } from 'lucide-react';
 import type { RolesWorkspace } from './useWorkspaceRoles';
 import type { Bootstrap } from './api';
-import type { OpenWorkspace } from './WorkspaceHome';
+import type { OpenWorkspace } from './workspaceStructure';
 import { SquadWorkbench, WorkspacePlayerPanel } from './SquadWorkbench';
 import '../../components/squads/squad-design.css';
+import './workspace-home.css';
+import './workspace-polish.css';
 
 export function WorkspaceSquads({data,boot,squad,onSquad,onOpen,playersOnly=false}:{data:RolesWorkspace;boot:Bootstrap|null;squad:string;onSquad:(id:string)=>void;onOpen:OpenWorkspace;canManage:boolean;playersOnly?:boolean}) {
   const [query,setQuery]=useState(''),[player,setPlayer]=useState<RolesWorkspace['people'][number]|null>(null);

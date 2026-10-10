@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { commandAdmission } from '../api';
 import type { AdmissionCase, AdmissionWorkspace, CaseCommand, CommandBase, Opportunity, Participation, Requirement } from '../types';
 import type { AuthSessionId } from '../../../utils/authStorage';
-import type { OpenWorkspace } from '../../clubOperations/WorkspaceHome';
+import type { OpenWorkspace } from '../../clubOperations/workspaceStructure';
 import { useClubAdmissionCopy, type ClubAdmissionCopyKey } from './copy';
 import { AdmissionDate, AdmissionEmpty, AdmissionError, AdmissionField, AdmissionLinkButton, AdmissionPanel, AdmissionPill, AdmissionSessionHeading } from './ui';
 import { ownerCopy, nextCopy, participationCopy, offerCopy, requirementCopy, stageCopy, localInput, utcInput } from './domain';

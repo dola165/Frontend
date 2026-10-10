@@ -1,34 +1,16 @@
 import { AppointmentSummary } from './AppointmentSummary';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { CalendarCheck2, ClipboardCheck, MailOpen, UsersRound } from 'lucide-react';
+import { MailOpen } from 'lucide-react';
 import { StaffScopePicker, type StaffScopeSelection } from './StaffScopePicker';
 import { scopePayload } from './api';
 import { appointmentScope } from './api';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useClubEditorClose } from './useClubEditorClose';
 import { Link } from 'react-router-dom';
 import { type RolesWorkspace, rolesRoot } from './useWorkspaceRoles';
-import { get, post, root, moduleNames, label, type Choice, type OperationRecord } from './api';
+import { get, post, root, moduleNames, label, type Choice } from './api';
 import { extractApiErrorMessage } from '../../utils/apiError';
-import type { WorkspaceTab } from '../../components/workspace/types';
-import { operationTabs } from './workspaceNavigation';
 import './workspace-roles.css';
-
-export function RoleDay({data,club,onTab,enabledModules}:{data:RolesWorkspace;club:number;onTab:(tab:WorkspaceTab)=>void;enabledModules?:string[]}) {
- const [actions,setActions]=useState<OperationRecord[]>([]),[error,setError]=useState('');
- const view=data.current;
- useEffect(()=>{const c=new AbortController();if(view.modules.length)void get<OperationRecord[]>(`${rolesRoot(club)}/records?view=${encodeURIComponent(view.id)}&module=HOME`,c.signal).then(v=>{if(!c.signal.aborted)setActions(v);}).catch(()=>{if(!c.signal.aborted)setError('Could not load outstanding actions.');});return()=>c.abort();},[club,view]);
- const training=data.current.modules.some(m=>['ATTENDANCE','DEVELOPMENT'].includes(m));
- const modules=operationTabs.filter(t=>data.current.modules.includes(t.module)&&(!enabledModules||enabledModules.includes(t.module))&&!['STAFF','CREDENTIALS','SPECIALISTS'].includes(t.module));
- return <section className="role-day"><header className="role-page-heading"><h1>Your day</h1><p>{data.current.label} · {data.current.clubWide?'Whole club':data.squads.map(s=>s.name).join(', ')||'No squad assigned'}</p></header>
- <div className="role-day-columns"><section><h2>{training?'Coming up':'Needs attention'}</h2>{training?(data.sessions.length?data.sessions.slice(0,8).map(s=><div className="role-agenda-row" key={s.id}><time>{new Date(s.starts_at).toLocaleDateString(undefined,{day:'numeric',month:'short'})}<small>{new Date(s.starts_at).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}</small></time><div><strong>{s.title}</strong><p>{s.squad_name}</p></div></div>):<EmptyState compact icon={CalendarCheck2} title="No training sessions in the next two weeks." description="Upcoming sessions for your assigned squads will appear here, with the time and team together."/>):actions.length?actions.slice(0,8).map(r=><div className="role-agenda-row" key={r.id}><div><strong>{r.title}</strong><p>{label(r.status)}{r.attentionDate?` · ${r.attentionDate}`:''}</p></div></div>):!error&&<EmptyState compact icon={ClipboardCheck} title="No outstanding actions for this role." description="Decisions and deadlines for your approved responsibilities will appear here when they need attention."/>}{error&&<p role="alert">{error}</p>}{data.current.modules.length>0&&<button type="button" className="role-text-button" onClick={()=>onTab('actions')}>View outstanding actions{actions.length?` (${actions.length})`:''} →</button>}</section>
- <section><h2>Your tools</h2><div className="role-tool-list">{modules.map(t=><button type="button" key={t.id} onClick={()=>onTab(t.id)}><t.icon size={17}/><span>{t.label}</span><span aria-hidden>→</span></button>)}</div>{!modules.length&&<p className="role-muted">Request a staff role to start using the club workspace.</p>}<button type="button" className="role-text-button" onClick={()=>onTab('my-role')}>Your roles & requests →</button></section></div></section>;
-}
-export function RolePeople({data,squads=false,onTab}:{data:RolesWorkspace;squads?:boolean;onTab:(tab:WorkspaceTab)=>void}) {
- const [query,setQuery]=useState(''),[squad,setSquad]=useState('');
- const people=data.people.filter(p=>(!squad||String(p.squad_id)===squad)&&p.name.toLowerCase().includes(query.toLowerCase()));
- return <section><header className="role-page-heading"><h1>{squads?'Your squads':'Your players'}</h1><p>{data.current.label} · {data.current.clubWide?'Whole club':'Assigned squads'}</p></header>{squads?<div className="role-squad-list">{data.squads.map(s=><article key={s.id}><h2>{s.name}</h2><p>{s.player_count} players</p><button type="button" onClick={()=>onTab('my-people')}>View players →</button></article>)}{!data.squads.length&&<EmptyState icon={UsersRound} title="No squads assigned to this role yet." description="Club leadership assigns squads to your responsibility. Once assigned, you can open their players and shared work here."/>}</div>:<><div className="role-filters"><input aria-label="Find a player" placeholder="Find a player…" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Filter by squad" value={squad} onChange={e=>setSquad(e.target.value)}><option value="">All assigned squads</option>{data.squads.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></div><div className="role-people-list">{people.map(p=><div key={`${p.id}-${p.squad_id}`}><Link to={`/profile/${p.id}`}>{p.name}</Link><span>{p.squad_name}</span></div>)}</div>{!people.length&&<EmptyState icon={UsersRound} title="No players match this view." description="Try another name or squad. This view includes only players shared with your current responsibility." action={{label:"Clear filters",onClick:()=>{setQuery('');setSquad('');}}}/>}</>}</section>;
-}
 
 export function WorkspaceRolesPanel({club,data,admin=false,onChanged}:{club:number;data:RolesWorkspace;admin?:boolean;onChanged:()=>void}) {
  const [role,setRole]=useState(data.catalog[0]?.key??''),[scope,setScope]=useState<StaffScopeSelection>({clubWide:false,squadIds:[]}),[replace,setReplace]=useState(''),[note,setNote]=useState('');

@@ -78,7 +78,6 @@
 .home-opportunity-strip .opportunity-link { padding: 12px; }
 .workspace-shortcut { border: 1px solid var(--theme-border); border-radius: 12px; margin-bottom: 8px; }
 .workspace-shortcut .home-shortcut-icon { background: var(--accent-primary-soft); }
-.workspace-shortcut-group { margin-bottom: 8px; border: 1px solid var(--theme-border); border-radius: 12px; }
 @media (min-width: 1280px) {
   .home-opportunity-strip { display: none; }
 }
@@ -100,9 +99,6 @@
 .landing-map-viewport > .map-experience-embedded { position: absolute; inset: 0; height: 100%; min-height: 0; max-height: 100%; }
 .landing-content-frame > * { min-width: 0; }
 @media (max-width: 639px) { .landing-map-viewport { height: 520px; max-height: 75dvh; } }
-@media (max-width: 1023px) {
-  .workspace-sidebar, .workspace-context-panel, .workspace-sidebar-backdrop, .workspace-context-backdrop { top: var(--app-active-header-height); }
-}
 @media (prefers-reduced-motion: reduce) {
   .opportunity-link { animation: none; transition: none; }
 }

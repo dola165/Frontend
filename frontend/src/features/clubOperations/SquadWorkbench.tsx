@@ -8,11 +8,12 @@ import { SessionRegister } from './SessionRegister';
 import type { RolesWorkspace } from './useWorkspaceRoles';
 import { get, post, root, label, type Bootstrap, type OperationRecord } from './api';
 import { operationTab, operationTabs } from './workspaceNavigation';
-import type { OpenWorkspace } from './WorkspaceHome';
+import type { OpenWorkspace } from './workspaceStructure';
 import { useDialogFocus } from '../../components/workspace/useDialogFocus';
 import type { SquadRosterPlayer } from '../../components/squads/SquadRosterTable';
 import { useClubEditorClose } from './useClubEditorClose';
 import { extractApiErrorMessage } from '../../utils/apiError';
+import './workspace-polish.css';
 
 function canReadSquad(boot:Bootstrap|null,module:string,squad:number) {
   return Boolean(boot?.modules.some(m=>m.id===module&&(m.globalRead||m.readSquads?.includes(squad))));

@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, RefreshCw, Users } from 'lucide-react';
 import type { AdmissionCase, AdmissionInquiry, Choice, Opportunity } from '../types';
 import type { AuthSessionId } from '../../../utils/authStorage';
-import type { OpenWorkspace } from '../../clubOperations/WorkspaceHome';
+import type { OpenWorkspace } from '../../clubOperations/workspaceStructure';
 import { useClubAdmissionCopy } from './copy';
 import { availabilityCopy, methodCopy, nextCopy, ownerCopy, participationCopy, stageCopy } from './domain';
 import { AdmissionDate, AdmissionEmpty, AdmissionError, AdmissionField, AdmissionLinkButton, AdmissionPanel, AdmissionPill } from './ui';

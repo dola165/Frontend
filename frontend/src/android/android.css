@@ -21,9 +21,6 @@ html.android-app { --app-header-height: 0px; --app-active-header-height: 0px; ov
   .android-app .atlas-view-controls, .android-app .maplibregl-ctrl-group { display: none; }
 }
 @media (max-width: 600px) {
-  .android-app .workspace-mobile-bar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; padding-inline: 12px; }
-  .android-app .workspace-mobile-bar > button { padding-inline: 9px; }
-  .android-app .workspace-mobile-bar > div { overflow: hidden; }
   .android-app .store-variant-row { display: grid; grid-template-columns: minmax(0, 1fr) 96px; }
   .android-app .store-variant-row > label { min-width: 0; width: auto; }
   .android-app .store-variant-row > button { grid-column: 1 / -1; justify-self: start; }

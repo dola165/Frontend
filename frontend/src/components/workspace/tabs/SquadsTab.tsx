@@ -2,7 +2,7 @@ import { SquadWorkbench, WorkspacePlayerPanel } from '../../../features/clubOper
 import { SquadAgePolicy } from '../../../features/clubOperations/SquadAgePolicy';
 import type { RolesWorkspace } from '../../../features/clubOperations/useWorkspaceRoles';
 import type { Bootstrap } from '../../../features/clubOperations/api';
-import type { OpenWorkspace } from '../../../features/clubOperations/WorkspaceHome';
+import type { OpenWorkspace } from '../../../features/clubOperations/workspaceStructure';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutGrid, List, Loader2, Pencil, Plus, Search, Shield, Trash2, Users, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

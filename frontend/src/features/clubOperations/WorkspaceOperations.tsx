@@ -14,6 +14,7 @@ import { operationDescriptions } from './workspaceNavigation';
 import './operations.css';
 import './workspace-operations.css';
 import './staff-team.css';
+import './workspace-home.css';
 export function WorkspaceOperations({ boot, module, onRefresh }: { boot: Bootstrap; module: string; onRefresh: () => Promise<void>; roleView?: string }) {
   const [params, setParams] = useSearchParams();
   const [result,setResult]=useState<{key:string;records:OperationRecord[];error:string}|null>(null);

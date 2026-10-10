@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Search } from 'lucide-react';
 import { get, post, root, label, type Bootstrap, type OperationRecord } from './api';
+import './workspace-home.css';
 import { extractApiErrorMessage } from '../../utils/apiError';
 import { useClubEditorClose } from './useClubEditorClose';
 import { TrainingVisitorsRegister } from './TrainingVisitorsRegister';

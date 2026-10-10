@@ -34,32 +34,15 @@
   color: var(--color-text);
   background: var(--color-page);
 }
-.workspace-refresh .workspace-page-main {
-  background: var(--fc-page-bg);
-}
 .club-workspace-shell.workspace-refresh .workspace-tab-content {
   max-width: 1424px;
   margin-inline: auto;
   padding: 12px clamp(20px, 3vw, 48px) 48px;
 }
-.club-workspace-shell.workspace-refresh .work-breadcrumb {
-  width: 100%;
-  max-width: 1424px;
-  margin-inline: auto;
-  padding-inline: clamp(20px, 3vw, 48px);
-  min-height: 56px;
-}
-.workspace-refresh .workspace-sidebar { background: var(--fc-sidebar-bg); }
-.workspace-refresh .work-navigation button[aria-current="page"] {
-  color: var(--fc-accent);
-  background: var(--fc-accent-soft);
-  border-left: 2px solid var(--fc-accent);
-}
 .workspace-refresh :is(button, a, input, select, textarea):focus-visible {
   outline: 2px solid var(--fc-accent);
   outline-offset: 3px;
 }
-.workspace-refresh :is(.sd-panel, .wo-shortcuts, .wo-personal, .sw-active-squad) { border-radius: 14px; }
 .workspace-refresh :is(.sd-heading, .sw-page-header, .wi-heading, .workspace-section-heading) { margin-bottom: 24px; }
 .workspace-refresh :is(.sd-heading h1, .sw-heading, .wi-heading h1, .workspace-section-heading h1) {
   font-size: clamp(28px, 2.5vw, 38px);
@@ -69,45 +52,6 @@
 }
 
 /* Overview keeps real counts, decisions, sampled consent coverage and focus. */
-.workspace-refresh .club-overview-primary { display: grid; gap: 22px; min-width: 0; }
-.workspace-refresh .club-overview-main-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; }
-.workspace-refresh .club-overview-side { gap: 22px; }
-.workspace-refresh .club-overview-heading-actions { flex-direction: row; align-items: center; }
-.workspace-refresh .club-overview-stats { border: 0; gap: 16px; margin-bottom: 24px; }
-.workspace-refresh .club-overview-stat {
-  border: 1px solid var(--sd-border);
-  background: var(--sd-surface);
-  border-radius: 14px;
-  padding: 16px;
-  min-height: 74px;
-  gap: 10px;
-}
-.workspace-refresh .club-overview-stat:first-child { padding-left: 16px; }
-.workspace-refresh .club-overview-stat > span { font-size: 12px; }
-.workspace-refresh .club-overview-stat > span svg {
-  box-sizing: content-box;
-  background: var(--sd-elevated);
-  border-radius: 10px;
-  padding: 10px;
-}
-.workspace-refresh .club-overview-panel-heading .sd-eyebrow + h2 { font-size: 21px; }
-.workspace-refresh .club-overview-event-first { background: var(--color-inset); border-radius: 11px; padding: 16px; }
-.workspace-refresh .club-overview-event-first .club-overview-event-info > strong { font-size: 15px; }
-.workspace-refresh .club-overview-event-date {
-  width: 52px;
-  padding: 10px 6px;
-  background: var(--sd-surface);
-  border: 1px solid var(--sd-border);
-  border-radius: 9px;
-}
-.workspace-refresh .club-overview-event-date strong { font-size: 24px; }
-.workspace-refresh .club-overview-panel-link { background: var(--color-inset); border-radius: 0 0 13px 13px; }
-.workspace-refresh .club-overview-review { border: 1px solid var(--sd-border); border-radius: 10px; padding: 12px; margin-bottom: 8px; }
-.workspace-refresh .club-overview-review-count { font-size: 17px; }
-.workspace-refresh .wo-personal-icon { background: var(--sd-accent-soft); border-color: var(--fc-accent-border); }
-.workspace-refresh .wo-shortcuts { margin: 0; }
-.workspace-refresh .wo-squads > div { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.workspace-refresh .wo-squads > div > button { border-radius: 11px; padding: 14px 12px; background: var(--sd-surface); }
 
 /* The Inbox owns its context rail, so it remains within the bounded canvas. */
 .wi-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -164,8 +108,6 @@
 .workspace-refresh .workspace-record-table td { overflow-wrap: anywhere; }
 .workspace-refresh .workspace-record-table td:first-child button { white-space: normal; }
 .workspace-refresh :is(.work-record-filter, .workspace-record-tools) { flex-wrap: wrap; }
-.workspace-refresh :is(.workspace-staff-tabs, .workspace-record-tabs) { gap: 20px; }
-.workspace-refresh :is(.workspace-staff-tabs, .workspace-record-tabs) button { min-height: 44px; }
 .workspace-refresh :is(.staff-administration, .work-panel, .work-context-banner, .ops-card, .ops-detail, .workspace-create-choices) { border-radius: 14px; }
 .workspace-refresh .workspace-editor__section { border-top: 1px solid var(--fc-border); }
 .workspace-refresh .work-context-banner { overflow-wrap: anywhere; }
@@ -281,7 +223,6 @@
 .workspace-refresh .sw-roster-header { background: var(--sd-surface); padding: 22px; border: 1px solid var(--sd-border); border-bottom: 0; border-radius: 14px 14px 0 0; }
 .workspace-refresh .wo-squad-nav { background: var(--sd-surface); border: 1px solid var(--sd-border); border-top: 0; border-radius: 0 0 14px 14px; padding: 0 22px 18px; }
 .workspace-refresh .sw-squad-mark { background: var(--sd-accent-soft); border-color: var(--fc-accent-border); }
-.workspace-refresh .sw-roster-controls { background: var(--color-inset); }
 .workspace-refresh .sr-table-scroll { border-radius: 11px; }
 .workspace-refresh .sr-table th { background: var(--color-inset); }
 .workspace-refresh .sr-table tbody tr:hover { background: var(--sd-elevated); }
@@ -315,41 +256,17 @@
 .workspace-refresh .wo-squad-nav .sd-segments button[aria-pressed="true"] { color: var(--color-on-accent); background: var(--sd-accent); }
 
 @media (max-width: 1200px) {
-  .workspace-refresh .club-overview-stat > span svg { padding: 7px; }
-  .workspace-refresh .club-overview-stat { padding: 14px 12px; gap: 7px; }
-  .workspace-refresh .wo-squads > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .wi-layout { grid-template-columns: minmax(0, 1fr) 240px; gap: 18px; }
 }
 @media (max-width: 1023px) {
-  .club-workspace-shell.workspace-refresh .workspace-mobile-bar {
-    display: grid;
-    width: 100%;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 8px;
-    padding-inline: 12px;
-  }
-  .workspace-refresh .workspace-mobile-bar > button { min-height: 44px; padding-inline: 9px; }
-  .workspace-refresh .workspace-mobile-bar > div { overflow: hidden; }
   .club-workspace-shell.workspace-refresh .workspace-tab-content { padding: 12px 20px 40px; }
-  .club-workspace-shell.workspace-refresh .work-breadcrumb { padding-inline: 20px; }
 }
 @media (max-width: 760px) {
-  .workspace-refresh .club-overview-main-grid, .wi-layout { grid-template-columns: minmax(0, 1fr); }
-  .workspace-refresh .club-overview-side { grid-template-columns: minmax(0, 1fr); }
-  .workspace-refresh .club-overview-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .workspace-refresh .club-overview-stat > span { flex-direction: row; align-items: center; font-size: 11px; }
-  .workspace-refresh .club-overview-stat > strong { font-size: 23px; }
-  .workspace-refresh .club-overview-stat > svg { display: none; }
+  .wi-layout { grid-template-columns: minmax(0, 1fr); }
   .wi-context { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 480px) {
   .club-workspace-shell.workspace-refresh .workspace-tab-content { padding-inline: 14px; }
-  .club-workspace-shell.workspace-refresh .work-breadcrumb { padding-inline: 14px; }
-  .workspace-refresh .club-overview-heading-actions { flex-wrap: wrap; }
-  .workspace-refresh .club-overview-stat > span { flex-direction: column; align-items: flex-start; }
-  .workspace-refresh .club-overview-event-first { gap: 10px; padding: 12px; }
-  .workspace-refresh .club-overview-panel-heading { padding-inline: 16px; }
-  .workspace-refresh .wo-squads > div { grid-template-columns: minmax(0, 1fr); }
   .workspace-refresh .sw-roster-header { padding: 16px; }
   .workspace-refresh .wo-squad-nav { padding-inline: 16px; }
   .wi-heading { flex-wrap: wrap; }
@@ -358,11 +275,6 @@
   .workspace-inbox .wi-item > button > div > div:last-child > div:first-child { flex-direction: column; gap: 7px; }
   .wi-context { grid-template-columns: minmax(0, 1fr); }
   .workspace-refresh :is(.sd-button, .sd-primary, .sd-icon-button, .wi-area-links button, .wi-mark-read, .wi-filters select) { min-height: 44px; }
-}
-@container club-overview (max-width: 760px) {
-  .workspace-refresh .club-overview-main-grid { grid-template-columns: minmax(0, 1fr); }
-  .workspace-refresh .club-overview-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .workspace-refresh .club-overview-stat > span { font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .workspace-refresh * { scroll-behavior: auto; }

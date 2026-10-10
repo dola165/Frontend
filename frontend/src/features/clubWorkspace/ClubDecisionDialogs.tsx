@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { DecisionNoteModal } from '../../components/workspace/tabs/DecisionNoteModal';
+import { DecisionNoteModal } from './recruitment/DecisionNoteModal';
 import type { ClubMembership } from './useClubMembership';
 
 /** Notes and confirmations for membership decisions: accepting or declining applications and tryouts, and releasing players. */

@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import '../../../../i18n';
-import { ApplicationsTab, type ApplicationFilters } from '../ApplicationsTab';
-import type { ClubMembershipApplication } from '../../../../features/clubs/domain';
-import type { RecruitmentReceipt } from '../../../../features/recruitment/RecruitmentApplication';
+import '../../../i18n';
+import { ApplicationsPage, type ApplicationFilters } from './ApplicationsPage';
+import type { ClubMembershipApplication } from '../../clubs/domain';
+import type { RecruitmentReceipt } from '../../recruitment/RecruitmentApplication';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), refresh: vi.fn() }));
-vi.mock('../../../../api/axiosConfig', () => ({ apiClient: api, DEPLOYMENT_URLS: { mediaBaseUrl: 'http://localhost' } }));
-vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => ({ refreshNavigationCapabilities: api.refresh }) }));
+vi.mock('../../../api/axiosConfig', () => ({ apiClient: api, DEPLOYMENT_URLS: { mediaBaseUrl: 'http://localhost' } }));
+vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ refreshNavigationCapabilities: api.refresh }) }));
 
 const pendingA: ClubMembershipApplication = {
     id: 501, userId: 21, fullName: 'Luka Trialist', username: 'luka.trial', avatarUrl: null,
@@ -56,7 +56,7 @@ beforeEach(() => {
     });
 });
 
-const renderTab = (overrides: Partial<Parameters<typeof ApplicationsTab>[0]> = {}) => {
+const renderTab = (overrides: Partial<Parameters<typeof ApplicationsPage>[0]> = {}) => {
     const props = {
         applications: [pendingA, pendingB, declined],
         applicationsLoading: false,
@@ -70,11 +70,11 @@ const renderTab = (overrides: Partial<Parameters<typeof ApplicationsTab>[0]> = {
         onRetry: vi.fn(),
         ...overrides,
     };
-    render(<MemoryRouter><ApplicationsTab {...props} /></MemoryRouter>);
+    render(<MemoryRouter><ApplicationsPage {...props} /></MemoryRouter>);
     return props;
 };
 
-describe('ApplicationsTab — phase A3 triage', () => {
+describe('Applications — triage', () => {
     it('renders the inline applicant summary chips', () => {
         renderTab();
         expect(screen.getByText('15y')).toBeInTheDocument();
@@ -224,9 +224,10 @@ describe('ApplicationsTab — phase A3 triage', () => {
         expect(props.onAcceptApplication).not.toHaveBeenCalled();
     });
 
-    it('sorts applicants by the applicant column despite the leading selection column', () => {
+    it('orders applicants by name when asked', () => {
         renderTab();
-        fireEvent.click(screen.getByRole('button', { name: /Applicant.*⇅/ }));
-        expect(within(screen.getAllByRole('row')[1]).getByText('Adult Coach Candidate')).toBeInTheDocument();
+        fireEvent.change(screen.getByLabelText('Order'), { target: { value: 'applicant' } });
+        const rows = within(screen.getByRole('list', { name: 'Applications' })).getAllByRole('listitem');
+        expect(within(rows[0]).getByText('Adult Coach Candidate')).toBeInTheDocument();
     });
 });

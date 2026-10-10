@@ -6,7 +6,7 @@ import { fetchClubAgentEngagements, respondToEngagement } from '../../../feature
 import type { AgentEngagement } from '../../../features/agents/domain';
 import { EmptyState, PageSpinner, SectionHeader } from '../helpers';
 import { extractApiErrorMessage } from '../../../utils/apiError';
-import { DecisionNoteModal } from './DecisionNoteModal';
+import { DecisionNoteModal } from '../../../features/clubWorkspace/recruitment/DecisionNoteModal';
 
 interface AgentEngagementsTabProps {
     clubId: number;

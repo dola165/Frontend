@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import '../../../../i18n';
-import { DecisionNoteModal } from '../DecisionNoteModal';
+import '../../../i18n';
+import { DecisionNoteModal } from './DecisionNoteModal';
 
 const baseProps = {
     title: 'Accept application',

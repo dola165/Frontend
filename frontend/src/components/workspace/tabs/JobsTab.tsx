@@ -12,7 +12,7 @@ import {
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import type { ClubMembershipApplication } from '../../../features/clubs/domain';
 import { ErrorBlock, PageSpinner, Pill, SectionHeader } from '../helpers';
-import { DecisionNoteModal } from './DecisionNoteModal';
+import { DecisionNoteModal } from '../../../features/clubWorkspace/recruitment/DecisionNoteModal';
 import { EditorChecklist, EditorDiscardPrompt, EditorSection, WorkspaceEditor } from '../editor/WorkspaceEditor';
 import { JevAdvice } from '../../../features/jev/JevAdvice';
 

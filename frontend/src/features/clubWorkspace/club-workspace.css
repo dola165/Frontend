@@ -96,3 +96,4 @@
 .gk .cw-option__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .gk .cw-option__text strong { font-weight: 600; }
 .gk .cw-option__text span { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); color: var(--gk-text-2); }
+.gk .cw-focus-note { padding-top: var(--gk-4); }

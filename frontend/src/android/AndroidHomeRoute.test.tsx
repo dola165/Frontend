@@ -15,7 +15,7 @@ vi.mock('../context/AuthContext', () => ({
         user: { id: 1, role: 'FAN', fullName: 'Test', onboardingRequired: false }, logout: vi.fn() }),
 }));
 vi.mock('../features/clubs/api', () => ({ fetchMyClubMembershipContext: vi.fn() }));
-vi.mock('../components/layout/TopNav', () => ({ TopNav: () => null }));
+vi.mock('../components/layout/header/AppHeader', () => ({ AppHeader: () => null }));
 vi.mock('../pages/LoginPage', () => ({ LoginPage: () => null }));
 vi.mock('../pages/FeedPage', () => ({ FeedPage: () => <h1>Home feed</h1> }));
 vi.mock('../components/layout/LeftSidebar', () => {

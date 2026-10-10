@@ -26,7 +26,7 @@
   --color-media-surface: #0c1510;
   --map-control-icon-filter: none;
 }
-:root.dark, .map-force-dark, .theme-force-dark, .top-nav-force-dark {
+:root.dark, .map-force-dark, .theme-force-dark {
   color-scheme: dark;
   --color-page: #09090b;
   --color-surface: #18181b;
@@ -51,8 +51,7 @@
   --color-media-surface: #060608;
   --map-control-icon-filter: invert(1);
 }
-/* Retain the existing slate palette of the header, feed and professional profiles. */
-.top-nav-force-dark,
+/* Retain the existing slate palette of the feed and professional profiles. */
 .dark .feed-home-shell,
 .dark .club-page-shell:not(.map-force-light) {
   --color-page: #0e1318;
@@ -66,12 +65,10 @@
   --color-ink: #f2f6fa;
   --color-accent: #00e676;
 }
-.top-nav-force-dark { --color-accent: #00ff6e; }
 /* Approved Home and public club surfaces. Home's primary accent is updated below. */
 .dark .feed-home-shell,
 .dark .club-design-scope,
-.dark .club-design-scope.club-page-shell:not(.map-force-light),
-.top-nav-home.top-nav-force-dark {
+.dark .club-design-scope.club-page-shell:not(.map-force-light) {
   --color-page: #090d12;
   --color-surface: #131821;
   --color-elevated: #1c222d;
@@ -89,21 +86,18 @@
   --color-info: #8cb9e8;
 }
 /* Home keeps its approved layout and surfaces, with the product's green actions. */
-.feed-home-shell,
-.top-nav-feed.top-nav-light {
+.feed-home-shell {
   --color-accent: #146b3c;
   --color-on-accent: #ffffff;
 }
-.dark .feed-home-shell,
-.top-nav-feed.top-nav-home.top-nav-force-dark {
+.dark .feed-home-shell {
   --color-accent: #00e676;
   --color-on-accent: #06110b;
 }
 /* The refreshed product uses the private-work palette. Local map geography and
    the excluded Home/public identity surfaces retain their own palettes. */
 html.product-design-active:not(.dark),
-.club-design-scope,
-.top-nav-home.top-nav-light {
+.club-design-scope {
   --color-page: #f3f5f4;
   --color-surface: #ffffff;
   --color-elevated: #e9eeec;
@@ -119,8 +113,7 @@ html.product-design-active:not(.dark),
 /* Home and private work share the same calm canvas and semantic accents. */
 html.dark.product-design-active,
 .dark .feed-home-shell,
-html.dark.product-design-active :is(.top-nav-force-dark, .club-page-shell, .club-design-scope, .venue-page, .theme-force-dark),
-.top-nav-home.top-nav-force-dark,
+html.dark.product-design-active :is(.club-page-shell, .club-design-scope, .venue-page, .theme-force-dark),
 .dark .club-design-scope,
 .dark .club-design-scope.club-page-shell:not(.map-force-light),
 .dark .workspace-design-scope,
@@ -160,7 +153,7 @@ html.dark.product-design-active :is(.top-nav-force-dark, .club-page-shell, .club
   --color-ink: #243d33;
   --color-accent: #2e6248;
 }
-:root, .map-force-light, .theme-force-light, .map-force-dark, .theme-force-dark, .top-nav-force-dark {
+:root, .map-force-light, .theme-force-light, .map-force-dark, .theme-force-dark {
   --color-accent-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
   --color-danger-soft: color-mix(in srgb, var(--color-danger) 12%, transparent);
   --color-warning-soft: color-mix(in srgb, var(--color-warning) 12%, transparent);

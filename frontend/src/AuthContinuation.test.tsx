@@ -8,7 +8,7 @@ import { clearAuthFlow, getAuthFlow } from './utils/authRedirect';
 const scenario=vi.hoisted(()=>({needsOnboarding:false}));
 vi.mock('./android/bridge',async original=>({...await original<typeof import('./android/bridge')>(),isAndroidApp:true,nativeCall:vi.fn().mockResolvedValue({status:204})}));
 vi.mock('@react-oauth/google',()=>({GoogleLogin:()=>null}));
-vi.mock('./components/layout/TopNav',()=>({TopNav:()=>null}));
+vi.mock('./components/layout/header/AppHeader',()=>({AppHeader:()=>null}));
 vi.mock('./pages/FeedPage',()=>({FeedPage:()=> <h1>Home feed destination</h1>}));
 vi.mock('./pages/OnboardingPage',()=>({OnboardingPage:()=> <h1>Required onboarding destination</h1>}));
 vi.mock('./features/clubs/api',()=>({fetchMyClubMembershipContext:vi.fn().mockResolvedValue({hasClubMembership:false})}));

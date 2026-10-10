@@ -6,13 +6,14 @@ import { AxiosError } from 'axios';
 import i18n from '../../src/i18n';
 import '../../src/index.css';
 import { apiClient } from '../../src/api/axiosConfig';
-import { TopNav } from '../../src/components/layout/TopNav';
+import { AppHeader } from '../../src/components/layout/header/AppHeader';
 import { ClubAccessEntry } from '../../src/components/layout/ClubSwitcher';
 import { OrganizationProfilePage } from '../../src/pages/OrganizationProfilePage';
 import { OrganizationWorkspacePage } from '../../src/pages/OrganizationWorkspacePage';
 import { PreviewAuth, type PreviewUser } from './experience-auth';
 import type { WorkspaceCapability } from '../../src/context/navigationCapabilities';
 import type { ThemePreference } from '../../src/theme';
+import type { AuthUser } from '../../src/context/AuthContext';
 
 const context = (id: string, type: string, number: number, label: string): WorkspaceCapability => ({ id, context: { type, id: number, label } });
 const personas: Record<string, WorkspaceCapability[]> = {
@@ -74,7 +75,7 @@ export function Review() {
       <label><input type="checkbox" checked={failure} onChange={e => { failVenue = e.target.checked; setFailure(e.target.checked); requestsForFailedVenue = 0; setRevision(v => v + 1); }} />Fail one venue</label>
     </div>
     <div className="product-app-shell min-h-screen bg-[color:var(--theme-page)] text-[color:var(--text-primary)]">
-      <TopNav key={person} user={user} myClubId={person === 'coach' ? 1 : null} themePreference={theme} setThemePreference={setTheme} handleLogout={() => {}} />
+      <AppHeader key={person} user={user as AuthUser | null} myClubId={person === 'coach' ? 1 : null} themePreference={theme} setThemePreference={setTheme} onLogout={() => {}} />
       <Routes>
         <Route path="/organizations/:organizationId" element={<OrganizationProfilePage />} />
         <Route path="/organizations/:organizationId/workspace" element={<OrganizationWorkspacePage />} />

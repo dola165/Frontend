@@ -48,15 +48,12 @@
 .feed-home-shell .feed-side-link__title { font-size: 13px; font-weight: 650; line-height: 1.4; }
 .feed-home-shell .home-shortcut-description { margin-top: 2px; font-size: 11px; line-height: 1.45; }
 .feed-home-shell .home-profile-shortcut { margin: 0; padding: 0 0 12px; border-bottom: 1px solid var(--feed-divider); border-radius: 0; }
-.feed-home-shell .home-context-card .workspace-shortcut { min-height: 44px; margin-top: 8px; padding-inline: 4px; font-size: 13px; }
 .home-club-context { display: flex; align-items: flex-start; gap: 8px; padding: 12px 2px 2px; font-size: 12px; line-height: 1.5; color: var(--feed-text-secondary); }
 .home-club-context svg { flex-shrink: 0; margin-top: 1px; color: var(--feed-accent); }
-.feed-home-shell .home-dola-shortcut { min-height: 76px; padding: 12px; border: 1px solid color-mix(in srgb, var(--feed-accent) 28%, var(--feed-card-border)); background: var(--feed-card); border-radius: 14px; }
 .home-nav-icon { --home-icon-color: var(--color-accent); display: inline-flex; width: 28px; height: 28px; flex: 0 0 28px; align-items: center; justify-content: center; border-radius: 7px; background: color-mix(in srgb, var(--home-icon-color) 10%, transparent); color: var(--home-icon-color); }
 .home-nav-icon svg { width: 15px; height: 15px; stroke-width: 1.6; }
 .home-nav-icon--family { --home-icon-color: var(--color-pink); }
-.home-nav-icon--squads, .home-nav-icon--map { --home-icon-color: var(--color-cyan); }
-.home-nav-icon--schedule { --home-icon-color: var(--color-info); }
+.home-nav-icon--squads { --home-icon-color: var(--color-cyan); }
 .home-nav-icon--following, .home-nav-icon--agent { --home-icon-color: var(--color-purple); }
 .home-nav-icon--referee { --home-icon-color: var(--color-orange); }
 .home-side-rail--right .home-side-scroll { display: flex; flex-direction: column; gap: 16px; }
@@ -125,18 +122,7 @@
 .home-shortcuts-embedded { padding: 0 12px 12px; }
 .home-shortcuts-embedded .home-side-scroll { overflow: visible; max-height: none; }
 .home-shortcuts-embedded .home-context-card { border: 0; padding: 4px 0; }
-.top-nav-home .app-page-frame { max-width: 1920px; padding-inline: 24px; }
-.top-nav-home { background: var(--color-page); }
-.top-nav-home .football-nav-entry > a { font-weight: 500; gap: 6px; }
-.top-nav-home .football-nav-entry > a > svg { width: 15px; height: 15px; }
 .home-brand { display: flex; align-items: center; gap: 9px; white-space: nowrap; }
-.home-brand-mark { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-inset); color: var(--color-accent); }
-.home-brand-mark svg { width: 27px; height: 27px; }
-.home-brand-wordmark { color: var(--color-text); font-size: 20px; font-weight: 800; letter-spacing: -.055em; }
-.home-brand-wordmark > span { color: var(--color-accent); }
-.top-nav-home .world-nav-button { border: 1px solid var(--color-border); background: var(--color-inset); box-shadow: none; padding: 0; }
-.top-nav-home .world-nav-button::before, .top-nav-home .world-nav-button::after { display: none; }
-.top-nav-home .world-nav-button__inner { background: var(--color-surface); }
 .feed-home-shell :is(a, button, summary):focus-visible { outline: 2px solid var(--feed-accent); outline-offset: 3px; }
 @media (min-width: 1024px) {
     .home-feed-layout { grid-template-columns: 240px minmax(0, 1fr); gap: 40px; padding-inline: 24px; }
@@ -150,10 +136,6 @@
 }
 @media (max-width: 639px) {
     .home-feed-layout { padding: 16px 12px 40px; }
-    .top-nav-home .app-page-frame { padding-inline: 12px; }
-    .home-brand-wordmark { font-size: 18px; }
-    .home-brand-mark { width: 28px; height: 28px; border-radius: 8px; }
-    .home-brand-mark svg { width: 23px; height: 23px; }
     .home-brand { gap: 6px; }
     .home-post-composer { padding: 12px; }
     .home-refresh-label { display: none; }

@@ -1,0 +1,126 @@
+import './header.css';
+import { useContext, useMemo } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Earth, House, MessageSquare, Shield, Sparkles } from 'lucide-react';
+import { ButtonLink, Count } from '../../../design/primitives';
+import type { AuthUser } from '../../../context/AuthContext';
+import { DolaLink } from '../../../features/dola/DolaProvider';
+import { DolaContext } from '../../../features/dola/DolaContext';
+import { useJourneyCopy } from '../../../features/squadCommunication/journeyCopy';
+import { themeForRoute, type ThemePreference } from '../../../theme';
+import { AccountMenu } from './AccountMenu';
+import { HeaderBrand, HeaderTab } from './HeaderTab';
+import { HeaderSearch } from './HeaderSearch';
+import { InboxButton } from './inbox/InboxButton';
+import { PhoneTabBar } from './PhoneTabBar';
+import { describeRoute, normalizePath } from './pins/describeRoute';
+import { workDestinations } from './pins/pinCatalog';
+import { PinsBar } from './pins/PinsBar';
+import { usePins, type Pin } from './pins/usePins';
+import { useVisitRecorder } from './pins/useVisitRecorder';
+import { myClub, primarySectionFor, type PrimaryTab } from './sections';
+import { useUnreadMessages } from './useUnreadMessages';
+
+interface AppHeaderProps {
+    user: AuthUser | null;
+    myClubId: number | null;
+    themePreference: ThemePreference;
+    setThemePreference: (value: ThemePreference) => void;
+    onLogout: () => void;
+}
+
+/** The most specific pin for the current page: its path matches and every query value it names matches. */
+function currentPin(pins: Pin[], pathname: string, search: string) {
+    const here = normalizePath(pathname, '');
+    const params = new URLSearchParams(search);
+    return pins
+        .filter(pin => {
+            const [path, query] = pin.path.split('?');
+            return path === here && [...new URLSearchParams(query)].every(([key, value]) => params.get(key) === value);
+        })
+        .sort((a, b) => b.path.length - a.path.length)[0] ?? null;
+}
+
+/** One header row: brand, Home · World · My Club, personal pins, then search, Dola, Inbox, Messages and the account. */
+export function AppHeader(props: AppHeaderProps) {
+    return props.user ? <SignedInHeader {...props} user={props.user} /> : <GuestHeader themePreference={props.themePreference} />;
+}
+
+function SignedInHeader({ user, myClubId, themePreference, setThemePreference, onLogout }: AppHeaderProps & { user: AuthUser }) {
+    const copy = useJourneyCopy();
+    const { pathname, search } = useLocation();
+    const capabilities = user.navigationCapabilities;
+    const club = useMemo(() => myClub(capabilities, myClubId), [capabilities, myClubId]);
+    const pins = usePins(user.id, capabilities);
+    useVisitRecorder(user.id, capabilities, club.path);
+    const unread = useUnreadMessages(true);
+    const work = useMemo(() => workDestinations(capabilities, club.path), [capabilities, club.path]);
+    const page = describeRoute(pathname, search, { capabilities, userId: user.id, myClubPath: club.path });
+    const pinned = currentPin(pins.pins, pathname, search);
+    const section = pinned ? null : primarySectionFor(pathname, club.ids);
+    const tabs: PrimaryTab[] = [
+        { id: 'home', to: '/home', label: copy('Home', 'მთავარი'), icon: House, current: section === 'home' },
+        { id: 'world', to: '/world', label: copy('World', 'მსოფლიო'), icon: Earth, current: section === 'world' },
+        ...(club.path ? [{ id: 'my-club' as const, to: club.path, label: copy('My Club', 'ჩემი კლუბი'), icon: Shield, current: section === 'my-club' }] : []),
+    ];
+    const light = themeForRoute(themePreference, pathname) === 'light';
+    const dola = useContext(DolaContext);
+    const dolaOpen = pathname === '/assistant' || Boolean(dola?.visible && dola.panel);
+
+    return (
+        <>
+            <header className="gk gk-header" data-pins={pins.pins.length ? 'some' : 'none'}>
+                <div className="gk-frame gk-header__row">
+                    <HeaderBrand to="/home" />
+                    <nav className="gk-header__nav" aria-label={copy('Main', 'მთავარი ნავიგაცია')}>
+                        <ul className="gk-header__tabs">
+                            {tabs.map(tab => <li key={tab.id}><HeaderTab to={tab.to} label={tab.label} icon={tab.icon} current={tab.current} /></li>)}
+                        </ul>
+                        <PinsBar state={pins} page={page} work={work} activePath={pinned?.path ?? null} />
+                    </nav>
+                    <div className="gk-header__actions">
+                        <HeaderSearch light={light} />
+                        <DolaLink className="gk-hbtn gk-hbtn--dola" aria-label="Agent Dola" title={copy('Ask Agent Dola', 'ჰკითხეთ Agent Dola-ს')}
+                            aria-current={pathname === '/assistant' ? 'page' : undefined} data-open={dolaOpen || undefined}>
+                            <Sparkles aria-hidden="true" /><span className="gk-hbtn__label">Agent Dola</span>
+                        </DolaLink>
+                        <InboxButton />
+                        <Link to="/messages" className="gk-hbtn gk-header__messages" aria-current={pathname === '/messages' ? 'page' : undefined} title={copy('Messages', 'მიმოწერა')}
+                            aria-label={unread ? copy(`Messages, ${unread} unread conversations`, `მიმოწერა, ${unread} წაუკითხავი`) : copy('Messages', 'მიმოწერა')}>
+                            <MessageSquare aria-hidden="true" /><Count value={unread ?? 0} />
+                        </Link>
+                        <AccountMenu user={user} themePreference={themePreference} setThemePreference={setThemePreference} onLogout={onLogout} />
+                    </div>
+                </div>
+            </header>
+            <PhoneTabBar tabs={tabs} unreadMessages={unread} pins={pins} page={page} work={work} onPinnedPage={pinned !== null} />
+        </>
+    );
+}
+
+function GuestHeader({ themePreference }: { themePreference: ThemePreference }) {
+    const copy = useJourneyCopy();
+    const { i18n } = useTranslation();
+    const { pathname } = useLocation();
+    const georgian = (i18n.resolvedLanguage ?? i18n.language ?? 'en').startsWith('ka');
+    return (
+        <header className="gk gk-header gk-header--guest">
+            <div className="gk-frame gk-header__row">
+                <HeaderBrand to="/" />
+                <nav className="gk-header__nav" aria-label={copy('Main', 'მთავარი ნავიგაცია')}>
+                    <ul className="gk-header__tabs">
+                        <li><HeaderTab to="/world" label={copy('World', 'მსოფლიო')} icon={Earth} current={primarySectionFor(pathname, []) === 'world'} /></li>
+                    </ul>
+                </nav>
+                <div className="gk-header__actions">
+                    <HeaderSearch light={themeForRoute(themePreference, pathname) === 'light'} />
+                    <button type="button" className="gk-hbtn" lang={georgian ? 'en' : 'ka'} onClick={() => void i18n.changeLanguage(georgian ? 'en' : 'ka')}
+                        aria-label={georgian ? 'Use English' : 'ქართულად'} title={georgian ? 'Use English' : 'ქართულად'}>{georgian ? 'EN' : 'ქა'}</button>
+                    <ButtonLink variant="ghost" to="/login">{copy('Sign in', 'შესვლა')}</ButtonLink>
+                    <ButtonLink variant="primary" to="/signup" className="gk-header__signup">{copy('Create account', 'ანგარიშის შექმნა')}</ButtonLink>
+                </div>
+            </div>
+        </header>
+    );
+}

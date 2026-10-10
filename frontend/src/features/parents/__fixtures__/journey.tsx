@@ -8,7 +8,6 @@ import { setStoredAccessToken } from '../../../utils/authStorage';
 import { applyDocumentTheme } from '../../../theme';
 import i18n from '../../../i18n';
 import { ParentHubPage } from '../../../pages/ParentHubPage';
-import { WorkspacesPage } from '../../../components/layout/WorkspacesPage';
 import { WorkspaceOverview } from '../../clubOperations/WorkspaceOverview';
 import type { RolesWorkspace } from '../../clubOperations/useWorkspaceRoles';
 import type { ChildDirectory } from '../api';
@@ -57,11 +56,11 @@ apiClient.defaults.adapter=async config=>{
     throw new Error('Synthetic preview does not implement '+path+'. No request was sent.');
 };
 export const designPreviewFixtures={coach,directory,spaces,overviews:spaces.map(overview),sessions:spaces.map(space=>({id:space.id,items:sessions(space.id)})),family,inbox};
-const route=params.get('route')==='/workspaces'?'/workspaces':params.get('route')==='/reference'?'/reference':'/parent';
+const route=params.get('route')==='/reference'?'/reference':'/parent';
 const fixtureQuery=(key:string,value:string)=>{const next=new URLSearchParams(params);next.set(key,value);return '?'+next;};
 createRoot(document.getElementById('root')!).render(<AuthProvider><MemoryRouter initialEntries={[route+(params.get('player')?'?player='+params.get('player'):'')]}>
-    <header className="local-preview-bar"><strong>Local design preview · synthetic data · writes blocked</strong><nav><Link to="/parent">Parent Hub</Link><Link to="/workspaces">My work</Link><Link to="/reference">Club workspace reference</Link><a href={fixtureQuery('theme',dark?'light':'dark')}>{dark?'Light':'Dark'}</a><a href={fixtureQuery('case','long')}>Crowded week</a><a href={fixtureQuery('case','family')}>Normal week</a></nav></header>
+    <header className="local-preview-bar"><strong>Local design preview · synthetic data · writes blocked</strong><nav><Link to="/parent">Parent Hub</Link><Link to="/reference">Club workspace reference</Link><a href={fixtureQuery('theme',dark?'light':'dark')}>{dark?'Light':'Dark'}</a><a href={fixtureQuery('case','long')}>Crowded week</a><a href={fixtureQuery('case','family')}>Normal week</a></nav></header>
     <div className="product-app-shell"><main className="app-page-shell"><div className="app-page-frame app-page-frame--wide"><div className="workspace-design-scope">
-    <Routes><Route path="/parent" element={<ParentHubPage/>}/><Route path="/workspaces" element={<WorkspacesPage/>}/><Route path="/reference" element={<WorkspaceOverview data={roles} boot={null} tabs={[]} shortcuts={{ids:[],toggle:()=>{},move:()=>{}}} onOpen={()=>{}} overviewProps={{overview:null,clubId:1,onTabChange:()=>{},canManageLeadership:false,canManageOperations:false,upcomingEvents:[],scheduleLoading:false,scheduleError:null,tryoutPendingCount:0,unreadInboxCount:0,onOpenSchedule:()=>{},onRetrySchedule:()=>{}}}/>}/><Route path="*" element={<div style={{padding:24}}><p>This destination is outside the isolated design preview.</p><Link to="/parent">Return to Parent Hub</Link></div>}/></Routes>
+    <Routes><Route path="/parent" element={<ParentHubPage/>}/><Route path="/reference" element={<WorkspaceOverview data={roles} boot={null} tabs={[]} shortcuts={{ids:[],toggle:()=>{},move:()=>{}}} onOpen={()=>{}} overviewProps={{overview:null,clubId:1,onTabChange:()=>{},canManageLeadership:false,canManageOperations:false,upcomingEvents:[],scheduleLoading:false,scheduleError:null,tryoutPendingCount:0,unreadInboxCount:0,onOpenSchedule:()=>{},onRetrySchedule:()=>{}}}/>}/><Route path="*" element={<div style={{padding:24}}><p>This destination is outside the isolated design preview.</p><Link to="/parent">Return to Parent Hub</Link></div>}/></Routes>
     </div></div></main></div>
 </MemoryRouter></AuthProvider>);

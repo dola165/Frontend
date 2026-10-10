@@ -51,14 +51,4 @@
 .home-shortcut-heading { padding:3px 12px 6px; margin:0; font-size:12px; font-weight:600; color:var(--feed-text-muted); letter-spacing:.035em; }
 .home-side-rail--left .workspace-shortcut { border:0; margin-bottom:0; }
 .home-side-rail--left .home-social-link:focus-visible { outline:2px solid var(--social-primary); outline-offset:-2px; }
-.home-side-rail--left .home-dola-shortcut:hover { background:color-mix(in srgb,var(--social-primary) 10%,transparent); }
 
-/* The header responds to its actual space when Dola is widened. */
-#app-top-navigation { container-type:inline-size; container-name:top-navigation; }
-@container top-navigation (max-width:780px) {
-    .nav-primary-row > .lg\:flex { display:none; }
-    .nav-actions { gap:6px; }
-    .nav-actions > span, .nav-actions .nav-profile-shortcut, .nav-shortcut-label, .world-nav-wordmark { display:none; }
-    .nav-actions .nav-search-trigger, .nav-actions .nav-dola-mobile, .nav-mobile-search-row { display:flex; }
-    .nav-actions .world-nav-button__inner { padding-left:7px; padding-right:7px; }
-}

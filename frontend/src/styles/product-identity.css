@@ -62,7 +62,6 @@
   --club-band: var(--gk-surface);
   --club-card: var(--gk-surface);
 }
-.dark .top-nav-force-dark { background: var(--color-page); }
 .dark .landing-stadium { background: var(--gk-canvas); }
 .dark .opportunity-link {
   background: linear-gradient(115deg, color-mix(in srgb, var(--opportunity-color) 14%, var(--color-page)), var(--color-page) 90%);
@@ -105,5 +104,5 @@
   .workspace-sidebar, .workspace-context-panel, .workspace-sidebar-backdrop, .workspace-context-backdrop { top: var(--app-active-header-height); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .opportunity-link, .world-nav-button, .world-nav-button::before { animation: none; transition: none; }
+  .opportunity-link { animation: none; transition: none; }
 }

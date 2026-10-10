@@ -17,7 +17,7 @@
 @keyframes app-scrim-enter { from { background-color: transparent; backdrop-filter: blur(0); } }
 @keyframes app-scrim-exit { to { background-color: transparent; backdrop-filter: blur(0); } }
 .app-route-arrival { display: contents; }
-:where(.product-app-shell) .app-route-arrival > :not(.workspace-connection-bar) { animation: app-page-enter 280ms var(--app-motion-ease) backwards; }
+:where(.product-app-shell) .app-route-arrival > * { animation: app-page-enter 280ms var(--app-motion-ease) backwards; }
 :where(.product-app-shell, .app-motion-portal) :where(button, a, summary, input, textarea, select) {
     transition-property: background-color, border-color, color, box-shadow, opacity, transform, translate, scale;
     transition-duration: var(--app-motion-fast);
@@ -34,8 +34,6 @@
     background: var(--app-selection-color); pointer-events: none; opacity: 0;
     transition: transform 360ms var(--app-motion-ease), width 360ms var(--app-motion-ease), opacity 180ms;
 }
-.top-nav-force-dark .app-selection-rail { --app-selection-color: var(--color-accent); }
-.top-nav-light .app-selection-rail { --app-selection-color: var(--color-accent); }
 .feed-selection-rail { --app-selection-color: var(--feed-accent); }
 .feed-selection-rail .app-selection-indicator { height: 2px; }
 /* Existing page structures keep their geometry. Only newly mounted content arrives. */
@@ -46,7 +44,7 @@
 :where(.product-app-shell) :is(.feed-list, .club-directory-card-grid, .my-club-gallery > div, .connected-work-grid, .mx-listing-grid, .mx-grid, .app-result-list) > :nth-child(n+3):nth-child(-n+6) { animation-delay: 50ms; }
 :where(.product-app-shell) :is(.feed-list, .app-result-list) > :nth-child(n+7) { animation: none; }
 :where(.product-app-shell) .app-route-arrival :where(article):nth-child(-n+6) { animation: app-page-enter var(--app-motion-arrival) var(--app-motion-ease) backwards; }
-:where(.product-app-shell) :is(.app-popover, [role="menu"], .workspace-access-list, .workspace-picker, .settings-choice-panel, .post-reaction-picker, .post-menu, .mx-filters) {
+:where(.product-app-shell) :is(.app-popover, [role="menu"], .workspace-picker, .post-reaction-picker, .post-menu, .mx-filters) {
     animation: app-popover-enter 260ms var(--app-motion-soft) backwards;
     transform-origin: 50% 0;
 }
@@ -82,7 +80,7 @@
     :where(.product-app-shell) :is(.my-club-gallery article, .connected-work-grid article, .mx-listing, .mx-card):hover { box-shadow: 0 8px 24px color-mix(in srgb, var(--color-shadow) 6.27%, transparent); }
     :where(.product-app-shell, .app-motion-portal) .post-action:hover > svg { translate: 0 -1px; }
 }
-:where(.product-app-shell, .app-motion-portal) :is(.nav-actions button, .nav-actions a, .home-social-link, .recent-contact-link, .post-action, .opportunity-link, .home-opportunity-shortcut):not(:disabled):active { scale: .98; translate: 0 0; transition-duration: 80ms; }
+:where(.product-app-shell, .app-motion-portal) :is(.home-social-link, .recent-contact-link, .post-action, .opportunity-link, .home-opportunity-shortcut):not(:disabled):active { scale: .98; translate: 0 0; transition-duration: 80ms; }
 @supports (interpolate-size: allow-keywords) {
     :where(.product-app-shell) details:not(:has(.post-menu)) { interpolate-size: allow-keywords; }
     :where(.product-app-shell) details:not(:has(.post-menu))::details-content {

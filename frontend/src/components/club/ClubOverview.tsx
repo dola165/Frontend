@@ -61,7 +61,6 @@ function OverviewContent({ club, entry, opportunityItems }: OverviewProps & {opp
             {entry?.canOpenWorkspace && <Link className="co-button co-primary" to={`${base}/workspace`}>{entry.invitationOnly ? 'Review invitation' : 'Open club workspace'}<ArrowUpRight size={17}/></Link>}
             {entry?.canManageStaff && !entry.invitationOnly && personal.length < 3 && <Link className="co-button" to={`${base}/workspace?tab=staff-duties`}><Users size={16}/>Staff & responsibilities</Link>}
             {personal.map(w=><Link className="co-button" key={w.key} to={w.path}>{w.label}<ArrowUpRight size={16}/></Link>)}
-            <Link className="co-link" to="/workspaces">All my work<ArrowRight size={16}/></Link>
         </div></section>}
         <div className="co-grid"><div className="co-main">
             {lead === 'family' && <ClubFamilyBriefing clubId={club.id} showUpdates={false}/> }

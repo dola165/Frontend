@@ -1,11 +1,10 @@
 import { MatchesHub, LegacyMatchesRoute } from './features/competitions/MatchesHub';
-import { WorkspacesPage, WorkspaceConnectionBar } from './components/layout/ConnectedWork';
 import { useTranslation } from 'react-i18next';
 import { isAndroidApp, nativeCall } from './android/bridge';
 import { lazy, Suspense, useEffect, useLayoutEffect, useState, type CSSProperties, type JSX } from 'react';
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { TopNav } from './components/layout/TopNav';
-import { useMapWorkspaceChrome, setPlanningNavigation } from './context/mapWorkspaceChrome';
+import { AppHeader } from './components/layout/header/AppHeader';
+import { useMapWorkspaceChrome } from './context/mapWorkspaceChrome';
 import { HomeOpportunities } from './components/layout/HomeOpportunities';
 import './components/layout/home-rails.css';
 import './components/layout/home-feed.css';
@@ -198,7 +197,6 @@ export function MainLayout() {
     const managedClubs = (user?.navigationCapabilities?.workspaces ?? [])
         .filter(workspace => workspace.id === 'club.workspace')
         .map(workspace => ({ clubId: workspace.context.id, clubName: workspace.context.label }));
-    const [collapsedNavLocationKey, setCollapsedNavLocationKey] = useState<string | null>(null);
     const [themePreference, setThemePreference] = useState<ThemePreference>(readThemePreference);
 
     useEffect(() => {
@@ -324,25 +322,16 @@ export function MainLayout() {
         canvasWorkspacePages.has(location.pathname) ||
         /^\/clubs\/\d+\/workspace$/.test(location.pathname) ||
         /^\/tournaments\/\d+\/workspace$/.test(location.pathname);
-    const isCollapsibleNavWorkspace =
-        /^\/clubs\/\d+\/operations$/.test(location.pathname) ||
-        ['/map', '/calendar', '/messages'].includes(location.pathname) ||
-        /^\/clubs\/\d+\/workspace$/.test(location.pathname) ||
-        /^\/tournaments\/\d+\/workspace$/.test(location.pathname);
-    // React Router assigns a new key to every navigation entry. Binding the
-    // collapsed state to that key makes it route-visit-local without an effect:
-    // navigate away (or revisit later) and navigation is immediately visible.
+    // Map planning is a full-screen tool with its own control for showing the header.
     const mapChrome = useMapWorkspaceChrome();
-    const isMapPlanning = location.pathname === '/map' && mapChrome.planning;
-    const isTopNavCollapsed = isCollapsibleNavWorkspace && (isMapPlanning ? !mapChrome.navigationExpanded : collapsedNavLocationKey === location.key);
-    const hasProductNavigation = !isAndroidApp && !isLandingPage && !isAuthPage && !isPublicWorldMap;
-    const activeHeaderHeight = hasProductNavigation && !isTopNavCollapsed
-        ? 'var(--app-header-height)'
-        : '0px';
+    const isTopNavCollapsed = location.pathname === '/map' && mapChrome.planning && !mapChrome.navigationExpanded;
+    const hasProductNavigation = !isAndroidApp && !isLandingPage && !isAuthPage && !(isPublicWorldMap && !user);
+    const showsHeader = hasProductNavigation && !isTopNavCollapsed;
+    const activeHeaderHeight = showsHeader ? 'var(--app-header-height)' : '0px';
 
     const fullScreenRoutes = (
-        <RouteViewport><WorkspaceConnectionBar /><Routes>
-            <Route path="/workspaces" element={<ProtectedRoute><WorkspacesPage /></ProtectedRoute>} />
+        <RouteViewport><Routes>
+            <Route path="/workspaces" element={<Navigate to="/home" replace />} />
             <Route path="/assistant" element={<ProtectedRoute><AgentDolaPage /></ProtectedRoute>} />
             <Route path="/map" element={<ProtectedRoute><MapPage darkMode={themePreference === 'dark'} /></ProtectedRoute>} />
             <Route path="/world" element={<PublicWorldMapPage />} />
@@ -429,22 +418,12 @@ export function MainLayout() {
     return (
         <div
             className={`${hasProductNavigation ? 'product-app-shell' : ''} min-h-screen bg-[color:var(--theme-page)] text-[color:var(--text-primary)] transition-colors duration-200`}
+            data-tabbar={showsHeader && !!user}
             style={{ '--app-active-header-height': activeHeaderHeight } as CSSProperties}
         >
             <RouteMetadata />
-            {hasProductNavigation && (
-                <TopNav
-                    user={user}
-                    myClubId={myClubId}
-                    managedClubs={managedClubs}
-                    themePreference={themePreference}
-                    setThemePreference={setThemePreference}
-                    handleLogout={handleLogout}
-                    collapsible={isCollapsibleNavWorkspace}
-                    collapsed={isTopNavCollapsed}
-                    quietCollapsed={isMapPlanning}
-                    onCollapsedChange={(collapsed) => isMapPlanning ? setPlanningNavigation(!collapsed) : setCollapsedNavLocationKey(collapsed ? location.key : null)}
-                />
+            {showsHeader && (
+                <AppHeader user={user} myClubId={myClubId} themePreference={themePreference} setThemePreference={setThemePreference} onLogout={() => void handleLogout()} />
             )}
 
             {isLandingPage || isAuthPage ? (
@@ -464,9 +443,9 @@ export function MainLayout() {
                 isImmersiveCanvasPage ? (
                     <main
                         className={`relative w-full ${isBoundedCanvasPage ? 'overflow-hidden' : 'overflow-y-auto'}`}
-                        style={isTopNavCollapsed || isPublicWorldMap
-                            ? { minHeight: '100dvh', height: '100dvh' }
-                            : { minHeight: 'calc(100dvh - var(--app-header-height))', height: 'calc(100dvh - var(--app-header-height))' }}
+                        style={showsHeader
+                            ? { minHeight: 'calc(100dvh - var(--app-header-height) - var(--app-bottom-bar-height))', height: 'calc(100dvh - var(--app-header-height) - var(--app-bottom-bar-height))' }
+                            : { minHeight: '100dvh', height: '100dvh' }}
                     >
                         {fullScreenRoutes}
                     </main>

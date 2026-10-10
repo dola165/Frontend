@@ -137,6 +137,10 @@
 @media (min-width: 1536px) {
     .home-feed-layout { grid-template-columns: 280px minmax(0, 680px) 280px; }
 }
+/* From about 80% zoom on a 1920px screen: the side columns move in and hug the feed. */
+@media (min-width: 2300px) {
+    .home-feed-layout { justify-content: center; column-gap: 40px; }
+}
 @media (max-width: 639px) {
     .home-feed-layout { padding: 16px 12px 40px; }
     .home-brand { gap: 6px; }

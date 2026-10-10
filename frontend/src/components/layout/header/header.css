@@ -7,7 +7,7 @@
 }
 
 .gk.gk-header { container: gk-header / inline-size; position: sticky; top: 0; z-index: 1500; background: var(--gk-bg); border-bottom: 1px solid var(--gk-line); }
-.gk .gk-header__row { --gk-hsearch: 340px; position: relative; display: flex; align-items: center; gap: var(--gk-3); height: var(--app-header-height); }
+.gk .gk-header__row { --gk-hsearch: 200px; position: relative; display: flex; align-items: center; gap: var(--gk-3); height: var(--app-header-height); }
 .gk .gk-header__brand { display: inline-flex; align-items: center; gap: var(--gk-2); flex: none; min-height: 44px; padding-right: var(--gk-2); border-radius: var(--gk-r); color: var(--gk-text); font-family: var(--gk-font-display); font-size: var(--gk-fs-xl); line-height: 1; font-weight: 700; letter-spacing: -0.03em; white-space: nowrap; }
 .gk .gk-header__brand svg { width: 34px; height: 34px; flex: none; }
 /* Brand and search sit together on the left; the tabs take the centre. */
@@ -43,6 +43,12 @@
 
 /* ------------------------------------------------------------- buttons on the right */
 .gk .gk-header__actions { display: flex; align-items: center; gap: 10px; flex: none; margin-left: auto; }
+/* Signed in: brand and search | tabs and pins | actions. The two outer columns always get equal widths,
+   so the tabs sit in the true centre of the page however wide the search field is. */
+.gk .gk-header__row--centred { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.gk .gk-header__row--centred > .gk-header__start { justify-self: start; }
+.gk .gk-header__row--centred > .gk-header__nav { grid-column: 2; margin-inline: 0; }
+.gk .gk-header__row--centred > .gk-header__actions { grid-column: 3; justify-self: end; margin-left: 0; }
 .gk .gk-hanchor { position: relative; display: flex; }
 .gk .gk-hbtn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--gk-2); width: 44px; height: 44px; flex: none; padding: 0; border: 0; border-radius: var(--gk-r); background: transparent; color: var(--gk-text-2); font: inherit; font-weight: 600; cursor: pointer; transition: background-color .15s var(--gk-ease), color .15s var(--gk-ease); }
 .gk .gk-hbtn svg { width: 20px; height: 20px; flex: none; }
@@ -85,11 +91,14 @@
 @container gk-header (min-width: 1600px) {
   .gk .gk-hbtn--dola { width: auto; padding-inline: var(--gk-3); }
   .gk .gk-hbtn--dola .gk-hbtn__label { display: inline; }
-  .gk .gk-header__row { --gk-hsearch: 420px; }
+  .gk .gk-header__row { --gk-hsearch: 320px; }
+}
+@container gk-header (min-width: 1800px) {
+  .gk .gk-header__row { --gk-hsearch: 400px; }
 }
 .gk.gk-header[data-pins='crowded'] .gk-header__search { display: none; }
 .gk.gk-header[data-pins='crowded'] .gk-header__search-toggle { display: inline-flex; }
-@container gk-header (max-width: 1279px) {
+@container gk-header (max-width: 1439px) {
   .gk .gk-header__row { --gk-hsearch: 0px; }
   .gk .gk-header__search { display: none; }
   .gk .gk-header__search-toggle { display: inline-flex; }

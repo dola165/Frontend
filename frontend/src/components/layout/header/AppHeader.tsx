@@ -74,7 +74,7 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
     return (
         <>
             <header className="gk gk-header" data-pins={!pins.pins.length ? 'none' : crowded ? 'crowded' : 'some'}>
-                <div className="gk-frame gk-header__row">
+                <div className="gk-frame gk-header__row gk-header__row--centred">
                     <div className="gk-header__start">
                         <HeaderBrand to="/home" />
                         <HeaderSearch light={light} />

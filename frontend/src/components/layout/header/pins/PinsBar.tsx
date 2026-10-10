@@ -47,21 +47,31 @@ export function PinsBar({ state, page, work, activePath, crowded, onCrowdedChang
             const style = getComputedStyle(container);
             const divider = container.querySelector<HTMLElement>('.gk-header__divider');
             const dividerSpace = divider ? divider.offsetWidth + (parseFloat(getComputedStyle(divider).marginLeft) || 0) * 2 : 0;
-            // The tabs and pins sit centred in the nav, so the pins' room is the nav's width less the main tabs.
-            const nav = container.parentElement;
+            // The nav is centred between two equal outer columns, so it may use the row's width less twice the
+            // wider of them, less the main tabs. Pins that don't fit wait in "more"; the search field never gives way.
+            const nav = container.parentElement, row = nav?.parentElement;
             const tabsWidth = nav?.querySelector<HTMLElement>('.gk-header__tabs')?.offsetWidth ?? 0;
+            let available = container.clientWidth;
+            if (nav && row) {
+                const rowStyle = getComputedStyle(row);
+                const inner = row.clientWidth - (parseFloat(rowStyle.paddingLeft) || 0) - (parseFloat(rowStyle.paddingRight) || 0);
+                const side = Math.max(0, ...Array.from(row.children, child => child === nav ? 0 : (child as HTMLElement).offsetWidth));
+                available = inner - 2 * (side + (parseFloat(rowStyle.columnGap) || 0)) - tabsWidth;
+            }
             const result = fitPins({
-                available: (nav ? nav.clientWidth - tabsWidth : container.clientWidth) - dividerSpace,
+                available: available - dividerSpace,
                 pins: Array.from(measure.children, child => (child as HTMLElement).offsetWidth),
                 more: moreMeasureRef.current?.offsetWidth ?? 0,
                 plus: (panelTriggerRef.current?.offsetWidth ?? 44) + 4,
                 gap: 4,
-                searchField: parseFloat(style.getPropertyValue('--gk-hsearch')) || 0,
+                searchField: 0,
             }, crowdedRef.current);
             setFit(result.fit);
             onCrowdedChange(result.crowded);
         });
-        observer.observe(container.parentElement ?? container);
+        const row = container.parentElement?.parentElement;
+        for (const element of row ? Array.from(row.children) : [container]) observer.observe(element);
+        if (row) observer.observe(row);
         observer.observe(measure);
         return () => observer.disconnect();
     }, [pins, onCrowdedChange, panelTriggerRef]);

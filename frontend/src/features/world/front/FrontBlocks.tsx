@@ -1,73 +1,26 @@
 import type { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Badge, ButtonLink, EmptyNote, List, ListRow, Panel, Section } from '../../../design/primitives';
-import { useAuth } from '../../../context/AuthContext';
+import { Briefcase, Handshake, MapPin, Shield, Trophy, Users } from 'lucide-react';
+import { Avatar, Badge, ButtonLink, EmptyNote, List, ListRow } from '../../../design/primitives';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
 import type { MapPageResult } from '../../../api/map';
-import { eventSearch, type EventItem } from '../../requests/api';
-import { browseCompetitions } from '../../competitions/api';
-import { fetchOpenJobDirectory } from '../../clubs/api';
-import { searchTryouts } from '../../tryouts/api';
-import { fetchClubDirectory, fetchPeople } from '../api';
+import { activityColors } from '../../schedule/activityIcons';
+import { formats } from '../../matchExchange/api';
 import { ClubCard } from '../cards/ClubCard';
 import { plural, useWorldCopy } from '../copy';
 import { Crest } from '../Crest';
-import { ErrorNote, SkeletonRows } from '../directory/DirectoryResults';
+import { ErrorNote } from '../directory/DirectoryResults';
+import { ListingItem } from '../directories/matchItems';
 import { WorldMap, type WorldMapPoint } from '../map/WorldMap';
-import { codeLabel, comingWeekend, fixtureDay, fixtureTime, isoDay, isoDayOf } from '../format';
-import { ageOn, useWorldChild } from '../players';
+import { codeLabel, fixtureDay, fixtureTime } from '../format';
+import { useWorldChild } from '../players';
 import { CompetitionRow, EventItemRow, JobRow, PersonRow } from '../rows';
-import { useWorldData, type WorldData } from '../useWorldData';
+import type { WorldData } from '../useWorldData';
 import type { WorldArea } from '../useWorldArea';
-import { useWorldSession } from '../worldSession';
+import { useComingUp, useFrontOpportunities, useNearbyClubs, useNearbyVenues, useOpenCompetitions, useOpenMatches, usePeopleNearby } from './frontData';
+import { WorldTile } from './WorldTile';
 
-/** Loading and error states shared by the front-page blocks. */
-function BlockState<T>({ data, rows = 3, children }: { data: WorldData<T>; rows?: number; children: (value: T) => ReactNode }) {
-    const t = useWorldCopy();
-    if (data.error) return <ErrorNote message={data.error} onRetry={data.retry} />;
-    if (data.data === undefined) return <Panel flush><SkeletonRows count={rows} label={t('Loading')} /></Panel>;
-    return <>{children(data.data)}</>;
-}
-
-/**
- * Published matches, competitions and trials near the person, this weekend first. When the
- * weekend is quiet the list continues into the next week, so the block is never a near-empty box.
- * Public training timetables are left to the events search.
- */
-export function WeekendBlock({ area }: { area: WorldArea }) {
-    const t = useWorldCopy();
-    const { sessionId } = useAuth();
-    const weekend = comingWeekend();
-    const until = isoDay(9);
-    const events = useWorldData(area.ready ? `weekend:${area.city}:${weekend.from}:${sessionId}` : null,
-        signal => eventSearch({ q: '', location: area.city, activity: 'ALL', from: isoDay(0), to: until, page: 0, size: 60 }, sessionId, signal));
-    const upcoming = (events.data?.items ?? [])
-        // Competitions already under way list their own matches; recurring training is not a fixture.
-        .filter((item): item is EventItem & { startsAt: string } => item.kind !== 'SESSION' && item.activity !== 'TRAINING' && Boolean(item.startsAt) && isoDayOf(item.startsAt!) >= isoDay(0))
-        .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt));
-    const thisWeekend = upcoming.filter(item => isoDayOf(item.startsAt) >= weekend.from && isoDayOf(item.startsAt) <= weekend.to);
-    const quiet = thisWeekend.length < 4;
-    const shown = (quiet ? upcoming : thisWeekend).slice(0, 7);
-    const from = quiet ? isoDay(0) : weekend.from, to = quiet ? until : weekend.to;
-    const all = `/world/matches?tab=events&location=${encodeURIComponent(area.city)}&from=${from}&to=${to}`;
-    const title = quiet ? t('Coming up near you') : t('This weekend near you');
-    return (
-        <Section id="world-weekend" title={title} hint={quiet ? t('Next 10 days') : weekend.label} action={{ label: t('All events'), to: all }}>
-            <BlockState data={events} rows={5}>{() => shown.length ? (
-                <Panel flush>
-                    <List label={title}>
-                        {shown.map(item => <EventItemRow key={`${item.kind}:${item.id}`} item={item} />)}
-                    </List>
-                    {upcoming.length > shown.length && <div className="gk-panel__foot"><ButtonLink size="sm" variant="ghost" to={all}>{t('See {count} more', { count: upcoming.length - shown.length })}</ButtonLink></div>}
-                </Panel>
-            ) : (
-                <Panel><EmptyNote title={t('Nothing published near {city} in the next 10 days', { city: area.city })} action={<ButtonLink size="sm" to="/world/matches">{t('Browse matches')}</ButtonLink>}>{t('Clubs and organisers publish matches, trials and competitions here.')}</EmptyNote></Panel>
-            )}</BlockState>
-        </Section>
-    );
-}
-
-/** A compact map of clubs and venues around the area, with the way into the full map. */
+/** The map of clubs and venues around the area: the biggest thing on the page, with the way into the full map. */
 export function AroundMapBlock({ area, markers }: { area: WorldArea; markers: WorldData<MapPageResult> }) {
     const t = useWorldCopy();
     const points: WorldMapPoint[] = (markers.data?.content ?? []).map(marker => ({
@@ -80,109 +33,151 @@ export function AroundMapBlock({ area, markers }: { area: WorldArea; markers: Wo
     points.sort((a, b) => Number(a.tone === 'club') - Number(b.tone === 'club'));
     const clubs = points.filter(point => point.tone === 'club').length;
     return (
-        <Section id="world-around" title={t('Around {city}', { city: area.city })} action={{ label: t('Open full map'), to: `/world/map?region=${encodeURIComponent(area.city)}` }}>
+        <section id="world-around" className="gk-world-front__map" aria-label={t('Around {city}', { city: area.city })}>
             {markers.error
                 ? <ErrorNote message={markers.error} onRetry={markers.retry} />
-                : <WorldMap className="gk-world-front__map" label={t('Clubs and venues around {city}', { city: area.city })} points={points}
-                    footer={markers.data ? <span>{t('{clubs} and {venues} within 25 km', { clubs: plural(clubs, 'club'), venues: plural(points.length - clubs, 'venue') })}</span> : <span>{t('Finding clubs and venues…')}</span>} />}
-        </Section>
+                : <WorldMap label={t('Clubs and venues around {city}', { city: area.city })} points={points}
+                    footer={<>{markers.data ? <span>{t('{clubs} and {venues} within 25 km', { clubs: plural(clubs, 'club'), venues: plural(points.length - clubs, 'venue') })}</span> : <span>{t('Finding clubs and venues…')}</span>}
+                        <ButtonLink size="sm" variant="ghost" to={`/world/map?region=${encodeURIComponent(area.city)}`}>{t('Open full map')}</ButtonLink></>} />}
+        </section>
     );
 }
 
-/**
- * A few clubs in the area, as cards with Follow and Open. The person's own club is left out.
- * For a parent searching for a child, only clubs with a programme for the child's age are asked for.
- */
-export function NearbyClubsBlock({ area, markers }: { area: WorldArea; markers: WorldData<MapPageResult> }) {
+/** What every tile is given by the page: whether it is the open one, and how to open or close it. */
+export interface TileProps { area: WorldArea; open: boolean; onToggle: () => void }
+const when = (value?: string | null, zone?: string) => value ? `${fixtureDay(value, zone)} ${fixtureTime(value, zone)}` : '';
+/** A few crests or faces overlapping, as a thumbnail or a preview. */
+const Cluster = ({ children }: { children: ReactNode }) => <span className="gk-wtile__cluster">{children}</span>;
+const unique = <T,>(items: T[], key: (item: T) => string) => [...new Map(items.map(item => [key(item), item])).values()];
+
+/** Teams near the area looking for an opponent: a coach's first reason to open World. */
+export function OpenMatchesTile({ area, open, onToggle }: TileProps) {
     const t = useWorldCopy();
-    const { membership } = useWorldSession();
-    const { child } = useWorldChild();
-    const age = ageOn(child?.dateOfBirth);
-    const ownClub = membership?.clubId ? Number(membership.clubId) : null;
-    // Wait for the person's club so it can be left out without loading the list twice.
-    const clubs = useWorldData(area.ready && membership !== undefined ? `near-clubs:${area.city}:${ownClub}:${age ?? ''}` : null, signal => {
-        const params = new URLSearchParams({ city: area.city, sort: 'MEMBER_COUNT', page: '0', size: '12' });
-        // Backend needed: `age` keeps clubs with a published programme for that age (see clubSources).
-        if (age != null) params.set('age', String(age));
-        return fetchClubDirectory(params, signal);
-    });
-    // Distance comes from the map search around the area's centre; clubs it cannot place keep their order.
-    const distance = new Map((markers.data?.content ?? []).filter(marker => marker.entityType === 'CLUB').map(marker => [marker.clubId ?? marker.entityId, marker.distanceKm]));
-    const far = Number.POSITIVE_INFINITY;
-    const all = `/world/clubs?city=${encodeURIComponent(area.city)}${child ? `&player=${child.id}` : ''}`;
+    const data = useOpenMatches(area);
+    const items = [...(data.data?.items ?? [])].sort((a, b) => Date.parse(a.starts_at_iso) - Date.parse(b.starts_at_iso));
+    const next = items[0];
+    const clubs = unique(items, m => String(m.club_id)).slice(0, 3);
     return (
-        <Section id="world-clubs" title={child ? t('Clubs near you for {name}', { name: child.name }) : t('Clubs near you')} hint={area.city} action={{ label: t('All clubs'), to: all }}>
-            <BlockState data={clubs} rows={2}>{page => {
-                const list = page.content.filter(club => club.id !== ownClub)
-                    .sort((a, b) => (distance.get(a.id) ?? far) - (distance.get(b.id) ?? far)).slice(0, 4);
-                return list.length
-                    ? <div className="gk-world-front__clubs">{list.map(club => <ClubCard key={club.id} club={club} distanceKm={distance.get(club.id)} compact />)}</div>
-                    : <Panel><EmptyNote title={t('No clubs listed in {city} yet', { city: area.city })} action={<ButtonLink size="sm" to="/world/clubs">{t('Browse all clubs')}</ButtonLink>}>{t('Try another area or browse every club.')}</EmptyNote></Panel>;
-            }}</BlockState>
-        </Section>
+        <WorldTile id="matches" title={t('Teams looking for a match')} icon={Handshake} color={activityColors.FRIENDLY} photo="/football/touchline.jpg"
+            count={data.data?.total ?? null} loading={data.loading} error={data.error} onRetry={data.retry} open={open} onToggle={onToggle}
+            summary={next ? `${when(next.starts_at_iso, next.timezone)} · ${next.club_name} ${next.squad_name} · ${t(formats[next.format] ?? codeLabel(next.format))}` : t('No team is looking for an opponent right now')}
+            preview={clubs.length > 0 && <Cluster>{clubs.map(m => <Crest key={m.club_id} src={m.club_logo_url} name={m.club_name} size={26} />)}</Cluster>}
+            all={{ label: t('All open matches'), to: '/world/matches?tab=exchange' }}>
+            {items.length ? <List label={t('Teams looking for a match')}>{items.slice(0, 5).map(m => <ListingItem key={m.event_id} item={m} />)}</List>
+                : <EmptyNote title={t('No open matches right now')} action={<ButtonLink size="sm" to="/world/matches/arrange">{t('Arrange a match')}</ButtonLink>}>{t('Teams post here when they need an opponent for a date.')}</EmptyNote>}
+        </WorldTile>
     );
 }
 
-/** Competitions taking entries now, soonest first. */
-export function OpenCompetitionsBlock() {
+/** Published matches, competitions and trials near you in the next ten days. */
+export function ComingUpTile({ area, open, onToggle }: TileProps) {
     const t = useWorldCopy();
-    const competitions = useWorldData('open-competitions', signal => browseCompetitions(new URLSearchParams({ registration: 'OPEN', page: '0', size: '4' }), signal));
+    const data = useComingUp(area);
+    const next = data.items[0];
     return (
-        <Section id="world-competitions" title={t('Open for entries')} action={{ label: t('All competitions'), to: '/world/competitions?registration=OPEN' }}>
-            <BlockState data={competitions}>{page => page.content.length
-                ? <Panel flush><List label={t('Open for entries')}>{page.content.map(card => <CompetitionRow key={card.id} card={card} compact />)}</List></Panel>
-                : <Panel><EmptyNote title={t('No competitions are taking entries')} action={<ButtonLink size="sm" to="/world/competitions">{t('Browse competitions')}</ButtonLink>}>{t('New leagues and cups appear here when entries open.')}</EmptyNote></Panel>}
-            </BlockState>
-        </Section>
+        <WorldTile id="events" title={t('Matches near you')} icon={Trophy} color={activityColors.MATCH} photo="/football/ball-field.jpg"
+            count={data.data ? data.items.length : null} loading={data.loading} error={data.error} onRetry={data.retry} open={open} onToggle={onToggle}
+            summary={next ? `${when(next.startsAt)} · ${next.name}` : t('Nothing published in the next 10 days')}
+            all={{ label: t('All events'), to: data.all }}>
+            {data.items.length ? <List label={t('Matches near you')}>{data.items.slice(0, 6).map(item => <EventItemRow key={`${item.kind}:${item.id}`} item={item} />)}</List>
+                : <EmptyNote title={t('Nothing published near {city} in the next 10 days', { city: area.city })}>{t('Clubs and organisers publish matches, trials and competitions here.')}</EmptyNote>}
+        </WorldTile>
     );
 }
 
-/** Newest club roles and the next open trials. */
-export function OpportunitiesBlock({ area }: { area: WorldArea }) {
+/** Leagues and cups taking entries now: where a coach enters a squad. */
+export function CompetitionsTile({ open, onToggle }: TileProps) {
     const t = useWorldCopy();
-    const data = useWorldData(area.ready ? `front-opportunities:${area.city}` : null, async signal => {
-        const [jobs, trials] = await Promise.all([fetchOpenJobDirectory(signal), searchTryouts({ status: 'OPEN', page: 0, size: 2 }, signal)]);
-        return { jobs: jobs.slice(0, 3), trials: trials.items, trialTotal: trials.total };
-    });
+    const data = useOpenCompetitions();
+    const items = data.data?.content ?? [];
+    const next = items[0];
+    const rules = next?.profile?.rules;
     return (
-        <Section id="world-opportunities" title={t('Opportunities')} action={{ label: t('All opportunities'), to: '/world/opportunities' }}>
-            <BlockState data={data}>{({ jobs, trials }) => jobs.length || trials.length ? (
-                <Panel flush>
-                    <List label={t('Opportunities')}>
-                        {trials.map(trial => <ListRow key={`t${trial.id}`} to={`/tryouts/${trial.id}`} lead={<Crest name={trial.clubName} size={36} />} title={trial.title}
-                            meta={[trial.clubName, trial.tryoutDate && `${fixtureDay(trial.tryoutDate)} ${fixtureTime(trial.tryoutDate)}`, codeLabel(trial.ageGroup)].filter(Boolean).join(' · ')} trail={<Badge tone="warning">{t('Trial')}</Badge>} />)}
-                        {jobs.map(job => <JobRow key={`j${job.id}`} job={job} compact />)}
-                    </List>
-                </Panel>
-            ) : <Panel><EmptyNote title={t('No open roles or trials right now')}>{t('Clubs post jobs, volunteering and trials here.')}</EmptyNote></Panel>}
-            </BlockState>
-        </Section>
+        <WorldTile id="competitions" title={t('Open for entries')} icon={Trophy} color={activityColors.MATCH} photo="/venue-demo/pitch-aerial.jpg"
+            count={data.data ? data.data.totalElements ?? items.length : null} loading={data.loading} error={data.error} onRetry={data.retry} open={open} onToggle={onToggle}
+            summary={next ? [next.name, rules && codeLabel(rules.ageGroup), rules && `${rules.sideSize}v${rules.sideSize}`].filter(Boolean).join(' · ') : t('No competitions are taking entries')}
+            all={{ label: t('All competitions'), to: '/world/competitions?registration=OPEN' }}>
+            {items.length ? <List label={t('Open for entries')}>{items.slice(0, 5).map(card => <CompetitionRow key={card.id} card={card} compact />)}</List>
+                : <EmptyNote title={t('No competitions are taking entries')}>{t('New leagues and cups appear here when entries open.')}</EmptyNote>}
+        </WorldTile>
     );
 }
 
-/**
- * Coaches, referees and specialists in the area, from outside the person's own club. Without the
- * people directory on the server, people can only be found by name, and the block says so.
- */
-export function PeopleBlock({ area }: { area: WorldArea }) {
+const ROLE_WORDS: Record<string, [string, string]> = { REFEREE: ['referee', 'referees'], COACH: ['coach', 'coaches'], AGENT: ['agent', 'agents'], SPECIALIST: ['specialist', 'specialists'], CLUB_STAFF: ['club staff', 'club staff'] };
+
+/** Referees, coaches and specialists from outside the person's own club, as faces. */
+export function PeopleTile({ area, open, onToggle }: TileProps) {
     const t = useWorldCopy();
-    const { status, sessionId, user } = useAuth();
-    const { membership } = useWorldSession();
     const location = useLocation();
-    const ownClub = membership?.clubId ? Number(membership.clubId) : null;
-    const people = useWorldData(status === 'authenticated' && area.ready ? `people-to-know:${area.city}:${sessionId}` : null,
-        signal => fetchPeople({ city: area.city, size: 12 }, sessionId, signal));
+    const data = usePeopleNearby(area);
+    const roles = Object.entries(data.items.reduce<Record<string, number>>((all, person) => ({ ...all, [person.role]: (all[person.role] ?? 0) + 1 }), {}))
+        .sort((a, b) => b[1] - a[1]).map(([role, count]) => plural(count, ...(ROLE_WORDS[role] ?? [role.toLowerCase(), `${role.toLowerCase()}s`]) as [string, string]));
+    const faces = data.items.slice(0, 3);
     return (
-        <Section id="world-people" title={t('People to know')} action={status === 'authenticated' ? { label: t('All people'), to: '/world/people' } : undefined}>
-            {status !== 'authenticated'
-                ? <Panel><EmptyNote title={t('Coaches, referees and specialists')} action={<ButtonLink size="sm" variant="primary" to={buildLoginRedirectPath(location.pathname, location.search, location.hash)}>{t('Sign in')}</ButtonLink>}>{t('Sign in to find people by role, profession and area.')}</EmptyNote></Panel>
-                : <BlockState data={people}>{page => {
-                    if (page.searchOnly) return <Panel><EmptyNote title={t('Find people by name')} action={<ButtonLink size="sm" to="/world/people">{t('Search people')}</ButtonLink>}>{t('Search coaches, referees and specialists by name.')}</EmptyNote></Panel>;
-                    const list = page.items.filter(person => person.id !== user?.id && person.clubId !== ownClub && person.role !== 'PLAYER').slice(0, 5);
-                    return list.length
-                        ? <Panel flush><List label={t('People to know')}>{list.map(person => <PersonRow key={person.id} person={person} compact />)}</List></Panel>
-                        : <Panel><EmptyNote title={t('No public profiles in {city} yet', { city: area.city })} action={<ButtonLink size="sm" to="/world/people">{t('Browse people')}</ButtonLink>} /></Panel>;
-                }}</BlockState>}
-        </Section>
+        <WorldTile id="people" title={t('People to know')} icon={Users} open={open} onToggle={onToggle}
+            thumb={faces.length ? <Cluster>{faces.map(person => <Avatar key={person.id} src={person.avatarUrl} name={person.fullName} size={30} />)}</Cluster> : undefined}
+            count={data.data && !data.searchOnly ? data.items.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
+            summary={!data.signedIn ? t('Sign in to find people by role and area') : data.searchOnly ? t('Search coaches, referees and specialists by name') : roles.length ? roles.slice(0, 3).join(' · ') : t('No public profiles in {city} yet', { city: area.city })}
+            all={data.signedIn ? { label: t('All people'), to: '/world/people' } : undefined}>
+            {!data.signedIn ? <EmptyNote title={t('Coaches, referees and specialists')} action={<ButtonLink size="sm" variant="primary" to={buildLoginRedirectPath(location.pathname, location.search, location.hash)}>{t('Sign in')}</ButtonLink>} />
+                : data.items.length ? <List label={t('People to know')}>{data.items.slice(0, 5).map(person => <PersonRow key={person.id} person={person} compact />)}</List>
+                    : <EmptyNote title={t('Find people by name')} action={<ButtonLink size="sm" to="/world/people">{t('Search people')}</ButtonLink>} />}
+        </WorldTile>
+    );
+}
+
+/** Pitches to hire near the area, nearest first. */
+export function VenuesTile({ area, open, onToggle, markers }: TileProps & { markers: WorldData<MapPageResult> }) {
+    const t = useWorldCopy();
+    const data = useNearbyVenues(markers);
+    const near = data.items[0];
+    return (
+        <WorldTile id="venues" title={t('Pitches to hire')} icon={MapPin} photo="/venue-demo/pitch-day.jpg"
+            count={data.data ? data.items.length : null} loading={data.loading} error={data.error} onRetry={data.retry} open={open} onToggle={onToggle}
+            summary={near ? [near.title, `${near.distanceKm.toFixed(1)} km`, near.fee].filter(Boolean).join(' · ') : t('No venues listed within 25 km')}
+            all={{ label: t('All venues'), to: `/world/venues?city=${encodeURIComponent(area.city)}` }}>
+            {data.items.length ? <List label={t('Pitches to hire')}>{data.items.slice(0, 5).map(venue => <ListRow key={venue.entityId} to={`/stadiums/${venue.entityId}`}
+                lead={<Crest src={venue.logoUrl} name={venue.title} size={36} />} title={venue.title}
+                meta={[venue.subtitle, venue.fee].filter(Boolean).join(' · ')} trail={<span className="gk-faint">{venue.distanceKm.toFixed(1)} km</span>} />)}</List>
+                : <EmptyNote title={t('No venues listed within 25 km')} />}
+        </WorldTile>
+    );
+}
+
+/** Open jobs, volunteering and trials. */
+export function OpportunitiesTile({ area, open, onToggle }: TileProps) {
+    const t = useWorldCopy();
+    const data = useFrontOpportunities(area);
+    const jobs = data.data?.jobs ?? [], trials = data.data?.trials ?? [];
+    return (
+        <WorldTile id="jobs" title={t('Jobs, volunteering and trials')} icon={Briefcase} photo="/venue-demo/pitch-sun.jpg"
+            count={data.data ? jobs.length + (data.data.trialTotal ?? trials.length) : null} loading={data.loading} error={data.error} onRetry={data.retry} open={open} onToggle={onToggle}
+            summary={data.data ? [jobs.length ? plural(jobs.length, 'job') : null, trials.length ? plural(data.data.trialTotal ?? trials.length, 'open trial') : null].filter(Boolean).join(' · ') || t('No open roles or trials right now') : undefined}
+            preview={jobs.length > 0 && <Cluster>{unique(jobs, job => job.clubName ?? job.title).slice(0, 3).map(job => <Crest key={job.id} src={job.clubLogoUrl} name={job.clubName ?? job.title} size={26} />)}</Cluster>}
+            all={{ label: t('All opportunities'), to: '/world/opportunities' }}>
+            {jobs.length || trials.length ? <List label={t('Opportunities')}>
+                {trials.slice(0, 2).map(trial => <ListRow key={`t${trial.id}`} to={`/tryouts/${trial.id}`} lead={<Crest name={trial.clubName} size={36} />} title={trial.title}
+                    meta={[trial.clubName, when(trial.tryoutDate), codeLabel(trial.ageGroup)].filter(Boolean).join(' · ')} trail={<Badge tone="warning">{t('Trial')}</Badge>} />)}
+                {jobs.slice(0, 4).map(job => <JobRow key={`j${job.id}`} job={job} compact />)}
+            </List> : <EmptyNote title={t('No open roles or trials right now')}>{t('Clubs post jobs, volunteering and trials here.')}</EmptyNote>}
+        </WorldTile>
+    );
+}
+
+/** Clubs around the area, nearest first, as crests. */
+export function ClubsTile({ area, open, onToggle, markers }: TileProps & { markers: WorldData<MapPageResult> }) {
+    const t = useWorldCopy();
+    const { child } = useWorldChild();
+    const data = useNearbyClubs(area, markers);
+    const near = data.items[0], distance = near && data.distance.get(near.id);
+    return (
+        <WorldTile id="clubs" title={child ? t('Clubs for {name}', { name: child.name }) : t('Clubs near you')} icon={Shield} open={open} onToggle={onToggle}
+            thumb={data.items.length ? <Cluster>{data.items.slice(0, 3).map(club => <Crest key={club.id} src={club.logoUrl} name={club.name} size={30} />)}</Cluster> : undefined}
+            count={data.data ? data.total : null} loading={data.loading} error={data.error} onRetry={data.retry}
+            summary={near ? [near.name, distance != null ? `${distance.toFixed(1)} km` : null].filter(Boolean).join(' · ') : t('No clubs listed in {city} yet', { city: area.city })}
+            all={{ label: t('All clubs'), to: `/world/clubs?city=${encodeURIComponent(area.city)}${child ? `&player=${child.id}` : ''}` }}>
+            {data.items.length ? <div className="gk-wtile__clubs">{data.items.slice(0, 4).map(club => <ClubCard key={club.id} club={club} distanceKm={data.distance.get(club.id)} compact />)}</div>
+                : <EmptyNote title={t('No clubs listed in {city} yet', { city: area.city })}>{t('Try another area or browse every club.')}</EmptyNote>}
+        </WorldTile>
     );
 }

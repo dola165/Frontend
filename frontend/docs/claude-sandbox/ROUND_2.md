@@ -182,6 +182,15 @@ The app today, compared with how clubs usually work (coaches to confirm):
   - Competitions: age, format, entry deadline, fee.
 - **If built overnight:** make two overview versions behind a switch, so the owner picks.
 
+**Overview, by audience** (decided 11 October; the owner: "uselessly lot of lists", and every user type should see different things).
+- **Map first and bigger:** the area's map fills the left; it stays in view while you read beside it. Its inner workings come with section 5.
+- **Folded picture tiles instead of lists:** each tile shows a photo (or crests and faces), what it is, the next item and a count. A click unfolds the list in place, with the way to the full directory at the end; one tile is open at a time, kept in the URL (`open`).
+- **Each audience its own tiles and order** (`front/audience.ts`, from the same relationships as the role tabs):
+  - **Coach:** teams looking for a match, matches near you, open for entries, people to know, pitches to hire, jobs and trials, clubs.
+  - **Parent** (a child chosen): clubs for the child, trials, matches, pitches, competitions, people.
+  - **Everyone else:** matches, clubs, opportunities, competitions, people, pitches.
+- **Shortcuts by audience too:** a coach's start with opponents, referees, pitches and competitions.
+
 ## 5. Map and Journeys
 
 **The owner's notes**
@@ -261,7 +270,7 @@ This branch is the real frontend code on fake data, so what is built here ships 
   - Previews that open a full list speak the same row language and link to it: Needs you (My club, to the Work queue), players needing attention (My squads), staff appointments needing attention (Work queue), and the record sections of the player panel.
 - **Tests:** run `npm run check` and fix it.
   - The squad-focus test in `WorkspacePolish.test.tsx` fails because My club dropped its squad chips. Bring a squad focus back, or drop the test.
-  - Fifteen tests from earlier rounds already failed at 415e673:
+  - Tests from earlier rounds that already fail:
     - `ClubWorkspacePage.requests`: its i18n mock lacks `resolvedLanguage`.
     - `ExperienceRoutes`: `/tryouts` now opens World `?tab=trials`.
     - `jobs` and `jobs-presentation`: the Opportunities list.
@@ -269,6 +278,7 @@ This branch is the real frontend code on fake data, so what is built here ships 
     - `ClubOverview`: "Open calendar".
     - `clubProfile`: ways to get involved.
     - `WorkspaceShell`: the phone menu button.
+    - `world/people`: "does not fall back on other errors" (seen 11 October).
 - **Backend:** the records query (`/workspace-roles/work`) should take `sort` and `dir` and return a total. Until then the table sorts only the loaded page and record views show no counts.
 - **My squads:** Georgian copy for its new pages (written in English for now); tests for its pages; unused `coachHub` locale keys removed. Squad sessions should report friendlies as `FRIENDLY` (the sandbox marks them in the description).
 - **One calendar everywhere:**

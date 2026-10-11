@@ -85,9 +85,12 @@ const DIRECTORIES: Record<string, { sources: AnySource[]; alias?: string }> = {
     '/world/matches': { sources: [fixtures, exchange, arrangements, events] },
     '/world/opportunities': { sources: [jobs, trials, groupsSource([child])], alias: 'type' },
     '/world/venues': { sources: [] },
+    '/world/competitions': { sources: [competitions] },
 };
+// Every audience's quick starts, once each: a parent's for the chosen child, a coach's and everyone else's.
+const allStarts = [...new Map([...quickStarts('Tbilisi', 'parent', [child], child), ...quickStarts('Tbilisi', 'coach'), ...quickStarts('Tbilisi', 'member')].map(start => [start.to, start])).values()];
 
-it.each(quickStarts('Tbilisi', [child], child).filter(start => !start.to.startsWith('/world/venues')).map(start => [start.label, start.to]))('the quick start "%s" opens its intended tab and filters', (_label, to) => {
+it.each(allStarts.filter(start => !start.to.startsWith('/world/venues')).map(start => [start.label, start.to]))('the quick start "%s" opens its intended tab and filters', (_label, to) => {
     const url = new URL(to, 'http://world');
     const directory = DIRECTORIES[url.pathname];
     render(<MemoryRouter initialEntries={[to]}><Opened sources={directory.sources} alias={directory.alias} /></MemoryRouter>);
@@ -100,7 +103,7 @@ it.each(quickStarts('Tbilisi', [child], child).filter(start => !start.to.startsW
 });
 
 it('offers a parent the places to train and clubs for the chosen child first', () => {
-    const [places, clubs] = quickStarts('Tbilisi', [child], child);
+    const [places, clubs] = quickStarts('Tbilisi', 'parent', [child], child);
     expect(places).toMatchObject({ label: 'Places to train for {name}', name: 'Nino', to: '/world/opportunities?tab=groups&player=101' });
     expect(clubs.to).toBe('/world/clubs?player=101&city=Tbilisi');
 });
@@ -141,4 +144,8 @@ it('opens the role an old jobs link selected, and the jobs tab otherwise', () =>
     expect(screen.getByText('/jobs/5')).toBeInTheDocument();
     visit('/roles?search=coach', jobsRedirect);
     expect(screen.getByText('/world/opportunities?q=coach&tab=jobs')).toBeInTheDocument();
+});
+
+it('offers a coach opponents, referees and pitches first', () => {
+    expect(quickStarts('Tbilisi', 'coach').slice(0, 3).map(start => start.label)).toEqual(['Teams looking for a match', 'Referees', 'Pitches to hire']);
 });

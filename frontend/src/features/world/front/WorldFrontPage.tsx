@@ -5,7 +5,8 @@ import { useWorldCopy } from '../copy';
 import { useWorldChild } from '../players';
 import { useWorldArea, useWorldCities, type WorldArea } from '../useWorldArea';
 import { WorldSearch } from './WorldSearch';
-import { AroundMapBlock, NearbyClubsBlock, OpenCompetitionsBlock, OpportunitiesBlock, PeopleBlock, WeekendBlock } from './FrontBlocks';
+import { AroundMapBlock, ClubsTile, ComingUpTile, CompetitionsTile, OpenMatchesTile, OpportunitiesTile, PeopleTile, VenuesTile } from './FrontBlocks';
+import { useWorldAudience, type WorldAudience } from './audience';
 import { quickStarts } from './quickStarts';
 import { useNearbyPlaces } from './useNearbyPlaces';
 import './front.css';
@@ -52,21 +53,53 @@ function ChildPicker() {
 }
 
 /** Entry points by intent, each a directory with its tab and filters already chosen. */
-function QuickStarts({ city }: { city: string }) {
+function QuickStarts({ city, audience }: { city: string; audience: WorldAudience }) {
     const t = useWorldCopy();
     const { children, child } = useWorldChild();
     return (
         <nav className="gk-world-starts" aria-label={t('Start with')}>
-            {quickStarts(city, children, child).map(start => <Link key={start.to} className="gk-chip" to={start.to}>{t(start.label, { name: start.name ?? '' })}</Link>)}
+            {quickStarts(city, audience, children, child).map(start => <Link key={start.to} className="gk-chip" to={start.to}>{t(start.label, { name: start.name ?? '' })}</Link>)}
         </nav>
     );
 }
 
-/** GrassKickZ World's front page: search and entry points, then what's on and who's around. */
+type TileId = 'matches' | 'events' | 'competitions' | 'people' | 'venues' | 'jobs' | 'clubs';
+/** Each audience gets its own tiles, most useful first. A coach looks for opponents, fixtures, competitions, officials and pitches. */
+const TILES: Record<WorldAudience, TileId[]> = {
+    coach: ['matches', 'events', 'competitions', 'people', 'venues', 'jobs', 'clubs'],
+    parent: ['clubs', 'jobs', 'events', 'venues', 'competitions', 'people'],
+    member: ['events', 'clubs', 'jobs', 'competitions', 'people', 'venues'],
+};
+
+/**
+ * GrassKickZ World's front page: search and entry points, then the map of the area beside folded tiles.
+ * Each tile says what exists (a picture, a count, the next item) and opens in place to list it; the open
+ * tile is kept in the URL (`open`).
+ */
 export default function WorldFrontPage() {
     const t = useWorldCopy();
     const { area, setCity } = useWorldArea();
+    const audience = useWorldAudience();
     const nearby = useNearbyPlaces(area);
+    const [params, setParams] = useSearchParams();
+    const opened = params.get('open');
+    const toggle = (id: TileId) => setParams(current => {
+        const next = new URLSearchParams(current);
+        if (next.get('open') === id) next.delete('open'); else next.set('open', id);
+        return next;
+    }, { replace: true, preventScrollReset: true });
+    const tile = (id: TileId) => {
+        const props = { area, open: opened === id, onToggle: () => toggle(id) };
+        switch (id) {
+            case 'matches': return <OpenMatchesTile key={id} {...props} />;
+            case 'events': return <ComingUpTile key={id} {...props} />;
+            case 'competitions': return <CompetitionsTile key={id} {...props} />;
+            case 'people': return <PeopleTile key={id} {...props} />;
+            case 'venues': return <VenuesTile key={id} {...props} markers={nearby} />;
+            case 'jobs': return <OpportunitiesTile key={id} {...props} />;
+            case 'clubs': return <ClubsTile key={id} {...props} markers={nearby} />;
+        }
+    };
     return (
         <div className="gk-world-front">
             <PageHeader
@@ -74,16 +107,10 @@ export default function WorldFrontPage() {
                 subtitle={t('Clubs, people, pitches and matches near {city}.', { city: area.city })}
                 actions={<div className="gk-world-front__context"><ChildPicker /><AreaPicker area={area} onChange={setCity} /></div>}
             />
-            <WorldSearch quickStarts={<QuickStarts city={area.city} />} />
+            <WorldSearch quickStarts={<QuickStarts city={area.city} audience={audience} />} />
             <div className="gk-world-front__lead">
-                <WeekendBlock area={area} />
                 <AroundMapBlock area={area} markers={nearby} />
-            </div>
-            <NearbyClubsBlock area={area} markers={nearby} />
-            <div className="gk-world-front__trio">
-                <OpenCompetitionsBlock />
-                <OpportunitiesBlock area={area} />
-                <PeopleBlock area={area} />
+                <div className="gk-world-front__tiles">{TILES[audience].map(tile)}</div>
             </div>
         </div>
     );

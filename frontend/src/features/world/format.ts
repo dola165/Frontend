@@ -32,17 +32,6 @@ export const shortDate = (value?: string | null) => {
     return date ? date.toLocaleDateString(appLocale(), { day: 'numeric', month: 'short', timeZone: TZ }) : null;
 };
 
-/** The coming weekend in Georgian time: this Saturday and Sunday, or the rest of it when it has begun. */
-export function comingWeekend(now = new Date()) {
-    const weekday = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, weekday: 'short' }).format(now);
-    const offset = { Sat: 0, Sun: -1, Mon: 5, Tue: 4, Wed: 3, Thu: 2, Fri: 1 }[weekday] ?? 0;
-    const saturday = new Date(now.getTime() + offset * 86_400_000), sunday = new Date(saturday.getTime() + 86_400_000);
-    const from = weekday === 'Sun' ? now : saturday;
-    const part = (date: Date, options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(appLocale(), { ...options, timeZone: TZ }).format(date);
-    const label = `${part(saturday, { weekday: 'short' })} ${part(saturday, { day: 'numeric' })} – ${part(sunday, { weekday: 'short' })} ${part(sunday, { day: 'numeric' })} ${part(sunday, { month: 'short' })}`;
-    return { from: ymd(from), to: ymd(sunday), label };
-}
-
 /** The calendar day (YYYY-MM-DD, Georgian time) of an instant. */
 export const isoDayOf = (value: string) => ymd(new Date(value));
 export const isoDay = (offsetDays = 0) => ymd(new Date(Date.now() + offsetDays * 86_400_000));

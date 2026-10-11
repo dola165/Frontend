@@ -38,9 +38,11 @@ function MapSketch({ points, selectedId, highlightId, onSelect }: { points: Worl
  * A compact map of World results. Uses the street map when it can load, and otherwise shows
  * the same points on a plain sketch so results stay usable without map tiles.
  */
-export function WorldMap({ points, label, selectedId, highlightId, onSelect, className, footer }: {
+export function WorldMap({ points, label, selectedId, highlightId, onSelect, className, footer, overlay, insetRight }: {
     points: WorldMapPoint[]; label: string; selectedId?: string; /** A point to emphasise, such as the result under the pointer. */ highlightId?: string;
     onSelect?: (id?: string) => void; className?: string; footer?: ReactNode;
+    /** Things floating on the map itself, such as counts and the way to the full map. */ overlay?: ReactNode;
+    /** Room kept free on the right for a panel floating over the map (pixels). */ insetRight?: number;
 }) {
     const t = useWorldCopy();
     const theme = useAppTheme();
@@ -57,7 +59,7 @@ export function WorldMap({ points, label, selectedId, highlightId, onSelect, cla
             <div className="gk-world-map__canvas">
                 {live
                     ? <Suspense fallback={<MapSketch points={points} selectedId={selected} highlightId={highlightId} onSelect={select} />}>
-                        <WorldLiveMap style={style.data!} points={points} selectedId={selected} highlightId={highlightId} onSelect={select} onFail={() => setLiveFailed(true)} />
+                        <WorldLiveMap style={style.data!} points={points} selectedId={selected} highlightId={highlightId} onSelect={select} onFail={() => setLiveFailed(true)} insetRight={insetRight} />
                     </Suspense>
                     : <MapSketch points={points} selectedId={selected} highlightId={highlightId} onSelect={select} />}
                 {tones.length > 1 && (
@@ -71,6 +73,7 @@ export function WorldMap({ points, label, selectedId, highlightId, onSelect, cla
                         <Button size="sm" variant="ghost" onClick={() => { setLiveFailed(false); style.retry(); }}>{t('Retry')}</Button>
                     </p>
                 )}
+                {overlay}
                 {point && (
                     <div className="gk-world-map__card">
                         <span className="gk-world-map__card-text">

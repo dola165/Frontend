@@ -1,5 +1,6 @@
-import type { ComponentType } from 'react';
-import { ButtonLink } from '../../../design/primitives';
+import { useSyncExternalStore, type ComponentType } from 'react';
+import { Link } from 'react-router-dom';
+import { Maximize2 } from 'lucide-react';
 import type { MapPageResult } from '../../../api/map';
 import { plural, useWorldCopy } from '../copy';
 import { ErrorNote } from '../directory/DirectoryResults';
@@ -13,9 +14,19 @@ import { CampaignsField, CoachingJobsField, JobsField, StaffJobsField, TrialsFie
 import { PeopleField, RefereesField, SpecialistsField } from './fields/PeopleFields';
 import { AcademiesField, ClubsField, GroupsField, OpenClubsField, VenuesField } from './fields/PlaceFields';
 
-/** The map of clubs and venues around the area: the biggest thing on the page, with the way into the full map. */
+/** The width of the field floating over the map's right side on wide screens (front.css), plus its margin. */
+const PANEL = 380 + 2 * 16;
+const wide = '(min-width: 1100px)';
+const subscribe = (change: () => void) => { const query = window.matchMedia(wide); query.addEventListener('change', change); return () => query.removeEventListener('change', change); };
+const useWide = () => useSyncExternalStore(subscribe, () => window.matchMedia(wide).matches, () => true);
+
+/**
+ * The map of clubs and venues around the area, as big as the screen allows: the field beside it floats over its
+ * right side, and its counts and the way to the full map float on it, so nothing frames it smaller.
+ */
 export function AroundMapBlock({ area, markers }: { area: WorldArea; markers: WorldData<MapPageResult> }) {
     const t = useWorldCopy();
+    const floating = useWide();
     const points: WorldMapPoint[] = (markers.data?.content ?? []).map(marker => ({
         id: `${marker.entityType}:${marker.entityId}`, lat: marker.latitude, lng: marker.longitude, label: marker.title,
         meta: marker.entityType === 'CLUB' ? [marker.subtitle, marker.addressText].filter(Boolean).join(' · ') : [marker.subtitle, marker.fee].filter(Boolean).join(' · '),
@@ -29,9 +40,14 @@ export function AroundMapBlock({ area, markers }: { area: WorldArea; markers: Wo
         <section id="world-around" className="gk-world-front__map" aria-label={t('Around {city}', { city: area.city })}>
             {markers.error
                 ? <ErrorNote message={markers.error} onRetry={markers.retry} />
-                : <WorldMap label={t('Clubs and venues around {city}', { city: area.city })} points={points}
-                    footer={<>{markers.data ? <span>{t('{clubs} and {venues} within 25 km', { clubs: plural(clubs, 'club'), venues: plural(points.length - clubs, 'venue') })}</span> : <span>{t('Finding clubs and venues…')}</span>}
-                        <ButtonLink size="sm" variant="ghost" to={`/world/map?region=${encodeURIComponent(area.city)}`}>{t('Open full map')}</ButtonLink></>} />}
+                : <WorldMap label={t('Clubs and venues around {city}', { city: area.city })} points={points} insetRight={floating ? PANEL : 0}
+                    overlay={<div className="gk-world-front__overlay">
+                        <span className="gk-world-front__glass gk-world-front__stat" role="status">
+                            <span className="gk-world-front__live" aria-hidden="true" />
+                            {markers.data ? t('{clubs} and {venues} within 25 km of {city}', { clubs: plural(clubs, 'club'), venues: plural(points.length - clubs, 'venue'), city: area.city }) : t('Finding clubs and venues…')}
+                        </span>
+                        <Link className="gk-world-front__glass gk-world-front__expand" to={`/world/map?region=${encodeURIComponent(area.city)}`}><Maximize2 aria-hidden="true" />{t('Open full map')}</Link>
+                    </div>} />}
         </section>
     );
 }

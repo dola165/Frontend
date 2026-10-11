@@ -3,7 +3,7 @@
 /* One header row: the title, search, and the area and Customize. Everything else is the map and fields. */
 .gk .gk-world-front__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3) var(--gk-5); padding-top: var(--gk-4); }
 .gk .gk-world-front__titles { flex: none; display: flex; flex-direction: column; gap: 2px; }
-.gk .gk-world-front__titles h1 { margin: 0; font-size: 24px; line-height: 30px; font-weight: 500; letter-spacing: -0.01em; }
+.gk .gk-world-front__titles h1 { margin: 0; }
 .gk .gk-world-front__titles p { margin: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
 .gk .gk-world-front__context { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); margin-left: auto; }
 .gk .gk-world-area { display: inline-flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
@@ -22,17 +22,6 @@
 .gk .gk-world-search__when small { font-size: var(--gk-fs-xs); font-weight: 500; color: var(--gk-text-3); font-family: var(--gk-font); }
 @media (max-width: 760px) { .gk .gk-world-search { order: 3; flex-basis: 100%; max-width: none; } }
 
-/* The area's map, long and wide, fully in view on arrival, with one field open beside it at the same height.
-   The person's other fields follow below as the page scrolls. */
-.gk .gk-world-front__lead { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gk-5); }
-.gk .gk-world-front__map { --gk-world-map-h: clamp(380px, calc(100dvh - 320px), 760px); }
-.gk .gk-world-front__side { min-width: 0; }
-@media (min-width: 1100px) {
-  .gk .gk-world-front__lead { grid-template-columns: minmax(0, 2.8fr) minmax(380px, 1fr); }
-  /* The field beside the map takes the map's height and scrolls inside, so it never stretches the map. */
-  .gk .gk-world-front__side { position: relative; }
-  .gk .gk-world-front__side > .gk-wfield { position: absolute; inset: 0; }
-}
 /* Lists side by side, growing to fill their row (no empty columns); a card field takes a row of its own. */
 .gk .gk-world-front__fields { display: flex; flex-direction: column; gap: var(--gk-5); }
 .gk .gk-world-front__row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--gk-5); }
@@ -52,8 +41,6 @@
 .gk .gk-wfield__body { flex: 1; min-height: 0; }
 .gk .gk-wfield[data-side] .gk-wfield__body { overflow-y: auto; scrollbar-width: thin; }
 .gk .gk-wfield__body > .gk-empty, .gk .gk-wfield__body > .gk-notice { margin: var(--gk-4); }
-/* Beside the map the column is narrow: titles may take two lines rather than being cut. */
-.gk .gk-wfield[data-side] .gk-fixture__title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .gk .gk-wfield__loading { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3); }
 .gk .gk-wfield__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: var(--gk-3); padding: var(--gk-3); }
 .gk .gk-wfield__all { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--gk-2); padding: var(--gk-3) var(--gk-4); border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-accent); }

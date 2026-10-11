@@ -14,6 +14,7 @@ import { useWorldAudience } from './audience';
 import { roleInfo, type OverviewLayout } from './roles';
 import { useNearbyPlaces } from './useNearbyPlaces';
 import './front.css';
+import './front-hero.css';
 
 function AreaPicker({ area, onChange }: { area: WorldArea; onChange: (city: string) => void }) {
     const t = useWorldCopy();
@@ -94,6 +95,10 @@ export default function WorldFrontPage() {
                 <div className="gk-world-front__side"><Field id={layout.side} area={area} markers={nearby} side /></div>
             </div>
             {rows.length > 0 && <div className="gk-world-front__fields">
+                <div className="gk-world-front__fields-head">
+                    <h2>{t('For you as a {role}', { role: t(roleInfo(layout.role).label).toLowerCase() })}</h2>
+                    <Button size="sm" variant="ghost" onClick={() => setDraft(saved)}><SlidersHorizontal aria-hidden="true" />{t('Change what you see')}</Button>
+                </div>
                 {rows.map(row => <div key={row.join()} className="gk-world-front__row">{row.map(id => <Field key={id} id={id} area={area} markers={nearby} />)}</div>)}
             </div>}
             {draft && <CustomizeOverview draft={draft} saved={saved} onChange={setDraft} onCancel={() => setDraft(null)} onSave={() => { save(draft); setDraft(null); }} />}

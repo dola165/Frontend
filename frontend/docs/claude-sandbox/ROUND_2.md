@@ -184,7 +184,7 @@ The app today, compared with how clubs usually work (coaches to confirm):
 
 **Overview: the person's own page, by role** (11 October; the owner: "uselessly lot of lists"; every user type, and every kind of coach, wants different things).
 - **One header row:** title, search (its results drop down over the page), the area and Customize. The big search band and the shortcut chips are gone: the top bar already searches, and each role's fields link into the directories.
-- **The map fills the first screen:** about three quarters of the width and from the header down to the bottom of a 1080p screen, with one field open beside it at the same height. The person's other fields follow as the page scrolls; lists share rows, club cards take a row of their own.
+- **The map is the hero** (the owner: it should feel luxurious and look more massive than it is): it runs the page's width and fills the first screen. The open field floats over its right side as a compact glass panel; its counts and "Open full map" float on it as glass chips (no footer bar). A vignette, soft shadows and slow motion give it depth: the map eases in, the panel slides in, clubs pulse, fields rise in as you scroll and their photos drift closer on hover; all of it stops for reduced motion. The person's other fields follow under "For you as a …"; lists share rows, club cards take a row of their own.
 - **Choose who you are** (Customize, then Save): 16 roles in four groups.
   - **Coaching staff:** head coach, assistant coach, goalkeeper coach, fitness coach, analyst or scout, team manager, academy director.
   - **At a club:** club administrator, physio or specialist.

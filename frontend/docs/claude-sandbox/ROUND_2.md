@@ -185,6 +185,13 @@ The app today, compared with how clubs usually work (coaches to confirm):
 **Overview: the person's own page, by role** (11 October; the owner: "uselessly lot of lists"; every user type, and every kind of coach, wants different things).
 - **One header row:** title, search (its results drop down over the page), the area and Customize. The big search band and the shortcut chips are gone: the top bar already searches, and each role's fields link into the directories.
 - **The map is the hero** (the owner: it should feel luxurious and look more massive than it is): it runs the page's width and fills the first screen. The open field floats over its right side as a compact glass panel; its counts and "Open full map" float on it as glass chips (no footer bar). A vignette, soft shadows and slow motion give it depth: the map eases in, the panel slides in, clubs pulse, fields rise in as you scroll and their photos drift closer on hover; all of it stops for reduced motion. The person's other fields follow under "For you as a …"; lists share rows, club cards take a row of their own.
+- **The field over the map folds:** a click on its header folds it to the header so the whole map shows, and unfolds it again (kept in the URL, `panel=folded`).
+- **Lists in the score-site shape** (the owner: "familiarity needs to be everywhere we can have", like Flashscore):
+  - Matches under a header per competition or day: the time on the left, the two teams stacked with crests, the score on the right ("–" before kick-off), one quiet tag.
+  - Results show "FT" with the winner in bold.
+  - Teams looking for a match read as a fixture with "Opponent wanted".
+  - Competitions, trials and pitches are single lines with one fact on the right; competitions are grouped by age, with the closing date in amber when it is within a week.
+  - Clubs are lines in columns, each with a star to follow (the real follow).
 - **Choose who you are** (Customize, then Save): 16 roles in four groups.
   - **Coaching staff:** head coach, assistant coach, goalkeeper coach, fitness coach, analyst or scout, team manager, academy director.
   - **At a club:** club administrator, physio or specialist.

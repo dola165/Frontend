@@ -10,6 +10,7 @@ import { AroundMapBlock, Field } from './FrontBlocks';
 import { CustomizeOverview } from './CustomizeOverview';
 import { fieldInfo, type FieldId } from './fields';
 import { useOverviewLayout } from './useOverviewLayout';
+import { SideFold } from './fields/fieldProps';
 import { useWorldAudience } from './audience';
 import { roleInfo, type OverviewLayout } from './roles';
 import { useNearbyPlaces } from './useNearbyPlaces';
@@ -71,6 +72,10 @@ export default function WorldFrontPage() {
     // While customising, the page shows the draft; Save keeps it, Cancel goes back to the saved page.
     const [draft, setDraft] = useState<OverviewLayout | null>(null);
     const layout = draft ?? saved;
+    // The field beside the map folds to its header so the whole map shows; kept in the URL (`panel`).
+    const [params, setParams] = useSearchParams();
+    const folded = params.get('panel') === 'folded';
+    const fold = { folded, toggle: () => setParams(current => { const next = new URLSearchParams(current); if (folded) next.delete('panel'); else next.set('panel', 'folded'); return next; }, { replace: true, preventScrollReset: true }) };
     // Lists that follow each other share rows; a card field (clubs) takes the page's width on its own.
     const rows = layout.fields.reduce<FieldId[][]>((all, id) => {
         const last = all[all.length - 1];
@@ -91,8 +96,8 @@ export default function WorldFrontPage() {
                 </div>
             </header>
             <div className="gk-world-front__lead">
-                <AroundMapBlock area={area} markers={nearby} />
-                <div className="gk-world-front__side"><Field id={layout.side} area={area} markers={nearby} side /></div>
+                <AroundMapBlock area={area} markers={nearby} panelOpen={!folded} />
+                <div className="gk-world-front__side" data-folded={folded || undefined}><SideFold.Provider value={fold}><Field id={layout.side} area={area} markers={nearby} side /></SideFold.Provider></div>
             </div>
             {rows.length > 0 && <div className="gk-world-front__fields">
                 <div className="gk-world-front__fields-head">

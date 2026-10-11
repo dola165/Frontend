@@ -24,7 +24,7 @@ const useWide = () => useSyncExternalStore(subscribe, () => window.matchMedia(wi
  * The map of clubs and venues around the area, as big as the screen allows: the field beside it floats over its
  * right side, and its counts and the way to the full map float on it, so nothing frames it smaller.
  */
-export function AroundMapBlock({ area, markers }: { area: WorldArea; markers: WorldData<MapPageResult> }) {
+export function AroundMapBlock({ area, markers, panelOpen = true }: { area: WorldArea; markers: WorldData<MapPageResult>; /** The field over the map's right side is open (not folded). */ panelOpen?: boolean }) {
     const t = useWorldCopy();
     const floating = useWide();
     const points: WorldMapPoint[] = (markers.data?.content ?? []).map(marker => ({
@@ -40,7 +40,7 @@ export function AroundMapBlock({ area, markers }: { area: WorldArea; markers: Wo
         <section id="world-around" className="gk-world-front__map" aria-label={t('Around {city}', { city: area.city })}>
             {markers.error
                 ? <ErrorNote message={markers.error} onRetry={markers.retry} />
-                : <WorldMap label={t('Clubs and venues around {city}', { city: area.city })} points={points} insetRight={floating ? PANEL : 0}
+                : <WorldMap label={t('Clubs and venues around {city}', { city: area.city })} points={points} insetRight={floating && panelOpen ? PANEL : 0}
                     overlay={<div className="gk-world-front__overlay">
                         <span className="gk-world-front__glass gk-world-front__stat" role="status">
                             <span className="gk-world-front__live" aria-hidden="true" />

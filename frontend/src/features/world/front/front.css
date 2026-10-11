@@ -42,7 +42,6 @@
 .gk .gk-wfield[data-side] .gk-wfield__body { overflow-y: auto; scrollbar-width: thin; }
 .gk .gk-wfield__body > .gk-empty, .gk .gk-wfield__body > .gk-notice { margin: var(--gk-4); }
 .gk .gk-wfield__loading { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3); }
-.gk .gk-wfield__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: var(--gk-3); padding: var(--gk-3); }
 .gk .gk-wfield__all { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--gk-2); padding: var(--gk-3) var(--gk-4); border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-accent); }
 .gk .gk-wfield__all svg { width: 16px; height: 16px; }
 .gk .gk-wfield__all:hover { background: var(--gk-hover); }

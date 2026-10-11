@@ -1,12 +1,22 @@
-import { EmptyNote, List, ListRow } from '../../../../design/primitives';
-import { ClubCard } from '../../cards/ClubCard';
+import { EmptyNote, List } from '../../../../design/primitives';
+import type { ClubProfile } from '../../../../components/discovery/clubDirectoryTypes';
 import { useWorldCopy } from '../../copy';
+import { clubTypeLabel } from '../../format';
 import { Crest } from '../../Crest';
 import { useWorldChild } from '../../players';
 import { GroupItem } from '../../directories/opportunityItems';
 import { useAcademies, useGroups, useNearbyClubs, useNearbyVenues, useOpenClubs } from '../frontData';
 import { Cluster, WorldField } from '../WorldField';
 import { rowsFor, type FieldProps } from './fieldProps';
+import { ClubLine, Line } from './Scoreboard';
+
+const JOIN: Record<string, string> = { OPEN_TRIAL: 'Open trials', APPLICATION_REQUIRED: 'Apply to join', INVITE_ONLY: 'Invite only' };
+/** Clubs as scoreboard lines in columns: a star to follow, the crest, name, kind and town, and one fact. */
+function ClubLines({ clubs, fact }: { clubs: ClubProfile[]; fact: (club: ClubProfile) => string | undefined }) {
+    const t = useWorldCopy();
+    return <ul className="gk-sb__clubs">{clubs.map(club => <ClubLine key={club.id} id={club.id} name={club.name} logo={club.logoUrl} followed={Boolean(club.isFollowedByMe)}
+        detail={[t(clubTypeLabel(club.type)), club.cityName].filter(Boolean).join(' · ')} fact={fact(club)} />)}</ul>;
+}
 
 /** Clubs around the area, nearest first, as cards with Follow and Open across the page. */
 export function ClubsField({ area, markers, side }: FieldProps) {
@@ -19,7 +29,7 @@ export function ClubsField({ area, markers, side }: FieldProps) {
             thumb={data.items.length ? <Cluster>{data.items.slice(0, 3).map(club => <Crest key={club.id} src={club.logoUrl} name={club.name} size={30} />)}</Cluster> : undefined}
             hint={near ? [`${t('Nearest')}: ${near.name}`, distance != null ? `${distance.toFixed(1)} km` : null].filter(Boolean).join(' · ') : area.city}
             all={{ label: t('All clubs'), to: `/world/clubs?city=${encodeURIComponent(area.city)}${child ? `&player=${child.id}` : ''}` }}>
-            {data.items.length ? <div className="gk-wfield__cards">{data.items.slice(0, 4).map(club => <ClubCard key={club.id} club={club} distanceKm={data.distance.get(club.id)} compact />)}</div>
+            {data.items.length ? <ClubLines clubs={data.items.slice(0, 9)} fact={club => { const km = data.distance.get(club.id); return km != null ? `${km.toFixed(1)} km` : undefined; }} />
                 : <EmptyNote title={t('No clubs listed in {city} yet', { city: area.city })}>{t('Try another area or browse every club.')}</EmptyNote>}
         </WorldField>
     );
@@ -34,7 +44,7 @@ export function AcademiesField({ area, side }: FieldProps) {
         <WorldField id="academies" side={side} count={data.data ? data.data.totalElements ?? items.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
             thumb={items.length ? <Cluster>{items.slice(0, 3).map(club => <Crest key={club.id} src={club.logoUrl} name={club.name} size={30} />)}</Cluster> : undefined}
             hint={area.city} all={{ label: t('All academies'), to: `/world/clubs?type=ACADEMY&city=${encodeURIComponent(area.city)}` }}>
-            {items.length ? <div className="gk-wfield__cards">{items.slice(0, 4).map(club => <ClubCard key={club.id} club={club} compact />)}</div>
+            {items.length ? <ClubLines clubs={items.slice(0, 9)} fact={club => club.joinPolicy ? t(JOIN[club.joinPolicy] ?? '') : undefined} />
                 : <EmptyNote title={t('No academies listed in {city} yet', { city: area.city })} />}
         </WorldField>
     );
@@ -49,9 +59,8 @@ export function VenuesField({ area, markers, side }: FieldProps) {
         <WorldField id="venues" side={side} count={data.data ? data.items.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
             hint={near ? [`${t('Nearest')}: ${near.title}`, `${near.distanceKm.toFixed(1)} km`].join(' · ') : t('Within 25 km')}
             all={{ label: t('All venues'), to: `/world/venues?city=${encodeURIComponent(area.city)}` }}>
-            {data.items.length ? <List label={t('Pitches to hire')}>{data.items.slice(0, rowsFor(side)).map(venue => <ListRow key={venue.entityId} to={`/stadiums/${venue.entityId}`}
-                lead={<Crest src={venue.logoUrl} name={venue.title} size={36} />} title={venue.title}
-                meta={[venue.subtitle, venue.fee].filter(Boolean).join(' · ')} trail={<span className="gk-faint">{venue.distanceKm.toFixed(1)} km</span>} />)}</List>
+            {data.items.length ? <ul className="gk-sb__rows" aria-label={t('Pitches to hire')}>{data.items.slice(0, rowsFor(side)).map(venue => <Line key={venue.entityId} to={`/stadiums/${venue.entityId}`}
+                crest={venue.logoUrl} name={venue.title} detail={[venue.subtitle, venue.fee].filter(Boolean).join(' · ')} fact={`${venue.distanceKm.toFixed(1)} km`} />)}</ul>
                 : <EmptyNote title={t('No venues listed within 25 km')} />}
         </WorldField>
     );
@@ -66,7 +75,7 @@ export function OpenClubsField({ area, side }: FieldProps) {
         <WorldField id="openClubs" side={side} count={data.data ? data.data.totalElements ?? items.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
             thumb={items.length ? <Cluster>{items.slice(0, 3).map(club => <Crest key={club.id} src={club.logoUrl} name={club.name} size={30} />)}</Cluster> : undefined}
             hint={area.city} all={{ label: t('All clubs taking players'), to: `/world/clubs?joinPolicy=OPEN_TRIAL&joinPolicy=APPLICATION_REQUIRED&city=${encodeURIComponent(area.city)}` }}>
-            {items.length ? <div className="gk-wfield__cards">{items.slice(0, 4).map(club => <ClubCard key={club.id} club={club} compact />)}</div>
+            {items.length ? <ClubLines clubs={items.slice(0, 9)} fact={club => club.joinPolicy ? t(JOIN[club.joinPolicy] ?? '') : undefined} />
                 : <EmptyNote title={t('No clubs in {city} are taking players right now', { city: area.city })} />}
         </WorldField>
     );

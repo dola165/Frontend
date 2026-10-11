@@ -1,3 +1,4 @@
+import { createContext } from 'react';
 import type { MapPageResult } from '../../../../api/map';
 import { fixtureDay, fixtureTime } from '../../format';
 import type { WorldData } from '../../useWorldData';
@@ -14,3 +15,6 @@ export const when = (value?: string | null, zone?: string | null) => value ? `${
 
 /** The first of each key, in order. */
 export const unique = <T,>(items: T[], key: (item: T) => string) => [...new Map(items.map(item => [key(item), item])).values()];
+
+/** The field beside the map can be folded to its header so the whole map shows; the page owns whether it is. */
+export const SideFold = createContext<{ folded: boolean; toggle: () => void } | null>(null);

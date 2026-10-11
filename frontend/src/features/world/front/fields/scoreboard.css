@@ -1,0 +1,55 @@
+/* Scoreboard lists, in the shape people know from score sites: a header per competition or day, dense rows,
+   the time on the left, the teams stacked with crests, the score on the right. Scoped under .gk; tokens only. */
+.gk .gk-sb { display: flex; flex-direction: column; }
+.gk .gk-sb__head { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-2); margin: 0; padding: 6px var(--gk-4);
+  background: color-mix(in srgb, var(--gk-text) 4%, transparent); border-block: 1px solid var(--gk-line);
+  font-family: var(--gk-font); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--gk-text-2); }
+.gk .gk-sb__group:first-child .gk-sb__head { border-top: 0; }
+.gk .gk-sb__head small { font-size: var(--gk-fs-xs); font-weight: 500; letter-spacing: 0; color: var(--gk-text-3); }
+.gk .gk-sb__rows { margin: 0; padding: 0; list-style: none; }
+.gk .gk-sb__rows > li + li { border-top: 1px solid color-mix(in srgb, var(--gk-line) 70%, transparent); }
+
+.gk .gk-sb__row { display: grid; grid-template-columns: 52px minmax(0, 1fr) 28px auto; align-items: center; gap: var(--gk-3); min-height: 48px; padding: 6px var(--gk-4); color: var(--gk-text); transition: background-color .15s var(--gk-ease); }
+.gk a.gk-sb__row:hover { background: var(--gk-hover); }
+.gk .gk-sb__when { display: flex; flex-direction: column; font-size: var(--gk-fs-sm); line-height: 16px; }
+.gk .gk-sb__when b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.gk .gk-sb__when b[data-state] { color: var(--gk-text-3); font-weight: 600; }
+.gk .gk-sb__when b[data-state='Live'] { color: var(--gk-danger); }
+.gk .gk-sb__when small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-sb__teams { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.gk .gk-sb__team { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; font-size: var(--gk-fs-md); line-height: 18px; color: var(--gk-text-2); }
+.gk .gk-sb__team > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-sb__team[data-win] { color: var(--gk-text); font-weight: 650; }
+.gk .gk-sb__team[data-muted] { color: var(--gk-text-3); font-style: italic; }
+.gk .gk-sb__score { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-size: var(--gk-fs-md); line-height: 18px; font-variant-numeric: tabular-nums; color: var(--gk-text-3); }
+.gk .gk-sb__score b { font-weight: 600; }
+.gk .gk-sb__score b[data-win] { color: var(--gk-text); }
+.gk .gk-sb__tag { justify-self: end; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+
+/* Lines that are not matches: crest, name and detail, one fact on the right. */
+.gk .gk-sb__row--line { grid-template-columns: auto minmax(0, 1fr) auto; }
+.gk .gk-sb__row--line:has(> .gk-sb__when) { grid-template-columns: 52px auto minmax(0, 1fr) auto; }
+.gk .gk-sb__main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.gk .gk-sb__main strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-md); font-weight: 600; }
+.gk .gk-sb__main small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-sb__fact { justify-self: end; font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-2); white-space: nowrap; }
+.gk .gk-sb__fact[data-tone='warning'] { color: var(--gk-warning); }
+.gk .gk-sb__fact[data-tone='accent'] { color: var(--gk-accent); }
+.gk .gk-sb__fact[data-tone='danger'] { color: var(--gk-danger); }
+
+/* Clubs: a star to follow, then the club; several columns on a wide page. */
+.gk .gk-sb__clubs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); margin: 0; padding: 0; list-style: none; }
+.gk .gk-sb__club { display: flex; align-items: center; min-width: 0; border-bottom: 1px solid color-mix(in srgb, var(--gk-line) 70%, transparent); }
+.gk .gk-sb__club > .gk-sb__row { flex: 1; min-width: 0; padding-left: var(--gk-2); }
+.gk .gk-sb__star { flex: none; display: grid; place-items: center; width: 36px; height: 36px; margin-left: var(--gk-2); padding: 0; border: 0; border-radius: var(--gk-r); background: none; color: var(--gk-text-3); cursor: pointer; transition: color .15s, transform .2s var(--gk-ease); }
+.gk .gk-sb__star:hover { color: var(--gk-text); transform: scale(1.1); }
+.gk .gk-sb__star svg { width: 17px; height: 17px; }
+.gk .gk-sb__star[aria-pressed='true'] { color: var(--gk-warning); }
+.gk .gk-sb__star[aria-pressed='true'] svg { fill: currentColor; }
+
+/* Beside the map the panel is narrow: the tag goes under the teams. */
+.gk .gk-wfield[data-side] .gk-sb__row { grid-template-columns: 44px minmax(0, 1fr) 22px; gap: var(--gk-2); padding-inline: var(--gk-3); }
+.gk .gk-wfield[data-side] .gk-sb__tag { grid-column: 2 / -1; justify-self: start; margin-top: -2px; }
+.gk .gk-wfield[data-side] .gk-sb__head { padding-inline: var(--gk-3); background: color-mix(in srgb, var(--gk-text) 5%, transparent); border-color: var(--gk-glass-line, var(--gk-line)); }
+.gk .gk-wfield[data-side] .gk-sb__row--line { grid-template-columns: auto minmax(0, 1fr) auto; }
+.gk .gk-wfield[data-side] .gk-sb__row--line:has(> .gk-sb__when) { grid-template-columns: 44px auto minmax(0, 1fr) auto; }

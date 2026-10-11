@@ -2,7 +2,9 @@ import { Badge, EmptyNote, List, ListRow } from '../../../../design/primitives';
 import type { ClubJob } from '../../../clubs/api';
 import { plural, useWorldCopy } from '../../copy';
 import { Crest } from '../../Crest';
-import { JobRow, TrialRow } from '../../rows';
+import { JobRow } from '../../rows';
+import { codeLabel, fixtureDay, fixtureTime } from '../../format';
+import { Line, ScoreGroups } from './Scoreboard';
 import { useCampaigns, useJobs, useTrials } from '../frontData';
 import type { FieldId } from '../fields';
 import { Cluster, WorldField } from '../WorldField';
@@ -47,7 +49,10 @@ export function TrialsField({ side }: FieldProps) {
         <WorldField id="trials" side={side} count={data.data?.total ?? null} loading={data.loading} error={data.error} onRetry={data.retry}
             hint={items[0] ? `${t('Next')}: ${when(items[0].tryoutDate)}` : undefined}
             all={{ label: t('All trials'), to: '/world/opportunities?tab=trials' }}>
-            {items.length ? <List label={t('Open trials')}>{items.slice(0, rowsFor(side)).map(trial => <TrialRow key={trial.id} trial={trial} />)}</List>
+            {items.length ? <ScoreGroups label={t('Open trials')} items={items.slice(0, rowsFor(side))} group={trial => fixtureDay(trial.tryoutDate)}>
+                {trial => <Line key={trial.id} to={`/tryouts/${trial.id}`} when={{ time: fixtureTime(trial.tryoutDate) }} name={trial.title}
+                    detail={[trial.clubName, codeLabel(trial.position), trial.location].filter(Boolean).join(' · ')} fact={codeLabel(trial.ageGroup)} factTone="warning" />}
+            </ScoreGroups>
                 : <EmptyNote title={t('No open trials right now')}>{t('Clubs publish trials here when they look for players.')}</EmptyNote>}
         </WorldField>
     );

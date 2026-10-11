@@ -4,7 +4,7 @@ import { Button } from '../../../design/primitives';
 import { Dialog } from '../../../design/Dialog';
 import { useWorldCopy } from '../copy';
 import { FIELDS, FIELD_GROUPS, fieldInfo, type FieldId, type FieldInfo } from './fields';
-import { ROLES, ROLE_GROUPS, offeredFor, roleInfo, roleLayout, type OverviewLayout } from './roles';
+import { ROLES, ROLE_GROUPS, aRole, offeredFor, roleInfo, roleLayout, type OverviewLayout } from './roles';
 
 const same = (a: OverviewLayout, b: OverviewLayout) => a.role === b.role && a.side === b.side && a.fields.join() === b.fields.join();
 
@@ -77,8 +77,8 @@ export function CustomizeOverview({ draft, saved, onChange, onSave, onCancel }: 
                     </li>;
                 })}</ol> : <p className="gk-faint">{t('Only the map and the field beside it. Add more below.')}</p>}
             </section>
-            {suggested.length > 0 && <section className="gk-wcustom__block" aria-label={t('More for a {role}', { role: t(role.label).toLowerCase() })}>
-                <h3>{t('More for a {role}', { role: t(role.label).toLowerCase() })}</h3>
+            {suggested.length > 0 && <section className="gk-wcustom__block" aria-label={t('More for {role}', { role: aRole(role.id) })}>
+                <h3>{t('More for {role}', { role: aRole(role.id) })}</h3>
                 <ul className="gk-wcustom__list">{suggested.map(addRow)}</ul>
             </section>}
             {others.length > 0 && <details className="gk-wcustom__more">

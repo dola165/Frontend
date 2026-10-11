@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Star } from 'lucide-react';
+import { ArrowRight, Star } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useWorldCopy } from '../../copy';
 import { Crest } from '../../Crest';
@@ -24,17 +24,19 @@ export function ScoreGroups<T>({ items, group, children, label }: { items: T[]; 
     );
 }
 
-export interface Side { name: string; logo?: string | null; score?: number | null; muted?: boolean }
+/** One side of a match. `mine` marks the viewer's own team with a star, as favourites do on score sites. */
+export interface Side { name: string; logo?: string | null; score?: number | null; muted?: boolean; mine?: boolean }
 
 /** One match: when (or its state), the two sides stacked, the score, and one quiet tag. */
 export function MatchLine({ to, time, day, state, home, away, tag, title }: {
     to?: string; time?: string; day?: string; /** "FT", "Live" and the like, instead of a time. */ state?: string;
     home: Side; away: Side; tag?: ReactNode; title?: string;
 }) {
+    const t = useWorldCopy();
     const scored = home.score != null && away.score != null;
     const wins = (side: Side, other: Side) => scored && side.score! > other.score!;
-    const team = (side: Side, other: Side) => <span className="gk-sb__team" data-win={wins(side, other) || undefined} data-muted={side.muted || undefined}>
-        <Crest src={side.logo} name={side.name} size={18} round /><span>{side.name}</span>
+    const team = (side: Side, other: Side) => <span className="gk-sb__team" data-win={wins(side, other) || undefined} data-muted={side.muted || undefined} data-mine={side.mine || undefined}>
+        {side.muted && !side.logo ? <span className="gk-sb__nocrest" aria-hidden="true" /> : <Crest src={side.logo} name={side.name} size={18} round />}{side.mine && <Star className="gk-sb__mine" role="img" aria-label={t('Your team')} />}<span>{side.name}</span>
     </span>;
     const body = <>
         <span className="gk-sb__when">{state ? <b data-state={state}>{state}</b> : <><b>{time}</b>{day && <small>{day}</small>}</>}</span>
@@ -78,4 +80,9 @@ export function ClubLine({ id, name, logo, detail, fact, followed }: { id: numbe
             {fact && <span className="gk-sb__fact">{fact}</span>}
         </Link>
     </li>;
+}
+
+/** A waiting item's state in words: a dot in front (red urgent, amber decide), the word, an arrow behind. */
+export function WaitTag({ tone = 'neutral', children }: { tone?: 'danger' | 'warning' | 'neutral'; children: ReactNode }) {
+    return <span className="gk-sb__wait" data-tone={tone}>{children}<ArrowRight aria-hidden="true" /></span>;
 }

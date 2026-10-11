@@ -1,0 +1,38 @@
+/* The next opponent: the fixture as a score site's match header, then the opponent's form and last results. */
+.gk .gk-nextop { display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-3) var(--gk-4) var(--gk-4); }
+.gk .gk-nextop + .gk-nextop { border-top: 1px solid var(--gk-line); }
+.gk .gk-nextop__when { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
+.gk .gk-nextop__when b { font-weight: 650; font-variant-numeric: tabular-nums; }
+.gk .gk-nextop__when small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-nextop__squad { padding: 2px 8px; border-radius: var(--gk-r-pill); background: var(--gk-accent-soft); color: var(--gk-accent); font-size: var(--gk-fs-xs); font-weight: 650; }
+
+.gk .gk-nextop__teams { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: var(--gk-2); padding: var(--gk-3) var(--gk-2); border-radius: var(--gk-r); color: var(--gk-text); transition: background-color .15s var(--gk-ease); }
+.gk .gk-nextop__teams:hover { background: var(--gk-hover); }
+.gk .gk-nextop__team { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; text-align: center; }
+.gk .gk-nextop__team b { max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: var(--gk-fs-sm); font-weight: 650; line-height: 17px; }
+.gk .gk-nextop__team small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-nextop__tbd { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1px dashed var(--gk-line-strong); color: var(--gk-text-3); font-weight: 700; }
+.gk .gk-nextop__team[data-tbd] b { color: var(--gk-text-3); font-style: italic; font-weight: 500; }
+.gk .gk-nextop__vs { align-self: center; padding-bottom: 18px; font-size: var(--gk-fs-xs); font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--gk-text-3); }
+.gk .gk-nextop__where { margin: -6px 0 0; text-align: center; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+
+.gk .gk-nextop__facts { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: var(--gk-3) 0 0; border-top: 1px solid color-mix(in srgb, var(--gk-line) 70%, transparent); }
+.gk .gk-nextop__facts > div { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); min-height: 22px; }
+.gk .gk-nextop__facts dt { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-nextop__facts dd { margin: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-2); font-variant-numeric: tabular-nums; text-align: right; }
+.gk .gk-nextop__facts dd b { font-weight: 650; color: var(--gk-text); }
+.gk .gk-nextop__facts dd b[data-r='W'] { color: var(--gk-accent); }
+.gk .gk-nextop__facts dd b[data-r='L'] { color: var(--gk-danger); }
+/* A goalkeeper coach reads goals first. */
+.gk .gk-nextop__facts[data-emphasis='goals'] .gk-nextop__goals { order: -1; }
+.gk .gk-nextop__facts[data-emphasis='goals'] .gk-nextop__goals dd { color: var(--gk-text); font-weight: 600; }
+
+.gk .gk-nextop__results { margin-inline: calc(-1 * var(--gk-4)); }
+.gk .gk-wfield[data-side] .gk-nextop__results { margin-inline: calc(-1 * var(--gk-4)); }
+.gk .gk-nextop__then { display: flex; align-items: center; flex-wrap: wrap; gap: var(--gk-2) var(--gk-3); font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-nextop__then a { display: inline-flex; align-items: center; gap: 5px; color: var(--gk-text-2); }
+.gk .gk-nextop__then a:hover { color: var(--gk-text); }
+.gk .gk-nextop__empty { margin: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-nextop__go { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-accent); }
+.gk .gk-nextop__go svg { width: 14px; height: 14px; }
+@media (pointer: coarse) { .gk .gk-nextop__then a, .gk .gk-nextop__go { min-height: 44px; } }

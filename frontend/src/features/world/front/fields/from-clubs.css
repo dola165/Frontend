@@ -1,0 +1,18 @@
+/* From the clubs: one row of labelled tiles that scrolls sideways, like a shop shelf. Scoped under .gk; tokens only. */
+.gk .gk-offers { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 260px); gap: var(--gk-3); margin: 0; padding: var(--gk-3) var(--gk-4) var(--gk-4); list-style: none; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: thin; }
+.gk .gk-offers > li { scroll-snap-align: start; min-width: 0; }
+.gk .gk-offer { display: flex; flex-direction: column; gap: 6px; height: 100%; color: var(--gk-text); }
+.gk .gk-offer__media { position: relative; display: grid; place-items: center; aspect-ratio: 4 / 3; border-radius: var(--gk-r); overflow: hidden; background: var(--gk-sunken); }
+.gk .gk-offer__media > img { width: 100%; height: 100%; object-fit: cover; transition: transform .35s var(--gk-ease); }
+.gk .gk-offer__media[data-contain] { background: var(--gk-raised); }
+.gk .gk-offer__media[data-contain] > img { width: 70%; height: 70%; object-fit: contain; }
+.gk .gk-offer:hover .gk-offer__media > img { transform: scale(1.03); }
+.gk .gk-offer__label { position: absolute; left: 8px; top: 8px; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 2px 8px; border-radius: var(--gk-r-pill);
+  background: color-mix(in srgb, var(--gk-bg) 82%, transparent); color: var(--gk-text); font-size: var(--gk-fs-xs); font-weight: 600; }
+.gk .gk-offer__title { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: var(--gk-fs-md); font-weight: 600; line-height: 18px; }
+.gk .gk-offer:hover .gk-offer__title { text-decoration: underline; }
+.gk .gk-offer__club { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-offer__club > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-offer__fact { display: flex; align-items: center; gap: var(--gk-2); margin-top: auto; font-size: var(--gk-fs-xs); color: var(--gk-text-2); }
+.gk .gk-offer__fact b { font-size: var(--gk-fs-sm); font-weight: 650; color: var(--gk-text); }
+.gk .gk-offer__fact [data-tone='muted'] { color: var(--gk-text-3); }

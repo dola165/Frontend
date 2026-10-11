@@ -16,8 +16,8 @@ export const Cluster = ({ children }: { children: ReactNode }) => <span classNam
  * Beside the map (`side`) it fills the map's height and scrolls inside, and its header folds it away so the
  * whole map shows (the page keeps whether it is folded).
  */
-export function WorldField({ id, side, hint, count, thumb, loading, error, onRetry, all, children }: {
-    id: FieldId; side?: boolean; hint?: ReactNode; count?: number | null; thumb?: ReactNode;
+export function WorldField({ id, title, side, hint, count, thumb, loading, error, onRetry, all, children }: {
+    id: FieldId; /** The title when it depends on who the page is for; the catalog title otherwise. */ title?: string; side?: boolean; hint?: ReactNode; count?: number | null; thumb?: ReactNode;
     loading?: boolean; error?: string; onRetry?: () => void; all?: { label: string; to: string }; children?: ReactNode;
 }) {
     const t = useWorldCopy();
@@ -26,6 +26,7 @@ export function WorldField({ id, side, hint, count, thumb, loading, error, onRet
     const foldable = side && fold;
     const folded = Boolean(foldable && fold.folded);
     const info = fieldInfo(id);
+    const name = title ?? t(info.title);
     const Icon = info.icon;
     return (
         <section className="gk-wfield" data-side={side || undefined} data-folded={folded || undefined} data-shape={info.shape} id={`world-${id}`} aria-labelledby={heading} aria-busy={loading || undefined}>
@@ -35,14 +36,14 @@ export function WorldField({ id, side, hint, count, thumb, loading, error, onRet
                     <span className="gk-wfield__icon"><Icon aria-hidden="true" /></span>
                 </span>
                 <span className="gk-wfield__titles">
-                    <h2 id={heading}>{t(info.title)}</h2>
+                    <h2 id={heading}>{name}</h2>
                     {loading ? <Skeleton height={12} width="60%" /> : hint && <small>{hint}</small>}
                 </span>
                 {count != null && !loading && <span className="gk-wfield__count">{count}</span>}
                 {foldable && <>
                     <ChevronDown className="gk-wfield__chevron" aria-hidden="true" />
                     <button type="button" className="gk-wfield__fold" aria-expanded={!folded} aria-controls={bodyId} onClick={fold.toggle}
-                        aria-label={folded ? t('Show {name}', { name: t(info.title) }) : t('Fold {name} away', { name: t(info.title) })} />
+                        aria-label={folded ? t('Show {name}', { name }) : t('Fold {name} away', { name })} />
                 </>}
             </header>
             {!folded && <><div id={bodyId} className="gk-wfield__body">

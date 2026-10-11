@@ -12,14 +12,14 @@ const parse = (value?: string | null) => {
 };
 
 /** Scoreboard time for a fixture line, e.g. "18:00". */
-export const fixtureTime = (value?: string | null, timeZone = TZ) => {
-    const date = parse(value);
+export const fixtureTime = (value?: string | null, zone?: string | null) => {
+    const date = parse(value), timeZone = zone ?? TZ;
     return date ? date.toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit', hour12: false, timeZone }) : wt('TBC');
 };
 
 /** The day under a fixture time: Today, Tomorrow or "Sat 11". */
-export const fixtureDay = (value?: string | null, timeZone = TZ) => {
-    const date = parse(value);
+export const fixtureDay = (value?: string | null, zone?: string | null) => {
+    const date = parse(value), timeZone = zone ?? TZ;
     if (!date) return wt('Date to confirm');
     const today = ymd(new Date()), day = ymd(date);
     if (day === today) return wt('Today');
@@ -35,6 +35,12 @@ export const shortDate = (value?: string | null) => {
 /** The calendar day (YYYY-MM-DD, Georgian time) of an instant. */
 export const isoDayOf = (value: string) => ymd(new Date(value));
 export const isoDay = (offsetDays = 0) => ymd(new Date(Date.now() + offsetDays * 86_400_000));
+/** Whether an instant has passed; unknown times have not. */
+export const hasStarted = (value?: string | null) => { const date = parse(value); return date ? date.getTime() <= Date.now() : false; };
+/** Hours until an instant (negative once it has passed), or null. */
+export const hoursUntil = (value?: string | null) => { const date = parse(value); return date ? (date.getTime() - Date.now()) / 3_600_000 : null; };
+/** Calendar days from today to an instant, in Georgian time: tomorrow at any hour is 1. */
+export const calendarDaysUntil = (value?: string | null) => { const date = parse(value); return date ? Math.round((Date.parse(ymd(date)) - Date.parse(ymd(new Date()))) / 86_400_000) : null; };
 export const daysUntil = (value?: string | null) => {
     const date = parse(value);
     return date ? Math.ceil((date.getTime() - Date.now()) / 86_400_000) : null;

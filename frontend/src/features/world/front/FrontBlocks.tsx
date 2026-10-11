@@ -1,4 +1,4 @@
-import { useSyncExternalStore, type ComponentType } from 'react';
+import { useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
 import { Maximize2 } from 'lucide-react';
 import type { MapPageResult } from '../../../api/map';
@@ -9,10 +9,7 @@ import type { WorldData } from '../useWorldData';
 import type { WorldArea } from '../useWorldArea';
 import type { FieldId } from './fields';
 import type { FieldProps } from './fields/fieldProps';
-import { ArrangementsField, CompetitionsField, EventsField, LiveCompetitionsField, OpenMatchesField, RefereeNeededField, ResultsField } from './fields/MatchFields';
-import { CampaignsField, CoachingJobsField, JobsField, StaffJobsField, TrialsField, VolunteeringField } from './fields/OpportunityFields';
-import { PeopleField, RefereesField, SpecialistsField } from './fields/PeopleFields';
-import { AcademiesField, ClubsField, GroupsField, OpenClubsField, VenuesField } from './fields/PlaceFields';
+import { FIELD_VIEWS } from './fieldViews';
 
 /** The width of the field floating over the map's right side on wide screens (front.css), plus its margin. */
 const PANEL = 380 + 2 * 16;
@@ -51,14 +48,6 @@ export function AroundMapBlock({ area, markers, panelOpen = true }: { area: Worl
         </section>
     );
 }
-
-const FIELD_VIEWS: Record<FieldId, ComponentType<FieldProps>> = {
-    matches: OpenMatchesField, events: EventsField, refereeNeeded: RefereeNeededField, competitions: CompetitionsField, liveCompetitions: LiveCompetitionsField,
-    results: ResultsField, arrangements: ArrangementsField,
-    people: PeopleField, referees: RefereesField, specialists: SpecialistsField,
-    clubs: ClubsField, academies: AcademiesField, openClubs: OpenClubsField, groups: GroupsField, venues: VenuesField,
-    trials: TrialsField, jobs: JobsField, coachingJobs: CoachingJobsField, staffJobs: StaffJobsField, volunteering: VolunteeringField, campaigns: CampaignsField,
-};
 
 /** One field of the front page, by id. */
 export function Field({ id, ...props }: FieldProps & { id: FieldId }) {

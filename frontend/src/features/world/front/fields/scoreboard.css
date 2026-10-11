@@ -9,7 +9,7 @@
 .gk .gk-sb__rows { margin: 0; padding: 0; list-style: none; }
 .gk .gk-sb__rows > li + li { border-top: 1px solid color-mix(in srgb, var(--gk-line) 70%, transparent); }
 
-.gk .gk-sb__row { display: grid; grid-template-columns: 52px minmax(0, 1fr) 28px auto; align-items: center; gap: var(--gk-3); min-height: 48px; padding: 6px var(--gk-4); color: var(--gk-text); transition: background-color .15s var(--gk-ease); }
+.gk .gk-sb__row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto 28px; align-items: center; gap: var(--gk-3); min-height: 48px; padding: 6px var(--gk-4); color: var(--gk-text); transition: background-color .15s var(--gk-ease); }
 .gk a.gk-sb__row:hover { background: var(--gk-hover); }
 .gk .gk-sb__when { display: flex; flex-direction: column; font-size: var(--gk-fs-sm); line-height: 16px; }
 .gk .gk-sb__when b { font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -21,10 +21,21 @@
 .gk .gk-sb__team > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gk .gk-sb__team[data-win] { color: var(--gk-text); font-weight: 650; }
 .gk .gk-sb__team[data-muted] { color: var(--gk-text-3); font-style: italic; }
-.gk .gk-sb__score { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-size: var(--gk-fs-md); line-height: 18px; font-variant-numeric: tabular-nums; color: var(--gk-text-3); }
+.gk .gk-sb__score { grid-area: 1 / 4; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-size: var(--gk-fs-md); line-height: 18px; font-variant-numeric: tabular-nums; color: var(--gk-text-3); }
 .gk .gk-sb__score b { font-weight: 600; }
 .gk .gk-sb__score b[data-win] { color: var(--gk-text); }
-.gk .gk-sb__tag { justify-self: end; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-sb__tag { grid-area: 1 / 3; justify-self: end; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+
+/* My own team: a small star before its name, as favourites show on score sites. */
+.gk .gk-sb__team > .gk-sb__mine { flex: none; width: 11px; height: 11px; color: var(--gk-warning); fill: currentColor; }
+.gk .gk-sb__team[data-mine] { color: var(--gk-text); }
+
+/* A waiting item's state: a dot, the word, an arrow. */
+.gk .gk-sb__wait { display: inline-flex; align-items: center; gap: 6px; font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-2); white-space: nowrap; }
+.gk .gk-sb__wait::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--gk-text-3); }
+.gk .gk-sb__wait[data-tone='danger'] { color: var(--gk-danger); } .gk .gk-sb__wait[data-tone='danger']::before { background: var(--gk-danger); }
+.gk .gk-sb__wait[data-tone='warning'] { color: var(--gk-warning); } .gk .gk-sb__wait[data-tone='warning']::before { background: var(--gk-warning); }
+.gk .gk-sb__wait svg { width: 13px; height: 13px; }
 
 /* Lines that are not matches: crest, name and detail, one fact on the right. */
 .gk .gk-sb__row--line { grid-template-columns: auto minmax(0, 1fr) auto; }
@@ -49,7 +60,11 @@
 
 /* Beside the map the panel is narrow: the tag goes under the teams. */
 .gk .gk-wfield[data-side] .gk-sb__row { grid-template-columns: 44px minmax(0, 1fr) 22px; gap: var(--gk-2); padding-inline: var(--gk-3); }
-.gk .gk-wfield[data-side] .gk-sb__tag { grid-column: 2 / -1; justify-self: start; margin-top: -2px; }
+.gk .gk-wfield[data-side] .gk-sb__score { grid-area: 1 / 3; }
+.gk .gk-wfield[data-side] .gk-sb__tag { grid-area: 2 / 2 / 3 / -1; justify-self: start; margin-top: -2px; }
 .gk .gk-wfield[data-side] .gk-sb__head { padding-inline: var(--gk-3); background: color-mix(in srgb, var(--gk-text) 5%, transparent); border-color: var(--gk-glass-line, var(--gk-line)); }
 .gk .gk-wfield[data-side] .gk-sb__row--line { grid-template-columns: auto minmax(0, 1fr) auto; }
 .gk .gk-wfield[data-side] .gk-sb__row--line:has(> .gk-sb__when) { grid-template-columns: 44px auto minmax(0, 1fr) auto; }
+.gk .gk-sb__tag [data-tone='warning'] { color: var(--gk-warning); font-weight: 600; }
+/* A side still to be found (an opponent wanted, offers to choose from): an empty dashed crest, never made-up initials. */
+.gk .gk-sb__nocrest { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 1px dashed var(--gk-line-strong); }

@@ -56,9 +56,9 @@ export interface StoreProductPayload {
     category?: StoreProductCategory;
 }
 
-export const fetchStoreCatalogPage = async (page: number, size: number, clubId?: number) => {
+export const fetchStoreCatalogPage = async (page: number, size: number, clubId?: number, filters: { city?: string; sort?: 'NEWEST' } = {}, signal?: AbortSignal) => {
     const response = await apiClient.get<{ content: StoreProduct[]; totalElements: number }>('/store/products', {
-        params: { page, size, clubId },
+        params: { page, size, clubId, ...filters }, signal,
     });
     return response.data;
 };

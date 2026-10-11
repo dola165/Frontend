@@ -7,6 +7,7 @@ import { PersonRow } from '../../rows';
 import { usePeopleNearby, useReferees, useSpecialists } from '../frontData';
 import { Cluster, WorldField } from '../WorldField';
 import { rowsFor, type FieldProps } from './fieldProps';
+import { orderForRole } from '../coach/relevance';
 
 const ROLE_WORDS: Record<string, [string, string]> = { REFEREE: ['referee', 'referees'], COACH: ['coach', 'coaches'], AGENT: ['agent', 'agents'], SPECIALIST: ['specialist', 'specialists'], CLUB_STAFF: ['club staff', 'club staff'] };
 const faces = (people: { id: number; fullName: string; avatarUrl: string | null }[]) => people.length
@@ -52,11 +53,11 @@ export function RefereesField({ side }: FieldProps) {
     );
 }
 
-/** Physios, fitness and nutrition specialists, psychologists and video analysts near you. */
-export function SpecialistsField({ area, side }: FieldProps) {
+/** Physios, fitness and nutrition specialists, psychologists and video analysts near you, those that suit the role first. */
+export function SpecialistsField({ area, side, role }: FieldProps) {
     const t = useWorldCopy();
     const data = useSpecialists(area);
-    const items = data.data?.searchOnly ? [] : data.data?.items ?? [];
+    const items = orderForRole(data.data?.searchOnly ? [] : data.data?.items ?? [], role, person => [person.profession, person.headline].filter(Boolean).join(' '));
     const signedIn = data.loading || data.data !== undefined || Boolean(data.error);
     const professions = [...new Set(items.map(person => person.profession).filter((value): value is string => Boolean(value)))];
     return (

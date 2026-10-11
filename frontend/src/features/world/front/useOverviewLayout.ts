@@ -7,7 +7,8 @@ import { ROLES, defaultRole, roleLayout, type OverviewLayout, type WorldRole } f
 
 const knownFields = new Set<string>(FIELDS.map(field => field.id));
 const knownRoles = new Set<string>(ROLES.map(role => role.id));
-const key = (userId: number | undefined) => `gk-world-overview:${userId ?? 'guest'}`;
+// v2 (11 October 2026): coach, parent and player pages were rebuilt, so pages saved before start again from the role.
+const key = (userId: number | undefined) => `gk-world-overview:v2:${userId ?? 'guest'}`;
 
 /** A saved page, or null. Unknown roles or fields (renamed or retired) are dropped; a list must sit beside the map. */
 function read(userId: number | undefined): OverviewLayout | null {

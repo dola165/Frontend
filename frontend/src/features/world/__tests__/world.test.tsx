@@ -12,7 +12,8 @@ import { arrangements, events, exchange, fixtures } from '../directories/matchSo
 import { clubsSource } from '../directories/clubSources';
 import { peopleSource } from '../directories/peopleSource';
 import { FIELDS } from '../front/fields';
-import { ROLES, defaultRole, offeredFor, roleLayout } from '../front/roles';
+import { ROLES, aRole, defaultRole, offeredFor, roleLayout } from '../front/roles';
+import { FIELD_VIEWS } from '../front/fieldViews';
 import { LegacyMatchesRedirect, WorldRedirect } from '../WorldRedirect';
 import { readQuery, useDirectoryState } from '../directory/useDirectoryState';
 import type { AnySource, DirectoryQuery, LoadContext } from '../directory/types';
@@ -91,7 +92,8 @@ const DIRECTORIES: Record<string, { sources: AnySource[]; alias?: string }> = {
 // The directory links the front page's fields end with ("All …"), each with its tab and filters chosen.
 const FIELD_LINKS = ['/world/matches?tab=exchange', '/world/matches?tab=mine', '/world/matches?period=HISTORY', '/world/competitions?registration=OPEN', '/world/competitions?status=ACTIVE',
     '/world/people?role=SPECIALIST', '/world/clubs?type=ACADEMY&city=Tbilisi', '/world/clubs?joinPolicy=OPEN_TRIAL&joinPolicy=APPLICATION_REQUIRED&city=Tbilisi',
-    '/world/opportunities?tab=groups&player=101', '/world/opportunities?tab=trials', '/world/opportunities?tab=jobs&category=COACHING', '/world/opportunities?tab=jobs&engagement=VOLUNTEER'];
+    '/world/opportunities?tab=groups&player=101', '/world/opportunities?tab=trials', '/world/opportunities?tab=jobs&category=COACHING', '/world/opportunities?tab=jobs&engagement=VOLUNTEER',
+    '/world/matches?tab=fixtures&period=UPCOMING&mine=true&squadId=103', '/world/matches?tab=fixtures&period=HISTORY', '/world/matches?tab=exchange&ageGroup=U14', '/world/people?role=REFEREE'];
 
 it.each(FIELD_LINKS)('the field link %s opens its intended tab and filters', to => {
     const url = new URL(to, 'http://world');
@@ -115,6 +117,13 @@ it('gives every role its own page: a list beside the map, a handful below, all o
         expect(layout.fields).not.toContain(layout.side);
         expect(offeredFor(role.id)).toEqual(expect.arrayContaining([layout.side, ...layout.fields]));
     }
+});
+
+it('has a view for every field, and ends every coaching page with the labelled club rail', () => {
+    for (const field of FIELDS) expect(FIELD_VIEWS[field.id]).toBeDefined();
+    for (const role of ROLES.filter(item => item.group === 'Coaching staff')) expect(roleLayout(role.id).fields.at(-1)).toBe('fromClubs');
+    expect(aRole('academy-director')).toBe('an academy director');
+    expect(aRole('head-coach')).toBe('a head coach');
 });
 
 it('starts a coach, a parent with a chosen child and a club player on their own pages until they choose', () => {

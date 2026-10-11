@@ -9,6 +9,7 @@ import { useCampaigns, useJobs, useTrials } from '../frontData';
 import type { FieldId } from '../fields';
 import { Cluster, WorldField } from '../WorldField';
 import { rowsFor, unique, when, type FieldProps } from './fieldProps';
+import { orderForRole } from '../coach/relevance';
 
 const OFF_PITCH = new Set(['MEDICAL', 'MEDIA_COMMUNICATIONS', 'FOOTBALL_OPERATIONS', 'ADMINISTRATION', 'FACILITIES']);
 const JOBS: Partial<Record<FieldId, { keep: (job: ClubJob) => boolean; label: string; empty: string; to: string }>> = {
@@ -18,12 +19,12 @@ const JOBS: Partial<Record<FieldId, { keep: (job: ClubJob) => boolean; label: st
     volunteering: { keep: job => job.engagementType === 'VOLUNTEER' || job.category === 'MATCHDAY', label: 'Volunteering', empty: 'No volunteering open right now', to: '/world/opportunities?tab=jobs&engagement=VOLUNTEER' },
 };
 
-/** Open roles at clubs, narrowed to what the field is about (coaching, off the pitch, volunteering). */
-function Jobs({ id, area, side }: FieldProps & { id: FieldId }) {
+/** Open roles at clubs, narrowed to what the field is about (coaching, off the pitch, volunteering), those that suit the role first. */
+function Jobs({ id, area, side, role }: FieldProps & { id: FieldId }) {
     const t = useWorldCopy();
     const kind = JOBS[id]!;
     const data = useJobs(area);
-    const jobs = (data.data ?? []).filter(kind.keep);
+    const jobs = orderForRole((data.data ?? []).filter(kind.keep), role, job => [job.title, job.requiredRole, job.description].filter(Boolean).join(' '));
     const paid = jobs.filter(job => job.engagementType && job.engagementType !== 'VOLUNTEER').length;
     return (
         <WorldField id={id} side={side} count={data.data ? jobs.length : null} loading={data.loading} error={data.error} onRetry={data.retry}

@@ -1,3 +1,4 @@
+import { isGeorgian, wt } from '../copy';
 import type { WorldAudience } from './audience';
 import type { FieldId } from './fields';
 
@@ -18,13 +19,13 @@ export interface RoleInfo {
 }
 
 export const ROLES: RoleInfo[] = [
-    { id: 'head-coach', label: 'Head coach', group: 'Coaching staff', side: 'matches', fields: ['events', 'competitions', 'clubs', 'venues', 'people'], extra: ['arrangements', 'results', 'referees', 'liveCompetitions', 'trials', 'coachingJobs', 'specialists', 'academies'] },
-    { id: 'assistant-coach', label: 'Assistant coach', group: 'Coaching staff', side: 'events', fields: ['matches', 'results', 'coachingJobs', 'people', 'venues'], extra: ['competitions', 'trials', 'specialists', 'clubs', 'academies'] },
-    { id: 'goalkeeper-coach', label: 'Goalkeeper coach', group: 'Coaching staff', side: 'trials', fields: ['coachingJobs', 'events', 'results', 'specialists'], extra: ['academies', 'clubs', 'people', 'venues'] },
-    { id: 'fitness-coach', label: 'Fitness coach', group: 'Coaching staff', side: 'venues', fields: ['specialists', 'coachingJobs', 'events', 'people'], extra: ['staffJobs', 'academies', 'clubs', 'groups'] },
-    { id: 'analyst', label: 'Analyst or scout', group: 'Coaching staff', side: 'results', fields: ['events', 'trials', 'liveCompetitions', 'academies'], extra: ['competitions', 'people', 'clubs', 'staffJobs', 'openClubs'] },
-    { id: 'team-manager', label: 'Team manager', group: 'Coaching staff', side: 'arrangements', fields: ['matches', 'referees', 'venues', 'competitions'], extra: ['events', 'refereeNeeded', 'clubs', 'people'] },
-    { id: 'academy-director', label: 'Academy director', group: 'Coaching staff', side: 'competitions', fields: ['academies', 'coachingJobs', 'trials', 'venues', 'clubs'], extra: ['specialists', 'liveCompetitions', 'results', 'staffJobs', 'groups', 'campaigns'] },
+    { id: 'head-coach', label: 'Head coach', group: 'Coaching staff', side: 'nextOpponent', fields: ['invitations', 'myCompetitions', 'opponentsForYou', 'freePitches', 'refereesForYou', 'fromClubs'], extra: ['squadFixtures', 'competitionsForYou', 'competitionResults', 'watchOpponents', 'matchLoad', 'ageTrials', 'matches', 'results', 'events', 'referees', 'venues', 'clubs', 'coachingJobs', 'arrangements'] },
+    { id: 'assistant-coach', label: 'Assistant coach', group: 'Coaching staff', side: 'nextOpponent', fields: ['squadFixtures', 'watchOpponents', 'competitionResults', 'freePitches', 'coachingJobs', 'fromClubs'], extra: ['invitations', 'myCompetitions', 'opponentsForYou', 'matchLoad', 'ageTrials', 'results', 'specialists', 'indoorPitches'] },
+    { id: 'goalkeeper-coach', label: 'Goalkeeper coach', group: 'Coaching staff', side: 'nextOpponent', fields: ['indoorPitches', 'matchLoad', 'ageTrials', 'coachingJobs', 'fromClubs'], extra: ['freePitches', 'squadFixtures', 'competitionResults', 'watchOpponents', 'specialists', 'academies'] },
+    { id: 'fitness-coach', label: 'Fitness coach', group: 'Coaching staff', side: 'matchLoad', fields: ['freePitches', 'indoorPitches', 'squadFixtures', 'specialists', 'fromClubs'], extra: ['staffJobs', 'coachingJobs', 'nextOpponent', 'venues', 'academies', 'groups'] },
+    { id: 'analyst', label: 'Analyst or scout', group: 'Coaching staff', side: 'nextOpponent', fields: ['watchOpponents', 'competitionResults', 'myCompetitions', 'ageTrials', 'liveCompetitions', 'fromClubs'], extra: ['results', 'events', 'academies', 'clubs', 'staffJobs', 'openClubs', 'squadFixtures'] },
+    { id: 'team-manager', label: 'Team manager', group: 'Coaching staff', side: 'invitations', fields: ['refereesForYou', 'freePitches', 'squadFixtures', 'arrangements', 'competitionsForYou', 'fromClubs'], extra: ['opponentsForYou', 'myCompetitions', 'nextOpponent', 'matchLoad', 'referees', 'venues', 'refereeNeeded', 'matches'] },
+    { id: 'academy-director', label: 'Academy director', group: 'Coaching staff', side: 'myCompetitions', fields: ['competitionsForYou', 'competitionResults', 'coachingJobs', 'ageTrials', 'academies', 'fromClubs'], extra: ['squadFixtures', 'matchLoad', 'invitations', 'clubs', 'specialists', 'staffJobs', 'liveCompetitions', 'groups', 'results'] },
     { id: 'club-admin', label: 'Club administrator', group: 'At a club', side: 'events', fields: ['competitions', 'venues', 'jobs', 'clubs', 'campaigns'], extra: ['staffJobs', 'coachingJobs', 'referees', 'specialists', 'academies', 'volunteering'] },
     { id: 'specialist', label: 'Physio or specialist', group: 'At a club', side: 'staffJobs', fields: ['specialists', 'clubs', 'academies', 'events'], extra: ['people', 'jobs', 'liveCompetitions'] },
     { id: 'parent', label: 'Parent', group: 'Families and players', side: 'groups', fields: ['trials', 'openClubs', 'academies', 'events', 'volunteering'], extra: ['clubs', 'venues', 'liveCompetitions', 'results', 'campaigns'] },
@@ -36,6 +37,9 @@ export const ROLES: RoleInfo[] = [
     { id: 'venue-operator', label: 'Pitch or venue operator', group: 'Around the game', side: 'matches', fields: ['events', 'competitions', 'venues', 'clubs'], extra: ['arrangements', 'liveCompetitions', 'academies', 'groups'] },
 ];
 export const roleInfo = (id: WorldRole) => ROLES.find(role => role.id === id) ?? ROLES[0];
+
+/** "a head coach", "an academy director": the role in a sentence, in the current language (Georgian has no article). */
+export const aRole = (id: WorldRole) => { const label = wt(roleInfo(id).label).toLowerCase(); return isGeorgian() ? label : `${/^[aeiou]/.test(label) ? 'an' : 'a'} ${label}`; };
 
 /** A role's own page. */
 export const roleLayout = (id: WorldRole): OverviewLayout => { const role = roleInfo(id); return { role: role.id, side: role.side, fields: role.fields }; };

@@ -206,6 +206,43 @@ The app today, compared with how clubs usually work (coaches to confirm):
   - **Opportunities:** open trials, jobs and volunteering, coaching jobs, jobs off the pitch, volunteering, support a club (fundraisers).
 - The page is kept per browser for now (backend needed: a per-person preference).
 
+**Coaches' World, built for what they selfishly want** (11 October; the owner: "think selfishly as a coach", and coaches use World as much as My squads once the flow gets going; chores stay in My squads, linked).
+- **The score column is fixed:** the score is always the last column, so the dashes line up whatever the tag says.
+- **Everything follows the coach's squads.**
+  - Squads come from the ones they manage; an academy director sees the whole club's.
+  - "For: All squads · U14 Boys · U16 Boys" in the header narrows every field to one squad (`for` in the URL).
+  - The subtitle says who the page is for ("For U14 Boys and U16 Boys, near Tbilisi").
+  - Signed out, or with no squad, each field says so once, with a way forward.
+- **A new group, "Your squads",** first in Customize:
+  - **Your next opponent:** a match header (date, both crests), then their form as W/D/L squares, goals, and when you last met. The goalkeeper coach reads goals first; the analyst gets five results.
+    - Form comes from their squad, or from their club's teams of the same age and gender, and says which.
+    - A proposed, disputed or missing score is never a result, and never a draw.
+  - **Your squads' matches:** the last two results and next three; a played match without a result says "No result yet" in amber.
+  - **Match load:** two weeks per squad as day cells. Under 72 hours' rest, or a third match in a week, gets a warning ring and a note; each coming match shows the rest before it.
+  - **Watch them before you play:** your next opponents' other matches before they meet you.
+  - **Invitations to play:** one waiting list: requests to answer first (red within three days), then offers on your listings, then listings still waiting. Answering stays on the match page.
+  - **Opponents for your squads:** other clubs' open listings for your ages and genders within 50 km, as "their squad vs yours". "You play that day" warns of a clash.
+  - **Referees for your matches:** your listings still needing a referee, then referees who take those formats: local first, then volunteers, then the cheapest.
+  - **Your competitions:** the table around your row (places that go through marked), the cup run ("Quarter-final W 3–1 · Semi-final W 3–1 · Final Sat 17"), or the festival day, then your next match in it.
+  - **Results in your competitions,** **Competitions for your age groups** (invitations first, gender-checked, those you are in left out) and **Trials in your age groups** (other clubs').
+- **Free pitches this week** (and **Indoor**): free evening slots (17:00–21:00) at the four nearest venues, for pitches at most one size smaller than your smallest side. Each chip opens the venue's calendar on that slot; 60 or 90 minutes is kept in the URL (`slot`).
+- **From the clubs** (the owner chose a labelled rail over ads):
+  - one row of tiles, always labelled "Club shop", "Fundraiser" or "Sponsor of …";
+  - your own and followed clubs come first, then the newest, the ending soonest, the biggest;
+  - at most two products per club and two sponsors in all;
+  - never paid placement; unpublished, blocked or restricted sponsors are never shown; sponsor links are marked `sponsored`.
+- **The seven coaching pages:**
+  - Head coach: next opponent beside the map; invitations, competitions, opponents, free pitches, referees.
+  - Assistant coach: next opponent; squads' matches, watch them, competition results, free pitches, coaching jobs.
+  - Goalkeeper coach: next opponent (goals first); indoor pitches, match load, trials in your ages, coaching jobs.
+  - Fitness coach: match load; free and indoor pitches, squads' matches, specialists.
+  - Analyst or scout: next opponent (five results); watch them, competition results, your competitions, trials, competitions on now.
+  - Team manager: invitations; referees, free pitches, squads' matches, arrangements, competitions to enter.
+  - Academy director: your competitions (the whole club); competitions to enter, results, coaching jobs, trials, academies.
+  - Every page ends with From the clubs. Jobs and specialists list what suits the role first (keepers for the goalkeeper coach), without hiding the rest.
+- The field beside the map is as tall as its content (up to the map's height), so a short list shows more map. Lists below sit three to a row on a full-HD screen.
+- Saved pages from before start again from the new role pages (`gk-world-overview:v2`).
+
 ## 5. Map and Journeys
 
 **The owner's notes**
@@ -302,6 +339,14 @@ This branch is the real frontend code on fake data, so what is built here ships 
   - Changing the end time by resizing is not supported yet.
   - Initials avatars now take soft colours app-wide; check the screens that relied on grey ones.
 - **World overview:** save each person's field layout on the server (today it is per browser); Georgian copy for the new fields.
+  - **Backend parameters the coach fields need:**
+    - squad ids on tournament invitations (matched by squad name today);
+    - gender on match-exchange listings (read from the squad name today);
+    - a time zone on tournament fixture times (read as Georgian time today);
+    - availability for several venues in one request (four requests today);
+    - a squad's format (taken from its age group today).
+  - **Check with the coaches:** the 72-hour and three-in-a-week rest rules, and the evening window (17:00–21:00) for free pitches.
+  - **Sponsors:** confirm `promotionBlocked` covers every restricted category before the rail goes live.
 - **Injuries** (`SCENARIOS.md`): the backend pieces listed there, starting with an injury report record.
 - **Colours after the restore:**
   - Check the schedule in the light theme (only its tokens were fixed there).

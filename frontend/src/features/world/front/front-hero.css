@@ -47,8 +47,9 @@
 
 /* Wide screens: the field floats over the map's right side as a compact glass panel. */
 @media (min-width: 1100px) {
-  .gk .gk-world-front__side { position: absolute; top: var(--gk-4); right: var(--gk-4); bottom: var(--gk-4); z-index: 5; width: var(--gk-panel-w); animation: gk-world-panel .9s .2s var(--gk-ease-out) both; }
-  .gk .gk-world-front__side > .gk-wfield { height: 100%; border-radius: 16px; background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(22px) saturate(160%); box-shadow: var(--gk-glass-shadow); }
+  /* As tall as its field, up to the map's height: a short list leaves more of the map in view; a long one scrolls inside. */
+  .gk .gk-world-front__side { position: absolute; top: var(--gk-4); right: var(--gk-4); z-index: 5; display: flex; flex-direction: column; width: var(--gk-panel-w); max-height: calc(100% - 2 * var(--gk-4)); animation: gk-world-panel .9s .2s var(--gk-ease-out) both; }
+  .gk .gk-world-front__side > .gk-wfield { flex: 0 1 auto; min-height: 0; border-radius: 16px; background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(22px) saturate(160%); box-shadow: var(--gk-glass-shadow); }
   .gk .gk-world-front .maplibregl-ctrl-top-right, .gk .gk-world-front .maplibregl-ctrl-bottom-right { right: calc(var(--gk-panel-w) + 2 * var(--gk-4)); }
   .gk .gk-world-front .gk-world-map__card { right: calc(var(--gk-panel-w) + 2 * var(--gk-4)); }
 }
@@ -104,4 +105,3 @@
 .gk .gk-wfield[data-folded] .gk-wfield__chevron { transform: none; }
 .gk .gk-wfield[data-folded] .gk-wfield__head { border-bottom: 0; }
 .gk .gk-wfield[data-side] .gk-wfield__body { animation: gk-world-rise .35s var(--gk-ease-out) both; }
-@media (min-width: 1100px) { .gk .gk-world-front__side[data-folded] { bottom: auto; } }

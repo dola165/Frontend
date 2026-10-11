@@ -25,7 +25,7 @@ export default function MatchesDirectory() {
     return (
         <DirectoryPage
             title={t('Matches')}
-            subtitle={t('Fixtures and results across clubs and competitions, teams looking for an opponent, and your own arrangements.')}
+            subtitle={t('Fixtures, results and open matches')}
             sources={SOURCES}
             actions={squads.data?.length ? <ButtonLink variant="primary" to="/world/matches/arrange"><CalendarPlus aria-hidden="true" />{t('Arrange a match')}</ButtonLink> : undefined}
         />

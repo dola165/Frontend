@@ -2,10 +2,12 @@ import { getMatchHistory, type HistoryMatch } from '../../matchHistory/api';
 import { ages, formats, levels, type Match } from '../../matchExchange/api';
 import { eventSearch, type EventItem } from '../../requests/api';
 import { fetchMatchListings } from '../api';
-import { first, nearbyPoint, type DirectorySource } from '../directory/types';
+import { first, nearbyPoint, type DirectorySource, type Placement } from '../directory/types';
+import type { Places } from '../directory/places';
 import { fixtureDay, fixtureTime, sentence } from '../format';
 import { EventItemRow } from '../rows';
 import { ArrangementItem, FixtureItem, ListingItem, PastMatchTool } from './matchItems';
+import { arrangementLine, eventLine, eventPlace, fixtureLine, fixturePlace, listingLine } from './matchLines';
 import { clubScope, competitionScope } from './scopes';
 
 /** Age groups as filter options: codes such as U12 as they are, the rest in words. */
@@ -46,6 +48,9 @@ export const fixtures: DirectorySource<HistoryMatch> = {
     },
     key: match => match.id,
     Item: FixtureItem,
+    line: fixtureLine,
+    placeKinds: ['MATCH', 'TOURNAMENT', 'CLUB'],
+    place: fixturePlace,
     Tools: PastMatchTool,
     empty: { title: 'No matches here yet', body: 'Matches appear when a team or competition organiser schedules or records them.' },
 };
@@ -72,9 +77,12 @@ const loadListings = (mine: boolean): DirectorySource<Match>['load'] => async (q
     const size = result.pageSize ?? 24;
     return { items: result.items, total: result.total, hasMore: (page + 1) * size < result.total };
 };
-const listingPoint = (m: Match) => m.location_lat != null && m.location_lng != null
-    ? { id: String(m.event_id), lat: m.location_lat, lng: m.location_lng, label: m.title, meta: `${fixtureDay(m.starts_at_iso, m.timezone)} ${fixtureTime(m.starts_at_iso, m.timezone)} · ${m.location_name}`, tone: 'match' as const, to: `/match-exchange/${m.event_id}` }
-    : null;
+/** An open match or arrangement at its own ground, else (marked as such) at its club. */
+const listingPlace = (m: Match, places: Places): Placement | null => {
+    const own = m.location_lat != null && m.location_lng != null ? { lat: m.location_lat, lng: m.location_lng } : null;
+    const at = own ?? places.club(m.club_id);
+    return at ? { lat: at.lat, lng: at.lng, approximate: own ? undefined : 'club', noun: ['match', 'matches'], label: m.title, meta: `${fixtureDay(m.starts_at_iso, m.timezone)} ${fixtureTime(m.starts_at_iso, m.timezone)} · ${m.location_name}`, tone: 'match', to: `/match-exchange/${m.event_id}` } : null;
+};
 
 export const exchange: DirectorySource<Match> = {
     id: 'exchange',
@@ -89,7 +97,9 @@ export const exchange: DirectorySource<Match> = {
     load: loadListings(false),
     key: m => String(m.event_id),
     Item: ListingItem,
-    point: listingPoint,
+    line: listingLine,
+    placeKinds: ['CLUB'],
+    place: listingPlace,
     mapLink: query => `/world/map?layers=matches${query.q ? `&q=${encodeURIComponent(query.q)}` : ''}`,
     empty: { title: 'No open matches right now', body: 'Teams post here when they need an opponent for a date.' },
 };
@@ -107,7 +117,9 @@ export const arrangements: DirectorySource<Match> = {
     load: loadListings(true),
     key: m => String(m.event_id),
     Item: ArrangementItem,
-    point: listingPoint,
+    line: arrangementLine,
+    placeKinds: ['CLUB'],
+    place: listingPlace,
     empty: { title: 'No match arrangements yet', body: 'Arrange a match with a club you know, or post an open match for other teams to answer.' },
 };
 
@@ -134,5 +146,8 @@ export const events: DirectorySource<EventItem> = {
     },
     key: item => `${item.kind}:${item.id}`,
     Item: EventItemRow,
+    line: eventLine,
+    placeKinds: ['MATCH', 'TOURNAMENT', 'TRYOUT', 'CLUB'],
+    place: eventPlace,
     empty: { title: 'No published events', body: 'Clubs and organisers publish matches, competitions, trials and public training here. Private schedules never appear.' },
 };

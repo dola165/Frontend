@@ -247,23 +247,24 @@ test('World filters sit above the results and the product canvas follows light m
     })).toBe(true);
 });
 
-test('World clubs switch views and keep filters in the address', async ({ page }) => {
+test('World clubs fold the map and keep filters in the address', async ({ page }) => {
     test.skip(!mockMode, 'requires the deterministic mock session');
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto('/world/clubs');
+    await page.goto('/world/clubs?map=open');
     await expect(page.getByRole('heading', { name: 'Clubs', exact: true })).toBeVisible();
-    const views = page.getByRole('group', { name: 'Results view' });
-    await expect(views.getByRole('button', { name: 'List', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('region', { name: 'Clubs on the map' })).toBeVisible();
     const firstClub = page.locator('.gk-world-cards article').first();
     await expect(firstClub.locator('a[href^="/clubs/"]').first()).toHaveAttribute('href', /\/clubs\/\d+$/);
 
-    await views.getByRole('button', { name: 'List + map' }).click();
-    await expect.poll(() => new URL(page.url()).searchParams.get('view')).toBe('split');
+    await page.getByRole('button', { name: 'Fold map' }).click();
+    await expect.poll(() => new URL(page.url()).searchParams.get('map')).toBe('closed');
     await page.reload();
-    await expect(page.getByRole('group', { name: 'Results view' }).getByRole('button', { name: 'List + map' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Show map' })).toBeVisible();
 
     await page.setViewportSize({ width: 390, height: 844 });
-    const academies = page.getByRole('group', { name: 'Club type' }).getByRole('button', { name: 'Academies' });
+    // The kind of club is a pill showing its value; its choices open under it and stay open for more choices.
+    await page.getByRole('button', { name: 'Kind of club' }).click();
+    const academies = page.getByRole('group', { name: 'Kind of club' }).getByRole('button', { name: 'Academies' });
     await academies.click();
     await expect.poll(() => new URL(page.url()).searchParams.getAll('type')).toEqual(['ACADEMY']);
     await academies.click();

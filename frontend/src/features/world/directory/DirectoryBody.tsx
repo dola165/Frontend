@@ -1,52 +1,125 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Columns2, List as ListIcon, Map as MapIcon } from 'lucide-react';
-import { Button, ButtonLink, EmptyNote, Panel } from '../../../design/primitives';
-import { Segmented } from '../../../design/Tabs';
+import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
+import { useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
+import { ButtonLink, EmptyNote, Panel } from '../../../design/primitives';
+import { useAuth } from '../../../context/AuthContext';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
 import { plural, useWorldCopy } from '../copy';
-import { WorldMap } from '../map/WorldMap';
-import { DirectoryFilters } from './DirectoryFilters';
-import { DirectorySearch } from './DirectorySearch';
+import { reducedMotion } from '../map/canvas/useMapTheme';
+import { useWorldRole } from '../front/useOverviewLayout';
+import { isReturn } from '../history';
+import { useWorldChild } from '../players';
+import { StagePanel } from '../stage/WorldStage';
+import { useStage, WIDE } from '../stage/stageContext';
+import { useMediaQuery } from '../useMediaQuery';
+import { ANYWHERE, useWorldArea } from '../useWorldArea';
+import { useWorldSession } from '../worldSession';
+import { BrowsePanel } from './BrowsePanel';
 import { DirectoryResults } from './DirectoryResults';
 import { DirectorySelectionContext } from './selection';
 import { useDirectoryData } from './useDirectoryData';
+import { useDirectoryMap } from './useDirectoryMap';
 import { CARRIED, type DirectoryState } from './useDirectoryState';
-import type { DirectoryView } from './types';
 import { useRestoredScroll } from './useRestoredScroll';
 
-const VIEW_ITEMS: { id: DirectoryView; label: string; icon: ReactNode }[] = [
-    { id: 'list', label: 'List', icon: <ListIcon aria-hidden="true" /> },
-    { id: 'split', label: 'List + map', icon: <Columns2 aria-hidden="true" /> },
-    { id: 'map', label: 'Map', icon: <MapIcon aria-hidden="true" /> },
-];
+/**
+ * A tab's likely answer for who is looking, written once when it opens with no filters of its own (a link that
+ * carries filters is never overridden). From then on they are ordinary chips, and Clear filters removes them. Going
+ * Back or Forward to a list never writes them again: the person may have removed them there.
+ */
+function useRoleDefaults(state: DirectoryState, apply: boolean, signedIn: boolean) {
+    const role = useWorldRole();
+    const { child } = useWorldChild();
+    const { membership } = useWorldSession();
+    const { status } = useAuth();
+    const [params] = useSearchParams();
+    const navigation = useNavigationType();
+    const done = useRef(false);
+    // The role follows the person and their club; wait for both so the first defaults are the right ones.
+    const settled = status !== 'bootstrapping' && (!signedIn || membership !== undefined);
+    const write = useEffectEvent(() => {
+        done.current = true;
+        const { source, query } = state;
+        if (!source.defaults || query.q || source.filters.some(filter => !CARRIED.includes(filter.key) && params.has(filter.key))) return;
+        const values = source.defaults({ role, child: Boolean(child), signedIn });
+        if (Object.keys(values).length) state.setMany(values);
+    });
+    useEffect(() => {
+        if (done.current) return;
+        if (isReturn(navigation)) done.current = true;
+        else if (apply && settled) write();
+    }, [apply, settled, navigation]);
+}
 
-/** One source's search, filters, count and results, with the map beside or above them. */
-export function DirectoryBody({ state, signedIn, onReset }: { state: DirectoryState; signedIn: boolean; onReset: () => void }) {
+/**
+ * One source's results under World's map. The map shows them as pins and, on a wide screen, lists them in its
+ * "Browse area" panel with the count and the sort; folded or on a phone, the count and the sort sit above the results.
+ */
+export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onClear }: {
+    state: DirectoryState; signedIn: boolean; /** Write this tab's defaults for who is looking. */ applyDefaults: boolean;
+    clearable: boolean; onClear: () => void;
+}) {
     const t = useWorldCopy();
-    const { source, query, view } = state;
+    const { source, query } = state;
+    const { status: authStatus } = useAuth();
     const location = useLocation();
     const sortId = useId();
     const gated = Boolean(source.signInReason) && !signedIn;
-    const data = useDirectoryData(source, query, view, gated, { pages: state.shown, onPages: state.setShown });
+    useRoleDefaults(state, applyDefaults && !gated, signedIn);
+    const data = useDirectoryData(source, query, gated, { pages: state.shown, onPages: state.setShown });
+    const { setCity } = useWorldArea();
     // Scroll returns once the results (with every page that was shown) are back, or cannot come back.
-    useRestoredScroll(gated || (!data.loading && (data.items.length > 0 || Boolean(data.error || data.notice))));
-    const [selectedId, setSelectedId] = useState<string>();
-    const [hoverId, setHoverId] = useState<string>();
+    useRestoredScroll((gated && authStatus !== 'bootstrapping') || (!data.loading && (data.items.length > 0 || Boolean(data.error || data.notice))));
+    const stage = useStage();
+    const wide = useMediaQuery(WIDE, true);
+    const browse = stage.inStage && stage.mapOpen && wide && !gated;
+    const [selectedPin, setSelectedPin] = useState<string>();
+    const [hoverKey, setHoverKey] = useState<string>();
+    const [hoverPin, setHoverPin] = useState<string>();
     const listRef = useRef<HTMLDivElement>(null);
-    // A pin chosen on the map brings its result into view in the list beside it.
-    useEffect(() => { if (selectedId) listRef.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, [selectedId]);
+    const { remember } = useWorldChild();
+    const [, setParams] = useSearchParams();
+    /** Search for anyone: the child chosen in the World bar no longer narrows the list. */
+    const clearFor = () => {
+        remember.write('');
+        setParams(current => { const next = new URLSearchParams(current); next.delete('player'); return next; }, { replace: true, preventScrollReset: true });
+    };
+    const behavior = () => reducedMotion() ? 'auto' as const : 'smooth' as const;
+    /** A pin chosen on the map: its results light up, and the first comes into view in the Browse area panel. */
+    const select = (pin?: string) => {
+        setSelectedPin(pin);
+        if (pin) requestAnimationFrame(() => stage.panel?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', behavior: behavior() }));
+    };
+    /** "Show in list": the first result at the chosen pin (marked current) comes into view and takes focus. */
+    const showInList = (pin: string) => {
+        setSelectedPin(pin);
+        requestAnimationFrame(() => {
+            const element = listRef.current?.querySelector<HTMLElement>('[aria-current="true"]');
+            element?.scrollIntoView({ block: 'center', behavior: behavior() });
+            (element?.matches('a, button') ? element : element?.querySelector<HTMLElement>('a, button'))?.focus({ preventScroll: true });
+        });
+    };
 
-    // The child a parent searches for narrows results but is kept by Clear filters, like the area.
-    const clearable = Boolean(query.q) || state.activeFilters.some(filter => !CARRIED.includes(filter.key));
     const filtered = clearable || state.activeFilters.length > 0;
-    const clear = () => { state.clearFilters(); onReset(); };
-    const hasMap = Boolean(source.point);
-    const nouns = [source.noun[0], source.noun[1]] as const;
+    const nouns: [string, string] = [source.noun[0], source.noun[1]];
+    const counted = (n: number) => {
+        const things = plural(n, ...nouns);
+        return !data.area ? things : data.area.city ? t('{count} near {city}', { count: things, city: data.area.city }) : t('{count} anywhere', { count: things });
+    };
     // An unknown total is never guessed: the count says what is shown, with "+" while more remain.
-    const count = data.loading ? t('Searching {things}…', { things: t(nouns[1]) }) : data.error || data.notice ? ''
-        : data.total != null ? plural(data.total, ...nouns) : data.hasMore ? t('{count}+ found', { count: data.items.length }) : data.items.length ? plural(data.items.length, ...nouns) : '';
+    const count = gated ? '' : data.loading ? t('Searching {things}…', { things: t(nouns[1]) }) : data.error || data.notice ? ''
+        : data.total != null ? counted(data.total) : data.hasMore ? t('{count}+ found', { count: data.items.length }) : data.items.length ? counted(data.items.length) : '';
+    const searched = query.q && count && !data.loading ? ` · “${query.q}”` : '';
+    const { placed, mappable } = useDirectoryMap({ source, query, data, gated, open: stage.mapOpen, panel: browse, summary: count, onShowInList: showInList,
+        selection: { selectedPin, select, hoverKey, hoverPin, setHoverPin } });
     const sortable = source.sorts && source.sorts.length > 1 && (!source.sortable || source.sortable(query));
+    const sort = sortable && (
+        <label className="gk-world-toolbar__sort" htmlFor={sortId}>
+            <span className="gk-faint">{t('Sort')}</span>
+            <select id={sortId} className="gk-input" value={query.sort} onChange={event => state.setSort(event.target.value)}>
+                {source.sorts!.map(option => <option key={option.value} value={option.value}>{t(option.label)}</option>)}
+            </select>
+        </label>
+    );
     const Tools = source.Tools;
 
     if (gated) return (
@@ -58,47 +131,20 @@ export function DirectoryBody({ state, signedIn, onReset }: { state: DirectorySt
         </Panel>
     );
 
-    const results = <DirectoryResults source={source} data={data} filtered={filtered} onClear={clearable ? clear : undefined} />;
-    const map = (variant: 'side' | 'wide') => (
-        <WorldMap className={`gk-world-directory__map gk-world-directory__map--${variant}`} label={t('{things} on the map', { things: t(source.label) })} points={data.points}
-            selectedId={selectedId} onSelect={setSelectedId} highlightId={hoverId}
-            footer={<>
-                <span>{data.pointsLoading ? t('Placing results on the map…') : t('{count} on the map', { count: plural(data.points.length, ...nouns) })}
-                    {data.items.length > data.points.length && !data.pointsLoading ? ` · ${t('{count} without a location', { count: data.items.length - data.points.length })}` : ''}</span>
-                <ButtonLink size="sm" variant="ghost" to={source.mapLink ? source.mapLink(query) : '/world/map'}>{t('Open full map')}</ButtonLink>
-            </>} />
-    );
-    const selection = { selectedId, hover: setHoverId };
-
     return (
-        <>
-            <div className="gk-world-toolbar">
-                <DirectorySearch state={state} />
-                <div className="gk-world-toolbar__tools">
-                    {sortable && (
-                        <label className="gk-world-toolbar__sort" htmlFor={sortId}>
-                            <span className="gk-faint">{t('Sort')}</span>
-                            <select id={sortId} className="gk-input" value={query.sort} onChange={event => state.setSort(event.target.value)}>
-                                {source.sorts!.map(option => <option key={option.value} value={option.value}>{t(option.label)}</option>)}
-                            </select>
-                        </label>
-                    )}
-                    {hasMap && <Segmented label={t('Results view')} value={view} onChange={state.setView} items={VIEW_ITEMS.map(item => ({ ...item, label: t(item.label) }))} className="gk-world-toolbar__view" />}
+        <DirectorySelectionContext.Provider value={mappable && stage.mapOpen ? { pinOf: placed.pinOf, selectedPin, hoverPin, hover: setHoverKey } : null}>
+            {browse && <StagePanel><BrowsePanel source={source} data={data} count={count + searched} tools={sort} folded={stage.panelFolded} onToggle={stage.togglePanel} /></StagePanel>}
+            {!browse && (count || sort) && (
+                <div className="gk-world-summary">
+                    <p role="status" className="gk-world-summary__count">{count}{searched}</p>
+                    {sort}
                 </div>
-            </div>
-            <DirectoryFilters state={state} signedIn={signedIn} />
-            <div className="gk-world-summary">
-                <p role="status" className="gk-world-summary__count">{count}{query.q && count && !data.loading ? ` · “${query.q}”` : ''}</p>
-                {clearable && <Button size="sm" variant="ghost" onClick={clear}>{t('Clear filters')}</Button>}
-            </div>
+            )}
             {Tools && <Tools query={query} refresh={data.retry} />}
-            <DirectorySelectionContext.Provider value={view !== 'list' && hasMap ? selection : null}>
-                {view === 'split' && hasMap
-                    ? <div className="gk-world-split"><div className="gk-world-split__list" ref={listRef}>{results}</div>{map('side')}</div>
-                    : view === 'map' && hasMap
-                        ? <div className="gk-stack" ref={listRef}>{map('wide')}{results}</div>
-                        : results}
-            </DirectorySelectionContext.Provider>
-        </>
+            <div ref={listRef}>
+                <DirectoryResults source={source} data={data} filtered={filtered} onClear={clearable ? onClear : undefined}
+                    onWiden={data.area?.city ? () => setCity(ANYWHERE) : undefined} onClearFor={source.forWhom ? clearFor : undefined} />
+            </div>
+        </DirectorySelectionContext.Provider>
     );
 }

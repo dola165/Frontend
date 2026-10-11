@@ -36,20 +36,36 @@ function LoadingResults({ source }: { source: AnySource }) {
 }
 
 /** Results of one source with honest loading, error, notice, empty and load-more states. */
-export function DirectoryResults({ source, data, filtered, onClear }: { source: AnySource; data: DirectoryData; filtered: boolean; /** Absent when nothing can be cleared. */ onClear?: () => void }) {
+export function DirectoryResults({ source, data, filtered, onClear, onWiden, onClearFor }: {
+    source: AnySource; data: DirectoryData; filtered: boolean; /** Absent when nothing can be cleared. */ onClear?: () => void;
+    /** The list was narrowed to a city: search every city instead. */ onWiden?: () => void;
+    /** The list was narrowed to a child (`source.forWhom`): search for anyone instead. */ onClearFor?: () => void;
+}) {
     const t = useWorldCopy();
     const things = t(source.noun[1]);
     if (data.notice) return <div className="gk-notice" role="status">{data.notice}</div>;
     if (data.loading) return <LoadingResults source={source} />;
     if (data.error) return <ErrorNote message={data.error} onRetry={data.retry} />;
-    if (!data.items.length) return (
-        <Panel>
-            <EmptyNote title={filtered ? t('No {things} match this search', { things }) : t(source.empty.title)}
-                action={filtered ? onClear && <Button size="sm" onClick={onClear}>{t('Clear filters')}</Button> : source.empty.action}>
-                {filtered ? t('Try a wider search or remove a filter.') : t(source.empty.body)}
-            </EmptyNote>
-        </Panel>
-    );
+    if (!data.items.length) {
+        const city = data.area?.city, who = source.forWhom;
+        // An empty list names what narrowed it (the filters, the child, the city) and offers to widen each.
+        const title = filtered ? t('No {things} match this search', { things })
+            : who ? (city ? t('No {things} for {who} near {city}', { things, who, city }) : t('No {things} for {who}', { things, who }))
+            : city ? t('No {things} near {city} yet', { things, city }) : t(source.empty.title);
+        const widen = <>
+            {filtered && onClear && <Button size="sm" onClick={onClear}>{t('Clear filters')}</Button>}
+            {who && onClearFor && <Button size="sm" onClick={onClearFor}>{t('Search for anyone')}</Button>}
+            {onWiden && <Button size="sm" onClick={onWiden}>{t('Search everywhere')}</Button>}
+        </>;
+        const narrowed = filtered || Boolean(who) || Boolean(onWiden);
+        return (
+            <Panel>
+                <EmptyNote title={title} action={narrowed ? widen : source.empty.action}>
+                    {filtered ? t('Try a wider search or remove a filter.') : narrowed ? null : t(source.empty.body)}
+                </EmptyNote>
+            </Panel>
+        );
+    }
     const { Item } = source;
     const items = data.items.map(item => <DirectoryItemKey.Provider key={source.key(item)} value={source.key(item)}><Item item={item} /></DirectoryItemKey.Provider>);
     return (

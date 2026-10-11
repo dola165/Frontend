@@ -4,8 +4,10 @@ import { searchTryouts, type TryoutPosting } from '../../tryouts/api';
 import { searchOpportunities } from '../../admissions/api';
 import type { DiscoveryQuery, Participant } from '../../admissions/types';
 import { postingLabel } from '../../tryouts/tryoutCopy';
+import { availabilityCopy } from '../../admissions/applicant/copy';
 import { wt } from '../copy';
 import { first, type DirectorySource, type FilterOption, type RememberedChoice } from '../directory/types';
+import { bilingual, calendarDaysUntil, codeLabel, ENGAGEMENT, factTone, fixtureDay, fixtureTime, postedLabel } from '../format';
 import { GroupItem, JobItem, TrialItem, type GroupResult } from './opportunityItems';
 import { clubScope } from './scopes';
 
@@ -56,6 +58,17 @@ export const jobs: DirectorySource<ClubJob> = {
     },
     key: job => String(job.id),
     Item: JobItem,
+    line: job => {
+        const terms = ENGAGEMENT[job.engagementType ?? 'UNSPECIFIED'] ?? ENGAGEMENT.UNSPECIFIED;
+        return { title: job.title, to: `/jobs/${job.id}`, crest: { src: job.clubLogoUrl, name: job.clubName ?? job.title },
+            detail: [job.clubName, job.clubCityName, postedLabel(job.createdAt)].filter(Boolean).join(' · '), fact: wt(terms.label), factTone: factTone(terms.tone) };
+    },
+    // Roles are counted on their club's pin ("3 roles").
+    placeKinds: ['CLUB'],
+    place: (job, places) => {
+        const club = places.club(job.clubId);
+        return club ? { lat: club.lat, lng: club.lng, tone: 'club', pin: `club:${job.clubId}`, label: job.clubName ?? club.name, noun: ['role', 'roles'], to: `/clubs/${job.clubId}` } : null;
+    },
     empty: { title: 'No open roles right now', body: 'Clubs post coaching, matchday and volunteer roles here.' },
 };
 
@@ -82,6 +95,21 @@ export const trials: DirectorySource<TryoutPosting> = {
     },
     key: trial => String(trial.id),
     Item: TrialItem,
+    line: trial => {
+        const left = trial.status === 'OPEN' ? calendarDaysUntil(trial.deadline) : null;
+        const closing = left != null && left >= 0 && left <= 3;
+        return { when: { time: fixtureTime(trial.tryoutDate), day: fixtureDay(trial.tryoutDate) }, title: trial.title, to: `/tryouts/${trial.id}`,
+            detail: [trial.clubName, codeLabel(trial.ageGroup), codeLabel(trial.position)].filter(Boolean).join(' · '),
+            fact: closing ? wt('Apply by {day}', { day: fixtureDay(trial.deadline) }) : postingLabel(trial.status, bilingual), factTone: closing ? 'warning' : trial.status === 'OPEN' ? 'accent' : undefined };
+    },
+    // A trial at its own ground, else (marked approximate) at its club.
+    placeKinds: ['TRYOUT', 'CLUB'],
+    place: (trial, places) => {
+        const marker = places.trial(trial.id);
+        const own = marker && marker.clubId === trial.clubId ? marker : undefined;
+        const at = own ?? places.club(trial.clubId);
+        return at ? { lat: at.lat, lng: at.lng, tone: 'trial', approximate: own ? undefined : 'club', label: trial.title, meta: `${fixtureDay(trial.tryoutDate)} · ${trial.clubName}`, to: `/tryouts/${trial.id}`, noun: ['trial', 'trials'] } : null;
+    },
     empty: { title: 'No open trials right now', body: 'Clubs publish trials here before each intake.' },
 };
 
@@ -135,8 +163,14 @@ export function groupsSource(participants: Participant[], remember?: RememberedC
         },
         key: ({ group }) => String(group.id),
         Item: GroupItem,
-        point: ({ group }) => group.location.latitude != null && group.location.longitude != null
-            ? { id: String(group.id), lat: group.location.latitude, lng: group.location.longitude, label: group.name, meta: `${group.organizationName} · ${group.location.name}`, tone: 'club', to: `/admissions/opportunities/${group.id}` }
+        line: ({ group, player }) => {
+            const open = group.availability === 'PLACES_AVAILABLE' || group.availability === 'APPLICATIONS_OPEN';
+            return { title: group.name, to: `/admissions/opportunities/${group.id}${player ? `?player=${player}` : ''}`, crest: { name: group.organizationName },
+                detail: [group.organizationName, wt('Born {from}–{to}', { from: group.birthYearFrom, to: group.birthYearTo }), group.location.name].filter(Boolean).join(' · '),
+                fact: bilingual(...availabilityCopy[group.availability]), factTone: open ? 'accent' : group.availability === 'WAITLIST' ? 'warning' : undefined };
+        },
+        place: ({ group }) => group.location.latitude != null && group.location.longitude != null
+            ? { lat: group.location.latitude, lng: group.location.longitude, noun: ['group', 'groups'], label: group.name, meta: `${group.organizationName} · ${group.location.name}`, tone: 'club', to: `/admissions/opportunities/${group.id}` }
             : null,
         empty: { title: 'No groups are taking players', body: 'Include waiting lists, or ask a club directly from its profile.' },
     };

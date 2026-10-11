@@ -243,6 +243,43 @@ The app today, compared with how clubs usually work (coaches to confirm):
 - The field beside the map is as tall as its content (up to the map's height), so a short list shows more map. Lists below sit three to a row on a full-HD screen.
 - Saved pages from before start again from the new role pages (`gk-world-overview:v2`).
 
+**The World tabs, built the same way** (11 October; the owner: "the map should stay in every single tab in World", the results stay big and useful, the map closes to use the tab as a directory).
+- **Agreed for later:** the Map tab becomes a planning workspace. It is not designed yet.
+- **The recipe** for every World page is written in `WORLD_RECIPE.md`.
+- **One World bar:** "For" and "Near" sit beside the tabs on every World page.
+  - **For:** the coach's squads on the overview; a parent's child on the overview, Clubs and Opportunities.
+  - **Near:** the area, or Anywhere.
+  - The overview header kept its title, search and Customize. Choices follow the person between tabs.
+- **The map on top of every tab,** in the overview's glass look:
+  - **Pins:** the results on screen are its pins, one to one. Results at one place share a pin with a count. A result placed at its club is a ring, and the count says how many have no place.
+  - **Linking:** hovering a card lights its pin and the other way round; a pin's card offers "Show in list".
+  - **Folding:** it folds to a slim strip and the choice is remembered (`map=open|closed`; phones start folded). The List / List + map / Map switch is gone, and old `view=` links open the map.
+  - **Moving it:** moved over another city, the map offers "Search Rustavi".
+- **Defaults by role:** a tab opened without filters starts on the likely answer for who is looking, as ordinary chips that Clear removes. A link's own filters always win.
+- **One frame for every World page** (11 October; the owner: tabs must not "jump up and down", no forced return to the top, and "the same map as we have in overview everywhere"):
+  - **The header row:** the title (and a short subtitle), the page's lists as a small segmented row, the search, the filters and the page's actions, on one line at full HD.
+  - **Filters are pills that show their value** ("Upcoming", "Academies +1"). Choices open in a small glass panel over the map, so nothing below moves. More filters opens a larger panel. Clear filters sits at the end.
+  - **One map for all of World.** The overview's map stays alive from tab to tab and only its pins change, so it never reloads. The World bar and the header keep the same height on every tab, so the map never moves, and switching tabs keeps the scroll position.
+  - **Browse area:** a glass panel over the map's right side, as on the full map. It shows the count, the sort and the results as score-site lines linked to their pins: pointing at either lights the other, and choosing a pin brings its line into view. It folds to its header. On a phone, or with the map folded, the count and the sort sit above the results.
+  - **Every list is on the map:**
+    - Clubs, venues, open matches, arrangements and places to train are placed by their own coordinates.
+    - People are counted on their club's pin, never named on the map.
+    - Fixtures use their match (checked against their clubs), else the competition's ground, else the home club.
+    - Events use their match, competition or trial; a club's training is placed at the club.
+    - Competitions, organisers that are clubs, invitations, jobs (counted per club) and trials are placed too.
+    - Anything placed at its club is a ring, and anything without a place is counted.
+    - Referees stay off the map for now (see Before release).
+  - "Arrange a match" uses the same header.
+  - **Kept on purpose:** pages with nothing to pin ("Arrange a match", My reservations) still show the map, so nothing jumps between tabs. They should get pins of their own (the opponents near you, the reserved venues).
+  - **Header sizes:** one line at full HD, two fixed lines on laptops (1100–1599px), so every tab keeps the same height.
+- **Clubs:**
+  - It lists clubs near the area. "Anywhere" lists them all, and an empty area offers "Search everywhere".
+  - Four kinds: Academies, Football schools, Community clubs, Pro clubs.
+  - "Taking new players" is a chip; the detailed way to join sits under More filters.
+  - The child comes from the World bar.
+  - **Cards** show "Academy of FC Dinamo Tbilisi" / "Academy: …", the distance, and for coaching staff "Propose a match" (never on their own club).
+  - **Defaults:** a player opens on "Taking new players"; an academy director, analyst or agent on Academies.
+
 ## 5. Map and Journeys
 
 **The owner's notes**
@@ -338,7 +375,8 @@ This branch is the real frontend code on fake data, so what is built here ships 
   - Dragging club events needs the club event API; only squad sessions move today.
   - Changing the end time by resizing is not supported yet.
   - Initials avatars now take soft colours app-wide; check the screens that relied on grey ones.
-- **World overview:** save each person's field layout on the server (today it is per browser); Georgian copy for the new fields.
+- **World overview:** save each person's field layout on the server (today it is per browser); Georgian copy for the new fields (about 180 strings from the overview fields and Customize still have none; the World stage, map and directory strings do).
+  - Tests still to write: role defaults (written once, never over a link's filters, never again on Back).
   - **Backend parameters the coach fields need:**
     - squad ids on tournament invitations (matched by squad name today);
     - gender on match-exchange listings (read from the squad name today);
@@ -347,6 +385,20 @@ This branch is the real frontend code on fake data, so what is built here ships 
     - a squad's format (taken from its age group today).
   - **Check with the coaches:** the 72-hour and three-in-a-week rest rules, and the evening window (17:00–21:00) for free pitches.
   - **Sponsors:** confirm `promotionBlocked` covers every restricted category before the rail goes live.
+- **World tabs, backend parameters:**
+  - `/clubs`: coordinates on directory clubs (until then the map search places them), `near` with a distance sort, boys/girls, a fee ceiling.
+  - `/people`: `isFollowedByMe`, a viewer-is-a-minor flag.
+  - `/venues`: amenities, availability for several venues in one request.
+  - `/match-history`: area, ground coordinates, club logos.
+  - Listings: `refereeNeeded`.
+  - `/competitions`: several age groups at once, structured gender, a radius in the sandbox.
+  - `/tryouts/discovery`: age group, gender, position.
+  - `/jobs`: filtering and paging on the server.
+  - Parent Hub children: their squad ids.
+  - Also: `city[]` is sent with brackets and the server ignores it; MATCH markers mix two id spaces (check the club); the places lookup is capped at 400 per kind.
+  - **Referees on the map** (the owner wants "who is available nearby" soon): referees need a service area the map can draw, such as a centre and radius, instead of free text.
+  - People, Venues, Matches, Competitions and Opportunities do not follow Near yet (their own steps). Their old City, Place and "Near me" filters go then.
+  - The overview and the tabs share the World stage. A detail page (a club, a venue) could take the same map later.
 - **Injuries** (`SCENARIOS.md`): the backend pieces listed there, starting with an injury report record.
 - **Colours after the restore:**
   - Check the schedule in the light theme (only its tokens were fixed there).

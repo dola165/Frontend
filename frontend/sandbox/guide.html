@@ -101,16 +101,17 @@
   <section>
     <div>
       <h2>2 · GrassKickZ World</h2>
-      <p class="what">World is now the discovery half of the app: a front page plus directories for Clubs, People, Venues, Matches, Competitions and Opportunities. Every directory has the same search, filters and a List / List + map / Map switch. The old list pages redirect here.</p>
+      <p class="what">World is now the discovery half of the app: a front page plus directories for Clubs, People, Venues, Matches, Competitions and Opportunities. Every page shares one frame: the title, search and filter pills in one row, then the same map (it stays put from tab to tab), with a <b>Browse area</b> panel over it listing what is on the map. The results are its pins, and the map folds to a strip to use the tab as a plain list. The World bar beside the tabs holds who and where World is for (a child, your squads, the area). The old list pages redirect here.</p>
     </div>
     <div>
       <ol>
         <li>On the front page, search "saburtalo", then try a quick start.</li>
-        <li>In Clubs, switch to <b>List + map</b> and hover a card.</li>
+        <li>In Clubs, hover a line in <b>Browse area</b> to light its pin, click a pin, then <b>Fold map</b>.</li>
+        <li>Scroll down a little and switch tabs: the map and the page stay where they are.</li>
         <li>In People, filter by Referees or Specialists (professions like sports psychologist).</li>
-        <li>Switch to the parent view (top of this page) and open Clubs: pick a child under "Searching for".</li>
+        <li>Switch to the parent view (top of this page) and open Clubs: pick a child under <b>For</b> in the World bar.</li>
       </ol>
-      <div class="links"><a href="/world">World</a><a href="/world/clubs">Clubs</a><a href="/world/clubs?view=split">Clubs + map</a><a href="/world/people">People</a><a href="/world/venues">Venues</a><a href="/world/matches">Matches</a><a href="/world/competitions">Competitions</a><a href="/world/opportunities">Opportunities</a></div>
+      <div class="links"><a href="/world">World</a><a href="/world/clubs">Clubs</a><a href="/world/clubs?map=closed">Clubs without the map</a><a href="/world/people">People</a><a href="/world/venues">Venues</a><a href="/world/matches">Matches</a><a href="/world/competitions">Competitions</a><a href="/world/opportunities">Opportunities</a></div>
     </div>
     <div class="review" data-group="world"></div>
   </section>
@@ -246,7 +247,7 @@
     world: ['World', [
       ['world-front', 'World front page with search and quick starts'],
       ['world-dirs', 'Directories for Clubs, People, Venues, Matches, Competitions and Opportunities, all with the same search and filters'],
-      ['world-views', 'List / List + map / Map switch in every directory'],
+      ['world-views', 'The map on top of every tab, linked to the results, folding to a strip'],
       ['world-people', 'People searchable by role and profession (referees, specialists)'],
       ['world-parent', 'Parent view: search clubs for a specific child'],
       ['world-redirect', 'Old list pages redirect into World'],

@@ -1,7 +1,7 @@
 import { ButtonLink } from '../../../design/primitives';
 import { fetchVenues, formats, surfaces, type Venue } from '../../venues/api';
 import { MyVenueBookings } from '../../venues/VenueBookings';
-import { today } from '../../venues/utils';
+import { fromPrice, money, today } from '../../venues/utils';
 import { useWorldCopy, wt } from '../copy';
 import { VenueCard } from '../cards/VenueCard';
 import { DirectoryPage } from '../directory/DirectoryPage';
@@ -45,9 +45,17 @@ const venues: DirectorySource<VenueItem> = {
     },
     key: item => String(item.venue.id),
     Item: ({ item }) => <VenueCard venue={item.venue} date={item.date} duration={item.duration} />,
-    point: ({ venue }) => venue.latitude != null && venue.longitude != null
-        ? { id: String(venue.id), lat: venue.latitude, lng: venue.longitude, label: venue.displayName, meta: venue.city, tone: 'venue', to: `/stadiums/${venue.id}` }
-        : null,
+    line: ({ venue, date, duration }) => {
+        const price = fromPrice(venue);
+        return { title: venue.displayName, to: `/stadiums/${venue.id}${date ? `?date=${date}&duration=${duration || 60}` : ''}`,
+            crest: { src: venue.logoUrl ?? venue.photos[0]?.url, name: venue.displayName }, detail: venue.addressText || venue.city,
+            fact: price === null ? undefined : `${money(price, venue.currency)} / ${wt('hour')}` };
+    },
+    placeKinds: ['STADIUM'],
+    place: ({ venue }, places) => {
+        const known = venue.latitude != null && venue.longitude != null ? { lat: venue.latitude, lng: venue.longitude } : places.venue(venue.id);
+        return known ? { ...known, label: venue.displayName, meta: venue.city, tone: 'venue', noun: ['venue', 'venues'], to: `/stadiums/${venue.id}` } : null;
+    },
     mapLink: query => `/world/map?layers=venues${query.q ? `&q=${encodeURIComponent(query.q)}` : ''}${first(query, 'city') ? `&region=${encodeURIComponent(first(query, 'city'))}` : ''}`,
     empty: { title: 'No venues listed yet', body: 'Stadium owners can create a page and open their calendar for bookings.', action: <ListStadium /> },
 };
@@ -63,7 +71,7 @@ export default function VenuesDirectory() {
     return (
         <DirectoryPage
             title={t('Venues')}
-            subtitle={t('Stadiums, training grounds and pitches to hire. Compare rates and request a time.')}
+            subtitle={t('Pitches to hire')}
             sources={[venues]}
             extraTabs={[{ id: 'bookings', label: 'My reservations', personal: true, element: <div className="venue-page"><MyVenueBookings /></div> }]}
             actions={<ButtonLink variant="ghost" to="/organizations/create?kind=VENUE">{t('List your stadium')}</ButtonLink>}

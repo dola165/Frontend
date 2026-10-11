@@ -24,6 +24,7 @@ function source(overrides: Partial<DirectorySource<Row>> = {}): DirectorySource<
         load: vi.fn(async (_query, page) => ({ items: rows(page * 2 + 1, 2), total: 6, hasMore: page < 2 })),
         key: row => String(row.id),
         Item: ({ item }) => <li>{item.name}</li>,
+        line: row => ({ title: row.name }),
         empty: { title: 'No clubs listed yet', body: 'Clubs appear here.' },
         ...overrides,
     };

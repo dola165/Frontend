@@ -1,16 +1,5 @@
 /* World front page. Scoped under .gk-world-front; tokens only. */
-.gk .gk-world-front { display: flex; flex-direction: column; gap: var(--gk-6); padding-bottom: var(--gk-16); }
-/* One header row: the title, search, and the area and Customize. Everything else is the map and fields. */
-.gk .gk-world-front__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3) var(--gk-5); padding-top: var(--gk-4); }
-.gk .gk-world-front__titles { flex: none; display: flex; flex-direction: column; gap: 2px; }
-.gk .gk-world-front__titles h1 { margin: 0; }
-.gk .gk-world-front__titles p { margin: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
-.gk .gk-world-front__context { flex: 0 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--gk-2) var(--gk-3); margin-left: auto; }
-/* On a phone the controls take the full width and wrap; the squad chips scroll sideways rather than push them off. */
-@media (max-width: 760px) { .gk .gk-world-front__context { flex-basis: 100%; justify-content: flex-start; margin-left: 0; } }
-.gk .gk-world-area { display: inline-flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
-.gk .gk-world-area .gk-input { width: auto; min-width: 140px; }
-
+.gk .gk-world-front { display: flex; flex-direction: column; gap: var(--gk-6); }
 /* Search in the header; its results drop down over the page. */
 .gk .gk-world-search { position: relative; flex: 1 1 320px; max-width: 620px; }
 .gk .gk-world-search__input .gk-input { min-height: 42px; padding-left: 40px; border-radius: var(--gk-r-lg); background: var(--gk-surface); border-color: var(--gk-line-strong); }
@@ -22,7 +11,7 @@
 .gk .gk-world-search__results .gk-list-row { min-height: 52px; padding-block: var(--gk-2); }
 .gk .gk-world-search__when { display: flex; flex-direction: column; align-items: flex-start; width: 52px; font-weight: 650; }
 .gk .gk-world-search__when small { font-size: var(--gk-fs-xs); font-weight: 500; color: var(--gk-text-3); font-family: var(--gk-font); }
-@media (max-width: 760px) { .gk .gk-world-search { order: 3; flex-basis: 100%; max-width: none; } }
+@media (max-width: 760px) { .gk .gk-world-search { flex-basis: 100%; max-width: none; } }
 
 /* Lists side by side, growing to fill their row (no empty columns); a card field takes a row of its own. */
 .gk .gk-world-front__fields { display: flex; flex-direction: column; gap: var(--gk-5); }

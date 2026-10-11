@@ -28,7 +28,7 @@ export function ClubsField({ area, markers, side }: FieldProps) {
         <WorldField id="clubs" side={side} count={data.data ? data.total : null} loading={data.loading} error={data.error} onRetry={data.retry}
             thumb={data.items.length ? <Cluster>{data.items.slice(0, 3).map(club => <Crest key={club.id} src={club.logoUrl} name={club.name} size={30} />)}</Cluster> : undefined}
             hint={near ? [`${t('Nearest')}: ${near.name}`, distance != null ? `${distance.toFixed(1)} km` : null].filter(Boolean).join(' · ') : area.city}
-            all={{ label: t('All clubs'), to: `/world/clubs?city=${encodeURIComponent(area.city)}${child ? `&player=${child.id}` : ''}` }}>
+            all={{ label: t('All clubs'), to: `/world/clubs?near=${encodeURIComponent(area.city)}${child ? `&player=${child.id}` : ''}` }}>
             {data.items.length ? <ClubLines clubs={data.items.slice(0, 9)} fact={club => { const km = data.distance.get(club.id); return km != null ? `${km.toFixed(1)} km` : undefined; }} />
                 : <EmptyNote title={t('No clubs listed in {city} yet', { city: area.city })}>{t('Try another area or browse every club.')}</EmptyNote>}
         </WorldField>
@@ -43,7 +43,7 @@ export function AcademiesField({ area, side }: FieldProps) {
     return (
         <WorldField id="academies" side={side} count={data.data ? data.data.totalElements ?? items.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
             thumb={items.length ? <Cluster>{items.slice(0, 3).map(club => <Crest key={club.id} src={club.logoUrl} name={club.name} size={30} />)}</Cluster> : undefined}
-            hint={area.city} all={{ label: t('All academies'), to: `/world/clubs?type=ACADEMY&city=${encodeURIComponent(area.city)}` }}>
+            hint={area.city} all={{ label: t('All academies'), to: `/world/clubs?type=ACADEMY&near=${encodeURIComponent(area.city)}` }}>
             {items.length ? <ClubLines clubs={items.slice(0, 9)} fact={club => club.joinPolicy ? t(JOIN[club.joinPolicy] ?? '') : undefined} />
                 : <EmptyNote title={t('No academies listed in {city} yet', { city: area.city })} />}
         </WorldField>
@@ -74,7 +74,7 @@ export function OpenClubsField({ area, side }: FieldProps) {
     return (
         <WorldField id="openClubs" side={side} count={data.data ? data.data.totalElements ?? items.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
             thumb={items.length ? <Cluster>{items.slice(0, 3).map(club => <Crest key={club.id} src={club.logoUrl} name={club.name} size={30} />)}</Cluster> : undefined}
-            hint={area.city} all={{ label: t('All clubs taking players'), to: `/world/clubs?joinPolicy=OPEN_TRIAL&joinPolicy=APPLICATION_REQUIRED&city=${encodeURIComponent(area.city)}` }}>
+            hint={area.city} all={{ label: t('All clubs taking players'), to: `/world/clubs?open=true&near=${encodeURIComponent(area.city)}` }}>
             {items.length ? <ClubLines clubs={items.slice(0, 9)} fact={club => club.joinPolicy ? t(JOIN[club.joinPolicy] ?? '') : undefined} />
                 : <EmptyNote title={t('No clubs in {city} are taking players right now', { city: area.city })} />}
         </WorldField>

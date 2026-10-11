@@ -16,7 +16,7 @@ export default function PeopleDirectory() {
     const [searchOnly, setSearchOnly] = useState(knownWithoutPeopleDirectory);
     const source = useMemo(() => peopleSource({ searchOnly, onSearchOnly: () => setSearchOnly(true) }), [searchOnly]);
     return (
-        <DirectoryPage title={t('People')} subtitle={t('Coaches, players, referees, agents and specialists with a public football profile.')} sources={[source]}
+        <DirectoryPage title={t('People')} subtitle={t('Coaches, referees and specialists')} sources={[source]}
             actions={user && <>
                 {referee && <ButtonLink variant="ghost" to="/referees/me">{t('My referee work')}</ButtonLink>}
                 <ButtonLink to="/account/roles">{t('Your football roles')}</ButtonLink>

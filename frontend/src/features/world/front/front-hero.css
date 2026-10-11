@@ -1,59 +1,7 @@
 /* World front page: the map as the hero. It runs the page's width and fills the first screen; the person's
    field floats over its right side in glass, its counts and the way to the full map float on it. Depth comes
    from a vignette, soft shadows and slow motion. Scoped under .gk-world-front; tokens only. */
-.gk .gk-world-front {
-  --gk-glass: color-mix(in srgb, var(--gk-bg) 64%, transparent);
-  --gk-glass-line: color-mix(in srgb, var(--gk-text) 11%, transparent);
-  --gk-glass-shadow: 0 24px 60px -24px color-mix(in srgb, var(--gk-shadow) 85%, transparent);
-  --gk-ease-out: cubic-bezier(.16, 1, .3, 1);
-  --gk-panel-w: 380px;
-}
-
-/* Header: a quiet title with depth, rising in first. */
-.gk .gk-world-front__head { animation: gk-world-rise .7s var(--gk-ease-out) both; }
-.gk .gk-world-front__titles h1 { font-size: 26px; line-height: 32px; font-weight: 600; letter-spacing: -0.02em;
-  background: linear-gradient(180deg, var(--gk-text) 30%, color-mix(in srgb, var(--gk-text) 58%, transparent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.gk .gk-world-search__input .gk-input { background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(12px); transition: border-color .2s, box-shadow .2s; }
-.gk .gk-world-search__input .gk-input:focus { border-color: color-mix(in srgb, var(--gk-accent) 55%, transparent); box-shadow: 0 0 0 4px var(--gk-accent-soft); }
-
-/* The map: big, rounded, with a vignette that darkens its edges and a soft light from above. */
-.gk .gk-world-front__lead { position: relative; isolation: isolate; animation: gk-world-hero .9s .05s var(--gk-ease-out) both; }
-.gk .gk-world-front__map { --gk-world-map-h: clamp(440px, calc(100dvh - 236px), 940px); }
-.gk .gk-world-front__map .gk-world-map { border-radius: 20px; border-color: var(--gk-glass-line);
-  box-shadow: 0 40px 90px -40px color-mix(in srgb, var(--gk-shadow) 90%, transparent), 0 0 0 1px color-mix(in srgb, var(--gk-text) 3%, transparent) inset; }
-.gk .gk-world-front__map .gk-world-map__canvas::after { content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
-  background:
-    radial-gradient(130% 95% at 38% 42%, transparent 52%, color-mix(in srgb, var(--gk-bg) 58%, transparent) 100%),
-    linear-gradient(180deg, color-mix(in srgb, var(--gk-bg) 30%, transparent), transparent 16%, transparent 78%, color-mix(in srgb, var(--gk-bg) 50%, transparent)); }
-
-/* Glass on the map: the key, the counts with a live dot, and the way to the full map. */
-.gk .gk-world-front__glass { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 36px; padding: 0 var(--gk-4); border-radius: var(--gk-r-pill);
-  background: var(--gk-glass); border: 1px solid var(--gk-glass-line); backdrop-filter: blur(14px) saturate(150%); box-shadow: var(--gk-glass-shadow);
-  font-size: var(--gk-fs-sm); color: var(--gk-text); }
-.gk .gk-world-front__overlay { position: absolute; left: var(--gk-4); bottom: var(--gk-4); z-index: 3; display: flex; flex-wrap: wrap; gap: var(--gk-2); animation: gk-world-rise .8s .45s var(--gk-ease-out) both; }
-.gk .gk-world-front__stat { color: var(--gk-text-2); }
-.gk .gk-world-front__live { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--gk-accent); animation: gk-world-live 2.4s infinite; }
-.gk .gk-world-front__expand { font-weight: 600; transition: background .25s, transform .35s var(--gk-ease-out), border-color .25s; }
-.gk .gk-world-front__expand:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--gk-accent) 45%, transparent); }
-.gk .gk-world-front__expand svg { width: 15px; height: 15px; color: var(--gk-accent); }
-.gk .gk-world-front .gk-world-map__legend { top: var(--gk-4); left: var(--gk-4); padding: 8px var(--gk-4); border-radius: var(--gk-r-pill); background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(14px) saturate(150%); box-shadow: var(--gk-glass-shadow); }
-.gk .gk-world-front .gk-world-map__card { left: var(--gk-4); bottom: 64px; border-radius: 14px; background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(18px) saturate(150%); box-shadow: var(--gk-glass-shadow); }
-.gk .gk-world-front .maplibregl-ctrl-group { border-radius: 12px; overflow: hidden; background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(14px); }
-
-/* Clubs breathe: a ring slowly leaves each club, a little after the one before. */
-.gk .gk-world-front .maplibregl-marker .gk-world-pin { position: relative; }
-.gk .gk-world-front .gk-world-pin[data-tone='club']::before { content: ''; position: absolute; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--pin);
-  animation: gk-world-pulse 3.2s calc(var(--pin-i, 0) * .45s) infinite var(--gk-ease-out); pointer-events: none; }
-
-/* Wide screens: the field floats over the map's right side as a compact glass panel. */
-@media (min-width: 1100px) {
-  /* As tall as its field, up to the map's height: a short list leaves more of the map in view; a long one scrolls inside. */
-  .gk .gk-world-front__side { position: absolute; top: var(--gk-4); right: var(--gk-4); z-index: 5; display: flex; flex-direction: column; width: var(--gk-panel-w); max-height: calc(100% - 2 * var(--gk-4)); animation: gk-world-panel .9s .2s var(--gk-ease-out) both; }
-  .gk .gk-world-front__side > .gk-wfield { flex: 0 1 auto; min-height: 0; border-radius: 16px; background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(22px) saturate(160%); box-shadow: var(--gk-glass-shadow); }
-  .gk .gk-world-front .maplibregl-ctrl-top-right, .gk .gk-world-front .maplibregl-ctrl-bottom-right { right: calc(var(--gk-panel-w) + 2 * var(--gk-4)); }
-  .gk .gk-world-front .gk-world-map__card { right: calc(var(--gk-panel-w) + 2 * var(--gk-4)); }
-}
-@media (max-width: 1099px) { .gk .gk-world-front__side { margin-top: var(--gk-5); } }
+.gk .gk-world-front { --gk-panel-w: 380px; }
 
 /* The panel's rows, condensed: the title over the full width, one line of detail, small badges under it, no repeated symbol. */
 .gk .gk-wfield[data-side] .gk-wfield__head { gap: var(--gk-2); padding: 10px var(--gk-3); border-bottom-color: var(--gk-glass-line); }
@@ -87,11 +35,6 @@
   .gk .gk-world-front__row > .gk-wfield { animation: gk-world-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 35%; }
 }
 
-@keyframes gk-world-rise { from { opacity: 0; transform: translateY(14px); } }
-@keyframes gk-world-hero { from { opacity: 0; transform: scale(.985); } }
-@keyframes gk-world-panel { from { opacity: 0; transform: translateX(28px); } }
-@keyframes gk-world-pulse { 0% { transform: scale(1); opacity: .75; } 70%, 100% { transform: scale(3.4); opacity: 0; } }
-@keyframes gk-world-live { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--gk-accent) 60%, transparent); } 70%, 100% { box-shadow: 0 0 0 9px transparent; } }
 @media (prefers-reduced-motion: reduce) {
   .gk .gk-world-front *, .gk .gk-world-front { animation: none !important; transition: none !important; }
 }

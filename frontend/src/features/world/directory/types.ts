@@ -1,6 +1,8 @@
 import type { ComponentType, ReactNode } from 'react';
 import type { AuthSessionId } from '../../../utils/authStorage';
-import type { WorldMapPoint } from '../map/WorldMap';
+import type { Approximate, WorldMapTone } from '../map/WorldMap';
+import type { WorldRole } from '../front/roles';
+import type { PlaceKind, Places } from './places';
 
 export interface FilterOption { value: string; label: string; /** Offered only to signed-in people. */ signedIn?: boolean }
 
@@ -51,9 +53,32 @@ export interface DirectoryPage<T> {
     items: T[]; total: number | null; hasMore: boolean;
     /** Shown instead of results when the search cannot be answered as asked. */ notice?: string;
 }
-export interface LoadContext { signal: AbortSignal; sessionId: AuthSessionId; authenticated: boolean }
+/** The World area a list is narrowed to: the city and its centre, or a null city for everywhere ("Anywhere"). */
+export interface DirectoryArea { city: string | null; centre: { lat: number; lng: number } | null }
+export interface LoadContext { signal: AbortSignal; sessionId: AuthSessionId; authenticated: boolean; /** Set for sources with `area`. */ area?: DirectoryArea }
 
-export type DirectoryView = 'list' | 'split' | 'map';
+/**
+ * Where a result goes on the map. `pin` groups results at one place (jobs at a club) into one pin with a count;
+ * `approximate` marks a result placed at its club (or its competition's ground) because its own place is not known.
+ */
+export interface Placement {
+    lat: number; lng: number; tone: WorldMapTone; label: string; meta?: string; to?: string;
+    pin?: string; approximate?: Approximate; /** How a group of these is counted on its pin: [one, other]. */ noun?: [string, string];
+}
+
+/**
+ * A result as one line of the map's "Browse area" panel, in the score-site shape: a time when it is on a date,
+ * a crest or face, the name and one line of detail, and one fact on the right.
+ */
+export interface BrowseLine {
+    title: string; detail?: string; to?: string;
+    crest?: { src?: string | null; name: string; round?: boolean };
+    when?: { time: string; day?: string };
+    fact?: string; factTone?: 'accent' | 'warning' | 'danger';
+}
+
+/** Who is looking, for a source's defaults: their World role and whether they chose a child. */
+export interface DefaultsContext { role: WorldRole; child: boolean; signedIn: boolean }
 
 /** One searchable list in a directory. A directory with several sources shows them as tabs. */
 export interface DirectorySource<T> {
@@ -81,14 +106,22 @@ export interface DirectorySource<T> {
     load: (query: DirectoryQuery, page: number, context: LoadContext) => Promise<DirectoryPage<T>>;
     key: (item: T) => string;
     Item: ComponentType<{ item: T }>;
+    /** The result as one line of the map's "Browse area" panel. */
+    line: (item: T) => BrowseLine;
     /** Work that belongs beside these results, shown above them (for example adding a past match). */
     Tools?: ComponentType<{ query: DirectoryQuery; refresh: () => void }>;
-    /** Map position of a result. Results without one are simply not on the map. */
-    point?: (item: T, coords?: { lat: number; lng: number }) => WorldMapPoint | null;
-    /** For results that carry no coordinates themselves: positions looked up separately, by item key. */
-    loadPoints?: (query: DirectoryQuery, context: LoadContext) => Promise<Map<string, { lat: number; lng: number }>>;
-    /** What `loadPoints` depends on; positions reload only when it changes. Defaults to the whole query. */
-    pointsKey?: (query: DirectoryQuery) => string;
+    /** The list is narrowed to the World area (`near`): the area reaches `load` in its context, and results wait for it. */
+    area?: boolean;
+    /** Who the list is narrowed to (the child chosen in the World bar, "Nino (9)"), so an empty list can say so. */
+    forWhom?: string;
+    /** Where a result goes on the map. Results without a place stay in the list and are counted as such. */
+    place?: (item: T, places: Places) => Placement | null;
+    /** Places looked up for results that carry no coordinates of their own (clubs, trials, competitions…). */
+    placeKinds?: PlaceKind[];
+    /** False when this query has nothing to put on a map (referees cover areas, not places). */
+    mapped?: (query: DirectoryQuery) => boolean;
+    /** Filters pre-chosen for who is looking, written once when the tab opens without filters of its own. */
+    defaults?: (context: DefaultsContext) => Record<string, string[]>;
     /** The full World map showing the same search. Defaults to the map without filters. */
     mapLink?: (query: DirectoryQuery) => string;
     empty: { title: string; body: string; action?: ReactNode };

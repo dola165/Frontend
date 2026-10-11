@@ -1,7 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
-import type { AnySource, DirectoryQuery, DirectoryView, FilterDef } from './types';
+import type { AnySource, DirectoryQuery, FilterDef } from './types';
 
-const VIEWS: DirectoryView[] = ['list', 'split', 'map'];
 /** Context that follows the person around World (their area, the child they are searching for). */
 export const CARRIED = ['near', 'player'];
 /** How many pages of results were shown, so Back returns to the same place in the list. */
@@ -42,7 +41,7 @@ export function readQuery(source: AnySource, params: URLSearchParams): { query: 
 }
 
 /**
- * Directory state lives in the URL: tab (`tabParam`), search, filters, sort, view and how many
+ * Directory state lives in the URL: tab (`tabParam`), search, filters, sort and how many
  * pages were shown. `tabAlias` is an older name of the tab parameter that links may still use.
  */
 export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabAlias, signedIn = true }: { tabParam?: string; tabAlias?: string; signedIn?: boolean } = {}) {
@@ -50,8 +49,6 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
     const opening = defaultSource(sources, signedIn);
     const requested = params.get(tabParam) ?? (tabAlias ? params.get(tabAlias) : null);
     const source = sources.find(item => item.id === requested) ?? opening;
-    const rawView = params.get('view') as DirectoryView | null;
-    const view: DirectoryView = source.point && rawView && VIEWS.includes(rawView) ? rawView : 'list';
     const { query, active: activeFilters } = readQuery(source, params);
     const shown = Math.min(Math.max(Number(params.get(SHOWN)) || 1, 1), 10);
 
@@ -78,7 +75,6 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
     return {
         source,
         query,
-        view,
         activeFilters,
         shown,
         setValues,
@@ -88,7 +84,10 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
         },
         setSearch: (value: string) => update(next => { next.delete(SHOWN); if (value) next.set('q', value); else next.delete('q'); }),
         setSort: (value: string) => update(next => { next.delete(SHOWN); if (value && value !== source.sorts?.[0]?.value) next.set('sort', value); else next.delete('sort'); }),
-        setView: (value: DirectoryView) => update(next => { if (value === 'list') next.delete('view'); else next.set('view', value); }, false),
+        /** Writes several filters at once without a history entry: a tab's defaults for who is looking. */
+        setMany: (values: Record<string, string[]>) => update(next => {
+            for (const [key, list] of Object.entries(values)) { next.delete(key); list.filter(Boolean).forEach(value => next.append(key, value)); }
+        }),
         /** Records how many pages are on screen, without adding a history entry. */
         setShown: (pages: number) => update(next => { if (pages > 1) next.set(SHOWN, String(pages)); else next.delete(SHOWN); }),
         setTab: (id: string) => update(next => {
@@ -104,3 +103,7 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
     };
 }
 export type DirectoryState = ReturnType<typeof useDirectoryState>;
+
+/** Whether Clear filters has anything to clear: a search, or a filter other than the context carried around World. */
+export const isClearable = (state: Pick<DirectoryState, 'query' | 'activeFilters'>) =>
+    Boolean(state.query.q) || state.activeFilters.some(filter => !CARRIED.includes(filter.key));

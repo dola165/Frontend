@@ -15,7 +15,7 @@ export default function CompetitionsDirectory() {
     return (
         <DirectoryPage
             title={t('Competitions')}
-            subtitle={t('Leagues, cups, ladders and festivals. See who can enter and when entries close.')}
+            subtitle={t('Leagues, cups and festivals')}
             sources={SOURCES}
             // Anyone signed in can start: setup helps a new organiser create their organisation first.
             actions={user && <ButtonLink variant={hasNavigationCapability(user.navigationCapabilities, 'tournament.create') ? 'primary' : 'secondary'} to="/tournaments/setup"><Plus aria-hidden="true" />{t('Create a competition')}</ButtonLink>}

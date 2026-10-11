@@ -2,13 +2,31 @@ import { browseCompetitions, browsePersonalCompetitions, familyLabels, structure
 import { fetchMyTournamentInvitations, fetchTournamentHosts } from '../../tournaments/api';
 import type { TournamentHost, TournamentInvitationInboxItem, TournamentSummary } from '../../tournaments/domain';
 import { fetchClubProfile } from '../api';
-import { first, nearbyPoint, type DirectorySource, type ScopeFilter } from '../directory/types';
-import { SCOPE_LABEL, sentence } from '../format';
+import { plural, wt } from '../copy';
+import type { Places } from '../directory/places';
+import { first, nearbyPoint, type BrowseLine, type DirectorySource, type Placement, type ScopeFilter } from '../directory/types';
+import { codeLabel, COMPETITION_STATUS, dateColumn, entryState, factTone, SCOPE_LABEL, sentence, shortDate } from '../format';
 import { CompetitionRow } from '../rows';
 import { HostRow, InvitationRow, MyCompetitionRow } from './competitionItems';
 import { AGE_OPTIONS } from './matchSources';
 
 const PAGE = 12;
+
+/** The host club is in the payload but not yet in the published type. */
+type Hosted = { id: number; name: string; startDate?: string | null; hostClubId?: number | null };
+/** A competition at its own ground, else (marked approximate) at the club that hosts it. */
+const competitionPlace = (item: Hosted, places: Places): Placement | null => {
+    const own = places.competition(item.id);
+    const at = own ?? places.club(item.hostClubId);
+    return at ? { lat: at.lat, lng: at.lng, tone: 'event', approximate: own ? undefined : 'club', label: item.name, meta: shortDate(item.startDate) ?? undefined, to: `/tournaments/${item.id}`, noun: ['competition', 'competitions'] } : null;
+};
+/** A published competition: its first day, the age, format and host, and where entries stand. */
+const competitionLine = (card: CompetitionCard & { registrationClosesAt?: string | null }): BrowseLine => {
+    const rules = card.profile?.rules;
+    const state = entryState(card.status, card.registrationClosesAt);
+    return { when: dateColumn(card.startDate), title: card.name, to: `/tournaments/${card.id}`, fact: state.label, factTone: factTone(state.tone),
+        detail: [rules && codeLabel(rules.ageGroup), rules && `${rules.sideSize}v${rules.sideSize}`, card.hostClubName || card.organizerName].filter(Boolean).join(' · ') };
+};
 const STATUS_OPTIONS = [{ value: 'PLANNING', label: 'Registration and planning' }, { value: 'ACTIVE', label: 'In progress' }, { value: 'COMPLETED', label: 'Completed' }, { value: 'CANCELLED', label: 'Cancelled' }];
 const SCOPE_OPTIONS = Object.entries(SCOPE_LABEL).map(([value, label]) => ({ value, label }));
 const hasFee = (values: Record<string, string[]>) => Boolean(values.minFee?.[0] || values.maxFee?.[0]);
@@ -75,6 +93,9 @@ export const competitions: DirectorySource<CompetitionCard> = {
     },
     key: card => String(card.id),
     Item: ({ item }) => <CompetitionRow card={item} />,
+    line: competitionLine,
+    placeKinds: ['TOURNAMENT', 'CLUB'],
+    place: competitionPlace,
     empty: { title: 'No competitions published yet', body: 'Leagues, cups and festivals appear here when organisers publish them.' },
 };
 
@@ -97,6 +118,13 @@ export const mine: DirectorySource<TournamentSummary> = {
     },
     key: item => String(item.id),
     Item: MyCompetitionRow,
+    line: item => {
+        const badge = COMPETITION_STATUS[item.status] ?? COMPETITION_STATUS.PLANNING;
+        return { when: dateColumn(item.startDate), title: item.name, to: `/tournaments/${item.id}`, fact: wt(badge.label), factTone: factTone(badge.tone),
+            detail: [SCOPE_LABEL[item.participantScope] && wt(SCOPE_LABEL[item.participantScope]), item.hostClubName || item.organizerName].filter(Boolean).join(' · ') };
+    },
+    placeKinds: ['TOURNAMENT', 'CLUB'],
+    place: competitionPlace,
     empty: { title: 'No competitions yet', body: 'Competitions you organise, or that your club or squads enter, appear here.' },
 };
 
@@ -115,6 +143,14 @@ export const organisers: DirectorySource<TournamentHost> = {
     },
     key: host => `${host.kind}:${host.id}`,
     Item: HostRow,
+    line: host => ({ title: host.name, to: `/world/competitions?host=${host.kind}:${host.id}`, crest: { src: host.logoUrl, name: host.name },
+        detail: host.kind === 'CLUB' ? wt('Club') : wt('Organisation'), fact: plural(host.tournamentCount, 'competition') }),
+    // A club that organises is pinned at the club; an organisation has no place of its own on the map.
+    placeKinds: ['CLUB'],
+    place: (host, places) => {
+        const club = host.kind === 'CLUB' ? places.club(host.id) : undefined;
+        return club ? { lat: club.lat, lng: club.lng, tone: 'club', label: host.name, meta: plural(host.tournamentCount, 'competition'), to: `/clubs/${host.id}` } : null;
+    },
     empty: { title: 'No organisers yet', body: 'Clubs and organisations appear here once they publish a competition.' },
 };
 
@@ -145,5 +181,12 @@ export const invitations: DirectorySource<TournamentInvitationInboxItem> = {
     },
     key: item => String(item.invitationId),
     Item: InvitationRow,
+    line: item => ({ title: item.tournamentName, to: '/requests', crest: { name: item.tournamentName }, fact: wt('Invited'), factTone: 'warning',
+        detail: [item.squadName || item.clubName || wt('You, as a player'), SCOPE_LABEL[item.participantScope] && wt(SCOPE_LABEL[item.participantScope])].filter(Boolean).join(' · ') }),
+    placeKinds: ['TOURNAMENT'],
+    place: (item, places) => {
+        const at = places.competition(item.tournamentId);
+        return at ? { lat: at.lat, lng: at.lng, tone: 'event', label: item.tournamentName, to: `/tournaments/${item.tournamentId}`, noun: ['invitation', 'invitations'] } : null;
+    },
     empty: { title: 'No pending invitations', body: 'Invitations for you, your squads and the clubs you manage appear here.' },
 };

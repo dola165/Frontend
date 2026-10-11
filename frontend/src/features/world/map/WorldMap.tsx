@@ -1,21 +1,34 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import type { MapBounds } from '../../../components/map/areaSearch';
 import { getHeritageStyle } from '../../../components/map/heritageStyle';
 import { Button } from '../../../design/primitives';
 import { useWorldCopy } from '../copy';
 import { useWorldData } from '../useWorldData';
 import { useAppTheme } from './canvas/useMapTheme';
+import { pinHover, pinLabel } from './pins';
 import './world-map.css';
 
 const WorldLiveMap = lazy(() => import('./WorldLiveMap'));
 
-export type WorldMapTone = 'club' | 'venue' | 'match' | 'trial' | 'event' | 'person';
-export interface WorldMapPoint { id: string; lat: number; lng: number; label: string; meta?: string; tone: WorldMapTone; to?: string }
+export type WorldMapTone = 'club' | 'venue' | 'match' | 'trial' | 'event' | 'training' | 'person' | 'mixed';
+/** Why a pin is not at the result's own place: it is at its club, or at its competition's ground. */
+export type Approximate = 'club' | 'ground';
+const APPROXIMATE: Record<Approximate, string> = { club: 'Placed at its club', ground: 'Placed at its competition’s ground' };
+export interface WorldMapPoint {
+    id: string; lat: number; lng: number; label: string; meta?: string; tone: WorldMapTone; to?: string;
+    /** Several results at one place (three jobs at a club): the pin shows how many. */ count?: number;
+    /** Placed near rather than at its own place (its own place is not known): drawn as a ring, and the card says where. */ approximate?: Approximate;
+    /** The kinds of result at a pin that holds several (its tone is then "mixed"). */ tones?: WorldMapTone[];
+}
 
-const TONE_LABEL: Record<WorldMapTone, string> = { club: 'Clubs', venue: 'Venues', match: 'Matches', trial: 'Trials', event: 'Events', person: 'People' };
+const TONE_LABEL: Record<WorldMapTone, string> = { club: 'Clubs', venue: 'Venues', match: 'Matches', trial: 'Trials', event: 'Events', training: 'Training', person: 'People', mixed: 'Several kinds' };
+
+/** What every way of drawing a pin needs: which pins are lit, and what pointing at or choosing one does. */
+export interface PinEvents { selectedId?: string; highlightId?: string; onSelect: (id: string) => void; onHover?: (id?: string) => void }
 
 /** Positions-only sketch: used while the street map loads and whenever it cannot. */
-function MapSketch({ points, selectedId, highlightId, onSelect }: { points: WorldMapPoint[]; selectedId?: string; highlightId?: string; onSelect: (id: string) => void }) {
+function MapSketch({ points, selectedId, highlightId, onSelect, onHover }: { points: WorldMapPoint[] } & PinEvents) {
     const lats = points.map(p => p.lat), lngs = points.map(p => p.lng);
     // Centre the points; a lone point or a tight cluster sits in the middle rather than a corner.
     const midLat = (Math.min(...lats) + Math.max(...lats)) / 2, midLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
@@ -28,43 +41,54 @@ function MapSketch({ points, selectedId, highlightId, onSelect }: { points: Worl
         <div className="gk-world-map__sketch" aria-hidden={points.length === 0}>
             {points.map(point => (
                 <button key={point.id} type="button" className="gk-world-pin" data-tone={point.tone} data-selected={point.id === selectedId || point.id === highlightId || undefined}
-                    style={place(point)} aria-label={`${point.label}${point.meta ? `, ${point.meta}` : ''}`} title={point.label} onClick={() => onSelect(point.id)} />
+                    data-count={point.count && point.count > 1 ? point.count : undefined} data-approx={point.approximate || undefined}
+                    style={place(point)} aria-label={pinLabel(point)} title={pinLabel(point)} onClick={() => onSelect(point.id)} {...pinHover(point.id, onHover)}>
+                    {point.count && point.count > 1 ? <span className="gk-world-pin__count">{point.count}</span> : null}
+                </button>
             ))}
         </div>
     );
 }
 
 /**
- * A compact map of World results. Uses the street map when it can load, and otherwise shows
- * the same points on a plain sketch so results stay usable without map tiles.
+ * A map of World results. Uses the street map when it can load, and otherwise shows the same points on a plain
+ * sketch so results stay usable without map tiles. `hero` is the big glass look of World's overview and tabs.
  */
-export function WorldMap({ points, label, selectedId, highlightId, onSelect, className, footer, overlay, insetRight }: {
+export function WorldMap({ points, label, selectedId, highlightId, onSelect, onHover, onMoveEnd, className, footer, overlay, insetRight, variant, cardActions }: {
     points: WorldMapPoint[]; label: string; selectedId?: string; /** A point to emphasise, such as the result under the pointer. */ highlightId?: string;
-    onSelect?: (id?: string) => void; className?: string; footer?: ReactNode;
+    onSelect?: (id?: string) => void; /** The pointer or focus is on a pin (or left it). */ onHover?: (id?: string) => void;
+    /** The person panned or zoomed the map (framing the points does not count). */ onMoveEnd?: (bounds: MapBounds) => void;
+    className?: string; footer?: ReactNode;
     /** Things floating on the map itself, such as counts and the way to the full map. */ overlay?: ReactNode;
     /** Room kept free on the right for a panel floating over the map (pixels). */ insetRight?: number;
+    variant?: 'hero';
+    /** More ways on from the chosen pin's card, besides Open and Close. */ cardActions?: (point: WorldMapPoint) => ReactNode;
 }) {
     const t = useWorldCopy();
     const theme = useAppTheme();
     const style = useWorldData(`map-style:${theme}`, () => getHeritageStyle(theme, { includeTerrain: false }));
     const [liveFailed, setLiveFailed] = useState(false);
     const [ownSelection, setOwnSelection] = useState<string>();
-    const selected = selectedId ?? ownSelection;
+    // A page that handles choosing owns the selection, so a pin chosen on another page never stays chosen here.
+    const selected = onSelect ? selectedId : ownSelection;
     const select = (id?: string) => { setOwnSelection(id); onSelect?.(id); };
     const point = points.find(item => item.id === selected);
     const live = Boolean(style.data) && !liveFailed;
-    const tones = [...new Set(points.map(item => item.tone))];
+    const tones = [...new Set(points.flatMap(item => item.tone === 'mixed' ? [...(item.tones ?? []), item.tone] : [item.tone]))];
+    const approximate = [...new Set(points.flatMap(item => item.approximate ? [item.approximate] : []))];
+    const pins: PinEvents = { selectedId: selected, highlightId, onSelect: select, onHover };
     return (
-        <div className={`gk-world-map${className ? ` ${className}` : ''}`} role="region" aria-label={label}>
-            <div className="gk-world-map__canvas">
+        <div className={`gk-world-map${variant ? ` gk-world-map--${variant}` : ''}${className ? ` ${className}` : ''}`} role="region" aria-label={label}>
+            <div className="gk-world-map__canvas" data-card={point ? true : undefined}>
                 {live
-                    ? <Suspense fallback={<MapSketch points={points} selectedId={selected} highlightId={highlightId} onSelect={select} />}>
-                        <WorldLiveMap style={style.data!} points={points} selectedId={selected} highlightId={highlightId} onSelect={select} onFail={() => setLiveFailed(true)} insetRight={insetRight} />
+                    ? <Suspense fallback={<MapSketch points={points} {...pins} />}>
+                        <WorldLiveMap style={style.data!} points={points} {...pins} onMoveEnd={onMoveEnd} onFail={() => setLiveFailed(true)} insetRight={insetRight} />
                     </Suspense>
-                    : <MapSketch points={points} selectedId={selected} highlightId={highlightId} onSelect={select} />}
-                {tones.length > 1 && (
+                    : <MapSketch points={points} {...pins} />}
+                {(tones.length > 1 || approximate.length > 0) && (
                     <ul className="gk-world-map__legend" aria-label={t('Map key')}>
-                        {tones.map(tone => <li key={tone}><span className="gk-world-pin gk-world-pin--key" data-tone={tone} aria-hidden="true" />{t(TONE_LABEL[tone])}</li>)}
+                        {tones.length > 1 && tones.map(tone => <li key={tone}><span className="gk-world-pin gk-world-pin--key" data-tone={tone} aria-hidden="true" />{t(TONE_LABEL[tone])}</li>)}
+                        {approximate.map(reason => <li key={reason}><span className="gk-world-pin gk-world-pin--key" data-tone={points.find(item => item.approximate === reason)!.tone} data-approx aria-hidden="true" />{t(APPROXIMATE[reason])}</li>)}
                     </ul>
                 )}
                 {!live && !style.loading && (
@@ -78,8 +102,9 @@ export function WorldMap({ points, label, selectedId, highlightId, onSelect, cla
                     <div className="gk-world-map__card">
                         <span className="gk-world-map__card-text">
                             <strong>{point.label}</strong>
-                            {point.meta && <span>{point.meta}</span>}
+                            {(point.meta || point.approximate) && <span>{[point.meta, point.approximate ? t(APPROXIMATE[point.approximate]) : ''].filter(Boolean).join(' · ')}</span>}
                         </span>
+                        {cardActions?.(point)}
                         {point.to && <Link className="gk-section__action" to={point.to}>{t('Open')}</Link>}
                         <Button size="sm" variant="ghost" onClick={() => select(undefined)}>{t('Close')}</Button>
                     </div>

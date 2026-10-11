@@ -1,7 +1,9 @@
 import { formats } from '../../matchExchange/api';
 import { fetchPeople, fetchReferees } from '../api';
 import { wt } from '../copy';
-import { first, type DirectoryQuery, type DirectorySource, type FilterDef } from '../directory/types';
+import { first, type BrowseLine, type DirectoryQuery, type DirectorySource, type FilterDef } from '../directory/types';
+import type { Places } from '../directory/places';
+import { PERSON_ROLE } from '../format';
 import { PersonItemRow, type PersonItem } from './peopleItems';
 import { valueScope } from './scopes';
 
@@ -21,6 +23,29 @@ const refereeFilters: FilterDef[] = [
 /** Filters only the people directory can answer; a name search cannot. */
 const asksDirectory = (query: DirectoryQuery) => Boolean((first(query, 'role') && !isReferee(query)) || first(query, 'profession') || first(query, 'city') || first(query, 'verified'));
 const UNAVAILABLE = 'Finding people by role, profession or place is not available yet. Clear the filters to search everyone by name.';
+
+/** A person or referee as a browse line: face, name, what they do, and their role or terms. */
+function personLine(item: PersonItem): BrowseLine {
+    if (item.kind === 'referee') {
+        const r = item.referee;
+        const terms = [r.accepts_paid && r.fee ? `${r.fee} ${r.currency}` : r.accepts_paid ? wt('Paid') : null, r.accepts_volunteer ? wt('Volunteer') : null].filter(Boolean).join(` ${wt('or')} `);
+        return { title: r.full_name, to: `/referees/${r.user_id}`, crest: { name: r.full_name, round: true },
+            detail: [wt('Referee'), r.service_area && wt('Covers {area}', { area: r.service_area })].filter(Boolean).join(' · '), fact: terms || undefined };
+    }
+    const p = item.person;
+    return { title: p.fullName, to: `/profile/${p.id}`, crest: { src: p.avatarUrl, name: p.fullName, round: true },
+        detail: [p.headline || p.profession, p.city].filter(Boolean).join(' · '), fact: wt(PERSON_ROLE[p.role] ?? 'Member') };
+}
+
+/**
+ * People are counted on their club's pin, never placed by name: the pin is the club ("FC Dinamo Tbilisi · 4 people").
+ * Referees cover an area rather than a place, so they stay off the map.
+ */
+function personPlace(item: PersonItem, places: Places) {
+    if (item.kind !== 'person' || item.person.clubId == null) return null;
+    const club = places.club(item.person.clubId);
+    return club ? { lat: club.lat, lng: club.lng, tone: 'person' as const, pin: `club:${item.person.clubId}`, label: club.name, noun: ['person', 'people'] as [string, string], to: `/clubs/${item.person.clubId}` } : null;
+}
 
 /**
  * People with a public football profile. Without the people directory on the server
@@ -72,6 +97,10 @@ export function peopleSource({ searchOnly, onSearchOnly }: { searchOnly: boolean
         },
         key: item => item.kind === 'referee' ? `referee:${item.referee.user_id}` : `person:${item.person.id}`,
         Item: PersonItemRow,
+        line: personLine,
+        placeKinds: ['CLUB'],
+        place: personPlace,
+        mapped: query => !isReferee(query),
         empty: searchOnly
             ? { title: 'Search people by name', body: 'Type at least two letters of a name to find coaches, players and specialists. Referees can be browsed from the Referees chip.' }
             : { title: 'No public profiles yet', body: 'People appear here when they publish a football profile. Search by name to find anyone else.' },

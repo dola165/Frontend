@@ -1,8 +1,9 @@
 /* World result cards (clubs, venues). Scoped under .gk; tokens only. */
 .gk .gk-world-card { display: flex; flex-direction: column; gap: var(--gk-3); min-width: 0; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); transition: border-color .15s var(--gk-ease); }
 .gk .gk-world-card:hover { border-color: var(--gk-line-strong); }
-/* The card whose pin is selected on the map beside the list. */
+/* The card at the pin chosen on the map, and the card at the pin under the pointer. */
 .gk .gk-world-card[aria-current='true'] { border-color: var(--gk-accent); box-shadow: inset 0 0 0 1px var(--gk-accent); }
+.gk .gk-world-card[data-highlighted] { border-color: var(--gk-line-strong); background: color-mix(in srgb, var(--gk-accent) 4%, var(--gk-surface)); }
 .gk .gk-world-card--skeleton { min-height: 180px; }
 .gk .gk-world-card__head { display: flex; align-items: center; gap: var(--gk-3); min-width: 0; }
 .gk .gk-world-card__title { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -32,3 +33,8 @@
 .gk .gk-world-venue__photo svg { width: 32px; height: 32px; }
 .gk .gk-world-venue__price { margin-right: auto; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .gk-world-venue__price strong { font-size: var(--gk-fs-lg); color: var(--gk-text); }
+/* "Belongs to": the academy and its pro club, with the other's crest. */
+.gk .gk-world-card__belongs { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; max-width: 100%; margin-top: calc(-1 * var(--gk-1)); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-world-card__belongs > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-world-card__belongs:hover > span { color: var(--gk-text); text-decoration: underline; text-underline-offset: 3px; }
+@media (pointer: coarse) { .gk .gk-world-card__belongs { min-height: 44px; } }

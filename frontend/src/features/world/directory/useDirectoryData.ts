@@ -1,10 +1,16 @@
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { wt } from '../copy';
-import { useWorldData } from '../useWorldData';
-import type { WorldMapPoint } from '../map/WorldMap';
-import type { AnySource, DirectoryPage, DirectoryQuery, DirectoryView, LoadContext } from './types';
+import { useWorldArea, type WorldArea } from '../useWorldArea';
+import type { AnySource, DirectoryArea, DirectoryPage, DirectoryQuery, LoadContext } from './types';
+
+/** The area a source is narrowed to: none for sources that ignore the area, a null city for "Anywhere". */
+export const directoryArea = (source: AnySource, area: WorldArea): DirectoryArea | undefined =>
+    source.area ? { city: area.anywhere ? null : area.city, centre: area.anywhere ? null : area.centre } : undefined;
+
+/** One empty list for every source with no results yet, so the map does not refit on every render. */
+const NO_ITEMS: unknown[] = [];
 
 interface Loaded { key: string; attempt: number; items: unknown[]; total: number | null; hasMore: boolean; page: number; error: string; notice: string }
 
@@ -30,17 +36,22 @@ export const invalidRange = (source: AnySource, query: DirectoryQuery) => {
  * Loads one directory source for the current query: the first `pages` pages on every query
  * change, further pages on request. Results of an older query are never shown as current.
  */
-export function useDirectoryData(source: AnySource, query: DirectoryQuery, view: DirectoryView, gated: boolean, { pages = 1, onPages }: { pages?: number; onPages?: (count: number) => void } = {}) {
+export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated: boolean, { pages = 1, onPages }: { pages?: number; onPages?: (count: number) => void } = {}) {
     const { sessionId, status } = useAuth();
     const authenticated = status === 'authenticated';
     const badRange = invalidRange(source, query);
-    const key = gated || badRange || status === 'bootstrapping' ? null : `${source.id}|${source.version ?? ''}|${sessionId}|${JSON.stringify(query)}`;
+    const { area: worldArea } = useWorldArea();
+    // A list narrowed to the area waits until the person's area is known, so it loads once, for the right place.
+    const area = directoryArea(source, worldArea);
+    const waiting = Boolean(source.area) && !worldArea.ready;
+    const key = gated || badRange || waiting || status === 'bootstrapping' ? null
+        : `${source.id}|${source.version ?? ''}|${sessionId}|${area ? area.city ?? 'anywhere' : ''}|${JSON.stringify(query)}`;
     const [attempt, setAttempt] = useState(0);
     const [loaded, setLoaded] = useState<Loaded>();
     const [more, setMore] = useState<{ key: string; busy: boolean; error: string }>();
     const moreController = useRef<AbortController | null>(null);
     // The number of pages to restore is read when a query loads, not tracked: showing more never reloads.
-    const firstLoad = useEffectEvent((signal: AbortSignal) => loadPages(source, query, pages, { signal, sessionId, authenticated }));
+    const firstLoad = useEffectEvent((signal: AbortSignal) => loadPages(source, query, pages, { signal, sessionId, authenticated, area }));
 
     useEffect(() => {
         if (!key) return;
@@ -55,7 +66,7 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, view:
     // A live list reloads what is on screen in the background; a failed refresh keeps the last results.
     const refresh = useEffectEvent((signal: AbortSignal) => {
         if (!key || !loaded || loaded.key !== key || loaded.error || (more?.key === key && more.busy)) return;
-        void loadPages(source, query, loaded.page + 1, { signal, sessionId, authenticated })
+        void loadPages(source, query, loaded.page + 1, { signal, sessionId, authenticated, area })
             .then(result => { if (!signal.aborted) setLoaded(previous => previous && previous.key === key ? { ...previous, items: result.items, total: result.total, hasMore: result.hasMore, page: result.page, notice: result.notice ?? '' } : previous); })
             .catch(() => undefined);
     });
@@ -79,7 +90,7 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, view:
         const controller = new AbortController();
         moreController.current = controller;
         setMore({ key, busy: true, error: '' });
-        void source.load(query, current.page + 1, { signal: controller.signal, sessionId, authenticated })
+        void source.load(query, current.page + 1, { signal: controller.signal, sessionId, authenticated, area })
             .then(page => {
                 if (controller.signal.aborted) return;
                 setLoaded(previous => previous && previous.key === key ? { ...previous, items: [...previous.items, ...page.items], hasMore: page.hasMore, total: page.total ?? previous.total, page: previous.page + 1 } : previous);
@@ -89,29 +100,20 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, view:
             .catch(cause => { if (!controller.signal.aborted) setMore({ key, busy: false, error: extractApiErrorMessage(cause, wt('More results could not load.')) }); });
     };
 
-    const wantsPoints = view !== 'list' && Boolean(source.loadPoints) && key !== null;
-    const pointsKey = source.pointsKey ? source.pointsKey(query) : JSON.stringify(query);
-    const coords = useWorldData(wantsPoints ? `points|${source.id}|${source.version ?? ''}|${pointsKey}` : null,
-        signal => source.loadPoints!(query, { signal, sessionId, authenticated }));
-    const items = current?.items;
-    // One array per set of results and positions, so the map does not refit on every render.
-    const points = useMemo<WorldMapPoint[]>(() => source.point && items
-        ? items.map(item => source.point!(item, coords.data?.get(source.key(item)))).filter((point): point is WorldMapPoint => Boolean(point))
-        : [], [source, items, coords.data]);
-
     return {
-        items: items ?? [],
+        items: current?.items ?? NO_ITEMS,
         total: current?.total ?? null,
         hasMore: current?.hasMore ?? false,
-        loading: key !== null && !current,
+        // Waiting for the person's area is loading too: an empty list then would say "none near Tbilisi" wrongly.
+        loading: waiting || (key !== null && !current),
         error: current?.error ?? '',
         notice: badRange ? wt('The end date is before the start date. Change one of them to search.') : current?.notice ?? '',
         retry: () => setAttempt(value => value + 1),
         loadMore,
         loadingMore: more?.key === key && more.busy,
         moreError: more?.key === key ? more.error : '',
-        points,
-        pointsLoading: wantsPoints && coords.loading,
+        /** The area the results were narrowed to, once it is known, if the source is narrowed by area. */
+        area: waiting ? undefined : area,
     };
 }
 export type DirectoryData = ReturnType<typeof useDirectoryData>;

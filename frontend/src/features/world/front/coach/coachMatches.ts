@@ -4,7 +4,7 @@ import { getMatchHistory, type HistoryMatch } from '../../../matchHistory/api';
 import { get as exchangeGet, type Match } from '../../../matchExchange/api';
 import { fetchMatchListings } from '../../api';
 import { useWorldData } from '../../useWorldData';
-import { shared } from './cache';
+import { shared } from '../../cache';
 import { endOf, formOf, lastMeeting, sideIn, type FormResult } from './form';
 import { zoned } from './standings';
 import { fitsGender, type MySquad, type SquadFocus } from './mySquads';

@@ -33,7 +33,7 @@ export default function OpportunitiesDirectory() {
     return (
         <DirectoryPage
             title={t('Opportunities')}
-            subtitle={t('Jobs, volunteering, trials and places to train, posted by clubs and organisations.')}
+            subtitle={t('Jobs, trials and places to train')}
             // `type` was this page's tab parameter; older links still open the right tab.
             tabAlias="type"
             sources={[jobs, trials, groups]}

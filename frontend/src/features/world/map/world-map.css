@@ -24,6 +24,8 @@
 .gk .gk-world-pin[data-tone='venue'] { --pin: var(--gk-info); }
 .gk .gk-world-pin[data-tone='trial'] { --pin: var(--gk-warning); }
 .gk .gk-world-pin[data-tone='event'] { --pin: var(--gk-violet); }
+.gk .gk-world-pin[data-tone='training'] { --pin: var(--gk-info); }
+.gk .gk-world-pin[data-tone='mixed'] { --pin: var(--gk-text); }
 .gk .gk-world-pin[data-tone='person'] { --pin: var(--gk-text-2); }
 .gk .gk-world-pin--key { width: 12px; height: 12px; cursor: default; }
 .gk .gk-world-pin--key::after { width: 8px; height: 8px; box-shadow: none; }
@@ -36,3 +38,36 @@
 .gk .gk-world-map__card-text strong, .gk .gk-world-map__card-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gk .gk-world-map__card-text span { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .gk-world-map .maplibregl-ctrl-group { background: var(--gk-surface); border: 1px solid var(--gk-line); box-shadow: none; }
+
+/* Several results at one place: a bigger pin with the number; placed at its club: a ring, not a dot. */
+.gk .gk-world-pin[data-count]::after { width: 20px; height: 20px; }
+.gk .gk-world-pin__count { position: absolute; z-index: 1; font-size: 10px; font-weight: 750; line-height: 1; color: var(--gk-on-accent); pointer-events: none; }
+.gk .gk-world-pin[data-approx]::after { background: var(--gk-surface); box-shadow: inset 0 0 0 3px var(--pin), 0 1px 6px color-mix(in srgb, var(--gk-shadow) 40%, transparent); }
+.gk .gk-world-pin[data-approx][data-selected]::after { box-shadow: inset 0 0 0 3px var(--pin), 0 0 0 2px var(--gk-surface), 0 0 0 5px color-mix(in srgb, var(--pin) 45%, transparent); }
+.gk .gk-world-pin[data-approx] .gk-world-pin__count { color: var(--gk-text); }
+.gk .gk-world-pin[data-tone='match'] { --pin: var(--gk-accent); }
+
+/* The hero look, for World's overview and every World tab: big and rounded, a vignette darkening its edges,
+   and glass floating on it (the key, the counts, the chosen place, the controls). */
+.gk .gk-world-map--hero { border-radius: 20px; border-color: var(--gk-glass-line);
+  box-shadow: 0 40px 90px -40px color-mix(in srgb, var(--gk-shadow) 90%, transparent), 0 0 0 1px color-mix(in srgb, var(--gk-text) 3%, transparent) inset; }
+.gk .gk-world-map--hero .gk-world-map__canvas::after { content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background:
+    radial-gradient(130% 95% at 38% 42%, transparent 52%, color-mix(in srgb, var(--gk-bg) 58%, transparent) 100%),
+    linear-gradient(180deg, color-mix(in srgb, var(--gk-bg) 30%, transparent), transparent 16%, transparent 78%, color-mix(in srgb, var(--gk-bg) 50%, transparent)); }
+.gk .gk-world-map--hero .gk-world-map__legend { top: var(--gk-4); left: var(--gk-4); padding: 8px var(--gk-4); border-radius: var(--gk-r-pill); background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(14px) saturate(150%); box-shadow: var(--gk-glass-shadow); }
+.gk .gk-world-map--hero .gk-world-map__card { left: var(--gk-4); bottom: 64px; border-radius: 14px; background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(18px) saturate(150%); box-shadow: var(--gk-glass-shadow); }
+.gk .gk-world-map--hero .maplibregl-ctrl-group { border-radius: 12px; overflow: hidden; background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(14px); }
+.gk .gk-world-map__overlay { position: absolute; left: var(--gk-4); right: var(--gk-4); bottom: var(--gk-4); z-index: 3; display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); pointer-events: none; }
+.gk .gk-world-map__overlay > * { pointer-events: auto; }
+.gk .gk-world-glass { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 36px; padding: 0 var(--gk-4); border-radius: var(--gk-r-pill);
+  background: var(--gk-glass); border: 1px solid var(--gk-glass-line); backdrop-filter: blur(14px) saturate(150%); box-shadow: var(--gk-glass-shadow);
+  font: inherit; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk a.gk-world-glass, .gk button.gk-world-glass { color: var(--gk-text); font-weight: 600; cursor: pointer; transition: transform .35s var(--gk-ease-out), border-color .25s; }
+.gk a.gk-world-glass:hover, .gk button.gk-world-glass:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--gk-accent) 45%, transparent); }
+.gk .gk-world-glass svg { width: 15px; height: 15px; color: var(--gk-accent); }
+.gk .gk-world-glass__live { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--gk-accent); animation: gk-world-live 2.4s infinite; }
+@keyframes gk-world-live { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--gk-accent) 60%, transparent); } 70%, 100% { box-shadow: 0 0 0 9px transparent; } }
+@media (prefers-reduced-motion: reduce) { .gk .gk-world-glass__live { animation: none; } }
+/* In the hero look the bottom-left holds the glass pills, so a "street map unavailable" note sits at the top. */
+.gk .gk-world-map--hero .gk-world-map__note { top: var(--gk-4); bottom: auto; left: 0; right: 0; z-index: 4; width: max-content; margin-inline: auto; }

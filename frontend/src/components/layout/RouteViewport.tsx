@@ -23,13 +23,19 @@ const workspaceSurface = (pathname: string): string | undefined => {
     return undefined;
 };
 
+/**
+ * Pages that share one frame keep it while moving between them: World's tabs keep their map, their scroll
+ * position and the World bar. Every other page starts fresh.
+ */
+const routeFamily = (pathname: string) => /^\/world(\/|$)/.test(pathname) && pathname !== '/world/map' ? 'world' : pathname;
+
 /** Keep navigation and the auth provider mounted while the selected page loads. */
 export const RouteViewport = ({ children }: { children: ReactNode }) => {
     const { pathname } = useLocation();
     const { t } = useTranslation();
     const surface = workspaceSurface(pathname);
     const product = useProductDesign(pathname);
-    return <ErrorBoundary key={pathname}>
+    return <ErrorBoundary key={routeFamily(pathname)}>
         <Suspense fallback={<div role="status" aria-live="polite" className="flex min-h-64 items-center justify-center p-6 text-[color:var(--text-secondary)]">
             {t('app.loadingPage')}
         </div>}>

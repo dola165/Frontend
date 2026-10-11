@@ -7,7 +7,7 @@ import type { PublicSquad } from '../../../clubs/publicJourney';
 import { useWorldData } from '../../useWorldData';
 import { useWorldSession } from '../../worldSession';
 import type { WorldRole } from '../roles';
-import { shared } from './cache';
+import { shared } from '../../cache';
 
 /** A squad the coach works with, with what World filters by: age group, gender and the format it plays. */
 export interface MySquad { id: number; clubId: number; name: string; ageGroup: string; gender: 'MALE' | 'FEMALE' | 'MIXED' | null; format: string; sideSize: number }

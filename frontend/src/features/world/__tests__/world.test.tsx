@@ -15,7 +15,7 @@ import { FIELDS } from '../front/fields';
 import { ROLES, aRole, defaultRole, offeredFor, roleLayout } from '../front/roles';
 import { FIELD_VIEWS } from '../front/fieldViews';
 import { LegacyMatchesRedirect, WorldRedirect } from '../WorldRedirect';
-import { readQuery, useDirectoryState } from '../directory/useDirectoryState';
+import { CARRIED, readQuery, useDirectoryState } from '../directory/useDirectoryState';
 import type { AnySource, DirectoryQuery, LoadContext } from '../directory/types';
 
 vi.mock('../../admissions/api', () => ({ searchOpportunities: vi.fn(), fetchAdmissionHome: vi.fn() }));
@@ -82,7 +82,7 @@ function Opened({ sources, alias }: { sources: AnySource[]; alias?: string }) {
     return <p>{state.source.id}:{JSON.stringify(Object.fromEntries(Object.entries(state.query.values).filter(([, values]) => values.length)))}</p>;
 }
 const DIRECTORIES: Record<string, { sources: AnySource[]; alias?: string }> = {
-    '/world/clubs': { sources: [clubsSource({ children: [child], remember: { read: () => undefined, write: () => undefined } })] },
+    '/world/clubs': { sources: [clubsSource({ child })] },
     '/world/people': { sources: [peopleSource({ searchOnly: false })] },
     '/world/matches': { sources: [fixtures, exchange, arrangements, events] },
     '/world/opportunities': { sources: [jobs, trials, groupsSource([child])], alias: 'type' },
@@ -91,7 +91,7 @@ const DIRECTORIES: Record<string, { sources: AnySource[]; alias?: string }> = {
 };
 // The directory links the front page's fields end with ("All …"), each with its tab and filters chosen.
 const FIELD_LINKS = ['/world/matches?tab=exchange', '/world/matches?tab=mine', '/world/matches?period=HISTORY', '/world/competitions?registration=OPEN', '/world/competitions?status=ACTIVE',
-    '/world/people?role=SPECIALIST', '/world/clubs?type=ACADEMY&city=Tbilisi', '/world/clubs?joinPolicy=OPEN_TRIAL&joinPolicy=APPLICATION_REQUIRED&city=Tbilisi',
+    '/world/people?role=SPECIALIST', '/world/clubs?type=ACADEMY&near=Tbilisi', '/world/clubs?open=true&near=Tbilisi',
     '/world/opportunities?tab=groups&player=101', '/world/opportunities?tab=trials', '/world/opportunities?tab=jobs&category=COACHING', '/world/opportunities?tab=jobs&engagement=VOLUNTEER',
     '/world/matches?tab=fixtures&period=UPCOMING&mine=true&squadId=103', '/world/matches?tab=fixtures&period=HISTORY', '/world/matches?tab=exchange&ageGroup=U14', '/world/people?role=REFEREE'];
 
@@ -104,7 +104,7 @@ it.each(FIELD_LINKS)('the field link %s opens its intended tab and filters', to 
     expect(tab).toBe(wanted);
     // Every filter in the link is one the opened tab applies.
     const applied = JSON.parse(values) as Record<string, string[]>;
-    for (const [key, value] of url.searchParams) if (key !== 'tab') expect(applied[key]).toContain(value);
+    for (const [key, value] of url.searchParams) if (key !== 'tab' && !CARRIED.includes(key)) expect(applied[key]).toContain(value);
 });
 
 it('gives every role its own page: a list beside the map, a handful below, all of them among its offered fields', () => {

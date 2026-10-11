@@ -5,7 +5,7 @@ import type { TournamentDetail, TournamentEntryDto, TournamentFixtureDto, Tourna
 import { searchTryouts, type TryoutPosting } from '../../../tryouts/api';
 import { useWorldData } from '../../useWorldData';
 import type { WorldRole } from '../roles';
-import { shared } from './cache';
+import { shared } from '../../cache';
 import { historyOf } from './coachMatches';
 import { fitsGender, type MySquad, type SquadFocus } from './mySquads';
 import { orderForRole } from './relevance';

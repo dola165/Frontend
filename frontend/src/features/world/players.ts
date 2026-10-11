@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import type { Participant } from '../admissions/types';
 import { readSelectedPlayer, rememberSelectedPlayer } from '../parents/playerSelection';
-import type { ChoiceFilter, RememberedChoice } from './directory/types';
+import type { RememberedChoice } from './directory/types';
 import { useWorldSession } from './worldSession';
 
 /** Age in whole years on a day (today by default), from a YYYY-MM-DD birth date. */
@@ -28,12 +28,6 @@ export function rememberedPlayer(userId: number | undefined, sessionId: string |
         read: () => readSelectedPlayer(userId, sessionId)?.toString(),
         write: value => rememberSelectedPlayer(userId, sessionId, Number(value) > 0 ? Number(value) : undefined),
     };
-}
-
-/** "Searching for" a child: a directory filter offered only to people with children. */
-export function childFilter(children: Participant[], remember: RememberedChoice): ChoiceFilter[] {
-    if (!children.length) return [];
-    return [{ kind: 'choice', key: 'player', label: 'Searching for', primary: true, allLabel: 'Anyone', remember, options: children.map(child => ({ value: String(child.id), label: child.name })) }];
 }
 
 /**

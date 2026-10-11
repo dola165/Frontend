@@ -1,10 +1,11 @@
-import { useId, useState } from 'react';
-import { LocateFixed, SlidersHorizontal, X } from 'lucide-react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { Check, ChevronDown, LocateFixed, SlidersHorizontal, X } from 'lucide-react';
 import { Chip, Field } from '../../../design/primitives';
 import { useWorldCopy } from '../copy';
 import { useWorldData } from '../useWorldData';
 import type { ChoiceFilter, DirectoryQuery, FilterDef, NearbyFilter, ScopeFilter } from './types';
 import type { DirectoryState } from './useDirectoryState';
+import './filters.css';
 
 /** What a filter control needs: the current values and how to change them. The World map shares these controls. */
 export interface FilterControls {
@@ -108,40 +109,106 @@ function NearbyChip({ filter, state }: { filter: NearbyFilter; state: FilterCont
     );
 }
 
-/** Primary filters as chips; everything else behind a More filters disclosure. Scopes from links show as removable chips. */
-export function DirectoryFilters({ state, signedIn }: { state: DirectoryState; signedIn: boolean }) {
-    const t = useWorldCopy();
+/**
+ * A pill that opens a small glass panel under it, over the map rather than pushing it down. It closes on Escape
+ * (focus returns to the pill), when focus or a click goes elsewhere, and on a choice marked `data-close`.
+ */
+function PopoverPill({ label, name, pressed, wide, children }: {
+    label: ReactNode; /** The pill's name when its text alone does not say which filter it is. */ name?: string; pressed: boolean; wide?: boolean; children: ReactNode;
+}) {
     const [open, setOpen] = useState(false);
-    const panelId = useId();
+    const root = useRef<HTMLDivElement>(null), button = useRef<HTMLButtonElement>(null), pop = useRef<HTMLDivElement>(null);
+    const id = useId();
+    useEffect(() => {
+        if (!open) return;
+        const away = (event: PointerEvent) => {
+            if (root.current?.contains(event.target as Node)) return;
+            // A field being typed in commits on blur, before the panel goes.
+            if (root.current?.contains(document.activeElement)) (document.activeElement as HTMLElement).blur();
+            setOpen(false);
+        };
+        const row = root.current?.closest('.gk-world-filters');
+        const scrolled = () => setOpen(false);
+        document.addEventListener('pointerdown', away);
+        row?.addEventListener('scroll', scrolled);
+        return () => { document.removeEventListener('pointerdown', away); row?.removeEventListener('scroll', scrolled); };
+    }, [open]);
+    // In the header the row of pills scrolls sideways, so the panel is placed against the header itself: under its
+    // pill (More filters ends at its pill's right edge), and always inside the header.
+    useLayoutEffect(() => {
+        const head = root.current?.closest<HTMLElement>('.gk-world-head'), panel = pop.current, pill = button.current;
+        if (!open || !head || !panel || !pill) return;
+        const frame = head.getBoundingClientRect(), box = pill.getBoundingClientRect(), width = panel.offsetWidth;
+        const want = wide ? box.right - frame.left - width : box.left - frame.left;
+        panel.style.top = `${box.bottom - frame.top + 6}px`;
+        panel.style.left = `${Math.max(0, Math.min(want, frame.width - width))}px`;
+    }, [open, wide]);
+    return (
+        <div ref={root} className="gk-world-pill"
+            onKeyDown={event => { if (open && event.key === 'Escape' && !event.defaultPrevented) { event.preventDefault(); setOpen(false); button.current?.focus(); } }}
+            onBlur={event => { const next = event.relatedTarget as Node | null; if (next && !root.current?.contains(next)) setOpen(false); }}>
+            <button ref={button} type="button" className="gk-chip" data-on={pressed || undefined} aria-label={name} aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => setOpen(value => !value)}>
+                {label}<ChevronDown className="gk-world-pill__caret" aria-hidden="true" />
+            </button>
+            {open && <div ref={pop} id={id} className="gk-world-pill__pop" data-wide={wide || undefined}
+                onClick={event => { if ((event.target as HTMLElement).closest('[data-close]')) { setOpen(false); button.current?.focus(); } }}>{children}</div>}
+        </div>
+    );
+}
+
+/** A choice filter as a pill showing its value ("Academies +1", "Upcoming"); its options open under it. */
+function ChoicePill({ filter, state, signedIn }: { filter: ChoiceFilter; state: FilterControls; signedIn: boolean }) {
+    const t = useWorldCopy();
+    const values = state.query.values[filter.key] ?? [];
+    const options = offered(filter, signedIn);
+    const chosen = options.filter(option => values.includes(option.value));
+    const label = !chosen.length ? t(filter.multi ? filter.label : filter.allLabel ?? filter.label)
+        : chosen.length === 1 ? t(chosen[0].label) : `${t(chosen[0].label)} +${chosen.length - 1}`;
+    // The pill lights only for a choice the person made, not the list's own default.
+    const pressed = chosen.length > 0 && !(filter.fallback && values.length === 1 && values[0] === filter.fallback);
+    const all = !filter.multi && !filter.fallback ? [{ value: '', label: filter.allLabel ?? 'All' }] : [];
+    return (
+        <PopoverPill label={label} name={label === t(filter.label) ? undefined : `${t(filter.label)}: ${label}`} pressed={pressed}>
+            <div role="group" aria-label={t(filter.label)} className="gk-world-pill__options">
+                {[...all, ...options].map(option => {
+                    const on = option.value ? values.includes(option.value) : values.length === 0;
+                    return (
+                        <button key={option.value || 'all'} type="button" className="gk-world-pill__option" aria-pressed={on} data-close={filter.multi ? undefined : true}
+                            onClick={() => filter.multi ? state.toggleValue(filter.key, option.value, true) : state.setValues(filter.key, option.value ? [option.value] : [])}>
+                            {t(option.label)}{on && <Check aria-hidden="true" />}
+                        </button>
+                    );
+                })}
+            </div>
+        </PopoverPill>
+    );
+}
+
+/**
+ * The filters as one row of pills in the page's header: each primary filter shows its value, the rest open from
+ * More filters, scopes from links are removable chips, and Clear empties them all. Nothing here moves the map.
+ */
+export function DirectoryFilters({ state, signedIn, onClear }: { state: DirectoryState; signedIn: boolean; /** Absent when nothing can be cleared. */ onClear?: () => void }) {
+    const t = useWorldCopy();
     const visible = state.source.filters.filter(filter => filter.kind !== 'scope' && (!filter.when || filter.when(state.query)));
     const scopes = state.activeFilters.filter(filter => filter.kind === 'scope');
     const isPrimary = (filter: FilterDef) => filter.kind === 'nearby' || ((filter.kind === 'choice' || filter.kind === 'toggle') && filter.primary);
     const primary = visible.filter(isPrimary), secondary = visible.filter(filter => !isPrimary(filter));
     const secondaryActive = state.activeFilters.filter(filter => secondary.includes(filter)).length;
-    if (!visible.length && !scopes.length) return null;
+    if (!visible.length && !scopes.length && !onClear) return null;
     return (
-        <div className="gk-world-filters">
-            <div className="gk-world-filters__row">
-                {scopes.length > 0 && (
-                    <div className="gk-chips" role="group" aria-label={t('Showing only')}>
-                        {scopes.map(filter => filter.kind === 'scope' && <ScopeChip key={filter.key} filter={filter} value={state.query.values[filter.key]?.[0] ?? ''} onRemove={() => state.setValues(filter.key, [])} />)}
-                    </div>
-                )}
-                {primary.map(filter => filter.kind === 'choice'
-                    ? <ChoiceChips key={filter.key} filter={filter} state={state} signedIn={signedIn} />
-                    : filter.kind === 'nearby' ? <NearbyChip key={filter.key} filter={filter} state={state} />
-                        : <Chip key={filter.key} pressed={state.query.values[filter.key]?.[0] === 'true'} onClick={() => state.setValues(filter.key, state.query.values[filter.key]?.[0] === 'true' ? [] : ['true'])}>{t(filter.label)}</Chip>)}
-                {secondary.length > 0 && (
-                    <Chip pressed={open || secondaryActive > 0} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(value => !value)}>
-                        <SlidersHorizontal aria-hidden="true" />{t('More filters')}{secondaryActive > 0 && <span className="gk-num"> · {secondaryActive}</span>}
-                    </Chip>
-                )}
-            </div>
-            {open && secondary.length > 0 && (
-                <div id={panelId} className="gk-world-filters__more">
+        <div className="gk-world-filters gk-world-head__filters" role="group" aria-label={t('Filters')}>
+            {scopes.map(filter => filter.kind === 'scope' && <ScopeChip key={filter.key} filter={filter} value={state.query.values[filter.key]?.[0] ?? ''} onRemove={() => state.setValues(filter.key, [])} />)}
+            {primary.map(filter => filter.kind === 'choice'
+                ? <ChoicePill key={filter.key} filter={filter} state={state} signedIn={signedIn} />
+                : filter.kind === 'nearby' ? <NearbyChip key={filter.key} filter={filter} state={state} />
+                    : <Chip key={filter.key} pressed={state.query.values[filter.key]?.[0] === 'true'} onClick={() => state.setValues(filter.key, state.query.values[filter.key]?.[0] === 'true' ? [] : ['true'])}>{t(filter.label)}</Chip>)}
+            {secondary.length > 0 && (
+                <PopoverPill wide pressed={secondaryActive > 0} label={<><SlidersHorizontal aria-hidden="true" />{t('More filters')}{secondaryActive > 0 && <span className="gk-num"> · {secondaryActive}</span>}</>}>
                     {secondary.map(filter => <FilterField key={`${filter.kind}:${filter.key}`} filter={filter} state={state} signedIn={signedIn} />)}
-                </div>
+                </PopoverPill>
             )}
+            {onClear && <button type="button" className="gk-world-filters__clear" onClick={onClear}>{t('Clear filters')}</button>}
         </div>
     );
 }

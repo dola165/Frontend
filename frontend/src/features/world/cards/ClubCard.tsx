@@ -11,6 +11,8 @@ import { toggleClubFollow } from '../api';
 import { plural, useWorldCopy } from '../copy';
 import { counterpartProps, useMapCounterpart } from '../directory/selection';
 import { clubTypeLabel, distanceLabel, JOIN_POLICY } from '../format';
+import { COACHING_ROLES } from '../front/coach/mySquads';
+import { useWorldRole } from '../front/useOverviewLayout';
 import { useWorldChild } from '../players';
 import { useWorldSession } from '../worldSession';
 import { Crest } from '../Crest';
@@ -48,6 +50,14 @@ export function ClubCard({ club, compact = false, distanceKm }: { club: ClubProf
     const enquiry = isParent && (child || relationship === 'NONE') ? enquiryPath(club.id, child?.id, fittingProgrammes(club.presentation, child)[0]?.id) : null;
     const canJoin = !isParent && status === 'authenticated' && membership?.hasClubMembership === false && relationship === 'NONE'
         && (club.joinPolicy === 'OPEN_TRIAL' || club.joinPolicy === 'APPLICATION_REQUIRED');
+    // Coaching staff look at other clubs as opponents: their main action proposes a match (never to their own club).
+    const role = useWorldRole();
+    const ownClub = membership?.clubId != null && Number(membership.clubId) === club.id;
+    // Only someone with a club (and so squads) can propose one; not to a club they already belong to or applied to.
+    const propose = COACHING_ROLES.has(role) && status === 'authenticated' && membership?.hasClubMembership === true
+        && !ownClub && relationship === 'NONE' && !enquiry && !canJoin;
+    // The academy and its pro club name each other: "Academy of FC Dinamo Tbilisi", "Academy: FC Dinamo Tbilisi Academy".
+    const linked = club.presentation?.affiliations?.find(item => item.status === 'ACTIVE');
 
     const follow = async () => {
         if (status !== 'authenticated') return signIn();
@@ -75,6 +85,12 @@ export function ClubCard({ club, compact = false, distanceKm }: { club: ClubProf
                     <p>{t(clubTypeLabel(club.type))} · {club.cityName || club.addressText?.split(',')[0] || t('Location not published')}</p>
                 </div>
             </div>
+            {linked && (
+                <Link className="gk-world-card__belongs" to={`/clubs/${linked.clubId}`}>
+                    <Crest src={linked.logoUrl} name={linked.name} size={18} round />
+                    <span>{linked.profileKind === 'ACADEMY' ? t('Academy: {name}', { name: linked.name }) : t('Academy of {name}', { name: linked.name })}</span>
+                </Link>
+            )}
             {!compact && club.description && <p className="gk-world-card__desc">{club.description}</p>}
             <div className="gk-world-card__facts">
                 {relation ? <Badge tone={relation.tone}>{t(relation.label)}</Badge> : policy && <Badge tone={policy.tone}>{t(policy.label)}</Badge>}
@@ -98,6 +114,11 @@ export function ClubCard({ club, compact = false, distanceKm }: { club: ClubProf
                     <Button size="sm" variant="primary" disabled={busy === 'join'} onClick={join}>
                         {busy === 'join' ? t('Sending…') : club.joinPolicy === 'OPEN_TRIAL' ? t('Join as trialist') : t('Apply as player')}
                     </Button>
+                )}
+                {propose && (
+                    <ButtonLink size="sm" variant="primary" to={`/world/matches/arrange?opponent=${club.id}`} aria-label={t('Propose a match to {club}', { club: club.name })}>
+                        {t('Propose a match')}
+                    </ButtonLink>
                 )}
                 <ButtonLink size="sm" variant="ghost" to={`/clubs/${club.id}`} aria-label={t('Open {name}', { name: club.name })}>{t('Open')}</ButtonLink>
             </div>

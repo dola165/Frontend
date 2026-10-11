@@ -34,7 +34,7 @@ export function DirectorySearch({ state, delay = 300 }: { state: Pick<DirectoryS
         return () => window.clearTimeout(timer);
     }, [draft, pending, delay]);
     return (
-        <SearchInput className="gk-world-toolbar__search" value={draft} maxLength={120} placeholder={t(state.source.searchPlaceholder)}
+        <SearchInput className="gk-world-toolbar__search gk-world-head__search" value={draft} maxLength={120} placeholder={t(state.source.searchPlaceholder)}
             aria-label={t(state.source.searchLabel)} onChange={event => setDraft(event.target.value)}
             onKeyDown={event => { if (event.key === 'Enter') commitNow(); }} />
     );

@@ -1,8 +1,10 @@
 import { useEffect, useEffectEvent, type CSSProperties } from 'react';
 import type { StyleSpecification } from 'maplibre-gl';
-import Map, { Marker, NavigationControl, useMap } from 'react-map-gl/maplibre';
+import Map, { Marker, NavigationControl, useMap, type ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { WorldMapPoint } from './WorldMap';
+import type { MapBounds } from '../../../components/map/areaSearch';
+import { pinHover, pinLabel } from './pins';
+import type { PinEvents, WorldMapPoint } from './WorldMap';
 
 /**
  * Frames the points when the set of places changes, not on every render, so a pan or zoom stays put. `insetRight`
@@ -21,16 +23,23 @@ function FitPoints({ points, insetRight = 0 }: { points: WorldMapPoint[]; insetR
 }
 
 /** The street-map layer of WorldMap. Loaded only when the map style is available. */
-export default function WorldLiveMap({ style, points, selectedId, highlightId, onSelect, onFail, insetRight }: {
-    style: StyleSpecification; points: WorldMapPoint[]; selectedId?: string; highlightId?: string; onSelect: (id?: string) => void; onFail: () => void; insetRight?: number;
-}) {
+export default function WorldLiveMap({ style, points, selectedId, highlightId, onSelect, onHover, onMoveEnd, onFail, insetRight }: {
+    style: StyleSpecification; points: WorldMapPoint[]; onFail: () => void; insetRight?: number;
+    /** Only moves the person made: framing the points is not one. */ onMoveEnd?: (bounds: MapBounds) => void;
+} & PinEvents) {
     const first = points[0];
+    const moved = (event: ViewStateChangeEvent) => {
+        if (!onMoveEnd || !event.originalEvent) return;
+        const box = event.target.getBounds();
+        onMoveEnd({ west: box.getWest(), south: box.getSouth(), east: box.getEast(), north: box.getNorth() });
+    };
     return (
         <Map
             initialViewState={{ latitude: first?.lat ?? 41.7151, longitude: first?.lng ?? 44.8271, zoom: 11 }}
             mapStyle={style}
             style={{ width: '100%', height: '100%' }}
             onError={onFail}
+            onMoveEnd={moved}
             attributionControl={{ compact: true }}
             cooperativeGestures
         >
@@ -38,8 +47,12 @@ export default function WorldLiveMap({ style, points, selectedId, highlightId, o
             <FitPoints points={points} insetRight={insetRight} />
             {points.map((point, index) => (
                 <Marker key={point.id} latitude={point.lat} longitude={point.lng} anchor="center">
-                    <button type="button" className="gk-world-pin" data-tone={point.tone} style={{ '--pin-i': index % 7 } as CSSProperties} data-selected={point.id === selectedId || point.id === highlightId || undefined}
-                        aria-label={`${point.label}${point.meta ? `, ${point.meta}` : ''}`} title={point.label} onClick={() => onSelect(point.id)} />
+                    <button type="button" className="gk-world-pin" data-tone={point.tone} style={{ '--pin-i': index % 7 } as CSSProperties}
+                        data-selected={point.id === selectedId || point.id === highlightId || undefined}
+                        data-count={point.count && point.count > 1 ? point.count : undefined} data-approx={point.approximate || undefined}
+                        aria-label={pinLabel(point)} title={pinLabel(point)} onClick={() => onSelect(point.id)} {...pinHover(point.id, onHover)}>
+                        {point.count && point.count > 1 ? <span className="gk-world-pin__count">{point.count}</span> : null}
+                    </button>
                 </Marker>
             ))}
         </Map>

@@ -77,7 +77,9 @@ Direction "Touchline" (judged 39/50 against two alternatives; full spec in `.cla
 
 What works on the real backend today: Referees fully. The other views need `GET /people` (`BACKEND_NEEDS.md` §3.3); until then they search by name with their filters marked as waiting for the directory.
 
-Size: L.
+After the owner's review (12 October): the football cards and city groups gave way to results as LinkedIn lists people, nearest first and never narrowed to a city, with "Open to" filters (work, private training, a club, a coach) and prices; the peek became World's drawers (the thing from the right, who is behind it from the left), and Jobs got the same rows and drawers.
+
+Size: L. Built on 12 October (see `ROUND_2.md`, People), with the sandbox made honest first: invitations wait for the referee, club referees follow the real rule, referees have availability, one date of birth, jobs land in one view, no invented "confirmed" flag.
 
 ### Phase C · Matches, "Matchday" (your item 3)
 

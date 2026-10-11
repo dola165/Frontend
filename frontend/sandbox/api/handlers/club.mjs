@@ -88,11 +88,11 @@ post('/clubs/:id/opportunities', () => created({ opportunityId: C.nextId() }));
 del('/clubs/:id/opportunities/:oid', () => ok());
 
 // Public people, squads and places
-const responsibility = a => ({ title: a.title, specialisations: a.specialisations, squadId: a.squad_id, squadName: a.squad_name, squadIds: a.squad_ids, squadNames: a.squad_names, clubWide: a.club_wide, provenance: a.provenance, startsOn: a.starts_on, endsOn: a.ends_on });
+const responsibility = a => ({ title: a.title, specialisations: a.specialisations, squadId: a.squad_id, squadName: a.squad_name, squadIds: a.squad_ids, squadNames: a.squad_names, clubWide: a.club_wide, provenance: 'RECORDED_APPOINTMENT', startsOn: a.starts_on, endsOn: a.ends_on });
 const publicStaff = id => {
   if (!isOwnClub(id)) {
     const coach = W.people.find(p => p.clubId === Number(id) && p.role === 'COACH');
-    return coach ? [{ userId: coach.id, fullName: coach.fullName, avatarUrl: coach.avatarUrl, role: 'COACH', title: 'Head coach', bio: null, responsibilities: [] }] : [];
+    return coach ? [{ userId: coach.id, fullName: coach.fullName, avatarUrl: coach.avatarUrl, role: 'COACH', title: coach.staffTitle ?? coach.headline?.split(' · ')[0] ?? 'Coach', bio: null, responsibilities: [] }] : [];
   }
   const ids = [...new Set([...C.members.filter(m => m.isPublic).map(m => m.userId), ...C.appointments.filter(a => a.status === 'ACTIVE' && a.published).map(a => a.user_id)])];
   return ids.map(uid => {

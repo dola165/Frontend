@@ -10,7 +10,8 @@ import { competitions } from '../directories/competitionSources';
 import { groupsSource, jobs, trials } from '../directories/opportunitySources';
 import { arrangements, events, exchange, fixtures } from '../directories/matchSources';
 import { clubsSource } from '../directories/clubSources';
-import { peopleSource } from '../directories/peopleSource';
+import { playerSource, specialistSource, staffSource } from '../directories/people/personSources';
+import { refereeSource } from '../directories/people/refereeSource';
 import { FIELDS } from '../front/fields';
 import { ROLES, aRole, defaultRole, offeredFor, roleLayout } from '../front/roles';
 import { FIELD_VIEWS } from '../front/fieldViews';
@@ -96,7 +97,7 @@ function Opened({ sources, alias }: { sources: AnySource[]; alias?: string }) {
 }
 const DIRECTORIES: Record<string, { sources: AnySource[]; alias?: string }> = {
     '/world/clubs': { sources: [clubsSource({ child })] },
-    '/world/people': { sources: [peopleSource({ searchOnly: false })] },
+    '/world/people': { sources: [refereeSource, specialistSource({ searchOnly: false }), staffSource({ searchOnly: false }), playerSource({ searchOnly: false })] },
     '/world/matches': { sources: [fixtures, exchange, arrangements, events] },
     '/world/opportunities': { sources: [jobs, trials, groupsSource([child])], alias: 'type' },
     '/world/venues': { sources: [] },
@@ -104,9 +105,9 @@ const DIRECTORIES: Record<string, { sources: AnySource[]; alias?: string }> = {
 };
 // The directory links the front page's fields end with ("All …"), each with its tab and filters chosen.
 const FIELD_LINKS = ['/world/matches?tab=exchange', '/world/matches?tab=mine', '/world/matches?period=HISTORY', '/world/competitions?registration=OPEN', '/world/competitions?status=ACTIVE',
-    '/world/people?role=SPECIALIST', '/world/clubs?type=ACADEMY&near=Tbilisi', '/world/clubs?open=true&near=Tbilisi',
+    '/world/people?tab=specialists', '/world/clubs?type=ACADEMY&near=Tbilisi', '/world/clubs?open=true&near=Tbilisi',
     '/world/opportunities?tab=groups&player=101', '/world/opportunities?tab=trials', '/world/opportunities?tab=jobs&category=COACHING', '/world/opportunities?tab=jobs&engagement=VOLUNTEER',
-    '/world/matches?tab=fixtures&period=UPCOMING&mine=true&squadId=103', '/world/matches?tab=fixtures&period=HISTORY', '/world/matches?tab=exchange&ageGroup=U14', '/world/people?role=REFEREE'];
+    '/world/matches?tab=fixtures&period=UPCOMING&mine=true&squadId=103', '/world/matches?tab=fixtures&period=HISTORY', '/world/matches?tab=exchange&ageGroup=U14', '/world/people?tab=referees'];
 
 it.each(FIELD_LINKS)('the field link %s opens its intended tab and filters', to => {
     const url = new URL(to, 'http://world');
@@ -160,7 +161,7 @@ it.each([
     ['/matches?section=fixtures', 'hub', '/world/matches?period=HISTORY'],
     ['/match-exchange?format=SEVEN_A_SIDE', 'exchange', '/world/matches?format=SEVEN_A_SIDE&tab=exchange'],
     ['/match-exchange?lat=41.7&lng=44.8&radiusKm=50', 'exchange', '/world/matches?tab=exchange&around=41.7%2C44.8'],
-    ['/match-exchange?tab=referees&q=gff', 'exchange', '/world/people?q=gff&role=REFEREE'],
+    ['/match-exchange?tab=referees&q=gff', 'exchange', '/world/people?q=gff&tab=referees'],
     ['/match-history?clubId=1', 'history', '/world/matches?clubId=1&period=HISTORY'],
     ['/matches?section=competitions&view=hosts&kind=CLUB&host=4', 'hub', '/world/competitions?host=CLUB%3A4'],
     ['/tournaments?hostKind=CLUB&hostId=4', 'competitions', '/world/competitions?host=CLUB%3A4'],

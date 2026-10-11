@@ -40,7 +40,15 @@
 .gk .gk-world-stage__lead { position: relative; isolation: isolate; }
 .gk .gk-world-stage__map { --gk-world-map-h: clamp(440px, calc(100dvh - 236px), 940px); }
 @media (max-width: 760px) { .gk .gk-world-stage__map { --gk-world-map-h: clamp(260px, 52dvh, 460px); } }
-.gk .gk-world-stage__panel:empty { display: none; }
+.gk .gk-world-stage__panel:empty, .gk .gk-world-stage__dock:empty { display: none; }
+/* The dock: a glass strip at the map's bottom left, above the pills and clear of the panel. The pin card then
+   opens at the top instead, under the key. */
+@media (min-width: 1100px) {
+  .gk .gk-world-stage__lead:not([data-folded]) > .gk-world-stage__dock { position: absolute; left: var(--gk-4); bottom: calc(var(--gk-4) + 36px + var(--gk-3)); z-index: 4;
+    width: min(560px, calc(100% - var(--gk-panel-w) - 4 * var(--gk-4))); max-height: calc(100% - 2 * var(--gk-4) - 52px - 36px - var(--gk-3)); display: flex; flex-direction: column; animation: gk-world-rise .6s .2s var(--gk-ease-out) both; }
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__dock:not(:empty)) .gk-world-map--hero .gk-world-map__card { top: calc(var(--gk-4) + 52px); bottom: auto; }
+  .gk .gk-world-stage__lead:has(.gk-world-map__card) > .gk-world-stage__dock { max-height: calc(100% - 2 * var(--gk-4) - 52px - 36px - var(--gk-3) - 54px - var(--gk-3)); }
+}
 @media (min-width: 1100px) {
   /* The panel floats over the map's right side in glass, as tall as its content up to the map's height. */
   .gk .gk-world-stage__lead:not([data-folded]) > .gk-world-stage__panel { position: absolute; top: var(--gk-4); right: var(--gk-4); z-index: 5; display: flex; flex-direction: column;

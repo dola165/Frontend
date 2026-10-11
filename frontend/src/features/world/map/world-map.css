@@ -71,3 +71,20 @@
 @media (prefers-reduced-motion: reduce) { .gk .gk-world-glass__live { animation: none; } }
 /* In the hero look the bottom-left holds the glass pills, so a "street map unavailable" note sits at the top. */
 .gk .gk-world-map--hero .gk-world-map__note { top: var(--gk-4); bottom: auto; left: 0; right: 0; z-index: 4; width: max-content; margin-inline: auto; }
+
+/* Counted at a city: a wider dashed ring with the number inside. */
+.gk .gk-world-pin[data-approx='area'] { width: 34px; height: 34px; }
+.gk .gk-world-pin[data-approx='area']::after { width: 26px; height: 26px; background: color-mix(in srgb, var(--gk-surface) 85%, transparent); border: 2px dashed var(--pin); box-shadow: 0 1px 6px color-mix(in srgb, var(--gk-shadow) 40%, transparent); }
+/* A club the results are counted at: its crest in a ring, their number at its corner. */
+.gk .gk-world-pin[data-crest] { position: relative; width: 34px; height: 34px; }
+.gk .gk-world-pin[data-crest]::after { display: none; }
+.gk .gk-world-pin[data-crest] > .gk-avatar { background: var(--gk-surface); box-shadow: 0 0 0 2px var(--gk-surface), 0 0 0 4px var(--pin), 0 2px 8px color-mix(in srgb, var(--gk-shadow) 45%, transparent); transition: transform .15s var(--gk-ease); }
+.gk .gk-world-pin[data-crest]:hover > .gk-avatar, .gk .gk-world-pin[data-crest][data-selected] > .gk-avatar { transform: scale(1.22); }
+.gk .gk-world-pin[data-crest][data-selected] { --pin: var(--gk-accent); }
+.gk .gk-world-pin[data-crest] .gk-world-pin__count { top: -5px; right: -7px; display: grid; place-items: center; min-width: 17px; height: 17px; padding: 0 4px; border-radius: var(--gk-r-pill); background: var(--pin); color: var(--gk-bg); box-shadow: 0 0 0 2px var(--gk-surface); }
+/* A place that gives the results context (the ground of the match being staffed): bright, named, never chosen. */
+.gk .gk-world-pin--context { position: relative; cursor: default; --pin: var(--gk-accent); }
+.gk .gk-world-pin--context::after, .gk .gk-world-pin--context:hover::after { width: 14px; height: 14px; border-radius: 3px; transform: rotate(45deg); box-shadow: 0 0 0 3px var(--gk-surface), 0 0 0 8px color-mix(in srgb, var(--pin) 30%, transparent); }
+.gk .gk-world-pin__name { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); max-width: 240px; padding: 3px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  border-radius: var(--gk-r-pill); background: var(--gk-surface); border: 1px solid color-mix(in srgb, var(--pin) 55%, transparent); font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text); box-shadow: var(--gk-elevation); }
+.gk .gk-world-map__sketch-context { position: absolute; transform: translate(-50%, -50%); z-index: 1; }

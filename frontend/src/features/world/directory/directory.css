@@ -8,8 +8,6 @@
 .gk .gk-world-head__tabs .gk-tab[aria-selected='true']::after { content: none; }
 
 /* The count and the sort, above the results when the Browse area panel is not showing them. */
-.gk .gk-world-summary { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); min-height: 32px; }
-.gk .gk-world-summary__count { font-size: var(--gk-fs-sm); color: var(--gk-text-2); font-variant-numeric: tabular-nums; }
 .gk .gk-world-toolbar__sort { display: inline-flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
 .gk .gk-world-toolbar__sort .gk-input { width: auto; min-width: 150px; }
 
@@ -28,4 +26,9 @@
 .gk .gk-world-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--gk-4); }
 .gk .gk-world-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--gk-2) var(--gk-4); padding-top: var(--gk-2); font-size: var(--gk-fs-sm); }
 .gk .gk-world-more__error { color: var(--gk-danger); }
-@media (max-width: 640px) { .gk .gk-world-summary { flex-wrap: wrap; } }
+/* A group of results below the map (people at one club): a quiet header with the club's crest or the place, and how many. */
+.gk .gk-world-group { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .gk-world-group + .gk-world-group { margin-top: var(--gk-4); }
+.gk .gk-world-group__head { display: flex; align-items: center; gap: var(--gk-2); margin: 0; font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-2); }
+.gk .gk-world-group__head > svg { width: 16px; height: 16px; color: var(--gk-text-3); }
+.gk .gk-world-group__count { color: var(--gk-text-3); font-weight: 500; font-variant-numeric: tabular-nums; }

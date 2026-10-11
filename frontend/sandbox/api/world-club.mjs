@@ -5,6 +5,7 @@ import * as W from './world.mjs';
 // The football domain owns public tryouts, roles, admission groups, the store and campaigns;
 // the club workspace manages the same records so public pages and management stay in step.
 import * as F from './world-football.mjs';
+import * as S from './world-social.mjs';
 export { F };
 
 const { day, iso, isoDate, personById, clubById, squadById, venueById } = W;
@@ -37,17 +38,9 @@ export function ensurePerson({ id, first, last, ...rest }) {
 // ---------------------------------------------------------------- positions & ages
 export const POSITION_CODE = { GK: 'GOALKEEPER', RB: 'RIGHT_BACK', CB: 'CENTER_BACK', LB: 'LEFT_BACK', DM: 'DEFENSIVE_MIDFIELDER', CM: 'CENTRAL_MIDFIELDER', AM: 'ATTACKING_MIDFIELDER', RW: 'RIGHT_WINGER', LW: 'LEFT_WINGER', ST: 'STRIKER' };
 export const ROSTER_GROUP = { GK: 'Goalkeepers', RB: 'Defenders', CB: 'Defenders', LB: 'Defenders', DM: 'Midfielders', CM: 'Midfielders', AM: 'Midfielders', RW: 'Forwards', LW: 'Forwards', ST: 'Forwards' };
-const birthDates = new Map();
-export const birthDate = p => {
-  if (!p) return null;
-  if (!birthDates.has(p.id)) birthDates.set(p.id, `${p.birthYear}-${String(1 + (p.id * 7) % 12).padStart(2, '0')}-${String(1 + (p.id * 13) % 28).padStart(2, '0')}`);
-  return birthDates.get(p.id);
-};
-export const ageOf = p => {
-  const dob = birthDate(p); if (!dob) return null;
-  const [y, m, d] = dob.split('-').map(Number); const now = new Date();
-  return now.getFullYear() - y - ((now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) ? 1 : 0);
-};
+// One date of birth for the whole sandbox (world-social loads first and owns it).
+export const birthDate = p => p ? S.birthDate(p) : null;
+export const ageOf = p => p ? S.ageOf(p) : null;
 export const ageGroupFor = p => { const a = ageOf(p); if (a == null) return null; if (a >= 19) return 'SENIOR'; for (const g of [8, 10, 12, 14, 16, 18, 19]) if (a < g) return `U${g}`; return 'SENIOR'; };
 
 // ---------------------------------------------------------------- squads & players
@@ -566,7 +559,9 @@ addAppointment({ user: STAFF.youthCoach, title: 'Youth coach · U16 Girls', spec
 addAppointment({ user: STAFF.youthCoach, title: 'Youth coach · U16 Girls', specialisations: ['HEAD_COACH'], squads: [106], permissions: coachPerms, starts: 0, status: 'INVITED', expires: 9 }).id = 6301;
 addAppointment({ user: EXTERNAL.strength, title: 'Strength & conditioning coach · U16–U19', specialisations: ['FITNESS_COACH'], squads: [105, 106, 107, 108], engagement: 'CONTRACTOR', permissions: [...all('WRITE', ['DEVELOPMENT']), ...all('READ', ['AVAILABILITY'])], starts: 7, status: 'INVITED', published: false, expires: 11 });
 addAppointment({ user: EXTERNAL.physio, title: 'Physiotherapist (match days)', specialisations: ['PHYSIOTHERAPIST'], squads: [], engagement: 'CONTRACTOR', permissions: all('WRITE', ['MEDICAL']), starts: -500, ends: -70, status: 'ENDED', published: false });
-addAppointment({ user: W.referees[1].id, title: 'Club referee · friendlies', specialisations: ['REFEREE'], squads: [], engagement: 'VOLUNTEER', permissions: all('READ', ['FACILITIES']), starts: -90 });
+addAppointment({ user: W.referees[1].id, title: 'Club referee · friendlies', specialisations: ['REFEREE'], squads: [], engagement: 'CONTRACTOR', permissions: all('READ', ['FACILITIES']), starts: -90 });
+// A second club referee, for the younger squads' 7- and 9-a-side friendlies (volunteer or paid).
+addAppointment({ user: W.referees[2].id, title: 'Club referee · U12–U14 friendlies', specialisations: ['REFEREE'], squads: [102, 103, 104], engagement: 'VOLUNTEER', permissions: all('READ', ['FACILITIES']), starts: -45 });
 export const activeStaffIds = () => [...new Set([...staffIds, ...appointments.filter(a => a.status === 'ACTIVE' && staffIds.includes(a.user_id)).map(a => a.user_id)])];
 
 // ---------------------------------------------------------------- workspace roles (catalog, views, requests)
@@ -631,6 +626,7 @@ const davit = ensurePerson({ id: 6911, first: 'Davit', last: 'Kvirikashvili', bi
 const elene = ensurePerson({ id: 6912, first: 'Elene', last: 'Jishkariani', gender: 'FEMALE', birthYear: 2013, position: 'LW', clubId: 6, headline: 'Winger · Gldani Juniors' });
 const irakli = ensurePerson({ id: 6913, first: 'Irakli', last: 'Gorgadze', role: 'COACH', birthYear: 1994, headline: 'Youth coach · UEFA C (in progress)' });
 const tamaz = ensurePerson({ id: 6914, first: 'Tamaz', last: 'Kharaishvili', role: 'COACH', birthYear: 1990, headline: 'Goalkeeper coach' });
+tamaz.licences = ['UEFA Goalkeeper B licence'];
 const bolkvadze = ensurePerson({ id: 6915, first: 'Giorgi', last: 'Bolkvadze', birthYear: 2012, position: 'RB', clubId: 1, headline: 'Right back · FC Dinamo Tbilisi Academy' });
 applications.unshift({ id: 6101, ...applicant(davit, {}), ageGroup: 'U14', role: 'PLAYER', status: 'PENDING', message: 'Davit has played three seasons at Saburtalo and wants to join the U14 Boys. He is available for all three weekly sessions.', createdAt: new Date(Date.now() - 38 * 60000).toISOString(), jobId: null, jobTitle: null, currentConsentStatus: 'PENDING', careerHistoryCount: 2 });
 if (personById(30)) applications.push({ id: 6102, ...applicant(personById(30), {}), ageGroup: 'U16', role: 'PLAYER', status: 'ACCEPTED', message: 'Saba is a left-footed striker looking for a stronger league.', createdAt: at(-61, 18), jobId: null, jobTitle: null, currentConsentStatus: 'CONFIRMED', careerHistoryCount: 2, currentClubName: null });

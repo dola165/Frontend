@@ -6,6 +6,7 @@ import { useWorldArea, type WorldArea } from '../useWorldArea';
 import { WorldSearch } from './WorldSearch';
 import { Field } from './FrontBlocks';
 import { useAroundMap } from './useAroundMap';
+import { BelowMapHead } from '../stage/BelowMap';
 import { StageHead, StagePanel } from '../stage/WorldStage';
 import { useStage } from '../stage/stageContext';
 import { CustomizeOverview } from './CustomizeOverview';
@@ -69,10 +70,9 @@ export default function WorldFrontPage() {
             </StageHead>
             <StagePanel><SideFold.Provider value={fold}><Field id={layout.side} area={area} markers={nearby} role={layout.role} side /></SideFold.Provider></StagePanel>
             {rows.length > 0 && <div className="gk-world-front__fields">
-                <div className="gk-world-front__fields-head">
-                    <h2>{t('For you as {role}', { role: aRole(layout.role) })}</h2>
+                <BelowMapHead title={t('For you as {role}', { role: aRole(layout.role) })}>
                     <Button size="sm" variant="ghost" onClick={() => setDraft(saved)}><SlidersHorizontal aria-hidden="true" />{t('Change what you see')}</Button>
-                </div>
+                </BelowMapHead>
                 {rows.map(row => <div key={row.join()} className="gk-world-front__row">{row.map(id => <Field key={id} id={id} area={area} markers={nearby} role={layout.role} />)}</div>)}
             </div>}
             {draft && <CustomizeOverview draft={draft} saved={saved} onChange={setDraft} onCancel={() => setDraft(null)} onSave={() => { save(draft); setDraft(null); }} />}

@@ -1,0 +1,57 @@
+/* A search result as LinkedIn lists people and jobs: face, name and quiet lines, a price and one action at the end.
+   Scoped under .gk; tokens only. */
+.gk .gk-result { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; column-gap: var(--gk-4); padding: var(--gk-3) var(--gk-4);
+  transition: background-color .15s var(--gk-ease); }
+.gk .gk-result[data-clickable] { cursor: pointer; }
+.gk .gk-result[data-clickable]:hover, .gk .gk-result[data-highlighted] { background: var(--gk-hover); }
+.gk .gk-result[data-open], .gk .gk-result[aria-current] { background: color-mix(in srgb, var(--gk-accent) 9%, var(--gk-surface)); }
+.gk .gk-result__lead { align-self: start; display: grid; place-items: center; }
+.gk .gk-result__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .gk-result__name { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; }
+.gk .gk-result__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gk-text); font-size: var(--gk-fs-md); font-weight: 650; text-decoration: none; }
+.gk .gk-result__title:hover { text-decoration: underline; }
+.gk .gk-result__title:focus-visible { outline: none; border-radius: 4px; box-shadow: 0 0 0 2px var(--gk-accent); }
+.gk .gk-result__line { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .gk-result__line[data-line='0'] { color: var(--gk-text-2); }
+.gk .gk-result__line svg { flex: none; width: 13px; height: 13px; }
+/* Where and how far stays one piece: on a phone it moves to the next line whole. */
+.gk .gk-result__where { display: inline-flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gk .gk-result__line .gk-avatar { flex: none; }
+.gk .gk-result__aside { display: flex; flex-direction: column; align-items: flex-end; text-align: right; white-space: nowrap; }
+.gk .gk-result__action { display: flex; align-items: center; gap: var(--gk-2); }
+
+/* The mark after a name: a soft tint of its kind; dashed when the person states it themselves. */
+.gk .gk-result__mark { --mark: var(--gk-text-2); flex: none; display: inline-flex; align-items: center; gap: 4px; min-height: 20px; padding: 0 7px; border: 1px solid color-mix(in srgb, var(--mark) 45%, transparent);
+  border-radius: var(--gk-r-pill); background: color-mix(in srgb, var(--mark) 10%, transparent); color: var(--mark); font-size: var(--gk-fs-xs); font-weight: 700; letter-spacing: .03em; white-space: nowrap; }
+.gk .gk-result__mark[data-stated] { border-style: dashed; }
+.gk .gk-result__mark[data-tone='accent'] { --mark: var(--gk-accent); }
+.gk .gk-result__mark[data-tone='info'] { --mark: var(--gk-info); }
+.gk .gk-result__mark[data-tone='violet'] { --mark: var(--gk-violet); }
+.gk .gk-result__mark[data-tone='warning'] { --mark: var(--gk-warning); }
+.gk .gk-result__mark svg { width: 12px; height: 12px; }
+
+/* Results in tiles across the width: three at full width, two on a laptop, one on a phone. */
+.gk .gk-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 560px), 1fr)); gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
+.gk .gk-results > li { display: flex; min-width: 0; }
+.gk .gk-results > li > .gk-result { flex: 1; border: 1px solid var(--gk-line); border-radius: 12px; background-color: var(--gk-surface); }
+.gk .gk-results > li > .gk-result[data-clickable]:hover, .gk .gk-results > li > .gk-result[data-highlighted] { background-image: linear-gradient(var(--gk-hover), var(--gk-hover)); border-color: var(--gk-line-strong); }
+.gk .gk-results > li > .gk-result[data-open], .gk .gk-results > li > .gk-result[aria-current] { border-color: color-mix(in srgb, var(--gk-accent) 55%, var(--gk-line)); }
+.gk .gk-results > li.gk-world-skeleton-row { gap: var(--gk-3); padding: var(--gk-3) var(--gk-4); border: 1px solid var(--gk-line); border-radius: 12px; }
+
+/* A face ringed in green says the person is open to something (LinkedIn's "open to work"). */
+.gk .gk-result-face { position: relative; display: grid; border-radius: 50%; }
+.gk .gk-result-face[data-open] { box-shadow: 0 0 0 2px var(--gk-surface), 0 0 0 4px var(--gk-accent); }
+/* What someone is open to: the bright words of the row. */
+.gk .gk-result-open { color: var(--gk-accent); font-weight: 600; }
+/* A price: the amount bright, what it is for quiet under it. */
+.gk .gk-result-price { font-weight: 700; color: var(--gk-text); font-variant-numeric: tabular-nums; }
+.gk .gk-result-price + small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+
+@media (max-width: 640px) {
+  .gk .gk-result { grid-template-columns: auto minmax(0, 1fr) auto; row-gap: var(--gk-2); column-gap: var(--gk-3); }
+  .gk .gk-result__aside { grid-column: 3; grid-row: 1; align-self: start; }
+  .gk .gk-result__action { grid-column: 2 / -1; }
+  .gk .gk-result__line { flex-wrap: wrap; row-gap: 0; }
+  .gk .gk-result__title { white-space: normal; overflow-wrap: anywhere; }
+}
+@media (pointer: coarse) { .gk .gk-result__title { display: inline-flex; align-items: center; min-height: 44px; } }

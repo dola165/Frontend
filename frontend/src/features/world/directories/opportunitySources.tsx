@@ -8,6 +8,7 @@ import { availabilityCopy } from '../../admissions/applicant/copy';
 import { wt } from '../copy';
 import { first, type DirectorySource, type FilterOption, type RememberedChoice } from '../directory/types';
 import { bilingual, calendarDaysUntil, codeLabel, ENGAGEMENT, factTone, fixtureDay, fixtureTime, postedLabel } from '../format';
+import { peekOf } from '../peek/usePeek';
 import { GroupItem, JobItem, TrialItem, type GroupResult } from './opportunityItems';
 import { clubScope } from './scopes';
 
@@ -28,7 +29,7 @@ export const jobs: DirectorySource<ClubJob> = {
     noun: ['job', 'jobs'],
     searchLabel: 'Search jobs and volunteering',
     searchPlaceholder: 'Search roles, clubs or skills',
-    layout: 'rows',
+    layout: 'results',
     pageSize: PAGE,
     filters: [
         { kind: 'choice', key: 'engagement', label: 'Terms', primary: true, allLabel: 'All roles', options: [{ value: 'PAID', label: 'Paid' }, { value: 'VOLUNTEER', label: 'Volunteering' }, { value: 'FLEXIBLE', label: 'Paid or volunteer' }] },
@@ -60,7 +61,7 @@ export const jobs: DirectorySource<ClubJob> = {
     Item: JobItem,
     line: job => {
         const terms = ENGAGEMENT[job.engagementType ?? 'UNSPECIFIED'] ?? ENGAGEMENT.UNSPECIFIED;
-        return { title: job.title, to: `/jobs/${job.id}`, action: wt('Open job'), crest: { src: job.clubLogoUrl, name: job.clubName ?? job.title },
+        return { title: job.title, to: `/jobs/${job.id}`, action: wt('Open job'), crest: { src: job.clubLogoUrl, name: job.clubName ?? job.title }, peek: peekOf('job', job.id),
             detail: [job.clubName, job.clubCityName, postedLabel(job.createdAt)].filter(Boolean).join(' · '), fact: wt(terms.label), factTone: factTone(terms.tone) };
     },
     // Roles are counted on their club's pin ("3 roles").

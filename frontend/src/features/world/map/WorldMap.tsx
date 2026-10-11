@@ -5,23 +5,25 @@ import { getHeritageStyle } from '../../../components/map/heritageStyle';
 import { Button } from '../../../design/primitives';
 import { useWorldCopy } from '../copy';
 import { useWorldData } from '../useWorldData';
+import { Crest } from '../Crest';
 import { useAppTheme } from './canvas/useMapTheme';
-import type { MapFocus } from '../stage/stageContext';
-import { pinHover, pinLabel } from './pins';
+import type { MapFocus, MapReach } from '../stage/stageContext';
+import { pinData, pinHover, pinLabel, shownCount } from './pins';
 import './world-map.css';
 
 const WorldLiveMap = lazy(() => import('./WorldLiveMap'));
 
 export type WorldMapTone = 'club' | 'venue' | 'match' | 'trial' | 'event' | 'training' | 'person' | 'mixed';
-/** Why a pin is not at the result's own place: it is at its club, or at its competition's ground. */
-export type Approximate = 'club' | 'ground';
-const APPROXIMATE: Record<Approximate, string> = { club: 'Placed at its club', ground: 'Placed at its competition’s ground' };
+/** Why a pin is not at the result's own place: it is at its club, at its competition's ground, or counted at a city. */
+export type Approximate = 'club' | 'ground' | 'area';
+const APPROXIMATE: Record<Approximate, string> = { club: 'Placed at its club', ground: 'Placed at its competition’s ground', area: 'Counted at a city' };
 export interface WorldMapPoint {
     id: string; lat: number; lng: number; label: string; meta?: string; tone: WorldMapTone; to?: string;
     /** Several results at one place (three jobs at a club): the pin shows how many. */ count?: number;
     /** Placed near rather than at its own place (its own place is not known): drawn as a ring, and the card says where. */ approximate?: Approximate;
     /** The kinds of result at a pin that holds several (its tone is then "mixed"). */ tones?: WorldMapTone[];
     /** What the card calls opening `to` ("Open club"); "Open" when absent. */ action?: string;
+    /** The crest of the club the pin is (people counted at their club). */ crest?: string | null;
 }
 
 const TONE_LABEL: Record<WorldMapTone, string> = { club: 'Clubs', venue: 'Venues', match: 'Matches', trial: 'Trials', event: 'Events', training: 'Training', person: 'People', mixed: 'Several kinds' };
@@ -29,9 +31,24 @@ const TONE_LABEL: Record<WorldMapTone, string> = { club: 'Clubs', venue: 'Venues
 /** What every way of drawing a pin needs: which pins are lit, and what pointing at or choosing one does. */
 export interface PinEvents { selectedId?: string; highlightId?: string; onSelect: (id: string) => void; onHover?: (id?: string) => void }
 
+/** What a pin shows inside: a club's crest when it is one, and how many results it holds. */
+export function PinFace({ point }: { point: WorldMapPoint }) {
+    const count = shownCount(point);
+    return <>
+        {point.crest && <Crest src={point.crest} name={point.label} size={24} round />}
+        {count != null && <span className="gk-world-pin__count">{count}</span>}
+    </>;
+}
+
+/** A place that is not a result (the ground of the match being staffed): bright, named, never chosen. */
+export function ContextPin({ point }: { point: WorldMapPoint }) {
+    return <span className="gk-world-pin gk-world-pin--context" data-tone={point.tone} role="img" aria-label={pinLabel(point)}><span className="gk-world-pin__name">{point.label}</span></span>;
+}
+
 /** Positions-only sketch: used while the street map loads and whenever it cannot. */
-function MapSketch({ points, selectedId, highlightId, onSelect, onHover }: { points: WorldMapPoint[] } & PinEvents) {
-    const lats = points.map(p => p.lat), lngs = points.map(p => p.lng);
+function MapSketch({ points, context = [], selectedId, highlightId, onSelect, onHover }: { points: WorldMapPoint[]; context?: WorldMapPoint[] } & PinEvents) {
+    const all = [...points, ...context];
+    const lats = all.map(p => p.lat), lngs = all.map(p => p.lng);
     // Centre the points; a lone point or a tight cluster sits in the middle rather than a corner.
     const midLat = (Math.min(...lats) + Math.max(...lats)) / 2, midLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
     const spanLat = Math.max(Math.max(...lats) - Math.min(...lats), 0.02), spanLng = Math.max(Math.max(...lngs) - Math.min(...lngs), 0.02);
@@ -42,12 +59,12 @@ function MapSketch({ points, selectedId, highlightId, onSelect, onHover }: { poi
     return (
         <div className="gk-world-map__sketch" aria-hidden={points.length === 0}>
             {points.map(point => (
-                <button key={point.id} type="button" className="gk-world-pin" data-tone={point.tone} data-selected={point.id === selectedId || point.id === highlightId || undefined}
-                    data-count={point.count && point.count > 1 ? point.count : undefined} data-approx={point.approximate || undefined}
+                <button key={point.id} type="button" className="gk-world-pin" {...pinData(point, point.id === selectedId || point.id === highlightId)}
                     style={place(point)} aria-label={pinLabel(point)} title={pinLabel(point)} onClick={() => onSelect(point.id)} {...pinHover(point.id, onHover)}>
-                    {point.count && point.count > 1 ? <span className="gk-world-pin__count">{point.count}</span> : null}
+                    <PinFace point={point} />
                 </button>
             ))}
+            {context.map(point => <span key={point.id} className="gk-world-map__sketch-context" style={place(point)}><ContextPin point={point} /></span>)}
         </div>
     );
 }
@@ -56,7 +73,7 @@ function MapSketch({ points, selectedId, highlightId, onSelect, onHover }: { poi
  * A map of World results. Uses the street map when it can load, and otherwise shows the same points on a plain
  * sketch so results stay usable without map tiles. `hero` is the big glass look of World's overview and tabs.
  */
-export function WorldMap({ points, label, selectedId, highlightId, onSelect, onHover, onMoveEnd, className, footer, overlay, insetRight, variant, cardActions, focus, frame, card = true }: {
+export function WorldMap({ points, label, selectedId, highlightId, onSelect, onHover, onMoveEnd, className, footer, overlay, insetRight, variant, cardActions, focus, frame, card = true, context, reach }: {
     points: WorldMapPoint[]; label: string; selectedId?: string; /** A point to emphasise, such as the result under the pointer. */ highlightId?: string;
     onSelect?: (id?: string) => void; /** The pointer or focus is on a pin (or left it). */ onHover?: (id?: string) => void;
     /** The person panned or zoomed the map (framing the points does not count). */ onMoveEnd?: (bounds: MapBounds) => void;
@@ -67,6 +84,7 @@ export function WorldMap({ points, label, selectedId, highlightId, onSelect, onH
     /** More ways on from the chosen pin's card, besides Open and Close. */ cardActions?: (point: WorldMapPoint) => ReactNode;
     /** Fly to one pin (see `StageMap.focus`); a new `frame` frames every pin again. */ focus?: MapFocus; frame?: number;
     /** False while the page shows the chosen result itself, so the card stays hidden. */ card?: boolean;
+    /** Places that give the results context (see `StageMap.context`), and a stated reach to draw (`StageMap.reach`). */ context?: WorldMapPoint[]; reach?: MapReach;
 }) {
     const t = useWorldCopy();
     const theme = useAppTheme();
@@ -85,10 +103,10 @@ export function WorldMap({ points, label, selectedId, highlightId, onSelect, onH
         <div className={`gk-world-map${variant ? ` gk-world-map--${variant}` : ''}${className ? ` ${className}` : ''}`} role="region" aria-label={label}>
             <div className="gk-world-map__canvas" data-card={point ? true : undefined}>
                 {live
-                    ? <Suspense fallback={<MapSketch points={points} {...pins} />}>
-                        <WorldLiveMap style={style.data!} points={points} {...pins} onMoveEnd={onMoveEnd} onFail={() => setLiveFailed(true)} insetRight={insetRight} focus={focus} frame={frame} />
+                    ? <Suspense fallback={<MapSketch points={points} context={context} {...pins} />}>
+                        <WorldLiveMap style={style.data!} points={points} context={context} reach={reach} {...pins} onMoveEnd={onMoveEnd} onFail={() => setLiveFailed(true)} insetRight={insetRight} focus={focus} frame={frame} />
                     </Suspense>
-                    : <MapSketch points={points} {...pins} />}
+                    : <MapSketch points={points} context={context} {...pins} />}
                 {(tones.length > 1 || approximate.length > 0) && (
                     <ul className="gk-world-map__legend" aria-label={t('Map key')}>
                         {tones.length > 1 && tones.map(tone => <li key={tone}><span className="gk-world-pin gk-world-pin--key" data-tone={tone} aria-hidden="true" />{t(TONE_LABEL[tone])}</li>)}

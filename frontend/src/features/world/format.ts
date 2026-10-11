@@ -110,7 +110,7 @@ export const EVENT_BADGE: Record<string, { label: string; tone: BadgeTone }> = {
     MATCH: { label: 'Match', tone: 'accent' }, TOURNAMENT: { label: 'Competition', tone: 'violet' }, TRYOUT: { label: 'Trial', tone: 'warning' }, TRAINING: { label: 'Training', tone: 'info' }, OTHER: { label: 'Event', tone: 'neutral' },
 };
 /** A person's football role. */
-export const PERSON_ROLE: Record<string, string> = { COACH: 'Coach', PLAYER: 'Player', REFEREE: 'Referee', AGENT: 'Agent', SPECIALIST: 'Specialist', CLUB_STAFF: 'Club staff' };
+export const PERSON_ROLE: Record<string, string> = { COACH: 'Coach', PLAYER: 'Player', REFEREE: 'Referee', SPECIALIST: 'Specialist', CLUB_STAFF: 'Club staff' };
 /** A badge's tone as the fact of a browse line: only the bright tones carry over. */
 export const factTone = (tone?: BadgeTone) => tone === 'accent' || tone === 'warning' || tone === 'danger' ? tone : undefined;
 

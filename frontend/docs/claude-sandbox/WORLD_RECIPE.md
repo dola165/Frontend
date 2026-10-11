@@ -16,6 +16,7 @@ How a World page (the overview, a tab, a field) is built, so every page and ever
    - Anything the data cannot answer yet goes to "Before release" in `ROUND_2.md`.
 4. **The right shape.**
    - **Things you choose or follow are big cards:** a picture (crest, face or photo), the title, a quiet facts line, "belongs to", one bright fact, one main action for who is looking, and Follow and Open as quiet actions.
+   - **People and jobs are results as LinkedIn lists them** (`directory/ResultRow.tsx`, `layout: 'results'`): a face or crest, the name as the link and one mark after it, a few quiet lines (what, where and how far, what they are open to), one number worth seeing (a price) and one action; tiles across the width.
    - **Moments on the calendar are score lines:** the time, both crests, the score always in the last column, one quiet tag.
    - **Waiting items are a dot, the state in words, and an arrow.**
 5. **Filters that make sense.**
@@ -24,9 +25,15 @@ How a World page (the overview, a tab, a field) is built, so every page and ever
 6. **The World stage** (`stage/WorldStage.tsx`): every World page fills the same frame, so nothing jumps between tabs.
    - **The header row** (`StageHead`): title and short subtitle, the page's lists, the search, the filters, the actions.
    - **The map** (`useStageMap`): one map for all of World. The page only says which pins and pills it shows. The results on screen are its pins, one to one, and one search drives both. It folds to a strip, and the fold is remembered.
+   - **Under the map** (`BelowMapHead`): what is under the map starts with its name, symbol, count and options over a line, so the map and the page never run into each other.
    - **The panel over the map** (`StagePanel`): the overview's field, or a list's "Browse area" (the count, the sort, and each result as one line from `source.line`).
    - **Choosing a result:** every `line()` returns its `action` ("Open club"), and a `place()` whose pin is something else (a person's club) names its own. Lines are buttons that choose; only the chosen line offers its action. The choice lives in the address (`selected`); the map flies only when a line is pressed or a link arrives with a choice.
    - **Places only:** people are counted at their club and never named on the map. A result placed at its club is a ring, and results without a place are counted.
+   - **Nearest first** (`area: 'nearest'`): lists of people are ordered by distance from the World area and never narrowed to a city; `area: true` narrows (clubs).
+   - **Groups** (`source.groups`): results that belong together are shown under one header in the Browse area and below the map (a chosen match's referee bench); a header with a pin chooses it. Single results gather in one last group.
+   - **Drawers** (`peek/`, `peek=kind-id`, `side=kind-id`): the thing you press comes out from the right (a person, a job) and who is behind it from the left (the club, the person who posted it), with the page dimmed between them: a click there, Back or Escape closes them. The full page is one click (or a modifier click) away.
+   - **The dock** (`StageDock`): a strip of the person's own work docked on the map (the Dugout), above the results on phones.
+   - **Tabs:** each list has a symbol and a count before filters (`source.icon`, `source.count`), and opens for who is looking (`opening`).
 7. **Honest states.**
    - Loading looks like the result.
    - An empty state names what was searched and offers one way to widen it.

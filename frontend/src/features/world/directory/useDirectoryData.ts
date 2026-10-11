@@ -5,9 +5,13 @@ import { wt } from '../copy';
 import { useWorldArea, type WorldArea } from '../useWorldArea';
 import type { AnySource, DirectoryArea, DirectoryPage, DirectoryQuery, LoadContext } from './types';
 
-/** The area a source is narrowed to: none for sources that ignore the area, a null city for "Anywhere". */
+/**
+ * The area a source follows: none for sources that ignore it, a null city for "Anywhere". A list the area only orders
+ * (`'nearest'`) keeps the person's own centre even for "Anywhere", so the nearest still come first.
+ */
 export const directoryArea = (source: AnySource, area: WorldArea): DirectoryArea | undefined =>
-    source.area ? { city: area.anywhere ? null : area.city, centre: area.anywhere ? null : area.centre } : undefined;
+    source.area === 'nearest' ? { city: area.anywhere ? null : area.city, centre: area.centre }
+        : source.area ? { city: area.anywhere ? null : area.city, centre: area.anywhere ? null : area.centre } : undefined;
 
 /** One empty list for every source with no results yet, so the map does not refit on every render. */
 const NO_ITEMS: unknown[] = [];
@@ -41,11 +45,12 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
     const authenticated = status === 'authenticated';
     const badRange = invalidRange(source, query);
     const { area: worldArea } = useWorldArea();
-    // A list narrowed to the area waits until the person's area is known, so it loads once, for the right place.
+    // A list that follows the area waits until the person's area is known (and, to put the nearest first, located),
+    // so it loads once, for the right place.
     const area = directoryArea(source, worldArea);
-    const waiting = Boolean(source.area) && !worldArea.ready;
+    const waiting = Boolean(source.area) && (!worldArea.ready || (source.area === 'nearest' && !worldArea.centre));
     const key = gated || badRange || waiting || status === 'bootstrapping' ? null
-        : `${source.id}|${source.version ?? ''}|${sessionId}|${area ? area.city ?? 'anywhere' : ''}|${JSON.stringify(query)}`;
+        : `${source.id}|${source.version ?? ''}|${sessionId}|${area ? `${area.city ?? 'anywhere'}@${area.centre ? `${area.centre.lat},${area.centre.lng}` : ''}` : ''}|${JSON.stringify(query)}`;
     const [attempt, setAttempt] = useState(0);
     const pagesRef = useRef(onPages);
     useEffect(() => { pagesRef.current = onPages; });

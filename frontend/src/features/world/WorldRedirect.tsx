@@ -70,7 +70,8 @@ export function LegacyMatchesRedirect({ kind }: { kind: 'hub' | 'exchange' | 'hi
             return <Navigate replace to={target('/referees/me', params, '#invitations')} />;
         }
         for (const key of [...params.keys()]) if (!['q', 'format', 'volunteer'].includes(key)) params.delete(key);
-        params.set('role', 'REFEREE');
+        if (params.get('volunteer') !== 'true') params.delete('volunteer');
+        params.set('tab', 'referees');
         return <Navigate replace to={target('/world/people', params, location.hash)} state={location.state} />;
     }
     if (section === 'find') {

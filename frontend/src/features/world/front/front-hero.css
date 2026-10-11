@@ -20,10 +20,8 @@
 .gk .gk-wfield[data-side] .gk-wfield__all { padding: 10px var(--gk-3); border-top-color: var(--gk-glass-line); }
 .gk .gk-wfield[data-side] .gk-list-row, .gk .gk-wfield[data-side] .gk-fixture { border-color: var(--gk-glass-line); }
 
-/* Where the map hands over to the person's own fields. */
-.gk .gk-world-front__fields { margin-top: var(--gk-4); }
-.gk .gk-world-front__fields-head { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); padding-bottom: var(--gk-1); border-bottom: 1px solid var(--gk-line); }
-.gk .gk-world-front__fields-head h2 { margin: 0; font-family: var(--gk-font); font-size: var(--gk-fs-lg); font-weight: 600; letter-spacing: -0.01em; color: var(--gk-text-2); }
+/* The fields keep their own gap under the hand-over from the map. */
+.gk .gk-world-front__fields > .gk-world-below { margin-bottom: 0; }
 .gk .gk-world-front__row > .gk-wfield { border-radius: 16px; background: linear-gradient(180deg, color-mix(in srgb, var(--gk-text) 2.5%, var(--gk-surface)), var(--gk-surface) 120px); }
 
 /* The fields below rise in as they come into view, lift under the pointer, and their photos drift closer. */

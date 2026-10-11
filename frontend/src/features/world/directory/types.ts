@@ -1,10 +1,13 @@
 import type { ComponentType, ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import type { MapReach } from '../stage/stageContext';
+import type { ResultGroup } from './groups';
 import type { AuthSessionId } from '../../../utils/authStorage';
 import type { Approximate, WorldMapTone } from '../map/WorldMap';
 import type { WorldRole } from '../front/roles';
 import type { PlaceKind, Places } from './places';
 
-export interface FilterOption { value: string; label: string; /** Offered only to signed-in people. */ signedIn?: boolean }
+export interface FilterOption { value: string; label: string; /** Offered only to signed-in people. */ signedIn?: boolean; /** A symbol shown beside the label (service tiles). */ icon?: LucideIcon; /** Drawn apart from a ladder's rungs (a goalkeeper licence). */ apart?: boolean }
 
 /** A choice the browser remembers between World pages (for example the child a parent is searching for). */
 export interface RememberedChoice { read: () => string | undefined; write: (value: string) => void }
@@ -20,6 +23,11 @@ export interface ChoiceFilter extends FilterBase {
     kind: 'choice'; options: FilterOption[]; multi?: boolean; primary?: boolean; allLabel?: string;
     /** Used when the URL has no value; omit for an "all" choice. */ fallback?: string;
     /** Used when the URL has no value, and updated when the person chooses. */ remember?: RememberedChoice;
+    /**
+     * How the choices are drawn: a small pitch to pick positions on, a ladder of levels (each "or higher"), or tiles
+     * with symbols. A plain list when absent.
+     */
+    look?: 'pitch' | 'ladder' | 'tiles';
 }
 /** An on/off filter sent as `key=true`. */
 export interface ToggleFilter extends FilterBase { kind: 'toggle'; primary?: boolean }
@@ -64,6 +72,7 @@ export interface LoadContext { signal: AbortSignal; sessionId: AuthSessionId; au
 export interface Placement {
     lat: number; lng: number; tone: WorldMapTone; label: string; meta?: string; to?: string;
     pin?: string; approximate?: Approximate; /** How a group of these is counted on its pin: [one, other]. */ noun?: [string, string];
+    /** The crest of the club the pin is (people counted at their club). */ crest?: string | null;
     /** What the pin's card calls opening `to` ("Open club"); the result's own action when the pin is the result. */ action?: string;
 }
 
@@ -74,6 +83,7 @@ export interface Placement {
 export interface BrowseLine {
     title: string; detail?: string; to?: string;
     /** What opening `to` is called on the chosen line ("Open club", "Open profile"), already translated. */ action?: string;
+    /** Opening it shows a peek over the map instead of leaving World (`person:12`); the full page stays one click away. */ peek?: string;
     crest?: { src?: string | null; name: string; round?: boolean };
     when?: { time: string; day?: string };
     fact?: string; factTone?: 'accent' | 'warning' | 'danger';
@@ -88,6 +98,12 @@ export interface DirectorySource<T> {
     label: string;
     /** The tab's name when it differs from `label` (for example "All competitions"). */
     tabLabel?: string;
+    /** The tab's symbol. */
+    icon?: LucideIcon;
+    /** How many results the list has before any filter, for the tab (following the World area when `area` is set). */
+    count?: (context: LoadContext) => Promise<number | null>;
+    /** The page's subtitle while this list is shown. */
+    subtitle?: string;
     noun: [one: string, other: string];
     searchLabel: string;
     searchPlaceholder: string;
@@ -96,7 +112,8 @@ export interface DirectorySource<T> {
     /** Whether the sort applies to this query (some lists keep their own order). */
     sortable?: (query: DirectoryQuery) => boolean;
     pageSize: number;
-    layout: 'rows' | 'cards';
+    /** Rows in one panel, cards in a grid, or results as LinkedIn lists them (`ResultRow`), in tiles across the width. */
+    layout: 'rows' | 'cards' | 'results';
     /** When set, signed-out visitors see this reason and a sign-in action instead of results. */
     signInReason?: string;
     /** A personal list (my arrangements, my competitions): its tab is shown only to signed-in people. */
@@ -112,12 +129,22 @@ export interface DirectorySource<T> {
     line: (item: T) => BrowseLine;
     /** Work that belongs beside these results, shown above them (for example adding a past match). */
     Tools?: ComponentType<{ query: DirectoryQuery; refresh: () => void }>;
-    /** The list is narrowed to the World area (`near`): the area reaches `load` in its context, and results wait for it. */
-    area?: boolean;
+    /**
+     * The list follows the World area (`near`): the area reaches `load` in its context, and results wait for it. `true`
+     * narrows the list to the area; `'nearest'` keeps everyone and puts the nearest first.
+     */
+    area?: boolean | 'nearest';
     /** Who the list is narrowed to (the child chosen in the World bar, "Nino (9)"), so an empty list can say so. */
     forWhom?: string;
     /** Where a result goes on the map. Results without a place stay in the list and are counted as such. */
     place?: (item: T, places: Places) => Placement | null;
+    /** A stated reach drawn around the chosen result (a referee's area). */
+    reach?: (item: T) => MapReach | null;
+    /**
+     * Results shown in groups, in the Browse area and below the map (people by their club). A group is a pin when its
+     * results share one. Groups of one result join a last group called `rest`, when given, unless they have a `rank`.
+     */
+    groups?: { of: (item: T, query: DirectoryQuery) => ResultGroup; rest?: string };
     /** Places looked up for results that carry no coordinates of their own (clubs, trials, competitions…). */
     placeKinds?: PlaceKind[];
     /** False when this query has nothing to put on a map (referees cover areas, not places). */

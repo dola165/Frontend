@@ -27,8 +27,8 @@ export function usePlacedPoints(source: AnySource, items: unknown[], open: boole
         ? placePoints(items, source.key, item => {
             const at = source.place!(item, places ?? NO_PLACES);
             // A pin that is the result itself opens it as its line does: the same words and the same place
-            // ("See times" keeps the date searched).
-            if (!at || at.action) return at;
+            // ("See times" keeps the date searched). A pin several results share (a club, a city) keeps its own.
+            if (!at || at.action || at.pin) return at;
             const line = source.line(item);
             return { ...at, action: line.action, to: line.to ?? at.to };
         }, WORDS)

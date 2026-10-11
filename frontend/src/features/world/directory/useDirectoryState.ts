@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { PEEK } from '../peek/usePeek';
 import type { AnySource, DirectoryQuery, FilterDef } from './types';
 
 /** Context that follows the person around World (their area, the child they are searching for). */
@@ -8,9 +10,12 @@ export const SHOWN = 'shown';
 /** The one result chosen in the Browse area, by key, so Back and shared links return to it. */
 export const SELECTED = 'selected';
 
-/** The source a directory opens on: the first one, or for guests the first one they can see without signing in. */
-export const defaultSource = (sources: AnySource[], signedIn: boolean) =>
-    (signedIn ? undefined : sources.find(source => !source.signInReason)) ?? sources[0];
+/**
+ * The source a directory opens on: the one chosen for who is looking (`opening`), else the first one; for guests the
+ * first one they can see without signing in.
+ */
+export const defaultSource = (sources: AnySource[], signedIn: boolean, opening?: string) =>
+    (signedIn ? sources.find(source => source.id === opening) : sources.find(source => !source.signInReason)) ?? sources[0];
 
 const remembered = (filter: FilterDef) => {
     if (filter.kind !== 'choice' || !filter.remember) return undefined;
@@ -44,20 +49,31 @@ export function readQuery(source: AnySource, params: URLSearchParams): { query: 
 
 /**
  * Directory state lives in the URL: tab (`tabParam`), search, filters, sort and how many
- * pages were shown. `tabAlias` is an older name of the tab parameter that links may still use.
+ * pages were shown. `tabAlias` is an older name of the tab parameter that links may still use, and `tabValues` maps
+ * its older values to tabs (`role=REFEREE` opens `referees`). `opening` is the tab chosen for who is looking.
  */
-export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabAlias, signedIn = true }: { tabParam?: string; tabAlias?: string; signedIn?: boolean } = {}) {
+export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabAlias, tabValues, signedIn = true, opening: chosen }: {
+    tabParam?: string; tabAlias?: string; tabValues?: Record<string, string>; signedIn?: boolean; opening?: string;
+} = {}) {
     const [params, setParams] = useSearchParams();
-    const opening = defaultSource(sources, signedIn);
-    const requested = params.get(tabParam) ?? (tabAlias ? params.get(tabAlias) : null);
+    const opening = defaultSource(sources, signedIn, chosen);
+    const alias = tabAlias ? params.get(tabAlias) : null;
+    const requested = params.get(tabParam) ?? (alias ? tabValues?.[alias] ?? alias : null);
     const source = sources.find(item => item.id === requested) ?? opening;
-    const { query, active: activeFilters } = readQuery(source, params);
+    // The same query object until the address or a remembered choice changes, so lists derived from it (groups, pins) stay put.
+    const kept = source.filters.map(filter => filter.kind === 'choice' && filter.remember ? filter.remember.read() ?? '' : '').join('|');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `kept` is what readQuery reads from storage
+    const { query, active: activeFilters } = useMemo(() => readQuery(source, params), [source, params, kept]);
     const shown = Math.min(Math.max(Number(params.get(SHOWN)) || 1, 1), 10);
     const selected = params.get(SELECTED) || undefined;
 
+    // Where the opening tab depends on who is looking, every write names the tab (in the same navigation, so nothing
+    // written alongside it is lost), and a link copied from the page opens the same tab for anyone.
+    const naming = Boolean(chosen) && signedIn;
     const update = (mutate: (next: URLSearchParams) => void, replace = true) => setParams(current => {
         const next = new URLSearchParams(current);
         mutate(next);
+        if (naming && !next.has(tabParam) && !(tabAlias && next.has(tabAlias))) next.set(tabParam, source.id);
         return next;
     }, { replace, preventScrollReset: true });
 
@@ -80,6 +96,8 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
         source,
         query,
         activeFilters,
+        /** The address does not name this tab yet, although it should (see `update`). */
+        unnamed: naming && !params.has(tabParam) && !(tabAlias && params.has(tabAlias)),
         shown,
         selected,
         setValues,
@@ -99,14 +117,16 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
         setShown: (pages: number) => update(next => { if (pages > 1) next.set(SHOWN, String(pages)); else next.delete(SHOWN); }),
         setTab: (id: string) => update(next => {
             sources.forEach(item => item.filters.forEach(filter => { if (!CARRIED.includes(filter.key)) next.delete(filter.key); }));
-            ['sort', SHOWN, SELECTED, ...(tabAlias ? [tabAlias] : [])].forEach(key => next.delete(key));
-            if (id === opening.id) next.delete(tabParam); else next.set(tabParam, id);
+            ['sort', SHOWN, SELECTED, PEEK, ...(tabAlias ? [tabAlias] : [])].forEach(key => next.delete(key));
+            // Where the opening tab depends on who is looking, every tab is named, so a link opens the same tab for anyone.
+            if (!chosen && id === opening.id) next.delete(tabParam); else next.set(tabParam, id);
         }, false),
         clearFilters: () => update(next => {
             source.filters.forEach(filter => { if (!CARRIED.includes(filter.key)) next.delete(filter.key); });
             next.delete('q');
             next.delete(SHOWN);
             next.delete(SELECTED);
+            next.delete(PEEK);
         }),
     };
 }

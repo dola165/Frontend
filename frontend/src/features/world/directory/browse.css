@@ -48,5 +48,17 @@
 @keyframes gk-browse-open { from { opacity: 0; transform: translateX(6px); } }
 @media (pointer: coarse) { .gk .gk-browse__open { min-height: 44px; } }
 @media (prefers-reduced-motion: reduce) { .gk .gk-browse__open { animation: none; } .gk .gk-browse__item { transition: none; } }
+/* Group headers: the place a group shares (a club's crest, a city) and how many; pressing one lights them on the map. */
+.gk .gk-browse__group { position: sticky; top: 0; z-index: 1; }
+.gk .gk-browse__group-head { display: flex; align-items: center; gap: var(--gk-2); width: 100%; min-height: 32px; padding: 0 var(--gk-3); border: 0; background: color-mix(in srgb, var(--gk-surface) 94%, transparent);
+  backdrop-filter: blur(10px); color: var(--gk-text-3); font: inherit; font-size: var(--gk-fs-xs); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; text-align: left; }
+.gk button.gk-browse__group-head { cursor: pointer; }
+@media (pointer: coarse) { .gk button.gk-browse__group-head { min-height: 44px; } }
+.gk button.gk-browse__group-head:hover, .gk .gk-browse__group-head[aria-pressed='true'] { color: var(--gk-text); }
+.gk .gk-browse__group-head[aria-pressed='true'] .gk-browse__group-count { color: var(--gk-accent); }
+.gk .gk-browse__group-head:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--gk-accent); }
+.gk .gk-browse__group-head > svg { flex: none; width: 14px; height: 14px; }
+.gk .gk-browse__group-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-browse__group-count { font-variant-numeric: tabular-nums; }
 .gk .gk-browse__more { display: block; width: 100%; min-height: 44px; padding: 0 var(--gk-4); border: 0; border-top: 1px solid var(--gk-glass-line, var(--gk-line)); background: none; color: var(--gk-accent); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; text-align: left; cursor: pointer; }
 .gk .gk-browse__more:hover { background: var(--gk-hover); }

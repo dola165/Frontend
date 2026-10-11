@@ -225,3 +225,23 @@ See 3.1 for the card fields, several age groups and gender. Also:
 ## Round 3 and later
 
 New needs are added here as each phase of `ROUND_3_PLAN.md` is built, with the screen that needs them.
+
+### World › People (phase B)
+
+The sandbox's `GET /people` (`sandbox/api/handlers/world-extra.mjs`) is the contract the four views are built on.
+
+| Need | Status |
+|---|---|
+| `GET /people` with `role` repeatable (`COACH`, `CLUB_STAFF`, `SPECIALIST`, `PLAYER`, `REFEREE`): the view a person is in, worked out from their job (a club physio is a specialist, an academy director club staff), so one job never lands in two views | MISSING |
+| Filters: `club=none\|any`, `profession` repeatable (job and profession words), `licence=PRO\|A\|B\|C\|GK` (that level or higher, as stated), `position=GK\|DEF\|MID\|FWD` repeatable, `openTo` repeatable, `age=18-21\|22-29\|30+` repeatable. `city` stays, but People no longer sends it: the list is ordered by distance, never narrowed to a place | MISSING |
+| Nearest first: `lat` and `lng` (where the person searches from) give each result `distanceKm` (from their club's ground, else their city's centre) and allow `sort=NEAREST`; later the person's own data and what they are looking for rank the list | MISSING |
+| What a person is open to, set on their profile: `openTo` (`WORK` a job at a club, `SERVICES` paid sessions such as private training or physio, `VOLUNTEER`, `CLUB` a player looking for a club, `COACHING` a player looking for a coach) and their price for `SERVICES`, `rate { amount, currency, per: SESSION }`. Replaces `available` | MISSING |
+| Summary fields: `clubLogoUrl`, `position` (enum), `age` (adult players), `foot`, `licence` (as stated), `distanceKm`, `openTo`, `rate`; no `verified` | MISSING |
+| Rules: never minors, parents, agents or private profiles; club staff listed with their club only while the club publishes them (a public member or a published appointment) | MISSING (the predicates exist) |
+| Tab counts: one request per view today (`size=1`); a counts answer for all views at once would save three | PROPOSED |
+| Referee results: the stated area as a city (and later a centre and radius), `avatarUrl`, a `paid=true` filter, `lat`/`lng` with `distanceKm` and `sort=NEAREST\|FEE` (ordered within the loaded page today) | PARTIAL (`service_area` free text, `travel_km`, `from`/`to` exist) |
+| Jobs: the public job carries `createdBy` (who posted it), so the job drawer can show them with Message; their public profile gives the name | PARTIAL (`createdBy` exists on club jobs; check the public `/jobs/{id}`) |
+| Match listings: `can_arrange_official` and a summary of the referee duty (status, name) on list rows, so the Dugout needs no detail request per seat; `mine=true` from a date, soonest first | PARTIAL (`from` exists; the rest is detail-only) |
+| `isFollowedByMe` in people results, and an explicit follow / unfollow instead of the toggle (a card that does not know the state can never offer Follow) | MISSING |
+| `canMessage` in people results and profiles (Message is offered to everyone today) | MISSING |
+| One date of birth for the minor rule everywhere (the sandbox had two) | Real rule EXISTS (`date_of_birth`); sandbox fixed |

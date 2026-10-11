@@ -1,4 +1,3 @@
-import { BadgeCheck } from 'lucide-react';
 import { Badge, FixtureRow, ListRow, type FixtureTone } from '../../design/primitives';
 import type { ClubJob } from '../clubs/api';
 import { labelForCategory } from '../clubs/jobLabels';
@@ -58,13 +57,13 @@ export function CompetitionRow({ card, compact = false }: { card: CompetitionCar
 }
 
 
-/** A person with a public football profile. Confirmation is shown only when it exists. */
+/** A person with a public football profile: their face, name, what they do and where, and their People view. */
 export function PersonRow({ person: p, compact = false }: { person: PersonSummary; compact?: boolean }) {
     const t = useWorldCopy();
     const club = p.clubName && !p.headline?.includes(p.clubName) ? p.clubName : null;
     return (
         <ListRow to={`/profile/${p.id}`} {...useMapCounterpart()} lead={<Crest src={p.avatarUrl} name={p.fullName} round size={compact ? 36 : 40} />}
-            title={<span className="gk-world-row-title"><span>{p.fullName}</span>{p.verified && <BadgeCheck className="gk-world-verified" aria-label={t('Confirmed by a club or licence')} />}</span>}
+            title={p.fullName}
             meta={[p.headline || p.profession, compact ? null : club, p.city].filter(Boolean).join(' · ')}
             trail={<Badge tone={p.role === 'REFEREE' ? 'info' : p.role === 'COACH' ? 'accent' : 'neutral'}>{t(PERSON_ROLE[p.role])}</Badge>} />
     );

@@ -175,10 +175,13 @@ get('/users/search', ({ query }) => {
   return pageOf(matches.map(searchResult), query, 10);
 });
 
+/** Published club appointments of someone the club appoints without making them a member (a club referee). */
+const clubAppointmentsOf = p => p.clubId ? [] : (clubWorld?.appointments ?? []).filter(a => a.user_id === p.id && a.status === 'ACTIVE' && a.published);
 const appointmentFor = p => {
   const staff = W.staff.find(s => s.personId === p.id);
   const club = p.clubId ? W.clubById(p.clubId) : null;
-  if (!club) return [];
+  if (!club) return clubAppointmentsOf(p).map(a => ({ clubId: a.club_id, clubName: a.club_name, logoUrl: W.clubById(a.club_id)?.logoUrl ?? null, role: 'CLUB_STAFF', title: a.title, coaching: false,
+    memberSince: a.starts_on, biography: null, qualifications: null, squads: a.squad_names }));
   const squads = W.squads.filter(s => s.clubId === club.id && (s.headCoachId === p.id || s.playerIds.includes(p.id))).map(s => s.name);
   const title = staff?.title ?? p.staffTitle ?? (p.role === 'PLAYER' ? `Player · #${p.shirtNumber ?? ''}`.replace(/ · #$/, '') : 'Member');
   return [{
@@ -215,7 +218,7 @@ function defaultCareer(p) {
 }
 const careerOf = p => { if (!careerEntries.has(p.id)) careerEntries.set(p.id, defaultCareer(p)); return careerEntries.get(p.id); };
 const rolesOf = p => S.roleProfiles.get(p.id) ?? [{ role: footballRole(p), primary: true, published: true, headline: p.headline ?? null, specialties: p.profession ?? null, qualifications: p.licences?.join(' · ') ?? null, serviceArea: p.city ?? null }];
-const footballProfileOf = p => ({ roles: rolesOf(p).map(r => r.role), appointments: p.role === 'PARENT' ? [] : appointmentFor(p), entries: careerOf(p).filter(e => e.published || p.id === ME) });
+const footballProfileOf = p => ({ roles: [...new Set([...rolesOf(p).map(r => r.role), ...(clubAppointmentsOf(p).length ? ['CLUB_STAFF'] : [])])], appointments: p.role === 'PARENT' ? [] : appointmentFor(p), entries: careerOf(p).filter(e => e.published || p.id === ME) });
 function careerHistory(p) {
   if (p.role !== 'PLAYER') return [];
   const season = y => `${y}/${String(y + 1).slice(2)}`, year = W.NOW.getFullYear() - (W.NOW.getMonth() < 7 ? 1 : 0);
@@ -246,12 +249,12 @@ function profileDto(p) {
     heightCm: p.role === 'PLAYER' ? 160 + (p.id % 25) : null, weightKg: p.role === 'PLAYER' ? 52 + (p.id % 22) : null,
     followerCount: S.followersOf(p.id).length, followingCount: S.followingOf(p.id).length, isFollowedByMe: S.isFollowing(ME, p.id),
     careerHistory: careerHistory(p), avatarUrl: p.avatarUrl, bannerUrl: p.id === ME ? S.accountProfile.bannerUrl : `/sandbox-media/photo/profile-banner-${p.id}.svg`,
-    dateOfBirth: adult ? `${p.birthYear}-0${1 + (p.id % 9)}-1${p.id % 10}` : null, isPrivate: false,
+    dateOfBirth: adult ? S.birthDate(p) : null, isPrivate: false,
     roleProfiles: rolesOf(p).filter(r => r.published || p.id === ME), footballProfile: footballProfileOf(p),
   };
 }
 const userParam = params => /^\d+$/.test(params.id) ? person(params.id) : undefined;
-get('/users/:id', ({ params }) => { if (!/^\d+$/.test(params.id)) return undefined; const p = userParam(params); return p ? profileDto(p) : notFound('Profile not found.'); });
+get('/users/:id', async ({ params }) => { if (!/^\d+$/.test(params.id)) return undefined; const p = userParam(params); if (!p) return notFound('Profile not found.'); await clubStore(); return profileDto(p); });
 const connection = id => { const p = person(id); return { id, username: p.username, fullName: p.fullName, avatarUrl: p.avatarUrl, isFollowedByMe: S.isFollowing(ME, id) }; };
 get('/users/:id/followers', ({ params, query }) => { const p = userParam(params); return p ? pageOf(S.followersOf(p.id).map(connection), query) : notFound(); });
 get('/users/:id/following', ({ params, query }) => { const p = userParam(params); return p ? pageOf(S.followingOf(p.id).map(connection), query) : notFound(); });

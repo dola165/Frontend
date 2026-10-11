@@ -38,7 +38,7 @@ export function placePoints<T>(items: T[], key: (item: T) => string, place: (ite
         const label = at.pin || labels.length === 1 ? at.label : words.more(labels[0], labels.length - 1);
         const kinds = [...tones];
         const to = keys.length > 1 && !at.pin ? undefined : at.to;
-        return { id, lat: at.lat, lng: at.lng, tone: kinds.length > 1 ? 'mixed' : at.tone, ...(kinds.length > 1 ? { tones: kinds } : {}), label, to, action: to ? at.action : undefined, approximate,
+        return { id, lat: at.lat, lng: at.lng, tone: kinds.length > 1 ? 'mixed' : at.tone, ...(kinds.length > 1 ? { tones: kinds } : {}), label, to, action: to ? at.action : undefined, approximate, ...(at.crest ? { crest: at.crest } : {}),
             ...(grouped ? { count: keys.length, meta: at.noun ? words.count(keys.length, at.noun) : at.meta } : { meta: at.meta }) };
     });
     const keysOf = new Map([...pins].map(([id, pin]) => [id, pin.keys]));

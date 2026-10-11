@@ -162,6 +162,26 @@ export const refereeProfiles = referees.map((p, i) => ({
   travel_km: [25, 40, 60, 80, 120][i % 5], accepts_paid: i % 4 !== 3, accepts_volunteer: i % 2 === 0, fee: [60, 80, 100, 120, 150][i % 5], currency: 'GEL', timezone: TZ, revision: 2,
   career: [{ id: 3000 + i * 2, kind: 'REFEREE', title: QUAL[i % QUAL.length], organization: 'Georgian referee development programme', starts_on: `${2014 + (i % 6)}-03-01`, ends_on: null, description: 'Youth league and cup appointments.' }],
 }));
+// A referee's profile headline is their qualification, so People, the profile and the referee list agree.
+referees.forEach((p, i) => { p.headline = refereeProfiles[i].qualifications; });
+const formatsOf = r => r.formats.split(',').map(f => f.trim());
+/** Referees who can take a match: they take its format and accept volunteer or paid work. */
+export const refereesFitting = format => refereeProfiles.filter(r => formatsOf(r).includes(format) && (r.accepts_paid || r.accepts_volunteer));
+// When each referee says they are free (Tbilisi time) for the next four weeks: weekends, weekend afternoons with a
+// Wednesday evening, or weekday evenings with a Saturday morning. Referees who take no matches mark nothing.
+// Saturday 12:00 (listing 5813) is covered by the first two patterns and not the third.
+const WINDOWS = [
+  [[6, 9, 20], [0, 9, 20]],
+  [[6, 12, 19], [0, 12, 19], [3, 17, 21]],
+  [[1, 16, 21], [2, 16, 21], [3, 16, 21], [4, 16, 21], [5, 16, 21], [6, 9, 12]],
+];
+export const refereeAvailability = new Map(refereeProfiles.map((r, i) => {
+  const windows = [];
+  if (r.accepts_paid || r.accepts_volunteer) for (let d = 0; d < 28; d++) for (const [dow, from, to] of WINDOWS[i % 3]) {
+    if (at(d).getDay() === dow) windows.push({ id: r.user_id * 100 + windows.length, starts_at: at(d, from), ends_at: at(d, to) });
+  }
+  return [r.user_id, windows];
+}));
 
 // ---------------------------------------------------------------- tournaments & competitions
 const ORG = {
@@ -338,6 +358,11 @@ const listing = ({ id = W.newId(), hostSquad, start, minutes = 90, venueId, titl
   exchange.push(rec); return rec;
 };
 const proposal = (squad, note, status = 'PENDING') => ({ id: ++proposalSeq, squad_id: squad.id, squad_name: squad.name, club_name: clubById(squad.clubId).name, club_id: squad.clubId, note, status });
+// Seeded referees fit their match: they take its format and accept some terms (the shared fixture list picks at random).
+for (const m of matches) if (m.refereeId) {
+  const fitting = refereesFitting(formatOfSquad(squadById(m.squadId)));
+  if (fitting.length && !fitting.some(r => r.user_id === m.refereeId)) m.refereeId = fitting[m.id % fitting.length].user_id;
+}
 // (a) Dinamo friendlies from the shared fixture list, as arranged exchange matches.
 for (const m of matches.filter(m => m.kind === 'FRIENDLY')) {
   const ours = squadById(m.squadId), theirs = squadFor(m.opponentClubId, ours.ageGroup, ours.gender);
@@ -374,10 +399,12 @@ const u14 = listing({ hostSquad: squadById(103), start: at(nextDow(6, 5), 12), m
 u14.proposals.push(proposal(squadById(119), 'Gldani would love this game. 13 players available.'), proposal(squadById(122), 'Vake U14 boys are free that Saturday.'), proposal(squadById(130), 'We are in Tbilisi that weekend for our autumn tour.', 'DECLINED'));
 const u16g = listing({ hostSquad: squadById(106), start: at(11, 17), minutes: 90, venueId: 202, title: 'U16 Girls looking for a friendly before the Black Sea Cup', level: 'DEVELOPMENT', description: 'Preparation match before the Black Sea Girls Cup. Happy to travel within Tbilisi or host at Digomi.', venuePreference: 'EITHER' });
 u16g.proposals.push(proposal(squadById(134), 'Mtskheta U16 girls are free that evening.'), proposal(squadById(142), 'Zugdidi U16 girls will be in Tbilisi that week.'));
-listing({ hostSquad: squadById(105), start: at(14, 18, 30), minutes: 90, venueId: 207, title: 'U16 Boys away friendly at Saburtalo', level: 'ELITE', description: 'Agreed with Saburtalo Youth. Kick-off 18:30, arrive by 17:30.', venuePreference: 'AWAY', opponentSquad: squadFor(4, 'U16', 'MALE'), status: 'ARRANGED', referee: referees[2].id });
+listing({ hostSquad: squadById(105), start: at(14, 18, 30), minutes: 90, venueId: 207, title: 'U16 Boys away friendly at Saburtalo', level: 'ELITE', description: 'Agreed with Saburtalo Youth. Kick-off 18:30, arrive by 17:30.', venuePreference: 'AWAY', opponentSquad: squadFor(4, 'U16', 'MALE'), status: 'ARRANGED', referee: refereesFitting('11_A_SIDE')[0].user_id });
 export const listingById = id => exchange.find(l => l.id === Number(id));
 const venueStatusOf = l => l.venuePreference === 'AWAY' && !l.opponentSquadId ? 'NEEDED' : l.booked ? 'BOOKED' : l.venueId || l.externalConfirmed ? 'HOST_CONFIRMED' : 'NEEDED';
-const refereeStatusOf = l => !l.refereeRequired ? 'NOT_REQUIRED' : l.refereeId ? 'ACCEPTED' : 'NEEDED';
+// An invited referee has not answered yet (`refereeInvite`); one chosen from applications or seeded has accepted.
+const refereeStatusOf = l => !l.refereeRequired ? 'NOT_REQUIRED' : l.refereeId ? (l.refereeInvite?.status ?? 'ACCEPTED') : 'NEEDED';
+export { refereeStatusOf };
 export const involvesDinamo = l => squadById(l.hostSquadId).clubId === DINAMO || l.requestedClubId === DINAMO || (l.opponentSquadId && squadById(l.opponentSquadId).clubId === DINAMO) || l.proposals.some(p => p.club_id === DINAMO);
 export const listingView = (l, { detail = false } = {}) => {
   const host = squadById(l.hostSquadId), club = clubById(host.clubId), v = l.venueId ? venueById(l.venueId) : null, opp = l.opponentSquadId ? squadById(l.opponentSquadId) : null;
@@ -387,7 +414,7 @@ export const listingView = (l, { detail = false } = {}) => {
   const head = mineHost ? personById(host.headCoachId) : null;
   const out = {
     requested_club_id: l.requestedClubId, requested_squad_id: l.requestedSquadId ?? null, external_referee_name: l.externalRefereeName ?? null, referee_responsibility: l.refereeResponsibility ?? 'HOST', hosting_choice: l.hostingChoice ?? l.venuePreference,
-    can_respond: !mineHost && listingStatus === 'OPEN' && l.requestedClubId === DINAMO, can_arrange_official: mineHost || mineGuest,
+    can_respond: !mineHost && listingStatus === 'OPEN' && l.requestedClubId === DINAMO, can_arrange_official: (l.refereeResponsibility ?? 'HOST') === 'OPPONENT' ? mineGuest : mineHost,
     home_score: l.score ? l.score[0] : null, away_score: l.score ? l.score[1] : null, result_status: l.score ? 'CONFIRMED' : null, result_legacy: false,
     event_id: l.id, squad_id: host.id, squad_name: host.name, club_id: club.id, club_name: club.name, club_profile_kind: CATEGORY_LABEL[clubCategory(club)], club_logo_url: club.logoUrl, club_banner_url: club.bannerUrl,
     title: l.title, description: l.description, starts_at: local(l.start), ends_at: local(l.end), starts_at_iso: iso(l.start), ends_at_iso: iso(l.end), timezone: TZ,
@@ -402,16 +429,21 @@ export const listingView = (l, { detail = false } = {}) => {
     out.proposals = mineHost ? l.proposals : l.proposals.filter(p => p.club_id === DINAMO);
     out.history = l.history;
     const ref = l.refereeId ? personById(l.refereeId) : null;
-    out.appointments = ref ? [appointmentView(l, ref)] : [];
+    out.appointments = [...(ref ? [appointmentView(l, ref)] : []), ...(l.assistants ?? []).map(official => appointmentView(l, personById(official.refereeId), official))];
     out.own_appointments = [];
     if (l.booked && v) out.booking = { id: out.booking_id, venue_id: v.id, status: 'CONFIRMED', stored_status: 'CONFIRMED', starts_at: iso(l.start), ends_at: iso(l.end) };
   }
   return out;
 };
-export const appointmentView = (l, ref) => {
+/** The referee duty's appointment id: its invitation's, or a stable one for a referee seeded as accepted. */
+export const refereeAppointmentId = l => l.refereeInvite?.id ?? 9000 + l.id % 1000;
+/** One official on a listing: the referee duty (`refereeInvite`, or seeded as accepted) or an assistant (`official`). */
+export const appointmentView = (l, ref, official = l.refereeInvite) => {
   const host = squadById(l.hostSquadId), club = clubById(host.clubId), v = l.venueId ? venueById(l.venueId) : null, opp = l.opponentSquadId ? squadById(l.opponentSquadId) : null;
   const profile = refereeProfiles.find(r => r.user_id === ref.id);
-  return { id: 9000 + l.id % 1000, event_id: l.id, referee_id: ref.id, full_name: ref.fullName, duty: 'REFEREE', status: 'ACCEPTED', volunteer: !profile?.accepts_paid, fee: profile?.accepts_paid ? profile.fee : null, currency: 'GEL', report: null, report_submitted_at: null,
+  const invite = official, volunteer = invite ? invite.volunteer : !profile?.accepts_paid;
+  return { id: official?.id ?? refereeAppointmentId(l), event_id: l.id, referee_id: ref.id, full_name: ref.fullName, duty: invite?.duty ?? 'REFEREE', status: invite?.status ?? 'ACCEPTED', volunteer,
+    fee: invite ? invite.fee : volunteer ? null : profile?.fee ?? null, currency: invite?.currency ?? 'GEL', report: null, report_submitted_at: null,
     title: l.title, starts_at: local(l.start), ends_at: local(l.end), timezone: TZ, event_status: 'SCHEDULED', starts_at_iso: iso(l.start), ends_at_iso: iso(l.end), club_name: club.name, opponent_name: opp ? clubById(opp.clubId).name : null, location_name: v?.name ?? '', invited_by_name: W.me.fullName, venue_status: 'BOOKED', allowed_actions: [], inbox_section: 'CURRENT' };
 };
 
@@ -566,11 +598,13 @@ const extraRoles = [
   { id: 413, clubId: 9, title: 'Assistant manager', kind: 'VOLUNTEER', employment: 'VOLUNTEER', city: 'Tbilisi', posted: day(-2), deadline: day(15), description: 'Help run the Thursday night senior side: line-ups, kit and league admin.', requirements: [] },
 ];
 export const roleList = [...W.roles, ...extraRoles];
+/** Who posted a role: the first coach or staff member listed at its club (the hiring person on the role). */
+const posterOf = clubId => W.people.find(p => p.clubId === clubId && (p.role === 'COACH' || p.role === 'STAFF'))?.id ?? null;
 export const jobView = r => {
   const c = clubById(r.clubId);
   return { version: 1, id: r.id, clubId: c.id, title: r.title, description: `${r.description}${r.requirements?.length ? `\n\nWhat you need: ${r.requirements.join('; ')}.` : ''}\n\nApply by ${r.deadline.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}.`,
     ageGroup: /U1\d|U\d|ages/i.test(r.title) ? (r.title.match(/U\d+/)?.[0] ?? null) : null, level: r.employment === 'FULL_TIME' ? 'PROFESSIONAL' : null, requiredRole: CATEGORY_BY_TITLE(r.title) === 'COACHING' ? 'COACH' : null,
-    status: 'OPEN', createdAt: iso(r.posted), createdBy: null, applicationCount: 2 + r.id % 9, category: CATEGORY_BY_TITLE(r.title), engagementType: r.kind === 'VOLUNTEER' ? 'VOLUNTEER' : r.kind === 'SERVICE' ? 'FLEXIBLE' : 'PAID',
+    status: 'OPEN', createdAt: iso(r.posted), createdBy: posterOf(c.id), applicationCount: 2 + r.id % 9, category: CATEGORY_BY_TITLE(r.title), engagementType: r.kind === 'VOLUNTEER' ? 'VOLUNTEER' : r.kind === 'SERVICE' ? 'FLEXIBLE' : 'PAID',
     clubName: c.name, clubLogoUrl: c.logoUrl, clubCityName: c.city, clubCountryName: 'Georgia' };
 };
 export const jobApplications = new Map();

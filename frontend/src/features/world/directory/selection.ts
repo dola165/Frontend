@@ -11,6 +11,7 @@ export interface DirectorySelection {
     /** The one chosen result, by key. */ chosen?: string;
     /** Chooses a result: the map flies to its pin. */ choose: (key: string) => void;
     /** Ends the choice; the camera stays where it is. */ clear: () => void;
+    /** Chooses a pin as if pressed on the map: its one result, or all of its results lit (a group's header). */ selectPin?: (pin?: string) => void;
     /** The list puts its results on the map (false for referees, for example). */ mappable: boolean;
     /** Places are still being looked up, so a result without a pin may get one. */ placing?: boolean;
     /** Some places could not be looked up, so a result without a pin may have a place after all. */ incomplete: boolean;

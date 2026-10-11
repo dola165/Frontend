@@ -1,0 +1,37 @@
+/* Choices drawn as what they choose: a pitch for positions, a ladder for levels, tiles for services. They open in a
+   pill's glass panel. Scoped under .gk; tokens only. */
+
+/* The pitch: four bands from the opponent's goal down to your own, on grass-coloured lines. */
+.gk .gk-pick-pitch { position: relative; display: grid; grid-template-rows: repeat(4, 44px); width: 220px; padding: 6px; border-radius: 12px; overflow: hidden;
+  background: color-mix(in srgb, var(--gk-accent) 9%, var(--gk-surface)); border: 1px solid color-mix(in srgb, var(--gk-accent) 30%, var(--gk-line)); }
+.gk .gk-pick-pitch__lines { position: absolute; inset: 6px; border: 1.5px solid color-mix(in srgb, var(--gk-accent) 35%, transparent); border-radius: 6px; pointer-events: none; }
+.gk .gk-pick-pitch__lines::before { content: ''; position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; border: 1.5px solid color-mix(in srgb, var(--gk-accent) 35%, transparent); border-radius: 50%; transform: translate(-50%, -50%); }
+.gk .gk-pick-pitch__lines::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 1.5px solid color-mix(in srgb, var(--gk-accent) 35%, transparent); }
+.gk .gk-pick-pitch__band { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 6px; margin: 2px 0; border: 0; border-radius: 8px; background: none;
+  color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; transition: background-color .15s var(--gk-ease); }
+.gk .gk-pick-pitch__band:hover { background: color-mix(in srgb, var(--gk-accent) 14%, transparent); color: var(--gk-text); }
+.gk .gk-pick-pitch__band[aria-pressed='true'] { background: color-mix(in srgb, var(--gk-accent) 26%, transparent); color: var(--gk-text); }
+.gk .gk-pick-pitch__band:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--gk-accent); }
+.gk .gk-pick-pitch__band svg { width: 14px; height: 14px; color: var(--gk-accent); }
+
+/* The ladder: the highest rung first; a chosen rung and every rung above it are lit ("or higher"). */
+.gk .gk-pick-ladder { display: flex; flex-direction: column; gap: 2px; min-width: 220px; }
+.gk .gk-pick-ladder__rung { display: flex; align-items: center; gap: var(--gk-3); min-height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--gk-text-2);
+  font: inherit; font-size: var(--gk-fs-sm); text-align: left; cursor: pointer; }
+.gk .gk-pick-ladder__rung:hover, .gk .gk-pick-ladder__rung:focus-visible { background: var(--gk-hover); color: var(--gk-text); outline: none; }
+.gk .gk-pick-ladder__rung[aria-pressed='true'] { color: var(--gk-text); font-weight: 600; }
+.gk .gk-pick-ladder__rung svg { width: 15px; height: 15px; margin-left: auto; color: var(--gk-accent); }
+.gk .gk-pick-ladder__step { flex: none; width: 22px; height: 6px; border-radius: var(--gk-r-pill); background: var(--gk-line-strong); }
+.gk .gk-pick-ladder__rung[data-lit] .gk-pick-ladder__step { background: var(--gk-accent); }
+.gk .gk-pick-ladder__apart { display: flex; flex-direction: column; margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--gk-glass-line, var(--gk-line)); }
+
+/* Tiles: a symbol over a short name, two to four a row. */
+.gk .gk-pick-tiles { display: grid; grid-template-columns: repeat(4, 92px); gap: 6px; }
+.gk .gk-pick-tiles__tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 72px; padding: 8px 4px; border: 1px solid var(--gk-glass-line, var(--gk-line));
+  border-radius: 10px; background: color-mix(in srgb, var(--gk-surface) 70%, transparent); color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-xs); font-weight: 600; text-align: center; cursor: pointer; }
+.gk .gk-pick-tiles__tile:hover { color: var(--gk-text); border-color: var(--gk-line-strong); }
+.gk .gk-pick-tiles__tile:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-accent); }
+.gk .gk-pick-tiles__tile[aria-pressed='true'] { color: var(--gk-text); border-color: color-mix(in srgb, var(--gk-accent) 60%, transparent); background: var(--gk-accent-soft); }
+.gk .gk-pick-tiles__tile svg { width: 20px; height: 20px; color: var(--gk-accent); }
+@media (max-width: 640px) { .gk .gk-pick-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (pointer: coarse) { .gk .gk-pick-ladder__rung { min-height: 44px; } }

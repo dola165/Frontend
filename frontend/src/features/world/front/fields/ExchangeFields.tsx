@@ -91,7 +91,7 @@ export function RefereesForYouField({ area, side, role, markers }: FieldProps) {
     return (
         <WorldField id="refereesForYou" side={side} count={data.ready ? data.toAct : null} loading={focus.status === 'loading' || data.loading} error={data.error} onRetry={data.retry}
             hint={data.ready ? (data.toAct ? t('{count} need a referee', { count: data.toAct }) : data.needing.length ? t('{referees} invited, no answer yet', { referees: plural(data.needing.length, 'referee') }) : t('Every match has a referee')) : undefined}
-            all={{ label: t('All referees'), to: '/world/people?role=REFEREE' }}>
+            all={{ label: t('All referees'), to: '/world/people?tab=referees' }}>
             <SquadGate focus={focus}>
                 {rows.length ? <ScoreGroups label={t('Referees for your matches')} items={rows} group={row => row.kind === 'match' ? t('Referee not settled') : t('Referees for {formats}', { formats: [...new Set((data.needing.length ? data.needing.map(match => match.format) : focus.formats))].map(formatLabel).join(', ') })}>
                     {row => row.kind === 'match'

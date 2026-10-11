@@ -5,6 +5,7 @@ import { useWorldCopy } from '../copy';
 import { useWorldData } from '../useWorldData';
 import type { ChoiceFilter, DirectoryQuery, FilterDef, NearbyFilter, ScopeFilter } from './types';
 import type { DirectoryState } from './useDirectoryState';
+import { LookPicker } from './pickers';
 import './filters.css';
 
 /** What a filter control needs: the current values and how to change them. The World map shares these controls. */
@@ -113,8 +114,9 @@ function NearbyChip({ filter, state }: { filter: NearbyFilter; state: FilterCont
  * A pill that opens a small glass panel under it, over the map rather than pushing it down. It closes on Escape
  * (focus returns to the pill), when focus or a click goes elsewhere, and on a choice marked `data-close`.
  */
-function PopoverPill({ label, name, pressed, wide, children }: {
-    label: ReactNode; /** The pill's name when its text alone does not say which filter it is. */ name?: string; pressed: boolean; wide?: boolean; children: ReactNode;
+export function PopoverPill({ label, name, pressed, wide, align, children }: {
+    label: ReactNode; /** The pill's name when its text alone does not say which filter it is. */ name?: string; pressed: boolean; wide?: boolean;
+    /** 'end': the panel ends at the pill's right edge (as More filters does) without More filters' grid. */ align?: 'end'; children: ReactNode;
 }) {
     const [open, setOpen] = useState(false);
     const root = useRef<HTMLDivElement>(null), button = useRef<HTMLButtonElement>(null), pop = useRef<HTMLDivElement>(null);
@@ -139,10 +141,12 @@ function PopoverPill({ label, name, pressed, wide, children }: {
         const head = root.current?.closest<HTMLElement>('.gk-world-head'), panel = pop.current, pill = button.current;
         if (!open || !head || !panel || !pill) return;
         const frame = head.getBoundingClientRect(), box = pill.getBoundingClientRect(), width = panel.offsetWidth;
-        const want = wide ? box.right - frame.left - width : box.left - frame.left;
         panel.style.top = `${box.bottom - frame.top + 6}px`;
-        panel.style.left = `${Math.max(0, Math.min(want, frame.width - width))}px`;
-    }, [open, wide]);
+        // A panel ending at its pill is held by its right edge, so content that arrives later grows it leftwards.
+        // When that would cross the header's left edge, it starts at the header instead.
+        if ((wide || align === 'end') && box.right - frame.left >= width) { panel.style.left = 'auto'; panel.style.right = `${Math.max(0, frame.right - box.right)}px`; }
+        else { panel.style.right = ''; panel.style.left = `${Math.max(0, Math.min(wide || align === 'end' ? box.right - frame.left - width : box.left - frame.left, frame.width - width))}px`; }
+    }, [open, wide, align]);
     return (
         <div ref={root} className="gk-world-pill"
             onKeyDown={event => { if (open && event.key === 'Escape' && !event.defaultPrevented) { event.preventDefault(); setOpen(false); button.current?.focus(); } }}
@@ -169,7 +173,8 @@ function ChoicePill({ filter, state, signedIn }: { filter: ChoiceFilter; state: 
     const all = !filter.multi && !filter.fallback ? [{ value: '', label: filter.allLabel ?? 'All' }] : [];
     return (
         <PopoverPill label={label} name={label === t(filter.label) ? undefined : `${t(filter.label)}: ${label}`} pressed={pressed}>
-            <div role="group" aria-label={t(filter.label)} className="gk-world-pill__options">
+            {filter.look ? <LookPicker filter={filter} options={options} values={values} pick={value => filter.multi ? state.toggleValue(filter.key, value, true) : state.setValues(filter.key, value ? [value] : [])} />
+            : <div role="group" aria-label={t(filter.label)} className="gk-world-pill__options">
                 {[...all, ...options].map(option => {
                     const on = option.value ? values.includes(option.value) : values.length === 0;
                     return (
@@ -179,7 +184,7 @@ function ChoicePill({ filter, state, signedIn }: { filter: ChoiceFilter; state: 
                         </button>
                     );
                 })}
-            </div>
+            </div>}
         </PopoverPill>
     );
 }

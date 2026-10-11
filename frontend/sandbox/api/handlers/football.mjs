@@ -4,6 +4,7 @@ import { get, post, put, patch, del, reply } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as F from '../world-football.mjs';
 import * as S from '../world-social.mjs';
+import * as C from '../world-club.mjs';
 
 const { iso, local, isoDate, clubs, venues, squads, matches, clubById, venueById, personById } = W;
 const squadById = F.sq;
@@ -154,9 +155,16 @@ patch('/venues/:id/bookings/:bookingId', ({ params, body }) => {
 put('/venues/:id', ({ params, body }) => { const v = venueById(params.id); if (!v) return notFound(); return { ...F.venueView(v), ...(body || {}), id: v.id, pitches: v.pitchList }; });
 
 // ============================================================== referees
+// As the backend: q matches name, area and languages; `from`/`to` (both or neither) keep referees free for the whole
+// window with no accepted match overlapping it; 24 per page, by name.
 get('/referees', ({ query: q }) => {
   const text = q.get('q'), format = q.get('format'), volunteer = q.get('volunteer') === 'true';
-  const list = F.refereeProfiles.filter(r => matchesText(text, r.full_name, r.service_area, r.languages, r.qualifications)).filter(r => !format || r.formats.includes(format)).filter(r => !volunteer || r.accepts_volunteer);
+  const from = parseWhen(q.get('from')), to = parseWhen(q.get('to'));
+  if (Boolean(q.get('from')) !== Boolean(q.get('to')) || (from && to && to <= from) || (q.get('from') && (!from || !to))) return reply(400, { status: 400, message: 'Choose a complete availability window.' });
+  const free = r => !from || ((F.refereeAvailability.get(r.user_id) ?? []).some(w => w.starts_at <= from && w.ends_at >= to)
+    && !F.exchange.some(l => l.refereeId === r.user_id && F.refereeStatusOf(l) === 'ACCEPTED' && l.status !== 'CANCELLED' && l.start < to && l.end > from));
+  const list = F.refereeProfiles.filter(r => matchesText(text, r.full_name, r.service_area, r.languages)).filter(r => !format || r.formats.includes(format)).filter(r => !volunteer || r.accepts_volunteer).filter(free)
+    .sort((a, b) => a.full_name.localeCompare(b.full_name) || a.user_id - b.user_id);
   const page = pageOf(q);
   return { items: slice(list, page, 24), total: list.length, page, pageSize: 24 };
 });
@@ -227,11 +235,30 @@ post('/match-exchange/:id/proposals/:proposalId/decision', ({ params, body }) =>
   l.revision++;
   return F.listingView(l, { detail: true });
 });
+// As the backend: only the club responsible for the referee arranges officials; the listing's revision must match; one
+// live invitation per duty and per person; the referee must accept the terms; the invitation waits for their answer
+// (INVITED). Inviting the referee duty also marks a referee as required, drops an external referee's name and closes an
+// open request for referees to apply (declining its applications). The backend answers with no body.
+const DUTIES = ['REFEREE', 'ASSISTANT_1', 'ASSISTANT_2'];
 post('/match-exchange/:id/referees', ({ params, body }) => {
   const l = F.listingById(params.id); if (!l) return notFound();
-  l.refereeId = Number(body?.refereeId || body?.userId) || F.refereeProfiles[0].user_id; l.revision++;
+  if (!F.listingView(l).can_arrange_official) return reply(403, { status: 403, message: 'Only the club responsible for the referee can arrange officials.' });
+  if (body?.revision != null && Number(body.revision) !== l.revision) return conflict('Listing changed. Reload and review its current arrangements.');
+  const duty = DUTIES.includes(body?.duty) ? body.duty : 'REFEREE', refereeId = Number(body?.refereeId);
+  const live = [...(l.refereeId ? [{ refereeId: l.refereeId, duty: 'REFEREE' }] : []), ...(l.assistants ?? [])];
+  if (live.some(o => o.duty === duty || o.refereeId === refereeId)) return conflict('This duty or referee already has a live invitation. Cancel it first.');
+  const r = F.refereeProfiles.find(x => x.user_id === refereeId), volunteer = Boolean(body?.volunteer);
+  if (!r || !(volunteer ? r.accepts_volunteer : r.accepts_paid)) return reply(400, { status: 400, message: 'This referee is not available for these terms.' });
+  // Each official is one appointment with its own id; the fee is what was offered (0 included), else their listed fee.
+  const invite = { id: W.newId(), status: 'INVITED', duty, volunteer, fee: volunteer ? null : body?.fee != null && body.fee !== '' ? Number(body.fee) : r.fee, currency: body?.currency ?? r.currency };
+  if (duty === 'REFEREE') {
+    l.refereeId = r.user_id; l.refereeInvite = invite; l.refereeRequired = true; l.externalRefereeName = null;
+    const request = officialRequests.get(l.id);
+    if (request?.status === 'OPEN') { request.status = 'CLOSED'; request.applications.forEach(a => { if (a.status === 'APPLIED') a.status = 'DECLINED'; }); }
+  } else (l.assistants ??= []).push({ refereeId: r.user_id, ...invite });
+  l.revision++;
   l.history.push({ id: W.newId(), action: 'REFEREE_INVITED', created_at: iso(new Date()), reason: null });
-  return F.listingView(l, { detail: true });
+  return reply(204);
 });
 post('/match-exchange/:id/venue', ({ params, body }) => { const l = F.listingById(params.id); if (!l) return notFound(); if (body?.bookingId) l.booked = true; else l.externalConfirmed = Boolean(body?.externalConfirmed); l.revision++; return F.listingView(l, { detail: true }); });
 post('/match-exchange/:id/close-preview', ({ params }) => { const l = F.listingById(params.id); if (!l) return notFound(); return { action: 'CANCEL', revision: l.revision, material: true, changedFields: ['status'], dependencies: [], needsAttention: [], confirmationRequired: false, confirmationToken: `close-${l.id}` }; });
@@ -255,7 +282,7 @@ for (const action of ['', '/confirm', '/correct', '/dispute']) post(`/match-exch
 get('/match-exchange/:id/result/suggestions', ({ params }) => ({ eventId: Number(params.id), resultRevision: 1, canSuggest: false, canReview: false, reviewableRoles: [], adoptableRoles: [], ownSuggestions: [], suggestions: [], pendingCount: 0, page: 0, hasMore: false, reviewedSuggestions: [], hasMoreReviewed: false }));
 get('/match-exchange/:id/coordination', ({ params }) => {
   const l = F.listingById(params.id); if (!l) return notFound();
-  const ref = l.refereeId ? personById(l.refereeId) : null;
+  const ref = l.refereeId && F.refereeStatusOf(l) === 'ACCEPTED' ? personById(l.refereeId) : null;
   const messages = ref ? [{ id: l.id * 3, authorId: W.ME_ID, authorName: W.me.fullName, body: 'Kit colours: we wear blue, opponents in white. Changing room 2 is yours.', createdAt: iso(plusMin(l.start, -2 * 24 * 60)) }, { id: l.id * 3 + 1, authorId: ref.id, authorName: ref.fullName, body: 'Thanks, I will arrive 45 minutes before kick-off.', createdAt: iso(plusMin(l.start, -2 * 24 * 60 + 40)) }] : [];
   return { eventId: l.id, status: 'OPEN', readOnly: false, participants: [{ userId: W.ME_ID, fullName: W.me.fullName, role: 'STAFF', squadId: l.hostSquadId, squadName: squadById(l.hostSquadId).name }, ...(ref ? [{ userId: ref.id, fullName: ref.fullName, role: 'OFFICIAL', duty: 'REFEREE' }] : [])], messages, page: 0, size: 30, totalElements: messages.length, totalPages: 1, hasMore: false };
 });
@@ -271,7 +298,6 @@ get('/match-arrangements/:id/participants', ({ params }) => {
   const l = F.listingById(params.id); if (!l) return [];
   return [l.hostSquadId, l.opponentSquadId].filter(Boolean).map(id => squadById(id)).filter(s => s?.clubId === DINAMO).map(s => teamView(l, s));
 });
-get('/match-arrangements/:id/official-request', () => null);
 get('/match-arrangements/squads/:id/fixtures', ({ params, query: q }) => {
   const from = parseWhen(q.get('from')), to = parseWhen(q.get('to'));
   return F.exchange.filter(l => (l.hostSquadId === Number(params.id) || l.opponentSquadId === Number(params.id)) && l.opponentSquadId && inWindow(l.start, l.end, from, to) && !matches.some(m => m.id === l.id)).map(exchangeOccurrence);
@@ -679,7 +705,13 @@ get('/campaigns', ({ query: q }) => {
 get('/campaigns/:id', ({ params }) => F.campaignById(params.id) || notFound('This campaign is unavailable.'));
 
 // ============================================================== supporting lookups
-get('/referees/club-squad/:squadId', () => F.refereeProfiles.filter((_, i) => i % 3 !== 1).slice(0, 4));
+// As the backend: referees with a current club appointment holding the REFEREE specialisation that covers the squad.
+get('/referees/club-squad/:squadId', ({ params }) => {
+  const s = squadById(params.squadId); if (!s) return notFound();
+  if (s.clubId !== DINAMO) return reply(403, { status: 403, message: 'Only staff of this squad can see its club referees.' });
+  const ids = C.appointments.filter(a => a.status === 'ACTIVE' && a.specialisations.includes('REFEREE') && (a.club_wide || a.squad_ids.includes(s.id))).map(a => a.user_id);
+  return F.refereeProfiles.filter(r => ids.includes(r.user_id)).sort((a, b) => a.full_name.localeCompare(b.full_name));
+});
 get('/match-exchange/:id/broadcasts', ({ params }) => { const l = F.listingById(params.id); if (!l) return notFound(); return { broadcasts: [], manageableSquads: [l.hostSquadId, l.opponentSquadId].map(id => squadById(id)).filter(s => s?.clubId === DINAMO).map(s => ({ id: s.id, name: s.name })) }; });
 get('/organizations/mine', () => [{ id: 901, slug: 'fc-dinamo-tbilisi-academy', displayName: clubById(DINAMO).name, description: clubById(DINAMO).description, membershipRole: 'CLUB_ADMIN', kinds: ['CLUB', 'TOURNAMENT_ORGANIZER'], primaryKind: 'CLUB', clubBacked: true, canCreateTournament: true }]);
 get('/organizations/:id/tournament-host-clubs', ({ params }) => Number(params.id) === 901 ? [{ clubId: DINAMO, clubName: clubById(DINAMO).name, organizationId: 901, organizationName: clubById(DINAMO).name, accessType: 'OWN_ORGANIZATION' }] : []);
@@ -698,7 +730,8 @@ for (const action of ['apply', 'select', 'close']) post(`/match-arrangements/:id
   const l = F.listingById(params.id), r = officialRequests.get(Number(params.id)); if (!l || !r) return notFound();
   r.revision++;
   if (action === 'close') r.status = 'CLOSED';
-  if (action === 'select') { const id = Number(body?.refereeId) || r.applications[0]?.referee_id; r.status = 'FILLED'; r.applications.forEach(a => { a.status = a.referee_id === id ? 'SELECTED' : 'NOT_SELECTED'; }); l.refereeId = id; }
+  if (action === 'select' && l.refereeId && ['INVITED', 'ACCEPTED'].includes(F.refereeStatusOf(l))) return conflict('Cancel the current official invitation before recruiting a replacement.');
+  if (action === 'select') { const id = Number(body?.refereeId) || r.applications[0]?.referee_id; r.status = 'FILLED'; r.applications.forEach(a => { a.status = a.referee_id === id ? 'SELECTED' : 'NOT_SELECTED'; }); l.refereeId = id; l.refereeInvite = null; }
   if (action === 'apply') r.applications.push({ referee_id: W.ME_ID, full_name: W.me.fullName, status: 'APPLIED' });
   return requestView(l);
 });
@@ -719,5 +752,14 @@ for (const kind of ['attendance', 'participants']) post(`/match-arrangements/:id
   if (kind === 'participants' && Array.isArray(body?.playerIds)) matchSelections.set(`${l.id}:${s.id}`, new Set(body.playerIds.map(Number)));
   l.revision++; return teamView(l, s);
 });
-post('/match-exchange/:id/referees/:refereeId/cancel', listingAction(l => { l.refereeId = null; }));
+// As the backend: the path names the appointment; one no longer live is a conflict.
+post('/match-exchange/:id/referees/:appointment/cancel', ({ params }) => {
+  const l = F.listingById(params.id); if (!l) return notFound();
+  const id = Number(params.appointment), assistant = (l.assistants ?? []).find(o => o.id === id);
+  if (assistant) l.assistants = l.assistants.filter(o => o !== assistant);
+  else if (l.refereeId && id === F.refereeAppointmentId(l)) { l.refereeId = null; l.refereeInvite = null; }
+  else return conflict('This appointment is no longer active.');
+  l.revision++;
+  return F.listingView(l, { detail: true });
+});
 post('/match-exchange/:id/external-venue-resolution', listingAction(l => { l.history.push({ id: W.newId(), action: 'EXTERNAL_VENUE', created_at: iso(new Date()), reason: 'Resolved with the ground owner' }); }));

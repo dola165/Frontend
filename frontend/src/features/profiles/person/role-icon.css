@@ -4,3 +4,5 @@
 .gk .gk-person-role[data-role='PLAYER'], .gk .gk-person-role[data-role='VENUE_MANAGER'] { background: var(--gk-accent-soft); color: var(--gk-accent); }
 .gk .gk-person-role[data-role='REFEREE'], .gk .gk-person-role[data-role='ORGANIZER'] { background: var(--gk-warning-soft); color: var(--gk-warning); }
 .gk .gk-person-role[data-role='PARENT'], .gk .gk-person-role[data-role='FAN'] { background: var(--gk-violet-soft); color: var(--gk-violet); }
+.gk .gk-person-role[data-size='sm'] { width: 22px; height: 22px; border-radius: 6px; }
+.gk .gk-person-role[data-size='sm'] svg { width: 13px; height: 13px; }

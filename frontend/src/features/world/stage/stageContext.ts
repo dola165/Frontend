@@ -14,19 +14,24 @@ export interface StageMap {
     /** Fly to this pin; a new token flies again. While set, new pins never reframe the map. */ focus?: MapFocus;
     /** A new value frames every pin again ("Show all"). */ frame?: number;
     /** False while the page shows the chosen pin's result itself (its Browse row), so the map's own card stays hidden. */ card?: boolean;
+    /** Places that are not results but give them context (the ground of the match being staffed): bright, never chosen. */ context?: WorldMapPoint[];
+    /** A stated reach drawn as a dashed ring (the chosen referee's area). */ reach?: MapReach;
 }
 
+/** A circle of `km` around a place, as someone states it (approximate). */
+export interface MapReach { lat: number; lng: number; km: number; label: string }
+
 /** A flight to a pin. The token is unique for the whole visit (the map outlives every list), so a new one always flies. */
-export interface MapFocus { id: string; token: string }
+export interface MapFocus { id: string; token: string; /** Frame this box instead of flying close to the pin (a stated area around it). */ bounds?: MapBounds }
 
 export interface StageValue {
     /** False outside World (tests, previews): the page's header and panel then render where they are. */ inStage: boolean;
-    head: HTMLElement | null; panel: HTMLElement | null; setMap: (map: StageMap | null) => void;
+    head: HTMLElement | null; panel: HTMLElement | null; /** The strip docked at the map's bottom left. */ dock: HTMLElement | null; setMap: (map: StageMap | null) => void;
     /** The map is open (not folded to a strip). */ mapOpen: boolean; toggleMap: () => void;
     /** The panel is folded to its header. */ panelFolded: boolean; togglePanel: () => void;
 }
 
-const outside: StageValue = { inStage: false, head: null, panel: null, setMap: () => undefined, mapOpen: false, toggleMap: () => undefined, panelFolded: false, togglePanel: () => undefined };
+const outside: StageValue = { inStage: false, head: null, panel: null, dock: null, setMap: () => undefined, mapOpen: false, toggleMap: () => undefined, panelFolded: false, togglePanel: () => undefined };
 export const StageContext = createContext<StageValue>(outside);
 
 /** The World stage around this page; outside World (tests, previews) nothing is drawn into it. */

@@ -64,6 +64,9 @@ for (const [id, first, last, clubId, title, gender = 'MALE'] of externalCoaches)
   addPerson({ id, first, last, gender, role: 'COACH', birthYear: 1975 + (id % 15), city: club.city, clubId, headline: `${title} · ${club.name}`, staffTitle: title });
   clubCoach[clubId] = id;
 }
+// The licences these coaches state on their profiles (as stated: nothing checks them).
+const STATED_LICENCES = { 32: 'UEFA B licence', 33: 'UEFA A licence', 34: 'UEFA C licence', 35: 'UEFA B licence', 36: 'UEFA C licence', 37: 'UEFA Pro licence', 38: 'UEFA B licence', 39: 'UEFA A licence' };
+for (const [id, licence] of Object.entries(STATED_LICENCES)) W.personById(id).licences = [licence];
 
 // ---------------------------------------------------------------- shortcuts into the world
 export const staffBy = title => W.staff.find(s => s.title === title)?.personId;
@@ -79,7 +82,13 @@ const referee = i => W.referees[i].id;
 const agentId = W.agents.find(a => a.headline.includes('Youth'))?.id ?? W.agents[0].id;
 const specialist = profession => W.people.find(p => p.profession === profession)?.id;
 const freeAgent = position => W.people.find(p => p.freeAgent && p.position === position)?.id;
-export const isMinor = p => p.role === 'PLAYER' && p.birthYear > NOW.getFullYear() - 18;
+/** The one date of birth every list and profile uses (the club workspace reads it too, through world-club). */
+export const birthDate = p => `${p.birthYear}-${String(1 + (p.id * 7) % 12).padStart(2, '0')}-${String(1 + (p.id * 13) % 28).padStart(2, '0')}`;
+export const ageOf = p => {
+  const [y, m, d] = birthDate(p).split('-').map(Number), now = new Date();
+  return now.getFullYear() - y - ((now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) ? 1 : 0);
+};
+export const isMinor = p => ageOf(p) < 18;
 const matchesFor = squadId => W.matches.filter(m => m.squadId === squadId).sort((a, b) => a.start - b.start);
 export const lastResult = squadId => matchesFor(squadId).filter(m => m.status === 'COMPLETED').at(-1);
 export const nextMatch = squadId => matchesFor(squadId).find(m => m.status === 'SCHEDULED');

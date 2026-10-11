@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal } from 'lucide-react';
-import { Button, PageHeader } from '../../../design/primitives';
+import { Button } from '../../../design/primitives';
 import { useWorldCopy } from '../copy';
 import { useWorldChild } from '../players';
 import { useWorldArea, useWorldCities, type WorldArea } from '../useWorldArea';
@@ -10,8 +10,8 @@ import { AroundMapBlock, Field } from './FrontBlocks';
 import { CustomizeOverview } from './CustomizeOverview';
 import { fieldInfo, type FieldId } from './fields';
 import { useOverviewLayout } from './useOverviewLayout';
-import { useWorldAudience, type WorldAudience } from './audience';
-import { quickStarts } from './quickStarts';
+import { useWorldAudience } from './audience';
+import { roleInfo, type OverviewLayout } from './roles';
 import { useNearbyPlaces } from './useNearbyPlaces';
 import './front.css';
 
@@ -56,29 +56,20 @@ function ChildPicker() {
     );
 }
 
-/** Entry points by intent, each a directory with its tab and filters already chosen. */
-function QuickStarts({ city, audience }: { city: string; audience: WorldAudience }) {
-    const t = useWorldCopy();
-    const { children, child } = useWorldChild();
-    return (
-        <nav className="gk-world-starts" aria-label={t('Start with')}>
-            {quickStarts(city, audience, children, child).map(start => <Link key={start.to} className="gk-chip" to={start.to}>{t(start.label, { name: start.name ?? '' })}</Link>)}
-        </nav>
-    );
-}
-
 /**
- * GrassKickZ World's front page, the person's own: search and entry points, then the area's map with one
- * field open beside it, then the rest of their fields as the page scrolls. Each person chooses the fields
- * and their order (Customize); a coach starts from five or six that suit most coaches.
+ * GrassKickZ World's front page, the person's own: the area's map, tall and wide, with one field open beside
+ * it, then the rest of their fields as the page scrolls. Search sits in the header. The person says who they
+ * are (Customize), which decides the page they start with and the fields they are offered.
  */
 export default function WorldFrontPage() {
     const t = useWorldCopy();
     const { area, setCity } = useWorldArea();
     const audience = useWorldAudience();
     const nearby = useNearbyPlaces(area);
-    const { layout, save, reset, customised } = useOverviewLayout(audience);
-    const [customizing, setCustomizing] = useState(false);
+    const { layout: saved, save } = useOverviewLayout(audience);
+    // While customising, the page shows the draft; Save keeps it, Cancel goes back to the saved page.
+    const [draft, setDraft] = useState<OverviewLayout | null>(null);
+    const layout = draft ?? saved;
     // Lists that follow each other share rows; a card field (clubs) takes the page's width on its own.
     const rows = layout.fields.reduce<FieldId[][]>((all, id) => {
         const last = all[all.length - 1];
@@ -87,13 +78,17 @@ export default function WorldFrontPage() {
     }, []);
     return (
         <div className="gk-world-front">
-            <PageHeader
-                title={t('GrassKickZ World')}
-                subtitle={t('Clubs, people, pitches and matches near {city}.', { city: area.city })}
-                actions={<div className="gk-world-front__context"><ChildPicker /><AreaPicker area={area} onChange={setCity} />
-                    <Button onClick={() => setCustomizing(true)}><SlidersHorizontal aria-hidden="true" />{t('Customize')}</Button></div>}
-            />
-            <WorldSearch quickStarts={<QuickStarts city={area.city} audience={audience} />} />
+            <header className="gk-world-front__head">
+                <div className="gk-world-front__titles">
+                    <h1>{t('GrassKickZ World')}</h1>
+                    <p>{t('Near {city}, set up for a {role}', { city: area.city, role: t(roleInfo(layout.role).label).toLowerCase() })}</p>
+                </div>
+                <WorldSearch />
+                <div className="gk-world-front__context">
+                    <ChildPicker /><AreaPicker area={area} onChange={setCity} />
+                    <Button onClick={() => setDraft(saved)}><SlidersHorizontal aria-hidden="true" />{t('Customize')}</Button>
+                </div>
+            </header>
             <div className="gk-world-front__lead">
                 <AroundMapBlock area={area} markers={nearby} />
                 <div className="gk-world-front__side"><Field id={layout.side} area={area} markers={nearby} side /></div>
@@ -101,7 +96,7 @@ export default function WorldFrontPage() {
             {rows.length > 0 && <div className="gk-world-front__fields">
                 {rows.map(row => <div key={row.join()} className="gk-world-front__row">{row.map(id => <Field key={id} id={id} area={area} markers={nearby} />)}</div>)}
             </div>}
-            {customizing && <CustomizeOverview audience={audience} layout={layout} customised={customised} onChange={save} onReset={reset} onClose={() => setCustomizing(false)} />}
+            {draft && <CustomizeOverview draft={draft} saved={saved} onChange={setDraft} onCancel={() => setDraft(null)} onSave={() => { save(draft); setDraft(null); }} />}
         </div>
     );
 }

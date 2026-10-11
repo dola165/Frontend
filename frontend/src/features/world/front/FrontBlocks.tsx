@@ -8,10 +8,10 @@ import type { WorldData } from '../useWorldData';
 import type { WorldArea } from '../useWorldArea';
 import type { FieldId } from './fields';
 import type { FieldProps } from './fields/fieldProps';
-import { ArrangementsField, CompetitionsField, EventsField, OpenMatchesField, ResultsField } from './fields/MatchFields';
-import { CoachingJobsField, JobsField, TrialsField } from './fields/OpportunityFields';
+import { ArrangementsField, CompetitionsField, EventsField, LiveCompetitionsField, OpenMatchesField, RefereeNeededField, ResultsField } from './fields/MatchFields';
+import { CampaignsField, CoachingJobsField, JobsField, StaffJobsField, TrialsField, VolunteeringField } from './fields/OpportunityFields';
 import { PeopleField, RefereesField, SpecialistsField } from './fields/PeopleFields';
-import { AcademiesField, ClubsField, VenuesField } from './fields/PlaceFields';
+import { AcademiesField, ClubsField, GroupsField, OpenClubsField, VenuesField } from './fields/PlaceFields';
 
 /** The map of clubs and venues around the area: the biggest thing on the page, with the way into the full map. */
 export function AroundMapBlock({ area, markers }: { area: WorldArea; markers: WorldData<MapPageResult> }) {
@@ -37,10 +37,11 @@ export function AroundMapBlock({ area, markers }: { area: WorldArea; markers: Wo
 }
 
 const FIELD_VIEWS: Record<FieldId, ComponentType<FieldProps>> = {
-    matches: OpenMatchesField, events: EventsField, competitions: CompetitionsField, results: ResultsField, arrangements: ArrangementsField,
-    referees: RefereesField, people: PeopleField, specialists: SpecialistsField,
-    clubs: ClubsField, academies: AcademiesField, venues: VenuesField,
-    jobs: JobsField, coachingJobs: CoachingJobsField, trials: TrialsField,
+    matches: OpenMatchesField, events: EventsField, refereeNeeded: RefereeNeededField, competitions: CompetitionsField, liveCompetitions: LiveCompetitionsField,
+    results: ResultsField, arrangements: ArrangementsField,
+    people: PeopleField, referees: RefereesField, specialists: SpecialistsField,
+    clubs: ClubsField, academies: AcademiesField, openClubs: OpenClubsField, groups: GroupsField, venues: VenuesField,
+    trials: TrialsField, jobs: JobsField, coachingJobs: CoachingJobsField, staffJobs: StaffJobsField, volunteering: VolunteeringField, campaigns: CampaignsField,
 };
 
 /** One field of the front page, by id. */

@@ -5,6 +5,8 @@ import { browseCompetitions } from '../../competitions/api';
 import { fetchOpenJobDirectory } from '../../clubs/api';
 import { searchTryouts } from '../../tryouts/api';
 import { getMatchHistory } from '../../matchHistory/api';
+import { searchOpportunities } from '../../admissions/api';
+import { fetchCampaigns } from '../../campaigns/api';
 import { fetchClubDirectory, fetchMatchListings, fetchPeople, fetchReferees } from '../api';
 import { isoDay, isoDayOf } from '../format';
 import { ageOn, useWorldChild } from '../players';
@@ -111,4 +113,38 @@ export function useSpecialists(area: WorldArea) {
 export function useAcademies(area: WorldArea) {
     return useWorldData(area.ready ? `front-academies:${area.city}` : null,
         signal => fetchClubDirectory(new URLSearchParams({ city: area.city, type: 'ACADEMY', sort: 'MEMBER_COUNT', page: '0', size: '8' }), signal));
+}
+
+/** Arranged matches near the area still looking for a referee. */
+export function useRefereeNeeded(area: WorldArea) {
+    const matches = useOpenMatches(area);
+    const items = (matches.data?.items ?? []).filter(match => match.referee_required && match.referee_status === 'NEEDED')
+        .sort((a, b) => Date.parse(a.starts_at_iso) - Date.parse(b.starts_at_iso));
+    return { ...matches, items };
+}
+
+/** Leagues and cups being played now. */
+export const useLiveCompetitions = () =>
+    useWorldData('live-competitions', signal => browseCompetitions(new URLSearchParams({ status: 'ACTIVE', page: '0', size: '6' }), signal));
+
+/** Clubs in the area with open trials or open to applications. */
+export function useOpenClubs(area: WorldArea) {
+    return useWorldData(area.ready ? `open-clubs:${area.city}` : null, signal => {
+        const params = new URLSearchParams({ city: area.city, sort: 'MEMBER_COUNT', page: '0', size: '8' });
+        params.append('joinPolicy', 'OPEN_TRIAL'); params.append('joinPolicy', 'APPLICATION_REQUIRED');
+        return fetchClubDirectory(params, signal);
+    });
+}
+
+/** Training groups with places, for the chosen child's birth year and category when there is one. */
+export function useGroups(area: WorldArea) {
+    const { child } = useWorldChild();
+    const birthYear = child?.dateOfBirth ? Number(child.dateOfBirth.slice(0, 4)) : undefined;
+    return useWorldData(area.ready ? `front-groups:${area.city}:${child?.id ?? ''}` : null,
+        signal => searchOpportunities({ acceptingOnly: true, city: [area.city], birthYear, gender: (child?.gender || undefined) as 'MALE' | 'FEMALE' | undefined, page: 0, size: 8 }, signal));
+}
+
+/** Fundraisers clubs in the area are running. */
+export function useCampaigns(area: WorldArea) {
+    return useWorldData(area.ready ? `front-campaigns:${area.city}` : null, signal => fetchCampaigns({ city: area.city, page: 0, size: 8, sort: 'ENDING' }, signal));
 }

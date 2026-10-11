@@ -182,13 +182,22 @@ The app today, compared with how clubs usually work (coaches to confirm):
   - Competitions: age, format, entry deadline, fee.
 - **If built overnight:** make two overview versions behind a switch, so the owner picks.
 
-**Overview: the person's own page** (11 October; the owner: "uselessly lot of lists"; every user type, and every kind of coach, wants different things).
-- **The map first, long rather than tall:** about three quarters of the width and fully in view on arrival. Its inner workings come with section 5.
-- **One field open beside the map,** at the map's height and scrolling inside. The person's other fields follow below as the page scrolls: lists share rows, and club cards take a row of their own ("Clubs near you" is back as cards).
-- **People choose their fields** (Customize): 14 fields over matches, people, clubs and places, and opportunities, each from data the app already serves. Choose what sits beside the map, add, remove and order the rest; changes show at once.
-  - Presets for the many kinds of coach: head coach (the default, 6 fields), team manager, fitness coach, goalkeeper coach, analyst or scout, academy director. Parents and everyone else start from their own defaults.
-  - Kept in the browser for now (backend needed: a per-person preference so it follows them across devices).
-- **Shortcuts by audience:** a coach's start with opponents, referees, pitches and competitions.
+**Overview: the person's own page, by role** (11 October; the owner: "uselessly lot of lists"; every user type, and every kind of coach, wants different things).
+- **One header row:** title, search (its results drop down over the page), the area and Customize. The big search band and the shortcut chips are gone: the top bar already searches, and each role's fields link into the directories.
+- **The map fills the first screen:** about three quarters of the width and from the header down to the bottom of a 1080p screen, with one field open beside it at the same height. The person's other fields follow as the page scrolls; lists share rows, club cards take a row of their own.
+- **Choose who you are** (Customize, then Save): 16 roles in four groups.
+  - **Coaching staff:** head coach, assistant coach, goalkeeper coach, fitness coach, analyst or scout, team manager, academy director.
+  - **At a club:** club administrator, physio or specialist.
+  - **Families and players:** parent, player.
+  - **Around the game:** referee, fan or supporter, agent, competition organiser, pitch or venue operator.
+  - Each role decides the page you start with (a field beside the map and four to six below) and the fields offered first. Every other field stays one click away under "Every other field".
+  - The page behind shows the draft; Save keeps it, Cancel goes back. Until someone saves, the role follows their relationships (coaching, a chosen child, playing for a club).
+- **21 fields,** all from data the app already serves:
+  - **Matches:** teams looking for a match, matches near you, matches that need a referee, open for entries, competitions on now, latest results, your match arrangements.
+  - **People:** people to know, referees, specialists.
+  - **Clubs and places:** clubs near you, academies, clubs taking new players, places to train (for the chosen child), pitches to hire.
+  - **Opportunities:** open trials, jobs and volunteering, coaching jobs, jobs off the pitch, volunteering, support a club (fundraisers).
+- The page is kept per browser for now (backend needed: a per-person preference).
 
 ## 5. Map and Journeys
 

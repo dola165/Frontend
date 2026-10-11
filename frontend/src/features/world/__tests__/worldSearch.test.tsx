@@ -19,7 +19,7 @@ function Where() {
 }
 const show = () => render(
     <MemoryRouter initialEntries={['/world']}>
-        <Routes><Route path="/world" element={<WorldSearch quickStarts={<p>Quick starts</p>} />} /><Route path="*" element={<Where />} /></Routes>
+        <Routes><Route path="/world" element={<WorldSearch />} /><Route path="*" element={<Where />} /></Routes>
     </MemoryRouter>,
 );
 const box = () => screen.getByRole('searchbox', { name: 'Search GrassKickZ World' });

@@ -1,0 +1,51 @@
+import type { WorldAudience } from './audience';
+import type { FieldId } from './fields';
+
+/** Who the person is on World's front page. It decides the fields they are offered and the page they start with. */
+export type WorldRole = 'head-coach' | 'assistant-coach' | 'goalkeeper-coach' | 'fitness-coach' | 'analyst' | 'team-manager' | 'academy-director'
+    | 'club-admin' | 'specialist' | 'parent' | 'player' | 'referee' | 'fan' | 'agent' | 'organiser' | 'venue-operator';
+
+/** What sits beside the map, and the fields that follow below it, in order, for one role. */
+export interface OverviewLayout { role: WorldRole; side: FieldId; fields: FieldId[] }
+
+export type RoleGroup = 'Coaching staff' | 'At a club' | 'Families and players' | 'Around the game';
+export const ROLE_GROUPS: RoleGroup[] = ['Coaching staff', 'At a club', 'Families and players', 'Around the game'];
+
+export interface RoleInfo {
+    id: WorldRole; label: string; group: RoleGroup;
+    /** The page this role starts with: the field beside the map, then five or so below. */ side: FieldId; fields: FieldId[];
+    /** More fields that suit the role, offered first when customising. */ extra: FieldId[];
+}
+
+export const ROLES: RoleInfo[] = [
+    { id: 'head-coach', label: 'Head coach', group: 'Coaching staff', side: 'matches', fields: ['events', 'competitions', 'clubs', 'venues', 'people'], extra: ['arrangements', 'results', 'referees', 'liveCompetitions', 'trials', 'coachingJobs', 'specialists', 'academies'] },
+    { id: 'assistant-coach', label: 'Assistant coach', group: 'Coaching staff', side: 'events', fields: ['matches', 'results', 'coachingJobs', 'people', 'venues'], extra: ['competitions', 'trials', 'specialists', 'clubs', 'academies'] },
+    { id: 'goalkeeper-coach', label: 'Goalkeeper coach', group: 'Coaching staff', side: 'trials', fields: ['coachingJobs', 'events', 'results', 'specialists'], extra: ['academies', 'clubs', 'people', 'venues'] },
+    { id: 'fitness-coach', label: 'Fitness coach', group: 'Coaching staff', side: 'venues', fields: ['specialists', 'coachingJobs', 'events', 'people'], extra: ['staffJobs', 'academies', 'clubs', 'groups'] },
+    { id: 'analyst', label: 'Analyst or scout', group: 'Coaching staff', side: 'results', fields: ['events', 'trials', 'liveCompetitions', 'academies'], extra: ['competitions', 'people', 'clubs', 'staffJobs', 'openClubs'] },
+    { id: 'team-manager', label: 'Team manager', group: 'Coaching staff', side: 'arrangements', fields: ['matches', 'referees', 'venues', 'competitions'], extra: ['events', 'refereeNeeded', 'clubs', 'people'] },
+    { id: 'academy-director', label: 'Academy director', group: 'Coaching staff', side: 'competitions', fields: ['academies', 'coachingJobs', 'trials', 'venues', 'clubs'], extra: ['specialists', 'liveCompetitions', 'results', 'staffJobs', 'groups', 'campaigns'] },
+    { id: 'club-admin', label: 'Club administrator', group: 'At a club', side: 'events', fields: ['competitions', 'venues', 'jobs', 'clubs', 'campaigns'], extra: ['staffJobs', 'coachingJobs', 'referees', 'specialists', 'academies', 'volunteering'] },
+    { id: 'specialist', label: 'Physio or specialist', group: 'At a club', side: 'staffJobs', fields: ['specialists', 'clubs', 'academies', 'events'], extra: ['people', 'jobs', 'liveCompetitions'] },
+    { id: 'parent', label: 'Parent', group: 'Families and players', side: 'groups', fields: ['trials', 'openClubs', 'academies', 'events', 'volunteering'], extra: ['clubs', 'venues', 'liveCompetitions', 'results', 'campaigns'] },
+    { id: 'player', label: 'Player', group: 'Families and players', side: 'trials', fields: ['openClubs', 'events', 'matches', 'venues', 'competitions'], extra: ['groups', 'results', 'liveCompetitions', 'clubs', 'people'] },
+    { id: 'referee', label: 'Referee', group: 'Around the game', side: 'refereeNeeded', fields: ['events', 'liveCompetitions', 'referees', 'competitions'], extra: ['matches', 'results', 'venues', 'clubs'] },
+    { id: 'fan', label: 'Fan or supporter', group: 'Around the game', side: 'events', fields: ['results', 'liveCompetitions', 'clubs', 'volunteering', 'campaigns'], extra: ['academies', 'competitions', 'jobs'] },
+    { id: 'agent', label: 'Agent', group: 'Around the game', side: 'trials', fields: ['results', 'academies', 'people', 'liveCompetitions'], extra: ['events', 'openClubs', 'clubs', 'competitions'] },
+    { id: 'organiser', label: 'Competition organiser', group: 'Around the game', side: 'competitions', fields: ['matches', 'venues', 'referees', 'clubs', 'academies'], extra: ['liveCompetitions', 'results', 'events', 'refereeNeeded', 'volunteering'] },
+    { id: 'venue-operator', label: 'Pitch or venue operator', group: 'Around the game', side: 'matches', fields: ['events', 'competitions', 'venues', 'clubs'], extra: ['arrangements', 'liveCompetitions', 'academies', 'groups'] },
+];
+export const roleInfo = (id: WorldRole) => ROLES.find(role => role.id === id) ?? ROLES[0];
+
+/** A role's own page. */
+export const roleLayout = (id: WorldRole): OverviewLayout => { const role = roleInfo(id); return { role: role.id, side: role.side, fields: role.fields }; };
+
+/** The fields a role is offered: its page and its extras, before the rest of the catalog. */
+export const offeredFor = (id: WorldRole): FieldId[] => { const role = roleInfo(id); return [role.side, ...role.fields, ...role.extra]; };
+
+/** Until the person chooses, the role follows their relationships: coaching, a chosen child, playing for a club. */
+export function defaultRole(audience: WorldAudience, clubRole?: string | null): WorldRole {
+    if (audience === 'coach') return 'head-coach';
+    if (audience === 'parent') return 'parent';
+    return clubRole === 'PLAYER' ? 'player' : 'fan';
+}

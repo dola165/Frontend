@@ -5,7 +5,7 @@ import { Crest } from '../../Crest';
 import { ArrangementItem, FixtureItem, ListingItem } from '../../directories/matchItems';
 import { codeLabel } from '../../format';
 import { CompetitionRow, EventItemRow } from '../../rows';
-import { useArrangements, useComingUp, useOpenCompetitions, useOpenMatches, useResults } from '../frontData';
+import { useArrangements, useComingUp, useLiveCompetitions, useOpenCompetitions, useOpenMatches, useRefereeNeeded, useResults } from '../frontData';
 import { Cluster, WorldField } from '../WorldField';
 import { rowsFor, unique, when, type FieldProps } from './fieldProps';
 
@@ -80,6 +80,35 @@ export function ArrangementsField({ side }: FieldProps) {
             all={{ label: t('All your arrangements'), to: '/world/matches?tab=mine' }}>
             {items.length ? <List label={t('Your match arrangements')}>{items.slice(0, rowsFor(side)).map(m => <ArrangementItem key={m.event_id} item={m} />)}</List>
                 : <EmptyNote title={t('Nothing being arranged')} action={<ButtonLink size="sm" to="/world/matches/arrange">{t('Arrange a match')}</ButtonLink>}>{t('Friendlies you arrange appear here until they are played.')}</EmptyNote>}
+        </WorldField>
+    );
+}
+
+/** Arranged matches still looking for an official: a referee's first reason to open World. */
+export function RefereeNeededField({ area, side }: FieldProps) {
+    const t = useWorldCopy();
+    const data = useRefereeNeeded(area);
+    const next = data.items[0];
+    return (
+        <WorldField id="refereeNeeded" side={side} count={data.data ? data.items.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
+            hint={next ? `${t('Next')}: ${when(next.starts_at_iso, next.timezone)} · ${t(formats[next.format] ?? codeLabel(next.format))}` : undefined}
+            all={{ label: t('All open matches'), to: '/world/matches?tab=exchange' }}>
+            {data.items.length ? <List label={t('Matches that need a referee')}>{data.items.slice(0, rowsFor(side)).map(m => <ListingItem key={m.event_id} item={m} />)}</List>
+                : <EmptyNote title={t('Every arranged match has a referee')}>{t('Matches that still need an official appear here.')}</EmptyNote>}
+        </WorldField>
+    );
+}
+
+/** Leagues and cups being played now, to follow. */
+export function LiveCompetitionsField({ side }: FieldProps) {
+    const t = useWorldCopy();
+    const data = useLiveCompetitions();
+    const items = data.data?.content ?? [];
+    return (
+        <WorldField id="liveCompetitions" side={side} count={data.data ? data.data.totalElements ?? items.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
+            hint={items[0]?.name} all={{ label: t('All competitions'), to: '/world/competitions?status=ACTIVE' }}>
+            {items.length ? <List label={t('Competitions on now')}>{items.slice(0, rowsFor(side)).map(card => <CompetitionRow key={card.id} card={card} compact />)}</List>
+                : <EmptyNote title={t('No competitions are being played right now')} />}
         </WorldField>
     );
 }

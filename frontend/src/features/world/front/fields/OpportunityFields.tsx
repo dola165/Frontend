@@ -1,29 +1,42 @@
-import { EmptyNote, List } from '../../../../design/primitives';
+import { Badge, EmptyNote, List, ListRow } from '../../../../design/primitives';
+import type { ClubJob } from '../../../clubs/api';
 import { plural, useWorldCopy } from '../../copy';
 import { Crest } from '../../Crest';
 import { JobRow, TrialRow } from '../../rows';
-import { useJobs, useTrials } from '../frontData';
+import { useCampaigns, useJobs, useTrials } from '../frontData';
+import type { FieldId } from '../fields';
 import { Cluster, WorldField } from '../WorldField';
 import { rowsFor, unique, when, type FieldProps } from './fieldProps';
 
-/** Open roles at clubs, or only the coaching ones. */
-function Jobs({ area, side, coachingOnly }: FieldProps & { coachingOnly?: boolean }) {
+const OFF_PITCH = new Set(['MEDICAL', 'MEDIA_COMMUNICATIONS', 'FOOTBALL_OPERATIONS', 'ADMINISTRATION', 'FACILITIES']);
+const JOBS: Partial<Record<FieldId, { keep: (job: ClubJob) => boolean; label: string; empty: string; to: string }>> = {
+    jobs: { keep: () => true, label: 'Jobs and volunteering', empty: 'No open roles right now', to: '/world/opportunities?tab=jobs' },
+    coachingJobs: { keep: job => job.category === 'COACHING', label: 'Coaching jobs', empty: 'No coaching jobs open right now', to: '/world/opportunities?tab=jobs&category=COACHING' },
+    staffJobs: { keep: job => OFF_PITCH.has(job.category ?? ''), label: 'Jobs off the pitch', empty: 'No roles off the pitch open right now', to: '/world/opportunities?tab=jobs' },
+    volunteering: { keep: job => job.engagementType === 'VOLUNTEER' || job.category === 'MATCHDAY', label: 'Volunteering', empty: 'No volunteering open right now', to: '/world/opportunities?tab=jobs&engagement=VOLUNTEER' },
+};
+
+/** Open roles at clubs, narrowed to what the field is about (coaching, off the pitch, volunteering). */
+function Jobs({ id, area, side }: FieldProps & { id: FieldId }) {
     const t = useWorldCopy();
+    const kind = JOBS[id]!;
     const data = useJobs(area);
-    const jobs = (data.data ?? []).filter(job => !coachingOnly || job.category === 'COACHING');
+    const jobs = (data.data ?? []).filter(kind.keep);
     const paid = jobs.filter(job => job.engagementType && job.engagementType !== 'VOLUNTEER').length;
     return (
-        <WorldField id={coachingOnly ? 'coachingJobs' : 'jobs'} side={side} count={data.data ? jobs.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
+        <WorldField id={id} side={side} count={data.data ? jobs.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
             thumb={jobs.length ? <Cluster>{unique(jobs, job => job.clubName ?? job.title).slice(0, 3).map(job => <Crest key={job.id} src={job.clubLogoUrl} name={job.clubName ?? job.title} size={30} />)}</Cluster> : undefined}
-            hint={jobs.length ? [plural(paid, 'paid role'), plural(jobs.length - paid, 'volunteer role')].join(' · ') : undefined}
-            all={{ label: t('All jobs'), to: coachingOnly ? '/world/opportunities?tab=jobs&category=COACHING' : '/world/opportunities?tab=jobs' }}>
-            {jobs.length ? <List label={t(coachingOnly ? 'Coaching jobs' : 'Jobs and volunteering')}>{jobs.slice(0, rowsFor(side)).map(job => <JobRow key={job.id} job={job} compact />)}</List>
-                : <EmptyNote title={t(coachingOnly ? 'No coaching jobs open right now' : 'No open roles right now')}>{t('Clubs post jobs and volunteering here.')}</EmptyNote>}
+            hint={jobs.length ? (id === 'volunteering' ? unique(jobs, job => job.clubName ?? '').slice(0, 2).map(job => job.clubName).filter(Boolean).join(' · ') : [plural(paid, 'paid role'), plural(jobs.length - paid, 'volunteer role')].join(' · ')) : undefined}
+            all={{ label: t('All jobs'), to: kind.to }}>
+            {jobs.length ? <List label={t(kind.label)}>{jobs.slice(0, rowsFor(side)).map(job => <JobRow key={job.id} job={job} compact />)}</List>
+                : <EmptyNote title={t(kind.empty)}>{t('Clubs post jobs and volunteering here.')}</EmptyNote>}
         </WorldField>
     );
 }
-export const JobsField = (props: FieldProps) => <Jobs {...props} />;
-export const CoachingJobsField = (props: FieldProps) => <Jobs {...props} coachingOnly />;
+export const JobsField = (props: FieldProps) => <Jobs {...props} id="jobs" />;
+export const CoachingJobsField = (props: FieldProps) => <Jobs {...props} id="coachingJobs" />;
+export const StaffJobsField = (props: FieldProps) => <Jobs {...props} id="staffJobs" />;
+export const VolunteeringField = (props: FieldProps) => <Jobs {...props} id="volunteering" />;
 
 /** Trials clubs are running, soonest first. */
 export function TrialsField({ side }: FieldProps) {
@@ -36,6 +49,24 @@ export function TrialsField({ side }: FieldProps) {
             all={{ label: t('All trials'), to: '/world/opportunities?tab=trials' }}>
             {items.length ? <List label={t('Open trials')}>{items.slice(0, rowsFor(side)).map(trial => <TrialRow key={trial.id} trial={trial} />)}</List>
                 : <EmptyNote title={t('No open trials right now')}>{t('Clubs publish trials here when they look for players.')}</EmptyNote>}
+        </WorldField>
+    );
+}
+
+/** Fundraisers clubs in the area are running, ending soonest first, with what the money is for. */
+export function CampaignsField({ area, side }: FieldProps) {
+    const t = useWorldCopy();
+    const data = useCampaigns(area);
+    const items = data.data?.content ?? [];
+    return (
+        <WorldField id="campaigns" side={side} count={data.data?.totalElements ?? null} loading={data.loading} error={data.error} onRetry={data.retry}
+            thumb={items.length ? <Cluster>{unique(items, item => String(item.clubId)).slice(0, 3).map(item => <Crest key={item.id} src={item.clubLogoUrl} name={item.clubName} size={30} />)}</Cluster> : undefined}
+            hint={area.city} all={{ label: t('All fundraisers'), to: '/campaigns' }}>
+            {items.length ? <List label={t('Support a club')}>{items.slice(0, rowsFor(side)).map(item => <ListRow key={item.id} to={`/campaigns/${item.id}`}
+                lead={<Crest src={item.clubLogoUrl} name={item.clubName} size={36} />} title={item.title}
+                meta={[item.clubName, item.summary].filter(Boolean).join(' · ')}
+                trail={item.goalAmount ? <Badge tone="accent">{t('Goal {amount}', { amount: `${item.goalAmount.toLocaleString()} ${item.currency}` })}</Badge> : undefined} />)}</List>
+                : <EmptyNote title={t('No fundraisers in {city} right now', { city: area.city })} />}
         </WorldField>
     );
 }

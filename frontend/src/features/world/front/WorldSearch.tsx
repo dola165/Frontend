@@ -21,12 +21,14 @@ const settled = <T,>(result: PromiseSettledResult<T>) => (result.status === 'ful
 const DEBOUNCE = 250;
 
 /**
- * Search across World: the best few clubs, people, venues, competitions and matches, each with a
- * way into its directory. Enter opens the first result of exactly what was typed: if the results
+ * Search across World, in the page header: the best few clubs, people, venues, competitions and matches,
+ * dropping down over the page, each with a way into its directory. Enter opens the first result of exactly what was typed: if the results
  * on screen belong to older text, it searches the new text first and opens its first result.
  */
-export function WorldSearch({ quickStarts }: { quickStarts: ReactNode }) {
+export function WorldSearch() {
     const t = useWorldCopy();
+    const root = useRef<HTMLDivElement>(null);
+    const [open, setOpen] = useState(true);
     const { status, sessionId } = useAuth();
     const navigate = useNavigate();
     const [text, setText] = useState('');
@@ -72,7 +74,7 @@ export function WorldSearch({ quickStarts }: { quickStarts: ReactNode }) {
         if (firstHit) navigate(firstHit.to);
     }, [q, ready, firstHit, navigate]);
     const onKey = (event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Escape') { setText(''); enterFor.current = null; }
+        if (event.key === 'Escape') { setOpen(false); enterFor.current = null; }
         if (event.key !== 'Enter') return;
         const wanted = text.trim();
         if (wanted.length < 2) return;
@@ -80,16 +82,23 @@ export function WorldSearch({ quickStarts }: { quickStarts: ReactNode }) {
         enterFor.current = wanted;
         setQ(wanted);
     };
-    const active = text.trim().length >= 2;
+    const active = open && text.trim().length >= 2;
+    // Results drop down over the page; a click elsewhere folds them away and the text stays.
+    useEffect(() => {
+        if (!active) return;
+        const away = (event: MouseEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); };
+        document.addEventListener('mousedown', away);
+        return () => document.removeEventListener('mousedown', away);
+    }, [active]);
     const count = groups.reduce((sum, group) => sum + (group.hits?.length ?? 0), 0);
     return (
-        <div className="gk-world-search">
-            <SearchInput className="gk-world-search__input" value={text} onChange={event => { setText(event.target.value); enterFor.current = null; }} onKeyDown={onKey} maxLength={120}
+        <div ref={root} className="gk-world-search" data-open={active || undefined}>
+            <SearchInput className="gk-world-search__input" value={text} onChange={event => { setText(event.target.value); setOpen(true); enterFor.current = null; }} onKeyDown={onKey} onFocus={() => setOpen(true)} maxLength={120}
                 placeholder={t('Search clubs, people, venues, matches…')} aria-label={t('Search GrassKickZ World')} aria-describedby="world-search-status" />
             <p id="world-search-status" className="gk-visually-hidden" role="status">
                 {active ? search.loading ? t('Searching…') : t('{count} results. Press Enter to open the first.', { count }) : ''}
             </p>
-            {!active ? quickStarts : (
+            {active && (
                 <div className="gk-world-search__results" aria-label={t('Search results')}>
                     {(search.loading || !search.data ? ['clubs', 'people', 'venues', 'competitions'] : []).map(id => (
                         <Panel key={id} flush><div className="gk-world-search__loading"><Skeleton height={14} width="30%" /><Skeleton height={36} /><Skeleton height={36} /></div></Panel>

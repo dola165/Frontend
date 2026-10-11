@@ -11,7 +11,8 @@ import { groupsSource, jobs, trials } from '../directories/opportunitySources';
 import { arrangements, events, exchange, fixtures } from '../directories/matchSources';
 import { clubsSource } from '../directories/clubSources';
 import { peopleSource } from '../directories/peopleSource';
-import { quickStarts } from '../front/quickStarts';
+import { FIELDS } from '../front/fields';
+import { ROLES, defaultRole, offeredFor, roleLayout } from '../front/roles';
 import { LegacyMatchesRedirect, WorldRedirect } from '../WorldRedirect';
 import { readQuery, useDirectoryState } from '../directory/useDirectoryState';
 import type { AnySource, DirectoryQuery, LoadContext } from '../directory/types';
@@ -87,10 +88,12 @@ const DIRECTORIES: Record<string, { sources: AnySource[]; alias?: string }> = {
     '/world/venues': { sources: [] },
     '/world/competitions': { sources: [competitions] },
 };
-// Every audience's quick starts, once each: a parent's for the chosen child, a coach's and everyone else's.
-const allStarts = [...new Map([...quickStarts('Tbilisi', 'parent', [child], child), ...quickStarts('Tbilisi', 'coach'), ...quickStarts('Tbilisi', 'member')].map(start => [start.to, start])).values()];
+// The directory links the front page's fields end with ("All …"), each with its tab and filters chosen.
+const FIELD_LINKS = ['/world/matches?tab=exchange', '/world/matches?tab=mine', '/world/matches?period=HISTORY', '/world/competitions?registration=OPEN', '/world/competitions?status=ACTIVE',
+    '/world/people?role=SPECIALIST', '/world/clubs?type=ACADEMY&city=Tbilisi', '/world/clubs?joinPolicy=OPEN_TRIAL&joinPolicy=APPLICATION_REQUIRED&city=Tbilisi',
+    '/world/opportunities?tab=groups&player=101', '/world/opportunities?tab=trials', '/world/opportunities?tab=jobs&category=COACHING', '/world/opportunities?tab=jobs&engagement=VOLUNTEER'];
 
-it.each(allStarts.filter(start => !start.to.startsWith('/world/venues')).map(start => [start.label, start.to]))('the quick start "%s" opens its intended tab and filters', (_label, to) => {
+it.each(FIELD_LINKS)('the field link %s opens its intended tab and filters', to => {
     const url = new URL(to, 'http://world');
     const directory = DIRECTORIES[url.pathname];
     render(<MemoryRouter initialEntries={[to]}><Opened sources={directory.sources} alias={directory.alias} /></MemoryRouter>);
@@ -102,10 +105,23 @@ it.each(allStarts.filter(start => !start.to.startsWith('/world/venues')).map(sta
     for (const [key, value] of url.searchParams) if (key !== 'tab') expect(applied[key]).toContain(value);
 });
 
-it('offers a parent the places to train and clubs for the chosen child first', () => {
-    const [places, clubs] = quickStarts('Tbilisi', 'parent', [child], child);
-    expect(places).toMatchObject({ label: 'Places to train for {name}', name: 'Nino', to: '/world/opportunities?tab=groups&player=101' });
-    expect(clubs.to).toBe('/world/clubs?player=101&city=Tbilisi');
+it('gives every role its own page: a list beside the map, a handful below, all of them among its offered fields', () => {
+    const lists = new Set(FIELDS.filter(field => field.shape === 'list').map(field => field.id));
+    for (const role of ROLES) {
+        const layout = roleLayout(role.id);
+        expect(lists.has(layout.side)).toBe(true);
+        expect(layout.fields.length).toBeGreaterThanOrEqual(4);
+        expect(layout.fields.length).toBeLessThanOrEqual(6);
+        expect(layout.fields).not.toContain(layout.side);
+        expect(offeredFor(role.id)).toEqual(expect.arrayContaining([layout.side, ...layout.fields]));
+    }
+});
+
+it('starts a coach, a parent with a chosen child and a club player on their own pages until they choose', () => {
+    expect(defaultRole('coach')).toBe('head-coach');
+    expect(defaultRole('parent')).toBe('parent');
+    expect(defaultRole('member', 'PLAYER')).toBe('player');
+    expect(defaultRole('member')).toBe('fan');
 });
 
 function Where() {
@@ -146,6 +162,3 @@ it('opens the role an old jobs link selected, and the jobs tab otherwise', () =>
     expect(screen.getByText('/world/opportunities?q=coach&tab=jobs')).toBeInTheDocument();
 });
 
-it('offers a coach opponents, referees and pitches first', () => {
-    expect(quickStarts('Tbilisi', 'coach').slice(0, 3).map(start => start.label)).toEqual(['Teams looking for a match', 'Referees', 'Pitches to hire']);
-});

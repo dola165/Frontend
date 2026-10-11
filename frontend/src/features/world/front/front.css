@@ -1,31 +1,31 @@
 /* World front page. Scoped under .gk-world-front; tokens only. */
 .gk .gk-world-front { display: flex; flex-direction: column; gap: var(--gk-6); padding-bottom: var(--gk-16); }
-.gk .gk-world-front .gk-page-header { padding-bottom: 0; }
-.gk .gk-world-front__context { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-4); }
+/* One header row: the title, search, and the area and Customize. Everything else is the map and fields. */
+.gk .gk-world-front__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3) var(--gk-5); padding-top: var(--gk-4); }
+.gk .gk-world-front__titles { flex: none; display: flex; flex-direction: column; gap: 2px; }
+.gk .gk-world-front__titles h1 { margin: 0; font-size: 24px; line-height: 30px; font-weight: 500; letter-spacing: -0.01em; }
+.gk .gk-world-front__titles p { margin: 0; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .gk-world-front__context { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); margin-left: auto; }
 .gk .gk-world-area { display: inline-flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
-.gk .gk-world-area .gk-input { width: auto; min-width: 150px; }
+.gk .gk-world-area .gk-input { width: auto; min-width: 140px; }
 
-/* Search band */
-.gk .gk-world-search { display: flex; flex-direction: column; gap: var(--gk-4); margin-top: calc(-1 * var(--gk-4)); }
-.gk .gk-world-search__input .gk-input { min-height: 56px; padding-left: 48px; border-radius: var(--gk-r-lg); font-size: var(--gk-fs-lg); background: var(--gk-surface); border-color: var(--gk-line-strong); }
-.gk .gk-world-search__input svg { left: 16px; width: 20px; height: 20px; }
-.gk .gk-world-search__results { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--gk-4); align-items: start; }
+/* Search in the header; its results drop down over the page. */
+.gk .gk-world-search { position: relative; flex: 1 1 320px; max-width: 620px; }
+.gk .gk-world-search__input .gk-input { min-height: 42px; padding-left: 40px; border-radius: var(--gk-r-lg); background: var(--gk-surface); border-color: var(--gk-line-strong); }
+.gk .gk-world-search__results { position: absolute; z-index: 30; top: calc(100% + var(--gk-2)); left: 0; width: min(1100px, calc(100vw - 2 * var(--gk-gutter)));
+  max-height: min(70vh, 640px); overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--gk-3); align-items: start;
+  padding: var(--gk-3); border: 1px solid var(--gk-line-strong); border-radius: var(--gk-r-lg); background: var(--gk-bg); box-shadow: var(--gk-elevation); }
 .gk .gk-world-search__loading { display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-4) var(--gk-5); }
 .gk .gk-world-search__note { padding: var(--gk-4) var(--gk-5); font-size: var(--gk-fs-sm); }
 .gk .gk-world-search__results .gk-list-row { min-height: 52px; padding-block: var(--gk-2); }
 .gk .gk-world-search__when { display: flex; flex-direction: column; align-items: flex-start; width: 52px; font-weight: 650; }
 .gk .gk-world-search__when small { font-size: var(--gk-fs-xs); font-weight: 500; color: var(--gk-text-3); font-family: var(--gk-font); }
-.gk .gk-world-starts { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
-.gk .gk-world-starts .gk-chip { min-height: 40px; }
-@media (max-width: 640px) {
-  .gk .gk-world-starts { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--gk-gutter)); padding-inline: var(--gk-gutter); }
-  .gk .gk-world-starts::-webkit-scrollbar { display: none; }
-}
+@media (max-width: 760px) { .gk .gk-world-search { order: 3; flex-basis: 100%; max-width: none; } }
 
 /* The area's map, long and wide, fully in view on arrival, with one field open beside it at the same height.
    The person's other fields follow below as the page scrolls. */
 .gk .gk-world-front__lead { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gk-5); }
-.gk .gk-world-front__map { --gk-world-map-h: clamp(340px, calc(100dvh - 470px), 520px); }
+.gk .gk-world-front__map { --gk-world-map-h: clamp(380px, calc(100dvh - 320px), 760px); }
 .gk .gk-world-front__side { min-width: 0; }
 @media (min-width: 1100px) {
   .gk .gk-world-front__lead { grid-template-columns: minmax(0, 2.8fr) minmax(380px, 1fr); }
@@ -75,3 +75,9 @@
 .gk .gk-wcustom__name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-weight: 500; }
 .gk .gk-wcustom__name small { font-size: var(--gk-fs-sm); font-weight: 400; color: var(--gk-text-3); }
 .gk .gk-world-search__none { grid-column: 1 / -1; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .gk-wcustom__roles { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
+.gk .gk-wcustom__group { flex-basis: 100%; margin-top: var(--gk-1); font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-wcustom__roles .gk-chip[aria-checked='true'] { background: var(--gk-accent-soft); border-color: color-mix(in srgb, var(--gk-accent) 45%, transparent); color: var(--gk-text); }
+.gk .gk-wcustom__more { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .gk-wcustom__more > summary { cursor: pointer; font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-2); }
+.gk .gk-wcustom__more[open] > summary { margin-bottom: var(--gk-3); }

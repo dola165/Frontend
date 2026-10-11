@@ -3,7 +3,8 @@ import { ClubCard } from '../../cards/ClubCard';
 import { useWorldCopy } from '../../copy';
 import { Crest } from '../../Crest';
 import { useWorldChild } from '../../players';
-import { useAcademies, useNearbyClubs, useNearbyVenues } from '../frontData';
+import { GroupItem } from '../../directories/opportunityItems';
+import { useAcademies, useGroups, useNearbyClubs, useNearbyVenues, useOpenClubs } from '../frontData';
 import { Cluster, WorldField } from '../WorldField';
 import { rowsFor, type FieldProps } from './fieldProps';
 
@@ -52,6 +53,37 @@ export function VenuesField({ area, markers, side }: FieldProps) {
                 lead={<Crest src={venue.logoUrl} name={venue.title} size={36} />} title={venue.title}
                 meta={[venue.subtitle, venue.fee].filter(Boolean).join(' · ')} trail={<span className="gk-faint">{venue.distanceKm.toFixed(1)} km</span>} />)}</List>
                 : <EmptyNote title={t('No venues listed within 25 km')} />}
+        </WorldField>
+    );
+}
+
+/** Clubs in the area with open trials or open to applications: where a player can join. */
+export function OpenClubsField({ area, side }: FieldProps) {
+    const t = useWorldCopy();
+    const data = useOpenClubs(area);
+    const items = data.data?.content ?? [];
+    return (
+        <WorldField id="openClubs" side={side} count={data.data ? data.data.totalElements ?? items.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
+            thumb={items.length ? <Cluster>{items.slice(0, 3).map(club => <Crest key={club.id} src={club.logoUrl} name={club.name} size={30} />)}</Cluster> : undefined}
+            hint={area.city} all={{ label: t('All clubs taking players'), to: `/world/clubs?joinPolicy=OPEN_TRIAL&joinPolicy=APPLICATION_REQUIRED&city=${encodeURIComponent(area.city)}` }}>
+            {items.length ? <div className="gk-wfield__cards">{items.slice(0, 4).map(club => <ClubCard key={club.id} club={club} compact />)}</div>
+                : <EmptyNote title={t('No clubs in {city} are taking players right now', { city: area.city })} />}
+        </WorldField>
+    );
+}
+
+/** Training groups with places: for the chosen child's age when there is one. */
+export function GroupsField({ area, side }: FieldProps) {
+    const t = useWorldCopy();
+    const { child } = useWorldChild();
+    const data = useGroups(area);
+    const items = data.data?.items ?? [];
+    return (
+        <WorldField id="groups" side={side} count={data.data?.total ?? null} loading={data.loading} error={data.error} onRetry={data.retry}
+            hint={child ? t('For {name}', { name: child.name }) : area.city}
+            all={{ label: t('All places to train'), to: `/world/opportunities?tab=groups${child ? `&player=${child.id}` : ''}` }}>
+            {items.length ? <List label={t('Places to train')}>{items.slice(0, rowsFor(side)).map(group => <GroupItem key={group.id} item={{ group, player: child?.id }} />)}</List>
+                : <EmptyNote title={t('No groups with places in {city} right now', { city: area.city })} />}
         </WorldField>
     );
 }

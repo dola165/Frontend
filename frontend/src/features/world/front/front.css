@@ -1,5 +1,5 @@
 /* World front page. Scoped under .gk-world-front; tokens only. */
-.gk .gk-world-front { display: flex; flex-direction: column; gap: var(--gk-8); padding-bottom: var(--gk-16); }
+.gk .gk-world-front { display: flex; flex-direction: column; gap: var(--gk-6); padding-bottom: var(--gk-16); }
 .gk .gk-world-front .gk-page-header { padding-bottom: 0; }
 .gk .gk-world-front__context { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-4); }
 .gk .gk-world-area { display: inline-flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-sm); }
@@ -22,42 +22,56 @@
   .gk .gk-world-starts::-webkit-scrollbar { display: none; }
 }
 
-/* The map of the area beside the folded tiles. The map stays in view while a tile is open. */
-.gk .gk-world-front__lead { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gk-6); align-items: start; }
-.gk .gk-world-front__map { --gk-world-map-h: clamp(380px, 64vh, 640px); }
-.gk .gk-world-front__tiles { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
+/* The area's map, long and wide, fully in view on arrival, with one field open beside it at the same height.
+   The person's other fields follow below as the page scrolls. */
+.gk .gk-world-front__lead { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gk-5); }
+.gk .gk-world-front__map { --gk-world-map-h: clamp(340px, calc(100dvh - 470px), 520px); }
+.gk .gk-world-front__side { min-width: 0; }
 @media (min-width: 1100px) {
-  .gk .gk-world-front__lead { grid-template-columns: minmax(0, 1.55fr) minmax(400px, 1fr); }
-  .gk .gk-world-front__map { position: sticky; top: calc(var(--app-active-header-height, 72px) + var(--gk-4)); }
+  .gk .gk-world-front__lead { grid-template-columns: minmax(0, 2.8fr) minmax(380px, 1fr); }
+  /* The field beside the map takes the map's height and scrolls inside, so it never stretches the map. */
+  .gk .gk-world-front__side { position: relative; }
+  .gk .gk-world-front__side > .gk-wfield { position: absolute; inset: 0; }
 }
+/* Lists side by side, growing to fill their row (no empty columns); a card field takes a row of its own. */
+.gk .gk-world-front__fields { display: flex; flex-direction: column; gap: var(--gk-5); }
+.gk .gk-world-front__row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--gk-5); }
+.gk .gk-world-front__row > .gk-wfield { flex: 1 1 440px; }
 
-/* A folded tile: a picture, what it is, the next item, a count. Opening it lists the items in place. */
-.gk .gk-wtile { border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; transition: border-color .15s var(--gk-ease); }
-.gk .gk-wtile[data-open] { border-color: var(--gk-line-strong); }
-.gk .gk-wtile__head { display: flex; align-items: center; gap: var(--gk-3); width: 100%; min-height: 76px; padding: var(--gk-2) var(--gk-3) var(--gk-2) var(--gk-2); border: 0; background: none; color: var(--gk-text); font: inherit; text-align: left; cursor: pointer; }
-.gk .gk-wtile__head:hover { background: var(--gk-hover); }
-.gk .gk-wtile__head:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--gk-accent); }
-.gk .gk-wtile__thumb { position: relative; flex: none; display: grid; place-items: center; width: 84px; height: 60px; border-radius: var(--gk-r); overflow: hidden; background: var(--gk-sunken); }
-.gk .gk-wtile__thumb > img { width: 100%; height: 100%; object-fit: cover; filter: saturate(.9) brightness(.85); }
-.gk .gk-wtile__icon { position: absolute; left: 4px; bottom: 4px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: color-mix(in srgb, var(--gk-bg) 78%, transparent); color: var(--gk-wtile-color, var(--gk-text-2)); }
-.gk .gk-wtile__icon svg { width: 14px; height: 14px; }
-.gk .gk-wtile__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.gk .gk-wtile__text strong { font-size: 14px; font-weight: 600; }
-.gk .gk-wtile__text small { font-size: var(--gk-fs-sm); color: var(--gk-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gk .gk-wtile__preview { flex: none; display: flex; }
-.gk .gk-wtile__count { flex: none; min-width: 28px; text-align: right; font-family: var(--gk-font-display); font-size: 20px; font-weight: 650; color: var(--gk-text); }
-.gk .gk-wtile__chevron { flex: none; width: 18px; height: 18px; color: var(--gk-text-3); transition: transform .2s var(--gk-ease); }
-.gk .gk-wtile[data-open] .gk-wtile__chevron { transform: rotate(180deg); }
-.gk .gk-wtile__body { border-top: 1px solid var(--gk-line); animation: gk-wtile-open .22s var(--gk-ease) both; }
-.gk .gk-wtile__body > .gk-empty, .gk .gk-wtile__body > .gk-notice { margin: var(--gk-4); }
-.gk .gk-wtile__all { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-2); padding: var(--gk-3) var(--gk-4); border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-accent); }
-.gk .gk-wtile__all svg { width: 16px; height: 16px; }
-.gk .gk-wtile__all:hover { background: var(--gk-hover); }
-.gk .gk-wtile__clubs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: var(--gk-3); padding: var(--gk-3); }
-/* Crests or faces overlapping: the picture of a tile about clubs or people. */
-.gk .gk-wtile__cluster { display: flex; align-items: center; }
-.gk .gk-wtile__cluster > * { box-shadow: 0 0 0 2px var(--gk-surface); border-radius: 50%; }
-.gk .gk-wtile__cluster > * + * { margin-left: -8px; }
-@keyframes gk-wtile-open { from { opacity: 0; transform: translateY(-4px); } }
-@media (prefers-reduced-motion: reduce) { .gk .gk-wtile__body { animation: none; } }
+/* A field: a picture, what it is, the next thing and a count; then its list and the way to the directory. */
+.gk .gk-wfield { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; }
+.gk .gk-wfield__head { flex: none; display: flex; align-items: center; gap: var(--gk-3); padding: var(--gk-3); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-wfield__thumb { position: relative; flex: none; display: grid; place-items: center; width: 64px; height: 46px; border-radius: var(--gk-r); overflow: hidden; background: var(--gk-sunken); }
+.gk .gk-wfield__thumb > img { width: 100%; height: 100%; object-fit: cover; filter: saturate(.9) brightness(.85); }
+.gk .gk-wfield__icon { position: absolute; left: 3px; bottom: 3px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: color-mix(in srgb, var(--gk-bg) 78%, transparent); color: var(--gk-wfield-color, var(--gk-text-2)); }
+.gk .gk-wfield__icon svg { width: 13px; height: 13px; }
+.gk .gk-wfield__titles { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.gk .gk-wfield__titles h2 { margin: 0; font-family: var(--gk-font); font-size: var(--gk-fs-lg); font-weight: 600; letter-spacing: 0; }
+.gk .gk-wfield__titles small { font-size: var(--gk-fs-sm); color: var(--gk-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-wfield__count { flex: none; font-family: var(--gk-font-display); font-size: 20px; font-weight: 650; color: var(--gk-text); }
+.gk .gk-wfield__body { flex: 1; min-height: 0; }
+.gk .gk-wfield[data-side] .gk-wfield__body { overflow-y: auto; scrollbar-width: thin; }
+.gk .gk-wfield__body > .gk-empty, .gk .gk-wfield__body > .gk-notice { margin: var(--gk-4); }
+/* Beside the map the column is narrow: titles may take two lines rather than being cut. */
+.gk .gk-wfield[data-side] .gk-fixture__title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.gk .gk-wfield__loading { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3); }
+.gk .gk-wfield__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: var(--gk-3); padding: var(--gk-3); }
+.gk .gk-wfield__all { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--gk-2); padding: var(--gk-3) var(--gk-4); border-top: 1px solid var(--gk-line); font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-accent); }
+.gk .gk-wfield__all svg { width: 16px; height: 16px; }
+.gk .gk-wfield__all:hover { background: var(--gk-hover); }
+/* Crests or faces overlapping: the picture of a field about clubs or people. */
+.gk .gk-wfield__cluster { display: flex; align-items: center; }
+.gk .gk-wfield__cluster > * { box-shadow: 0 0 0 2px var(--gk-sunken); border-radius: 50%; }
+.gk .gk-wfield__cluster > * + * { margin-left: -10px; }
+
+/* Customize: presets, the field beside the map, the fields below in order, and more to add. */
+.gk .gk-wcustom__block { display: flex; flex-direction: column; gap: var(--gk-2); }
+.gk .gk-wcustom__block h3 { margin: 0; font-family: var(--gk-font); font-size: var(--gk-fs-sm); font-weight: 600; color: var(--gk-text-2); }
+.gk .gk-wcustom__presets { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .gk-wcustom__list { margin: 0; padding: 0; list-style: none; border: 1px solid var(--gk-line); border-radius: var(--gk-r); }
+.gk .gk-wcustom__row { display: flex; align-items: center; gap: var(--gk-2); min-height: 48px; padding: var(--gk-1) var(--gk-2) var(--gk-1) var(--gk-3); }
+.gk .gk-wcustom__row + .gk-wcustom__row { border-top: 1px solid var(--gk-line); }
+.gk .gk-wcustom__icon { flex: none; width: 18px; height: 18px; color: var(--gk-text-3); }
+.gk .gk-wcustom__name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-weight: 500; }
+.gk .gk-wcustom__name small { font-size: var(--gk-fs-sm); font-weight: 400; color: var(--gk-text-3); }
 .gk .gk-world-search__none { grid-column: 1 / -1; font-size: var(--gk-fs-sm); color: var(--gk-text-3); }

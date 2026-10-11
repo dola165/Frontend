@@ -182,14 +182,13 @@ The app today, compared with how clubs usually work (coaches to confirm):
   - Competitions: age, format, entry deadline, fee.
 - **If built overnight:** make two overview versions behind a switch, so the owner picks.
 
-**Overview, by audience** (decided 11 October; the owner: "uselessly lot of lists", and every user type should see different things).
-- **Map first and bigger:** the area's map fills the left; it stays in view while you read beside it. Its inner workings come with section 5.
-- **Folded picture tiles instead of lists:** each tile shows a photo (or crests and faces), what it is, the next item and a count. A click unfolds the list in place, with the way to the full directory at the end; one tile is open at a time, kept in the URL (`open`).
-- **Each audience its own tiles and order** (`front/audience.ts`, from the same relationships as the role tabs):
-  - **Coach:** teams looking for a match, matches near you, open for entries, people to know, pitches to hire, jobs and trials, clubs.
-  - **Parent** (a child chosen): clubs for the child, trials, matches, pitches, competitions, people.
-  - **Everyone else:** matches, clubs, opportunities, competitions, people, pitches.
-- **Shortcuts by audience too:** a coach's start with opponents, referees, pitches and competitions.
+**Overview: the person's own page** (11 October; the owner: "uselessly lot of lists"; every user type, and every kind of coach, wants different things).
+- **The map first, long rather than tall:** about three quarters of the width and fully in view on arrival. Its inner workings come with section 5.
+- **One field open beside the map,** at the map's height and scrolling inside. The person's other fields follow below as the page scrolls: lists share rows, and club cards take a row of their own ("Clubs near you" is back as cards).
+- **People choose their fields** (Customize): 14 fields over matches, people, clubs and places, and opportunities, each from data the app already serves. Choose what sits beside the map, add, remove and order the rest; changes show at once.
+  - Presets for the many kinds of coach: head coach (the default, 6 fields), team manager, fitness coach, goalkeeper coach, analyst or scout, academy director. Parents and everyone else start from their own defaults.
+  - Kept in the browser for now (backend needed: a per-person preference so it follows them across devices).
+- **Shortcuts by audience:** a coach's start with opponents, referees, pitches and competitions.
 
 ## 5. Map and Journeys
 
@@ -286,6 +285,7 @@ This branch is the real frontend code on fake data, so what is built here ships 
   - Dragging club events needs the club event API; only squad sessions move today.
   - Changing the end time by resizing is not supported yet.
   - Initials avatars now take soft colours app-wide; check the screens that relied on grey ones.
+- **World overview:** save each person's field layout on the server (today it is per browser); Georgian copy for the new fields.
 - **Injuries** (`SCENARIOS.md`): the backend pieces listed there, starting with an injury report record.
 - **Colours after the restore:**
   - Check the schedule in the light theme (only its tokens were fixed there).

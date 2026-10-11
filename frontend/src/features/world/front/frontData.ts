@@ -4,7 +4,8 @@ import { eventSearch, type EventItem } from '../../requests/api';
 import { browseCompetitions } from '../../competitions/api';
 import { fetchOpenJobDirectory } from '../../clubs/api';
 import { searchTryouts } from '../../tryouts/api';
-import { fetchClubDirectory, fetchMatchListings, fetchPeople } from '../api';
+import { getMatchHistory } from '../../matchHistory/api';
+import { fetchClubDirectory, fetchMatchListings, fetchPeople, fetchReferees } from '../api';
 import { isoDay, isoDayOf } from '../format';
 import { ageOn, useWorldChild } from '../players';
 import { useWorldData, type WorldData } from '../useWorldData';
@@ -37,12 +38,9 @@ export function useOpenMatches(area: WorldArea) {
 export const useOpenCompetitions = () =>
     useWorldData('open-competitions', signal => browseCompetitions(new URLSearchParams({ registration: 'OPEN', page: '0', size: '6' }), signal));
 
-/** Open jobs and volunteering, and the next open trials. */
-export function useFrontOpportunities(area: WorldArea) {
-    return useWorldData(area.ready ? `front-opportunities:${area.city}` : null, async signal => {
-        const [jobs, trials] = await Promise.all([fetchOpenJobDirectory(signal), searchTryouts({ status: 'OPEN', page: 0, size: 4 }, signal)]);
-        return { jobs, trials: trials.items, trialTotal: trials.total };
-    });
+/** Open jobs and volunteering at clubs. */
+export function useJobs(area: WorldArea) {
+    return useWorldData(area.ready ? `front-jobs:${area.city}` : null, signal => fetchOpenJobDirectory(signal));
 }
 
 /** Coaches, referees and specialists in the area, from outside the person's own club. */
@@ -82,4 +80,35 @@ export function useNearbyClubs(area: WorldArea, markers: WorldData<MapPageResult
 export function useNearbyVenues(markers: WorldData<MapPageResult>) {
     const items = (markers.data?.content ?? []).filter(marker => marker.entityType !== 'CLUB').sort((a, b) => a.distanceKm - b.distanceKm);
     return { ...markers, items };
+}
+
+/** Referees who take matches, as the Officials directory lists them. */
+export const useReferees = () => useWorldData('front-referees', signal => fetchReferees({ page: 0 }, signal));
+
+/** The friendlies this person is arranging through the match exchange. */
+export function useArrangements() {
+    const { status } = useAuth();
+    return useWorldData(status === 'authenticated' ? 'front-arrangements' : null, signal => fetchMatchListings(new URLSearchParams({ mine: 'true' }), signal));
+}
+
+/** Recently recorded results, newest first. */
+export function useResults() {
+    const { sessionId } = useAuth();
+    return useWorldData(`front-results:${sessionId}`, signal => getMatchHistory(new URLSearchParams({ period: 'HISTORY', page: '0', size: '8' }).toString(), signal, sessionId));
+}
+
+/** Open trials, soonest first. */
+export const useTrials = () => useWorldData('front-trials', signal => searchTryouts({ status: 'OPEN', page: 0, size: 8 }, signal));
+
+/** Specialists in the area: physios, fitness and nutrition, psychology, video analysis. */
+export function useSpecialists(area: WorldArea) {
+    const { status, sessionId } = useAuth();
+    return useWorldData(status === 'authenticated' && area.ready ? `front-specialists:${area.city}:${sessionId}` : null,
+        signal => fetchPeople({ city: area.city, role: 'SPECIALIST', size: 8 }, sessionId, signal));
+}
+
+/** Academies in the area, by size. */
+export function useAcademies(area: WorldArea) {
+    return useWorldData(area.ready ? `front-academies:${area.city}` : null,
+        signal => fetchClubDirectory(new URLSearchParams({ city: area.city, type: 'ACADEMY', sort: 'MEMBER_COUNT', page: '0', size: '8' }), signal));
 }

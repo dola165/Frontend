@@ -11,7 +11,13 @@ export interface StageMap {
     /** Something floating at the top centre, such as "Search Rustavi". */ top?: ReactNode;
     /** What the folded strip says ("10 clubs"). */ summary?: string;
     /** The page puts a panel over the map's right side: the map keeps clear of it. */ panel?: boolean;
+    /** Fly to this pin; a new token flies again. While set, new pins never reframe the map. */ focus?: MapFocus;
+    /** A new value frames every pin again ("Show all"). */ frame?: number;
+    /** False while the page shows the chosen pin's result itself (its Browse row), so the map's own card stays hidden. */ card?: boolean;
 }
+
+/** A flight to a pin. The token is unique for the whole visit (the map outlives every list), so a new one always flies. */
+export interface MapFocus { id: string; token: string }
 
 export interface StageValue {
     /** False outside World (tests, previews): the page's header and panel then render where they are. */ inStage: boolean;

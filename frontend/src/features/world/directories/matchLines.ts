@@ -38,7 +38,7 @@ export function fixtureLine(m: HistoryMatch): BrowseLine {
                 : [wt(SOURCE_LABEL[m.source]), undefined];
     return {
         when: { time: played ? `${m.homeScore} – ${m.awayScore}` : fixtureTime(m.startsAt, zone), day: fixtureDay(m.startsAt, zone) },
-        title: fixtureTitle(m), to: m.detailPath, fact, factTone: tone,
+        title: fixtureTitle(m), to: m.detailPath, action: wt('Open match'), fact, factTone: tone,
         detail: [m.homeSquadName && m.awaySquadName && m.homeSquadName === m.awaySquadName ? m.homeSquadName : null, m.tournamentName, m.locationName].filter(Boolean).join(' · '),
     };
 }
@@ -56,7 +56,7 @@ export function fixturePlace(m: HistoryMatch, places: Places): Placement | null 
     const competition = places.competition(m.tournamentId);
     if (competition) return { lat: competition.lat, lng: competition.lng, tone: 'match', approximate: 'ground', label: fixtureTitle(m), meta, to: m.detailPath, noun: ['match', 'matches'] };
     const home = places.club(m.homeClubId);
-    return home ? { lat: home.lat, lng: home.lng, tone: 'match', approximate: 'club', pin: `club:${m.homeClubId}`, label: home.name, noun: ['match', 'matches'], to: `/clubs/${m.homeClubId}` } : null;
+    return home ? { lat: home.lat, lng: home.lng, tone: 'match', approximate: 'club', pin: `club:${m.homeClubId}`, label: home.name, noun: ['match', 'matches'], to: `/clubs/${m.homeClubId}`, action: wt('Open club') } : null;
 }
 
 const listingWhen = (m: Match) => ({ time: fixtureTime(m.starts_at_iso, m.timezone), day: fixtureDay(m.starts_at_iso, m.timezone) });
@@ -65,7 +65,7 @@ const listingFacts = (m: Match, ...first: (string | null)[]) => [...first, wt(fo
 /** An open match: when, whose, and whether they host or travel. */
 export function listingLine(m: Match): BrowseLine {
     const hosting = HOSTING[m.venue_preference];
-    return { when: listingWhen(m), crest: { src: m.club_logo_url, name: m.club_name }, title: m.title, to: `/match-exchange/${m.event_id}`,
+    return { when: listingWhen(m), crest: { src: m.club_logo_url, name: m.club_name }, title: m.title, to: `/match-exchange/${m.event_id}`, action: wt('Open match'),
         detail: listingFacts(m, `${m.club_name} ${m.squad_name}`), fact: hosting && wt(hosting) };
 }
 
@@ -73,15 +73,19 @@ export function listingLine(m: Match): BrowseLine {
 export function arrangementLine(m: Match): BrowseLine {
     const state = arrangementState(m);
     return { when: listingWhen(m), crest: { src: m.club_logo_url, name: m.club_name }, title: m.opponent_name ? `${m.club_name} v ${m.opponent_name}` : m.title,
-        to: `/match-exchange/${m.event_id}`, detail: listingFacts(m, m.squad_name),
+        to: `/match-exchange/${m.event_id}`, action: wt('Open match'), detail: listingFacts(m, m.squad_name),
         fact: state === 'OPEN' ? wt('Looking for an opponent') : journeyLabel(state, isGeorgian() ? 'ka' : 'en'), factTone: factTone(arrangementTone(state)) };
 }
+
+/** What opening an event leads to, by where its destination goes. A club calendar event is a match only when it is one. */
+const EVENT_ACTION: Record<EventItem['kind'], string> = { TOURNAMENT: 'Open tournament', SCHEDULE: 'Open event', SESSION: 'Open squad', TRYOUT: 'See trials' };
+const eventAction = (item: EventItem) => item.kind === 'SCHEDULE' && item.activity === 'MATCH' ? 'Open match' : EVENT_ACTION[item.kind];
 
 /** A published event on the fixture line, its kind on the right. */
 export function eventLine(item: EventItem): BrowseLine {
     const badge = EVENT_BADGE[item.activity] ?? EVENT_BADGE.OTHER;
     const allDay = item.activity === 'TOURNAMENT' && fixtureTime(item.startsAt) === '00:00';
-    return { when: { time: allDay ? wt('All day') : fixtureTime(item.startsAt), day: fixtureDay(item.startsAt) }, title: item.name,
+    return { when: { time: allDay ? wt('All day') : fixtureTime(item.startsAt), day: fixtureDay(item.startsAt) }, title: item.name, action: wt(eventAction(item)),
         to: eventDestination(item) ?? undefined, detail: [item.context, item.location].filter(Boolean).join(' · '), fact: wt(badge.label), factTone: factTone(badge.tone) };
 }
 

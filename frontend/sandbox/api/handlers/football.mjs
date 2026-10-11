@@ -362,7 +362,8 @@ const summaryFilter = q => {
 get('/tournaments', ({ query: q }) => pageResult(summaryFilter(q), pageOf(q), sizeOf(q, 20)));
 get('/tournaments/mine', ({ query: q }) => pageResult(summaryFilter(q).filter(s => F.tournamentState.get(s.id).entries.some(e => e.clubId === DINAMO) || F.tournamentState.get(s.id).staff.some(a => a.userId === W.ME_ID)), pageOf(q), sizeOf(q, 20)));
 get('/competitions/mine', ({ query: q }) => pageResult(summaryFilter(q).filter(s => F.tournamentState.get(s.id).entries.some(e => e.clubId === DINAMO) || F.tournamentState.get(s.id).staff.some(a => a.userId === W.ME_ID)), pageOf(q), sizeOf(q, 20)));
-get('/tournaments/invitations/mine', ({ query: q }) => pageResult([304, 307].map(id => { const t = F.tournamentById(id), s = F.tournamentSummary(t); return { invitationId: 7700 + id, tournamentId: id, tournamentName: t.name, tournamentStatus: s.status, visibility: 'PUBLIC', participantScope: 'CLUB', clubName: clubById(DINAMO).name, squadName: id === 304 ? 'U16 Girls' : 'First Team', status: 'PENDING' }; }), pageOf(q), sizeOf(q, 10)));
+// As the backend sends them: the invited club and squad by id too, and the tournament's start.
+get('/tournaments/invitations/mine', ({ query: q }) => pageResult([304, 307].map(id => { const t = F.tournamentById(id), s = F.tournamentSummary(t), squad = squads.find(x => x.clubId === DINAMO && x.name === (id === 304 ? 'U16 Girls' : 'First Team')); return { invitationId: 7700 + id, tournamentId: id, tournamentName: t.name, tournamentStatus: s.status, visibility: 'PUBLIC', participantScope: 'CLUB', clubId: DINAMO, clubName: clubById(DINAMO).name, squadId: squad?.id ?? null, squadName: squad?.name ?? null, startDate: s.startDate ?? iso(t.start), status: 'PENDING' }; }), pageOf(q), sizeOf(q, 10)));
 
 // Events discovery (Find events): tournaments, public fixtures, tryouts.
 get('/tournaments/discovery', ({ query: q }) => {

@@ -85,6 +85,38 @@ describe('choosing the tab', () => {
     });
 });
 
+describe('the chosen result', () => {
+    function Probe({ sources }: { sources: DirectorySource<Row>[] }) {
+        const state = useDirectoryState(sources);
+        return <>
+            <button type="button" onClick={() => state.setSelected('3')}>choose</button>
+            <button type="button" onClick={() => state.setSort('NAME')}>sort</button>
+            <button type="button" onClick={() => state.setShown(2)}>more</button>
+            <button type="button" onClick={() => state.setSearch('dinamo')}>search</button>
+            <button type="button" onClick={() => state.setValues('maxFee', ['50'])}>filter</button>
+            <button type="button" onClick={() => state.clearFilters()}>clear</button>
+            <button type="button" onClick={() => state.setTab(sources[1].id)}>tab</button>
+            <p data-testid="selected">{state.selected ?? '-'}</p>
+        </>;
+    }
+    const chosen = () => screen.getByTestId('selected').textContent;
+
+    it('stays in the address through sorting and showing more, and goes with a new search, filter, Clear or tab', () => {
+        render(<MemoryRouter initialEntries={['/world/clubs']}><Probe sources={[source(), source({ id: 'hosts' })]} /><Where /></MemoryRouter>);
+        fireEvent.click(screen.getByText('choose'));
+        expect(where()).toBe('/world/clubs?selected=3');
+        fireEvent.click(screen.getByText('sort'));
+        fireEvent.click(screen.getByText('more'));
+        expect(chosen()).toBe('3');
+        for (const action of ['search', 'filter', 'clear', 'tab']) {
+            fireEvent.click(screen.getByText('choose'));
+            expect(chosen()).toBe('3');
+            fireEvent.click(screen.getByText(action));
+            expect(chosen()).toBe('-');
+        }
+    });
+});
+
 describe('the search box', () => {
     function Search() {
         const location = useLocation();

@@ -22,14 +22,31 @@
 .gk .gk-browse__loading { display: flex; flex-direction: column; gap: var(--gk-2); padding: var(--gk-3); }
 .gk .gk-browse__body > .gk-notice { margin: var(--gk-3); }
 
-/* Lines in the panel: a narrower time column, a smaller crest, the fact kept short. */
+/* Lines in the panel are buttons that choose a result: a narrower time column, a smaller crest, the fact kept short. */
 .gk .gk-browse__rows > li + li { border-top-color: var(--gk-glass-line, var(--gk-line)); }
-.gk .gk-browse__row { gap: var(--gk-2) var(--gk-3); min-height: 52px; padding-inline: var(--gk-3); }
+.gk .gk-browse__item { transition: background-color .2s var(--gk-ease); }
+.gk .gk-browse__row { width: 100%; gap: var(--gk-2) var(--gk-3); min-height: 52px; padding-inline: var(--gk-3); border: 0; border-radius: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.gk .gk-browse__row:hover { background: var(--gk-hover); }
+.gk .gk-browse__row:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--gk-accent); }
 .gk .gk-browse__row[data-when] { grid-template-columns: 56px auto minmax(0, 1fr) auto; }
 .gk .gk-browse__row[data-when]:not(:has(> .gk-avatar)) { grid-template-columns: 56px minmax(0, 1fr) auto; }
 .gk .gk-browse__row:not([data-when]):not(:has(> .gk-avatar)) { grid-template-columns: minmax(0, 1fr) auto; }
 .gk .gk-browse__row .gk-sb__fact { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
-.gk .gk-browse__row[aria-current='true'] { background: var(--gk-accent-soft); }
-.gk .gk-browse__row[data-highlighted] { background: var(--gk-hover); }
+/* Rows on the chosen pin, and on the pin under the pointer, take a soft tint. */
+.gk .gk-browse__row[data-at-pin], .gk .gk-browse__row[data-highlighted] { background: var(--gk-hover); }
+/* The chosen result: a more opaque surface, its title only, and one action beside it, as wide as its words. */
+.gk .gk-browse__item[data-chosen] { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding-right: var(--gk-3);
+  background: color-mix(in srgb, var(--gk-surface) 92%, transparent); box-shadow: inset 0 0 0 1px var(--gk-line-strong); }
+.gk .gk-browse__item[data-chosen] .gk-browse__row:hover { background: none; }
+.gk .gk-browse__open { display: inline-flex; align-items: center; gap: 6px; max-width: 200px; min-width: 0; min-height: 32px; padding: 0 12px;
+  border-radius: var(--gk-r-pill); background: var(--gk-accent); color: var(--gk-on-accent); font-size: var(--gk-fs-sm); font-weight: 600; white-space: nowrap;
+  animation: gk-browse-open .2s var(--gk-ease-out, ease) both; }
+.gk .gk-browse__open span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gk .gk-browse__open:hover { background: var(--gk-accent-strong); }
+.gk .gk-browse__open:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-surface), 0 0 0 4px var(--gk-accent); }
+.gk .gk-browse__open svg { flex: none; width: 14px; height: 14px; }
+@keyframes gk-browse-open { from { opacity: 0; transform: translateX(6px); } }
+@media (pointer: coarse) { .gk .gk-browse__open { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) { .gk .gk-browse__open { animation: none; } .gk .gk-browse__item { transition: none; } }
 .gk .gk-browse__more { display: block; width: 100%; min-height: 44px; padding: 0 var(--gk-4); border: 0; border-top: 1px solid var(--gk-glass-line, var(--gk-line)); background: none; color: var(--gk-accent); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; text-align: left; cursor: pointer; }
 .gk .gk-browse__more:hover { background: var(--gk-hover); }

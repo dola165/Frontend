@@ -6,6 +6,7 @@ import { Button } from '../../../design/primitives';
 import { useWorldCopy } from '../copy';
 import { useWorldData } from '../useWorldData';
 import { useAppTheme } from './canvas/useMapTheme';
+import type { MapFocus } from '../stage/stageContext';
 import { pinHover, pinLabel } from './pins';
 import './world-map.css';
 
@@ -20,6 +21,7 @@ export interface WorldMapPoint {
     /** Several results at one place (three jobs at a club): the pin shows how many. */ count?: number;
     /** Placed near rather than at its own place (its own place is not known): drawn as a ring, and the card says where. */ approximate?: Approximate;
     /** The kinds of result at a pin that holds several (its tone is then "mixed"). */ tones?: WorldMapTone[];
+    /** What the card calls opening `to` ("Open club"); "Open" when absent. */ action?: string;
 }
 
 const TONE_LABEL: Record<WorldMapTone, string> = { club: 'Clubs', venue: 'Venues', match: 'Matches', trial: 'Trials', event: 'Events', training: 'Training', person: 'People', mixed: 'Several kinds' };
@@ -54,7 +56,7 @@ function MapSketch({ points, selectedId, highlightId, onSelect, onHover }: { poi
  * A map of World results. Uses the street map when it can load, and otherwise shows the same points on a plain
  * sketch so results stay usable without map tiles. `hero` is the big glass look of World's overview and tabs.
  */
-export function WorldMap({ points, label, selectedId, highlightId, onSelect, onHover, onMoveEnd, className, footer, overlay, insetRight, variant, cardActions }: {
+export function WorldMap({ points, label, selectedId, highlightId, onSelect, onHover, onMoveEnd, className, footer, overlay, insetRight, variant, cardActions, focus, frame, card = true }: {
     points: WorldMapPoint[]; label: string; selectedId?: string; /** A point to emphasise, such as the result under the pointer. */ highlightId?: string;
     onSelect?: (id?: string) => void; /** The pointer or focus is on a pin (or left it). */ onHover?: (id?: string) => void;
     /** The person panned or zoomed the map (framing the points does not count). */ onMoveEnd?: (bounds: MapBounds) => void;
@@ -63,6 +65,8 @@ export function WorldMap({ points, label, selectedId, highlightId, onSelect, onH
     /** Room kept free on the right for a panel floating over the map (pixels). */ insetRight?: number;
     variant?: 'hero';
     /** More ways on from the chosen pin's card, besides Open and Close. */ cardActions?: (point: WorldMapPoint) => ReactNode;
+    /** Fly to one pin (see `StageMap.focus`); a new `frame` frames every pin again. */ focus?: MapFocus; frame?: number;
+    /** False while the page shows the chosen result itself, so the card stays hidden. */ card?: boolean;
 }) {
     const t = useWorldCopy();
     const theme = useAppTheme();
@@ -72,7 +76,7 @@ export function WorldMap({ points, label, selectedId, highlightId, onSelect, onH
     // A page that handles choosing owns the selection, so a pin chosen on another page never stays chosen here.
     const selected = onSelect ? selectedId : ownSelection;
     const select = (id?: string) => { setOwnSelection(id); onSelect?.(id); };
-    const point = points.find(item => item.id === selected);
+    const point = card ? points.find(item => item.id === selected) : undefined;
     const live = Boolean(style.data) && !liveFailed;
     const tones = [...new Set(points.flatMap(item => item.tone === 'mixed' ? [...(item.tones ?? []), item.tone] : [item.tone]))];
     const approximate = [...new Set(points.flatMap(item => item.approximate ? [item.approximate] : []))];
@@ -82,7 +86,7 @@ export function WorldMap({ points, label, selectedId, highlightId, onSelect, onH
             <div className="gk-world-map__canvas" data-card={point ? true : undefined}>
                 {live
                     ? <Suspense fallback={<MapSketch points={points} {...pins} />}>
-                        <WorldLiveMap style={style.data!} points={points} {...pins} onMoveEnd={onMoveEnd} onFail={() => setLiveFailed(true)} insetRight={insetRight} />
+                        <WorldLiveMap style={style.data!} points={points} {...pins} onMoveEnd={onMoveEnd} onFail={() => setLiveFailed(true)} insetRight={insetRight} focus={focus} frame={frame} />
                     </Suspense>
                     : <MapSketch points={points} {...pins} />}
                 {(tones.length > 1 || approximate.length > 0) && (
@@ -105,7 +109,7 @@ export function WorldMap({ points, label, selectedId, highlightId, onSelect, onH
                             {(point.meta || point.approximate) && <span>{[point.meta, point.approximate ? t(APPROXIMATE[point.approximate]) : ''].filter(Boolean).join(' · ')}</span>}
                         </span>
                         {cardActions?.(point)}
-                        {point.to && <Link className="gk-section__action" to={point.to}>{t('Open')}</Link>}
+                        {point.to && <Link className="gk-section__action" to={point.to}>{point.action ?? t('Open')}</Link>}
                         <Button size="sm" variant="ghost" onClick={() => select(undefined)}>{t('Close')}</Button>
                     </div>
                 )}

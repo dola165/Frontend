@@ -25,6 +25,7 @@ How a World page (the overview, a tab, a field) is built, so every page and ever
    - **The header row** (`StageHead`): title and short subtitle, the page's lists, the search, the filters, the actions.
    - **The map** (`useStageMap`): one map for all of World. The page only says which pins and pills it shows. The results on screen are its pins, one to one, and one search drives both. It folds to a strip, and the fold is remembered.
    - **The panel over the map** (`StagePanel`): the overview's field, or a list's "Browse area" (the count, the sort, and each result as one line from `source.line`).
+   - **Choosing a result:** every `line()` returns its `action` ("Open club"), and a `place()` whose pin is something else (a person's club) names its own. Lines are buttons that choose; only the chosen line offers its action. The choice lives in the address (`selected`); the map flies only when a line is pressed or a link arrives with a choice.
    - **Places only:** people are counted at their club and never named on the map. A result placed at its club is a ring, and results without a place are counted.
 7. **Honest states.**
    - Loading looks like the result.

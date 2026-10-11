@@ -62,7 +62,7 @@ Built in this phase:
 
 Moved to the phase that first uses them (so nothing is built before it is needed): map layers and the generic left drawer (D); group headers, `line(item, places)`, the shared score-line pieces and deleting the fake "Live" style (C); a leading overview segment, segment counts and icons and a default segment per role (B, E); `WorldMapPoint.chip` and `.dim` (C, F); sheet widths (C); and each sandbox fix (referee routes and modes, referee availability, invited referees, venue order and city, tournament filters, scopes and invitation review) in the phase whose screens it affects.
 
-Size: M.
+Size: M. Built, reviewed by three lenses (14 findings confirmed, all fixed: flights after a list changes, a choice kept through "Show more" and dropped by an area change, the shared pin's card, "Show all" after a flight, the Open pill's width, pin links that keep the searched date, the sandbox join filter, the fee range) and checked at 1920.
 
 ### Phase B · People, rebuilt (your item 2)
 
@@ -88,6 +88,7 @@ Size: L.
 - **My arrangements as lanes:** Needs you · Waiting on them · Coming up · Played, each match with a four-dot track (Opponent · Ground · Referee · Result). Completed arrangements show their score (today they read "Arranged").
 - **The match sheet** slides in from the right: form of both sides, last meeting, the table, the track, and the one action you can take (confirm a result, choose an offer, pick players, plan the journey). Rare and destructive work stays on the full match page.
 - "Add a past match" is no longer hidden behind the Results view.
+- The sandbox also sends club calendar events that are not matches (training, trials, club events) as `SCHEDULE` rows, as the backend does. Their line already says "Open event", not "Open match" (fixed in A).
 
 Size: L.
 

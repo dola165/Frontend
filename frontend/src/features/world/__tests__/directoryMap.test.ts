@@ -30,6 +30,8 @@ describe('pins', () => {
         const placed = placePoints(jobs, job => job.id, job => job.club ? at({ pin: `club:${job.club}`, label: `Club ${job.club}`, noun: ['role', 'roles'] }) : null, count);
         expect(placed.points.map(point => `${point.id}:${point.label}:${point.count}:${point.meta}`)).toEqual(['club:1:Club 1:2:2 roles', 'club:2:Club 2:1:1 role']);
         expect(placed.pinOf.get('b')).toBe('club:1');
+        expect(placed.keysOf.get('club:1')).toEqual(['a', 'b']);
+        expect(placed.keysOf.get('club:2')).toEqual(['c']);
         expect(placed.unplaced).toBe(1);
     });
     it('marks a pin holding several kinds of result as mixed and lists the kinds', () => {

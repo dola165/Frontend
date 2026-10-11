@@ -22,7 +22,7 @@ const programme = (id: number, name: string, ageMin: number | null, ageMax: numb
 });
 const club = (overrides: Partial<ClubProfile> = {}): ClubProfile => ({
     id: 4, name: 'Saburtalo Youth', description: 'Youth club', type: 'ACADEMY', isOfficial: true, followerCount: 10, memberCount: 30, isFollowedByMe: false,
-    cityName: 'Tbilisi', joinPolicy: 'OPEN_TRIAL', relationshipState: 'NONE',
+    cityName: 'Tbilisi', playerJoinPolicy: 'OPEN_TRIAL', relationshipState: null, isMember: false,
     presentation: { profileKind: 'ACADEMY', revision: 1, canEdit: false, programmes: [programme(71, 'Seniors', 18, null), programme(72, 'Little kickers', 6, 10)], sponsors: [], affiliations: [] },
     ...overrides,
 });
@@ -87,7 +87,7 @@ describe('joining for yourself', () => {
 
     it('applies to a club that asks for applications', async () => {
         vi.mocked(createClubApplication).mockResolvedValue({} as never);
-        show(club({ joinPolicy: 'APPLICATION_REQUIRED' }));
+        show(club({ playerJoinPolicy: 'APPLICATION_REQUIRED' }));
         fireEvent.click(screen.getByRole('button', { name: 'Apply as player' }));
         await waitFor(() => expect(createClubApplication).toHaveBeenCalledWith(4, 'PLAYER', null));
         expect(await screen.findByText('Application pending')).toBeInTheDocument();

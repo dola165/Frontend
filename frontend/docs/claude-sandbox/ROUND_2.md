@@ -261,6 +261,7 @@ The app today, compared with how clubs usually work (coaches to confirm):
   - **Filters are pills that show their value** ("Upcoming", "Academies +1"). Choices open in a small glass panel over the map, so nothing below moves. More filters opens a larger panel. Clear filters sits at the end.
   - **One map for all of World.** The overview's map stays alive from tab to tab and only its pins change, so it never reloads. The World bar and the header keep the same height on every tab, so the map never moves, and switching tabs keeps the scroll position.
   - **Browse area:** a glass panel over the map's right side, as on the full map. It shows the count, the sort and the results as score-site lines linked to their pins: pointing at either lights the other, and choosing a pin brings its line into view. It folds to its header. On a phone, or with the map folded, the count and the sort sit above the results.
+  - **Choosing a result** (round 3, phase A): pressing a line chooses it. The map flies to it (centred left of the panel), the line turns more opaque and shows only its title and one action: Open club, Open profile, Open venue (See times with a date), Open match, Open tournament, Show tournaments (organisers), Answer (invitations), Open job, Open trial, Open group; events say Open tournament, Open match, Open event (other club calendar events), Open squad or See trials. Pressing it again flies back; Escape clears. Pressing a pin chooses its one result without moving the camera, or lights every result on a shared pin. The choice is in the address (`selected`), so Back and shared links return to it; a new search, filter, tab, area or Clear drops it. After a flight, "Show all N" stays until every pin is framed again. The map's own card shows unless a Browse row already shows the one chosen result (so a shared pin keeps its card and its "Open club"), and it names its action and destination as the line does.
   - **Every list is on the map:**
     - Clubs, venues, open matches, arrangements and places to train are placed by their own coordinates.
     - People are counted on their club's pin, never named on the map.
@@ -372,6 +373,7 @@ This branch is the real frontend code on fake data, so what is built here ships 
     - `clubProfile`: ways to get involved.
     - `WorkspaceShell`: the phone menu button.
     - `world/people`: "does not fall back on other errors" (seen 11 October).
+    - Also failing on the round 3 plan commit (`eb0a296`, checked on a clean copy, 11 October): `header` (the pins bar and the phone pins sheet), `navigation` (My squads is now the coach's own tab), `LeftSidebar`, `useDialogFocus` (`inert`), `mapPlanning/planning`, `opportunity-overview` and `AppointmentJourney`.
 - **Workspace tables:** until the records query takes `sort`, `dir` and a total (`BACKEND_NEEDS.md` §5), the table sorts only the loaded page and record views show no counts.
 - **My squads:** Georgian copy for its new pages (written in English for now); tests for its pages; unused `coachHub` locale keys removed. Squad sessions should report friendlies as `FRIENDLY` (the sandbox marks them in the description).
 - **One calendar everywhere:**
@@ -381,7 +383,7 @@ This branch is the real frontend code on fake data, so what is built here ships 
   - Initials avatars now take soft colours app-wide; check the screens that relied on grey ones.
 - **World overview:** save each person's field layout on the server (today it is per browser); Georgian copy for the new fields (about 180 strings from the overview fields and Customize still have none; the World stage, map and directory strings do).
   - Tests still to write: role defaults (written once, never over a link's filters, never again on Back).
-  - **Frontend fixes now possible** (the backend already has them, `BACKEND_NEEDS.md` §1): read squad ids on tournament invitations instead of matching by squad name; read club coordinates from `/clubs`.
+  - Done in round 3 phase A: squad ids on tournament invitations, club coordinates from `/clubs`, `playerJoinPolicy`, "Member" from `isMember`, whole-number fees (`BACKEND_NEEDS.md` §1).
   - The coach fields' other guesses (listing gender from the squad name, Georgian time on tournament fixtures, four availability requests, format from the age group) wait for `BACKEND_NEEDS.md` §3.1.
   - **Check with the coaches:** the 72-hour and three-in-a-week rest rules, and the evening window (17:00–21:00) for free pitches.
   - **Sponsors:** confirm `promotionBlocked` covers every restricted category before the rail goes live.

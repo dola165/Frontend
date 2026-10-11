@@ -44,7 +44,7 @@ export function AcademiesField({ area, side }: FieldProps) {
         <WorldField id="academies" side={side} count={data.data ? data.data.totalElements ?? items.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
             thumb={items.length ? <Cluster>{items.slice(0, 3).map(club => <Crest key={club.id} src={club.logoUrl} name={club.name} size={30} />)}</Cluster> : undefined}
             hint={area.city} all={{ label: t('All academies'), to: `/world/clubs?type=ACADEMY&near=${encodeURIComponent(area.city)}` }}>
-            {items.length ? <ClubLines clubs={items.slice(0, 9)} fact={club => club.joinPolicy ? t(JOIN[club.joinPolicy] ?? '') : undefined} />
+            {items.length ? <ClubLines clubs={items.slice(0, 9)} fact={club => club.playerJoinPolicy ? t(JOIN[club.playerJoinPolicy] ?? '') : undefined} />
                 : <EmptyNote title={t('No academies listed in {city} yet', { city: area.city })} />}
         </WorldField>
     );
@@ -75,7 +75,7 @@ export function OpenClubsField({ area, side }: FieldProps) {
         <WorldField id="openClubs" side={side} count={data.data ? data.data.totalElements ?? items.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
             thumb={items.length ? <Cluster>{items.slice(0, 3).map(club => <Crest key={club.id} src={club.logoUrl} name={club.name} size={30} />)}</Cluster> : undefined}
             hint={area.city} all={{ label: t('All clubs taking players'), to: `/world/clubs?open=true&near=${encodeURIComponent(area.city)}` }}>
-            {items.length ? <ClubLines clubs={items.slice(0, 9)} fact={club => club.joinPolicy ? t(JOIN[club.joinPolicy] ?? '') : undefined} />
+            {items.length ? <ClubLines clubs={items.slice(0, 9)} fact={club => club.playerJoinPolicy ? t(JOIN[club.playerJoinPolicy] ?? '') : undefined} />
                 : <EmptyNote title={t('No clubs in {city} are taking players right now', { city: area.city })} />}
         </WorldField>
     );

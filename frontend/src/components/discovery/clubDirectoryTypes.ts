@@ -16,8 +16,14 @@ export interface ClubProfile {
     cityName?: string;
     countryName?: string;
     logoUrl?: string;
-    joinPolicy?: ClubJoinPolicy;
-    relationshipState?: ClubRelationshipState;
+    /** How players join (the backend's name for it, in the directory and on the profile). */
+    playerJoinPolicy?: ClubJoinPolicy | null;
+    /** The person's relationship with the club. Directory rows leave it empty; `isMember` says membership there. */
+    relationshipState?: ClubRelationshipState | null;
+    isMember?: boolean;
+    isStaffMember?: boolean;
+    latitude?: number | null;
+    longitude?: number | null;
 }
 
 export interface ClubDirectoryPageResult<T> {

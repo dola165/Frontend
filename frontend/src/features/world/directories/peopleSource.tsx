@@ -29,11 +29,11 @@ function personLine(item: PersonItem): BrowseLine {
     if (item.kind === 'referee') {
         const r = item.referee;
         const terms = [r.accepts_paid && r.fee ? `${r.fee} ${r.currency}` : r.accepts_paid ? wt('Paid') : null, r.accepts_volunteer ? wt('Volunteer') : null].filter(Boolean).join(` ${wt('or')} `);
-        return { title: r.full_name, to: `/referees/${r.user_id}`, crest: { name: r.full_name, round: true },
+        return { title: r.full_name, to: `/referees/${r.user_id}`, action: wt('Open profile'), crest: { name: r.full_name, round: true },
             detail: [wt('Referee'), r.service_area && wt('Covers {area}', { area: r.service_area })].filter(Boolean).join(' · '), fact: terms || undefined };
     }
     const p = item.person;
-    return { title: p.fullName, to: `/profile/${p.id}`, crest: { src: p.avatarUrl, name: p.fullName, round: true },
+    return { title: p.fullName, to: `/profile/${p.id}`, action: wt('Open profile'), crest: { src: p.avatarUrl, name: p.fullName, round: true },
         detail: [p.headline || p.profession, p.city].filter(Boolean).join(' · '), fact: wt(PERSON_ROLE[p.role] ?? 'Member') };
 }
 
@@ -44,7 +44,7 @@ function personLine(item: PersonItem): BrowseLine {
 function personPlace(item: PersonItem, places: Places) {
     if (item.kind !== 'person' || item.person.clubId == null) return null;
     const club = places.club(item.person.clubId);
-    return club ? { lat: club.lat, lng: club.lng, tone: 'person' as const, pin: `club:${item.person.clubId}`, label: club.name, noun: ['person', 'people'] as [string, string], to: `/clubs/${item.person.clubId}` } : null;
+    return club ? { lat: club.lat, lng: club.lng, tone: 'person' as const, pin: `club:${item.person.clubId}`, label: club.name, noun: ['person', 'people'] as [string, string], to: `/clubs/${item.person.clubId}`, action: wt('Open club') } : null;
 }
 
 /**

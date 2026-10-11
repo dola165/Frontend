@@ -160,7 +160,7 @@ export function clubProfile(id) {
     id: c.id, name: c.name, description: edits.description ?? c.description, type: typeLabel[c.type] ?? 'OTHER', isOfficial: c.verified, statusLabel: 'Active',
     followerCount: followerCounts[id] + (followed.has(id) && id !== 1 ? 0 : 0), memberCount: memberCount(id), isFollowedByMe: followed.has(id),
     isStaffMember: mine, isMember: mine, myRole: mine ? 'OWNER' : null,
-    playerJoinPolicy: clubPolicy.get(id), joinPolicy: clubPolicy.get(id), playerAffiliationStatus: null, relationshipState: mine ? 'ACTIVE' : 'NONE',
+    playerJoinPolicy: clubPolicy.get(id), playerAffiliationStatus: null, relationshipState: mine ? 'ACTIVE' : 'NONE',
     pendingApplicationId: null, pendingApplicationRole: null, pendingApplicationJobId: null,
     addressText: c.address, cityName: c.city, countryName: 'Georgia', logoUrl: edits.logoUrl ?? c.logoUrl, bannerUrl: edits.bannerUrl ?? c.bannerUrl,
     email: contacts[id]?.email ?? null, websiteUrl: contacts[id]?.websiteUrl ?? null, instagramUrl: contacts[id]?.instagramUrl ?? null,
@@ -174,8 +174,10 @@ export function clubProfile(id) {
 export function directoryItem(id) {
   const p = clubProfile(id);
   return { id: p.id, name: p.name, description: p.description, type: p.type, isOfficial: p.isOfficial, followerCount: p.followerCount, memberCount: p.memberCount,
-    isFollowedByMe: p.isFollowedByMe, addressText: p.addressText, cityName: p.cityName, countryName: p.countryName, logoUrl: p.logoUrl, joinPolicy: p.joinPolicy,
-    relationshipState: p.relationshipState, latitude: p.latitude, longitude: p.longitude, presentation: p.presentation, foundedYear: p.foundedYear };
+    isFollowedByMe: p.isFollowedByMe, addressText: p.addressText, cityName: p.cityName, countryName: p.countryName, logoUrl: p.logoUrl,
+    // As the real directory sends it: the join policy under its own name, membership but no relationship state.
+    playerJoinPolicy: p.playerJoinPolicy, isMember: p.isMember, isStaffMember: p.isStaffMember, relationshipState: null,
+    latitude: p.latitude, longitude: p.longitude, presentation: p.presentation, foundedYear: p.foundedYear };
 }
 
 // ---------------------------------------------------------------- player affiliations

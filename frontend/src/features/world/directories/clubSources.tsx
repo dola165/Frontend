@@ -16,7 +16,6 @@ const KINDS: Record<string, string[]> = { ACADEMY: ['ACADEMY'], SCHOOL: ['SCHOOL
 const TAKING = ['OPEN_TRIAL', 'APPLICATION_REQUIRED'];
 /** Club types as the World map groups them, for "Open full map". */
 const MAP_CATEGORY: Record<string, string[]> = { ACADEMY: ['PROFESSIONAL_ACADEMY', 'PRIVATE_ACADEMY'], SCHOOL: ['SCHOOL_CLUB'], AMATEUR: ['AMATEUR_CLUB'], OTHER: ['OTHER'] };
-type Located = ClubProfile & { latitude?: number | null; longitude?: number | null };
 
 /** The club types a query asks for: kinds become their types, and a type from an older link stays as it is. */
 export const clubTypes = (query: DirectoryQuery) => [...new Set((query.values.type ?? []).flatMap(value => KINDS[value] ?? [value]))];
@@ -47,7 +46,7 @@ export function clubsMapLink(query: DirectoryQuery, city?: string | null, player
  * what fits. On the map each club is its own pin.
  */
 export function clubsSource({ child, centre, city }: { child?: Participant; centre?: { lat: number; lng: number } | null; city?: string | null } = {}): DirectorySource<ClubProfile> {
-    const distance = (club: Located) => centre && club.latitude != null && club.longitude != null ? distanceKm([centre.lng, centre.lat], [club.longitude, club.latitude]) : undefined;
+    const distance = (club: ClubProfile) => centre && club.latitude != null && club.longitude != null ? distanceKm([centre.lng, centre.lat], [club.longitude, club.latitude]) : undefined;
     return {
         id: 'clubs',
         label: 'Clubs',
@@ -89,14 +88,14 @@ export function clubsSource({ child, centre, city }: { child?: Participant; cent
         line: club => {
             const km = distance(club);
             return {
-                title: club.name, to: `/clubs/${club.id}`, crest: { src: club.logoUrl, name: club.name },
+                title: club.name, to: `/clubs/${club.id}`, action: wt('Open club'), crest: { src: club.logoUrl, name: club.name },
                 detail: [wt(clubTypeLabel(club.type)), club.cityName].filter(Boolean).join(' · '),
-                ...(club.relationshipState === 'ACTIVE' ? { fact: wt('Member'), factTone: 'accent' as const } : km != null ? { fact: distanceLabel(km) } : {}),
+                ...(club.relationshipState === 'ACTIVE' || club.isMember ? { fact: wt('Member'), factTone: 'accent' as const } : km != null ? { fact: distanceLabel(km) } : {}),
             };
         },
         // Directory records may carry no coordinates; then the map search places the club by its id.
         placeKinds: ['CLUB'],
-        place: (club: Located, places) => {
+        place: (club, places) => {
             const known = club.latitude != null && club.longitude != null ? { lat: club.latitude, lng: club.longitude } : places.club(club.id);
             return known ? { lat: known.lat, lng: known.lng, tone: 'club', noun: ['club', 'clubs'], label: club.name, meta: [wt(clubTypeLabel(club.type)), club.cityName].filter(Boolean).join(' · '), to: `/clubs/${club.id}` } : null;
         },

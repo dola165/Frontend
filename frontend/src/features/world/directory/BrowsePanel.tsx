@@ -1,28 +1,46 @@
-import { useId, type ReactNode } from 'react';
+import { useContext, useId, type KeyboardEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Compass } from 'lucide-react';
+import { ArrowRight, ChevronDown, Compass } from 'lucide-react';
 import { Skeleton } from '../../../design/primitives';
 import { useWorldCopy } from '../copy';
 import { Crest } from '../Crest';
-import { counterpartProps, DirectoryItemKey, useMapCounterpart } from './selection';
+import { DirectoryItemKey, DirectorySelectionContext, useBrowseChoice } from './selection';
 import type { AnySource, BrowseLine } from './types';
 import type { DirectoryData } from './useDirectoryData';
 import '../front/fields/scoreboard.css';
 import './browse.css';
 
-/** One result in the panel, linked to its pin: pointing at either lights the other. */
+/**
+ * One result in the panel. Pressing it chooses it: the map flies to its pin, the row turns more opaque and its
+ * detail gives way to one action ("Open club"). Pointing at the row lights its pin, and the other way round.
+ */
 function BrowseRow({ line }: { line: BrowseLine }) {
-    const counterpart = useMapCounterpart();
-    const body = <>
-        {line.when && <span className="gk-sb__when"><b>{line.when.time}</b>{line.when.day && <small>{line.when.day}</small>}</span>}
-        {line.crest && <Crest src={line.crest.src} name={line.crest.name} size={28} round={line.crest.round} />}
-        <span className="gk-sb__main"><strong>{line.title}</strong>{line.detail && <small>{line.detail}</small>}</span>
-        {line.fact && <span className="gk-sb__fact" data-tone={line.factTone}>{line.fact}</span>}
-    </>;
-    const linked = counterpartProps(counterpart);
-    return <li>{line.to
-        ? <Link className="gk-sb__row gk-sb__row--line gk-browse__row" data-when={line.when ? true : undefined} to={line.to} {...linked}>{body}</Link>
-        : <div className="gk-sb__row gk-sb__row--line gk-browse__row" data-when={line.when ? true : undefined} {...linked}>{body}</div>}</li>;
+    const t = useWorldCopy();
+    const choice = useBrowseChoice();
+    const chosen = Boolean(choice?.chosen);
+    const open = chosen && line.to && line.action;
+    const hover = choice && {
+        onMouseEnter: () => choice.hover(true), onMouseLeave: () => choice.hover(false),
+        onFocus: () => choice.hover(true), onBlur: () => choice.hover(false),
+    };
+    // Chosen, the line keeps only its title: the action takes the detail's place. A result with no place says so
+    // once the places are known.
+    const where = chosen && choice?.mappable && !choice.placed && !choice.placing ? <small>{choice.incomplete ? t('Could not be placed') : t('Not on the map')}</small> : null;
+    return (
+        <li className="gk-browse__item" data-chosen={chosen || undefined}>
+            <button type="button" className="gk-sb__row gk-sb__row--line gk-browse__row" data-when={line.when ? true : undefined}
+                aria-current={chosen || undefined} data-at-pin={choice?.atPin || undefined} data-highlighted={choice?.highlighted || undefined}
+                onClick={choice?.choose} {...hover}>
+                {line.when && <span className="gk-sb__when"><b>{line.when.time}</b>{line.when.day && <small>{line.when.day}</small>}</span>}
+                {line.crest && <Crest src={line.crest.src} name={line.crest.name} size={28} round={line.crest.round} />}
+                <span className="gk-sb__main"><strong title={line.title}>{line.title}</strong>{chosen ? where : line.detail && <small>{line.detail}</small>}</span>
+                {!chosen && line.fact && <span className="gk-sb__fact" data-tone={line.factTone}>{line.fact}</span>}
+            </button>
+            {open && <Link className="gk-browse__open" to={line.to!} title={line.action} aria-label={t('{action}: {name}', { action: line.action!, name: line.title })}>
+                <span>{line.action}</span><ArrowRight aria-hidden="true" />
+            </Link>}
+        </li>
+    );
 }
 
 /**
@@ -35,7 +53,16 @@ export function BrowsePanel({ source, data, count, tools, folded, onToggle }: {
 }) {
     const t = useWorldCopy();
     const heading = useId(), bodyId = useId();
+    const selection = useContext(DirectorySelectionContext);
     const things = t(source.noun[1]);
+    /** Escape ends the choice; focus goes back to the row (from its Open link too). The camera stays. */
+    const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
+        if (event.key !== 'Escape' || !selection?.chosen || event.defaultPrevented) return;
+        event.preventDefault();
+        const row = (event.target as HTMLElement).closest('li')?.querySelector('button');
+        selection.clear();
+        row?.focus();
+    };
     return (
         <section className="gk-browse" data-folded={folded || undefined} aria-labelledby={heading}>
             <header className="gk-browse__head">
@@ -51,7 +78,7 @@ export function BrowsePanel({ source, data, count, tools, folded, onToggle }: {
                     : data.loading ? <div className="gk-browse__loading" aria-hidden="true">{[0, 1, 2, 3].map(i => <Skeleton key={i} height={40} />)}</div>
                     : data.error ? <p className="gk-browse__note">{data.error} <button type="button" className="gk-browse__retry" onClick={data.retry}>{t('Try again')}</button></p>
                     : !data.items.length ? <p className="gk-browse__note">{t('No {things} to browse here', { things })}</p>
-                    : <ul className="gk-sb__rows gk-browse__rows" aria-label={t(source.label)}>
+                    : <ul className="gk-sb__rows gk-browse__rows" aria-label={t(source.label)} onKeyDown={onKeyDown}>
                         {data.items.map(item => <DirectoryItemKey.Provider key={source.key(item)} value={source.key(item)}><BrowseRow line={source.line(item)} /></DirectoryItemKey.Provider>)}
                     </ul>}
                 {data.hasMore && !data.loading && (

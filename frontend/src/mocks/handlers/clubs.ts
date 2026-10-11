@@ -62,8 +62,11 @@ const toClubDirectoryItem = (c: ReturnType<typeof clubs> extends Map<number, inf
   cityName: c.city,
   countryName: 'United Kingdom',
   logoUrl: c.logoUrl ?? undefined,
-  joinPolicy: c.joinPolicy,
-  relationshipState: relationshipForUser(c.id) as 'NONE' | 'ACTIVE',
+  playerJoinPolicy: c.joinPolicy,
+  // Like the real directory: no relationship on rows, only membership.
+  relationshipState: null,
+  isMember: relationshipForUser(c.id) === 'ACTIVE',
+  isStaffMember: false,
   latitude: c.city === 'Bristol' ? 51.4545 : c.city === 'Manchester' ? 53.4808 : 51.5074,
   longitude: c.city === 'Bristol' ? -2.5879 : c.city === 'Manchester' ? -2.2426 : -0.1278,
 });

@@ -32,13 +32,13 @@ export function ChoiceChips({ filter, state, signedIn }: { filter: ChoiceFilter;
 }
 
 /** A text filter commits on blur or Enter, so typing never reloads results per keystroke. */
-function TextField({ filter, value, onCommit }: { filter: FilterDef & { placeholder?: string }; value: string; onCommit: (value: string) => void }) {
+function TextField({ filter, value, onCommit }: { filter: FilterDef & { placeholder?: string; inputMode?: 'numeric' | 'text' }; value: string; onCommit: (value: string) => void }) {
     const t = useWorldCopy();
     const id = useId();
     const [draft, setDraft] = useState(value);
     return (
         <Field label={t(filter.label)} htmlFor={id}>
-            <input id={id} className="gk-input" value={draft} maxLength={100} placeholder={filter.placeholder && t(filter.placeholder)}
+            <input id={id} className="gk-input" value={draft} maxLength={100} placeholder={filter.placeholder && t(filter.placeholder)} inputMode={filter.inputMode}
                 onChange={event => setDraft(event.target.value)}
                 onBlur={() => draft.trim() !== value && onCommit(draft.trim())}
                 onKeyDown={event => { if (event.key === 'Enter') onCommit(draft.trim()); }} />

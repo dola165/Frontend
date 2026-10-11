@@ -23,7 +23,7 @@ export interface ChoiceFilter extends FilterBase {
 }
 /** An on/off filter sent as `key=true`. */
 export interface ToggleFilter extends FilterBase { kind: 'toggle'; primary?: boolean }
-export interface TextFilter extends FilterBase { kind: 'text'; placeholder?: string }
+export interface TextFilter extends FilterBase { kind: 'text'; placeholder?: string; /** The keyboard a phone shows ("numeric" for whole numbers). */ inputMode?: 'numeric' | 'text' }
 export interface DateFilter extends FilterBase { kind: 'date'; /** Dates before this day (YYYY-MM-DD) cannot be chosen. */ min?: () => string }
 /** A scope that arrives in a link (one club, one competition). It has no control; it shows as a removable chip. */
 export interface ScopeFilter extends FilterBase {
@@ -64,6 +64,7 @@ export interface LoadContext { signal: AbortSignal; sessionId: AuthSessionId; au
 export interface Placement {
     lat: number; lng: number; tone: WorldMapTone; label: string; meta?: string; to?: string;
     pin?: string; approximate?: Approximate; /** How a group of these is counted on its pin: [one, other]. */ noun?: [string, string];
+    /** What the pin's card calls opening `to` ("Open club"); the result's own action when the pin is the result. */ action?: string;
 }
 
 /**
@@ -72,6 +73,7 @@ export interface Placement {
  */
 export interface BrowseLine {
     title: string; detail?: string; to?: string;
+    /** What opening `to` is called on the chosen line ("Open club", "Open profile"), already translated. */ action?: string;
     crest?: { src?: string | null; name: string; round?: boolean };
     when?: { time: string; day?: string };
     fact?: string; factTone?: 'accent' | 'warning' | 'danger';

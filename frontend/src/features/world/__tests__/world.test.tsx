@@ -72,6 +72,19 @@ it('sends a fee currency only with a fee to compare', async () => {
     expect(await competitionParams('minFee=10&currency=EUR&feeBasis=PLAYER')).toMatchObject({ minFee: '10', currency: 'EUR', feeBasis: 'PLAYER' });
 });
 
+it('says what is wrong with a fee range the server would refuse, without asking it', async () => {
+    const notice = async (search: string) => {
+        vi.mocked(apiClient.get).mockClear();
+        const page = await competitions.load(readQuery(competitions, new URLSearchParams(search)).query, 0, context);
+        expect(apiClient.get).not.toHaveBeenCalled();
+        return page.notice;
+    };
+    expect(await notice('minFee=12.5')).toBe('Enter fees as whole numbers, for example 50.');
+    expect(await notice('maxFee=2000000')).toBe('Enter a fee up to 1,000,000.');
+    expect(await notice('minFee=100&maxFee=50')).toBe('The lowest fee is above the highest. Change one of them to search.');
+    expect(await competitionParams('minFee=50&maxFee=50')).toMatchObject({ minFee: '50', maxFee: '50' });
+});
+
 it('sends a competition organiser, eligibility and a distance search as the server names them', async () => {
     expect(await competitionParams('host=CLUB:4&eligibilityCategory=Girls&around=41.7,44.8')).toMatchObject({ hostKind: 'CLUB', hostId: '4', eligibilityCategory: 'Girls', latitude: '41.7', longitude: '44.8', radiusKm: '25' });
     expect(await competitionParams('host=CLUB:abc')).not.toHaveProperty('hostKind');

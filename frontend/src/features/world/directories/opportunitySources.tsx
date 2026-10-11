@@ -25,7 +25,7 @@ const PAGE = 20;
 export const jobs: DirectorySource<ClubJob> = {
     id: 'jobs',
     label: 'Jobs and volunteering',
-    noun: ['role', 'roles'],
+    noun: ['job', 'jobs'],
     searchLabel: 'Search jobs and volunteering',
     searchPlaceholder: 'Search roles, clubs or skills',
     layout: 'rows',
@@ -60,14 +60,14 @@ export const jobs: DirectorySource<ClubJob> = {
     Item: JobItem,
     line: job => {
         const terms = ENGAGEMENT[job.engagementType ?? 'UNSPECIFIED'] ?? ENGAGEMENT.UNSPECIFIED;
-        return { title: job.title, to: `/jobs/${job.id}`, crest: { src: job.clubLogoUrl, name: job.clubName ?? job.title },
+        return { title: job.title, to: `/jobs/${job.id}`, action: wt('Open job'), crest: { src: job.clubLogoUrl, name: job.clubName ?? job.title },
             detail: [job.clubName, job.clubCityName, postedLabel(job.createdAt)].filter(Boolean).join(' · '), fact: wt(terms.label), factTone: factTone(terms.tone) };
     },
     // Roles are counted on their club's pin ("3 roles").
     placeKinds: ['CLUB'],
     place: (job, places) => {
         const club = places.club(job.clubId);
-        return club ? { lat: club.lat, lng: club.lng, tone: 'club', pin: `club:${job.clubId}`, label: job.clubName ?? club.name, noun: ['role', 'roles'], to: `/clubs/${job.clubId}` } : null;
+        return club ? { lat: club.lat, lng: club.lng, tone: 'club', pin: `club:${job.clubId}`, label: job.clubName ?? club.name, noun: ['job', 'jobs'], to: `/clubs/${job.clubId}`, action: wt('Open club') } : null;
     },
     empty: { title: 'No open roles right now', body: 'Clubs post coaching, matchday and volunteer roles here.' },
 };
@@ -98,7 +98,7 @@ export const trials: DirectorySource<TryoutPosting> = {
     line: trial => {
         const left = trial.status === 'OPEN' ? calendarDaysUntil(trial.deadline) : null;
         const closing = left != null && left >= 0 && left <= 3;
-        return { when: { time: fixtureTime(trial.tryoutDate), day: fixtureDay(trial.tryoutDate) }, title: trial.title, to: `/tryouts/${trial.id}`,
+        return { when: { time: fixtureTime(trial.tryoutDate), day: fixtureDay(trial.tryoutDate) }, title: trial.title, to: `/tryouts/${trial.id}`, action: wt('Open trial'),
             detail: [trial.clubName, codeLabel(trial.ageGroup), codeLabel(trial.position)].filter(Boolean).join(' · '),
             fact: closing ? wt('Apply by {day}', { day: fixtureDay(trial.deadline) }) : postingLabel(trial.status, bilingual), factTone: closing ? 'warning' : trial.status === 'OPEN' ? 'accent' : undefined };
     },
@@ -165,7 +165,7 @@ export function groupsSource(participants: Participant[], remember?: RememberedC
         Item: GroupItem,
         line: ({ group, player }) => {
             const open = group.availability === 'PLACES_AVAILABLE' || group.availability === 'APPLICATIONS_OPEN';
-            return { title: group.name, to: `/admissions/opportunities/${group.id}${player ? `?player=${player}` : ''}`, crest: { name: group.organizationName },
+            return { title: group.name, to: `/admissions/opportunities/${group.id}${player ? `?player=${player}` : ''}`, action: wt('Open group'), crest: { name: group.organizationName },
                 detail: [group.organizationName, wt('Born {from}–{to}', { from: group.birthYearFrom, to: group.birthYearTo }), group.location.name].filter(Boolean).join(' · '),
                 fact: bilingual(...availabilityCopy[group.availability]), factTone: open ? 'accent' : group.availability === 'WAITLIST' ? 'warning' : undefined };
         },

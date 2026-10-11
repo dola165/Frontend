@@ -5,6 +5,8 @@ import type { AnySource, DirectoryQuery, FilterDef } from './types';
 export const CARRIED = ['near', 'player'];
 /** How many pages of results were shown, so Back returns to the same place in the list. */
 export const SHOWN = 'shown';
+/** The one result chosen in the Browse area, by key, so Back and shared links return to it. */
+export const SELECTED = 'selected';
 
 /** The source a directory opens on: the first one, or for guests the first one they can see without signing in. */
 export const defaultSource = (sources: AnySource[], signedIn: boolean) =>
@@ -51,6 +53,7 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
     const source = sources.find(item => item.id === requested) ?? opening;
     const { query, active: activeFilters } = readQuery(source, params);
     const shown = Math.min(Math.max(Number(params.get(SHOWN)) || 1, 1), 10);
+    const selected = params.get(SELECTED) || undefined;
 
     const update = (mutate: (next: URLSearchParams) => void, replace = true) => setParams(current => {
         const next = new URLSearchParams(current);
@@ -64,6 +67,7 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
         update(next => {
             next.delete(key);
             next.delete(SHOWN);
+            next.delete(SELECTED);
             const fallback = filter?.kind === 'choice' ? filter.fallback : undefined;
             values.filter(value => value && value !== fallback).forEach(value => next.append(key, value));
             // A filter that depends on this one no longer applies when it changes.
@@ -77,28 +81,32 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
         query,
         activeFilters,
         shown,
+        selected,
         setValues,
         toggleValue: (key: string, value: string, multi: boolean) => {
             const current = query.values[key] ?? [];
             setValues(key, multi ? (current.includes(value) ? current.filter(item => item !== value) : [...current, value]) : current[0] === value ? [] : [value]);
         },
-        setSearch: (value: string) => update(next => { next.delete(SHOWN); if (value) next.set('q', value); else next.delete('q'); }),
+        setSearch: (value: string) => update(next => { next.delete(SHOWN); next.delete(SELECTED); if (value) next.set('q', value); else next.delete('q'); }),
         setSort: (value: string) => update(next => { next.delete(SHOWN); if (value && value !== source.sorts?.[0]?.value) next.set('sort', value); else next.delete('sort'); }),
         /** Writes several filters at once without a history entry: a tab's defaults for who is looking. */
         setMany: (values: Record<string, string[]>) => update(next => {
             for (const [key, list] of Object.entries(values)) { next.delete(key); list.filter(Boolean).forEach(value => next.append(key, value)); }
         }),
+        /** Chooses one result (or none), without adding a history entry; sorting and showing more keep it. */
+        setSelected: (key?: string) => update(next => { if (key) next.set(SELECTED, key); else next.delete(SELECTED); }),
         /** Records how many pages are on screen, without adding a history entry. */
         setShown: (pages: number) => update(next => { if (pages > 1) next.set(SHOWN, String(pages)); else next.delete(SHOWN); }),
         setTab: (id: string) => update(next => {
             sources.forEach(item => item.filters.forEach(filter => { if (!CARRIED.includes(filter.key)) next.delete(filter.key); }));
-            ['sort', SHOWN, ...(tabAlias ? [tabAlias] : [])].forEach(key => next.delete(key));
+            ['sort', SHOWN, SELECTED, ...(tabAlias ? [tabAlias] : [])].forEach(key => next.delete(key));
             if (id === opening.id) next.delete(tabParam); else next.set(tabParam, id);
         }, false),
         clearFilters: () => update(next => {
             source.filters.forEach(filter => { if (!CARRIED.includes(filter.key)) next.delete(filter.key); });
             next.delete('q');
             next.delete(SHOWN);
+            next.delete(SELECTED);
         }),
     };
 }

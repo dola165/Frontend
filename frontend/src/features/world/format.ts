@@ -89,12 +89,15 @@ export const SCOPE_LABEL: Record<string, string> = { CLUB: 'Club teams', SQUAD: 
 export const COMPETITION_STATUS: Record<string, { label: string; tone: BadgeTone }> = {
     PLANNING: { label: 'Planning', tone: 'violet' }, ACTIVE: { label: 'In progress', tone: 'accent' }, COMPLETED: { label: 'Completed', tone: 'neutral' }, CANCELLED: { label: 'Cancelled', tone: 'danger' },
 };
+/** The last day entries are taken: a window closing at midnight (the usual case) belongs to the day before. */
+const lastEntryDay = (closesAt: string) => new Date(Date.parse(closesAt) - 60_000).toISOString();
+
 /** A published competition's entry state in words (translated), from its status and closing date. */
 export function entryState(status: string, closesAt?: string | null): { label: string; tone: BadgeTone } {
     if (status !== 'PLANNING' && COMPETITION_STATUS[status]) return { ...COMPETITION_STATUS[status], label: wt(COMPETITION_STATUS[status].label) };
     const left = daysUntil(closesAt);
     if (left != null && left < 0) return { label: wt('Entries closed'), tone: 'neutral' };
-    if (left != null) return { label: wt('Closes {date}', { date: shortDate(closesAt) ?? '' }), tone: left <= 7 ? 'warning' : 'violet' };
+    if (left != null) return { label: wt('Closes {date}', { date: shortDate(lastEntryDay(closesAt!)) ?? '' }), tone: left <= 7 ? 'warning' : 'violet' };
     return { label: wt('Upcoming'), tone: 'violet' };
 }
 

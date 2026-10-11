@@ -24,12 +24,20 @@ const competitionPlace = (item: Hosted, places: Places): Placement | null => {
 const competitionLine = (card: CompetitionCard & { registrationClosesAt?: string | null }): BrowseLine => {
     const rules = card.profile?.rules;
     const state = entryState(card.status, card.registrationClosesAt);
-    return { when: dateColumn(card.startDate), title: card.name, to: `/tournaments/${card.id}`, fact: state.label, factTone: factTone(state.tone),
+    return { when: dateColumn(card.startDate), title: card.name, to: `/tournaments/${card.id}`, action: wt('Open tournament'), fact: state.label, factTone: factTone(state.tone),
         detail: [rules && codeLabel(rules.ageGroup), rules && `${rules.sideSize}v${rules.sideSize}`, card.hostClubName || card.organizerName].filter(Boolean).join(' · ') };
 };
 const STATUS_OPTIONS = [{ value: 'PLANNING', label: 'Registration and planning' }, { value: 'ACTIVE', label: 'In progress' }, { value: 'COMPLETED', label: 'Completed' }, { value: 'CANCELLED', label: 'Cancelled' }];
 const SCOPE_OPTIONS = Object.entries(SCOPE_LABEL).map(([value, label]) => ({ value, label }));
 const hasFee = (values: Record<string, string[]>) => Boolean(values.minFee?.[0] || values.maxFee?.[0]);
+/** The fee range is checked as the server checks it (whole numbers up to 1,000,000, lowest first), so it is said here. */
+const MAX_FEE = 1_000_000;
+function feeNotice(min: string, max: string) {
+    if ([min, max].some(fee => fee && !/^\d+$/.test(fee))) return wt('Enter fees as whole numbers, for example 50.');
+    if ([min, max].some(fee => fee && Number(fee) > MAX_FEE)) return wt('Enter a fee up to 1,000,000.');
+    if (min && max && Number(min) > Number(max)) return wt('The lowest fee is above the highest. Change one of them to search.');
+    return '';
+}
 
 /** One organiser from a link ("CLUB:12" or "ORGANIZATION:4"); a club organiser's chip carries its name. */
 const hostScope: ScopeFilter = {
@@ -69,14 +77,16 @@ export const competitions: DirectorySource<CompetitionCard> = {
         { kind: 'text', key: 'city', label: 'City', placeholder: 'Any city' },
         { kind: 'date', key: 'from', label: 'Starting from' },
         { kind: 'date', key: 'to', label: 'Ending by' },
-        { kind: 'text', key: 'minFee', label: 'Lowest entry fee', placeholder: 'No minimum' },
-        { kind: 'text', key: 'maxFee', label: 'Highest entry fee', placeholder: 'Any fee' },
+        { kind: 'text', key: 'minFee', label: 'Lowest entry fee', placeholder: 'No minimum', inputMode: 'numeric' },
+        { kind: 'text', key: 'maxFee', label: 'Highest entry fee', placeholder: 'Any fee', inputMode: 'numeric' },
         { kind: 'choice', key: 'currency', label: 'Fee currency', fallback: 'GEL', when: query => hasFee(query.values), options: ['GEL', 'USD', 'EUR', 'GBP'].map(value => ({ value, label: value })) },
         { kind: 'choice', key: 'feeBasis', label: 'Fee basis', allLabel: 'Any basis', when: query => hasFee(query.values), options: [{ value: 'TEAM', label: 'Per team' }, { value: 'PLAYER', label: 'Per player' }, { value: 'EVENT', label: 'Per event' }] },
         { kind: 'toggle', key: 'openPlaces', label: 'Places still available' },
     ],
     sorts: [{ value: 'date', label: 'Event date' }, { value: 'newest', label: 'Newest' }, { value: 'name', label: 'Name A–Z' }],
     async load(query, page, { signal }) {
+        const notice = feeNotice(first(query, 'minFee'), first(query, 'maxFee'));
+        if (notice) return { items: [], total: null, hasMore: false, notice };
         // Only filters that apply carry values, so a currency is sent only with a fee to compare.
         const params = new URLSearchParams();
         for (const key of PASSED) if (first(query, key)) params.set(key, first(query, key));
@@ -120,7 +130,7 @@ export const mine: DirectorySource<TournamentSummary> = {
     Item: MyCompetitionRow,
     line: item => {
         const badge = COMPETITION_STATUS[item.status] ?? COMPETITION_STATUS.PLANNING;
-        return { when: dateColumn(item.startDate), title: item.name, to: `/tournaments/${item.id}`, fact: wt(badge.label), factTone: factTone(badge.tone),
+        return { when: dateColumn(item.startDate), title: item.name, to: `/tournaments/${item.id}`, action: wt('Open tournament'), fact: wt(badge.label), factTone: factTone(badge.tone),
             detail: [SCOPE_LABEL[item.participantScope] && wt(SCOPE_LABEL[item.participantScope]), item.hostClubName || item.organizerName].filter(Boolean).join(' · ') };
     },
     placeKinds: ['TOURNAMENT', 'CLUB'],
@@ -143,13 +153,13 @@ export const organisers: DirectorySource<TournamentHost> = {
     },
     key: host => `${host.kind}:${host.id}`,
     Item: HostRow,
-    line: host => ({ title: host.name, to: `/world/competitions?host=${host.kind}:${host.id}`, crest: { src: host.logoUrl, name: host.name },
+    line: host => ({ title: host.name, to: `/world/competitions?host=${host.kind}:${host.id}`, action: wt('Show tournaments'), crest: { src: host.logoUrl, name: host.name },
         detail: host.kind === 'CLUB' ? wt('Club') : wt('Organisation'), fact: plural(host.tournamentCount, 'competition') }),
     // A club that organises is pinned at the club; an organisation has no place of its own on the map.
     placeKinds: ['CLUB'],
     place: (host, places) => {
         const club = host.kind === 'CLUB' ? places.club(host.id) : undefined;
-        return club ? { lat: club.lat, lng: club.lng, tone: 'club', label: host.name, meta: plural(host.tournamentCount, 'competition'), to: `/clubs/${host.id}` } : null;
+        return club ? { lat: club.lat, lng: club.lng, tone: 'club', label: host.name, meta: plural(host.tournamentCount, 'competition'), to: `/clubs/${host.id}`, action: wt('Open club') } : null;
     },
     empty: { title: 'No organisers yet', body: 'Clubs and organisations appear here once they publish a competition.' },
 };
@@ -181,12 +191,12 @@ export const invitations: DirectorySource<TournamentInvitationInboxItem> = {
     },
     key: item => String(item.invitationId),
     Item: InvitationRow,
-    line: item => ({ title: item.tournamentName, to: '/requests', crest: { name: item.tournamentName }, fact: wt('Invited'), factTone: 'warning',
+    line: item => ({ title: item.tournamentName, to: '/requests', action: wt('Answer'), crest: { name: item.tournamentName }, fact: wt('Invited'), factTone: 'warning',
         detail: [item.squadName || item.clubName || wt('You, as a player'), SCOPE_LABEL[item.participantScope] && wt(SCOPE_LABEL[item.participantScope])].filter(Boolean).join(' · ') }),
     placeKinds: ['TOURNAMENT'],
     place: (item, places) => {
         const at = places.competition(item.tournamentId);
-        return at ? { lat: at.lat, lng: at.lng, tone: 'event', label: item.tournamentName, to: `/tournaments/${item.tournamentId}`, noun: ['invitation', 'invitations'] } : null;
+        return at ? { lat: at.lat, lng: at.lng, tone: 'event', label: item.tournamentName, to: `/tournaments/${item.tournamentId}`, action: wt('Open tournament'), noun: ['invitation', 'invitations'] } : null;
     },
     empty: { title: 'No pending invitations', body: 'Invitations for you, your squads and the clubs you manage appear here.' },
 };

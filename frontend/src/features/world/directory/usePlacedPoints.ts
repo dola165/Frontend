@@ -6,7 +6,7 @@ import { placePoints, type PlacedResults, type PinWords } from './mapPoints';
 import { loadPlaces, NO_PLACES } from './places';
 import type { AnySource } from './types';
 
-const EMPTY: PlacedResults = { points: [], pinOf: new Map(), unplaced: 0 };
+const EMPTY: PlacedResults = { points: [], pinOf: new Map(), keysOf: new Map(), unplaced: 0 };
 const WORDS: PinWords = { count: (n, noun) => plural(n, noun[0], noun[1]), more: (name, others) => wt('{name} and {count} more', { name, count: others }) };
 
 /**
@@ -24,7 +24,14 @@ export function usePlacedPoints(source: AnySource, items: unknown[], open: boole
     // Pin text is written in the current language (wt reads it), so it is worked out again when the language changes.
     const georgian = isGeorgian();
     const placed = useMemo(() => source.place
-        ? placePoints(items, source.key, item => source.place!(item, places ?? NO_PLACES), WORDS)
+        ? placePoints(items, source.key, item => {
+            const at = source.place!(item, places ?? NO_PLACES);
+            // A pin that is the result itself opens it as its line does: the same words and the same place
+            // ("See times" keeps the date searched).
+            if (!at || at.action) return at;
+            const line = source.line(item);
+            return { ...at, action: line.action, to: line.to ?? at.to };
+        }, WORDS)
         // eslint-disable-next-line react-hooks/exhaustive-deps -- the language is read inside wt(), not seen by the rule
         : EMPTY, [source, items, places, georgian]);
     return { ...placed, loading: lookup.loading, incomplete: Boolean(lookup.data?.incomplete || lookup.error), retry: lookup.retry };

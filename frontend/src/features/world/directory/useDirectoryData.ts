@@ -47,6 +47,8 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
     const key = gated || badRange || waiting || status === 'bootstrapping' ? null
         : `${source.id}|${source.version ?? ''}|${sessionId}|${area ? area.city ?? 'anywhere' : ''}|${JSON.stringify(query)}`;
     const [attempt, setAttempt] = useState(0);
+    const pagesRef = useRef(onPages);
+    useEffect(() => { pagesRef.current = onPages; });
     const [loaded, setLoaded] = useState<Loaded>();
     const [more, setMore] = useState<{ key: string; busy: boolean; error: string }>();
     const moreController = useRef<AbortController | null>(null);
@@ -95,7 +97,8 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
                 if (controller.signal.aborted) return;
                 setLoaded(previous => previous && previous.key === key ? { ...previous, items: [...previous.items, ...page.items], hasMore: page.hasMore, total: page.total ?? previous.total, page: previous.page + 1 } : previous);
                 setMore({ key, busy: false, error: '' });
-                onPages?.(current.page + 2);
+                // The page count is written with the address as it is now: a choice made meanwhile stays.
+                pagesRef.current?.(current.page + 2);
             })
             .catch(cause => { if (!controller.signal.aborted) setMore({ key, busy: false, error: extractApiErrorMessage(cause, wt('More results could not load.')) }); });
     };

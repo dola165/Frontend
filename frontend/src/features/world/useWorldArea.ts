@@ -51,10 +51,11 @@ export function useWorldArea() {
     const centre = located.data ?? (located.error ? DEFAULT_AREA : null);
     const area: WorldArea = { city, source: chosen ? 'chosen' : clubCity.data ? 'club' : 'default', centre, ready, anywhere };
 
-    /** A city, `ANYWHERE`, or '' to go back to the person's own area. */
+    /** A city, `ANYWHERE`, or '' to go back to the person's own area. A new area ends the choice of one result. */
     const setCity = (next: string) => setParams(current => {
         const copy = new URLSearchParams(current);
         if (next) copy.set('near', next); else copy.delete('near');
+        copy.delete('selected');
         return copy;
     }, { replace: true, preventScrollReset: true });
     return { area, setCity };

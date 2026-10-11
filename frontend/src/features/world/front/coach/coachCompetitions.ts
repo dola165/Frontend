@@ -96,9 +96,9 @@ export function useCompetitionsForYou(focus: SquadFocus) {
             const squads = focus.focus.filter(squad => (!rules || rules.ageGroup === squad.ageGroup) && fitsGender(rules?.eligibilityCategory, squad.gender));
             return squads.length ? [{ card, squads }] : [];
         });
-        // Backend needed: invitations name the squad only by name, so they are matched on it.
-        const names = new Set(focus.focus.map(squad => squad.name));
-        return { items, total, invitations: invitations.filter(invitation => invitation.squadName && names.has(invitation.squadName)) };
+        // Invitations for my squads in focus, by the invited squad's id.
+        const ids = new Set(focus.focus.map(squad => squad.id));
+        return { items, total, invitations: invitations.filter(invitation => invitation.squadId != null && ids.has(invitation.squadId)) };
     });
 }
 

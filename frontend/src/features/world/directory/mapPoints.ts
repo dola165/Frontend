@@ -4,6 +4,7 @@ import type { Placement } from './types';
 export interface PlacedResults {
     points: WorldMapPoint[];
     /** Each placed result's pin, by result key (several results can share one pin). */ pinOf: Map<string, string>;
+    /** The results at each pin, by pin id, in list order. */ keysOf: Map<string, string[]>;
     /** Results on screen that have no known place: they stay in the list and are counted. */ unplaced: number;
 }
 
@@ -36,8 +37,10 @@ export function placePoints<T>(items: T[], key: (item: T) => string, place: (ite
         const grouped = keys.length > 1 || Boolean(at.pin);
         const label = at.pin || labels.length === 1 ? at.label : words.more(labels[0], labels.length - 1);
         const kinds = [...tones];
-        return { id, lat: at.lat, lng: at.lng, tone: kinds.length > 1 ? 'mixed' : at.tone, ...(kinds.length > 1 ? { tones: kinds } : {}), label, to: keys.length > 1 && !at.pin ? undefined : at.to, approximate,
+        const to = keys.length > 1 && !at.pin ? undefined : at.to;
+        return { id, lat: at.lat, lng: at.lng, tone: kinds.length > 1 ? 'mixed' : at.tone, ...(kinds.length > 1 ? { tones: kinds } : {}), label, to, action: to ? at.action : undefined, approximate,
             ...(grouped ? { count: keys.length, meta: at.noun ? words.count(keys.length, at.noun) : at.meta } : { meta: at.meta }) };
     });
-    return { points, pinOf, unplaced };
+    const keysOf = new Map([...pins].map(([id, pin]) => [id, pin.keys]));
+    return { points, pinOf, keysOf, unplaced };
 }

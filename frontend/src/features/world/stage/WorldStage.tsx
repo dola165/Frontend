@@ -61,6 +61,7 @@ export function WorldStage({ children }: { children: ReactNode }) {
                             <WorldMap variant="hero" label={map?.label ?? t('Map')} points={map?.points ?? NO_POINTS}
                                 selectedId={map?.selectedId} onSelect={map?.onSelect} highlightId={map?.highlightId} onHover={map?.onHover}
                                 onMoveEnd={map?.onMoveEnd} cardActions={map?.cardActions} insetRight={floating ? PANEL : 0}
+                                focus={map?.focus} frame={map?.frame} card={map?.card ?? true}
                                 overlay={<>{map?.top}<div className="gk-world-map__overlay">
                                     {map?.pills}
                                     <button ref={foldRef} type="button" className="gk-world-glass" onClick={toggleMap} aria-expanded><ChevronUp aria-hidden="true" />{t('Fold map')}</button>

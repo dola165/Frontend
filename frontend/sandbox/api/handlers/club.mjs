@@ -37,7 +37,7 @@ get('/clubs', ({ query }) => {
   const age = query.has('age') ? Number(query.get('age')) : null;
   const fits = c => age == null || (c.presentation?.programmes ?? []).some(p => p.published && (p.ageMin != null || p.ageMax != null) && (p.ageMin == null || age >= p.ageMin) && (p.ageMax == null || age <= p.ageMax));
   let items = W.clubs.map(c => C.directoryItem(c.id)).filter(fits).filter(c => (!search || `${c.name} ${c.cityName} ${c.description}`.toLowerCase().includes(search))
-    && (!types.length || types.includes(c.type)) && (!policies.length || policies.includes(c.joinPolicy))
+    && (!types.length || types.includes(c.type)) && (!policies.length || policies.includes(c.playerJoinPolicy))
     && (!city || c.cityName.toLowerCase().includes(city)) && (!country || 'georgia ge'.includes(country)));
   const sort = query.get('sort') ?? 'NEWEST';
   items.sort(sort === 'NAME' ? (a, b) => a.name.localeCompare(b.name) : sort === 'MEMBER_COUNT' ? (a, b) => b.memberCount - a.memberCount : (a, b) => b.foundedYear - a.foundedYear || a.id - b.id);

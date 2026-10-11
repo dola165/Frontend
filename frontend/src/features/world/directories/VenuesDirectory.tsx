@@ -47,7 +47,7 @@ const venues: DirectorySource<VenueItem> = {
     Item: ({ item }) => <VenueCard venue={item.venue} date={item.date} duration={item.duration} />,
     line: ({ venue, date, duration }) => {
         const price = fromPrice(venue);
-        return { title: venue.displayName, to: `/stadiums/${venue.id}${date ? `?date=${date}&duration=${duration || 60}` : ''}`,
+        return { title: venue.displayName, to: `/stadiums/${venue.id}${date ? `?date=${date}&duration=${duration || 60}` : ''}`, action: date ? wt('See times') : wt('Open venue'),
             crest: { src: venue.logoUrl ?? venue.photos[0]?.url, name: venue.displayName }, detail: venue.addressText || venue.city,
             fact: price === null ? undefined : `${money(price, venue.currency)} / ${wt('hour')}` };
     },

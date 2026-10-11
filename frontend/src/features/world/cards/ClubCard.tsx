@@ -41,15 +41,16 @@ export function ClubCard({ club, compact = false, distanceKm }: { club: ClubProf
     const navigate = useNavigate();
     const location = useLocation();
     const [following, setFollowing] = useState(club.isFollowedByMe);
-    const [relationship, setRelationship] = useState<ClubRelationshipState>(club.relationshipState ?? 'NONE');
+    // Directory rows carry no relationship, only whether the person is a member.
+    const [relationship, setRelationship] = useState<ClubRelationshipState>(club.relationshipState ?? (club.isMember ? 'ACTIVE' : 'NONE'));
     const [busy, setBusy] = useState<'follow' | 'join' | null>(null);
     const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
     const signIn = () => navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash));
     const relation = RELATIONSHIP[relationship];
-    const policy = club.joinPolicy ? JOIN_POLICY[club.joinPolicy] : null;
+    const policy = club.playerJoinPolicy ? JOIN_POLICY[club.playerJoinPolicy] : null;
     const enquiry = isParent && (child || relationship === 'NONE') ? enquiryPath(club.id, child?.id, fittingProgrammes(club.presentation, child)[0]?.id) : null;
     const canJoin = !isParent && status === 'authenticated' && membership?.hasClubMembership === false && relationship === 'NONE'
-        && (club.joinPolicy === 'OPEN_TRIAL' || club.joinPolicy === 'APPLICATION_REQUIRED');
+        && (club.playerJoinPolicy === 'OPEN_TRIAL' || club.playerJoinPolicy === 'APPLICATION_REQUIRED');
     // Coaching staff look at other clubs as opponents: their main action proposes a match (never to their own club).
     const role = useWorldRole();
     const ownClub = membership?.clubId != null && Number(membership.clubId) === club.id;
@@ -70,7 +71,7 @@ export function ClubCard({ club, compact = false, distanceKm }: { club: ClubProf
     const join = async () => {
         setBusy('join');
         try {
-            if (club.joinPolicy === 'OPEN_TRIAL') { await selfRegisterClubPlayer(club.id); setRelationship('TRIALIST'); setMessage({ text: t('You joined as a trialist.'), error: false }); }
+            if (club.playerJoinPolicy === 'OPEN_TRIAL') { await selfRegisterClubPlayer(club.id); setRelationship('TRIALIST'); setMessage({ text: t('You joined as a trialist.'), error: false }); }
             else { await createClubApplication(club.id, 'PLAYER', null); setRelationship('APPLIED'); setMessage({ text: t('Application sent to the club.'), error: false }); }
         } catch (error) { setMessage({ text: extractApiErrorMessage(error, t('The club could not be contacted.')), error: true }); }
         finally { setBusy(null); }
@@ -112,7 +113,7 @@ export function ClubCard({ club, compact = false, distanceKm }: { club: ClubProf
                 )}
                 {canJoin && (
                     <Button size="sm" variant="primary" disabled={busy === 'join'} onClick={join}>
-                        {busy === 'join' ? t('Sending…') : club.joinPolicy === 'OPEN_TRIAL' ? t('Join as trialist') : t('Apply as player')}
+                        {busy === 'join' ? t('Sending…') : club.playerJoinPolicy === 'OPEN_TRIAL' ? t('Join as trialist') : t('Apply as player')}
                     </Button>
                 )}
                 {propose && (

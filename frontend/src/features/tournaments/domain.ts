@@ -384,6 +384,10 @@ export interface TournamentInvitationInboxItem {
     participantScope: TournamentParticipantScope;
     clubName: string | null;
     squadName: string | null;
+    /** The invited club and squad (a club-level invitation has no squad), and when the tournament starts. */
+    clubId?: number | null;
+    squadId?: number | null;
+    startDate?: string | null;
     status: TournamentInvitationStatus;
 }
 

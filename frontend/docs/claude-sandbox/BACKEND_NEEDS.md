@@ -19,8 +19,8 @@ Several older notes asked for backend work that is not needed.
 
 | What | Status | What to do in the frontend |
 |---|---|---|
-| Squad id on tournament invitations (`/tournaments/invitations/mine` returns `squadId`, `clubId`, `startDate`) | EXISTS | Add `squadId` to the invitation type and stop matching squads by name in the coach competition fields. The sandbox should send it too. |
-| Coordinates on directory clubs (`/clubs` items carry `latitude`, `longitude`) | EXISTS | Add them to the club directory type instead of casting. Whether real clubs have coordinates is UNVERIFIED. |
+| Squad id on tournament invitations (`/tournaments/invitations/mine` returns `squadId`, `clubId`, `startDate`) | EXISTS | Done in round 3 phase A: invitations are matched by `squadId`, and the sandbox sends it. |
+| Coordinates on directory clubs (`/clubs` items carry `latitude`, `longitude`) | EXISTS | Done in phase A: the club directory type carries them. Whether real clubs have coordinates is UNVERIFIED. |
 | Radius search on `/competitions` (`latitude`, `longitude`, `radiusKm` up to 500) | EXISTS | Only the sandbox ignores it. |
 | `POST /journeys/from-fixture`; `published` on a journey plan | EXISTS | Remove from the to-do lists. |
 | `POST /match-arrangements` referee modes `INVITE`, `OPEN`, `EXTERNAL`, `LATER`, `NONE` | EXISTS | The frontend sends only `LATER`, `EXTERNAL`, `NONE` today. |
@@ -40,9 +40,9 @@ These work in the sandbox and break on the real backend.
 
 | Mismatch | Effect on the real backend | Fix |
 |---|---|---|
-| The club directory sends `playerJoinPolicy`; the frontend reads `joinPolicy` | Club cards never show "Open trials / Apply to join" and never offer Join or Apply | Frontend reads `playerJoinPolicy` (or the backend adds an alias). Predates the redesign. |
-| Directory rows have `relationshipState: null` (only `isMember`, `isStaffMember`) | "Member", "Applied", "Trialist" never show on World Clubs | Backend fills `relationshipState` in directory rows, or the frontend uses `isMember`. |
-| `GET /competitions` takes `minFee`/`maxFee` as integers; the frontend passes free text | "12.5" would be rejected with a 400 | Frontend validates and sends whole numbers. |
+| The club directory sends `playerJoinPolicy`; the frontend read `joinPolicy` | Club cards never showed "Open trials / Apply to join" and never offered Join or Apply | **Fixed in phase A:** the frontend reads `playerJoinPolicy`; the sandbox and the test mocks send it as the backend does. |
+| Directory rows have `relationshipState: null` (only `isMember`, `isStaffMember`) | "Applied" and "Trialist" never show on World Clubs | **"Member" fixed in phase A** (the frontend reads `isMember`; the sandbox sends rows as the backend does). Still MISSING: the backend filling `relationshipState` in directory rows, for "Applied", "Invited" and "Trialist". |
+| `GET /competitions` takes `minFee`/`maxFee` as integers; the frontend passed free text | "12.5" would have been rejected with a 400 | **Fixed in phase A:** the frontend asks for whole numbers and says so instead of sending anything else. |
 | Tournament rows in `/match-history` have `title` = the tournament name and null `ends_at`, `timezone`, `location_name` | Fixture lines read "Tbilisi Community League" instead of "A v B", with no ground or time zone | Backend fills them (see 3.5), or the frontend builds the pairing title from the club names. |
 | `/match-history` ids are `event:N` / `fixture:N`; the sandbox uses `TOURNAMENT:N` | Keys and deep links differ | Align the sandbox with the backend. |
 | `GET /venues`: `city` is an exact match (sandbox: substring); filters by the venue's own currency; sorts by name (sandbox: Tbilisi first, then id) | Results and order differ from what the owner reviews | Align the sandbox. |

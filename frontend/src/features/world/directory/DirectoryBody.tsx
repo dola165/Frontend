@@ -1,10 +1,9 @@
-import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useRef } from 'react';
 import { useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
 import { ButtonLink, EmptyNote, Panel } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
 import { plural, useWorldCopy } from '../copy';
-import { reducedMotion } from '../map/canvas/useMapTheme';
 import { useWorldRole } from '../front/useOverviewLayout';
 import { isReturn } from '../history';
 import { useWorldChild } from '../players';
@@ -18,13 +17,17 @@ import { DirectoryResults } from './DirectoryResults';
 import { DirectorySelectionContext } from './selection';
 import { useDirectoryData } from './useDirectoryData';
 import { useDirectoryMap } from './useDirectoryMap';
-import { CARRIED, type DirectoryState } from './useDirectoryState';
+import { usePlacedPoints } from './usePlacedPoints';
+import { useDirectorySelection } from './useDirectorySelection';
+import { CARRIED, SELECTED, type DirectoryState } from './useDirectoryState';
 import { useRestoredScroll } from './useRestoredScroll';
+
+const NO_PINS = new Map<string, string>();
 
 /**
  * A tab's likely answer for who is looking, written once when it opens with no filters of its own (a link that
- * carries filters is never overridden). From then on they are ordinary chips, and Clear filters removes them. Going
- * Back or Forward to a list never writes them again: the person may have removed them there.
+ * carries filters or a chosen result is never overridden). From then on they are ordinary chips, and Clear filters
+ * removes them. Going Back or Forward to a list never writes them again: the person may have removed them there.
  */
 function useRoleDefaults(state: DirectoryState, apply: boolean, signedIn: boolean) {
     const role = useWorldRole();
@@ -39,7 +42,7 @@ function useRoleDefaults(state: DirectoryState, apply: boolean, signedIn: boolea
     const write = useEffectEvent(() => {
         done.current = true;
         const { source, query } = state;
-        if (!source.defaults || query.q || source.filters.some(filter => !CARRIED.includes(filter.key) && params.has(filter.key))) return;
+        if (!source.defaults || query.q || params.has(SELECTED) || source.filters.some(filter => !CARRIED.includes(filter.key) && params.has(filter.key))) return;
         const values = source.defaults({ role, child: Boolean(child), signedIn });
         if (Object.keys(values).length) state.setMany(values);
     });
@@ -72,9 +75,6 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     const stage = useStage();
     const wide = useMediaQuery(WIDE, true);
     const browse = stage.inStage && stage.mapOpen && wide && !gated;
-    const [selectedPin, setSelectedPin] = useState<string>();
-    const [hoverKey, setHoverKey] = useState<string>();
-    const [hoverPin, setHoverPin] = useState<string>();
     const listRef = useRef<HTMLDivElement>(null);
     const { remember } = useWorldChild();
     const [, setParams] = useSearchParams();
@@ -82,21 +82,6 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     const clearFor = () => {
         remember.write('');
         setParams(current => { const next = new URLSearchParams(current); next.delete('player'); return next; }, { replace: true, preventScrollReset: true });
-    };
-    const behavior = () => reducedMotion() ? 'auto' as const : 'smooth' as const;
-    /** A pin chosen on the map: its results light up, and the first comes into view in the Browse area panel. */
-    const select = (pin?: string) => {
-        setSelectedPin(pin);
-        if (pin) requestAnimationFrame(() => stage.panel?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', behavior: behavior() }));
-    };
-    /** "Show in list": the first result at the chosen pin (marked current) comes into view and takes focus. */
-    const showInList = (pin: string) => {
-        setSelectedPin(pin);
-        requestAnimationFrame(() => {
-            const element = listRef.current?.querySelector<HTMLElement>('[aria-current="true"]');
-            element?.scrollIntoView({ block: 'center', behavior: behavior() });
-            (element?.matches('a, button') ? element : element?.querySelector<HTMLElement>('a, button'))?.focus({ preventScroll: true });
-        });
     };
 
     const filtered = clearable || state.activeFilters.length > 0;
@@ -109,8 +94,11 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     const count = gated ? '' : data.loading ? t('Searching {things}…', { things: t(nouns[1]) }) : data.error || data.notice ? ''
         : data.total != null ? counted(data.total) : data.hasMore ? t('{count}+ found', { count: data.items.length }) : data.items.length ? counted(data.items.length) : '';
     const searched = query.q && count && !data.loading ? ` · “${query.q}”` : '';
-    const { placed, mappable } = useDirectoryMap({ source, query, data, gated, open: stage.mapOpen, panel: browse, summary: count, onShowInList: showInList,
-        selection: { selectedPin, select, hoverKey, hoverPin, setHoverPin } });
+    const mappable = Boolean(source.place) && (source.mapped?.(query) ?? true) && !gated;
+    const placed = usePlacedPoints(source, data.items, mappable && stage.mapOpen);
+    const choice = useDirectorySelection({ state, keys: data.items.map(source.key), placed, panel: browse && !stage.panelFolded ? stage.panel : null, list: listRef });
+    // The map's own card shows a pin unless a Browse row already shows its one chosen result (with its Open link).
+    useDirectoryMap({ source, query, data, gated, mappable, placed, choice, open: stage.mapOpen, panel: browse, summary: count, card: !browse || stage.panelFolded || !choice.chosen });
     const sortable = source.sorts && source.sorts.length > 1 && (!source.sortable || source.sortable(query));
     const sort = sortable && (
         <label className="gk-world-toolbar__sort" htmlFor={sortId}>
@@ -132,7 +120,8 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     );
 
     return (
-        <DirectorySelectionContext.Provider value={mappable && stage.mapOpen ? { pinOf: placed.pinOf, selectedPin, hoverPin, hover: setHoverKey } : null}>
+        <DirectorySelectionContext.Provider value={stage.mapOpen ? { pinOf: mappable ? placed.pinOf : NO_PINS, selectedPin: choice.selectedPin, hoverPin: choice.hoverPin,
+            hover: choice.setHoverKey, chosen: choice.chosen, choose: choice.choose, clear: choice.clear, mappable, placing: placed.loading, incomplete: placed.incomplete } : null}>
             {browse && <StagePanel><BrowsePanel source={source} data={data} count={count + searched} tools={sort} folded={stage.panelFolded} onToggle={stage.togglePanel} /></StagePanel>}
             {!browse && (count || sort) && (
                 <div className="gk-world-summary">

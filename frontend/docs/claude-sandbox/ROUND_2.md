@@ -280,6 +280,8 @@ The app today, compared with how clubs usually work (coaches to confirm):
   - **Cards** show "Academy of FC Dinamo Tbilisi" / "Academy: …", the distance, and for coaching staff "Propose a match" (never on their own club).
   - **Defaults:** a player opens on "Taking new players"; an academy director, analyst or agent on Academies.
 
+**Round 3** (11 October): the owner accepted `ROUND_3_PLAN.md` with every default in its section 3 ("begin"): Browse rows open with "Open …", People in four views with referees on the map and the Dugout, Matches as Matchday, one "+" per tab with work over the map, Arrange a match fields back, reservations back on the match page, Tournaments in five sections drawn as their format with the Draw room, Venues as a Pitchboard, schedule challenges merged into "Offer to play", organiser chores staying in the workspace. One phase at a time, each shown before the next.
+
 ## 5. Map and Journeys
 
 **The owner's notes**
@@ -354,6 +356,8 @@ The app today, compared with how clubs usually work (coaches to confirm):
 
 This branch is the real frontend code on fake data, so what is built here ships after hardening. The owner is fine making changes, rollouts included, right away (11 October); this list keeps what is still to do so nothing is forgotten when the branch moves into the real app.
 
+**Backend work is listed in one place: `BACKEND_NEEDS.md`** (checked against the real backend on 11 October; several older items below turned out to exist already and are now frontend fixes there).
+
 - **Every workspace list as a table** ("Lists" under Across the app):
   - Full lists still on the old look: Staff (`ClubStaffTeam`, unless the one-screen staff work in section 3 redoes it here first), staff invitations (`ManagementInvites`), Club updates (`InboxTab`), Staff roles (`RolesTab`), Joining (`ClubAdmissionWorkspace`), Applications, Tryouts, Jobs & volunteering (`OpenRolesPage`, `RoleApplicants`), Store, Fundraising (`ClubCampaignsPage`), Player cards, Squads (`WorkspaceSquads`) and the squad roster.
   - Previews that open a full list speak the same row language and link to it: Needs you (My club, to the Work queue), players needing attention (My squads), staff appointments needing attention (Work queue), and the record sections of the player panel.
@@ -368,7 +372,7 @@ This branch is the real frontend code on fake data, so what is built here ships 
     - `clubProfile`: ways to get involved.
     - `WorkspaceShell`: the phone menu button.
     - `world/people`: "does not fall back on other errors" (seen 11 October).
-- **Backend:** the records query (`/workspace-roles/work`) should take `sort` and `dir` and return a total. Until then the table sorts only the loaded page and record views show no counts.
+- **Workspace tables:** until the records query takes `sort`, `dir` and a total (`BACKEND_NEEDS.md` §5), the table sorts only the loaded page and record views show no counts.
 - **My squads:** Georgian copy for its new pages (written in English for now); tests for its pages; unused `coachHub` locale keys removed. Squad sessions should report friendlies as `FRIENDLY` (the sandbox marks them in the description).
 - **One calendar everywhere:**
   - The personal schedule (`ScheduleBoard`, the profile's Schedule tab) still uses the older board. Move it onto the shared calendar like My squads and the club workspace.
@@ -377,26 +381,16 @@ This branch is the real frontend code on fake data, so what is built here ships 
   - Initials avatars now take soft colours app-wide; check the screens that relied on grey ones.
 - **World overview:** save each person's field layout on the server (today it is per browser); Georgian copy for the new fields (about 180 strings from the overview fields and Customize still have none; the World stage, map and directory strings do).
   - Tests still to write: role defaults (written once, never over a link's filters, never again on Back).
-  - **Backend parameters the coach fields need:**
-    - squad ids on tournament invitations (matched by squad name today);
-    - gender on match-exchange listings (read from the squad name today);
-    - a time zone on tournament fixture times (read as Georgian time today);
-    - availability for several venues in one request (four requests today);
-    - a squad's format (taken from its age group today).
+  - **Frontend fixes now possible** (the backend already has them, `BACKEND_NEEDS.md` §1): read squad ids on tournament invitations instead of matching by squad name; read club coordinates from `/clubs`.
+  - The coach fields' other guesses (listing gender from the squad name, Georgian time on tournament fixtures, four availability requests, format from the age group) wait for `BACKEND_NEEDS.md` §3.1.
   - **Check with the coaches:** the 72-hour and three-in-a-week rest rules, and the evening window (17:00–21:00) for free pitches.
   - **Sponsors:** confirm `promotionBlocked` covers every restricted category before the rail goes live.
-- **World tabs, backend parameters:**
-  - `/clubs`: coordinates on directory clubs (until then the map search places them), `near` with a distance sort, boys/girls, a fee ceiling.
-  - `/people`: `isFollowedByMe`, a viewer-is-a-minor flag.
-  - `/venues`: amenities, availability for several venues in one request.
-  - `/match-history`: area, ground coordinates, club logos.
-  - Listings: `refereeNeeded`.
-  - `/competitions`: several age groups at once, structured gender, a radius in the sandbox.
-  - `/tryouts/discovery`: age group, gender, position.
-  - `/jobs`: filtering and paging on the server.
-  - Parent Hub children: their squad ids.
-  - Also: `city[]` is sent with brackets and the server ignores it; MATCH markers mix two id spaces (check the club); the places lookup is capped at 400 per kind.
-  - **Referees on the map** (the owner wants "who is available nearby" soon): referees need a service area the map can draw, such as a centre and radius, instead of free text.
+- **World tabs:** backend parameters are in `BACKEND_NEEDS.md` §3. Frontend-side items:
+  - Read `playerJoinPolicy` (the real directory's name) and `isMember` on club cards; the sandbox's `joinPolicy` and `relationshipState` hide that Join/Apply and "Member" never show on the real backend (`BACKEND_NEEDS.md` §2).
+  - Send `city` (not `city[]`) to places to train; send whole numbers for tournament fees.
+  - Align the sandbox with the backend where it hides differences (venues order and city match, ignored tournament filters, the official-request route, match-history ids).
+  - The places lookup is capped at 100 per kind on the real backend, not 400.
+  - **Referees on the map** (the owner wants "who is available nearby" soon): needs a service area as a centre and radius (`BACKEND_NEEDS.md` §3.3).
   - People, Venues, Matches, Competitions and Opportunities do not follow Near yet (their own steps). Their old City, Place and "Near me" filters go then.
   - The overview and the tabs share the World stage. A detail page (a club, a venue) could take the same map later.
 - **Injuries** (`SCENARIOS.md`): the backend pieces listed there, starting with an injury report record.

@@ -275,3 +275,11 @@ The sandbox's `GET /people` (`sandbox/api/handlers/world-extra.mjs`) is the cont
 | A postponed marker (the previous kick-off) on rescheduled fixtures; there is no POSTPONED or ABANDONED status | MISSING; decide |
 | Coordinates or a venue id on `/match-history` rows: pins and the away-day line work today only for the club's own scheduled matches and tournament grounds | MISSING (extends 3.5) |
 | Adding a past match: open to a squad's coaches, not only owners and administrators? | Decide |
+
+### World › Creating things (phase D)
+
+| Need | Status |
+|---|---|
+| Listing detail and `mine` rows: the invited club's name and logo (`requested_club_name`, `requested_club_logo_url`), so a sent invitation names who it waits for without reading the club's page | MISSING |
+| Drafts kept on the server (a preference per person and flow), so a draft follows the person between devices | MISSING; optional |
+| `/clubs/{id}/squads`: the squad's own head coach (the pane's Teams tab and the Arrange form's squad choice) | MISSING (only staff responsibilities name squads) |

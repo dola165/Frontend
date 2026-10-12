@@ -4,6 +4,7 @@ import { MyVenueBookings } from '../../venues/VenueBookings';
 import { fromPrice, money, today } from '../../venues/utils';
 import { useWorldCopy, wt } from '../copy';
 import { VenueRow } from '../cards/VenueRow';
+import { CreateMenu } from '../compose/CreateMenu';
 import { DirectoryPage } from '../directory/DirectoryPage';
 import { first, type DirectorySource } from '../directory/types';
 import '../../venues/venues.css';
@@ -62,7 +63,7 @@ const venues: DirectorySource<VenueItem> = {
 
 function ListStadium() {
     const t = useWorldCopy();
-    return <ButtonLink size="sm" to="/organizations/create?kind=VENUE">{t('List your stadium')}</ButtonLink>;
+    return <ButtonLink size="sm" to="/organizations/create?kind=VENUE">{t('List your venue')}</ButtonLink>;
 }
 
 /** World › Venues: pitches to hire, and the person's own reservations. */
@@ -74,7 +75,7 @@ export default function VenuesDirectory() {
             subtitle={t('Pitches to hire')}
             sources={[venues]}
             extraTabs={[{ id: 'bookings', label: 'My reservations', personal: true, element: <div className="venue-page"><MyVenueBookings /></div> }]}
-            actions={<ButtonLink variant="ghost" to="/organizations/create?kind=VENUE">{t('List your stadium')}</ButtonLink>}
+            actions={<CreateMenu face="list-venue" />}
         />
     );
 }

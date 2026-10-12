@@ -1,28 +1,19 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CalendarPlus } from 'lucide-react';
-import { ButtonLink } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
-import { get, type Squad } from '../../matchExchange/api';
+import { CreateMenu } from '../compose/CreateMenu';
 import { useWorldCopy } from '../copy';
 import { DirectoryPage } from '../directory/DirectoryPage';
 import { isoDay } from '../format';
 import { COACHING_ROLES } from '../front/coach/mySquads';
 import type { WorldRole } from '../front/roles';
 import { useWorldRole } from '../front/useOverviewLayout';
-import { useWorldData } from '../useWorldData';
 import { WorldLoading } from '../WorldLoading';
 import { useWorldSession } from '../worldSession';
 import { fixtures } from './matches/fixturesSource';
 import { loadWindow, openingDay } from './matches/matchday';
 import { exchange } from './matches/exchangeSource';
 import { arrangements, events } from './matches/otherSources';
-
-/** Squads the person can arrange matches for; arranging is offered only when there are some. */
-function useArrangeableSquads() {
-    const { status, sessionId } = useAuth();
-    return useWorldData(status === 'authenticated' ? `arrange-squads:${sessionId}` : null, signal => get<Squad[]>('/match-exchange/squads', undefined, signal));
-}
 
 const SOURCES = [fixtures, exchange, arrangements, events];
 /** The tab Matches opens on for each role, when the address names none: a referee looks for matches to officiate, a team manager at what needs arranging. */
@@ -73,7 +64,6 @@ export default function MatchesDirectory() {
     const role = useWorldRole();
     const { membership } = useWorldSession();
     const [params] = useSearchParams();
-    const squads = useArrangeableSquads();
     const opening = OPENING[role] ?? 'fixtures';
     useOpeningDay(opening, role);
     // The opening tab follows the role, which settles once the person's club is known.
@@ -84,7 +74,7 @@ export default function MatchesDirectory() {
             subtitle={t('Fixtures, results and open matches')}
             sources={SOURCES}
             opening={opening}
-            actions={squads.data?.length ? <ButtonLink variant="primary" to="/world/matches/arrange"><CalendarPlus aria-hidden="true" />{t('Arrange a match')}</ButtonLink> : undefined}
+            actions={<CreateMenu face="arrange" />}
         />
     );
 }

@@ -5,7 +5,7 @@ import { placeType } from '../../clubs/clubPlaceTypes';
 import type { PublicSquad } from '../../clubs/publicJourney';
 import type { Venue } from '../../venues/api';
 import type { SquadSpace } from '../../squadCommunication/api';
-import type { Match, Squad } from '../api';
+import type { Match, Referee, Squad } from '../api';
 
 /** A ground the form can offer: a club's own or regular venue, or any venue on GrassKickZ. */
 export interface Ground { key: string; venueId: number | null; name: string; city: string; detail: string; latitude: number | null; longitude: number | null; timezone?: string }
@@ -33,7 +33,8 @@ export async function clubGrounds(clubId: number, signal: AbortSignal): Promise<
         if (seen.has(key)) return [];
         seen.add(key);
         const latitude = Number(place.details.latitude), longitude = Number(place.details.longitude);
-        const city = place.linkedVenue?.city ?? place.details.address?.split(',').pop()?.trim() ?? '';
+        // A venue with a blank city falls back to the last part of the address (the server needs a city).
+        const city = place.linkedVenue?.city?.trim() || place.details.address?.split(',').pop()?.trim() || '';
         return [{ key, venueId, name: place.title || place.linkedVenue?.name || 'Club ground', city,
             detail: [relationship[place.details.relationship], place.squadName, place.details.address || place.linkedVenue?.address].filter(Boolean).join(' · '),
             latitude: Number.isFinite(latitude) && place.details.latitude ? latitude : null, longitude: Number.isFinite(longitude) && place.details.longitude ? longitude : null }];
@@ -45,6 +46,10 @@ export async function searchVenues(q: string, signal: AbortSignal): Promise<Grou
         latitude: venue.latitude, longitude: venue.longitude, timezone: venue.timezone }));
 }
 
+/** Referees in the directory by name or the area they cover (the first page). */
+export const searchReferees = async (q: string, signal: AbortSignal) =>
+    (await apiClient.get<{ items: Referee[] }>('/referees', { params: { q, page: 0 }, signal, timeout })).data.items;
+
 /** The match terms both the direct invitation and the open listing send (the listing contract). */
 export interface MatchTerms {
     squadId: number; title: string; description: string; startsAt: string; endsAt: string; timezone: string;
@@ -52,11 +57,11 @@ export interface MatchTerms {
     ageGroup: string; level: string; format: string; venuePreference: 'HOME' | 'AWAY' | 'EITHER'; refereeRequired: boolean; venueId: number | null;
     requestId: string; revision: number;
 }
-export type OfficialMode = 'LATER' | 'EXTERNAL' | 'NONE';
+export type OfficialMode = 'LATER' | 'INVITE' | 'OPEN' | 'EXTERNAL' | 'NONE';
 export interface Arrangement {
     match: MatchTerms; targetClubId: number | null; targetSquadId: number | null; bookingId: null;
     matchType: 'FRIENDLY' | 'COMPETITIVE'; hostingChoice: 'HOME' | 'AWAY' | 'NEUTRAL' | 'FLEXIBLE';
-    officialMode: OfficialMode; officialResponsibility: 'HOST' | 'OPPONENT'; refereeId: null; externalRefereeName: string | null;
+    officialMode: OfficialMode; officialResponsibility: 'HOST' | 'OPPONENT'; refereeId: number | null; externalRefereeName: string | null;
     volunteer: boolean; fee: number; currency: string;
 }
 /** Sends a direct invitation (with `targetClubId`) or publishes an open listing (without). */

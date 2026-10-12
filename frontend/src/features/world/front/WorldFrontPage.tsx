@@ -9,6 +9,7 @@ import { useAroundMap } from './useAroundMap';
 import { BelowMapHead } from '../stage/BelowMap';
 import { StageHead, StagePanel } from '../stage/WorldStage';
 import { useStage } from '../stage/stageContext';
+import { CreateMenu } from '../compose/CreateMenu';
 import { CustomizeOverview } from './CustomizeOverview';
 import { fieldInfo, type FieldId } from './fields';
 import { useOverviewLayout } from './useOverviewLayout';
@@ -65,6 +66,7 @@ export default function WorldFrontPage() {
                     <WorldSearch />
                     <div className="gk-world-head__actions">
                         <Button onClick={() => setDraft(saved)}><SlidersHorizontal aria-hidden="true" />{t('Customize')}</Button>
+                        <CreateMenu />
                     </div>
                 </header>
             </StageHead>

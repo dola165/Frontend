@@ -739,7 +739,7 @@ get('/organizations/mine', () => [{ id: 901, slug: 'fc-dinamo-tbilisi-academy', 
 get('/organizations/:id/tournament-host-clubs', ({ params }) => Number(params.id) === 901 ? [{ clubId: DINAMO, clubName: clubById(DINAMO).name, organizationId: 901, organizationName: clubById(DINAMO).name, accessType: 'OWN_ORGANIZATION' }] : []);
 
 // ============================================================== match arrangements (officials, ground, squads)
-const officialRequests = new Map(); // listing id -> request
+const officialRequests = F.officialRequests; // listing id -> request
 const requestView = l => { const v = F.listingView(l), r = officialRequests.get(l.id); return r && { event_id: l.id, title: l.title, location_name: v.location_name, city: v.city, starts_at_iso: v.starts_at_iso, ends_at_iso: v.ends_at_iso, timezone: TZ, volunteer: r.volunteer, fee: r.fee, currency: r.currency, revision: r.revision, status: r.status, applications: r.applications }; };
 for (const l of F.exchange.filter(l => l.refereeRequired && !l.refereeId && l.start.getTime() > now()).slice(0, 6)) {
   const i = l.id % 4;

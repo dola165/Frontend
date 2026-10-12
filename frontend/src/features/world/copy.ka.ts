@@ -398,4 +398,7 @@ export const WORLD_KA: Record<string, string> = {
     '{count} more on the profile': 'კიდევ {count} პროფილზე', 'Experience': 'გამოცდილება', 'Qualifications': 'კვალიფიკაცია',
     'Achievements': 'მიღწევები', 'since {year}': '{year}-დან',
     'Next': 'შემდეგი', '{count} a week': 'კვირაში {count}', 'All {count} trials': 'ყველა გასინჯვა ({count})',
+    'More to create': 'სხვა შესაქმნელი', 'Create': 'შექმნა', 'Continue': 'გაგრძელება', 'Draft': 'მონახაზი', 'just now': 'ახლახან', '{n} min ago': '{n} წთ-ის წინ', '{n} h ago': '{n} სთ-ის წინ', 'yesterday': 'გუშინ',
+    'v {club}': '{club}-ის წინააღმდეგ', 'Match invitation': 'მატჩის მოწვევა', 'Post an open match': 'ღია მატჩის გამოქვეყნება', 'Post a job': 'ვაკანსიის გამოქვეყნება', 'List your venue': 'თქვენი მოედნის დამატება',
+    'How to find an opponent': 'როგორ ვიპოვოთ მეტოქე', 'Invite a club': 'კლუბის მოწვევა', 'Anyone can propose': 'ნებისმიერს შეუძლია შემოთავაზება', 'Sign in to arrange a match': 'მატჩის მოსაწყობად შედით სისტემაში',
 };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Squad } from '../../api';
 import type { Ground } from '../api';
-import { addMinutes, buildArrangement, defaultFormat, defaultMinutes, draftFromMatch, placeGround, problemsWith, suggestOurSquad, suggestTheirSquad, weekendDays, type Draft } from '../matchPlan';
+import { addMinutes, buildArrangement, buildTerms, defaultFormat, defaultMinutes, draftFromMatch, placeGround, problemsWith, suggestOurSquad, suggestTheirSquad, weekendDays, type Draft } from '../matchPlan';
 import type { Match } from '../../api';
 
 const squad = (id: number, name: string, category: string): Squad => ({ id, name, category, club_id: 1, club_name: 'Dinamo' });
@@ -82,11 +82,50 @@ describe('editing a published match', () => {
     it('reads the stored terms back into the form and shows our venue as our ground', () => {
         const value = draftFromMatch(match);
         expect(value).toMatchObject({ date: '2099-10-17', time: '11:00', minutes: 80, format: '9_A_SIDE', referee: 'NONE', note: 'Bring bibs', level: 'COMPETITIVE', opponent: { id: 3 } });
-        expect(placeGround(value.ground, [ground], [])).toEqual({ kind: 'OURS', ground });
+        expect(placeGround(value.ground, [ground], [])).toEqual({ kind: 'OURS', ground, city: 'Tbilisi' });
+    });
+    it('keeps a "We travel" match at their ground when edited, never "either ground"', () => {
+        const travel = draftFromMatch({ ...match, venue_id: null, location_name: 'At the opponent’s ground', location_lat: null, location_lng: null, hosting_choice: 'AWAY', venue_preference: 'AWAY' });
+        expect(travel.ground).toEqual({ kind: 'TRAVEL', city: 'Tbilisi' });
+        expect(buildTerms(travel, ours[0], 'edit', 3).venuePreference).toBe('AWAY');
+    });
+    it('keeps a ground both clubs use where the match was agreed', () => {
+        const shared = draftFromMatch({ ...match, hosting_choice: 'AWAY' });
+        expect(placeGround(shared.ground, [ground], [ground], shared.hosting)).toMatchObject({ kind: 'THEIRS' });
+        expect(buildTerms({ ...shared, ground: placeGround(shared.ground, [ground], [ground], shared.hosting) }, ours[0], 'edit').venuePreference).toBe('AWAY');
+    });
+    it('asks for the city of a listed ground that has none, instead of being refused by the server', () => {
+        const blank = { ...ground, city: '' };
+        expect(problemsWith(draft({ ground: { kind: 'OTHER', ground: blank } }), 'direct', new Date('2026-10-10T08:00:00Z')).ground).toBe('Add the city of this ground.');
+        expect(problemsWith(draft({ ground: { kind: 'OTHER', ground: blank, city: 'Rustavi' } }), 'direct', new Date('2026-10-10T08:00:00Z')).ground).toBeUndefined();
     });
     it('keeps a ground recorded without a pin', () => {
         const value = draftFromMatch({ ...match, venue_id: null, location_name: 'School No. 51 pitch', location_lat: null, location_lng: null });
         expect(value.ground).toEqual({ kind: 'PIN', name: 'School No. 51 pitch', city: 'Tbilisi', latitude: '', longitude: '' });
         expect(problemsWith(value, 'edit', new Date('2026-10-10T08:00:00Z'))).toEqual({});
+    });
+});
+
+describe('the restored fields', () => {
+    const now = new Date('2026-10-10T08:00:00Z');
+    it('plays at another age group, and any length from 20 minutes to 12 hours', () => {
+        const terms = buildTerms(draft({ ageGroup: 'U16', minutes: 600 }), ours[0], 'direct');
+        expect(terms).toMatchObject({ ageGroup: 'U16', format: '11_A_SIDE', endsAt: '2099-10-17T21:00' });
+        expect(problemsWith(draft({ minutes: 721 }), 'direct', now).length).toBe('A match lasts from 20 minutes to 12 hours.');
+    });
+    it('says who hosts where the ground does not', () => {
+        expect(buildArrangement(draft({ ground: { kind: 'LATER', city: 'Tbilisi' } }), ours[0], 'direct').hostingChoice).toBe('FLEXIBLE');
+        expect(buildArrangement(draft({ ground: { kind: 'LATER', city: 'Tbilisi' }, hosting: 'HOME' }), ours[0], 'direct')).toMatchObject({ hostingChoice: 'HOME', match: { venuePreference: 'HOME' } });
+        // At our own ground we host, whatever was chosen for another ground.
+        expect(buildArrangement(draft({ ground: { kind: 'OURS', ground }, hosting: 'AWAY' }), ours[0], 'direct').hostingChoice).toBe('HOME');
+    });
+    it('invites a referee as the match is sent, or asks referees nearby, with the terms offered', () => {
+        const referee = { id: 41, name: 'Nino Beridze', fee: 60, currency: 'GEL', acceptsVolunteer: false, acceptsPaid: true };
+        expect(problemsWith(draft({ referee: 'INVITE' }), 'direct', now).referee).toBe('Choose the referee to invite.');
+        expect(problemsWith(draft({ referee: 'INVITE', invited: referee }), 'direct', now).referee).toBe('Nino Beridze does not take volunteer matches.');
+        expect(buildArrangement(draft({ referee: 'INVITE', invited: referee, volunteer: false, fee: '70', currency: 'GEL' }), ours[0], 'direct'))
+            .toMatchObject({ officialMode: 'INVITE', officialResponsibility: 'HOST', refereeId: 41, volunteer: false, fee: 70, currency: 'GEL', match: { refereeRequired: true } });
+        expect(buildArrangement(draft({ referee: 'OPEN' }), ours[0], 'open')).toMatchObject({ officialMode: 'OPEN', refereeId: null, volunteer: true, fee: 0 });
+        expect(buildArrangement(draft({ referee: 'THEM' }), ours[0], 'direct')).toMatchObject({ officialMode: 'LATER', officialResponsibility: 'OPPONENT' });
     });
 });

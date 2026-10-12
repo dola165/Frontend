@@ -28,7 +28,7 @@ export const RoleForm = ({ clubId, job, saving, formError, recovery, onCancel, o
     const inApp = appliesInApp(requiredRole);
     const dirty = JSON.stringify([title, description, ageGroup, level, requiredRole, category, engagementType])
         !== JSON.stringify([job?.title ?? '', job?.description ?? '', job?.ageGroup ?? '', job?.level ?? '', job?.requiredRole ?? '', job?.category ?? 'OTHER', job?.engagementType ?? 'UNSPECIFIED']);
-    return <CommerceEditor title={job ? t('jobs.editPosting') : 'Post a role'} formLabel="Role editor" backLabel="Back to open roles" closeLabel="Close role editor" saveLabel={t('jobs.save')}
+    return <CommerceEditor title={job ? t('jobs.editPosting') : 'Post a job'} formLabel="Role editor" backLabel="Back to open roles" closeLabel="Close role editor" saveLabel={t('jobs.save')}
         description="Describe the work and the commitment, and choose how candidates get in touch." saving={saving}
         footerNote={job ? `Saving keeps this posting ${job.status === 'CLOSED' ? 'closed' : 'open'}.` : 'Saving opens the posting to candidates straight away.'}
         onRequestClose={() => { if (dirty) setDiscard(true); else onCancel(); }}

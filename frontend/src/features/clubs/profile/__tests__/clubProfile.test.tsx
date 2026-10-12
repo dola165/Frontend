@@ -70,7 +70,7 @@ describe('club profile', () => {
 
     it('gives another club’s staff a way to propose a match, and everyone else one primary way in', () => {
         const view = page(<ClubActions club={club} can={{ ...visitor, canChallenge: true, myClubId: 1 }} onFollow={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} onSettings={vi.fn()} />);
-        expect(screen.getByRole('link', { name: 'Propose a match' })).toHaveAttribute('href', '/world/matches/arrange?opponent=10');
+        expect(screen.getByRole('link', { name: 'Propose a match' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-direct.c10');
         expect(screen.queryByRole('button', { name: 'Join' })).not.toBeInTheDocument();
         view.unmount();
         page(<ClubActions club={club} can={visitor} onFollow={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} onSettings={vi.fn()} />);

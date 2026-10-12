@@ -8,8 +8,7 @@ import type { ClubProfile, ClubRelationshipState } from '../../../components/dis
 import { toggleClubFollow } from '../api';
 import { useWorldCopy } from '../copy';
 import { JOIN_POLICY } from '../format';
-import { COACHING_ROLES } from '../front/coach/mySquads';
-import { useWorldRole } from '../front/useOverviewLayout';
+import { useArrangeableSquads } from '../compose/useArrangeableSquads';
 import { useWorldChild } from '../players';
 import { useWorldSession } from '../worldSession';
 import { changeClub, useClubChange } from './clubState';
@@ -25,8 +24,10 @@ const RELATIONSHIP: Partial<Record<ClubRelationshipState, { label: string; tone:
 /**
  * What the person can do with a club, wherever the club is shown (its card, its row in a list): follow it, and the one
  * main action for who is looking. A parent asks the club about a place for their child through the club's enquiry;
- * joining in one click is offered only to someone joining for themselves who is verified to have no club; coaching
- * staff propose a match to another club (never their own). What the person does here is shared with every other place
+ * joining in one click is offered only to someone joining for themselves who is verified to have no club; anyone with
+ * squads they may arrange matches for (a coach, a club administrator) proposes a match to another club, never their own,
+ * unless they are searching for a child (then the club's enquiry is theirs). Real permissions decide, never the role
+ * picked in World. What the person does here is shared with every other place
  * the club is shown (`clubState`).
  */
 export function useClubActions(club: ClubProfile) {
@@ -34,7 +35,7 @@ export function useClubActions(club: ClubProfile) {
     const { status, sessionId } = useAuth();
     const { membership } = useWorldSession();
     const { isParent, child } = useWorldChild();
-    const role = useWorldRole();
+    const squads = useArrangeableSquads();
     const navigate = useNavigate();
     const location = useLocation();
     const key = `${sessionId}:${club.id}`;
@@ -45,13 +46,14 @@ export function useClubActions(club: ClubProfile) {
     const [busy, setBusy] = useState<'follow' | 'join' | null>(null);
     const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
     const signIn = () => navigate(buildLoginRedirectPath(location.pathname, location.search, location.hash));
-    const enquiry = isParent && (child || relationship === 'NONE') ? enquiryPath(club.id, child?.id, fittingProgrammes(club.presentation, child)[0]?.id) : null;
+    // Arranging matches is known once the squads load; until then a parent who also coaches sees neither action.
+    const arranges = squads === undefined ? undefined : squads.length > 0;
+    const enquiry = isParent && (child || (relationship === 'NONE' && arranges === false)) ? enquiryPath(club.id, child?.id, fittingProgrammes(club.presentation, child)[0]?.id) : null;
     const canJoin = !isParent && status === 'authenticated' && membership?.hasClubMembership === false && relationship === 'NONE'
         && (club.playerJoinPolicy === 'OPEN_TRIAL' || club.playerJoinPolicy === 'APPLICATION_REQUIRED');
-    const ownClub = membership?.clubId != null && Number(membership.clubId) === club.id;
-    // Only someone with a club (and so squads) can propose one; not to a club they already belong to or applied to.
-    const propose = COACHING_ROLES.has(role) && status === 'authenticated' && membership?.hasClubMembership === true
-        && !ownClub && relationship === 'NONE' && !enquiry && !canJoin;
+    const ownClub = (membership?.clubId != null && Number(membership.clubId) === club.id) || Boolean(squads?.some(squad => squad.club_id === club.id));
+    // Not to a club they already belong to or applied to.
+    const propose = arranges === true && !ownClub && relationship === 'NONE' && !child && !canJoin;
 
     const follow = async () => {
         if (status !== 'authenticated') return signIn();

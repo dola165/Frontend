@@ -17,7 +17,7 @@ export function useDraft(storageKey: string | null, initial: () => Draft) {
         if (!storageKey) return;
         try { sessionStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* The draft stays in memory. */ }
     };
-    const patch = (value: Partial<Draft>) => setDraft(old => { const next = { ...old, ...value }; save(next); return next; });
+    const patch = (value: Partial<Draft>) => setDraft(old => { const next = { ...old, ...value, savedAt: Date.now() }; save(next); return next; });
     const clear = () => { if (storageKey) try { sessionStorage.removeItem(storageKey); } catch { /* Nothing stored. */ } };
     const reset = () => { clear(); setDraft({ ...initial(), requestId: crypto.randomUUID() }); };
     return { draft, patch, reset, clear };

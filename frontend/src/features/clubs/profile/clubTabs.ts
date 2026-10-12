@@ -1,4 +1,5 @@
 import type { TabItem } from '../../../design/Tabs';
+import { arrangePath } from '../../world/compose/arrangeSeed';
 
 export type ClubTab = 'overview' | 'posts' | 'teams' | 'people' | 'facilities' | 'media' | 'business' | 'honours' | 'contact';
 
@@ -26,4 +27,4 @@ export function clubTabFrom(value: string | null): ClubTab {
 export const tabFilters = ['programme', 'squad', 'age', 'q', 'staff', 'enquire', 'kind', 'type', 'period', 'week', 'view', 'opportunity', 'roleId', 'roleTitle'];
 
 /** Where another club's staff arrange a match against this club. The form lives in World. */
-export const proposeMatchPath = (clubId: number) => `/world/matches/arrange?opponent=${clubId}`;
+export const proposeMatchPath = (clubId: number) => arrangePath({ mode: 'direct', opponentId: clubId });

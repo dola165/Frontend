@@ -17,15 +17,23 @@ import * as S from '../world-social.mjs';
 const { iso } = W;
 const when = value => { if (!value) return null; const d = new Date(value); return Number.isNaN(d.getTime()) ? null : d; };
 const bad = message => reply(400, { status: 400, message });
-const seen = new Map(); // requestId -> listing id
+const seen = new Map(); // requestId -> { listing id, the body it created }
+const TWELVE_HOURS = 12 * 3_600_000;
 
 post('/match-arrangements', ({ body }) => {
   const m = body?.match ?? {};
-  if (m.requestId && seen.has(m.requestId)) return F.listingView(F.listingById(seen.get(m.requestId)), { detail: true });
+  // As the backend: the same request again returns the match it created; the same request id with other terms is refused.
+  const fingerprint = JSON.stringify({ ...body, match: { ...m, requestId: undefined } });
+  if (m.requestId && seen.has(m.requestId)) {
+    const first = seen.get(m.requestId);
+    if (first.fingerprint !== fingerprint) return reply(409, { status: 409, message: 'This request already created a different arrangement. Open the original match before making changes.' });
+    return F.listingView(F.listingById(first.id), { detail: true });
+  }
   const squad = F.sq(m.squadId);
   if (!squad || squad.clubId !== F.DINAMO) return bad('Choose one of your squads.');
   const start = when(m.startsAt), end = when(m.endsAt);
   if (!start || !end || end <= start) return bad('Choose kick-off and a match length.');
+  if (end - start > TWELVE_HOURS) return bad('A match lasts at most 12 hours.');
   if (start.getTime() < Date.now()) return bad('Kick-off must be in the future.');
   if (!String(m.city ?? '').trim()) return bad('Add the city where you plan to play.');
   const target = body.targetClubId ? W.clubById(Number(body.targetClubId)) : null;
@@ -34,7 +42,15 @@ post('/match-arrangements', ({ body }) => {
   const targetSquad = body.targetSquadId ? F.sq(body.targetSquadId) : null;
   if (body.targetSquadId && targetSquad?.clubId !== target?.id) return bad('That squad does not belong to the club you invited.');
   if (body.bookingId) return bad('Match arrangements no longer take a pitch reservation.');
+  if (!['INVITE', 'OPEN', 'EXTERNAL', 'LATER', 'NONE'].includes(body.officialMode) || !['HOST', 'OPPONENT'].includes(body.officialResponsibility)) return bad('Choose how the official will be arranged.');
+  if (body.officialResponsibility === 'OPPONENT' && !['LATER', 'NONE'].includes(body.officialMode)) return bad('The opponent can arrange the official after accepting the match.');
+  if ((body.officialMode !== 'NONE') !== Boolean(m.refereeRequired)) return bad('Check the referee requirement.');
   if (body.officialMode === 'EXTERNAL' && !String(body.externalRefereeName ?? '').trim()) return bad('Name the referee you have arranged.');
+  const invited = body.officialMode === 'INVITE' ? F.refereeProfiles.find(r => r.user_id === Number(body.refereeId)) : null;
+  if (body.officialMode === 'INVITE' && !invited) return bad('Choose the referee to invite.');
+  if (invited && !(body.volunteer ? invited.accepts_volunteer : invited.accepts_paid)) return bad('This referee is not available for these terms.');
+  const fee = body.volunteer ? 0 : Number(body.fee);
+  if ((invited || body.officialMode === 'OPEN') && !body.volunteer && !(Number.isFinite(fee) && fee >= 0 && fee <= 1_000_000)) return bad('Offer a fee from 0 to 1,000,000.');
   const venue = W.venueById(Number(m.venueId));
   const rec = {
     id: W.newId(), hostSquadId: squad.id, start, end, venueId: venue?.id ?? null,
@@ -47,8 +63,14 @@ post('/match-arrangements', ({ body }) => {
     revision: 1, ageGroup: m.ageGroup || squad.ageGroup, format: m.format || '11_A_SIDE', created: new Date(),
     history: [{ id: W.newId(), action: target ? 'CHALLENGE_SENT' : 'PUBLISHED', created_at: iso(new Date()), reason: null }],
   };
+  // A referee invited now waits for their answer; asking referees nearby opens a request they apply to.
+  if (invited) {
+    rec.refereeId = invited.user_id; rec.refereeInvite = { id: W.newId(), status: 'INVITED', duty: 'REFEREE', volunteer: Boolean(body.volunteer), fee: body.volunteer ? null : fee, currency: body.currency || invited.currency };
+    rec.history.push({ id: W.newId(), action: 'REFEREE_INVITED', created_at: iso(new Date()), reason: null });
+  }
   F.exchange.push(rec);
-  if (m.requestId) seen.set(m.requestId, rec.id);
+  if (body.officialMode === 'OPEN') F.officialRequests.set(rec.id, { volunteer: Boolean(body.volunteer), fee, currency: body.currency || 'GEL', revision: 1, status: 'OPEN', applications: [] });
+  if (m.requestId) seen.set(m.requestId, { id: rec.id, fingerprint });
   if (target) requestFor(rec, 'OUTGOING');
   return reply(201, F.listingView(rec, { detail: true }));
 });

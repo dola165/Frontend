@@ -57,6 +57,10 @@ export function matchState(source: HistoryMatch, now: number, own = false): Matc
     if (match.source === 'MATCH_EXCHANGE' && match.awayClubId == null && !match.awayClubName) return now < start
         ? { code: 'before', when: { time }, score: null, tag: { word: 'Opponent wanted', tone: 'neutral' } }
         : { code: 'unplayed', when: { word: 'Not played', tone: 'muted' }, score: null };
+    // A club invited that has not answered yet: known by id only, never on, never owing a result.
+    if (match.source === 'MATCH_EXCHANGE' && !match.awayClubName) return now < start
+        ? { code: 'before', when: { time }, score: null, tag: { word: 'Waiting for their answer', tone: 'neutral' } }
+        : { code: 'unplayed', when: { word: 'Not played', tone: 'muted' }, score: null };
     if (now < start) {
         const minutes = Math.round((start - now) / 60_000);
         const soon: Said | null = !own || minutes > 6 * 60 ? null

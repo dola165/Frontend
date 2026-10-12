@@ -1,10 +1,10 @@
 /* What World's pane and drawers show beyond a thing's head: tabs that switch in place (an overview, then each part on
    its own), and a little of each part under a title with "View …" to its tab, two columns when the pane is wide.
    Scoped under .gk; tokens only. */
-/* The tabs stay at the top of the pane while a long part scrolls under them. */
+/* The tabs stay at the top of the pane while a long part scrolls under them (at its very edge, over the body's padding). */
 .gk .gk-pane-parts { display: flex; flex-direction: column; gap: var(--gk-3); }
 /* All of a club's parts show: on a narrower pane the tabs wrap onto a second line rather than hide off the edge. */
-.gk .gk-pane-tabs { position: sticky; top: 0; z-index: 1; flex-wrap: wrap; gap: 0; overflow: visible; background: var(--gk-surface); }
+.gk .gk-pane-tabs { position: sticky; top: calc(-1 * var(--body-pad, var(--gk-4))); z-index: 1; flex-wrap: wrap; gap: 0; overflow: visible; background: var(--gk-surface); }
 .gk .gk-pane-tabs .gk-tab { min-height: 36px; padding: 0 10px; font-size: var(--gk-fs-sm); }
 .gk .gk-pane-tabs .gk-tab[aria-selected='true']::after { left: 10px; right: 10px; }
 .gk .gk-pane-tabs:not([role]) { align-items: center; min-height: 36px; }

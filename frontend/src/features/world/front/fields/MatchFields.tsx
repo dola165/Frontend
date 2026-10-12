@@ -1,6 +1,7 @@
 import { ButtonLink, EmptyNote } from '../../../../design/primitives';
 import { formats, type Match } from '../../../matchExchange/api';
 import type { CompetitionCard } from '../../../competitions/api';
+import { useArrangeLink } from '../../compose/useArrangeLink';
 import { useWorldCopy } from '../../copy';
 import { codeLabel, daysUntil, fixtureDay, fixtureTime, shortDate } from '../../format';
 import { useArrangements, useComingUp, useLiveCompetitions, useOpenCompetitions, useOpenMatches, useRefereeNeeded, useResults } from '../frontData';
@@ -29,6 +30,7 @@ const byStart = (items: Match[]) => [...items].sort((a, b) => Date.parse(a.start
 /** Teams near the area looking for an opponent: a head coach's first reason to open World. */
 export function OpenMatchesField({ area, side }: FieldProps) {
     const t = useWorldCopy();
+    const arrange = useArrangeLink();
     const data = useOpenMatches(area);
     const items = byStart(data.data?.items ?? []);
     const next = items[0];
@@ -37,7 +39,7 @@ export function OpenMatchesField({ area, side }: FieldProps) {
             hint={next ? `${t('Next')}: ${when(next.starts_at_iso, next.timezone)} · ${t(formats[next.format] ?? codeLabel(next.format))}` : undefined}
             all={{ label: t('All open matches'), to: '/world/matches?tab=exchange' }}>
             {items.length ? <Listings items={items} side={side} />
-                : <EmptyNote title={t('No open matches right now')} action={<ButtonLink size="sm" to="/world/matches/arrange">{t('Arrange a match')}</ButtonLink>}>{t('Teams post here when they need an opponent for a date.')}</EmptyNote>}
+                : <EmptyNote title={t('No open matches right now')} action={<ButtonLink size="sm" {...arrange({ mode: 'direct' })}>{t('Arrange a match')}</ButtonLink>}>{t('Teams post here when they need an opponent for a date.')}</EmptyNote>}
         </WorldField>
     );
 }
@@ -59,13 +61,14 @@ export function RefereeNeededField({ area, side }: FieldProps) {
 /** The friendlies this person is arranging: opponent, pitch and referee still to settle. */
 export function ArrangementsField({ side }: FieldProps) {
     const t = useWorldCopy();
+    const arrange = useArrangeLink();
     const data = useArrangements();
     const items = byStart(data.data?.items ?? []);
     return (
         <WorldField id="arrangements" side={side} count={data.data?.total ?? null} loading={data.loading} error={data.error} onRetry={data.retry}
             hint={items[0] ? `${t('Next')}: ${when(items[0].starts_at_iso, items[0].timezone)}` : undefined} all={{ label: t('All your arrangements'), to: '/world/matches?tab=mine' }}>
             {items.length ? <Listings items={items} side={side} />
-                : <EmptyNote title={t('Nothing being arranged')} action={<ButtonLink size="sm" to="/world/matches/arrange">{t('Arrange a match')}</ButtonLink>}>{t('Friendlies you arrange appear here until they are played.')}</EmptyNote>}
+                : <EmptyNote title={t('Nothing being arranged')} action={<ButtonLink size="sm" {...arrange({ mode: 'direct' })}>{t('Arrange a match')}</ButtonLink>}>{t('Friendlies you arrange appear here until they are played.')}</EmptyNote>}
         </WorldField>
     );
 }

@@ -4,6 +4,7 @@ import { ButtonLink } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
 import { hasNavigationCapability } from '../../../context/navigationCapabilities';
 import { knownWithoutPeopleDirectory } from '../api';
+import { CreateMenu } from '../compose/CreateMenu';
 import { useWorldCopy } from '../copy';
 import { DirectoryPage } from '../directory/DirectoryPage';
 import type { WorldRole } from '../front/roles';
@@ -49,9 +50,10 @@ export default function PeopleDirectory() {
     return (
         <DirectoryPage title={t('People')} subtitle={t('Referees, specialists, coaches and players')} sources={sources}
             opening={OPENING[role] ?? 'staff'} tabAlias="role" tabValues={ROLE_TABS}
-            actions={user && <>
-                {referee && <ButtonLink variant="ghost" to="/referees/me">{t('My referee work')}</ButtonLink>}
-                <YourCard userId={Number(user.id)} referee={referee} />
+            actions={<>
+                {user && referee && <ButtonLink variant="ghost" to="/referees/me">{t('My referee work')}</ButtonLink>}
+                {user && <YourCard userId={Number(user.id)} referee={referee} />}
+                <CreateMenu />
             </>} />
     );
 }

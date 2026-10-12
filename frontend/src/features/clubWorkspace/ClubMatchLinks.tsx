@@ -1,6 +1,7 @@
 import { CalendarCheck2, ClipboardList, Handshake, History, Inbox, Trophy } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { List, ListRow, Panel, Section } from '../../design/primitives';
+import { arrangePath } from '../world/compose/arrangeSeed';
 import { useWorldCopy } from '../world/copy';
 import './club-match-links.css';
 
@@ -19,7 +20,7 @@ export function ClubMatchLinks({ filter = '' }: { filter?: string }) {
         { to: `/world/matches?period=HISTORY${club}`, icon: History, label: 'Results and past matches', meta: 'Every result, and adding a match played before GrassKickZ.' },
         { to: '/world/competitions?tab=mine', icon: Trophy, label: 'My competitions', meta: 'Competitions the club runs or plays in.' },
         { to: '/world/competitions?tab=invitations', icon: Inbox, label: 'Competition invitations', meta: 'Invitations for the club and its squads to enter.' },
-        { to: '/world/matches/arrange', icon: CalendarCheck2, label: 'Arrange a match', meta: 'Set up a match with another club.' },
+        { to: arrangePath({ mode: 'direct' }), icon: CalendarCheck2, label: 'Arrange a match', meta: 'Set up a match with another club.' },
     ].filter(link => !needle || `${link.label} ${link.meta} ${t(link.label)} ${t(link.meta)} match`.toLowerCase().includes(needle));
     if (!links.length) return null;
     return (

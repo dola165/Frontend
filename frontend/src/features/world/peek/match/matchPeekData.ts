@@ -22,7 +22,8 @@ export function historyOfListing(m: Match): HistoryMatch {
     return {
         id: `event:${m.event_id}`, source: 'MATCH_EXCHANGE', sourceId: m.event_id, title: m.title, startsAt: m.starts_at_iso, endsAt: m.ends_at_iso, timezone: m.timezone,
         homeClubId: m.club_id, homeClubName: m.club_name, homeSquadId: m.squad_id, homeSquadName: m.squad_name,
-        awayClubId: m.opponent_club_id ?? null, awayClubName: m.opponent_name ?? null, awaySquadId: m.target_squad_id ?? null, awaySquadName: m.opponent_squad_name ?? null,
+        // A club invited and not yet answering is the away side by id only (the listing does not name it).
+        awayClubId: m.opponent_club_id ?? m.requested_club_id ?? null, awayClubName: m.opponent_name ?? null, awaySquadId: m.target_squad_id ?? m.requested_squad_id ?? null, awaySquadName: m.opponent_squad_name ?? null,
         homeScore: confirmed ? m.home_score : null, awayScore: confirmed ? m.away_score : null, resultStatus: m.result_status ?? 'NONE',
         fixtureStatus: m.event_status === 'CANCELLED' || m.listing_status === 'CANCELLED' ? 'CANCELLED' : confirmed ? 'COMPLETED' : 'SCHEDULED',
         legacy: Boolean(m.result_legacy), locationName: m.location_name || null, tournamentId: null, tournamentName: null, detailPath: `/match-exchange/${m.event_id}`, canRecordResult: false,

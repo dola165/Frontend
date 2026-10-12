@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import { useArrangeLink } from '../../compose/useArrangeLink';
 import { useWorldCopy } from '../../copy';
 import { Crest } from '../../Crest';
 import { calendarDaysUntil, fixtureDay, fixtureTime, shortDate } from '../../format';
@@ -29,12 +30,13 @@ export function NextOpponentCard({ up, crestOf, emphasis, results = 3 }: {
     /** Goalkeeper coaches read goals first. */ emphasis?: 'goals'; /** How many of their results to list. */ results?: number;
 }) {
     const t = useWorldCopy();
+    const arrange = useArrangeLink();
     const { squad, next, opponent, scout, upcoming } = up;
     if (!next) return (
         <article className="gk-nextop" aria-label={squad.name}>
             <header className="gk-nextop__when"><span className="gk-nextop__squad">{squad.name}</span></header>
             <p className="gk-nextop__empty">{t('No fixture booked for {squad}', { squad: squad.name })}</p>
-            <Link className="gk-nextop__go" to={`/world/matches/arrange?mode=open&squad=${squad.id}`}>{t('Find an opponent')}<ArrowRight aria-hidden="true" /></Link>
+            <Link className="gk-nextop__go" {...arrange({ mode: 'open', squadId: squad.id })}>{t('Find an opponent')}<ArrowRight aria-hidden="true" /></Link>
         </article>
     );
     const left = calendarDaysUntil(next.startsAt);

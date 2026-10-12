@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
 import { Handshake, MapPin, Star, Trophy } from 'lucide-react';
 import type { HistoryMatch } from '../../../matchHistory/api';
+import { fetchClubProfile } from '../../api';
 import { useWorldCopy } from '../../copy';
 import { Crest } from '../../Crest';
 import { fixtureDay, fixtureTime, shortDate } from '../../format';
 import { endOf } from '../../scoreboard/form';
 import type { MatchState } from '../../scoreboard/matchState';
 import { useClubCrests } from '../../scoreboard/useClubCrests';
+import { useWorldData } from '../../useWorldData';
 import { peekClick, peekOf, useRelatedOpen } from '../usePeek';
 
 /**
@@ -17,9 +19,12 @@ export function MatchHead({ match: m, state, mine }: { match: HistoryMatch; stat
     const t = useWorldCopy();
     const relate = useRelatedOpen();
     const crestOf = useClubCrests();
+    // A club invited to the match that has not answered is known by id only: its name comes from its page.
+    const unnamed = m.awayClubId != null && !m.awayClubName ? m.awayClubId : null;
+    const invited = useWorldData(unnamed != null ? `club:${unnamed}` : null, signal => fetchClubProfile(unnamed!, signal)).data;
     const side = (end: 'home' | 'away') => {
         const team = endOf(m, end);
-        const name = team.club ?? t('To be decided');
+        const name = team.club ?? (end === 'away' && invited ? invited.name : team.clubId != null ? t('Invited club') : t('To be decided'));
         return (
             <div className="gk-mpeek__side" data-end={end}>
                 <Crest src={crestOf(team.clubId)} name={name} size={56} />

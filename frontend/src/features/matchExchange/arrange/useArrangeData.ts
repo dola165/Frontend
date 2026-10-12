@@ -27,7 +27,7 @@ export function useArrangeData(draft: Pick<Draft, 'opponent' | 'squadId' | 'targ
     const suggestedTheirs = suggestTheirSquad(theirList, ourSquad);
     const targetSquadId = draft.targetSquadId >= 0 ? draft.targetSquadId : suggestedTheirs || -1;
     return {
-        squads, coached: coachedIds, ownClubId, ownCity: ownClub.data?.cityName ?? ours.data?.[0]?.city ?? '',
+        squads, coached: coachedIds, ownClubId, ownLogo: ownClub.data?.logoUrl ?? null, ownCity: ownClub.data?.cityName ?? ours.data?.[0]?.city ?? '',
         ours, theirSquads, theirs, squadId, ourSquad, ageGroup: ageGroupOf(ourSquad?.category), targetSquadId, suggestedTheirs,
     };
 }

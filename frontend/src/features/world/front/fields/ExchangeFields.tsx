@@ -1,5 +1,6 @@
 import { ButtonLink, EmptyNote } from '../../../../design/primitives';
 import { formats, type Match } from '../../../matchExchange/api';
+import { useArrangeLink } from '../../compose/useArrangeLink';
 import { plural, useWorldCopy } from '../../copy';
 import { codeLabel, fixtureDay, fixtureTime, hoursUntil } from '../../format';
 import { useOpponentsForYou, useRefereesForYou } from '../coach/coachExchange';
@@ -11,7 +12,8 @@ import { crestsOf, rowsFor, type FieldProps } from './fieldProps';
 import { Line, MatchLine, ScoreGroups, WaitTag } from '../../scoreboard/Scoreboard';
 
 const KIND_ORDER: Record<Invitation['kind'], number> = { reply: 0, offers: 1, open: 2, waiting: 2 };
-const arrangeLink = (focus: SquadFocus) => `/world/matches/arrange?mode=open${focus.focus.length === 1 ? `&squad=${focus.focus[0].id}` : ''}`;
+/** Posting an open match from the overview starts from the squad in focus, when there is one. */
+const openSeed = (focus: SquadFocus) => ({ mode: 'open' as const, squadId: focus.focus.length === 1 ? focus.focus[0].id : undefined });
 const formatLabel = (format: string) => formats[format] ?? codeLabel(format);
 /** "6.2 km": short, because "away" means something else on a fixture line. */
 const km = (value: number) => `${value < 10 ? value.toFixed(1) : Math.round(value)} km`;
@@ -26,6 +28,7 @@ const at = (match: Match) => ({ time: fixtureTime(match.starts_at_iso, match.tim
 export function InvitationsField({ side, role, markers }: FieldProps) {
     const t = useWorldCopy();
     const focus = useSquadFocus(role);
+    const arrange = useArrangeLink();
     const data = useInvitations(focus);
     const crestOf = crestsOf(markers);
     const items = [...data.items].sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind]);
@@ -49,7 +52,7 @@ export function InvitationsField({ side, role, markers }: FieldProps) {
                                 : kind === 'offers' ? <WaitTag tone={soon ? 'danger' : 'warning'}>{t('Choose')}</WaitTag>
                                 : <WaitTag>{kind === 'open' ? t('See offers') : t('Waiting')}</WaitTag>} />;
                     }}
-                </ScoreGroups> : <EmptyNote title={t('No invitations or offers')} action={<ButtonLink size="sm" to={arrangeLink(focus)}>{t('Arrange a match')}</ButtonLink>} />}
+                </ScoreGroups> : <EmptyNote title={t('No invitations or offers')} action={<ButtonLink size="sm" {...arrange(openSeed(focus))}>{t('Arrange a match')}</ButtonLink>} />}
             </SquadGate>
         </WorldField>
     );
@@ -59,6 +62,7 @@ export function InvitationsField({ side, role, markers }: FieldProps) {
 export function OpponentsForYouField({ area, side, role, markers }: FieldProps) {
     const t = useWorldCopy();
     const focus = useSquadFocus(role);
+    const arrange = useArrangeLink();
     const crestOf = crestsOf(markers);
     const data = useOpponentsForYou(area, focus);
     const items = data.items.slice(0, rowsFor(side) + 3);
@@ -74,7 +78,7 @@ export function OpponentsForYouField({ area, side, role, markers }: FieldProps) 
                         tag={busy ? <span data-tone="warning">{t('You play that day')}</span>
                             : [distance != null ? km(distance) : match.city, match.format !== squad.format ? formatLabel(match.format) : codeLabel(match.level)].filter(Boolean).join(' · ')} />}
                 </ScoreGroups> : <EmptyNote title={t('No open matches for {ages} near {city}', { ages: focus.ages.map(codeLabel).join(', '), city: area.city })}
-                    action={<ButtonLink size="sm" to={arrangeLink(focus)}>{t('Post your own')}</ButtonLink>} />}
+                    action={<ButtonLink size="sm" {...arrange(openSeed(focus))}>{t('Post your own')}</ButtonLink>} />}
             </SquadGate>
         </WorldField>
     );

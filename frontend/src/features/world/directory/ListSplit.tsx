@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode } from 'react';
-import { PeekPlaceContext } from '../peek/drawerContext';
+import { PeekPlaceContext, typingIn } from '../peek/drawerContext';
 import { PeekPane } from '../peek/PeekPane';
 import { usePaneShown, usePeek } from '../peek/usePeek';
 import { useStage } from '../stage/stageContext';
 import './split.css';
-
-/** Keys typed into a field are the field's own (a job application's draft keeps its text on Escape). */
-const TYPING = 'input, textarea, select, [contenteditable="true"]';
 
 /**
  * Under the map, the list sits in one bounded column the width of the Home feed, with the page's background either
@@ -24,7 +21,7 @@ export function ListSplit({ children }: { children: ReactNode }) {
     const onKey = useEffectEvent((event: KeyboardEvent) => {
         if (event.key !== 'Escape' || event.defaultPrevented) return;
         const target = event.target as HTMLElement | null;
-        if (target?.closest(TYPING) || (target && target !== document.body && !split.current?.contains(target))) return;
+        if (typingIn(target) || (target && target !== document.body && !split.current?.contains(target))) return;
         event.preventDefault();
         if (peek.left && peek.right) peek.closeSide(); else peek.closeAll();
     });

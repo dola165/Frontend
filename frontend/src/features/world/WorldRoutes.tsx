@@ -1,7 +1,6 @@
-import { lazy, Suspense, type ReactNode } from 'react';
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { buildLoginRedirectPath } from '../../utils/authRedirect';
+import { arrangePath } from './compose/arrangeSeed';
 import { WorldLayout } from './WorldLayout';
 import { WorldLoading as PageLoading } from './WorldLoading';
 import { WorldSessionProvider } from './WorldSessionProvider';
@@ -14,15 +13,13 @@ const VenuesDirectory = lazy(() => import('./directories/VenuesDirectory'));
 const MatchesDirectory = lazy(() => import('./directories/MatchesDirectory'));
 const CompetitionsDirectory = lazy(() => import('./directories/CompetitionsDirectory'));
 const OpportunitiesDirectory = lazy(() => import('./directories/OpportunitiesDirectory'));
-const ArrangeMatchPage = lazy(() => import('./directories/ArrangeMatchPage'));
 
-/** Club work started from World (arranging a match) needs an account. */
-function ProtectedRoute({ children }: { children: ReactNode }) {
-    const location = useLocation();
-    const { status } = useAuth();
-    if (status === 'bootstrapping') return <PageLoading />;
-    if (status !== 'authenticated') return <Navigate replace to={buildLoginRedirectPath(location.pathname, location.search, location.hash)} />;
-    return <>{children}</>;
+const positive = (value: string | null) => { const id = Number(value); return Number.isSafeInteger(id) && id > 0 ? id : undefined; };
+/** The old Arrange a match page: World's Matches with the form open over it, filled in as the old address said. */
+function ArrangeRedirect() {
+    const params = new URLSearchParams(useLocation().search);
+    const mode = params.get('mode') === 'open' ? 'open' : 'direct';
+    return <Navigate replace to={arrangePath({ mode, opponentId: positive(params.get('opponent')), squadId: positive(params.get('squad')) })} />;
 }
 
 /** `/world` used to be the map; links that point at a place on it still open the map. */
@@ -44,7 +41,7 @@ export default function WorldRoutes() {
                 <Route path="people" element={<Suspense fallback={<PageLoading />}><PeopleDirectory /></Suspense>} />
                 <Route path="venues" element={<Suspense fallback={<PageLoading />}><VenuesDirectory /></Suspense>} />
                 <Route path="matches" element={<Suspense fallback={<PageLoading />}><MatchesDirectory /></Suspense>} />
-                <Route path="matches/arrange" element={<ProtectedRoute><Suspense fallback={<PageLoading />}><ArrangeMatchPage /></Suspense></ProtectedRoute>} />
+                <Route path="matches/arrange" element={<ArrangeRedirect />} />
                 <Route path="competitions" element={<Suspense fallback={<PageLoading />}><CompetitionsDirectory /></Suspense>} />
                 <Route path="opportunities" element={<Suspense fallback={<PageLoading />}><OpportunitiesDirectory /></Suspense>} />
                 <Route path="*" element={<Navigate replace to="/world" />} />

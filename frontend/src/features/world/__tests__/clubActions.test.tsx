@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ClubProfile } from '../../../components/discovery/clubDirectoryTypes';
@@ -16,6 +16,9 @@ const auth = vi.hoisted(() => ({ status: 'authenticated' as string }));
 vi.mock('../../../context/AuthContext', () => ({ useAuth: () => ({ status: auth.status, sessionId: 'world', user: { id: 1 } }) }));
 vi.mock('../api', () => ({ toggleClubFollow: vi.fn() }));
 vi.mock('../../clubs/api', () => ({ createClubApplication: vi.fn(), selfRegisterClubPlayer: vi.fn() }));
+/** The squads the person may arrange matches for (`GET /match-exchange/squads`): none unless a test says so. */
+const arranging = vi.hoisted(() => ({ squads: [] as { id: number; club_id: number; name: string; category: string; club_name: string }[] | undefined }));
+vi.mock('../compose/useArrangeableSquads', () => ({ useArrangeableSquads: () => arranging.squads }));
 
 const year = new Date().getFullYear();
 const nino: Participant = { id: 501, name: 'Nino Beridze', dateOfBirth: `${year - 9}-01-10`, minor: true, guardian: true, provenance: null, gender: 'FEMALE' };
@@ -58,6 +61,7 @@ function show(profile: ClubProfile, { membership = noClub, participants = [] as 
 beforeEach(() => {
     vi.clearAllMocks();
     auth.status = 'authenticated';
+    arranging.squads = [];
     sessionStorage.clear();
     forgetClubChanges();
 });
@@ -138,5 +142,40 @@ describe('a parent searching for a child', () => {
         show(club(), { participants: [nino], row: true });
         expect(screen.getByRole('link', { name: 'Ask about joining' })).toHaveAttribute('href', '/clubs/4?tab=teams&enquire=1');
         expect(screen.queryByText(/Fits/)).not.toBeInTheDocument();
+    });
+});
+
+describe('proposing a match', () => {
+    const dinamo = { id: 103, club_id: 1, name: 'U14 Boys', category: 'U14', club_name: 'Dinamo' };
+    const admin = { hasClubMembership: true, clubId: 1, myRole: 'CLUB_ADMIN' } as ClubMembershipContext;
+
+    it('is offered to anyone with squads they may arrange for (a club administrator too), opening the form with the club as the opponent', () => {
+        arranging.squads = [dinamo];
+        show(club(), { membership: admin });
+        expect(screen.getByRole('link', { name: 'Propose a match to Saburtalo Youth' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-direct.c4');
+    });
+
+    it('is never offered on their own club, nor to someone with no squads to arrange for, nor while that is unknown', () => {
+        arranging.squads = [dinamo];
+        show(club({ id: 1, name: 'Dinamo' }), { membership: admin });
+        expect(screen.queryByRole('link', { name: /Propose a match/ })).not.toBeInTheDocument();
+        cleanup();
+        arranging.squads = [];
+        show(club(), { membership: admin });
+        expect(screen.queryByRole('link', { name: /Propose a match/ })).not.toBeInTheDocument();
+        cleanup();
+        arranging.squads = undefined;
+        show(club(), { membership: admin, participants: [nino] });
+        expect(screen.queryByRole('link', { name: /Propose a match|Ask about/ })).not.toBeInTheDocument();
+    });
+
+    it('a coach who is also a parent proposes, unless searching for a child', () => {
+        arranging.squads = [dinamo];
+        show(club(), { membership: admin, participants: [nino] });
+        expect(screen.getByRole('link', { name: 'Propose a match to Saburtalo Youth' })).toBeInTheDocument();
+        cleanup();
+        show(club(), { membership: admin, participants: [nino], path: '/world/clubs?player=501' });
+        expect(screen.getByRole('link', { name: 'Ask Saburtalo Youth about a place for Nino Beridze' })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /Propose a match/ })).not.toBeInTheDocument();
     });
 });

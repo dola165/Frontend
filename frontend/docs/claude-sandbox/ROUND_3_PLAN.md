@@ -36,9 +36,9 @@ Each has the default I will use if you just say "go". Change any by number.
 | 4 | **Referees on the map now,** counted at the city they state, and only the selected referee draws a dashed "their stated area" ring. This reopens "referees stay off the map for now". | Yes |
 | 5 | **The Dugout (People › Referees, coaches only):** your coming match days with an empty referee seat; pressing a seat turns the Browse area into the referees who fit that match; inviting is one more press with a preview. | Yes |
 | 6 | **Arrange a match gets back:** home/away apart from the ground, changing the age group, any length up to 12 h, the referee at creation (folded, "Later" stays the default: invite one or ask referees nearby, with fee). Not back: a required title; reservations at creation. | Yes |
-| 7 | **Reservations on the match page** (link a reservation, change the ground through one, share it with the other club) were removed beyond the decision. Bring them back as a management step on the match page. | Yes |
+| 7 | **Reservations on the match page** (link a reservation, change the ground through one, share it with your own club's staff: corrected on 12 October, the backend never shares with the other club) were removed beyond the decision. Bring them back as a management step on the match page. | Yes |
 | 8 | **One "+" button per tab** (a split button: the tab's likely action, e.g. "+ Arrange a match", and a menu with drafts first) instead of the five different create buttons. "Post a role" becomes "Post a job". | Yes |
-| 9 | **Where work opens:** over the map in the panel slot when the map is on screen (the map then picks places); otherwise as a sheet from the right, so the page never scrolls back up. One question at a time opens as a small centred pop-up. | Yes |
+| 9 | **Where work opens:** over the map in the panel slot when the map is on screen (the map then picks places); otherwise as a sheet from the right, so the page never scrolls back up. One question at a time opens as a small centred pop-up. (Updated 12 October: in World's own frame, the pane beside the list or the drawer on the right; single decisions as steps inside the thing; the map picking places kept for later. See Phase D.) | Yes |
 | 10 | **Tournaments sections:** This season · All tournaments · Matchday · Referees · My tournaments. ("Matchday" avoids repeating Matches › Fixtures & results.) | Yes |
 | 11 | **Tournaments are drawn as their format:** every tournament gets a small picture of its shape (bracket, table, groups, festival wheel, ladder) that fills in with results, your team's path lit. | Yes |
 | 12 | **Create a tournament inside World** ("Draw room": questions on the left, the tournament's shape live on the right) replaces `/tournaments/setup` once it has every field. Created private by default; the required rules are offered as "the usual wording", visible and editable. | Yes |
@@ -96,15 +96,21 @@ Size: L. Built on 12 October (see `ROUND_2.md`, Matches), with the sandbox made 
 
 ### Phase D · Creating things in World, "Set Pieces" (your item 5)
 
-- **One "+" per tab** (decision 8), drafts first in its menu, shown only to people who can do something (by real permissions, never by the role picked in World; this also fixes club administrators never seeing "Propose a match").
-- **Every flow starts from the thing it is about** and opens filled in: Propose a match from a club, Offer to play from an open match, Find a referee from your match, Invite to a match from a referee, Book from a venue, Enter from a tournament, Answer from an invitation. With a Browse row selected, "+ Arrange a match" opens with that club as the opponent.
-- **Where it opens** (decision 9): over the map in the panel slot (the map picks the ground: "Press a club to play them", "Choose the ground or press the map"), otherwise as a sheet. One-question things are small pop-ups.
-- **Arrange a match** keeps one short form, with the restored fields (decision 6), a live preview that looks exactly like the row it will become (crests, kick-off, ground with "You host / You travel", the club's arrival note, kit colours when the clubs have them), one honest sentence above Send ("Invites Locomotive · U14 Boys. Nothing is agreed until they accept."), rest and clash notes from your squads' calendars, and "Before you post: 3 teams near you want a U14 game that weekend · Offer to play instead".
-- After sending, the form turns into the record it created, with one next step ("Find a referee", "Plan the journey").
-- Drafts are kept per flow, no duplicate sends, nothing personal in the address. `/world/matches/arrange` redirects into this.
-- Reservations come back on the match page (decision 7). The two edit bugs are fixed.
+Updated on 12 October, before building, against what World has become since the plan was written: things pressed in the list open in the pane beside it, anything else in World's drawers (the thing on the right, who is behind it on the left), the filters sit in a strip under the map, and a thing's parts are tabs inside it. Five read-only agents mapped every create entry, the Arrange form against the original, the match page and the map first.
 
-Size: L (in three steps: sheet first, then the panel over the map, then the remaining flows).
+- **One "+" per tab** (decision 8): a split button in the tab's header, the tab's likely action on its face ("+ Arrange a match", "+ Post a job", "+ Create a club", "+ Create a competition", "+ List your venue") and a menu with unsent drafts first ("Continue · U14 Boys v Locomotive · 12 min ago"), then everything else the person can start. Shown only to people who can do something, by real permissions (squads they can arrange for, their club role, organisations that may run tournaments, signed in), never by the role picked in World. The Overview gets the same menu as "+ Create". It replaces the five separate buttons. "Post a role" becomes "Post a job".
+- **Where work opens:** in World's own frame, never a page of its own and never a second kind of sheet. Started from something in the list under the map (a club's "Propose a match"), it opens in the pane beside the list; started anywhere else (the "+", the map, a link), in the drawer on the right. Arrange a match is a thing the frame can show (`peek=arrange-…`), so it closes, comes back with Back and stacks who is behind it (the opponent) like everything else. The draft is kept in the browser's session (never in the address), so closing never loses it. `/world/matches/arrange` redirects into this.
+- **One-decision things are steps inside the thing's own frame**, as Invite (a referee) and the match drawer's actions already are, not pop-ups over it: Offer to play and Answer an invitation inside the match drawer, Find a referee from your match (it opens the People › Referees bench for that match, which already exists), Invite to a match from a referee (with a picker of your matches that need one).
+- **Arrange a match** keeps one short form, with the restored fields (decision 6: the opponent's age group, who hosts apart from the ground, any length up to 12 hours, a referee at creation, folded with "Later" as the default: invite one or ask referees nearby with a fee), a live preview that looks exactly like the row it will become (the score line: crests, kick-off, ground with "You host / You travel", format and length), and one honest sentence above Send ("Invites Locomotive · U14 Boys. Nothing is agreed until they accept."). "Before you post" (open matches): "3 teams near you want a U14 game that weekend · Offer to play instead".
+- **After sending, the match it created opens in its place** (the match drawer, with its track and one next step: "Find a referee", "Plan the journey"), and My arrangements shows it.
+- **"Propose a match"** shows for anyone with squads they can arrange for (club administrators included), never on their own club; a coach who is also a parent gets it unless they are searching for a child.
+- **The two edit bugs are fixed:** a "We travel" match no longer turns into "Either ground" when edited, and a ground without a city asks for one instead of being refused by the server.
+- **Reservations come back on the match page** (decision 7): "Use a reservation" on the ground line opens a step that lists your reservations with why any cannot be used (in words), links one at the same ground, moves the match to another ground through one (host only, with who is told), and shares one you booked with your own club's staff (the backend shares only with a club where you yourself are staff, not with the other club). The match page stays outside World, so this is a step on that page.
+- **The map's "Respond to this match"** (schedule challenges nobody can answer) merges into Offer to play (decision 15).
+
+Moved elsewhere: **Book from a venue** to Phase F (booking slides in from the right there); **Enter a tournament** and **Answer a tournament invitation** to Phase E (steps inside the tournament sheet). **The map picking places** (a desk over the map, "Press a club to play them", a ghost pin and a straight line) is kept for later prototypes (section 7): the list and the pane now live under the map, so a form over the map would sit apart from where the person started, and the map cannot yet report a press on empty ground. Not needed any more: a separate left drawer for referees (People › Referees with the bench does it) and a Dialog sheet (the drawer is the sheet).
+
+Size: L, in three steps: (1) the "+", the gates and drafts, Arrange a match in the frame with its restored fields, preview and receipt, Propose for the right people, the edit bugs; (2) the steps inside the match drawer and Invite from a referee, Before you post, the map's Respond merged; (3) reservations on the match page, with the sandbox answering as the backend does.
 
 ### Phase E · Tournaments (your item 4)
 
@@ -162,7 +168,7 @@ The recipe skill (`world-page-recipe`) is extended with the new patterns (select
 | Add a past match visible | Hidden on the default view | C |
 | Arrange a match: hosting, age group, long matches, referee at creation, meeting note | Missing | D |
 | Reservations on the match page | Removed | D |
-| Answer a match invitation, offer to play, find a referee from World | Only on the match page | D |
+| Answer a match invitation, offer to play, find a referee from World | Only on the match page | D (steps in the match drawer) |
 | The map's "Respond to this match" | Nobody can answer it | D (merged, decision 15) |
 | Featured tournaments, the tournaments overview | Gone | E |
 | The organiser page and host picker | Gone (only a filter) | E |
@@ -187,6 +193,7 @@ Each judge kept one experimental option you can choose instead of, or after, the
 - **Matches · Floodlights clock:** drag a clock hand through the day and every ground with a match under way lights up while the map dims to dusk.
 - **Tournaments · The map plays the tournament:** entrants' crests at their clubs and each round's ties as arcs converging on the final's ground, with a replay scrubber.
 - **Venues · Every Tuesday:** a season view of the same slot over the next 8 weeks ("Every Tuesday 18:00 at Vake, 8 of 8 weeks free").
+- **Creating · The map picks places** (moved from Phase D on 12 October): a desk over the map while arranging, "Press a club to play them", "Choose the ground or press the map", a ghost pin for the draft and a dashed straight line between the grounds. Needs the map to report a press on empty ground and a layer of its own over the page's pins.
 - **Creating · Play them:** drag a club pin onto your squad to propose a match, or type one sentence ("U14 v Locomotive, Sat 11:00 at home") that fills the form.
 
 ## 8. Backend

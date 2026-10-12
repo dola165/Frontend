@@ -348,6 +348,8 @@ const LEVELS = ['DEVELOPMENT', 'RECREATIONAL', 'COMPETITIVE', 'ELITE'];
 const FORMAT_BY_AGE = ag => ['U8', 'U9', 'U10'].includes(ag) ? '5_A_SIDE' : ['U11', 'U12'].includes(ag) ? '7_A_SIDE' : ['U13', 'U14'].includes(ag) ? '9_A_SIDE' : '11_A_SIDE';
 const formatOfSquad = s => s.format === '7v7' ? '7_A_SIDE' : s.format === '9v9' ? '9_A_SIDE' : '11_A_SIDE';
 export const exchange = []; // internal listing records
+/** Open requests for referees to apply, by listing id (one per listing), shared by creating and arranging matches. */
+export const officialRequests = new Map();
 let proposalSeq = 8800;
 const listing = ({ id = W.newId(), hostSquad, start, minutes = 90, venueId, title, description, level, venuePreference = 'HOME', refereeRequired = true, opponentSquad = null, status = 'OPEN', score = null, proposals = [], booked = false, referee = null, requestedClubId = null, kind = 'FRIENDLY' }) => {
   const host = clubById(hostSquad.clubId), v = venueById(venueId ?? host.venueId ?? 202);

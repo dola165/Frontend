@@ -71,6 +71,29 @@ describe('the actual shape', () => {
     it('reads a legacy tournament from its stage types and advance counts', () => {
         const shape = actualShape({ stages: [stage(1, 'Group A', 'GROUP', { advanceCount: 2 }), stage(2, 'Finals', 'KNOCKOUT')], fixtures: [fixture(9, 1, 1, 1, 2, { stageId: 2 })] }, null, null);
         expect(shape).toMatchObject({ kind: 'groups', qualifiers: 2 });
-        expect(shape?.kind === 'groups' && shape.finals[0].name).toBe('Final');
+        expect(shape?.kind === 'groups' && shape.finals[0].rounds[0].name).toBe('Final');
+    });
+
+    it('draws each tier of the finals as its own bracket, the title first, with its third-place match', () => {
+        const draw = { plan: { qualifiers: 2 }, stages: [{ id: 3, title_route: false, phase: 2 }, { id: 2, title_route: true, phase: 2 }, { id: 4, title_route: false, phase: 2 }], routes: [
+            { target_fixture_id: 31, slot: 'HOME', source_fixture_id: 21, outcome: 'WINNER' }, { target_fixture_id: 31, slot: 'AWAY', source_fixture_id: 22, outcome: 'WINNER' },
+            { target_fixture_id: 41, slot: 'HOME', source_fixture_id: 21, outcome: 'LOSER' }, { target_fixture_id: 41, slot: 'AWAY', source_fixture_id: 22, outcome: 'LOSER' },
+        ], aggregates: [], slots: [], transitioned: true } as unknown as DrawState;
+        const stages = [stage(1, 'Group A', 'ROUND_ROBIN'), stage(2, 'Cup', 'KNOCKOUT'), stage(3, 'Plate', 'KNOCKOUT'), stage(4, 'Third place', 'KNOCKOUT')];
+        // Plate drawn first in stage order, yet the title tier leads; the third-place stage follows the Cup it belongs to.
+        stages[2].stageOrder = 1;
+        const fixtures = [fixture(21, 1, 1, 1, 2, { stageId: 2 }), fixture(22, 1, 2, 3, 4, { stageId: 2 }), fixture(31, 2, 1, null, null, { stageId: 2 }), fixture(41, 1, 1, null, null, { stageId: 4 }),
+            fixture(51, 1, 1, 5, 6, { stageId: 3 }), fixture(52, 1, 2, 7, 8, { stageId: 3 }), fixture(61, 2, 1, null, null, { stageId: 3 })];
+        const shape = actualShape({ stages, fixtures }, { structure: 'GROUPS_KNOCKOUT' }, draw);
+        expect(shape?.kind === 'groups' && shape.finals.map(tier => [tier.name, tier.rounds.map(round => round.name), tier.bronze?.id ?? null])).toEqual([
+            ['Cup', ['Semi-finals', 'Final'], 41], ['Plate', ['Semi-finals', 'Final'], null],
+        ]);
+    });
+
+    it('ranks a ladder and Swiss rounds in the engine’s order, which the draw state does not carry', () => {
+        const ranking = [{ entryId: 2, rank: 1 }, { entryId: 1, rank: 2 }] as never;
+        expect(actualShape({ stages: [stage(1, 'Ladder', 'ROUND_ROBIN')], fixtures: [] }, { structure: 'LADDER' }, null, ranking)).toMatchObject({ kind: 'ladder', table: { standings: ranking } });
+        expect(actualShape({ stages: [stage(1, 'Swiss', 'ROUND_ROBIN')], fixtures: [] }, { structure: 'SWISS' }, null, ranking)).toMatchObject({ kind: 'swiss', tables: [{ standings: ranking }] });
+        expect(actualShape({ stages: [stage(1, 'League', 'ROUND_ROBIN')], fixtures: [] }, { structure: 'ROUND_ROBIN' }, null, ranking)).toMatchObject({ tables: [{ standings: null }] });
     });
 });

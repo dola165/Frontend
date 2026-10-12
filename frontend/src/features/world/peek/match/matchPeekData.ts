@@ -30,8 +30,12 @@ export function historyOfListing(m: Match): HistoryMatch {
     };
 }
 
+/** The person runs the tournament (admin or staff; a referee assignment is not running it), so adds its results. */
+export const runsTournament = (t: Pick<TournamentDetail, 'staffAssignments'>, userId: number | null) =>
+    userId != null && t.staffAssignments.some(assignment => assignment.userId === userId && assignment.status === 'ACTIVE' && (assignment.role === 'ADMIN' || assignment.role === 'STAFF'));
+
 /** A tournament fixture as a match-history row, from the tournament's detail (thin: no end time, no ground). */
-export function historyOfFixture(t: TournamentDetail, f: TournamentFixtureDto): HistoryMatch {
+export function historyOfFixture(t: TournamentDetail, f: TournamentFixtureDto, canRecordResult = false): HistoryMatch {
     const entry = (id: number | null) => t.entries.find(item => item.id === id);
     const home = entry(f.homeEntryId), away = entry(f.awayEntryId);
     const counted = f.homeScore != null && f.awayScore != null && f.status === 'COMPLETED';
@@ -40,7 +44,7 @@ export function historyOfFixture(t: TournamentDetail, f: TournamentFixtureDto): 
         homeClubId: home?.clubId ?? null, homeClubName: home?.clubName ?? f.homeLabel, homeSquadId: home?.squadId ?? null, homeSquadName: home?.squadName ?? null,
         awayClubId: away?.clubId ?? null, awayClubName: away?.clubName ?? f.awayLabel, awaySquadId: away?.squadId ?? null, awaySquadName: away?.squadName ?? null,
         homeScore: counted ? f.homeScore : null, awayScore: counted ? f.awayScore : null, resultStatus: counted ? 'RECORDED' : 'NONE', fixtureStatus: f.status ?? 'SCHEDULED',
-        legacy: false, locationName: null, tournamentId: t.id, tournamentName: t.name, detailPath: `/tournaments/${t.id}?fixtureId=${f.id}`, canRecordResult: false,
+        legacy: false, locationName: null, tournamentId: t.id, tournamentName: t.name, detailPath: `/tournaments/${t.id}?fixtureId=${f.id}`, canRecordResult,
     };
 }
 
@@ -52,7 +56,7 @@ export interface MatchPeekData { match: HistoryMatch; listing?: Match; tournamen
  * Shared links work cold; a match no list has loaded and no endpoint returns says so.
  */
 export function useMatchPeek(code: string) {
-    const { sessionId } = useAuth();
+    const { sessionId, user } = useAuth();
     const parsed = parseMatchCode(code);
     const data = useWorldData<MatchPeekData | null>(parsed ? `match-peek:${sessionId}:${code}` : null, async () => {
         const known = rememberedMatch(sessionId, code);
@@ -64,7 +68,7 @@ export function useMatchPeek(code: string) {
             const tournament = await tournamentDetail(parsed!.tournamentId!);
             const fixture = tournament.fixtures.find(item => item.id === parsed!.id);
             if (!fixture) return null;
-            return { match: known ? zonedMatch(known) : historyOfFixture(tournament, fixture), tournament, fixture };
+            return { match: known ? zonedMatch(known) : historyOfFixture(tournament, fixture, runsTournament(tournament, user?.id ?? null)), tournament, fixture };
         }
         if (known) return { match: zonedMatch(known) };
         // Not loaded by a list, or doubted after a change: read again around its own day (else today).

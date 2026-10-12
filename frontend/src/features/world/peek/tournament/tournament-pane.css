@@ -4,7 +4,7 @@
   box-shadow: 0 0 0 3px var(--gk-surface), inset 0 0 0 1px var(--gk-line); font-size: 34px; }
 .gk .gk-tpane-badge > svg { width: 1em; height: 1em; }
 .gk .gk-tpane-by { display: flex; align-items: baseline; gap: 4px; }
-.gk .gk-tpane-by .gk-pane-more { font-size: var(--gk-fs-sm); }
+.gk .gk-tpane-by .gk-pane-more { align-self: baseline; font-size: var(--gk-fs-sm); }
 .gk .gk-tpane-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); font-size: var(--gk-fs-sm); }
 
 /* The bracket: one column per round, later rounds sitting between the ties that feed them; it scrolls inside on a phone. */
@@ -30,7 +30,7 @@
 
 /* A full table: position, team, played, won, drawn, lost, goal difference, points. */
 .gk .gk-tpane-table { display: flex; flex-direction: column; gap: var(--gk-2); min-width: 0; }
-.gk .gk-tpane-table h4, .gk .gk-tpane-round h4 { margin: 0; font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-2); }
+.gk .gk-tpane-table h4, .gk .gk-tpane-round h4, .gk .gk-tpane-tier h4 { margin: 0; font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-2); }
 .gk .gk-ftable { width: 100%; border-collapse: collapse; font-size: var(--gk-fs-sm); font-variant-numeric: tabular-nums; }
 .gk .gk-ftable thead th { padding: 4px 6px; font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-3); text-align: right; }
 .gk .gk-ftable thead th:nth-child(2) { text-align: left; }
@@ -39,12 +39,12 @@
 .gk .gk-ftable tbody th { text-align: left; }
 .gk .gk-ftable td b { color: var(--gk-text); }
 .gk .gk-ftable tr[data-mine] td, .gk .gk-ftable tr[data-mine] th { background: var(--gk-accent-soft); color: var(--gk-text); font-weight: 650; }
-.gk .gk-ftable__team { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.gk .gk-ftable__team { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 40vw; }
 .gk .gk-ftable__team > span { display: flex; align-items: baseline; gap: 6px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--gk-text); }
 .gk .gk-ftable__team small { font-size: var(--gk-fs-xs); font-weight: 400; color: var(--gk-text-3); }
 .gk .gk-ftable__team > svg { flex: none; width: 11px; height: 11px; color: var(--gk-warning); fill: currentColor; }
 .gk .gk-tpane-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: var(--gk-4) var(--gk-6); }
-.gk .gk-tpane-round { display: flex; flex-direction: column; gap: var(--gk-1); }
+.gk .gk-tpane-round, .gk .gk-tpane-tier { display: flex; flex-direction: column; gap: var(--gk-1); }
 
 /* Before the draw: the format's picture large, the places and when its shape is decided. */
 .gk .gk-tpane-planned { display: flex; align-items: center; gap: var(--gk-4); padding: var(--gk-3); border: 1px dashed var(--gk-line-strong); border-radius: var(--gk-r-lg); }
@@ -83,12 +83,12 @@
 .gk .gk-tpane-facts div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .gk .gk-tpane-facts dt { font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-3); }
 .gk .gk-tpane-facts dd { margin: 0; font-size: var(--gk-fs-sm); color: var(--gk-text); }
-@media (pointer: coarse) { .gk .gk-tie__side { min-height: 30px; } .gk .gk-tpane-by .gk-pane-more { min-height: 44px; } }
+@media (pointer: coarse) { .gk .gk-tie__side { min-height: 30px; } }
 
 /* An organiser's tournaments: the first day, the name, one fact; each opens beside the list. */
 .gk .gk-tpane-hosted { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
 .gk .gk-tpane-hosted a { display: flex; align-items: center; gap: var(--gk-3); padding: 6px 0; border-top: 1px solid var(--gk-line); color: var(--gk-text); text-decoration: none; font-size: var(--gk-fs-sm); }
 .gk .gk-tpane-hosted li:first-child a { border-top: 0; }
-.gk .gk-tpane-hosted a > span:not(.gk-result-date) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.gk .gk-tpane-hosted a:hover > span:not(.gk-result-date) { text-decoration: underline; text-underline-offset: 3px; }
+.gk .gk-tpane-hosted__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.gk .gk-tpane-hosted a:hover .gk-tpane-hosted__name { text-decoration: underline; text-underline-offset: 3px; }
 .gk .gk-tpane-hosted a:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--gk-accent); }

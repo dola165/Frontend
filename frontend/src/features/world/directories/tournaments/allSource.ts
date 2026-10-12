@@ -85,16 +85,16 @@ export function cardParams(query: DirectoryQuery, area: Parameters<typeof nearPa
 const withParams = (params: URLSearchParams, extra: Record<string, string>) => { const next = new URLSearchParams(params); for (const [key, value] of Object.entries(extra)) next.set(key, value); return next; };
 
 /**
- * Tournaments not yet over first, by start date, then the finished ones, newest first: two searches read as one list.
- * A finished tournament that still ends today or later is in the first search, so the second skips it and the count
- * subtracts it.
+ * Tournaments not yet over first, by start date, then those that ended before today (any status: finished, cancelled,
+ * or left unfinished), newest first: two searches read as one list. One that started by today and ends today or later
+ * is in both, so the second skips it and the count subtracts it.
  */
 async function liveThenFinished(params: URLSearchParams, page: number, signal: AbortSignal) {
     const today = isoDay();
     const live = (p: number, size = PAGE) => browseCompetitions(withParams(params, { from: today, page: String(p), size: String(size) }), signal);
-    const done = (p: number, size = PAGE) => browseCompetitions(withParams(params, { status: 'COMPLETED', sort: 'newest', page: String(p), size: String(size) }), signal);
+    const done = (p: number, size = PAGE) => browseCompetitions(withParams(params, { to: today, sort: 'newest', page: String(p), size: String(size) }), signal);
     const [liveTotal, doneTotal, both] = await shared(`tournament-totals:${params}:${today}`, () => Promise.all([live(0, 1), done(0, 1),
-        browseCompetitions(withParams(params, { status: 'COMPLETED', from: today, page: '0', size: '1' }), signal)]).then(pages => pages.map(result => result.totalElements)));
+        browseCompetitions(withParams(params, { from: today, to: today, page: '0', size: '1' }), signal)]).then(pages => pages.map(result => result.totalElements)));
     const livePages = Math.ceil(liveTotal / PAGE), total = liveTotal + doneTotal - both;
     if (page < livePages) {
         const result = await live(page);

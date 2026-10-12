@@ -94,11 +94,12 @@ it('sends a tournament organiser, eligibility and a distance search as the serve
     expect(cardParams(readQuery(allTournaments, new URLSearchParams('')).query, { city: 'Tbilisi', centre: { lat: 41.7, lng: 44.8 } }).get('radiusKm')).toBe('40');
 });
 
-it('lists tournaments not yet over first, then the finished ones, as one list', async () => {
+it('lists tournaments not yet over first, then those that ended, as one list', async () => {
     const answer = (url: string) => {
         const params = new URLSearchParams(url.split('?')[1]);
-        const card = (id: number, endDate: string) => ({ id, name: `T${id}`, status: params.get('status') ?? 'ACTIVE', participantScope: 'CLUB', startDate: '2026-09-01', endDate, entryCount: 4, entryCap: 8, profile: { rules: null, revision: 0, legacy: true } });
-        const finished = params.get('status') === 'COMPLETED';
+        const card = (id: number, endDate: string) => ({ id, name: `T${id}`, status: params.has('to') ? 'COMPLETED' : 'ACTIVE', participantScope: 'CLUB', startDate: '2026-09-01', endDate, entryCount: 4, entryCap: 8, profile: { rules: null, revision: 0, legacy: true } });
+        // Live: ending today or later (from); ended: started by today (to), any status; both: the overlap.
+        const finished = params.has('to');
         const totalElements = finished ? (params.has('from') ? 1 : 3) : 13;
         const content = params.get('size') === '1' ? [] : finished ? [card(90, '2999-01-01'), card(91, '2026-01-01'), card(92, '2026-02-01')] : Array.from({ length: params.get('page') === '1' ? 1 : 12 }, (_, i) => card(i + 1, '2999-01-01'));
         return Promise.resolve({ data: { content, totalElements, totalPages: Math.ceil(totalElements / 12) } });

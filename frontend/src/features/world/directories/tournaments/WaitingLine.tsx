@@ -5,6 +5,7 @@ import { browsePersonalCompetitions } from '../../../competitions/api';
 import { shared } from '../../cache';
 import { useWorldCopy } from '../../copy';
 import { CARRIED } from '../../directory/useDirectoryState';
+import { runsTournament } from '../../peek/match/matchPeekData';
 import { useWorldData } from '../../useWorldData';
 import { detailOf, organiserWork, tournamentInvitations } from './tournamentItem';
 import '../../scoreboard/scoreboard.css';
@@ -14,8 +15,8 @@ import '../matches/matches.css';
 const RUN = 8;
 
 /**
- * What waits for me in tournaments, above This season, as one line to My tournaments: the invitations to answer and the
- * work waiting in the tournaments I run. Never a second list (the rows below show each); it follows what is done in a pane.
+ * What waits for me in tournaments, above This season, one pill a fact, each to My tournaments: the invitations to
+ * answer and the work waiting in the tournaments I run. Never a second list (the rows below show each); it follows what is done in a pane.
  */
 export function WaitingLine() {
     const t = useWorldCopy();
@@ -28,7 +29,7 @@ export function WaitingLine() {
         ]);
         const live = personal.filter(item => item.status === 'PLANNING' || item.status === 'ACTIVE').slice(0, RUN);
         const details = await Promise.all(live.map(item => detailOf(item.id).catch(() => null)));
-        const run = details.filter(detail => detail?.staffAssignments.some(assignment => assignment.userId === user!.id && assignment.status === 'ACTIVE' && (assignment.role === 'ADMIN' || assignment.role === 'STAFF')));
+        const run = details.filter(detail => detail && runsTournament(detail, user!.id));
         const work = run.flatMap(detail => organiserWork(detail!));
         const sum = (view: string) => work.filter(item => item.view === view).reduce((total, item) => total + item.count, 0);
         return { invitations, results: sum('schedule'), entries: sum('participants') };
@@ -38,12 +39,12 @@ export function WaitingLine() {
     const kept = new URLSearchParams();
     new URLSearchParams(location.search).forEach((value, key) => { if (CARRIED.includes(key)) kept.set(key, value); });
     kept.set('tab', 'mine');
-    const work = [entries ? (entries === 1 ? t('1 entry to decide') : t('{count} entries to decide', { count: entries })) : null,
-        results ? (results === 1 ? t('1 result to add') : t('{count} results to add', { count: results })) : null].filter(Boolean).join(' · ');
-    const answers = invitations.length === 1 ? t('1 invitation to answer') : invitations.length ? t('{count} invitations to answer', { count: invitations.length }) : null;
+    const facts = [invitations.length === 1 ? t('1 invitation to answer') : invitations.length ? t('{count} invitations to answer', { count: invitations.length }) : null,
+        entries ? (entries === 1 ? t('1 entry to decide') : t('{count} entries to decide', { count: entries })) : null,
+        results ? (results === 1 ? t('1 result to add') : t('{count} results to add', { count: results })) : null].filter((fact): fact is string => Boolean(fact));
     return (
         <ul className="gk-needs-you" aria-label={t('Waiting for you')}>
-            <li><Link to={{ search: `?${kept}` }} className="gk-sb__wait" data-tone="warning"><span>{t('Waiting for you')}</span><b>{[answers, work].filter(Boolean).join(' · ')}</b><ArrowRight aria-hidden="true" /></Link></li>
+            {facts.map(fact => <li key={fact}><Link to={{ search: `?${kept}` }} className="gk-sb__wait" data-tone="warning"><b>{fact}</b><ArrowRight aria-hidden="true" /></Link></li>)}
         </ul>
     );
 }

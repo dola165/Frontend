@@ -244,9 +244,6 @@ export const replaceEntry = async (tournamentId: number, fixtureId: number, payl
     return response.data;
 };
 
-export const fetchTournamentHosts = async (params: { page: number; size: number; search?: string; following?: boolean }) =>
-    (await apiClient.get<PageResult<import('./domain').TournamentHost>>('/tournaments/hosts', { params })).data;
-
 /** Public tournaments worth showing first (at most three, live and not ended) and the organisers to follow. */
 export const fetchTournamentOverview = async (signal?: AbortSignal) =>
     (await apiClient.get<import('./domain').TournamentOverview>('/tournaments/overview', { signal })).data;

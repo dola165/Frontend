@@ -1,17 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import { Button, Field } from '../../../../design/primitives';
 import { Segmented } from '../../../../design/Tabs';
-import { apiClient } from '../../../../api/axiosConfig';
 import { ages } from '../../../matchExchange/api';
 import { structures, type CompetitionRules, type Family, type Structure } from '../../../competitions/api';
-import { ageCutoffFor, playedAt, usualSeasonPolicy } from '../../../tournaments/create/drawDraft';
+import { ageCutoffFor, playedAt, withFormat } from '../../../tournaments/create/drawDraft';
 import { CupGlyph, FestivalGlyph, GroupsGlyph, LadderGlyph, LeagueGlyph } from '../../../tournaments/shape/FormatGlyph';
 import { FORMAT_WORD } from '../../../tournaments/shape/shapeOf';
 import type { TournamentParticipantScope } from '../../../tournaments/domain';
 import { useWorldCopy } from '../../copy';
 import { codeLabel } from '../../format';
 import type { useDrawRoom } from './useDrawRoom';
+import { useVenueChoice } from './useVenueChoice';
 import '../../directory/pickers.css';
 
 type Room = ReturnType<typeof useDrawRoom>;
@@ -28,7 +28,7 @@ export function OrganiserQuestion({ room, onCreateOrganiser }: { room: Room; onC
     const t = useWorldCopy();
     const { creatable, organizerId, organisations, hostClubs, draft, update } = room;
     if (organisations.loading) return <p className="gk-faint">{t('Loading…')}</p>;
-    if (organisations.error) return <p className="gk-step__error" role="alert">{organisations.error} <button type="button" className="gk-step__reload" onClick={organisations.retry}>{t('Try again')}</button></p>;
+    if (organisations.error) return <p className="gk-step__error" role="alert">{t(organisations.error)} <button type="button" className="gk-step__reload" onClick={organisations.retry}>{t('Try again')}</button></p>;
     if (!creatable.length) return (
         <div className="gk-draw__empty" data-field="organiser" tabIndex={-1}>
             <p>{t('A tournament is run by an organisation. Set one up first; this draft is kept.')}</p>
@@ -53,10 +53,9 @@ export function OrganiserQuestion({ room, onCreateOrganiser }: { room: Room; onC
 export function PlayersQuestion({ room }: { room: Room }) {
     const t = useWorldCopy();
     const { draft: { rules, startDate }, updateRules } = room;
-    const year = Number(startDate.slice(0, 4)) || new Date().getFullYear();
     return <div className="gk-draw__grid">
         <Field label={t('Age group')} htmlFor="draw-age">
-            <select id="draw-age" className="gk-input" value={rules.ageGroup} onChange={event => { const age = event.target.value; updateRules({ ...playedAt(age), ageGroup: age, ageCutoff: ageCutoffFor(age, year), playingLevel: age === 'SENIOR' || age === 'VETERANS' ? 'COMPETITIVE' : 'DEVELOPMENT' }); }}>
+            <select id="draw-age" className="gk-input" value={rules.ageGroup} onChange={event => { const age = event.target.value; updateRules({ ...playedAt(age), ageGroup: age, ageCutoff: ageCutoffFor(age, startDate), playingLevel: age === 'SENIOR' || age === 'VETERANS' ? 'COMPETITIVE' : 'DEVELOPMENT' }); }}>
                 {ages.map(age => <option key={age} value={age}>{codeLabel(age)}</option>)}
             </select>
         </Field>
@@ -84,12 +83,7 @@ export function PlayersQuestion({ room }: { room: Room }) {
 export function FormatQuestion({ room }: { room: Room }) {
     const t = useWorldCopy();
     const { draft, update } = room;
-    const choose = (structure: Structure) => {
-        const family = FAMILY_OF[structure];
-        // The usual wording follows the format unless the organiser wrote their own.
-        const seasonPolicy = draft.rules.seasonPolicy === usualSeasonPolicy(draft.rules.family) ? usualSeasonPolicy(family) : draft.rules.seasonPolicy;
-        update({ rules: { ...draft.rules, family, structure, standings: family !== 'FESTIVAL' || draft.rules.standings, seasonPolicy } });
-    };
+    const choose = (structure: Structure) => update({ rules: withFormat(draft.rules, FAMILY_OF[structure], structure) });
     const teams = (value: number) => update({ entryCap: Math.max(2, Math.min(32, value)) });
     return <>
         <div className="gk-pick-tiles gk-draw__tiles" role="group" aria-label={t('Format')}>
@@ -103,7 +97,7 @@ export function FormatQuestion({ room }: { room: Room }) {
                 {MORE.map(structure => <option key={structure} value={structure}>{t(FORMAT_WORD[structure])}</option>)}
             </select>
         </Field>
-        <div className="gk-field" data-field="entryCap" tabIndex={-1}>
+        <div className="gk-field" data-field="entryCap" tabIndex={-1} role="group" aria-labelledby="draw-teams-label">
             <span className="gk-field__label" id="draw-teams-label">{t('Teams')}</span>
             <div className="gk-draw__stepper" role="group" aria-labelledby="draw-teams-label">
                 <Button size="sm" variant="ghost" aria-label={t('Fewer teams')} onClick={() => teams(draft.entryCap - 1)}><Minus aria-hidden="true" /></Button>
@@ -116,23 +110,17 @@ export function FormatQuestion({ room }: { room: Room }) {
     </>;
 }
 
-type Venue = { id: number; displayName: string; city?: string };
-/** A published ground for the tournament, searched by name; to be agreed when none. */
+/** A published ground for the tournament, searched by name (the chosen one stays offered); to be agreed when none. */
 function VenueField({ value, onChange }: { value: number | null; onChange: (id: number | null) => void }) {
     const t = useWorldCopy();
     const [query, setQuery] = useState('');
-    const [venues, setVenues] = useState<Venue[]>([]);
-    useEffect(() => {
-        const abort = new AbortController();
-        const timer = setTimeout(() => void apiClient.get<{ content: Venue[] }>('/venues', { signal: abort.signal, params: { q: query, size: 24 } }).then(result => setVenues(result.data.content)).catch(() => undefined), 200);
-        return () => { clearTimeout(timer); abort.abort(); };
-    }, [query]);
-    return <Field label={t('Ground')} htmlFor="draw-venue" hint={t('Its public place; each match books its pitch separately.')}>
+    const { options, error, choose } = useVenueChoice(value, query);
+    return <Field label={t('Ground')} htmlFor="draw-venue" hint={t('Its public place; each match books its pitch separately.')} error={error ? t(error) : undefined}>
         <div className="gk-draw__venue">
             <input type="search" className="gk-input" aria-label={t('Search grounds')} placeholder={t('Search grounds')} value={query} onChange={event => setQuery(event.target.value)} />
-            <select id="draw-venue" className="gk-input" value={value ?? ''} onChange={event => onChange(event.target.value ? Number(event.target.value) : null)}>
+            <select id="draw-venue" className="gk-input" value={value ?? ''} onChange={event => { const id = event.target.value ? Number(event.target.value) : null; choose(id); onChange(id); }}>
                 <option value="">{t('To be agreed')}</option>
-                {venues.map(venue => <option key={venue.id} value={venue.id}>{[venue.displayName, venue.city].filter(Boolean).join(' · ')}</option>)}
+                {options.map(venue => <option key={venue.id} value={venue.id}>{[venue.displayName, venue.city].filter(Boolean).join(' · ')}</option>)}
             </select>
         </div>
     </Field>;
@@ -142,9 +130,12 @@ function VenueField({ value, onChange }: { value: number | null; onChange: (id: 
 export function WhenQuestion({ room }: { room: Room }) {
     const t = useWorldCopy();
     const { draft, update, updateRules } = room;
+    // Ages are counted on the first day: the day follows the start unless the organiser set their own.
+    const moveStart = (startDate: string) => update(draft.rules.ageCutoff === ageCutoffFor(draft.rules.ageGroup, draft.startDate)
+        ? { startDate, rules: { ...draft.rules, ageCutoff: ageCutoffFor(draft.rules.ageGroup, startDate) } } : { startDate });
     return <>
         <div className="gk-draw__grid">
-            <Field label={t('Starts')} htmlFor="draw-start"><input id="draw-start" data-field="startDate" type="datetime-local" className="gk-input" value={draft.startDate} onChange={event => update({ startDate: event.target.value })} /></Field>
+            <Field label={t('Starts')} htmlFor="draw-start"><input id="draw-start" data-field="startDate" type="datetime-local" className="gk-input" value={draft.startDate} onChange={event => moveStart(event.target.value)} /></Field>
             <Field label={t('Ends')} htmlFor="draw-end"><input id="draw-end" data-field="endDate" type="datetime-local" className="gk-input" min={draft.startDate} value={draft.endDate} onChange={event => update({ endDate: event.target.value })} /></Field>
         </div>
         <VenueField value={draft.venueId} onChange={venueId => update({ venueId })} />
@@ -153,7 +144,7 @@ export function WhenQuestion({ room }: { room: Room }) {
             <div className="gk-draw__grid">
                 <Field label={t('City')} htmlFor="draw-city"><input id="draw-city" className="gk-input" maxLength={120} value={draft.rules.city} onChange={event => updateRules({ city: event.target.value })} /></Field>
                 <Field label={t('Country')} htmlFor="draw-country"><input id="draw-country" className="gk-input" maxLength={100} value={draft.rules.country} onChange={event => updateRules({ country: event.target.value })} /></Field>
-                <Field label={t('Time zone')} htmlFor="draw-zone"><input id="draw-zone" className="gk-input" maxLength={80} value={draft.rules.timezone} onChange={event => updateRules({ timezone: event.target.value })} /></Field>
+                <Field label={t('Time zone')} htmlFor="draw-zone"><input id="draw-zone" data-field="timezone" className="gk-input" maxLength={80} value={draft.rules.timezone} onChange={event => updateRules({ timezone: event.target.value })} /></Field>
             </div>
         </details>
     </>;
@@ -165,7 +156,7 @@ export function ScopeQuestion({ room }: { room: Room }) {
     const { draft, update } = room;
     const youth = /^U\d+$/.test(draft.rules.ageGroup) && Number(draft.rules.ageGroup.slice(1)) <= 18;
     const items: { id: TournamentParticipantScope; label: string }[] = [{ id: 'CLUB', label: t('Clubs') }, { id: 'SQUAD', label: t('Squads') }, ...(youth ? [] : [{ id: 'PLAYER' as const, label: t('Players') }])];
-    return <div data-field="scope" tabIndex={-1}>
+    return <div data-field="scope" tabIndex={-1} role="group" aria-label={t('Who enters')}>
         <Segmented label={t('Who enters')} value={draft.scope} onChange={scope => update({ scope })} items={items} />
         <p className="gk-field__hint">{youth ? t('Youth tournaments take club or squad entries; players enter on their own only as adults.')
             : draft.scope === 'PLAYER' ? t('Players enter themselves; you make the teams.') : draft.scope === 'SQUAD' ? t('A club enters one of its squads, named when it enters.') : t('A club enters; it may name the team that plays.')}</p>

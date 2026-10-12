@@ -1,5 +1,6 @@
 import { defaultPolicy, defaultRules, structures, type CompetitionRules, type EligibilityPolicy, type Family } from '../../competitions/api';
 import type { TournamentParticipantScope, TournamentVisibility } from '../domain';
+import { instantEntry } from '../entryGates';
 
 export type RegistrationPolicy = 'OPEN' | 'APPROVAL_ONLY' | 'INVITE_ONLY';
 
@@ -49,8 +50,23 @@ export function playedAt(ageGroup: string): Pick<CompetitionRules, 'sideSize' | 
         : { sideSize: 11, matchMinutes: 90, restMinutes: 30, pitches: 1 };
 }
 
-/** A youth age group's cut-off: players born on or after 1 January of the year the age counts from. */
-export const ageCutoffFor = (ageGroup: string, year: number) => /^U\d+$/.test(ageGroup) ? `${year - Number(ageGroup.slice(1))}-01-01` : null;
+/**
+ * The day a youth tournament counts ages on: its first day (the backend measures each player's age on it, so a U12 player
+ * is under 12 that day). A birth-year rule would need the backend first.
+ */
+export const ageCutoffFor = (ageGroup: string, startDate: string) => /^U\d+$/.test(ageGroup) && startDate ? startDate.slice(0, 10) : null;
+
+/** Whether entries can be taken as they come: the backend takes them at once only from squads or players in an Open tournament. */
+export const takenAsTheyCome = (draft: Pick<DrawDraft, 'scope' | 'rules'>) => instantEntry({ registrationPolicy: 'OPEN', participantScope: draft.scope }, draft.rules);
+/** How entries are taken, as sent: "as they come" where the backend would make them wait anyway is said as approval. */
+export const entryPolicyOf = (draft: Pick<DrawDraft, 'scope' | 'rules' | 'registrationPolicy'>): RegistrationPolicy =>
+    draft.registrationPolicy === 'OPEN' && !takenAsTheyCome(draft) ? 'APPROVAL_ONLY' : draft.registrationPolicy;
+
+/** A format chosen over the rules: the usual wording follows the format unless the organiser wrote their own. */
+export function withFormat(rules: CompetitionRules, family: Family, structure: CompetitionRules['structure']): CompetitionRules {
+    const seasonPolicy = rules.seasonPolicy === usualSeasonPolicy(rules.family) ? usualSeasonPolicy(family) : rules.seasonPolicy;
+    return { ...rules, family, structure, standings: family !== 'FESTIVAL' || rules.standings, seasonPolicy };
+}
 
 /**
  * A new tournament with the likely answers chosen: a cup on a Saturday three weeks out, 10:00 to 17:00 (a league runs
@@ -66,7 +82,7 @@ export function freshDraft({ organizerId, family = 'CUP' }: DrawSeed = {}, ageGr
     const closes = new Date(saturday);
     closes.setDate(closes.getDate() - 7);
     const base = defaultRules(family);
-    const rules: CompetitionRules = { ...base, ...playedAt(ageGroup), ageGroup, ageCutoff: ageCutoffFor(ageGroup, saturday.getFullYear()), ruleset: usualRuleset, seasonPolicy: usualSeasonPolicy(family),
+    const rules: CompetitionRules = { ...base, ...playedAt(ageGroup), ageGroup, ageCutoff: ageCutoffFor(ageGroup, wall(saturday, 10)), ruleset: usualRuleset, seasonPolicy: usualSeasonPolicy(family),
         playingLevel: ageGroup === 'SENIOR' ? base.playingLevel : 'DEVELOPMENT', eligibilityCategory: 'Open' };
     return {
         savedAt: now.getTime(), organizerId: organizerId ?? null, hostClubId: null, venueId: null,
@@ -108,3 +124,15 @@ export function clearDrawDraft(key: string) {
 }
 /** Whether a draft holds anything the person wrote (a fresh one is not offered as "Continue"). */
 export const drawStarted = (draft: DrawDraft) => Boolean(draft.name.trim() || draft.description.trim() || draft.incentives.trim());
+
+/**
+ * The draft a Draw room address opens: a fresh one from the address when nothing was written yet, else the one kept,
+ * with the address's organiser and format applied over it (the address is where the person just pressed Create).
+ */
+export function openDraft(kept: DrawDraft | null, seed: DrawSeed, ageGroup: string, now = new Date()): DrawDraft {
+    if (!kept || !drawStarted(kept)) return freshDraft(seed, ageGroup, now);
+    let next = kept;
+    if (seed.organizerId && seed.organizerId !== kept.organizerId) next = { ...next, organizerId: seed.organizerId, hostClubId: null };
+    if (seed.family && seed.family !== kept.rules.family) next = { ...next, rules: withFormat(next.rules, seed.family, defaultRules(seed.family).structure) };
+    return next;
+}

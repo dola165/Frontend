@@ -400,16 +400,19 @@ post('/match-history/import', ({ body }) => {
 
 // ============================================================== tournaments & competitions
 const tournamentOr404 = id => { const t = F.tournamentById(id); return t ? t : null; };
-const publicTournaments = () => F.tournamentList;
-const hostOf = t => t.organizerClubId ? { kind: 'CLUB', id: t.organizerClubId } : { kind: 'ORGANIZATION', id: t.organizerOrgId };
+const publicTournaments = () => F.tournamentList.filter(t => (t.visibility ?? 'PUBLIC') === 'PUBLIC');
+// As discovery lists organisers: a club for what it hosts and what its own organisation runs; an organisation not backed
+// by a club for what it runs. Only organisers with a public tournament are listed.
+const hostKeys = t => { const org = F.organizerOf(t); return [...new Set([t.organizerClubId ? `CLUB:${t.organizerClubId}` : null, org?.clubId ? `CLUB:${org.clubId}` : org ? `ORGANIZATION:${org.id}` : null].filter(Boolean))]; };
+const listedBy = (kind, id) => publicTournaments().filter(t => hostKeys(t).includes(`${kind}:${id}`));
 const followedHosts = new Set(['CLUB:3', 'ORGANIZATION:801']);
 const hostView = (kind, id) => {
-  const count = F.tournamentList.filter(t => { const h = hostOf(t); return h.kind === kind && h.id === id; }).length;
+  const count = listedBy(kind, id).length;
+  if (!count) return null;
   if (kind === 'CLUB') { const c = clubById(id); return c && { kind, id, name: c.name, logoUrl: c.logoUrl, tournamentCount: count, following: followedHosts.has(`${kind}:${id}`) }; }
   const o = F.organizationById(id); return o && { kind, id, name: o.name, logoUrl: o.logoUrl, tournamentCount: count, following: followedHosts.has(`${kind}:${id}`) };
 };
-const allHosts = () => [...new Map(F.tournamentList.map(t => { const h = hostOf(t); return [`${h.kind}:${h.id}`, hostView(h.kind, h.id)]; })).values()]
-  .concat([5, 4, 7].map(id => ({ ...hostView('CLUB', id), tournamentCount: 0 })).filter(h => !F.tournamentList.some(t => t.organizerClubId === h.id)))
+const allHosts = () => [...new Set(publicTournaments().flatMap(hostKeys))].map(key => { const [kind, id] = key.split(':'); return hostView(kind, Number(id)); }).filter(Boolean)
   .sort((a, b) => b.tournamentCount - a.tournamentCount || a.name.localeCompare(b.name));
 get('/tournaments/overview', () => {
   const summaries = publicTournaments().map(F.tournamentSummary).filter(s => s.visibility === 'PUBLIC');
@@ -420,7 +423,7 @@ get('/tournaments/overview', () => {
 });
 get('/tournaments/hosts', ({ query: q }) => pageResult(allHosts().filter(h => matchesText(q.get('search'), h.name)).filter(h => q.get('following') !== 'true' || h.following), pageOf(q), sizeOf(q, 24)));
 get('/tournaments/host', ({ query: q }) => hostView(q.get('kind'), Number(q.get('id'))) || notFound());
-get('/tournaments/host-tournaments', ({ query: q }) => pageResult(F.tournamentList.filter(t => { const h = hostOf(t); return h.kind === q.get('kind') && h.id === Number(q.get('id')); }).map(F.tournamentSummary), pageOf(q), sizeOf(q, 12)));
+get('/tournaments/host-tournaments', ({ query: q }) => hostView(q.get('kind'), Number(q.get('id'))) ? pageResult(listedBy(q.get('kind'), Number(q.get('id'))).map(F.tournamentSummary), pageOf(q), sizeOf(q, 12)) : notFound());
 put('/tournaments/hosts/:kind/:id/follow', ({ params, body }) => { const key = `${params.kind}:${params.id}`; if (body?.following) followedHosts.add(key); else followedHosts.delete(key); return { following: followedHosts.has(key) }; });
 const summaryFilter = q => {
   const text = q.get('search') || q.get('q'), status = q.get('status');
@@ -533,7 +536,8 @@ get('/competitions', ({ query: q }) => {
       && (!openPlaces || (c.status === 'PLANNING' && (c.entryCap == null || F.placesTaken(st) < c.entryCap)))
       && (!registration || (registration === 'OPEN' ? c.status === 'PLANNING' && w.opens.getTime() <= nowMs && w.closes.getTime() > nowMs
         : registration === 'NOT_OPEN' ? c.status === 'PLANNING' && w.opens.getTime() > nowMs : c.status !== 'PLANNING' || w.closes.getTime() <= nowMs))
-      && (!hostKind || (() => { const h = hostOf(t); return h.kind === hostKind && (hostId == null || h.id === hostId); })())
+      // As CompetitionService: a club by the tournaments it hosts, an organisation by those it runs.
+      && (!hostKind || (hostKind === 'CLUB' ? t.organizerClubId != null && (hostId == null || t.organizerClubId === hostId) : hostKind === 'ORGANIZATION' && (hostId == null || F.organizerOf(t)?.id === hostId)))
       && (lat == null || (v && kmBetween(lat, lng, v.lat, v.lng) <= radius));
   });
   list = sort === 'name' ? list.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.id - b.id) : sort === 'newest' ? list.sort((a, b) => b.id - a.id) : list.sort((a, b) => a.start - b.start || b.id - a.id);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defaultRules } from '../../competitions/api';
-import { drawPeek, freshDraft, parseDrawSeed, readDrawDraft } from './drawDraft';
-import { drawEstimate, durationWords } from './drawEstimate';
+import { drawPeek, entryPolicyOf, freshDraft, openDraft, parseDrawSeed, readDrawDraft } from './drawDraft';
+import { drawEstimate, durationParts } from './drawEstimate';
 
 describe('the Draw room’s address', () => {
     it('carries the organiser and the family it starts from, and reads them back', () => {
@@ -19,7 +19,7 @@ describe('a new tournament', () => {
         expect(draft.startDate).toBe('2026-10-31T10:00');
         expect(draft.endDate).toBe('2026-10-31T17:00');
         expect(draft.closesAt).toBe('2026-10-24T00:00');
-        expect(draft).toMatchObject({ visibility: 'PRIVATE', entryCap: 8, registrationPolicy: 'APPROVAL_ONLY', rules: { ageGroup: 'U14', ageCutoff: '2012-01-01', sideSize: 9, matchMinutes: 60 } });
+        expect(draft).toMatchObject({ visibility: 'PRIVATE', entryCap: 8, registrationPolicy: 'APPROVAL_ONLY', rules: { ageGroup: 'U14', ageCutoff: '2026-10-31', sideSize: 9, matchMinutes: 60 } });
         expect(draft.rules.ruleset).not.toMatch(/UEFA|FIFA|GFF/);
         expect(freshDraft({ family: 'LEAGUE' }, 'SENIOR', new Date(2026, 9, 12)).endDate).toBe('2026-12-26T17:00');
     });
@@ -31,13 +31,28 @@ describe('a new tournament', () => {
         expect(readDrawDraft({ ...draft, rules: { ...draft.rules, structure: 'LADDER' } })).toBeNull();
         expect(readDrawDraft('nonsense')).toBeNull();
     });
+
+    it('opens from its address: fresh when nothing was written, else the kept draft under the address’s organiser and format', () => {
+        const kept = { ...freshDraft({ organizerId: 901, family: 'CUP' }), hostClubId: 2 };
+        expect(openDraft(kept, { organizerId: 17, family: 'LEAGUE' }, 'SENIOR')).toMatchObject({ organizerId: 17, rules: { family: 'LEAGUE' } });
+        const written = { ...kept, name: 'Autumn Cup' };
+        expect(openDraft(written, { organizerId: 17, family: 'LEAGUE' }, 'SENIOR')).toMatchObject({ name: 'Autumn Cup', organizerId: 17, hostClubId: null, rules: { family: 'LEAGUE', structure: 'ROUND_ROBIN' } });
+        expect(openDraft(written, {}, 'SENIOR')).toBe(written);
+    });
+
+    it('takes entries as they come only where the backend would: squads or players in an Open tournament', () => {
+        const draft = { ...freshDraft(), registrationPolicy: 'OPEN' as const };
+        expect(entryPolicyOf(draft)).toBe('APPROVAL_ONLY');
+        expect(entryPolicyOf({ ...draft, scope: 'SQUAD' })).toBe('OPEN');
+        expect(entryPolicyOf({ ...draft, scope: 'SQUAD', rules: { ...draft.rules, eligibilityCategory: 'Girls' } })).toBe('APPROVAL_ONLY');
+    });
 });
 
 describe('the estimate', () => {
     const rules = (structure: Parameters<typeof drawEstimate>[0]['structure'], extra = {}) => ({ ...defaultRules(), structure, matchMinutes: 40, restMinutes: 10, pitches: 2, rounds: 3, ...extra });
     it('counts a cup’s matches and the time on its pitches', () => {
         expect(drawEstimate(rules('KNOCKOUT'), 8)).toEqual({ matches: 7, minutes: 190, matchdays: null, setAtDraw: false });
-        expect(durationWords(190)).toBe('3 h 10');
+        expect(durationParts(190)).toEqual({ hours: 3, minutes: 10 });
     });
     it('counts a league in matchdays, and marks what the draw decides', () => {
         expect(drawEstimate(rules('ROUND_ROBIN'), 6)).toMatchObject({ matches: 15, matchdays: 5 });

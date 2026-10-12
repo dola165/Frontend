@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TournamentEntryDto, TournamentInvitationInboxItem } from './domain';
-import { entryGate, type EntryGateInput } from './entryGates';
+import { entryGate, instantEntry, type EntryGateInput } from './entryGates';
 
 const NOW = Date.parse('2026-10-12T12:00:00+04:00');
 const time = (value?: string | null) => (value ? Date.parse(`${value}+04:00`) : null);
@@ -21,14 +21,15 @@ describe('who may enter a tournament', () => {
     });
 
     it('shows the club’s one live entry, whatever the squad, and lets it be withdrawn while the tournament is being planned', () => {
-        const gate = entryGate(base({ entries: [entry(1, 1, 'WAITLISTED', { squadId: 99 })] }));
-        expect(gate).toMatchObject({ kind: 'entered', entry: { id: 1 }, withdrawable: true });
+        expect(entryGate(base({ entries: [entry(1, 1, 'WAITLISTED', { squadId: 14 })] }))).toMatchObject({ kind: 'entered', entry: { id: 1 }, withdrawable: true });
+        // Another squad of the club, which someone else arranges for: shown, but not withdrawn from here.
+        expect(entryGate(base({ entries: [entry(1, 1, 'WAITLISTED', { squadId: 99 })] }))).toMatchObject({ kind: 'entered', withdrawable: false });
         expect(entryGate(base({ entries: [entry(1, 1, 'WITHDRAWN')] })).kind).toBe('enter');
     });
 
     it('answers an invitation before the window or the policy, saying when the club is already in', () => {
         expect(entryGate(base({ registrationPolicy: 'INVITE_ONLY' }, { invitation })).kind).toBe('answer');
-        expect(entryGate(base({ entries: [entry(4, 1, 'ACTIVE')] }, { invitation, squads: [] }))).toMatchObject({ kind: 'answer', entered: { id: 4 } });
+        expect(entryGate(base({ entries: [entry(4, 1, 'ACTIVE')] }, { invitation }))).toMatchObject({ kind: 'answer', entered: { id: 4 } });
     });
 
     it('says why entering is not possible: signed out, not open yet, closed, by invitation only', () => {
@@ -42,6 +43,9 @@ describe('who may enter a tournament', () => {
         const full = [1, 2, 3, 4].map(id => entry(id, 10 + id, 'ACTIVE'));
         expect(entryGate(base({ entries: full }))).toMatchObject({ kind: 'enter', full: true });
         expect(entryGate(base({ entries: full.slice(1) }))).toMatchObject({ kind: 'enter', full: false });
+        // Pending entries hold places too, as the backend counts them.
+        expect(entryGate(base({ entries: [1, 2, 3, 4].map(id => entry(id, 10 + id, 'PENDING')) }))).toMatchObject({ kind: 'enter', full: true });
+        expect(entryGate(base({ entries: full }, { invitation }))).toMatchObject({ kind: 'answer', full: true });
     });
 
     it('waits for the squads and the player check rather than saying no', () => {
@@ -49,6 +53,15 @@ describe('who may enter a tournament', () => {
         expect(entryGate(base({ participantScope: 'PLAYER' }, { playerEligible: undefined })).kind).toBe('checking');
         expect(entryGate(base({ participantScope: 'PLAYER' }, { playerEligible: true }))).toMatchObject({ kind: 'register' });
         expect(entryGate(base({}, { squads: [] })).kind).toBe('none');
+    });
+
+    it('says an entry is in at once only where the backend takes it at once', () => {
+        const rules = { eligibilityCategory: 'Open' };
+        expect(instantEntry({ registrationPolicy: 'OPEN', participantScope: 'SQUAD' }, rules)).toBe(true);
+        expect(instantEntry({ registrationPolicy: 'OPEN', participantScope: 'CLUB' }, rules)).toBe(false);
+        expect(instantEntry({ registrationPolicy: 'OPEN', participantScope: 'SQUAD' }, { eligibilityCategory: 'Girls' })).toBe(false);
+        expect(instantEntry({ registrationPolicy: 'OPEN', participantScope: 'CLUB' }, null)).toBe(true);
+        expect(instantEntry({ registrationPolicy: 'INVITE_ONLY', participantScope: 'SQUAD' }, rules)).toBe(false);
     });
 
     it('offers nothing once the tournament has started, beyond showing an entry', () => {

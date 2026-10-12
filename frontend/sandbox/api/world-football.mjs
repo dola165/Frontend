@@ -373,7 +373,7 @@ export const competitionRules = t => {
   return {
     family: FAMILY[t.format], structure: structureOf(t), discipline: t.discipline ?? (side === 5 && t.venueId === 204 ? 'FUTSAL' : 'ASSOCIATION'), sideSize: side, ageGroup: t.ageGroup,
     eligibilityCategory: t.gender === 'FEMALE' ? 'Girls' : t.gender === 'MALE' ? (t.ageGroup === 'SENIOR' ? 'Open' : 'Boys') : 'Open', playingLevel: t.ageGroup === 'U10' ? 'DEVELOPMENT' : t.format === 'FESTIVAL' ? 'RECREATIONAL' : 'COMPETITIVE',
-    country: 'Georgia', city: t.city, timezone: TZ, ruleset: RULESET[t.format], jurisdiction: t.ageGroup === 'SENIOR' ? '' : 'Organiser-run youth competition', ageCutoff: t.ageGroup === 'SENIOR' ? null : `${W.NOW.getFullYear() - Number(t.ageGroup.slice(1))}-01-01`,
+    country: 'Georgia', city: t.city, timezone: TZ, ruleset: RULESET[t.format], jurisdiction: t.ageGroup === 'SENIOR' ? '' : 'Organiser-run youth competition', ageCutoff: t.ageGroup === 'SENIOR' ? null : local(t.start).slice(0, 10),
     matchMinutes: side >= 11 ? (t.ageGroup === 'SENIOR' ? 90 : 80) : side >= 7 ? 40 : 24, restMinutes: side >= 11 ? 30 : 10, pitches: t.venueId === 205 ? 3 : 1, rounds: 3,
     tiebreaks: ['POINTS', 'GOAL_DIFFERENCE', 'GOALS_FOR', 'SEED'], challengeRange: 3, challengeExpiryDays: 7, maxConsecutiveStays: 2, standings: t.format !== 'FESTIVAL',
     entryFee: t.fee, currency: 'GEL', feeBasis: t.feeBasis ?? 'TEAM', seasonPolicy: t.format === 'LEAGUE' ? 'Double round-robin, autumn to winter. Points: 3 win, 1 draw.' : 'Single event; results stand once confirmed by the organiser.',
@@ -381,7 +381,7 @@ export const competitionRules = t => {
 };
 // A tournament from before the engine has no published rules.
 export const competitionProfile = t => t.legacy ? { rules: null, revision: 0, legacy: true } : { rules: competitionRules(t), revision: 3, legacy: false };
-export const organizerOf = t => t.organizerOrgId ? ORG[t.organizerOrgId] : { id: 900 + t.organizerClubId, name: clubById(t.organizerClubId).name, logoUrl: clubById(t.organizerClubId).logoUrl, clubId: t.organizerClubId };
+export const organizerOf = t => t.organizerOrgId ? organizationById(t.organizerOrgId) : { id: 900 + t.organizerClubId, name: clubById(t.organizerClubId).name, logoUrl: clubById(t.organizerClubId).logoUrl, clubId: t.organizerClubId };
 /** When entries open and close. The girls' cup opens in two days, so "Opens …" has an example. */
 export const registrationWindow = t => ({ opens: t.opens ?? (t.created ? new Date(0) : t.id === 304 ? day(2, 9) : day(-60)), closes: t.entryDeadline });
 /** As the backend counts places taken: approved and active entries, and those that played on or went out. */
@@ -392,7 +392,8 @@ export const tournamentSummary = t => {
   return {
     id: t.id, name: t.name, description: t.description, status: st.status, organizerOrganizationId: org.id, organizerName: org.name, hostClubId: host?.id ?? null, hostClubName: host?.name ?? null,
     participantScope: scopeOf(t), visibility: t.visibility ?? 'PUBLIC', startDate: local(t.start), endDate: local(t.end), registrationOpensAt: local(window.opens), registrationClosesAt: local(window.closes),
-    entryCount: placesTaken(st), incentives: t.created ? t.incentives : t.fee ? 'Trophies and medals for finalists' : 'Medals for every player', bannerImageUrl: t.created ? t.banner : photo(`tournament-${t.id}`),
+    // The summary counts approved and active entries only (the list card counts those that played on or went out too).
+    entryCount: st.entries.filter(e => ['ACTIVE', 'APPROVED'].includes(e.status)).length, incentives: t.created ? t.incentives : t.fee ? 'Trophies and medals for finalists' : 'Medals for every player', bannerImageUrl: t.created ? t.banner : photo(`tournament-${t.id}`),
   };
 };
 export const tournamentDetail = t => {
@@ -402,8 +403,8 @@ export const tournamentDetail = t => {
 };
 /** A `/competitions` card as the backend sends it: no entry window, host or organiser ids, visibility or prizes. */
 export const competitionCard = t => {
-  const { id, name, description, status, participantScope, organizerName, hostClubName, startDate, endDate, bannerImageUrl, entryCount } = tournamentSummary(t);
-  return { id, name, description, status, participantScope, organizerName, hostClubName, startDate, endDate, bannerImageUrl, entryCount, entryCap: tournamentDetail(t).entryCap, profile: competitionProfile(t) };
+  const { id, name, description, status, participantScope, organizerName, hostClubName, startDate, endDate, bannerImageUrl } = tournamentSummary(t);
+  return { id, name, description, status, participantScope, organizerName, hostClubName, startDate, endDate, bannerImageUrl, entryCount: placesTaken(tournamentState.get(t.id)), entryCap: tournamentDetail(t).entryCap, profile: competitionProfile(t) };
 
 };
 // ============================================================== creating a tournament (as CompetitionService.create)
@@ -425,10 +426,11 @@ export function createTournament(body) {
   const start = wallDate(identity.startDate), end = wallDate(identity.endDate);
   if (!start || !end || start.getTime() <= Date.now() || end < start) return { refusal: { status: 400, message: 'Choose future dates, the end after the start.' } };
   const id = Math.max(...tournamentList.map(t => t.id)) + 1;
-  const host = identity.hostClubId ? clubById(identity.hostClubId) : clubById(DINAMO);
+  // The organisation runs it; a host club only when one is named.
+  const host = identity.hostClubId ? clubById(identity.hostClubId) : null;
   const t = {
     id, name: String(identity.name).trim(), created: true, format: FORMAT_OF[rules.structure] ?? 'KNOCKOUT', structure: rules.structure, ageGroup: rules.ageGroup, gender: 'MIXED', teamFormat: `${rules.sideSize}v${rules.sideSize}`,
-    organizerClubId: host.id, start, end, entryDeadline: wallDate(identity.registrationClosesAt) ?? start, opens: wallDate(identity.registrationOpensAt), status: 'REGISTRATION', teams: [], city: rules.city, venueId: venueId ?? host.venueId ?? null,
+    organizerClubId: host?.id ?? null, organizerOrgId: identity.organizerOrganizationId, start, end, entryDeadline: wallDate(identity.registrationClosesAt) ?? start, opens: wallDate(identity.registrationOpensAt), status: 'REGISTRATION', teams: [], city: rules.city, venueId: venueId ?? host?.venueId ?? null,
     fee: Number(rules.entryFee ?? 0), feeBasis: rules.feeBasis, discipline: rules.discipline, description: identity.description ?? '', rules, policy: identity.registrationPolicy ?? 'APPROVAL_ONLY', scope: identity.participantScope ?? 'CLUB',
     visibility: identity.visibility ?? 'PRIVATE', cap: identity.entryCap ?? null, incentives: identity.incentives ?? null, banner: identity.bannerImageUrl ?? null, writtenRules: identity.rules ?? null,
   };
@@ -457,7 +459,14 @@ export const invitationView = inv => {
   return { id: inv.id, clubId: inv.clubId, clubName: c?.name ?? null, squadId: inv.squadId, squadName: s?.name ?? null, status: inv.status, createdAt: iso(inv.createdAt), tournament: t };
 };
 const LIVE = ['PENDING', 'APPROVED', 'WAITLISTED', 'ACTIVE'];
-const HOLDS = ['APPROVED', 'ACTIVE'];
+// Places are held by entries waiting for the organiser too, as the backend counts them.
+const HOLDS = ['PENDING', 'APPROVED', 'ACTIVE'];
+/** As the backend decides it: entries are in at once only when the policy is open and they come from squads or players in an Open tournament (or the tournament has no rules). */
+const takenAtOnce = t => {
+  if (policyOf(t) !== 'OPEN') return false;
+  const rules = competitionProfile(t).rules;
+  return !rules || (['SQUAD', 'PLAYER'].includes(scopeOf(t)) && String(rules.eligibilityCategory ?? '').trim().toLowerCase() === 'open');
+};
 /** A tournament's entry rules, in the backend's order; null when the entry may be made, else the refusal. */
 function entryRefusal(t, st, { clubId, userId, invited }) {
   const window = registrationWindow(t), now = Date.now();
@@ -469,11 +478,10 @@ function entryRefusal(t, st, { clubId, userId, invited }) {
   return null;
 }
 /** How a new entry starts: on the waiting list once the places are taken, else in at once or waiting for the organiser. */
-function startingStatus(t, st, { squadId, player }) {
+function startingStatus(t, st) {
   const cap = tournamentDetail(t).entryCap;
   if (cap && st.entries.filter(e => HOLDS.includes(e.status)).length >= cap) return 'WAITLISTED';
-  // A club's entry without a squad waits for the organiser's eligibility review.
-  return policyOf(t) === 'APPROVAL_ONLY' || (!player && squadId == null) ? 'PENDING' : 'ACTIVE';
+  return takenAtOnce(t) ? 'ACTIVE' : 'PENDING';
 }
 /** Makes an entry (a club's, a squad's or a player's) or says why not: `{ entry }` or `{ refusal }`. */
 export function enterTournament(t, { clubId = null, squadId = null, userId = null, displayName = null, invited = false }) {
@@ -481,7 +489,7 @@ export function enterTournament(t, { clubId = null, squadId = null, userId = nul
   const refusal = entryRefusal(t, st, { clubId, userId, invited });
   if (refusal) return { refusal };
   const c = clubId != null ? clubById(clubId) : null, s = squadId != null ? W.squadById(squadId) : null;
-  const status = startingStatus(t, st, { squadId, player: userId != null });
+  const status = startingStatus(t, st);
   const entry = { id: ++entrySeq, clubId: c?.id ?? null, clubName: c?.name ?? null, squadId: s?.id ?? null, squadName: s?.name ?? null, userId, displayName, status, seed: null,
     requestedBy: W.ME_ID, decidedBy: status === 'ACTIVE' ? W.ME_ID : null, decidedAt: status === 'ACTIVE' ? iso(new Date()) : null, confirmedAt: status === 'ACTIVE' ? iso(new Date()) : null, withdrawnAt: null, withdrawalReason: null, draftTeamId: null };
   st.entries.push(entry);
@@ -496,7 +504,8 @@ export function withdrawEntry(t, entryId) {
   const held = HOLDS.includes(entry.status);
   Object.assign(entry, { status: 'WITHDRAWN', withdrawnAt: iso(new Date()) });
   const next = held && st.entries.find(e => e.status === 'WAITLISTED');
-  if (next) next.status = policyOf(t) === 'APPROVAL_ONLY' ? 'PENDING' : 'ACTIVE';
+  // As promoteWaitlistedEntries: in at once under an open policy, else approved.
+  if (next) next.status = policyOf(t) === 'OPEN' ? 'ACTIVE' : 'APPROVED';
   return true;
 }
 

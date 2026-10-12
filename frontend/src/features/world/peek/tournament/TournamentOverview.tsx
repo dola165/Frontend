@@ -7,6 +7,7 @@ import { cupPath, nextFixture, zoned } from '../../scoreboard/standings';
 import { StageTable } from '../match/MatchTable';
 import { PaneSection } from '../PaneSection';
 import { Bracket } from './Bracket';
+import { TableView } from './ShapeTable';
 import { PlannedView } from './ShapeView';
 import { entryById, fixtureMatch, mineSideOf, sideName, visibleEntries, type TournamentPaneData, type TournamentPart } from './tournamentPane';
 
@@ -29,7 +30,7 @@ function FinalPoster({ data, open }: { data: TournamentPaneData; open: (value: s
     return (
         <button type="button" className="gk-tpane-final" onClick={() => open(`match-${fixtureMatch(data.detail, fixture).code}`)}>
             <small>{t('Final')} · {when}</small>
-            <span className="gk-tpane-final__sides">{side(tie.home.entryId, fixture.homeLabel)}<span aria-hidden="true">v</span>{side(tie.away.entryId, fixture.awayLabel)}</span>
+            <span className="gk-tpane-final__sides">{side(tie.home.entryId, fixture.homeLabel)}<span aria-hidden="true">{t('v')}</span>{side(tie.away.entryId, fixture.awayLabel)}</span>
         </button>
     );
 }
@@ -44,12 +45,14 @@ export function TournamentOverview({ data, open, select, shapeLabel }: {
     const t = useWorldCopy();
     const { detail, shape, mine } = data;
     const mineSide = mineSideOf(data);
-    const line = (fixture: (typeof detail.fixtures)[number]) => { const { match, code } = fixtureMatch(detail, fixture); return <HistoryLine key={fixture.id} match={match} crestOf={() => null} mine={mineSide} peek={`match-${code}`} open={open} />; };
+    const line = (fixture: (typeof detail.fixtures)[number]) => { const { match, code } = fixtureMatch(detail, fixture, data.canManage); return <HistoryLine key={fixture.id} match={match} crestOf={() => null} mine={mineSide} peek={`match-${code}`} open={open} />; };
     const knockout = detail.fixtures.filter(fixture => detail.stages.find(stage => stage.id === fixture.stageId)?.stageType === 'KNOCKOUT');
     const run = mine.size && knockout.some(fixture => mine.has(fixture.homeEntryId ?? -1) || mine.has(fixture.awayEntryId ?? -1)) ? cupPath(knockout, mine) : null;
-    const tableStage = shape && (shape.kind === 'league' || shape.kind === 'swiss') ? shape.tables[0]?.stageId
+    const tableStage = shape?.kind === 'league' ? shape.tables[0]?.stageId
         : shape?.kind === 'groups' ? (shape.groups.find(group => detail.fixtures.some(fixture => fixture.stageId === group.stageId && (mine.has(fixture.homeEntryId ?? -1) || mine.has(fixture.awayEntryId ?? -1)))) ?? shape.groups[0])?.stageId
-        : shape?.kind === 'ladder' ? shape.table?.stageId : undefined;
+        : undefined;
+    // A ladder and Swiss rounds rank by the engine's own order (rating, Buchholz), which the stage's standings do not know.
+    const ranked = shape?.kind === 'ladder' ? shape.table : shape?.kind === 'swiss' ? shape.tables[0] : null;
     // The final, when it is next, has its own poster; my next match is then not repeated above it.
     const finalTie = shape?.kind === 'cup' && shape.rounds.at(-1)?.ties.length === 1 ? shape.rounds.at(-1)!.ties[0] : null;
     const upcoming = nextFixture(detail.fixtures, mine);
@@ -65,7 +68,8 @@ export function TournamentOverview({ data, open, select, shapeLabel }: {
             {shapeLabel && <PaneSection title={t(shapeLabel)} more={{ label: t(VIEW[shapeLabel] ?? 'View all'), select: () => select('draw') }}>
                 {!shape ? <PlannedView data={data} />
                     : shape.kind === 'cup' ? <Bracket rounds={shape.rounds.slice(-2)} detail={detail} mine={mine} label={t('{name} bracket', { name: detail.name })} open={open} />
-                    : tableStage ? <StageTable tournament={detail} stageId={tableStage} mine={mine} level={4} />
+                    : ranked ? <TableView table={ranked} detail={detail} mine={mine} />
+                    : tableStage ? <StageTable tournament={detail} stageId={tableStage} mine={mine} level={4} label={shape.kind === 'groups' ? undefined : null} />
                     : <p className="gk-faint">{t('{count} matches', { count: detail.fixtures.length })}</p>}
             </PaneSection>}
             <PaneSection title={t('Matches')} count={detail.fixtures.length || undefined} more={{ label: t('View matches'), select: () => select('matches') }}>

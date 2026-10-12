@@ -1,6 +1,6 @@
 import { FormatGlyph } from '../../../tournaments/shape/FormatGlyph';
 import { plannedShape } from '../../../tournaments/shape/shapeOf';
-import { drawEstimate, durationWords } from '../../../tournaments/create/drawEstimate';
+import { drawEstimate, durationParts } from '../../../tournaments/create/drawEstimate';
 import type { DrawDraft } from '../../../tournaments/create/drawDraft';
 import { useWorldCopy } from '../../copy';
 import { codeLabel, shortDate } from '../../format';
@@ -15,10 +15,11 @@ export function DrawPreview({ draft, organiser }: { draft: DrawDraft; organiser?
     const t = useWorldCopy();
     const shape = plannedShape(draft.rules, draft.entryCap)!;
     const estimate = drawEstimate(draft.rules, draft.entryCap);
+    const words = (total: number) => { const { hours, minutes } = durationParts(total); return hours ? (minutes ? t('{hours} h {minutes}', { hours, minutes }) : t('{hours} h', { hours })) : t('{minutes} min', { minutes }); };
     const days = [...new Set([shortDate(zoned(draft.startDate)), shortDate(zoned(draft.endDate))].filter(Boolean))].join(' – ');
     const guess = [
         estimate.matches != null ? t('{count} matches', { count: estimate.matches }) : t('Matches come from the challenges made'),
-        estimate.minutes != null ? (draft.rules.pitches === 1 ? t('about {time} on one pitch', { time: durationWords(estimate.minutes) }) : t('about {time} on {count} pitches', { time: durationWords(estimate.minutes), count: draft.rules.pitches }))
+        estimate.minutes != null ? (draft.rules.pitches === 1 ? t('about {time} on one pitch', { time: words(estimate.minutes) }) : t('about {time} on {count} pitches', { time: words(estimate.minutes), count: draft.rules.pitches }))
             : estimate.matchdays != null ? t('{count} matchdays', { count: estimate.matchdays }) : null,
     ].filter(Boolean).join(' · ');
     return (

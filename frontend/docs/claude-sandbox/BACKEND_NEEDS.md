@@ -293,6 +293,10 @@ The sandbox's `GET /people` (`sandbox/api/handlers/world-extra.mjs`) is the cont
 | A request id on entries and accepted invitations, so a retry after a lost answer is not refused as "already has a live entry" | MISSING |
 | The invitation list (`/tournaments/invitations/mine`) by the same rights as accepting (match rights per squad), so a coach is not shown an invitation that refuses them | PARTIAL (inferred mismatch) |
 | One live entry per club per tournament whatever the squad: confirm with the coaches that an academy cannot enter two age groups of the same tournament | UNVERIFIED (rule to confirm) |
+| `GET /competitions?hostKind=CLUB&hostId=`: match discovery's rule (`host_club_id = ? OR organizer_organization_id = (the club's organisation)`, a one-line change in `CompetitionService`), so "Show in All tournaments" finds what the organiser drawer lists | MISMATCH (link hidden for clubs) |
+| `/tournaments/host` for an organisation backed by a club: answer with its club host (or carry the organiser's club id on the detail), so the pane can show the organiser drawer and Follow | MISSING |
+| Youth age by birth year ("born on or after"), beside today's age-on-a-date `ageCutoff` | MISSING (decide with the coaches) |
+| The summary's `entryCount` counts approved and active entries only, the card's counts those that played on or went out too; one rule for both | MISMATCH (frontend counts from the detail) |
 
 ### World › Creating things (phase D)
 

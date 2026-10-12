@@ -1,4 +1,5 @@
 import { useId, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Trophy } from 'lucide-react';
 import { Button, ButtonLink, EmptyNote } from '../../../design/primitives';
 import { Tabs } from '../../../design/Tabs';
@@ -16,6 +17,7 @@ import { useWorldData } from '../useWorldData';
 import { DrawerFrame, DrawerLoading } from './DrawerFrame';
 import { FollowHost } from './tournament/FollowHost';
 import { TournamentAction } from './tournament/TournamentAction';
+import { useTournamentGate } from './tournament/useTournamentGate';
 import { ShapeView } from './tournament/ShapeView';
 import { TournamentOverview } from './tournament/TournamentOverview';
 import { TournamentAbout, TournamentMatches, TournamentTeams } from './tournament/TournamentParts';
@@ -75,6 +77,9 @@ function TournamentPane({ data, reload }: { data: TournamentPaneData; reload: ()
         if (focus) setTimeout(() => document.getElementById(`${ids}-${next ?? 'overview'}`)?.focus({ preventScroll: true }));
     };
     const item = asItem(data), fact = tournamentFact(item);
+    const entry = useTournamentGate(data), { gate } = entry;
+    // The step under the head says how my entry stands, the invitation, or when entries open or closed: the head does not repeat it.
+    const stepSaysIt = gate.kind === 'entered' || gate.kind === 'answer' || (gate.kind === 'reason' && (gate.reason === 'not-open' || gate.reason === 'closed'));
     const shape = plannedShape(rules, detail.entryCap, item.entryCount);
     const dates = [...new Set([shortDate(item.start), shortDate(item.end)].filter(Boolean))].join(' – ');
     const banner = resolveMediaUrl(detail.bannerImageUrl);
@@ -95,15 +100,18 @@ function TournamentPane({ data, reload }: { data: TournamentPaneData; reload: ()
                         <h3>{detail.name}</h3>
                         <p>{[shape && t(shape.word), ...whatLabel(item)].filter(Boolean).join(' · ')}</p>
                         <p className="gk-faint">{[dates, placesLabel(item), feeLabel(rules)].filter(Boolean).join(' · ')}</p>
-                        {organiserName && <p className="gk-tpane-by">{t('by')} <button type="button" className="gk-pane-more" onClick={() => related(`organiser-${organiser.peek}`)}>{organiserName}</button></p>}
+                        {/* The organiser drawer knows only organisers World lists (with a public tournament); any other opens its own page. */}
+                        {organiserName && <p className="gk-tpane-by">{t('by')} {host
+                            ? <button type="button" className="gk-pane-more" onClick={() => related(`organiser-${organiser.peek}`)}>{organiserName}</button>
+                            : <Link className="gk-pane-more" to={organiser.kind === 'CLUB' ? `/clubs/${organiser.id}` : `/organizations/${organiser.id}`}>{organiserName}</Link>}</p>}
                     </div>
                 </header>
                 <div className="gk-tpane-actions">
                     {data.canManage && <ButtonLink size="sm" variant="primary" to={`/tournaments/${detail.id}/workspace`}>{t('Open workspace')}</ButtonLink>}
                     {host && <FollowHost host={host} />}
-                    <Status tone={fact.tone}>{fact.label}</Status>
+                    {!stepSaysIt && <Status tone={fact.tone}>{fact.label}</Status>}
                 </div>
-                <TournamentAction data={data} reload={() => { tournamentChanged(detail.id); reload(); }} />
+                <TournamentAction data={data} entry={entry} reload={() => { tournamentChanged(detail.id); reload(); }} />
                 <div ref={tabsTop} className="gk-pane-parts">
                     <Tabs className="gk-pane-tabs" label={t('{name} parts', { name: detail.name })} idBase={ids} value={shown} onChange={next => select(next === 'overview' ? undefined : next as TournamentPart)}
                         items={[{ id: 'overview', label: t('Overview') }, ...parts.map(entry => ({ id: entry.id, label: t(entry.label) }))]} />

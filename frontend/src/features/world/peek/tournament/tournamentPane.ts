@@ -1,4 +1,4 @@
-import { getDraw, type CompetitionRules, type DrawState } from '../../../competitions/api';
+import { getDraw, getOperations, type CompetitionRules, type DrawState } from '../../../competitions/api';
 import { fetchTournamentHost } from '../../../tournaments/api';
 import type { TournamentDetail, TournamentEntryDto, TournamentFixtureDto, TournamentHost, TournamentInvitationInboxItem } from '../../../tournaments/domain';
 import { actualShape, plannedShape, type ActualShape, type ShapeKind } from '../../../tournaments/shape/shapeOf';
@@ -7,7 +7,7 @@ import { detached, forget, notifyWorldChanged, shared } from '../../cache';
 import { detailOf, rulesOf, tournamentInvitations } from '../../directories/tournaments/tournamentItem';
 export { organiserWork } from '../../directories/tournaments/tournamentItem';
 import { loadMyTeams, sideIsMine } from '../../scoreboard/myTeams';
-import { historyOfFixture } from '../match/matchPeekData';
+import { historyOfFixture, runsTournament } from '../match/matchPeekData';
 import { matchCode } from '../../scoreboard/matchCode';
 import type { useWorldCopy } from '../../copy';
 
@@ -33,10 +33,15 @@ export async function loadTournamentPane(id: number, sessionId: AuthSessionId, u
         userId != null ? tournamentInvitations(sessionId).catch(() => []) : [],
     ]);
     const organiser = organiserOf(detail);
-    const host = await shared(`tournament-host:${organiser.kind}:${organiser.id}`, () => fetchTournamentHost(organiser.kind, organiser.id)).catch(() => null);
+    // A ladder and Swiss rounds rank by the engine's own order, which only the tournament's operations carry.
+    const ranked = rules?.structure === 'LADDER' || rules?.structure === 'SWISS';
+    const [host, ranking] = await Promise.all([
+        shared(`tournament-host:${organiser.kind}:${organiser.id}`, () => fetchTournamentHost(organiser.kind, organiser.id)).catch(() => null),
+        ranked ? shared(`tournament-ops:${id}`, () => getOperations(id, detached())).then(state => state.standings, () => null) : null,
+    ]);
     const mine = new Set(detail.entries.filter(entry => !['WITHDRAWN', 'REJECTED'].includes(entry.status) && (sideIsMine(entry, teams) || (entry.clubId != null && teams.clubIds.has(entry.clubId)))).map(entry => entry.id));
-    const canManage = userId != null && detail.staffAssignments.some(assignment => assignment.userId === userId && assignment.status === 'ACTIVE' && (assignment.role === 'ADMIN' || assignment.role === 'STAFF'));
-    return { detail, rules, draw, shape: actualShape(detail, rules, draw), host, mine, canManage, invitation: invitations.find(item => item.tournamentId === id) ?? null };
+    const canManage = runsTournament(detail, userId);
+    return { detail, rules, draw, shape: actualShape(detail, rules, draw, ranking), host, mine, canManage, invitation: invitations.find(item => item.tournamentId === id) ?? null };
 }
 
 export type TournamentPart = 'draw' | 'matches' | 'teams' | 'about';
@@ -62,9 +67,9 @@ export const placesTaken = (detail: TournamentDetail) => detail.entries.filter(e
 export const sideName = (entry: TournamentEntryDto | undefined, label?: string | null) => entry?.clubName ?? entry?.displayName ?? label ?? null;
 export const entryById = (detail: TournamentDetail, id: number | null) => (id == null ? undefined : detail.entries.find(entry => entry.id === id));
 
-/** A fixture as World's score line (and its drawer): the match code and the history row every match drawer reads. */
-export const fixtureMatch = (detail: TournamentDetail, fixture: TournamentFixtureDto) => {
-    const match = historyOfFixture(detail, fixture);
+/** A fixture as World's score line (and its drawer): the match code and the history row every match drawer reads; the organiser's lines say a result is to add. */
+export const fixtureMatch = (detail: TournamentDetail, fixture: TournamentFixtureDto, canRecordResult = false) => {
+    const match = historyOfFixture(detail, fixture, canRecordResult);
     return { match, code: matchCode(match) };
 };
 
@@ -80,6 +85,7 @@ export function mineSideOf(data: TournamentPaneData) {
 export function tournamentChanged(id: number) {
     forget(`tournament:${id}`);
     forget(`tournament-draw:${id}`);
+    forget(`tournament-ops:${id}`);
     notifyWorldChanged(['tournament-invitations:', 'personal-competitions:', 'my-competitions:', 'competitions-for:']);
     window.dispatchEvent(new Event('requests-updated'));
 }

@@ -41,10 +41,15 @@ function TieCard({ tie, detail, mine, open }: { tie: Tie; detail: TournamentDeta
                 {value.entryId != null && mine.has(value.entryId) && <Star className="gk-tie__mine" role="img" aria-label={t('Your team')} />}
                 <span className="gk-tie__name">{name}{entry?.squadName && <small>{entry.squadName}</small>}</span>
                 <b>{value.score ?? ''}</b>
+                {value.won && <span className="gk-visually-hidden">{t('goes through')}</span>}
             </span>
         );
     };
-    const when = tie.state === 'next' ? (tie.scheduledAt ? `${fixtureDay(zoned(tie.scheduledAt))} ${fixtureTime(zoned(tie.scheduledAt))}` : t('Date to confirm'))
+    // Level on goals and decided anyway (penalties, away goals): who went through is said, not left to the bold.
+    const through = tie.home.won ? 'home' : tie.away.won ? 'away' : null;
+    const decided = tie.state === 'played' && through && tie.home.score != null && tie.home.score === tie.away.score
+        ? label(tie[through], through === 'home' ? tie.fixtures[0].homeLabel : tie.fixtures[0].awayLabel) : null;
+    const when = decided ? t('{name} through', { name: decided }) : tie.state === 'next' ? (tie.scheduledAt ? `${fixtureDay(zoned(tie.scheduledAt))} ${fixtureTime(zoned(tie.scheduledAt))}` : t('Date to confirm'))
         : tie.state === 'level' ? t('Level · winner to confirm') : tie.state === 'bye' ? t('Through without playing') : null;
     const body = <>{side('home')}{side('away')}{when && <small className="gk-tie__when">{when}</small>}</>;
     if (tie.state === 'bye') return <div className="gk-tie" data-state="bye">{body}</div>;

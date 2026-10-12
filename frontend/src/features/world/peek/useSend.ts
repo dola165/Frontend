@@ -6,9 +6,10 @@ import { noteDone } from './stepNotice';
 /**
  * A step's sending state: busy while it goes, the reason when it did not. Once it worked, what it did is kept
  * (`noteDone`) and the drawer reads its thing again. A thing changed by someone else meanwhile (409) says so, with
- * Reload, because sending again would repeat the same out-of-date answer.
+ * Reload, because sending again would repeat the same out-of-date answer. With `serverReason`, the backend's own words
+ * for a 409 are kept (a tournament refuses entries with 409: closed, roster too small, after the draw).
  */
-export function useSend(reload: () => void, changedText = 'This match changed since you opened it.') {
+export function useSend(reload: () => void, changedText = 'This match changed since you opened it.', serverReason = false) {
     const [state, setState] = useState({ busy: false, error: '', changed: false });
     /** 'done' says what happened, from what the server answered when that decides it (an entry in, or on the waiting list). */
     const send = async <T,>(action: () => Promise<T>, done: string | ((result: T) => string), failed: string) => {
@@ -16,7 +17,7 @@ export function useSend(reload: () => void, changedText = 'This match changed si
         try { const result = await action(); setState({ busy: false, error: '', changed: false }); noteDone(typeof done === 'function' ? done(result) : done); reload(); }
         catch (error) {
             const changed = isAxiosError(error) && error.response?.status === 409;
-            setState({ busy: false, changed, error: changed ? changedText : extractApiErrorMessage(error, failed) });
+            setState({ busy: false, changed, error: changed ? (serverReason ? extractApiErrorMessage(error, changedText) : changedText) : extractApiErrorMessage(error, failed) });
         }
     };
     return { ...state, send };

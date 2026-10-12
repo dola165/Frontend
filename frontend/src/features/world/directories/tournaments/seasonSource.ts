@@ -9,7 +9,7 @@ import { loadMyTeams, NO_TEAMS } from '../../scoreboard/myTeams';
 import { zoned } from '../../scoreboard/standings';
 import { TournamentRow } from './TournamentRow';
 import { WaitingLine } from './WaitingLine';
-import { fromCard, fromInvitation, fromSummary, rulesOf, tournamentInvitations, withPart, type TournamentItem } from './tournamentItem';
+import { detailOf, fromCard, fromInvitation, fromSummary, rulesOf, tournamentInvitations, withPart, type TournamentItem } from './tournamentItem';
 import { nearParams, tournamentLine, tournamentPlace } from './tournamentLines';
 
 type Lane = 'yours' | 'spotlight' | 'now' | 'open' | 'coming';
@@ -43,9 +43,10 @@ async function loadSeason({ signal, sessionId, authenticated, area, userId }: Lo
     };
     const [active, open, planning, personal, invitations, spotlight, teams] = await Promise.all([
         cards({ status: 'ACTIVE' }), cards({ registration: 'OPEN' }), cards({ status: 'PLANNING' }),
-        authenticated ? shared(`personal-competitions:${sessionId}`, () => browsePersonalCompetitions({ page: 0, size: 20 })).then(page => page.content) : [] as TournamentSummary[],
-        authenticated ? tournamentInvitations(sessionId) : [],
-        authenticated ? [] as TournamentSummary[] : fetchTournamentOverview(signal).then(overview => overview.highlights),
+        // The lists are the season; mine, my invitations and the spotlight add to it, and a failure there leaves them out.
+        authenticated ? shared(`personal-competitions:${sessionId}`, () => browsePersonalCompetitions({ page: 0, size: 20 })).then(page => page.content).catch((): TournamentSummary[] => []) : [] as TournamentSummary[],
+        authenticated ? tournamentInvitations(sessionId).catch(() => []) : [],
+        authenticated ? [] as TournamentSummary[] : fetchTournamentOverview(signal).then(overview => overview.highlights).catch((): TournamentSummary[] => []),
         authenticated ? loadMyTeams(sessionId) : NO_TEAMS,
     ]);
     const card = new Map<number, CompetitionCard>([...active, ...open, ...planning].map(item => [item.id, item]));
@@ -67,10 +68,16 @@ async function loadSeason({ signal, sessionId, authenticated, area, userId }: Lo
     const highlighted = await Promise.all(fresh(spotlight).map(async item => ({ ...(await itemOf(item.id, item)), lane: 'spotlight' as const })));
     const fits = (item: CompetitionCard) => (teams.ages.has(item.profile?.rules?.ageGroup ?? '') ? 0 : 1);
     const today = isoDay();
+    // A list card does not say how entries are taken: the detail (the pane's own, cached) does, so an invitation-only
+    // tournament is never called open for entries.
+    const openItems = await Promise.all(fresh([...open].sort((a, b) => fits(a) - fits(b))).map(async item => {
+        const detail = await detailOf(item.id).catch(() => null);
+        return detail?.registrationPolicy === 'INVITE_ONLY' ? { ...fromCard(item), inviteOnly: true, lane: 'coming' as const } : { ...fromCard(item, 'OPEN'), lane: 'open' as const };
+    }));
     return [
         ...yours, ...highlighted,
         ...fresh(active).map(item => ({ ...fromCard(item), lane: 'now' as const })),
-        ...fresh([...open].sort((a, b) => fits(a) - fits(b))).map(item => ({ ...fromCard(item, 'OPEN'), lane: 'open' as const })),
+        ...openItems,
         ...fresh(planning.filter(item => !item.endDate || isoDayOf(zoned(item.endDate)!) >= today)).map(item => ({ ...fromCard(item), lane: 'coming' as const })),
     ];
 }

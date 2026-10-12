@@ -29,6 +29,7 @@ export interface TournamentItem {
     invitation?: TournamentInvitationInboxItem;
     /** My squads entered (by name) and how each entry stands. */ mine?: { name: string; status: string }[];
     /** The person runs it (admin or staff), or referees in it. */ role?: 'running' | 'refereeing';
+    /** Teams enter only when the organiser invites them. */ inviteOnly?: boolean;
     /** What waits for the person who runs it, in its workspace. */ work?: OrganiserWork[];
     champion?: string | null;
 }
@@ -83,13 +84,15 @@ export async function withPart(item: TournamentItem, userId: number | null | und
     const staff = detail.staffAssignments.filter(assignment => userId != null && assignment.userId === userId && assignment.status === 'ACTIVE');
     const role = staff.some(assignment => assignment.role === 'ADMIN' || assignment.role === 'STAFF') ? 'running' as const : staff.some(assignment => assignment.role === 'REFEREE') ? 'refereeing' as const : undefined;
     // My squads' entries, and my club's own (another squad of my club, or the club as a whole).
-    const mine = detail.entries.filter(entry => !['WITHDRAWN', 'REJECTED'].includes(entry.status) && (sideIsMine(entry, teams) || (entry.clubId != null && teams.clubIds.has(entry.clubId))))
+    const mine = detail.entries.filter(entry => !['WITHDRAWN', 'REJECTED'].includes(entry.status) && (sideIsMine(entry, teams) || (entry.clubId != null && teams.clubIds.has(entry.clubId)) || (userId != null && entry.userId === userId)))
         .map(entry => ({ name: (entry.squadId != null ? teams.names.get(entry.squadId) : null) ?? entry.squadName ?? entry.clubName ?? entry.displayName ?? wt('Your team'), status: entry.status }));
     return {
         // The champion by its club (the backend's name for it is "Squad (Club)").
         ...item, role, mine, work: role === 'running' ? organiserWork(detail) : undefined, champion: detail.entries.find(entry => entry.id === detail.championEntryId)?.clubName ?? detail.championName ?? null, entryCap: detail.entryCap ?? item.entryCap,
-        // Places taken as the list counts them: approved and active entries, and those that played on or went out.
-        entryCount: item.entryCount ?? detail.entries.filter(entry => ['APPROVED', 'ACTIVE', 'COMPLETED', 'ELIMINATED'].includes(entry.status)).length,
+        // Places taken as the list card counts them (approved and active entries, and those that played on or went out),
+        // always from the detail: a summary counts only approved and active ones, so a finished cup would say 0.
+        inviteOnly: detail.registrationPolicy === 'INVITE_ONLY',
+        entryCount: detail.entries.filter(entry => ['APPROVED', 'ACTIVE', 'COMPLETED', 'ELIMINATED'].includes(entry.status)).length,
         organizer: item.organizer ?? detail.hostClubName ?? detail.organizerName ?? null, banner: item.banner ?? detail.bannerImageUrl ?? null,
         end: item.end ?? zoned(detail.endDate), opensAt: item.opensAt ?? zoned(detail.registrationOpensAt), closesAt: item.closesAt ?? zoned(detail.registrationClosesAt),
     };
@@ -145,6 +148,7 @@ export function tournamentFact(item: TournamentItem): { label: string; tone: Bad
         if (left != null && left < 0) return { label: wt('Entries closed'), tone: 'neutral' };
         if (left != null) return { label: wt('Last day {date}', { date: shortDate(lastDay(item.closesAt)) ?? '' }), tone: left <= 7 ? 'warning' : 'violet' };
     }
+    if (item.inviteOnly) return { label: wt('By invitation'), tone: 'neutral' };
     if (item.entries === 'OPEN') return { label: wt('Open for entries'), tone: 'accent' };
     if (item.entries === 'NOT_OPEN') return { label: wt('Opening soon'), tone: 'violet' };
     if (item.entries === 'CLOSED') return { label: wt('Entries closed'), tone: 'neutral' };

@@ -36,7 +36,10 @@
 
 /* Folded parts: the place for searches, and the rules in detail. */
 .gk .gk-draw__more { padding: var(--gk-4) 0; }
-.gk .gk-draw__more > summary { display: flex; flex-direction: column; gap: 2px; cursor: pointer; list-style: none; }
+.gk .gk-draw__more > summary { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 2px; min-height: 44px; padding-right: var(--gk-6); cursor: pointer; list-style: none; }
+/* A chevron that turns when the fold opens: the part is seen to open. */
+.gk .gk-draw__more > summary::after { content: ''; position: absolute; right: 6px; top: 50%; width: 8px; height: 8px; border-right: 2px solid var(--gk-text-3); border-bottom: 2px solid var(--gk-text-3); transform: translateY(-70%) rotate(45deg); transition: transform .15s var(--gk-ease); }
+.gk .gk-draw__more[open] > summary::after { transform: translateY(-30%) rotate(-135deg); }
 .gk .gk-draw__more > summary::-webkit-details-marker { display: none; }
 .gk .gk-draw__more > summary:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-accent); border-radius: 6px; }
 .gk .gk-draw__more-body { display: flex; flex-direction: column; gap: var(--gk-4); padding-top: var(--gk-3); }
@@ -51,3 +54,5 @@
 .gk .gk-draw__actions { display: flex; justify-content: space-between; gap: var(--gk-2); }
 @media (max-width: 640px) { .gk .gk-draw .gk-draw__question .gk-pick-tiles.gk-draw__tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } .gk .gk-draw__venue { grid-template-columns: 1fr; } }
 @media (pointer: coarse) { .gk .gk-draw__actions .gk-btn { min-height: 44px; } }
+.gk .gk-draw__actions > :last-child { margin-left: auto; }
+.gk .gk-draw__confirm { display: inline-flex; gap: var(--gk-2); }

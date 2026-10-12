@@ -6,7 +6,7 @@ import { createCompetition, type CompetitionRules, type EligibilityPolicy } from
 import { readIntent, writeIntent } from '../../../competitions/commandRecovery';
 import { competitionInstant } from '../../../competitions/competitionTime';
 import { fetchMyOrganizations, fetchTournamentHostClubs } from '../../../tournaments/api';
-import { clearDrawDraft, drawDraftKey, freshDraft, loadDrawDraft, saveDrawDraft, type DrawDraft, type DrawSeed } from '../../../tournaments/create/drawDraft';
+import { clearDrawDraft, drawDraftKey, entryPolicyOf, freshDraft, loadDrawDraft, openDraft, saveDrawDraft, type DrawDraft, type DrawSeed } from '../../../tournaments/create/drawDraft';
 import type { CreateTournamentPayload, TournamentDetail } from '../../../tournaments/domain';
 import { useWorldData } from '../../useWorldData';
 
@@ -22,7 +22,9 @@ export function drawProblem(draft: DrawDraft, organizerId: number | null, now: n
     if (draft.scope === 'PLAYER' && youth && Number(rules.ageGroup.slice(1)) <= 18) return { field: 'scope', message: 'Youth tournaments take club or squad entries; players enter on their own only as adults.' };
     if (draft.entryCap < 2 || draft.entryCap > 32) return { field: 'entryCap', message: 'Choose between 2 and 32 teams.' };
     if (start == null || end == null) return { field: 'startDate', message: 'Choose when it starts and ends.' };
-    if (Number.isNaN(start) || Number.isNaN(end) || Number.isNaN(opens) || Number.isNaN(closes)) return { field: 'startDate', message: 'Choose a valid date and time.' };
+    // Each time is read in the time zone: a zone the browser does not know is the zone's fault, not the dates'.
+    try { new Intl.DateTimeFormat('en', { timeZone: rules.timezone || undefined }); if (!rules.timezone.trim()) throw new RangeError(); } catch { return { field: 'timezone', message: 'Choose a time zone such as Asia/Tbilisi.' }; }
+    for (const [field, value] of [['startDate', start], ['endDate', end], ['opensAt', opens], ['closesAt', closes]] as const) if (Number.isNaN(value)) return { field, message: 'Choose a valid date and time.' };
     if (start <= now) return { field: 'startDate', message: 'Choose a start in the future.' };
     if (end < start) return { field: 'endDate', message: 'It ends after it starts.' };
     if (closes != null && closes > start) return { field: 'closesAt', message: 'Entries close before it starts.' };
@@ -39,7 +41,7 @@ const payloadOf = (draft: DrawDraft, organizerId: number): CreateTournamentPaylo
     organizerOrganizationId: organizerId, hostClubId: draft.hostClubId, name: draft.name.trim(), description: draft.description.trim() || null, rules: draft.writtenRules.trim() || null,
     participantScope: draft.scope, visibility: draft.visibility, registrationOpensAt: draft.opensAt || null, registrationClosesAt: draft.closesAt || null,
     startDate: draft.startDate, endDate: draft.endDate, locationId: null, bannerImageUrl: draft.bannerImageUrl || null, incentives: draft.incentives.trim() || null,
-    entryCap: draft.entryCap, registrationPolicy: draft.registrationPolicy,
+    entryCap: draft.entryCap, registrationPolicy: entryPolicyOf(draft),
 });
 
 /**
@@ -50,7 +52,7 @@ const payloadOf = (draft: DrawDraft, organizerId: number): CreateTournamentPaylo
 export function useDrawRoom(seed: DrawSeed, ageHint: string) {
     const { user, sessionId } = useAuth();
     const key = drawDraftKey(user?.id, sessionId), intentKey = `${key}:create`;
-    const [draft, setDraft] = useState<DrawDraft>(() => loadDrawDraft(key) ?? freshDraft(seed, ageHint));
+    const [draft, setDraft] = useState<DrawDraft>(() => openDraft(loadDrawDraft(key), seed, ageHint));
     useEffect(() => saveDrawDraft(key, draft), [key, draft]);
     const organisations = useWorldData(user ? `my-organisations:${sessionId}` : null, () => fetchMyOrganizations(), 'Your organisations could not load.');
     const creatable = (organisations.data ?? []).filter(organisation => organisation.canCreateTournament);
@@ -72,6 +74,8 @@ export function useDrawRoom(seed: DrawSeed, ageHint: string) {
             return created;
         } catch (cause) {
             if (isAxiosError(cause) && cause.response && cause.response.status < 500) { writeIntent(intentKey, undefined); request.current = null; setPending(undefined); }
+            // No answer (offline, or the server failed): the Create may have gone through, so it is recovered, never sent anew.
+            else setPending(readIntent(intentKey));
             setSending({ busy: false, error: extractApiErrorMessage(cause, 'The tournament could not be created.') });
             void submitted;
             return null;

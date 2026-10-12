@@ -7,7 +7,7 @@ import { apiClient } from '../../../../api/axiosConfig';
 import { extractApiErrorMessage } from '../../../../utils/apiError';
 import { resolveMediaUrl } from '../../../../utils/resolveMediaUrl';
 import type { Tiebreak } from '../../../competitions/api';
-import { usualRuleset, usualSeasonPolicy, type RegistrationPolicy } from '../../../tournaments/create/drawDraft';
+import { entryPolicyOf, takenAsTheyCome, usualRuleset, usualSeasonPolicy, type RegistrationPolicy } from '../../../tournaments/create/drawDraft';
 import type { TournamentVisibility } from '../../../tournaments/domain';
 import { useWorldCopy } from '../../copy';
 import type { useDrawRoom } from './useDrawRoom';
@@ -19,13 +19,19 @@ const TIEBREAKS: Record<Tiebreak, string> = { POINTS: 'Points', GOAL_DIFFERENCE:
 export function EntriesQuestion({ room }: { room: Room }) {
     const t = useWorldCopy();
     const { draft, update, updateRules } = room;
-    const policies: { id: RegistrationPolicy; label: string }[] = [{ id: 'APPROVAL_ONLY', label: t('I approve each') }, { id: 'OPEN', label: t('In as they come') }, { id: 'INVITE_ONLY', label: t('By invitation only') }];
+    // Entries come in at once only where the backend takes them so (squads or players, open to all); elsewhere the
+    // organiser approves each, and the room does not promise otherwise.
+    const asTheyCome = takenAsTheyCome(draft);
+    const policies: { id: RegistrationPolicy; label: string }[] = [{ id: 'APPROVAL_ONLY', label: t('I approve each') }, ...(asTheyCome ? [{ id: 'OPEN' as const, label: t('In as they come') }] : []), { id: 'INVITE_ONLY', label: t('By invitation only') }];
     return <>
         <div className="gk-draw__grid">
             <Field label={t('Entries open')} htmlFor="draw-opens" hint={draft.opensAt ? undefined : t('Open now')}><input id="draw-opens" data-field="opensAt" type="datetime-local" className="gk-input" value={draft.opensAt} onChange={event => update({ opensAt: event.target.value })} /></Field>
             <Field label={t('Entries close')} htmlFor="draw-closes" hint={draft.closesAt ? undefined : t('Until it starts')}><input id="draw-closes" data-field="closesAt" type="datetime-local" className="gk-input" max={draft.startDate} value={draft.closesAt} onChange={event => update({ closesAt: event.target.value })} /></Field>
         </div>
-        <Segmented label={t('How entries are taken')} value={draft.registrationPolicy} onChange={registrationPolicy => update({ registrationPolicy })} items={policies} />
+        <div>
+            <Segmented label={t('How entries are taken')} value={entryPolicyOf(draft)} onChange={registrationPolicy => update({ registrationPolicy })} items={policies} />
+            {!asTheyCome && draft.scope !== 'CLUB' && <p className="gk-field__hint">{t('Only an Open tournament takes entries as they come.')}</p>}
+        </div>
         <div className="gk-draw__grid">
             <Field label={t('Entry fee')} htmlFor="draw-fee"><input id="draw-fee" type="number" min={0} max={1000000} className="gk-input" value={draft.rules.entryFee} onChange={event => updateRules({ entryFee: Math.max(0, Number(event.target.value)) })} /></Field>
             <Field label={t('Currency')} htmlFor="draw-currency"><select id="draw-currency" className="gk-input" value={draft.rules.currency} onChange={event => updateRules({ currency: event.target.value })}>{['GEL', 'EUR', 'USD', 'GBP'].map(code => <option key={code} value={code}>{code}</option>)}</select></Field>
@@ -61,7 +67,7 @@ export function RulesDetail({ room }: { room: Room }) {
                     {rules.family === 'LADDER' && <>{number('Challenge up to places above', rules.challengeRange, 1, 20, challengeRange => updateRules({ challengeRange }))}{number('A challenge lapses after, days', rules.challengeExpiryDays, 1, 30, challengeExpiryDays => updateRules({ challengeExpiryDays }))}</>}
                     {rules.structure === 'KING_OF_PITCH' && number('Most games in a row on the pitch', rules.maxConsecutiveStays, 1, 10, maxConsecutiveStays => updateRules({ maxConsecutiveStays }))}
                     <Field label={t('Who it is for')} htmlFor="draw-category" hint={t('As written, for example Girls or Open.')}><input id="draw-category" className="gk-input" maxLength={100} value={rules.eligibilityCategory} onChange={event => updateRules({ eligibilityCategory: event.target.value })} /></Field>
-                    {/^U\d+$/.test(rules.ageGroup) && <Field label={t('Born on or after')} htmlFor="draw-cutoff"><input id="draw-cutoff" data-field="ageCutoff" type="date" className="gk-input" value={rules.ageCutoff ?? ''} onChange={event => updateRules({ ageCutoff: event.target.value || null })} /></Field>}
+                    {/^U\d+$/.test(rules.ageGroup) && <Field label={t('Ages counted on')} htmlFor="draw-cutoff"><input id="draw-cutoff" data-field="ageCutoff" type="date" className="gk-input" value={rules.ageCutoff ?? ''} onChange={event => updateRules({ ageCutoff: event.target.value || null })} /></Field>}
                 </div>
                 {rules.family === 'FESTIVAL' && <label className="gk-draw__check"><input type="checkbox" checked={rules.standings} onChange={event => updateRules({ standings: event.target.checked })} />{t('Keep a table and name a winner')}</label>}
                 <div className="gk-field">

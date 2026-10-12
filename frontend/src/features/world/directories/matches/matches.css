@@ -6,3 +6,7 @@
 .gk .gk-needs-you .gk-sb__wait:hover { background: var(--gk-hover); }
 .gk .gk-needs-you .gk-sb__wait:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-accent); }
 @media (pointer: coarse) { .gk .gk-needs-you .gk-sb__wait { min-height: 44px; } }
+/* A long fact (Georgian runs longer) shortens inside its pill rather than widening the page. */
+.gk .gk-needs-you > li { min-width: 0; max-width: 100%; }
+.gk .gk-needs-you .gk-sb__wait { max-width: 100%; }
+.gk .gk-needs-you .gk-sb__wait > b { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

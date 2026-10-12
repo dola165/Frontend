@@ -122,7 +122,7 @@ describe('TournamentDetailPage', () => {
     it('shows the Back to Tournaments link', async () => {
         (fetchTournament as ReturnType<typeof vi.fn>).mockResolvedValue(mockTournament);
         renderPage();
-        expect(await screen.findByRole('link', { name: 'Back to competitions' })).toHaveAttribute('href', '/matches?section=competitions');
+        expect(await screen.findByRole('link', { name: 'Back to tournaments' })).toHaveAttribute('href', '/world/tournaments');
     });
 
     it('shows status badge', async () => {
@@ -320,7 +320,7 @@ describe('TournamentDetailPage', () => {
         expect(apiClient.post).toHaveBeenCalledWith('/tournaments/42/entries/7/withdraw', {});
         expect(fetchTournament).toHaveBeenCalledTimes(1);
         expect(screen.queryByText('Spring Cup')).not.toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Back to competitions' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Back to tournaments' })).toBeInTheDocument();
     });
 
     it('uses the protected withdrawal response when public viewing access remains', async () => {

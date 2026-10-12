@@ -3,3 +3,5 @@
 .gk .gk-trow__glyph[data-finished] { background: var(--gk-sunken); color: var(--gk-text-3); }
 .gk .gk-result__line .gk-trow__glyph svg { width: 14px; height: 14px; }
 .gk .gk-trow__text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* On a phone the line keeps its picture beside the words; the words shorten instead. */
+@media (max-width: 640px) { .gk .gk-result__line:has(> .gk-trow__glyph) { flex-wrap: nowrap; } .gk .gk-trow__text { white-space: nowrap; } }

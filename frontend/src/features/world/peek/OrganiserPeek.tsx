@@ -63,14 +63,15 @@ export default function OrganiserPeek({ id }: { id: string }) {
                 <section className="gk-pane-section">
                     <header>
                         <h3 className="gk-peek-section__title">{t('Their tournaments')}</h3>
-                        <Link className="gk-pane-more" to={`/world/tournaments?tab=all&host=${who.kind}:${who.id}`}>{t('Show in All tournaments')}<ChevronRight aria-hidden="true" /></Link>
+                        {/* All tournaments finds a club's own hosting only, fewer than discovery lists here: offered for organisations until the backend matches. */}
+                        {who.kind === 'ORGANIZATION' && <Link className="gk-pane-more" to={`/world/tournaments?tab=all&host=${who.kind}:${who.id}`}>{t('Show in All tournaments')}<ChevronRight aria-hidden="true" /></Link>}
                     </header>
                     {tournaments.content.length ? <ul className="gk-tpane-hosted">{tournaments.content.map(summary => {
                         const date = dateColumn(zoned(summary.startDate)), fact = tournamentFact(fromSummary(summary, null));
                         return (
                             <li key={summary.id}>
                                 <Link to={`/tournaments/${summary.id}`} onClick={peekClick(peekOf('tournament', summary.id), drawers.open)}>
-                                    <DateLead top={date.time} bottom={date.day} /><span>{summary.name}</span><Status tone={fact.tone}>{fact.label}</Status>
+                                    <DateLead top={date.time} bottom={date.day} /><span className="gk-tpane-hosted__name">{summary.name}</span><Status tone={fact.tone}>{fact.label}</Status>
                                 </Link>
                             </li>
                         );

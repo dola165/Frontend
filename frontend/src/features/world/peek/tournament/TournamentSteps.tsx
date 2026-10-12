@@ -3,8 +3,7 @@ import { Button } from '../../../../design/primitives';
 import type { Squad } from '../../../matchExchange/api';
 import { ageGroupOf } from '../../../matchExchange/arrange/matchPlan';
 import { acceptInvitation, declineInvitation, registerPlayer, requestEntry, reviewInvitation, withdrawEntry } from '../../../tournaments/api';
-import type { TournamentDetail } from '../../../tournaments/domain';
-import type { EntryGate } from '../../../tournaments/entryGates';
+import { instantEntry, type EntryGate } from '../../../tournaments/entryGates';
 import { useWorldCopy } from '../../copy';
 import { feeLabel, lastEntryDay } from '../../directories/tournaments/tournamentItem';
 import { shortDate } from '../../format';
@@ -20,10 +19,13 @@ type Copy = ReturnType<typeof useWorldCopy>;
 /** Entries carry no request id: a 409 may mean the entry already went through, so the step offers Reload, never Send again. */
 const CHANGED = 'This tournament changed since you opened it, or your entry already went through.';
 
-/** What entering does, said before sending: who enters, then the organiser's rule, or the waiting list when it is full. */
-function entering(team: string, detail: TournamentDetail, full: boolean, t: Copy) {
+/**
+ * What entering does, said before sending: who enters, then the waiting list when it is full, else whether the entry is in
+ * at once as the backend decides it (an accepted invitation waits for approval too).
+ */
+function entering(team: string, data: TournamentPaneData, full: boolean, t: Copy) {
     if (full) return t('Enters {team}. The tournament is full, so {team} joins the waiting list and moves up when a team withdraws.', { team });
-    return detail.registrationPolicy === 'APPROVAL_ONLY' ? t('Enters {team}. The organiser approves each entry.', { team }) : t('Enters {team}. They are in at once.', { team });
+    return instantEntry(data.detail, data.rules) ? t('Enters {team}. They are in at once.', { team }) : t('Enters {team}. The organiser approves each entry.', { team });
 }
 
 /** The fee in words, when there is one: "150 GEL a team, paid to the organiser". */
@@ -59,7 +61,7 @@ export function EnterStep({ data, gate, reload }: { data: TournamentPaneData; ga
     const [picked, setPicked] = useState<number>();
     const squadId = picked ?? (fitting.length === 1 ? fitting[0].id : club.squads.length === 1 ? club.squads[0].id : undefined);
     const squad = club.squads.find(item => item.id === squadId);
-    const { busy, error, changed, send } = useSend(reload, CHANGED);
+    const { busy, error, changed, send } = useSend(reload, CHANGED, true);
     return (
         <section className="gk-step" aria-label={t('Enter the tournament')}>
             <h4 className="gk-step__title">{t('Enter {tournament}', { tournament: detail.name })}</h4>
@@ -68,7 +70,7 @@ export function EnterStep({ data, gate, reload }: { data: TournamentPaneData; ga
             </div>}
             <SquadChoice squads={club.squads} age={rules?.ageGroup} value={squadId} onChange={setPicked} />
             <Fee data={data} />
-            <p className="gk-step__preview">{squad ? entering(squad.name, detail, gate.full, t) : t('Choose the squad that would play.')}</p>
+            <p className="gk-step__preview">{squad ? entering(squad.name, data, gate.full, t) : t('Choose the squad that would play.')}</p>
             <SendError error={error} changed={changed} reload={reload} />
             <div className="gk-step__actions">
                 <Button variant="primary" disabled={!squad || busy} onClick={() => void send(() => requestEntry(detail.id, { clubId: club.id, squadId: squad!.id }),
@@ -101,29 +103,33 @@ export function AnswerStep({ data, gate, squads, reload }: { data: TournamentPan
     const needsSquad = Boolean(invitation.squadId || review.data?.requiresSquad || mine.length);
     const team = squad?.name ?? invitation.squadName ?? invitation.clubName ?? t('you');
     const [declining, setDeclining] = useState(false);
-    const { busy, error, changed, send } = useSend(reload, CHANGED);
+    const { busy, error, changed, send } = useSend(reload, CHANGED, true);
     const now = useNow();
     const closes = lastEntryDay(detail.registrationClosesAt);
-    // Accepting enters the team, so it waits for the entry window like any entry.
+    // Accepting enters the team, so it takes the entry window like any entry: not before it opens, not after it closes
+    // (declining stays possible).
     const opensAt = zoned(detail.registrationOpensAt), early = opensAt != null && Date.parse(opensAt) > now;
+    const closesAt = zoned(detail.registrationClosesAt), late = closesAt != null && Date.parse(closesAt) < now;
+    const declineOnly = Boolean(gate.entered) || late;
     return (
         <section className="gk-step" aria-label={t('Answer the invitation')}>
             <h4 className="gk-step__title">{t('{tournament} invites {team}', { tournament: detail.name, team: invitation.squadName ?? invitation.clubName ?? t('you') })}</h4>
-            {!invitation.squadId && <SquadChoice squads={choices.map(item => ({ id: item.id, name: item.name, category: mine.find(own => own.id === item.id)?.category ?? '', club_id: invitation.clubId ?? 0, club_name: invitation.clubName ?? '' }))}
+            {!invitation.squadId && !declineOnly && <SquadChoice squads={choices.map(item => ({ id: item.id, name: item.name, category: mine.find(own => own.id === item.id)?.category ?? '', club_id: invitation.clubId ?? 0, club_name: invitation.clubName ?? '' }))}
                 age={data.rules?.ageGroup} value={squadId} onChange={setPicked} />}
-            {early ? <p className="gk-step__warn">{t('You can accept from {date}, when entries open.', { date: shortDate(opensAt) ?? '' })}</p>
+            {late ? <p className="gk-step__warn">{t('Entries are closed')}</p>
+                : early ? <p className="gk-step__warn">{t('You can accept from {date}, when entries open.', { date: shortDate(opensAt) ?? '' })}</p>
                 : closes && <p className="gk-step__warn">{t('Last day to enter {date}', { date: closes })}</p>}
-            <Fee data={data} />
+            {!declineOnly && <Fee data={data} />}
             {gate.entered ? <p className="gk-step__warn">{t('{club} is already in this tournament; a club enters once.', { club: invitation.clubName ?? t('Your club') })}</p>
-                : review.loading ? null
+                : late || review.loading ? null
                 : needsSquad && !choices.length ? <p className="gk-step__warn">{t('None of the squads you arrange for can accept. Ask your club’s leadership.')}</p>
-                : <p className="gk-step__preview">{needsSquad && !squad ? t('Choose the squad that would play.') : entering(team, detail, false, t)}</p>}
+                : <p className="gk-step__preview">{needsSquad && !squad ? t('Choose the squad that would play.') : entering(team, data, gate.full, t)}</p>}
             {review.error && <p className="gk-step__error" role="alert">{review.error} <button type="button" className="gk-step__reload" onClick={review.retry}>{t('Try again')}</button></p>}
             <SendError error={error} changed={changed} reload={reload} />
             <div className="gk-step__actions">
-                {declining || gate.entered ? <>
-                    <Button variant="danger" disabled={busy} onClick={() => void send(() => declineInvitation(detail.id, invitation.invitationId), t('Invitation declined. The organiser is told.'), t('The answer could not be sent.'))}>{t('Decline the invitation')}</Button>
-                    {!gate.entered && <Button variant="ghost" disabled={busy} onClick={() => setDeclining(false)}>{t('Keep it')}</Button>}
+                {declining || declineOnly ? <>
+                    <Button variant="danger" disabled={busy} onClick={() => void send(() => declineInvitation(detail.id, invitation.invitationId), t('Invitation declined. The organiser is told.'), t('The answer could not be sent.'))}>{declineOnly ? t('Decline the invitation') : t('Decline')}</Button>
+                    {!declineOnly && <Button variant="ghost" disabled={busy} onClick={() => setDeclining(false)}>{t('Keep it')}</Button>}
                 </> : <>
                     <Button variant="primary" disabled={busy || early || review.loading || (needsSquad && !squad)} onClick={() => void send(() => acceptInvitation(detail.id, invitation.invitationId, squad?.id ?? null),
                         t('Invitation accepted for {team}.', { team }), t('The answer could not be sent.'))}>
@@ -146,16 +152,16 @@ export function EnteredStep({ data, gate, reload }: { data: TournamentPaneData; 
     const words = own ? (entry.status === 'PENDING' ? t('You are registered; the organiser approves players.') : entry.status === 'WAITLISTED' ? t('You are on the waiting list') : t('You are in'))
         : entryWords(entry, team, t);
     const [withdrawing, setWithdrawing] = useState(false);
-    const { busy, error, changed, send } = useSend(reload, CHANGED);
+    const { busy, error, changed, send } = useSend(reload, CHANGED, true);
     return (
         <section className="gk-step" data-done="" aria-label={t('Your entry')}>
             <p className="gk-step__done">{words}</p>
             <SendError error={error} changed={changed} reload={reload} />
+            {/* The first button stays the same element (focus stays on it): Withdraw, then Keep the entry; the irreversible one
+                appears beside it, never under the pointer that pressed Withdraw. */}
             {gate.withdrawable && <div className="gk-step__actions">
-                {withdrawing ? <>
-                    <Button variant="danger" disabled={busy} onClick={() => void send(() => withdrawEntry(data.detail.id, entry.id), own ? t('You withdrew.') : t('{team} withdrawn.', { team }), t('The entry could not be withdrawn.'))}>{own ? t('Withdraw') : t('Withdraw {team}', { team })}</Button>
-                    <Button variant="ghost" disabled={busy} onClick={() => setWithdrawing(false)}>{t('Keep the entry')}</Button>
-                </> : <Button variant="ghost" size="sm" onClick={() => setWithdrawing(true)}>{t('Withdraw')}</Button>}
+                <Button variant="ghost" size={withdrawing ? undefined : 'sm'} disabled={busy} onClick={() => setWithdrawing(value => !value)}>{withdrawing ? t('Keep the entry') : t('Withdraw')}</Button>
+                {withdrawing && <Button variant="danger" disabled={busy} onClick={() => void send(() => withdrawEntry(data.detail.id, entry.id), own ? t('You withdrew.') : t('{team} withdrawn.', { team }), t('The entry could not be withdrawn.'))}>{own ? t('Withdraw') : t('Withdraw {team}', { team })}</Button>}
             </div>}
         </section>
     );
@@ -164,7 +170,7 @@ export function EnteredStep({ data, gate, reload }: { data: TournamentPaneData; 
 /** A players' tournament: register yourself (the fee, the waiting list when it is full), one button. */
 export function RegisterStep({ data, gate, reload }: { data: TournamentPaneData; gate: Extract<EntryGate, { kind: 'register' }>; reload: () => void }) {
     const t = useWorldCopy();
-    const { busy, error, changed, send } = useSend(reload, CHANGED);
+    const { busy, error, changed, send } = useSend(reload, CHANGED, true);
     return (
         <section className="gk-step" aria-label={t('Register')}>
             <h4 className="gk-step__title">{t('Register for {tournament}', { tournament: data.detail.name })}</h4>

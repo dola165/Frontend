@@ -1,10 +1,10 @@
-import { useRef, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button, ButtonLink, EmptyNote } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
 import { ageGroupOf } from '../../matchExchange/arrange/matchPlan';
-import { parseDrawSeed } from '../../tournaments/create/drawDraft';
+import { drawStarted, parseDrawSeed } from '../../tournaments/create/drawDraft';
 import { notifyWorldChanged } from '../cache';
 import { useArrangeableSquads } from '../compose/useArrangeableSquads';
 import { EntriesQuestion, PublishQuestion, RulesDetail } from '../compose/draw/DrawDetails';
@@ -59,25 +59,39 @@ function DrawRoom({ seed, ageHint }: { seed: string; ageHint: string }) {
     const room = useDrawRoom(parseDrawSeed(seed), ageHint);
     const { draft, organizerId, creatable, sending } = room;
     const problem = drawProblem(draft, organizerId, now);
+    // Each Create that stops says why, aloud, on the field it is about; the field is marked until that problem goes.
+    const [tried, setTried] = useState(0);
+    const flagged = useRef<HTMLElement | null>(null);
+    useEffect(() => {
+        if (!flagged.current || flagged.current.dataset.field === problem?.field) return;
+        flagged.current.removeAttribute('aria-invalid'); flagged.current.removeAttribute('aria-describedby'); flagged.current = null;
+    }, [problem?.field]);
+    const [restarting, setRestarting] = useState(false);
     const organiser = creatable.find(organisation => organisation.id === organizerId)?.displayName;
     const created = (id: number | undefined) => {
         if (!id) return;
-        notifyWorldChanged(['personal-competitions:', 'tournament-invitations:']);
+        notifyWorldChanged(['personal-competitions:', 'tournament-invitations:', 'tournament-totals:']);
         noteDone(draft.visibility === 'PRIVATE' ? t('Created. Only your organisation’s staff see it until you publish it.') : t('Created.'));
         drawers.open(peekOf('tournament', id));
     };
     const submit = async (event: FormEvent) => {
         event.preventDefault();
         if (problem) {
-            form.current?.querySelector<HTMLElement>(`[data-field="${problem.field}"]`)?.closest('details')?.setAttribute('open', '');
-            form.current?.querySelector<HTMLElement>(`[data-field="${problem.field}"]`)?.focus();
+            setTried(count => count + 1);
+            const target = form.current?.querySelector<HTMLElement>(`[data-field="${problem.field}"]`) ?? null;
+            target?.closest('details')?.setAttribute('open', '');
+            target?.setAttribute('aria-invalid', 'true'); target?.setAttribute('aria-describedby', 'draw-problem');
+            flagged.current = target;
+            target?.focus();
             return;
         }
         created((await room.create())?.id);
     };
+    // Enter in a field (a ground search, a fee) never creates the tournament: Create is pressed.
+    const keepEnter = (event: KeyboardEvent<HTMLFormElement>) => { if (event.key === 'Enter' && event.target instanceof HTMLInputElement) event.preventDefault(); };
     return (
         <DrawerFrame title={t('Create a tournament')}>
-            <form ref={form} className="gk-draw" noValidate onSubmit={event => void submit(event)} aria-busy={sending.busy}>
+            <form ref={form} className="gk-draw" noValidate onSubmit={event => void submit(event)} onKeyDown={keepEnter} aria-busy={sending.busy}>
                 <DrawPreview draft={draft} organiser={organiser} />
                 {room.pending && <p className="gk-step__warn">{t('An earlier Create has not been answered yet.')} <button type="button" className="gk-step__reload" onClick={() => void room.recover().then(result => created(result?.id))}>{t('Recover it')}</button></p>}
                 <Question title={t('Who organises it')}><OrganiserQuestion room={room} onCreateOrganiser={() => navigate('/organizations/create?kind=TOURNAMENT_ORGANIZER', { state: { drawRoom: true } })} /></Question>
@@ -89,11 +103,14 @@ function DrawRoom({ seed, ageHint }: { seed: string; ageHint: string }) {
                 <RulesDetail room={room} />
                 <Question title={t('Publish')}><PublishQuestion room={room} /></Question>
                 <footer className="gk-draw__foot">
-                    <p className="gk-draw__next">{problem ? <span className="gk-draw__problem">{t(problem.message, problem.vars)}</span>
+                    <p className="gk-draw__next">{problem ? <span id="draw-problem" key={tried} role={tried ? 'alert' : undefined} className="gk-draw__problem">{t(problem.message, problem.vars)}</span>
                         : draft.visibility === 'PRIVATE' ? t('Private. Only your organisation’s staff see it until you publish it.') : draft.visibility === 'UNLISTED' ? t('Anyone with its link sees it; it is not listed.') : t('Everyone sees it in World as soon as it is created.')}</p>
                     {sending.error && <p className="gk-step__error" role="alert">{t(sending.error)}</p>}
                     <div className="gk-draw__actions">
-                        <Button variant="ghost" type="button" disabled={sending.busy} onClick={room.restart}>{t('Start again')}</Button>
+                        {restarting ? <span className="gk-draw__confirm" role="group" aria-label={t('Clear this draft?')}>
+                            <Button variant="ghost" type="button" onClick={() => setRestarting(false)}>{t('Keep it')}</Button>
+                            <Button variant="danger" type="button" onClick={() => { room.restart(); setRestarting(false); }}>{t('Clear draft')}</Button>
+                        </span> : drawStarted(draft) && <Button variant="ghost" type="button" disabled={sending.busy} onClick={() => setRestarting(true)}>{t('Start again')}</Button>}
                         <Button variant="primary" type="submit" disabled={sending.busy || room.pending}>{sending.busy ? t('Creating…') : t('Create the tournament')}</Button>
                     </div>
                 </footer>

@@ -29,8 +29,5 @@ export function drawEstimate(rules: Pick<CompetitionRules, 'structure' | 'matchM
     }
 }
 
-/** "about 5 h 20" for an estimate's minutes. */
-export const durationWords = (minutes: number) => {
-    const hours = Math.floor(minutes / 60), rest = minutes % 60;
-    return hours ? `${hours} h${rest ? ` ${rest}` : ''}` : `${rest} min`;
-};
+/** An estimate's minutes as hours and minutes, said in words by the screen ("5 h 20"). */
+export const durationParts = (total: number) => ({ hours: Math.floor(total / 60), minutes: total % 60 });

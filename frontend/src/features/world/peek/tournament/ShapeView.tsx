@@ -19,7 +19,8 @@ export function PlannedView({ data }: { data: TournamentPaneData }) {
                 <p>{shape.places ? t('{count} of {cap} places', { count: shape.entered ?? 0, cap: shape.places }) : t('{count} entered', { count: shape.entered ?? 0 })}</p>
                 <p className="gk-faint">{shape.kind === 'festival' ? t('Each round is made on the day, so every team keeps playing.')
                     : shape.kind === 'ladder' ? t('Teams climb by challenging the teams above them.')
-                    : t('Drawn when entries close: the groups, who meets whom and the dates are set then.')}</p>
+                    : shape.kind === 'swiss' ? t('Each round is paired after the one before, by points.')
+                    : t('The organiser makes the draw after entries close: the groups, who meets whom and the dates are set then.')}</p>
             </div>
         </div>
     );
@@ -32,7 +33,7 @@ export function ShapeView({ data, open }: { data: TournamentPaneData; open: (val
     const mineSide = mineSideOf(data);
     if (!shape) return <PlannedView data={data} />;
     const line = (fixture: (typeof detail.fixtures)[number]) => {
-        const { match, code } = fixtureMatch(detail, fixture);
+        const { match, code } = fixtureMatch(detail, fixture, data.canManage);
         return <HistoryLine key={fixture.id} match={match} crestOf={() => null} mine={mineSide} peek={`match-${code}`} open={open} />;
     };
     if (shape.kind === 'cup') return <>
@@ -41,8 +42,11 @@ export function ShapeView({ data, open }: { data: TournamentPaneData; open: (val
     </>;
     if (shape.kind === 'groups') return <>
         <div className="gk-tpane-groups">{shape.groups.map(group => <TableView key={group.stageId} table={group} detail={detail} mine={mine} title={group.name} />)}</div>
-        {shape.finals.length > 0 ? <Bracket rounds={shape.finals} detail={detail} mine={mine} label={t('Finals')} open={open} />
-            : <p className="gk-faint">{t('The finals are drawn when the groups are played.')}</p>}
+        {shape.finals.length > 0 ? shape.finals.map(tier => <section key={tier.stageId} className="gk-tpane-tier">
+            {shape.finals.length > 1 && <h4>{tier.name}</h4>}
+            <Bracket rounds={tier.rounds} detail={detail} mine={mine} label={shape.finals.length > 1 ? tier.name : t('Finals')} open={open} />
+            {tier.bronze && <Bracket rounds={[{ round: 0, name: 'Third place', ties: [tier.bronze] }]} detail={detail} mine={mine} label={t('Third place')} open={open} />}
+        </section>) : <p className="gk-faint">{t('The finals are drawn when the groups are played.')}</p>}
     </>;
     if (shape.kind === 'festival') return shape.rounds.length ? <>{shape.rounds.map(round => (
         <section key={round.round} className="gk-tpane-round"><h4>{t('Round {n}', { n: round.round })}</h4><ul className="gk-sb__rows">{round.fixtures.map(line)}</ul></section>

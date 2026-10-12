@@ -35,13 +35,15 @@ export interface TieSide { entryId: number | null; score: number | null; won: bo
 export interface Tie { id: number; fixtures: TournamentFixtureDto[]; home: TieSide; away: TieSide; state: 'played' | 'level' | 'bye' | 'next'; scheduledAt: string | null }
 /** A round of a cup, named by how many ties it has ("Final", "Semi-finals", "Round {n}"). */
 export interface CupRound { round: number; name: string; ties: Tie[] }
+/** A knockout tier of groups & finals ("Cup", "Plate"): its rounds, and its third-place match when it has one. */
+export interface FinalsTier { stageId: number; name: string; rounds: CupRound[]; bronze: Tie | null }
 /** A table in the shape: the stage, its ranking when the draw state carries it (else read for the stage), and how many go through. */
 export interface ShapeTable { stageId: number; name: string; standings: Standing[] | null; through: number | null }
 /** What has been drawn and played, in the tournament's own shape. */
 export type ActualShape =
     | { kind: 'cup'; rounds: CupRound[]; bronze: Tie | null }
     | { kind: 'league' | 'swiss'; tables: ShapeTable[] }
-    | { kind: 'groups'; groups: ShapeTable[]; finals: CupRound[]; qualifiers: number | null }
+    | { kind: 'groups'; groups: ShapeTable[]; finals: FinalsTier[]; qualifiers: number | null }
     | { kind: 'festival'; rounds: { round: number; fixtures: TournamentFixtureDto[] }[] }
     | { kind: 'ladder'; table: ShapeTable | null; challenges: TournamentFixtureDto[] };
 
@@ -95,9 +97,11 @@ export function cupRounds(fixtures: TournamentFixtureDto[], routes: DrawState['r
  * rounds, the tables, the groups and their finals, a festival's rounds, a ladder. Null before anything is drawn. The
  * engine's groups are first-phase round-robin stages and how many go through is the draw's; a legacy tournament's
  * hand-built groups are typed GROUP and carry their own advance count. Groups are never guessed from a stage type
- * on an engine tournament.
+ * on an engine tournament. The finals are one bracket per tier (the engine draws Cup, Plate… as stages of their own, a
+ * third-place stage straight after its tier). A ladder or Swiss table has no draw state: `ranking` is the engine's
+ * own order (rating, Buchholz), from the tournament's operations.
  */
-export function actualShape(detail: Pick<TournamentDetail, 'stages' | 'fixtures'>, rules: Pick<CompetitionRules, 'structure'> | null, draw: DrawState | null): ActualShape | null {
+export function actualShape(detail: Pick<TournamentDetail, 'stages' | 'fixtures'>, rules: Pick<CompetitionRules, 'structure'> | null, draw: DrawState | null, ranking: Standing[] | null = null): ActualShape | null {
     if (!detail.stages.length) return null;
     const plan = draw?.plan ?? null;
     const byOrder = (a: TournamentStageDto, b: TournamentStageDto) => a.stageOrder - b.stageOrder || a.id - b.id;
@@ -105,13 +109,13 @@ export function actualShape(detail: Pick<TournamentDetail, 'stages' | 'fixtures'
     const fixturesOf = (stageId: number) => detail.fixtures.filter(fixture => fixture.stageId === stageId);
     const knockouts = detail.stages.filter(stage => stage.stageType === 'KNOCKOUT').sort(byOrder);
     const tables = detail.stages.filter(stage => stage.stageType !== 'KNOCKOUT').sort(byOrder);
-    const table = (stage: TournamentStageDto, through: number | null): ShapeTable => ({ stageId: stage.id, name: stage.name, standings: drawn(stage.id)?.standings ?? null, through });
+    const table = (stage: TournamentStageDto, through: number | null, ranked: Standing[] | null = null): ShapeTable => ({ stageId: stage.id, name: stage.name, standings: drawn(stage.id)?.standings ?? ranked, through });
     const kind: ShapeKind = rules?.structure ? KIND[rules.structure] : knockouts.length && tables.length ? 'groups' : knockouts.length ? 'cup' : 'league';
     if (kind === 'festival') {
         const numbers = [...new Set(detail.fixtures.map(fixture => fixture.roundNumber ?? 1))].sort((a, b) => a - b);
         return { kind, rounds: numbers.map(round => ({ round, fixtures: detail.fixtures.filter(fixture => (fixture.roundNumber ?? 1) === round) })) };
     }
-    if (kind === 'ladder') return { kind, table: tables[0] ? table(tables[0], null) : null, challenges: [...detail.fixtures].sort((a, b) => (b.scheduledAt ?? '').localeCompare(a.scheduledAt ?? '')) };
+    if (kind === 'ladder') return { kind, table: tables[0] ? table(tables[0], null, ranking) : null, challenges: [...detail.fixtures].sort((a, b) => (b.scheduledAt ?? '').localeCompare(a.scheduledAt ?? '')) };
     if (kind === 'cup') {
         const main = knockouts.find(stage => (drawn(stage.id)?.phase ?? 1) === 1) ?? knockouts[0];
         const bronze = knockouts.find(stage => stage !== main);
@@ -120,7 +124,18 @@ export function actualShape(detail: Pick<TournamentDetail, 'stages' | 'fixtures'
     if (kind === 'groups') {
         const groups = plan ? tables.filter(stage => (drawn(stage.id)?.phase ?? 1) === 1) : tables;
         const qualifiers = plan ? plan.qualifiers : groups[0]?.advanceCount || null;
-        return { kind, groups: groups.map(stage => table(stage, qualifiers)), finals: cupRounds(knockouts.flatMap(stage => fixturesOf(stage.id)), draw?.routes, draw?.aggregates), qualifiers };
+        // A stage fed by losers (or named so, by a legacy tournament) is the third-place match of the tier before it.
+        const loserFed = new Set((draw?.routes ?? []).filter(route => route.outcome === 'LOSER').map(route => route.target_fixture_id));
+        const finals: FinalsTier[] = [];
+        for (const stage of knockouts) {
+            const rounds = cupRounds(fixturesOf(stage.id), draw?.routes, draw?.aggregates);
+            const bronze = stage.name === 'Third place' || fixturesOf(stage.id).some(fixture => loserFed.has(fixture.id));
+            if (bronze && finals.length) finals[finals.length - 1].bronze = rounds[0]?.ties[0] ?? null;
+            else finals.push({ stageId: stage.id, name: stage.name, rounds, bronze: null });
+        }
+        // The tier that decides the title first.
+        finals.sort((a, b) => Number(Boolean(drawn(b.stageId)?.title_route)) - Number(Boolean(drawn(a.stageId)?.title_route)));
+        return { kind, groups: groups.map(stage => table(stage, qualifiers)), finals, qualifiers };
     }
-    return { kind: kind === 'swiss' ? 'swiss' : 'league', tables: tables.map(stage => table(stage, null)) };
+    return { kind: kind === 'swiss' ? 'swiss' : 'league', tables: tables.map(stage => table(stage, null, kind === 'swiss' ? ranking : null)) };
 }

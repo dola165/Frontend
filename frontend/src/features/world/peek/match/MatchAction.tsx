@@ -12,7 +12,7 @@ import { useWorldCopy } from '../../copy';
 import { useNow } from '../../scoreboard/useNow';
 import type { MatchPeekData } from './matchPeekData';
 import { AnswerStep, GroundLine, OfferStep, RefereeLine } from './MatchSteps';
-import { clearNotice, readNotice } from '../stepNotice';
+import { clearNotice, focusNotice, readNotice } from '../stepNotice';
 import '../../../matchExchange/detail/match-detail.css';
 import '../../../matchExchange/match-exchange.css';
 import '../../../matchHistory/match-history.css';
@@ -64,7 +64,7 @@ export function MatchAction({ data, reload }: { data: MatchPeekData; reload: () 
     if (!notice && !step && !page && !journey && !referee && !ground && !workspace) return null;
     return (
         <section className="gk-mpeek__action">
-            {notice && <p className="gk-step__done" role="status" tabIndex={-1} ref={node => node?.focus({ preventScroll: true })}>{notice}</p>}
+            {notice && <p className="gk-step__done" role="status" tabIndex={-1} ref={focusNotice}>{notice}</p>}
             {step}
             {referee && listing && <RefereeLine listing={listing} />}
             {ground && listing && <GroundLine listing={listing} now={now} />}

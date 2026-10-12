@@ -9,7 +9,7 @@ import { wt } from '../copy';
 import { first, type DirectorySource, type FilterOption, type RememberedChoice } from '../directory/types';
 import { bilingual, calendarDaysUntil, codeLabel, ENGAGEMENT, factTone, fixtureDay, fixtureTime, postedLabel } from '../format';
 import { peekOf } from '../peek/usePeek';
-import { GroupItem, JobItem, TrialItem, type GroupResult } from './opportunityItems';
+import { JobItem, TrainingItem, TrialItem, type GroupResult } from './opportunityItems';
 import { clubScope } from './scopes';
 
 // The open-role list is one request; keep it briefly so paging and refining don't refetch it.
@@ -29,7 +29,7 @@ export const jobs: DirectorySource<ClubJob> = {
     noun: ['job', 'jobs'],
     searchLabel: 'Search jobs and volunteering',
     searchPlaceholder: 'Search roles, clubs or skills',
-    layout: 'results',
+    layout: 'rows',
     pageSize: PAGE,
     filters: [
         { kind: 'choice', key: 'engagement', label: 'Terms', primary: true, allLabel: 'All roles', options: [{ value: 'PAID', label: 'Paid' }, { value: 'VOLUNTEER', label: 'Volunteering' }, { value: 'FLEXIBLE', label: 'Paid or volunteer' }] },
@@ -163,7 +163,7 @@ export function groupsSource(participants: Participant[], remember?: RememberedC
             return { items: result.items.map(group => ({ group, player: participant?.id })), total: result.total, hasMore: result.hasMore };
         },
         key: ({ group }) => String(group.id),
-        Item: GroupItem,
+        Item: TrainingItem,
         line: ({ group, player }) => {
             const open = group.availability === 'PLACES_AVAILABLE' || group.availability === 'APPLICATIONS_OPEN';
             return { title: group.name, to: `/admissions/opportunities/${group.id}${player ? `?player=${player}` : ''}`, action: wt('Open group'), crest: { name: group.organizationName },

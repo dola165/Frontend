@@ -7,7 +7,7 @@ import { fixtureDay, fixtureTime, shortDate } from '../../format';
 import { endOf } from '../../scoreboard/form';
 import type { MatchState } from '../../scoreboard/matchState';
 import { useClubCrests } from '../../scoreboard/useClubCrests';
-import { peekClick, peekOf, usePeek } from '../usePeek';
+import { peekClick, peekOf, useRelatedOpen } from '../usePeek';
 
 /**
  * The top of a match drawer, as score sites draw a fixture: both clubs with their crests (each opens on the left),
@@ -15,7 +15,7 @@ import { peekClick, peekOf, usePeek } from '../usePeek';
  */
 export function MatchHead({ match: m, state, mine }: { match: HistoryMatch; state: MatchState; mine: { home: boolean; away: boolean } }) {
     const t = useWorldCopy();
-    const drawers = usePeek();
+    const relate = useRelatedOpen();
     const crestOf = useClubCrests();
     const side = (end: 'home' | 'away') => {
         const team = endOf(m, end);
@@ -24,7 +24,7 @@ export function MatchHead({ match: m, state, mine }: { match: HistoryMatch; stat
             <div className="gk-mpeek__side" data-end={end}>
                 <Crest src={crestOf(team.clubId)} name={name} size={56} />
                 {team.clubId != null
-                    ? <Link className="gk-mpeek__club" to={`/clubs/${team.clubId}`} onClick={peekClick(peekOf('club', team.clubId), drawers.openSide)}>{name}</Link>
+                    ? <Link className="gk-mpeek__club" to={`/clubs/${team.clubId}`} onClick={peekClick(peekOf('club', team.clubId), relate)}>{name}</Link>
                     : <span className="gk-mpeek__club">{name}</span>}
                 {(team.squad || mine[end]) && <small>{mine[end] && <Star className="gk-mpeek__mine" role="img" aria-label={t('Your team')} />}{team.squad}</small>}
             </div>
@@ -47,7 +47,7 @@ export function MatchHead({ match: m, state, mine }: { match: HistoryMatch; stat
                 <li>
                     <Kind aria-hidden="true" />
                     {m.tournamentId != null
-                        ? <Link to={`/tournaments/${m.tournamentId}`} onClick={peekClick(peekOf('tournament', m.tournamentId), drawers.openSide)}>{m.tournamentName ?? m.title}</Link>
+                        ? <Link to={`/tournaments/${m.tournamentId}`} onClick={peekClick(peekOf('tournament', m.tournamentId), relate)}>{m.tournamentName ?? m.title}</Link>
                         : <span>{m.source === 'MATCH_EXCHANGE' ? t('Friendly') : m.tournamentName ?? t('Club fixture')}</span>}
                 </li>
                 {m.locationName && <li><MapPin aria-hidden="true" /><span>{m.locationName}</span></li>}

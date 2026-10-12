@@ -6,24 +6,12 @@ import { apiClient } from '../../../api/axiosConfig';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
 import { MediaImage } from '../../ui/MediaImage';
 import { staffMatchesSquad, staffTitle, type PublicStaff, type PublicResponsibility } from '../../../features/clubs/publicJourney';
+import { responsibilityAreas, staffAreas } from '../../../features/clubs/staffAreas';
 import type { ClubManagementTab } from '../ClubManagementModal';
 import '../club-public.css';
 import '../club-profile-refinement.css';
 
 const areas = [{ id: '', name: 'Everyone' }, { id: 'coaching', name: 'Coaching' }, { id: 'analysis', name: 'Analysis & scouting' }, { id: 'performance', name: 'Sports science' }, { id: 'care', name: 'Medical & player care' }, { id: 'operations', name: 'Club operations' }, { id: 'officials', name: 'Match officials' }];
-const responsibilityAreas = (codes: string[]) => {
-  const roles = codes.join(' '), result: string[] = [];
-  if (/COACH|STRENGTH/.test(roles)) result.push('coaching');
-  if (/ANALYST|ANALYSIS|SCOUT/.test(roles)) result.push('analysis');
-  if (/SPORTS_SCIEN|STRENGTH|NUTRITION|PERFORMANCE_DIRECTOR/.test(roles)) result.push('performance');
-  if (/PHYSIO|MEDICAL|THERAP|REHABILITATION|NUTRITION|WELFARE/.test(roles)) result.push('care');
-  if (/REFEREE/.test(roles)) result.push('officials');
-  if (/MANAGER|SECRETARY|FINANCE|EQUIPMENT|EDUCATION|TEAM_SUPPORT/.test(roles) || !result.length) result.push('operations');
-  return result;
-};
-const staffAreas = (person: PublicStaff) => person.responsibilities.length
-  ? [...new Set(person.responsibilities.flatMap(r => responsibilityAreas(r.specialisations)))]
-  : person.role === 'COACH' ? ['coaching'] : ['operations'];
 const scopeLabel = (r: PublicResponsibility) => r.clubWide ? 'Across the club' : r.squadNames?.length ? r.squadNames.join(' · ') : r.squadName ?? 'Across the club';
 function Avatar({ person }: { person: PublicStaff }) {
   return person.avatarUrl ? <MediaImage className="cp-avatar" src={resolveMediaUrl(person.avatarUrl)} alt=""/> : <span className="cp-avatar" aria-hidden="true">{person.fullName.split(' ').filter(n => n !== '·').slice(0, 2).map(n => n[0]).join('')}</span>;

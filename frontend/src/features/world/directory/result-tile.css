@@ -1,0 +1,44 @@
+/* People as football cards, three to a line (two on a phone): the kind of person in the corner, the club's crest
+   opposite, the face, the name and quiet lines, a price and one action at the foot. A calm glow in the colour of the
+   kind of people listed; no lift, no rainbow. Scoped under .gk; tokens only. */
+.gk .gk-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gk-2); margin: 0; padding: 0; list-style: none; }
+.gk .gk-tiles > li { display: flex; min-width: 0; }
+@media (max-width: 640px) { .gk .gk-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.gk .gk-tile { --tone: var(--gk-accent); position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 0; padding: var(--gk-3) var(--gk-3) 0; text-align: center;
+  border: 1px solid color-mix(in srgb, var(--tone) 20%, var(--gk-line)); border-radius: 12px;
+  background: radial-gradient(120% 55% at 50% 0%, color-mix(in srgb, var(--tone) 12%, var(--gk-surface)), var(--gk-surface) 62%); transition: border-color .15s var(--gk-ease); }
+.gk .gk-tile[data-tone='violet'] { --tone: var(--gk-violet); }
+.gk .gk-tile[data-tone='info'] { --tone: var(--gk-info); }
+.gk .gk-tile[data-tone='warning'] { --tone: var(--gk-warning); }
+.gk .gk-tile[data-clickable] { cursor: pointer; }
+.gk .gk-tile[data-clickable]:hover, .gk .gk-tile[data-highlighted] { border-color: var(--gk-line-strong); }
+.gk .gk-tile[aria-current] { border-color: color-mix(in srgb, var(--gk-accent) 45%, var(--gk-line)); }
+.gk .gk-tile[data-open] { border-color: color-mix(in srgb, var(--gk-accent) 60%, var(--gk-line)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gk-accent) 60%, transparent);
+  background: color-mix(in srgb, var(--gk-accent) 6%, var(--gk-surface)); }
+
+.gk .gk-tile__corner { position: absolute; top: 10px; left: 10px; }
+.gk .gk-tile__crest { position: absolute; top: 10px; right: 10px; display: grid; }
+/* The face starts below the corner mark's line, so a wide mark (FIFA AR) never runs into it on a narrow card. */
+.gk .gk-tile__face { display: grid; margin: var(--gk-6) 0 var(--gk-2); }
+.gk .gk-tile__name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gk-text); font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 600; text-decoration: none; }
+.gk .gk-tile__name:hover { text-decoration: underline; text-underline-offset: 3px; }
+.gk .gk-tile__name:focus-visible { outline: none; border-radius: 4px; box-shadow: 0 0 0 2px var(--gk-accent); }
+.gk .gk-tile__lines { display: flex; flex-direction: column; align-items: center; gap: 1px; width: 100%; padding-bottom: var(--gk-3); }
+.gk .gk-tile__line { display: flex; justify-content: safe center; align-items: center; gap: 4px; max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-2); }
+.gk .gk-tile__line[data-line='0'] { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); }
+.gk .gk-tile__line > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-tile__line svg { flex: none; width: 12px; height: 12px; }
+.gk .gk-tile__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--gk-2) var(--gk-3); align-self: stretch; margin-top: auto; padding: var(--gk-2) 0 var(--gk-3);
+  border-top: 1px solid color-mix(in srgb, var(--tone) 18%, var(--gk-line)); }
+.gk .gk-tile__aside { display: inline-flex; align-items: baseline; gap: 4px; white-space: nowrap; }
+.gk .gk-tile__aside small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+
+/* The mark in the corner: no pill, the code in the display face in the colour of its kind (dashed when stated). */
+.gk .gk-result__mark[data-variant='corner'] { min-height: 0; padding: 0; border: 0; background: none; font-family: var(--gk-font-display); font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); letter-spacing: .04em; }
+.gk .gk-result__mark[data-variant='corner'][data-stated] { text-decoration: underline dashed; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+.gk .gk-result__mark[data-variant='corner'] svg { width: 14px; height: 14px; }
+
+.gk .gk-tile-skeleton { flex: 1; display: flex; flex-direction: column; align-items: center; gap: var(--gk-2); padding: var(--gk-6) var(--gk-3) var(--gk-3); border: 1px solid var(--gk-line); border-radius: 12px; }
+@media (pointer: coarse) { .gk .gk-tile__name { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; } }

@@ -11,13 +11,13 @@ import { plural, useWorldCopy } from '../copy';
 import { Crest } from '../Crest';
 import { codeLabel, ENGAGEMENT, postedLabel } from '../format';
 import { DrawerFrame, DrawerLoading } from './DrawerFrame';
-import { peekClick, peekOf, usePeek } from './usePeek';
+import { peekClick, peekOf, useRelatedOpen } from './usePeek';
 import './peek.css';
 
 /** The person who posted the role, with a way to message them; shown once their public profile is known. */
 function PostedBy({ job }: { job: ClubJob }) {
     const t = useWorldCopy();
-    const drawers = usePeek();
+    const relate = useRelatedOpen();
     const person = usePersonProfile(job.createdBy!);
     const { profile } = person;
     if (person.status !== 'ready' || !profile || person.hidden || person.possibleMinor || person.own) return null;
@@ -29,7 +29,7 @@ function PostedBy({ job }: { job: ClubJob }) {
             <div className="gk-peek-club">
                 <Crest src={profile.avatarUrl} name={name} size={40} round />
                 <span className="gk-world-grow">
-                    <Link to={`/profile/${profile.id}`} onClick={peekClick(peekOf('person', profile.id), drawers.openSide)}>{name}</Link>
+                    <Link to={`/profile/${profile.id}`} onClick={peekClick(peekOf('person', profile.id), relate)}>{name}</Link>
                     {title && <small>{[title, job.clubName].filter(Boolean).join(' · ')}</small>}
                 </span>
                 <Link className="gk-people-act" to={`/messages?chatWith=${profile.id}`} aria-label={t('Message {name}', { name })}><MessageCircle aria-hidden="true" />{t('Message')}</Link>
@@ -45,7 +45,7 @@ function PostedBy({ job }: { job: ClubJob }) {
 export default function JobPeek({ id }: { id: string }) {
     const t = useWorldCopy();
     const { status, user } = useAuth();
-    const drawers = usePeek();
+    const relate = useRelatedOpen();
     const jobId = Number(id);
     const detail = useJobDetail(jobId, status, user?.id);
     const { job } = detail;
@@ -61,7 +61,7 @@ export default function JobPeek({ id }: { id: string }) {
         <DrawerFrame title={job.title} page={{ to: `/jobs/${job.id}`, label: t('Job page') }}>
             <header className="gk-peek-job">
                 {job.clubId != null && (
-                    <Link className="gk-peek-job__club" to={`/clubs/${job.clubId}`} onClick={peekClick(peekOf('club', job.clubId), drawers.openSide)}>
+                    <Link className="gk-peek-job__club" to={`/clubs/${job.clubId}`} onClick={peekClick(peekOf('club', job.clubId), relate)}>
                         <Crest src={job.clubLogoUrl} name={job.clubName ?? job.title} size={32} />
                         <span>{job.clubName}</span>
                     </Link>

@@ -11,6 +11,7 @@ import { directoryArea } from './useDirectoryData';
 import { DirectoryBody } from './DirectoryBody';
 import { DirectoryFilters } from './DirectoryFilters';
 import { DirectorySearch } from './DirectorySearch';
+import { ListSplit } from './ListSplit';
 import { isClearable, useDirectoryState } from './useDirectoryState';
 import type { AnySource } from './types';
 import './directory.css';
@@ -77,11 +78,11 @@ export function DirectoryPage({ title, subtitle, sources: allSources, extraTabs 
                     {tabs.length > 1 && <Tabs className="gk-world-head__tabs" label={title} value={extra?.id ?? state.source.id} items={tabs}
                         onChange={id => { state.setTab(id); setFresh(true); setResetKey(value => value + 1); }} />}
                     {searchable && <DirectorySearch state={state} />}
-                    {searchable && <DirectoryFilters state={state} signedIn={signedIn} onClear={clearable ? clear : undefined} />}
                     {actions && <div className="gk-world-head__actions">{actions}</div>}
                 </header>
             </StageHead>
-            {extra ? <><BelowMapHead title={t(extra.label)} />{extra.element}</> : <DirectoryBody key={`${state.source.id}:${resetKey}`} state={state} signedIn={signedIn} applyDefaults={fresh} clearable={clearable} onClear={clear} />}
+            {extra ? <ListSplit><BelowMapHead title={t(extra.label)} />{extra.element}</ListSplit> : <DirectoryBody key={`${state.source.id}:${resetKey}`} state={state} signedIn={signedIn} applyDefaults={fresh} clearable={clearable} onClear={clear}
+                filters={searchable && <DirectoryFilters state={state} signedIn={signedIn} onClear={clearable ? clear : undefined} />} />}
         </div>
     );
 }

@@ -3,7 +3,7 @@ import { fetchVenues, formats, surfaces, type Venue } from '../../venues/api';
 import { MyVenueBookings } from '../../venues/VenueBookings';
 import { fromPrice, money, today } from '../../venues/utils';
 import { useWorldCopy, wt } from '../copy';
-import { VenueCard } from '../cards/VenueCard';
+import { VenueRow } from '../cards/VenueRow';
 import { DirectoryPage } from '../directory/DirectoryPage';
 import { first, type DirectorySource } from '../directory/types';
 import '../../venues/venues.css';
@@ -18,7 +18,7 @@ const venues: DirectorySource<VenueItem> = {
     noun: ['venue', 'venues'],
     searchLabel: 'Search venues',
     searchPlaceholder: 'Search stadiums and pitches by name or area',
-    layout: 'cards',
+    layout: 'rows',
     pageSize: PAGE,
     filters: [
         { kind: 'choice', key: 'format', label: 'Pitch format', primary: true, allLabel: 'Any format', options: Object.entries(formats).filter(([key]) => key !== 'OTHER').map(([value, label]) => ({ value, label })) },
@@ -44,7 +44,7 @@ const venues: DirectorySource<VenueItem> = {
         return { items: result.content.map(venue => ({ venue, date, duration: first(query, 'durationMinutes') || undefined })), total: result.totalElements, hasMore: (page + 1) * PAGE < result.totalElements };
     },
     key: item => String(item.venue.id),
-    Item: ({ item }) => <VenueCard venue={item.venue} date={item.date} duration={item.duration} />,
+    Item: ({ item }) => <VenueRow venue={item.venue} date={item.date} duration={item.duration} />,
     line: ({ venue, date, duration }) => {
         const price = fromPrice(venue);
         return { title: venue.displayName, to: `/stadiums/${venue.id}${date ? `?date=${date}&duration=${duration || 60}` : ''}`, action: date ? wt('See times') : wt('Open venue'),

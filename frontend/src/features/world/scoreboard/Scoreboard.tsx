@@ -40,8 +40,9 @@ export interface Linked { current?: boolean; highlighted?: boolean; onHover?: (a
  * One match: when (or its state), the two sides stacked, the score (or `aside` in its place), and one quiet tag.
  * With `peek`, a plain click opens the match's drawer; the link still goes to the full page in a new tab.
  */
-export function MatchLine({ to, peek, time, day, state, home, away, tag, title, aside, linked, faint }: {
-    to?: string; peek?: string; time?: string; day?: string; state?: LineState;
+export function MatchLine({ to, peek, open, time, day, state, home, away, tag, title, aside, linked, faint }: {
+    to?: string; peek?: string; /** How it opens (beside a club in a pane: stacked over it); else as the list does. */ open?: (value: string, options?: { focus?: boolean }) => void;
+    time?: string; day?: string; state?: LineState;
     home: Side; away: Side; tag?: ReactNode; title?: string; aside?: ReactNode; linked?: Linked; /** A result carried over from before GrassKickZ. */ faint?: boolean;
 }) {
     const t = useWorldCopy();
@@ -64,12 +65,13 @@ export function MatchLine({ to, peek, time, day, state, home, away, tag, title, 
         </span>}
         {tag && <span className="gk-sb__tag">{tag}</span>}
     </>;
-    const rowProps = { className: 'gk-sb__row', title, 'data-faint': faint || undefined, 'data-open': (peek && drawers.value === peek) || undefined,
+    const rowProps = { className: 'gk-sb__row', title, 'data-faint': faint || undefined, 'data-open': (peek && drawers.value === peek) || undefined, 'data-peek': peek,
         'aria-current': linked?.current || undefined, 'data-highlighted': linked?.highlighted || undefined,
         onMouseEnter: linked?.onHover && (() => linked.onHover!(true)), onMouseLeave: linked?.onHover && (() => linked.onHover!(false)),
         onFocus: linked?.onHover && (() => linked.onHover!(true)), onBlur: linked?.onHover && (() => linked.onHover!(false)) };
-    return <li>{to ? <Link {...rowProps} to={to} onClick={peekClick(peek, drawers.open)}>{body}</Link>
-        : peek ? <button type="button" {...rowProps} onClick={() => drawers.open(peek)}>{body}</button> : <div {...rowProps}>{body}</div>}</li>;
+    const show = open ?? drawers.open;
+    return <li>{to ? <Link {...rowProps} to={to} onClick={peekClick(peek, show)}>{body}</Link>
+        : peek ? <button type="button" {...rowProps} onClick={() => show(peek)}>{body}</button> : <div {...rowProps}>{body}</div>}</li>;
 }
 
 /**

@@ -44,8 +44,6 @@
 .gk .gk-peek-list a { color: var(--gk-text); font-weight: 600; text-decoration: none; }
 .gk .gk-peek-list a:hover { text-decoration: underline; }
 .gk .gk-peek-list a[aria-current] { color: var(--gk-accent); }
-/* The club card sits in the drawer without a card of its own around it. */
-.gk .gk-peek-clubcard > .gk-world-card { padding: 0; border: 0; background: none; box-shadow: none; }
 
 /* Applying, in the job drawer: the job page's form in World's look. */
 .gk .gk-job-apply { display: flex; flex-direction: column; gap: var(--gk-3); margin: var(--gk-4) 0; padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: 12px; background: var(--gk-raised); font-size: var(--gk-fs-sm); }

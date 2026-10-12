@@ -16,9 +16,9 @@ export type CrestOf = (clubId: number | null) => string | null | undefined;
  * counts, FT, Canc., On now by the schedule, TBC; my team starred; and what a played match still owes as a waiting
  * tag. With `peek`, a plain click opens its drawer.
  */
-export function HistoryLine({ match: source, crestOf, mine, tag, peek, linked }: {
+export function HistoryLine({ match: source, crestOf, mine, tag, peek, open, linked }: {
     match: HistoryMatch; crestOf: CrestOf; /** Which side is the viewer's. */ mine?: (side: ReturnType<typeof endOf>) => boolean; tag?: ReactNode;
-    peek?: string; linked?: Linked;
+    peek?: string; /** How it opens, when not as the list does. */ open?: (value: string, options?: { focus?: boolean }) => void; linked?: Linked;
 }) {
     const t = useWorldCopy();
     const match = zonedMatch(source);
@@ -31,7 +31,7 @@ export function HistoryLine({ match: source, crestOf, mine, tag, peek, linked }:
     };
     // Something owed is a waiting item (a dot, the word, an arrow); "in 2 h" is just said.
     const owed = state.tag && (state.code === 'before' ? t(state.tag.word, state.tag.vars) : <WaitTag tone={state.tag.tone}>{t(state.tag.word, state.tag.vars)}</WaitTag>);
-    return <MatchLine to={matchPagePath(match)} peek={peek} linked={linked} title={[match.title, match.locationName].filter(Boolean).join(' · ')} {...lineState(state, t)}
+    return <MatchLine to={matchPagePath(match)} peek={peek} open={open} linked={linked} title={[match.title, match.locationName].filter(Boolean).join(' · ')} {...lineState(state, t)}
         day={state.code === 'ft' ? shortDate(match.startsAt) ?? undefined : fixtureDay(match.startsAt, match.timezone)}
         home={side('home')} away={side('away')} tag={owed || tag} faint={state.faint} />;
 }

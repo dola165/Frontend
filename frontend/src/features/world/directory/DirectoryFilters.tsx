@@ -135,15 +135,15 @@ export function PopoverPill({ label, name, pressed, wide, align, children }: {
         row?.addEventListener('scroll', scrolled);
         return () => { document.removeEventListener('pointerdown', away); row?.removeEventListener('scroll', scrolled); };
     }, [open]);
-    // In the header the row of pills scrolls sideways, so the panel is placed against the header itself: under its
-    // pill (More filters ends at its pill's right edge), and always inside the header.
+    // The row of pills can scroll sideways, so the panel is placed against the strip the pills sit in (under the map, or
+    // the header): under its pill (More filters ends at its pill's right edge), and always inside the strip.
     useLayoutEffect(() => {
-        const head = root.current?.closest<HTMLElement>('.gk-world-head'), panel = pop.current, pill = button.current;
+        const head = root.current?.closest<HTMLElement>('.gk-world-filterbar, .gk-world-head'), panel = pop.current, pill = button.current;
         if (!open || !head || !panel || !pill) return;
         const frame = head.getBoundingClientRect(), box = pill.getBoundingClientRect(), width = panel.offsetWidth;
         panel.style.top = `${box.bottom - frame.top + 6}px`;
         // A panel ending at its pill is held by its right edge, so content that arrives later grows it leftwards.
-        // When that would cross the header's left edge, it starts at the header instead.
+        // When that would cross the strip's left edge, it starts at the strip instead.
         if ((wide || align === 'end') && box.right - frame.left >= width) { panel.style.left = 'auto'; panel.style.right = `${Math.max(0, frame.right - box.right)}px`; }
         else { panel.style.right = ''; panel.style.left = `${Math.max(0, Math.min(wide || align === 'end' ? box.right - frame.left - width : box.left - frame.left, frame.width - width))}px`; }
     }, [open, wide, align]);
@@ -203,7 +203,7 @@ export function DirectoryFilters({ state, signedIn, onClear }: { state: Director
     const secondaryActive = state.activeFilters.filter(filter => secondary.includes(filter)).length;
     if (!visible.length && !scopes.length && !onClear) return null;
     return (
-        <div className="gk-world-filters gk-world-head__filters" role="group" aria-label={t('Filters')}>
+        <div className="gk-world-filters" role="group" aria-label={t('Filters')}>
             {scopes.map(filter => filter.kind === 'scope' && <ScopeChip key={filter.key} filter={filter} value={state.query.values[filter.key]?.[0] ?? ''} onRemove={() => state.setValues(filter.key, [])} />)}
             {primary.map(filter => filter.kind === 'choice'
                 ? <ChoicePill key={filter.key} filter={filter} state={state} signedIn={signedIn} />

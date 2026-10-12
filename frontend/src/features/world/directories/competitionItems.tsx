@@ -1,27 +1,56 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Check, Plus } from 'lucide-react';
-import { Badge, Button, FixtureRow, ListRow } from '../../../design/primitives';
+import { Button, ListRow } from '../../../design/primitives';
+import { Status } from '../../../design/DataTable';
 import { useAuth } from '../../../context/AuthContext';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { structureLabels, type CompetitionCard } from '../../competitions/api';
 import { setTournamentHostFollow } from '../../tournaments/api';
 import type { TournamentHost, TournamentInvitationInboxItem, TournamentSummary } from '../../tournaments/domain';
 import { plural, useWorldCopy } from '../copy';
 import { Crest } from '../Crest';
+import { DateLead, ResultRow } from '../directory/ResultRow';
 import { counterpartProps, useMapCounterpart } from '../directory/selection';
-import { COMPETITION_STATUS, dateColumn, SCOPE_LABEL } from '../format';
+import { peekOf } from '../peek/usePeek';
+import { codeLabel, COMPETITION_STATUS, dateColumn, entryState, SCOPE_LABEL } from '../format';
 
-/** A competition the person runs or plays in; one they manage opens its workspace. */
+/**
+ * A competition as a row: its first day where a crest would be, its name (to its page), what it is (age, format,
+ * structure, who enters) and who runs it where with the places taken, and whether entries are open. It shows beside the
+ * list.
+ */
+export function CompetitionItem({ item: card }: { item: CompetitionCard & { registrationClosesAt?: string | null } }) {
+    const t = useWorldCopy();
+    const rules = card.profile?.rules;
+    const date = dateColumn(card.startDate), state = entryState(card.status, card.registrationClosesAt);
+    const capacity = card.entryCap ? t('{count} of {cap} places taken', { count: card.entryCount, cap: card.entryCap }) : card.entryCount ? t('{count} entered', { count: card.entryCount }) : null;
+    return (
+        <ResultRow lead={<DateLead top={date.time} bottom={date.day} />} title={card.name} to={`/tournaments/${card.id}`} peek={peekOf('tournament', card.id)}
+            lines={[
+                [rules && codeLabel(rules.ageGroup), rules && `${rules.sideSize}v${rules.sideSize}`, rules && t(structureLabels[rules.structure]), t(SCOPE_LABEL[card.participantScope] ?? '')].filter(Boolean).join(' · '),
+                [card.hostClubName || card.organizerName, rules?.city, capacity].filter(Boolean).join(' · '),
+            ]}
+            aside={<Status tone={state.tone}>{state.label}</Status>} />
+    );
+}
+
+/** A competition the person runs or plays in: one they play in shows beside the list, one they manage opens its workspace. */
 export function MyCompetitionRow({ item }: { item: TournamentSummary }) {
     const t = useWorldCopy();
     const { user } = useAuth();
     const managed = user?.navigationCapabilities?.workspaces.some(w => w.id === 'tournament.workspace' && w.context.id === item.id);
     const badge = COMPETITION_STATUS[item.status] ?? COMPETITION_STATUS.PLANNING;
+    const date = dateColumn(item.startDate);
     return (
-        <FixtureRow tone="event" to={managed ? `/tournaments/${item.id}/workspace` : `/tournaments/${item.id}`} title={item.name} {...dateColumn(item.startDate)} {...useMapCounterpart()}
-            meta={[t(SCOPE_LABEL[item.participantScope] ?? ''), item.hostClubName || item.organizerName, plural(item.entryCount, 'entry', 'entries'), managed ? t('You run this competition') : null].filter(Boolean).join(' · ')}
-            trail={<Badge tone={badge.tone}>{t(badge.label)}</Badge>} />
+        <ResultRow lead={<DateLead top={date.time} bottom={date.day} />} title={item.name} to={managed ? `/tournaments/${item.id}/workspace` : `/tournaments/${item.id}`}
+            peek={managed ? undefined : peekOf('tournament', item.id)}
+            lines={[
+                [t(SCOPE_LABEL[item.participantScope] ?? ''), item.hostClubName || item.organizerName, plural(item.entryCount, 'entry', 'entries')].filter(Boolean).join(' · '),
+                managed ? t('You run this competition') : null,
+            ]}
+            aside={<Status tone={badge.tone}>{t(badge.label)}</Status>} />
     );
 }
 
@@ -64,6 +93,6 @@ export function InvitationRow({ item }: { item: TournamentInvitationInboxItem })
     return (
         <ListRow to="/requests" {...useMapCounterpart()} lead={<Crest name={item.tournamentName} size={40} />} title={item.tournamentName}
             meta={[item.squadName || item.clubName || t('You, as a player'), t(SCOPE_LABEL[item.participantScope] ?? ''), item.tournamentStatus === 'PLANNING' ? t('In preparation') : t('Already started or finished')].filter(Boolean).join(' · ')}
-            trail={<><span className="gk-world-row-note">{t('Answer in your inbox')}</span><Badge tone="warning">{t('Invited')}</Badge></>} />
+            trail={<><span className="gk-world-row-note">{t('Answer in your inbox')}</span><Status tone="warning">{t('Invited')}</Status></>} />
     );
 }

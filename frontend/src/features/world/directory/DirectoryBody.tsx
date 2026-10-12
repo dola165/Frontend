@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
 import { ButtonLink, EmptyNote, Panel } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
@@ -18,6 +18,7 @@ import { ANYWHERE, useWorldArea } from '../useWorldArea';
 import { useWorldSession } from '../worldSession';
 import { BrowsePanel } from './BrowsePanel';
 import { DirectoryResults } from './DirectoryResults';
+import { ListSplit } from './ListSplit';
 import { arrangeGroups } from './groups';
 import { pinGroups } from './panelGroups';
 import { MapExtrasContext, type MapExtras } from './mapExtras';
@@ -64,10 +65,12 @@ function useRoleDefaults(state: DirectoryState, apply: boolean, signedIn: boolea
 /**
  * One source's results under World's map. The map shows them as pins and, on a wide screen, lists them in its
  * "Browse area" panel with the count and the sort; folded or on a phone, the count and the sort sit above the results.
+ * Under the map the tab's filters run across the page, and the results sit in one column the width of the Home feed,
+ * with what is pressed beside it (`ListSplit`).
  */
-export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onClear }: {
+export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onClear, filters }: {
     state: DirectoryState; signedIn: boolean; /** Write this tab's defaults for who is looking. */ applyDefaults: boolean;
-    clearable: boolean; onClear: () => void;
+    clearable: boolean; onClear: () => void; /** The tab's filters, in a strip across the page under the map. */ filters?: ReactNode;
 }) {
     const t = useWorldCopy();
     const { source, query } = state;
@@ -151,7 +154,7 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
         </BelowMapHead>
     );
 
-    if (gated) return <>
+    if (gated) return <ListSplit>
         <BelowMapHead icon={source.icon} title={title} />
         <Panel>
             <EmptyNote title={t('Sign in to see {things}', { things: t(source.label).toLowerCase() })}
@@ -159,20 +162,23 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
                 {t(source.signInReason!)}
             </EmptyNote>
         </Panel>
-    </>;
+    </ListSplit>;
 
     return (
         <MapExtrasContext.Provider value={setExtras}>
             <DirectorySelectionContext.Provider value={stage.mapOpen ? { pinOf: mappable ? placed.pinOf : NO_PINS, selectedPin: choice.selectedPin, hoverPin: choice.hoverPin,
                 hover: choice.setHoverKey, chosen: choice.chosen, choose: choice.choose, clear: choice.clear, selectPin: choice.selectPin, mappable, placing: placed.loading, incomplete: placed.incomplete } : null}>
                 {browse && <StagePanel><BrowsePanel source={source} data={data} groups={panelGroups} places={placed.places} count={count + searched} tools={sort} folded={stage.panelFolded} onToggle={stage.togglePanel} /></StagePanel>}
-                {Top && <StageTop><Top query={query} go={state.go} /></StageTop>}
-                {head}
-                {Tools && <Tools query={query} go={state.go} refresh={data.retry} />}
-                <div ref={listRef}>
-                    <DirectoryResults source={source} data={data} groups={groups} filtered={filtered} onClear={clearable ? onClear : undefined} go={state.go} query={query}
-                        onWiden={data.area?.city && source.area === true ? () => setCity(ANYWHERE) : undefined} onClearFor={source.forWhom ? clearFor : undefined} />
-                </div>
+                {filters && <div className="gk-world-filterbar">{filters}</div>}
+                <ListSplit>
+                    {Top && <StageTop><Top query={query} go={state.go} /></StageTop>}
+                    {head}
+                    {Tools && <Tools query={query} go={state.go} refresh={data.retry} />}
+                    <div ref={listRef}>
+                        <DirectoryResults source={source} data={data} groups={groups} filtered={filtered} onClear={clearable ? onClear : undefined} go={state.go} query={query}
+                            onWiden={data.area?.city && source.area === true ? () => setCity(ANYWHERE) : undefined} onClearFor={source.forWhom ? clearFor : undefined} />
+                    </div>
+                </ListSplit>
             </DirectorySelectionContext.Provider>
         </MapExtrasContext.Provider>
     );

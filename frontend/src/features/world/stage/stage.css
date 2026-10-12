@@ -13,18 +13,15 @@
 .gk .gk-world-head__search { flex: 0 1 400px; min-width: 220px; }
 .gk .gk-world-head__search .gk-input { min-height: 42px; background: var(--gk-glass); border-color: var(--gk-glass-line); backdrop-filter: blur(12px); transition: border-color .2s, box-shadow .2s; }
 .gk .gk-world-head__search .gk-input:focus { border-color: color-mix(in srgb, var(--gk-accent) 55%, transparent); box-shadow: 0 0 0 4px var(--gk-accent-soft); }
-/* Filters take the rest of the line; their choices open over the map (filters.css), so the map never moves. */
-.gk .gk-world-head__filters { flex: 1 1 auto; min-width: 0; }
 .gk .gk-world-head__tabs { max-width: 100%; }
 .gk .gk-world-head__actions { flex: none; display: flex; align-items: center; gap: var(--gk-2); margin-left: auto; }
-/* Laptops: two fixed lines on every page (title and lists; search, filters and actions), in reading order, so the
+/* Laptops: two fixed lines on every page (title and lists; search and actions), in reading order, so the
    header is the same height from tab to tab. Full HD keeps one line. */
 @media (min-width: 1100px) and (max-width: 1599px) {
-  .gk .gk-world-head { display: grid; grid-template-columns: minmax(220px, 340px) minmax(0, 1fr) auto; grid-template-areas: 'titles tabs tabs' 'search filters actions'; grid-template-rows: 52px 44px; align-items: center; }
+  .gk .gk-world-head { display: grid; grid-template-columns: minmax(220px, 340px) minmax(0, 1fr) auto; grid-template-areas: 'titles tabs tabs' 'search . actions'; grid-template-rows: 52px 44px; align-items: center; }
   .gk .gk-world-head__titles { grid-area: titles; max-width: none; }
   .gk .gk-world-head__tabs { grid-area: tabs; justify-self: start; }
   .gk .gk-world-head__search, .gk .gk-world-head > .gk-world-search { grid-area: search; min-width: 0; }
-  .gk .gk-world-head__filters { grid-area: filters; }
   .gk .gk-world-head__actions { grid-area: actions; }
 }
 /* Narrow screens: each part on its own line in reading order; the title keeps its whole line. */
@@ -32,7 +29,6 @@
   .gk .gk-world-head { flex-wrap: wrap; }
   .gk .gk-world-head__titles { flex: 1 1 100%; max-width: none; }
   .gk .gk-world-head__search, .gk .gk-world-head > .gk-world-search { flex: 1 1 100%; }
-  .gk .gk-world-head__filters { flex-basis: 100%; }
 }
 @media (pointer: coarse) { .gk .gk-world-head__search .gk-input { min-height: 44px; } }
 

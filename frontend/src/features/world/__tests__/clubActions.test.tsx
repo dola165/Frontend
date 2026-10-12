@@ -6,7 +6,10 @@ import type { Participant } from '../../admissions/types';
 import { createClubApplication, selfRegisterClubPlayer } from '../../clubs/api';
 import type { ClubMembershipContext } from '../../clubs/domain';
 import { toggleClubFollow } from '../api';
-import { ClubCard } from '../cards/ClubCard';
+import { ClubMainAction, FollowClubButton } from '../cards/ClubActions';
+import { ClubRow } from '../cards/ClubRow';
+import { forgetClubChanges } from '../cards/clubState';
+import { useClubActions } from '../cards/useClubActions';
 import { WorldSessionContext } from '../worldSession';
 
 const auth = vi.hoisted(() => ({ status: 'authenticated' as string }));
@@ -32,11 +35,21 @@ function Where() {
     const location = useLocation();
     return <output data-testid="where">{location.pathname}{location.search}</output>;
 }
-function show(profile: ClubProfile, { membership = noClub, participants = [] as Participant[], path = '/world/clubs' } = {}) {
+/** What a club offers the person wherever it is shown (its row, its pane): Follow, the one main action, where they stand. */
+function ClubActionsView({ club }: { club: ClubProfile }) {
+    const actions = useClubActions(club);
+    return <>
+        <FollowClubButton actions={actions} /><ClubMainAction club={club} actions={actions} />
+        {actions.standing && <span>{actions.standing.label}</span>}
+        {actions.message && <p role={actions.message.error ? 'alert' : 'status'}>{actions.message.text}</p>}
+    </>;
+}
+/** The club's actions on their own, or (`row`) the club as a row in a list. */
+function show(profile: ClubProfile, { membership = noClub, participants = [] as Participant[], path = '/world/clubs', row = false } = {}) {
     return render(
         <MemoryRouter initialEntries={[path]}>
             <WorldSessionContext.Provider value={{ membership, participants }}>
-                <Routes><Route path="/world/clubs" element={<ClubCard club={profile} />} /><Route path="*" element={<Where />} /></Routes>
+                <Routes><Route path="/world/clubs" element={row ? <ul><ClubRow club={profile} /></ul> : <ClubActionsView club={profile} />} /><Route path="*" element={<Where />} /></Routes>
             </WorldSessionContext.Provider>
         </MemoryRouter>,
     );
@@ -46,6 +59,7 @@ beforeEach(() => {
     vi.clearAllMocks();
     auth.status = 'authenticated';
     sessionStorage.clear();
+    forgetClubChanges();
 });
 
 describe('following', () => {
@@ -101,28 +115,27 @@ describe('joining for yourself', () => {
 
 describe('a parent searching for a child', () => {
     it('asks the club about a place for the child, with the programme that fits, instead of joining the parent', () => {
-        show(club(), { participants: [nino], path: '/world/clubs?player=501' });
+        show(club(), { participants: [nino], path: '/world/clubs?player=501', row: true });
         expect(screen.queryByRole('button', { name: 'Join as trialist' })).not.toBeInTheDocument();
-        expect(screen.getByText('Fits Nino')).toBeInTheDocument();
-        expect(screen.getByText(/Little kickers · Ages 6–10/)).toBeInTheDocument();
+        expect(screen.getByText(/Fits Nino: Little kickers/)).toBeInTheDocument();
         expect(screen.queryByText(/Seniors/)).not.toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Ask Saburtalo Youth about a place for Nino Beridze' })).toHaveAttribute('href', '/clubs/4?tab=teams&programme=72&enquire=1&player=501');
     });
 
     it('says when no programme fits the child, and still lets the parent ask', () => {
-        show(club({ presentation: { ...club().presentation!, programmes: [programme(71, 'Seniors', 18, null)] } }), { participants: [nino], path: '/world/clubs?player=501' });
+        show(club({ presentation: { ...club().presentation!, programmes: [programme(71, 'Seniors', 18, null)] } }), { participants: [nino], path: '/world/clubs?player=501', row: true });
         expect(screen.getByText('No programme listed for age 9')).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /about a place for Nino/ })).toHaveAttribute('href', '/clubs/4?tab=teams&enquire=1&player=501');
     });
 
     it('remembers the child chosen on another World page', () => {
         sessionStorage.setItem('family-player:1:world', '501');
-        show(club(), { participants: [nino] });
-        expect(screen.getByText('Fits Nino')).toBeInTheDocument();
+        show(club(), { participants: [nino], row: true });
+        expect(screen.getByText(/Fits Nino/)).toBeInTheDocument();
     });
 
     it('asks about joining in general before a child is chosen', () => {
-        show(club(), { participants: [nino] });
+        show(club(), { participants: [nino], row: true });
         expect(screen.getByRole('link', { name: 'Ask about joining' })).toHaveAttribute('href', '/clubs/4?tab=teams&enquire=1');
         expect(screen.queryByText(/Fits/)).not.toBeInTheDocument();
     });

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Check, MapPin, MessageCircle, Plus } from 'lucide-react';
 import { useWorldCopy } from '../../copy';
 import { Crest } from '../../Crest';
-import { ResultRow } from '../../directory/ResultRow';
+import { ResultTile } from '../../directory/ResultTile';
 import { peekOf } from '../../peek/usePeek';
 import { useFollow } from './following';
 import { LicenceMark, PositionMark, ServiceMark } from './marks';
@@ -38,26 +38,29 @@ export function Price({ amount, currency, per }: { amount: number; currency: str
     return <><span className="gk-result-price">{`${amount} ${currency}`}</span><small>{per}</small></>;
 }
 
+/** The colour of each kind of people (their marks' colour): players green, coaches and staff violet, specialists blue. */
+const TONE = { player: 'accent', staff: 'violet', specialist: 'info' } as const;
+
 /**
- * A coach, specialist or player as LinkedIn lists people: face, name and their mark, what they do, their club and how
- * far away, what they are open to; their price for a session when they offer one, and one action (Message when
- * they take clients, else Follow). The name, or a click on the row, opens them in the drawer.
+ * A coach, specialist or player as a football card: their mark in the corner (a position, a licence, a service) and
+ * their club's crest opposite, their face, and as LinkedIn says it their name, what they do, their club and how far,
+ * what they are open to; their price for a session when they offer one, and one action (Message when they take clients,
+ * else Follow). A press on the card opens them beside the list.
  */
 export function PersonResult({ item: person, kind }: { item: PersonItem; kind: PersonKind }) {
     const t = useWorldCopy();
     const open = openToWords(kind, person.openTo);
-    const mark = kind === 'staff' ? <LicenceMark licence={person.licence} /> : kind === 'specialist' ? <ServiceMark profession={person.profession} /> : <PositionMark position={person.position} />;
-    const club = person.clubName
-        ? <><Crest src={person.clubLogoUrl} name={person.clubName} size={16} />{person.clubName}</>
-        : person.clubId === null ? (kind === 'player' ? t('No club') : t('Independent')) : null;
+    const mark = kind === 'staff' ? <LicenceMark licence={person.licence} corner /> : kind === 'specialist' ? <ServiceMark profession={person.profession} corner /> : <PositionMark position={person.position} corner />;
+    const club = person.clubName ?? (person.clubId === null ? (kind === 'player' ? t('No club') : t('Independent')) : null);
     const where = personWhere(person);
     const sells = Boolean(person.rate && person.openTo?.includes('SERVICES'));
     return (
-        <ResultRow lead={<Face src={person.avatarUrl} name={person.fullName} open={open.length > 0} />}
-            title={person.fullName} to={`/profile/${person.id}`} peek={peekOf('person', person.id)} mark={mark}
+        <ResultTile lead={<Face src={person.avatarUrl} name={person.fullName} open={open.length > 0} />} tone={TONE[kind]}
+            title={person.fullName} to={`/profile/${person.id}`} peek={peekOf('person', person.id)} corner={mark}
+            crest={person.clubName ? { src: person.clubLogoUrl, name: person.clubName } : undefined}
             lines={[
                 kind === 'player' ? playerLine(person) : jobOf(person),
-                (club || where) && <>{club}{club && where && <span aria-hidden="true">·</span>}{where && <span className="gk-result__where"><MapPin aria-hidden="true" />{where}</span>}</>,
+                (club || where) && <><span>{club}</span>{club && where && <span aria-hidden="true">·</span>}{where && <span className="gk-result__where"><MapPin aria-hidden="true" />{where}</span>}</>,
                 open.length > 0 && <span className="gk-result-open">{open.join(' · ')}</span>,
             ]}
             aside={sells && person.rate ? <Price amount={person.rate.amount} currency={person.rate.currency} per={t('per session')} /> : undefined}

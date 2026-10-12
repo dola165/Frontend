@@ -5,6 +5,8 @@
   --gk-glass-line: color-mix(in srgb, var(--gk-text) 11%, transparent);
   --gk-glass-shadow: 0 24px 60px -24px color-mix(in srgb, var(--gk-shadow) 85%, transparent);
   --gk-ease-out: cubic-bezier(.16, 1, .3, 1);
+  /* The Home feed's letterforms (no alternate glyphs), so World's lists read like its posts. */
+  font-feature-settings: normal;
 }
 .gk .gk-world-nav { margin-top: var(--gk-3); }
 /* The World bar: the tabs, and who and where World is for at the right end; on a phone the pickers wrap under. */

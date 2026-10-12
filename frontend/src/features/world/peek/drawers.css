@@ -1,6 +1,6 @@
 /* World's drawers: the thing itself from the right, who is behind it from the left, the page dimmed between them so a
    click there closes them. Full screen on phones, the left one above the right. Scoped under .gk; tokens only. */
-.gk.gk-drawers { position: fixed; inset: 0; z-index: 4000; }
+.gk.gk-drawers { position: fixed; inset: 0; z-index: 4000; font-feature-settings: normal; }
 .gk .gk-drawers__layer { position: absolute; inset: 0; }
 .gk .gk-drawers__gap { position: absolute; inset: 0; background: color-mix(in srgb, var(--gk-shadow) 45%, transparent); cursor: pointer; animation: gk-drawer-fade .2s var(--gk-ease-out, ease) both; }
 
@@ -17,8 +17,17 @@
 .gk .gk-drawer__close:hover { background: var(--gk-hover); color: var(--gk-text); }
 .gk .gk-drawer__close:focus-visible, .gk .gk-drawer__page:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-accent); }
 .gk .gk-drawer__close svg { width: 20px; height: 20px; }
-.gk .gk-drawer__body { flex: 1; min-height: 0; overflow-y: auto; padding: var(--gk-5); scrollbar-width: thin; }
+.gk .gk-drawer__body { --body-pad: var(--gk-5); flex: 1; min-height: 0; overflow-y: auto; padding: var(--body-pad); scrollbar-width: thin; }
 .gk .gk-drawer__loading { display: flex; flex-direction: column; gap: var(--gk-3); }
+
+/* Beside the list under the map: the same frame, part of the page, as tall as its content up to the screen. Who is behind
+   a thing stacks over it, with a way back before the title. */
+.gk .gk-drawer[data-place='pane'] { position: relative; top: auto; bottom: auto; flex: 1; width: 100%; max-height: var(--pane-h, 80vh); border: 1px solid var(--gk-line); border-radius: 12px;
+  box-shadow: none; overflow: hidden; animation: none; }
+.gk .gk-drawer[data-place='pane'] .gk-drawer__head { min-height: 48px; padding-left: var(--gk-4); }
+.gk .gk-drawer[data-place='pane'] .gk-drawer__title { font-size: var(--gk-fs-lg); font-weight: 600; }
+.gk .gk-drawer[data-place='pane'] .gk-drawer__body { --body-pad: var(--gk-4); overscroll-behavior: contain; }
+.gk .gk-drawer__back { margin-left: calc(-1 * var(--gk-2)); }
 
 @keyframes gk-drawer-fade { from { opacity: 0; } }
 @keyframes gk-drawer-right { from { transform: translateX(40px); opacity: 0; } }

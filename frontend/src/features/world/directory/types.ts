@@ -129,10 +129,10 @@ export interface DirectorySource<T> {
     sortable?: (query: DirectoryQuery) => boolean;
     pageSize: number;
     /**
-     * Rows in one panel, cards in a grid, results as LinkedIn lists them (`ResultRow`) in tiles across the width, or score
-     * lines in one card per group (`ScoreResults`; its `Item` returns a list item).
+     * One to a line in one panel (clubs, venues, jobs, tournaments: `ResultRow`, `ListRow`), football cards several to a
+     * line (people: `ResultTile`), or score lines in one card per group (`ScoreResults`). Every `Item` returns a list item.
      */
-    layout: 'rows' | 'cards' | 'results' | 'scores';
+    layout: 'rows' | 'tiles' | 'scores';
     /** When set, signed-out visitors see this reason and a sign-in action instead of results. */
     signInReason?: string;
     /** A personal list (my arrangements, my competitions): its tab is shown only to signed-in people. */

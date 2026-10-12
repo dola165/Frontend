@@ -38,7 +38,8 @@ describe('World drawers', () => {
         expect(parsePeek('job-3')).toEqual({ kind: 'job', id: '3' });
         expect(parsePeek('match-t301.7010')).toEqual({ kind: 'match', id: 't301.7010' });
         expect(parsePeek('tournament-301')).toEqual({ kind: 'tournament', id: '301' });
-        expect(parsePeek('venue-3')).toBeNull();
+        expect(parsePeek('venue-3')).toEqual({ kind: 'venue', id: '3' });
+        expect(parsePeek('event-3')).toBeNull();
         expect(parsePeek('person')).toBeNull();
     });
 

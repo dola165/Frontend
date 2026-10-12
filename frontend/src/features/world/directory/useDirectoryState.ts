@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { PEEK, SIDE } from '../peek/usePeek';
+import { useLocation, useSearchParams } from 'react-router-dom';
+import { DRAWER_PARAMS, keepPane } from '../peek/usePeek';
 import type { AnySource, DirectoryQuery, FilterDef } from './types';
 
 /** Context that follows the person around World (their area, the child they are searching for). */
@@ -57,6 +57,7 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
     tabParam?: string; tabAlias?: string; tabValues?: Record<string, string>; signedIn?: boolean; opening?: string;
 } = {}) {
     const [params, setParams] = useSearchParams();
+    const location = useLocation();
     const opening = defaultSource(sources, signedIn, chosen);
     const alias = tabAlias ? params.get(tabAlias) : null;
     const requested = params.get(tabParam) ?? (alias ? tabValues?.[alias] ?? alias : null);
@@ -76,15 +77,15 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
         mutate(next);
         if (naming && !next.has(tabParam) && !(tabAlias && next.has(tabAlias))) next.set(tabParam, source.id);
         return next;
-    }, { replace, preventScrollReset: true });
+    }, { replace, preventScrollReset: true, state: keepPane(location.state) });
 
     const setValues = (key: string, values: string[]) => {
         const filter = source.filters.find(item => item.key === key);
         if (filter?.kind === 'choice') filter.remember?.write(values[0] ?? '');
         update(next => {
             next.delete(key);
-            next.delete(SHOWN);
-            next.delete(SELECTED);
+            // A different list: what was open beside it (or over it) closes with the old one.
+            [SHOWN, SELECTED, ...DRAWER_PARAMS].forEach(item => next.delete(item));
             const fallback = filter?.kind === 'choice' ? filter.fallback : undefined;
             values.filter(value => value && value !== fallback).forEach(value => next.append(key, value));
             // A filter that depends on this one no longer applies when it changes.
@@ -106,7 +107,7 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
             const current = query.values[key] ?? [];
             setValues(key, multi ? (current.includes(value) ? current.filter(item => item !== value) : [...current, value]) : current[0] === value ? [] : [value]);
         },
-        setSearch: (value: string) => update(next => { next.delete(SHOWN); next.delete(SELECTED); if (value) next.set('q', value); else next.delete('q'); }),
+        setSearch: (value: string) => update(next => { [SHOWN, SELECTED, ...DRAWER_PARAMS].forEach(item => next.delete(item)); if (value) next.set('q', value); else next.delete('q'); }),
         setSort: (value: string) => update(next => { next.delete(SHOWN); if (value && value !== source.sorts?.[0]?.value) next.set('sort', value); else next.delete('sort'); }),
         /** Writes several filters at once without a history entry: a tab's defaults for who is looking. */
         setMany: (values: Record<string, string[]>) => update(next => {
@@ -114,12 +115,12 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
         }),
         /**
          * Writes several values in one replace, so none is lost (two writes in one tick would keep only the last): a day
-         * chosen on the strip and the end it leaves. Like a filter change, it ends the choice of one result.
+         * chosen on the strip and the end it leaves. Like a filter change, it ends the choice of one result and closes what
+         * was open beside the list.
          */
         go: (values: Record<string, string[]>) => update(next => {
             for (const [key, list] of Object.entries(values)) { next.delete(key); list.filter(Boolean).forEach(value => next.append(key, value)); }
-            next.delete(SHOWN);
-            next.delete(SELECTED);
+            [SHOWN, SELECTED, ...DRAWER_PARAMS].forEach(item => next.delete(item));
         }),
         /** Chooses one result (or none), without adding a history entry; sorting and showing more keep it. */
         setSelected: (key?: string) => update(next => { if (key) next.set(SELECTED, key); else next.delete(SELECTED); }),
@@ -127,7 +128,7 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
         setShown: (pages: number) => update(next => { if (pages > 1) next.set(SHOWN, String(pages)); else next.delete(SHOWN); }),
         setTab: (id: string) => update(next => {
             sources.forEach(item => item.filters.forEach(filter => { if (!CARRIED.includes(filter.key)) next.delete(filter.key); }));
-            ['sort', SHOWN, SELECTED, PEEK, SIDE, ...(tabAlias ? [tabAlias] : [])].forEach(key => next.delete(key));
+            ['sort', SHOWN, SELECTED, ...DRAWER_PARAMS, ...(tabAlias ? [tabAlias] : [])].forEach(key => next.delete(key));
             // Where the opening tab depends on who is looking, every tab is named, so a link opens the same tab for anyone.
             if (!chosen && id === opening.id) next.delete(tabParam); else next.set(tabParam, id);
         }, false),
@@ -137,8 +138,7 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
             next.delete('q');
             next.delete(SHOWN);
             next.delete(SELECTED);
-            next.delete(PEEK);
-            next.delete(SIDE);
+            DRAWER_PARAMS.forEach(item => next.delete(item));
         }),
     };
 }

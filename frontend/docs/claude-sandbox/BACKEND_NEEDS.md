@@ -250,6 +250,15 @@ The sandbox's `GET /people` (`sandbox/api/handlers/world-extra.mjs`) is the cont
 | `canMessage` in people results and profiles (Message is offered to everyone today) | MISSING |
 | One date of birth for the minor rule everywhere (the sandbox had two) | Real rule EXISTS (`date_of_birth`); sandbox fixed |
 
+### World › the pane beside the list
+
+| Need | Status |
+|---|---|
+| `/match-history?clubId` for signed-out visitors (a club's public fixtures and results in its pane) | MISSING (members only in World) |
+| `/clubs/:id/squads`: confirm and type `format`, `competition`, `headCoachName`, `ageGroup` (the sandbox sends them) | UNVERIFIED |
+| `clubId` on `footballProfile.entries` and `careerHistory`, squad ids on appointments, so a person's career and seasons can link to the club and team | MISSING |
+| One source for a referee's career (`/referees/:id` `career[]` against profile entries) | Decide |
+
 ### World › Matches (phase C)
 
 | Need | Status |

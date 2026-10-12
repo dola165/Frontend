@@ -6,8 +6,7 @@ import { plural, wt } from '../copy';
 import type { Places } from '../directory/places';
 import { first, nearbyPoint, type BrowseLine, type DirectorySource, type Placement, type ScopeFilter } from '../directory/types';
 import { codeLabel, COMPETITION_STATUS, dateColumn, entryState, factTone, SCOPE_LABEL, sentence, shortDate } from '../format';
-import { CompetitionRow } from '../rows';
-import { HostRow, InvitationRow, MyCompetitionRow } from './competitionItems';
+import { CompetitionItem, HostRow, InvitationRow, MyCompetitionRow } from './competitionItems';
 import { AGE_OPTIONS } from './matches/listings';
 
 const PAGE = 12;
@@ -102,7 +101,7 @@ export const competitions: DirectorySource<CompetitionCard> = {
         return { items: result.content, total: result.totalElements, hasMore: page + 1 < result.totalPages };
     },
     key: card => String(card.id),
-    Item: ({ item }) => <CompetitionRow card={item} />,
+    Item: CompetitionItem,
     line: competitionLine,
     placeKinds: ['TOURNAMENT', 'CLUB'],
     place: competitionPlace,

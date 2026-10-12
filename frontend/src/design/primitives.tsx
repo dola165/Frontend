@@ -2,6 +2,7 @@ import './design.css';
 import type { ComponentPropsWithoutRef, CSSProperties, ReactNode } from 'react';
 import { Link, type LinkProps } from 'react-router-dom';
 import { CalendarDays, Cone, Search as SearchIcon, Swords, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { avatarHue } from './avatarHue';
 
 const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
 
@@ -157,11 +158,9 @@ export function Count({ value, label, atLeast = false }: { value: number; label?
 }
 
 const initials = (name?: string | null) => (name ?? '?').trim().split(/\s+/).slice(0, 2).map(part => part[0]?.toUpperCase() ?? '').join('') || '?';
-/** Without a photo, initials sit on one of six soft colours picked from the name, so people are easy to tell apart. */
-const hue = (name?: string | null) => name ? [...name].reduce((total, char) => (total * 31 + char.charCodeAt(0)) >>> 0, 7) % 6 : undefined;
 export function Avatar({ src, name, size = 36, square = false }: { src?: string | null; name?: string | null; size?: number; square?: boolean }) {
     return (
-        <span className={cx('gk-avatar', square && 'gk-avatar--square')} data-hue={src ? undefined : hue(name)} style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }} aria-hidden={!name}>
+        <span className={cx('gk-avatar', square && 'gk-avatar--square')} data-hue={src ? undefined : avatarHue(name)} style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }} aria-hidden={!name}>
             {src ? <img src={src} alt="" loading="lazy" /> : initials(name)}
         </span>
     );

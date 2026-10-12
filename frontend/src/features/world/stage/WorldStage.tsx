@@ -8,8 +8,10 @@ import { useMapFold } from '../directory/mapFold';
 import { WorldMap, type WorldMapPoint } from '../map/WorldMap';
 import { useMediaQuery } from '../useMediaQuery';
 import { FollowingProvider } from '../directories/people/FollowingProvider';
+import { PeekPlaceContext } from '../peek/drawerContext';
 import { Drawers } from '../peek/Drawers';
 import { MapBoundary } from './MapBoundary';
+import { keepPane } from '../peek/usePeek';
 import { StageContext, useStage, WIDE, type StageMap } from './stageContext';
 import './stage.css';
 
@@ -24,12 +26,13 @@ const NO_POINTS: WorldMapPoint[] = [];
  */
 export function WorldStage({ children }: { children: ReactNode }) {
     const t = useWorldCopy();
-    const { pathname } = useLocation();
+    const { pathname, state } = useLocation();
     const [head, setHead] = useState<HTMLElement | null>(null);
     const [panel, setPanel] = useState<HTMLElement | null>(null);
     const [dock, setDock] = useState<HTMLElement | null>(null);
     const [top, setTop] = useState<HTMLElement | null>(null);
     const [map, setMap] = useState<StageMap | null>(null);
+    const [paneHost, setPaneHost] = useState<HTMLElement | null>(null);
     const fold = useMapFold();
     const [params, setParams] = useSearchParams();
     const panelFolded = params.get('panel') === 'folded';
@@ -37,7 +40,7 @@ export function WorldStage({ children }: { children: ReactNode }) {
         const next = new URLSearchParams(current);
         if (panelFolded) next.delete('panel'); else next.set('panel', 'folded');
         return next;
-    }, { replace: true, preventScrollReset: true });
+    }, { replace: true, preventScrollReset: true, state: keepPane(state) });
     const wide = useMediaQuery(WIDE, true);
     const floating = wide && Boolean(map?.panel) && !panelFolded;
     // Folding swaps one button for another; focus follows to the one that undoes it.
@@ -50,8 +53,8 @@ export function WorldStage({ children }: { children: ReactNode }) {
     useEffect(() => { toggles.current = { map: fold.toggle, panel: togglePanel }; });
     const toggleMap = useCallback(() => { toggled.current = true; toggles.current.map(); }, []);
     const togglePanelStable = useCallback(() => toggles.current.panel(), []);
-    const value = useMemo(() => ({ inStage: true, head, panel, dock, top, setMap, mapOpen: fold.open, toggleMap, panelFolded, togglePanel: togglePanelStable }),
-        [head, panel, dock, top, fold.open, toggleMap, panelFolded, togglePanelStable]);
+    const value = useMemo(() => ({ inStage: true, head, panel, dock, top, setMap, mapOpen: fold.open, toggleMap, panelFolded, togglePanel: togglePanelStable, paneHost, setPaneHost }),
+        [head, panel, dock, top, fold.open, toggleMap, panelFolded, togglePanelStable, paneHost]);
     return (
         <StageContext.Provider value={value}><FollowingProvider>
             <div className="gk-world-stage">
@@ -96,11 +99,14 @@ export function StageHead({ children }: { children: ReactNode }) {
     return head ? createPortal(children, head) : null;
 }
 
-/** The glass panel over the map's right side (below the map on narrow screens). Outside World it renders in place. */
+/**
+ * The glass panel over the map's right side (below the map on narrow screens). Outside World it renders in place.
+ * What it opens comes out as a drawer: the pane beside the list is out of sight from the map.
+ */
 export function StagePanel({ children }: { children: ReactNode }) {
     const { inStage, panel } = useStage();
     if (!inStage) return <>{children}</>;
-    return panel ? createPortal(children, panel) : null;
+    return panel ? createPortal(<PeekPlaceContext.Provider value="overlay">{children}</PeekPlaceContext.Provider>, panel) : null;
 }
 
 /**
@@ -120,5 +126,5 @@ export function StageTop({ children }: { children: ReactNode }) {
 export function StageDock({ children }: { children: ReactNode }) {
     const { inStage, dock, mapOpen } = useStage();
     const wide = useMediaQuery(WIDE, true);
-    return inStage && mapOpen && wide && dock ? createPortal(children, dock) : <>{children}</>;
+    return inStage && mapOpen && wide && dock ? createPortal(<PeekPlaceContext.Provider value="overlay">{children}</PeekPlaceContext.Provider>, dock) : <>{children}</>;
 }

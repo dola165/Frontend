@@ -13,7 +13,7 @@ const clubs: Club[] = [
     { id: 3, name: 'Telavi Valley FC', city: 'Telavi' },
 ];
 const source = {
-    id: 'clubs', label: 'Clubs', noun: ['club', 'clubs'], searchLabel: 'Search clubs', searchPlaceholder: 'Search clubs', filters: [], pageSize: 12, layout: 'cards',
+    id: 'clubs', label: 'Clubs', noun: ['club', 'clubs'], searchLabel: 'Search clubs', searchPlaceholder: 'Search clubs', filters: [], pageSize: 12, layout: 'rows',
     load: vi.fn(), key: (club: Club) => String(club.id), Item: () => null, empty: { title: 'No clubs', body: '' },
     line: (club: Club) => ({ title: club.name, detail: `Academy · ${club.city}`, to: `/clubs/${club.id}`, action: 'Open club', fact: '6.7 km away' }),
 } satisfies DirectorySource<Club>;

@@ -8,6 +8,7 @@ import type { AnySource, DirectoryQuery, NavProps } from './types';
 import type { DirectoryData } from './useDirectoryData';
 import { ScoreResults, ScoreSkeleton } from './ScoreResults';
 import './result-row.css';
+import './result-tile.css';
 
 /** An error with a way to try again. */
 export function ErrorNote({ message, onRetry }: { message: string; onRetry: () => void }) {
@@ -20,11 +21,11 @@ export function ErrorNote({ message, onRetry }: { message: string; onRetry: () =
     );
 }
 
-/** Placeholder rows while a list loads. */
+/** Placeholder rows while a list loads: a 40px crest, a name and a line. */
 export function SkeletonRows({ count, label }: { count: number; label: string }) {
     return (
         <div role="status" aria-label={label}>
-            {Array.from({ length: count }, (_, index) => <div key={index} className="gk-world-skeleton-row"><Skeleton height={36} width={36} /><span><Skeleton height={16} width="40%" /><Skeleton height={12} width="65%" /></span></div>)}
+            {Array.from({ length: count }, (_, index) => <div key={index} className="gk-world-skeleton-row"><Skeleton height={40} width={40} /><span><Skeleton height={14} width="40%" /><Skeleton height={11} width="65%" /></span></div>)}
         </div>
     );
 }
@@ -33,17 +34,12 @@ function LoadingResults({ source }: { source: AnySource }) {
     const t = useWorldCopy();
     const label = t('Loading {things}', { things: t(source.noun[1]) });
     if (source.layout === 'scores') return <ScoreSkeleton label={label} />;
-    if (source.layout === 'results') return (
-        <ul className="gk-results" role="status" aria-label={label}>
-            {Array.from({ length: 6 }, (_, index) => <li key={index} className="gk-world-skeleton-row"><Skeleton height={56} width={56} /><span><Skeleton height={16} width="45%" /><Skeleton height={12} width="70%" /><Skeleton height={12} width="35%" /></span></li>)}
-        </ul>
+    if (source.layout === 'tiles') return (
+        <div role="status" aria-label={label}><ul className="gk-tiles" aria-hidden="true">
+            {Array.from({ length: 6 }, (_, index) => <li key={index}><span className="gk-tile-skeleton"><Skeleton height={56} width={56} /><Skeleton height={14} width="60%" /><Skeleton height={11} width="75%" /><Skeleton height={11} width="45%" /></span></li>)}
+        </ul></div>
     );
-    if (source.layout === 'cards') return (
-        <div className="gk-world-cards" role="status" aria-label={label}>
-            {Array.from({ length: 6 }, (_, index) => <div key={index} className="gk-world-card gk-world-card--skeleton"><Skeleton height={44} width={44} /><Skeleton height={18} width="70%" /><Skeleton height={14} width="45%" /></div>)}
-        </div>
-    );
-    return <Panel flush><SkeletonRows count={5} label={label} /></Panel>;
+    return <Panel flush><SkeletonRows count={6} label={label} /></Panel>;
 }
 
 /** Results of one source with honest loading, error, notice, empty and load-more states. */
@@ -86,8 +82,9 @@ export function DirectoryResults({ source, data, groups, filtered, onClear, onWi
     const { Item } = source;
     const laid = (list: unknown[], label: string) => {
         const items = list.map(item => <DirectoryItemKey.Provider key={source.key(item)} value={source.key(item)}><Item item={item} /></DirectoryItemKey.Provider>);
-        if (source.layout === 'results') return <ul className="gk-results" aria-label={label}>{items}</ul>;
-        return source.layout === 'rows' ? <Panel flush><List label={label}>{items}</List></Panel> : <div className="gk-world-cards">{items}</div>;
+        // People as cards several to a line; everything else one to a line, in one panel.
+        if (source.layout === 'tiles') return <ul className="gk-tiles" aria-label={label}>{items}</ul>;
+        return <Panel flush><List label={label}>{items}</List></Panel>;
     };
     const more = (data.hasMore || data.moreError) && (
         <div className="gk-world-more">

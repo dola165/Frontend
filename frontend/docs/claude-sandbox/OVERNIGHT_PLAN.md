@@ -13,7 +13,7 @@ Nothing here is deployed, merged or pointed at real data. It runs on a synthetic
 ## Layout rules (from the owner's screenshots)
 
 - Pages use the full width with small side margins (24–32px). Columns grow with the screen; space between columns is fine.
-- No narrow centred column with dead space on both sides (the X / LinkedIn look).
+- No narrow centred column with dead space on both sides (the X / LinkedIn look). Superseded for lists under World's map (owner, 12 October): they sit in a feed-width column with the thing pressed beside it.
 - On very large screens the layout stops growing at a generous maximum and keeps a clean frame (like the zoomed-out Home).
 - Profile pages (club, person) may use a narrower frame, never narrower than today's club profile.
 

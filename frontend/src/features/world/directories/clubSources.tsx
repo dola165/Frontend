@@ -2,7 +2,7 @@ import type { Participant } from '../../admissions/types';
 import type { ClubProfile } from '../../../components/discovery/clubDirectoryTypes';
 import { distanceKm } from '../../../components/map/walkingGraph';
 import { fetchClubDirectory } from '../api';
-import { ClubCard } from '../cards/ClubCard';
+import { ClubRow } from '../cards/ClubRow';
 import { first, type DirectoryQuery, type DirectorySource } from '../directory/types';
 import { wt } from '../copy';
 import { clubTypeLabel, distanceLabel } from '../format';
@@ -53,7 +53,7 @@ export function clubsSource({ child, centre, city }: { child?: Participant; cent
         noun: ['club', 'clubs'],
         searchLabel: 'Search clubs',
         searchPlaceholder: 'Search clubs by name or area',
-        layout: 'cards',
+        layout: 'rows',
         pageSize: PAGE,
         area: true,
         version: String(child?.id ?? ''),
@@ -84,7 +84,7 @@ export function clubsSource({ child, centre, city }: { child?: Participant; cent
             return { items: result.content, total: result.totalElements, hasMore: page + 1 < result.totalPages };
         },
         key: club => String(club.id),
-        Item: ({ item }) => <ClubCard club={item} distanceKm={distance(item)} />,
+        Item: ({ item }) => <ClubRow club={item} distanceKm={distance(item)} />,
         line: club => {
             const km = distance(club);
             return {

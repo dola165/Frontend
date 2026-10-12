@@ -35,9 +35,11 @@ export interface StageValue {
     /** The slot at the map's top left (the day strip). */ top: HTMLElement | null; setMap: (map: StageMap | null) => void;
     /** The map is open (not folded to a strip). */ mapOpen: boolean; toggleMap: () => void;
     /** The panel is folded to its header. */ panelFolded: boolean; togglePanel: () => void;
+    /** The list column that can show the pane beside it, while one is on screen. */ paneHost: HTMLElement | null; setPaneHost: (host: HTMLElement | null) => void;
 }
 
-const outside: StageValue = { inStage: false, head: null, panel: null, dock: null, top: null, setMap: () => undefined, mapOpen: false, toggleMap: () => undefined, panelFolded: false, togglePanel: () => undefined };
+const outside: StageValue = { inStage: false, head: null, panel: null, dock: null, top: null, setMap: () => undefined, mapOpen: false, toggleMap: () => undefined, panelFolded: false, togglePanel: () => undefined,
+    paneHost: null, setPaneHost: () => undefined };
 export const StageContext = createContext<StageValue>(outside);
 
 /** The World stage around this page; outside World (tests, previews) nothing is drawn into it. */

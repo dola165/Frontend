@@ -21,6 +21,10 @@ const blank = (squadId: number): Draft => ({
     opponent: null, targetSquadId: -1, squadId, date: '', time: '', minutes: null, format: null, ground: { kind: 'LATER', city: '' },
     referee: 'US', refereeName: '', note: '', title: '', matchType: 'FRIENDLY', level: 'DEVELOPMENT', timezone: zone(), requestId: crypto.randomUUID(),
 });
+/** The referee control a referee problem is about: the name, the referee to invite, the fee, else the choice itself. */
+const refereeTarget = (draft: Draft, problem: string) => draft.referee === 'EXTERNAL' ? '#arrange-referee-name'
+    : draft.referee === 'INVITE' && !draft.invited ? '#arrange-referee-search'
+        : /fee|currency/i.test(problem) ? '#arrange-referee-fee' : '#arrange-referee';
 /** Where focus goes for each problem, in reading order. */
 const FIELD_TARGETS: [keyof Problems, string][] = [['opponent', '#arrange-opponent, #arrange-their-squad + [role=radiogroup] [tabindex="0"]'], ['squad', '[aria-labelledby="arrange-squad-label"] [tabindex="0"], .gk-arrange__other-squad'],
     ['date', '#arrange-date'], ['time', '#arrange-time'], ['length', '#arrange-minutes'], ['ground', 'input[name="arrange-ground"]:checked'], ['referee', '#arrange-referee'], ['timezone', '#arrange-timezone']];
@@ -43,6 +47,19 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
     const [error, setError] = useState('');
     const [confirmReset, setConfirmReset] = useState(false);
     const sending = useRef(false);
+    // Keyboard focus never lands under the match pinned at the top or Send pinned at the bottom: the drawer keeps their
+    // heights clear when it scrolls a field into view.
+    const ready = Boolean(data.squads.data?.length);
+    useEffect(() => {
+        const body = form.current?.closest<HTMLElement>('.gk-drawer__body');
+        const top = form.current?.querySelector<HTMLElement>('.gk-arrange__preview'), foot = form.current?.querySelector<HTMLElement>('.gk-arrange__foot');
+        if (!ready || !body || !top || !foot) return;
+        const fit = () => { body.style.scrollPaddingBlock = `${top.offsetHeight + 8}px ${foot.offsetHeight + 8}px`; };
+        fit();
+        const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit);
+        observer?.observe(top); observer?.observe(foot);
+        return () => { observer?.disconnect(); body.style.scrollPaddingBlock = ''; };
+    }, [ready]);
 
     // A "Propose a match" from a club names the opponent; fill it in once.
     const applyOpponent = useEffectEvent((club: { id: number; name: string; logoUrl?: string | null; cityName?: string | null }) => {
@@ -55,11 +72,12 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
         return () => controller.abort();
     }, [mode, opponentId]);
 
-    // A ground with no city on record takes the city it is in: ours is in our club's city, theirs in theirs.
+    // A ground with no city on record takes the city it is in: ours is in our club's city, theirs (and "at their
+    // ground" when inviting them) in theirs, anything else in ours.
     const withCity = (ground: GroundChoice): GroundChoice => {
         if ('ground' in ground) return ground.ground && !ground.ground.city?.trim() && !ground.city?.trim()
             ? { ...ground, city: ground.kind === 'OURS' ? data.ownCity : ground.kind === 'THEIRS' ? draft.opponent?.city ?? '' : '' } : ground;
-        return ground.city.trim() ? ground : { ...ground, city: data.ownCity };
+        return ground.city.trim() ? ground : { ...ground, city: (ground.kind === 'TRAVEL' && mode === 'direct' && draft.opponent?.city) || data.ownCity };
     };
     // Clubs almost always host at their own ground, so it is the starting choice until the person picks another.
     const starting = (ground: GroundChoice): GroundChoice => ground.kind === 'LATER' && !draft.groundTouched && data.ours.data?.[0] ? { kind: 'OURS', ground: data.ours.data[0] } : ground;
@@ -75,7 +93,7 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
         event.preventDefault();
         setChecked(true);
         const first = FIELD_TARGETS.find(([key]) => problems[key]);
-        if (first) { form.current?.querySelector<HTMLElement>(first[1])?.focus(); return; }
+        if (first) { form.current?.querySelector<HTMLElement>(first[0] === 'referee' ? refereeTarget(effective, problems.referee ?? '') : first[1])?.focus(); return; }
         if (sending.current || !data.ourSquad) return;
         sending.current = true; setBusy(true); setError('');
         try {
@@ -99,7 +117,8 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
                 <legend className="gk-visually-hidden">Teams</legend>
                 {mode === 'direct' && <OpponentField opponent={draft.opponent} ownClubId={data.ownClubId} squads={data.theirSquads} targetSquadId={data.targetSquadId}
                     suggestedSquadId={data.suggestedTheirs} error={shown.opponent}
-                    onOpponent={opponent => patch({ opponent, targetSquadId: -1, ...(draft.ground.kind === 'THEIRS' ? { ground: { kind: 'LATER', city: '' }, groundTouched: false } : {}) })}
+                    onOpponent={opponent => patch({ opponent, targetSquadId: -1, ...(draft.ground.kind === 'THEIRS' ? { ground: { kind: 'LATER', city: '' }, groundTouched: false }
+                        : draft.ground.kind === 'TRAVEL' ? { ground: { kind: 'TRAVEL', city: opponent?.city ?? '' } } : {}) })}
                     onTargetSquad={targetSquadId => patch({ targetSquadId })} />}
                 <SquadField squads={data.squads.data} coached={data.coached} value={data.squadId} onChange={id => patch({ squadId: id, minutes: null, format: null, ageGroup: null })} error={shown.squad} />
             </fieldset>
@@ -107,13 +126,13 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
                 <legend className="gk-visually-hidden">When</legend>
                 <KickoffField date={draft.date} time={draft.time} minutes={draft.minutes} format={draft.format} ageGroup={ageGroup} squadAge={data.ageGroup} known={Boolean(data.ourSquad)}
                     today={localStamp(now, draft.timezone || zone()).slice(0, 10)} onChange={patch} errors={{ date: shown.date, time: shown.time, length: shown.length }} />
-                {mode === 'open' && data.ourSquad && draft.date && <BeforeYouPost ageGroup={ageGroup} date={draft.date} ownClubId={data.ownClubId}
+                {mode === 'open' && data.ourSquad && draft.date && !data.ours.loading && <BeforeYouPost ageGroup={ageGroup} date={draft.date} ownClubId={data.ownClubId}
                     near={data.ours.data?.[0]?.latitude != null && data.ours.data[0].longitude != null ? { lat: data.ours.data[0].latitude, lng: data.ours.data[0].longitude } : null} />}
             </fieldset>
             <fieldset className="gk-arrange__group" disabled={busy}>
                 <legend className="gk-visually-hidden">Where</legend>
                 <GroundField mode={mode} value={effective.ground} hosting={draft.hosting} onChange={ground => patch({ ground, groundTouched: true })} onHosting={hosting => patch({ hosting })}
-                    ours={data.ours} theirs={mode === 'direct' && draft.opponent ? data.theirs : null} opponentName={draft.opponent?.name} defaultCity={data.ownCity} error={shown.ground} />
+                    ours={data.ours} theirs={mode === 'direct' && draft.opponent ? data.theirs : null} opponentName={draft.opponent?.name} opponentCity={draft.opponent?.city} defaultCity={data.ownCity} error={shown.ground} />
             </fieldset>
             <fieldset className="gk-arrange__group" disabled={busy}>
                 <legend className="gk-visually-hidden">Referee and notes</legend>

@@ -4,15 +4,15 @@
 .gk .gk-reserve__list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; border: 1px solid var(--gk-line); border-radius: var(--gk-r); }
 .gk .gk-reserve__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); padding: var(--gk-3); }
 .gk .gk-reserve__row + .gk-reserve__row { border-top: 1px solid var(--gk-line); }
-.gk .gk-reserve__row[data-unusable] .gk-reserve__text > :not(.gk-reserve__why) { opacity: .6; }
 .gk .gk-reserve__text { flex: 1 1 240px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .gk .gk-reserve__text strong { font-weight: 600; overflow-wrap: anywhere; }
 .gk .gk-reserve__text small { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .gk-reserve__why { display: flex; align-items: center; gap: 6px; }
 .gk .gk-reserve__why::before { content: ''; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--gk-warning); }
 .gk .gk-reserve__act { display: inline-flex; align-items: center; gap: var(--gk-2); }
-.gk .gk-reserve__share { flex-basis: 100%; align-self: flex-start; padding: 0; border: 0; background: none; color: var(--gk-accent); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; text-align: left; }
-.gk .gk-reserve__share:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* Sharing is the quieter, rarer action beside the row's one bright button. */
+.gk .gk-reserve__share { flex-basis: 100%; align-self: flex-start; padding: 0; border: 0; background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); cursor: pointer; text-align: left; }
+.gk .gk-reserve__share:hover, .gk .gk-reserve__share:focus-visible { color: var(--gk-accent); text-decoration: underline; text-underline-offset: 3px; }
 .gk .gk-reserve__review { flex-basis: 100%; display: flex; flex-direction: column; gap: var(--gk-2); padding-top: var(--gk-2); border-top: 1px dashed var(--gk-line); }
 .gk .gk-reserve__actions { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
 .gk .gk-reserve__live { margin: 0; padding: var(--gk-3); border-radius: var(--gk-r); background: var(--gk-sunken); font-size: var(--gk-fs-sm); }

@@ -375,7 +375,7 @@ const en = {
     title: 'Roles',
     heading: 'Roles',
     description: 'Post ongoing paid, volunteer or flexible roles. Supported player and coach applications land in the Applications tab.',
-    postJob: 'Post role',
+    postJob: 'Post a job',
     empty: 'No role postings yet.',
     close: 'Close',
     reopen: 'Reopen',

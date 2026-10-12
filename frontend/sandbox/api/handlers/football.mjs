@@ -272,7 +272,8 @@ post('/match-exchange/:id/venue', ({ params, body }) => {
   if (body?.bookingId) {
     const b = F.bookingById(body.bookingId);
     if (!b || !(b.userId === W.ME_ID || b.allocatedClubId === DINAMO)) return reply(404, { status: 404, message: 'That reservation is not yours to use.' });
-    if (view.booking_id && view.venue_status === 'BOOKED') return conflict('This match already has a live reservation. Resolve it at the stadium first.');
+    // As the backend, by the stored status: a request the venue let lapse still holds the ground until it is released.
+    if (['PENDING', 'CONFIRMED'].includes(F.bookingById(l.bookingId)?.status)) return conflict('This match already has a live reservation. Resolve it at the stadium first.');
     if (!['CONFIRMED', 'PENDING'].includes(b.status)) return reply(400, { status: 400, message: 'Only a confirmed or pending reservation can be linked.' });
     if (b.venueId !== l.venueId) return reply(400, { status: 400, message: 'The reservation is at a different ground. The host can move the match there.' });
     if (b.start > l.start || b.end < l.end) return reply(400, { status: 400, message: 'The reservation does not cover the whole match.' });

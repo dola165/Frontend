@@ -1,12 +1,13 @@
 import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { isAxiosError } from 'axios';
 import { ArrowRight } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { Button } from '../../../../design/primitives';
 import { extractApiErrorMessage } from '../../../../utils/apiError';
 import type { Match, Squad } from '../../../matchExchange/api';
 import { ageGroupOf } from '../../../matchExchange/arrange/matchPlan';
-import { needsReferee } from '../../../matchExchange/detail/matchState';
+import { canUseReservation, holdsGround, isActive, needsReferee } from '../../../matchExchange/detail/matchState';
 import { answerInvitation, offerToPlay } from '../../../matchExchange/detail/opponentActions';
 import { forget } from '../../cache';
 import { useWorldCopy } from '../../copy';
@@ -14,17 +15,32 @@ import { loadMyFit } from '../../directories/matches/openMatches';
 import { isoDayOf } from '../../format';
 import { fitOf, fitSquads } from '../../scoreboard/squadFit';
 import { useWorldData } from '../../useWorldData';
+import { noteDone } from './stepNotice';
 import '../step.css';
 
-/** A step's sending state: busy while it goes, the reason when it did not. */
+/**
+ * A step's sending state: busy while it goes, the reason when it did not. Once it worked, what it did is kept
+ * (`noteDone`) and the drawer reads the match again. A match changed by someone else meanwhile (409) says so, with
+ * Reload, because sending again would repeat the same out-of-date answer.
+ */
 function useSend(reload: () => void) {
-    const [state, setState] = useState({ busy: false, error: '' });
-    const send = async (action: () => Promise<unknown>, failed: string) => {
-        setState({ busy: true, error: '' });
-        try { await action(); setState({ busy: false, error: '' }); reload(); }
-        catch (error) { setState({ busy: false, error: extractApiErrorMessage(error, failed) }); }
+    const [state, setState] = useState({ busy: false, error: '', changed: false });
+    const send = async (action: () => Promise<unknown>, done: string, failed: string) => {
+        setState({ busy: true, error: '', changed: false });
+        try { await action(); setState({ busy: false, error: '', changed: false }); noteDone(done); reload(); }
+        catch (error) {
+            const changed = isAxiosError(error) && error.response?.status === 409;
+            setState({ busy: false, changed, error: changed ? 'This match changed since you opened it.' : extractApiErrorMessage(error, failed) });
+        }
     };
     return { ...state, send };
+}
+
+/** A step's reason it did not send, with Reload when the match changed under it. */
+function SendError({ error, changed, reload }: { error: string; changed: boolean; reload: () => void }) {
+    const t = useWorldCopy();
+    if (!error) return null;
+    return <p className="gk-step__error" role="alert">{t(error)}{changed && <> <button type="button" className="gk-step__reload" onClick={reload}>{t('Reload')}</button></>}</p>;
 }
 
 /**
@@ -47,7 +63,7 @@ export function OfferStep({ listing, squads, reload }: { listing: Match; squads:
     const squad = choices.find(item => item.id === squadId);
     const [note, setNote] = useState('');
     // An offer changes which listings I have offered on: the open matches' "Your U14 Boys?" asks again.
-    const { busy, error, send } = useSend(() => { forget(`my-fit:${sessionId}`); reload(); });
+    const { busy, error, changed, send } = useSend(() => { forget(`my-fit:${sessionId}`); reload(); });
     const playsThatDay = squad && fit?.busy.get(squad.id)?.has(isoDayOf(listing.starts_at_iso));
     return (
         <section className="gk-step" aria-label={t('Offer to play')}>
@@ -66,9 +82,10 @@ export function OfferStep({ listing, squads, reload }: { listing: Match; squads:
             <p className="gk-step__preview">{squad
                 ? t('Offers {squad} to {club}. They choose one offer; nothing is agreed until they accept.', { squad: squad.name, club: listing.club_name })
                 : t('Choose the squad that would play.')}</p>
-            {error && <p className="gk-step__error" role="alert">{error}</p>}
+            <SendError error={error} changed={changed} reload={reload} />
             <div className="gk-step__actions">
-                <Button variant="primary" disabled={!squad || busy} onClick={() => void send(() => offerToPlay(listing, squad!.id, note.trim()), t('The offer could not be sent.'))}>
+                <Button variant="primary" disabled={!squad || busy} onClick={() => void send(() => offerToPlay(listing, squad!.id, note.trim()),
+                    t('{squad} offered to {club}. They choose one offer; you will see their answer here.', { squad: squad!.name, club: listing.club_name }), t('The offer could not be sent.'))}>
                     {busy ? t('Sending…') : t('Offer to play')}
                 </Button>
             </div>
@@ -87,7 +104,7 @@ export function AnswerStep({ listing, squads, reload }: { listing: Match; squads
     const squadId = picked ?? listing.requested_squad_id ?? (available.length === 1 ? available[0].id : undefined);
     const squad = available.find(item => item.id === squadId);
     const [declining, setDeclining] = useState(false);
-    const { busy, error, send } = useSend(reload);
+    const { busy, error, changed, send } = useSend(reload);
     return (
         <section className="gk-step" aria-label={t('Answer the invitation')}>
             <h4 className="gk-step__title">{t('{club} invited you to play', { club: listing.club_name })}</h4>
@@ -99,13 +116,13 @@ export function AnswerStep({ listing, squads, reload }: { listing: Match; squads
                 : <p className="gk-step__preview">{squad
                     ? t('Accepting adds the match to the schedule of {squad} and opens a conversation between both coaching teams.', { squad: squad.name })
                     : t('Choose the squad that would play.')}</p>}
-            {error && <p className="gk-step__error" role="alert">{error}</p>}
+            <SendError error={error} changed={changed} reload={reload} />
             <div className="gk-step__actions">
                 {declining ? <>
-                    <Button variant="danger" disabled={busy} onClick={() => void send(() => answerInvitation(listing, { accept: false }), t('The answer could not be sent.'))}>{t('Decline the invitation')}</Button>
+                    <Button variant="danger" disabled={busy} onClick={() => void send(() => answerInvitation(listing, { accept: false }), t('Invitation declined. {club} is told.', { club: listing.club_name }), t('The answer could not be sent.'))}>{t('Decline the invitation')}</Button>
                     <Button variant="ghost" disabled={busy} onClick={() => setDeclining(false)}>{t('Keep it')}</Button>
                 </> : <>
-                    <Button variant="primary" disabled={!squad || busy} onClick={() => void send(() => answerInvitation(listing, { accept: true, squadId: squad!.id }), t('The answer could not be sent.'))}>
+                    <Button variant="primary" disabled={!squad || busy} onClick={() => void send(() => answerInvitation(listing, { accept: true, squadId: squad!.id }), t('Invitation accepted. The match is in the schedule of {squad}.', { squad: squad!.name }), t('The answer could not be sent.'))}>
                         {busy ? t('Sending…') : t('Accept invitation')}
                     </Button>
                     <Button variant="ghost" disabled={busy} onClick={() => setDeclining(true)}>{t('Decline')}</Button>
@@ -127,11 +144,20 @@ export function RefereeLine({ listing }: { listing: Match }) {
     );
 }
 
-/** A match of ours whose ground is not settled: the line to the match page's step that uses a reservation for it. */
-export function GroundLine({ listing }: { listing: Match }) {
+/**
+ * A match of ours whose ground is not settled: the line to the match page's step that uses a reservation for it, or,
+ * when its reservation no longer fits, to the venue that holds it (another one cannot be used until that is changed).
+ */
+export function GroundLine({ listing, now }: { listing: Match; now: number }) {
     const t = useWorldCopy();
     const attention = listing.venue_status === 'NEEDS_ATTENTION';
-    if (!listing.can_arrange || !(attention || listing.venue_status === 'NEEDED')) return null;
+    if (!(attention || listing.venue_status === 'NEEDED')) return null;
+    if (holdsGround(listing) && listing.can_arrange && isActive(listing, now)) return (
+        <Link className="gk-step-line" data-tone={attention ? 'danger' : undefined} to={`/stadiums/${listing.booking!.venue_id}`}>
+            <span>{attention ? t('The ground needs attention') : t('Ground to arrange')}</span><b>{t('Change the reservation')}</b><ArrowRight aria-hidden="true" />
+        </Link>
+    );
+    if (!canUseReservation(listing, isActive(listing, now))) return null;
     return (
         <Link className="gk-step-line" data-tone={attention ? 'danger' : undefined} to={`/match-exchange/${listing.event_id}?ground=reserve`}>
             <span>{attention ? t('The ground needs attention') : t('Ground to arrange')}</span><b>{t('Use a reservation')}</b><ArrowRight aria-hidden="true" />

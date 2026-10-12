@@ -12,13 +12,15 @@ import './create.css';
 
 const GROUPS: CreateAction['group'][] = ['Matches', 'Club', 'Tournaments', 'Places'];
 
-/** "12 min ago", "3 h ago", "yesterday": how long a draft has waited. */
+/** "12 min ago", "3 h ago", "yesterday", "3 d ago": how long a draft has waited, by the calendar after a day. */
 function waited(savedAt: number, t: ReturnType<typeof useWorldCopy>) {
     const minutes = Math.max(0, Math.round((Date.now() - savedAt) / 60000));
     if (minutes < 1) return t('just now');
     if (minutes < 60) return t('{n} min ago', { n: minutes });
-    const hours = Math.round(minutes / 60);
-    return hours < 24 ? t('{n} h ago', { n: hours }) : t('yesterday');
+    if (minutes < 24 * 60) return t('{n} h ago', { n: Math.floor(minutes / 60) });
+    const midnight = (time: number) => { const day = new Date(time); day.setHours(0, 0, 0, 0); return day.getTime(); };
+    const days = Math.round((midnight(Date.now()) - midnight(savedAt)) / 86_400_000);
+    return days <= 1 ? t('yesterday') : t('{n} d ago', { n: days });
 }
 
 /** A draft as the match it will be: whom it invites (or that it is open) and when. */
@@ -45,14 +47,15 @@ export function CreateMenu({ face }: { /** The tab's likely action, on the butto
     const main = actions.find(action => action.id === face);
     // Drafts are read when the menu opens, so it always offers what is in this browser session now.
     const drafts = open && actions.some(action => action.id === 'arrange') ? arrangeDrafts(user?.id, sessionId).slice(0, 3) : [];
+    // Opening a drawer first gives focus back to the "+", so the drawer returns it there when it closes.
     const run = (action: Pick<CreateAction, 'peek' | 'to'>) => {
-        close(false);
+        close(Boolean(action.peek));
         if (action.peek) drawers.open(action.peek); else if (action.to) navigate(action.to);
     };
     return (
         <div className="gk-create" data-split={main ? true : undefined} onKeyDown={onKeyDown}>
-            {main && <button type="button" className="gk-create__main" onClick={() => run(main)}><Plus aria-hidden="true" />{t(main.label)}</button>}
-            <button ref={triggerRef} type="button" className="gk-create__more" aria-haspopup="menu" aria-expanded={open} aria-controls={open ? id : undefined}
+            {main && <button type="button" className="gk-btn gk-btn--primary gk-create__main" onClick={() => run(main)}><Plus aria-hidden="true" />{t(main.label)}</button>}
+            <button ref={triggerRef} type="button" className="gk-btn gk-btn--primary gk-create__more" aria-haspopup="menu" aria-expanded={open} aria-controls={open ? id : undefined}
                 aria-label={main ? t('More to create') : undefined} onClick={toggle} onKeyDown={event => openMenuFromKey(event, show)}>
                 {!main && <><Plus aria-hidden="true" />{t('Create')}</>}<ChevronDown aria-hidden="true" />
             </button>

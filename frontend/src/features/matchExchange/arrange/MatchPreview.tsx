@@ -9,8 +9,10 @@ const REFEREE: Record<Draft['referee'], string> = { US: 'Referee later', THEM: '
  * The match as it will appear once sent: the same score line as every list (kick-off, the two sides with their crests,
  * the home side on top), the ground with who hosts, and the age group, format, length and referee under it.
  */
-export function MatchPreview({ mode, draft, squad, ourLogo, ageGroup, targetSquadName, children }: {
-    mode: Mode; draft: Draft; squad: Squad | null; ourLogo?: string | null; ageGroup: string; targetSquadName: string | null; /** Above the line (the choice of invite or open match). */ children?: ReactNode;
+export function MatchPreview({ mode, draft, squad, ourLogo, ageGroup, targetSquadName, refereeWords, children }: {
+    mode: Mode; draft: Draft; squad: Squad | null; ourLogo?: string | null; ageGroup: string; targetSquadName: string | null;
+    /** The referee as things stand (an edited match's appointment), until the person changes it. */ refereeWords?: string;
+    /** Above the line (the choice of invite or open match). */ children?: ReactNode;
 }) {
     const minutes = draft.minutes ?? defaultMinutes(ageGroup);
     const hosting = hostingOf(draft);
@@ -33,7 +35,8 @@ export function MatchPreview({ mode, draft, squad, ourLogo, ageGroup, targetSqua
             <p className="gk-arrange__where">{where}{host && <b>{host}</b>}</p>
             {/* Until a squad is chosen the age group, format and length are not known (they follow the squad). */}
             <p className="gk-arrange__terms">{[...(squad || draft.ageGroup ? [label(ageGroup), formatLabel(draft.format ?? defaultFormat(ageGroup)), `${minutes} min`,
-                draft.date && draft.time ? `ends ${addMinutes(`${draft.date}T${draft.time}`, minutes).slice(11)}` : null] : ['Format and length follow your squad']), REFEREE[draft.referee]].filter(Boolean).join(' · ')}</p>
+                draft.date && draft.time ? `ends ${addMinutes(`${draft.date}T${draft.time}`, minutes).slice(11)}` : null] : ['Format and length follow your squad']),
+                refereeWords ?? (mode === 'edit' && draft.referee === 'US' ? 'Referee needed' : REFEREE[draft.referee])].filter(Boolean).join(' · ')}</p>
         </div>
     );
 }

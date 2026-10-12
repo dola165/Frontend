@@ -29,9 +29,9 @@ function Option({ id, checked, onSelect, title, detail, badge, children }: { id:
  * pin on the map, or to be arranged. At a club's ground hosting follows from it; anywhere else the person says who hosts
  * (we host, they host, neutral, to agree). Choosing a ground never books or rents it; rentals are for training.
  */
-export function GroundField({ mode, value, hosting, onChange, onHosting, ours, theirs, opponentName, defaultCity, error }: {
+export function GroundField({ mode, value, hosting, onChange, onHosting, ours, theirs, opponentName, opponentCity, defaultCity, error }: {
     mode: Mode; value: GroundChoice; hosting?: Hosting | null; onChange: (value: GroundChoice) => void; onHosting: (value: Hosting) => void;
-    ours: Load<Ground[]>; theirs: Load<Ground[]> | null; opponentName?: string; defaultCity: string; error?: string;
+    ours: Load<Ground[]>; theirs: Load<Ground[]> | null; opponentName?: string; /** At their ground starts in their city. */ opponentCity?: string | null; defaultCity: string; error?: string;
 }) {
     const [query, setQuery] = useState('');
     const venues = useSearch(query, (q, signal) => searchVenues(q, signal));
@@ -59,7 +59,7 @@ export function GroundField({ mode, value, hosting, onChange, onHosting, ours, t
                 {theirs?.loading && <li className="gk-arrange__ground"><Skeleton height={44} /></li>}
                 {theirs?.data?.map(ground => <Option key={ground.key} id={`arrange-ground-theirs-${ground.key}`} checked={current === `THEIRS:${ground.key}`}
                     onSelect={() => onChange({ kind: 'THEIRS', ground })} title={ground.name} detail={[`${opponentName ?? 'Their'} ground`, ground.detail].filter(Boolean).join(' · ')} badge={<Badge tone="info">You travel</Badge>}>{missingCity(`arrange-ground-city-${ground.key}`)}</Option>)}
-                <Option id="arrange-ground-travel" checked={current === 'TRAVEL'} onSelect={() => onChange({ kind: 'TRAVEL', city: startCity })}
+                <Option id="arrange-ground-travel" checked={current === 'TRAVEL'} onSelect={() => onChange({ kind: 'TRAVEL', city: (mode !== 'open' && opponentCity) || startCity })}
                     title={travel.title} detail={travel.detail} badge={<Badge tone="info">You travel</Badge>}>{cityInput('arrange-travel-city')}</Option>
                 <Option id="arrange-ground-other" checked={current === 'OTHER'} onSelect={() => onChange({ kind: 'OTHER', ground: null })}
                     title="Another venue on GrassKickZ" detail={value.kind === 'OTHER' && value.ground ? [value.ground.name, groundLocation(value).city].filter(Boolean).join(' · ') : 'A neutral ground or a venue another club uses'}>

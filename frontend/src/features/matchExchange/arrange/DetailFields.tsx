@@ -12,14 +12,15 @@ const invitedFrom = (referee: Referee): InvitedReferee => ({ id: referee.user_id
     acceptsVolunteer: referee.accepts_volunteer, acceptsPaid: referee.accepts_paid });
 
 /** Volunteer, or a fee in a currency: what a referee invited now, or referees asked nearby, are offered. */
-function Terms({ draft, onChange }: { draft: Draft; onChange: (value: Partial<Draft>) => void }) {
+function Terms({ draft, onChange, error }: { draft: Draft; onChange: (value: Partial<Draft>) => void; /** A fee problem, said under the field. */ error?: string }) {
     const paid = draft.volunteer === false;
     return <>
         <ChoiceChips label="Terms" value={paid ? 'PAID' : 'VOLUNTEER'} onChange={value => onChange({ volunteer: value === 'VOLUNTEER', fee: draft.fee ?? String(draft.invited?.fee ?? 0), currency: draft.currency ?? draft.invited?.currency ?? 'GEL' })}
             choices={[{ value: 'VOLUNTEER', label: 'Volunteer' }, { value: 'PAID', label: 'Paid' }]} />
         {paid && <div className="gk-arrange__kickoff">
             <Field label="Fee offered" htmlFor="arrange-referee-fee">
-                <input id="arrange-referee-fee" className="gk-input" type="number" inputMode="decimal" min={0} max={1_000_000} step="0.01" value={draft.fee ?? ''} onChange={event => onChange({ fee: event.target.value })} />
+                <input id="arrange-referee-fee" className="gk-input" type="number" inputMode="decimal" min={0} max={1_000_000} step="0.01" value={draft.fee ?? ''}
+                    aria-invalid={Boolean(error) || undefined} aria-describedby={error ? 'arrange-referee-error' : undefined} onChange={event => onChange({ fee: event.target.value })} />
             </Field>
             <Field label="Currency" htmlFor="arrange-referee-currency">
                 <select id="arrange-referee-currency" className="gk-input" value={draft.currency ?? 'GEL'} onChange={event => onChange({ currency: event.target.value })}>{['GEL', 'EUR', 'GBP', 'USD'].map(code => <option key={code}>{code}</option>)}</select>
@@ -30,6 +31,7 @@ function Terms({ draft, onChange }: { draft: Draft; onChange: (value: Partial<Dr
 
 /** The referee to invite now: one of the club's own referees, or anyone in the directory found by name or area. */
 function InviteReferee({ draft, squadId, onChange }: { draft: Draft; squadId: number; onChange: (value: Partial<Draft>) => void }) {
+    // The search is what an "invite a referee" problem points at (it carries the field's own label).
     const [query, setQuery] = useState('');
     const results = useSearch(query, searchReferees);
     const choose = (referee: Referee) => onChange({ invited: invitedFrom(referee), fee: String(referee.fee), currency: referee.currency, volunteer: draft.volunteer ?? !referee.accepts_paid });
@@ -43,7 +45,7 @@ function InviteReferee({ draft, squadId, onChange }: { draft: Draft; squadId: nu
     );
     return <>
         <ClubRefereeChoices squadId={squadId || null} volunteer={draft.volunteer !== false} selectedId={0} onSelect={choose} />
-        <Combobox label="Referees" query={query} onQuery={setQuery} items={results.items} itemKey={referee => referee.user_id} status={results.status}
+        <Combobox id="arrange-referee-search" label="Referees" query={query} onQuery={setQuery} items={results.items} itemKey={referee => referee.user_id} status={results.status}
             placeholder="Search referees by name or area" emptyText="No referee matches that search." errorText="Referee search is unavailable. Ask referees nearby instead."
             renderItem={referee => <span className="gk-arrange__option-text"><strong>{referee.full_name}</strong><span>{[referee.service_area, referee.accepts_paid ? `${referee.fee} ${referee.currency}` : 'Volunteer'].filter(Boolean).join(' · ')}</span></span>}
             onSelect={referee => { choose(referee); setQuery(''); }} />
@@ -76,17 +78,19 @@ export function RefereeField({ mode, draft, squadId, onChange, error, opponentNa
     return (
         <div className="gk-field gk-arrange__referee">
             <label className="gk-field__label" htmlFor="arrange-referee">Referee</label>
-            <select id="arrange-referee" className="gk-input" value={value} onChange={event => onChange({ referee: event.target.value as RefereeChoice })}>
+            <select id="arrange-referee" className="gk-input" value={value} aria-invalid={Boolean(error) || undefined} aria-describedby={error ? 'arrange-referee-error' : 'arrange-referee-hint'}
+                onChange={event => onChange({ referee: event.target.value as RefereeChoice })}>
                 {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
             {value === 'EXTERNAL' && <>
                 <label className="gk-visually-hidden" htmlFor="arrange-referee-name">Referee’s name</label>
                 <input id="arrange-referee-name" className="gk-input" maxLength={160} value={draft.refereeName} placeholder="Referee’s name" aria-invalid={Boolean(error) || undefined}
+                    aria-describedby={error ? 'arrange-referee-error' : undefined}
                     onChange={event => onChange({ refereeName: event.target.value })} />
             </>}
             {value === 'INVITE' && <InviteReferee draft={draft} squadId={squadId} onChange={onChange} />}
-            {(value === 'INVITE' || value === 'OPEN') && <Terms draft={draft} onChange={onChange} />}
-            {error ? <span className="gk-field__error" role="alert">{error}</span> : <span className="gk-field__hint">{hint}</span>}
+            {(value === 'INVITE' || value === 'OPEN') && <Terms draft={draft} onChange={onChange} error={error && /fee|currency/i.test(error) ? error : undefined} />}
+            {error ? <span id="arrange-referee-error" className="gk-field__error" role="alert">{error}</span> : <span id="arrange-referee-hint" className="gk-field__hint">{hint}</span>}
         </div>
     );
 }

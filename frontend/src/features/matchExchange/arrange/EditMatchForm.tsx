@@ -3,6 +3,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { Button, Field } from '../../../design/primitives';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { changeImpactFrom, hasBlockingAttention, type ChangeImpact, type Match } from '../api';
+import { refereeState } from '../detail/matchState';
 import { MatchChangeImpact } from '../MatchChangeImpact';
 import { updateListing } from './api';
 import { buildTerms, draftFromMatch, localStamp, placeGround, playedAge, problemsWith, whatHappens, type Draft, type Problems } from './matchPlan';
@@ -13,6 +14,11 @@ import { GroundField } from './GroundField';
 import { MoreDetails, RefereeField } from './DetailFields';
 import { MatchPreview } from './MatchPreview';
 
+/** The match's referee as things stand, in the preview's words. */
+const refereeWords = (m: Match) => {
+    const state = refereeState(m).label;
+    return state === 'Not needed' ? 'No referee' : state === 'Arranged outside GrassKickZ' ? 'Referee arranged' : `Referee ${state.toLowerCase()}`;
+};
 const FIELD_TARGETS: [keyof Problems, string][] = [['date', '#arrange-date'], ['time', '#arrange-time'], ['length', '#arrange-minutes'], ['ground', 'input[name="arrange-ground"]:checked'], ['timezone', '#arrange-timezone']];
 
 /**
@@ -62,7 +68,8 @@ export function EditMatchForm({ match, onClose, onSaved }: { match: Match; onClo
 
     return (
         <form ref={form} className="gk-arrange" data-place="page" onSubmit={event => void submit(event)} noValidate aria-busy={busy}>
-            <MatchPreview mode="edit" draft={effective} squad={squad} ageGroup={ageGroup} targetSquadName={match.opponent_squad_name} />
+            <MatchPreview mode="edit" draft={effective} squad={squad} ageGroup={ageGroup} targetSquadName={match.opponent_squad_name}
+                refereeWords={draft.referee === (match.referee_required ? 'US' : 'NONE') ? refereeWords(match) : undefined} />
             <fieldset className="gk-arrange__group" disabled={busy}>
                 <legend className="gk-visually-hidden">Teams</legend>
                 <Field label="Opponent" htmlFor="arrange-opponent-fixed" hint={match.opponent_name ? 'Agreed. To change opponent, use “Find another opponent” on the match page.' : match.requested_club_id ? 'Invitation sent; waiting for their answer.' : 'Squads propose to play on the match page.'}>

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Megaphone, Send } from 'lucide-react';
 import { ButtonLink, EmptyNote } from '../../../design/primitives';
@@ -17,6 +17,27 @@ import { peekOf, usePeek } from './usePeek';
 /** Every list a new match shows in asks again once it is sent. */
 const NEW_MATCH_LISTS = ['arrangements:', 'listing:', 'history:', 'matchday:', 'my-seats:'];
 
+/** The switch pressed last: the frame opens again for the other mode and gives focus back to it. */
+let switched = false;
+const markSwitched = () => { switched = true; };
+
+/** Invite a club, or post an open match: the frame's two ways to find an opponent. */
+function ModeSwitch({ value, onChange }: { value: 'direct' | 'open'; onChange: (mode: 'direct' | 'open') => void }) {
+    const t = useWorldCopy();
+    const root = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!switched) return;
+        switched = false;
+        root.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus();
+    }, []);
+    return (
+        <div ref={root}>
+            <Segmented label={t('How to find an opponent')} value={value} className="gk-arrange__mode" onChange={mode => { markSwitched(); onChange(mode); }}
+                items={[{ id: 'direct', label: t('Invite a club'), icon: <Send aria-hidden="true" /> }, { id: 'open', label: t('Anyone can propose'), icon: <Megaphone aria-hidden="true" /> }]} />
+        </div>
+    );
+}
+
 /**
  * Arrange a match in World's frame: beside the list when it was started there (a club's "Propose a match"), else in the
  * drawer on the right. Invite a club or post an open match, one short form with the match as it will look at the top.
@@ -29,6 +50,9 @@ export default function ArrangePeek({ id }: { id: string }) {
     const drawers = usePeek();
     const { place } = useDrawerPlace();
     const seed = parseArrangeSeed(id);
+    // A send that finishes after the frame was closed must not reopen anything: it only refreshes the lists.
+    const mounted = useRef(true);
+    useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
     // Beside the list the pane can start below the fold: the page moves just far enough for the pane to settle under the
     // header, where all of it shows, Send included (however long the form grows once it loads).
     useEffect(() => {
@@ -45,16 +69,12 @@ export default function ArrangePeek({ id }: { id: string }) {
         </DrawerFrame>
     );
     const canonical = arrangeSeed(seed);
-    const switcher = (
-        <Segmented label={t('How to find an opponent')} value={seed.mode} className="gk-arrange__mode"
-            onChange={mode => drawers.open(arrangePeek({ mode, opponentId: seed.opponentId, squadId: seed.squadId }))}
-            items={[{ id: 'direct', label: t('Invite a club'), icon: <Send aria-hidden="true" /> }, { id: 'open', label: t('Anyone can propose'), icon: <Megaphone aria-hidden="true" /> }]} />
-    );
+    const switcher = <ModeSwitch value={seed.mode} onChange={mode => drawers.open(arrangePeek({ mode, opponentId: seed.opponentId, squadId: seed.squadId }))} />;
     return (
         <DrawerFrame title={title}>
             <ArrangeMatchForm key={canonical} mode={seed.mode} opponentId={seed.opponentId} squadId={seed.squadId} head={switcher}
                 storageKey={arrangeDraftKey(user.id, sessionId, canonical)}
-                onSent={match => { notifyWorldChanged(NEW_MATCH_LISTS); drawers.open(peekOf('match', listingCode(match.event_id))); }} />
+                onSent={match => { notifyWorldChanged(NEW_MATCH_LISTS); if (mounted.current) drawers.open(peekOf('match', listingCode(match.event_id))); }} />
         </DrawerFrame>
     );
 }

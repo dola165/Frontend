@@ -45,7 +45,9 @@ export default function MatchPeek({ id }: { id: string }) {
     // Arranging work is "mine" only at the clubs whose squads I may arrange for (never as a player or parent).
     const track = listing && listing.opponent_club_id != null ? trackOf(listing, { clubIds: teams.arrangeClubIds, now }) : [];
     const mine = { home: sideIsMine(endOf(m, 'home'), teams), away: sideIsMine(endOf(m, 'away'), teams) };
-    const state = matchState(m, now, mine.home || mine.away);
+    const computed = matchState(m, now, mine.home || mine.away);
+    // An invitation waits for the invited club's own answer: theirs to give, not to wait for.
+    const state = listing?.can_respond && computed.tag?.word === 'Waiting for their answer' ? { ...computed, tag: { word: 'Your answer', tone: 'warning' as const } } : computed;
     // A club fixture has no match page; its club's own staff open it in their calendar.
     const page = m.source === 'SCHEDULE'
         ? (m.homeClubId != null && teams.arrangeClubIds.has(m.homeClubId) ? { to: m.detailPath, label: t('Open in calendar') } : undefined)

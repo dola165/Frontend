@@ -21,7 +21,7 @@ const reservationView = b => {
   const v = venueById(b.venueId), p = F.pitchById(b.pitchId);
   return {
     id: b.id, venueId: v.id, venueName: v.name, pitchId: p.id, pitchName: p.name, format: p.format, startsAt: iso(b.start), endsAt: iso(b.end), timezone: TZ,
-    totalPrice: b.totalPrice, currency: 'GEL', status: b.status, allocatedClubId: b.allocatedClubId ?? null, canAllocate: b.userId === W.ME_ID,
+    totalPrice: b.totalPrice, currency: 'GEL', status: F.effectiveStatus(b), allocatedClubId: b.allocatedClubId ?? null, canAllocate: b.userId === W.ME_ID,
     city: v.city, addressText: `${v.district}, ${v.city}`, latitude: v.lat, longitude: v.lng,
     allocations: F.exchange.filter(l => l.bookingId === b.id).map(l => ({ eventId: l.id, startsAt: iso(l.start), endsAt: iso(l.end) })),
   };

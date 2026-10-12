@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Pencil, Send } from 'lucide-react';
 import { Button, EmptyNote, GkRoot, PageFrame, PageHeader, Panel, Section, Skeleton } from '../design/primitives';
 import { chatApi, type ConversationDto } from '../api/chat';
@@ -52,6 +52,8 @@ export function MatchDetailPage() {
     const { copy, language } = useJourneyCopy();
     const { eventId } = useParams();
     const [params, setParams] = useSearchParams();
+    const location = useLocation();
+    const navigate = useNavigate();
     const { data: m, error, reload } = useLoad<Match>(`/match-exchange/${eventId}`);
     const { data: squads } = useLoad<Squad[]>('/match-exchange/squads');
     const [editing, setEditing] = useState(false);
@@ -75,9 +77,24 @@ export function MatchDetailPage() {
     const { active, eligible, canPropose, respond, finished, started } = matchGates(m, now, squads ?? []);
     const facts = [m.age_group === 'SENIOR' ? 'Senior' : m.age_group, formats[m.format] ?? label(m.format), `${label(m.level)} level`, m.requested_club_id ? 'Direct invitation' : m.listing_status === 'OPEN' ? 'Open match' : null].filter(Boolean).join(' · ');
     const invited = requested ? { name: invitedClub.data?.name ?? (m.can_respond ? 'Your club' : 'The invited club'), logoUrl: invitedClub.data?.logoUrl } : null;
-    // Using a reservation is a step over the page, kept in the address so Back closes it.
+    // Using a reservation is a step over the page, kept in the address so Back closes it. Opened here it adds one
+    // history entry, which closing goes back over; opened from a link (World's match drawer) closing just drops it.
     const reserving = params.get('ground') === 'reserve';
-    const reserve = (open: boolean) => { const next = new URLSearchParams(params); if (open) next.set('ground', 'reserve'); else next.delete('ground'); setParams(next, { replace: !open }); };
+    const reserve = (open: boolean) => {
+        if (open) { const next = new URLSearchParams(params); next.set('ground', 'reserve'); setParams(next, { state: { reserveSheet: true } }); return; }
+        if ((location.state as { reserveSheet?: boolean } | null)?.reserveSheet) navigate(-1);
+        else { const next = new URLSearchParams(params); next.delete('ground'); setParams(next, { replace: true }); }
+        // Its opener may be gone (the reservation now holds the match): once the sheet has gone, focus lands on the plan
+        // it changed instead of the page.
+        const settle = (frames: number) => window.setTimeout(() => {
+            if (document.querySelector('.gk-reserve')) { if (frames) settle(frames - 1); return; }
+            if (document.activeElement && document.activeElement !== document.body) return;
+            const target = document.querySelector<HTMLElement>('[data-reserve-opener]') ?? document.querySelector<HTMLElement>('#plan h2');
+            if (target && !target.matches('button')) target.tabIndex = -1;
+            target?.focus();
+        }, 30);
+        settle(30);
+    };
     const result = <div id="result" className="gk-mx gk-match-result"><MatchResultSection match={m} reload={reload} scoreboard={false} onSummary={onSummary} /></div>;
 
     return (
@@ -123,7 +140,8 @@ export function MatchDetailPage() {
                     <details className="gk-match-disclosure"><summary>{copy('arrangementHelp')}</summary><p className="gk-muted">{copy('arrangementHelpBody')}</p><p className="gk-muted">{copy('readinessNote')}</p></details>
                 </aside>
             </div>}
-            {reserving && m.can_arrange && <GroundReservation match={m} onClose={() => reserve(false)} reload={reload} />}
+            {/* Only where a reservation can help (once open it stays, to show what it did, even when the match now holds one). */}
+            {reserving && m.can_arrange && active && (m.can_manage || m.venue_id != null) && <GroundReservation match={m} onClose={() => reserve(false)} reload={reload} />}
         </PageFrame></GkRoot>
     );
 }

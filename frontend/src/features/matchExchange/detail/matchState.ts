@@ -24,6 +24,18 @@ export function matchGates(m: Match, now: number, squads: Squad[] = []) {
     };
 }
 
+/**
+ * The match's reservation still holds its ground. The server decides by the stored status, so a request the venue let
+ * expire still holds it until the venue releases it.
+ */
+export const holdsGround = (m: Pick<Match, 'booking'>) => Boolean(m.booking && ['PENDING', 'CONFIRMED'].includes(m.booking.stored_status ?? m.booking.status));
+
+/**
+ * A reservation can be used for this match: by either club while it can still be arranged and holds none, the visiting
+ * club only at the match's own ground (moving the match elsewhere is the host's).
+ */
+export const canUseReservation = (m: Match, active: boolean) => Boolean(m.can_arrange && active && !holdsGround(m) && (m.can_manage || m.venue_id != null));
+
 /** The viewer arranges the referee and none is set yet (or one must be replaced): finding one is theirs to do. */
 export const needsReferee = (m: Match) => Boolean(m.can_arrange_official && m.referee_required && !m.external_referee_name
     && (m.referee_status === 'NEEDED' || m.referee_status === 'REPLACEMENT_NEEDED'));

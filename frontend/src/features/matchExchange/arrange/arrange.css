@@ -48,6 +48,9 @@
 .gk .gk-arrange__ground-row input[type='radio'] { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--gk-accent); }
 .gk .gk-arrange__ground-row .gk-badge { flex: none; }
 .gk .gk-arrange__ground-more { display: flex; flex-direction: column; gap: var(--gk-3); padding: 0 var(--gk-3) var(--gk-3) calc(var(--gk-3) + 18px + var(--gk-3)); }
+/* A ground that isn't listed: the town search (a field and its button on one line), then the map. */
+.gk .gk-arrange__pin { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .gk-arrange__pin-search { display: flex; gap: var(--gk-2); }
 .gk .gk-arrange__map { height: 240px; overflow: hidden; border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-sunken); }
 .gk .gk-arrange__marker { color: var(--gk-accent); fill: var(--gk-surface); }
 .gk .gk-arrange__coords > summary, .gk .gk-arrange__more > summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-1) var(--gk-3); min-height: 44px; cursor: pointer; list-style: none; }

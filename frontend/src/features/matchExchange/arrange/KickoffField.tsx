@@ -75,14 +75,14 @@ export function KickoffField({ date, time, minutes, format, ageGroup, squadAge, 
                     {typing && <div className="gk-field">
                         <label className="gk-field__label" htmlFor="arrange-minutes">Minutes</label>
                         <input id="arrange-minutes" className="gk-input" type="number" inputMode="numeric" min={MIN_LENGTH} max={MAX_LENGTH} step={5} value={minutes ?? ''}
-                            aria-invalid={Boolean(errors.length) || undefined} aria-describedby="arrange-minutes-hint"
+                            aria-invalid={Boolean(errors.length) || undefined} aria-describedby={errors.length ? 'arrange-minutes-hint arrange-length-error' : 'arrange-minutes-hint'}
                             onChange={event => onChange({ minutes: event.target.value === '' ? null : Number(event.target.value) })} />
                         <span id="arrange-minutes-hint" className="gk-field__hint">20 minutes to 12 hours</span>
                     </div>}
                     {custom && <Button size="sm" variant="ghost" onClick={() => { setTyping(false); onChange({ minutes: null, format: null, ageGroup: null }); }}>Use the {ageName(squadAge)} default</Button>}
                 </div>
             )}
-            {errors.length && <span className="gk-field__error" role="alert">{errors.length}</span>}
+            {errors.length && <span id="arrange-length-error" className="gk-field__error" role="alert">{errors.length}</span>}
         </fieldset>
     );
 }

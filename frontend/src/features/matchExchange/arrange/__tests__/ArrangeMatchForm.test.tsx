@@ -90,6 +90,8 @@ describe('arranging a match with a club you know', () => {
         vi.mocked(createArrangement).mockResolvedValue({ event_id: 78 } as never);
         open({ mode: 'open', squadId: 105 });
         expect(screen.queryByLabelText('Opponent')).not.toBeInTheDocument();
+        // Our club and its ground have loaded (the city a match travelling to the opponent starts in comes from them).
+        await screen.findByLabelText(/Dinamo Academy Training Centre/);
         fireEvent.click(await screen.findByLabelText(/We travel to the opponent/));
         kickoff();
         fireEvent.click(screen.getByRole('button', { name: 'Post open match' }));

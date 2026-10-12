@@ -10,7 +10,6 @@ import { useVenueMapTarget } from '../../../venues/useVenueMapTarget';
 import { extractApiErrorMessage } from '../../../../utils/apiError';
 import { useArrangeableSquads } from '../../compose/useArrangeableSquads';
 import { useWorldArea } from '../../useWorldArea';
-import { useWorldSession } from '../../worldSession';
 import { reducedMotion } from '../canvas/useMapTheme';
 import { viewportBounds } from '../canvas/viewport';
 import type { SheetSnap } from '../sheet/usePhoneLayout';
@@ -36,7 +35,6 @@ export function useExplore({ mapRef, active, allowed, signedIn, phone, viewSize,
 }) {
     const query = useExploreQuery(allowed, embedded);
     const applicant = useApplicant();
-    const { membership } = useWorldSession();
     const { area } = useWorldArea();
     const linked = Boolean(query.place || query.venueId || query.opportunityId);
     const walking = useWalking(mapRef, active && !linked);
@@ -109,7 +107,7 @@ export function useExplore({ mapRef, active, allowed, signedIn, phone, viewSize,
 
     const regionName = query.coverage.kind === 'region' ? discovery.region?.name ?? query.coverage.name : '';
     return {
-        query, applicant, walking, discovery, filters, selected, placeKey, venue, hovered, setHovered, offerTo, membership,
+        query, applicant, walking, discovery, filters, selected, placeKey, venue, hovered, setHovered, offerTo,
         surface: shownSurface, setSurface, collapsed, setCollapsed, snap, setSnap, moved, setMoved, center: start, centerReady: Boolean(center), signedIn,
         setMapReady,
         coverage: query.coverage.kind === 'area' ? wt('Searched map area') : query.coverage.kind === 'region' ? wt('All of {region}', { region: regionName }) : wt('Within {km} km', { km: query.coverage.km }),

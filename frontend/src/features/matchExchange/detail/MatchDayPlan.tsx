@@ -4,7 +4,7 @@ import { Badge, Button, ButtonLink, List, ListRow, Panel, Section } from '../../
 import type { ConversationDto } from '../../../api/chat';
 import { label, post, type Match } from '../api';
 import { useAction } from '../hooks';
-import { endTime, groundState, hostingText, kickoffDay, kickoffTime, lengthMinutes, refereeState } from './matchState';
+import { canUseReservation, endTime, groundState, holdsGround, hostingText, kickoffDay, kickoffTime, lengthMinutes, refereeState } from './matchState';
 
 /**
  * Plan your match day: when, where, who referees, the squads and the conversation. Each line says where it stands in
@@ -17,8 +17,9 @@ export function MatchDayPlan({ match: m, active, conversation, reload, onReserve
     const named = m.location_name && !/to be (arranged|agreed|confirmed)/i.test(m.location_name);
     // Either club that arranges the match may confirm an unlisted ground, as the backend allows.
     const canConfirmGround = m.can_arrange && active && !m.venue_id && !m.booking_id && named;
-    const reservation = m.booking ? (m.booking.status === 'CONFIRMED' ? 'Reserved' : m.booking.status === 'PENDING' ? 'Reservation waiting for the venue' : `Reservation ${label(m.booking.status).toLowerCase()}`) : null;
-    const canReserve = m.can_arrange && active && !(m.booking && ['CONFIRMED', 'PENDING'].includes(m.booking.status));
+    const reservation = !m.booking ? null : m.booking.status === 'CONFIRMED' ? 'Reserved' : m.booking.status === 'PENDING' ? 'Reservation waiting for the venue'
+        : holdsGround(m) ? 'Reservation request expired; the venue has not released it yet' : `Reservation ${label(m.booking.status).toLowerCase()}`;
+    const canReserve = canUseReservation(m, active);
     const appointed = m.appointments?.filter(a => ['ACCEPTED', 'INVITED'].includes(a.status)).map(a => a.full_name).filter(Boolean).join(', ');
     return (
         <Section title="Plan your match day" id="plan">
@@ -34,7 +35,7 @@ export function MatchDayPlan({ match: m, active, conversation, reload, onReserve
                         trail={<>
                             <Badge tone={ground.tone}>{ground.label}</Badge>
                             {m.venue_id && <ButtonLink size="sm" variant="ghost" to={`/stadiums/${m.venue_id}`}>Directions</ButtonLink>}
-                            {canReserve && <Button size="sm" variant="ghost" onClick={onReserve}>Use a reservation</Button>}
+                            {canReserve && <Button size="sm" variant="ghost" data-reserve-opener="" onClick={onReserve}>Use a reservation</Button>}
                             {canConfirmGround && <Button size="sm" disabled={confirm.busy}
                                 onClick={() => void confirm.run(() => post(`/match-exchange/${m.event_id}/venue`, { bookingId: null, externalConfirmed: !m.external_venue_confirmed, revision: m.revision }), m.external_venue_confirmed ? 'Ground confirmation withdrawn' : 'Ground confirmed')}>
                                 {m.external_venue_confirmed ? 'Withdraw confirmation' : 'Confirm ground'}</Button>}

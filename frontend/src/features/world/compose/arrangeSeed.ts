@@ -6,14 +6,17 @@ export interface ArrangeSeed { mode: 'direct' | 'open'; opponentId?: number; squ
 
 const positive = (value?: string) => { const id = Number(value); return Number.isSafeInteger(id) && id > 0 ? id : undefined; };
 
-/** The frame's id in the address (`peek=arrange-direct.c7.s103`): the mode, the club invited, our squad. */
+/**
+ * The frame's id in the address (`peek=arrange-direct.c7.s103`): the mode, the club it started from, our squad. The
+ * club stays in an open match's id too (the open form does not use it), so switching back to inviting keeps it.
+ */
 export function arrangeSeed({ mode, opponentId, squadId }: ArrangeSeed) {
-    return [mode, mode === 'direct' && opponentId ? `c${opponentId}` : '', squadId ? `s${squadId}` : ''].filter(Boolean).join('.');
+    return [mode, opponentId ? `c${opponentId}` : '', squadId ? `s${squadId}` : ''].filter(Boolean).join('.');
 }
 export function parseArrangeSeed(id: string): ArrangeSeed {
     const [mode, ...parts] = id.split('.');
     const pick = (prefix: string) => positive(parts.find(part => part.startsWith(prefix))?.slice(1));
-    return mode === 'open' ? { mode: 'open', squadId: pick('s') } : { mode: 'direct', opponentId: pick('c'), squadId: pick('s') };
+    return { mode: mode === 'open' ? 'open' : 'direct', opponentId: pick('c'), squadId: pick('s') };
 }
 /** The drawer (or pane) value that opens Arrange a match. */
 export const arrangePeek = (seed: ArrangeSeed) => peekOf('arrange', arrangeSeed(seed));

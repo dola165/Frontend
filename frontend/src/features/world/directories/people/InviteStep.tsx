@@ -18,6 +18,10 @@ import '../../peek/step.css';
 import './people.css';
 
 type Duty = 'REFEREE' | 'ASSISTANT_1' | 'ASSISTANT_2';
+/** A match was just picked for the invitation (InvitePick): its heading takes focus once it shows. */
+let picked = false;
+const markPicked = () => { picked = true; };
+const takePicked = (node: HTMLElement | null) => { if (node && picked) { picked = false; node.focus({ preventScroll: true }); } };
 const DUTIES: { value: Duty; label: string }[] = [{ value: 'REFEREE', label: 'Referee' }, { value: 'ASSISTANT_1', label: 'Assistant 1' }, { value: 'ASSISTANT_2', label: 'Assistant 2' }];
 
 /**
@@ -43,7 +47,7 @@ export function InviteStep({ referee, matchId }: { referee: Referee; matchId: nu
     if (loaded.loading) return <p className="gk-faint">{t('Loading the match…')}</p>;
     if (!match) return <p className="gk-world-row-note">{loaded.error || t('This match could not load.')} <button type="button" className="gk-browse__retry" onClick={loaded.retry}>{t('Try again')}</button></p>;
     const when = `${fixtureDay(match.starts_at_iso, match.timezone)} ${fixtureTime(match.starts_at_iso, match.timezone)}`;
-    const heading = <h4 className="gk-step__title">{t('Invite to {match}', { match: `${match.squad_name} · ${when}` })}</h4>;
+    const heading = <h4 className="gk-step__title" tabIndex={-1} ref={takePicked}>{t('Invite to {match}', { match: `${match.squad_name} · ${when}` })}</h4>;
     if (match.can_arrange_official === false) return <section className="gk-step">{heading}<p className="gk-faint">{t('The other club arranges the referee for this match.')}</p></section>;
     if (theirs || state.sent) return (
         <section className="gk-step" data-done>{heading}
@@ -100,8 +104,10 @@ export function InvitePick({ referee }: { referee: Referee }) {
     const open = seats.filter(({ match, referee: seated }) => !seated && OPEN_SEAT.has(match.referee_status) && match.referee_status !== 'INVITED'
         && (!match.format || takes.includes(match.format))).slice(0, 4);
     if (!open.length) return null;
-    const choose = (eventId: number) => setParams(next => { const copy = new URLSearchParams(next); copy.set('match', String(eventId)); return copy; },
-        { replace: true, preventScrollReset: true, state: location.state });
+    const choose = (eventId: number) => {
+        markPicked();
+        setParams(next => { const copy = new URLSearchParams(next); copy.set('match', String(eventId)); return copy; }, { replace: true, preventScrollReset: true, state: location.state });
+    };
     return (
         <section className="gk-step" aria-label={t('Invite {name} to a match', { name: referee.full_name })}>
             <h4 className="gk-step__title">{t('Invite {name} to a match', { name: referee.full_name })}</h4>

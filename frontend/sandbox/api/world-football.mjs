@@ -362,6 +362,8 @@ const listing = ({ id = W.newId(), hostSquad, start, minutes = 90, venueId, titl
     rec.bookingId = addBooking({ venueId: v.id, pitchId: pitch.id, start, minutes, contactName: host.id === DINAMO ? W.me.fullName : clubCoachName(host.id), userId: host.id === DINAMO ? W.ME_ID : null }).id;
   }
   delete rec.booked;
+  // An agreed match at the host's own ground was confirmed by its host (nothing settles a ground by itself).
+  if (status === 'ARRANGED' && v && v.id === host.venueId) rec.externalConfirmed = true;
   if (opponentSquad) rec.history.push({ id: W.newId(), action: 'OPPONENT_AGREED', created_at: iso(plusMin(rec.created, 2 * 24 * 60)), reason: null });
   exchange.push(rec); return rec;
 };
@@ -426,9 +428,23 @@ friendly(squadById(108), squadFor(4, 'U19', 'MALE'), at(3, 18), 90, { venueId: 2
 friendly(squadById(106), squadFor(3, 'U16', 'FEMALE'), new Date(W.NOW.getTime() - 20 * 60_000), 90, { referee: fittingReferee('11_A_SIDE') });
 export const listingById = id => exchange.find(l => l.id === Number(id));
 export const bookingById = id => bookings.find(b => b.id === Number(id));
-/** A listing's reservation while it still holds the ground (waiting for the venue, or confirmed). */
-const liveBooking = l => { const b = l.bookingId ? bookingById(l.bookingId) : null; return b && ['PENDING', 'CONFIRMED'].includes(b.status) ? b : null; };
-const venueStatusOf = l => l.venuePreference === 'AWAY' && !l.opponentSquadId ? 'NEEDED' : liveBooking(l) ? 'BOOKED' : l.venueId || l.externalConfirmed ? 'HOST_CONFIRMED' : 'NEEDED';
+/** When a reservation the venue has not answered lapses (the backend expires it lazily; its stored status stays PENDING). */
+const expiresAt = b => plusMin(b.created, 48 * 60);
+/** A reservation's status as the backend shows it: a lapsed request reads EXPIRED. */
+export const effectiveStatus = b => b.status === 'PENDING' && expiresAt(b).getTime() <= Date.now() ? 'EXPIRED' : b.status;
+/**
+ * The ground's state as the backend's CASE gives it: a held reservation that no longer fits the match needs attention, a
+ * confirmed one covering it is booked, a request still open is pending; else the host's confirmation, else needed.
+ */
+const venueStatusOf = l => {
+  const b = l.bookingId ? bookingById(l.bookingId) : null;
+  if (b && ['PENDING', 'CONFIRMED'].includes(b.status)) {
+    if (b.venueId !== l.venueId || b.start > l.start || b.end < l.end) return 'NEEDS_ATTENTION';
+    if (b.status === 'CONFIRMED') return 'BOOKED';
+    if (effectiveStatus(b) === 'PENDING') return 'PENDING';
+  }
+  return l.externalConfirmed ? 'HOST_CONFIRMED' : 'NEEDED';
+};
 // An invited referee has not answered yet (`refereeInvite`); one chosen from applications or seeded has accepted.
 const refereeStatusOf = l => !l.refereeRequired ? 'NOT_REQUIRED' : l.refereeId ? (l.refereeInvite?.status ?? 'ACCEPTED') : 'NEEDED';
 export { refereeStatusOf };
@@ -460,8 +476,8 @@ export const listingView = (l, { detail = false } = {}) => {
     out.appointments = [...(ref ? [appointmentView(l, ref)] : []), ...(l.assistants ?? []).map(official => appointmentView(l, personById(official.refereeId), official))];
     out.own_appointments = [];
     const b = l.bookingId ? bookingById(l.bookingId) : null;
-    if (b) out.booking = { id: b.id, venue_id: b.venueId, pitch_id: b.pitchId, status: b.status, stored_status: b.status, starts_at: iso(b.start), ends_at: iso(b.end),
-      expires_at: b.status === 'PENDING' ? iso(plusMin(b.created, 48 * 60)) : null };
+    if (b) out.booking = { id: b.id, venue_id: b.venueId, pitch_id: b.pitchId, status: effectiveStatus(b), stored_status: b.status, starts_at: iso(b.start), ends_at: iso(b.end),
+      expires_at: b.status === 'PENDING' ? iso(expiresAt(b)) : null };
   }
   return out;
 };

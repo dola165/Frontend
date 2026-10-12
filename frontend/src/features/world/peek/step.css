@@ -13,7 +13,7 @@
 .gk .gk-step__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
 .gk .gk-step .gk-btn svg { width: 15px; height: 15px; }
 .gk .gk-step textarea { resize: vertical; min-height: 64px; }
-.gk .gk-step__other { width: auto; max-width: 220px; min-height: 32px; padding-block: 0; }
+.gk .gk-step__other { width: auto; max-width: 220px; padding-block: 0; }
 
 .gk .gk-step-line { display: flex; align-items: center; gap: var(--gk-2); min-height: 44px; margin: var(--gk-2) 0; padding: 0 var(--gk-3); border: 1px solid var(--gk-line); border-radius: 10px;
   color: var(--gk-text); font-size: var(--gk-fs-sm); text-decoration: none; }
@@ -24,3 +24,9 @@
 .gk .gk-step-line > span { flex: 1; min-width: 0; }
 .gk .gk-step-line > b { font-weight: 600; color: var(--gk-accent); }
 .gk .gk-step-line > svg { flex: none; width: 16px; height: 16px; color: var(--gk-text-3); }
+.gk .gk-step__done { display: flex; align-items: center; gap: var(--gk-2); margin: var(--gk-3) 0 0; font-size: var(--gk-fs-sm); color: var(--gk-text); outline: none; }
+.gk .gk-step__done::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--gk-accent); }
+.gk .gk-step__done:focus-visible { box-shadow: 0 0 0 2px var(--gk-accent); border-radius: 6px; }
+.gk .gk-step__reload { padding: 0; border: 0; background: none; color: var(--gk-accent); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+@media (pointer: fine) { .gk .gk-step__other { min-height: 32px; } }
+@media (pointer: coarse) { .gk .gk-step__reload { min-height: 44px; } }

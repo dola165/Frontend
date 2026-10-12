@@ -328,12 +328,17 @@ export const competitionRules = t => {
 };
 export const competitionProfile = t => ({ rules: competitionRules(t), revision: 3, legacy: false });
 export const organizerOf = t => t.organizerOrgId ? ORG[t.organizerOrgId] : { id: 900 + t.organizerClubId, name: clubById(t.organizerClubId).name, logoUrl: clubById(t.organizerClubId).logoUrl, clubId: t.organizerClubId };
+/** When entries open and close. The girls' cup opens in two days, so "Opens …" has an example. */
+export const registrationWindow = t => ({ opens: t.id === 304 ? day(2, 9) : day(-60), closes: t.entryDeadline });
+/** As the backend counts places taken: approved and active entries, and those that played on or went out. */
+export const placesTaken = st => st.entries.filter(e => ['APPROVED', 'ACTIVE', 'COMPLETED', 'ELIMINATED'].includes(e.status)).length;
+// As the backend sends them: times are the venue's wall clock without a zone (Georgian time).
 export const tournamentSummary = t => {
-  const st = tournamentState.get(t.id), org = organizerOf(t), host = t.organizerClubId ? clubById(t.organizerClubId) : null;
+  const st = tournamentState.get(t.id), org = organizerOf(t), host = t.organizerClubId ? clubById(t.organizerClubId) : null, window = registrationWindow(t);
   return {
     id: t.id, name: t.name, description: t.description, status: st.status, organizerOrganizationId: org.id, organizerName: org.name, hostClubId: host?.id ?? null, hostClubName: host?.name ?? null,
-    participantScope: 'CLUB', visibility: 'PUBLIC', startDate: isoDate(t.start), endDate: isoDate(t.end), registrationOpensAt: iso(day(-60)), registrationClosesAt: iso(t.entryDeadline),
-    entryCount: st.entries.filter(e => !['WITHDRAWN', 'REJECTED'].includes(e.status)).length, incentives: t.fee ? 'Trophies and medals for finalists' : 'Medals for every player', bannerImageUrl: photo(`tournament-${t.id}`),
+    participantScope: 'CLUB', visibility: 'PUBLIC', startDate: local(t.start), endDate: local(t.end), registrationOpensAt: local(window.opens), registrationClosesAt: local(window.closes),
+    entryCount: placesTaken(st), incentives: t.fee ? 'Trophies and medals for finalists' : 'Medals for every player', bannerImageUrl: photo(`tournament-${t.id}`),
   };
 };
 export const tournamentDetail = t => {
@@ -341,7 +346,11 @@ export const tournamentDetail = t => {
   return { ...tournamentSummary(t), entryCap: t.format === 'LEAGUE' ? 10 : t.format === 'KNOCKOUT' ? 8 : 12, rules: RULESET[t.format], registrationPolicy: t.id === 301 ? 'APPROVAL_ONLY' : 'OPEN', locationId: t.venueId,
     staffAssignments: st.staff, entries: st.entries, stages: st.stages, fixtures: st.fixtures, championEntryId: st.championEntryId ?? null, championName: st.championName ?? null, ...(st.overrides || {}) };
 };
-export const competitionCard = t => ({ ...tournamentSummary(t), entryCap: tournamentDetail(t).entryCap, profile: competitionProfile(t), hostClubName: tournamentSummary(t).hostClubName });
+/** A `/competitions` card as the backend sends it: no entry window, host or organiser ids, visibility or prizes. */
+export const competitionCard = t => {
+  const { id, name, description, status, participantScope, organizerName, hostClubName, startDate, endDate, bannerImageUrl, entryCount } = tournamentSummary(t);
+  return { id, name, description, status, participantScope, organizerName, hostClubName, startDate, endDate, bannerImageUrl, entryCount, entryCap: tournamentDetail(t).entryCap, profile: competitionProfile(t) };
+};
 
 // ---------------------------------------------------------------- match exchange
 const LEVELS = ['DEVELOPMENT', 'RECREATIONAL', 'COMPETITIVE', 'ELITE'];

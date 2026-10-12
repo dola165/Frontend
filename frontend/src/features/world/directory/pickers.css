@@ -27,11 +27,13 @@
 
 /* Tiles: a symbol over a short name, two to four a row. */
 .gk .gk-pick-tiles { display: grid; grid-template-columns: repeat(4, 92px); gap: 6px; }
+/* Five choices sit in one row (the format pictures) rather than four and one alone. */
+.gk .gk-pick-tiles:has(> :nth-child(5):last-child) { grid-template-columns: repeat(5, 92px); }
 .gk .gk-pick-tiles__tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 72px; padding: 8px 4px; border: 1px solid var(--gk-glass-line, var(--gk-line));
   border-radius: 10px; background: color-mix(in srgb, var(--gk-surface) 70%, transparent); color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-xs); font-weight: 600; text-align: center; cursor: pointer; }
 .gk .gk-pick-tiles__tile:hover { color: var(--gk-text); border-color: var(--gk-line-strong); }
 .gk .gk-pick-tiles__tile:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gk-accent); }
 .gk .gk-pick-tiles__tile[aria-pressed='true'] { color: var(--gk-text); border-color: color-mix(in srgb, var(--gk-accent) 60%, transparent); background: var(--gk-accent-soft); }
 .gk .gk-pick-tiles__tile svg { width: 20px; height: 20px; color: var(--gk-accent); }
-@media (max-width: 640px) { .gk .gk-pick-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .gk .gk-pick-tiles, .gk .gk-pick-tiles:has(> :nth-child(5):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (pointer: coarse) { .gk .gk-pick-ladder__rung { min-height: 44px; } }

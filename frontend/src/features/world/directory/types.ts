@@ -8,7 +8,11 @@ import type { Approximate, WorldMapTone } from '../map/WorldMap';
 import type { WorldRole } from '../front/roles';
 import type { PlaceKind, Places } from './places';
 
-export interface FilterOption { value: string; label: string; /** Offered only to signed-in people. */ signedIn?: boolean; /** A symbol shown beside the label (service tiles). */ icon?: LucideIcon; /** Drawn apart from a ladder's rungs (a goalkeeper licence). */ apart?: boolean }
+export interface FilterOption {
+    value: string; label: string; /** Offered only to signed-in people. */ signedIn?: boolean;
+    /** A symbol shown beside the label (service tiles, a format's picture). */ icon?: ComponentType<{ 'aria-hidden'?: boolean | 'true' }>;
+    /** Drawn apart from a ladder's rungs (a goalkeeper licence). */ apart?: boolean;
+}
 
 /** A choice the browser remembers between World pages (for example the child a parent is searching for). */
 export interface RememberedChoice { read: () => string | undefined; write: (value: string) => void }
@@ -70,7 +74,10 @@ export interface DirectoryPage<T> {
 }
 /** The World area a list is narrowed to: the city and its centre, or a null city for everywhere ("Anywhere"). */
 export interface DirectoryArea { city: string | null; centre: { lat: number; lng: number } | null }
-export interface LoadContext { signal: AbortSignal; sessionId: AuthSessionId; authenticated: boolean; /** Set for sources with `area`. */ area?: DirectoryArea }
+export interface LoadContext {
+    signal: AbortSignal; sessionId: AuthSessionId; authenticated: boolean; /** Set for sources with `area`. */ area?: DirectoryArea;
+    /** The signed-in person (whether they run a tournament is in its staff list). */ userId?: number | null;
+}
 
 /**
  * Where a result goes on the map. `pin` groups results at one place (jobs at a club) into one pin with a count;
@@ -158,9 +165,10 @@ export interface DirectorySource<T> {
     Empty?: ComponentType<NavProps & { filtered: boolean; onClear?: () => void }>;
     /**
      * The list follows the World area (`near`): the area reaches `load` in its context, and results wait for it. `true`
-     * narrows the list to the area; `'nearest'` keeps everyone and puts the nearest first.
+     * narrows the list to the area; `'nearest'` keeps everyone and puts the nearest first; `'partly'` narrows what the list
+     * finds but keeps the person's own wherever they are, so its count does not say "near".
      */
-    area?: boolean | 'nearest';
+    area?: boolean | 'nearest' | 'partly';
     /** Who the list is narrowed to (the child chosen in the World bar, "Nino (9)"), so an empty list can say so. */
     forWhom?: string;
     /** Where a result goes on the map. Results without a place stay in the list and are counted as such. */

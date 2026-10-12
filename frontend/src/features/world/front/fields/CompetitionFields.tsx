@@ -1,7 +1,6 @@
 import { ButtonLink, EmptyNote } from '../../../../design/primitives';
-import type { CompetitionCard } from '../../../competitions/api';
 import { anyOf, useWorldCopy } from '../../copy';
-import { codeLabel, daysUntil, fixtureDay, fixtureTime, shortDate } from '../../format';
+import { codeLabel, fixtureDay, fixtureTime, shortDate } from '../../format';
 import { useAgeTrials, useCompetitionResults, useCompetitionsForYou, useMyCompetitions, type MyCompetition } from '../coach/coachCompetitions';
 import { HistoryLine, type CrestOf } from '../../scoreboard/HistoryLine';
 import { CupPath, MiniTable } from '../../scoreboard/MiniTable';
@@ -13,8 +12,6 @@ import { WorldField } from '../WorldField';
 import { crestsOf, rowsFor, type FieldProps } from './fieldProps';
 import { Line, MatchLine, ScoreGroups, WaitTag } from '../../scoreboard/Scoreboard';
 import '../coach/coach.css';
-
-const closesAt = (card: CompetitionCard) => (card as CompetitionCard & { registrationClosesAt?: string | null }).registrationClosesAt;
 
 /** One competition of mine: its table, cup run or festival day, then my next match in it. */
 function MyCompetitionBlock({ item, crestOf }: { item: MyCompetition; crestOf: CrestOf }) {
@@ -59,10 +56,10 @@ export function MyCompetitionsField({ side, role, markers }: FieldProps) {
     return (
         <WorldField id="myCompetitions" side={side} count={data.data ? items.length : null} loading={focus.status === 'loading' || data.loading} error={data.error} onRetry={data.retry}
             hint={items.length ? items.map(item => item.detail.name).slice(0, 2).join(' · ') : undefined}
-            all={{ label: t('All competitions'), to: '/world/competitions' }}>
+            all={{ label: t('My tournaments'), to: '/world/tournaments?tab=mine' }}>
             <SquadGate focus={focus}>
                 {items.length ? <div className="gk-sb">{items.map(item => <MyCompetitionBlock key={item.detail.id} item={item} crestOf={crestOf} />)}</div>
-                    : <EmptyNote title={t('Your squads are not in a competition')} action={<ButtonLink size="sm" to="/world/competitions?registration=OPEN">{t('Find one to enter')}</ButtonLink>} />}
+                    : <EmptyNote title={t('Your squads are not in a competition')} action={<ButtonLink size="sm" to="/world/tournaments?tab=all&registration=OPEN">{t('Find one to enter')}</ButtonLink>} />}
             </SquadGate>
         </WorldField>
     );
@@ -101,20 +98,21 @@ export function CompetitionsForYouField({ side, role }: FieldProps) {
     return (
         <WorldField id="competitionsForYou" side={side} count={data.data ? invitations.length + items.length : null} loading={focus.status === 'loading' || data.loading} error={data.error} onRetry={data.retry}
             hint={invitations.length ? t('{count} invitations', { count: invitations.length }) : focus.status === 'ready' ? who : undefined}
-            all={{ label: t('All open competitions'), to: '/world/competitions?registration=OPEN' }}>
+            all={{ label: t('All open tournaments'), to: '/world/tournaments?tab=all&registration=OPEN' }}>
             <SquadGate focus={focus}>
                 {rows.length ? <ScoreGroups label={t('Competitions for your age groups')} items={rows} group={row => row.kind === 'invited' ? t('Invited') : t('Open for entries')}>
                     {row => row.kind === 'invited'
                         ? <Line key={`i:${row.invitation.invitationId}`} to={`/tournaments/${row.invitation.tournamentId}`} name={row.invitation.tournamentName}
                             detail={[row.invitation.squadName, codeLabel(row.invitation.tournamentStatus)].filter(Boolean).join(' · ')} fact={<WaitTag tone="warning">{t('Reply')}</WaitTag>} />
                         : (() => {
-                            const { card, squads } = row.item, rules = card.profile?.rules, left = daysUntil(closesAt(card));
+                            const { card, squads } = row.item, rules = card.profile?.rules;
                             return <Line key={`o:${card.id}`} to={`/tournaments/${card.id}`} crest={card.bannerImageUrl} name={card.name}
                                 detail={[focus.focus.length > 1 ? squads.map(squad => squad.name).join(', ') : null, rules && `${rules.sideSize}v${rules.sideSize}`, rules?.city, card.hostClubName || card.organizerName].filter(Boolean).join(' · ')}
-                                fact={left != null && left >= 0 ? t('Closes {date}', { date: shortDate(closesAt(card)) ?? '' }) : shortDate(card.startDate)} factTone={left != null && left >= 0 && left <= 7 ? 'warning' : undefined} />;
+                                // The list card has no entry window (backend needed), so the row says when the tournament starts.
+                                fact={shortDate(zoned(card.startDate))} />;
                         })()}
                 </ScoreGroups> : <EmptyNote title={t('Nothing open for {who} right now', { who })}
-                    action={data.data?.total ? <ButtonLink size="sm" to="/world/competitions?registration=OPEN">{t('All open competitions ({count})', { count: data.data.total })}</ButtonLink> : undefined} />}
+                    action={data.data?.total ? <ButtonLink size="sm" to="/world/tournaments?tab=all&registration=OPEN">{t('All open tournaments ({count})', { count: data.data.total })}</ButtonLink> : undefined} />}
             </SquadGate>
         </WorldField>
     );

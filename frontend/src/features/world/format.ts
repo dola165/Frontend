@@ -119,6 +119,6 @@ export function dateColumn(value?: string | null) {
     const start = value ? new Date(value) : null;
     const valid = Boolean(start && !Number.isNaN(start.getTime()));
     return valid
-        ? { time: start!.toLocaleDateString(appLocale(), { day: 'numeric' }), day: start!.toLocaleDateString(appLocale(), { month: 'short' }) }
+        ? { time: start!.toLocaleDateString(appLocale(), { day: 'numeric', timeZone: TZ }), day: start!.toLocaleDateString(appLocale(), { month: 'short', timeZone: TZ }) }
         : { time: wt('TBC'), day: wt('Dates to confirm') };
 }

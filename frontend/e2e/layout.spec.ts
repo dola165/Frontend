@@ -35,7 +35,7 @@ const destinationRoutes = [
     { path: '/clubs/1', readyText: /creekside fc/i, bleed: true },
     { path: '/account', readyText: /account settings/i, bleed: false },
     { path: '/notifications', readyText: /^notifications$/i, bleed: false },
-    { path: '/world/competitions', readyText: /^competitions$/i, bleed: true },
+    { path: '/world/tournaments', readyText: /^tournaments$/i, bleed: true },
     { path: '/tournaments/1', readyText: /summer cup 2026/i, bleed: false }
 ] as const;
 

@@ -50,6 +50,11 @@
 .gk .gk-world-pin[data-approx][data-selected]::after { box-shadow: inset 0 0 0 3px var(--pin), 0 0 0 2px var(--gk-surface), 0 0 0 5px color-mix(in srgb, var(--pin) 45%, transparent); }
 .gk .gk-world-pin[data-approx] .gk-world-pin__count { color: var(--gk-text); }
 .gk .gk-world-pin[data-tone='match'] { --pin: var(--gk-accent); }
+/* A tournament: a match-green pin with a trophy in it. */
+.gk .gk-world-pin[data-tone='tournament'] { --pin: var(--gk-accent); }
+.gk .gk-world-pin[data-tone='tournament']:not([data-count])::after { width: 20px; height: 20px; }
+.gk .gk-world-pin__glyph { position: absolute; z-index: 1; width: 12px; height: 12px; color: var(--gk-on-accent); pointer-events: none; }
+.gk .gk-world-pin--key[data-tone='tournament']::after { width: 8px; height: 8px; }
 
 /* The hero look, for World's overview and every World tab: big and rounded, a vignette darkening its edges,
    and glass floating on it (the key, the counts, the chosen place, the controls). */

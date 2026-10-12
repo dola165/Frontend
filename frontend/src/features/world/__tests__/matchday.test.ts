@@ -97,7 +97,7 @@ describe('match codes', () => {
 });
 
 describe('my teams', () => {
-    const mine: MyTeams = { squadIds: new Set([102, 103]), clubIds: new Set([1]), arrangeClubIds: new Set([1]) };
+    const mine: MyTeams = { squadIds: new Set([102, 103]), clubIds: new Set([1]), arrangeClubIds: new Set([1]), names: new Map(), ages: new Set() };
     it('star a side by its squad, and by its club only when it names no squad', () => {
         expect(sideIsMine({ clubId: 1, squadId: 102 }, mine)).toBe(true);
         expect(sideIsMine({ clubId: 1, squadId: 107 }, mine)).toBe(false);
@@ -123,7 +123,7 @@ describe('groups shown as score cards', () => {
 });
 
 describe('fixtures in their cards', () => {
-    const mine: MyTeams = { squadIds: new Set([102]), clubIds: new Set([1]), arrangeClubIds: new Set([1]) };
+    const mine: MyTeams = { squadIds: new Set([102]), clubIds: new Set([1]), arrangeClubIds: new Set([1]), names: new Map(), ages: new Set() };
     it('star my teams by squad, drop fixtures with no sides yet, and keep the day only when the list spans days', () => {
         const rows = toFixtures([match(), match({ sourceId: 9, homeClubId: null, homeClubName: null, awayClubId: null, awayClubName: null }), match({ sourceId: 10, homeSquadId: 107, homeClubId: 1 })], mine, false);
         expect(rows.map(f => [f.code, f.mine.home, f.mine.away, f.showDay])).toEqual([['s5722', true, false, false], ['s10', false, false, false]]);

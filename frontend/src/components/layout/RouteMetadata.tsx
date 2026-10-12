@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { appLanguage } from '../../utils/formatting';
 
 const WORLD_TITLES: Record<string, string> = {
-    clubs: 'Clubs', people: 'People', venues: 'Venues', matches: 'Matches', competitions: 'Competitions', opportunities: 'Opportunities', map: 'Map',
+    clubs: 'Clubs', people: 'People', venues: 'Venues', matches: 'Matches', tournaments: 'Tournaments', competitions: 'Tournaments', opportunities: 'Opportunities', map: 'Map',
 };
 
 export const RouteMetadata = () => {

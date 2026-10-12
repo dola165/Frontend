@@ -99,7 +99,7 @@ const TournamentDetailContent = () => {
     const requestedFixture = Number(searchParams.get('fixtureId')) || null;
     const navigate = useNavigate();
     const location = useLocation();
-    const returnTo = typeof location.state?.returnTo==='string' && /^\/matches(?:\?|$)/.test(location.state.returnTo) && !location.state.returnTo.includes('\\') ? location.state.returnTo : '/matches?section=competitions';
+    const returnTo = typeof location.state?.returnTo==='string' && /^\/(?:matches|world)(?:[/?]|$)/.test(location.state.returnTo) && !location.state.returnTo.includes('\\') ? location.state.returnTo : '/world/tournaments';
     const { isAuthenticated, user } = useAuth();
     const { t, i18n } = useTranslation();
     const [tournament, setTournament] = useState<TournamentDetail | null>(null);
@@ -332,7 +332,7 @@ const TournamentDetailContent = () => {
                     ) : null}
                     <Link to={returnTo} className="inline-flex items-center gap-2 rounded-xl bg-[color:var(--color-accent)] px-4 py-2.5 text-sm font-bold text-[color:var(--color-on-accent)] transition hover:bg-[color:var(--color-accent)]">
                         <ArrowLeft className="h-4 w-4" />
-                        {i18n.language.startsWith('ka')?'შეჯიბრებებში დაბრუნება':'Back to competitions'}
+                        {i18n.language.startsWith('ka')?'ტურნირებში დაბრუნება':'Back to tournaments'}
                     </Link>
                 </div>
             </div>
@@ -466,7 +466,7 @@ const TournamentDetailContent = () => {
             <header className="tp-hero tc-event-hero">
                 <div className="tp-hero-inner">
                     <div className="tp-hero-top">
-                        <Link to={returnTo}><ArrowLeft size={15} />{i18n.language.startsWith('ka')?'შეჯიბრებებში დაბრუნება':'Back to competitions'}</Link>
+                        <Link to={returnTo}><ArrowLeft size={15} />{i18n.language.startsWith('ka')?'ტურნირებში დაბრუნება':'Back to tournaments'}</Link>
                         <div className="tp-hero-actions"><button type="button" className="tp-share" aria-label={refreshing ? copy.refreshing : copy.refresh} disabled={refreshing} onClick={() => void refreshResults()}><RefreshCw size={15} className={refreshing ? 'animate-spin' : undefined} /><span className="tp-refresh-label">{refreshing ? copy.refreshing : copy.refresh}</span></button><button type="button" className="tp-share" onClick={() => void copyLink()}><Share2 size={15} />{shareState === 'copied' ? copy.copied : copy.share}</button></div>
                     </div>
                     <div>

@@ -107,7 +107,7 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     const counted = (n: number) => {
         const things = plural(n, ...nouns);
         // A list the area only orders (nearest first) is not "near" anywhere: it holds everyone.
-        return !data.area || source.area === 'nearest' ? things : data.area.city ? t('{count} near {city}', { count: things, city: data.area.city }) : t('{count} anywhere', { count: things });
+        return !data.area || source.area === 'nearest' || source.area === 'partly' ? things : data.area.city ? t('{count} near {city}', { count: things, city: data.area.city }) : t('{count} anywhere', { count: things });
     };
     // An unknown total is never guessed: the count says what is shown, with "+" while more remain.
     const count = gated ? '' : data.loading ? t('Searching {things}…', { things: t(nouns[1]) }) : data.error || data.notice ? ''

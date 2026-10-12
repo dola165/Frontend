@@ -413,7 +413,8 @@ const allHosts = () => [...new Map(F.tournamentList.map(t => { const h = hostOf(
   .sort((a, b) => b.tournamentCount - a.tournamentCount || a.name.localeCompare(b.name));
 get('/tournaments/overview', () => {
   const summaries = publicTournaments().map(F.tournamentSummary);
-  const highlights = [...summaries.filter(s => s.status === 'ACTIVE'), ...summaries.filter(s => s.status === 'PLANNING')].sort((a, b) => (a.id === 306 ? -1 : 0) - (b.id === 306 ? -1 : 0)).slice(0, 6);
+  // As the backend computes them: at most three public tournaments, on now or being planned, not yet ended.
+  const highlights = [...summaries.filter(s => s.status === 'ACTIVE'), ...summaries.filter(s => s.status === 'PLANNING')].filter(s => Date.parse(`${s.endDate}+04:00`) >= now() - 86400000).sort((a, b) => (a.id === 306 ? -1 : 0) - (b.id === 306 ? -1 : 0)).slice(0, 3);
   const hosts = allHosts();
   return { highlights, followedHosts: hosts.filter(h => h.following), suggestedHosts: hosts.filter(h => !h.following).slice(0, 6), shelves: [{ scope: 'CLUB', tournaments: summaries, total: summaries.length }, { scope: 'SQUAD', tournaments: [], total: 0 }, { scope: 'PLAYER', tournaments: [], total: 0 }] };
 });
@@ -491,20 +492,33 @@ del('/tournaments/:id/staff/:assignmentId', ({ params }) => mutateTournament(par
 post('/tournaments/:id/invitations', ({ params, body }) => { const st = F.tournamentState.get(Number(params.id)); if (!st) return notFound(); const c = clubById(body?.clubId); const inv = { id: W.newId(), clubId: c?.id ?? null, clubName: c?.name ?? null, squadId: body?.squadId ?? null, squadName: squadById(body?.squadId)?.name ?? null, status: 'PENDING', createdAt: iso(new Date()) }; st.invitations.push(inv); return inv; });
 del('/tournaments/:id/invitations/:invitationId', ({ params }) => { const st = F.tournamentState.get(Number(params.id)); if (st) st.invitations = st.invitations.filter(i => i.id !== Number(params.invitationId)); return reply(204); });
 
+// As CompetitionService.browse answers: every filter it takes, its page limit, and its plain orders (no status first).
 get('/competitions', ({ query: q }) => {
   const text = q.get('q'), family = q.get('family'), structure = q.get('structure'), scope = q.get('scope'), status = q.get('status'), ageGroup = q.get('ageGroup'), city = q.get('city'), discipline = q.get('discipline'), side = q.get('sideSize'), registration = q.get('registration'), level = q.get('playingLevel');
-  const hostKind = q.get('hostKind'), hostId = num(q, 'hostId', null), sort = q.get('sort') || 'date';
-  let cards = F.tournamentList.map(F.competitionCard)
-    .filter(c => matchesText(text, c.name, c.description, c.organizerName, c.hostClubName, c.profile.rules.city))
-    .filter(c => !family || c.profile.rules.family === family).filter(c => !structure || c.profile.rules.structure === structure).filter(c => !scope || c.participantScope === scope)
-    .filter(c => !status || c.status === status).filter(c => !ageGroup || c.profile.rules.ageGroup === ageGroup).filter(c => !city || F.lower(c.profile.rules.city).includes(F.lower(city)))
-    .filter(c => !discipline || c.profile.rules.discipline === discipline).filter(c => !side || c.profile.rules.sideSize === Number(side)).filter(c => !level || c.profile.rules.playingLevel === level)
-    .filter(c => !registration || (registration === 'OPEN' ? c.status === 'PLANNING' && Date.parse(c.registrationClosesAt) > now() : registration === 'CLOSED' ? c.status !== 'PLANNING' || Date.parse(c.registrationClosesAt) <= now() : false))
-    .filter(c => !hostKind || (() => { const t = F.tournamentById(c.id), h = hostOf(t); return h.kind === hostKind && (hostId == null || h.id === hostId); })());
-  const order = { PLANNING: 0, ACTIVE: 1, COMPLETED: 2, CANCELLED: 3 };
-  cards = sort === 'name' ? cards.sort((a, b) => a.name.localeCompare(b.name)) : sort === 'newest' ? cards.sort((a, b) => b.id - a.id) : cards.sort((a, b) => (order[a.status] - order[b.status]) || a.startDate.localeCompare(b.startDate));
-  if (sort === 'date') cards.sort((a, b) => (a.status === 'COMPLETED') - (b.status === 'COMPLETED') || a.startDate.localeCompare(b.startDate));
-  return pageResult(cards, pageOf(q), sizeOf(q, 12));
+  const hostKind = q.get('hostKind'), hostId = num(q, 'hostId', null), sort = q.get('sort') || 'date', size = sizeOf(q, 12);
+  const country = q.get('country'), eligibility = q.get('eligibilityCategory'), currency = q.get('currency'), feeBasis = q.get('feeBasis'), minFee = num(q, 'minFee', null), maxFee = num(q, 'maxFee', null), openPlaces = q.get('openPlaces') === 'true';
+  const from = q.get('from') ? Date.parse(`${q.get('from')}T00:00:00+04:00`) : null, to = q.get('to') ? Date.parse(`${q.get('to')}T00:00:00+04:00`) + 86400000 : null;
+  const lat = num(q, 'latitude', null), lng = num(q, 'longitude', null), radius = num(q, 'radiusKm', null);
+  if (size < 1 || size > 24) return reply(400, { status: 400, message: 'Use valid search bounds and a page size between 1 and 24.' });
+  if ((lat != null || lng != null || radius != null) && (lat == null || lng == null || radius == null || radius <= 0 || radius > 500)) return reply(400, { status: 400, message: 'Supply valid paired coordinates and a radius from 0 to 500 km.' });
+  if ((maxFee != null || minFee != null) && !currency) return reply(400, { status: 400, message: 'Fee filtering requires a currency and a fee between 0 and 1000000.' });
+  const nowMs = now();
+  let list = F.tournamentList.filter(t => {
+    const c = F.competitionCard(t), r = c.profile.rules, st = F.tournamentState.get(t.id), w = F.registrationWindow(t), v = venueById(t.venueId);
+    return matchesText(text, c.name, c.description)
+      && (!family || r.family === family) && (!structure || r.structure === structure) && (!scope || c.participantScope === scope) && (!status || c.status === status)
+      && (!ageGroup || r.ageGroup === ageGroup) && (!city || r.city === city) && (!discipline || r.discipline === discipline) && (!side || r.sideSize === Number(side)) && (!level || r.playingLevel === level)
+      && (!country || r.country === country) && (!eligibility || r.eligibilityCategory === eligibility) && (!currency || r.currency === currency) && (!feeBasis || r.feeBasis === feeBasis)
+      && (maxFee == null || r.entryFee <= maxFee) && (minFee == null || r.entryFee >= minFee)
+      && (from == null || t.end.getTime() >= from) && (to == null || t.start.getTime() < to)
+      && (!openPlaces || (c.status === 'PLANNING' && (c.entryCap == null || F.placesTaken(st) < c.entryCap)))
+      && (!registration || (registration === 'OPEN' ? c.status === 'PLANNING' && w.opens.getTime() <= nowMs && w.closes.getTime() > nowMs
+        : registration === 'NOT_OPEN' ? c.status === 'PLANNING' && w.opens.getTime() > nowMs : c.status !== 'PLANNING' || w.closes.getTime() <= nowMs))
+      && (!hostKind || (() => { const h = hostOf(t); return h.kind === hostKind && (hostId == null || h.id === hostId); })())
+      && (lat == null || (v && kmBetween(lat, lng, v.lat, v.lng) <= radius));
+  });
+  list = sort === 'name' ? list.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.id - b.id) : sort === 'newest' ? list.sort((a, b) => b.id - a.id) : list.sort((a, b) => a.start - b.start || b.id - a.id);
+  return pageResult(list.map(F.competitionCard), pageOf(q), size);
 });
 get('/competitions/player-eligibility', () => ({ eligible: false }));
 get('/competitions/official-assignments', () => []);

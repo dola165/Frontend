@@ -10,7 +10,7 @@ const DESTINATIONS = [
     { path: '/world/people', label: 'People', Icon: UsersRound },
     { path: '/world/venues', label: 'Venues', Icon: LandPlot },
     { path: '/world/matches', label: 'Matches', Icon: CalendarDays },
-    { path: '/world/competitions', label: 'Competitions', Icon: Trophy },
+    { path: '/world/tournaments', label: 'Tournaments', Icon: Trophy },
     { path: '/world/opportunities', label: 'Opportunities', Icon: BriefcaseBusiness },
     { path: '/world/map', label: 'Map', Icon: MapIcon },
 ];

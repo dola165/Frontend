@@ -46,7 +46,7 @@ export function listingPlace(m: Match, places: Places): Placement | null {
         meta: [`${fixtureDay(m.starts_at_iso, m.timezone)} ${fixtureTime(m.starts_at_iso, m.timezone)}`, m.location_name].filter(Boolean).join(' · '), tone: 'match', to: `/match-exchange/${m.event_id}` } : null;
 }
 
-const EVENT_PIN: Record<string, Placement['tone']> = { MATCH: 'match', TOURNAMENT: 'event', TRYOUT: 'trial', TRAINING: 'training' };
+const EVENT_PIN: Record<string, Placement['tone']> = { MATCH: 'match', TOURNAMENT: 'tournament', TRYOUT: 'trial', TRAINING: 'training' };
 const clubOf = (destination: string) => Number(/^\/clubs\/([1-9]\d*)/.exec(destination)?.[1]) || undefined;
 
 /**

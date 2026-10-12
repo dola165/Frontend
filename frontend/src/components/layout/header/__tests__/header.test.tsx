@@ -31,7 +31,7 @@ describe('guest header', () => {
         const links = within(menu).getAllByRole('menuitem').map(item => [item.textContent, item.getAttribute('href')]);
         expect(links).toEqual([
             ['Clubs', '/world/clubs'], ['People', '/world/people'], ['Venues', '/world/venues'], ['Matches', '/world/matches'],
-            ['Competitions', '/world/competitions'], ['Opportunities', '/world/opportunities'], ['Map', '/world/map'],
+            ['Tournaments', '/world/tournaments'], ['Opportunities', '/world/opportunities'], ['Map', '/world/map'],
             ['Store', '/store'], ['Campaigns', '/campaigns'],
         ]);
         expect(within(menu).queryByText('Followed clubs')).not.toBeInTheDocument();

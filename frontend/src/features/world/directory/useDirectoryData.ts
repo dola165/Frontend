@@ -42,7 +42,8 @@ export const invalidRange = (source: AnySource, query: DirectoryQuery) => {
  * change, further pages on request. Results of an older query are never shown as current.
  */
 export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated: boolean, { pages = 1, onPages }: { pages?: number; onPages?: (count: number) => void } = {}) {
-    const { sessionId, status } = useAuth();
+    const { sessionId, status, user } = useAuth();
+    const userId = user?.id ?? null;
     const authenticated = status === 'authenticated';
     const badRange = invalidRange(source, query);
     const { area: worldArea } = useWorldArea();
@@ -59,7 +60,7 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
     const [more, setMore] = useState<{ key: string; busy: boolean; error: string }>();
     const moreController = useRef<AbortController | null>(null);
     // The number of pages to restore is read when a query loads, not tracked: showing more never reloads.
-    const firstLoad = useEffectEvent((signal: AbortSignal) => loadPages(source, query, pages, { signal, sessionId, authenticated, area }));
+    const firstLoad = useEffectEvent((signal: AbortSignal) => loadPages(source, query, pages, { signal, sessionId, authenticated, area, userId }));
 
     useEffect(() => {
         if (!key) return;
@@ -74,7 +75,7 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
     // A live list reloads what is on screen in the background; a failed refresh keeps the last results.
     const refresh = useEffectEvent((signal: AbortSignal) => {
         if (!key || !loaded || loaded.key !== key || loaded.error || (more?.key === key && more.busy)) return;
-        void loadPages(source, query, loaded.page + 1, { signal, sessionId, authenticated, area })
+        void loadPages(source, query, loaded.page + 1, { signal, sessionId, authenticated, area, userId })
             .then(result => { if (!signal.aborted) setLoaded(previous => previous && previous.key === key ? { ...previous, items: result.items, total: result.total, hasMore: result.hasMore, page: result.page, notice: result.notice ?? '', checkedAt: Date.now() } : previous); })
             .catch(() => undefined);
     });
@@ -101,7 +102,7 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
         const controller = new AbortController();
         moreController.current = controller;
         setMore({ key, busy: true, error: '' });
-        void source.load(query, current.page + 1, { signal: controller.signal, sessionId, authenticated, area })
+        void source.load(query, current.page + 1, { signal: controller.signal, sessionId, authenticated, area, userId })
             .then(page => {
                 if (controller.signal.aborted) return;
                 setLoaded(previous => previous && previous.key === key ? { ...previous, items: [...previous.items, ...page.items], hasMore: page.hasMore, total: page.total ?? previous.total, page: previous.page + 1 } : previous);

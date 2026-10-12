@@ -4,6 +4,7 @@ import { arrangePath } from './compose/arrangeSeed';
 import { WorldLayout } from './WorldLayout';
 import { WorldLoading as PageLoading } from './WorldLoading';
 import { WorldSessionProvider } from './WorldSessionProvider';
+import { TournamentsRedirect } from './WorldRedirect';
 
 const WorldFrontPage = lazy(() => import('./front/WorldFrontPage'));
 const WorldMapPage = lazy(() => import('./map/WorldMapPage'));
@@ -11,7 +12,7 @@ const ClubsDirectory = lazy(() => import('./directories/ClubsDirectory'));
 const PeopleDirectory = lazy(() => import('./directories/PeopleDirectory'));
 const VenuesDirectory = lazy(() => import('./directories/VenuesDirectory'));
 const MatchesDirectory = lazy(() => import('./directories/MatchesDirectory'));
-const CompetitionsDirectory = lazy(() => import('./directories/CompetitionsDirectory'));
+const TournamentsDirectory = lazy(() => import('./directories/TournamentsDirectory'));
 const OpportunitiesDirectory = lazy(() => import('./directories/OpportunitiesDirectory'));
 
 const positive = (value: string | null) => { const id = Number(value); return Number.isSafeInteger(id) && id > 0 ? id : undefined; };
@@ -42,7 +43,8 @@ export default function WorldRoutes() {
                 <Route path="venues" element={<Suspense fallback={<PageLoading />}><VenuesDirectory /></Suspense>} />
                 <Route path="matches" element={<Suspense fallback={<PageLoading />}><MatchesDirectory /></Suspense>} />
                 <Route path="matches/arrange" element={<ArrangeRedirect />} />
-                <Route path="competitions" element={<Suspense fallback={<PageLoading />}><CompetitionsDirectory /></Suspense>} />
+                <Route path="tournaments" element={<Suspense fallback={<PageLoading />}><TournamentsDirectory /></Suspense>} />
+                <Route path="competitions" element={<TournamentsRedirect />} />
                 <Route path="opportunities" element={<Suspense fallback={<PageLoading />}><OpportunitiesDirectory /></Suspense>} />
                 <Route path="*" element={<Navigate replace to="/world" />} />
             </Route>

@@ -62,7 +62,7 @@ export interface ExploreDestination extends Pin { group: 'world' | 'more' | 'sup
 
 const explore: Array<[path: string, group: ExploreDestination['group'], signedIn?: boolean]> = [
     ['/world/clubs', 'world'], ['/world/people', 'world'], ['/world/venues', 'world'], ['/world/matches', 'world'],
-    ['/world/competitions', 'world'], ['/world/opportunities', 'world'], ['/world/map', 'world'],
+    ['/world/tournaments', 'world'], ['/world/opportunities', 'world'], ['/world/map', 'world'],
     ['/world/opportunities?type=trials', 'more'], ['/world/matches?tab=events', 'more'],
     ['/store', 'support'], ['/campaigns', 'support'], ['/clubs/following', 'support', true],
 ];

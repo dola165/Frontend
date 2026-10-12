@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { MapBounds } from '../../../components/map/areaSearch';
 import { getHeritageStyle } from '../../../components/map/heritageStyle';
+import { Trophy } from 'lucide-react';
 import { Button } from '../../../design/primitives';
 import { useWorldCopy } from '../copy';
 import { useWorldData } from '../useWorldData';
@@ -13,7 +14,7 @@ import './world-map.css';
 
 const WorldLiveMap = lazy(() => import('./WorldLiveMap'));
 
-export type WorldMapTone = 'club' | 'venue' | 'match' | 'trial' | 'event' | 'training' | 'person' | 'mixed';
+export type WorldMapTone = 'club' | 'venue' | 'match' | 'tournament' | 'trial' | 'event' | 'training' | 'person' | 'mixed';
 /** Why a pin is not at the result's own place: it is at its club, at its competition's ground, or counted at a city. */
 export type Approximate = 'club' | 'ground' | 'area';
 const APPROXIMATE: Record<Approximate, string> = { club: 'Placed at its club', ground: 'Placed at its competition’s ground', area: 'Counted at a city' };
@@ -27,16 +28,17 @@ export interface WorldMapPoint {
     /** A few characters beside the pin ("11:00", "FT 4–3"), shown while few pins are in view or when it is lit. */ chip?: string;
 }
 
-const TONE_LABEL: Record<WorldMapTone, string> = { club: 'Clubs', venue: 'Venues', match: 'Matches', trial: 'Trials', event: 'Events', training: 'Training', person: 'People', mixed: 'Several kinds' };
+const TONE_LABEL: Record<WorldMapTone, string> = { club: 'Clubs', venue: 'Venues', match: 'Matches', tournament: 'Tournaments', trial: 'Trials', event: 'Events', training: 'Training', person: 'People', mixed: 'Several kinds' };
 
 /** What every way of drawing a pin needs: which pins are lit, and what pointing at or choosing one does. */
 export interface PinEvents { selectedId?: string; highlightId?: string; onSelect: (id: string) => void; onHover?: (id?: string) => void }
 
-/** What a pin shows inside: a club's crest when it is one, and how many results it holds. */
+/** What a pin shows inside: a club's crest when it is one, a trophy for a tournament, and how many results it holds. */
 export function PinFace({ point }: { point: WorldMapPoint }) {
     const count = shownCount(point);
     return <>
         {point.crest && <Crest src={point.crest} name={point.label} size={24} round />}
+        {point.tone === 'tournament' && !point.crest && count == null && <Trophy className="gk-world-pin__glyph" aria-hidden="true" />}
         {count != null && <span className="gk-world-pin__count">{count}</span>}
         {point.chip && <span className="gk-world-pin__chip" aria-hidden="true">{point.chip}</span>}
     </>;

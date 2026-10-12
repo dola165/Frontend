@@ -132,7 +132,7 @@ export function CompetitionsField({ side }: FieldProps) {
     const items = data.data?.content ?? [];
     return (
         <WorldField id="competitions" side={side} count={data.data ? data.data.totalElements ?? items.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
-            hint={items[0]?.name} all={{ label: t('All competitions'), to: '/world/competitions?registration=OPEN' }}>
+            hint={items[0]?.name} all={{ label: t('All open tournaments'), to: '/world/tournaments?tab=all&registration=OPEN' }}>
             {items.length ? <CompetitionLines items={items.slice(0, rowsFor(side))} label={t('Open for entries')} />
                 : <EmptyNote title={t('No competitions are taking entries')}>{t('New leagues and cups appear here when entries open.')}</EmptyNote>}
         </WorldField>
@@ -146,7 +146,7 @@ export function LiveCompetitionsField({ side }: FieldProps) {
     const items = data.data?.content ?? [];
     return (
         <WorldField id="liveCompetitions" side={side} count={data.data ? data.data.totalElements ?? items.length : null} loading={data.loading} error={data.error} onRetry={data.retry}
-            hint={items[0]?.name} all={{ label: t('All competitions'), to: '/world/competitions?status=ACTIVE' }}>
+            hint={items[0]?.name} all={{ label: t('All tournaments on now'), to: '/world/tournaments?tab=all&status=ACTIVE' }}>
             {items.length ? <CompetitionLines items={items.slice(0, rowsFor(side))} label={t('Competitions on now')} live />
                 : <EmptyNote title={t('No competitions are being played right now')} />}
         </WorldField>

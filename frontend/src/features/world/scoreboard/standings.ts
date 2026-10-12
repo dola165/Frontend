@@ -51,7 +51,9 @@ export function nextFixture(fixtures: TournamentFixtureDto[], entryIds: Set<numb
 }
 
 /**
- * Tournament fixtures carry the venue's wall clock without a zone ("2026-10-17T18:00:00"). Every competition so
- * far is in Georgia, UTC+4 all year, so that is how they are read (backend needed: the zone on fixture times).
+ * Tournament times carry the venue's wall clock without a zone ("2026-10-17T18:00:00"), and a day alone ("2026-10-17")
+ * is its midnight. Every competition so far is in Georgia, UTC+4 all year, so that is how they are read (backend
+ * needed: the zone on tournament times). The one place they are read.
  */
-export const zoned = (value: string | null | undefined) => value ? (/(Z|[+-]\d\d:?\d\d)$/.test(value) ? value : `${value}+04:00`) : null;
+export const zoned = (value: string | null | undefined) => value
+    ? (/(Z|[+-]\d\d:?\d\d)$/.test(value) ? value : `${value.includes('T') ? value : `${value}T00:00`}+04:00`) : null;

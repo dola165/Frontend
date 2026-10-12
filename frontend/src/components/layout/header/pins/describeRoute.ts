@@ -57,7 +57,7 @@ const fixed: Array<[RegExp, Words, PinIcon]> = [
     [/^\/stadiums$/, ['Venues', 'მოედნები'], 'venue'],
     [/^\/matches$/, ['Matches', 'მატჩები'], 'goal'],
     [/^\/match-history$/, ['Results', 'შედეგები'], 'goal'],
-    [/^\/tournaments$/, ['Competitions', 'ტურნირები'], 'trophy'],
+    [/^\/tournaments$/, ['Tournaments', 'ტურნირები'], 'trophy'],
     [/^\/tryouts$/, ['Trials', 'გასინჯვები'], 'goal'],
     [/^\/events$/, ['Events', 'ღონისძიებები'], 'calendar'],
     [/^\/(?:jobs|roles)$/, ['Jobs and volunteering', 'სამუშაო და მოხალისეობა'], 'briefcase'],
@@ -67,13 +67,14 @@ const fixed: Array<[RegExp, Words, PinIcon]> = [
 /** World's directories and the tabs inside them, named as World names them. */
 const worldSections: Record<string, [Words, PinIcon]> = {
     clubs: [['Clubs', 'კლუბები'], 'club'], people: [['People', 'ხალხი'], 'people'], venues: [['Venues', 'მოედნები'], 'venue'],
-    matches: [['Matches', 'მატჩები'], 'goal'], competitions: [['Competitions', 'ტურნირები'], 'trophy'],
+    matches: [['Matches', 'მატჩები'], 'goal'], tournaments: [['Tournaments', 'ტურნირები'], 'trophy'], competitions: [['Tournaments', 'ტურნირები'], 'trophy'],
     opportunities: [['Opportunities', 'შესაძლებლობები'], 'briefcase'], map: [['Map', 'რუკა'], 'map'],
 };
 const worldTabs: Record<string, Words> = {
     'matches:exchange': ['Open matches', 'ღია მატჩები'], 'matches:mine': ['My arrangements', 'ჩემი შეთანხმებები'], 'matches:events': ['Events', 'ღონისძიებები'],
     'opportunities:jobs': ['Jobs and volunteering', 'სამუშაო და მოხალისეობა'], 'opportunities:trials': ['Trials', 'გასინჯვები'], 'opportunities:groups': ['Places to train', 'სავარჯიშო ადგილები'],
-    'competitions:mine': ['My competitions', 'ჩემი ტურნირები'], 'competitions:hosts': ['Organisers', 'ორგანიზატორები'], 'competitions:invitations': ['Invitations', 'მოწვევები'],
+    'tournaments:all': ['All tournaments', 'ყველა ტურნირი'], 'tournaments:mine': ['My tournaments', 'ჩემი ტურნირები'],
+    'competitions:all': ['All tournaments', 'ყველა ტურნირი'], 'competitions:mine': ['My tournaments', 'ჩემი ტურნირები'], 'competitions:invitations': ['My tournaments', 'ჩემი ტურნირები'],
     'venues:bookings': ['My reservations', 'ჩემი ჯავშნები'],
 };
 

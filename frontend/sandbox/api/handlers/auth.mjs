@@ -22,6 +22,9 @@ export const meProjection = ({ headers } = {}) => ({
     { id: 'club.operations', context: { type: 'club', id: 1, label: clubs[0].name } },
     { id: 'squad.workspace', context: { type: 'squad', id: 105, label: 'U16 Boys' } },
     { id: 'squad.workspace', context: { type: 'squad', id: 103, label: 'U14 Boys' } },
+    // Luka runs the league Dinamo hosts and coordinates the U16 cup (an ADMIN assignment on each).
+    { id: 'tournament.workspace', context: { type: 'tournament', id: 301, label: 'Tbilisi Community League' } },
+    { id: 'tournament.workspace', context: { type: 'tournament', id: 306, label: 'Georgian Youth Cup U16' } },
     ...(familyRequest(headers) ? [{ id: 'parent.hub', context: { type: 'user', id: me.id, label: me.fullName } }] : []),
   ] },
 });

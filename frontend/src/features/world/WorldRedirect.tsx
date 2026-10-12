@@ -34,6 +34,28 @@ export function WorldRedirect({ to, rename, set, detail }: {
     return <Navigate replace to={target(to, params, location.hash)} state={location.state} />;
 }
 
+/** Keys only the All tournaments list reads: a link carrying one without naming a list opens All, not This season. */
+const ALL_TOURNAMENT_KEYS = ['q', 'sort', 'registration', 'family', 'structure', 'format', 'ageGroup', 'scope', 'sideSize', 'discipline', 'playingLevel', 'status', 'country', 'city',
+    'eligibilityCategory', 'from', 'to', 'minFee', 'maxFee', 'currency', 'feeBasis', 'openPlaces', 'host', 'around'];
+
+/**
+ * An old Competitions link as a Tournaments one, every key kept: Invitations are now in My tournaments, Organisers were
+ * a list of hosts (one chosen host is All tournaments by that host), and a filter without a list opens All.
+ */
+function tournamentParams(params: URLSearchParams) {
+    const tab = params.get('tab');
+    if (tab === 'invitations') params.set('tab', 'mine');
+    else if (tab === 'hosts') { params.delete('following'); if (params.has('host')) params.set('tab', 'all'); else params.delete('tab'); }
+    if (!params.get('tab') && ALL_TOURNAMENT_KEYS.some(key => params.has(key))) params.set('tab', 'all');
+    return params;
+}
+
+/** `/world/competitions` was renamed Tournaments. */
+export function TournamentsRedirect() {
+    const location = useLocation();
+    return <Navigate replace to={target('/world/tournaments', tournamentParams(new URLSearchParams(location.search)), location.hash)} state={location.state} />;
+}
+
 /** An old distance search (latitude and longitude keys) becomes World's "Near me" position. */
 function around(params: URLSearchParams, latKey: string, lngKey: string) {
     const rawLat = params.get(latKey), rawLng = params.get(lngKey);
@@ -44,7 +66,7 @@ function around(params: URLSearchParams, latKey: string, lngKey: string) {
 
 /**
  * The old Matches & Competitions hub (`/matches?section=…`), Match exchange and Match history.
- * Discovery now lives in World › Matches and Competitions; a referee's own appointments
+ * Discovery now lives in World › Matches and Tournaments; a referee's own appointments
  * stay in the referee workspace.
  */
 export function LegacyMatchesRedirect({ kind }: { kind: 'hub' | 'exchange' | 'history' | 'competitions' }) {
@@ -57,12 +79,14 @@ export function LegacyMatchesRedirect({ kind }: { kind: 'hub' | 'exchange' | 'hi
     if (section === 'competitions') {
         const view = params.get('view');
         params.delete('view');
-        const kind = params.get('kind') ?? params.get('hostKind'), host = params.get('host') ?? params.get('hostId');
-        ['kind', 'host', 'hostKind', 'hostId'].forEach(key => params.delete(key));
-        if (kind && host && (view === 'hosts' || !view)) params.set('host', `${kind}:${host}`);
-        else if (view === 'mine' || view === 'hosts' || view === 'invitations') params.set('tab', view);
+        // The hub named one host by kind and id; a newer link already says "CLUB:12".
+        const kind = params.get('kind') ?? params.get('hostKind'), id = params.get('hostId') ?? params.get('host');
+        ['kind', 'hostKind', 'hostId'].forEach(key => params.delete(key));
+        if (kind && id && !id.includes(':')) params.set('host', `${kind}:${id}`);
+        else if (!params.get('host')?.includes(':')) params.delete('host');
+        if (view === 'mine' || view === 'hosts' || view === 'invitations') params.set('tab', view);
         around(params, 'latitude', 'longitude');
-        return <Navigate replace to={target('/world/competitions', params, location.hash)} state={location.state} />;
+        return <Navigate replace to={target('/world/tournaments', tournamentParams(params), location.hash)} state={location.state} />;
     }
     if (section === 'officials') {
         params.delete('tab');

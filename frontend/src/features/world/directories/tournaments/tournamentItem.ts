@@ -1,0 +1,124 @@
+import type { BadgeTone } from '../../../../design/primitives';
+import { getCompetitionProfile, type CompetitionCard, type CompetitionRules } from '../../../competitions/api';
+import { fetchTournament } from '../../../tournaments/api';
+import type { TournamentInvitationInboxItem, TournamentStatus, TournamentSummary } from '../../../tournaments/domain';
+import { shared } from '../../cache';
+import { wt } from '../../copy';
+import { calendarDaysUntil, codeLabel, SCOPE_LABEL, shortDate } from '../../format';
+import { zoned } from '../../scoreboard/standings';
+import { sideIsMine, type MyTeams } from '../../scoreboard/myTeams';
+import { appLocale } from '../../../../utils/formatting';
+
+/** Where entries stand when the list asked for it (a list of tournaments open for entries). */
+export type EntriesState = 'OPEN' | 'NOT_OPEN' | 'CLOSED';
+
+/**
+ * A tournament as World's lists show it, from whichever answer brought it: a list card (`/competitions`), a summary
+ * (`/competitions/mine`, the overview) or an invitation, with what is known about the person's part in it. Every time
+ * is a wall time read through `zoned`. Fields an answer does not carry stay undefined and are never guessed.
+ */
+export interface TournamentItem {
+    id: number; name: string; status: TournamentStatus; scope: string;
+    start: string | null; end: string | null;
+    organizer: string | null; banner: string | null;
+    rules: CompetitionRules | null;
+    entryCount: number | null; entryCap: number | null;
+    /** The entry window: a summary carries it, a list card does not. */ opensAt?: string | null; closesAt?: string | null;
+    entries?: EntriesState;
+    invitation?: TournamentInvitationInboxItem;
+    /** My squads entered (by name) and how each entry stands. */ mine?: { name: string; status: string }[];
+    /** The person runs it (admin or staff), or referees in it. */ role?: 'running' | 'refereeing';
+    champion?: string | null;
+}
+
+export const fromCard = (card: CompetitionCard, entries?: EntriesState): TournamentItem => ({
+    id: card.id, name: card.name, status: card.status, scope: card.participantScope, start: zoned(card.startDate), end: zoned(card.endDate),
+    organizer: card.hostClubName || card.organizerName, banner: card.bannerImageUrl, rules: card.profile?.rules ?? null,
+    entryCount: card.entryCount, entryCap: card.entryCap, entries,
+});
+
+export const fromSummary = (summary: TournamentSummary, rules: CompetitionRules | null): TournamentItem => ({
+    id: summary.id, name: summary.name, status: summary.status, scope: summary.participantScope, start: zoned(summary.startDate), end: zoned(summary.endDate),
+    organizer: summary.hostClubName || summary.organizerName || null, banner: summary.bannerImageUrl ?? null, rules,
+    entryCount: summary.entryCount, entryCap: null, opensAt: zoned(summary.registrationOpensAt), closesAt: zoned(summary.registrationClosesAt),
+});
+
+export const fromInvitation = (invitation: TournamentInvitationInboxItem, rules: CompetitionRules | null): TournamentItem => ({
+    id: invitation.tournamentId, name: invitation.tournamentName, status: invitation.tournamentStatus, scope: invitation.participantScope,
+    start: zoned(invitation.startDate), end: null, organizer: null, banner: null, rules, entryCount: null, entryCap: null, invitation,
+});
+
+/** A tournament's published rules (format, age, fee), shared for a minute; null for a legacy tournament or on failure. */
+export const rulesOf = (id: number) => shared(`tournament-rules:${id}`, () => getCompetitionProfile(id)).then(profile => profile.rules, () => null);
+/** The tournament's detail, shared with every drawer and field that reads it. */
+export const detailOf = (id: number) => shared(`tournament:${id}`, () => fetchTournament(id));
+
+/** My part in a tournament, from its detail: my squads' entries, whether I run or referee it, its places and champion. */
+export async function withPart(item: TournamentItem, userId: number | null | undefined, teams: MyTeams): Promise<TournamentItem> {
+    const detail = await detailOf(item.id).catch(() => null);
+    if (!detail) return item;
+    const staff = detail.staffAssignments.filter(assignment => userId != null && assignment.userId === userId && assignment.status === 'ACTIVE');
+    const role = staff.some(assignment => assignment.role === 'ADMIN' || assignment.role === 'STAFF') ? 'running' as const : staff.some(assignment => assignment.role === 'REFEREE') ? 'refereeing' as const : undefined;
+    // My squads' entries, and my club's own (another squad of my club, or the club as a whole).
+    const mine = detail.entries.filter(entry => !['WITHDRAWN', 'REJECTED'].includes(entry.status) && (sideIsMine(entry, teams) || (entry.clubId != null && teams.clubIds.has(entry.clubId))))
+        .map(entry => ({ name: (entry.squadId != null ? teams.names.get(entry.squadId) : null) ?? entry.squadName ?? entry.clubName ?? entry.displayName ?? wt('Your team'), status: entry.status }));
+    return {
+        ...item, role, mine, champion: detail.championName ?? null, entryCap: detail.entryCap ?? item.entryCap,
+        // Places taken as the list counts them: approved and active entries, and those that played on or went out.
+        entryCount: item.entryCount ?? detail.entries.filter(entry => ['APPROVED', 'ACTIVE', 'COMPLETED', 'ELIMINATED'].includes(entry.status)).length,
+        organizer: item.organizer ?? detail.hostClubName ?? detail.organizerName ?? null, banner: item.banner ?? detail.bannerImageUrl ?? null,
+        end: item.end ?? zoned(detail.endDate), opensAt: item.opensAt ?? zoned(detail.registrationOpensAt), closesAt: item.closesAt ?? zoned(detail.registrationClosesAt),
+    };
+}
+
+/** "150 GEL a team", "20 GEL a player", "Free": the entry fee as the rules publish it. */
+export function feeLabel(rules: CompetitionRules | null) {
+    if (!rules) return null;
+    if (!rules.entryFee) return wt('Free');
+    const amount = `${rules.entryFee.toLocaleString(appLocale())} ${rules.currency}`;
+    return rules.feeBasis === 'TEAM' ? wt('{amount} a team', { amount }) : rules.feeBasis === 'PLAYER' ? wt('{amount} a player', { amount }) : amount;
+}
+
+/** "6 of 8 places", "6 entered", or nothing before anyone enters a tournament without a cap. */
+export const placesLabel = (item: TournamentItem) => item.entryCap ? wt('{count} of {cap} places', { count: item.entryCount ?? 0, cap: item.entryCap })
+    : item.entryCount ? wt('{count} entered', { count: item.entryCount }) : null;
+
+/** What a tournament is, in a few words: age (and who it is for), players per side, who enters. */
+export function whatLabel(item: TournamentItem) {
+    const rules = item.rules, category = rules?.eligibilityCategory?.trim();
+    const age = rules ? [codeLabel(rules.ageGroup), category && category !== 'Open' && category.length <= 16 ? wt(category) : null].filter(Boolean).join(' ') : null;
+    return [age, rules ? `${rules.sideSize}v${rules.sideSize}` : null, SCOPE_LABEL[item.scope] ? wt(SCOPE_LABEL[item.scope]) : null].filter(Boolean);
+}
+
+/** The last day entries are taken: a window closing at midnight belongs to the day before. */
+const lastDay = (closesAt: string) => new Date(Date.parse(closesAt) - 60_000).toISOString();
+
+/**
+ * The one fact a tournament's row shows, by what matters most: an invitation to answer, my squads in it, then where
+ * entries stand or how far it has got. A fact needing a field this answer lacks (the entry window on a list card) is
+ * left out, never guessed.
+ */
+export function tournamentFact(item: TournamentItem): { label: string; tone: BadgeTone } {
+    if (item.invitation) return { label: wt('Answer'), tone: 'warning' };
+    const live = item.mine?.filter(entry => !['ELIMINATED'].includes(entry.status)) ?? [];
+    if (item.status !== 'COMPLETED' && item.status !== 'CANCELLED' && live.length) {
+        const first = live[0], more = live.length > 1 ? ` +${live.length - 1}` : '';
+        if (first.status === 'PENDING') return { label: wt('{team}: waiting for the organiser', { team: first.name }), tone: 'warning' };
+        if (first.status === 'WAITLISTED') return { label: wt('{team}: on the waiting list', { team: first.name }), tone: 'warning' };
+        return { label: wt('{team} in', { team: `${first.name}${more}` }), tone: 'accent' };
+    }
+    if (item.status === 'ACTIVE') return { label: wt('On now'), tone: 'accent' };
+    if (item.status === 'COMPLETED') return item.champion ? { label: wt('Won by {team}', { team: item.champion }), tone: 'neutral' } : { label: wt('Finished'), tone: 'neutral' };
+    if (item.status === 'CANCELLED') return { label: wt('Cancelled'), tone: 'danger' };
+    if (item.entryCap && (item.entryCount ?? 0) >= item.entryCap) return { label: wt('Full · waiting list'), tone: 'neutral' };
+    if (item.opensAt && Date.parse(item.opensAt) > Date.now()) return { label: wt('Opens {date}', { date: shortDate(item.opensAt) ?? '' }), tone: 'violet' };
+    if (item.closesAt) {
+        const left = calendarDaysUntil(lastDay(item.closesAt));
+        if (left != null && left < 0) return { label: wt('Entries closed'), tone: 'neutral' };
+        if (left != null) return { label: wt('Last day {date}', { date: shortDate(lastDay(item.closesAt)) ?? '' }), tone: left <= 7 ? 'warning' : 'violet' };
+    }
+    if (item.entries === 'OPEN') return { label: wt('Open for entries'), tone: 'accent' };
+    if (item.entries === 'NOT_OPEN') return { label: wt('Opening soon'), tone: 'violet' };
+    if (item.entries === 'CLOSED') return { label: wt('Entries closed'), tone: 'neutral' };
+    return { label: wt('Coming up'), tone: 'violet' };
+}

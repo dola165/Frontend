@@ -49,8 +49,8 @@
   "wait": 1500
  },
  {
-  "name": "world-competitions",
-  "path": "/world/competitions",
+  "name": "world-tournaments",
+  "path": "/world/tournaments",
   "wait": 1200
  },
  {

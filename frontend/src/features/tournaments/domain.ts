@@ -363,6 +363,14 @@ export interface TournamentHost {
     following: boolean;
 }
 
+/** `GET /tournaments/overview`: the highlights are computed (public, live, not ended, at most three). */
+export interface TournamentOverview {
+    highlights: TournamentSummary[];
+    followedHosts: TournamentHost[];
+    suggestedHosts: TournamentHost[];
+    shelves: { scope: TournamentParticipantScope; tournaments: TournamentSummary[]; total: number }[];
+}
+
 export type TournamentInvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
 
 export interface TournamentInvitationDto {

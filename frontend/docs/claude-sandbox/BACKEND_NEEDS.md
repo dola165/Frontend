@@ -276,6 +276,17 @@ The sandbox's `GET /people` (`sandbox/api/handlers/world-extra.mjs`) is the cont
 | Coordinates or a venue id on `/match-history` rows: pins and the away-day line work today only for the club's own scheduled matches and tournament grounds | MISSING (extends 3.5) |
 | Adding a past match: open to a squad's coaches, not only owners and administrators? | Decide |
 
+### World › Tournaments (phase E)
+
+| Need | Status |
+|---|---|
+| Competition cards (`GET /competitions`): the entry window, `registrationPolicy`, `hostClubId` and `organizerOrganizationId` (see 3.1), so a row can say "Last day 14 Oct" or "Opens 2 Nov" and place a tournament without a ground at its host club | MISSING on the card; summaries have the window and ids |
+| A compact progress summary on the card (stage reached, matches played of planned, the champion), so rows draw progress without reading each tournament's detail | MISSING |
+| `GET /competitions/mine`: the person's part (entered squads, ADMIN/STAFF/REFEREE) and what waits (entries to review, results to record), so My tournaments does not read up to twelve details a page | MISSING |
+| `GET /competitions`: several statuses, or an order that puts finished tournaments last, so All tournaments is one search instead of three | MISSING |
+| The distance search needs a tournament `location`; one without (no ground chosen) never shows under Near. Falling back to the host club's coordinates would keep it | PARTIAL |
+| Times with their zone on tournaments (start, end, the entry window, fixtures), today wall times read as Tbilisi time | PARTIAL (see 3.1) |
+
 ### World › Creating things (phase D)
 
 | Need | Status |

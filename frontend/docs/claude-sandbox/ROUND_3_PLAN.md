@@ -39,7 +39,7 @@ Each has the default I will use if you just say "go". Change any by number.
 | 7 | **Reservations on the match page** (link a reservation, change the ground through one, share it with your own club's staff: corrected on 12 October, the backend never shares with the other club) were removed beyond the decision. Bring them back as a management step on the match page. | Yes |
 | 8 | **One "+" button per tab** (a split button: the tab's likely action, e.g. "+ Arrange a match", and a menu with drafts first) instead of the five different create buttons. "Post a role" becomes "Post a job". | Yes |
 | 9 | **Where work opens:** over the map in the panel slot when the map is on screen (the map then picks places); otherwise as a sheet from the right, so the page never scrolls back up. One question at a time opens as a small centred pop-up. (Updated 12 October: in World's own frame, the pane beside the list or the drawer on the right; single decisions as steps inside the thing; the map picking places kept for later. See Phase D.) | Yes |
-| 10 | **Tournaments sections:** This season · All tournaments · Matchday · Referees · My tournaments. ("Matchday" avoids repeating Matches › Fixtures & results.) | Yes |
+| 10 | **Tournaments sections:** This season · All tournaments · Matchday · Referees · My tournaments. ("Matchday" avoids repeating Matches › Fixtures & results.) (Updated 12 October, owner to confirm: three lists, This season · All tournaments · My tournaments; a tournament's fixtures and table are tabs of its pane, organiser chores waiting rows. See Phase E.) | Yes |
 | 11 | **Tournaments are drawn as their format:** every tournament gets a small picture of its shape (bracket, table, groups, festival wheel, ladder) that fills in with results, your team's path lit. | Yes |
 | 12 | **Create a tournament inside World** ("Draw room": questions on the left, the tournament's shape live on the right) replaces `/tournaments/setup` once it has every field. Created private by default; the required rules are offered as "the usual wording", visible and editable. | Yes |
 | 13 | **Venues as a Pitchboard** under the map: one wide photo row per venue with its pitches drawn to scale and the chosen day's free time as a quiet ribbon; a time line runs through every row and across the map; booking slides in from the right. Phones keep stacked photo cards. | Yes |
@@ -114,17 +114,18 @@ Built on 12 October in its three steps (see `ROUND_2.md`, Creating things). Size
 
 ### Phase E · Tournaments (your item 4)
 
-Direction "Wall Chart" (39/50).
+Updated on 12 October, before building, as Phase D was: six read-only agents mapped the Competitions tab, the lost hub, the tournament data, entering and answering, creating, and the planned Matchday and Referees sections; a critic checked the plan against World as it is now. Two accepted decisions change (owner to confirm): **three lists instead of five** (decision 10: Matchday and Referees are already covered by Matches › Fixtures and People › Referees since Phases B and C, and "Matchday" now names Matches itself; a tournament's own fixtures and table or bracket become parts of its pane, and organiser chores become waiting rows that open the workspace, as decision 16 says) and **rich rows instead of cards** ("Lists under the map": tournaments are one to a line in the column). Not built: the "Entries and dates" ribbon (anything scheduled uses the one calendar).
 
-- **Renamed Tournaments** (`/world/tournaments`; every old address, tab and filter redirects, nothing breaks). Trophy pins in match green.
-- **Five sections** (decision 10): **This season** (the overview layer: waiting for you, your squads' tournaments as pictures, entries and dates, who runs them), **All tournaments** (cards grouped by age), **Matchday** (tournament fixtures by tournament and round, with the table or bracket beside each), **Referees** (appointments, matches without a referee, the referee list), **My tournaments** (waiting, playing in, running, finished).
-- **Every tournament drawn as its format** (decision 11), from fields the real backend already returns; your path lit.
-- **Cards come back:** banner, organiser crest, age and side, dates, places ring, fee ("paid to the organiser"), one bright fact (Answer / U14 Boys in / Closes 14 Oct / Final Sat 17 / On now / Full).
-- **Everything happens in panels over World:** the tournament sheet (Bracket/Table · Matches · Teams · About, a Final poster when the final is next), Enter as a step inside it (squads that fit first), Answer an invitation as a pop-up (no more detour through Requests), the organiser drawer from the left (their tournaments, Follow), Add to calendar. Running a tournament stays in its workspace (decision 16).
-- **The format chooser with pictures** comes back as the Format filter, and the host picker under More filters.
-- **The Draw room** (decision 12) creates a tournament in World with every field the setup page has.
+- **Renamed Tournaments** (`/world/tournaments`, trophy). `/world/competitions`, `/tournaments` and the old hub's links redirect here keeping every key; a link carrying a list filter without naming a list opens All tournaments with it.
+- **Three lists:** **This season** (the default: what is yours first, then on now, open for entries with your squads' ages first, coming up; guests get the spotlight), **All tournaments** (everything, grouped by age, finished ones last; follows Near from the World bar), **My tournaments** (signed in: waiting for you, playing in, running, finished, with an amber count of what waits).
+- **A tournament row:** its start date where a crest would be, the name (to its page), a small picture of its format, age · players per side · who enters, the organiser · city · places ("6 of 8") · fee ("150 GEL a team", "Free"), and one fact as a dot and a word (Answer, U14 Boys in, Last day 14 Oct, Final Sun 18 Oct, On now, Full · waiting list, Opens 2 Nov, Entries closed, the champion). A fact that needs a field the real backend does not send is hidden there, never guessed.
+- **Every tournament drawn as its format** (decision 11): a league table, a cup's bracket, groups and finals, a festival, a ladder, from what the list already sends; progress and your team's path where the tournament's detail is loaded (its pane, a few of your own).
+- **The tournament in World's frame** (the pane beside the list, else the drawer): its banner, organiser ("by …", who is behind it, with Follow), facts and the one thing to do; tabs inside it: Overview, the format's own view (Bracket, Table, Groups…), Matches (by round, each a match drawer), Teams, About. **Enter** and **Answer an invitation** are steps inside it (no pop-up, no trip to Requests), with the backend's rules said in words (one entry per club, full means the waiting list). Running a tournament stays in its workspace (decision 16): World shows its waiting rows and opens it.
+- **Filters in the strip under the map:** Entries, Age, and Format as picture tiles (League, Knockout cup, Groups & finals, Festival, Ladder; more formats under More filters), Run by (the organiser) under More filters.
+- **Trophy pins in match green** on both maps; a Browse line opens the tournament's pane.
+- **The Draw room** (decision 12): creating a tournament in World's frame from the "+" ("Create a tournament"), with every field the setup page has plus the number of teams and how entries are accepted, the tournament's shape and a labelled estimate pinned at the top, Create at the bottom ("Private. Only your organisation's staff see it until you publish."), one call to the server, its draft kept and continued from the "+". It replaces `/tournaments/setup`.
 
-Size: L+ (four steps: discovery and panels; the overview layer; Matchday and Referees; the Draw room).
+Size: L+, in four steps: (1) the rename, the three lists, rows, format pictures, filters, Near, pins; (2) the tournament pane and the organiser; (3) Enter, Answer and the waiting rows; (4) the Draw room. Each step makes the sandbox answer as the backend does for what it shows.
 
 ### Phase F · Venues, "Pitchboard" (your item 3)
 
@@ -173,7 +174,7 @@ The recipe skill (`world-page-recipe`) is extended with the new patterns (select
 | Featured tournaments, the tournaments overview | Gone | E |
 | The organiser page and host picker | Gone (only a filter) | E |
 | Format chooser with pictures; tournament cards with banner and fee | Text rows | E |
-| Fixtures & results and Officials beside tournaments | Moved to Matches and People | E (Matchday, Referees) |
+| Fixtures & results and Officials beside tournaments | Moved to Matches and People | E (a tournament's Matches tab and waiting rows; Matches and People keep the lists) |
 | Answer a tournament invitation in World | Detour through Requests | E |
 | Enter a tournament with squad choice | Full page only | E |
 | Create a tournament | Old wizard page | E (Draw room) |

@@ -9,7 +9,7 @@ import './world.css';
 /** Every World tab's code, fetched once in the background so moving between tabs never waits on a download. */
 const preloadTabs = () => Promise.allSettled([
     import('./front/WorldFrontPage'), import('./directories/ClubsDirectory'), import('./directories/PeopleDirectory'), import('./directories/VenuesDirectory'),
-    import('./directories/MatchesDirectory'), import('./directories/CompetitionsDirectory'), import('./directories/OpportunitiesDirectory'),
+    import('./directories/MatchesDirectory'), import('./directories/TournamentsDirectory'), import('./directories/OpportunitiesDirectory'),
 ]);
 
 /**

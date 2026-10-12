@@ -234,6 +234,14 @@ export const replaceEntry = async (tournamentId: number, fixtureId: number, payl
 export const fetchTournamentHosts = async (params: { page: number; size: number; search?: string; following?: boolean }) =>
     (await apiClient.get<PageResult<import('./domain').TournamentHost>>('/tournaments/hosts', { params })).data;
 
+/** Public tournaments worth showing first (at most three, live and not ended) and the organisers to follow. */
+export const fetchTournamentOverview = async (signal?: AbortSignal) =>
+    (await apiClient.get<import('./domain').TournamentOverview>('/tournaments/overview', { signal })).data;
+
+/** One organiser: a club or an organisation that runs tournaments. */
+export const fetchTournamentHost = async (kind: 'CLUB' | 'ORGANIZATION', id: number, signal?: AbortSignal) =>
+    (await apiClient.get<import('./domain').TournamentHost>('/tournaments/host', { params: { kind, id }, signal })).data;
+
 export const setTournamentHostFollow = async (kind: 'CLUB' | 'ORGANIZATION', id: number, following: boolean) =>
     (await apiClient.put<{ following: boolean }>(`/tournaments/hosts/${kind}/${id}/follow`, { following })).data;
 

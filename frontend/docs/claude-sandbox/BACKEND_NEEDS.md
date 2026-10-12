@@ -286,6 +286,10 @@ The sandbox's `GET /people` (`sandbox/api/handlers/world-extra.mjs`) is the cont
 | `GET /competitions`: several statuses, or an order that puts finished tournaments last, so All tournaments is one search instead of three | MISSING |
 | The distance search needs a tournament `location`; one without (no ground chosen) never shows under Near. Falling back to the host club's coordinates would keep it | PARTIAL |
 | Times with their zone on tournaments (start, end, the entry window, fixtures), today wall times read as Tbilisi time | PARTIAL (see 3.1) |
+| A public way to name a fixture's ground: `locationId` points at `locations`, not a venue, so the final's poster leaves the ground out | MISSING |
+| Club crests on entries and standings (`clubLogoUrl` is never filled), so brackets and tables show initials | MISSING (low priority) |
+| The draw state's ranking labels every row by its squad ("U16 Boys"), so a table of one age group repeats the same name; the frontend names rows by the entry's club | PARTIAL |
+| A tournament fixture's result step that the match drawer can use (today staff add results in the workspace) | MISSING |
 
 ### World › Creating things (phase D)
 

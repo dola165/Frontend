@@ -137,7 +137,7 @@ describe('fixtures in their cards', () => {
         ].map(fixtureGroup);
         const ranked = [...new Map(groups.map(group => [group.key, group])).values()].sort((a, b) => (a.rank ?? 9) - (b.rank ?? 9)).map(group => group.label);
         expect(ranked).toEqual(['Your teams', 'League', 'Youth Cup', 'Friendlies', 'Club fixtures', 'Date to confirm']);
-        expect(groups[3].action).toEqual({ label: 'Table', to: '/tournaments/301', peek: 'tournament-301' });
+        expect(groups[3].action).toEqual({ label: 'Tournament', to: '/tournaments/301', peek: 'tournament-301' });
     });
     it('name the ground a card shares', () => {
         const fx = (locationName: string | null) => ({ m: match({ locationName }), code: 's1', day: null, mine: { home: false, away: false }, showDay: true });

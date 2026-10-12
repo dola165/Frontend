@@ -238,6 +238,10 @@ export const fetchTournamentHosts = async (params: { page: number; size: number;
 export const fetchTournamentOverview = async (signal?: AbortSignal) =>
     (await apiClient.get<import('./domain').TournamentOverview>('/tournaments/overview', { signal })).data;
 
+/** One organiser's tournaments, newest first. */
+export const fetchHostTournaments = async (params: { kind: 'CLUB' | 'ORGANIZATION'; id: number; page: number; size: number }, signal?: AbortSignal) =>
+    (await apiClient.get<PageResult<import('./domain').TournamentSummary>>('/tournaments/host-tournaments', { params, signal })).data;
+
 /** One organiser: a club or an organisation that runs tournaments. */
 export const fetchTournamentHost = async (kind: 'CLUB' | 'ORGANIZATION', id: number, signal?: AbortSignal) =>
     (await apiClient.get<import('./domain').TournamentHost>('/tournaments/host', { params: { kind, id }, signal })).data;

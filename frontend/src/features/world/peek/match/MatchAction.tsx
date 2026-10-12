@@ -1,4 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { JourneyLauncher } from '../../../mapPlanning/JourneyLauncher';
 import { matchGates, needsReferee } from '../../../matchExchange/detail/matchState';
 import { ProposalList } from '../../../matchExchange/detail/OpponentPanels';
@@ -30,7 +32,7 @@ export function MatchAction({ data, reload }: { data: MatchPeekData; reload: () 
     useEffect(() => clearNotice(), []);
     const { match: m, listing } = data;
     if (m.fixtureStatus === 'CANCELLED') return null;
-    let step: ReactNode = null, page: ReactNode = null, journey = false, referee = false, ground = false;
+    let step: ReactNode = null, page: ReactNode = null, journey = false, referee = false, ground = false, workspace = false;
     if (listing) {
         const gates = matchGates(listing, now, squads ?? []);
         const offers = listing.can_manage && listing.listing_status === 'OPEN' && (listing.proposals ?? []).some(offer => offer.status === 'PENDING');
@@ -55,14 +57,20 @@ export function MatchAction({ data, reload }: { data: MatchPeekData; reload: () 
             event={{ eventId: m.sourceId, eventType: 'MATCH', status: m.fixtureStatus, endsAt: m.endsAt ?? m.startsAt, homeScore: m.homeScore, awayScore: m.awayScore,
                 resultStatus: m.resultStatus, matchExchangeId: null, canRecordResult: m.canRecordResult, opponentClubId: m.awayClubId }} />;
         else journey = true;
+    } else if (m.source === 'TOURNAMENT' && m.tournamentId != null) {
+        // The tournament's staff add its results in its workspace (the drawer has no tournament result step yet).
+        workspace = m.canRecordResult && m.resultStatus !== 'RECORDED' && Boolean(m.startsAt) && Date.parse(m.startsAt!) <= now;
     }
-    if (!notice && !step && !page && !journey && !referee && !ground) return null;
+    if (!notice && !step && !page && !journey && !referee && !ground && !workspace) return null;
     return (
         <section className="gk-mpeek__action">
             {notice && <p className="gk-step__done" role="status" tabIndex={-1} ref={node => node?.focus({ preventScroll: true })}>{notice}</p>}
             {step}
             {referee && listing && <RefereeLine listing={listing} />}
             {ground && listing && <GroundLine listing={listing} now={now} />}
+            {workspace && <Link className="gk-step-line" to={`/tournaments/${m.tournamentId}/workspace?view=schedule&fixtureId=${m.sourceId}`}>
+                <span>{t('Result to add')}</span><b>{t('Add it in the workspace')}</b><ArrowRight aria-hidden="true" />
+            </Link>}
             {(page || journey) && (
                 /* The match page's own pieces, in its look. */
                 <div className="gk gk-match gk-mx">

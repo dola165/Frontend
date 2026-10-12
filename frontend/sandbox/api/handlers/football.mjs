@@ -353,7 +353,7 @@ function historyFromFixture(t, f) {
   return { id: `TOURNAMENT:${f.id}`, source: 'TOURNAMENT', sourceId: f.id, title: t.name, startsAt: start ? local(start) : null, endsAt: null, timezone: null,
     homeClubId: home?.clubId ?? null, homeClubName: home?.clubName ?? null, homeSquadId: home?.squadId ?? null, homeSquadName: squadName(home), awayClubId: away?.clubId ?? null, awayClubName: away?.clubName ?? null, awaySquadId: away?.squadId ?? null, awaySquadName: squadName(away),
     homeScore: f.homeScore, awayScore: f.awayScore, resultStatus: f.status === 'COMPLETED' ? 'RECORDED' : 'NONE', fixtureStatus: f.status, legacy: t.status === 'COMPLETED' && t.id === 305,
-    locationName: null, tournamentId: t.id, tournamentName: t.name, detailPath: `/tournaments/${t.id}?fixtureId=${f.id}`, canRecordResult: false, mine: home?.clubId === DINAMO || away?.clubId === DINAMO };
+    locationName: null, tournamentId: t.id, tournamentName: t.name, detailPath: `/tournaments/${t.id}?fixtureId=${f.id}`, canRecordResult: st.staff.some(a => a.userId === W.ME_ID && a.status === 'ACTIVE' && ['ADMIN', 'STAFF'].includes(a.role)), mine: home?.clubId === DINAMO || away?.clubId === DINAMO };
 }
 /** A tournament fixture on a calendar: its own kick-off and length, named after its two sides (the history row is thin, as the backend's). */
 function fixtureSpan(t, f) {
@@ -461,6 +461,9 @@ get('/tournaments/:id/invitations', ({ params }) => {
 get('/tournaments/:id/player-queue', ({ params }) => detailOr404(params.id));
 get('/tournaments/:id/stages/:stageId/standings', ({ params }) => {
   const st = F.tournamentState.get(Number(params.id)); if (!st) return notFound();
+  // As TournamentService.getGroupStandings: tables only for group, round-robin and league stages.
+  const stage = st.stages.find(s => s.id === Number(params.stageId)); if (!stage) return notFound();
+  if (!['GROUP', 'ROUND_ROBIN', 'LEAGUE'].includes(stage.stageType)) return reply(400, { status: 400, message: 'Standings are only available for GROUP, ROUND_ROBIN, and LEAGUE stages.' });
   return F.standingsFor(st, Number(params.stageId)).map(r => ({ entryId: r.entryId, entryName: r.label, entryType: 'CLUB', played: r.played, won: r.wins, drawn: r.draws, lost: r.losses, goalsFor: r.goalsFor, goalsAgainst: r.goalsAgainst, goalDifference: r.goalsFor - r.goalsAgainst, points: r.points }));
 });
 const mutateTournament = (id, fn) => { const t = F.tournamentById(id), st = t && F.tournamentState.get(t.id); if (!st) return notFound(); const res = fn(st, t); return res && res.__reply ? res : F.tournamentDetail(t); };
@@ -504,7 +507,7 @@ get('/competitions', ({ query: q }) => {
   if ((maxFee != null || minFee != null) && !currency) return reply(400, { status: 400, message: 'Fee filtering requires a currency and a fee between 0 and 1000000.' });
   const nowMs = now();
   let list = F.tournamentList.filter(t => {
-    const c = F.competitionCard(t), r = c.profile.rules, st = F.tournamentState.get(t.id), w = F.registrationWindow(t), v = venueById(t.venueId);
+    const c = F.competitionCard(t), r = c.profile.rules ?? {}, st = F.tournamentState.get(t.id), w = F.registrationWindow(t), v = venueById(t.venueId);
     return matchesText(text, c.name, c.description)
       && (!family || r.family === family) && (!structure || r.structure === structure) && (!scope || c.participantScope === scope) && (!status || c.status === status)
       && (!ageGroup || r.ageGroup === ageGroup) && (!city || r.city === city) && (!discipline || r.discipline === discipline) && (!side || r.sideSize === Number(side)) && (!level || r.playingLevel === level)
@@ -526,7 +529,7 @@ get('/competitions/:id/rules', ({ params }) => { const t = tournamentOr404(param
 put('/competitions/:id/rules', ({ params, body }) => { const t = tournamentOr404(params.id); return t ? { rules: { ...F.competitionRules(t), ...(body?.rules || {}) }, revision: 4, legacy: false } : notFound(); });
 const operationsOf = t => {
   const st = F.tournamentState.get(t.id), canOperate = st.staff.some(a => a.userId === W.ME_ID && a.role === 'ADMIN');
-  return { profile: F.competitionProfile(t), standings: F.standingsFor(st, st.stages.find(s => s.stageType === 'LEAGUE')?.id), rounds: [], challenges: t.format === 'LADDER' ? [{ id: 7600, challenger_entry_id: st.entries[3]?.id, target_entry_id: st.entries[1]?.id, proposed_at: iso(W.day(-1)), expires_at: iso(W.day(6)), venue: 'Isani Futsal Hall, Court A', status: 'PENDING', fixture_id: null }] : [],
+  return { profile: F.competitionProfile(t), standings: F.standingsFor(st, st.stages.find(s => s.stageType !== 'KNOCKOUT')?.id), rounds: [], challenges: t.format === 'LADDER' ? [{ id: 7600, challenger_entry_id: st.entries[3]?.id, target_entry_id: st.entries[1]?.id, proposed_at: iso(W.day(-1)), expires_at: iso(W.day(6)), venue: 'Isani Futsal Hall, Court A', status: 'PENDING', fixture_id: null }] : [],
     controllableEntries: st.entries.filter(e => e.clubId === DINAMO).map(e => e.id), canOperate, canComplete: canOperate && st.status === 'ACTIVE', rankingStageId: null, rankContests: [], policy: { minimumRoster: 9, maximumMatchMinutes: 90, inactivityDays: 0, minimumAge: t.ageGroup === 'SENIOR' ? 16 : 0, ruleAuthority: 'Organiser’s published competition rules', sanctioningEvidence: '' }, inactiveEntries: [] };
 };
 get('/competitions/:id/operations', ({ params }) => { const t = tournamentOr404(params.id); return t ? operationsOf(t) : notFound(); });
@@ -534,13 +537,15 @@ post('/competitions/:id/:path', ({ params }) => { const t = tournamentOr404(para
 get('/competitions/:id/draw', ({ params }) => {
   const t = tournamentOr404(params.id); if (!t) return notFound();
   const st = F.tournamentState.get(t.id), rules = F.competitionRules(t);
-  if (!st.fixtures.length) return { plan: null, transitioned: false, stages: [], slots: [], routes: [], aggregates: [] };
-  const first = st.fixtures.find(f => f.scheduledAt);
-  return { plan: { startsAt: first ? iso(new Date(first.scheduledAt)) : iso(t.start), daysBetweenRounds: t.format === 'LEAGUE' ? 7 : 0, groupCount: st.stages.filter(s => s.stageType === 'GROUP').length || 1, qualifiers: 2, routes: 1, thirdPlace: false, twoLegged: false, aggregateResolution: 'PENALTIES', carryResults: false, splitCut: 2, divisionLinks: '' },
-    transitioned: false, stages: st.stages.map(s => ({ id: s.id, name: s.name, stage_type: s.stageType, phase: s.stageOrder, title_route: s.stageType === 'KNOCKOUT', carry_results: false, standings: ['LEAGUE', 'GROUP'].includes(s.stageType) && rules.standings ? F.standingsFor(st, s.id) : [], rankContests: [] })),
-    slots: st.fixtures.filter(f => f.scheduledAt).slice(0, 40).map(f => ({ fixture_id: f.id, pitch_number: 1 + (f.fixtureOrder - 1) % Math.max(1, rules.pitches), starts_at: iso(new Date(f.scheduledAt)), ends_at: iso(plusMin(new Date(f.scheduledAt), rules.matchMinutes)) })),
-    routes: st.fixtures.filter(f => (f.roundNumber ?? 1) > 1 && st.stages.find(s => s.id === f.stageId)?.stageType === 'KNOCKOUT').flatMap(f => { const prev = st.fixtures.filter(p => p.stageId === f.stageId && p.roundNumber === f.roundNumber - 1); return [prev[(f.fixtureOrder - 1) * 2], prev[(f.fixtureOrder - 1) * 2 + 1]].filter(Boolean).map((p, i) => ({ target_fixture_id: f.id, slot: i ? 'AWAY' : 'HOME', source_fixture_id: p.id, outcome: 'WINNER' })); }),
-    aggregates: [] };
+  // As CompetitionDrawService.state: nothing before a draw, nor for a tournament from before the engine (or a ladder).
+  if (!st.plan) return { plan: null, transitioned: false, stages: [], slots: [], routes: [], aggregates: [] };
+  const label = e => e?.squadName ?? e?.clubName ?? e?.displayName ?? 'Private participant';
+  const wall = value => new Date(`${value}+04:00`);
+  return { plan: st.plan, transitioned: false,
+    stages: st.stages.filter(s => st.phases.has(s.id)).map(s => ({ id: s.id, name: s.name, stage_type: s.stageType, ...st.phases.get(s.id),
+      ...(s.stageType === 'KNOCKOUT' ? {} : { standings: F.standingsFor(st, s.id).map(row => ({ ...row, label: label(st.entries.find(e => e.id === row.entryId)) })), rankContests: [] }) })),
+    slots: st.fixtures.filter(f => f.scheduledAt && st.phases.has(f.stageId)).map(f => ({ fixture_id: f.id, pitch_number: 1 + (f.fixtureOrder - 1) % Math.max(1, rules.pitches), starts_at: iso(wall(f.scheduledAt)), ends_at: iso(plusMin(wall(f.scheduledAt), rules.matchMinutes)) })),
+    routes: st.routes, aggregates: [] };
 });
 get('/competitions/:id/resources', ({ params }) => {
   const t = tournamentOr404(params.id); if (!t) return notFound();

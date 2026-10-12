@@ -51,7 +51,9 @@ export const squadFor = (clubId, ageGroup, gender = 'MIXED') => {
   const ages = ageGroup === 'U19' ? ['U19', 'U18'] : ageGroup === 'U18' ? ['U18', 'U19'] : [ageGroup];
   const word = gender === 'FEMALE' ? 'Girls' : gender === 'MALE' ? 'Boys' : 'Mixed';
   const exact = squadsOf(clubId).filter(s => ages.includes(s.ageGroup));
-  if (exact.length) return exact.find(s => ageGroup === 'SENIOR' || s.name.includes(word) || s.name.includes('Mixed')) || exact[0];
+  // A boys' or girls' side is never a squad of the other: without one, the club's side is a guest squad.
+  const fit = exact.find(s => ageGroup === 'SENIOR' || s.name.includes(word) || s.name.includes('Mixed'));
+  if (fit || (exact.length && gender === 'MIXED')) return fit || exact[0];
   let guest = guestSquads.find(s => s.clubId === Number(clubId) && s.ageGroup === ageGroup && s.gender === gender);
   if (!guest) {
     guest = { id: 9101 + guestSquads.length, clubId: Number(clubId), name: ageGroup === 'SENIOR' ? 'Senior team' : `${ageGroup} ${word}`, ageGroup, gender, headCoachId: null, playerIds: [], format: ['U8', 'U9', 'U10', 'U11', 'U12'].includes(ageGroup) ? '7v7' : ['U13', 'U14'].includes(ageGroup) ? '9v9' : '11v11', trainingDays: [2, 4], guest: true };
@@ -191,54 +193,84 @@ const ORG = {
 };
 export const organizationById = id => ORG[id] || (clubById(Number(id) - 900) && { id: Number(id), name: clubById(Number(id) - 900).name, logoUrl: clubById(Number(id) - 900).logoUrl, clubId: Number(id) - 900 });
 const extraTournaments = [
-  { id: 306, name: 'Georgian Youth Cup U16', format: 'KNOCKOUT', ageGroup: 'U16', gender: 'MALE', teamFormat: '11v11', organizerClubId: null, organizerOrgId: 801, start: day(-13), end: day(6), entryDeadline: day(-30), status: 'IN_PROGRESS', teams: [1, 4, 5, 11, 16, 3, 13, 10], city: 'Tbilisi', venueId: 203, fee: 150, description: 'National knockout cup for U16 academy sides. Quarter-finals and semi-finals at home grounds, final at Mikheil Meskhi Stadium.' },
-  { id: 307, name: 'Rustavi Community Cup', format: 'GROUPS_KNOCKOUT', ageGroup: 'SENIOR', gender: 'MIXED', teamFormat: '7v7', organizerClubId: 10, start: day(16), end: day(16), entryDeadline: day(10), status: 'REGISTRATION', teams: [10, 6, 15, 9, 8], city: 'Rustavi', venueId: 208, fee: 60, description: 'One-day seven-a-side cup with a family fan zone. Proceeds support the club’s girls’ programme.' },
+  { id: 306, name: 'Georgian Youth Cup U16', format: 'KNOCKOUT', ageGroup: 'U16', gender: 'MALE', teamFormat: '11v11', organizerClubId: null, organizerOrgId: 801, start: day(-13), end: day(6, 20), entryDeadline: day(-30), status: 'IN_PROGRESS', teams: [1, 4, 5, 11, 16, 3, 13, 10], city: 'Tbilisi', venueId: 203, fee: 150, description: 'National knockout cup for U16 academy sides. Quarter-finals and semi-finals at home grounds, final at Mikheil Meskhi Stadium.' },
+  { id: 307, name: 'Rustavi Community Cup', format: 'GROUPS_KNOCKOUT', ageGroup: 'SENIOR', gender: 'MIXED', teamFormat: '7v7', organizerClubId: 10, start: day(16, 10), end: day(16, 19), entryDeadline: day(10), status: 'REGISTRATION', teams: [10, 6, 15, 9, 8], city: 'Rustavi', venueId: 208, fee: 60, description: 'One-day seven-a-side cup with a family fan zone. Proceeds support the club’s girls’ programme.' },
   { id: 308, name: 'Tbilisi Futsal Ladder', format: 'LADDER', ageGroup: 'SENIOR', gender: 'MIXED', teamFormat: '5v5', organizerClubId: 8, start: day(-40), end: day(80), entryDeadline: day(30), status: 'IN_PROGRESS', teams: [8, 9, 15, 3, 6], city: 'Tbilisi', venueId: 204, fee: 0, description: 'Challenge any team up to three places above you. Weeknight futsal at the Isani hall.' },
-  { id: 309, name: 'Mtskheta Grassroots Festival U10', format: 'FESTIVAL', ageGroup: 'U10', gender: 'MIXED', teamFormat: '5v5', organizerClubId: 14, start: day(2), end: day(2), entryDeadline: day(0), status: 'REGISTRATION', teams: [14, 6, 7, 3, 1], city: 'Mtskheta', venueId: 214, fee: 0, description: 'No scores, no tables. Every child plays every game by the river.' },
+  { id: 309, name: 'Mtskheta Grassroots Festival U10', format: 'FESTIVAL', ageGroup: 'U10', gender: 'MIXED', teamFormat: '5v5', organizerClubId: 14, start: day(2, 10), end: day(2, 15), entryDeadline: day(0), status: 'REGISTRATION', teams: [14, 6, 7, 3, 1], city: 'Mtskheta', venueId: 214, fee: 0, description: 'No scores, no tables. Every child plays every game by the river.' },
+  // A tournament from before the competition engine: no published rules, its stages built by hand (groups, then finals).
+  { id: 310, name: 'Batumi Beach Cup U14', legacy: true, format: 'GROUPS_KNOCKOUT', ageGroup: 'U14', gender: 'MIXED', teamFormat: '5v5', organizerClubId: 12, start: day(-120, 10), end: day(-119, 18), entryDeadline: day(-130), status: 'COMPLETED', teams: [12, 10, 1, 4, 6, 11, 3, 16], city: 'Batumi', venueId: 210, fee: 40, description: 'Two days of beach five-a-side by the boulevard, from last summer.' },
 ];
 export const tournamentList = [...W.tournaments, ...extraTournaments];
 const STATUS = { IN_PROGRESS: 'ACTIVE', REGISTRATION: 'PLANNING', COMPLETED: 'COMPLETED', CANCELLED: 'CANCELLED' };
 const FAMILY = { LEAGUE: 'LEAGUE', KNOCKOUT: 'CUP', GROUPS_KNOCKOUT: 'CUP', FESTIVAL: 'FESTIVAL', LADDER: 'LADDER' };
 const STRUCTURE = { LEAGUE: 'ROUND_ROBIN', KNOCKOUT: 'KNOCKOUT', GROUPS_KNOCKOUT: 'GROUPS_KNOCKOUT', FESTIVAL: 'ROTATION', LADDER: 'LADDER' };
+/** The community league is played home and away. */
+export const structureOf = t => t.id === 301 ? 'HOME_AWAY' : STRUCTURE[t.format];
 
-export const tournamentState = new Map(); // id -> { entries, stages, fixtures, staff, overrides }
+export const tournamentState = new Map(); // id -> { entries, stages, fixtures, staff, routes, phases, plan, overrides }
 let entrySeq = 6000, fixtureSeq = 7000, stageSeq = 6800;
+// As the backend sends entries: the squad's name, no display name for a club's entry.
 const entryFor = (t, clubId, status = 'ACTIVE') => {
   const c = clubById(clubId), squad = squadFor(clubId, t.ageGroup, t.gender);
-  return { id: ++entrySeq, clubId, clubName: c.name, squadId: squad?.id ?? null, squadName: null, userId: null, displayName: c.name, status, seed: null,
+  return { id: ++entrySeq, clubId, clubName: c.name, squadId: squad?.id ?? null, squadName: squad?.name ?? null, userId: null, displayName: null, status, seed: null,
     requestedBy: clubId === DINAMO ? W.ME_ID : null, decidedBy: status === 'PENDING' ? null : W.ME_ID, decidedAt: iso(day(-40)), confirmedAt: status === 'ACTIVE' ? iso(day(-35)) : null, withdrawnAt: null, withdrawalReason: null, draftTeamId: null };
 };
+/** A fixture's side as the backend labels it: "Squad (Club)", the club alone when the entry names no squad. */
+export const entryLabel = e => !e ? null : e.displayName || (e.squadName ? `${e.squadName} (${e.clubName})` : e.clubName);
 const score = () => [fint(0, 4), fint(0, 3)];
+/** Days from today's midnight, exactly (a tournament's days never round to the day before). */
+const offsetOf = d => Math.round((d.getTime() - day(0).getTime()) / 86400000);
+
 function buildTournament(t) {
   const status = STATUS[t.status];
   const extra = t.id === 302 ? [4, 10, 15] : t.id === 304 ? [1, 11, 3, 16] : t.id === 303 ? [1, 5, 14] : [];
   const ids = [...new Set([...t.teams, ...extra])];
   const entries = ids.map((clubId, i) => entryFor(t, clubId, status === 'PLANNING' && i >= ids.length - 2 && t.id !== 309 ? 'PENDING' : status === 'PLANNING' && i >= ids.length - 3 && t.id === 304 ? 'APPROVED' : 'ACTIVE'));
   entries.forEach((e, i) => { e.seed = i + 1; });
-  if (t.id === 301) entries.forEach(e => { if (e.clubId === DINAMO) e.squadId = 101; });
-  const stages = [], fixtures = [];
-  const venue = venueById(t.venueId);
+  if (t.id === 301) entries.forEach(e => { if (e.clubId === DINAMO) { e.squadId = 101; e.squadName = W.squadById(101)?.name ?? e.squadName; } });
+  const stages = [], fixtures = [], routes = [], phases = new Map();
+  let plan = null;
   const fixture = (stage, round, order, home, away, when, played, overrides = {}) => {
     const [hs, as] = played ? score() : [null, null];
-    const f = { id: ++fixtureSeq, stageId: stage.id, stageName: stage.name, homeEntryId: home?.id ?? null, homeLabel: home?.clubName ?? null, awayEntryId: away?.id ?? null, awayLabel: away?.clubName ?? null,
+    const f = { id: ++fixtureSeq, stageId: stage.id, stageName: stage.name, homeEntryId: home?.id ?? null, homeLabel: entryLabel(home), awayEntryId: away?.id ?? null, awayLabel: entryLabel(away),
       winnerEntryId: null, homeScore: hs, awayScore: as, roundNumber: round, fixtureOrder: order, scheduledAt: when ? local(when) : null, locationId: t.venueId, status: played ? 'COMPLETED' : 'SCHEDULED', linkedMatchId: null, venueReservation: null, ...overrides };
     if (played && home && away) f.winnerEntryId = hs > as ? home.id : as > hs ? away.id : null;
     fixtures.push(f); return f;
   };
-  const stage = (name, stageType, order, advanceCount = null) => { const s = { id: ++stageSeq, parentStageId: null, name, stageType, stageOrder: order, status: status === 'COMPLETED' ? 'COMPLETED' : status === 'ACTIVE' ? 'ACTIVE' : 'PLANNING', advanceCount }; stages.push(s); return s; };
+  // The engine makes ROUND_ROBIN and KNOCKOUT stages with no advance count; legacy tournaments used GROUP stages by hand.
+  const stage = (name, stageType, order, { phase = 1, title = false, advanceCount = 0 } = {}) => {
+    const s = { id: ++stageSeq, parentStageId: null, name, stageType, stageOrder: order, status: status === 'COMPLETED' ? 'COMPLETED' : status === 'ACTIVE' ? 'ACTIVE' : 'PLANNING', advanceCount };
+    stages.push(s); if (!t.legacy) phases.set(s.id, { phase, title_route: title, carry_results: false }); return s;
+  };
+  const drawPlan = (startsAt, daysBetweenRounds) => ({ startsAt: iso(startsAt), daysBetweenRounds, groupCount: 2, qualifiers: 1, routes: 1, thirdPlace: false, twoLegged: false, aggregateResolution: 'PENALTIES', carryResults: false, splitCut: 2, divisionLinks: '' });
   const active = entries.filter(e => e.status === 'ACTIVE');
-  if (t.format === 'LEAGUE' || t.format === 'LADDER') {
-    const s = stage(t.format === 'LADDER' ? 'Ladder' : 'League table', 'LEAGUE', 1);
+  const startDay = offsetOf(t.start);
+  if (t.legacy) {
+    // Groups of four by hand, then semi-finals and a final paired by order (no routes): the shape before the engine.
+    const groups = [active.slice(0, 4), active.slice(4, 8)];
+    const winners = groups.map((group, g) => {
+      const s = stage(`Group ${'AB'[g]}`, 'GROUP', 1, { advanceCount: 2 });
+      let n = 0;
+      for (let a = 0; a < group.length; a++) for (let b = a + 1; b < group.length; b++) { n++; fixture(s, Math.ceil(n / 2), n, group[a], group[b], at(startDay, 10 + Math.floor((n - 1) / 2), ((n - 1) % 2) * 30), true); }
+      return standingsFor({ entries, fixtures }, s.id).slice(0, 2).map(row => entries.find(e => e.id === row.entryId));
+    });
+    const finals = stage('Finals', 'KNOCKOUT', 2);
+    const semis = [fixture(finals, 1, 1, winners[0][0], winners[1][1], at(startDay + 1, 11), true), fixture(finals, 1, 2, winners[1][0], winners[0][1], at(startDay + 1, 12), true)];
+    for (const f of semis) if (!f.winnerEntryId) { f.homeScore += 1; f.winnerEntryId = f.homeEntryId; }
+    const finalist = f => entries.find(e => e.id === f.winnerEntryId);
+    const final = fixture(finals, 2, 1, finalist(semis[0]), finalist(semis[1]), at(startDay + 1, 16), true);
+    if (!final.winnerEntryId) { final.homeScore += 1; final.winnerEntryId = final.homeEntryId; }
+  } else if (structureOf(t) === 'ROUND_ROBIN' || structureOf(t) === 'HOME_AWAY') {
+    const s = stage('League', 'ROUND_ROBIN', 1, { title: true });
     const teams = [...active]; if (teams.length % 2) teams.push(null);
-    const rounds = (teams.length - 1) * (t.format === 'LEAGUE' ? 2 : 1);
-    const firstOffset = Math.round((t.start.getTime() - W.NOW.getTime()) / 86400000) + 3;
+    const legs = structureOf(t) === 'HOME_AWAY' ? 2 : 1, rounds = (teams.length - 1) * legs;
     for (let r = 0; r < rounds; r++) {
       const rot = [teams[0], ...teams.slice(1).slice(-(r % (teams.length - 1))), ...teams.slice(1).slice(0, teams.length - 1 - (r % (teams.length - 1)))];
       for (let i = 0; i < teams.length / 2; i++) {
         let home = rot[i], away = rot[teams.length - 1 - i];
         if (!home || !away) continue;
         if (r >= teams.length - 1 || (r + i) % 2) [home, away] = [away, home];
-        const when = at(firstOffset + r * (t.format === 'LADDER' ? 10 : 7), t.format === 'LADDER' ? 20 : 15 + i * 2);
+        const when = at(startDay + 3 + r * 7, 15 + i * 2);
         const f = fixture(s, r + 1, i + 1, home, away, when, when.getTime() < Date.now() - 3 * 3600000);
         // The academy reserves are having a good autumn.
         if (t.id === 301 && f.status === 'COMPLETED' && (home.clubId === DINAMO || away.clubId === DINAMO)) {
@@ -247,45 +279,46 @@ function buildTournament(t) {
         }
       }
     }
-  } else if (t.format === 'KNOCKOUT' || t.format === 'GROUPS_KNOCKOUT') {
-    let qualifiers = t.id === 306 ? [...active.filter(e => [DINAMO, 13].includes(e.clubId)), ...active.filter(e => ![DINAMO, 13].includes(e.clubId))] : active;
-    if (t.format === 'GROUPS_KNOCKOUT') {
-      const half = Math.ceil(entries.length / 2);
-      [entries.slice(0, half), entries.slice(half)].forEach((group, g) => {
-        const s = stage(`Group ${'AB'[g]}`, 'GROUP', 1, 2);
-        let n = 0;
-        for (let a = 0; a < group.length; a++) for (let b = a + 1; b < group.length; b++) fixture(s, 1, ++n, group[a], group[b], status === 'PLANNING' ? null : at(Math.round((t.start - W.NOW) / 86400000), 10 + n), false);
-      });
-      qualifiers = [];
+    plan = drawPlan(at(startDay + 3, 15), 7);
+  } else if (t.format === 'LADDER') {
+    // A ladder has no draw: each accepted challenge becomes a fixture (round 1, in the order challenges were made).
+    const s = stage('Ladder', 'ROUND_ROBIN', 1, { title: true });
+    for (let n = 0; n < 6; n++) {
+      const challenger = active[(n + 2) % active.length], target = active[n % active.length];
+      if (challenger.id === target.id) continue;
+      fixture(s, 1, 7590 + n, challenger, target, at(startDay + 4 + n * 6, 20), true);
     }
-    const ko = stage(t.format === 'GROUPS_KNOCKOUT' ? 'Knockout' : 'Cup bracket', 'KNOCKOUT', t.format === 'GROUPS_KNOCKOUT' ? 2 : 1);
-    const size = t.format === 'GROUPS_KNOCKOUT' ? 4 : 8;
-    const baseOffset = Math.round((t.start.getTime() - W.NOW.getTime()) / 86400000);
-    const oneDay = t.start.toDateString() === t.end.toDateString() || t.id === 302;
-    const roundTime = (round, order) => oneDay ? at(baseOffset, 10 + (round - 1) * 2, (order - 1) * 35 % 60) : at(t.id === 306 ? [-12, -5, 6][round - 1] : baseOffset + (round - 1) * 7, round === 3 ? 18 : 15, 0);
-    let previous = [];
-    for (let round = 1, count = size / 2; count >= 1; round++, count /= 2) {
-      const current = [];
-      for (let i = 0; i < count; i++) {
-        const when = status === 'PLANNING' && t.id !== 302 ? null : roundTime(round, i + 1);
-        let home = null, away = null;
-        if (round === 1) { home = qualifiers[i * 2] ?? null; away = qualifiers[i * 2 + 1] ?? null; }
-        else { const a = previous[i * 2], b = previous[i * 2 + 1]; home = entries.find(e => e.id === a?.winnerEntryId) ?? null; away = entries.find(e => e.id === b?.winnerEntryId) ?? null; }
-        const played = Boolean(when && home && away && when.getTime() < Date.now());
-        const f = fixture(ko, round, i + 1, home, away, when, played, { locationId: round === 3 || oneDay ? t.venueId : home ? clubById(home.clubId).venueId ?? t.venueId : t.venueId });
+  } else if (t.format === 'KNOCKOUT') {
+    // The engine's cup: seeds folded (1 v 8, 2 v 7…), a bye wherever a seed has no opponent, each later tie fed by routes.
+    const s = stage('Cup', 'KNOCKOUT', 1, { title: true });
+    const seeded = t.id === 306 ? [...active.filter(e => [DINAMO, 13].includes(e.clubId)), ...active.filter(e => ![DINAMO, 13].includes(e.clubId))] : active;
+    let size = 2; while (size < seeded.length) size *= 2;
+    let current = Array.from({ length: size }, (_, i) => ({ entry: seeded[i] ?? null, source: null }));
+    // The U12 cup is one morning on Vake Park's three pitches, as the engine's clock lays it out (40 minutes and 10 to rest).
+    const roundTime = (round, order) => t.id === 306 ? at([-12, -5, 6][round - 1], round === 3 ? 18 : 15) : plusMin(at(startDay, 10), [0, 100, 150][round - 1] + Math.floor((order - 1) / 3) * 50);
+    for (let round = 1; current.length > 1; round++) {
+      const games = current.length / 2, next = [];
+      for (let i = 0; i < games; i++) {
+        const h = current[i], a = current[current.length - 1 - i];
+        const winnerOf = slot => slot.entry ?? (slot.source?.winnerEntryId ? entries.find(e => e.id === slot.source.winnerEntryId) : null);
+        const home = winnerOf(h), away = winnerOf(a), bye = !h.source && !a.source && (!h.entry || !a.entry);
+        const when = roundTime(round, i + 1);
+        const played = !bye && Boolean(home && away && when.getTime() < Date.now());
+        const f = fixture(s, round, i + 1, home, away, when, played, { locationId: round === 3 || t.id !== 306 ? t.venueId : clubById(home?.clubId)?.venueId ?? t.venueId });
+        if (h.source) routes.push({ target_fixture_id: f.id, slot: 'HOME', source_fixture_id: h.source.id, outcome: 'WINNER' });
+        if (a.source) routes.push({ target_fixture_id: f.id, slot: 'AWAY', source_fixture_id: a.source.id, outcome: 'WINNER' });
+        // A bye is completed at the draw, its one side going through.
+        if (bye) Object.assign(f, { status: 'COMPLETED', winnerEntryId: (home ?? away)?.id ?? null });
         if (played && f.homeScore === f.awayScore) { f.homeScore += 1; f.winnerEntryId = home.id; }
         if (t.id === 306 && played && (home.clubId === DINAMO || away.clubId === DINAMO)) { const dinamoHome = home.clubId === DINAMO; f.homeScore = dinamoHome ? 3 : 1; f.awayScore = dinamoHome ? 1 : 2; f.winnerEntryId = (dinamoHome ? home : away).id; }
-        current.push(f);
+        next.push({ entry: null, source: f });
       }
-      previous = current;
+      current = next;
     }
-    if (t.id === 306) for (const f of fixtures) { if (f.status === 'COMPLETED') { const loser = f.winnerEntryId === f.homeEntryId ? f.awayEntryId : f.homeEntryId; const e = entries.find(x => x.id === loser); if (e) e.status = 'ELIMINATED'; } }
-  } else if (t.format === 'FESTIVAL') {
-    const s = stage('Festival rotation', 'ROUND_ROBIN', 1);
-    const baseOffset = Math.round((t.start.getTime() - W.NOW.getTime()) / 86400000);
-    let n = 0;
-    for (let a = 0; a < active.length; a++) for (let b = a + 1; b < active.length; b++) { n++; fixture(s, Math.ceil(n / 2), n, active[a], active[b], at(baseOffset, 10 + Math.floor(n / 2), (n % 2) * 30), false); }
+    for (const f of fixtures) if (f.status === 'COMPLETED' && f.homeEntryId && f.awayEntryId) { const loser = f.winnerEntryId === f.homeEntryId ? f.awayEntryId : f.homeEntryId; const e = entries.find(x => x.id === loser); if (e && status === 'ACTIVE') e.status = 'ELIMINATED'; }
+    plan = drawPlan(roundTime(1, 1), t.id === 306 ? 7 : 0);
   }
+  // Groups and finals, and festivals, are drawn (or their rounds made) once entries close: these two are still taking entries.
   // One recent league result is still waiting for the referee's report.
   if (t.id === 301) { const pending = fixtures.filter(f => f.status === 'COMPLETED' && ![f.homeEntryId, f.awayEntryId].includes(entries.find(e => e.clubId === DINAMO)?.id)).at(-1); if (pending) Object.assign(pending, { status: 'SCHEDULED', homeScore: null, awayScore: null, winnerEntryId: null }); }
   if (status === 'COMPLETED') fixtures.forEach(f => { if (f.status !== 'COMPLETED' && f.homeEntryId && f.awayEntryId) { const [h, a] = score(); Object.assign(f, { status: 'COMPLETED', homeScore: h, awayScore: a, winnerEntryId: h > a ? f.homeEntryId : a > h ? f.awayEntryId : null }); } });
@@ -294,14 +327,20 @@ function buildTournament(t) {
   if ([301, 306].includes(t.id)) staff.push({ id: 6900 + t.id, userId: W.ME_ID, fullName: W.me.fullName, role: 'ADMIN', status: 'ACTIVE', assignedBy: W.ME_ID, createdAt: iso(day(-45)) });
   const refs = referees.slice(t.id % 4, t.id % 4 + 2);
   refs.forEach((r, i) => staff.push({ id: 6950 + t.id * 2 + i, userId: r.id, fullName: r.fullName, role: 'REFEREE', status: 'ACTIVE', assignedBy: W.ME_ID, createdAt: iso(day(-30)) }));
-  const st = { entries, stages, fixtures, staff, status, revision: 4, invitations: [] };
-  if (status === 'COMPLETED') { const table = standingsFor(st, stages[0]?.id); const champion = table[0]; st.championEntryId = champion?.entryId ?? null; st.championName = champion?.label ?? null; }
+  const st = { entries, stages, fixtures, staff, routes, phases, plan, status, revision: 4, invitations: [] };
+  if (status === 'COMPLETED') {
+    const final = fixtures.filter(f => stages.find(s => s.id === f.stageId)?.stageType === 'KNOCKOUT').sort((a, b) => b.roundNumber - a.roundNumber)[0];
+    const championId = final?.winnerEntryId ?? standingsFor(st, stages[0]?.id)[0]?.entryId ?? null;
+    const champion = entries.find(e => e.id === championId);
+    st.championEntryId = champion?.id ?? null; st.championName = champion ? entryLabel(champion) : null;
+  }
   tournamentState.set(t.id, st);
 }
+/** A table as the backend computes it: club names, points, goal difference, goals scored. */
 export function standingsFor(st, stageId) {
   const rows = new Map();
   const ids = new Set(st.fixtures.filter(f => !stageId || f.stageId === stageId).flatMap(f => [f.homeEntryId, f.awayEntryId]).filter(Boolean));
-  for (const e of st.entries.filter(e => ids.has(e.id) || (!stageId && e.status === 'ACTIVE'))) rows.set(e.id, { entryId: e.id, label: e.squadName || e.clubName, played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, points: 0 });
+  for (const e of st.entries.filter(e => ids.has(e.id) || (!stageId && e.status === 'ACTIVE'))) rows.set(e.id, { entryId: e.id, label: e.clubName ?? e.displayName, played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, points: 0 });
   for (const f of st.fixtures) {
     if (f.status !== 'COMPLETED' || (stageId && f.stageId !== stageId)) continue;
     const h = rows.get(f.homeEntryId), a = rows.get(f.awayEntryId); if (!h || !a) continue;
@@ -318,7 +357,7 @@ const RULESET = { LEAGUE: 'IFAB Laws of the Game with GFF amateur competition re
 export const competitionRules = t => {
   const side = Number(t.teamFormat.split('v')[0]);
   return {
-    family: FAMILY[t.format], structure: STRUCTURE[t.format], discipline: side === 5 && t.venueId === 204 ? 'FUTSAL' : 'ASSOCIATION', sideSize: side, ageGroup: t.ageGroup,
+    family: FAMILY[t.format], structure: structureOf(t), discipline: side === 5 && t.venueId === 204 ? 'FUTSAL' : 'ASSOCIATION', sideSize: side, ageGroup: t.ageGroup,
     eligibilityCategory: t.gender === 'FEMALE' ? 'Girls' : t.gender === 'MALE' ? (t.ageGroup === 'SENIOR' ? 'Open' : 'Boys') : 'Open', playingLevel: t.ageGroup === 'U10' ? 'DEVELOPMENT' : t.format === 'FESTIVAL' ? 'RECREATIONAL' : 'COMPETITIVE',
     country: 'Georgia', city: t.city, timezone: TZ, ruleset: RULESET[t.format], jurisdiction: t.ageGroup === 'SENIOR' ? '' : 'Organiser-run youth competition', ageCutoff: t.ageGroup === 'SENIOR' ? null : `${W.NOW.getFullYear() - Number(t.ageGroup.slice(1))}-01-01`,
     matchMinutes: side >= 11 ? (t.ageGroup === 'SENIOR' ? 90 : 80) : side >= 7 ? 40 : 24, restMinutes: side >= 11 ? 30 : 10, pitches: t.venueId === 205 ? 3 : 1, rounds: 3,
@@ -326,7 +365,8 @@ export const competitionRules = t => {
     entryFee: t.fee, currency: 'GEL', feeBasis: 'TEAM', seasonPolicy: t.format === 'LEAGUE' ? 'Double round-robin, autumn to winter. Points: 3 win, 1 draw.' : 'Single event; results stand once confirmed by the organiser.',
   };
 };
-export const competitionProfile = t => ({ rules: competitionRules(t), revision: 3, legacy: false });
+// A tournament from before the engine has no published rules.
+export const competitionProfile = t => t.legacy ? { rules: null, revision: 0, legacy: true } : { rules: competitionRules(t), revision: 3, legacy: false };
 export const organizerOf = t => t.organizerOrgId ? ORG[t.organizerOrgId] : { id: 900 + t.organizerClubId, name: clubById(t.organizerClubId).name, logoUrl: clubById(t.organizerClubId).logoUrl, clubId: t.organizerClubId };
 /** When entries open and close. The girls' cup opens in two days, so "Opens …" has an example. */
 export const registrationWindow = t => ({ opens: t.id === 304 ? day(2, 9) : day(-60), closes: t.entryDeadline });

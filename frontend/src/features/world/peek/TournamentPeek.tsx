@@ -1,49 +1,113 @@
-import { Button, EmptyNote } from '../../../design/primitives';
+import { useId, useRef } from 'react';
+import { Trophy } from 'lucide-react';
+import { Button, ButtonLink, EmptyNote } from '../../../design/primitives';
+import { Tabs } from '../../../design/Tabs';
+import { Status } from '../../../design/DataTable';
 import { MediaImage } from '../../../components/ui/MediaImage';
 import { useAuth } from '../../../context/AuthContext';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
+import { FormatGlyph } from '../../tournaments/shape/FormatGlyph';
+import { plannedShape } from '../../tournaments/shape/shapeOf';
 import { useWorldCopy } from '../copy';
+import { feeLabel, placesLabel, tournamentFact, whatLabel, type TournamentItem } from '../directories/tournaments/tournamentItem';
 import { shortDate } from '../format';
-import { loadMyTeams, NO_TEAMS } from '../scoreboard/myTeams';
+import { zoned } from '../scoreboard/standings';
 import { useWorldData } from '../useWorldData';
 import { DrawerFrame, DrawerLoading } from './DrawerFrame';
-import { tournamentDetail } from './match/matchPeekData';
-import { StageTable } from './match/MatchTable';
+import { FollowHost } from './tournament/FollowHost';
+import { ShapeView } from './tournament/ShapeView';
+import { TournamentOverview } from './tournament/TournamentOverview';
+import { TournamentAbout, TournamentMatches, TournamentTeams } from './tournament/TournamentParts';
+import { loadTournamentPane, organiserOf, placesTaken, tournamentParts, type TournamentPaneData, type TournamentPart } from './tournament/tournamentPane';
+import { useRelatedOpen, usePeekPart } from './usePeek';
 import './peek.css';
-import './match/match-peek.css';
+import './pane.css';
+import './tournament/tournament-pane.css';
 
 /**
- * A tournament over World: its banner, dates and who runs it, then each table (my teams marked), with the full
- * tournament page one link away. It opens on the left beside a match, or on the right from a list's "Table".
+ * A tournament beside the list (or in a drawer): its banner, format and who runs it, the one fact that matters now,
+ * then tabs that switch in place: an overview (my run, my next match or the final, a little of each part), the
+ * format's own view (the bracket, the table, the groups…), the matches, the teams and what the organiser published.
+ * The tab shown is in the address; a match or the organiser opens stacked over it.
  */
 export default function TournamentPeek({ id }: { id: string }) {
     const t = useWorldCopy();
-    const { sessionId } = useAuth();
+    const { sessionId, user } = useAuth();
     const tournamentId = Number(id);
     const valid = Number.isInteger(tournamentId) && tournamentId > 0;
-    const data = useWorldData(valid ? `tournament-peek:${tournamentId}` : null, () => tournamentDetail(tournamentId), 'This tournament could not load.');
-    const teams = useWorldData(`my-teams:${sessionId}`, () => loadMyTeams(sessionId)).data ?? NO_TEAMS;
+    const data = useWorldData(valid ? `tournament-pane:${sessionId}:${user?.id ?? ''}:${tournamentId}` : null, () => loadTournamentPane(tournamentId, sessionId, user?.id ?? null), t('This tournament could not load.'));
     if (data.loading) return <DrawerFrame title={t('Loading…')}><DrawerLoading /></DrawerFrame>;
-    const tournament = data.data;
-    if (!tournament) return (
+    if (!data.data) return (
         <DrawerFrame title={t('Tournament')}>
             <EmptyNote title={data.error || t('This tournament could not load.')} action={valid ? <Button size="sm" onClick={data.retry}>{t('Try again')}</Button> : undefined} />
         </DrawerFrame>
     );
-    const mine = new Set(tournament.entries.filter(entry => (entry.squadId != null && teams.squadIds.has(entry.squadId)) || (entry.squadId == null && entry.clubId != null && teams.clubIds.has(entry.clubId))).map(entry => entry.id));
-    const dates = [shortDate(tournament.startDate), shortDate(tournament.endDate)].filter(Boolean);
-    const banner = resolveMediaUrl(tournament.bannerImageUrl);
-    // Top-level stages with a table; a group stage's groups each have their own.
-    const tables = tournament.stages.filter(stage => ['LEAGUE', 'GROUP', 'ROUND_ROBIN'].includes(stage.stageType)).sort((a, b) => a.stageOrder - b.stageOrder).slice(0, 4);
+    return <TournamentPane data={data.data} />;
+}
+
+/** The tournament as a list item, so the pane says its one fact exactly as its row does. */
+function asItem({ detail, rules, mine }: TournamentPaneData): TournamentItem {
+    return {
+        id: detail.id, name: detail.name, status: detail.status, scope: detail.participantScope, start: zoned(detail.startDate), end: zoned(detail.endDate),
+        organizer: detail.hostClubName ?? detail.organizerName ?? null, banner: detail.bannerImageUrl ?? null, rules, entryCount: placesTaken(detail), entryCap: detail.entryCap ?? null,
+        opensAt: zoned(detail.registrationOpensAt), closesAt: zoned(detail.registrationClosesAt),
+        champion: detail.entries.find(entry => entry.id === detail.championEntryId)?.clubName ?? detail.championName ?? null,
+        mine: detail.entries.filter(entry => mine.has(entry.id)).map(entry => ({ name: entry.squadName ?? entry.clubName ?? '', status: entry.status })),
+    };
+}
+
+function TournamentPane({ data }: { data: TournamentPaneData }) {
+    const t = useWorldCopy();
+    const { detail, rules, host } = data;
+    const [part, showPart] = usePeekPart();
+    const related = useRelatedOpen();
+    const ids = useId();
+    const tabsTop = useRef<HTMLDivElement>(null);
+    const parts = tournamentParts(data);
+    const current = parts.find(item => item.id === part)?.id;
+    const shown = current ?? 'overview';
+    /** Shows a part (none: the overview), going back up to the tabs first when the pane was scrolled past them. */
+    const select = (next?: TournamentPart, focus = false) => {
+        const top = tabsTop.current, body = top?.closest<HTMLElement>('.gk-drawer__body');
+        if (top && body) body.scrollTop = Math.min(body.scrollTop, top.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop);
+        showPart(next);
+        if (focus) setTimeout(() => document.getElementById(`${ids}-${next ?? 'overview'}`)?.focus({ preventScroll: true }));
+    };
+    const item = asItem(data), fact = tournamentFact(item);
+    const shape = plannedShape(rules, detail.entryCap, item.entryCount);
+    const dates = [...new Set([shortDate(item.start), shortDate(item.end)].filter(Boolean))].join(' – ');
+    const banner = resolveMediaUrl(detail.bannerImageUrl);
+    const organiser = organiserOf(detail), organiserName = host?.name ?? detail.hostClubName ?? detail.organizerName;
+    const shapeLabel = parts.find(entry => entry.id === 'draw')?.label ?? null;
+    const view = shown === 'draw' ? <ShapeView data={data} open={related} />
+        : shown === 'matches' ? <TournamentMatches data={data} open={related} />
+        : shown === 'teams' ? <TournamentTeams data={data} />
+        : shown === 'about' ? <TournamentAbout data={data} />
+        : <TournamentOverview data={data} open={related} select={next => select(next, true)} shapeLabel={shapeLabel} />;
     return (
-        <DrawerFrame title={tournament.name} page={{ to: `/tournaments/${tournament.id}`, label: t('Tournament page') }}>
-            {banner && <MediaImage className="gk-tpeek__banner" src={banner} alt="" />}
-            <header className="gk-tpeek__head">
-                <h3>{tournament.name}</h3>
-                <small>{[dates.length ? [...new Set(dates)].join(' – ') : null, tournament.hostClubName ?? tournament.organizerName].filter(Boolean).join(' · ')}</small>
-            </header>
-            {tournament.description && <p className="gk-peek-about">{tournament.description}</p>}
-            {tables.map(stage => <StageTable key={stage.id} tournament={tournament} stageId={stage.id} mine={mine} />)}
+        <DrawerFrame title={detail.name} page={{ to: `/tournaments/${detail.id}`, label: t('Tournament page') }}>
+            <div className="gk-pane-top">
+                <div className="gk-pane-cover">{banner && <MediaImage src={banner} alt="" />}</div>
+                <header className="gk-pane-head">
+                    <span className="gk-tpane-badge" aria-hidden="true">{shape ? <FormatGlyph kind={shape.kind} /> : <Trophy />}</span>
+                    <div>
+                        <h3>{detail.name}</h3>
+                        <p>{[shape && t(shape.word), ...whatLabel(item)].filter(Boolean).join(' · ')}</p>
+                        <p className="gk-faint">{[dates, placesLabel(item), feeLabel(rules)].filter(Boolean).join(' · ')}</p>
+                        {organiserName && <p className="gk-tpane-by">{t('by')} <button type="button" className="gk-pane-more" onClick={() => related(`organiser-${organiser.peek}`)}>{organiserName}</button></p>}
+                    </div>
+                </header>
+                <div className="gk-tpane-actions">
+                    {data.canManage && <ButtonLink size="sm" variant="primary" to={`/tournaments/${detail.id}/workspace`}>{t('Open workspace')}</ButtonLink>}
+                    {host && <FollowHost host={host} />}
+                    <Status tone={fact.tone}>{fact.label}</Status>
+                </div>
+                <div ref={tabsTop} className="gk-pane-parts">
+                    <Tabs className="gk-pane-tabs" label={t('{name} parts', { name: detail.name })} idBase={ids} value={shown} onChange={next => select(next === 'overview' ? undefined : next as TournamentPart)}
+                        items={[{ id: 'overview', label: t('Overview') }, ...parts.map(entry => ({ id: entry.id, label: t(entry.label) }))]} />
+                    <div role="tabpanel" id={`${ids}-${shown}-panel`} aria-labelledby={`${ids}-${shown}`} className="gk-pane-panel">{view}</div>
+                </div>
+            </div>
         </DrawerFrame>
     );
 }

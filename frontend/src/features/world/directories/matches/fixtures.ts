@@ -40,7 +40,8 @@ export function fixtureGroup(f: Fixture): ResultGroup {
     if (!m.startsAt) return UNDATED;
     if (m.source === 'TOURNAMENT' && m.tournamentId != null) return {
         key: `t${m.tournamentId}`, label: m.tournamentName || m.title, icon: Trophy, tint: 'accent', rank: 1 + Date.parse(m.startsAt) / 1e13,
-        action: { label: 'Table', to: `/tournaments/${m.tournamentId}`, peek: peekOf('tournament', m.tournamentId) },
+        // Its pane: the table or the bracket, whichever its format is, with the run of my team.
+        action: { label: 'Tournament', to: `/tournaments/${m.tournamentId}`, peek: peekOf('tournament', m.tournamentId) },
     };
     return m.source === 'MATCH_EXCHANGE' ? FRIENDLIES : CLUB;
 }

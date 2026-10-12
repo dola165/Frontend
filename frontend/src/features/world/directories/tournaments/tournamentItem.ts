@@ -63,7 +63,8 @@ export async function withPart(item: TournamentItem, userId: number | null | und
     const mine = detail.entries.filter(entry => !['WITHDRAWN', 'REJECTED'].includes(entry.status) && (sideIsMine(entry, teams) || (entry.clubId != null && teams.clubIds.has(entry.clubId))))
         .map(entry => ({ name: (entry.squadId != null ? teams.names.get(entry.squadId) : null) ?? entry.squadName ?? entry.clubName ?? entry.displayName ?? wt('Your team'), status: entry.status }));
     return {
-        ...item, role, mine, champion: detail.championName ?? null, entryCap: detail.entryCap ?? item.entryCap,
+        // The champion by its club (the backend's name for it is "Squad (Club)").
+        ...item, role, mine, champion: detail.entries.find(entry => entry.id === detail.championEntryId)?.clubName ?? detail.championName ?? null, entryCap: detail.entryCap ?? item.entryCap,
         // Places taken as the list counts them: approved and active entries, and those that played on or went out.
         entryCount: item.entryCount ?? detail.entries.filter(entry => ['APPROVED', 'ACTIVE', 'COMPLETED', 'ELIMINATED'].includes(entry.status)).length,
         organizer: item.organizer ?? detail.hostClubName ?? detail.organizerName ?? null, banner: item.banner ?? detail.bannerImageUrl ?? null,

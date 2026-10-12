@@ -4,11 +4,11 @@ import { toast } from 'sonner';
 import type { GeocodeResult, MapMarkerDto } from '../../../../api/map';
 import type { MapBounds } from '../../../../components/map/areaSearch';
 import { wt } from '../../copy';
-import { isLeadershipRole } from '../../../clubs/domain';
 import { fetchOpportunity } from '../../../admissions/api';
 import type { Opportunity } from '../../../admissions/types';
 import { useVenueMapTarget } from '../../../venues/useVenueMapTarget';
 import { extractApiErrorMessage } from '../../../../utils/apiError';
+import { useArrangeableSquads } from '../../compose/useArrangeableSquads';
 import { useWorldArea } from '../../useWorldArea';
 import { useWorldSession } from '../../worldSession';
 import { reducedMotion } from '../canvas/useMapTheme';
@@ -54,7 +54,6 @@ export function useExplore({ mapRef, active, allowed, signedIn, phone, viewSize,
     const [snap, setSnap] = useState<SheetSnap>('peek');
     const [hovered, setHovered] = useState<string | null>(null);
     const [moved, setMoved] = useState(false);
-    const [responding, setResponding] = useState<PlaceRecord | null>(null);
     const [closedKey, setClosedKey] = useState<string | null>(null);
 
     const focus = useCallback((latitude: number, longitude: number, zoom = 14) => {
@@ -101,12 +100,16 @@ export function useExplore({ mapRef, active, allowed, signedIn, phone, viewSize,
     }, [mapReady, selected, focus]);
     const shownSurface: ExploreSurface = walking.target ? 'walk' : surface === 'place' && !placeKey ? 'results' : placeKey && surface !== 'filters' ? 'place' : surface;
 
-    const canRespond = Boolean(selected?.entityType === 'MATCH' && selected.openChallenge && selected.marker?.scheduleEventId && selected.clubId
-        && membership?.clubId && Number(membership.clubId) !== selected.clubId && isLeadershipRole(membership.myRole));
+    // A club's match still looking for an opponent: anyone who may arrange matches (not for that club) is shown the open
+    // matches that day of its age, where they offer to play (a club's calendar request itself cannot be answered).
+    const squads = useArrangeableSquads();
+    const day = selected?.startsAt?.slice(0, 10);
+    const offerTo = selected?.entityType === 'MATCH' && selected.openChallenge && day && squads?.length && !squads.some(squad => squad.club_id === selected.clubId)
+        ? `/world/matches?tab=exchange&from=${day}&to=${day}${selected.ageGroups.length === 1 ? `&ageGroup=${selected.ageGroups[0]}` : ''}` : undefined;
 
     const regionName = query.coverage.kind === 'region' ? discovery.region?.name ?? query.coverage.name : '';
     return {
-        query, applicant, walking, discovery, filters, selected, placeKey, venue, hovered, setHovered, responding, setResponding, canRespond, membership,
+        query, applicant, walking, discovery, filters, selected, placeKey, venue, hovered, setHovered, offerTo, membership,
         surface: shownSurface, setSurface, collapsed, setCollapsed, snap, setSnap, moved, setMoved, center: start, centerReady: Boolean(center), signedIn,
         setMapReady,
         coverage: query.coverage.kind === 'area' ? wt('Searched map area') : query.coverage.kind === 'region' ? wt('All of {region}', { region: regionName }) : wt('Within {km} km', { km: query.coverage.km }),

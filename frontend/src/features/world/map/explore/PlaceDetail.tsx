@@ -42,9 +42,9 @@ function contactOf(club?: ClubDetails) {
 }
 
 /** The selected place: what it is, where and when, and what you can do next. */
-export function PlaceDetail({ record, signedIn, canRespond, playerId, onBack, onWalk, onSave, onRespond }: {
-    record: PlaceRecord; signedIn: boolean; canRespond: boolean; playerId?: number;
-    onBack: () => void; onWalk: () => void; onSave?: () => void; onRespond: () => void;
+export function PlaceDetail({ record, signedIn, offerTo, playerId, onBack, onWalk, onSave }: {
+    record: PlaceRecord; signedIn: boolean; /** Open matches that day, for a club's match looking for an opponent. */ offerTo?: string; playerId?: number;
+    onBack: () => void; onWalk: () => void; onSave?: () => void;
 }) {
     const t = useWorldCopy();
     const { copy, availability } = useAdmissionCopy();
@@ -87,7 +87,7 @@ export function PlaceDetail({ record, signedIn, canRespond, playerId, onBack, on
                 {located && <Button onClick={onWalk}><Footprints aria-hidden="true" />{t('Walk here')}</Button>}
                 {located && <a className="gk-btn gk-btn--secondary" href={`https://www.google.com/maps/dir/?api=1&destination=${record.latitude},${record.longitude}`} target="_blank" rel="noopener noreferrer"><Navigation aria-hidden="true" />{t('Directions')}</a>}
                 {signedIn && located && onSave && <Button onClick={onSave}><BookmarkPlus aria-hidden="true" />{t('Save to a journey')}</Button>}
-                {canRespond && <Button onClick={onRespond}>{t('Respond to this match')}</Button>}
+                {offerTo && <ButtonLink to={offerTo}>{t('Open matches that day')}</ButtonLink>}
                 {contact && <a className="gk-btn gk-btn--ghost" href={contact.href} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />{contact.label}</a>}
                 {'share' in navigator && <Button variant="ghost" onClick={share}><Share2 aria-hidden="true" />{t('Share')}</Button>}
             </div>

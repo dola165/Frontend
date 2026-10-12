@@ -11,7 +11,7 @@ import { isProfessionalRole, roleLabel } from '../../roles/domain';
 import { useWorldCopy } from '../copy';
 import { Crest } from '../Crest';
 import { useFollow } from '../directories/people/following';
-import { InviteStep } from '../directories/people/InviteStep';
+import { InvitePick, InviteStep } from '../directories/people/InviteStep';
 import { refereeLevel } from '../directories/people/peopleWords';
 import { positionLabel } from '../directories/people/personData';
 import { formatsOf, shortFormat, terms } from '../directories/people/refereeData';
@@ -98,7 +98,7 @@ export default function PersonPeek({ id }: { id: string }) {
                 </button>}
                 {!person.own && <Link className="gk-people-act" to={`/messages?chatWith=${userId}`}><MessageCircle aria-hidden="true" />{t('Message')}</Link>}
             </div>
-            {referee && match && refereeProfile.data && !person.own && <InviteStep referee={refereeProfile.data} matchId={match} />}
+            {referee && refereeProfile.data && !person.own && (match ? <InviteStep referee={refereeProfile.data} matchId={match} /> : <InvitePick referee={refereeProfile.data} />)}
             {referee && refereeProfile.data && <RefereeFacts referee={refereeProfile.data} />}
             {appointments.length > 0 && <section className="gk-peek-section">
                 <h3 className="gk-peek-section__title">{t('Clubs')}</h3>

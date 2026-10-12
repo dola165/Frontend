@@ -92,21 +92,6 @@ export interface PublicScheduleEventsOptions {
     eventType?: ScheduleEventType;
 }
 
-export interface ScheduleChallengeRequest {
-    challengerClubId?: number;
-    targetClubId: number;
-    challengingSquadId?: number | null;
-    targetSquadId?: number | null;
-    venuePreference?: 'HOME' | 'AWAY' | null;
-    note?: string | null;
-}
-
-export interface ScheduleChallengeResponse {
-    respondingClubId: number;
-    decision: 'ACCEPTED' | 'REJECTED';
-    note?: string | null;
-}
-
 const withWindow = (from?: string, to?: string) => ({
     params: {
         ...(from ? { from } : {}),
@@ -165,16 +150,6 @@ export const deleteScheduleEvent = async (eventId: number) => {
 
 export const cancelScheduleEvent = async (clubId: number, eventId: number) => {
     await apiClient.post(`/schedule/clubs/${clubId}/events/${eventId}/cancel`);
-};
-
-export const createScheduleChallenge = async (eventId: number, payload: ScheduleChallengeRequest) => {
-    const response = await apiClient.post<ScheduleEventOccurrence>(`/schedule/events/${eventId}/challenge`, payload);
-    return response.data;
-};
-
-export const respondToScheduleChallenge = async (eventId: number, payload: ScheduleChallengeResponse) => {
-    const response = await apiClient.post<ScheduleEventOccurrence>(`/schedule/challenges/${eventId}/response`, payload);
-    return response.data;
 };
 
 export const completeClubEvent = async (clubId: number, eventId: number) => {

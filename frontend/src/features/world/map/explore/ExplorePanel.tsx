@@ -4,7 +4,6 @@ import { MapPanel } from '../sheet/MapPanel';
 import { FiltersPanel } from './FiltersPanel';
 import { PlaceDetail } from './PlaceDetail';
 import { ResultsList } from './ResultsList';
-import { RespondDialog } from './RespondDialog';
 import { SearchBar } from './SearchBar';
 import { WalkPanel } from './WalkPanel';
 import type { LayerId } from './exploreQuery';
@@ -29,8 +28,8 @@ export function ExplorePanel({ explore, phone, allowed, planHref, onSave, embedd
     if (explore.surface === 'walk') body = <WalkPanel walking={walking} onBack={walking.stop} />;
     else if (explore.surface === 'filters') body = <FiltersPanel query={query} signedIn={explore.signedIn} applicant={explore.applicant} hasOrigin={Boolean(walking.origin)} onLocate={explore.locate} onDone={() => explore.setSurface(explore.placeKey ? 'place' : 'results')} />;
     else if (explore.surface === 'place' && selected) body = (
-        <PlaceDetail record={selected} signedIn={explore.signedIn} canRespond={explore.canRespond} playerId={explore.applicant.player?.id}
-            onBack={explore.close} onRespond={() => explore.setResponding(selected)}
+        <PlaceDetail record={selected} signedIn={explore.signedIn} offerTo={explore.offerTo} playerId={explore.applicant.player?.id}
+            onBack={explore.close}
             onWalk={() => selected.latitude != null && selected.longitude != null && walking.start({ key: selected.key, title: selected.title, latitude: selected.latitude, longitude: selected.longitude })}
             onSave={onSave && (() => onSave(selected))} />
     );
@@ -63,7 +62,6 @@ export function ExplorePanel({ explore, phone, allowed, planHref, onSave, embedd
             {walking.picking && (
                 <div className="gk-map-float gk-map-float--top gk-map-hint" role="status"><Crosshair aria-hidden="true" />{t('Click the map where your walk begins')}<Button size="sm" variant="ghost" iconOnly aria-label={t('Cancel choosing a start')} onClick={walking.cancelPicking}><X aria-hidden="true" /></Button></div>
             )}
-            {explore.responding && explore.membership?.clubId && <RespondDialog record={explore.responding} club={{ id: Number(explore.membership.clubId), name: explore.membership.clubName }} onClose={() => explore.setResponding(null)} />}
         </>
     );
 }

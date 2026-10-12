@@ -4,6 +4,7 @@ import { Badge, Button, Field, List, ListRow, Panel, Section, type BadgeTone } f
 import { Crest } from '../../world/Crest';
 import { post, type Match, type Squad } from '../api';
 import { useAction } from '../hooks';
+import { answerInvitation, offerToPlay } from './opponentActions';
 import { ChoiceChips } from '../../../design/ChoiceChips';
 
 const PROPOSAL: Record<string, { label: string; tone: BadgeTone }> = {
@@ -27,8 +28,8 @@ export function InvitationResponse({ match: m, squads, reload }: { match: Match;
                         : <p className="gk-notice gk-notice--warning">None of the squads you manage can accept this invitation. Ask your club’s leadership.</p>}
                 <div className="gk-mx">{feedback}</div>
                 <div className="gk-match-actions">
-                    <Button variant="primary" disabled={busy || !chosen} onClick={() => void run(() => post(`/match-arrangements/${m.event_id}/response`, { action: 'ACCEPT', squadId: chosen, revision: m.revision }), 'Invitation accepted')}>Accept invitation</Button>
-                    <Button disabled={busy} onClick={() => void run(() => post(`/match-arrangements/${m.event_id}/response`, { action: 'DECLINE', revision: m.revision }), 'Invitation declined')}>Decline</Button>
+                    <Button variant="primary" disabled={busy || !chosen} onClick={() => void run(() => answerInvitation(m, { accept: true, squadId: chosen! }), 'Invitation accepted')}>Accept invitation</Button>
+                    <Button disabled={busy} onClick={() => void run(() => answerInvitation(m, { accept: false }), 'Invitation declined')}>Decline</Button>
                 </div>
             </div>
         </Panel>
@@ -72,7 +73,7 @@ export function ProposeForm({ match: m, squads, reload }: { match: Match; squads
     return (
         <Section title="Propose to play" id="match-proposal">
             <Panel padded>
-                <form className="gk-match-form" onSubmit={event => { event.preventDefault(); void run(() => post(`/match-exchange/${m.event_id}/proposals`, { squadId: Number(squad), note, revision: m.revision }), 'Proposal sent to the hosting squad'); }}>
+                <form className="gk-match-form" onSubmit={event => { event.preventDefault(); void run(() => offerToPlay(m, Number(squad), note), 'Proposal sent to the hosting squad'); }}>
                     <Field label="Your squad" htmlFor="propose-squad">
                         <select id="propose-squad" className="gk-input" required value={squad} onChange={event => setSquad(event.target.value)}>
                             <option value="">Choose a squad</option>

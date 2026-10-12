@@ -24,6 +24,10 @@ export function matchGates(m: Match, now: number, squads: Squad[] = []) {
     };
 }
 
+/** The viewer arranges the referee and none is set yet (or one must be replaced): finding one is theirs to do. */
+export const needsReferee = (m: Match) => Boolean(m.can_arrange_official && m.referee_required && !m.external_referee_name
+    && (m.referee_status === 'NEEDED' || m.referee_status === 'REPLACEMENT_NEEDED'));
+
 /** The fixture's state in words, from the viewer's side. */
 export function fixtureState(m: Match, now: number): State {
     if (m.event_status === 'CANCELLED' || m.listing_status === 'CANCELLED') return { label: 'Cancelled', tone: 'danger' };

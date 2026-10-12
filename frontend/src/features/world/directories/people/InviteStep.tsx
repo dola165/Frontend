@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import { Send } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
@@ -10,8 +10,11 @@ import { useWorldCopy } from '../../copy';
 import { fixtureDay, fixtureTime } from '../../format';
 import { listingDetail } from '../../front/coach/coachMatches';
 import { useWorldData } from '../../useWorldData';
-import { seatsChanged } from './dugoutData';
+import { peekClick, peekOf, useRelatedOpen } from '../../peek/usePeek';
+import { listingCode } from '../../scoreboard/matchCode';
+import { OPEN_SEAT, seatsChanged, useSeats } from './dugoutData';
 import { formatsOf } from './refereeData';
+import '../../peek/step.css';
 import './people.css';
 
 type Duty = 'REFEREE' | 'ASSISTANT_1' | 'ASSISTANT_2';
@@ -23,6 +26,7 @@ const DUTIES: { value: Duty; label: string }[] = [{ value: 'REFEREE', label: 'Re
  */
 export function InviteStep({ referee, matchId }: { referee: Referee; matchId: number }) {
     const t = useWorldCopy();
+    const relate = useRelatedOpen();
     const { sessionId } = useAuth();
     const [attempt, setAttempt] = useState(0);
     const loaded = useWorldData(`invite-match:${sessionId}:${matchId}:${attempt}`, () => listingDetail(sessionId, matchId));
@@ -39,16 +43,16 @@ export function InviteStep({ referee, matchId }: { referee: Referee; matchId: nu
     if (loaded.loading) return <p className="gk-faint">{t('Loading the match…')}</p>;
     if (!match) return <p className="gk-world-row-note">{loaded.error || t('This match could not load.')} <button type="button" className="gk-browse__retry" onClick={loaded.retry}>{t('Try again')}</button></p>;
     const when = `${fixtureDay(match.starts_at_iso, match.timezone)} ${fixtureTime(match.starts_at_iso, match.timezone)}`;
-    const heading = <h4 className="gk-invite__title">{t('Invite to {match}', { match: `${match.squad_name} · ${when}` })}</h4>;
-    if (match.can_arrange_official === false) return <section className="gk-invite">{heading}<p className="gk-faint">{t('The other club arranges the referee for this match.')}</p></section>;
+    const heading = <h4 className="gk-step__title">{t('Invite to {match}', { match: `${match.squad_name} · ${when}` })}</h4>;
+    if (match.can_arrange_official === false) return <section className="gk-step">{heading}<p className="gk-faint">{t('The other club arranges the referee for this match.')}</p></section>;
     if (theirs || state.sent) return (
-        <section className="gk-invite" data-done>{heading}
+        <section className="gk-step" data-done>{heading}
             <p role="status">{theirs?.status === 'ACCEPTED' ? t('{name} referees this match.', { name: referee.full_name }) : t('Invited. {name} will answer; the seat waits until then.', { name: referee.full_name })}</p>
-            <Link className="gk-section__action" to={`/match-exchange/${match.event_id}`}>{t('Open match')}</Link>
+            <Link className="gk-section__action" to={`/match-exchange/${match.event_id}`} onClick={peekClick(peekOf('match', listingCode(match.event_id)), relate)}>{t('Open match')}</Link>
         </section>
     );
-    if (!referee.accepts_paid && !referee.accepts_volunteer) return <section className="gk-invite">{heading}<p className="gk-faint">{t('{name} is not taking matches.', { name: referee.full_name })}</p></section>;
-    if (match.format && !formatsOf(referee).includes(match.format)) return <section className="gk-invite">{heading}<p className="gk-faint">{t('{name} does not take this format.', { name: referee.full_name })}</p></section>;
+    if (!referee.accepts_paid && !referee.accepts_volunteer) return <section className="gk-step">{heading}<p className="gk-faint">{t('{name} is not taking matches.', { name: referee.full_name })}</p></section>;
+    if (match.format && !formatsOf(referee).includes(match.format)) return <section className="gk-step">{heading}<p className="gk-faint">{t('{name} does not take this format.', { name: referee.full_name })}</p></section>;
     const fee = `${referee.fee} ${referee.currency}`;
     const send = async () => {
         setState({ busy: true, sent: false, error: '', changed: false });
@@ -66,18 +70,46 @@ export function InviteStep({ referee, matchId }: { referee: Referee; matchId: nu
     const preview = t(volunteer ? 'Ask {name} to be {duty} for {squad}, {when} at {place}, as a volunteer.' : 'Ask {name} to be {duty} for {squad}, {when} at {place}, for {fee}.',
         { name: referee.full_name, duty: dutyWord, squad: match.squad_name, when, place: match.location_name || t('your ground'), fee });
     return (
-        <section className="gk-invite">
+        <section className="gk-step">
             {heading}
-            <div className="gk-invite__row" role="group" aria-label={t('Duty')}>
+            <div className="gk-step__row" role="group" aria-label={t('Duty')}>
                 {DUTIES.map(item => <button key={item.value} type="button" className="gk-chip" aria-pressed={chosenDuty === item.value} disabled={taken.has(item.value)} onClick={() => setDuty(item.value)}>{t(item.label)}</button>)}
             </div>
-            <div className="gk-invite__row" role="group" aria-label={t('Terms')}>
+            <div className="gk-step__row" role="group" aria-label={t('Terms')}>
                 <button type="button" className="gk-chip" aria-pressed={volunteer} disabled={!referee.accepts_volunteer} onClick={() => setVolunteer(true)}>{t('Volunteer')}</button>
                 <button type="button" className="gk-chip" aria-pressed={!volunteer} disabled={!referee.accepts_paid} onClick={() => setVolunteer(false)}>{fee}</button>
             </div>
-            <p className="gk-invite__preview">{preview}</p>
-            {state.error && <p className="gk-invite__error" role="alert">{state.error}{state.changed && <> <button type="button" className="gk-browse__retry" onClick={reload}>{t('Reload')}</button></>}</p>}
+            <p className="gk-step__preview">{preview}</p>
+            {state.error && <p className="gk-step__error" role="alert">{state.error}{state.changed && <> <button type="button" className="gk-browse__retry" onClick={reload}>{t('Reload')}</button></>}</p>}
             <Button variant="primary" onClick={() => { void send(); }} disabled={state.busy || taken.has(chosenDuty) || !(volunteer ? referee.accepts_volunteer : referee.accepts_paid)}><Send aria-hidden="true" />{state.busy ? t('Sending…') : t('Send invitation')}</Button>
+        </section>
+    );
+}
+
+/**
+ * Inviting a referee met anywhere in World, before a match is chosen: the coach's own coming matches that still need
+ * one and are of a format the referee takes, as chips; choosing one opens the invitation for that match (as a Dugout
+ * seat does). Nothing shows without one.
+ */
+export function InvitePick({ referee }: { referee: Referee }) {
+    const t = useWorldCopy();
+    const location = useLocation();
+    const [, setParams] = useSearchParams();
+    const { seats } = useSeats();
+    const takes = formatsOf(referee);
+    const open = seats.filter(({ match, referee: seated }) => !seated && OPEN_SEAT.has(match.referee_status) && match.referee_status !== 'INVITED'
+        && (!match.format || takes.includes(match.format))).slice(0, 4);
+    if (!open.length) return null;
+    const choose = (eventId: number) => setParams(next => { const copy = new URLSearchParams(next); copy.set('match', String(eventId)); return copy; },
+        { replace: true, preventScrollReset: true, state: location.state });
+    return (
+        <section className="gk-step" aria-label={t('Invite {name} to a match', { name: referee.full_name })}>
+            <h4 className="gk-step__title">{t('Invite {name} to a match', { name: referee.full_name })}</h4>
+            <div className="gk-step__row" role="group" aria-label={t('Your matches that need a referee')}>
+                {open.map(({ match }) => <button key={match.event_id} type="button" className="gk-chip" onClick={() => choose(match.event_id)}>
+                    {match.squad_name} · {fixtureDay(match.starts_at_iso, match.timezone)} {fixtureTime(match.starts_at_iso, match.timezone)}
+                </button>)}
+            </div>
         </section>
     );
 }

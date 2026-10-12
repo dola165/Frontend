@@ -56,15 +56,6 @@
   .gk .gk-dugout__state { display: inline-flex; align-items: center; min-height: 44px; }
 }
 
-/* Inviting a referee: the duty, the terms, one sentence saying what will be asked, then Send. */
-.gk .gk-invite { display: flex; flex-direction: column; gap: var(--gk-3); margin: var(--gk-3) 0 var(--gk-4); padding: var(--gk-4); border: 1px solid color-mix(in srgb, var(--gk-accent) 40%, var(--gk-line));
-  border-radius: 12px; background: color-mix(in srgb, var(--gk-accent) 6%, var(--gk-surface)); }
-.gk .gk-invite[data-done] { border-color: var(--gk-line); background: var(--gk-surface); }
-.gk .gk-invite__title { margin: 0; font-size: var(--gk-fs-md); font-weight: 650; }
-.gk .gk-invite__row { display: flex; flex-wrap: wrap; gap: 6px; }
-.gk .gk-invite__preview { margin: 0; padding: var(--gk-3); border-radius: 8px; background: var(--gk-raised); font-size: var(--gk-fs-sm); line-height: 1.5; }
-.gk .gk-invite__error { margin: 0; color: var(--gk-danger); font-size: var(--gk-fs-sm); }
-.gk .gk-invite .gk-btn svg { width: 15px; height: 15px; }
 
 /* Your card, in its pill's panel. */
 .gk .gk-your-card { display: flex; flex-direction: column; gap: var(--gk-2); width: 300px; padding: var(--gk-2); }

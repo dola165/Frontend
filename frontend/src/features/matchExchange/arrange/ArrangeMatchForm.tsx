@@ -14,6 +14,7 @@ import { KickoffField } from './KickoffField';
 import { GroundField } from './GroundField';
 import { MoreDetails, RefereeField } from './DetailFields';
 import { MatchPreview } from './MatchPreview';
+import { BeforeYouPost } from './BeforeYouPost';
 
 const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Tbilisi';
 const blank = (squadId: number): Draft => ({
@@ -106,6 +107,8 @@ export function ArrangeMatchForm({ mode, opponentId, squadId = 0, storageKey, on
                 <legend className="gk-visually-hidden">When</legend>
                 <KickoffField date={draft.date} time={draft.time} minutes={draft.minutes} format={draft.format} ageGroup={ageGroup} squadAge={data.ageGroup} known={Boolean(data.ourSquad)}
                     today={localStamp(now, draft.timezone || zone()).slice(0, 10)} onChange={patch} errors={{ date: shown.date, time: shown.time, length: shown.length }} />
+                {mode === 'open' && data.ourSquad && draft.date && <BeforeYouPost ageGroup={ageGroup} date={draft.date} ownClubId={data.ownClubId}
+                    near={data.ours.data?.[0]?.latitude != null && data.ours.data[0].longitude != null ? { lat: data.ours.data[0].latitude, lng: data.ours.data[0].longitude } : null} />}
             </fieldset>
             <fieldset className="gk-arrange__group" disabled={busy}>
                 <legend className="gk-visually-hidden">Where</legend>

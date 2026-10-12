@@ -102,11 +102,11 @@ Two different jobs, kept separate:
    - Our squad is prefilled when it's obvious.
    - Time, with a default duration from the age group's format.
    - Ground: our own venues (from the club's venue relationships), their venue, another venue from the map, or "to be arranged".
-   - Referee: optional, can be requested afterwards.
+   - Referee: optional; "later" by default, or invite one or ask referees nearby as the match is sent (round 3, decision 6).
    - One short form, not a three-step wizard.
 2. **Match Exchange** (open listing): "we need an opponent for this slot." Other squads propose; we choose.
 
-**Renting a stadium is not part of match creation.** Rented stadiums are for training. Remove "Find and book a stadium" from the match flow.
+**Renting a stadium is not part of match creation.** Rented stadiums are for training. Remove "Find and book a stadium" from the match flow. Once a match exists, its page may use a reservation the club already holds (link one at the match's ground, or the host moves the match to a reserved ground); creating a match never books (owner, round 3, decision 7).
 
 Discovery of fixtures, results and tournaments lives in World; the club's own matches in My Club.
 

@@ -7,15 +7,18 @@ import { useAction } from '../hooks';
 import { endTime, groundState, hostingText, kickoffDay, kickoffTime, lengthMinutes, refereeState } from './matchState';
 
 /**
- * Plan your match day: when, where, who referees, the squads and the conversation. Each line says
- * where it stands; the host confirms an unlisted ground here once its owner has agreed.
+ * Plan your match day: when, where, who referees, the squads and the conversation. Each line says where it stands in
+ * words; either club confirms an unlisted ground here once its owner has agreed, or uses a reservation (`onReserve`).
  */
-export function MatchDayPlan({ match: m, active, conversation, reload }: { match: Match; active: boolean; conversation?: ConversationDto | null; reload: () => void }) {
+export function MatchDayPlan({ match: m, active, conversation, reload, onReserve }: { match: Match; active: boolean; conversation?: ConversationDto | null; reload: () => void; onReserve: () => void }) {
     const ground = groundState(m);
     const referee = refereeState(m);
     const confirm = useAction(reload);
     const named = m.location_name && !/to be (arranged|agreed|confirmed)/i.test(m.location_name);
-    const canConfirmGround = m.can_manage && active && !m.venue_id && !m.booking_id && named;
+    // Either club that arranges the match may confirm an unlisted ground, as the backend allows.
+    const canConfirmGround = m.can_arrange && active && !m.venue_id && !m.booking_id && named;
+    const reservation = m.booking ? (m.booking.status === 'CONFIRMED' ? 'Reserved' : m.booking.status === 'PENDING' ? 'Reservation waiting for the venue' : `Reservation ${label(m.booking.status).toLowerCase()}`) : null;
+    const canReserve = m.can_arrange && active && !(m.booking && ['CONFIRMED', 'PENDING'].includes(m.booking.status));
     const appointed = m.appointments?.filter(a => ['ACCEPTED', 'INVITED'].includes(a.status)).map(a => a.full_name).filter(Boolean).join(', ');
     return (
         <Section title="Plan your match day" id="plan">
@@ -27,10 +30,11 @@ export function MatchDayPlan({ match: m, active, conversation, reload }: { match
                         trail={<ButtonLink size="sm" variant="ghost" to={`/calendar?scope=squad&squadId=${m.squad_id}`}>Squad schedule</ButtonLink>} />
                     <ListRow lead={<MapPin aria-hidden="true" className="gk-match-icon" />}
                         title={named ? m.location_name : 'Ground to be arranged'}
-                        meta={[m.city, hostingText(m), m.booking ? `Reservation #${m.booking.id} · ${label(m.booking.status)}` : null, m.external_venue_confirmed ? 'Confirmed with the ground owner' : null].filter(Boolean).join(' · ')}
+                        meta={[m.city, hostingText(m), reservation, m.external_venue_confirmed ? 'Confirmed with the ground owner' : null].filter(Boolean).join(' · ')}
                         trail={<>
                             <Badge tone={ground.tone}>{ground.label}</Badge>
                             {m.venue_id && <ButtonLink size="sm" variant="ghost" to={`/stadiums/${m.venue_id}`}>Directions</ButtonLink>}
+                            {canReserve && <Button size="sm" variant="ghost" onClick={onReserve}>Use a reservation</Button>}
                             {canConfirmGround && <Button size="sm" disabled={confirm.busy}
                                 onClick={() => void confirm.run(() => post(`/match-exchange/${m.event_id}/venue`, { bookingId: null, externalConfirmed: !m.external_venue_confirmed, revision: m.revision }), m.external_venue_confirmed ? 'Ground confirmation withdrawn' : 'Ground confirmed')}>
                                 {m.external_venue_confirmed ? 'Withdraw confirmation' : 'Confirm ground'}</Button>}

@@ -58,7 +58,7 @@ post('/match-arrangements', ({ body }) => {
     title: String(m.title ?? '').trim() || `${squad.name} friendly`, description: m.description ?? '', level: m.level || 'DEVELOPMENT',
     venuePreference: m.venuePreference || 'EITHER', hostingChoice: body.hostingChoice ?? null, refereeRequired: body.officialMode !== 'NONE',
     refereeResponsibility: body.officialResponsibility === 'OPPONENT' ? 'OPPONENT' : 'HOST', externalRefereeName: body.officialMode === 'EXTERNAL' ? body.externalRefereeName : null,
-    opponentSquadId: null, status: 'OPEN', score: null, proposals: [], booked: false, refereeId: null,
+    opponentSquadId: null, status: 'OPEN', score: null, proposals: [], bookingId: null, refereeId: null,
     requestedClubId: target?.id ?? null, requestedSquadId: targetSquad?.id ?? null, kind: body.matchType === 'COMPETITIVE' ? 'COMPETITIVE' : 'FRIENDLY',
     revision: 1, ageGroup: m.ageGroup || squad.ageGroup, format: m.format || '11_A_SIDE', created: new Date(),
     history: [{ id: W.newId(), action: target ? 'CHALLENGE_SENT' : 'PUBLISHED', created_at: iso(new Date()), reason: null }],
@@ -76,7 +76,7 @@ post('/match-arrangements', ({ body }) => {
 });
 
 const seed = rec => { rec.end = F.plusMin(rec.start, rec.minutes); delete rec.minutes; rec.history.push({ id: W.newId(), action: 'CHALLENGE_SENT', created_at: iso(rec.created), reason: null }); F.exchange.push(rec); return rec; };
-const base = { proposals: [], booked: false, refereeId: null, opponentSquadId: null, status: 'OPEN', score: null, kind: 'FRIENDLY', revision: 1, externalRefereeName: null, history: [] };
+const base = { proposals: [], bookingId: null, refereeId: null, opponentSquadId: null, status: 'OPEN', score: null, kind: 'FRIENDLY', revision: 1, externalRefereeName: null, history: [] };
 
 // Match invitations travel through Requests like other decisions: incoming ones need an answer.
 const fmt = d => new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: F.TZ }).format(d);

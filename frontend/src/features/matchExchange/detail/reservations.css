@@ -1,0 +1,22 @@
+/* Using a reservation for a match: one line per reservation (where, when, price), the reason it cannot be used in
+   words (dimmed), else its one action; a change of ground shows who is told before it is made. Scoped under .gk; tokens only. */
+.gk .gk-reserve { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .gk-reserve__list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; border: 1px solid var(--gk-line); border-radius: var(--gk-r); }
+.gk .gk-reserve__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); padding: var(--gk-3); }
+.gk .gk-reserve__row + .gk-reserve__row { border-top: 1px solid var(--gk-line); }
+.gk .gk-reserve__row[data-unusable] .gk-reserve__text > :not(.gk-reserve__why) { opacity: .6; }
+.gk .gk-reserve__text { flex: 1 1 240px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gk .gk-reserve__text strong { font-weight: 600; overflow-wrap: anywhere; }
+.gk .gk-reserve__text small { font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-reserve__why { display: flex; align-items: center; gap: 6px; }
+.gk .gk-reserve__why::before { content: ''; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--gk-warning); }
+.gk .gk-reserve__act { display: inline-flex; align-items: center; gap: var(--gk-2); }
+.gk .gk-reserve__share { flex-basis: 100%; align-self: flex-start; padding: 0; border: 0; background: none; color: var(--gk-accent); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; text-align: left; }
+.gk .gk-reserve__share:hover { text-decoration: underline; text-underline-offset: 3px; }
+.gk .gk-reserve__review { flex-basis: 100%; display: flex; flex-direction: column; gap: var(--gk-2); padding-top: var(--gk-2); border-top: 1px dashed var(--gk-line); }
+.gk .gk-reserve__actions { display: flex; flex-wrap: wrap; gap: var(--gk-2); }
+.gk .gk-reserve__live { margin: 0; padding: var(--gk-3); border-radius: var(--gk-r); background: var(--gk-sunken); font-size: var(--gk-fs-sm); }
+.gk .gk-reserve__note { margin: 0; font-size: var(--gk-fs-xs); }
+.gk .gk-reserve__links { display: flex; flex-wrap: wrap; gap: var(--gk-4); font-size: var(--gk-fs-sm); }
+.gk .gk-reserve__links a { color: var(--gk-accent); font-weight: 600; }
+@media (pointer: coarse) { .gk .gk-reserve__share, .gk .gk-reserve__links a { display: inline-flex; align-items: center; min-height: 44px; } }

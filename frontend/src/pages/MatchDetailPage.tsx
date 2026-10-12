@@ -19,6 +19,7 @@ import { EditMatchForm } from '../features/matchExchange/arrange/EditMatchForm';
 import { clubProfile } from '../features/matchExchange/arrange/api';
 import { useWorldData } from '../features/world/useWorldData';
 import { FixtureBand } from '../features/matchExchange/detail/FixtureBand';
+import { GroundReservation } from '../features/matchExchange/detail/GroundReservation';
 import { MatchDayPlan } from '../features/matchExchange/detail/MatchDayPlan';
 import { MatchManagement } from '../features/matchExchange/detail/MatchManagement';
 import { Officials } from '../features/matchExchange/detail/Officials';
@@ -40,14 +41,6 @@ function useMatchConversation(m: Match | undefined) {
         return () => controller.abort();
     }, [event, open]);
     return open && lookup && lookup.eventId === event ? lookup.conversation : undefined;
-}
-
-/** What just happened, after the arrange form sends a match here. */
-function SentNotice({ invited, kind, onDismiss }: { invited?: string; kind: string; onDismiss: () => void }) {
-    const text = kind === 'direct'
-        ? `Invitation sent. ${invited ?? 'The club'} can accept or decline; their answer appears here and in your inbox.`
-        : 'Your open match is published. Squads that want to play will propose here, and you choose one.';
-    return <div className="gk-notice gk-match-sent" role="status"><span>{text}</span><Button size="sm" variant="ghost" onClick={onDismiss}>Dismiss</Button></div>;
 }
 
 /**
@@ -82,8 +75,9 @@ export function MatchDetailPage() {
     const { active, eligible, canPropose, respond, finished, started } = matchGates(m, now, squads ?? []);
     const facts = [m.age_group === 'SENIOR' ? 'Senior' : m.age_group, formats[m.format] ?? label(m.format), `${label(m.level)} level`, m.requested_club_id ? 'Direct invitation' : m.listing_status === 'OPEN' ? 'Open match' : null].filter(Boolean).join(' · ');
     const invited = requested ? { name: invitedClub.data?.name ?? (m.can_respond ? 'Your club' : 'The invited club'), logoUrl: invitedClub.data?.logoUrl } : null;
-    const sent = params.get('sent');
-    const dismissSent = () => { const next = new URLSearchParams(params); next.delete('sent'); setParams(next, { replace: true }); };
+    // Using a reservation is a step over the page, kept in the address so Back closes it.
+    const reserving = params.get('ground') === 'reserve';
+    const reserve = (open: boolean) => { const next = new URLSearchParams(params); if (open) next.set('ground', 'reserve'); else next.delete('ground'); setParams(next, { replace: !open }); };
     const result = <div id="result" className="gk-mx gk-match-result"><MatchResultSection match={m} reload={reload} scoreboard={false} onSummary={onSummary} /></div>;
 
     return (
@@ -95,7 +89,6 @@ export function MatchDetailPage() {
                     {m.can_manage && active && !editing && <Button onClick={() => setEditing(true)}><Pencil aria-hidden="true" />{copy('editDetails')}</Button>}
                     <MatchHistoryLink clubId={m.club_id} squadId={m.squad_id} className="gk-btn gk-btn--ghost" />
                 </>} />
-            {sent && !editing && <SentNotice invited={invitedClub.data?.name} kind={sent} onDismiss={dismissSent} />}
             {error && <p className="gk-notice gk-notice--danger" role="alert">{error}</p>}
             <FixtureBand match={m} summary={summary} invitedClub={invited} now={now} />
 
@@ -107,7 +100,7 @@ export function MatchDetailPage() {
                     {canPropose && <ProposeForm match={m} squads={eligible} reload={reload} />}
                     {finished && result}
                     <ProposalList match={m} active={active} reload={reload} />
-                    <MatchDayPlan match={m} active={active} conversation={conversation} reload={reload} />
+                    <MatchDayPlan match={m} active={active} conversation={conversation} reload={reload} onReserve={() => reserve(true)} />
                     {m.own_appointments?.map(a => <div key={a.id} className="gk-mx"><AppointmentCard appointment={a} reload={reload} embedded /></div>)}
                     <Officials match={m} active={active} reload={reload} />
                     {(m.can_arrange || m.own_appointments?.some(a => a.status === 'ACCEPTED')) && (m.appointments?.some(a => a.status === 'ACCEPTED')
@@ -130,6 +123,7 @@ export function MatchDetailPage() {
                     <details className="gk-match-disclosure"><summary>{copy('arrangementHelp')}</summary><p className="gk-muted">{copy('arrangementHelpBody')}</p><p className="gk-muted">{copy('readinessNote')}</p></details>
                 </aside>
             </div>}
+            {reserving && m.can_arrange && <GroundReservation match={m} onClose={() => reserve(false)} reload={reload} />}
         </PageFrame></GkRoot>
     );
 }

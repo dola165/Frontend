@@ -114,7 +114,7 @@ export type Match = {
   referee_required: boolean;
   venue_id: number | null;
   booking_id: number | null;
-  booking?: { id: number; venue_id: number; status: string; stored_status: string; starts_at: string; ends_at: string };
+  booking?: { id: number; venue_id: number; pitch_id?: number; status: string; stored_status: string; starts_at: string; ends_at: string; expires_at?: string | null };
   external_venue_confirmed: boolean;
   revision: number;
   listing_status: string;

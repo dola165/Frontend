@@ -23,7 +23,6 @@
 .gk .gk-match-band .result-summary-label { font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-2); text-transform: none; letter-spacing: 0; }
 
 /* Notices, callouts and small shared pieces. */
-.gk .gk-match-sent { align-items: center; justify-content: space-between; margin-bottom: var(--gk-4); background: var(--gk-accent-soft); }
 .gk .gk-match-callout { border-color: color-mix(in srgb, var(--gk-warning) 45%, var(--gk-line)); }
 .gk .gk-match-callout__body { display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-5); }
 .gk .gk-match-callout__title { font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 650; }
@@ -134,7 +133,6 @@
   .gk.gk-match .gk-list-row { flex-wrap: wrap; row-gap: var(--gk-2); }
   .gk.gk-match .gk-list-row__main { flex: 1 1 calc(100% - 48px); }
   .gk.gk-match .gk-list-row__trail { flex-wrap: wrap; margin-left: calc(20px + var(--gk-3)); }
-  .gk .gk-match-sent { flex-wrap: wrap; }
 }
 
 /* An open referee request and its offers */

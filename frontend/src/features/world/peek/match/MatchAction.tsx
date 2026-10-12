@@ -8,7 +8,7 @@ import { ScheduleResult } from '../../../matchHistory/ScheduleResult';
 import { useArrangeableSquads } from '../../compose/useArrangeableSquads';
 import { useNow } from '../../scoreboard/useNow';
 import type { MatchPeekData } from './matchPeekData';
-import { AnswerStep, OfferStep, RefereeLine } from './MatchSteps';
+import { AnswerStep, GroundLine, OfferStep, RefereeLine } from './MatchSteps';
 import '../../../matchExchange/detail/match-detail.css';
 import '../../../matchExchange/match-exchange.css';
 import '../../../matchHistory/match-history.css';
@@ -24,7 +24,7 @@ export function MatchAction({ data, reload }: { data: MatchPeekData; reload: () 
     const squads = useArrangeableSquads() ?? [];
     const { match: m, listing } = data;
     if (m.fixtureStatus === 'CANCELLED') return null;
-    let step: ReactNode = null, page: ReactNode = null, journey = false, referee = false;
+    let step: ReactNode = null, page: ReactNode = null, journey = false, referee = false, ground = false;
     if (listing) {
         const gates = matchGates(listing, now, squads);
         const offers = listing.can_manage && listing.listing_status === 'OPEN' && (listing.proposals ?? []).some(offer => offer.status === 'PENDING');
@@ -36,6 +36,7 @@ export function MatchAction({ data, reload }: { data: MatchPeekData; reload: () 
         else if (gates.canPropose) step = <OfferStep listing={listing} squads={squads} reload={reload} />;
         else if (listing.listing_status === 'ARRANGED' && listing.can_arrange) page = <MatchParticipants match={listing} reload={reload} />;
         referee = gates.active && needsReferee(listing);
+        ground = gates.active && Boolean(listing.can_arrange) && ['NEEDED', 'NEEDS_ATTENTION'].includes(listing.venue_status) && !(listing.venue_preference === 'AWAY' && !listing.opponent_name);
         journey = !gates.started && listing.listing_status === 'ARRANGED' && Boolean(listing.can_arrange);
     } else if (m.source === 'SCHEDULE' && m.startsAt) {
         const ended = Date.parse(m.endsAt ?? m.startsAt) <= now;
@@ -44,11 +45,12 @@ export function MatchAction({ data, reload }: { data: MatchPeekData; reload: () 
                 resultStatus: m.resultStatus, matchExchangeId: null, canRecordResult: m.canRecordResult, opponentClubId: m.awayClubId }} />;
         else journey = true;
     }
-    if (!step && !page && !journey && !referee) return null;
+    if (!step && !page && !journey && !referee && !ground) return null;
     return (
         <section className="gk-mpeek__action">
             {step}
             {referee && listing && <RefereeLine listing={listing} />}
+            {ground && listing && <GroundLine listing={listing} />}
             {(page || journey) && (
                 /* The match page's own pieces, in its look. */
                 <div className="gk gk-match gk-mx">

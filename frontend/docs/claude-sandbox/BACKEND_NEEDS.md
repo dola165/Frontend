@@ -32,7 +32,7 @@ Several older notes asked for backend work that is not needed.
 | Competition cards carry `bannerImageUrl`, `entryCount`, `entryCap`, `profile.rules.entryFee/currency/feeBasis` | EXISTS | Full tournament cards can be rebuilt without backend work. |
 | Referee availability window (`GET /referees?from&to` checks availability and existing appointments) | EXISTS | The redesign does not send `from`/`to`; the sandbox ignores them. |
 | About text on profiles (`PUT /users/me {bio}`) | EXISTS | — |
-| Unused endpoints that may be useful: `GET /tournaments/{id}/stats`, fixture match links, `PATCH /tournaments/{id}/status`, `DELETE /tournaments/{id}`; `POST /match-arrangements/bookings/{id}/allocate`, `/ground-preview`, `/ground` | EXISTS | No frontend caller. |
+| Unused endpoints that may be useful: `GET /tournaments/{id}/stats`, fixture match links, `PATCH /tournaments/{id}/status`, `DELETE /tournaments/{id}` | EXISTS | No frontend caller. (`POST /match-arrangements/bookings/{id}/allocate`, `/ground-preview` and `/ground` are called from the match page since round 3, phase D.) |
 
 ## 2. Contract mismatches the sandbox hides
 

@@ -356,6 +356,12 @@ const listing = ({ id = W.newId(), hostSquad, start, minutes = 90, venueId, titl
   const rec = { id, hostSquadId: hostSquad.id, start, end: plusMin(start, minutes), venueId: v?.id ?? null, title, description, level, venuePreference, refereeRequired, opponentSquadId: opponentSquad?.id ?? null,
     status, score, proposals, booked, refereeId: referee, requestedClubId, kind, revision: 2, ageGroup: hostSquad.ageGroup === 'SENIOR' ? 'SENIOR' : hostSquad.ageGroup, format: formatOfSquad(hostSquad), created: plusMin(start, -9 * 24 * 60), history: [] };
   rec.history.push({ id: W.newId(), action: 'PUBLISHED', created_at: iso(rec.created), reason: null });
+  // A match played at a rented ground holds a real reservation of it (the host's club's own ground needs none).
+  if (booked && v && v.id !== host.venueId && v.pitchList?.length) {
+    const pitch = v.pitchList.find(p => p.active && p.format === rec.format) ?? v.pitchList.find(p => p.active);
+    rec.bookingId = addBooking({ venueId: v.id, pitchId: pitch.id, start, minutes, contactName: host.id === DINAMO ? W.me.fullName : clubCoachName(host.id), userId: host.id === DINAMO ? W.ME_ID : null }).id;
+  }
+  delete rec.booked;
   if (opponentSquad) rec.history.push({ id: W.newId(), action: 'OPPONENT_AGREED', created_at: iso(plusMin(rec.created, 2 * 24 * 60)), reason: null });
   exchange.push(rec); return rec;
 };
@@ -419,7 +425,10 @@ if (refereeAsked.refereeId) refereeAsked.refereeInvite = { id: W.newId(), status
 friendly(squadById(108), squadFor(4, 'U19', 'MALE'), at(3, 18), 90, { venueId: 207, venuePreference: 'AWAY', status: 'CANCELLED', booked: false, referee: null, description: 'Called off: the pitch at Saburtalo is being relaid.' });
 friendly(squadById(106), squadFor(3, 'U16', 'FEMALE'), new Date(W.NOW.getTime() - 20 * 60_000), 90, { referee: fittingReferee('11_A_SIDE') });
 export const listingById = id => exchange.find(l => l.id === Number(id));
-const venueStatusOf = l => l.venuePreference === 'AWAY' && !l.opponentSquadId ? 'NEEDED' : l.booked ? 'BOOKED' : l.venueId || l.externalConfirmed ? 'HOST_CONFIRMED' : 'NEEDED';
+export const bookingById = id => bookings.find(b => b.id === Number(id));
+/** A listing's reservation while it still holds the ground (waiting for the venue, or confirmed). */
+const liveBooking = l => { const b = l.bookingId ? bookingById(l.bookingId) : null; return b && ['PENDING', 'CONFIRMED'].includes(b.status) ? b : null; };
+const venueStatusOf = l => l.venuePreference === 'AWAY' && !l.opponentSquadId ? 'NEEDED' : liveBooking(l) ? 'BOOKED' : l.venueId || l.externalConfirmed ? 'HOST_CONFIRMED' : 'NEEDED';
 // An invited referee has not answered yet (`refereeInvite`); one chosen from applications or seeded has accepted.
 const refereeStatusOf = l => !l.refereeRequired ? 'NOT_REQUIRED' : l.refereeId ? (l.refereeInvite?.status ?? 'ACCEPTED') : 'NEEDED';
 export { refereeStatusOf };
@@ -439,7 +448,7 @@ export const listingView = (l, { detail = false } = {}) => {
     title: l.title, description: l.description, starts_at: local(l.start), ends_at: local(l.end), starts_at_iso: iso(l.start), ends_at_iso: iso(l.end), timezone: TZ,
     city: v?.city ?? l.place?.city ?? club.city, location_name: v ? v.name : l.place ? l.place.name : null,
     location_lat: v?.lat ?? l.place?.lat ?? (l.venuePreference === 'AWAY' ? null : club.lat), location_lng: v?.lng ?? l.place?.lng ?? (l.venuePreference === 'AWAY' ? null : club.lng),
-    age_group: l.ageGroup, level: l.level, format: l.format, venue_preference: l.venuePreference, referee_required: l.refereeRequired, venue_id: v?.id ?? null, booking_id: l.booked ? 1400 + (l.id % 97) : null,
+    age_group: l.ageGroup, level: l.level, format: l.format, venue_preference: l.venuePreference, referee_required: l.refereeRequired, venue_id: v?.id ?? null, booking_id: l.bookingId ?? null,
     external_venue_confirmed: Boolean(l.externalConfirmed), revision: l.revision, listing_status: listingStatus, event_status: eventStatus, venue_status: venueStatusOf(l), referee_status: refereeStatusOf(l),
     opponent_name: opp ? clubById(opp.clubId).name : null, opponent_club_id: opp?.clubId ?? null, opponent_squad_name: opp?.name ?? null, target_squad_id: opp?.id ?? null,
     head_coach_id: head?.id ?? null, coach_name: head ? head.fullName : clubCoachName(club.id), can_manage: mineHost, can_arrange: mineHost || mineGuest, can_record_result: (mineHost || mineGuest) && past && !l.score,
@@ -450,7 +459,9 @@ export const listingView = (l, { detail = false } = {}) => {
     const ref = l.refereeId ? personById(l.refereeId) : null;
     out.appointments = [...(ref ? [appointmentView(l, ref)] : []), ...(l.assistants ?? []).map(official => appointmentView(l, personById(official.refereeId), official))];
     out.own_appointments = [];
-    if (l.booked && v) out.booking = { id: out.booking_id, venue_id: v.id, status: 'CONFIRMED', stored_status: 'CONFIRMED', starts_at: iso(l.start), ends_at: iso(l.end) };
+    const b = l.bookingId ? bookingById(l.bookingId) : null;
+    if (b) out.booking = { id: b.id, venue_id: b.venueId, pitch_id: b.pitchId, status: b.status, stored_status: b.status, starts_at: iso(b.start), ends_at: iso(b.end),
+      expires_at: b.status === 'PENDING' ? iso(plusMin(b.created, 48 * 60)) : null };
   }
   return out;
 };

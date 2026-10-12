@@ -126,3 +126,15 @@ export function RefereeLine({ listing }: { listing: Match }) {
         </Link>
     );
 }
+
+/** A match of ours whose ground is not settled: the line to the match page's step that uses a reservation for it. */
+export function GroundLine({ listing }: { listing: Match }) {
+    const t = useWorldCopy();
+    const attention = listing.venue_status === 'NEEDS_ATTENTION';
+    if (!listing.can_arrange || !(attention || listing.venue_status === 'NEEDED')) return null;
+    return (
+        <Link className="gk-step-line" data-tone={attention ? 'danger' : undefined} to={`/match-exchange/${listing.event_id}?ground=reserve`}>
+            <span>{attention ? t('The ground needs attention') : t('Ground to arrange')}</span><b>{t('Use a reservation')}</b><ArrowRight aria-hidden="true" />
+        </Link>
+    );
+}

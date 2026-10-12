@@ -123,7 +123,7 @@ export const journeyCopy = {
   arrangementHistory: ["Arrangement history", "შეთანხმებების ისტორია"],
   resolveFirst: ["Resolve these arrangements first", "ჯერ მოაგვარეთ ეს საკითხები"],
   reviewImpact: ["Review the affected arrangements", "გადახედეთ დაკავშირებულ შეთანხმებებს"],
-  unchanged: ["The match has not changed.", "მატჩი არ შეცვლილა."],
+  unchanged: ["Nothing has changed yet.", "ჯერ არაფერი შეცვლილა."],
   resolveReload: ["Resolve the items above, then reload and review again.", "მოაგვარეთ ზემოთ ჩამოთვლილი საკითხები, შემდეგ განაახლეთ და გადაამოწმეთ."],
   confirmImpact: ["Confirm below to apply these changes and notify affected participants. Venue follow-up stays separate.", "ცვლილებებისა და მონაწილეთა შეტყობინებისთვის დაადასტურეთ ქვემოთ. მოედნის საკითხი ცალკე მოსაგვარებელია."],
   bookingBeforeEdit: ["Resolve the linked reservation through the stadium workflow before changing the match. The reservation remains linked.", "მატჩის შეცვლამდე მოაგვარეთ დაკავშირებული ჯავშანი სტადიონის მართვის სივრცეში. ჯავშანი მატჩთან დაკავშირებული რჩება."],

@@ -204,7 +204,7 @@ post('/match-exchange', ({ body }) => {
   const { squad, start, end, error } = listingFromBody(body); if (error) return error;
   const v = venueById(body.venueId);
   const rec = { id: W.newId(), hostSquadId: squad.id, start, end, venueId: v?.id ?? null, title: body.title || `${squad.name} friendly`, description: body.description || '', level: body.level || 'DEVELOPMENT', venuePreference: body.venuePreference || 'HOME',
-    refereeRequired: body.refereeRequired !== false, opponentSquadId: null, status: 'OPEN', score: null, proposals: [], booked: false, refereeId: null, requestedClubId: null, kind: 'FRIENDLY', revision: 1, ageGroup: body.ageGroup || squad.ageGroup, format: body.format || '11_A_SIDE',
+    refereeRequired: body.refereeRequired !== false, opponentSquadId: null, status: 'OPEN', score: null, proposals: [], bookingId: null, refereeId: null, requestedClubId: null, kind: 'FRIENDLY', revision: 1, ageGroup: body.ageGroup || squad.ageGroup, format: body.format || '11_A_SIDE',
     created: new Date(), history: [{ id: W.newId(), action: 'PUBLISHED', created_at: iso(new Date()), reason: null }] };
   F.exchange.push(rec);
   return reply(201, F.listingView(rec, { detail: true }));
@@ -262,7 +262,26 @@ post('/match-exchange/:id/referees', ({ params, body }) => {
   l.history.push({ id: W.newId(), action: 'REFEREE_INVITED', created_at: iso(new Date()), reason: null });
   return reply(204);
 });
-post('/match-exchange/:id/venue', ({ params, body }) => { const l = F.listingById(params.id); if (!l) return notFound(); if (body?.bookingId) l.booked = true; else l.externalConfirmed = Boolean(body?.externalConfirmed); l.revision++; return F.listingView(l, { detail: true }); });
+// As the backend: either arranging side links a reservation of theirs at the match's own ground that covers it, unless
+// one is already live; without one, the side confirms an unlisted ground with its owner. It answers with no body.
+post('/match-exchange/:id/venue', ({ params, body }) => {
+  const l = F.listingById(params.id); if (!l) return notFound();
+  const view = F.listingView(l);
+  if (!view.can_arrange) return reply(403, { status: 403, message: 'Only the clubs playing this match arrange its ground.' });
+  if (body?.revision != null && Number(body.revision) !== l.revision) return conflict('Listing changed. Reload and review its current arrangements.');
+  if (body?.bookingId) {
+    const b = F.bookingById(body.bookingId);
+    if (!b || !(b.userId === W.ME_ID || b.allocatedClubId === DINAMO)) return reply(404, { status: 404, message: 'That reservation is not yours to use.' });
+    if (view.booking_id && view.venue_status === 'BOOKED') return conflict('This match already has a live reservation. Resolve it at the stadium first.');
+    if (!['CONFIRMED', 'PENDING'].includes(b.status)) return reply(400, { status: 400, message: 'Only a confirmed or pending reservation can be linked.' });
+    if (b.venueId !== l.venueId) return reply(400, { status: 400, message: 'The reservation is at a different ground. The host can move the match there.' });
+    if (b.start > l.start || b.end < l.end) return reply(400, { status: 400, message: 'The reservation does not cover the whole match.' });
+    l.bookingId = b.id;
+    l.history.push({ id: W.newId(), action: 'GROUND_RESERVED', created_at: iso(new Date()), reason: null });
+  } else l.externalConfirmed = Boolean(body?.externalConfirmed);
+  l.revision++;
+  return reply(204);
+});
 post('/match-exchange/:id/close-preview', ({ params }) => { const l = F.listingById(params.id); if (!l) return notFound(); return { action: 'CANCEL', revision: l.revision, material: true, changedFields: ['status'], dependencies: [], needsAttention: [], confirmationRequired: false, confirmationToken: `close-${l.id}` }; });
 post('/match-exchange/:id/close', ({ params }) => { const l = F.listingById(params.id); if (!l) return notFound(); l.status = 'CANCELLED'; l.revision++; l.history.push({ id: W.newId(), action: 'CANCEL', created_at: iso(new Date()), reason: 'Closed by the host' }); return F.listingView(l, { detail: true }); });
 const resultState = l => {

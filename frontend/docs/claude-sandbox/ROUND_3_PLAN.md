@@ -110,7 +110,7 @@ Updated on 12 October, before building, against what World has become since the 
 
 Moved elsewhere: **Book from a venue** to Phase F (booking slides in from the right there); **Enter a tournament** and **Answer a tournament invitation** to Phase E (steps inside the tournament sheet). **The map picking places** (a desk over the map, "Press a club to play them", a ghost pin and a straight line) is kept for later prototypes (section 7): the list and the pane now live under the map, so a form over the map would sit apart from where the person started, and the map cannot yet report a press on empty ground. Not needed any more: a separate left drawer for referees (People › Referees with the bench does it) and a Dialog sheet (the drawer is the sheet).
 
-Size: L, in three steps: (1) the "+", the gates and drafts, Arrange a match in the frame with its restored fields, preview and receipt, Propose for the right people, the edit bugs; (2) the steps inside the match drawer and Invite from a referee, Before you post, the map's Respond merged; (3) reservations on the match page, with the sandbox answering as the backend does.
+Built on 12 October in its three steps (see `ROUND_2.md`, Creating things). Size: L, in three steps: (1) the "+", the gates and drafts, Arrange a match in the frame with its restored fields, preview and receipt, Propose for the right people, the edit bugs; (2) the steps inside the match drawer and Invite from a referee, Before you post, the map's Respond merged; (3) reservations on the match page, with the sandbox answering as the backend does.
 
 ### Phase E · Tournaments (your item 4)
 

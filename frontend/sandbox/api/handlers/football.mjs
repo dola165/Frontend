@@ -40,8 +40,10 @@ function matchMarkers() {
     out.push({ ...markerBase, entityId: m.id, entityType: 'MATCH', title: `${home.name} vs ${away.name}`, subtitle: `${sq.ageGroup === 'SENIOR' ? 'Senior' : sq.ageGroup} · ${m.kind === 'FRIENDLY' ? 'Friendly' : m.competition}`, clubName: clubById(DINAMO).name, clubId: DINAMO,
       latitude: v.lat, longitude: v.lng, date: local(m.start), fee: 'Free', addressText: `${v.name}, ${v.city}`, ageGroup: sq.ageGroup, status: 'CONFIRMED', cityName: v.city, eventSubtype: m.kind === 'FRIENDLY' ? 'FRIENDLY' : 'MATCH', scheduleEventId: m.id, logoUrl: home.logoUrl });
   }
-  for (const l of F.exchange.filter(l => l.status === 'OPEN' && l.start.getTime() > now())) {
+  // Direct invitations are not public; a listing without a ground of its own has no pin.
+  for (const l of F.exchange.filter(l => l.status === 'OPEN' && !l.requestedClubId && l.start.getTime() > now())) {
     const view = F.listingView(l);
+    if (view.location_lat == null) continue;
     out.push({ ...markerBase, entityId: l.id, entityType: 'MATCH', title: l.title, subtitle: `${view.age_group} · looking for an opponent`, clubName: view.club_name, clubId: view.club_id, latitude: view.location_lat, longitude: view.location_lng,
       date: local(l.start), fee: 'Free', addressText: view.location_name ? `${view.location_name}, ${view.city}` : view.city, ageGroup: view.age_group, status: 'OPEN', cityName: view.city, eventSubtype: 'FRIENDLY', scheduleEventId: l.id, logoUrl: view.club_logo_url });
   }
@@ -182,7 +184,7 @@ get('/match-exchange', ({ query: q }) => {
   const mine = q.get('mine') === 'true', text = q.get('q'), format = q.get('format'), ageGroup = q.get('ageGroup'), level = q.get('level'), pref = q.get('venuePreference');
   const from = q.get('from') ? new Date(`${q.get('from')}T00:00:00`) : null, to = q.get('to') ? new Date(`${q.get('to')}T23:59:59`) : null;
   const lat = num(q, 'lat', null), lng = num(q, 'lng', null), radius = num(q, 'radiusKm', null);
-  let list = F.exchange.filter(l => mine ? F.involvesDinamo(l) : l.status === 'OPEN' && l.start.getTime() > now())
+  let list = F.exchange.filter(l => mine ? F.involvesDinamo(l) : l.status === 'OPEN' && !l.requestedClubId && l.start.getTime() > now())
     .filter(l => !format || l.format === format).filter(l => !ageGroup || l.ageGroup === ageGroup).filter(l => !level || l.level === level).filter(l => !pref || l.venuePreference === pref || l.venuePreference === 'EITHER')
     .filter(l => inWindow(l.start, l.end, from, to)).map(l => F.listingView(l))
     .filter(v => matchesText(text, v.title, v.club_name, v.squad_name, v.location_name, v.city, v.opponent_name))
@@ -306,6 +308,8 @@ get('/match-arrangements/squads/:id/fixtures', ({ params, query: q }) => {
 // ============================================================== match history
 const SCORE_PENDING = new Set(); // friendlies whose result awaits the second confirmation
 for (const m of matches) if (m.status === 'COMPLETED' && m.squadId === 105 && m.start.getTime() > now() - 8 * 86400000) SCORE_PENDING.add(m.id);
+// The listing says the same: proposed, so no score anywhere until the other side confirms.
+for (const id of SCORE_PENDING) { const l = F.listingById(id); if (l) l.resultStatus = 'PROPOSED'; }
 const leagueReplaced = m => m.squadId === 101 && m.competition === 'Tbilisi Community League';
 function historyFromMatch(m) {
   const ours = squadById(m.squadId), theirs = F.squadFor(m.opponentClubId, ours.ageGroup, ours.gender), v = venueById(m.venueId);
@@ -313,38 +317,54 @@ function historyFromMatch(m) {
   const away = m.home ? { club: clubById(m.opponentClubId), squad: theirs } : { club: clubById(DINAMO), squad: ours };
   const listing = F.listingById(m.id), played = m.status === 'COMPLETED' || Boolean(listing?.score);
   const score = listing?.score ?? (played ? (m.home ? m.score : [m.score[1], m.score[0]]) : null);
-  const source = m.kind === 'FRIENDLY' ? 'MATCH_EXCHANGE' : 'SCHEDULE';
-  return { id: `${source}:${m.id}`, source, sourceId: m.id, title: `${home.club.name} vs ${away.club.name}`, startsAt: iso(m.start), endsAt: iso(m.end), timezone: TZ,
+  const source = m.kind === 'FRIENDLY' ? 'MATCH_EXCHANGE' : 'SCHEDULE', club = source === 'SCHEDULE';
+  const open = listing ? ['PROPOSED', 'DISPUTED'].includes(listing.resultStatus) && listing.resultStatus : SCORE_PENDING.has(m.id) && 'PROPOSED';
+  const status = !played ? 'NONE' : open || (club ? 'RECORDED' : 'CONFIRMED'), counts = status === 'RECORDED' || status === 'CONFIRMED';
+  return { id: `${source}:${m.id}`, source, sourceId: m.id, title: `${home.club.name} vs ${away.club.name}`, startsAt: club ? local(m.start) : iso(m.start), endsAt: club ? local(m.end) : iso(m.end), timezone: club ? null : TZ,
     homeClubId: home.club.id, homeClubName: home.club.name, homeSquadId: home.squad?.id ?? null, homeSquadName: home.squad?.name ?? null, awayClubId: away.club.id, awayClubName: away.club.name, awaySquadId: away.squad?.id ?? null, awaySquadName: away.squad?.name ?? null,
-    homeScore: score?.[0] ?? null, awayScore: score?.[1] ?? null, resultStatus: !played ? 'NONE' : SCORE_PENDING.has(m.id) ? 'PROPOSED' : source === 'SCHEDULE' ? 'RECORDED' : 'CONFIRMED', fixtureStatus: played ? 'COMPLETED' : 'SCHEDULED', legacy: false,
-    locationName: v ? `${v.name}, ${v.city}` : null, tournamentId: null, tournamentName: m.kind === 'FRIENDLY' ? null : m.competition, detailPath: source === 'MATCH_EXCHANGE' ? `/match-exchange/${m.id}` : `/calendar?eventId=${m.id}`, canRecordResult: m.start.getTime() < now(), mine: true };
+    homeScore: counts ? score?.[0] ?? null : null, awayScore: counts ? score?.[1] ?? null : null, resultStatus: status, fixtureStatus: m.status === 'CANCELLED' ? 'CANCELLED' : counts ? 'COMPLETED' : 'SCHEDULED', legacy: false,
+    locationName: v ? `${v.name}, ${v.city}` : null, tournamentId: null, tournamentName: null, detailPath: source === 'MATCH_EXCHANGE' ? `/match-exchange/${m.id}` : `/calendar?eventId=${m.id}`, canRecordResult: m.start.getTime() < now(), mine: true };
 }
 function historyFromFixture(t, f) {
   const st = F.tournamentState.get(t.id), home = st.entries.find(e => e.id === f.homeEntryId), away = st.entries.find(e => e.id === f.awayEntryId), v = venueById(f.locationId);
   const start = f.scheduledAt ? new Date(f.scheduledAt) : null, rules = F.competitionRules(t);
   const squadName = e => e?.squadId ? squadById(e.squadId)?.name ?? null : null;
-  return { id: `TOURNAMENT:${f.id}`, source: 'TOURNAMENT', sourceId: f.id, title: `${home?.clubName ?? 'To be decided'} vs ${away?.clubName ?? 'To be decided'}`, startsAt: start ? iso(start) : null, endsAt: start ? iso(plusMin(start, rules.matchMinutes + 15)) : null, timezone: TZ,
+  void rules;
+  return { id: `TOURNAMENT:${f.id}`, source: 'TOURNAMENT', sourceId: f.id, title: t.name, startsAt: start ? local(start) : null, endsAt: null, timezone: null,
     homeClubId: home?.clubId ?? null, homeClubName: home?.clubName ?? null, homeSquadId: home?.squadId ?? null, homeSquadName: squadName(home), awayClubId: away?.clubId ?? null, awayClubName: away?.clubName ?? null, awaySquadId: away?.squadId ?? null, awaySquadName: squadName(away),
     homeScore: f.homeScore, awayScore: f.awayScore, resultStatus: f.status === 'COMPLETED' ? 'RECORDED' : 'NONE', fixtureStatus: f.status, legacy: t.status === 'COMPLETED' && t.id === 305,
-    locationName: v ? `${v.name}, ${v.city}` : null, tournamentId: t.id, tournamentName: t.name, detailPath: `/tournaments/${t.id}?fixtureId=${f.id}`, canRecordResult: false, mine: home?.clubId === DINAMO || away?.clubId === DINAMO };
+    locationName: null, tournamentId: t.id, tournamentName: t.name, detailPath: `/tournaments/${t.id}?fixtureId=${f.id}`, canRecordResult: false, mine: home?.clubId === DINAMO || away?.clubId === DINAMO };
+}
+/** A tournament fixture on a calendar: its own kick-off and length, named after its two sides (the history row is thin, as the backend's). */
+function fixtureSpan(t, f) {
+  const st = F.tournamentState.get(t.id), home = st.entries.find(e => e.id === f.homeEntryId), away = st.entries.find(e => e.id === f.awayEntryId);
+  const start = new Date(f.scheduledAt);
+  return { start, end: plusMin(start, F.competitionRules(t).matchMinutes + 15), title: `${home?.clubName ?? f.homeLabel ?? 'To be decided'} vs ${away?.clubName ?? f.awayLabel ?? 'To be decided'}` };
 }
 const allHistory = () => [
   ...matches.filter(m => !leagueReplaced(m)).map(historyFromMatch),
-  ...F.exchange.filter(l => l.opponentSquadId && !matches.some(m => m.id === l.id)).map(l => { const v = F.listingView(l); return { id: `MATCH_EXCHANGE:${l.id}`, source: 'MATCH_EXCHANGE', sourceId: l.id, title: `${v.club_name} vs ${v.opponent_name}`, startsAt: v.starts_at_iso, endsAt: v.ends_at_iso, timezone: TZ, homeClubId: v.club_id, homeClubName: v.club_name, homeSquadId: v.squad_id, homeSquadName: v.squad_name, awayClubId: v.opponent_club_id, awayClubName: v.opponent_name, awaySquadId: v.target_squad_id, awaySquadName: v.opponent_squad_name, homeScore: v.home_score, awayScore: v.away_score, resultStatus: v.result_status || 'NONE', fixtureStatus: v.event_status, legacy: false, locationName: v.location_name, tournamentId: null, tournamentName: null, detailPath: `/match-exchange/${l.id}`, canRecordResult: v.can_record_result, mine: F.involvesDinamo(l) }; }),
-  ...F.tournamentList.flatMap(t => F.tournamentState.get(t.id).fixtures.filter(f => f.homeEntryId || f.awayEntryId).map(f => historyFromFixture(t, f))),
+  ...F.exchange.filter(l => l.opponentSquadId && !matches.some(m => m.id === l.id)).map(l => { const v = F.listingView(l); return { id: `MATCH_EXCHANGE:${l.id}`, source: 'MATCH_EXCHANGE', sourceId: l.id, title: `${v.club_name} vs ${v.opponent_name}`, startsAt: v.starts_at_iso, endsAt: v.ends_at_iso, timezone: TZ, homeClubId: v.club_id, homeClubName: v.club_name, homeSquadId: v.squad_id, homeSquadName: v.squad_name, awayClubId: v.opponent_club_id, awayClubName: v.opponent_name, awaySquadId: v.target_squad_id, awaySquadName: v.opponent_squad_name, homeScore: v.home_score, awayScore: v.away_score, resultStatus: v.result_status || 'NONE', fixtureStatus: v.event_status === 'CANCELLED' ? 'CANCELLED' : v.result_status === 'CONFIRMED' ? 'COMPLETED' : 'SCHEDULED', legacy: false, locationName: v.location_name, tournamentId: null, tournamentName: null, detailPath: `/match-exchange/${l.id}`, canRecordResult: v.can_record_result, mine: F.involvesDinamo(l) }; }),
+  ...F.tournamentList.flatMap(t => F.tournamentState.get(t.id).fixtures.map(f => historyFromFixture(t, f))),
 ];
+const whenOf = value => value ? Date.parse(/(Z|[+-]\d\d:?\d\d)$/.test(value) ? value : `${value}+04:00`) : null;
 get('/match-history', ({ query: q }) => {
   const period = q.get('period') || 'HISTORY', mine = q.get('mine') === 'true', source = q.get('source'), status = q.get('resultStatus'), text = q.get('q');
-  const from = q.get('from') ? new Date(`${q.get('from')}T00:00:00`) : null, to = q.get('to') ? new Date(`${q.get('to')}T23:59:59`) : null;
+  // As the backend: times without a zone are the ground's clock in Georgia; a window compares the local kick-off date.
+  const from = q.get('from') ? Date.parse(`${q.get('from')}T00:00:00+04:00`) : null, to = q.get('to') ? Date.parse(`${q.get('to')}T23:59:59+04:00`) : null;
   const clubId = num(q, 'clubId', null), squadId = num(q, 'squadId', null), tournamentId = num(q, 'tournamentId', null);
   let list = allHistory().filter(h => !mine || h.mine).filter(h => !source || h.source === source).filter(h => !status || h.resultStatus === status)
     .filter(h => clubId == null || h.homeClubId === clubId || h.awayClubId === clubId).filter(h => squadId == null || h.homeSquadId === squadId || h.awaySquadId === squadId).filter(h => tournamentId == null || h.tournamentId === tournamentId)
     .filter(h => matchesText(text, h.title, h.homeSquadName, h.awaySquadName, h.tournamentName, h.locationName))
-    .filter(h => !h.startsAt || inWindow(new Date(h.startsAt), new Date(h.endsAt), from, to));
-  const started = h => h.startsAt && Date.parse(h.startsAt) <= now();
-  if (period === 'UPCOMING') list = list.filter(h => h.fixtureStatus === 'SCHEDULED' && (!h.startsAt || Date.parse(h.endsAt) > now())).sort((a, b) => (a.startsAt ? Date.parse(a.startsAt) : 9e15) - (b.startsAt ? Date.parse(b.startsAt) : 9e15));
-  else if (period === 'NEEDS_RESULT') list = list.filter(h => started(h) && h.fixtureStatus !== 'CANCELLED' && ['NONE', 'PROPOSED', 'DISPUTED'].includes(h.resultStatus)).sort((a, b) => Date.parse(b.startsAt) - Date.parse(a.startsAt));
-  else if (period === 'HISTORY') list = list.filter(started).sort((a, b) => Date.parse(b.startsAt) - Date.parse(a.startsAt));
+    .filter(h => (from == null && to == null) || (h.startsAt && (from == null || whenOf(h.startsAt) >= from) && (to == null || whenOf(h.startsAt) <= to)));
+  const started = h => h.startsAt && whenOf(h.startsAt) <= now();
+  // Arranged and club matches stay upcoming until they end; tournament fixtures (no end time) leave at kick-off.
+  const over = h => h.endsAt ? whenOf(h.endsAt) <= now() : started(h);
+  const sides = h => (h.homeClubId != null || h.homeClubName) && (h.awayClubId != null || h.awayClubName);
+  const newestFirst = (a, b) => (whenOf(b.startsAt) ?? -9e15) - (whenOf(a.startsAt) ?? -9e15);
+  if (period === 'UPCOMING') list = list.filter(h => h.fixtureStatus === 'SCHEDULED' && !over(h)).sort((a, b) => (whenOf(a.startsAt) ?? 9e15) - (whenOf(b.startsAt) ?? 9e15));
+  else if (period === 'NEEDS_RESULT') list = list.filter(h => over(h) && sides(h) && h.fixtureStatus !== 'CANCELLED' && ['NONE', 'PROPOSED', 'DISPUTED'].includes(h.resultStatus)).sort(newestFirst);
+  else if (period === 'HISTORY') list = list.filter(h => started(h) || ['COMPLETED', 'CANCELLED'].includes(h.fixtureStatus)).sort(newestFirst);
+  else list = list.sort(newestFirst);
   const page = pageOf(q), size = sizeOf(q, 24);
   return { items: slice(list, page, size).map(({ mine: _m, ...h }) => h), total: list.length, page, pageSize: size };
 });
@@ -397,7 +417,8 @@ get('/tournaments/discovery', ({ query: q }) => {
   const from = q.get('from') ? new Date(`${q.get('from')}T00:00:00`) : null, to = q.get('to') ? new Date(`${q.get('to')}T23:59:59`) : null;
   const items = [];
   for (const t of F.tournamentList) { const v = venueById(t.venueId), s = F.tournamentSummary(t); items.push({ kind: 'TOURNAMENT', id: t.id, name: t.name, activity: 'TOURNAMENT', status: s.status, startsAt: iso(t.start), endsAt: iso(t.end), location: `${v.name}, ${v.city}`, context: s.hostClubName || s.organizerName, destination: `/tournaments/${t.id}`, recurring: false }); }
-  for (const m of matches) { const v = venueById(m.venueId), h = historyFromMatch(m); items.push({ kind: 'SCHEDULE', id: m.id, name: h.title, activity: 'MATCH', status: m.status, startsAt: iso(m.start), endsAt: iso(m.end), location: v ? `${v.name}, ${v.city}` : null, context: `${squadById(m.squadId).name} · ${m.kind === 'FRIENDLY' ? 'Friendly' : m.competition}`, destination: m.kind === 'FRIENDLY' ? `/match-exchange/${m.id}` : `/calendar?eventId=${m.id}`, recurring: false }); }
+  for (const m of matches.filter(m => m.status !== 'CANCELLED')) { const v = venueById(m.venueId), h = historyFromMatch(m); items.push({ kind: 'SCHEDULE', id: m.id, name: h.title, activity: 'MATCH', status: m.status, startsAt: iso(m.start), endsAt: iso(m.end), location: v ? `${v.name}, ${v.city}` : null, context: `${squadById(m.squadId).name} · ${m.kind === 'FRIENDLY' ? 'Friendly' : m.competition}`, destination: m.kind === 'FRIENDLY' ? `/match-exchange/${m.id}` : `/calendar?eventId=${m.id}`, recurring: false }); }
+  for (const a of F.clubActivities.filter(a => F.isPublicActivity(a) && a.type !== 'TRYOUT' && a.status !== 'CANCELLED')) { const v = venueById(a.venueId); items.push({ kind: 'SCHEDULE', id: a.id, name: a.title, activity: a.type === 'ACTIVITY' ? 'OTHER' : a.type, status: a.status, startsAt: iso(a.start), endsAt: iso(a.end), location: v ? `${v.name}, ${v.city}` : null, context: clubById(DINAMO).name, destination: `/calendar?eventId=${a.id}`, recurring: /Goalkeeper clinic/i.test(a.title) }); }
   for (const t of F.trialList) { const view = F.tryoutView(t); if (view.status === 'CANCELLED') continue; items.push({ kind: 'TRYOUT', id: t.id, name: `${view.clubName}: ${view.title}`, activity: 'TRYOUT', status: view.status, startsAt: view.tryoutDate, endsAt: iso(plusMin(t.date, 120)), location: view.location, context: view.clubName, destination: `/clubs/${t.clubId}?tab=tryouts`, recurring: false }); }
   for (const s of squads.filter(s => s.clubId !== DINAMO).slice(0, 10)) { const c = clubById(s.clubId), v = venueById(c.venueId); items.push({ kind: 'SESSION', id: 40000 + s.id, name: `${c.name}: ${s.name} training`, activity: 'TRAINING', status: 'SCHEDULED', startsAt: iso(at(((s.trainingDays[0] - W.NOW.getDay()) + 7) % 7 || 7, 17, 30)), endsAt: iso(at(((s.trainingDays[0] - W.NOW.getDay()) + 7) % 7 || 7, 19)), location: v ? `${v.name}, ${v.city}` : c.city, context: 'Weekly public timetable', destination: `/clubs/${c.id}?tab=teams&squad=${s.id}`, recurring: true }); }
   const list = items.filter(i => activity === 'ALL' || i.activity === activity).filter(i => matchesText(text, i.name, i.context)).filter(i => !where || matchesText(where, i.location))
@@ -514,8 +535,8 @@ function matchOccurrence(m) {
 }
 function fixtureOccurrence(t, f) {
   const h = historyFromFixture(t, f), st = F.tournamentState.get(t.id), ours = [st.entries.find(e => e.id === f.homeEntryId), st.entries.find(e => e.id === f.awayEntryId)].find(e => e?.clubId === DINAMO), other = [st.entries.find(e => e.id === f.homeEntryId), st.entries.find(e => e.id === f.awayEntryId)].find(e => e && e !== ours);
-  const start = new Date(h.startsAt);
-  return occurrence({ id: f.id, clubId: DINAMO, eventType: 'MATCH', title: h.title, description: `${t.name}${f.stageName ? ` · ${f.stageName}` : ''}, round ${f.roundNumber}.`, start, end: new Date(h.endsAt), ...venueFields(f.locationId), visibility: 'PUBLIC',
+  const span = fixtureSpan(t, f);
+  return occurrence({ id: f.id, clubId: DINAMO, eventType: 'MATCH', title: span.title, description: `${t.name}${f.stageName ? ` · ${f.stageName}` : ''}, round ${f.roundNumber}.`, start: span.start, end: span.end, ...venueFields(f.locationId), visibility: 'PUBLIC',
     opponentClubId: other?.clubId ?? null, squadId: ours?.squadId ?? null, targetSquadId: other?.squadId ?? null, status: f.status === 'COMPLETED' ? 'COMPLETED' : f.status, homeScore: f.homeScore, awayScore: f.awayScore, resultStatus: h.resultStatus, resultClubId: DINAMO });
 }
 function exchangeOccurrence(l) {
@@ -531,7 +552,8 @@ const clubCalendar = clubId => {
       const st = F.tournamentState.get(t.id), e = [st.entries.find(x => x.id === f.homeEntryId), st.entries.find(x => x.id === f.awayEntryId)];
       if (!f.scheduledAt || !e.some(x => x?.clubId === Number(clubId))) continue;
       const h = historyFromFixture(t, f), other = e.find(x => x && x.clubId !== Number(clubId));
-      out.push(occurrence({ id: f.id, clubId: Number(clubId), eventType: 'MATCH', title: h.title, description: t.name, start: new Date(h.startsAt), end: new Date(h.endsAt), ...venueFields(f.locationId), visibility: 'PUBLIC', opponentClubId: other?.clubId ?? null, status: f.status, homeScore: f.homeScore, awayScore: f.awayScore, resultStatus: h.resultStatus }));
+      const span = fixtureSpan(t, f);
+      out.push(occurrence({ id: f.id, clubId: Number(clubId), eventType: 'MATCH', title: span.title, description: t.name, start: span.start, end: span.end, ...venueFields(f.locationId), visibility: 'PUBLIC', opponentClubId: other?.clubId ?? null, status: f.status, homeScore: f.homeScore, awayScore: f.awayScore, resultStatus: h.resultStatus }));
     }
     for (const l of F.exchange.filter(l => squadById(l.hostSquadId).clubId === Number(clubId) && l.opponentSquadId && !matches.some(m => m.id === l.id))) out.push(exchangeOccurrence(l));
     for (const m of matches.filter(m => m.opponentClubId === Number(clubId))) {
@@ -544,7 +566,7 @@ const clubCalendar = clubId => {
     ...matches.filter(m => !leagueReplaced(m)).map(matchOccurrence),
     ...[301, 306].flatMap(id => { const t = F.tournamentById(id); return F.tournamentState.get(id).fixtures.filter(f => f.scheduledAt && [f.homeEntryId, f.awayEntryId].some(eid => F.tournamentState.get(id).entries.find(e => e.id === eid)?.clubId === DINAMO)).map(f => fixtureOccurrence(t, f)); }),
     ...F.exchange.filter(l => l.opponentSquadId && !matches.some(m => m.id === l.id) && F.involvesDinamo(l)).map(exchangeOccurrence),
-    ...F.clubActivities.map(a => occurrence({ ...a, eventType: a.type, ...venueFields(a.venueId, a.pitch), visibility: a.type === 'TRYOUT' ? 'PUBLIC' : 'PRIVATE', recurring: /Goalkeeper clinic|staff meeting/i.test(a.title), status: a.status === 'CANCELLED' ? 'CANCELLED' : undefined })),
+    ...F.clubActivities.map(a => occurrence({ ...a, eventType: a.type, ...venueFields(a.venueId, a.pitch), visibility: F.isPublicActivity(a) ? 'PUBLIC' : 'PRIVATE', recurring: /Goalkeeper clinic|staff meeting/i.test(a.title), status: a.status === 'CANCELLED' ? 'CANCELLED' : undefined })),
   ];
 };
 const windowFilter = (list, q) => {

@@ -43,8 +43,12 @@ These work in the sandbox and break on the real backend.
 | The club directory sends `playerJoinPolicy`; the frontend read `joinPolicy` | Club cards never showed "Open trials / Apply to join" and never offered Join or Apply | **Fixed in phase A:** the frontend reads `playerJoinPolicy`; the sandbox and the test mocks send it as the backend does. |
 | Directory rows have `relationshipState: null` (only `isMember`, `isStaffMember`) | "Applied" and "Trialist" never show on World Clubs | **"Member" fixed in phase A** (the frontend reads `isMember`; the sandbox sends rows as the backend does). Still MISSING: the backend filling `relationshipState` in directory rows, for "Applied", "Invited" and "Trialist". |
 | `GET /competitions` takes `minFee`/`maxFee` as integers; the frontend passed free text | "12.5" would have been rejected with a 400 | **Fixed in phase A:** the frontend asks for whole numbers and says so instead of sending anything else. |
-| Tournament rows in `/match-history` have `title` = the tournament name and null `ends_at`, `timezone`, `location_name` | Fixture lines read "Tbilisi Community League" instead of "A v B", with no ground or time zone | Backend fills them (see 3.5), or the frontend builds the pairing title from the club names. |
-| `/match-history` ids are `event:N` / `fixture:N`; the sandbox uses `TOURNAMENT:N` | Keys and deep links differ | Align the sandbox with the backend. |
+| Tournament rows in `/match-history` have `title` = the tournament name and null `ends_at`, `timezone`, `location_name` | Fixture lines read "Tbilisi Community League" instead of "A v B", with no ground or time zone | **Handled in phase C:** the frontend builds the names from the club names and says "Started" rather than "On now"; the sandbox sends rows this thin. The backend still to fill them (3.5). |
+| `/match-history` ids are `event:N` / `fixture:N`; the sandbox uses `SCHEDULE:N`, `MATCH_EXCHANGE:N`, `TOURNAMENT:N` | Keys and deep links differed | **Harmless since phase C:** the frontend keys on `source` + `sourceId` (match codes) and never parses `id`. |
+| `/match-history`: ALL unsorted, undated rows inside date windows, proposed results carrying a score and COMPLETED, club fixtures without a league name or zone | The sandbox looked better than the backend | **Aligned in phase C.** |
+| `/match-history` accepts any `period` and `size` in the sandbox (the backend answers 400 outside UPCOMING, HISTORY, NEEDS_RESULT and ALL, and size 1–100); the sandbox lets a coach record club-fixture results (the backend: owners and administrators) | Errors and missing buttons show only on the real backend | Sandbox. |
+| `/match-exchange` list rows carry `can_*`, `page` and `pageSize` in the sandbox (the backend sends `{items, total}` and the flags only on detail) | Lanes and the Dugout look complete only in the sandbox | Sandbox. |
+| `/match-history/import/options` offers Dinamo to everyone in the sandbox (the backend: adult owners and administrators only) | "Add a past match" shows to coaches only in the sandbox | Sandbox. |
 | `GET /venues`: `city` is an exact match (sandbox: substring); filters by the venue's own currency; sorts by name (sandbox: Tbilisi first, then id) | Results and order differ from what the owner reviews | Align the sandbox. |
 | `GET /competitions`: the sandbox ignores `country`, `eligibilityCategory`, `from`, `to`, `minFee`, `maxFee`, `currency`, `feeBasis`, `openPlaces`, `latitude`, `longitude`, `radiusKm` | Those filters cannot be judged on fake data | Align the sandbox. |
 | Sandbox `GET /match-arrangements/{id}/official-request` always returns `null` (a duplicate route shadows the real handler) | The referee request panel looks empty in the sandbox only | Fix the sandbox route order. |
@@ -60,7 +64,7 @@ These work in the sandbox and break on the real backend.
 | `GET /clubs?age=N` (clubs with a published programme for that age) | Clubs near you and places to train for the chosen child | MISSING. `/clubs` takes `type`, `country`, `city`, `joinPolicy`, `search`, `sort`, `page`, `size`. |
 | Sponsors: `promotionBlocked` and `contentClassification` on public sponsors, or filter them on the server | "From the clubs" must never show blocked or restricted sponsors | PARTIAL. Classification exists for sponsor subjects but is not returned or applied in club presentation. |
 | Match-exchange listings: squad gender on each listing and a `gender` filter | "Opponents for your squads" | PARTIAL. `squads.gender` exists; the listing query omits it; no filter. |
-| Tournament fixture times with a time zone | Coach competition fields, cup runs, next fixture | PARTIAL. `scheduled_at` has no zone; competitions have a time zone, legacy tournaments do not. |
+| Tournament fixture times with a time zone | Coach competition fields, cup runs, next fixture | PARTIAL. `scheduled_at` has no zone; competitions have a time zone, legacy tournaments do not. Club-fixture rows also have no offset and a null `timezone`; `/match-history` decides "past" in the server's default zone, and neither the image nor the compose file sets `TZ` (UNVERIFIED in production). |
 | Availability for several venues in one request (or a "next free" summary in `/venues`) | Free pitches this week, indoor pitches, Venues list | MISSING. One request per venue today. |
 | A squad's playing format (for example 9-a-side) | Pitch size for free pitches, referee formats | MISSING. Squads have `category` and `gender` only. |
 | `GET /competitions` with several `ageGroup` values | "Tournaments for your age groups" | MISSING. One age group per request. |
@@ -121,8 +125,8 @@ The real backend has **no people directory**. The frontend falls back to `GET /u
 | Need | Status |
 |---|---|
 | `/match-history`: area filter, ground coordinates and venue id, club logos, `ageGroup` and `gender` filters | MISSING |
-| `/match-history` tournament rows: pairing title, `ends_at`, time zone, ground; `stageName` and `roundNumber` | MISSING |
-| A per-row "mine" flag | MISSING |
+| `/match-history` tournament rows: pairing title, `ends_at`, time zone, ground; `stageName` and `roundNumber`. The fixture's `locationId` points at `locations`, not a venue, and no public endpoint resolves it; placeholder knockout fixtures with no sides are returned as rows | MISSING |
+| Return `involved`, which `/match-history` already computes for `mine=true`, with which of the viewer's squads play. Today `mine` is club-wide for club fixtures and tournaments, and for parents it covers arranged matches only | PARTIAL (computed, not returned) |
 | Opponent logo on listings | MISSING |
 | Events discovery: ids, logos and coordinates; area instead of free-text `location` | PARTIAL |
 | A live state or minute | MISSING (only a broadcast state per match) |
@@ -241,7 +245,24 @@ The sandbox's `GET /people` (`sandbox/api/handlers/world-extra.mjs`) is the cont
 | Tab counts: one request per view today (`size=1`); a counts answer for all views at once would save three | PROPOSED |
 | Referee results: the stated area as a city (and later a centre and radius), `avatarUrl`, a `paid=true` filter, `lat`/`lng` with `distanceKm` and `sort=NEAREST\|FEE` (ordered within the loaded page today) | PARTIAL (`service_area` free text, `travel_km`, `from`/`to` exist) |
 | Jobs: the public job carries `createdBy` (who posted it), so the job drawer can show them with Message; their public profile gives the name | PARTIAL (`createdBy` exists on club jobs; check the public `/jobs/{id}`) |
-| Match listings: `can_arrange_official` and a summary of the referee duty (status, name) on list rows, so the Dugout needs no detail request per seat; `mine=true` from a date, soonest first | PARTIAL (`from` exists; the rest is detail-only) |
+| Match listings: `can_arrange_official` and a summary of the referee duty (status, name) on list rows, so the Dugout needs no detail request per seat; `mine=true` from a date, soonest first. The list is always oldest first with fixed pages of 24 (no size or direction) | PARTIAL (`from` exists; the rest is detail-only) |
 | `isFollowedByMe` in people results, and an explicit follow / unfollow instead of the toggle (a card that does not know the state can never offer Follow) | MISSING |
 | `canMessage` in people results and profiles (Message is offered to everyone today) | MISSING |
 | One date of birth for the minor rule everywhere (the sandbox had two) | Real rule EXISTS (`date_of_birth`); sandbox fixed |
+
+### World › Matches (phase C)
+
+| Need | Status |
+|---|---|
+| `/match-history` items: `matchType` (`FRIENDLY`/`COMPETITIVE`); competitive arrangements read as friendlies today | MISSING (`events.event_type` exists, not returned) |
+| `/match-history` club fixtures: the league or competition name (`tournamentName` is always null for SCHEDULE) | MISSING |
+| Whose turn a waiting result is (`resultAwaiting`: HOME, AWAY or REFEREE) on `/match-history` and `mine` listings, so "Confirm score" shows only to that side | MISSING (detail only, via `/result`) |
+| Day strip counts: `GET /match-history/days?from&to`, the total and the viewer's own count per local date | MISSING (one `period=ALL` window of up to 200 rows works today) |
+| One `/match-history` row by `source` + `sourceId` (a drawer link opened cold); confirm `GET /schedule/events/{id}` answers outsiders for public fixtures | MISSING / UNVERIFIED |
+| `mine` listings: `pending_proposals`, the viewer's own offer status, the invited club's name and logo, the opponent's logo, newest first (or `sort`) for the Played lane, and `size` | MISSING |
+| Standings: fill `clubLogoUrl` | PARTIAL (always null) |
+| Events discovery: date order (`sort=DATE`) and day counts; it sorts by name, so day groups are right only within one page | MISSING |
+| Search: `/match-history?q` should cover the ground; `/match-exchange?q` covers only the title, host club and city, and treats `%` and `_` as wildcards | PARTIAL (the placeholders say what is searched) |
+| A postponed marker (the previous kick-off) on rescheduled fixtures; there is no POSTPONED or ABANDONED status | MISSING; decide |
+| Coordinates or a venue id on `/match-history` rows: pins and the away-day line work today only for the club's own scheduled matches and tournament grounds | MISSING (extends 3.5) |
+| Adding a past match: open to a squad's coaches, not only owners and administrators? | Decide |

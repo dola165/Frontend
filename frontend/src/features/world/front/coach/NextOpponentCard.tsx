@@ -3,10 +3,10 @@ import { ArrowRight } from 'lucide-react';
 import { useWorldCopy } from '../../copy';
 import { Crest } from '../../Crest';
 import { calendarDaysUntil, fixtureDay, fixtureTime, shortDate } from '../../format';
-import { FormGuide } from './FormGuide';
-import { tally } from './form';
+import { FormGuide } from '../../scoreboard/FormGuide';
+import { tally } from '../../scoreboard/form';
 import { opponentIn, type NextUp } from './coachMatches';
-import { HistoryLine, type CrestOf } from './HistoryLine';
+import { HistoryLine, type CrestOf } from '../../scoreboard/HistoryLine';
 import './coach.css';
 import './next-opponent.css';
 

@@ -13,6 +13,18 @@ export function shared<T>(key: string, load: () => Promise<T>, ttl = 60_000): Pr
     return promise;
 }
 
+/** A signal nobody aborts: for answers shared between blocks, which the first block to ask must not cancel for the others. */
+export const detached = () => new AbortController().signal;
+
+/** The event World's lists listen for to reload quietly after something changed (a result confirmed in a drawer). */
+export const WORLD_CHANGED = 'gk-world-changed';
+
+/** Something changed: drops the cached answers it affects and tells every list on screen to reload quietly. */
+export function notifyWorldChanged(prefixes: string[]) {
+    prefixes.forEach(forget);
+    window.dispatchEvent(new Event(WORLD_CHANGED));
+}
+
 /** Drops cached answers whose key starts with the prefix, after something they depend on changed. */
 export function forget(prefix: string) {
     for (const key of [...store.keys()]) if (key.startsWith(prefix)) store.delete(key);

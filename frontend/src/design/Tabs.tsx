@@ -2,7 +2,7 @@ import './design.css';
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
-export interface TabItem<T extends string> { id: T; label: ReactNode; /** A number, or "–" while it is not known yet. */ count?: number | string; icon?: ReactNode }
+export interface TabItem<T extends string> { id: T; label: ReactNode; /** A number, or "–" while it is not known yet. */ count?: number | string; /** A count that waits for the person (amber, with a dot). */ countTone?: 'warning'; /** What the count is, in words (with a tone, the colour alone must not say it). */ countLabel?: string; icon?: ReactNode }
 
 /**
  * Underline tabs with arrow, Home and End key support. Use `useUrlTab` to keep the selection in the URL.
@@ -25,7 +25,7 @@ export function Tabs<T extends string>({ items, value, onChange, label, classNam
                 <button key={item.id} ref={node => { refs.current[index] = node; }} role="tab" type="button" className="gk-tab"
                     id={idBase && `${idBase}-${item.id}`} aria-controls={idBase && item.id === value ? `${idBase}-${item.id}-panel` : undefined}
                     aria-selected={item.id === value} tabIndex={item.id === value ? 0 : -1} onClick={() => onChange(item.id)}>
-                    {item.icon}{item.label}{item.count != null && <span className="gk-tab__count">{item.count}</span>}
+                    {item.icon}{item.label}{item.count != null && <span className="gk-tab__count" data-tone={item.countTone} title={item.countLabel}>{item.count}{item.countLabel && <span className="gk-visually-hidden"> {item.countLabel}</span>}</span>}
                 </button>
             ))}
         </div>

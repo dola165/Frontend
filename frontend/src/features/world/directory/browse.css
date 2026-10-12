@@ -60,5 +60,10 @@
 .gk .gk-browse__group-head > svg { flex: none; width: 14px; height: 14px; }
 .gk .gk-browse__group-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gk .gk-browse__group-count { font-variant-numeric: tabular-nums; }
+.gk .gk-browse__group-detail { flex: none; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--gk-text-3); font-variant-numeric: tabular-nums; }
+/* A match's two sides in a Browse line, stacked, with the score at the end of each side. */
+.gk .gk-browse__sides { grid-column: span 1; }
+.gk .gk-browse__sides .gk-sb__team { font-size: var(--gk-fs-sm); }
+.gk .gk-browse__score { margin-left: auto; font-weight: 650; font-variant-numeric: tabular-nums; color: var(--gk-text); }
 .gk .gk-browse__more { display: block; width: 100%; min-height: 44px; padding: 0 var(--gk-4); border: 0; border-top: 1px solid var(--gk-glass-line, var(--gk-line)); background: none; color: var(--gk-accent); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; text-align: left; cursor: pointer; }
 .gk .gk-browse__more:hover { background: var(--gk-hover); }

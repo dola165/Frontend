@@ -3,20 +3,21 @@ import type { StyleSpecification } from 'maplibre-gl';
 import Map, { Marker, NavigationControl, useMap, type ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { MapBounds } from '../../../components/map/areaSearch';
-import type { MapFocus, MapReach } from '../stage/stageContext';
+import type { MapFocus, MapLine, MapReach } from '../stage/stageContext';
+import { AwayLayer } from './canvas/AwayLayer';
 import { ReachLayer } from './canvas/ReachLayer';
 import { reducedMotion } from './canvas/useMapTheme';
 import { pinData, pinHover, pinLabel } from './pins';
 import { ContextPin, PinFace, type PinEvents, type WorldMapPoint } from './WorldMap';
 
-const padding = (insetRight: number) => ({ top: 64, bottom: 64, left: 64, right: 64 + insetRight });
+const padding = (insetRight: number, insetTop = 0) => ({ top: 64 + insetTop, bottom: 64, left: 64, right: 64 + insetRight });
 
 /**
  * Frames the points (and the places that give them context) when the set of places changes, not on every render, so
  * a pan or zoom stays put. `insetRight` keeps them clear of a panel floating over the map's right side. While the map
  * is focused on one result (`hold`) new pins do not reframe it; a new `frame` value frames every pin again.
  */
-function FitPoints({ points, insetRight = 0, hold, frame }: { points: WorldMapPoint[]; insetRight?: number; hold: boolean; frame?: number }) {
+function FitPoints({ points, insetRight = 0, insetTop = 0, hold, frame }: { points: WorldMapPoint[]; insetRight?: number; insetTop?: number; hold: boolean; frame?: number }) {
     const { current: map } = useMap();
     const placed = points.map(p => `${p.id}@${p.lat},${p.lng}`).join('|');
     // `hold` is read when framing, not watched: letting go of a focus never makes the camera jump.
@@ -24,9 +25,9 @@ function FitPoints({ points, insetRight = 0, hold, frame }: { points: WorldMapPo
         if (!map || !points.length || hold) return;
         const lngs = points.map(p => p.lng), lats = points.map(p => p.lat);
         map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-            { padding: padding(insetRight), maxZoom: 13, duration: reducedMotion() ? 0 : 300 });
+            { padding: padding(insetRight, insetTop), maxZoom: 13, duration: reducedMotion() ? 0 : 300 });
     });
-    useEffect(() => { fit(); }, [map, placed, insetRight, frame]);
+    useEffect(() => { fit(); }, [map, placed, insetRight, insetTop, frame]);
     return null;
 }
 
@@ -35,7 +36,7 @@ function FitPoints({ points, insetRight = 0, hold, frame }: { points: WorldMapPo
  * frames the focus's box (a stated area around the pin). It waits for the pin (a shared link before the results or
  * places have loaded) and goes again when the panel opens or folds. The offset applies to this move only.
  */
-function FocusPoint({ points, focus, insetRight = 0 }: { points: WorldMapPoint[]; focus?: MapFocus; insetRight?: number }) {
+function FocusPoint({ points, focus, insetRight = 0, insetTop = 0 }: { points: WorldMapPoint[]; focus?: MapFocus; insetRight?: number; insetTop?: number }) {
     const { current: map } = useMap();
     const done = useRef<string | undefined>(undefined);
     const point = focus ? points.find(p => p.id === focus.id) : undefined;
@@ -48,17 +49,41 @@ function FocusPoint({ points, focus, insetRight = 0 }: { points: WorldMapPoint[]
         if (done.current === request) return;
         done.current = request;
         const duration = reducedMotion() ? 0 : 600;
-        if (box) map.fitBounds([[box.west, box.south], [box.east, box.north]], { padding: padding(insetRight), maxZoom: 14, duration });
-        else map.flyTo({ center: [point.lng, point.lat], zoom: Math.max(map.getZoom(), 14), offset: [-insetRight / 2, 0], duration });
+        if (box) map.fitBounds([[box.west, box.south], [box.east, box.north]], { padding: padding(insetRight, insetTop), maxZoom: 14, duration });
+        else map.flyTo({ center: [point.lng, point.lat], zoom: Math.max(map.getZoom(), 14), offset: [-insetRight / 2, insetTop / 2], duration });
     });
     useEffect(() => { go(); }, [map, focus?.token, focus?.id, point?.lat, point?.lng, insetRight, box?.west, box?.south, box?.east, box?.north]);
     return null;
 }
 
+/** How many pins at most may say their time at once; with more in view, only the lit one does. */
+const CHIPS_IN_VIEW = 12;
+/** Tells the map whether few enough pins are in view for each to say its time, as the map moves and the pins change. */
+function ChipsInView({ points, onChange }: { points: WorldMapPoint[]; onChange?: (few: boolean) => void }) {
+    const { current: map } = useMap();
+    const latest = useRef({ points, onChange });
+    useEffect(() => { latest.current = { points, onChange }; });
+    const placed = points.map(p => `${p.lat},${p.lng}`).join('|');
+    useEffect(() => {
+        if (!map) return;
+        const count = () => {
+            const { points: now, onChange: report } = latest.current;
+            const box = map.getBounds();
+            report?.(now.filter(p => box.contains([p.lng, p.lat])).length <= CHIPS_IN_VIEW);
+        };
+        count();
+        map.on('moveend', count);
+        return () => { map.off('moveend', count); };
+    }, [map, placed]);
+    return null;
+}
+
 /** The street-map layer of WorldMap. Loaded only when the map style is available. */
-export default function WorldLiveMap({ style, points, context = [], reach, selectedId, highlightId, onSelect, onHover, onMoveEnd, onFail, insetRight, focus, frame }: {
-    style: StyleSpecification; points: WorldMapPoint[]; onFail: () => void; insetRight?: number;
+export default function WorldLiveMap({ style, points, context = [], reach, away, selectedId, highlightId, onSelect, onHover, onMoveEnd, onFail, insetRight, insetTop, focus, frame, onFewInView }: {
+    style: StyleSpecification; points: WorldMapPoint[]; onFail: () => void; insetRight?: number; insetTop?: number;
+    /** Whether few enough pins are in view for each to say its time. */ onFewInView?: (few: boolean) => void;
     /** Places that give the results context, and a stated reach to draw. */ context?: WorldMapPoint[]; reach?: MapReach;
+    /** An away day to draw. */ away?: MapLine;
     /** Only moves the person made: framing the points is not one. */ onMoveEnd?: (bounds: MapBounds) => void;
     focus?: MapFocus; frame?: number;
 } & PinEvents) {
@@ -79,15 +104,18 @@ export default function WorldLiveMap({ style, points, context = [], reach, selec
             cooperativeGestures
         >
             <NavigationControl position="top-right" showCompass={false} />
-            <FitPoints points={[...points, ...context]} insetRight={insetRight} hold={Boolean(focus)} frame={frame} />
+            <FitPoints points={[...points, ...context]} insetRight={insetRight} insetTop={insetTop} hold={Boolean(focus)} frame={frame} />
             {/* After FitPoints, so a flight requested with new pins wins over their framing. */}
-            <FocusPoint points={points} focus={focus} insetRight={insetRight} />
+            <FocusPoint points={points} focus={focus} insetRight={insetRight} insetTop={insetTop} />
+            <ChipsInView points={points} onChange={onFewInView} />
             {reach && <ReachLayer reach={reach} />}
+            {away && <AwayLayer line={away} />}
             {context.map(point => (
                 <Marker key={`context:${point.id}`} latitude={point.lat} longitude={point.lng} anchor="center"><ContextPin point={point} /></Marker>
             ))}
             {points.map((point, index) => (
-                <Marker key={point.id} latitude={point.lat} longitude={point.lng} anchor="center">
+                // A lit pin (chosen or pointed at) comes in front, its chip over its neighbours.
+                <Marker key={point.id} latitude={point.lat} longitude={point.lng} anchor="center" style={point.id === selectedId || point.id === highlightId ? { zIndex: 3 } : undefined}>
                     <button type="button" className="gk-world-pin" style={{ '--pin-i': index % 7 } as CSSProperties} {...pinData(point, point.id === selectedId || point.id === highlightId)}
                         aria-label={pinLabel(point)} title={pinLabel(point)} onClick={() => onSelect(point.id)} {...pinHover(point.id, onHover)}>
                         <PinFace point={point} />

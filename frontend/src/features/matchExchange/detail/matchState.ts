@@ -1,10 +1,28 @@
 import type { BadgeTone } from '../../../design/primitives';
-import { formats, label, type Match } from '../api';
+import { formats, label, type Match, type Squad } from '../api';
 
 export interface State { label: string; tone: BadgeTone }
 
 /** Whether the fixture can still be arranged: open or agreed, scheduled and not yet kicked off. */
 export const isActive = (m: Match, now: number) => ['OPEN', 'ARRANGED'].includes(m.listing_status) && m.event_status === 'SCHEDULED' && new Date(m.starts_at_iso).getTime() > now;
+
+/**
+ * What the viewer can do with a match now, worked out once for the match page and World's match drawer: whether it
+ * can still be arranged, whether they can offer to play (with which squads) or must answer an invitation, and
+ * whether its result is due (it has ended, or a score waits) or it has at least started.
+ */
+export function matchGates(m: Match, now: number, squads: Squad[] = []) {
+    const active = isActive(m, now);
+    const eligible = squads.filter(s => s.club_id !== m.club_id);
+    return {
+        active, eligible,
+        canPropose: m.listing_status === 'OPEN' && !m.requested_club_id && !m.can_manage && eligible.length > 0 && active,
+        respond: Boolean(m.can_respond && m.listing_status === 'OPEN' && active),
+        finished: new Date(m.ends_at_iso).getTime() <= now || m.result_status === 'PROPOSED' || m.result_status === 'DISPUTED',
+        // Before kick-off there is no result to report or suggest.
+        started: new Date(m.starts_at_iso).getTime() <= now || Boolean(m.result_status),
+    };
+}
 
 /** The fixture's state in words, from the viewer's side. */
 export function fixtureState(m: Match, now: number): State {

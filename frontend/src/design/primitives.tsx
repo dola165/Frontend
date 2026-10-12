@@ -43,7 +43,9 @@ export type SectionTone = 'accent' | 'info' | 'warning' | 'violet' | 'danger';
  * A titled group of content. The title is plain sentence case; `action` is an optional link at the right.
  * `boxed` makes it one calm surface with the title over its hint; `icon` adds a small symbol before the title.
  */
-export function Section({ title, hint, action, boxed, icon: Icon, tone = 'accent', children, className, id }: { title?: ReactNode; hint?: ReactNode; action?: { label: string; to: string } | ReactNode; boxed?: boolean; icon?: LucideIcon; tone?: SectionTone; children: ReactNode; className?: string; id?: string }) {
+export function Section({ title, hint, action, boxed, icon: Icon, tone = 'accent', children, className, id, level = 2 }: { title?: ReactNode; hint?: ReactNode; action?: { label: string; to: string } | ReactNode; boxed?: boolean; icon?: LucideIcon; tone?: SectionTone; children: ReactNode; className?: string; id?: string;
+    /** The heading level: 3 for sections under a page's own h2. */ level?: 2 | 3 }) {
+    const Heading = level === 3 ? 'h3' : 'h2';
     const actionNode = action && typeof action === 'object' && 'to' in (action as object) && 'label' in (action as object)
         ? <Link className="gk-section__action" to={(action as { to: string }).to}>{(action as { label: string }).label}</Link>
         : action as ReactNode;
@@ -53,7 +55,7 @@ export function Section({ title, hint, action, boxed, icon: Icon, tone = 'accent
                 <div className="gk-section__head">
                     {Icon && <span className="gk-section__icon" aria-hidden="true"><Icon /></span>}
                     <div className="gk-section__heading">
-                        {title && <h2 className="gk-section__title" id={id ? `${id}-title` : undefined}>{title}</h2>}
+                        {title && <Heading className="gk-section__title" id={id ? `${id}-title` : undefined}>{title}</Heading>}
                         {hint && <span className="gk-section__hint">{hint}</span>}
                     </div>
                     {actionNode}

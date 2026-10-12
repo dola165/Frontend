@@ -92,7 +92,7 @@ Size: L. Built on 12 October (see `ROUND_2.md`, People), with the sandbox made h
 - "Add a past match" is no longer hidden behind the Results view.
 - The sandbox also sends club calendar events that are not matches (training, trials, club events) as `SCHEDULE` rows, as the backend does. Their line already says "Open event", not "Open match" (fixed in A).
 
-Size: L.
+Size: L. Built on 12 October (see `ROUND_2.md`, Matches), with the sandbox made honest first (thin tournament and club-fixture rows, no score on a proposed result, history by local date, public club activities in Events, and the states to judge). Reviewed by four lenses (52 findings confirmed, all fixed or listed under Before release: the drawer reading a match again after a save, whose turn a proposed score is, offers not read never claimed as none, counts that follow what is done in a drawer, the away line from the side that travels, the day strip at laptop width and by keyboard, the track in words) and checked at 1920, 1366 and 390, light and dark, as a coach and as a parent.
 
 ### Phase D · Creating things in World, "Set Pieces" (your item 5)
 

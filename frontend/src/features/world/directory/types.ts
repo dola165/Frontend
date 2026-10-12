@@ -1,7 +1,8 @@
 import type { ComponentType, ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import type { MapReach } from '../stage/stageContext';
+import type { MapLine, MapReach } from '../stage/stageContext';
 import type { ResultGroup } from './groups';
+import type { PinSummary } from './panelGroups';
 import type { AuthSessionId } from '../../../utils/authStorage';
 import type { Approximate, WorldMapTone } from '../map/WorldMap';
 import type { WorldRole } from '../front/roles';
@@ -17,6 +18,12 @@ interface FilterBase {
     label: string;
     /** Shown only when this returns true, for filters that apply to one choice of another filter. */
     when?: (query: DirectoryQuery) => boolean;
+    /**
+     * Where the list is rather than what narrows it (a day on the strip, the results end). It has no control of its own
+     * (its page draws one), is never "a filter" (no chip, not cleared, no "nothing matches this search") and is dropped
+     * with the tab. `load` and links still see it.
+     */
+    nav?: true;
 }
 /** A set of options. `primary` choices show as chips above the results; the rest sit in More filters. */
 export interface ChoiceFilter extends FilterBase {
@@ -76,18 +83,24 @@ export interface Placement {
     /** What the pin's card calls opening `to` ("Open club"); the result's own action when the pin is the result. */ action?: string;
 }
 
+/** One side of a match on a Browse line: crest, name, star, score. */
+export interface LineSide { name: string; crest?: string | null; mine?: boolean; score?: number | null }
 /**
  * A result as one line of the map's "Browse area" panel, in the score-site shape: a time when it is on a date,
  * a crest or face, the name and one line of detail, and one fact on the right.
  */
 export interface BrowseLine {
     title: string; detail?: string; to?: string;
+    /** A match's two sides, stacked as on a score line, instead of the crest and title. */ sides?: { home: LineSide; away: LineSide };
     /** What opening `to` is called on the chosen line ("Open club", "Open profile"), already translated. */ action?: string;
     /** Opening it shows a peek over the map instead of leaving World (`person:12`); the full page stays one click away. */ peek?: string;
     crest?: { src?: string | null; name: string; round?: boolean };
     when?: { time: string; day?: string };
     fact?: string; factTone?: 'accent' | 'warning' | 'danger';
 }
+
+/** What a source's own controls get: the query, and one write of several values (`{ day: ['2026-10-13'], period: [] }`). */
+export interface NavProps { query: DirectoryQuery; go: (values: Record<string, string[]>) => void }
 
 /** Who is looking, for a source's defaults: their World role and whether they chose a child. */
 export interface DefaultsContext { role: WorldRole; child: boolean; signedIn: boolean }
@@ -100,8 +113,11 @@ export interface DirectorySource<T> {
     tabLabel?: string;
     /** The tab's symbol. */
     icon?: LucideIcon;
-    /** How many results the list has before any filter, for the tab (following the World area when `area` is set). */
-    count?: (context: LoadContext) => Promise<number | null>;
+    /**
+     * How many results the list has before any filter, for the tab (following the World area when `area` is set); a count
+     * of things waiting for the person comes with the warning tone ("My arrangements ●3").
+     */
+    count?: (context: LoadContext) => Promise<number | { count: number; tone: 'warning'; /** What the count is, in words ("need you"). */ label: string } | null>;
     /** The page's subtitle while this list is shown. */
     subtitle?: string;
     noun: [one: string, other: string];
@@ -112,23 +128,34 @@ export interface DirectorySource<T> {
     /** Whether the sort applies to this query (some lists keep their own order). */
     sortable?: (query: DirectoryQuery) => boolean;
     pageSize: number;
-    /** Rows in one panel, cards in a grid, or results as LinkedIn lists them (`ResultRow`), in tiles across the width. */
-    layout: 'rows' | 'cards' | 'results';
+    /**
+     * Rows in one panel, cards in a grid, results as LinkedIn lists them (`ResultRow`) in tiles across the width, or score
+     * lines in one card per group (`ScoreResults`; its `Item` returns a list item).
+     */
+    layout: 'rows' | 'cards' | 'results' | 'scores';
     /** When set, signed-out visitors see this reason and a sign-in action instead of results. */
     signInReason?: string;
     /** A personal list (my arrangements, my competitions): its tab is shown only to signed-in people. */
     personal?: boolean;
     /** Changes when something outside the query changes what `load` returns, so results reload. */
     version?: string;
-    /** A live list (fixtures and results): reloaded quietly this often, and when the window regains focus. */
-    refreshMs?: number;
+    /** A live list (fixtures and results): reloaded quietly this often, and when the window regains focus; per query when a function. */
+    refreshMs?: number | ((query: DirectoryQuery) => number | undefined);
     load: (query: DirectoryQuery, page: number, context: LoadContext) => Promise<DirectoryPage<T>>;
     key: (item: T) => string;
     Item: ComponentType<{ item: T }>;
-    /** The result as one line of the map's "Browse area" panel. */
-    line: (item: T) => BrowseLine;
+    /** The result as one line of the map's "Browse area" panel; `places` give it crests (looked up while the map is open). */
+    line: (item: T, places?: Places) => BrowseLine;
     /** Work that belongs beside these results, shown above them (for example adding a past match). */
-    Tools?: ComponentType<{ query: DirectoryQuery; refresh: () => void }>;
+    Tools?: ComponentType<NavProps & { refresh: () => void }>;
+    /** Where the list is, floating at the map's top left (the day strip); under the header when the map is folded or narrow. */
+    Top?: ComponentType<NavProps>;
+    /** The heading under the map, when it is not the list's name ("Tuesday 13 October"). */
+    heading?: (query: DirectoryQuery) => string | undefined;
+    /** Controls beside that heading (the day before and after). */
+    HeadTools?: ComponentType<NavProps>;
+    /** What an empty list says, when the source knows better than "nothing here" (the next matchday). */
+    Empty?: ComponentType<NavProps & { filtered: boolean; onClear?: () => void }>;
     /**
      * The list follows the World area (`near`): the area reaches `load` in its context, and results wait for it. `true`
      * narrows the list to the area; `'nearest'` keeps everyone and puts the nearest first.
@@ -140,11 +167,22 @@ export interface DirectorySource<T> {
     place?: (item: T, places: Places) => Placement | null;
     /** A stated reach drawn around the chosen result (a referee's area). */
     reach?: (item: T) => MapReach | null;
+    /** The chosen result's away day: a line from where the travelling side (or the viewer's club) comes from to its ground. */
+    away?: (item: T, places: Places, viewer: { clubId: number | null }) => MapLine | null;
     /**
      * Results shown in groups, in the Browse area and below the map (people by their club). A group is a pin when its
      * results share one. Groups of one result join a last group called `rest`, when given, unless they have a `rank`.
      */
-    groups?: { of: (item: T, query: DirectoryQuery) => ResultGroup; rest?: string };
+    groups?: {
+        of: (item: T, query: DirectoryQuery) => ResultGroup; rest?: string;
+        /** Shown even when empty (lanes), in rank order. */ always?: ResultGroup[];
+        /** A group's detail from its results (the ground they all share). */ describe?: (items: T[]) => string | undefined;
+        /** The loaded results are not each group's whole (the backend pages them in another order): headers show no count. */ uncounted?: boolean;
+    };
+    /** The Browse area groups by where (one group per pin, or by a place the result names, its city) instead of by the list's groups. */
+    panel?: 'pin' | ((item: T) => ResultGroup);
+    /** What the results at one pin have in common: the place's name, a detail ("10:30–15:00") and the pin's chip ("11:00"). */
+    where?: (items: T[]) => PinSummary;
     /** Places looked up for results that carry no coordinates of their own (clubs, trials, competitions…). */
     placeKinds?: PlaceKind[];
     /** False when this query has nothing to put on a map (referees cover areas, not places). */

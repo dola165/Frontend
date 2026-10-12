@@ -8,7 +8,7 @@ import { GroupItem } from '../../directories/opportunityItems';
 import { useAcademies, useGroups, useNearbyClubs, useNearbyVenues, useOpenClubs } from '../frontData';
 import { Cluster, WorldField } from '../WorldField';
 import { rowsFor, type FieldProps } from './fieldProps';
-import { ClubLine, Line } from './Scoreboard';
+import { ClubLine, Line } from '../../scoreboard/Scoreboard';
 
 const JOIN: Record<string, string> = { OPEN_TRIAL: 'Open trials', APPLICATION_REQUIRED: 'Apply to join', INVITE_ONLY: 'Invite only' };
 /** Clubs as scoreboard lines in columns: a star to follow, the crest, name, kind and town, and one fact. */

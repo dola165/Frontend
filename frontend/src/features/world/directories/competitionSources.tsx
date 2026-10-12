@@ -8,7 +8,7 @@ import { first, nearbyPoint, type BrowseLine, type DirectorySource, type Placeme
 import { codeLabel, COMPETITION_STATUS, dateColumn, entryState, factTone, SCOPE_LABEL, sentence, shortDate } from '../format';
 import { CompetitionRow } from '../rows';
 import { HostRow, InvitationRow, MyCompetitionRow } from './competitionItems';
-import { AGE_OPTIONS } from './matchSources';
+import { AGE_OPTIONS } from './matches/listings';
 
 const PAGE = 12;
 

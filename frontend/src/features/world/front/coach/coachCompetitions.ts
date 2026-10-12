@@ -9,7 +9,7 @@ import { shared } from '../../cache';
 import { historyOf } from './coachMatches';
 import { fitsGender, type MySquad, type SquadFocus } from './mySquads';
 import { orderForRole } from './relevance';
-import { cupPath, nextFixture, tableRows, type CupStep, type TableRow } from './standings';
+import { cupPath, nextFixture, tableRows, type CupStep, type TableRow } from '../../scoreboard/standings';
 
 const LIVE = new Set(['ACTIVE', 'PLANNING']);
 const TABLES = new Set(['LEAGUE', 'ROUND_ROBIN', 'GROUP']);

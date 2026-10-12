@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Tabs } from '../../../design/Tabs';
 import { useAuth } from '../../../context/AuthContext';
 import { useWorldCopy } from '../copy';
+import { BelowMapHead } from '../stage/BelowMap';
 import { StageHead } from '../stage/WorldStage';
 import { useWorldArea } from '../useWorldArea';
 import { useWorldData } from '../useWorldData';
@@ -34,11 +35,13 @@ function useTabCounts(sources: AnySource[], signedIn: boolean) {
     const ready = worldArea.ready && counting.length > 0;
     const key = ready ? `tab-counts|${sessionId}|${counting.map((source, i) => `${source.id}:${source.version ?? ''}:${where[i]?.city ?? (where[i] ? 'anywhere' : '')}`).join(',')}` : null;
     const counts = useWorldData(key, signal => Promise.all(counting.map((source, i) =>
-        source.count!({ signal, sessionId, authenticated: signedIn, area: where[i] }).catch(() => null))));
-    return (id: string) => {
+        source.count!({ signal, sessionId, authenticated: signedIn, area: where[i] }).catch(() => null))), undefined, { follow: true });
+    return (id: string): { count: number | string; tone?: 'warning'; label?: string } | undefined => {
         const index = counting.findIndex(source => source.id === id);
         if (index < 0) return undefined;
-        return counts.loading || !counts.data ? '–' : counts.data[index] ?? undefined;
+        if (counts.loading || !counts.data) return { count: '–' };
+        const counted = counts.data[index];
+        return counted == null ? undefined : typeof counted === 'number' ? { count: counted } : counted;
     };
 }
 
@@ -57,7 +60,7 @@ export function DirectoryPage({ title, subtitle, sources: allSources, extraTabs 
     const [params] = useSearchParams();
     const extra = extras.find(item => item.id === params.get('tab'));
     const countOf = useTabCounts(sources, signedIn);
-    const tabs = [...sources.map(item => ({ id: item.id, label: t(item.tabLabel ?? item.label), count: countOf(item.id), icon: item.icon && <item.icon aria-hidden="true" /> })),
+    const tabs = [...sources.map(item => ({ id: item.id, label: t(item.tabLabel ?? item.label), count: countOf(item.id)?.count, countTone: countOf(item.id)?.tone, countLabel: countOf(item.id)?.label && t(countOf(item.id)!.label!), icon: item.icon && <item.icon aria-hidden="true" /> })),
         ...extras.map(item => ({ id: item.id, label: t(item.label) }))];
     const [resetKey, setResetKey] = useState(0);
     // A tab's defaults for who is looking are written when it is opened, not again after Clear filters.
@@ -78,7 +81,7 @@ export function DirectoryPage({ title, subtitle, sources: allSources, extraTabs 
                     {actions && <div className="gk-world-head__actions">{actions}</div>}
                 </header>
             </StageHead>
-            {extra ? extra.element : <DirectoryBody key={`${state.source.id}:${resetKey}`} state={state} signedIn={signedIn} applyDefaults={fresh} clearable={clearable} onClear={clear} />}
+            {extra ? <><BelowMapHead title={t(extra.label)} />{extra.element}</> : <DirectoryBody key={`${state.source.id}:${resetKey}`} state={state} signedIn={signedIn} applyDefaults={fresh} clearable={clearable} onClear={clear} />}
         </div>
     );
 }

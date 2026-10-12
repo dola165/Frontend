@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PEEK } from '../peek/usePeek';
+import { PEEK, SIDE } from '../peek/usePeek';
 import type { AnySource, DirectoryQuery, FilterDef } from './types';
 
 /** Context that follows the person around World (their area, the child they are searching for). */
@@ -43,7 +43,8 @@ export function readQuery(source: AnySource, params: URLSearchParams): { query: 
     const values: Record<string, string[]> = {};
     for (const filter of source.filters) if (!values[filter.key]?.length) values[filter.key] = applies(filter) ? valueOf(filter) : [];
     const query: DirectoryQuery = { ...draft, values };
-    const active = source.filters.filter(filter => applies(filter) && (given(filter).length > 0 || Boolean(remembered(filter))));
+    // Where the list is (a day) is not a filter the person set: it is never active, so never cleared or counted.
+    const active = source.filters.filter(filter => !filter.nav && applies(filter) && (given(filter).length > 0 || Boolean(remembered(filter))));
     return { query, active };
 }
 
@@ -111,22 +112,33 @@ export function useDirectoryState(sources: AnySource[], { tabParam = 'tab', tabA
         setMany: (values: Record<string, string[]>) => update(next => {
             for (const [key, list] of Object.entries(values)) { next.delete(key); list.filter(Boolean).forEach(value => next.append(key, value)); }
         }),
+        /**
+         * Writes several values in one replace, so none is lost (two writes in one tick would keep only the last): a day
+         * chosen on the strip and the end it leaves. Like a filter change, it ends the choice of one result.
+         */
+        go: (values: Record<string, string[]>) => update(next => {
+            for (const [key, list] of Object.entries(values)) { next.delete(key); list.filter(Boolean).forEach(value => next.append(key, value)); }
+            next.delete(SHOWN);
+            next.delete(SELECTED);
+        }),
         /** Chooses one result (or none), without adding a history entry; sorting and showing more keep it. */
         setSelected: (key?: string) => update(next => { if (key) next.set(SELECTED, key); else next.delete(SELECTED); }),
         /** Records how many pages are on screen, without adding a history entry. */
         setShown: (pages: number) => update(next => { if (pages > 1) next.set(SHOWN, String(pages)); else next.delete(SHOWN); }),
         setTab: (id: string) => update(next => {
             sources.forEach(item => item.filters.forEach(filter => { if (!CARRIED.includes(filter.key)) next.delete(filter.key); }));
-            ['sort', SHOWN, SELECTED, PEEK, ...(tabAlias ? [tabAlias] : [])].forEach(key => next.delete(key));
+            ['sort', SHOWN, SELECTED, PEEK, SIDE, ...(tabAlias ? [tabAlias] : [])].forEach(key => next.delete(key));
             // Where the opening tab depends on who is looking, every tab is named, so a link opens the same tab for anyone.
             if (!chosen && id === opening.id) next.delete(tabParam); else next.set(tabParam, id);
         }, false),
         clearFilters: () => update(next => {
-            source.filters.forEach(filter => { if (!CARRIED.includes(filter.key)) next.delete(filter.key); });
+            // Where the list is (a day) stays: clearing filters never moves the list.
+            source.filters.forEach(filter => { if (!CARRIED.includes(filter.key) && !filter.nav) next.delete(filter.key); });
             next.delete('q');
             next.delete(SHOWN);
             next.delete(SELECTED);
             next.delete(PEEK);
+            next.delete(SIDE);
         }),
     };
 }

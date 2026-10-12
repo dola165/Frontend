@@ -4,20 +4,23 @@ import { useDialogFocus } from '../../../components/workspace/useDialogFocus';
 import { GkRoot } from '../../../design/primitives';
 import { useWorldCopy } from '../copy';
 import { DrawerPlaceContext } from './drawerContext';
+import type { DrawerKind } from './kinds';
 import { DrawerFrame, DrawerLoading } from './DrawerFrame';
 import { usePeek } from './usePeek';
 import './drawers.css';
 
 /** What each kind of thing shows in a drawer, loaded when first opened. */
-const KINDS: Record<string, ComponentType<{ id: string }>> = {
+const KINDS: Record<DrawerKind, ComponentType<{ id: string }>> = {
     person: lazy(() => import('./PersonPeek')),
     job: lazy(() => import('./JobPeek')),
     club: lazy(() => import('./ClubPeek')),
+    match: lazy(() => import('./MatchPeek')),
+    tournament: lazy(() => import('./TournamentPeek')),
 };
 
 function Drawer({ kind, id, side, close }: { kind: string; id: string; side: 'right' | 'left'; close: () => void }) {
     const t = useWorldCopy();
-    const Kind = KINDS[kind];
+    const Kind = KINDS[kind as DrawerKind];
     return (
         <DrawerPlaceContext.Provider value={{ side, close }}>
             <Suspense fallback={<DrawerFrame title={t('Loading…')}><DrawerLoading /></DrawerFrame>}>

@@ -10,11 +10,19 @@
 .gk .gk-sb__rows > li + li { border-top: 1px solid color-mix(in srgb, var(--gk-line) 70%, transparent); }
 
 .gk .gk-sb__row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto 28px; align-items: center; gap: var(--gk-3); min-height: 48px; padding: 6px var(--gk-4); color: var(--gk-text); transition: background-color .15s var(--gk-ease); }
-.gk a.gk-sb__row:hover { background: var(--gk-hover); }
+.gk a.gk-sb__row:hover, .gk button.gk-sb__row:hover, .gk .gk-sb__row[data-highlighted] { background: var(--gk-hover); }
+.gk button.gk-sb__row { width: 100%; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.gk .gk-sb__row[aria-current], .gk .gk-sb__row[data-open] { background: color-mix(in srgb, var(--gk-accent) 9%, transparent); }
+.gk .gk-sb__row:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--gk-accent); }
+.gk .gk-sb__row[data-faint] .gk-sb__score { opacity: .6; }
 .gk .gk-sb__when { display: flex; flex-direction: column; font-size: var(--gk-fs-sm); line-height: 16px; }
-.gk .gk-sb__when b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.gk .gk-sb__when b { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .gk .gk-sb__when b[data-state] { color: var(--gk-text-3); font-weight: 600; }
-.gk .gk-sb__when b[data-state='Live'] { color: var(--gk-danger); }
+.gk .gk-sb__when b[data-tone='danger'] { color: var(--gk-danger); }
+.gk .gk-sb__when b[data-tone='accent'] { color: var(--gk-accent); }
+/* On now, by the schedule: a still accent dot (there is no live score, so nothing pulses). */
+.gk .gk-sb__when b[data-state='on'] { display: inline-flex; align-items: center; gap: 5px; }
+.gk .gk-sb__when b[data-state='on']::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--gk-accent); }
 .gk .gk-sb__when small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
 .gk .gk-sb__teams { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .gk .gk-sb__team { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; font-size: var(--gk-fs-md); line-height: 18px; color: var(--gk-text-2); }
@@ -37,7 +45,9 @@
 .gk .gk-sb__wait[data-tone='warning'] { color: var(--gk-warning); } .gk .gk-sb__wait[data-tone='warning']::before { background: var(--gk-warning); }
 .gk .gk-sb__wait svg { width: 13px; height: 13px; }
 
-/* Lines that are not matches: crest, name and detail, one fact on the right. */
+/* Lines that are not matches: crest (or an activity's symbol in a soft tint), name and detail, one fact on the right. */
+.gk .gk-sb__symbol { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--symbol) 14%, transparent); color: var(--symbol); }
+.gk .gk-sb__symbol svg { width: 15px; height: 15px; }
 .gk .gk-sb__row--line { grid-template-columns: auto minmax(0, 1fr) auto; }
 .gk .gk-sb__row--line:has(> .gk-sb__when) { grid-template-columns: 52px auto minmax(0, 1fr) auto; }
 .gk .gk-sb__main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -66,5 +76,14 @@
 .gk .gk-wfield[data-side] .gk-sb__row--line { grid-template-columns: auto minmax(0, 1fr) auto; }
 .gk .gk-wfield[data-side] .gk-sb__row--line:has(> .gk-sb__when) { grid-template-columns: 44px auto minmax(0, 1fr) auto; }
 .gk .gk-sb__tag [data-tone='warning'] { color: var(--gk-warning); font-weight: 600; }
+/* An open match's age group in the score column: bright when one of my squads suits it. */
+.gk .gk-sb__age { grid-area: 1 / 3; justify-self: end; font-size: var(--gk-fs-xs); font-weight: 650; color: var(--gk-text-3); white-space: nowrap; }
+.gk .gk-score-group .gk-sb__age { grid-area: 1 / 3; }
 /* A side still to be found (an opponent wanted, offers to choose from): an empty dashed crest, never made-up initials. */
 .gk .gk-sb__nocrest { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 1px dashed var(--gk-line-strong); }
+/* A side the viewer could fill: their crest, faint, in a dashed accent ring. */
+.gk .gk-sb__ghost { flex: none; display: grid; place-items: center; width: 22px; height: 22px; margin: -2px; border-radius: 50%; border: 1px dashed var(--gk-accent); }
+.gk .gk-sb__ghost > .gk-avatar { opacity: .4; }
+.gk .gk-sb__team[data-ghost] { color: var(--gk-accent); font-style: normal; }
+/* One bright thing per row: when the squad already plays that day, the warning is it. */
+.gk .gk-sb__row:has(.gk-sb__tag [data-tone='warning']) .gk-sb__team[data-ghost] { color: var(--gk-text-2); }

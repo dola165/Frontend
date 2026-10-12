@@ -1,18 +1,21 @@
-import type { GroupStandingsRow, TournamentFixtureDto } from '../../../tournaments/domain';
+import type { GroupStandingsRow, TournamentFixtureDto } from '../../tournaments/domain';
 
 /** A table row as a score site shows it: position, team, played, goal difference, points. */
-export interface TableRow { entryId: number; rank: number; label: string; played: number; gd: number; points: number; mine: boolean }
+export interface TableRow { entryId: number; rank: number; label: string; played: number; gd: number; points: number; mine: boolean; /** Lit without being mine (both sides of the match looked at). */ marked?: boolean }
 
-/** Standings in table order (points, goal difference, goals scored), with the viewer's entries marked. */
-export function tableRows(rows: GroupStandingsRow[], mine: Set<number>): TableRow[] {
-    return [...rows].sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor || a.entryName.localeCompare(b.entryName))
-        .map((row, index) => ({ entryId: row.entryId, rank: index + 1, label: row.entryName, played: row.played, gd: row.goalDifference, points: row.points, mine: mine.has(row.entryId) }));
+/**
+ * Standings in table order (points, goal difference, goals scored), with the viewer's entries marked. With
+ * `keepOrder`, the backend's own ranking stands (it applies the competition's tie-breaks, which points alone cannot).
+ */
+export function tableRows(rows: GroupStandingsRow[], mine: Set<number>, { keepOrder = false, marked }: { keepOrder?: boolean; marked?: Set<number> } = {}): TableRow[] {
+    return (keepOrder ? [...rows] : [...rows].sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor || a.entryName.localeCompare(b.entryName)))
+        .map((row, index) => ({ entryId: row.entryId, rank: index + 1, label: row.entryName, played: row.played, gd: row.goalDifference, points: row.points, mine: mine.has(row.entryId), ...(marked?.has(row.entryId) ? { marked: true } : {}) }));
 }
 
 /** A long table kept short: the top three, a gap, then my row with its neighbours. Short tables stay whole. */
 export function windowAround(rows: TableRow[], max = 8): (TableRow | 'gap')[] {
     if (rows.length <= max) return rows;
-    const at = rows.findIndex(row => row.mine);
+    const at = rows.findIndex(row => row.mine || row.marked);
     if (at < max - 1) return rows.slice(0, max);
     return [...rows.slice(0, 3), 'gap', ...rows.slice(Math.max(3, at - 1), at + 2)];
 }

@@ -117,6 +117,46 @@ describe('the chosen result', () => {
     });
 });
 
+describe('where the list is (a day): not a filter', () => {
+    const days = () => source({ filters: [
+        { kind: 'date', key: 'day', label: 'Day', nav: true },
+        { kind: 'choice', key: 'period', label: 'When', nav: true, options: [{ value: 'HISTORY', label: 'Results' }] },
+        { kind: 'toggle', key: 'mine', label: 'My teams' },
+    ] });
+    function Probe({ sources }: { sources: DirectorySource<Row>[] }) {
+        const state = useDirectoryState(sources);
+        return <>
+            <button type="button" onClick={() => state.go({ day: ['2026-10-13'], period: [] })}>day</button>
+            <button type="button" onClick={() => state.go({ period: ['HISTORY'], day: [] })}>results</button>
+            <button type="button" onClick={() => state.setSelected('3')}>choose</button>
+            <button type="button" onClick={() => state.clearFilters()}>clear</button>
+            <button type="button" onClick={() => state.setTab(sources[1].id)}>tab</button>
+            <p data-testid="active">{state.activeFilters.map(filter => filter.key).join(',') || '-'}</p>
+            <p data-testid="values">{JSON.stringify(state.query.values)}</p>
+        </>;
+    }
+
+    it('reaches the list but is never an active, clearable filter', () => {
+        const { query, active } = readQuery(days(), new URLSearchParams('day=2026-10-13&period=HISTORY&mine=true'));
+        expect(query.values).toMatchObject({ day: ['2026-10-13'], period: ['HISTORY'], mine: ['true'] });
+        expect(active.map(filter => filter.key)).toEqual(['mine']);
+    });
+
+    it('is written in one step with what it replaces, ends a choice, survives Clear filters and goes with the tab', () => {
+        render(<MemoryRouter initialEntries={['/world/matches?period=HISTORY&mine=true']}><Probe sources={[days(), source({ id: 'events' })]} /><Where /></MemoryRouter>);
+        fireEvent.click(screen.getByText('choose'));
+        fireEvent.click(screen.getByText('day'));
+        expect(where()).toBe('/world/matches?mine=true&day=2026-10-13');
+        fireEvent.click(screen.getByText('results'));
+        expect(where()).toBe('/world/matches?mine=true&period=HISTORY');
+        expect(screen.getByTestId('active').textContent).toBe('mine');
+        fireEvent.click(screen.getByText('clear'));
+        expect(where()).toBe('/world/matches?period=HISTORY');
+        fireEvent.click(screen.getByText('tab'));
+        expect(where()).toBe('/world/matches?tab=events');
+    });
+});
+
 describe('the search box', () => {
     function Search() {
         const location = useLocation();

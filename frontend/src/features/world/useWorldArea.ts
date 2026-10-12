@@ -2,7 +2,7 @@ import { useSearchParams } from 'react-router-dom';
 import { fetchClubLocationOptions } from '../discovery/api';
 import { geocodePlace } from '../../api/map';
 import { fetchClubProfile } from './api';
-import { shared } from './cache';
+import { shared, detached } from './cache';
 import { useWorldData } from './useWorldData';
 import { useWorldSession } from './worldSession';
 
@@ -10,7 +10,6 @@ import { useWorldSession } from './worldSession';
 const DEFAULT_AREA = { city: 'Tbilisi', lat: 41.7151, lng: 44.8271 };
 /** `near=anywhere`: the person asked for every city. */
 export const ANYWHERE = 'anywhere';
-const detached = () => new AbortController().signal;
 
 export interface WorldArea {
     city: string;

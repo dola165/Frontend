@@ -1,0 +1,16 @@
+/* An arrangement's track: four dots, done (accent), mine (amber ring), urgent (red), waiting (grey), not needed (a dash).
+   Scoped under .gk; tokens only. */
+.gk .gk-track { display: inline-flex; align-items: center; gap: 5px; }
+.gk .gk-track__dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--gk-line-strong); }
+.gk [data-state='done'] > .gk-track__dot, .gk .gk-track__dot[data-state='done'] { background: var(--gk-accent); }
+.gk [data-state='yours'] > .gk-track__dot, .gk .gk-track__dot[data-state='yours'] { background: none; box-shadow: inset 0 0 0 2px var(--gk-warning); }
+.gk [data-state='urgent'] > .gk-track__dot, .gk .gk-track__dot[data-state='urgent'] { background: var(--gk-danger); }
+.gk [data-state='none'] > .gk-track__dot, .gk .gk-track__dot[data-state='none'] { width: 8px; height: 2px; border-radius: 1px; background: var(--gk-line-strong); }
+
+/* In a drawer: each step with its word. */
+.gk .gk-track--words { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gk-2) var(--gk-4); margin: 0; padding: 0; list-style: none; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-track--words li { display: flex; align-items: center; gap: var(--gk-2); }
+.gk .gk-track--words li[data-state='yours'] { color: var(--gk-warning); font-weight: 600; }
+.gk .gk-track--words li[data-state='urgent'] { color: var(--gk-danger); font-weight: 600; }
+.gk .gk-track__turn { font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-3); }
+.gk .gk-track--words li[data-state='yours'] .gk-track__turn, .gk .gk-track--words li[data-state='urgent'] .gk-track__turn { color: inherit; }

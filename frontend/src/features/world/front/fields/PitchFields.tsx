@@ -13,6 +13,7 @@ import { WorldField } from '../WorldField';
 import type { FieldId } from '../fields';
 import type { FieldProps } from './fieldProps';
 import '../coach/coach.css';
+import '../../scoreboard/scoreboard.css';
 
 const SHOWN = 6;
 const EVENINGS = { from: '17:00', to: '21:00' };

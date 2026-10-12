@@ -24,7 +24,7 @@ import { MatchManagement } from '../features/matchExchange/detail/MatchManagemen
 import { Officials } from '../features/matchExchange/detail/Officials';
 import { InvitationResponse, ProposalList, ProposeForm } from '../features/matchExchange/detail/OpponentPanels';
 import { Readiness } from '../features/matchExchange/detail/Readiness';
-import { isActive } from '../features/matchExchange/detail/matchState';
+import { matchGates } from '../features/matchExchange/detail/matchState';
 import '../features/matchExchange/detail/match-detail.css';
 
 /** The match conversation exists once both coaching teams have agreed; `undefined` while unknown. */
@@ -78,13 +78,8 @@ export function MatchDetailPage() {
         </PageFrame></GkRoot>
     );
 
-    const active = isActive(m, now);
-    const eligible = squads?.filter(s => s.club_id !== m.club_id) ?? [];
-    const canPropose = m.listing_status === 'OPEN' && !m.requested_club_id && !m.can_manage && eligible.length > 0 && active;
-    const respond = Boolean(m.can_respond && m.listing_status === 'OPEN' && active);
-    const finished = new Date(m.ends_at_iso).getTime() <= now || m.result_status === 'PROPOSED' || m.result_status === 'DISPUTED';
     // Before kick-off there is no result to report or suggest; the band shows the kick-off instead.
-    const started = new Date(m.starts_at_iso).getTime() <= now || Boolean(m.result_status);
+    const { active, eligible, canPropose, respond, finished, started } = matchGates(m, now, squads ?? []);
     const facts = [m.age_group === 'SENIOR' ? 'Senior' : m.age_group, formats[m.format] ?? label(m.format), `${label(m.level)} level`, m.requested_club_id ? 'Direct invitation' : m.listing_status === 'OPEN' ? 'Open match' : null].filter(Boolean).join(' · ');
     const invited = requested ? { name: invitedClub.data?.name ?? (m.can_respond ? 'Your club' : 'The invited club'), logoUrl: invitedClub.data?.logoUrl } : null;
     const sent = params.get('sent');

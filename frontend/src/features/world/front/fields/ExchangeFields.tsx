@@ -8,7 +8,7 @@ import { useSquadFocus, type SquadFocus } from '../coach/mySquads';
 import { SquadGate } from '../coach/SquadSwitch';
 import { WorldField } from '../WorldField';
 import { crestsOf, rowsFor, type FieldProps } from './fieldProps';
-import { Line, MatchLine, ScoreGroups, WaitTag } from './Scoreboard';
+import { Line, MatchLine, ScoreGroups, WaitTag } from '../../scoreboard/Scoreboard';
 
 const KIND_ORDER: Record<Invitation['kind'], number> = { reply: 0, offers: 1, open: 2, waiting: 2 };
 const arrangeLink = (focus: SquadFocus) => `/world/matches/arrange?mode=open${focus.focus.length === 1 ? `&squad=${focus.focus[0].id}` : ''}`;

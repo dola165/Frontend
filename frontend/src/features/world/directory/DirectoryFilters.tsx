@@ -195,7 +195,8 @@ function ChoicePill({ filter, state, signedIn }: { filter: ChoiceFilter; state: 
  */
 export function DirectoryFilters({ state, signedIn, onClear }: { state: DirectoryState; signedIn: boolean; /** Absent when nothing can be cleared. */ onClear?: () => void }) {
     const t = useWorldCopy();
-    const visible = state.source.filters.filter(filter => filter.kind !== 'scope' && (!filter.when || filter.when(state.query)));
+    // Where the list is (a day) has its own control on the page, not here.
+    const visible = state.source.filters.filter(filter => filter.kind !== 'scope' && !filter.nav && (!filter.when || filter.when(state.query)));
     const scopes = state.activeFilters.filter(filter => filter.kind === 'scope');
     const isPrimary = (filter: FilterDef) => filter.kind === 'nearby' || ((filter.kind === 'choice' || filter.kind === 'toggle') && filter.primary);
     const primary = visible.filter(isPrimary), secondary = visible.filter(filter => !isPrimary(filter));

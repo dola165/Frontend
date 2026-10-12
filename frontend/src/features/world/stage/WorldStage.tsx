@@ -28,6 +28,7 @@ export function WorldStage({ children }: { children: ReactNode }) {
     const [head, setHead] = useState<HTMLElement | null>(null);
     const [panel, setPanel] = useState<HTMLElement | null>(null);
     const [dock, setDock] = useState<HTMLElement | null>(null);
+    const [top, setTop] = useState<HTMLElement | null>(null);
     const [map, setMap] = useState<StageMap | null>(null);
     const fold = useMapFold();
     const [params, setParams] = useSearchParams();
@@ -49,8 +50,8 @@ export function WorldStage({ children }: { children: ReactNode }) {
     useEffect(() => { toggles.current = { map: fold.toggle, panel: togglePanel }; });
     const toggleMap = useCallback(() => { toggled.current = true; toggles.current.map(); }, []);
     const togglePanelStable = useCallback(() => toggles.current.panel(), []);
-    const value = useMemo(() => ({ inStage: true, head, panel, dock, setMap, mapOpen: fold.open, toggleMap, panelFolded, togglePanel: togglePanelStable }),
-        [head, panel, dock, fold.open, toggleMap, panelFolded, togglePanelStable]);
+    const value = useMemo(() => ({ inStage: true, head, panel, dock, top, setMap, mapOpen: fold.open, toggleMap, panelFolded, togglePanel: togglePanelStable }),
+        [head, panel, dock, top, fold.open, toggleMap, panelFolded, togglePanelStable]);
     return (
         <StageContext.Provider value={value}><FollowingProvider>
             <div className="gk-world-stage">
@@ -63,8 +64,8 @@ export function WorldStage({ children }: { children: ReactNode }) {
                             </div></div>)}>
                             <WorldMap variant="hero" label={map?.label ?? t('Map')} points={map?.points ?? NO_POINTS}
                                 selectedId={map?.selectedId} onSelect={map?.onSelect} highlightId={map?.highlightId} onHover={map?.onHover}
-                                onMoveEnd={map?.onMoveEnd} cardActions={map?.cardActions} insetRight={floating ? PANEL : 0}
-                                focus={map?.focus} frame={map?.frame} card={map?.card ?? true} context={map?.context} reach={map?.reach}
+                                onMoveEnd={map?.onMoveEnd} cardActions={map?.cardActions} insetRight={floating ? PANEL : 0} insetTop={map?.insetTop}
+                                focus={map?.focus} frame={map?.frame} card={map?.card ?? true} context={map?.context} reach={map?.reach} away={map?.away}
                                 overlay={<>{map?.top}<div className="gk-world-map__overlay">
                                     {map?.pills}
                                     <button ref={foldRef} type="button" className="gk-world-glass" onClick={toggleMap} aria-expanded><ChevronUp aria-hidden="true" />{t('Fold map')}</button>
@@ -75,6 +76,7 @@ export function WorldStage({ children }: { children: ReactNode }) {
                             <span className="gk-world-grow">{t('Map')}{map?.summary ? ` · ${map.summary}` : ''}</span>
                             <button ref={showRef} type="button" className="gk-world-mapstrip__toggle" onClick={toggleMap} aria-expanded={false}><ChevronDown aria-hidden="true" />{t('Show map')}</button>
                         </div>}
+                    <div className="gk-world-stage__top" ref={setTop} />
                     <div className="gk-world-stage__dock" ref={setDock} />
                     <div className="gk-world-stage__panel" ref={setPanel} data-folded={panelFolded || undefined} />
                 </div>
@@ -99,6 +101,16 @@ export function StagePanel({ children }: { children: ReactNode }) {
     const { inStage, panel } = useStage();
     if (!inStage) return <>{children}</>;
     return panel ? createPortal(children, panel) : null;
+}
+
+/**
+ * Where a list is (the day strip), floating at the map's top left while the map is open on a wide screen; folded or
+ * narrow, it stays where it is, under the header.
+ */
+export function StageTop({ children }: { children: ReactNode }) {
+    const { inStage, top, mapOpen } = useStage();
+    const wide = useMediaQuery(WIDE, true);
+    return inStage && mapOpen && wide && top ? createPortal(children, top) : <div className="gk-world-stage__top-inline">{children}</div>;
 }
 
 /**

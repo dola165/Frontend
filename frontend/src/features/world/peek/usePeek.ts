@@ -1,16 +1,15 @@
 import type { MouseEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { DRAWER_KINDS } from './kinds';
 
 /** The address parameters of World's drawers: the thing itself on the right, who is behind it on the left. */
 export const PEEK = 'peek';
 export const SIDE = 'side';
-/** The kinds of thing a drawer can show (see `Drawers`). */
-const KINDS = ['person', 'job', 'club'];
 /** A drawer's value (`person-12`) as its kind and id, when it is one World can show. */
 export const parsePeek = (value?: string | null) => {
     const at = value ? value.indexOf('-') : -1;
     const kind = at > 0 ? value!.slice(0, at) : undefined, id = at > 0 ? value!.slice(at + 1) : undefined;
-    return kind && id && KINDS.includes(kind) ? { kind, id } : null;
+    return kind && id && (DRAWER_KINDS as readonly string[]).includes(kind) ? { kind, id } : null;
 };
 /** The drawer of one thing, as the address names it (`person-12`). */
 export const peekOf = (kind: string, id: number | string) => `${kind}-${id}`;

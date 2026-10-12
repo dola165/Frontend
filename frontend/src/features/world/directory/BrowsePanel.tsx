@@ -1,15 +1,16 @@
 import { Fragment, useContext, useId, type KeyboardEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ChevronDown, Compass, MapPin } from 'lucide-react';
+import { ArrowRight, ChevronDown, Compass, MapPin, Star } from 'lucide-react';
 import { Skeleton } from '../../../design/primitives';
 import { useWorldCopy } from '../copy';
 import { Crest } from '../Crest';
 import { peekClick, usePeek } from '../peek/usePeek';
 import type { ArrangedGroup, ResultGroup } from './groups';
 import { DirectoryItemKey, DirectorySelectionContext, useBrowseChoice } from './selection';
-import type { AnySource, BrowseLine } from './types';
+import type { Places } from './places';
+import type { AnySource, BrowseLine, LineSide } from './types';
 import type { DirectoryData } from './useDirectoryData';
-import '../front/fields/scoreboard.css';
+import '../scoreboard/scoreboard.css';
 import './browse.css';
 
 /**
@@ -35,8 +36,10 @@ function BrowseRow({ line }: { line: BrowseLine }) {
                 aria-current={chosen || undefined} data-at-pin={choice?.atPin || undefined} data-highlighted={choice?.highlighted || undefined}
                 onClick={choice?.choose} {...hover}>
                 {line.when && <span className="gk-sb__when"><b>{line.when.time}</b>{line.when.day && <small>{line.when.day}</small>}</span>}
-                {line.crest && <Crest src={line.crest.src} name={line.crest.name} size={28} round={line.crest.round} />}
-                <span className="gk-sb__main"><strong title={line.title}>{line.title}</strong>{chosen ? where : line.detail && <small>{line.detail}</small>}</span>
+                {line.sides ? <Sides sides={line.sides} title={line.title} />
+                    : <>{line.crest && <Crest src={line.crest.src} name={line.crest.name} size={28} round={line.crest.round} />}
+                        <span className="gk-sb__main"><strong title={line.title}>{line.title}</strong>{chosen ? where : line.detail && <small>{line.detail}</small>}</span></>}
+                {line.sides && chosen && where}
                 {!chosen && line.fact && <span className="gk-sb__fact" data-tone={line.factTone}>{line.fact}</span>}
             </button>
             {open && <Link className="gk-browse__open" to={line.to!} title={line.action} aria-label={t('{action}: {name}', { action: line.action!, name: line.title })}
@@ -47,13 +50,23 @@ function BrowseRow({ line }: { line: BrowseLine }) {
     );
 }
 
-/** A group's header: its crest or place, its name and how many. When its results share a pin, pressing it chooses the pin. */
+/** A match's two sides stacked, as on a score line, with the score when it counts. */
+function Sides({ sides, title }: { sides: { home: LineSide; away: LineSide }; title: string }) {
+    const t = useWorldCopy();
+    const side = (one: LineSide) => <span className="gk-sb__team" data-mine={one.mine || undefined}>
+        <Crest src={one.crest} name={one.name} size={18} round />{one.mine && <Star className="gk-sb__mine" role="img" aria-label={t('Your team')} />}<span>{one.name}</span>
+        {one.score != null && <b className="gk-browse__score">{one.score}</b>}
+    </span>;
+    return <span className="gk-sb__teams gk-browse__sides" title={title}>{side(sides.home)}{side(sides.away)}</span>;
+}
+
+/** A group's header: its crest or place, its name, how many and when. When its results share a pin, pressing it chooses the pin. */
 function GroupHeader({ group, count }: { group: ResultGroup; count: number }) {
     const t = useWorldCopy();
     const selection = useContext(DirectorySelectionContext);
     const pin = group.pin && selection?.pinOf && [...selection.pinOf.values()].includes(group.pin) ? group.pin : undefined;
     const face = group.crest ? <Crest src={group.crest.src} name={group.crest.name} size={20} round={group.crest.round} /> : group.pin ? <MapPin aria-hidden="true" /> : null;
-    const content = <>{face}<span className="gk-browse__group-name">{t(group.label)}</span><span className="gk-browse__group-count">{count}</span></>;
+    const content = <>{face}<span className="gk-browse__group-name">{t(group.label)}</span>{group.detail && <span className="gk-browse__group-detail">{group.detail}</span>}<span className="gk-browse__group-count">{count}</span></>;
     return (
         <li className="gk-browse__group" role="presentation">
             {pin && selection?.selectPin
@@ -68,8 +81,8 @@ function GroupHeader({ group, count }: { group: ResultGroup; count: number }) {
  * how many there are and the sort at the top. It folds to its header so the whole map shows. Grouped lists show
  * each group under a header that chooses its pin.
  */
-export function BrowsePanel({ source, data, groups, count, tools, folded, onToggle }: {
-    source: AnySource; data: DirectoryData; groups?: ArrangedGroup<unknown>[]; /** "10 clubs near Tbilisi". */ count: string; /** The sort, when there is one. */ tools?: ReactNode;
+export function BrowsePanel({ source, data, groups, places, count, tools, folded, onToggle }: {
+    source: AnySource; data: DirectoryData; groups?: ArrangedGroup<unknown>[]; /** Crests for lines that show them. */ places?: Places; /** "10 clubs near Tbilisi". */ count: string; /** The sort, when there is one. */ tools?: ReactNode;
     folded: boolean; onToggle: () => void;
 }) {
     const t = useWorldCopy();
@@ -84,7 +97,7 @@ export function BrowsePanel({ source, data, groups, count, tools, folded, onTogg
         selection.clear();
         row?.focus();
     };
-    const row = (item: unknown) => <DirectoryItemKey.Provider key={source.key(item)} value={source.key(item)}><BrowseRow line={source.line(item)} /></DirectoryItemKey.Provider>;
+    const row = (item: unknown) => <DirectoryItemKey.Provider key={source.key(item)} value={source.key(item)}><BrowseRow line={source.line(item, places)} /></DirectoryItemKey.Provider>;
     return (
         <section className="gk-browse" data-folded={folded || undefined} aria-labelledby={heading}>
             <header className="gk-browse__head">

@@ -3,8 +3,8 @@ import type { HistoryMatch } from '../../../matchHistory/api';
 import { plural, useWorldCopy } from '../../copy';
 import { fixtureDay, hasStarted } from '../../format';
 import { fixturesLink, useNextOpponents, useSquadBoards, useWatchList } from '../coach/coachMatches';
-import { counted } from '../coach/form';
-import { HistoryLine } from '../coach/HistoryLine';
+import { counted } from '../../scoreboard/form';
+import { HistoryLine } from '../../scoreboard/HistoryLine';
 import { lastPlayedOf, loadDays, restBefore, restLabel } from '../coach/load';
 import { LoadStrip } from '../coach/LoadStrip';
 import { useSquadFocus } from '../coach/mySquads';
@@ -13,7 +13,7 @@ import { SquadGate } from '../coach/SquadSwitch';
 import { WorldField } from '../WorldField';
 import { ErrorNote } from '../../directory/DirectoryResults';
 import { crestsOf, when, type FieldProps } from './fieldProps';
-import { ScoreGroups } from './Scoreboard';
+import { ScoreGroups } from '../../scoreboard/Scoreboard';
 
 const soonest = (match?: HistoryMatch | null) => match?.startsAt ? Date.parse(match.startsAt) : Infinity;
 /** Played matches: history also returns cancelled fixtures, which are no one's result. */

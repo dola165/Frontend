@@ -29,10 +29,19 @@ export function usePlacedPoints(source: AnySource, items: unknown[], open: boole
             // A pin that is the result itself opens it as its line does: the same words and the same place
             // ("See times" keeps the date searched). A pin several results share (a club, a city) keeps its own.
             if (!at || at.action || at.pin) return at;
-            const line = source.line(item);
+            const line = source.line(item, places ?? NO_PLACES);
             return { ...at, action: line.action, to: line.to ?? at.to };
         }, WORDS)
         // eslint-disable-next-line react-hooks/exhaustive-deps -- the language is read inside wt(), not seen by the rule
         : EMPTY, [source, items, places, georgian]);
-    return { ...placed, loading: lookup.loading, incomplete: Boolean(lookup.data?.incomplete || lookup.error), retry: lookup.retry };
+    // A pin says what its results have in common (a kick-off time), when the source says it.
+    const points = useMemo(() => {
+        if (!source.where) return placed.points;
+        const byKey = new Map(items.map(item => [source.key(item), item]));
+        return placed.points.map(point => {
+            const chip = source.where!((placed.keysOf.get(point.id) ?? []).map(key => byKey.get(key)).filter(item => item !== undefined)).chip;
+            return chip ? { ...point, chip } : point;
+        });
+    }, [source, items, placed]);
+    return { ...placed, points, places: places ?? NO_PLACES, loading: lookup.loading, incomplete: Boolean(lookup.data?.incomplete || lookup.error), retry: lookup.retry };
 }

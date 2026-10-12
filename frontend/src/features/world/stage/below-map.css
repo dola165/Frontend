@@ -1,6 +1,6 @@
 /* The hand-over from the map to the page under it: room above, the list's name and count, its options at the end,
    and a line under it all. Scoped under .gk; tokens only. */
-.gk .gk-world-below { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-4); margin: var(--gk-4) 0 var(--gk-4);
+.gk .gk-world-below { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-4); margin: var(--gk-8) 0 var(--gk-4);
   padding-bottom: var(--gk-3); border-bottom: 1px solid var(--gk-line); }
 .gk .gk-world-below__title { display: flex; align-items: center; gap: var(--gk-3); min-width: 0; }
 .gk .gk-world-below__icon { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--gk-accent-soft); color: var(--gk-accent); }
@@ -9,7 +9,7 @@
 .gk .gk-world-below__hint { white-space: nowrap; font-size: var(--gk-fs-sm); color: var(--gk-text-3); font-variant-numeric: tabular-nums; }
 .gk .gk-world-below__tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
 @media (max-width: 640px) {
-  .gk .gk-world-below { margin-top: var(--gk-3); }
+  .gk .gk-world-below { margin-top: var(--gk-5); }
   .gk .gk-world-below h2 { font-size: var(--gk-fs-lg); }
   .gk .gk-world-below__title { flex-wrap: wrap; row-gap: 2px; }
 }

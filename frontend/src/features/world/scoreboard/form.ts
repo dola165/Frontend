@@ -1,4 +1,4 @@
-import type { HistoryMatch } from '../../../matchHistory/api';
+import type { HistoryMatch } from '../../matchHistory/api';
 
 export type Outcome = 'W' | 'D' | 'L';
 /** One result from one side's point of view. */

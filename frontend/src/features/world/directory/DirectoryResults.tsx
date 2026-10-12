@@ -4,8 +4,9 @@ import { plural, useWorldCopy } from '../copy';
 import { Crest } from '../Crest';
 import type { ArrangedGroup } from './groups';
 import { DirectoryItemKey } from './selection';
-import type { AnySource } from './types';
+import type { AnySource, DirectoryQuery, NavProps } from './types';
 import type { DirectoryData } from './useDirectoryData';
+import { ScoreResults, ScoreSkeleton } from './ScoreResults';
 import './result-row.css';
 
 /** An error with a way to try again. */
@@ -31,6 +32,7 @@ export function SkeletonRows({ count, label }: { count: number; label: string })
 function LoadingResults({ source }: { source: AnySource }) {
     const t = useWorldCopy();
     const label = t('Loading {things}', { things: t(source.noun[1]) });
+    if (source.layout === 'scores') return <ScoreSkeleton label={label} />;
     if (source.layout === 'results') return (
         <ul className="gk-results" role="status" aria-label={label}>
             {Array.from({ length: 6 }, (_, index) => <li key={index} className="gk-world-skeleton-row"><Skeleton height={56} width={56} /><span><Skeleton height={16} width="45%" /><Skeleton height={12} width="70%" /><Skeleton height={12} width="35%" /></span></li>)}
@@ -45,8 +47,9 @@ function LoadingResults({ source }: { source: AnySource }) {
 }
 
 /** Results of one source with honest loading, error, notice, empty and load-more states. */
-export function DirectoryResults({ source, data, groups, filtered, onClear, onWiden, onClearFor }: {
+export function DirectoryResults({ source, data, groups, filtered, onClear, onWiden, onClearFor, query, go }: {
     source: AnySource; data: DirectoryData; /** The results in their groups, when the list is grouped. */ groups?: ArrangedGroup<unknown>[];
+    /** For a source's own empty state (`source.Empty`). */ query?: DirectoryQuery; go?: NavProps['go'];
     filtered: boolean; /** Absent when nothing can be cleared. */ onClear?: () => void;
     /** The list was narrowed to a city: search every city instead. */ onWiden?: () => void;
     /** The list was narrowed to a child (`source.forWhom`): search for anyone instead. */ onClearFor?: () => void;
@@ -56,7 +59,10 @@ export function DirectoryResults({ source, data, groups, filtered, onClear, onWi
     if (data.notice) return <div className="gk-notice" role="status">{data.notice}</div>;
     if (data.loading) return <LoadingResults source={source} />;
     if (data.error) return <ErrorNote message={data.error} onRetry={data.retry} />;
-    if (!data.items.length) {
+    // Lanes are shown even when every one is empty: each says what it is waiting for.
+    const standing = source.layout === 'scores' && Boolean(groups?.some(group => group.group.empty));
+    if (!data.items.length && !standing && source.Empty && query && go) return <source.Empty query={query} go={go} filtered={filtered} onClear={onClear} />;
+    if (!data.items.length && !standing) {
         // Only a list the area narrows can say there are none near the city.
         const city = source.area === true ? data.area?.city : undefined, who = source.forWhom;
         // An empty list names what narrowed it (the filters, the child, the city) and offers to widen each.
@@ -83,6 +89,14 @@ export function DirectoryResults({ source, data, groups, filtered, onClear, onWi
         if (source.layout === 'results') return <ul className="gk-results" aria-label={label}>{items}</ul>;
         return source.layout === 'rows' ? <Panel flush><List label={label}>{items}</List></Panel> : <div className="gk-world-cards">{items}</div>;
     };
+    const more = (data.hasMore || data.moreError) && (
+        <div className="gk-world-more">
+            {data.total != null && <span className="gk-faint">{t('Showing {count} of {total}', { count: data.items.length, total: plural(data.total, source.noun[0], source.noun[1]) })}</span>}
+            {data.moreError && <span role="alert" className="gk-world-more__error">{data.moreError}</span>}
+            <Button onClick={data.loadMore} disabled={data.loadingMore}>{data.loadingMore ? t('Loading…') : t('Show more {things}', { things })}</Button>
+        </div>
+    );
+    if (source.layout === 'scores') return <div className="gk-stack gk-stack--tight"><ScoreResults source={source} groups={groups} items={data.items} label={t(source.label)} />{more}</div>;
     return (
         <div className="gk-stack gk-stack--tight">
             {groups && groups.length > 1
@@ -96,13 +110,7 @@ export function DirectoryResults({ source, data, groups, filtered, onClear, onWi
                     </section>
                 ))
                 : laid(data.items, t(source.label))}
-            {(data.hasMore || data.moreError) && (
-                <div className="gk-world-more">
-                    {data.total != null && <span className="gk-faint">{t('Showing {count} of {total}', { count: data.items.length, total: plural(data.total, source.noun[0], source.noun[1]) })}</span>}
-                    {data.moreError && <span role="alert" className="gk-world-more__error">{data.moreError}</span>}
-                    <Button onClick={data.loadMore} disabled={data.loadingMore}>{data.loadingMore ? t('Loading…') : t('Show more {things}', { things })}</Button>
-                </div>
-            )}
+            {more}
         </div>
     );
 }

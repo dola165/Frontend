@@ -4,7 +4,7 @@ import { plural, useWorldCopy } from '../../copy';
 import { Crest } from '../../Crest';
 import { JobRow } from '../../rows';
 import { codeLabel, fixtureDay, fixtureTime } from '../../format';
-import { Line, ScoreGroups } from './Scoreboard';
+import { Line, ScoreGroups } from '../../scoreboard/Scoreboard';
 import { useCampaigns, useJobs, useTrials } from '../frontData';
 import type { FieldId } from '../fields';
 import { Cluster, WorldField } from '../WorldField';

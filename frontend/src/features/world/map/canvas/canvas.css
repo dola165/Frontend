@@ -40,5 +40,7 @@
 .gk .gk-map-popover input[type='range'] { width: 100%; accent-color: var(--gk-accent); }
 .gk .gk-spin { animation: gk-spin 1s linear infinite; }
 @keyframes gk-spin { to { transform: rotate(360deg); } }
+/* An away day's distance, on its line. */
+.gk .gk-map-label.gk-map-label--away { border-color: var(--gk-accent); color: var(--gk-text); font-variant-numeric: tabular-nums; cursor: help; }
 /* A stated reach's label: dashed, like its ring, and never cut short (it says the area is as stated). */
 .gk .gk-map-label.gk-map-label--reach { max-width: none; border-style: dashed; border-color: var(--gk-accent); color: var(--gk-text-2); font-weight: 500; }

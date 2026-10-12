@@ -4,7 +4,7 @@ import { Expand, Maximize2, RotateCw, Search } from 'lucide-react';
 import type { MapBounds } from '../../../components/map/areaSearch';
 import { plural, useWorldCopy } from '../copy';
 import type { WorldMapPoint } from '../map/WorldMap';
-import { useStageMap, type MapReach } from '../stage/stageContext';
+import { useStageMap, type MapLine, type MapReach } from '../stage/stageContext';
 import { useWorldArea } from '../useWorldArea';
 import type { AnySource, DirectoryQuery } from './types';
 import type { DirectoryData } from './useDirectoryData';
@@ -20,14 +20,14 @@ const NONE: WorldMapPoint[] = [];
  * search there. A list with nothing to place (referees, or one behind sign-in) keeps the map and says why it is empty.
  * Once the map has flown to a chosen result, a pill offers to show every pin again.
  */
-export function useDirectoryMap({ source, query, data, gated, mappable, placed, choice, open, panel, summary, card, context, reach, bounds }: {
+export function useDirectoryMap({ source, query, data, gated, mappable, placed, choice, open, panel, summary, card, context, reach, away, bounds, insetTop }: {
     source: AnySource; query: DirectoryQuery; data: DirectoryData; gated: boolean;
     /** The list puts its results on the map. */ mappable: boolean; placed: ReturnType<typeof usePlacedPoints>;
     choice: ReturnType<typeof useDirectorySelection>;
     /** The map is open (not folded to its strip). */ open: boolean; /** The Browse area panel floats over the map. */ panel: boolean;
     /** What the folded strip says. */ summary: string; /** The map's own card may show the chosen pin. */ card: boolean;
     /** Places that give the results context, the chosen result's stated reach, and the box a flight to it frames. */
-    context?: WorldMapPoint[]; reach?: MapReach; bounds?: MapBounds;
+    context?: WorldMapPoint[]; reach?: MapReach; /** The chosen result's away day. */ away?: MapLine; bounds?: MapBounds; /** Room the map keeps at its top (the day strip over it). */ insetTop?: number;
 }) {
     const t = useWorldCopy();
     const { area, setCity } = useWorldArea();
@@ -46,7 +46,7 @@ export function useDirectoryMap({ source, query, data, gated, mappable, placed, 
             : loading ? t('Placing results on the map…') : [t('{count} on the map', { count: plural(onMap, source.noun[0], source.noun[1]) }), missing].filter(Boolean).join(' · ');
     useStageMap({
         label: t('{things} on the map', { things: t(source.label) }),
-        points: mappable ? placed.points : NONE, panel, summary, card, context, reach,
+        points: mappable ? placed.points : NONE, panel, summary, card, context, reach, away, insetTop,
         focus: choice.focus && bounds ? { ...choice.focus, bounds } : choice.focus, frame: choice.frame,
         selectedId: choice.selectedPin, onSelect: choice.selectPin, onHover: choice.setHoverPin,
         highlightId: choice.hoverKey ? placed.pinOf.get(choice.hoverKey) : choice.hoverPin,

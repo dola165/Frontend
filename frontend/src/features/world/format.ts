@@ -107,7 +107,7 @@ export const ENGAGEMENT: Record<string, { label: string; tone: BadgeTone }> = {
 };
 /** A published event's kind. */
 export const EVENT_BADGE: Record<string, { label: string; tone: BadgeTone }> = {
-    MATCH: { label: 'Match', tone: 'accent' }, TOURNAMENT: { label: 'Competition', tone: 'violet' }, TRYOUT: { label: 'Trial', tone: 'warning' }, TRAINING: { label: 'Training', tone: 'info' }, OTHER: { label: 'Event', tone: 'neutral' },
+    MATCH: { label: 'Match', tone: 'accent' }, TOURNAMENT: { label: 'Tournament', tone: 'violet' }, TRYOUT: { label: 'Trial', tone: 'warning' }, TRAINING: { label: 'Training', tone: 'info' }, OTHER: { label: 'Event', tone: 'neutral' },
 };
 /** A person's football role. */
 export const PERSON_ROLE: Record<string, string> = { COACH: 'Coach', PLAYER: 'Player', REFEREE: 'Referee', SPECIALIST: 'Specialist', CLUB_STAFF: 'Club staff' };

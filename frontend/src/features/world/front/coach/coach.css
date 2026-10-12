@@ -1,37 +1,5 @@
-/* A coach's World: form guides, small tables, the next opponent, free pitch slots and match load.
+/* A coach's World: the next opponent, free pitch slots and match load (form guides and tables: scoreboard/).
    Score-site shapes, compact like Home. Scoped under .gk; tokens only. */
-
-/* Form guide: W/D/L squares, newest on the left. */
-.gk .gk-form { display: inline-flex; align-items: center; gap: 3px; }
-.gk .gk-form__r { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; font-size: 10px; font-weight: 750; line-height: 1; color: var(--gk-on-accent); background: var(--gk-accent); }
-.gk .gk-form__r[data-r='D'] { background: var(--gk-raised); color: var(--gk-text-2); box-shadow: inset 0 0 0 1px var(--gk-line-strong); }
-.gk .gk-form__r[data-r='L'] { background: var(--gk-danger); color: var(--gk-bg); }
-.gk .gk-form__none { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
-
-/* Mini table: # · team · P · GD · Pts, my row highlighted, places that go through marked on the rank. */
-.gk .gk-mtable { width: 100%; border-collapse: collapse; font-size: var(--gk-fs-sm); font-variant-numeric: tabular-nums; }
-.gk .gk-mtable th { padding: 4px 6px; font-size: var(--gk-fs-xs); font-weight: 600; color: var(--gk-text-3); text-align: right; }
-.gk .gk-mtable th:nth-child(2), .gk .gk-mtable td:nth-child(2) { text-align: left; }
-.gk .gk-mtable td { height: 28px; padding: 0 6px; text-align: right; color: var(--gk-text-2); border-top: 1px solid color-mix(in srgb, var(--gk-line) 70%, transparent); }
-.gk .gk-mtable td:first-child { width: 30px; text-align: center; }
-.gk .gk-mtable td:last-child { font-weight: 700; color: var(--gk-text); }
-.gk .gk-mtable__rank { display: inline-grid; place-items: center; min-width: 20px; height: 20px; border-radius: 4px; font-size: var(--gk-fs-xs); font-weight: 650; }
-.gk .gk-mtable__rank[data-through] { background: var(--gk-accent-soft); color: var(--gk-accent); }
-.gk .gk-mtable__team { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 220px; }
-.gk .gk-mtable__team span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gk .gk-mtable__team svg { flex: none; width: 11px; height: 11px; color: var(--gk-warning); fill: currentColor; }
-.gk .gk-mtable tr[data-mine] td { background: var(--gk-accent-soft); color: var(--gk-text); font-weight: 650; }
-.gk .gk-mtable__key { display: flex; align-items: center; gap: 6px; margin: 6px 0 0; font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
-.gk .gk-mtable__key .gk-mtable__rank { min-width: 12px; height: 12px; }
-.gk .gk-mtable tr[data-gap] td { height: 18px; text-align: center; color: var(--gk-text-3); letter-spacing: .2em; }
-
-/* Cup run: one step per round, won, lost or next. */
-.gk .gk-cup { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.gk .gk-cup li { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--gk-r-pill); background: var(--gk-raised); font-size: var(--gk-fs-xs); color: var(--gk-text-2); }
-.gk .gk-cup li b { color: var(--gk-text); font-weight: 650; font-variant-numeric: tabular-nums; }
-.gk .gk-cup li[data-state='W'] { background: var(--gk-accent-soft); }
-.gk .gk-cup li[data-state='L'] { background: var(--gk-danger-soft); }
-.gk .gk-cup li[data-state='next'] { box-shadow: inset 0 0 0 1px var(--gk-accent); }
 
 /* Free pitch slots: small pill links, one per start time. */
 .gk .gk-slots { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }

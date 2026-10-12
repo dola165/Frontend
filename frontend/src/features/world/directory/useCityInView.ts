@@ -1,10 +1,9 @@
 import { fetchNearbyMap } from '../../../api/map';
 import type { MapBounds } from '../../../components/map/areaSearch';
-import { shared } from '../cache';
+import { shared, detached } from '../cache';
 import { useWorldCities, type WorldArea } from '../useWorldArea';
 import { useWorldData } from '../useWorldData';
 
-const detached = () => new AbortController().signal;
 const round = (value: number) => value.toFixed(2);
 
 /** The city most places in a map view belong to, by the clubs and venues in it; null when there are none. */

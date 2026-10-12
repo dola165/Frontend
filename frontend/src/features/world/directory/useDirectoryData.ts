@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { extractApiErrorMessage } from '../../../utils/apiError';
+import { WORLD_CHANGED } from '../cache';
 import { wt } from '../copy';
 import { useWorldArea, type WorldArea } from '../useWorldArea';
 import type { AnySource, DirectoryArea, DirectoryPage, DirectoryQuery, LoadContext } from './types';
@@ -16,7 +17,7 @@ export const directoryArea = (source: AnySource, area: WorldArea): DirectoryArea
 /** One empty list for every source with no results yet, so the map does not refit on every render. */
 const NO_ITEMS: unknown[] = [];
 
-interface Loaded { key: string; attempt: number; items: unknown[]; total: number | null; hasMore: boolean; page: number; error: string; notice: string }
+interface Loaded { key: string; attempt: number; items: unknown[]; total: number | null; hasMore: boolean; page: number; error: string; notice: string; /** When the list was last loaded or refreshed. */ checkedAt?: number }
 
 /** Loads pages 0..count-1 one after another and joins them, so a list can come back as long as it was. */
 export async function loadPages(source: AnySource, query: DirectoryQuery, count: number, context: LoadContext) {
@@ -65,7 +66,7 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
         const controller = new AbortController();
         moreController.current?.abort();
         void firstLoad(controller.signal)
-            .then(result => { if (!controller.signal.aborted) setLoaded({ key, attempt, items: result.items, total: result.total, hasMore: result.hasMore, page: result.page, error: '', notice: result.notice ?? '' }); })
+            .then(result => { if (!controller.signal.aborted) setLoaded({ key, attempt, items: result.items, total: result.total, hasMore: result.hasMore, page: result.page, error: '', notice: result.notice ?? '', checkedAt: Date.now() }); })
             .catch(cause => { if (!controller.signal.aborted) setLoaded({ key, attempt, items: [], total: null, hasMore: false, page: 0, error: extractApiErrorMessage(cause, wt('{label} could not load.', { label: wt(source.label) })), notice: '' }); });
         return () => controller.abort();
     }, [key, attempt, source.label]);
@@ -74,11 +75,12 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
     const refresh = useEffectEvent((signal: AbortSignal) => {
         if (!key || !loaded || loaded.key !== key || loaded.error || (more?.key === key && more.busy)) return;
         void loadPages(source, query, loaded.page + 1, { signal, sessionId, authenticated, area })
-            .then(result => { if (!signal.aborted) setLoaded(previous => previous && previous.key === key ? { ...previous, items: result.items, total: result.total, hasMore: result.hasMore, page: result.page, notice: result.notice ?? '' } : previous); })
+            .then(result => { if (!signal.aborted) setLoaded(previous => previous && previous.key === key ? { ...previous, items: result.items, total: result.total, hasMore: result.hasMore, page: result.page, notice: result.notice ?? '', checkedAt: Date.now() } : previous); })
             .catch(() => undefined);
     });
+    const every = typeof source.refreshMs === 'function' ? source.refreshMs(query) : source.refreshMs;
     useEffect(() => {
-        if (!key || !source.refreshMs) return;
+        if (!key) return;
         let controller: AbortController | null = null;
         const run = () => {
             if (document.visibilityState === 'hidden') return;
@@ -86,10 +88,12 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
             controller = new AbortController();
             refresh(controller.signal);
         };
-        const timer = window.setInterval(run, source.refreshMs);
-        window.addEventListener('focus', run);
-        return () => { window.clearInterval(timer); window.removeEventListener('focus', run); controller?.abort(); };
-    }, [key, source.refreshMs]);
+        // Something changed elsewhere in World (a result confirmed in a drawer): every list reloads quietly.
+        window.addEventListener(WORLD_CHANGED, run);
+        const timer = every ? window.setInterval(run, every) : undefined;
+        if (every) window.addEventListener('focus', run);
+        return () => { window.clearInterval(timer); window.removeEventListener(WORLD_CHANGED, run); window.removeEventListener('focus', run); controller?.abort(); };
+    }, [key, every]);
 
     const current = loaded && loaded.key === key && loaded.attempt === attempt ? loaded : undefined;
     const loadMore = () => {
@@ -120,6 +124,8 @@ export function useDirectoryData(source: AnySource, query: DirectoryQuery, gated
         loadMore,
         loadingMore: more?.key === key && more.busy,
         moreError: more?.key === key ? more.error : '',
+        /** When the list was last loaded or quietly refreshed. */
+        checkedAt: current?.checkedAt,
         /** The area the results were narrowed to, once it is known, if the source is narrowed by area. */
         area: waiting ? undefined : area,
     };

@@ -10,6 +10,9 @@ export const activityIcons: Record<ScheduleEventType, LucideIcon> = { MATCH: Tro
  */
 export const activityColors: Record<ScheduleEventType, string> = { MATCH: 'var(--gk-accent, var(--color-accent))', FRIENDLY: 'var(--gk-accent, var(--color-accent))', TRAINING: 'var(--gk-info, var(--color-info))', ACTIVITY: 'var(--gk-violet, var(--color-purple))', TRYOUT: 'var(--color-pink)' };
 
+/** A team trip: not a schedule entry of its own, but drawn with the activities. */
+export const outing = { icon: Bus, color: 'var(--color-cyan)' };
+
 /** The symbols with their meaning and colour, for the legend people learn them from. */
 export const activityLegend: { icon: LucideIcon; name: string; meaning: string; color: string }[] = [
     { icon: CalendarDays, name: 'Calendar', meaning: 'Schedule', color: 'var(--gk-text-2)' },
@@ -18,5 +21,5 @@ export const activityLegend: { icon: LucideIcon; name: string; meaning: string; 
     { icon: Cone, name: 'Training', meaning: 'Practice session', color: activityColors.TRAINING },
     { icon: Users, name: 'Club event', meaning: 'Club activity', color: activityColors.ACTIVITY },
     { icon: UserPlus, name: 'Trial', meaning: 'Players trying out', color: activityColors.TRYOUT },
-    { icon: Bus, name: 'Outing', meaning: 'Team trip', color: 'var(--color-cyan)' },
+    { icon: outing.icon, name: 'Outing', meaning: 'Team trip', color: outing.color },
 ];

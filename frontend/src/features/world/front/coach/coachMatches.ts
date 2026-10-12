@@ -2,15 +2,14 @@ import { useAuth } from '../../../../context/AuthContext';
 import type { AuthSessionId } from '../../../../utils/authStorage';
 import { getMatchHistory, type HistoryMatch } from '../../../matchHistory/api';
 import { get as exchangeGet, type Match } from '../../../matchExchange/api';
-import { fetchMatchListings } from '../../api';
+import { loadAllMine } from '../../directories/matches/arrangements';
 import { useWorldData } from '../../useWorldData';
-import { shared } from '../../cache';
-import { endOf, formOf, lastMeeting, sideIn, type FormResult } from './form';
-import { zoned } from './standings';
+import { shared, detached } from '../../cache';
+import { endOf, formOf, lastMeeting, sideIn, type FormResult } from '../../scoreboard/form';
+import { zoned } from '../../scoreboard/standings';
 import { fitsGender, type MySquad, type SquadFocus } from './mySquads';
 
 /** Shared requests outlive the field that started them, so they carry no field's abort signal. */
-const detached = () => new AbortController().signal;
 type Period = 'UPCOMING' | 'HISTORY';
 
 /** The squads' fixtures or results in the World directory: all squads in focus, or the one. */
@@ -93,7 +92,8 @@ export function useNextOpponents(focus: SquadFocus, max = 5) {
 export function useMyListings() {
     const { status, sessionId } = useAuth();
     const key = status === 'authenticated' ? `my-listings:${sessionId}` : null;
-    return useWorldData(key, () => shared(key!, () => fetchMatchListings(new URLSearchParams({ mine: 'true' }), detached()).then(page => page.items)));
+    // Every page: the backend lists them oldest first, 24 a page, so the first page alone misses the latest.
+    return useWorldData(key, () => shared(key!, () => loadAllMine('')));
 }
 
 /** One listing in full (with the offers on it), shared for a minute. */

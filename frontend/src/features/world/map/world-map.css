@@ -41,6 +41,10 @@
 
 /* Several results at one place: a bigger pin with the number; placed at its club: a ring, not a dot. */
 .gk .gk-world-pin[data-count]::after { width: 20px; height: 20px; }
+/* A pin's time ("11:00", "FT 4–3") beside it: only while few pins are in view, or on the lit pin. */
+.gk .gk-world-pin__chip { position: absolute; left: calc(100% + 2px); top: 50%; transform: translateY(-50%); display: none; padding: 1px 6px; border: 1px solid var(--gk-glass-line, var(--gk-line));
+  border-radius: var(--gk-r-pill); background: var(--gk-surface); color: var(--gk-text); font-size: 11px; font-weight: 650; line-height: 16px; white-space: nowrap; font-variant-numeric: tabular-nums; pointer-events: none; }
+.gk .gk-world-map__canvas[data-chips] .gk-world-pin__chip, .gk .gk-world-pin[data-selected] > .gk-world-pin__chip { display: block; }
 .gk .gk-world-pin__count { position: absolute; z-index: 1; font-size: 10px; font-weight: 750; line-height: 1; color: var(--gk-on-accent); pointer-events: none; }
 .gk .gk-world-pin[data-approx]::after { background: var(--gk-surface); box-shadow: inset 0 0 0 3px var(--pin), 0 1px 6px color-mix(in srgb, var(--gk-shadow) 40%, transparent); }
 .gk .gk-world-pin[data-approx][data-selected]::after { box-shadow: inset 0 0 0 3px var(--pin), 0 0 0 2px var(--gk-surface), 0 0 0 5px color-mix(in srgb, var(--pin) 45%, transparent); }

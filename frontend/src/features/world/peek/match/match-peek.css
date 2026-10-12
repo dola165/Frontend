@@ -1,0 +1,39 @@
+/* The match drawer, as score sites open a fixture, and the tournament drawer. The drawer sits outside World's own
+   frame, so glass tokens fall back to the surface. Scoped under .gk; tokens only. */
+.gk .gk-mpeek__head { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .gk-mpeek__band { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: var(--gk-3); padding: var(--gk-4) var(--gk-2);
+  border: 1px solid var(--gk-line); border-radius: 14px; background: var(--gk-raised); }
+.gk .gk-mpeek__side { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; text-align: center; }
+.gk .gk-mpeek__club { max-width: 100%; color: var(--gk-text); font-size: var(--gk-fs-md); font-weight: 650; line-height: 1.25; text-decoration: none; overflow-wrap: anywhere; }
+a.gk-mpeek__club:hover { text-decoration: underline; }
+.gk .gk-mpeek__club:focus-visible { outline: none; border-radius: 4px; box-shadow: 0 0 0 2px var(--gk-accent); }
+.gk .gk-mpeek__side small { display: inline-flex; align-items: center; gap: 4px; color: var(--gk-text-3); font-size: var(--gk-fs-xs); }
+.gk .gk-mpeek__mine { width: 11px; height: 11px; color: var(--gk-warning); fill: currentColor; }
+.gk .gk-mpeek__centre { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 96px; padding-top: var(--gk-3); text-align: center; }
+.gk .gk-mpeek__centre small { color: var(--gk-text-3); font-size: var(--gk-fs-xs); white-space: nowrap; }
+.gk .gk-mpeek__score, .gk .gk-mpeek__time { font-size: 28px; line-height: 34px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.gk .gk-mpeek__word { font-size: var(--gk-fs-lg); font-weight: 700; color: var(--gk-text-2); }
+.gk .gk-mpeek__word[data-tone='danger'] { color: var(--gk-danger); }
+.gk .gk-mpeek__word[data-tone='accent'] { color: var(--gk-accent); }
+.gk .gk-mpeek__facts { display: flex; flex-wrap: wrap; gap: 6px var(--gk-4); margin: 0; padding: 0; list-style: none; font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
+.gk .gk-mpeek__facts li { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.gk .gk-mpeek__facts svg { flex: none; width: 15px; height: 15px; color: var(--gk-accent); }
+.gk .gk-mpeek__facts a { color: var(--gk-text); font-weight: 600; text-decoration: none; }
+.gk .gk-mpeek__facts a:hover { text-decoration: underline; }
+
+/* The one thing to do now, in the match page's own look. */
+.gk .gk-mpeek__action { margin-top: var(--gk-4); }
+.gk .gk-mpeek__action > .gk-mx { display: flex; flex-direction: column; gap: var(--gk-3); }
+
+/* Form: each side's last results as W/D/L squares, then their last meeting as a score line. */
+.gk .gk-mpeek__forms { display: flex; flex-direction: column; gap: var(--gk-2); margin: 0 0 var(--gk-3); padding: 0; list-style: none; }
+.gk .gk-mpeek__forms li { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; }
+.gk .gk-mpeek__form-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--gk-fs-sm); }
+.gk .gk-mpeek__met { margin: 0; border: 1px solid var(--gk-line); border-radius: 12px; overflow: hidden; }
+
+/* The tournament drawer: its banner, name, dates and who runs it. */
+.gk .gk-tpeek__banner { display: block; width: 100%; height: 140px; margin-bottom: var(--gk-3); border-radius: 12px; object-fit: cover; background: var(--gk-raised); }
+.gk .gk-tpeek__head h3 { margin: 0; font-size: var(--gk-fs-xl, 20px); font-weight: 700; }
+.gk .gk-tpeek__head small { color: var(--gk-text-3); font-size: var(--gk-fs-sm); }
+/* On a touch screen the drawer's club and tournament links are 44px tall to press. */
+@media (pointer: coarse) { .gk a.gk-mpeek__club, .gk .gk-mpeek__facts a { display: inline-flex; align-items: center; min-height: 44px; } }

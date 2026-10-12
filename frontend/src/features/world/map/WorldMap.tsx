@@ -7,7 +7,7 @@ import { useWorldCopy } from '../copy';
 import { useWorldData } from '../useWorldData';
 import { Crest } from '../Crest';
 import { useAppTheme } from './canvas/useMapTheme';
-import type { MapFocus, MapReach } from '../stage/stageContext';
+import type { MapFocus, MapLine, MapReach } from '../stage/stageContext';
 import { pinData, pinHover, pinLabel, shownCount } from './pins';
 import './world-map.css';
 
@@ -24,6 +24,7 @@ export interface WorldMapPoint {
     /** The kinds of result at a pin that holds several (its tone is then "mixed"). */ tones?: WorldMapTone[];
     /** What the card calls opening `to` ("Open club"); "Open" when absent. */ action?: string;
     /** The crest of the club the pin is (people counted at their club). */ crest?: string | null;
+    /** A few characters beside the pin ("11:00", "FT 4–3"), shown while few pins are in view or when it is lit. */ chip?: string;
 }
 
 const TONE_LABEL: Record<WorldMapTone, string> = { club: 'Clubs', venue: 'Venues', match: 'Matches', trial: 'Trials', event: 'Events', training: 'Training', person: 'People', mixed: 'Several kinds' };
@@ -37,6 +38,7 @@ export function PinFace({ point }: { point: WorldMapPoint }) {
     return <>
         {point.crest && <Crest src={point.crest} name={point.label} size={24} round />}
         {count != null && <span className="gk-world-pin__count">{count}</span>}
+        {point.chip && <span className="gk-world-pin__chip" aria-hidden="true">{point.chip}</span>}
     </>;
 }
 
@@ -73,24 +75,28 @@ function MapSketch({ points, context = [], selectedId, highlightId, onSelect, on
  * A map of World results. Uses the street map when it can load, and otherwise shows the same points on a plain
  * sketch so results stay usable without map tiles. `hero` is the big glass look of World's overview and tabs.
  */
-export function WorldMap({ points, label, selectedId, highlightId, onSelect, onHover, onMoveEnd, className, footer, overlay, insetRight, variant, cardActions, focus, frame, card = true, context, reach }: {
+export function WorldMap({ points, label, selectedId, highlightId, onSelect, onHover, onMoveEnd, className, footer, overlay, insetRight, insetTop, variant, cardActions, focus, frame, card = true, context, reach, away }: {
     points: WorldMapPoint[]; label: string; selectedId?: string; /** A point to emphasise, such as the result under the pointer. */ highlightId?: string;
     onSelect?: (id?: string) => void; /** The pointer or focus is on a pin (or left it). */ onHover?: (id?: string) => void;
     /** The person panned or zoomed the map (framing the points does not count). */ onMoveEnd?: (bounds: MapBounds) => void;
     className?: string; footer?: ReactNode;
     /** Things floating on the map itself, such as counts and the way to the full map. */ overlay?: ReactNode;
     /** Room kept free on the right for a panel floating over the map (pixels). */ insetRight?: number;
+    /** Room kept free at the top for something floating over the map (pixels). */ insetTop?: number;
     variant?: 'hero';
     /** More ways on from the chosen pin's card, besides Open and Close. */ cardActions?: (point: WorldMapPoint) => ReactNode;
     /** Fly to one pin (see `StageMap.focus`); a new `frame` frames every pin again. */ focus?: MapFocus; frame?: number;
     /** False while the page shows the chosen result itself, so the card stays hidden. */ card?: boolean;
     /** Places that give the results context (see `StageMap.context`), and a stated reach to draw (`StageMap.reach`). */ context?: WorldMapPoint[]; reach?: MapReach;
+    /** An away day to draw (`StageMap.away`). */ away?: MapLine;
 }) {
     const t = useWorldCopy();
     const theme = useAppTheme();
     const style = useWorldData(`map-style:${theme}`, () => getHeritageStyle(theme, { includeTerrain: false }));
     const [liveFailed, setLiveFailed] = useState(false);
     const [ownSelection, setOwnSelection] = useState<string>();
+    // Pins say their time only while few are in view (the live map counts them as it moves; the sketch shows them all).
+    const [fewInView, setFewInView] = useState(true);
     // A page that handles choosing owns the selection, so a pin chosen on another page never stays chosen here.
     const selected = onSelect ? selectedId : ownSelection;
     const select = (id?: string) => { setOwnSelection(id); onSelect?.(id); };
@@ -101,10 +107,10 @@ export function WorldMap({ points, label, selectedId, highlightId, onSelect, onH
     const pins: PinEvents = { selectedId: selected, highlightId, onSelect: select, onHover };
     return (
         <div className={`gk-world-map${variant ? ` gk-world-map--${variant}` : ''}${className ? ` ${className}` : ''}`} role="region" aria-label={label}>
-            <div className="gk-world-map__canvas" data-card={point ? true : undefined}>
+            <div className="gk-world-map__canvas" data-card={point ? true : undefined} data-chips={(live ? fewInView : points.length <= 12) || undefined}>
                 {live
                     ? <Suspense fallback={<MapSketch points={points} context={context} {...pins} />}>
-                        <WorldLiveMap style={style.data!} points={points} context={context} reach={reach} {...pins} onMoveEnd={onMoveEnd} onFail={() => setLiveFailed(true)} insetRight={insetRight} focus={focus} frame={frame} />
+                        <WorldLiveMap style={style.data!} points={points} context={context} reach={reach} away={away} {...pins} onMoveEnd={onMoveEnd} onFail={() => setLiveFailed(true)} insetRight={insetRight} insetTop={insetTop} focus={focus} frame={frame} onFewInView={setFewInView} />
                     </Suspense>
                     : <MapSketch points={points} context={context} {...pins} />}
                 {(tones.length > 1 || approximate.length > 0) && (

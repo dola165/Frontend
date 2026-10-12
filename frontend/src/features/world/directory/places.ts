@@ -1,5 +1,5 @@
 import { fetchMapDiscovery, type MapMarkerDto } from '../../../api/map';
-import { shared } from '../cache';
+import { shared, detached } from '../cache';
 
 /** Kinds of place the World map search knows, by the ids the directories use. */
 export type PlaceKind = 'CLUB' | 'STADIUM' | 'TRYOUT' | 'TOURNAMENT' | 'MATCH';
@@ -33,7 +33,6 @@ export function indexPlaces(markers: MapMarkerDto[]): Places {
 
 /** Far enough from the area's centre to cover the country: the lookup is about placing results, not narrowing them. */
 const RADIUS_KM = 400;
-const detached = () => new AbortController().signal;
 
 /**
  * The places of these kinds around a centre, looked up once per kind for five minutes and shared by every tab.

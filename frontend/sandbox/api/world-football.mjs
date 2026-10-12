@@ -363,6 +363,10 @@ for (const m of matches) if (m.refereeId) {
   const fitting = refereesFitting(formatOfSquad(squadById(m.squadId)));
   if (fitting.length && !fitting.some(r => r.user_id === m.refereeId)) m.refereeId = fitting[m.id % fitting.length].user_id;
 }
+// One league fixture called off (the backend sends CANCELLED; the sandbox had none), never one a request points at.
+const calledOff = matches.find(m => m.kind === 'LEAGUE' && m.status === 'SCHEDULED' && ![101, 103, 105].includes(m.squadId) && m.start.toDateString() === at(2).toDateString())
+  ?? matches.find(m => m.kind === 'LEAGUE' && m.status === 'SCHEDULED' && ![101, 103, 105].includes(m.squadId) && m.start.getTime() > Date.now());
+if (calledOff) calledOff.status = 'CANCELLED';
 // (a) Dinamo friendlies from the shared fixture list, as arranged exchange matches.
 for (const m of matches.filter(m => m.kind === 'FRIENDLY')) {
   const ours = squadById(m.squadId), theirs = squadFor(m.opponentClubId, ours.ageGroup, ours.gender);
@@ -400,6 +404,18 @@ u14.proposals.push(proposal(squadById(119), 'Gldani would love this game. 13 pla
 const u16g = listing({ hostSquad: squadById(106), start: at(11, 17), minutes: 90, venueId: 202, title: 'U16 Girls looking for a friendly before the Black Sea Cup', level: 'DEVELOPMENT', description: 'Preparation match before the Black Sea Girls Cup. Happy to travel within Tbilisi or host at Digomi.', venuePreference: 'EITHER' });
 u16g.proposals.push(proposal(squadById(134), 'Mtskheta U16 girls are free that evening.'), proposal(squadById(142), 'Zugdidi U16 girls will be in Tbilisi that week.'));
 listing({ hostSquad: squadById(105), start: at(14, 18, 30), minutes: 90, venueId: 207, title: 'U16 Boys away friendly at Saburtalo', level: 'ELITE', description: 'Agreed with Saburtalo Youth. Kick-off 18:30, arrive by 17:30.', venuePreference: 'AWAY', opponentSquad: squadFor(4, 'U16', 'MALE'), status: 'ARRANGED', referee: refereesFitting('11_A_SIDE')[0].user_id });
+// (d) Arranged matches in every state a coach meets: played without a result yet, a referee still needed, a referee
+// invited who has not answered, one called off, and one on now by the schedule (it kicked off twenty minutes before the
+// sandbox started).
+const fittingReferee = format => refereesFitting(format)[0]?.user_id ?? null;
+const friendly = (hostSquad, opponentSquad, start, minutes, extra = {}) => listing({ hostSquad, opponentSquad, start, minutes, venueId: 202, level: 'DEVELOPMENT', status: 'ARRANGED', booked: true,
+  title: `${hostSquad.ageGroup === 'SENIOR' ? 'Senior' : hostSquad.ageGroup} friendly: ${clubById(hostSquad.clubId).short} v ${clubById(opponentSquad.clubId).short}`, description: 'Friendly arranged through Match exchange.', ...extra });
+friendly(squadById(107), squadFor(9, 'U18', 'MALE'), at(-2, 11), 90, { referee: fittingReferee('11_A_SIDE') });
+friendly(squadById(101), squadFor(3, 'SENIOR', 'MALE'), at(5, 19), 105, { level: 'COMPETITIVE', referee: null });
+const refereeAsked = friendly(squadById(104), squadFor(5, 'U14', 'FEMALE'), at(6, 12), 80, { referee: fittingReferee('9_A_SIDE') });
+if (refereeAsked.refereeId) refereeAsked.refereeInvite = { id: W.newId(), status: 'INVITED', duty: 'REFEREE', volunteer: false, fee: 80, currency: 'GEL' };
+friendly(squadById(108), squadFor(4, 'U19', 'MALE'), at(3, 18), 90, { venueId: 207, venuePreference: 'AWAY', status: 'CANCELLED', booked: false, referee: null, description: 'Called off: the pitch at Saburtalo is being relaid.' });
+friendly(squadById(106), squadFor(3, 'U16', 'FEMALE'), new Date(W.NOW.getTime() - 20 * 60_000), 90, { referee: fittingReferee('11_A_SIDE') });
 export const listingById = id => exchange.find(l => l.id === Number(id));
 const venueStatusOf = l => l.venuePreference === 'AWAY' && !l.opponentSquadId ? 'NEEDED' : l.booked ? 'BOOKED' : l.venueId || l.externalConfirmed ? 'HOST_CONFIRMED' : 'NEEDED';
 // An invited referee has not answered yet (`refereeInvite`); one chosen from applications or seeded has accepted.
@@ -412,14 +428,15 @@ export const listingView = (l, { detail = false } = {}) => {
   const eventStatus = l.status === 'CANCELLED' ? 'CANCELLED' : past && opp ? 'COMPLETED' : 'SCHEDULED';
   const listingStatus = l.status === 'OPEN' && past ? 'EXPIRED' : l.status;
   const head = mineHost ? personById(host.headCoachId) : null;
+  const resultStatus = l.score ? l.resultStatus ?? 'CONFIRMED' : null, scored = resultStatus === 'CONFIRMED';
   const out = {
     requested_club_id: l.requestedClubId, requested_squad_id: l.requestedSquadId ?? null, external_referee_name: l.externalRefereeName ?? null, referee_responsibility: l.refereeResponsibility ?? 'HOST', hosting_choice: l.hostingChoice ?? l.venuePreference,
     can_respond: !mineHost && listingStatus === 'OPEN' && l.requestedClubId === DINAMO, can_arrange_official: (l.refereeResponsibility ?? 'HOST') === 'OPPONENT' ? mineGuest : mineHost,
-    home_score: l.score ? l.score[0] : null, away_score: l.score ? l.score[1] : null, result_status: l.score ? 'CONFIRMED' : null, result_legacy: false,
+    home_score: scored ? l.score[0] : null, away_score: scored ? l.score[1] : null, result_status: resultStatus, result_legacy: false,
     event_id: l.id, squad_id: host.id, squad_name: host.name, club_id: club.id, club_name: club.name, club_profile_kind: CATEGORY_LABEL[clubCategory(club)], club_logo_url: club.logoUrl, club_banner_url: club.bannerUrl,
     title: l.title, description: l.description, starts_at: local(l.start), ends_at: local(l.end), starts_at_iso: iso(l.start), ends_at_iso: iso(l.end), timezone: TZ,
-    city: v?.city ?? l.place?.city ?? club.city, location_name: v ? v.name : l.place ? l.place.name : (l.venuePreference === 'AWAY' ? 'Your ground' : ''),
-    location_lat: v?.lat ?? (l.place ? l.place.lat : club.lat), location_lng: v?.lng ?? (l.place ? l.place.lng : club.lng),
+    city: v?.city ?? l.place?.city ?? club.city, location_name: v ? v.name : l.place ? l.place.name : null,
+    location_lat: v?.lat ?? l.place?.lat ?? (l.venuePreference === 'AWAY' ? null : club.lat), location_lng: v?.lng ?? l.place?.lng ?? (l.venuePreference === 'AWAY' ? null : club.lng),
     age_group: l.ageGroup, level: l.level, format: l.format, venue_preference: l.venuePreference, referee_required: l.refereeRequired, venue_id: v?.id ?? null, booking_id: l.booked ? 1400 + (l.id % 97) : null,
     external_venue_confirmed: Boolean(l.externalConfirmed), revision: l.revision, listing_status: listingStatus, event_status: eventStatus, venue_status: venueStatusOf(l), referee_status: refereeStatusOf(l),
     opponent_name: opp ? clubById(opp.clubId).name : null, opponent_club_id: opp?.clubId ?? null, opponent_squad_name: opp?.name ?? null, target_squad_id: opp?.id ?? null,
@@ -464,6 +481,8 @@ const ACTIVITIES = [
   [16, 10, 0, 60, 'ACTIVITY', 'Coaching staff meeting', 'Weekly staff meeting.', 202, 'Indoor hall'],
   [19, 18, 0, 90, 'ACTIVITY', 'Club open evening for new families', 'Tour of the academy, meet the coaches, Q&A on admissions.', 202, 'Indoor hall'],
 ];
+/** Club calendar events anyone may see (the rest stay inside the club): trials, the goalkeeper clinic and the open evening. */
+export const isPublicActivity = a => a.type === 'TRYOUT' || /Goalkeeper clinic|Club open evening/i.test(a.title);
 export const clubActivities = ACTIVITIES.map(([offset, h, m, minutes, type, title, description, venueId, pitch]) => ({ id: W.newId(), type, title, description, start: at(offset, h, m), end: plusMin(at(offset, h, m), minutes), venueId, pitch, clubId: DINAMO, squadId: null, status: 'SCHEDULED' }));
 export const personalEvents = [
   [1, 10, 0, 120, 'ACTIVITY', 'UEFA A licence: continuing education workshop', 'GFF coach education centre, Module 4: periodisation in youth football.', 'GFF Coach Education Centre, Saburtalo', 41.7286, 44.7466],

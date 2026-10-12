@@ -1,7 +1,7 @@
-import { useWorldCopy } from '../../copy';
-import { shortDate } from '../../format';
+import { useWorldCopy } from '../copy';
+import { shortDate } from '../format';
 import type { FormResult } from './form';
-import './coach.css';
+import './form-table.css';
 
 const WORD = { W: 'won', D: 'drew', L: 'lost' } as const;
 

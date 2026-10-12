@@ -5,8 +5,9 @@ import { useWorldCopy } from '../../copy';
 import { codeLabel, daysUntil, fixtureDay, fixtureTime, shortDate } from '../../format';
 import { useArrangements, useComingUp, useLiveCompetitions, useOpenCompetitions, useOpenMatches, useRefereeNeeded, useResults } from '../frontData';
 import { WorldField } from '../WorldField';
-import { rowsFor, when, type FieldProps } from './fieldProps';
-import { Line, MatchLine, ScoreGroups } from './Scoreboard';
+import { crestsOf, rowsFor, when, type FieldProps } from './fieldProps';
+import { HistoryLine } from '../../scoreboard/HistoryLine';
+import { Line, MatchLine, ScoreGroups } from '../../scoreboard/Scoreboard';
 
 /** "FC A vs FC B" into its two sides; a single name stays on the first line. */
 const sides = (name: string): [string, string] => { const [home, away] = name.split(/\s+v(?:s\.?)?\s+/i); return [home, away ?? '']; };
@@ -90,19 +91,18 @@ export function EventsField({ area, side }: FieldProps) {
 }
 
 /** Recorded results, under their competition, with the winner in bold. */
-export function ResultsField({ side }: FieldProps) {
+export function ResultsField({ side, markers }: FieldProps) {
     const t = useWorldCopy();
     const data = useResults();
     const items = data.data?.items ?? [];
+    const crestOf = crestsOf(markers);
     return (
         <WorldField id="results" side={side} count={data.data?.total ?? null} loading={data.loading} error={data.error} onRetry={data.retry}
             hint={items[0] ? shortDate(items[0].startsAt) : undefined} all={{ label: t('All results'), to: '/world/matches?period=HISTORY' }}>
             {items.length ? <ScoreGroups label={t('Latest results')} items={items.slice(0, rowsFor(side) + 3)}
                 group={match => match.tournamentName || (match.source === 'MATCH_EXCHANGE' ? t('Friendlies') : t('Club fixtures'))}>
-                {match => <MatchLine key={match.id} to={match.detailPath} title={match.title} state={match.homeScore != null ? 'FT' : undefined} time={fixtureTime(match.startsAt)} day={fixtureDay(match.startsAt)}
-                    home={{ name: [match.homeClubName, match.homeSquadName].filter(Boolean).join(' ') || match.title, score: match.homeScore }}
-                    away={{ name: [match.awayClubName, match.awaySquadName].filter(Boolean).join(' '), score: match.awayScore }}
-                    tag={match.homeScore != null ? fixtureDay(match.startsAt) : undefined} />}
+                {/* FT only once a score counts: a proposed or disputed score is not a result. */}
+                {match => <HistoryLine key={match.id} match={match} crestOf={crestOf} />}
             </ScoreGroups> : <EmptyNote title={t('No results recorded yet')} />}
         </WorldField>
     );

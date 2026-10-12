@@ -1,15 +1,14 @@
-import { Badge, FixtureRow, ListRow, type FixtureTone } from '../../design/primitives';
+import { Badge, FixtureRow, ListRow } from '../../design/primitives';
 import type { ClubJob } from '../clubs/api';
 import { labelForCategory } from '../clubs/jobLabels';
 import { structureLabels, type CompetitionCard } from '../competitions/api';
 import { postingLabel } from '../tryouts/tryoutCopy';
 import type { TryoutPosting } from '../tryouts/api';
-import { eventDestination, type EventItem } from '../requests/api';
 import type { PersonSummary } from './api';
 import { useWorldCopy } from './copy';
 import { Crest } from './Crest';
 import { useMapCounterpart } from './directory/selection';
-import { bilingual, codeLabel, dateColumn, ENGAGEMENT, entryState, EVENT_BADGE, fixtureDay, fixtureTime, PERSON_ROLE, postedLabel, SCOPE_LABEL } from './format';
+import { bilingual, codeLabel, dateColumn, ENGAGEMENT, entryState, fixtureDay, fixtureTime, PERSON_ROLE, postedLabel, SCOPE_LABEL } from './format';
 
 /** An open club role: who posted it, what it is, paid or volunteer. */
 export function JobRow({ job, compact = false }: { job: ClubJob; compact?: boolean }) {
@@ -69,17 +68,3 @@ export function PersonRow({ person: p, compact = false }: { person: PersonSummar
     );
 }
 
-const EVENT_TONE: Record<string, FixtureTone> = { MATCH: 'match', TOURNAMENT: 'event', TRYOUT: 'trial', TRAINING: 'training' };
-
-/** One published event (match, competition, trial, public training) on the fixture line. */
-export function EventItemRow({ item }: { item: EventItem }) {
-    const t = useWorldCopy();
-    const badge = EVENT_BADGE[item.activity] ?? EVENT_BADGE.OTHER;
-    const allDay = item.activity === 'TOURNAMENT' && fixtureTime(item.startsAt) === '00:00';
-    return (
-        <FixtureRow tone={EVENT_TONE[item.activity] ?? 'event'} to={eventDestination(item) ?? undefined} {...useMapCounterpart()}
-            time={allDay ? t('All day') : fixtureTime(item.startsAt)} day={fixtureDay(item.startsAt)} title={item.name}
-            meta={[item.context, item.location, item.recurring ? t('Every week') : null].filter(Boolean).join(' · ')}
-            trail={<Badge tone={badge.tone}>{t(badge.label)}</Badge>} />
-    );
-}

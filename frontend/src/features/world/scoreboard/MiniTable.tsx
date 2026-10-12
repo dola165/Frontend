@@ -1,8 +1,8 @@
 import { Star } from 'lucide-react';
-import { useWorldCopy } from '../../copy';
-import { fixtureDay } from '../../format';
+import { useWorldCopy } from '../copy';
+import { fixtureDay } from '../format';
 import { windowAround, zoned, type CupStep, type TableRow } from './standings';
-import './coach.css';
+import './form-table.css';
 
 /** A league table kept short, as score sites show it beside a fixture: my row highlighted, places that go through marked. */
 export function MiniTable({ rows, through, label }: { rows: TableRow[]; /** How many places go through to the next stage. */ through?: number | null; label: string }) {
@@ -15,7 +15,7 @@ export function MiniTable({ rows, through, label }: { rows: TableRow[]; /** How 
             <tbody>
                 {windowAround(rows).map((row, index) => row === 'gap'
                     ? <tr key={`gap-${index}`} data-gap aria-hidden="true"><td colSpan={5}>···</td></tr>
-                    : <tr key={row.entryId} data-mine={row.mine || undefined}>
+                    : <tr key={row.entryId} data-mine={row.mine || row.marked || undefined}>
                         <td><span className="gk-mtable__rank" data-through={through && row.rank <= through ? true : undefined}>{row.rank}</span>{through != null && row.rank <= through && <span className="gk-visually-hidden">{t('goes through')}</span>}</td>
                         <td><span className="gk-mtable__team">{row.mine && <Star aria-label={t('Your team')} />}<span>{row.label}</span></span></td>
                         <td>{row.played}</td><td>{row.gd > 0 ? `+${row.gd}` : row.gd}</td><td>{row.points}</td>

@@ -11,6 +11,7 @@ import { fixtureDay, fixtureTime, hoursUntil } from '../../format';
 import { peekOf, usePeek } from '../../peek/usePeek';
 import { StageDock } from '../../stage/WorldStage';
 import { OPEN_SEAT, useSeats, type Seat } from './dugoutData';
+import '../../scoreboard/scoreboard.css';
 
 const FOLD = 'gk-world-dugout-folded';
 const SHOWN_ROWS = 3;

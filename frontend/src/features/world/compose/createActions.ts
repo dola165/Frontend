@@ -2,11 +2,12 @@ import { CalendarPlus, Briefcase, LandPlot, Megaphone, Shield, Trophy, type Luci
 import { useAuth } from '../../../context/AuthContext';
 import { canManageClubOperations } from '../../clubs/domain';
 import { useWorldSession } from '../worldSession';
+import { drawPeek } from '../../tournaments/create/drawDraft';
 import { arrangePeek } from './arrangeSeed';
 import { useArrangeableSquads } from './useArrangeableSquads';
 
 export type CreateId = 'arrange' | 'open-match' | 'post-job' | 'create-tournament' | 'create-club' | 'list-venue';
-/** One thing a person can start from World: opened in World's frame (`peek`) or, for setting up an organisation, its page (`to`). */
+/** One thing a person can start from World: opened in World's frame (`peek`: a match, a tournament) or, for setting up an organisation, its page (`to`). */
 export interface CreateAction { id: CreateId; label: string; icon: LucideIcon; group: 'Matches' | 'Club' | 'Tournaments' | 'Places'; peek?: string; to?: string }
 
 /**
@@ -27,7 +28,7 @@ export function useCreateActions(): CreateAction[] | undefined {
         canArrange && { id: 'arrange', label: 'Arrange a match', icon: CalendarPlus, group: 'Matches', peek: arrangePeek({ mode: 'direct' }) },
         canArrange && { id: 'open-match', label: 'Post an open match', icon: Megaphone, group: 'Matches', peek: arrangePeek({ mode: 'open' }) },
         clubId != null && canManageClubOperations(membership?.myRole) && { id: 'post-job', label: 'Post a job', icon: Briefcase, group: 'Club', to: `/clubs/${clubId}/workspace?tab=jobs` },
-        { id: 'create-tournament', label: 'Create a tournament', icon: Trophy, group: 'Tournaments', to: '/tournaments/setup' },
+        { id: 'create-tournament', label: 'Create a tournament', icon: Trophy, group: 'Tournaments', peek: drawPeek() },
         membership?.canCreateClub && { id: 'create-club', label: 'Create a club', icon: Shield, group: 'Places', to: '/organizations/create?kind=CLUB' },
         { id: 'list-venue', label: 'List your venue', icon: LandPlot, group: 'Places', to: '/organizations/create?kind=VENUE' },
     ];

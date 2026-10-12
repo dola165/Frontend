@@ -30,7 +30,7 @@ const destinations: Record<string, { type: string; title: string; path: (id: num
     'organization.workspace': { type: 'organization', title: 'Organization workspace', path: id => `/organizations/${id}/workspace` },
     'organization.settings': { type: 'organization', title: 'Organization settings', path: id => `/organizations/${id}/workspace?tab=settings` },
     'organization.create': { type: 'user', title: 'Create organization', path: () => '/organizations/create' },
-    'tournament.create': { type: 'organization', title: 'Create tournament', path: id => `/tournaments/setup?organizer=${id}` },
+    'tournament.create': { type: 'organization', title: 'Create tournament', path: id => `/world/tournaments?peek=draw-o${id}` },
     'tournament.workspace': { type: 'tournament', title: 'Tournament workspace', path: id => `/tournaments/${id}/workspace` },
     'venue.workspace': { type: 'organization', title: 'Stadium workspace', path: id => `/stadiums/${id}/manage` },
     'squad.workspace': { type: 'squad', title: 'Squad', path: id => `/squads/${id}` },

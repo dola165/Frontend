@@ -108,7 +108,7 @@ function OrganizationProfileContent({ id }: { id: string }) {
         <OrganizationVenues venues={data.portfolio?.venues.length ? data.portfolio.venues : p.capabilities?.venueAvailable ? [{ id: p.id }] : []} view={tab as 'venues' | 'schedule' | 'prices'} />
         {data.canOpenWorkspace && <ButtonLink className="gk-org-manage" to={`${workspace}?tab=facilities`}>{t('manageVenues')}</ButtonLink>}
       </>
-      : tab === 'tournaments' ? <Section title={t('tournaments')} action={p.canCreateTournament ? <ButtonLink size="sm" variant="primary" to={`/tournaments/setup?organizer=${id}`}>{t('createTournament')}</ButtonLink> : undefined}>
+      : tab === 'tournaments' ? <Section title={t('tournaments')} action={p.canCreateTournament ? <ButtonLink size="sm" variant="primary" to={`/world/tournaments?peek=draw-o${id}`}>{t('createTournament')}</ButtonLink> : undefined}>
         <Panel flush>{data.competitions.length ? <List label={t('tournaments')}>{data.competitions.map(c => <ListRow key={c.id} to={`/tournaments/${c.id}`}
           lead={<Trophy size={18} aria-hidden="true" />} title={c.name} meta={c.status.replaceAll('_', ' ').toLowerCase().replace(/^./, letter => letter.toUpperCase())} />)}</List>
           : <EmptyNote title={t('noTournaments')} />}</Panel>

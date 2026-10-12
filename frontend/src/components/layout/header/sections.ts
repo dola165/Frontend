@@ -35,7 +35,7 @@ export function primarySectionFor(pathname: string, ownClubIds: number[]): Prima
     if (pathname === '/parent' || pathname.startsWith('/parent/')) return 'parent-hub';
     const club = /^\/clubs\/(\d+)(?:\/|$)/.exec(pathname);
     if (club) return ownClubIds.includes(Number(club[1])) ? 'my-club' : 'world';
-    if (/^\/tournaments\/\d+\/workspace$/.test(pathname) || pathname === '/tournaments/setup') return null;
+    if (/^\/tournaments\/\d+\/workspace$/.test(pathname)) return null;
     if (pathname === '/clubs' || pathname === '/clubs/following' || discoveryRoute.test(pathname)) return 'world';
     return null;
 }

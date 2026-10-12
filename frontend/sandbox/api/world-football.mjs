@@ -206,12 +206,12 @@ const STATUS = { IN_PROGRESS: 'ACTIVE', REGISTRATION: 'PLANNING', COMPLETED: 'CO
 const FAMILY = { LEAGUE: 'LEAGUE', KNOCKOUT: 'CUP', GROUPS_KNOCKOUT: 'CUP', FESTIVAL: 'FESTIVAL', LADDER: 'LADDER' };
 const STRUCTURE = { LEAGUE: 'ROUND_ROBIN', KNOCKOUT: 'KNOCKOUT', GROUPS_KNOCKOUT: 'GROUPS_KNOCKOUT', FESTIVAL: 'ROTATION', LADDER: 'LADDER' };
 /** The community league is played home and away. */
-export const structureOf = t => t.id === 301 ? 'HOME_AWAY' : STRUCTURE[t.format];
+export const structureOf = t => t.structure ?? (t.id === 301 ? 'HOME_AWAY' : STRUCTURE[t.format]);
 /** Who enters (clubs unless said) and how entries are taken (as they come unless said). */
 const SCOPE = { 303: 'SQUAD', 312: 'PLAYER' };
 const POLICY = { 301: 'APPROVAL_ONLY', 302: 'APPROVAL_ONLY', 304: 'APPROVAL_ONLY', 307: 'INVITE_ONLY' };
-export const scopeOf = t => SCOPE[t.id] ?? 'CLUB';
-export const policyOf = t => POLICY[t.id] ?? 'OPEN';
+export const scopeOf = t => t.scope ?? SCOPE[t.id] ?? 'CLUB';
+export const policyOf = t => t.policy ?? POLICY[t.id] ?? 'OPEN';
 
 export const tournamentState = new Map(); // id -> { entries, stages, fixtures, staff, routes, phases, plan, overrides }
 let entrySeq = 6000, fixtureSeq = 7000, stageSeq = 6800;
@@ -255,7 +255,10 @@ function buildTournament(t) {
   const drawPlan = (startsAt, daysBetweenRounds) => ({ startsAt: iso(startsAt), daysBetweenRounds, groupCount: 2, qualifiers: 1, routes: 1, thirdPlace: false, twoLegged: false, aggregateResolution: 'PENALTIES', carryResults: false, splitCut: 2, divisionLinks: '' });
   const active = entries.filter(e => e.status === 'ACTIVE');
   const startDay = offsetOf(t.start);
-  if (t.legacy) {
+  // A tournament just created has no draw yet: its organiser makes it in the workspace once entries close.
+  if (t.created) {
+    // Nothing drawn.
+  } else if (t.legacy) {
     // Groups of four by hand, then semi-finals and a final paired by order (no routes): the shape before the engine.
     const groups = [active.slice(0, 4), active.slice(4, 8)];
     const winners = groups.map((group, g) => {
@@ -365,6 +368,7 @@ export const tournamentById = id => tournamentList.find(t => t.id === Number(id)
 
 const RULESET = { LEAGUE: 'IFAB Laws of the Game with GFF amateur competition regulations. Rolling substitutions.', LADDER: 'Futsal Laws of the Game. Challenges within three places; results confirmed by both captains.', KNOCKOUT: 'IFAB Laws of the Game. Level after full time: penalties, no extra time.', GROUPS_KNOCKOUT: 'Small-sided rules: rolling substitutions, kick-ins, no offside.', FESTIVAL: 'Grassroots festival rules: no scores recorded, every player plays half of each game.' };
 export const competitionRules = t => {
+  if (t.rules) return t.rules;
   const side = Number(t.teamFormat.split('v')[0]);
   return {
     family: FAMILY[t.format], structure: structureOf(t), discipline: t.discipline ?? (side === 5 && t.venueId === 204 ? 'FUTSAL' : 'ASSOCIATION'), sideSize: side, ageGroup: t.ageGroup,
@@ -379,7 +383,7 @@ export const competitionRules = t => {
 export const competitionProfile = t => t.legacy ? { rules: null, revision: 0, legacy: true } : { rules: competitionRules(t), revision: 3, legacy: false };
 export const organizerOf = t => t.organizerOrgId ? ORG[t.organizerOrgId] : { id: 900 + t.organizerClubId, name: clubById(t.organizerClubId).name, logoUrl: clubById(t.organizerClubId).logoUrl, clubId: t.organizerClubId };
 /** When entries open and close. The girls' cup opens in two days, so "Opens …" has an example. */
-export const registrationWindow = t => ({ opens: t.id === 304 ? day(2, 9) : day(-60), closes: t.entryDeadline });
+export const registrationWindow = t => ({ opens: t.opens ?? (t.created ? new Date(0) : t.id === 304 ? day(2, 9) : day(-60)), closes: t.entryDeadline });
 /** As the backend counts places taken: approved and active entries, and those that played on or went out. */
 export const placesTaken = st => st.entries.filter(e => ['APPROVED', 'ACTIVE', 'COMPLETED', 'ELIMINATED'].includes(e.status)).length;
 // As the backend sends them: times are the venue's wall clock without a zone (Georgian time).
@@ -387,13 +391,13 @@ export const tournamentSummary = t => {
   const st = tournamentState.get(t.id), org = organizerOf(t), host = t.organizerClubId ? clubById(t.organizerClubId) : null, window = registrationWindow(t);
   return {
     id: t.id, name: t.name, description: t.description, status: st.status, organizerOrganizationId: org.id, organizerName: org.name, hostClubId: host?.id ?? null, hostClubName: host?.name ?? null,
-    participantScope: scopeOf(t), visibility: 'PUBLIC', startDate: local(t.start), endDate: local(t.end), registrationOpensAt: local(window.opens), registrationClosesAt: local(window.closes),
-    entryCount: placesTaken(st), incentives: t.fee ? 'Trophies and medals for finalists' : 'Medals for every player', bannerImageUrl: photo(`tournament-${t.id}`),
+    participantScope: scopeOf(t), visibility: t.visibility ?? 'PUBLIC', startDate: local(t.start), endDate: local(t.end), registrationOpensAt: local(window.opens), registrationClosesAt: local(window.closes),
+    entryCount: placesTaken(st), incentives: t.created ? t.incentives : t.fee ? 'Trophies and medals for finalists' : 'Medals for every player', bannerImageUrl: t.created ? t.banner : photo(`tournament-${t.id}`),
   };
 };
 export const tournamentDetail = t => {
   const st = tournamentState.get(t.id);
-  return { ...tournamentSummary(t), entryCap: t.format === 'LEAGUE' ? 10 : t.format === 'KNOCKOUT' ? 8 : 12, rules: RULESET[t.format], registrationPolicy: policyOf(t), locationId: t.venueId,
+  return { ...tournamentSummary(t), entryCap: t.cap ?? (t.format === 'LEAGUE' ? 10 : t.format === 'KNOCKOUT' ? 8 : 12), rules: t.created ? t.writtenRules : RULESET[t.format], registrationPolicy: policyOf(t), locationId: t.venueId,
     staffAssignments: st.staff, entries: st.entries, stages: st.stages, fixtures: st.fixtures, championEntryId: st.championEntryId ?? null, championName: st.championName ?? null, ...(st.overrides || {}) };
 };
 /** A `/competitions` card as the backend sends it: no entry window, host or organiser ids, visibility or prizes. */
@@ -402,6 +406,40 @@ export const competitionCard = t => {
   return { id, name, description, status, participantScope, organizerName, hostClubName, startDate, endDate, bannerImageUrl, entryCount, entryCap: tournamentDetail(t).entryCap, profile: competitionProfile(t) };
 
 };
+// ============================================================== creating a tournament (as CompetitionService.create)
+const FORMAT_OF = { KNOCKOUT: 'KNOCKOUT', GROUPS_KNOCKOUT: 'GROUPS_KNOCKOUT', ROUND_ROBIN: 'LEAGUE', HOME_AWAY: 'LEAGUE', SWISS: 'LEAGUE', SPLIT_LEAGUE: 'LEAGUE', LADDER: 'LADDER', ROTATION: 'FESTIVAL', KING_OF_PITCH: 'FESTIVAL' };
+const createRequests = new Map(); // requestId -> { digest, id }
+const wallDate = value => value ? new Date(`${value.length === 16 ? `${value}:00` : value}+04:00`) : null;
+/** Creates a tournament as its organisation's staff, or says why not: `{ tournament }`, `{ replay }` or `{ refusal }`. */
+export function createTournament(body) {
+  const { identity = {}, rules = {}, requestId, policy, venueId } = body ?? {};
+  if (!requestId) return { refusal: { status: 400, message: 'A request id is required.' } };
+  const digest = JSON.stringify({ identity, rules, policy, venueId: venueId ?? null });
+  const prior = createRequests.get(requestId);
+  if (prior) return prior.digest === digest ? { replay: tournamentById(prior.id) } : { refusal: { status: 409, message: 'This creation request was already used with different details.' } };
+  if (identity.organizerOrganizationId !== 901) return { refusal: { status: 403, message: 'You cannot create tournaments for this organisation.' } };
+  if (!String(identity.name ?? '').trim()) return { refusal: { status: 400, message: 'Tournament name is required.' } };
+  if (!String(rules.ruleset ?? '').trim() || !String(rules.seasonPolicy ?? '').trim()) return { refusal: { status: 400, message: 'State the ruleset and the season policy.' } };
+  if (/^U\d+$/.test(rules.ageGroup ?? '') && !rules.ageCutoff) return { refusal: { status: 400, message: 'Youth eligibility requires an explicit age cutoff date.' } };
+  if (identity.participantScope === 'PLAYER' && /^U\d+$/.test(rules.ageGroup ?? '') && Number(rules.ageGroup.slice(1)) <= 18) return { refusal: { status: 400, message: 'Youth competitions use supervised club or squad entries. Individual registration currently requires an adult player.' } };
+  const start = wallDate(identity.startDate), end = wallDate(identity.endDate);
+  if (!start || !end || start.getTime() <= Date.now() || end < start) return { refusal: { status: 400, message: 'Choose future dates, the end after the start.' } };
+  const id = Math.max(...tournamentList.map(t => t.id)) + 1;
+  const host = identity.hostClubId ? clubById(identity.hostClubId) : clubById(DINAMO);
+  const t = {
+    id, name: String(identity.name).trim(), created: true, format: FORMAT_OF[rules.structure] ?? 'KNOCKOUT', structure: rules.structure, ageGroup: rules.ageGroup, gender: 'MIXED', teamFormat: `${rules.sideSize}v${rules.sideSize}`,
+    organizerClubId: host.id, start, end, entryDeadline: wallDate(identity.registrationClosesAt) ?? start, opens: wallDate(identity.registrationOpensAt), status: 'REGISTRATION', teams: [], city: rules.city, venueId: venueId ?? host.venueId ?? null,
+    fee: Number(rules.entryFee ?? 0), feeBasis: rules.feeBasis, discipline: rules.discipline, description: identity.description ?? '', rules, policy: identity.registrationPolicy ?? 'APPROVAL_ONLY', scope: identity.participantScope ?? 'CLUB',
+    visibility: identity.visibility ?? 'PRIVATE', cap: identity.entryCap ?? null, incentives: identity.incentives ?? null, banner: identity.bannerImageUrl ?? null, writtenRules: identity.rules ?? null,
+  };
+  tournamentList.push(t);
+  buildTournament(t);
+  // The person who creates it runs it.
+  tournamentState.get(id).staff.unshift({ id: W.newId(), userId: W.ME_ID, fullName: W.me.fullName, role: 'ADMIN', status: 'ACTIVE', assignedBy: W.ME_ID, createdAt: iso(new Date()) });
+  createRequests.set(requestId, { digest, id });
+  return { tournament: t };
+}
+
 // ============================================================== entering and invitations (as TournamentService)
 /** One store of tournament invitations: the person's list, the organiser's, Requests, review, accept and decline read it. */
 const firstTeam = DINAMO_SQUADS.find(s => s.ageGroup === 'SENIOR') ?? DINAMO_SQUADS[0];

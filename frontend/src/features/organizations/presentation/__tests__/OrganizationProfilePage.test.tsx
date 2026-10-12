@@ -31,7 +31,7 @@ it('gives tournament-only sponsors one heading and relevant tabs', async () => {
   expect(await screen.findByRole('heading', { name: 'Community Partner', level: 1 })).toBeInTheDocument(); expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   expect(screen.getByRole('tab', { name: 'Partnerships' })).toBeInTheDocument(); expect(screen.queryByRole('tab', { name: 'Venues' })).not.toBeInTheDocument(); expect(screen.queryByText('Verified organization')).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Open workspace' })).toHaveAttribute('href', '/organizations/17/workspace');
-  fireEvent.click(screen.getByRole('tab', { name: 'Tournaments' })); expect(screen.getByRole('link', { name: 'Create a tournament' })).toHaveAttribute('href', '/tournaments/setup?organizer=17');
+  fireEvent.click(screen.getByRole('tab', { name: 'Tournaments' })); expect(screen.getByRole('link', { name: 'Create a tournament' })).toHaveAttribute('href', '/world/tournaments?peek=draw-o17');
 });
 it.each([['MEDIA', 'Coverage'], ['HEALTHCARE', 'Services']])('uses the shared layout with %s content', async (profileKind, label) => {
   vi.mocked(apiClient.get).mockResolvedValue({ data: presentation({ profileKind, capabilities: { enabledActivities: ['PROFILE'], venueAvailable: false } }) }); open();

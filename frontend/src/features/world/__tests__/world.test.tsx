@@ -19,7 +19,7 @@ import { refereeSource } from '../directories/people/refereeSource';
 import { FIELDS } from '../front/fields';
 import { ROLES, aRole, defaultRole, offeredFor, roleLayout } from '../front/roles';
 import { FIELD_VIEWS } from '../front/fieldViews';
-import { LegacyMatchesRedirect, TournamentsRedirect, WorldRedirect } from '../WorldRedirect';
+import { LegacyMatchesRedirect, TournamentSetupRedirect, TournamentsRedirect, WorldRedirect } from '../WorldRedirect';
 import { CARRIED, readQuery, useDirectoryState } from '../directory/useDirectoryState';
 import type { AnySource, DirectoryQuery, LoadContext } from '../directory/types';
 
@@ -204,6 +204,15 @@ it.each([
     ['/world/competitions?tab=mine', '/world/tournaments?tab=mine'],
 ] as const)('sends the renamed %s to Tournaments, on the list its keys belong to', (path, expected) => {
     visit(path, <TournamentsRedirect />);
+    expect(screen.getByText(expected)).toBeInTheDocument();
+});
+
+it.each([
+    ['/tournaments/setup', '/world/tournaments?peek=draw-new'],
+    ['/tournaments/setup?organizer=901&family=LEAGUE', '/world/tournaments?peek=draw-o901.fLEAGUE'],
+    ['/tournaments/setup?organizer=abc&family=TRAMPOLINE', '/world/tournaments?peek=draw-new'],
+] as const)('opens the old setup page %s as the Draw room in World', (path, expected) => {
+    visit(path, <TournamentSetupRedirect />);
     expect(screen.getByText(expected)).toBeInTheDocument();
 });
 

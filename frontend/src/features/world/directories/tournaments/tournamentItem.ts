@@ -59,11 +59,14 @@ export const detailOf = (id: number) => shared(`tournament:${id}`, () => fetchTo
 export interface OrganiserWork { view: 'participants' | 'schedule'; label: string; count: number }
 
 /** What waits for a tournament's staff: entries to decide, and results of matches already played to add. */
-export function organiserWork(detail: Pick<TournamentDetail, 'entries' | 'fixtures'>, now = Date.now()): OrganiserWork[] {
+export function organiserWork(detail: Pick<TournamentDetail, 'entries' | 'fixtures' | 'status'>, now = Date.now()): OrganiserWork[] {
     const entries = detail.entries.filter(entry => entry.status === 'PENDING').length;
     const results = detail.fixtures.filter(fixture => fixture.status === 'SCHEDULED' && fixture.homeEntryId != null && fixture.awayEntryId != null
         && fixture.scheduledAt != null && Date.parse(zoned(fixture.scheduledAt)!) < now).length;
+    // A tournament still being planned with nobody in it waits for its first invitations.
+    const empty = detail.status === 'PLANNING' && !detail.entries.some(entry => !['WITHDRAWN', 'REJECTED'].includes(entry.status));
     return [
+        ...(empty ? [{ view: 'participants' as const, label: 'Invite teams', count: 0 }] : []),
         ...(entries ? [{ view: 'participants' as const, label: entries === 1 ? '1 entry to decide' : '{count} entries to decide', count: entries }] : []),
         ...(results ? [{ view: 'schedule' as const, label: results === 1 ? '1 result to add' : '{count} results to add', count: results }] : []),
     ];

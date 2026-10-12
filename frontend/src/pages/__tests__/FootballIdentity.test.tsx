@@ -55,7 +55,7 @@ it('gives tournament organizers their own presentation and authorized tournament
     render(organizationPage());
     fireEvent.click(await screen.findByRole('tab', { name: 'Tournaments' }));
     expect(screen.getByRole('heading', { name: 'Tournaments' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Create a tournament' })).toHaveAttribute('href', '/tournaments/setup?organizer=12');
+    expect(screen.getByRole('link', { name: 'Create a tournament' })).toHaveAttribute('href', '/world/tournaments?peek=draw-o12');
     expect(screen.queryByRole('heading', { name: 'Facilities and playing spaces' })).not.toBeInTheDocument();
 });
 

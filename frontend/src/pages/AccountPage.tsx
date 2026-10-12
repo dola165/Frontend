@@ -517,7 +517,7 @@ export const AccountPage = () => {
                                 >
                                     <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />Security Controls
                                 </button>
-                                <Link to="/tournaments/setup" className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-[color:var(--color-ink)]/[0.04]">
+                                <Link to="/world/tournaments?peek=draw-new" className="inline-flex items-center gap-2 rounded-xl border border-[var(--fc-border)] bg-[color:var(--fc-page-bg)] px-3 py-2.5 text-xs font-semibold text-[color:var(--fc-text-primary)] transition-colors hover:bg-[color:var(--color-ink)]/[0.04]">
                                     <Trophy className="h-4 w-4 shrink-0" aria-hidden="true" />
                                     Tournament Setup
                                 </Link>

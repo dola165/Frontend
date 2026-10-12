@@ -9,7 +9,7 @@ describe('server navigation contract', () => {
             entry('venue.workspace', 'organization', 35), entry('tournament.create', 'organization', 35),
         ] }, 7);
         expect(workspaceLinks(projection).map(link => link.path)).toEqual([
-            '/organizations/35/workspace?tab=settings', '/stadiums/35/manage', '/tournaments/setup?organizer=35',
+            '/organizations/35/workspace?tab=settings', '/stadiums/35/manage', '/world/tournaments?peek=draw-o35',
         ]);
     });
     it('opens only the current actor read-only Agent Hub and ignores unrelated agent capabilities', () => {
@@ -34,7 +34,7 @@ describe('server navigation contract', () => {
             entry('referee.workspace', 'user'), entry('tournament.create', 'organization', 35),
         ] }, 7);
         const links = workspaceLinks(projection);
-        expect(links.map(link => link.path)).toEqual(['/parent', '/clubs/21/workspace', '/clubs/22/workspace', '/referees/me', '/tournaments/setup?organizer=35']);
+        expect(links.map(link => link.path)).toEqual(['/parent', '/clubs/21/workspace', '/clubs/22/workspace', '/referees/me', '/world/tournaments?peek=draw-o35']);
         expect(new Set(links.map(link => link.key)).size).toBe(5);
     });
 

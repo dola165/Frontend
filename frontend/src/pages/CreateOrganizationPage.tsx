@@ -4,17 +4,15 @@ import { apiClient } from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import { MiniMap } from '../components/MiniMap';
 import { extractApiErrorMessage } from '../utils/apiError';
-import { readTournamentSetupDraft } from '../features/tournaments/setupDraft';
 import { organizationDestination } from '../features/organizations/onboarding/organizationOnboarding';
 import { ImportMapping } from '../features/organizations/setup/ImportMapping';
 import { clubCategories, organizationTypes, profileFields, typeLabel, type CreatedOrganization, type OrganizationType, type SetupDraft } from '../features/organizations/setup/domain';
 import { clearSetupRecovery, isRecord, isRequestId, readSetupRecovery, writeSetupRecovery } from '../features/organizations/setup/setupRecovery';
-import type { TournamentSetupDraft } from '../features/tournaments/setupDraft';
 import '../features/organizations/setup/setup.css';
 
 type Point = { lat: number; lng: number };
 type CreationRequest = { id: string; body: SetupDraft & { location: { latitude: number; longitude: number; city: string | null } | null } };
-interface CreationRecovery { form: SetupDraft; point: Point | null; city: string; step: number; request: CreationRequest | null; created: CreatedOrganization | null; tournamentDraft: TournamentSetupDraft | null }
+interface CreationRecovery { form: SetupDraft; point: Point | null; city: string; step: number; request: CreationRequest | null; created: CreatedOrganization | null; /** Opened from the Draw room, to return there once created. */ drawRoom?: boolean; /** Older recoveries named the draft. */ tournamentDraft?: unknown }
 function validRecovery(value: unknown): value is CreationRecovery {
   if (!isRecord(value) || !isRecord(value.form)) return false;
   const form = value.form;
@@ -38,10 +36,11 @@ function OrganizationCreator() {
   const location = useLocation(), navigate = useNavigate();
   const requested = new URLSearchParams(location.search).get('kind');
   const [recovery] = useState(() => readSetupRecovery(user?.id, 'organization', validRecovery));
-  const tournamentDraft = readTournamentSetupDraft(location.state, user?.id) ?? readTournamentSetupDraft({ tournamentSetupDraft: recovery?.tournamentDraft }, user?.id);
+  // Opened from World's Draw room (its draft is kept in the tab): once created, the way back leads there.
+  const drawRoom = Boolean((location.state as { drawRoom?: unknown } | null)?.drawRoom || recovery?.drawRoom || recovery?.tournamentDraft);
   const startingType: OrganizationType = organizationTypes.some(([key]) => key === requested) ? requested as OrganizationType : 'SPORTS_ORG';
   const emptyForm: SetupDraft = { displayName: '', description: '', organizationType: startingType, clubCategory: '',
-    venueEnabled: requested === 'VENUE', tournamentEnabled: Boolean(tournamentDraft) || requested === 'TOURNAMENT_ORGANIZER',
+    venueEnabled: requested === 'VENUE', tournamentEnabled: drawRoom || requested === 'TOURNAMENT_ORGANIZER',
     website: '', publicEmail: '', publicPhone: '', addressText: '', focus: '' };
   const [form, setForm] = useState<SetupDraft>(recovery?.form ?? emptyForm);
   const [point, setPoint] = useState<Point | null>(recovery?.point ?? null);
@@ -52,8 +51,8 @@ function OrganizationCreator() {
   const request = useRef<CreationRequest | null>(recovery?.request ?? null), active = useRef(true), saving = useRef(false);
   useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
   useEffect(() => {
-    setStorageAvailable(writeSetupRecovery(user?.id, 'organization', { form, point, city, step, request: request.current, created, tournamentDraft }));
-  }, [user?.id, form, point, city, step, created, tournamentDraft, uncertain]);
+    setStorageAvailable(writeSetupRecovery(user?.id, 'organization', { form, point, city, step, request: request.current, created, drawRoom }));
+  }, [user?.id, form, point, city, step, created, drawRoom, uncertain]);
   const canCreate = user?.navigationCapabilities?.workspaces.some(item => item.id === 'organization.create');
   const edit = (values: Partial<SetupDraft>) => { setForm(current => ({ ...current, ...values })); setError(''); };
   async function submit(event: FormEvent) {
@@ -66,19 +65,19 @@ function OrganizationCreator() {
       location: point ? { latitude: point.lat, longitude: point.lng, city: city || null } : null } };
     // Save before sending: navigating away can never turn an uncertain write into
     // a fresh request. A retry is always deliberate and uses the original body.
-    setStorageAvailable(writeSetupRecovery(user?.id, 'organization', { form, point, city, step, request: request.current, created: null, tournamentDraft }));
+    setStorageAvailable(writeSetupRecovery(user?.id, 'organization', { form, point, city, step, request: request.current, created: null, drawRoom }));
     try {
       const response = await apiClient.post<CreatedOrganization>('/organizations/setup', { ...request.current.body, requestId: request.current.id });
       if (!active.current) return;
       setCreated(response.data); setUncertain(false); request.current = null;
-      writeSetupRecovery(user?.id, 'organization', { form, point, city, step, request: null, created: response.data, tournamentDraft });
+      writeSetupRecovery(user?.id, 'organization', { form, point, city, step, request: null, created: response.data, drawRoom });
       void refreshNavigationCapabilities().catch(() => undefined);
     } catch (err) {
       if (!active.current) return;
       const status = (err as { response?: { status?: number } }).response?.status;
       setUncertain(status == null || status >= 500);
       if (status != null && status < 500) request.current = null;
-      writeSetupRecovery(user?.id, 'organization', { form, point, city, step, request: request.current, created: null, tournamentDraft });
+      writeSetupRecovery(user?.id, 'organization', { form, point, city, step, request: request.current, created: null, drawRoom });
       setError(extractApiErrorMessage(err, 'Could not confirm creation. Retry this request to check its result.'));
     } finally { saving.current = false; if (active.current) setBusy(false); }
   }
@@ -91,7 +90,7 @@ function OrganizationCreator() {
       <div className="org-setup-actions"><Link className="org-setup-button org-setup-primary" to={created.workspacePath}>Open workspace</Link><Link className="org-setup-button" to={created.profilePath}>View profile</Link>
         <Link className="org-setup-button" to={created.clubId ? `${created.workspacePath}?tab=settings&section=imports` : `${created.workspacePath}?tab=imports`}>{created.clubId ? 'Import squads or venues' : 'Import venues'}</Link>
         <button type="button" onClick={startAnother}>Create another organization</button>
-      {tournamentDraft && <button type="button" onClick={() => { const destination = organizationDestination(created.id, 'SPORTS_ORG', tournamentDraft); navigate(destination.to, { state: destination.state }); }}>Continue tournament setup</button>}</div>
+      {drawRoom && <button type="button" onClick={() => navigate(organizationDestination(created.id, 'SPORTS_ORG', true).to)}>Continue tournament setup</button>}</div>
     </section></main>;
   return <main className="org-setup"><Link to="/my-organizations">← My organizations</Link><header className="org-setup-header"><div><p className="org-setup-kicker">Start your organization</p><h1>Create a club or organization</h1><p>One profile and workspace, with the activities your organization needs.</p></div></header>
     {canCreate === false && <p className="org-setup-notice">Creation requires a verified adult account with completed account setup. Check your account details before continuing.</p>}

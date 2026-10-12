@@ -53,6 +53,9 @@ export interface CreateTournamentPayload {
     registrationClosesAt?: string | null;
     locationId?: number | null;
     incentives?: string | null;
+    /** How many teams it takes; entries beyond join the waiting list. */
+    entryCap?: number | null;
+    registrationPolicy?: 'OPEN' | 'APPROVAL_ONLY' | 'INVITE_ONLY' | null;
 }
 
 export interface TournamentStaffAssignmentDto {

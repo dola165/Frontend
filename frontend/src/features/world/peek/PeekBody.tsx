@@ -16,6 +16,7 @@ const KINDS: Record<DrawerKind, ComponentType<{ id: string }>> = {
     group: lazy(() => import('./GroupPeek')),
     arrange: lazy(() => import('./ArrangePeek')),
     organiser: lazy(() => import('./OrganiserPeek')),
+    draw: lazy(() => import('./DrawPeek')),
 };
 
 /** One thing, in a drawer or in the pane beside the list: the same body either way. */

@@ -1,5 +1,4 @@
 import type { CreatableOrganizationKind } from '../../tournaments/domain';
-import type { TournamentSetupDraft } from '../../tournaments/setupDraft';
 
 export interface OrganizationKindStarterCopy {
     kind: CreatableOrganizationKind;
@@ -147,20 +146,10 @@ export const parseOrganizationKind = (value: string | null): CreatableOrganizati
 export const organizationDestination = (
     organizationId: number,
     kind: CreatableOrganizationKind,
-    tournamentDraft: TournamentSetupDraft | null,
+    /** Set up from World's Draw room, whose draft is kept in the tab: it opens again for the new organisation. */
+    drawRoom: boolean,
 ) => {
-    if (tournamentDraft) {
-        return {
-            to: `/tournaments/setup?organizer=${organizationId}`,
-            state: {
-                tournamentSetupDraft: {
-                    ...tournamentDraft,
-                    organizerId: organizationId,
-                    form: { ...tournamentDraft.form, hostClubId: '' },
-                },
-            },
-        };
-    }
+    if (drawRoom) return { to: `/world/tournaments?peek=draw-o${organizationId}`, state: undefined };
     return {
         to: kind === 'VENUE' ? `/stadiums/${organizationId}/manage` : `/organizations/${organizationId}`,
         state: undefined,

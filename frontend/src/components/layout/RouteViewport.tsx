@@ -12,7 +12,7 @@ const workspaceSurface = (pathname: string): string | undefined => {
     if (/^\/clubs\/\d+\/(workspace|operations|profile-settings|squads)$/.test(pathname)) return 'club';
     if (/^\/organizations\/\d+\/workspace$/.test(pathname) || pathname === '/organizations/create') return 'organization';
     if (/^\/stadiums\/\d+\/manage$/.test(pathname)) return 'venue';
-    if (/^\/tournaments\/\d+\/workspace$/.test(pathname) || pathname === '/tournaments/setup') return 'tournament';
+    if (/^\/tournaments\/\d+\/workspace$/.test(pathname)) return 'tournament';
     if (/^\/squads(?:\/\d+)?$/.test(pathname)) return 'squad';
     if (pathname === '/referees/me') return 'referee';
     if (pathname === '/agent' || pathname === '/agent/dashboard') return 'agent';

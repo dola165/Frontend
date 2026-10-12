@@ -6,6 +6,8 @@ import { moveMenuFocus, openMenuFromKey, usePopover } from '../../../components/
 import { dayLabel } from '../../matchExchange/arrange/matchPlan';
 import { useWorldCopy } from '../copy';
 import { usePeek } from '../peek/usePeek';
+import { drawDraftKey, drawPeek, drawStarted, loadDrawDraft } from '../../tournaments/create/drawDraft';
+import { FORMAT_WORD } from '../../tournaments/shape/shapeOf';
 import { arrangeDrafts, parseArrangeSeed, type ArrangeDraft } from './arrangeSeed';
 import { useCreateActions, type CreateAction, type CreateId } from './createActions';
 import './create.css';
@@ -47,6 +49,9 @@ export function CreateMenu({ face }: { /** The tab's likely action, on the butto
     const main = actions.find(action => action.id === face);
     // Drafts are read when the menu opens, so it always offers what is in this browser session now.
     const drafts = open && actions.some(action => action.id === 'arrange') ? arrangeDrafts(user?.id, sessionId).slice(0, 3) : [];
+    // The tournament being set up in the Draw room, once it holds something written.
+    const kept = open && actions.some(action => action.id === 'create-tournament') ? loadDrawDraft(drawDraftKey(user?.id, sessionId)) : null;
+    const tournament = kept && drawStarted(kept) ? kept : null;
     // Opening a drawer first gives focus back to the "+", so the drawer returns it there when it closes.
     const run = (action: Pick<CreateAction, 'peek' | 'to'>) => {
         close(Boolean(action.peek));
@@ -61,7 +66,7 @@ export function CreateMenu({ face }: { /** The tab's likely action, on the butto
             </button>
             {open && (
                 <div ref={panelRef} id={id} role="menu" tabIndex={-1} aria-label={t('Create')} className="gk-create__menu" onKeyDown={moveMenuFocus}>
-                    {drafts.length > 0 && <div role="group" aria-labelledby={`${id}-drafts`} className="gk-create__group">
+                    {(drafts.length > 0 || tournament) && <div role="group" aria-labelledby={`${id}-drafts`} className="gk-create__group">
                         <p className="gk-create__label" id={`${id}-drafts`}>{t('Continue')}</p>
                         {drafts.map(item => (
                             <button key={item.seed} type="button" role="menuitem" className="gk-create__item gk-create__draft" onClick={() => run({ peek: `arrange-${item.seed}` })}>
@@ -70,6 +75,11 @@ export function CreateMenu({ face }: { /** The tab's likely action, on the butto
                                 <ArrowRight aria-hidden="true" />
                             </button>
                         ))}
+                        {tournament && <button type="button" role="menuitem" className="gk-create__item gk-create__draft" onClick={() => run({ peek: drawPeek() })}>
+                            <span className="gk-create__dot" aria-hidden="true" />
+                            <span className="gk-create__text"><span>{[tournament.name.trim() || t('New tournament'), t(FORMAT_WORD[tournament.rules.structure])].join(' · ')}</span><small>{t('Draft')} · {waited(tournament.savedAt, t)}</small></span>
+                            <ArrowRight aria-hidden="true" />
+                        </button>}
                     </div>}
                     {GROUPS.map(group => {
                         const items = actions.filter(action => action.group === group);

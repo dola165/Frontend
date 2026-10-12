@@ -412,7 +412,7 @@ const allHosts = () => [...new Map(F.tournamentList.map(t => { const h = hostOf(
   .concat([5, 4, 7].map(id => ({ ...hostView('CLUB', id), tournamentCount: 0 })).filter(h => !F.tournamentList.some(t => t.organizerClubId === h.id)))
   .sort((a, b) => b.tournamentCount - a.tournamentCount || a.name.localeCompare(b.name));
 get('/tournaments/overview', () => {
-  const summaries = publicTournaments().map(F.tournamentSummary);
+  const summaries = publicTournaments().map(F.tournamentSummary).filter(s => s.visibility === 'PUBLIC');
   // As the backend computes them: at most three public tournaments, on now or being planned, not yet ended.
   const highlights = [...summaries.filter(s => s.status === 'ACTIVE'), ...summaries.filter(s => s.status === 'PLANNING')].filter(s => Date.parse(`${s.endDate}+04:00`) >= now() - 86400000).sort((a, b) => (a.id === 306 ? -1 : 0) - (b.id === 306 ? -1 : 0)).slice(0, 3);
   const hosts = allHosts();
@@ -522,7 +522,7 @@ get('/competitions', ({ query: q }) => {
   if ((lat != null || lng != null || radius != null) && (lat == null || lng == null || radius == null || radius <= 0 || radius > 500)) return reply(400, { status: 400, message: 'Supply valid paired coordinates and a radius from 0 to 500 km.' });
   if ((maxFee != null || minFee != null) && !currency) return reply(400, { status: 400, message: 'Fee filtering requires a currency and a fee between 0 and 1000000.' });
   const nowMs = now();
-  let list = F.tournamentList.filter(t => {
+  let list = F.tournamentList.filter(t => (t.visibility ?? 'PUBLIC') === 'PUBLIC').filter(t => {
     const c = F.competitionCard(t), r = c.profile.rules ?? {}, st = F.tournamentState.get(t.id), w = F.registrationWindow(t), v = venueById(t.venueId);
     return matchesText(text, c.name, c.description)
       && (!family || r.family === family) && (!structure || r.structure === structure) && (!scope || c.participantScope === scope) && (!status || c.status === status)
@@ -540,6 +540,12 @@ get('/competitions', ({ query: q }) => {
   return pageResult(list.map(F.competitionCard), pageOf(q), size);
 });
 // Luka is an adult with a complete profile: he may register for a players' tournament.
+// As CompetitionService.create: the organisation's staff only, the backend's checks, and one tournament per request id.
+post('/competitions', ({ body }) => {
+  const { tournament, replay, refusal } = F.createTournament(body);
+  if (refusal) return reply(refusal.status, refusal);
+  return replay ? F.tournamentDetail(replay) : reply(201, F.tournamentDetail(tournament));
+});
 get('/competitions/player-eligibility', () => ({ eligible: true }));
 get('/competitions/official-assignments', () => []);
 get('/competitions/:id/rules', ({ params }) => { const t = tournamentOr404(params.id); return t ? F.competitionProfile(t) : notFound(); });

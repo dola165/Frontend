@@ -1,6 +1,8 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { hasNavigationCapability } from '../../context/navigationCapabilities';
+import type { Family } from '../competitions/api';
+import { drawPeek } from '../tournaments/create/drawDraft';
 
 const target = (pathname: string, params: URLSearchParams, hash = '') => {
     const search = params.toString();
@@ -48,6 +50,14 @@ function tournamentParams(params: URLSearchParams) {
     else if (tab === 'hosts') { params.delete('following'); if (params.has('host')) params.set('tab', 'all'); else params.delete('tab'); }
     if (!params.get('tab') && ALL_TOURNAMENT_KEYS.some(key => params.has(key))) params.set('tab', 'all');
     return params;
+}
+
+/** The old setup page (`/tournaments/setup?organizer=901&family=CUP`): the Draw room in World, with what the link chose. */
+export function TournamentSetupRedirect() {
+    const params = new URLSearchParams(useLocation().search);
+    const organizer = /^[1-9]\d*$/.test(params.get('organizer') ?? '') ? Number(params.get('organizer')) : undefined;
+    const family = params.get('family');
+    return <Navigate replace to={`/world/tournaments?peek=${drawPeek({ organizerId: organizer, family: family && ['LEAGUE', 'CUP', 'LADDER', 'FESTIVAL'].includes(family) ? family as Family : undefined })}`} />;
 }
 
 /** `/world/competitions` was renamed Tournaments. */

@@ -127,6 +127,8 @@ Updated on 12 October, before building, as Phase D was: six read-only agents map
 
 Size: L+, in four steps: (1) the rename, the three lists, rows, format pictures, filters, Near, pins; (2) the tournament pane and the organiser; (3) Enter, Answer and the waiting rows; (4) the Draw room. Each step makes the sandbox answer as the backend does for what it shows.
 
+Built on 12 October in four steps (see `ROUND_2.md`, World › Tournaments).
+
 ### Phase F · Venues, "Pitchboard" (your item 3)
 
 Direction "Pitchboard" (38/50).

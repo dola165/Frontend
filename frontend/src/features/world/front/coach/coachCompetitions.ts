@@ -96,9 +96,9 @@ export function useCompetitionsForYou(focus: SquadFocus) {
             const squads = focus.focus.filter(squad => (!rules || rules.ageGroup === squad.ageGroup) && fitsGender(rules?.eligibilityCategory, squad.gender));
             return squads.length ? [{ card, squads }] : [];
         });
-        // Invitations for my squads in focus, by the invited squad's id.
+        // Invitations for my squads in focus, by the invited squad's id, and those to my club as a whole (it names the squad when answering).
         const ids = new Set(focus.focus.map(squad => squad.id));
-        return { items, total, invitations: invitations.filter(invitation => invitation.squadId != null && ids.has(invitation.squadId)) };
+        return { items, total, invitations: invitations.filter(invitation => invitation.squadId != null ? ids.has(invitation.squadId) : invitation.clubId != null && focus.clubIds.includes(invitation.clubId)) };
     });
 }
 

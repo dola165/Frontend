@@ -1,10 +1,8 @@
 import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { isAxiosError } from 'axios';
 import { ArrowRight } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { Button } from '../../../../design/primitives';
-import { extractApiErrorMessage } from '../../../../utils/apiError';
 import type { Match, Squad } from '../../../matchExchange/api';
 import { ageGroupOf } from '../../../matchExchange/arrange/matchPlan';
 import { canUseReservation, holdsGround, isActive, needsReferee } from '../../../matchExchange/detail/matchState';
@@ -15,33 +13,9 @@ import { loadMyFit } from '../../directories/matches/openMatches';
 import { isoDayOf } from '../../format';
 import { fitOf, fitSquads } from '../../scoreboard/squadFit';
 import { useWorldData } from '../../useWorldData';
-import { noteDone } from './stepNotice';
+import { SendError } from '../SendError';
+import { useSend } from '../useSend';
 import '../step.css';
-
-/**
- * A step's sending state: busy while it goes, the reason when it did not. Once it worked, what it did is kept
- * (`noteDone`) and the drawer reads the match again. A match changed by someone else meanwhile (409) says so, with
- * Reload, because sending again would repeat the same out-of-date answer.
- */
-function useSend(reload: () => void) {
-    const [state, setState] = useState({ busy: false, error: '', changed: false });
-    const send = async (action: () => Promise<unknown>, done: string, failed: string) => {
-        setState({ busy: true, error: '', changed: false });
-        try { await action(); setState({ busy: false, error: '', changed: false }); noteDone(done); reload(); }
-        catch (error) {
-            const changed = isAxiosError(error) && error.response?.status === 409;
-            setState({ busy: false, changed, error: changed ? 'This match changed since you opened it.' : extractApiErrorMessage(error, failed) });
-        }
-    };
-    return { ...state, send };
-}
-
-/** A step's reason it did not send, with Reload when the match changed under it. */
-function SendError({ error, changed, reload }: { error: string; changed: boolean; reload: () => void }) {
-    const t = useWorldCopy();
-    if (!error) return null;
-    return <p className="gk-step__error" role="alert">{t(error)}{changed && <> <button type="button" className="gk-step__reload" onClick={reload}>{t('Reload')}</button></>}</p>;
-}
 
 /**
  * Offering to play an open match, inside its drawer: the squad that would play (the one that fits the listing's age

@@ -6,6 +6,7 @@ import { get, post, put, patch, del, reply } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as S from '../world-social.mjs';
 import * as P from '../world-profile.mjs';
+import * as F from '../world-football.mjs';
 
 const ME = W.ME_ID;
 /** The club domain's live store (applications, tryouts, invitations, role requests, club inbox).
@@ -382,15 +383,21 @@ function clubRequests(C) {
     })),
   ];
 }
+/** The tournament invitations in Requests, from the one store: still to answer (incoming), else answered (history). */
+const tournamentInvitationRequests = () => F.tournamentInvitations.filter(inv => inv.status !== 'CANCELLED').map(inv => {
+  const v = F.invitationView(inv), summary = F.tournamentSummary(v.tournament);
+  return { key: `TOURNAMENT_INVITATION:${inv.id}`, family: 'TOURNAMENT_INVITATION', id: inv.id, title: `Invitation · ${summary.name}`, context: `${summary.hostClubName ?? summary.organizerName} · ${v.squadName ?? v.clubName}`,
+    status: inv.status, direction: 'INCOMING', actionable: inv.status === 'PENDING', updatedAt: iso(inv.updatedAt ?? inv.createdAt), destination: `/tournaments/${inv.tournamentId}`, actionLabel: 'Review invitation' };
+});
 async function allRequests() {
   const C = await clubStore();
-  if (!C?.applications) return S.requestItems;
+  if (!C?.applications) return [...S.requestItems, ...tournamentInvitationRequests()];
   const appointment = id => C.appointments?.find(a => a.id === id);
   const own = S.requestItems.filter(i => !CLUB_FAMILIES.has(i.family)).map(i => {
     const a = i.family === 'STAFF_APPOINTMENT' && appointment(i.id);
     return a && a.status !== 'INVITED' ? { ...i, status: a.status === 'ACTIVE' ? 'ACCEPTED' : a.status, actionable: false } : i;
   });
-  return [...own, ...clubRequests(C)];
+  return [...own, ...tournamentInvitationRequests(), ...clubRequests(C)];
 }
 get('/requests', async ({ query }) => {
   const view = ['INCOMING', 'OUTGOING', 'HISTORY'].includes(query.get('view')) ? query.get('view') : 'INCOMING';
@@ -404,18 +411,34 @@ get('/requests', async ({ query }) => {
     total: items.length, hasMore: (page + 1) * size < items.length, unavailableSources: [],
   };
 });
-const invitation = params => S.requestItems.find(i => i.family === 'TOURNAMENT_INVITATION' && i.id === Number(params.id) && i.destination === `/tournaments/${params.tid}`);
-get('/tournaments/:tid/invitations/:id/review', ({ params }) => invitation(params) ? S.tournamentInvitationReview[params.id] ?? { requiresSquad: false, squads: [] } : undefined);
-for (const decision of ['accept', 'decline']) {
-  post(`/tournaments/:tid/invitations/:id/${decision}`, ({ params, body }) => {
-    const item = invitation(params);
-    if (!item) return undefined;
-    if (!item.actionable) return reply(409, { status: 409, message: 'This invitation was already answered.' });
-    if (decision === 'accept' && S.tournamentInvitationReview[item.id]?.requiresSquad && !body?.squadId) return badRequest('Choose the team entering the tournament.');
-    Object.assign(item, { status: decision === 'accept' ? 'ACCEPTED' : 'DECLINED', actionable: false, updatedAt: iso(new Date()) });
-    return { id: item.id, status: item.status, squadId: body?.squadId ?? null };
-  });
-}
+// Tournament invitations come from the one store the lists and the tournament pane read (world-football).
+const invitation = params => F.tournamentInvitations.find(i => i.id === Number(params.id) && i.tournamentId === Number(params.tid));
+// As the backend: a tournament that takes squads needs one named when the invitation names none; the squads offered are the club's.
+const reviewOf = inv => {
+  const t = F.tournamentById(inv.tournamentId);
+  return { requiresSquad: F.scopeOf(t) === 'SQUAD' && !inv.squadId, squads: W.squads.filter(s => s.clubId === inv.clubId).map(s => ({ id: s.id, name: s.name })), status: inv.status };
+};
+get('/tournaments/:tid/invitations/:id/review', ({ params }) => { const inv = invitation(params); return inv ? reviewOf(inv) : undefined; });
+post('/tournaments/:tid/invitations/:id/decline', ({ params }) => {
+  const inv = invitation(params);
+  if (!inv) return undefined;
+  if (inv.status !== 'PENDING') return reply(409, { status: 409, message: 'This invitation was already answered.' });
+  Object.assign(inv, { status: 'DECLINED', updatedAt: new Date() });
+  return { id: inv.id, status: inv.status, squadId: null };
+});
+// Accepting enters the club (or the squad) by the tournament's rules: one live entry per club, the window, the waiting list.
+post('/tournaments/:tid/invitations/:id/accept', ({ params, body }) => {
+  const inv = invitation(params);
+  if (!inv) return undefined;
+  if (inv.status !== 'PENDING') return reply(409, { status: 409, message: 'This invitation was already answered.' });
+  const squadId = inv.squadId ?? (body?.squadId ? Number(body.squadId) : null);
+  if (reviewOf(inv).requiresSquad && !squadId) return badRequest('Choose the team entering the tournament.');
+  if (squadId && W.squadById(squadId)?.clubId !== inv.clubId) return badRequest('Choose a squad of the invited club.');
+  const { refusal } = F.enterTournament(F.tournamentById(inv.tournamentId), { clubId: inv.clubId, squadId, invited: true });
+  if (refusal) return reply(refusal.status, refusal);
+  Object.assign(inv, { status: 'ACCEPTED', updatedAt: new Date() });
+  return { id: inv.id, status: inv.status, squadId };
+});
 
 // ================================================================ chat
 const lastMessageOf = c => S.chatMessages.filter(m => m.conversationId === c.id).at(-1) ?? null;

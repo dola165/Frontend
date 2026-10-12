@@ -197,6 +197,7 @@ const extraTournaments = [
   { id: 307, name: 'Rustavi Community Cup', format: 'GROUPS_KNOCKOUT', ageGroup: 'SENIOR', gender: 'MIXED', teamFormat: '7v7', organizerClubId: 10, start: day(16, 10), end: day(16, 19), entryDeadline: day(10), status: 'REGISTRATION', teams: [10, 6, 15, 9, 8], city: 'Rustavi', venueId: 208, fee: 60, description: 'One-day seven-a-side cup with a family fan zone. Proceeds support the club’s girls’ programme.' },
   { id: 308, name: 'Tbilisi Futsal Ladder', format: 'LADDER', ageGroup: 'SENIOR', gender: 'MIXED', teamFormat: '5v5', organizerClubId: 8, start: day(-40), end: day(80), entryDeadline: day(30), status: 'IN_PROGRESS', teams: [8, 9, 15, 3, 6], city: 'Tbilisi', venueId: 204, fee: 0, description: 'Challenge any team up to three places above you. Weeknight futsal at the Isani hall.' },
   { id: 309, name: 'Mtskheta Grassroots Festival U10', format: 'FESTIVAL', ageGroup: 'U10', gender: 'MIXED', teamFormat: '5v5', organizerClubId: 14, start: day(2, 10), end: day(2, 15), entryDeadline: day(0), status: 'REGISTRATION', teams: [14, 6, 7, 3, 1], city: 'Mtskheta', venueId: 214, fee: 0, description: 'No scores, no tables. Every child plays every game by the river.' },
+  { id: 312, name: 'Isani Walking Football Morning', format: 'FESTIVAL', ageGroup: 'SENIOR', gender: 'MIXED', teamFormat: '5v5', organizerClubId: 8, start: day(19, 10), end: day(19, 13), entryDeadline: day(16), status: 'REGISTRATION', teams: [], players: ['Zurab Beridze', 'Manana Kiknadze', 'Gela Tsiklauri', 'Nodar Abuladze', 'Lia Chkheidze', 'Temur Mamulashvili'], city: 'Tbilisi', venueId: 204, fee: 15, feeBasis: 'PLAYER', discipline: 'WALKING', description: 'Walking football for adults of any age: sign up on your own and the organiser makes the teams on the morning.' },
   // A tournament from before the competition engine: no published rules, its stages built by hand (groups, then finals).
   { id: 310, name: 'Batumi Beach Cup U14', legacy: true, format: 'GROUPS_KNOCKOUT', ageGroup: 'U14', gender: 'MIXED', teamFormat: '5v5', organizerClubId: 12, start: day(-120, 10), end: day(-119, 18), entryDeadline: day(-130), status: 'COMPLETED', teams: [12, 10, 1, 4, 6, 11, 3, 16], city: 'Batumi', venueId: 210, fee: 40, description: 'Two days of beach five-a-side by the boulevard, from last summer.' },
 ];
@@ -206,6 +207,11 @@ const FAMILY = { LEAGUE: 'LEAGUE', KNOCKOUT: 'CUP', GROUPS_KNOCKOUT: 'CUP', FEST
 const STRUCTURE = { LEAGUE: 'ROUND_ROBIN', KNOCKOUT: 'KNOCKOUT', GROUPS_KNOCKOUT: 'GROUPS_KNOCKOUT', FESTIVAL: 'ROTATION', LADDER: 'LADDER' };
 /** The community league is played home and away. */
 export const structureOf = t => t.id === 301 ? 'HOME_AWAY' : STRUCTURE[t.format];
+/** Who enters (clubs unless said) and how entries are taken (as they come unless said). */
+const SCOPE = { 303: 'SQUAD', 312: 'PLAYER' };
+const POLICY = { 301: 'APPROVAL_ONLY', 302: 'APPROVAL_ONLY', 304: 'APPROVAL_ONLY', 307: 'INVITE_ONLY' };
+export const scopeOf = t => SCOPE[t.id] ?? 'CLUB';
+export const policyOf = t => POLICY[t.id] ?? 'OPEN';
 
 export const tournamentState = new Map(); // id -> { entries, stages, fixtures, staff, routes, phases, plan, overrides }
 let entrySeq = 6000, fixtureSeq = 7000, stageSeq = 6800;
@@ -223,9 +229,13 @@ const offsetOf = d => Math.round((d.getTime() - day(0).getTime()) / 86400000);
 
 function buildTournament(t) {
   const status = STATUS[t.status];
-  const extra = t.id === 302 ? [4, 10, 15] : t.id === 304 ? [1, 11, 3, 16] : t.id === 303 ? [1, 5, 14] : [];
+  // Dinamo is invited to the festival (303) and the girls' cup (304), so it has not entered them.
+  const extra = t.id === 302 ? [4, 10, 15] : t.id === 304 ? [11, 3, 16] : t.id === 303 ? [5, 14] : [];
   const ids = [...new Set([...t.teams, ...extra])];
   const entries = ids.map((clubId, i) => entryFor(t, clubId, status === 'PLANNING' && i >= ids.length - 2 && t.id !== 309 ? 'PENDING' : status === 'PLANNING' && i >= ids.length - 3 && t.id === 304 ? 'APPROVED' : 'ACTIVE'));
+  // A players' tournament: people enter themselves.
+  (t.players ?? []).forEach((player, i) => entries.push({ id: ++entrySeq, clubId: null, clubName: null, squadId: null, squadName: null, userId: 8100 + i, displayName: player, status: 'ACTIVE', seed: null,
+    requestedBy: 8100 + i, decidedBy: null, decidedAt: iso(day(-10 + i)), confirmedAt: iso(day(-10 + i)), withdrawnAt: null, withdrawalReason: null, draftTeamId: null }));
   entries.forEach((e, i) => { e.seed = i + 1; });
   if (t.id === 301) entries.forEach(e => { if (e.clubId === DINAMO) { e.squadId = 101; e.squadName = W.squadById(101)?.name ?? e.squadName; } });
   const stages = [], fixtures = [], routes = [], phases = new Map();
@@ -357,12 +367,12 @@ const RULESET = { LEAGUE: 'IFAB Laws of the Game with GFF amateur competition re
 export const competitionRules = t => {
   const side = Number(t.teamFormat.split('v')[0]);
   return {
-    family: FAMILY[t.format], structure: structureOf(t), discipline: side === 5 && t.venueId === 204 ? 'FUTSAL' : 'ASSOCIATION', sideSize: side, ageGroup: t.ageGroup,
+    family: FAMILY[t.format], structure: structureOf(t), discipline: t.discipline ?? (side === 5 && t.venueId === 204 ? 'FUTSAL' : 'ASSOCIATION'), sideSize: side, ageGroup: t.ageGroup,
     eligibilityCategory: t.gender === 'FEMALE' ? 'Girls' : t.gender === 'MALE' ? (t.ageGroup === 'SENIOR' ? 'Open' : 'Boys') : 'Open', playingLevel: t.ageGroup === 'U10' ? 'DEVELOPMENT' : t.format === 'FESTIVAL' ? 'RECREATIONAL' : 'COMPETITIVE',
     country: 'Georgia', city: t.city, timezone: TZ, ruleset: RULESET[t.format], jurisdiction: t.ageGroup === 'SENIOR' ? '' : 'Organiser-run youth competition', ageCutoff: t.ageGroup === 'SENIOR' ? null : `${W.NOW.getFullYear() - Number(t.ageGroup.slice(1))}-01-01`,
     matchMinutes: side >= 11 ? (t.ageGroup === 'SENIOR' ? 90 : 80) : side >= 7 ? 40 : 24, restMinutes: side >= 11 ? 30 : 10, pitches: t.venueId === 205 ? 3 : 1, rounds: 3,
     tiebreaks: ['POINTS', 'GOAL_DIFFERENCE', 'GOALS_FOR', 'SEED'], challengeRange: 3, challengeExpiryDays: 7, maxConsecutiveStays: 2, standings: t.format !== 'FESTIVAL',
-    entryFee: t.fee, currency: 'GEL', feeBasis: 'TEAM', seasonPolicy: t.format === 'LEAGUE' ? 'Double round-robin, autumn to winter. Points: 3 win, 1 draw.' : 'Single event; results stand once confirmed by the organiser.',
+    entryFee: t.fee, currency: 'GEL', feeBasis: t.feeBasis ?? 'TEAM', seasonPolicy: t.format === 'LEAGUE' ? 'Double round-robin, autumn to winter. Points: 3 win, 1 draw.' : 'Single event; results stand once confirmed by the organiser.',
   };
 };
 // A tournament from before the engine has no published rules.
@@ -377,20 +387,80 @@ export const tournamentSummary = t => {
   const st = tournamentState.get(t.id), org = organizerOf(t), host = t.organizerClubId ? clubById(t.organizerClubId) : null, window = registrationWindow(t);
   return {
     id: t.id, name: t.name, description: t.description, status: st.status, organizerOrganizationId: org.id, organizerName: org.name, hostClubId: host?.id ?? null, hostClubName: host?.name ?? null,
-    participantScope: 'CLUB', visibility: 'PUBLIC', startDate: local(t.start), endDate: local(t.end), registrationOpensAt: local(window.opens), registrationClosesAt: local(window.closes),
+    participantScope: scopeOf(t), visibility: 'PUBLIC', startDate: local(t.start), endDate: local(t.end), registrationOpensAt: local(window.opens), registrationClosesAt: local(window.closes),
     entryCount: placesTaken(st), incentives: t.fee ? 'Trophies and medals for finalists' : 'Medals for every player', bannerImageUrl: photo(`tournament-${t.id}`),
   };
 };
 export const tournamentDetail = t => {
   const st = tournamentState.get(t.id);
-  return { ...tournamentSummary(t), entryCap: t.format === 'LEAGUE' ? 10 : t.format === 'KNOCKOUT' ? 8 : 12, rules: RULESET[t.format], registrationPolicy: t.id === 301 ? 'APPROVAL_ONLY' : 'OPEN', locationId: t.venueId,
+  return { ...tournamentSummary(t), entryCap: t.format === 'LEAGUE' ? 10 : t.format === 'KNOCKOUT' ? 8 : 12, rules: RULESET[t.format], registrationPolicy: policyOf(t), locationId: t.venueId,
     staffAssignments: st.staff, entries: st.entries, stages: st.stages, fixtures: st.fixtures, championEntryId: st.championEntryId ?? null, championName: st.championName ?? null, ...(st.overrides || {}) };
 };
 /** A `/competitions` card as the backend sends it: no entry window, host or organiser ids, visibility or prizes. */
 export const competitionCard = t => {
   const { id, name, description, status, participantScope, organizerName, hostClubName, startDate, endDate, bannerImageUrl, entryCount } = tournamentSummary(t);
   return { id, name, description, status, participantScope, organizerName, hostClubName, startDate, endDate, bannerImageUrl, entryCount, entryCap: tournamentDetail(t).entryCap, profile: competitionProfile(t) };
+
 };
+// ============================================================== entering and invitations (as TournamentService)
+/** One store of tournament invitations: the person's list, the organiser's, Requests, review, accept and decline read it. */
+const firstTeam = DINAMO_SQUADS.find(s => s.ageGroup === 'SENIOR') ?? DINAMO_SQUADS[0];
+const girlsU16 = DINAMO_SQUADS.find(s => s.ageGroup === 'U16' && /Girls/.test(s.name));
+export const tournamentInvitations = [
+  // The festival takes squads; Kutaisi invited the club as a whole, so whoever answers names the squad.
+  { id: 6501, tournamentId: 303, clubId: DINAMO, squadId: null, status: 'PENDING', createdAt: day(-1, 9) },
+  { id: 7704, tournamentId: 304, clubId: DINAMO, squadId: girlsU16?.id ?? null, status: 'PENDING', createdAt: day(-3, 14) },
+  // The Rustavi cup is by invitation only.
+  { id: 7707, tournamentId: 307, clubId: DINAMO, squadId: firstTeam?.id ?? null, status: 'PENDING', createdAt: day(-2, 11) },
+  { id: 6503, tournamentId: 301, clubId: DINAMO, squadId: 101, status: 'ACCEPTED', createdAt: day(-40, 10), updatedAt: day(-35, 10) },
+];
+export const invitationView = inv => {
+  const t = tournamentById(inv.tournamentId), c = clubById(inv.clubId), s = inv.squadId ? W.squadById(inv.squadId) : null;
+  return { id: inv.id, clubId: inv.clubId, clubName: c?.name ?? null, squadId: inv.squadId, squadName: s?.name ?? null, status: inv.status, createdAt: iso(inv.createdAt), tournament: t };
+};
+const LIVE = ['PENDING', 'APPROVED', 'WAITLISTED', 'ACTIVE'];
+const HOLDS = ['APPROVED', 'ACTIVE'];
+/** A tournament's entry rules, in the backend's order; null when the entry may be made, else the refusal. */
+function entryRefusal(t, st, { clubId, userId, invited }) {
+  const window = registrationWindow(t), now = Date.now();
+  if (st.status !== 'PLANNING') return { status: 409, message: 'Entries are only taken while the tournament is being planned.' };
+  if (window.opens.getTime() > now || window.closes.getTime() <= now) return { status: 409, message: 'Entries are closed for this tournament.' };
+  if (policyOf(t) === 'INVITE_ONLY' && !invited) return { status: 403, message: 'This tournament takes entries by invitation only.' };
+  if (clubId != null && st.entries.some(e => e.clubId === clubId && LIVE.includes(e.status))) return { status: 409, message: 'This club already has a live entry in this tournament.' };
+  if (userId != null && st.entries.some(e => e.userId === userId && LIVE.includes(e.status))) return { status: 409, message: 'You are already registered in this tournament.' };
+  return null;
+}
+/** How a new entry starts: on the waiting list once the places are taken, else in at once or waiting for the organiser. */
+function startingStatus(t, st, { squadId, player }) {
+  const cap = tournamentDetail(t).entryCap;
+  if (cap && st.entries.filter(e => HOLDS.includes(e.status)).length >= cap) return 'WAITLISTED';
+  // A club's entry without a squad waits for the organiser's eligibility review.
+  return policyOf(t) === 'APPROVAL_ONLY' || (!player && squadId == null) ? 'PENDING' : 'ACTIVE';
+}
+/** Makes an entry (a club's, a squad's or a player's) or says why not: `{ entry }` or `{ refusal }`. */
+export function enterTournament(t, { clubId = null, squadId = null, userId = null, displayName = null, invited = false }) {
+  const st = tournamentState.get(t.id);
+  const refusal = entryRefusal(t, st, { clubId, userId, invited });
+  if (refusal) return { refusal };
+  const c = clubId != null ? clubById(clubId) : null, s = squadId != null ? W.squadById(squadId) : null;
+  const status = startingStatus(t, st, { squadId, player: userId != null });
+  const entry = { id: ++entrySeq, clubId: c?.id ?? null, clubName: c?.name ?? null, squadId: s?.id ?? null, squadName: s?.name ?? null, userId, displayName, status, seed: null,
+    requestedBy: W.ME_ID, decidedBy: status === 'ACTIVE' ? W.ME_ID : null, decidedAt: status === 'ACTIVE' ? iso(new Date()) : null, confirmedAt: status === 'ACTIVE' ? iso(new Date()) : null, withdrawnAt: null, withdrawalReason: null, draftTeamId: null };
+  st.entries.push(entry);
+  // Entering while invited uses the invitation up.
+  for (const inv of tournamentInvitations) if (inv.tournamentId === t.id && inv.clubId === clubId && inv.status === 'PENDING') Object.assign(inv, { status: 'ACCEPTED', updatedAt: new Date() });
+  return { entry };
+}
+/** A withdrawal frees a place: the first entry on the waiting list moves up. */
+export function withdrawEntry(t, entryId) {
+  const st = tournamentState.get(t.id), entry = st.entries.find(e => e.id === Number(entryId));
+  if (!entry || !LIVE.includes(entry.status)) return false;
+  const held = HOLDS.includes(entry.status);
+  Object.assign(entry, { status: 'WITHDRAWN', withdrawnAt: iso(new Date()) });
+  const next = held && st.entries.find(e => e.status === 'WAITLISTED');
+  if (next) next.status = policyOf(t) === 'APPROVAL_ONLY' ? 'PENDING' : 'ACTIVE';
+  return true;
+}
 
 // ---------------------------------------------------------------- match exchange
 const LEVELS = ['DEVELOPMENT', 'RECREATIONAL', 'COMPETITIVE', 'ELITE'];

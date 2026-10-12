@@ -430,7 +430,12 @@ get('/tournaments', ({ query: q }) => pageResult(summaryFilter(q), pageOf(q), si
 get('/tournaments/mine', ({ query: q }) => pageResult(summaryFilter(q).filter(s => F.tournamentState.get(s.id).entries.some(e => e.clubId === DINAMO) || F.tournamentState.get(s.id).staff.some(a => a.userId === W.ME_ID)), pageOf(q), sizeOf(q, 20)));
 get('/competitions/mine', ({ query: q }) => pageResult(summaryFilter(q).filter(s => F.tournamentState.get(s.id).entries.some(e => e.clubId === DINAMO) || F.tournamentState.get(s.id).staff.some(a => a.userId === W.ME_ID)), pageOf(q), sizeOf(q, 20)));
 // As the backend sends them: the invited club and squad by id too, and the tournament's start.
-get('/tournaments/invitations/mine', ({ query: q }) => pageResult([304, 307].map(id => { const t = F.tournamentById(id), s = F.tournamentSummary(t), squad = squads.find(x => x.clubId === DINAMO && x.name === (id === 304 ? 'U16 Girls' : 'First Team')); return { invitationId: 7700 + id, tournamentId: id, tournamentName: t.name, tournamentStatus: s.status, visibility: 'PUBLIC', participantScope: 'CLUB', clubId: DINAMO, clubName: clubById(DINAMO).name, squadId: squad?.id ?? null, squadName: squad?.name ?? null, startDate: s.startDate ?? iso(t.start), status: 'PENDING' }; }), pageOf(q), sizeOf(q, 10)));
+// As the backend sends them, from the one invitation store: the invited club and squad by id too, and the tournament's start.
+get('/tournaments/invitations/mine', ({ query: q }) => pageResult(F.tournamentInvitations.filter(inv => inv.clubId === DINAMO && (q.get('status') ?? 'PENDING') === inv.status).map(inv => {
+  const v = F.invitationView(inv), summary = F.tournamentSummary(v.tournament);
+  return { invitationId: inv.id, tournamentId: inv.tournamentId, tournamentName: summary.name, tournamentStatus: summary.status, visibility: 'PUBLIC', participantScope: summary.participantScope,
+    clubId: v.clubId, clubName: v.clubName, squadId: v.squadId, squadName: v.squadName, startDate: summary.startDate, status: inv.status };
+}), pageOf(q), sizeOf(q, 10)));
 
 // Events discovery (Find events): tournaments, public fixtures, tryouts.
 get('/tournaments/discovery', ({ query: q }) => {
@@ -455,8 +460,8 @@ get('/tournaments/:id/tie-state', () => ({ contests: [], blocked: false, staleSt
 get('/tournaments/:id/tie-resolutions', () => []);
 get('/tournaments/:id/draft-teams', () => []);
 get('/tournaments/:id/invitations', ({ params }) => {
-  const st = F.tournamentState.get(Number(params.id)); if (!st) return notFound();
-  return [...st.invitations, ...[13, 16].map((clubId, i) => ({ id: 7800 + Number(params.id) * 2 + i, clubId, clubName: clubById(clubId).name, squadId: null, squadName: null, status: i ? 'ACCEPTED' : 'PENDING', createdAt: iso(W.day(-20 + i)) }))];
+  const t = F.tournamentById(params.id); if (!t) return notFound();
+  return F.tournamentInvitations.filter(inv => inv.tournamentId === t.id && inv.status !== 'CANCELLED').map(inv => { const { tournament, ...view } = F.invitationView(inv); void tournament; return view; });
 });
 get('/tournaments/:id/player-queue', ({ params }) => detailOr404(params.id));
 get('/tournaments/:id/stages/:stageId/standings', ({ params }) => {
@@ -468,12 +473,23 @@ get('/tournaments/:id/stages/:stageId/standings', ({ params }) => {
 });
 const mutateTournament = (id, fn) => { const t = F.tournamentById(id), st = t && F.tournamentState.get(t.id); if (!st) return notFound(); const res = fn(st, t); return res && res.__reply ? res : F.tournamentDetail(t); };
 const fixtureIn = (st, fid) => st.fixtures.find(f => f.id === Number(fid));
-post('/tournaments/:id/entries', ({ params, body }) => mutateTournament(params.id, (st, t) => {
-  const c = clubById(body?.clubId) || clubById(DINAMO);
-  if (st.entries.some(e => e.clubId === c.id && (!body?.squadId || e.squadId === Number(body.squadId)) && !['WITHDRAWN', 'REJECTED'].includes(e.status))) return conflict('Your club already has an entry.');
-  st.entries.push({ id: W.newId(), clubId: c.id, clubName: c.name, squadId: Number(body?.squadId) || null, squadName: null, userId: null, displayName: c.name, status: 'PENDING', seed: null, requestedBy: W.ME_ID, decidedBy: null, decidedAt: null, confirmedAt: null, withdrawnAt: null, withdrawalReason: null, draftTeamId: null });
-}));
-post('/tournaments/:id/entries/:entryId/withdraw', ({ params }) => mutateTournament(params.id, st => { const e = st.entries.find(x => x.id === Number(params.entryId)); if (e) { e.status = 'WITHDRAWN'; e.withdrawnAt = iso(new Date()); } }));
+// As TournamentService.requestEntry: planning only, the window open, invitation-only needs an invitation, one live entry per
+// club whatever the squad; a full tournament puts the entry on the waiting list, never refuses it.
+post('/tournaments/:id/entries', ({ params, body }) => {
+  const t = F.tournamentById(params.id); if (!t) return notFound();
+  const club = clubById(body?.clubId), squad = body?.squadId ? squadById(body.squadId) : null;
+  if (!club || (squad && squad.clubId !== club.id)) return reply(400, { status: 400, message: 'Choose one of your club\u2019s squads.' });
+  const invited = F.tournamentInvitations.some(inv => inv.tournamentId === t.id && inv.clubId === club.id && inv.status === 'PENDING');
+  const { refusal } = F.enterTournament(t, { clubId: club.id, squadId: squad?.id ?? null, invited });
+  return refusal ? reply(refusal.status, refusal) : reply(201, F.tournamentDetail(t));
+});
+post('/tournaments/:id/register-player', ({ params }) => {
+  const t = F.tournamentById(params.id); if (!t) return notFound();
+  if (F.scopeOf(t) !== 'PLAYER') return reply(400, { status: 400, message: 'This tournament takes club or squad entries.' });
+  const { refusal } = F.enterTournament(t, { userId: W.ME_ID, displayName: W.me.fullName });
+  return refusal ? reply(refusal.status, refusal) : reply(201, F.tournamentDetail(t));
+});
+post('/tournaments/:id/entries/:entryId/withdraw', ({ params }) => { const t = F.tournamentById(params.id); if (!t) return notFound(); return F.withdrawEntry(t, params.entryId) ? F.tournamentDetail(t) : conflict('This entry was already withdrawn.'); });
 patch('/tournaments/:id/entries/:entryId/status', ({ params, body }) => mutateTournament(params.id, st => { const e = st.entries.find(x => x.id === Number(params.entryId)); if (e) { e.status = body?.status || e.status; e.decidedBy = W.ME_ID; e.decidedAt = iso(new Date()); if (e.status === 'ACTIVE') e.confirmedAt = iso(new Date()); } }));
 patch('/tournaments/:id/entries/:entryId/squad', ({ params, body }) => mutateTournament(params.id, st => { const e = st.entries.find(x => x.id === Number(params.entryId)); if (e) e.squadId = body?.squadId ?? null; }));
 del('/tournaments/:id/entries/:entryId', ({ params }) => mutateTournament(params.id, st => { st.entries = st.entries.filter(x => x.id !== Number(params.entryId)); }));
@@ -492,8 +508,8 @@ patch('/tournaments/:id/fixtures/:fid/participants', ({ params, body }) => mutat
 for (const action of ['place-entry', 'unplace-entry']) post(`/tournaments/:id/fixtures/:fid/${action}`, ({ params, body }) => mutateTournament(params.id, st => { const f = fixtureIn(st, params.fid), e = st.entries.find(x => x.id === body?.entryId), side = body?.slot === 'AWAY' ? 'away' : 'home'; if (!f) return; f[`${side}EntryId`] = action === 'place-entry' ? e?.id ?? null : null; f[`${side}Label`] = action === 'place-entry' ? e?.clubName ?? e?.displayName ?? null : null; }));
 post('/tournaments/:id/staff', ({ params, body }) => mutateTournament(params.id, st => { const p = personById(body?.userId); if (p) st.staff.push({ id: W.newId(), userId: p.id, fullName: p.fullName, role: body.role || 'STAFF', status: 'ACTIVE', assignedBy: W.ME_ID, createdAt: iso(new Date()) }); }));
 del('/tournaments/:id/staff/:assignmentId', ({ params }) => mutateTournament(params.id, st => { st.staff = st.staff.filter(a => a.id !== Number(params.assignmentId)); }));
-post('/tournaments/:id/invitations', ({ params, body }) => { const st = F.tournamentState.get(Number(params.id)); if (!st) return notFound(); const c = clubById(body?.clubId); const inv = { id: W.newId(), clubId: c?.id ?? null, clubName: c?.name ?? null, squadId: body?.squadId ?? null, squadName: squadById(body?.squadId)?.name ?? null, status: 'PENDING', createdAt: iso(new Date()) }; st.invitations.push(inv); return inv; });
-del('/tournaments/:id/invitations/:invitationId', ({ params }) => { const st = F.tournamentState.get(Number(params.id)); if (st) st.invitations = st.invitations.filter(i => i.id !== Number(params.invitationId)); return reply(204); });
+post('/tournaments/:id/invitations', ({ params, body }) => { const t = F.tournamentById(params.id); const c = clubById(body?.clubId); if (!t || !c) return notFound(); const inv = { id: W.newId(), tournamentId: t.id, clubId: c.id, squadId: body?.squadId ?? null, status: 'PENDING', createdAt: new Date() }; F.tournamentInvitations.push(inv); const { tournament, ...view } = F.invitationView(inv); void tournament; return view; });
+del('/tournaments/:id/invitations/:invitationId', ({ params }) => { const inv = F.tournamentInvitations.find(i => i.id === Number(params.invitationId) && i.tournamentId === Number(params.id)); if (inv) inv.status = 'CANCELLED'; return reply(204); });
 
 // As CompetitionService.browse answers: every filter it takes, its page limit, and its plain orders (no status first).
 get('/competitions', ({ query: q }) => {
@@ -523,7 +539,8 @@ get('/competitions', ({ query: q }) => {
   list = sort === 'name' ? list.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.id - b.id) : sort === 'newest' ? list.sort((a, b) => b.id - a.id) : list.sort((a, b) => a.start - b.start || b.id - a.id);
   return pageResult(list.map(F.competitionCard), pageOf(q), size);
 });
-get('/competitions/player-eligibility', () => ({ eligible: false }));
+// Luka is an adult with a complete profile: he may register for a players' tournament.
+get('/competitions/player-eligibility', () => ({ eligible: true }));
 get('/competitions/official-assignments', () => []);
 get('/competitions/:id/rules', ({ params }) => { const t = tournamentOr404(params.id); return t ? F.competitionProfile(t) : notFound(); });
 put('/competitions/:id/rules', ({ params, body }) => { const t = tournamentOr404(params.id); return t ? { rules: { ...F.competitionRules(t), ...(body?.rules || {}) }, revision: 4, legacy: false } : notFound(); });

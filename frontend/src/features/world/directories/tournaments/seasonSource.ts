@@ -1,5 +1,5 @@
 import { browseCompetitions, browsePersonalCompetitions, type CompetitionCard } from '../../../competitions/api';
-import { fetchMyTournamentInvitations, fetchTournamentOverview } from '../../../tournaments/api';
+import { fetchTournamentOverview } from '../../../tournaments/api';
 import type { TournamentSummary } from '../../../tournaments/domain';
 import { shared } from '../../cache';
 import type { ResultGroup } from '../../directory/groups';
@@ -8,7 +8,8 @@ import { isoDay, isoDayOf } from '../../format';
 import { loadMyTeams, NO_TEAMS } from '../../scoreboard/myTeams';
 import { zoned } from '../../scoreboard/standings';
 import { TournamentRow } from './TournamentRow';
-import { fromCard, fromInvitation, fromSummary, rulesOf, withPart, type TournamentItem } from './tournamentItem';
+import { WaitingLine } from './WaitingLine';
+import { fromCard, fromInvitation, fromSummary, rulesOf, tournamentInvitations, withPart, type TournamentItem } from './tournamentItem';
 import { nearParams, tournamentLine, tournamentPlace } from './tournamentLines';
 
 type Lane = 'yours' | 'spotlight' | 'now' | 'open' | 'coming';
@@ -43,7 +44,7 @@ async function loadSeason({ signal, sessionId, authenticated, area, userId }: Lo
     const [active, open, planning, personal, invitations, spotlight, teams] = await Promise.all([
         cards({ status: 'ACTIVE' }), cards({ registration: 'OPEN' }), cards({ status: 'PLANNING' }),
         authenticated ? shared(`personal-competitions:${sessionId}`, () => browsePersonalCompetitions({ page: 0, size: 20 })).then(page => page.content) : [] as TournamentSummary[],
-        authenticated ? fetchMyTournamentInvitations(0, 20).then(page => page.content.filter(item => item.status === 'PENDING')) : [],
+        authenticated ? tournamentInvitations(sessionId) : [],
         authenticated ? [] as TournamentSummary[] : fetchTournamentOverview(signal).then(overview => overview.highlights),
         authenticated ? loadMyTeams(sessionId) : NO_TEAMS,
     ]);
@@ -97,6 +98,8 @@ export const season: DirectorySource<SeasonItem> = {
     Item: TournamentRow,
     line: tournamentLine,
     groups: { of: item => LANES[item.lane] },
+    // What waits for me (invitations, work in the tournaments I run) sits above the season, never as a second list.
+    Tools: WaitingLine,
     placeKinds: ['TOURNAMENT'],
     place: tournamentPlace,
     empty: { title: 'Nothing on this season yet', body: 'Leagues, cups and festivals near you appear here when organisers publish them.' },

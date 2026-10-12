@@ -12,7 +12,7 @@ import { useWorldCopy } from '../../copy';
 import { useNow } from '../../scoreboard/useNow';
 import type { MatchPeekData } from './matchPeekData';
 import { AnswerStep, GroundLine, OfferStep, RefereeLine } from './MatchSteps';
-import { clearNotice, readNotice } from './stepNotice';
+import { clearNotice, readNotice } from '../stepNotice';
 import '../../../matchExchange/detail/match-detail.css';
 import '../../../matchExchange/match-exchange.css';
 import '../../../matchHistory/match-history.css';

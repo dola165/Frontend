@@ -72,6 +72,19 @@ export const fetchPlayerQueue = async (tournamentId: number, status: string = 'A
     return response.data;
 };
 
+/** What answering an invitation needs: whether a squad must be named, and the squads that may be. */
+export interface InvitationReview { requiresSquad: boolean; squads: { id: number; name: string }[]; status?: import('./domain').TournamentInvitationStatus }
+export const reviewInvitation = async (tournamentId: number, invitationId: number, signal?: AbortSignal) =>
+    (await apiClient.get<InvitationReview>(`/tournaments/${tournamentId}/invitations/${invitationId}/review`, { signal })).data;
+/** Accepts for the squad named (none for a club-level answer). The organiser may still approve the entry or put it on the waiting list. */
+export const acceptInvitation = async (tournamentId: number, invitationId: number, squadId?: number | null) =>
+    (await apiClient.post(`/tournaments/${tournamentId}/invitations/${invitationId}/accept`, squadId ? { squadId } : {})).data;
+export const declineInvitation = async (tournamentId: number, invitationId: number) =>
+    (await apiClient.post(`/tournaments/${tournamentId}/invitations/${invitationId}/decline`, {})).data;
+/** Withdraws an entry; the waiting list moves up. No content when the person can no longer see the tournament. */
+export const withdrawEntry = async (tournamentId: number, entryId: number, reason?: string) =>
+    (await apiClient.post<TournamentDetail | ''>(`/tournaments/${tournamentId}/entries/${entryId}/withdraw`, reason ? { reason } : {})).data || null;
+
 export const requestEntry = async (tournamentId: number, payload: RequestTournamentEntryPayload) => {
     const response = await apiClient.post<TournamentDetail>(`/tournaments/${tournamentId}/entries`, payload);
     return response.data;

@@ -1,13 +1,15 @@
 import { getDraw, type CompetitionRules, type DrawState } from '../../../competitions/api';
 import { fetchTournamentHost } from '../../../tournaments/api';
-import type { TournamentDetail, TournamentEntryDto, TournamentFixtureDto, TournamentHost } from '../../../tournaments/domain';
+import type { TournamentDetail, TournamentEntryDto, TournamentFixtureDto, TournamentHost, TournamentInvitationInboxItem } from '../../../tournaments/domain';
 import { actualShape, plannedShape, type ActualShape, type ShapeKind } from '../../../tournaments/shape/shapeOf';
 import type { AuthSessionId } from '../../../../utils/authStorage';
-import { detached, shared } from '../../cache';
-import { detailOf, rulesOf } from '../../directories/tournaments/tournamentItem';
+import { detached, forget, notifyWorldChanged, shared } from '../../cache';
+import { detailOf, rulesOf, tournamentInvitations } from '../../directories/tournaments/tournamentItem';
+export { organiserWork } from '../../directories/tournaments/tournamentItem';
 import { loadMyTeams, sideIsMine } from '../../scoreboard/myTeams';
 import { historyOfFixture } from '../match/matchPeekData';
 import { matchCode } from '../../scoreboard/matchCode';
+import type { useWorldCopy } from '../../copy';
 
 /** Everything the tournament's pane shows, read at once so it paints once. */
 export interface TournamentPaneData {
@@ -15,6 +17,7 @@ export interface TournamentPaneData {
     /** The organiser as World's organiser drawer knows it; null when it could not be read. */ host: TournamentHost | null;
     /** My entries: my squads', and my club's own. */ mine: Set<number>;
     /** The person runs it (admin or staff; a referee assignment is not running it). */ canManage: boolean;
+    /** The person's invitation to it, still to answer. */ invitation: TournamentInvitationInboxItem | null;
 }
 
 /** Who runs a tournament, as the organiser drawer's id: the club that hosts it, else the organisation behind it. */
@@ -22,17 +25,18 @@ export const organiserOf = (detail: Pick<TournamentDetail, 'hostClubId' | 'organ
     detail.hostClubId != null ? { kind: 'CLUB' as const, id: detail.hostClubId, peek: `club.${detail.hostClubId}` } : { kind: 'ORGANIZATION' as const, id: detail.organizerOrganizationId, peek: `org.${detail.organizerOrganizationId}` };
 
 export async function loadTournamentPane(id: number, sessionId: AuthSessionId, userId: number | null): Promise<TournamentPaneData> {
-    const [detail, rules, draw, teams] = await Promise.all([
+    const [detail, rules, draw, teams, invitations] = await Promise.all([
         detailOf(id), rulesOf(id),
         // A tournament from before the engine (or not drawn) has no draw state; the pane then reads its stages alone.
         shared(`tournament-draw:${id}`, () => getDraw(id, detached())).catch(() => null),
         loadMyTeams(sessionId),
+        userId != null ? tournamentInvitations(sessionId).catch(() => []) : [],
     ]);
     const organiser = organiserOf(detail);
     const host = await shared(`tournament-host:${organiser.kind}:${organiser.id}`, () => fetchTournamentHost(organiser.kind, organiser.id)).catch(() => null);
     const mine = new Set(detail.entries.filter(entry => !['WITHDRAWN', 'REJECTED'].includes(entry.status) && (sideIsMine(entry, teams) || (entry.clubId != null && teams.clubIds.has(entry.clubId)))).map(entry => entry.id));
     const canManage = userId != null && detail.staffAssignments.some(assignment => assignment.userId === userId && assignment.status === 'ACTIVE' && (assignment.role === 'ADMIN' || assignment.role === 'STAFF'));
-    return { detail, rules, draw, shape: actualShape(detail, rules, draw), host, mine, canManage };
+    return { detail, rules, draw, shape: actualShape(detail, rules, draw), host, mine, canManage, invitation: invitations.find(item => item.tournamentId === id) ?? null };
 }
 
 export type TournamentPart = 'draw' | 'matches' | 'teams' | 'about';
@@ -71,3 +75,18 @@ export function mineSideOf(data: TournamentPaneData) {
     const clubs = new Set(entries.flatMap(entry => entry.squadId == null && entry.clubId != null ? [entry.clubId] : []));
     return (side: { clubId: number | null; squadId: number | null }) => side.squadId != null ? squads.has(side.squadId) : side.clubId != null && clubs.has(side.clubId);
 }
+
+/** After entering, answering or withdrawing: the tournament and every list that shows it are read again, and Requests too. */
+export function tournamentChanged(id: number) {
+    forget(`tournament:${id}`);
+    forget(`tournament-draw:${id}`);
+    notifyWorldChanged(['tournament-invitations:', 'personal-competitions:', 'my-competitions:', 'competitions-for:']);
+    window.dispatchEvent(new Event('requests-updated'));
+}
+
+/** How an entry stands, in words: in, waiting for the organiser, on the waiting list, out. */
+export function entryWords(entry: Pick<TournamentEntryDto, 'status'>, team: string, t: ReturnType<typeof useWorldCopy>) {
+    return entry.status === 'PENDING' ? t('{team}: waiting for the organiser', { team }) : entry.status === 'WAITLISTED' ? t('{team}: on the waiting list', { team })
+        : entry.status === 'ELIMINATED' ? t('{team}: out', { team }) : t('{team} in', { team });
+}
+

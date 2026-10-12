@@ -9,7 +9,7 @@ import { Crest } from '../../Crest';
 import { codeLabel, SCOPE_LABEL, shortDate } from '../../format';
 import { HistoryLine } from '../../scoreboard/HistoryLine';
 import { zoned } from '../../scoreboard/standings';
-import { feeLabel } from '../../directories/tournaments/tournamentItem';
+import { feeLabel, lastEntryDay } from '../../directories/tournaments/tournamentItem';
 import { fixtureMatch, mineSideOf, sideName, visibleEntries, type TournamentPaneData } from './tournamentPane';
 
 /** Fixtures under their stage and round ("Cup · Semi-finals"), else by stage; each opens its match stacked over the pane. */
@@ -88,7 +88,7 @@ export function TournamentAbout({ data }: { data: TournamentPaneData }) {
         ['Who it is for', rules ? [codeLabel(rules.ageGroup), rules.eligibilityCategory, `${rules.sideSize}v${rules.sideSize}`, codeLabel(rules.playingLevel)].filter(Boolean).join(' · ') : null],
         ['Who enters', SCOPE_LABEL[detail.participantScope] ? t(SCOPE_LABEL[detail.participantScope]) : null],
         ['Dates', [day(detail.startDate), day(detail.endDate)].filter(Boolean).filter((value, index, all) => all.indexOf(value) === index).join(' – ') || null],
-        ['Entries', [detail.registrationOpensAt && t('open {date}', { date: day(detail.registrationOpensAt) ?? '' }), detail.registrationClosesAt && t('close {date}', { date: day(detail.registrationClosesAt) ?? '' })].filter(Boolean).join(', ') || null],
+        ['Entries', [detail.registrationOpensAt && t('open {date}', { date: day(detail.registrationOpensAt) ?? '' }), detail.registrationClosesAt && t('last day {date}', { date: lastEntryDay(detail.registrationClosesAt) ?? '' })].filter(Boolean).join(', ') || null],
         ['How entries work', [detail.registrationPolicy && t(POLICY[detail.registrationPolicy]), detail.entryCap ? t('{cap} places; once full, entries join the waiting list.', { cap: detail.entryCap }) : null].filter(Boolean).join(' ') || null],
         ['Entry fee', rules ? [feeLabel(rules), rules.entryFee ? t('paid to the organiser') : null].filter(Boolean).join(', ') : null],
         ['Prizes', detail.incentives],

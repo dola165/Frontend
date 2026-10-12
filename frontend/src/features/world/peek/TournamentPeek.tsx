@@ -15,10 +15,11 @@ import { zoned } from '../scoreboard/standings';
 import { useWorldData } from '../useWorldData';
 import { DrawerFrame, DrawerLoading } from './DrawerFrame';
 import { FollowHost } from './tournament/FollowHost';
+import { TournamentAction } from './tournament/TournamentAction';
 import { ShapeView } from './tournament/ShapeView';
 import { TournamentOverview } from './tournament/TournamentOverview';
 import { TournamentAbout, TournamentMatches, TournamentTeams } from './tournament/TournamentParts';
-import { loadTournamentPane, organiserOf, placesTaken, tournamentParts, type TournamentPaneData, type TournamentPart } from './tournament/tournamentPane';
+import { loadTournamentPane, organiserOf, placesTaken, tournamentChanged, tournamentParts, type TournamentPaneData, type TournamentPart } from './tournament/tournamentPane';
 import { useRelatedOpen, usePeekPart } from './usePeek';
 import './peek.css';
 import './pane.css';
@@ -42,7 +43,7 @@ export default function TournamentPeek({ id }: { id: string }) {
             <EmptyNote title={data.error || t('This tournament could not load.')} action={valid ? <Button size="sm" onClick={data.retry}>{t('Try again')}</Button> : undefined} />
         </DrawerFrame>
     );
-    return <TournamentPane data={data.data} />;
+    return <TournamentPane data={data.data} reload={data.retry} />;
 }
 
 /** The tournament as a list item, so the pane says its one fact exactly as its row does. */
@@ -56,7 +57,7 @@ function asItem({ detail, rules, mine }: TournamentPaneData): TournamentItem {
     };
 }
 
-function TournamentPane({ data }: { data: TournamentPaneData }) {
+function TournamentPane({ data, reload }: { data: TournamentPaneData; reload: () => void }) {
     const t = useWorldCopy();
     const { detail, rules, host } = data;
     const [part, showPart] = usePeekPart();
@@ -102,6 +103,7 @@ function TournamentPane({ data }: { data: TournamentPaneData }) {
                     {host && <FollowHost host={host} />}
                     <Status tone={fact.tone}>{fact.label}</Status>
                 </div>
+                <TournamentAction data={data} reload={() => { tournamentChanged(detail.id); reload(); }} />
                 <div ref={tabsTop} className="gk-pane-parts">
                     <Tabs className="gk-pane-tabs" label={t('{name} parts', { name: detail.name })} idBase={ids} value={shown} onChange={next => select(next === 'overview' ? undefined : next as TournamentPart)}
                         items={[{ id: 'overview', label: t('Overview') }, ...parts.map(entry => ({ id: entry.id, label: t(entry.label) }))]} />

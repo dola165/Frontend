@@ -1,12 +1,9 @@
 import { browsePersonalCompetitions } from '../../../competitions/api';
-import { fetchMyTournamentInvitations } from '../../../tournaments/api';
-import type { AuthSessionId } from '../../../../utils/authStorage';
-import { shared } from '../../cache';
 import type { ResultGroup } from '../../directory/groups';
 import type { DirectorySource } from '../../directory/types';
 import { loadMyTeams } from '../../scoreboard/myTeams';
 import { TournamentRow } from './TournamentRow';
-import { fromInvitation, fromSummary, rulesOf, withPart, type TournamentItem } from './tournamentItem';
+import { fromInvitation, fromSummary, rulesOf, tournamentInvitations, withPart, type TournamentItem } from './tournamentItem';
 import { tournamentLine, tournamentPlace } from './tournamentLines';
 
 type Lane = 'waiting' | 'playing' | 'running' | 'refereeing' | 'finished';
@@ -21,9 +18,6 @@ const LANES: Record<Lane, ResultGroup> = {
 };
 const PAGE = 12;
 
-/** Invitations still to answer, shared for a minute by the list and its tab's count. */
-const pendingInvitations = (sessionId: AuthSessionId) => shared(`tournament-invitations:${sessionId}`, () => fetchMyTournamentInvitations(0, 20))
-    .then(page => page.content.filter(item => item.status === 'PENDING'));
 
 /**
  * My tournaments: what waits for me (invitations to answer), the ones my squads play in, the ones I run or referee,
@@ -41,14 +35,14 @@ export const myTournaments: DirectorySource<MyTournament> = {
     filters: [],
     count: async ({ sessionId, authenticated }) => {
         if (!authenticated) return null;
-        const waiting = (await pendingInvitations(sessionId)).length;
+        const waiting = (await tournamentInvitations(sessionId)).length;
         return waiting ? { count: waiting, tone: 'warning', label: 'need you' } : null;
     },
     async load(query, page, { sessionId, userId }) {
         const text = query.q.trim().toLowerCase();
         const [personal, invitations, teams] = await Promise.all([
             browsePersonalCompetitions({ page, size: PAGE, search: query.q || undefined }),
-            page === 0 ? pendingInvitations(sessionId) : [],
+            page === 0 ? tournamentInvitations(sessionId) : [],
             loadMyTeams(sessionId),
         ]);
         const asked = invitations.filter(item => !text || [item.tournamentName, item.squadName, item.clubName].some(value => (value ?? '').toLowerCase().includes(text)));
@@ -59,7 +53,8 @@ export const myTournaments: DirectorySource<MyTournament> = {
             const item = fromSummary(summary, await rulesOf(summary.id));
             if (summary.status === 'COMPLETED' || summary.status === 'CANCELLED') return { ...(await withPart(item, userId, teams)), lane: 'finished' as const };
             const part = await withPart(item, userId, teams);
-            return { ...part, lane: part.role ?? ('playing' as const) };
+            // A tournament I run with work waiting is waiting for me; its row says what, and its pane leads to it.
+            return { ...part, lane: part.work?.length ? 'waiting' as const : part.role ?? ('playing' as const) };
         }));
         // An invited tournament the list also brings (my club is in it already) is listed once, as waiting.
         const twice = personal.content.length - rest.length;

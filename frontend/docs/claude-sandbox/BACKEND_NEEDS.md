@@ -290,6 +290,9 @@ The sandbox's `GET /people` (`sandbox/api/handlers/world-extra.mjs`) is the cont
 | Club crests on entries and standings (`clubLogoUrl` is never filled), so brackets and tables show initials | MISSING (low priority) |
 | The draw state's ranking labels every row by its squad ("U16 Boys"), so a table of one age group repeats the same name; the frontend names rows by the entry's club | PARTIAL |
 | A tournament fixture's result step that the match drawer can use (today staff add results in the workspace) | MISSING |
+| A request id on entries and accepted invitations, so a retry after a lost answer is not refused as "already has a live entry" | MISSING |
+| The invitation list (`/tournaments/invitations/mine`) by the same rights as accepting (match rights per squad), so a coach is not shown an invitation that refuses them | PARTIAL (inferred mismatch) |
+| One live entry per club per tournament whatever the squad: confirm with the coaches that an academy cannot enter two age groups of the same tournament | UNVERIFIED (rule to confirm) |
 
 ### World › Creating things (phase D)
 

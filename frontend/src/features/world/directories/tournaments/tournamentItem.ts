@@ -1,7 +1,8 @@
 import type { BadgeTone } from '../../../../design/primitives';
 import { getCompetitionProfile, type CompetitionCard, type CompetitionRules } from '../../../competitions/api';
-import { fetchTournament } from '../../../tournaments/api';
-import type { TournamentInvitationInboxItem, TournamentStatus, TournamentSummary } from '../../../tournaments/domain';
+import { fetchMyTournamentInvitations, fetchTournament } from '../../../tournaments/api';
+import type { AuthSessionId } from '../../../../utils/authStorage';
+import type { TournamentDetail, TournamentInvitationInboxItem, TournamentStatus, TournamentSummary } from '../../../tournaments/domain';
 import { shared } from '../../cache';
 import { wt } from '../../copy';
 import { calendarDaysUntil, codeLabel, SCOPE_LABEL, shortDate } from '../../format';
@@ -28,6 +29,7 @@ export interface TournamentItem {
     invitation?: TournamentInvitationInboxItem;
     /** My squads entered (by name) and how each entry stands. */ mine?: { name: string; status: string }[];
     /** The person runs it (admin or staff), or referees in it. */ role?: 'running' | 'refereeing';
+    /** What waits for the person who runs it, in its workspace. */ work?: OrganiserWork[];
     champion?: string | null;
 }
 
@@ -53,6 +55,24 @@ export const rulesOf = (id: number) => shared(`tournament-rules:${id}`, () => ge
 /** The tournament's detail, shared with every drawer and field that reads it. */
 export const detailOf = (id: number) => shared(`tournament:${id}`, () => fetchTournament(id));
 
+/** One kind of organiser work waiting in the workspace (decision 16): its view there, and how many. */
+export interface OrganiserWork { view: 'participants' | 'schedule'; label: string; count: number }
+
+/** What waits for a tournament's staff: entries to decide, and results of matches already played to add. */
+export function organiserWork(detail: Pick<TournamentDetail, 'entries' | 'fixtures'>, now = Date.now()): OrganiserWork[] {
+    const entries = detail.entries.filter(entry => entry.status === 'PENDING').length;
+    const results = detail.fixtures.filter(fixture => fixture.status === 'SCHEDULED' && fixture.homeEntryId != null && fixture.awayEntryId != null
+        && fixture.scheduledAt != null && Date.parse(zoned(fixture.scheduledAt)!) < now).length;
+    return [
+        ...(entries ? [{ view: 'participants' as const, label: entries === 1 ? '1 entry to decide' : '{count} entries to decide', count: entries }] : []),
+        ...(results ? [{ view: 'schedule' as const, label: results === 1 ? '1 result to add' : '{count} results to add', count: results }] : []),
+    ];
+}
+
+/** Invitations still to answer, shared for a minute by the lists, the tab's count and the tournament's pane. */
+export const tournamentInvitations = (sessionId: AuthSessionId) => shared(`tournament-invitations:${sessionId}`, () => fetchMyTournamentInvitations(0, 20))
+    .then(page => page.content.filter(item => item.status === 'PENDING'));
+
 /** My part in a tournament, from its detail: my squads' entries, whether I run or referee it, its places and champion. */
 export async function withPart(item: TournamentItem, userId: number | null | undefined, teams: MyTeams): Promise<TournamentItem> {
     const detail = await detailOf(item.id).catch(() => null);
@@ -64,7 +84,7 @@ export async function withPart(item: TournamentItem, userId: number | null | und
         .map(entry => ({ name: (entry.squadId != null ? teams.names.get(entry.squadId) : null) ?? entry.squadName ?? entry.clubName ?? entry.displayName ?? wt('Your team'), status: entry.status }));
     return {
         // The champion by its club (the backend's name for it is "Squad (Club)").
-        ...item, role, mine, champion: detail.entries.find(entry => entry.id === detail.championEntryId)?.clubName ?? detail.championName ?? null, entryCap: detail.entryCap ?? item.entryCap,
+        ...item, role, mine, work: role === 'running' ? organiserWork(detail) : undefined, champion: detail.entries.find(entry => entry.id === detail.championEntryId)?.clubName ?? detail.championName ?? null, entryCap: detail.entryCap ?? item.entryCap,
         // Places taken as the list counts them: approved and active entries, and those that played on or went out.
         entryCount: item.entryCount ?? detail.entries.filter(entry => ['APPROVED', 'ACTIVE', 'COMPLETED', 'ELIMINATED'].includes(entry.status)).length,
         organizer: item.organizer ?? detail.hostClubName ?? detail.organizerName ?? null, banner: item.banner ?? detail.bannerImageUrl ?? null,
@@ -93,6 +113,8 @@ export function whatLabel(item: TournamentItem) {
 
 /** The last day entries are taken: a window closing at midnight belongs to the day before. */
 const lastDay = (closesAt: string) => new Date(Date.parse(closesAt) - 60_000).toISOString();
+/** The last day to enter, in words ("23 Oct"), from the closing time (a wall time); null when there is none. */
+export const lastEntryDay = (closesAt?: string | null) => { const at = zoned(closesAt); return at ? shortDate(lastDay(at)) : null; };
 
 /**
  * The one fact a tournament's row shows, by what matters most: an invitation to answer, my squads in it, then where
@@ -101,6 +123,8 @@ const lastDay = (closesAt: string) => new Date(Date.parse(closesAt) - 60_000).to
  */
 export function tournamentFact(item: TournamentItem): { label: string; tone: BadgeTone } {
     if (item.invitation) return { label: wt('Answer'), tone: 'warning' };
+    const work = item.work?.[0];
+    if (work) return { label: wt(work.label, { count: work.count }), tone: 'warning' };
     const live = item.mine?.filter(entry => !['ELIMINATED'].includes(entry.status)) ?? [];
     if (item.status !== 'COMPLETED' && item.status !== 'CANCELLED' && live.length) {
         const first = live[0], more = live.length > 1 ? ` +${live.length - 1}` : '';

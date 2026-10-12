@@ -71,6 +71,13 @@
 .gk .gk-tpane-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 10px; border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); color: var(--gk-text); }
 .gk .gk-tpane-chip[data-mine] { border-color: color-mix(in srgb, var(--gk-accent) 50%, transparent); background: var(--gk-accent-soft); }
 
+/* The one thing to do now, under the head; a line that only says why not has a quiet dot and no arrow. */
+.gk .gk-tpane-action { display: flex; flex-direction: column; }
+.gk .gk-tpane-action .gk-step { margin: 0; }
+.gk p.gk-step-line { margin: 0; color: var(--gk-text-2); }
+.gk p.gk-step-line:hover { background: none; }
+.gk .gk-step-line[data-tone='quiet']::before { background: var(--gk-text-3); }
+
 /* What the organiser published, as label and value. */
 .gk .gk-tpane-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--gk-3) var(--gk-6); margin: 0; }
 .gk .gk-tpane-facts div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

@@ -7,7 +7,7 @@ import { exchangeFilters, loadListings } from './listings';
 import { HOSTING } from './matchBrowse';
 import { listingPlace } from './matchPlaces';
 import { cityGroup, dayGroup, loadMyFit, toOpenMatches, type OpenMatch } from './openMatches';
-import { OpenMatchLine } from './OpenMatchLine';
+import { OpenMatchRow } from './OpenMatchRow';
 import type { Places } from '../../directory/places';
 
 /** An open match in the Browse area: the host and the open place, and who hosts. */
@@ -30,9 +30,7 @@ export const exchange: DirectorySource<OpenMatch> = {
     noun: ['open match', 'open matches'],
     searchLabel: 'Search open matches',
     // The backend searches the title, the host club and the city.
-    searchPlaceholder: 'Club, title or city',
-    layout: 'scores',
-    pageSize: 24,
+    searchPlaceholder: 'Club, title or city',    pageSize: 24,
     signInReason: 'Teams looking for an opponent are visible to signed-in members.',
     // Age group, format and Near me first; the ground, level and dates under More filters.
     filters: exchangeFilters.map(filter => filter.key === 'ageGroup' ? { ...filter, primary: true } : filter),
@@ -41,7 +39,7 @@ export const exchange: DirectorySource<OpenMatch> = {
         return { ...result, items: toOpenMatches(result.items, fit) };
     },
     key: o => o.code,
-    Item: OpenMatchLine,
+    Item: OpenMatchRow,
     line: openLine,
     placeKinds: ['CLUB'],
     place: (o, places) => listingPlace(o.m, places),

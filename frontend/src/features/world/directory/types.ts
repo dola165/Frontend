@@ -154,11 +154,6 @@ export interface DirectorySource<T> {
     /** Whether the sort applies to this query (some lists keep their own order). */
     sortable?: (query: DirectoryQuery) => boolean;
     pageSize: number;
-    /**
-     * One to a line in one panel (clubs, venues, jobs, tournaments: `ResultRow`, `ListRow`), football cards several to a
-     * line (people: `ResultTile`), or score lines in one card per group (`ScoreResults`). Every `Item` returns a list item.
-     */
-    layout: 'rows' | 'tiles' | 'scores';
     /** When set, signed-out visitors see this reason and a sign-in action instead of results. */
     signInReason?: string;
     /** A personal list (my arrangements, my competitions): its tab is shown only to signed-in people. */
@@ -169,6 +164,7 @@ export interface DirectorySource<T> {
     refreshMs?: number | ((query: DirectoryQuery) => number | undefined);
     load: (query: DirectoryQuery, page: number, context: LoadContext) => Promise<DirectoryPage<T>>;
     key: (item: T) => string;
+    /** The result as one row of the list (`ResultRow`, the clubs list's row: every list reads the same way); it returns a list item. */
     Item: ComponentType<{ item: T }>;
     /** The result as one line of the map's "Browse area" panel; `places` give it crests (looked up while the map is open). */
     line: (item: T, places?: Places) => BrowseLine;

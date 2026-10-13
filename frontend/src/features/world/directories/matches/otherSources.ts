@@ -1,8 +1,8 @@
 import { eventSearch, type EventItem } from '../../../requests/api';
 import { first, type DirectorySource } from '../../directory/types';
-import { EventLine } from './EventLine';
+import { EventRow } from './EventRow';
 import { eventDayGroup } from './eventDays';
-import { ArrangementLine } from './ArrangementLine';
+import { ArrangementRow } from './ArrangementRow';
 import { hostingGroup, LANES, loadMyArrangements, type Arrangement } from './arrangements';
 import { exchangeFilters } from './listings';
 import { arrangementLine, eventLine } from './matchBrowse';
@@ -25,9 +25,7 @@ export const arrangements: DirectorySource<Arrangement> = {
     label: 'My arrangements',
     noun: ['arrangement', 'arrangements'],
     searchLabel: 'Search my arrangements',
-    searchPlaceholder: 'Club, title or city',
-    layout: 'scores',
-    pageSize: 24,
+    searchPlaceholder: 'Club, title or city',    pageSize: 24,
     personal: true,
     // Age group and format; the lanes replace a status filter.
     filters: exchangeFilters.filter(filter => !['venuePreference', 'around'].includes(filter.key)).map(filter => filter.key === 'ageGroup' ? { ...filter, primary: true } : filter),
@@ -41,7 +39,7 @@ export const arrangements: DirectorySource<Arrangement> = {
         return { items, total: items.length, hasMore: false };
     },
     key: a => a.code,
-    Item: ArrangementLine,
+    Item: ArrangementRow,
     line: arrangementLine,
     placeKinds: ['CLUB'],
     place: (a, places) => listingPlace(a.m, places),
@@ -56,9 +54,7 @@ export const events: DirectorySource<EventItem> = {
     tabLabel: 'All events',
     noun: ['event', 'events'],
     searchLabel: 'Search events',
-    searchPlaceholder: 'Search by name or club',
-    layout: 'scores',
-    pageSize: 20,
+    searchPlaceholder: 'Search by name or club',    pageSize: 20,
     filters: [
         { kind: 'choice', key: 'activity', label: 'Activity', primary: true, allLabel: 'Everything', options: [
             { value: 'MATCH', label: 'Matches' }, { value: 'TOURNAMENT', label: 'Tournaments' }, { value: 'TRYOUT', label: 'Trials' }, { value: 'TRAINING', label: 'Public training' }, { value: 'OTHER', label: 'Other' },
@@ -72,7 +68,7 @@ export const events: DirectorySource<EventItem> = {
         return { items: result.items, total: result.total, hasMore: result.hasMore };
     },
     key: item => `${item.kind}:${item.id}`,
-    Item: EventLine,
+    Item: EventRow,
     // By day, soonest first; tournaments already under way first of all (the backend sorts by name, so within a page).
     groups: { of: eventDayGroup, uncounted: true },
     line: eventLine,

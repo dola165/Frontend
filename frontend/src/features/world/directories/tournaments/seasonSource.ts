@@ -91,7 +91,6 @@ export const season: DirectorySource<SeasonItem> = {
     noun: ['tournament', 'tournaments'],
     searchLabel: 'Search this season',
     searchPlaceholder: 'Search tournaments on now and coming up',
-    layout: 'rows',
     pageSize: 48,
     // Mine wherever they are; the rest near the World area.
     area: 'partly',

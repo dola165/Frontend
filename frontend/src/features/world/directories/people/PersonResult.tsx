@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Check, MapPin, MessageCircle, Plus } from 'lucide-react';
 import { useWorldCopy } from '../../copy';
 import { Crest } from '../../Crest';
-import { ResultTile } from '../../directory/ResultTile';
+import { ResultRow } from '../../directory/ResultRow';
 import { peekOf } from '../../peek/usePeek';
 import { useFollow } from './following';
 import { LicenceMark, PositionMark, ServiceMark } from './marks';
@@ -30,34 +30,29 @@ export function MessageLink({ id, name, primary }: { id: number; name: string; /
 }
 
 /** A face, ringed in green while the person is open to something. */
-export const Face = ({ src, name, open }: { src?: string | null; name: string; open: boolean }) =>
-    <span className="gk-result-face" data-open={open || undefined}><Crest src={src} name={name} size={56} round /></span>;
+export const Face = ({ src, name, open, size = 40 }: { src?: string | null; name: string; open: boolean; size?: number }) =>
+    <span className="gk-result-face" data-open={open || undefined}><Crest src={src} name={name} size={size} round /></span>;
 
 /** A price for a session: the amount bright, "per session" quiet under it. */
 export function Price({ amount, currency, per }: { amount: number; currency: string; per: string }) {
     return <><span className="gk-result-price">{`${amount} ${currency}`}</span><small>{per}</small></>;
 }
 
-/** The colour of each kind of people (their marks' colour): players green, coaches and staff violet, specialists blue. */
-const TONE = { player: 'accent', staff: 'violet', specialist: 'info' } as const;
-
 /**
- * A coach, specialist or player as a football card: their mark in the corner (a position, a licence, a service) and
- * their club's crest opposite, their face, and as LinkedIn says it their name, what they do, their club and how far,
- * what they are open to; their price for a session when they offer one, and one action (Message when they take clients,
- * else Follow). A press on the card opens them beside the list.
+ * A coach, specialist or player as a row, as every World list reads: their face, their name with their mark after it
+ * (a position, a licence, a service), what they do, their club and how far, what they are open to; their price for a
+ * session when they offer one, and one action (Message when they take clients, else Follow). A press shows them beside the list.
  */
 export function PersonResult({ item: person, kind }: { item: PersonItem; kind: PersonKind }) {
     const t = useWorldCopy();
     const open = openToWords(kind, person.openTo);
-    const mark = kind === 'staff' ? <LicenceMark licence={person.licence} corner /> : kind === 'specialist' ? <ServiceMark profession={person.profession} corner /> : <PositionMark position={person.position} corner />;
+    const mark = kind === 'staff' ? <LicenceMark licence={person.licence} /> : kind === 'specialist' ? <ServiceMark profession={person.profession} /> : <PositionMark position={person.position} />;
     const club = person.clubName ?? (person.clubId === null ? (kind === 'player' ? t('No club') : t('Independent')) : null);
     const where = personWhere(person);
     const sells = Boolean(person.rate && person.openTo?.includes('SERVICES'));
     return (
-        <ResultTile lead={<Face src={person.avatarUrl} name={person.fullName} open={open.length > 0} />} tone={TONE[kind]}
-            title={person.fullName} to={`/profile/${person.id}`} peek={peekOf('person', person.id)} corner={mark}
-            crest={person.clubName ? { src: person.clubLogoUrl, name: person.clubName } : undefined}
+        <ResultRow lead={<Face src={person.avatarUrl} name={person.fullName} open={open.length > 0} />}
+            title={person.fullName} to={`/profile/${person.id}`} peek={peekOf('person', person.id)} mark={mark}
             lines={[
                 kind === 'player' ? playerLine(person) : jobOf(person),
                 (club || where) && <><span>{club}</span>{club && where && <span aria-hidden="true">·</span>}{where && <span className="gk-result__where"><MapPin aria-hidden="true" />{where}</span>}</>,

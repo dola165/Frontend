@@ -55,7 +55,7 @@ function refereeLine({ referee, city, km }: RefereeItem): BrowseLine {
  */
 export const refereeSource: DirectorySource<RefereeItem> = {
     id: 'referees', label: 'Referees', noun: ['referee', 'referees'], icon: Flag, subtitle: 'Book a referee for your match',
-    searchLabel: 'Search referees', searchPlaceholder: 'Name, area or language', layout: 'tiles', pageSize: PAGE, area: 'nearest',
+    searchLabel: 'Search referees', searchPlaceholder: 'Name, area or language', pageSize: PAGE, area: 'nearest',
     signInReason: 'Profiles of coaches, players, referees and specialists are visible to signed-in members.',
     filters,
     sorts: [{ value: 'NEAREST', label: 'Nearest' }, { value: 'FEE', label: 'Volunteers, then lowest fee' }, { value: 'NAME', label: 'Name A–Z' }],

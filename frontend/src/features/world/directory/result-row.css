@@ -57,6 +57,27 @@
 /* A price: the amount bright, what it is for quiet under it. */
 .gk .gk-result-price { font-weight: 700; color: var(--gk-text); font-variant-numeric: tabular-nums; }
 .gk .gk-result-price + small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+/* A match's two sides where a crest would be: the away crest over the home one's corner; a side still to be found is an
+   empty dashed ring, one the viewer could fill their own crest, faint, in a dashed accent ring. */
+.gk .gk-result-pair { position: relative; display: block; width: 44px; height: 40px; }
+.gk .gk-result-pair > * { position: absolute; top: 0; left: 0; display: grid; place-items: center; }
+.gk .gk-result-pair > :last-child { top: auto; bottom: 0; left: auto; right: 0; }
+.gk .gk-result-pair .gk-avatar { box-shadow: 0 0 0 2px var(--gk-surface); }
+.gk .gk-result-pair__empty { width: 26px; height: 26px; border-radius: 50%; border: 1px dashed var(--gk-line-strong); background: var(--gk-surface); }
+.gk .gk-result-pair__ghost { width: 26px; height: 26px; border-radius: 50%; border: 1px dashed var(--gk-accent); background: var(--gk-surface); }
+.gk .gk-result-pair__ghost > .gk-avatar { opacity: .45; box-shadow: none; }
+/* My team: a small star after the names, as favourites show on score sites. */
+.gk .gk-result__star { flex: none; width: 13px; height: 13px; color: var(--gk-warning); fill: currentColor; }
+/* The score once it counts, at the row's end: the winner's goals bright. */
+.gk .gk-result-score { font-size: var(--gk-fs-lg); font-weight: 650; font-variant-numeric: tabular-nums; color: var(--gk-text-3); }
+.gk .gk-result-score b { font-weight: 650; }
+.gk .gk-result-score b[data-win] { color: var(--gk-text); }
+/* A short code at the row's end (an open match's age group). */
+.gk .gk-result-code { font-size: var(--gk-fs-sm); font-weight: 650; color: var(--gk-text-2); }
+/* An activity's symbol in a soft tint before a line (an event's kind), and the words beside it that shorten first. */
+.gk .gk-result__symbol { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: color-mix(in srgb, var(--symbol) 14%, transparent); color: var(--symbol); }
+.gk .gk-result__symbol svg { width: 13px; height: 13px; }
+.gk .gk-result__text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 @media (max-width: 640px) {
   .gk .gk-result { grid-template-columns: auto minmax(0, 1fr) auto; row-gap: var(--gk-2); }

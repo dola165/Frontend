@@ -35,8 +35,4 @@
 .gk .gk-world-list .gk-list-row__title { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 600; }
 .gk .gk-world-list .gk-list-row__meta { font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); color: var(--gk-text-2); }
 
-/* Score cards stack, one per line. */
-.gk .gk-world-list .gk-score-groups { grid-template-columns: minmax(0, 1fr); }
-.gk .gk-world-list .gk-section--boxed.gk-score-group .gk-section__title { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); }
-
 @media (prefers-reduced-motion: reduce) { .gk .gk-world-split { transition: none; } .gk .gk-world-pane { animation: none; } }

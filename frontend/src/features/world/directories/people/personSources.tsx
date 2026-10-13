@@ -27,7 +27,7 @@ function personView({ id, label, noun, kind, roles, icon, subtitle, filters, par
 }) {
     return ({ searchOnly, onSearchOnly }: PeopleMode): DirectorySource<PersonItem> => ({
         // Everyone is listed, the nearest to the World area first: a place orders the list, it never empties it.
-        id, label, noun, icon, subtitle, layout: 'tiles', pageSize: PAGE, area: 'nearest', signInReason: SIGN_IN,
+        id, label, noun, icon, subtitle, pageSize: PAGE, area: 'nearest', signInReason: SIGN_IN,
         version: searchOnly ? 'search' : 'directory',
         searchLabel: `Search ${noun[1]}`, searchPlaceholder: searchOnly ? 'Search people by name' : 'Name, club or what they do',
         filters: searchOnly ? asScopes(filters) : filters,

@@ -7,7 +7,7 @@ import { loadMyTeams } from '../../scoreboard/myTeams';
 import { clubScope, competitionScope } from '../scopes';
 import { DayEmpty, DayStep, DayStrip } from './DayStrip';
 import { fixtureGroup, fixtureWhere, sharedGround, toFixtures, type Fixture } from './fixtures';
-import { FixtureLine } from './FixtureLine';
+import { FixtureRow } from './FixtureRow';
 import { fixtureLine } from './matchBrowse';
 import { loadWindow, longDay, openingDay, windowFilters } from './matchday';
 import { wt } from '../../copy';
@@ -62,9 +62,7 @@ export const fixtures: DirectorySource<Fixture> = {
     noun: ['match', 'matches'],
     searchLabel: 'Search fixtures and results',
     // The backend searches clubs, squads and tournaments, not the ground.
-    searchPlaceholder: 'Club, squad or tournament',
-    layout: 'scores',
-    pageSize: 24,
+    searchPlaceholder: 'Club, squad or tournament',    pageSize: 24,
     signInReason: 'Fixtures and results are visible to signed-in members.',
     // Today's scores and kick-off changes arrive without a reload; other days stay as they are.
     refreshMs: query => first(query, 'day') === isoDay(0) || first(query, 'period') === 'NEEDS_RESULT' ? 30_000 : undefined,
@@ -98,7 +96,7 @@ export const fixtures: DirectorySource<Fixture> = {
         return period ? wt(PERIOD_HEADING[period]) : day ? longDay(day, appLocale()) : undefined;
     },
     key: f => f.code,
-    Item: FixtureLine,
+    Item: FixtureRow,
     line: fixtureLine,
     placeKinds: ['MATCH', 'TOURNAMENT', 'CLUB'],
     place: (f, places) => fixturePlace(f.m, places),

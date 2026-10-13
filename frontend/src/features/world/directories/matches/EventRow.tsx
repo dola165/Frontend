@@ -1,11 +1,12 @@
+import type { CSSProperties } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { Status } from '../../../../design/DataTable';
 import { eventDestination, type EventItem } from '../../../requests/api';
 import { activityColors, activityIcons, outing } from '../../../schedule/activityIcons';
 import type { ScheduleEventType } from '../../../schedule/api';
 import { useWorldCopy } from '../../copy';
-import { useMapCounterpart } from '../../directory/selection';
+import { DateLead, ResultRow } from '../../directory/ResultRow';
 import { EVENT_BADGE } from '../../format';
-import { Line } from '../../scoreboard/Scoreboard';
 import { eventWhen } from './matchPlaces';
 
 /** An event's symbol and colour as the calendar draws them (`activityIcons`): a friendly is a handshake, a tournament a trophy. */
@@ -16,14 +17,18 @@ function symbolOf(item: EventItem): { Icon: LucideIcon; color: string } {
     return { Icon: activityIcons[type], color: activityColors[type] };
 }
 
-/** One published event on the score line: its time (all day for a tournament), its symbol in a soft tint, its name, who and where, and its kind. */
-export function EventLine({ item }: { item: EventItem }) {
+/** One published event as a row: its time and day where a crest would be, its name, its symbol in a soft tint with who and where, and its kind at the end. */
+export function EventRow({ item }: { item: EventItem }) {
     const t = useWorldCopy();
-    const linked = useMapCounterpart();
     const badge = EVENT_BADGE[item.activity] ?? EVENT_BADGE.OTHER;
+    const when = eventWhen(item);
+    const { Icon, color } = symbolOf(item);
     return (
-        <Line to={eventDestination(item) ?? '/world/matches?tab=events'} icon={symbolOf(item)} name={item.name} linked={linked}
-            detail={[item.context, item.location, item.recurring ? t('Every week') : null].filter(Boolean).join(' · ')}
-            when={{ time: eventWhen(item).time }} fact={t(badge.label)} />
+        <ResultRow lead={<DateLead top={when.time} bottom={when.day} />} title={item.name} to={eventDestination(item) ?? '/world/matches?tab=events'}
+            lines={[<>
+                <span className="gk-result__symbol" style={{ '--symbol': color } as CSSProperties} aria-hidden="true"><Icon /></span>
+                <span className="gk-result__text">{[item.context, item.location, item.recurring ? t('Every week') : null].filter(Boolean).join(' · ')}</span>
+            </>]}
+            aside={<Status tone={badge.tone}>{t(badge.label)}</Status>} />
     );
 }

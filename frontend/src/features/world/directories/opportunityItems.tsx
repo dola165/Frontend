@@ -1,5 +1,4 @@
 import { MapPin } from 'lucide-react';
-import { ListRow } from '../../../design/primitives';
 import { Status } from '../../../design/DataTable';
 import type { ClubJob } from '../../clubs/api';
 import { labelForCategory } from '../../clubs/jobLabels';
@@ -10,7 +9,6 @@ import { useAdmissionCopy } from '../../admissions/applicant/copy';
 import { plural, useWorldCopy } from '../copy';
 import { Crest } from '../Crest';
 import { DateLead, ResultRow } from '../directory/ResultRow';
-import { useMapCounterpart } from '../directory/selection';
 import { bilingual, codeLabel, ENGAGEMENT, fixtureDay, fixtureTime, postedLabel } from '../format';
 import { peekOf } from '../peek/usePeek';
 import { groupFor, groupTone } from './groupFacts';
@@ -44,17 +42,6 @@ export function TrialItem({ item: trial }: { item: TryoutPosting }) {
     );
 }
 
-
-/** A place to train in a field of the World overview: who runs it, who it is for and where, and whether there are places. */
-export function GroupItem({ item: { group, player } }: { item: GroupResult }) {
-    const t = useWorldCopy();
-    const { availability } = useAdmissionCopy();
-    return (
-        <ListRow to={`/admissions/opportunities/${group.id}${player ? `?player=${player}` : ''}`} lead={<Crest name={group.organizationName} size={40} />} {...useMapCounterpart()}
-            title={group.name} meta={[group.organizationName, ...groupFor(group, t), group.location.name].filter(Boolean).join(' · ')}
-            trail={<Status tone={groupTone(group)}>{availability(group.availability)}</Status>} />
-    );
-}
 
 /** A place to train as a row under the map: who runs it and who it is for, where it trains, whether there are places. It shows beside the list. */
 export function TrainingItem({ item: { group, player } }: { item: GroupResult }) {

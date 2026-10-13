@@ -31,7 +31,6 @@ export const myTournaments: DirectorySource<MyTournament> = {
     noun: ['tournament', 'tournaments'],
     searchLabel: 'Search my tournaments',
     searchPlaceholder: 'Search tournaments you run or play in',
-    layout: 'rows',
     pageSize: PAGE,
     personal: true,
     filters: [],

@@ -1,14 +1,14 @@
+import { Link } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import { Button, EmptyNote, List, Panel, Skeleton } from '../../../design/primitives';
 import { plural, useWorldCopy } from '../copy';
 import { Crest } from '../Crest';
+import { peekClick, usePeek } from '../peek/usePeek';
 import type { ArrangedGroup } from './groups';
 import { DirectoryItemKey } from './selection';
 import type { AnySource, DirectoryQuery, NavProps } from './types';
 import type { DirectoryData } from './useDirectoryData';
-import { ScoreResults, ScoreSkeleton } from './ScoreResults';
 import './result-row.css';
-import './result-tile.css';
 
 /** An error with a way to try again. */
 export function ErrorNote({ message, onRetry }: { message: string; onRetry: () => void }) {
@@ -30,19 +30,11 @@ export function SkeletonRows({ count, label }: { count: number; label: string })
     );
 }
 
-function LoadingResults({ source }: { source: AnySource }) {
-    const t = useWorldCopy();
-    const label = t('Loading {things}', { things: t(source.noun[1]) });
-    if (source.layout === 'scores') return <ScoreSkeleton label={label} />;
-    if (source.layout === 'tiles') return (
-        <div role="status" aria-label={label}><ul className="gk-tiles" aria-hidden="true">
-            {Array.from({ length: 6 }, (_, index) => <li key={index}><span className="gk-tile-skeleton"><Skeleton height={56} width={56} /><Skeleton height={14} width="60%" /><Skeleton height={11} width="75%" /><Skeleton height={11} width="45%" /></span></li>)}
-        </ul></div>
-    );
-    return <Panel flush><SkeletonRows count={6} label={label} /></Panel>;
-}
-
-/** Results of one source with honest loading, error, notice, empty and load-more states. */
+/**
+ * Results of one source with honest loading, error, notice, empty and load-more states. Every list reads the same way:
+ * rows in one panel, and when the list is grouped (my teams, a tournament, a lane), a quiet header over each group's
+ * panel with its symbol, its name, how many, one detail and one way on; an always-shown group with nothing in it says so.
+ */
 export function DirectoryResults({ source, data, groups, filtered, onClear, onWiden, onClearFor, query, go }: {
     source: AnySource; data: DirectoryData; /** The results in their groups, when the list is grouped. */ groups?: ArrangedGroup<unknown>[];
     /** For a source's own empty state (`source.Empty`). */ query?: DirectoryQuery; go?: NavProps['go'];
@@ -51,12 +43,13 @@ export function DirectoryResults({ source, data, groups, filtered, onClear, onWi
     /** The list was narrowed to a child (`source.forWhom`): search for anyone instead. */ onClearFor?: () => void;
 }) {
     const t = useWorldCopy();
+    const drawers = usePeek();
     const things = t(source.noun[1]);
     if (data.notice) return <div className="gk-notice" role="status">{data.notice}</div>;
-    if (data.loading) return <LoadingResults source={source} />;
+    if (data.loading) return <Panel flush><SkeletonRows count={6} label={t('Loading {things}', { things })} /></Panel>;
     if (data.error) return <ErrorNote message={data.error} onRetry={data.retry} />;
     // Lanes are shown even when every one is empty: each says what it is waiting for.
-    const standing = source.layout === 'scores' && Boolean(groups?.some(group => group.group.empty));
+    const standing = Boolean(groups?.some(group => group.group.empty));
     if (!data.items.length && !standing && source.Empty && query && go) return <source.Empty query={query} go={go} filtered={filtered} onClear={onClear} />;
     if (!data.items.length && !standing) {
         // Only a list the area narrows can say there are none near the city.
@@ -80,12 +73,9 @@ export function DirectoryResults({ source, data, groups, filtered, onClear, onWi
         );
     }
     const { Item } = source;
-    const laid = (list: unknown[], label: string) => {
-        const items = list.map(item => <DirectoryItemKey.Provider key={source.key(item)} value={source.key(item)}><Item item={item} /></DirectoryItemKey.Provider>);
-        // People as cards several to a line; everything else one to a line, in one panel.
-        if (source.layout === 'tiles') return <ul className="gk-tiles" aria-label={label}>{items}</ul>;
-        return <Panel flush><List label={label}>{items}</List></Panel>;
-    };
+    const laid = (list: unknown[], label: string) => (
+        <Panel flush><List label={label}>{list.map(item => <DirectoryItemKey.Provider key={source.key(item)} value={source.key(item)}><Item item={item} /></DirectoryItemKey.Provider>)}</List></Panel>
+    );
     const more = (data.hasMore || data.moreError) && (
         <div className="gk-world-more">
             {data.total != null && <span className="gk-faint">{t('Showing {count} of {total}', { count: data.items.length, total: plural(data.total, source.noun[0], source.noun[1]) })}</span>}
@@ -93,17 +83,20 @@ export function DirectoryResults({ source, data, groups, filtered, onClear, onWi
             <Button onClick={data.loadMore} disabled={data.loadingMore}>{data.loadingMore ? t('Loading…') : t('Show more {things}', { things })}</Button>
         </div>
     );
-    if (source.layout === 'scores') return <div className="gk-stack gk-stack--tight"><ScoreResults source={source} groups={groups} items={data.items} label={t(source.label)} />{more}</div>;
     return (
         <div className="gk-stack gk-stack--tight">
             {groups && groups.length > 1
                 ? groups.map(({ group, items }) => (
-                    <section key={group.key} className="gk-world-group" aria-label={t(group.label)}>
+                    <section key={group.key} className="gk-world-group" data-tone={group.icon ? group.tint ?? 'accent' : undefined} aria-label={t(group.label)}>
                         <h3 className="gk-world-group__head">
-                            {group.crest ? <Crest src={group.crest.src} name={group.crest.name} size={22} round={group.crest.round} /> : group.pin ? <MapPin aria-hidden="true" /> : null}
-                            <span>{t(group.label)}</span><span className="gk-world-group__count">{items.length}</span>
+                            {group.icon ? <span className="gk-world-group__icon" aria-hidden="true"><group.icon /></span>
+                                : group.crest ? <Crest src={group.crest.src} name={group.crest.name} size={22} round={group.crest.round} /> : group.pin ? <MapPin aria-hidden="true" /> : null}
+                            <span>{t(group.label)}</span>
+                            {!source.groups?.uncounted && <span className="gk-world-group__count">{items.length}</span>}
+                            {group.detail && <span className="gk-world-group__detail">{group.detail}</span>}
+                            {group.action && <Link className="gk-world-group__action" to={group.action.to} onClick={peekClick(group.action.peek, drawers.open)}>{t(group.action.label)}</Link>}
                         </h3>
-                        {laid(items, t(group.label))}
+                        {items.length ? laid(items, t(group.label)) : <p className="gk-world-group__empty">{t(group.empty ?? 'Nothing here')}</p>}
                     </section>
                 ))
                 : laid(data.items, t(source.label))}

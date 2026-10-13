@@ -14,7 +14,7 @@ const rows = (from: number, count: number): Row[] => Array.from({ length: count 
 
 function source(overrides: Partial<DirectorySource<Row>> = {}): DirectorySource<Row> {
     return {
-        id: 'clubs', label: 'Clubs', noun: ['club', 'clubs'], searchLabel: 'Search clubs', searchPlaceholder: 'Search clubs', layout: 'rows', pageSize: 2,
+        id: 'clubs', label: 'Clubs', noun: ['club', 'clubs'], searchLabel: 'Search clubs', searchPlaceholder: 'Search clubs', pageSize: 2,
         filters: [
             { kind: 'text', key: 'maxFee', label: 'Highest entry fee' },
             { kind: 'choice', key: 'currency', label: 'Fee currency', fallback: 'GEL', when: query => Boolean(query.values.maxFee?.[0]), options: [{ value: 'GEL', label: 'GEL' }, { value: 'USD', label: 'USD' }] },

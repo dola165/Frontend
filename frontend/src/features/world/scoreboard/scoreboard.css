@@ -1,11 +1,5 @@
-/* Scoreboard lists, in the shape people know from score sites: a header per competition or day, dense rows,
-   the time on the left, the teams stacked with crests, the score on the right. Scoped under .gk; tokens only. */
-.gk .gk-sb { display: flex; flex-direction: column; }
-.gk .gk-sb__head { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-2); margin: 0; padding: 6px var(--gk-4);
-  background: color-mix(in srgb, var(--gk-text) 4%, transparent); border-block: 1px solid var(--gk-line);
-  font-family: var(--gk-font); font-size: var(--gk-fs-xs); line-height: var(--gk-lh-xs); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--gk-text-2); }
-.gk .gk-sb__group:first-child .gk-sb__head { border-top: 0; }
-.gk .gk-sb__head small { font-size: var(--gk-fs-xs); font-weight: 500; letter-spacing: 0; color: var(--gk-text-3); }
+/* Score lines, in the shape people know from score sites: dense rows, the time on the left, the teams stacked with
+   crests, the score on the right (a match in a drawer, the Browse area's lines). Scoped under .gk; tokens only. */
 .gk .gk-sb__rows { margin: 0; padding: 0; list-style: none; }
 .gk .gk-sb__rows > li + li { border-top: 1px solid color-mix(in srgb, var(--gk-line) 70%, transparent); }
 
@@ -45,9 +39,7 @@
 .gk .gk-sb__wait[data-tone='warning'] { color: var(--gk-warning); } .gk .gk-sb__wait[data-tone='warning']::before { background: var(--gk-warning); }
 .gk .gk-sb__wait svg { width: 13px; height: 13px; }
 
-/* Lines that are not matches: crest (or an activity's symbol in a soft tint), name and detail, one fact on the right. */
-.gk .gk-sb__symbol { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--symbol) 14%, transparent); color: var(--symbol); }
-.gk .gk-sb__symbol svg { width: 15px; height: 15px; }
+/* Lines that are not matches (the Browse area): crest, name and detail, one fact on the right. */
 .gk .gk-sb__row--line { grid-template-columns: auto minmax(0, 1fr) auto; }
 .gk .gk-sb__row--line:has(> .gk-sb__when) { grid-template-columns: 52px auto minmax(0, 1fr) auto; }
 .gk .gk-sb__main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -58,27 +50,7 @@
 .gk .gk-sb__fact[data-tone='accent'] { color: var(--gk-accent); }
 .gk .gk-sb__fact[data-tone='danger'] { color: var(--gk-danger); }
 
-/* Clubs: a star to follow, then the club; several columns on a wide page. */
-.gk .gk-sb__clubs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); margin: 0; padding: 0; list-style: none; }
-.gk .gk-sb__club { display: flex; align-items: center; min-width: 0; border-bottom: 1px solid color-mix(in srgb, var(--gk-line) 70%, transparent); }
-.gk .gk-sb__club > .gk-sb__row { flex: 1; min-width: 0; padding-left: var(--gk-2); }
-.gk .gk-sb__star { flex: none; display: grid; place-items: center; width: 36px; height: 36px; margin-left: var(--gk-2); padding: 0; border: 0; border-radius: var(--gk-r); background: none; color: var(--gk-text-3); cursor: pointer; transition: color .15s, transform .2s var(--gk-ease); }
-.gk .gk-sb__star:hover { color: var(--gk-text); transform: scale(1.1); }
-.gk .gk-sb__star svg { width: 17px; height: 17px; }
-.gk .gk-sb__star[aria-pressed='true'] { color: var(--gk-warning); }
-.gk .gk-sb__star[aria-pressed='true'] svg { fill: currentColor; }
-
-/* Beside the map the panel is narrow: the tag goes under the teams. */
-.gk .gk-wfield[data-side] .gk-sb__row { grid-template-columns: 44px minmax(0, 1fr) 22px; gap: var(--gk-2); padding-inline: var(--gk-3); }
-.gk .gk-wfield[data-side] .gk-sb__score { grid-area: 1 / 3; }
-.gk .gk-wfield[data-side] .gk-sb__tag { grid-area: 2 / 2 / 3 / -1; justify-self: start; margin-top: -2px; }
-.gk .gk-wfield[data-side] .gk-sb__head { padding-inline: var(--gk-3); background: color-mix(in srgb, var(--gk-text) 5%, transparent); border-color: var(--gk-glass-line, var(--gk-line)); }
-.gk .gk-wfield[data-side] .gk-sb__row--line { grid-template-columns: auto minmax(0, 1fr) auto; }
-.gk .gk-wfield[data-side] .gk-sb__row--line:has(> .gk-sb__when) { grid-template-columns: 44px auto minmax(0, 1fr) auto; }
 .gk .gk-sb__tag [data-tone='warning'] { color: var(--gk-warning); font-weight: 600; }
-/* An open match's age group in the score column: bright when one of my squads suits it. */
-.gk .gk-sb__age { grid-area: 1 / 3; justify-self: end; font-size: var(--gk-fs-xs); font-weight: 650; color: var(--gk-text-3); white-space: nowrap; }
-.gk .gk-score-group .gk-sb__age { grid-area: 1 / 3; }
 /* A side still to be found (an opponent wanted, offers to choose from): an empty dashed crest, never made-up initials. */
 .gk .gk-sb__nocrest { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 1px dashed var(--gk-line-strong); }
 /* A side the viewer could fill: their crest, faint, in a dashed accent ring. */

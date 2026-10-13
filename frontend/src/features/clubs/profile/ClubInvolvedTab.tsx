@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
-import { StorePage } from '../../../pages/StorePage';
+import { ClubStorePage } from '../../../pages/ClubStorePage';
 import { CampaignsPage } from '../../../pages/CampaignsPage';
 import { JobsDirectoryPage } from '../../../pages/JobsDirectoryPage';
 import { involvedKindFrom, type InvolvedKind } from './clubTabs';
@@ -32,7 +32,7 @@ export function ClubInvolvedTab({ club }: { club: ClubProfile }) {
             <div className="gk-chips" role="group" aria-label="Get involved">{kinds.map(k => <button key={k.id} type="button" className="gk-chip gk-club-involved__chip" data-kind={k.id} aria-pressed={k.id === kind} onClick={() => show(k.id)}>{k.label}</button>)}</div>
             <Link className="gk-section__action gk-row" to={current.global}>{current.all}<ArrowUpRight size={14} aria-hidden="true" /></Link>
         </div>
-        {kind === 'store' && <StorePage />}
+        {kind === 'store' && <ClubStorePage />}
         {kind === 'jobs' && <JobsDirectoryPage fixedClubId={club.id} clubName={club.name} />}
         {kind === 'fundraising' && <CampaignsPage />}
     </div>;

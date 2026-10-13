@@ -1,28 +1,50 @@
-/* Club profile: overview blocks and side facts. Layout comes from the profile layout. */
+/* Club profile: the three columns' blocks, the tab lists' shared rows and the Get involved pages. Layout comes from the profile layout. */
 .gk .gk-club-loading { display: grid; gap: var(--gk-4); padding-block: var(--gk-8); }
-.gk .gk-club-about { white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
 .gk .gk-club-icon { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: var(--gk-r); background: var(--gk-accent-soft); color: var(--gk-accent); }
 .gk .gk-club-icon svg { width: 18px; height: 18px; }
 .gk .gk-club-icon--warning { background: var(--gk-warning-soft); color: var(--gk-warning); }
+.gk .gk-club-icon--info { background: var(--gk-info-soft, var(--gk-accent-soft)); color: var(--gk-info, var(--gk-accent)); }
 .gk .gk-club-price { color: var(--gk-text); font-weight: 650; font-size: var(--gk-fs-md); white-space: nowrap; }
 .gk .gk-club-year { display: inline-grid; place-items: center; min-width: 52px; height: 32px; padding: 0 var(--gk-2); border-radius: var(--gk-r-sm); background: var(--gk-warning-soft); color: var(--gk-warning); font-weight: 700; font-size: var(--gk-fs-sm); }
-.gk .gk-club-training-foot { justify-content: space-between; flex-wrap: wrap; width: 100%; }
-.gk .gk-club-training-foot .gk-btn { min-height: 44px; }
 @media (max-width: 520px) { .gk .gk-club-programmes .gk-list-row__meta { white-space: normal; } }
 
-.gk .gk-club-call { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-4); border-color: color-mix(in srgb, var(--gk-accent) 35%, var(--gk-line)); background: linear-gradient(100deg, var(--gk-accent-soft), transparent 70%), var(--gk-surface); }
-.gk .gk-club-call .gk-panel--pad { width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-4); }
-.gk .gk-club-call__text { max-width: 60ch; display: flex; flex-direction: column; gap: var(--gk-1); }
-.gk .gk-club-call__text h2 { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 650; }
-.gk .gk-club-call__text p { color: var(--gk-text-2); }
-.gk .gk-club-call__actions .gk-btn { min-height: 44px; }
+/* Contact sits at the right edge of the tab row, out of the way. */
+.gk .gk-club-page .gk-profile__tabs > .gk-tab:last-child { margin-left: auto; }
 
-.gk .gk-club-overview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--gk-6) var(--gk-5); align-items: start; }
+/* Left column: a phone number, an email, one fee line. */
+.gk .gk-club-email { overflow-wrap: anywhere; white-space: normal; }
+.gk .gk-club-fees { display: flex; flex-direction: column; gap: 2px; }
+.gk .gk-club-fees strong { font-size: var(--gk-fs-lg); line-height: var(--gk-lh-lg); font-weight: 650; color: var(--gk-text); }
+.gk .gk-club-fees .gk-muted { font-size: var(--gk-fs-sm); }
 
-/* Legacy club tab content sits inside the design-system main column. */
+/* About: the story and its facts in one calm box. */
+.gk .gk-club-story { white-space: pre-line; color: var(--gk-text); line-height: var(--gk-lh-md); margin-bottom: var(--gk-4); }
+.gk .gk-club-facts { display: grid; gap: var(--gk-2); margin: 0; }
+
+/* One toolbar for every list tab: search, a select, chips, a quiet action at the right. */
+.gk .gk-club-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); }
+.gk .gk-club-toolbar > .gk-input { flex: 1 1 220px; max-width: 360px; }
+.gk .gk-club-toolbar > .gk-chips { flex: 1 1 100%; }
+.gk .gk-club-toolbar > .gk-section__action:last-child { margin-left: auto; }
+.gk .gk-club-select { width: auto; flex: 0 0 auto; min-width: 120px; padding-right: var(--gk-6); }
+.gk .gk-club-note { font-size: var(--gk-fs-sm); }
+.gk .gk-chip > .gk-faint { font-weight: 500; }
+
+/* Facilities: a photo as the row's picture, details that open under the row. */
+.gk .gk-club-place-photo { width: 36px; height: 36px; }
+.gk .gk-club-place-chevron { transition: transform .15s var(--gk-ease); }
+.gk .gk-club-place-chevron.is-open { transform: rotate(180deg); }
+.gk .gk-club-place-detail { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gk-2); padding: 0 var(--gk-4) var(--gk-4) calc(var(--gk-4) + 36px + var(--gk-3)); color: var(--gk-text-2); font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); border-bottom: 1px solid var(--gk-line); }
+.gk .gk-club-place-detail:last-child { border-bottom: 0; }
+
+/* Get involved: the store, jobs and campaigns pages inside the club page, without their own page chrome. */
+.gk .gk-club-involved { display: flex; flex-direction: column; gap: var(--gk-4); }
+.gk .gk-club-involved__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-3); }
+.gk .gk-club-involved .store-page { padding: 0; }
+.gk .gk-club-involved .store-page > nav[aria-label='Opportunities'], .gk .gk-club-involved .store-heading, .gk .gk-club-involved .opportunity-navigation { display: none; }
+
+/* Legacy club tab content (the squad and programme pages) sits inside the design-system main column. */
 .gk .gk-profile__main > .club-public, .gk .gk-profile__main > section { min-width: 0; }
-
-/* Teams, people and venues keep their own components; inside the profile they read as design-system sections. */
 .gk .gk-profile__main .club-public h2 { font-family: var(--gk-font-display); font-size: var(--gk-fs-2xl); line-height: var(--gk-lh-2xl); letter-spacing: -0.01em; }
 .gk .gk-profile__main .club-public .cp-heading { margin-bottom: var(--gk-5); }
 .gk .gk-profile__main .club-public .cp-heading-title > .cp-section-icon { display: none; }

@@ -9,7 +9,6 @@ import { MediaImage } from '../ui/MediaImage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    Compass,
     ExternalLink,
     MessageCircle,
     Minus,
@@ -118,23 +117,16 @@ const AuthenticatedRightSidebar = ({ sessionId }: { sessionId: AuthSessionId }) 
 
     return (
         <>
-            <aside className="home-side-rail home-side-rail--right hidden xl:block" aria-label="Opportunities and contacts">
+            <aside className="home-side-rail home-side-rail--right hidden xl:block" aria-label="Store, jobs, fundraising and contacts">
                 <div className="home-side-scroll space-y-5">
-                    <section className="home-rail-card home-opportunities-card" aria-labelledby="discover-heading">
-                        <div className="flex items-center gap-2 border-b border-[color:var(--color-border)]/[0.08] px-4 py-4">
-                            <Compass className="h-4 w-4 text-[var(--feed-text-primary)]" aria-hidden="true" />
-                            <h2 id="discover-heading" className="text-xs font-bold text-[var(--feed-text-primary)]">Opportunities</h2>
-                        </div>
-
-                        <div className="space-y-2.5 p-3" role="group" aria-label="Supported destinations">
-                            <OpportunityLink compact kind="store" to="/store" description="Club kit & merchandise" />
+                    {/* The global store, jobs and fundraising: plain names here, "Club store" and friends only on a club's page. */}
+                    <nav className="home-rail-card home-opportunities-card" aria-label="Store, jobs and fundraising">
+                        <div className="space-y-2.5 p-3">
+                            <OpportunityLink compact kind="store" to="/store" description="Kit & merchandise from clubs" />
                             <OpportunityLink compact kind="jobs" to="/jobs" description="Work and volunteer in football" />
                             <OpportunityLink compact kind="campaigns" to="/campaigns" description="Support club projects" />
                         </div>
-                    </section>
-
-
-
+                    </nav>
 
                     <section aria-labelledby="contacts-heading" className="home-rail-card home-contacts-card">
                         <div className="flex items-center border-b border-[var(--feed-card-border)] px-2 pb-3">

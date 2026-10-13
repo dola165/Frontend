@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { MapPin, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
@@ -8,10 +8,6 @@ import { ProfileLayout } from '../../../design/profile/ProfileLayout';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { ClubManagementModal, type ClubManagementTab } from '../../../components/club/ClubManagementModal';
 import { ClubEnquiryModal } from '../../../components/club/ClubEnquiryModal';
-import { TabTraining } from '../../../components/club/tabs/TabTraining';
-import { TabPeople } from '../../../components/club/tabs/TabPeople';
-import { TabFacilities } from '../../../components/club/tabs/TabFacilities';
-import { ClubBusinessTab } from '../../../components/club/ClubBusinessTab';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { playerPath, positivePlayerId } from '../../parents/playerSelection';
@@ -20,11 +16,16 @@ import { useProfileImageControls } from '../../profiles/useProfileImageControls'
 import { dissolveClub } from '../api';
 import { clubRoleLabel } from '../domain';
 import { profileKindLabel } from '../presentation';
+import { ClubAboutTab } from './ClubAboutTab';
 import { ClubActions } from './ClubActions';
-import { ClubContactTab, ClubHonoursTab } from './ClubInfoTabs';
-import { ClubOverviewTab } from './ClubOverviewTab';
+import { ClubContactTab } from './ClubInfoTabs';
+import { ClubFacilitiesTab } from './ClubFacilitiesTab';
+import { ClubInfo } from './ClubInfo';
+import { ClubInvolvedTab } from './ClubInvolvedTab';
+import { ClubPeopleTab } from './ClubPeopleTab';
 import { ClubPostsTab } from './ClubPostsTab';
 import { ClubSide } from './ClubSide';
+import { ClubTeamsTab } from './ClubTeamsTab';
 import { clubTabFrom, clubTabs, tabFilters, type ClubTab } from './clubTabs';
 import { useClubEnquiry } from './useClubEnquiry';
 import { useClubProfile } from './useClubProfile';
@@ -33,7 +34,7 @@ import './club-profile.css';
 const managementTabs: ClubManagementTab[] = ['personnel', 'players', 'invites', 'applications', 'roles', 'squads', 'tryouts'];
 const managementTabFrom = (value: string | null) => managementTabs.find(tab => tab === value) ?? null;
 
-/** A club's public page: who they are, their posts first, then schedule, training, people and places. */
+/** A club's public page: its posts first, then its photos, story, squads, people, places and ways to get involved. */
 export function ClubProfilePage() {
     const { id } = useParams<{ id: string }>();
     const { sessionId, status } = useAuth();
@@ -54,19 +55,15 @@ function ClubProfileView({ id }: { id: number }) {
     const [dissolveOpen, setDissolveOpen] = useState(false);
     const [dissolving, setDissolving] = useState(false);
     const images = useProfileImageControls({ enabled: can.isLeader, scope: `club:${id}`, imageKind: 'logo', hasCover: Boolean(club?.bannerUrl), onSave: updateImage });
-    const rawTab = params.get('tab');
-    const tab = clubTabFrom(rawTab);
+    const tab = clubTabFrom(params.get('tab'));
     const managing = params.get('manageClub') === '1' && can.canManage;
     const player = positivePlayerId(params.get('player'));
-
-    // The store and campaigns have their own pages; old tab links still arrive there.
-    useEffect(() => { if (rawTab === 'store' || rawTab === 'campaigns') navigate(`/clubs/${id}/${rawTab}`, { replace: true }); }, [rawTab, id, navigate]);
 
     const setTab = (next: ClubTab) => {
         const query = new URLSearchParams(params);
         for (const key of tabFilters) query.delete(key);
         query.delete('media');
-        if (next === 'overview') query.delete('tab'); else query.set('tab', next);
+        if (next === 'posts') query.delete('tab'); else query.set('tab', next);
         setParams(query);
     };
     const setManaging = (open: boolean, managementTab?: ClubManagementTab | null) => setParams(current => {
@@ -103,7 +100,7 @@ function ClubProfileView({ id }: { id: number }) {
     const linked = club.presentation?.affiliations.find(a => a.status === 'ACTIVE');
     const place = club.addressText || [club.cityName, club.countryName].filter(Boolean).join(', ');
     return <>
-        <ProfileLayout
+        <ProfileLayout className="gk-club-page"
             identity={{
                 name: club.name, image: club.logoUrl, square: true,
                 badge: club.isOfficial ? <Badge tone="accent"><ShieldCheck size={13} aria-hidden="true" />Verified club</Badge> : undefined,
@@ -113,20 +110,21 @@ function ClubProfileView({ id }: { id: number }) {
                     <><strong>{club.followerCount.toLocaleString()}</strong>{club.followerCount === 1 ? 'follower' : 'followers'}</>,
                     <><strong>{club.memberCount.toLocaleString()}</strong>{club.memberCount === 1 ? 'member' : 'members'}</>,
                 ],
+                summary: club.description || undefined,
             }}
             banner={club.bannerUrl} bannerAction={images.coverAction} imageAction={images.imageAction}
             actions={<ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} onSettings={() => setManaging(true)} />}
             notice={<>{notice && <p className="gk-notice gk-notice--danger" role="alert">{notice}</p>}{images.dialogs}</>}
             tabs={clubTabs} tab={tab} onTab={setTab} tabsLabel="Club sections"
-            side={<ClubSide club={club} showContact={tab !== 'contact'} />} sideLabel={`About ${club.name}`}>
-            {tab === 'overview' && <ClubOverviewTab club={club} can={can} onFollow={() => void follow()} onJoin={join} />}
+            sideLeft={<ClubInfo club={club} />} sideLeftLabel="Club information"
+            side={<ClubSide club={club} />} sideLabel="Get involved">
             {tab === 'posts' && <ClubPostsTab club={club} can={can} />}
-            {tab === 'teams' && <TabTraining club={club} refreshKey={squadsRevision} onContact={setEnquiry} isAuthenticated={status === 'authenticated'} />}
-            {tab === 'people' && <TabPeople clubId={club.id} clubName={club.name} isOwnClubAdmin={can.canManageStaff} />}
-            {tab === 'facilities' && <TabFacilities club={club} isOwnClubAdmin={can.canEditFacilities} />}
             {tab === 'media' && <ProfileMediaTab endpoint={`/posts/club/${club.id}`} clubId={club.id} />}
-            {tab === 'business' && <ClubBusinessTab club={club} ownClubRole={can.role} isAuthenticated={status === 'authenticated'} />}
-            {tab === 'honours' && <ClubHonoursTab club={club} />}
+            {tab === 'about' && <ClubAboutTab club={club} can={can} />}
+            {tab === 'teams' && <ClubTeamsTab club={club} refreshKey={squadsRevision} onContact={setEnquiry} isAuthenticated={status === 'authenticated'} />}
+            {tab === 'people' && <ClubPeopleTab clubId={club.id} canManageStaff={can.canManageStaff} />}
+            {tab === 'facilities' && <ClubFacilitiesTab club={club} canEdit={can.canEditFacilities} />}
+            {tab === 'involved' && <ClubInvolvedTab club={club} />}
             {tab === 'contact' && <ClubContactTab club={club} />}
         </ProfileLayout>
 

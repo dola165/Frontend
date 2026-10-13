@@ -1,30 +1,46 @@
 import type { TabItem } from '../../../design/Tabs';
 import { arrangePath } from '../../world/compose/arrangeSeed';
 
-export type ClubTab = 'overview' | 'posts' | 'teams' | 'people' | 'facilities' | 'media' | 'business' | 'honours' | 'contact';
+export type ClubTab = 'posts' | 'media' | 'about' | 'teams' | 'people' | 'facilities' | 'involved' | 'contact';
+/** The three parts of Get involved, each a full page inside the club page. */
+export type InvolvedKind = 'store' | 'jobs' | 'fundraising';
 
+/** Posts first for everyone (the owner, 13 October); Contact is pushed to the right edge by the page's stylesheet. */
 export const clubTabs: TabItem<ClubTab>[] = [
-    { id: 'overview', label: 'Overview' },
     { id: 'posts', label: 'Posts' },
+    { id: 'media', label: 'Photos & videos' },
+    { id: 'about', label: 'About' },
     { id: 'teams', label: 'Teams & training' },
     { id: 'people', label: 'Coaches & staff' },
-    { id: 'facilities', label: 'Venues' },
-    { id: 'media', label: 'Photos & videos' },
-    { id: 'business', label: 'Opportunities' },
-    { id: 'honours', label: 'Honours' },
+    { id: 'facilities', label: 'Facilities' },
+    { id: 'involved', label: 'Get involved' },
     { id: 'contact', label: 'Contact' },
 ];
 
 const ids = new Set<string>(clubTabs.map(tab => tab.id));
 
-/** Old links keep working: `pictures`/`videos` are the media tab; the schedule's fixtures are on the overview (planning is in the club workspace). */
+/** Old links keep working: the overview and honours are About; `pictures`/`videos` are the media tab; the store, campaigns and opportunities are Get involved. */
 export function clubTabFrom(value: string | null): ClubTab {
     if (value === 'pictures' || value === 'videos') return 'media';
-    return value && ids.has(value) ? value as ClubTab : 'overview';
+    if (value === 'overview' || value === 'honours') return 'about';
+    if (value === 'business' || value === 'store' || value === 'campaigns') return 'involved';
+    return value && ids.has(value) ? value as ClubTab : 'posts';
 }
 
+/** Which part of Get involved a link opens: `show=` first, then the old `tab=store|campaigns` and `opportunity=jobs` links. */
+export function involvedKindFrom(params: URLSearchParams): InvolvedKind {
+    const show = params.get('show');
+    if (show === 'jobs' || show === 'fundraising' || show === 'store') return show;
+    if (params.get('tab') === 'campaigns') return 'fundraising';
+    return params.get('opportunity') === 'jobs' ? 'jobs' : 'store';
+}
+export const involvedPath = (clubId: number, kind: InvolvedKind) => `/clubs/${clubId}?tab=involved${kind === 'store' ? '' : `&show=${kind}`}`;
+
 /** Filters that belong to one tab; switching tabs clears them so the next tab starts clean. */
-export const tabFilters = ['programme', 'squad', 'age', 'q', 'staff', 'enquire', 'kind', 'type', 'period', 'week', 'view', 'opportunity', 'roleId', 'roleTitle'];
+export const tabFilters = ['programme', 'squad', 'age', 'q', 'staff', 'staffView', 'enquire', 'kind', 'type', 'period', 'week', 'view', 'opportunity', 'show', 'roleId', 'roleTitle', 'query', 'sort', 'page', 'state'];
 
 /** Where another club's staff arrange a match against this club. The form lives in World. */
 export const proposeMatchPath = (clubId: number) => arrangePath({ mode: 'direct', opponentId: clubId });
+/** Where this club's own staff start a match: invite a club, or post an open challenge for any club to take. */
+export const arrangeOwnMatchPath = () => arrangePath({ mode: 'direct' });
+export const openChallengePath = () => arrangePath({ mode: 'open' });

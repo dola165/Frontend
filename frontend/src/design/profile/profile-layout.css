@@ -28,13 +28,20 @@
 .gk .gk-profile__facts button:hover, .gk .gk-profile__facts a:hover { color: var(--gk-text); text-decoration: underline; text-underline-offset: 3px; }
 .gk .gk-profile__facts button:disabled { cursor: default; text-decoration: none; color: var(--gk-text-3); }
 .gk .gk-profile__facts strong { color: var(--gk-text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.gk .gk-profile__summary { max-width: 72ch; margin-top: var(--gk-1); color: var(--gk-text-2); font-size: var(--gk-fs-md); line-height: var(--gk-lh-md); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .gk .gk-profile__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--gk-2); padding-bottom: 2px; }
 .gk .gk-profile__actions .gk-btn { min-height: 44px; }
 
 .gk .gk-profile__tabs { position: sticky; top: var(--app-active-header-height, 0px); z-index: 20; background: var(--gk-bg); }
 
 .gk .gk-profile__body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gk-8); align-items: start; padding: var(--gk-6) 0 var(--gk-16); }
-@media (min-width: 1100px) { .gk .gk-profile__body--split { grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); } }
+@media (min-width: 1100px) {
+    .gk .gk-profile__body--split { grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); }
+    /* Information on the left, the tab in the middle, ways to get involved on the right: all three beside every tab. */
+    .gk .gk-profile__body--three { grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) minmax(260px, 320px); gap: var(--gk-6); }
+}
+/* Under one column the tab comes first; the information and side blocks follow. */
+@media (max-width: 1099px) { .gk .gk-profile__side--left { order: 1; } .gk .gk-profile__side:not(.gk-profile__side--left) { order: 2; } }
 .gk .gk-profile__main { min-width: 0; display: flex; flex-direction: column; gap: var(--gk-8); }
 .gk .gk-profile__main:focus-visible { box-shadow: none; }
 .gk .gk-profile__side { min-width: 0; display: flex; flex-direction: column; gap: var(--gk-6); }

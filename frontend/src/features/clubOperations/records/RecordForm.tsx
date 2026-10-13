@@ -1,7 +1,7 @@
 import { useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Button, PageHeader, Panel } from '../../../design/primitives';
-import { FacilityCard } from '../../../components/club/tabs/TabFacilities';
+import { FacilityCard } from '../../clubs/ClubPlaceCard';
 import { extractApiErrorMessage } from '../../../utils/apiError';
 import { label, post, put, root, type Bootstrap, type Definition, type Field as FieldDefinition, type OperationRecord } from '../api';
 import { editorDescription, fieldGroups } from '../editorPresentation';

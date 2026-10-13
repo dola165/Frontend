@@ -146,9 +146,7 @@
     --op-strong: var(--color-purple);
     --op-soft: color-mix(in srgb, var(--color-purple) 4%, transparent);
 }
-.club-design-scope.club-page-shell .store-page.opportunity-overview-card {
-    --op-border: color-mix(in srgb, var(--op-accent) 25%, var(--color-border));
-}
+
 @media (min-width: 1024px) {
     .club-design-scope :is(.club-directory-list-heading, .club-directory-row) { grid-template-columns: minmax(180px, 1.15fr) minmax(160px, 1.25fr) minmax(85px, .65fr) minmax(105px, .7fr) minmax(145px, .9fr); gap: 12px; }
 }

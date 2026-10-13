@@ -24,6 +24,29 @@ On 10 October 2026 the owner reviewed the sandbox. Many changes stay; some go ba
 
 This round covers coach, parent and player. Referees, organisers and other user types come later.
 
+## Owner's notes, 13 October (next work; these win over older lines below)
+
+- **Overviews go, everywhere, slowly.** They have been weak wherever we put them. Replace each with the page's real main thing.
+- **Top bar:** My squads comes before My Club. *(Done.)*
+- **Home left rail:** no Agent Dola card; Dola stays only at the top right. *(Done.)*
+- **Agent Dola** may need its own page that keeps each person's chat history (`features/dola/AgentDolaPage.tsx` is the start).
+- **Do things where they belong, not only in a workspace.** Adding a store item happens on the store page; creating a match happens from the club profile and World (and anywhere else it fits). Everything stays accessible from the page it relates to.
+- **World:**
+  - The overview is replaced by the map with filters on the left and an Airbnb-style "browse this area" list: only what is on screen, with pictures. Keep the sandbox map (the owner prefers it to the real app's).
+  - The map as a workspace is pushed to the future, not now.
+  - Remove the Venues and People directories (venues, renting and individuals on the map are out for now).
+  - Add filters and quality-of-life touches while making it simpler.
+- **Rename Opportunities.** A club's store is not an "opportunity". Globally they are just Store, Jobs & volunteering and Fundraising; on a club page, Club store, Club jobs, Club fundraising.
+- **Store page:** a full overhaul, in the World style. A coach adds an item right there.
+- **My squads:** no overview. Show the squads I am responsible for and anything urgent coming up soon; nothing else for now.
+- **Club profile:**
+  - Posts is the landing tab for everyone. A coach is no longer sent straight to the workspace.
+  - "Overview" is renamed and becomes a mix of "about" and latest news.
+  - Photos & videos is the third tab.
+  - Honours stop taking a tab; they live somewhere smaller.
+  - No Opportunities tab. Club store, Club jobs and Club fundraising open in full inside the club page as tabs, switched as easily as on the global pages.
+  - Contact moves back to the left column and holds only phone, email, fee range (lowest to highest) and the venues nearest the viewer.
+
 ## 1. Top bar and Home
 
 The owner's verdict: the redesign's top bar "has crazy good potential"; the real app's Home is much better than the redesign's.

@@ -54,7 +54,6 @@
 .home-nav-icon { --home-icon-color: var(--color-accent); display: inline-flex; width: 28px; height: 28px; flex: 0 0 28px; align-items: center; justify-content: center; border-radius: 7px; background: color-mix(in srgb, var(--home-icon-color) 10%, transparent); color: var(--home-icon-color); }
 .home-nav-icon svg { width: 15px; height: 15px; stroke-width: 1.6; }
 .home-nav-icon--family { --home-icon-color: var(--color-pink); }
-.feed-home-shell .home-dola-shortcut { min-height: 76px; padding: 12px; border: 1px solid color-mix(in srgb, var(--feed-accent) 28%, var(--feed-card-border)); background: var(--feed-card); border-radius: 14px; }
 .home-nav-icon--squads, .home-nav-icon--map { --home-icon-color: var(--color-cyan); }
 .home-nav-icon--schedule { --home-icon-color: var(--color-info); }
 .home-nav-icon--following, .home-nav-icon--agent { --home-icon-color: var(--color-purple); }

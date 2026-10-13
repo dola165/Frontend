@@ -66,7 +66,6 @@ export const visualColors = {
   "landingStoryPaint53": "#2c6047",
   "landingStoryPaint54": "#fffdf1",
   "shortcutEmblemPaint55": "#065f46",
-  "shortcutEmblemPaint56": "#00e695",
   "shortcutEmblemPaint57": "#d1fae5",
   "shortcutEmblemPaint58": "#fb7185",
   "shortcutEmblemPaint59": "#fff1f2",

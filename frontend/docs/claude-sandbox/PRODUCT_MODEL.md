@@ -189,3 +189,11 @@ These replace the older lines above and in sections 3, 7 and 12 where they disag
 - World is bilingual like the rest of the app: every World string has a Georgian translation (`features/world/copy.ka.ts`).
 - A parent searches World for a child: the chosen child follows them across World pages (and Parent Hub), clubs show which programmes fit the child's age, and club actions ask the club through its enquiry for that child instead of joining the parent.
 
+
+### Made (13 October 2026, owner, after the founders' briefing)
+
+- **The new version is the work** (decided 14 October, replacing "main app first"). The deployed app is not being changed; all effort goes into the sandbox version, perfected page by page. Foundational pieces that should land at once (first: sign-in, basic permissions and the new user's start, brief in `AUTH_AND_START.md`) may be handed to another model in their own worktree.
+- **Out for now:** venues, stadium renting, individuals on the map and similar heavy features leave the frontend until the product is ready for them. Details to follow.
+- **The audience is decided by data.** Launch to about 500 volunteer users the team already knows, follow analytics (what people use and come back for), then settle the audience and evolve from there.
+- **No role at registration** (decided 13 October). One sign-up for everyone; what a person does is chosen later, easily, and changed any time. Permissions come from links someone else confirms (club staff, squad coach, guardian), never from a chosen or self-described role.
+- **New users get a simple, good start:** they pick what they want to see, and the feed is mostly local. A fan in Tbilisi sees Dinamo Tbilisi hosting a tournament, not registration for an Estonian one. The feed gets a solid rule-based foundation first; a learning algorithm (YouTube-style) comes later on top of it.

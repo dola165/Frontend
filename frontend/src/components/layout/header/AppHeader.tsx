@@ -45,7 +45,7 @@ function currentPin(pins: Pin[], pathname: string, search: string) {
         .sort((a, b) => b.path.length - a.path.length)[0] ?? null;
 }
 
-/** One header row: brand and search on the left, Home · World · My Club and personal pins centred, then Dola, Inbox, Messages and the account. */
+/** One header row: brand and search on the left, Home · World · My squads · My Club and personal pins centred, then Dola, Inbox, Messages and the account. */
 export function AppHeader(props: AppHeaderProps) {
     return props.user ? <SignedInHeader {...props} user={props.user} /> : <GuestHeader themePreference={props.themePreference} />;
 }
@@ -67,10 +67,10 @@ function SignedInHeader({ user, myClubId, themePreference, setThemePreference, o
     const tabs: PrimaryTab[] = [
         { id: 'home', to: '/home', label: copy('Home', 'მთავარი'), icon: House, current: section === 'home' },
         { id: 'world', to: '/world', label: copy('World', 'მსოფლიო'), icon: Earth, current: section === 'world' },
-        ...(club.path ? [{ id: 'my-club' as const, to: club.path, label: copy('My Club', 'ჩემი კლუბი'), icon: Shield, current: section === 'my-club' }] : []),
-        // Role tabs come from relationships: coaching a squad gives My squads, a linked child gives Parent Hub.
-        // Later hubs (referee, organiser) are one more line here.
+        // Role tabs come from relationships: coaching a squad gives My squads (first: the coach's own work comes before
+        // the club), a linked child gives Parent Hub. Later hubs (referee, organiser) are one more line here.
         ...(accessibleClubs(capabilities).some(c => c.canOpenWorkspace) ? [{ id: 'my-squads' as const, to: '/my-squads', label: copy('My squads', 'ჩემი გუნდები'), icon: Users, current: section === 'my-squads' }] : []),
+        ...(club.path ? [{ id: 'my-club' as const, to: club.path, label: copy('My Club', 'ჩემი კლუბი'), icon: Shield, current: section === 'my-club' }] : []),
         ...(hasNavigationCapability(capabilities, 'parent.hub') ? [{ id: 'parent-hub' as const, to: '/parent', label: copy('Parent Hub', 'მშობლის სივრცე'), icon: Heart, current: section === 'parent-hub' }] : []),
     ];
     const light = themeForRoute(themePreference) === 'light';

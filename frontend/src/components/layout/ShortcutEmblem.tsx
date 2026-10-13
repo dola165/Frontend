@@ -1,9 +1,8 @@
 import { visualColors } from '../../styles/visualColors';
 import type { ReactNode } from 'react';
 
-export type ShortcutKind = 'dola' | 'family' | 'squads' | 'club' | 'venues' | 'organization' | 'referee' | 'agent' | 'schedule' | 'following' | 'clubs' | 'map';
+export type ShortcutKind = 'family' | 'squads' | 'club' | 'venues' | 'organization' | 'referee' | 'agent' | 'schedule' | 'following' | 'clubs' | 'map';
 const art: Record<ShortcutKind, ReactNode> = {
-    dola: <><path fill={visualColors.shortcutEmblemPaint55} d="M20 1 36 10v20L20 39 4 30V10Z"/><path fill={visualColors.shortcutEmblemPaint56} d="m20 6 4 10 10 4-10 4-4 10-4-10-10-4 10-4Z"/><path fill={visualColors.shortcutEmblemPaint57} d="m31 3 2 5 5 2-5 2-2 5-2-5-5-2 5-2Z"/></>,
     family: <><path fill={visualColors.shortcutEmblemPaint58} d="M20 35 5 21C-4 11 10 1 20 12 30 1 44 11 35 21Z"/><circle cx="15" cy="18" r="4" fill={visualColors.shortcutEmblemPaint59}/><circle cx="26" cy="23" r="3" fill={visualColors.shortcutEmblemPaint60}/><path d="M7 29c0-9 16-9 16 0v3H7Z" fill={visualColors.shortcutEmblemPaint59}/><path d="M21 33c0-8 12-8 12 0Z" fill={visualColors.shortcutEmblemPaint60}/></>,
     squads: <><circle cx="12" cy="12" r="6" fill={visualColors.shortcutEmblemPaint61}/><circle cx="28" cy="12" r="6" fill={visualColors.shortcutEmblemPaint62}/><path d="M1 32v-5c0-11 22-11 22 0v5Z" fill={visualColors.shortcutEmblemPaint63}/><path d="M18 32v-5c0-11 21-11 21 0v5Z" fill={visualColors.shortcutEmblemPaint64}/><circle cx="22" cy="30" r="9" fill={visualColors.shortcutEmblemPaint65} stroke={visualColors.shortcutEmblemPaint66}/><path d="m22 24 5 4-2 6h-6l-2-6Z" fill={visualColors.shortcutEmblemPaint66}/></>,
     club: <><path d="M20 2 36 8v13c0 9-16 17-16 17S4 30 4 21V8Z" fill={visualColors.shortcutEmblemPaint64}/><path d="M20 7 31 11v10c0 6-11 12-11 12Z" fill={visualColors.shortcutEmblemPaint55}/><path d="m20 11 3 6 7 1-5 5 1 7-6-4-6 4 1-7-5-5 7-1Z" fill={visualColors.shortcutEmblemPaint65}/></>,

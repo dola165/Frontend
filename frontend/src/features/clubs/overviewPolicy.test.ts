@@ -3,14 +3,20 @@ import { overviewFixtures, overviewLead, overviewProgrammes } from './overviewPo
 import type { TrainingProgramme } from './presentation';
 import type { ScheduleEventOccurrence } from '../schedule/api';
 
-it.each(['PLAYER','COACH','REFEREE','AGENT','CLUB_STAFF','PARENT','ORGANIZER','VENUE_MANAGER','FAN','ADMIN',undefined])('keeps %s connected work independent of public relevance',role=>{
-    expect(overviewLead(1,role,{version:1,workspaces:[{id:'club.family',context:{type:'club',id:1,label:'Dinamo'}}]})).toBe('family');
-    expect(['family','club','teams','training']).toContain(overviewLead(1,role,{version:1,workspaces:[]}));
+const caps = (workspaces: Array<{ id: string; type: string; cid: number }>) => ({ version: 1 as const, workspaces: workspaces.map(w => ({ id: w.id, context: { type: w.type, id: w.cid, label: 'x' } })) });
+
+it('leads with the family week for a family linked to this club, whatever else they are', () => {
+    expect(overviewLead(1, caps([{ id: 'club.family', type: 'club', cid: 1 }, { id: 'club.workspace', type: 'club', cid: 2 }]))).toBe('family');
+    expect(overviewLead(2, caps([{ id: 'club.family', type: 'club', cid: 1 }]))).toBe('training');
 });
-it('prioritizes training for a visiting parent and public squads for a visiting coach',()=>{
-    expect(overviewLead(1,'PARENT')).toBe('training');expect(overviewLead(1,'COACH')).toBe('teams');
-    expect(overviewLead(1,'REFEREE')).toBe('club');
-    expect(overviewLead(1,'FAN',{version:1,workspaces:[{id:'parent.hub',context:{type:'user',id:7,label:'Family'}}]})).toBe('training');
+it('reads relevance from confirmed links only, never from an account role', () => {
+    expect(overviewLead(1, caps([{ id: 'parent.hub', type: 'user', cid: 7 }]))).toBe('training');
+    expect(overviewLead(1, caps([{ id: 'squad.workspace', type: 'squad', cid: 105 }]))).toBe('teams');
+    expect(overviewLead(1, caps([{ id: 'club.workspace', type: 'club', cid: 2 }]))).toBe('teams');
+    expect(overviewLead(1, caps([{ id: 'club.player', type: 'club', cid: 2 }]))).toBe('training');
+    expect(overviewLead(1, caps([{ id: 'club.player', type: 'club', cid: 1 }]))).toBe('club');
+    expect(overviewLead(1, caps([]))).toBe('club');
+    expect(overviewLead(1, undefined)).toBe('club');
 });
 it('does not publish draft, expired or future training programmes',()=>{
     const p={published:true,name:'Training'} as TrainingProgramme;
@@ -22,8 +28,4 @@ it('shows only upcoming public fixtures, preserving pending confirmation and lim
     expect(overviewFixtures([privateEvent,cancelled,ended,rejected,fixture],Date.parse('2026-09-29'))).toEqual([fixture]);
     expect(overviewFixtures([fixture,fixture,fixture,fixture],Date.parse('2026-09-29'))).toHaveLength(3);
     expect(overviewFixtures([fixture],Date.parse('2026-10-02'))).toEqual([]);
-});
-
-it('keeps a family context to its own club',()=>{
-    expect(overviewLead(2,'PARENT',{version:1,workspaces:[{id:'club.family',context:{type:'club',id:1,label:'Home'}}]})).toBe('training');
 });

@@ -38,18 +38,20 @@ describe("LeftSidebar", () => {
     const squad = { id: 'squad.workspace', context: { type: 'squad', id: 18, label: 'U12' } };
     const { rerender } = render(<MemoryRouter><LeftSidebar user={{ id: 9, navigationCapabilities: { version: 1, workspaces: [venue, squad] } }} /></MemoryRouter>);
     expect(screen.getByRole('link', { name: /My squads/ })).toBeInTheDocument();
-    rerender(<MemoryRouter><LeftSidebar user={{ id: 9, role: 'COACH', navigationCapabilities: { version: 1, workspaces: [venue] } }} /></MemoryRouter>);
+    rerender(<MemoryRouter><LeftSidebar user={{ id: 9, navigationCapabilities: { version: 1, workspaces: [venue] } }} /></MemoryRouter>);
     expect(screen.queryByRole('link', { name: /My squads/ })).not.toBeInTheDocument();
   });
 
   it('keeps general navigation on old responses without deriving workspaces from labels', () => {
-    render(<MemoryRouter><LeftSidebar user={{ id: 9, role: 'REFEREE' }} /></MemoryRouter>);
+    render(<MemoryRouter><LeftSidebar user={{ id: 9 }} /></MemoryRouter>);
     expect(screen.getByRole('link', { name: /My squads/ })).toHaveAttribute('href', '/squads');
     expect(screen.queryByRole('link', { name: 'Referee workspace' })).not.toBeInTheDocument();
+    // Unknown links are never shown as "no links": Explore waits for the server's answer.
+    expect(screen.queryByRole('button', { name: /Following/ })).not.toBeInTheDocument();
   });
-  it("keeps Following for fans while other shortcuts remain navigation links", async () => {
+  it("offers Following to someone nobody has linked yet, while other shortcuts remain navigation links", async () => {
     const user = userEvent.setup();
-    render(<MemoryRouter><LeftSidebar user={{ id: 9, fullName: "Alex Morgan", role: "FAN" }} /></MemoryRouter>);
+    render(<MemoryRouter><LeftSidebar user={{ id: 9, fullName: "Alex Morgan", navigationCapabilities: { version: 1, workspaces: [] } }} /></MemoryRouter>);
     expect(screen.getByRole("link", { name: /Alex Morgan.*View your profile/ })).toHaveAttribute("href", "/profile/9");
     expect(screen.queryByRole("link", { name: /Following.*People you keep up with/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Following.*People you keep up with/ }));
@@ -67,14 +69,20 @@ describe("LeftSidebar", () => {
   });
 
   it("does not render followed clubs as an embedded club list", () => {
-    render(<MemoryRouter><LeftSidebar user={{ id: 9, fullName: "Alex Morgan", role: "PLAYER" }} /></MemoryRouter>);
+    render(<MemoryRouter><LeftSidebar user={{ id: 9, fullName: "Alex Morgan", navigationCapabilities: { version: 1, workspaces: [] } }} /></MemoryRouter>);
     expect(screen.queryByText("See all")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Followed clubs" })).not.toBeInTheDocument();
   });
 });
 
-it.each(['COACH','PLAYER','PARENT','REFEREE','AGENT',undefined])('omits following and map from the left rail for %s', role => {
-    render(<MemoryRouter><LeftSidebar user={{id:9,role}} /></MemoryRouter>);
+it.each([
+    ['a coach', { id: 'squad.workspace', context: { type: 'squad', id: 18, label: 'U12' } }],
+    ['a player', { id: 'club.player', context: { type: 'club', id: 21, label: 'Academy' } }],
+    ['a parent', { id: 'parent.hub', context: { type: 'user', id: 9, label: 'Family' } }],
+    ['a referee', { id: 'referee.workspace', context: { type: 'user', id: 9, label: 'Referee' } }],
+    ['an agent', { id: 'agent.hub', context: { type: 'user', id: 9, label: 'Agent' } }],
+])('omits following and map from the left rail for %s', (_, workspace) => {
+    render(<MemoryRouter><LeftSidebar user={{ id: 9, navigationCapabilities: { version: 1, workspaces: [workspace] } }} /></MemoryRouter>);
     expect(screen.queryByRole('button',{name:/Following/})).not.toBeInTheDocument();
     expect(screen.queryByRole('link',{name:/Followed clubs/})).not.toBeInTheDocument();
     expect(screen.queryByRole('link',{name:/^Map/})).not.toBeInTheDocument();

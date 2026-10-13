@@ -29,7 +29,7 @@ const tabLink = (club: number, tab: string) => `/clubs/${club}?tab=${tab}`;
 export function ClubOverviewTab({ club, can, onFollow, onJoin }: { club: ClubProfile; can: ClubPermissions; onFollow: () => void; onJoin: () => void }) {
     const { user } = useAuth();
     const feed = useProfilePostFeed(`/posts/club/${club.id}`, 6);
-    const lead = overviewLead(club.id, user?.role, user?.navigationCapabilities);
+    const lead = overviewLead(club.id, user?.navigationCapabilities);
     const [window] = useState(() => {
         const start = new Date(), end = new Date(start); end.setDate(end.getDate() + 30);
         const local = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19);

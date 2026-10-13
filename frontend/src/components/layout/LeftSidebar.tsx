@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { ShortcutKind } from './ShortcutEmblem';
 import { BriefcaseBusiness, CalendarDays, Flag, Heart, MapPinned, Shield, UserCheck, Users } from 'lucide-react';
 import { resolveMediaUrl } from "../../utils/resolveMediaUrl";
-import { hasNavigationCapability, type NavigationCapabilities } from '../../context/navigationCapabilities';
+import { capabilitiesKnown, hasConfirmedLinks, hasNavigationCapability, type NavigationCapabilities } from '../../context/navigationCapabilities';
 import { ConnectionsDialog } from "../profile/ConnectionsDialog";
 import { type ManagedClubLink } from "./WorkspaceShortcuts";
 import { WorkspaceAccess } from './FootballActivity';
@@ -17,7 +17,6 @@ interface LeftSidebarProps {
   user: {
     id?: number;
     username?: string;
-    role?: string;
     navigationCapabilities?: NavigationCapabilities;
     fullName?: string;
     name?: string;
@@ -101,7 +100,8 @@ export const LeftSidebar = ({ user, managedClubs = [], embedded = false }: LeftS
           <h2 className="home-shortcut-heading">Your football</h2>
           {primary.map(shortcut)}
         </div>
-        {user?.role === 'FAN' && <div className="home-shortcut-group home-rail-card" role="group" aria-label="Explore">
+        {/* Someone nobody has linked to a club, squad or child yet keeps up through follows. */}
+        {capabilitiesKnown(capabilities) && !hasConfirmedLinks(capabilities) && <div className="home-shortcut-group home-rail-card" role="group" aria-label="Explore">
           <h2 className="home-shortcut-heading">Explore</h2>
           <button type="button" onClick={() => setShowFollowing(true)} className="feed-side-link home-social-link w-full text-left">
             <HomeIcon kind="following" /><span className="home-shortcut-copy"><span className="feed-side-link__title">Following</span><span className="home-shortcut-description">People you keep up with</span></span>

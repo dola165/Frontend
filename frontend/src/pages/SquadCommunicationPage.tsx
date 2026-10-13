@@ -17,13 +17,14 @@ import { sessionNavigation } from '../features/squadCommunication/sessionLink';
 import { MatchHistoryLink } from '../features/matchHistory/MatchHistoryLink';
 import { isoDay } from '../design/calendar/calendarDates';
 import { accessibleClubs } from '../components/layout/clubAccess';
+import { hasNavigationCapability } from '../context/navigationCapabilities';
 
 import {SquadNotificationToggle} from '../features/squadCommunication/SquadNotificationToggle';
 import '../features/squadCommunication/squad-life.css';
 import '../features/parents/family-workspace.css';
 
 type Tab='announcements'|'chat'|'coach'|'sessions';
-export function MySquadsPage(){const {user}=useAuth();if(accessibleClubs(user?.navigationCapabilities).some(club=>club.canOpenWorkspace))return <Navigate replace to="/my-squads"/>;return <main className="squad-page"><Link className="squad-back" to={user?.role==="PARENT"?"/parent":"/"}><ArrowLeft size={20}/>{user?.role==="PARENT"?"Back to Parent Hub":"Back to home"}</Link><header className="squad-page-heading"><span className="squad-eyebrow">ACADEMY FOOTBALL</span><h1>My squads</h1><p>One place for your coach, your teammates and your family’s football.</p></header><SquadSpacesPanel/></main>;}
+export function MySquadsPage(){const {user}=useAuth();if(accessibleClubs(user?.navigationCapabilities).some(club=>club.canOpenWorkspace))return <Navigate replace to="/my-squads"/>;const parent=hasNavigationCapability(user?.navigationCapabilities,'parent.hub');return <main className="squad-page"><Link className="squad-back" to={parent?"/parent":"/"}><ArrowLeft size={20}/>{parent?"Back to Parent Hub":"Back to home"}</Link><header className="squad-page-heading"><span className="squad-eyebrow">ACADEMY FOOTBALL</span><h1>My squads</h1><p>One place for your coach, your teammates and your family’s football.</p></header><SquadSpacesPanel/></main>;}
 export function SquadCommunicationPage(){const {squadId}=useParams(),{sessionId}=useAuth();return squadId&&/^\d+$/.test(squadId)?<SquadRoom key={`${sessionId}:${squadId}`} id={Number(squadId)}/>:<main className="squad-page"><h1>Squad not found</h1><Link to="/squads">My squads</Link></main>;}
 export function SquadRoom({id}:{id:number}) {
  const copy=useJourneyCopy();

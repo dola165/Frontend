@@ -4,6 +4,7 @@ import { Loader2, Search, ShieldCheck, ShieldEllipsis, UsersRound } from 'lucide
 import { apiClient } from '../api/axiosConfig';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { useAuth } from '../context/AuthContext';
+import { isSystemAdmin } from '../context/navigationCapabilities';
 import { ADMIN_CLUB_PAGE_SIZE, fetchAdminClubs, verifyAdminClub, type AdminClubPage } from '../features/admin/api';
 import { ContentReportsPanel } from '../features/jev/ContentReportsPanel';
 import { ModerationPanel } from '../features/moderation/ModerationPanel';
@@ -42,7 +43,7 @@ const roleTone = (role: string) => {
 
 export const AdminPage = () => {
     const { status, user, sessionId } = useAuth();
-    if (status !== 'authenticated' || user?.role !== 'SYSTEM_ADMIN') {
+    if (status !== 'authenticated' || !user || !isSystemAdmin(user)) {
         return <p role="alert" className="p-6">System administrator access is required.</p>;
     }
     // Retiring an account also retires all loaded admin data and in-flight UI updates.

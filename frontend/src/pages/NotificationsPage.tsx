@@ -21,6 +21,7 @@ import {
     subscribeNotificationsChanged
 } from '../utils/notifications';
 import { useAuth } from '../context/AuthContext';
+import { isSystemAdmin } from '../context/navigationCapabilities';
 
 const PAGE_SIZE = 20;
 
@@ -61,12 +62,12 @@ export const NotificationsPage = () => {
             { to: '/my-club', label: 'My Club' }
         ];
 
-        if (user?.role === 'SYSTEM_ADMIN') {
+        if (isSystemAdmin(user)) {
             links.push({ to: '/admin', label: 'Admin' });
         }
 
         return links;
-    }, [user?.role]);
+    }, [user]);
 
     const loadScopeCounts = useCallback(async () => {
         try {

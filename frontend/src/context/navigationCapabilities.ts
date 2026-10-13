@@ -72,3 +72,15 @@ export function workspaceLinks(projection?: NavigationCapabilities): WorkspaceLi
 
 export const hasNavigationCapability = (projection: NavigationCapabilities | undefined, id: string) =>
     projection?.workspaces.some(item => item.id === id) === true;
+
+/** True once the server has said what the person is linked to. Unknown is never shown as "no access". */
+export const capabilitiesKnown = (projection: NavigationCapabilities | undefined) => projection !== undefined;
+
+/** Links someone else confirmed: club staff, a squad's coach, a guardian with a child, a referee or an agent. */
+export const hasConfirmedLinks = (projection: NavigationCapabilities | undefined) =>
+    ['club.workspace', 'club.operations', 'club.member', 'club.player', 'club.family', 'squad.workspace', 'parent.hub', 'referee.workspace', 'agent.hub']
+        .some(id => hasNavigationCapability(projection, id));
+
+/** Administration stays an account-level right (the one place the account role still decides anything). */
+export const isSystemAdmin = (user?: { role?: string; navigationCapabilities?: NavigationCapabilities } | null) =>
+    hasNavigationCapability(user?.navigationCapabilities, 'admin.console') || user?.role === 'SYSTEM_ADMIN';

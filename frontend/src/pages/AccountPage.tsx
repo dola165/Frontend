@@ -196,6 +196,8 @@ export const AccountPage = () => {
     const securityExtensions = import.meta.env.DEV || import.meta.env.VITE_ACCOUNT_SECURITY_EXTENSIONS === 'true';
 
     const [account, setAccount] = useState<Account | null>(null);
+    // Player details follow the player profile the server keeps for the person, never the account role.
+    const isPlayer = Boolean(account?.playerProfile);
     const [form, setForm] = useState<ProfileForm | null>(null);
     const [sessions, setSessions] = useState<SessionSummary | null>(null);
     const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -324,10 +326,10 @@ export const AccountPage = () => {
     };
 
     useEffect(() => {
-        if (account?.role) {
+        if (account) {
             void loadTryoutApplications();
         }
-    }, [account?.role, loadTryoutApplications]);
+    }, [account, loadTryoutApplications]);
 
     const bannerPreview = useMemo(
         () =>
@@ -367,12 +369,12 @@ export const AccountPage = () => {
                 bio: trimToUndefined(form.bio),
                 avatarUrl: trimToUndefined(form.avatarUrl),
                 bannerUrl: trimToUndefined(form.bannerUrl),
-                position: account.role === 'PLAYER' ? trimToUndefined(form.position) : undefined,
-                secondaryPosition: account.role === 'PLAYER' ? trimToUndefined(form.secondaryPosition) : undefined,
-                preferredFoot: account.role === 'PLAYER' ? trimToUndefined(form.preferredFoot) : undefined,
-                heightCm: account.role === 'PLAYER' && form.heightCm.trim() ? Number(form.heightCm) : undefined,
-                weightKg: account.role === 'PLAYER' && form.weightKg.trim() ? Number(form.weightKg) : undefined,
-                availabilityStatus: account.role === 'PLAYER' ? trimToUndefined(form.availabilityStatus) : undefined
+                position: isPlayer ? trimToUndefined(form.position) : undefined,
+                secondaryPosition: isPlayer ? trimToUndefined(form.secondaryPosition) : undefined,
+                preferredFoot: isPlayer ? trimToUndefined(form.preferredFoot) : undefined,
+                heightCm: isPlayer && form.heightCm.trim() ? Number(form.heightCm) : undefined,
+                weightKg: isPlayer && form.weightKg.trim() ? Number(form.weightKg) : undefined,
+                availabilityStatus: isPlayer ? trimToUndefined(form.availabilityStatus) : undefined
             });
             await loadAccount();
             await bootstrapSession();
@@ -489,7 +491,6 @@ export const AccountPage = () => {
                                     <h2 className="text-xl font-bold text-[color:var(--fc-text-primary)]">{account.displayName}</h2>
                                     <p className="mt-1 text-sm text-[color:var(--fc-text-secondary)]">{account.email}</p>
                                     <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.08em]">
-                                        <span className="rounded-full border border-[var(--fc-border)] bg-[color:var(--fc-card-bg)] px-2.5 py-1 text-[color:var(--fc-text-primary)]">{account.role}</span>
                                         <span className={`rounded-full border px-2.5 py-1 ${
                                             account.emailVerified
                                                 ? 'border-[color:var(--fc-accent-border)] bg-[color:var(--fc-accent-soft)] text-[color:var(--fc-accent)]'
@@ -748,7 +749,7 @@ export const AccountPage = () => {
                                 </Field>
                             </div>
 
-                            {account.role === 'PLAYER' && (
+                            {isPlayer && (
                                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                                     <Field label="Primary Position">
                                         <select value={form.position} onChange={(event) => updateForm('position', event.target.value)} className={inputClass}>
@@ -833,7 +834,6 @@ export const AccountPage = () => {
 
                             <Section title="Profile Notes">
                                 <DetailRow label="Username" value={account.username} />
-                                <DetailRow label="Role" value={account.role} />
                                 <DetailRow label="Linked Providers" value={account.linkedAccounts.length || 'None'} />
                                 <DetailRow label="Public View" value={<Link to={user?.id ? `/profile/${user.id}` : '/feed'} className="app-text-action">Open profile</Link>} />
                             </Section>

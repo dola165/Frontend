@@ -9,7 +9,20 @@
 @media (max-width: 520px) { .gk .gk-club-programmes .gk-list-row__meta { white-space: normal; } }
 
 /* Contact sits at the right edge of the tab row, out of the way. */
-.gk .gk-club-page .gk-profile__tabs > .gk-tab:last-child { margin-left: auto; }
+.gk.gk-club-page .gk-profile__tabs > .gk-tab:last-child { margin-left: auto; }
+
+/* The side columns are boxes with a tinted title line, so they read apart from the tab in the middle:
+   green for the club's information on the left, violet for ways to get involved on the right. */
+.gk.gk-club-page .gk-profile__side { gap: var(--gk-4); }
+.gk.gk-club-page .gk-profile-side { --side-tone: var(--gk-accent); gap: 0; padding: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; }
+.gk.gk-club-page .gk-profile__side:not(.gk-profile__side--left) .gk-profile-side { --side-tone: var(--gk-violet); }
+.gk.gk-club-page .gk-profile-side__head { align-items: center; padding: var(--gk-2) var(--gk-4); min-height: 44px; border-bottom: 1px solid var(--gk-line); background: color-mix(in srgb, var(--side-tone) 9%, var(--gk-surface)); box-shadow: inset 3px 0 0 var(--side-tone); }
+.gk.gk-club-page .gk-profile-side__head h2 { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 650; }
+.gk.gk-club-page .gk-profile-side > :not(.gk-profile-side__head) { margin: var(--gk-3) var(--gk-4); }
+.gk.gk-club-page .gk-profile-side > .gk-list { margin: 0; }
+.gk.gk-club-page .gk-profile-side .gk-list-row { padding-inline: var(--gk-4); min-height: 48px; }
+.gk.gk-club-page .gk-profile-side .gk-list > li + li > .gk-list-row { border-top: 1px solid var(--gk-line); }
+.gk.gk-club-page .gk-profile__side:not(.gk-profile__side--left) .gk-club-icon { background: var(--gk-violet-soft); color: var(--gk-violet); }
 
 /* Left column: a phone number, an email, one fee line. */
 .gk .gk-club-email { overflow-wrap: anywhere; white-space: normal; }

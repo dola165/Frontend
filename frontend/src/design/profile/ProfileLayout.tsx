@@ -95,10 +95,10 @@ export function ProfileLayout<T extends string>({ identity, banner, bannerAction
 }
 
 /** A small titled block of facts for the side column. */
-export function SideBlock({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+export function SideBlock({ title, hint, action, children }: { title: string; /** A grey line under the title saying what the block holds. */ hint?: ReactNode; action?: ReactNode; children: ReactNode }) {
     return (
         <section className="gk-profile-side">
-            <div className="gk-profile-side__head"><h2>{title}</h2>{action}</div>
+            <div className="gk-profile-side__head"><div className="gk-profile-side__heading"><h2>{title}</h2>{hint && <span className="gk-profile-side__hint">{hint}</span>}</div>{action}</div>
             {children}
         </section>
     );

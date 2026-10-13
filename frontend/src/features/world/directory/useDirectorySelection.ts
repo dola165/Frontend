@@ -6,9 +6,9 @@ import type { DirectoryState } from './useDirectoryState';
 
 const behavior = () => reducedMotion() ? 'auto' as const : 'smooth' as const;
 
-/** Brings an element into view inside its scrolling panel only, never scrolling the page. */
+/** Brings an element into view inside its scrolling panel only (the one marked `data-browse-scroll`), never scrolling the page. */
 function scrollWithin(element: Element | null | undefined) {
-    const body = element?.closest<HTMLElement>('.gk-browse__body');
+    const body = element?.closest<HTMLElement>('[data-browse-scroll]');
     if (!element || !body) return;
     const box = body.getBoundingClientRect(), row = element.getBoundingClientRect();
     if (row.top >= box.top && row.bottom <= box.bottom) return;

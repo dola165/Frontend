@@ -70,6 +70,30 @@
 @media (max-width: 1099px) { .gk .gk-world-stage__panel { margin-top: var(--gk-4); } }
 .gk .gk-world-stage__lead[data-folded] > .gk-world-stage__panel { margin-top: var(--gk-4); }
 
+/* The Map tab: the map fills the screen under the World bar and the panel stands on its left as a solid column
+   (glass blurring a moving map costs frames). There is no header row and nothing below, so the page does not scroll
+   and the wheel zooms the map. The map's own things (its key, the pills, a chosen place) keep clear of the column. */
+.gk .gk-world-stage[data-side] { gap: 0; padding-bottom: 0; }
+/* The page is exactly as tall as the map, so nothing scrolls under it. */
+.gk.gk-page:has(> .gk-frame > .gk-world-stage[data-side]) { min-height: 0; }
+.gk .gk-world-stage[data-side] > .gk-world-stage__head { display: none; }
+.gk .gk-world-stage[data-side] > .gk-world-stage__body { min-height: 0; }
+.gk .gk-world-stage__lead[data-side] { --gk-panel-w: 400px; }
+@media (min-width: 1100px) {
+  .gk .gk-world-stage__lead[data-side] > .gk-world-stage__map { --gk-world-map-h: max(480px, calc(100dvh - var(--gk-stage-top, 180px) - var(--gk-4))); }
+  .gk .gk-world-stage__lead[data-side]:not([data-folded]) > .gk-world-stage__panel { left: var(--gk-4); right: auto; bottom: var(--gk-4); max-height: none; animation-name: gk-world-panel-left; }
+  .gk .gk-world-stage__lead[data-side]:not([data-folded]) > .gk-world-stage__panel > * { flex: 1 1 auto; background: var(--gk-surface); border-color: var(--gk-line); backdrop-filter: none; box-shadow: var(--gk-elevation); }
+  /* With its list folded away the column is as tall as what is left: the search, the kinds and the filters. */
+  .gk .gk-world-stage__lead[data-side]:not([data-folded]) > .gk-world-stage__panel[data-folded] { bottom: auto; }
+  .gk .gk-world-stage__lead[data-side]:not([data-folded]) > .gk-world-stage__panel[data-folded] > * { flex: 0 1 auto; }
+  .gk .gk-world-stage__lead[data-side]:has(> .gk-world-stage__panel:not(:empty)) .maplibregl-ctrl-top-right { right: 0; }
+  .gk .gk-world-stage__lead[data-side]:has(> .gk-world-stage__panel:not(:empty)) .gk-world-map__card { left: calc(var(--gk-panel-w) + 2 * var(--gk-4)); right: var(--gk-4); }
+  .gk .gk-world-stage__lead[data-side] .gk-world-map--hero .gk-world-map__legend,
+  .gk .gk-world-stage__lead[data-side] .gk-world-map__overlay,
+  .gk .gk-world-stage__lead[data-side] .gk-world-map__search { left: calc(var(--gk-panel-w) + 2 * var(--gk-4)); }
+}
+@keyframes gk-world-panel-left { from { opacity: 0; transform: translateX(-28px); } }
+
 /* Folded, the map is a slim strip that keeps its count and the way back. */
 .gk .gk-world-mapstrip { display: flex; align-items: center; gap: var(--gk-3); min-height: 44px; padding: 0 var(--gk-2) 0 var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); font-size: var(--gk-fs-sm); color: var(--gk-text-2); }
 .gk .gk-world-mapstrip > svg { flex: none; width: 16px; height: 16px; color: var(--gk-accent); }

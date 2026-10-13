@@ -17,7 +17,7 @@ import './browse.css';
  * One result in the panel. Pressing it chooses it: the map flies to its pin, the row turns more opaque and its
  * detail gives way to one action ("Open club"). Pointing at the row lights its pin, and the other way round.
  */
-function BrowseRow({ line }: { line: BrowseLine }) {
+function BrowseRow({ line, picture }: { line: BrowseLine; /** A bigger crest, the row's picture. */ picture?: boolean }) {
     const t = useWorldCopy();
     const choice = useBrowseChoice();
     const peek = usePeek();
@@ -37,7 +37,7 @@ function BrowseRow({ line }: { line: BrowseLine }) {
                 onClick={choice?.choose} {...hover}>
                 {line.when && <span className="gk-sb__when"><b>{line.when.time}</b>{line.when.day && <small>{line.when.day}</small>}</span>}
                 {line.sides ? <Sides sides={line.sides} title={line.title} />
-                    : <>{line.crest && <Crest src={line.crest.src} name={line.crest.name} size={28} round={line.crest.round} />}
+                    : <>{line.crest && <Crest src={line.crest.src} name={line.crest.name} size={picture ? 44 : 28} round={line.crest.round} />}
                         <span className="gk-sb__main"><strong title={line.title}>{line.title}</strong>{chosen ? where : line.detail && <small>{line.detail}</small>}</span></>}
                 {line.sides && chosen && where}
                 {!chosen && line.fact && <span className="gk-sb__fact" data-tone={line.factTone}>{line.fact}</span>}
@@ -81,14 +81,18 @@ function GroupHeader({ group, count }: { group: ResultGroup; count: number }) {
  * how many there are and the sort at the top. It folds to its header so the whole map shows. Grouped lists show
  * each group under a header that chooses its pin.
  */
-export function BrowsePanel({ source, data, groups, places, count, tools, folded, onToggle }: {
+export function BrowsePanel({ source, data, groups, places, count, tools, folded, onToggle, flat, picture, outside }: {
     source: AnySource; data: DirectoryData; groups?: ArrangedGroup<unknown>[]; /** Crests for lines that show them. */ places?: Places; /** "10 clubs near Tbilisi". */ count: string; /** The sort, when there is one. */ tools?: ReactNode;
     folded: boolean; onToggle: () => void;
+    /** Part of a column that scrolls as a whole (the Map tab): no frame of its own, and its body does not scroll by itself. */ flat?: boolean;
+    /** Lines lead with a bigger crest, their picture. */ picture?: boolean;
+    /** The list follows the map: how many results are off screen, and the way to frame every pin again. */ outside?: { count: number; showAll: () => void };
 }) {
     const t = useWorldCopy();
     const heading = useId(), bodyId = useId();
     const selection = useContext(DirectorySelectionContext);
     const things = t(source.noun[1]);
+    const hidden = outside?.count ?? 0;
     /** Escape ends the choice; focus goes back to the row (from its Open link too). The camera stays. */
     const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
         if (event.key !== 'Escape' || !selection?.chosen || event.defaultPrevented) return;
@@ -97,9 +101,9 @@ export function BrowsePanel({ source, data, groups, places, count, tools, folded
         selection.clear();
         row?.focus();
     };
-    const row = (item: unknown) => <DirectoryItemKey.Provider key={source.key(item)} value={source.key(item)}><BrowseRow line={source.line(item, places)} /></DirectoryItemKey.Provider>;
+    const row = (item: unknown) => <DirectoryItemKey.Provider key={source.key(item)} value={source.key(item)}><BrowseRow line={source.line(item, places)} picture={picture} /></DirectoryItemKey.Provider>;
     return (
-        <section className="gk-browse" data-folded={folded || undefined} aria-labelledby={heading}>
+        <section className="gk-browse" data-folded={folded || undefined} data-flat={flat || undefined} data-picture={picture || undefined} aria-labelledby={heading}>
             <header className="gk-browse__head">
                 <span className="gk-browse__icon" aria-hidden="true"><Compass /></span>
                 <span className="gk-browse__titles"><h2 id={heading}>{t('Browse area')}</h2><small role="status">{count}</small></span>
@@ -107,17 +111,21 @@ export function BrowsePanel({ source, data, groups, places, count, tools, folded
                 <button type="button" className="gk-browse__fold" aria-expanded={!folded} aria-controls={bodyId} onClick={onToggle}
                     aria-label={folded ? t('Show {name}', { name: t('Browse area') }) : t('Fold {name} away', { name: t('Browse area') })} />
             </header>
-            {!folded && <div id={bodyId} className="gk-browse__body">
+            {!folded && <div id={bodyId} className="gk-browse__body" data-browse-scroll={flat ? undefined : true}>
                 {tools && <div className="gk-browse__tools">{tools}</div>}
                 {data.notice ? <p className="gk-browse__note">{data.notice}</p>
                     : data.loading ? <div className="gk-browse__loading" aria-hidden="true">{[0, 1, 2, 3].map(i => <Skeleton key={i} height={40} />)}</div>
                     : data.error ? <p className="gk-browse__note">{data.error} <button type="button" className="gk-browse__retry" onClick={data.retry}>{t('Try again')}</button></p>
-                    : !data.items.length ? <p className="gk-browse__note">{t('No {things} to browse here', { things })}</p>
+                    : !data.items.length ? <p className="gk-browse__note">{hidden ? t('Nothing on this part of the map') : t('No {things} to browse here', { things })}</p>
                     : <ul className="gk-sb__rows gk-browse__rows" aria-label={t(source.label)} onKeyDown={onKeyDown}>
                         {groups && groups.length > 1
                             ? groups.map(({ group, items }) => <Fragment key={group.key}><GroupHeader group={group} count={items.length} />{items.map(row)}</Fragment>)
                             : data.items.map(row)}
                     </ul>}
+                {/* What the map does not show right now, and the way to see it all again. */}
+                {hidden > 0 && !data.loading && (
+                    <p className="gk-browse__outside"><span>{t('{count} more outside the map', { count: hidden })}</span><button type="button" onClick={outside!.showAll}>{t('Show all')}</button></p>
+                )}
                 {data.hasMore && !data.loading && (
                     <button type="button" className="gk-browse__more" onClick={data.loadMore} disabled={data.loadingMore}>{data.loadingMore ? t('Loading…') : t('Show more {things}', { things })}</button>
                 )}

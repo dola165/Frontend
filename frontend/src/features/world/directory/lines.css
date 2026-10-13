@@ -1,0 +1,39 @@
+/* Filters as long lines in the Map tab's column: a name, its value, a caret; the choices open under the line, in the
+   column, and nothing floats. Scoped under .gk; tokens only. */
+.gk .gk-world-lines { display: flex; flex-direction: column; border-bottom: 1px solid var(--gk-line); }
+.gk .gk-world-line__row { display: flex; align-items: center; gap: var(--gk-3); width: 100%; min-height: 44px; padding: 0 var(--gk-3) 0 var(--gk-4); border: 0; border-top: 1px solid color-mix(in srgb, var(--gk-line) 70%, transparent);
+  background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); text-align: left; cursor: pointer; transition: background-color .15s var(--gk-ease); }
+.gk .gk-world-lines > :first-child > .gk-world-line__row, .gk .gk-world-lines > .gk-world-line__row:first-child { border-top: 0; }
+.gk .gk-world-line__row:hover { background: var(--gk-hover); color: var(--gk-text); }
+.gk .gk-world-line__row:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--gk-accent); }
+.gk .gk-world-line__row:disabled { cursor: progress; }
+/* The line's name holds its place; a choice the person made shows bright at the end. */
+.gk .gk-world-line__label { flex: none; display: inline-flex; align-items: center; gap: var(--gk-2); font-weight: 500; }
+.gk .gk-world-line__label svg { width: 15px; height: 15px; color: var(--gk-text-3); }
+.gk .gk-world-line__value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; color: var(--gk-text-3); }
+.gk .gk-world-line__row[data-on] .gk-world-line__value, .gk .gk-world-line__row[data-on] .gk-world-line__label { color: var(--gk-text); }
+.gk .gk-world-line__row[data-on] .gk-world-line__value { font-weight: 600; }
+.gk .gk-world-line__caret { flex: none; width: 15px; height: 15px; color: var(--gk-text-3); transition: transform .2s var(--gk-ease-out, ease); }
+.gk .gk-world-line__row[aria-expanded='true'] .gk-world-line__caret { transform: rotate(180deg); }
+.gk .gk-world-line__row[aria-expanded='true'] { color: var(--gk-text); }
+/* An on/off line: a tick in a ring at its end, filled when on. */
+.gk .gk-world-line__tick { flex: none; display: grid; place-items: center; width: 20px; height: 20px; margin-left: auto; border: 1.5px solid var(--gk-line-strong); border-radius: 50%; color: var(--gk-on-accent); }
+.gk .gk-world-line__tick svg { width: 13px; height: 13px; }
+.gk .gk-world-line__row[data-on] .gk-world-line__tick { border-color: var(--gk-accent); background: var(--gk-accent); }
+/* The choices under an open line: a short list with ticks, a picker drawn as what it picks, or a field. */
+.gk .gk-world-line__choices { padding: 0 var(--gk-3) var(--gk-3) var(--gk-4); animation: gk-world-pop .16s var(--gk-ease-out, ease) both; }
+.gk .gk-world-line__options { display: flex; flex-direction: column; gap: 1px; }
+.gk .gk-world-line__option { display: flex; align-items: center; gap: var(--gk-3); min-height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); text-align: left; cursor: pointer; }
+.gk .gk-world-line__option:hover, .gk .gk-world-line__option:focus-visible { outline: none; background: var(--gk-hover); color: var(--gk-text); }
+.gk .gk-world-line__option[aria-pressed='true'] { color: var(--gk-text); font-weight: 600; }
+.gk .gk-world-line__option svg { width: 15px; height: 15px; margin-left: auto; color: var(--gk-accent); }
+.gk .gk-world-line__choices .gk-input { min-height: 40px; }
+.gk .gk-world-line__note { margin: 0; padding: 0 var(--gk-4) var(--gk-2); font-size: var(--gk-fs-xs); color: var(--gk-text-2); }
+/* The rest of the filters, opened in place under "More filters", set in a little. */
+.gk .gk-world-lines__more { display: flex; flex-direction: column; background: color-mix(in srgb, var(--gk-text) 3%, transparent); }
+.gk .gk-world-lines__more .gk-world-line__row { padding-left: var(--gk-5); }
+.gk .gk-world-lines__clear { align-self: flex-start; min-height: 40px; margin: 2px var(--gk-2) 4px; padding: 0 var(--gk-2); border: 0; border-radius: var(--gk-r); background: none; color: var(--gk-accent); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
+.gk .gk-world-lines__clear:hover { background: var(--gk-hover); }
+@keyframes gk-world-pop { from { opacity: 0; transform: translateY(-4px); } }
+@media (pointer: coarse) { .gk .gk-world-line__option, .gk .gk-world-lines__clear { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) { .gk .gk-world-line__choices { animation: none; } }

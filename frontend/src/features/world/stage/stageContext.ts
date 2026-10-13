@@ -11,6 +11,13 @@ export interface StageMap {
     /** Something floating at the top centre, such as "Search Rustavi". */ top?: ReactNode;
     /** What the folded strip says ("10 clubs"). */ summary?: string;
     /** The page puts a panel over the map's right side: the map keeps clear of it. */ panel?: boolean;
+    /**
+     * The Map tab: the panel stands on the map's left as a solid column and the map fills the screen under the World
+     * bar, with no header row and nothing below. The map answers the wheel directly (the page does not scroll).
+     */
+    side?: boolean;
+    /** The map's view after every move, the person's and the map's own (framing, a flight), so a list can follow what is on screen. */
+    onView?: (bounds: MapBounds) => void;
     /** Fly to this pin; a new token flies again. While set, new pins never reframe the map. */ focus?: MapFocus;
     /** A new value frames every pin again ("Show all"). */ frame?: number;
     /** False while the page shows the chosen pin's result itself (its Browse row), so the map's own card stays hidden. */ card?: boolean;

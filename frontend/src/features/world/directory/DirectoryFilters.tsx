@@ -3,7 +3,7 @@ import { Check, ChevronDown, LocateFixed, SlidersHorizontal, X } from 'lucide-re
 import { Chip, Field } from '../../../design/primitives';
 import { useWorldCopy } from '../copy';
 import { useWorldData } from '../useWorldData';
-import type { ChoiceFilter, DirectoryQuery, FilterDef, NearbyFilter, ScopeFilter } from './types';
+import { offered, type ChoiceFilter, type DirectoryQuery, type FilterDef, type NearbyFilter, type ScopeFilter } from './types';
 import type { DirectoryState } from './useDirectoryState';
 import { LookPicker } from './pickers';
 import './filters.css';
@@ -15,7 +15,6 @@ export interface FilterControls {
     toggleValue: (key: string, value: string, multi: boolean) => void;
 }
 
-const offered = (filter: ChoiceFilter, signedIn: boolean) => filter.options.filter(option => signedIn || !option.signedIn);
 
 export function ChoiceChips({ filter, state, signedIn }: { filter: ChoiceFilter; state: FilterControls; signedIn: boolean }) {
     const t = useWorldCopy();

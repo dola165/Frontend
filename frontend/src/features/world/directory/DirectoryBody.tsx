@@ -1,5 +1,6 @@
-import { useEffect, useEffectEvent, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
+import type { MapBounds } from '../../../components/map/areaSearch';
 import { ButtonLink, EmptyNote, Panel } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
@@ -29,8 +30,10 @@ import { usePlacedPoints } from './usePlacedPoints';
 import { useDirectorySelection } from './useDirectorySelection';
 import { CARRIED, SELECTED, type DirectoryState } from './useDirectoryState';
 import { useRestoredScroll } from './useRestoredScroll';
+import './side.css';
 
 const NO_PINS = new Map<string, string>();
+const inView = (point: { lat: number; lng: number }, view: MapBounds) => point.lat >= view.south && point.lat <= view.north && point.lng >= view.west && point.lng <= view.east;
 
 /**
  * A tab's likely answer for who is looking, written once when it opens with no filters of its own (a link that
@@ -67,10 +70,15 @@ function useRoleDefaults(state: DirectoryState, apply: boolean, signedIn: boolea
  * "Browse area" panel with the count and the sort; folded or on a phone, the count and the sort sit above the results.
  * Under the map the results sit in one column the width of the Home feed, with what is pressed beside it
  * (`ListSplit`); the tab's filters are in the header, above the map and the list alike.
+ *
+ * In the Map tab (`side`) the panel is a column on the map's left holding the page's head (search, kinds), the filters
+ * as lines and the results, and nothing is drawn below the map. While the map is open the list follows it: only
+ * results whose pin is on screen are listed, and the rest are counted.
  */
-export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onClear }: {
+export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onClear, side, head, filters }: {
     state: DirectoryState; signedIn: boolean; /** Write this tab's defaults for who is looking. */ applyDefaults: boolean;
     clearable: boolean; onClear: () => void;
+    /** The Map tab: the column on the map's left, with the page's head and its filters as lines. */ side?: boolean; head?: ReactNode; filters?: ReactNode;
 }) {
     const t = useWorldCopy();
     const { source, query } = state;
@@ -90,7 +98,10 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     useRestoredScroll((gated && authStatus !== 'bootstrapping') || (!data.loading && (data.items.length > 0 || Boolean(data.error || data.notice))));
     const stage = useStage();
     const wide = useMediaQuery(WIDE, true);
-    const browse = stage.inStage && stage.mapOpen && wide && !gated;
+    const browse = stage.inStage && !gated && (side || (stage.mapOpen && wide));
+    // The column's list follows the map only while the map is open beside it.
+    const following = Boolean(side) && stage.inStage && stage.mapOpen && wide && !gated;
+    const [view, setView] = useState<MapBounds | null>(null);
     const listRef = useRef<HTMLDivElement>(null);
     const { remember } = useWorldChild();
     const session = useWorldSession();
@@ -118,11 +129,20 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     const checked = live && data.checkedAt && count && !data.loading ? ` · ${t('checked {time}', { time: new Date(data.checkedAt).toLocaleTimeString(appLocale(), { hour: '2-digit', minute: '2-digit', hour12: false }) })}` : '';
     const mappable = Boolean(source.place) && (source.mapped?.(query) ?? true) && !gated;
     const placed = usePlacedPoints(source, data.items, mappable && stage.mapOpen);
+    // Following the map, the panel lists only the results whose pin is on screen; the rest are counted, not lost.
+    const { points: pins, pinOf, loading: placing } = placed;
+    const onScreen = useMemo(() => {
+        if (!following || !view || !mappable || placing) return items;
+        const points = new Map(pins.map(point => [point.id, point]));
+        return items.filter(item => { const pin = pinOf.get(source.key(item)); const point = pin ? points.get(pin) : undefined; return point ? inView(point, view) : false; });
+    }, [following, view, mappable, placing, pins, pinOf, items, source]);
+    const shown = onScreen === items ? data : { ...data, items: onScreen };
+    const offScreen = items.length - onScreen.length;
     // The Browse area groups by where (each ground a pin) when the source asks, else by the list's own groups, leaving
-    // out empty ones (an empty lane is the list's business).
-    const panelGroups = useMemo(() => source.panel === 'pin' ? (mappable ? pinGroups(data.items, source.key, placed, source.where) : undefined)
-        : source.panel ? arrangeGroups(data.items, source.panel) : groups?.filter(group => group.items.length > 0),
-        [source, mappable, data.items, placed, groups]);
+    // out empty ones (an empty lane is the list's business) and, following the map, results off screen.
+    const panelGroups = useMemo(() => source.panel === 'pin' ? (mappable ? pinGroups(onScreen, source.key, { points: pins, pinOf }, source.where) : undefined)
+        : source.panel ? arrangeGroups(onScreen, source.panel) : groups?.map(group => ({ ...group, items: group.items.filter(item => onScreen.includes(item)) })).filter(group => group.items.length > 0),
+        [source, mappable, onScreen, pins, pinOf, groups]);
     const choice = useDirectorySelection({ state, keys: data.items.map(source.key), placed, panel: browse && !stage.panelFolded ? stage.panel : null, list: listRef });
     const chosenItem = choice.chosen ? data.items.find(item => source.key(item) === choice.chosen) : undefined;
     const reach = chosenItem && mappable ? source.reach?.(chosenItem) ?? undefined : undefined;
@@ -131,8 +151,11 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     const away = chosenItem && mappable ? source.away?.(chosenItem, placed.places, { clubId: viewerClub }) ?? undefined : undefined;
     const context = away ? [...(extras.context ?? []), { id: 'away:from', lat: away.from.lat, lng: away.from.lng, label: away.from.name ?? '', tone: 'club' as const }] : extras.context;
     // The map's own card shows a pin unless a Browse row already shows its one chosen result (with its Open link).
-    useDirectoryMap({ source, data, gated, mappable, placed, choice, open: stage.mapOpen, panel: browse, summary: count, card: !browse || stage.panelFolded || !choice.chosen,
+    useDirectoryMap({ source, data, gated, mappable, placed, choice, open: stage.mapOpen, panel: browse, side, onView: following ? setView : undefined,
+        summary: count, card: !browse || stage.panelFolded || !choice.chosen,
         context, reach, away, bounds: reach ? reachBounds(reach, extras.context) : away ? pairBounds(away) : undefined, insetTop: source.Top && browse ? 72 : undefined });
+    // The column's count says what is on screen; the strip under the map and the other tabs keep the whole count.
+    const panelCount = following && view && !data.loading && onScreen !== data.items ? t('{count} on screen', { count: plural(onScreen.length, ...nouns) }) + searched : count + searched + checked;
     const sortable = source.sorts && source.sorts.length > 1 && (!source.sortable || source.sortable(query));
     const sort = sortable && (
         <label className="gk-world-toolbar__sort" htmlFor={sortId}>
@@ -147,37 +170,45 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     // Under the map, the list starts with its name (or where it is, a day), its count and its options (the sort, when
     // the Browse area over the map does not already offer it).
     const title = source.heading?.(query) ?? t(source.label);
-    const head = (
+    const belowHead = (
         <BelowMapHead icon={source.icon} title={title} nav={HeadTools && <HeadTools query={query} go={state.go} />}
             hint={browse ? count + searched + checked : <><span role="status">{count}{searched}</span>{checked}</>}>
             {!browse && sort}
         </BelowMapHead>
     );
 
+    const signIn = (
+        <EmptyNote title={t('Sign in to see {things}', { things: t(source.label).toLowerCase() })}
+            action={<ButtonLink variant="primary" size="sm" to={buildLoginRedirectPath(location.pathname, location.search, location.hash)}>{t('Sign in')}</ButtonLink>}>
+            {t(source.signInReason!)}
+        </EmptyNote>
+    );
+    if (gated && side) return <StagePanel><section className="gk-world-side">{head}<div className="gk-world-side__body"><Panel>{signIn}</Panel></div></section></StagePanel>;
     if (gated) return <ListSplit>
         <BelowMapHead icon={source.icon} title={title} />
-        <Panel>
-            <EmptyNote title={t('Sign in to see {things}', { things: t(source.label).toLowerCase() })}
-                action={<ButtonLink variant="primary" size="sm" to={buildLoginRedirectPath(location.pathname, location.search, location.hash)}>{t('Sign in')}</ButtonLink>}>
-                {t(source.signInReason!)}
-            </EmptyNote>
-        </Panel>
+        <Panel>{signIn}</Panel>
     </ListSplit>;
 
+    const panel = browse && (
+        <BrowsePanel source={source} data={shown} groups={panelGroups} places={placed.places} count={panelCount} tools={sort} folded={stage.panelFolded} onToggle={stage.togglePanel}
+            flat={side} picture={side} outside={following && offScreen > 0 ? { count: offScreen, showAll: choice.showAll } : undefined} />
+    );
     return (
         <MapExtrasContext.Provider value={setExtras}>
             <DirectorySelectionContext.Provider value={stage.mapOpen ? { pinOf: mappable ? placed.pinOf : NO_PINS, selectedPin: choice.selectedPin, hoverPin: choice.hoverPin,
                 hover: choice.setHoverKey, chosen: choice.chosen, choose: choice.choose, clear: choice.clear, selectPin: choice.selectPin, mappable, placing: placed.loading, incomplete: placed.incomplete } : null}>
-                {browse && <StagePanel><BrowsePanel source={source} data={data} groups={panelGroups} places={placed.places} count={count + searched} tools={sort} folded={stage.panelFolded} onToggle={stage.togglePanel} /></StagePanel>}
-                <ListSplit>
+                {side
+                    ? <StagePanel><section className="gk-world-side">{head}<div className="gk-world-side__body" data-browse-scroll>{filters}{panel}</div></section></StagePanel>
+                    : panel && <StagePanel>{panel}</StagePanel>}
+                {!side && <ListSplit>
                     {Top && <StageTop><Top query={query} go={state.go} /></StageTop>}
-                    {head}
+                    {belowHead}
                     {Tools && <Tools query={query} go={state.go} refresh={data.retry} />}
                     <div ref={listRef}>
                         <DirectoryResults source={source} data={data} groups={groups} filtered={filtered} onClear={clearable ? onClear : undefined} go={state.go} query={query}
                             onWiden={data.area?.city && source.area === true ? () => setCity(ANYWHERE) : undefined} onClearFor={source.forWhom ? clearFor : undefined} />
                     </div>
-                </ListSplit>
+                </ListSplit>}
             </DirectorySelectionContext.Provider>
         </MapExtrasContext.Provider>
     );

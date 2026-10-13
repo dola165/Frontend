@@ -65,7 +65,7 @@ describe('choosing a result', () => {
 
     it('brings the chosen row into view whenever the panel opens on it', () => {
         const panel = document.createElement('div');
-        panel.innerHTML = '<div class="gk-browse__body"><ul><li><button aria-current="true">Club 1</button></li></ul></div>';
+        panel.innerHTML = '<div class="gk-browse__body" data-browse-scroll><ul><li><button aria-current="true">Club 1</button></li></ul></div>';
         const body = panel.querySelector<HTMLElement>('.gk-browse__body')!;
         body.scrollTo = vi.fn() as typeof body.scrollTo;
         body.getBoundingClientRect = () => ({ top: 0, bottom: 100, height: 100 }) as DOMRect;

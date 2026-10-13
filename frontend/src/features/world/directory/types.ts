@@ -54,6 +54,9 @@ export interface ScopeFilter extends FilterBase {
 export interface NearbyFilter extends FilterBase { kind: 'nearby'; km: number }
 export type FilterDef = ChoiceFilter | ToggleFilter | TextFilter | DateFilter | ScopeFilter | NearbyFilter;
 
+/** The choices a person may make: some are offered only once signed in. */
+export const offered = (filter: ChoiceFilter, signedIn: boolean) => filter.options.filter(option => signedIn || !option.signedIn);
+
 /** The position a nearby filter holds, if it is a valid one. */
 export function nearbyPoint(query: DirectoryQuery, key: string) {
     const [lat, lng] = (query.values[key]?.[0] ?? '').split(',').map(Number);
@@ -120,6 +123,8 @@ export interface DirectorySource<T> {
     tabLabel?: string;
     /** The tab's symbol. */
     icon?: LucideIcon;
+    /** The colour of this list's pins, shown as a dot on its kind in the Map tab's column. */
+    tone?: WorldMapTone;
     /**
      * How many results the list has before any filter, for the tab (following the World area when `area` is set); a count
      * of things waiting for the person comes with the warning tone ("My arrangements ●3").

@@ -3,6 +3,7 @@ import type { StyleSpecification } from 'maplibre-gl';
 import Map, { Marker, NavigationControl, useMap, type ViewStateChangeEvent } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { MapBounds } from '../../../components/map/areaSearch';
+import { prefersLightMapRendering } from '../../../components/map/mapPerformance';
 import type { MapFocus, MapLine, MapReach } from '../stage/stageContext';
 import { AwayLayer } from './canvas/AwayLayer';
 import { ReachLayer } from './canvas/ReachLayer';
@@ -10,49 +11,73 @@ import { reducedMotion } from './canvas/useMapTheme';
 import { pinData, pinHover, pinLabel } from './pins';
 import { ContextPin, PinFace, type PinEvents, type WorldMapPoint } from './WorldMap';
 
-const padding = (insetRight: number, insetTop = 0) => ({ top: 64 + insetTop, bottom: 64, left: 64, right: 64 + insetRight });
+/** Room kept clear of the panels floating over the map's sides and top. */
+interface Insets { right?: number; left?: number; top?: number }
+const padding = ({ right = 0, left = 0, top = 0 }: Insets) => ({ top: 64 + top, bottom: 64, left: 64 + left, right: 64 + right });
+const boundsOf = (map: { getBounds: () => { getWest: () => number; getSouth: () => number; getEast: () => number; getNorth: () => number } }): MapBounds => {
+    const box = map.getBounds();
+    return { west: box.getWest(), south: box.getSouth(), east: box.getEast(), north: box.getNorth() };
+};
 
 /**
  * Frames the points (and the places that give them context) when the set of places changes, not on every render, so
- * a pan or zoom stays put. `insetRight` keeps them clear of a panel floating over the map's right side. While the map
+ * a pan or zoom stays put. The insets keep them clear of a panel floating over the map's side. While the map
  * is focused on one result (`hold`) new pins do not reframe it; a new `frame` value frames every pin again.
  */
-function FitPoints({ points, insetRight = 0, insetTop = 0, hold, frame }: { points: WorldMapPoint[]; insetRight?: number; insetTop?: number; hold: boolean; frame?: number }) {
+function FitPoints({ points, insets, hold, frame }: { points: WorldMapPoint[]; insets: Insets; hold: boolean; frame?: number }) {
     const { current: map } = useMap();
     const placed = points.map(p => `${p.id}@${p.lat},${p.lng}`).join('|');
+    const { right = 0, left = 0, top = 0 } = insets;
     // `hold` is read when framing, not watched: letting go of a focus never makes the camera jump.
     const fit = useEffectEvent(() => {
         if (!map || !points.length || hold) return;
         const lngs = points.map(p => p.lng), lats = points.map(p => p.lat);
         map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-            { padding: padding(insetRight, insetTop), maxZoom: 13, duration: reducedMotion() ? 0 : 300 });
+            { padding: padding(insets), maxZoom: 13, duration: reducedMotion() ? 0 : 300 });
     });
-    useEffect(() => { fit(); }, [map, placed, insetRight, insetTop, frame]);
+    useEffect(() => { fit(); }, [map, placed, right, left, top, frame]);
     return null;
 }
 
 /**
- * Goes to the focused pin once per request: it flies close, centred in the part of the map left of the panel, or
+ * Goes to the focused pin once per request: it flies close, centred in the part of the map the panel leaves free, or
  * frames the focus's box (a stated area around the pin). It waits for the pin (a shared link before the results or
  * places have loaded) and goes again when the panel opens or folds. The offset applies to this move only.
  */
-function FocusPoint({ points, focus, insetRight = 0, insetTop = 0 }: { points: WorldMapPoint[]; focus?: MapFocus; insetRight?: number; insetTop?: number }) {
+function FocusPoint({ points, focus, insets }: { points: WorldMapPoint[]; focus?: MapFocus; insets: Insets }) {
     const { current: map } = useMap();
     const done = useRef<string | undefined>(undefined);
     const point = focus ? points.find(p => p.id === focus.id) : undefined;
     const box = focus?.bounds;
+    const { right = 0, left = 0, top = 0 } = insets;
     const go = useEffectEvent(() => {
         // With nothing to fly to, the last flight is forgotten: the same choice, made again or returned to, flies again.
         if (!focus || !point) { done.current = undefined; return; }
         if (!map) return;
-        const request = `${focus.token}:${focus.id}@${insetRight}:${box ? `${box.west},${box.south},${box.east},${box.north}` : ''}`;
+        const request = `${focus.token}:${focus.id}@${right}:${left}:${box ? `${box.west},${box.south},${box.east},${box.north}` : ''}`;
         if (done.current === request) return;
         done.current = request;
         const duration = reducedMotion() ? 0 : 600;
-        if (box) map.fitBounds([[box.west, box.south], [box.east, box.north]], { padding: padding(insetRight, insetTop), maxZoom: 14, duration });
-        else map.flyTo({ center: [point.lng, point.lat], zoom: Math.max(map.getZoom(), 14), offset: [-insetRight / 2, insetTop / 2], duration });
+        if (box) map.fitBounds([[box.west, box.south], [box.east, box.north]], { padding: padding(insets), maxZoom: 14, duration });
+        else map.flyTo({ center: [point.lng, point.lat], zoom: Math.max(map.getZoom(), 14), offset: [(left - right) / 2, top / 2], duration });
     });
-    useEffect(() => { go(); }, [map, focus?.token, focus?.id, point?.lat, point?.lng, insetRight, box?.west, box?.south, box?.east, box?.north]);
+    useEffect(() => { go(); }, [map, focus?.token, focus?.id, point?.lat, point?.lng, right, left, box?.west, box?.south, box?.east, box?.north]);
+    return null;
+}
+
+/** Says where the map is looking: at the start and after every move, the person's and the map's own alike. */
+function ViewReport({ onView }: { onView?: (bounds: MapBounds) => void }) {
+    const { current: map } = useMap();
+    const latest = useRef(onView);
+    useEffect(() => { latest.current = onView; });
+    const listening = Boolean(onView);
+    useEffect(() => {
+        if (!map || !listening) return;
+        const report = () => latest.current?.(boundsOf(map));
+        report();
+        map.on('moveend', report);
+        return () => { map.off('moveend', report); };
+    }, [map, listening]);
     return null;
 }
 
@@ -79,19 +104,21 @@ function ChipsInView({ points, onChange }: { points: WorldMapPoint[]; onChange?:
 }
 
 /** The street-map layer of WorldMap. Loaded only when the map style is available. */
-export default function WorldLiveMap({ style, points, context = [], reach, away, selectedId, highlightId, onSelect, onHover, onMoveEnd, onFail, insetRight, insetTop, focus, frame, onFewInView }: {
-    style: StyleSpecification; points: WorldMapPoint[]; onFail: () => void; insetRight?: number; insetTop?: number;
+export default function WorldLiveMap({ style, points, context = [], reach, away, selectedId, highlightId, onSelect, onHover, onMoveEnd, onView, onFail, insetRight, insetLeft, insetTop, gestures = 'cooperative', focus, frame, onFewInView }: {
+    style: StyleSpecification; points: WorldMapPoint[]; onFail: () => void; insetRight?: number; insetLeft?: number; insetTop?: number;
     /** Whether few enough pins are in view for each to say its time. */ onFewInView?: (few: boolean) => void;
     /** Places that give the results context, and a stated reach to draw. */ context?: WorldMapPoint[]; reach?: MapReach;
     /** An away day to draw. */ away?: MapLine;
     /** Only moves the person made: framing the points is not one. */ onMoveEnd?: (bounds: MapBounds) => void;
+    /** Every view the map settles on, the person's moves and its own alike. */ onView?: (bounds: MapBounds) => void;
+    /** In a page that scrolls the wheel scrolls the page unless a key is held ('cooperative'); a map filling the screen answers it directly ('free'). */ gestures?: 'cooperative' | 'free';
     focus?: MapFocus; frame?: number;
 } & PinEvents) {
     const first = points[0] ?? context[0];
+    const insets: Insets = { right: insetRight, left: insetLeft, top: insetTop };
     const moved = (event: ViewStateChangeEvent) => {
         if (!onMoveEnd || !event.originalEvent) return;
-        const box = event.target.getBounds();
-        onMoveEnd({ west: box.getWest(), south: box.getSouth(), east: box.getEast(), north: box.getNorth() });
+        onMoveEnd(boundsOf(event.target));
     };
     return (
         <Map
@@ -101,12 +128,15 @@ export default function WorldLiveMap({ style, points, context = [], reach, away,
             onError={onFail}
             onMoveEnd={moved}
             attributionControl={{ compact: true }}
-            cooperativeGestures
+            cooperativeGestures={gestures === 'cooperative'}
+            // Phones and small devices draw fewer pixels, as the full map does; a desktop keeps its sharpness.
+            pixelRatio={prefersLightMapRendering() ? Math.min(window.devicePixelRatio || 1, 1.5) : undefined}
         >
             <NavigationControl position="top-right" showCompass={false} />
-            <FitPoints points={[...points, ...context]} insetRight={insetRight} insetTop={insetTop} hold={Boolean(focus)} frame={frame} />
+            <FitPoints points={[...points, ...context]} insets={insets} hold={Boolean(focus)} frame={frame} />
             {/* After FitPoints, so a flight requested with new pins wins over their framing. */}
-            <FocusPoint points={points} focus={focus} insetRight={insetRight} insetTop={insetTop} />
+            <FocusPoint points={points} focus={focus} insets={insets} />
+            <ViewReport onView={onView} />
             <ChipsInView points={points} onChange={onFewInView} />
             {reach && <ReachLayer reach={reach} />}
             {away && <AwayLayer line={away} />}

@@ -19,11 +19,13 @@ const NONE: WorldMapPoint[] = [];
  * search there. A list with nothing to place (referees, or one behind sign-in) keeps the map and says why it is empty.
  * Once the map has flown to a chosen result, a pill offers to show every pin again.
  */
-export function useDirectoryMap({ source, data, gated, mappable, placed, choice, open, panel, summary, card, context, reach, away, bounds, insetTop }: {
+export function useDirectoryMap({ source, data, gated, mappable, placed, choice, open, panel, side, onView, summary, card, context, reach, away, bounds, insetTop }: {
     source: AnySource; data: DirectoryData; gated: boolean;
     /** The list puts its results on the map. */ mappable: boolean; placed: ReturnType<typeof usePlacedPoints>;
     choice: ReturnType<typeof useDirectorySelection>;
     /** The map is open (not folded to its strip). */ open: boolean; /** The Browse area panel floats over the map. */ panel: boolean;
+    /** The Map tab: the panel is a column on the left and the map fills the screen (`StageMap.side`). */ side?: boolean;
+    /** Where the map is looking, after every move, for a list that follows what is on screen. */ onView?: (bounds: MapBounds) => void;
     /** What the folded strip says. */ summary: string; /** The map's own card may show the chosen pin. */ card: boolean;
     /** Places that give the results context, the chosen result's stated reach, and the box a flight to it frames. */
     context?: WorldMapPoint[]; reach?: MapReach; /** The chosen result's away day. */ away?: MapLine; bounds?: MapBounds; /** Room the map keeps at its top (the day strip over it). */ insetTop?: number;
@@ -45,12 +47,13 @@ export function useDirectoryMap({ source, data, gated, mappable, placed, choice,
             : loading ? t('Placing results on the map…') : [t('{count} on the map', { count: plural(onMap, source.noun[0], source.noun[1]) }), missing].filter(Boolean).join(' · ');
     useStageMap({
         label: t('{things} on the map', { things: t(source.label) }),
-        points: mappable ? placed.points : NONE, panel, summary, card, context, reach, away, insetTop,
+        points: mappable ? placed.points : NONE, panel, side, onView, summary, card, context, reach, away, insetTop,
         focus: choice.focus && bounds ? { ...choice.focus, bounds } : choice.focus, frame: choice.frame,
         selectedId: choice.selectedPin, onSelect: choice.selectPin, onHover: choice.setHoverPin,
         highlightId: choice.hoverKey ? placed.pinOf.get(choice.hoverKey) : choice.hoverPin,
         onMoveEnd: bounds => setMoved({ pins: pinsKey, bounds }),
-        cardActions: point => <button type="button" className="gk-world-map__inlist" onClick={() => choice.showInList(point.id)}>{t('Show in list')}</button>,
+        // The column beside the map is the list: there is no list below to show a pin in.
+        cardActions: side ? undefined : point => <button type="button" className="gk-world-map__inlist" onClick={() => choice.showInList(point.id)}>{t('Show in list')}</button>,
         top: cityInView && <button type="button" className="gk-world-glass gk-world-map__search" onClick={() => { setCity(cityInView); setMoved(null); }}>
             <Search aria-hidden="true" />{t('Search {city}', { city: cityInView })}
         </button>,

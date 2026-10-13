@@ -77,14 +77,16 @@ function MapSketch({ points, context = [], selectedId, highlightId, onSelect, on
  * A map of World results. Uses the street map when it can load, and otherwise shows the same points on a plain
  * sketch so results stay usable without map tiles. `hero` is the big glass look of World's overview and tabs.
  */
-export function WorldMap({ points, label, selectedId, highlightId, onSelect, onHover, onMoveEnd, className, footer, overlay, insetRight, insetTop, variant, cardActions, focus, frame, card = true, context, reach, away }: {
+export function WorldMap({ points, label, selectedId, highlightId, onSelect, onHover, onMoveEnd, onView, className, footer, overlay, insetRight, insetLeft, insetTop, gestures, variant, cardActions, focus, frame, card = true, context, reach, away }: {
     points: WorldMapPoint[]; label: string; selectedId?: string; /** A point to emphasise, such as the result under the pointer. */ highlightId?: string;
     onSelect?: (id?: string) => void; /** The pointer or focus is on a pin (or left it). */ onHover?: (id?: string) => void;
     /** The person panned or zoomed the map (framing the points does not count). */ onMoveEnd?: (bounds: MapBounds) => void;
+    /** Every view the map settles on, its own moves included, for a list that follows what is on screen. */ onView?: (bounds: MapBounds) => void;
     className?: string; footer?: ReactNode;
     /** Things floating on the map itself, such as counts and the way to the full map. */ overlay?: ReactNode;
-    /** Room kept free on the right for a panel floating over the map (pixels). */ insetRight?: number;
+    /** Room kept free on the right or the left for a panel floating over the map (pixels). */ insetRight?: number; insetLeft?: number;
     /** Room kept free at the top for something floating over the map (pixels). */ insetTop?: number;
+    /** Whether the wheel needs a key held to zoom (in a scrolling page) or zooms directly (a map filling the screen). */ gestures?: 'cooperative' | 'free';
     variant?: 'hero';
     /** More ways on from the chosen pin's card, besides Open and Close. */ cardActions?: (point: WorldMapPoint) => ReactNode;
     /** Fly to one pin (see `StageMap.focus`); a new `frame` frames every pin again. */ focus?: MapFocus; frame?: number;
@@ -112,7 +114,8 @@ export function WorldMap({ points, label, selectedId, highlightId, onSelect, onH
             <div className="gk-world-map__canvas" data-card={point ? true : undefined} data-chips={(live ? fewInView : points.length <= 12) || undefined}>
                 {live
                     ? <Suspense fallback={<MapSketch points={points} context={context} {...pins} />}>
-                        <WorldLiveMap style={style.data!} points={points} context={context} reach={reach} away={away} {...pins} onMoveEnd={onMoveEnd} onFail={() => setLiveFailed(true)} insetRight={insetRight} insetTop={insetTop} focus={focus} frame={frame} onFewInView={setFewInView} />
+                        <WorldLiveMap style={style.data!} points={points} context={context} reach={reach} away={away} {...pins} onMoveEnd={onMoveEnd} onView={onView} onFail={() => setLiveFailed(true)}
+                            insetRight={insetRight} insetLeft={insetLeft} insetTop={insetTop} gestures={gestures} focus={focus} frame={frame} onFewInView={setFewInView} />
                     </Suspense>
                     : <MapSketch points={points} context={context} {...pins} />}
                 {(tones.length > 1 || approximate.length > 0) && (

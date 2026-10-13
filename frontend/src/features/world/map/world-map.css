@@ -54,7 +54,7 @@
 .gk .gk-world-pin[data-tone='tournament'] { --pin: var(--gk-accent); }
 .gk .gk-world-pin[data-tone='tournament']:not([data-count])::after { width: 20px; height: 20px; }
 .gk .gk-world-pin__glyph { position: absolute; z-index: 1; width: 12px; height: 12px; color: var(--gk-on-accent); pointer-events: none; }
-.gk .gk-world-pin--key[data-tone='tournament']::after { width: 8px; height: 8px; }
+.gk .gk-world-pin--key[data-tone='tournament']:not([data-count])::after { width: 8px; height: 8px; }
 
 /* The hero look, for World's overview and every World tab: big and rounded, a vignette darkening its edges,
    and glass floating on it (the key, the counts, the chosen place, the controls). */

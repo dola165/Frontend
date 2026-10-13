@@ -35,6 +35,9 @@ export const WORLD_KA: Record<string, string> = {
     'The lowest fee is above the highest. Change one of them to search.': 'მინიმალური საფასური მაქსიმალურზე მეტია. მოსაძებნად შეცვალეთ ერთ-ერთი.',
     'Open event': 'ღონისძიების გახსნა',
     'Show all {count}': 'ყველას ჩვენება ({count})', '{action}: {name}': '{action}: {name}', 'job': 'სამუშაო', 'jobs': 'სამუშაოები',
+    // The Map tab: the column beside the map follows what is on screen; its filters are long lines
+    '{count} on screen': 'ეკრანზე: {count}', '{count} more outside the map': 'კიდევ {count} რუკის მიღმა', 'Show all': 'ყველას ჩვენება',
+    'Nothing on this part of the map': 'რუკის ამ ნაწილზე არაფერია', 'Fewer filters': 'ნაკლები ფილტრი',
     'Taking new players': 'იღებს ახალ მოთამაშეებს', 'Community clubs': 'სათემო კლუბები', 'Pro clubs': 'პროფესიული კლუბები', 'Several kinds': 'სხვადასხვა',
     'Map unavailable': 'რუკა მიუწვდომელია',
     'Placed at its club': 'კლუბის მდებარეობით', 'placed at its club': 'კლუბის მდებარეობით',

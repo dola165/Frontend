@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Map as MapIcon } from 'lucide-react';
@@ -17,7 +17,26 @@ import './stage.css';
 
 /** The width of the panel floating over the map's right side on wide screens (stage.css), plus its margin. */
 const PANEL = 380 + 2 * 16;
+/** The Map tab's column on the map's left (stage.css), plus its margin. */
+const SIDE_PANEL = 400 + 2 * 16;
 const NO_POINTS: WorldMapPoint[] = [];
+
+/**
+ * Where the map starts on the page, written on the lead as `--gk-stage-top` so a map filling the screen (the Map
+ * tab) can end exactly at the screen's bottom (stage.css). Measured again whenever the page above it changes height
+ * (the World bar wrapping) or the window is resized; nothing re-renders for it.
+ */
+function useStageTop(lead: HTMLElement | null, wanted: boolean) {
+    useLayoutEffect(() => {
+        if (!lead || !wanted) return;
+        const measure = () => lead.style.setProperty('--gk-stage-top', `${Math.round(lead.getBoundingClientRect().top + window.scrollY)}px`);
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(document.body);
+        window.addEventListener('resize', measure);
+        return () => { observer.disconnect(); window.removeEventListener('resize', measure); lead.style.removeProperty('--gk-stage-top'); };
+    }, [lead, wanted]);
+}
 
 /**
  * The frame every World page shares: its header row, the map of the area (the overview's, kept alive between tabs
@@ -42,7 +61,13 @@ export function WorldStage({ children }: { children: ReactNode }) {
         return next;
     }, { replace: true, preventScrollReset: true, state: keepPane(state) });
     const wide = useMediaQuery(WIDE, true);
+    // The Map tab: the panel stands on the left and the map fills the screen; the stage draws no header row.
+    const side = Boolean(map?.side);
     const floating = wide && Boolean(map?.panel) && !panelFolded;
+    const insetRight = floating && !side ? PANEL : 0;
+    const insetLeft = side && wide && map?.panel ? SIDE_PANEL : 0;
+    const [lead, setLead] = useState<HTMLElement | null>(null);
+    useStageTop(lead, side && wide);
     // Folding swaps one button for another; focus follows to the one that undoes it.
     const toggled = useRef(false);
     const foldRef = useRef<HTMLButtonElement>(null), showRef = useRef<HTMLButtonElement>(null);
@@ -57,9 +82,9 @@ export function WorldStage({ children }: { children: ReactNode }) {
         [head, panel, dock, top, fold.open, toggleMap, panelFolded, togglePanelStable, paneHost]);
     return (
         <StageContext.Provider value={value}><FollowingProvider>
-            <div className="gk-world-stage">
+            <div className="gk-world-stage" data-side={side || undefined}>
                 <div className="gk-world-stage__head" ref={setHead} />
-                <div className="gk-world-stage__lead" data-folded={fold.open ? undefined : true} data-panel={map?.panel ? true : undefined}>
+                <div className="gk-world-stage__lead" ref={setLead} data-folded={fold.open ? undefined : true} data-panel={map?.panel ? true : undefined} data-side={side || undefined}>
                     {fold.open
                         ? <div className="gk-world-stage__map"><MapBoundary resetKey={pathname} fallback={retry => (
                             <div className="gk-world-map gk-world-map--hero"><div className="gk-world-map__canvas">
@@ -67,7 +92,7 @@ export function WorldStage({ children }: { children: ReactNode }) {
                             </div></div>)}>
                             <WorldMap variant="hero" label={map?.label ?? t('Map')} points={map?.points ?? NO_POINTS}
                                 selectedId={map?.selectedId} onSelect={map?.onSelect} highlightId={map?.highlightId} onHover={map?.onHover}
-                                onMoveEnd={map?.onMoveEnd} cardActions={map?.cardActions} insetRight={floating ? PANEL : 0} insetTop={map?.insetTop}
+                                onMoveEnd={map?.onMoveEnd} onView={map?.onView} cardActions={map?.cardActions} insetRight={insetRight} insetLeft={insetLeft} insetTop={map?.insetTop} gestures={side ? 'free' : 'cooperative'}
                                 focus={map?.focus} frame={map?.frame} card={map?.card ?? true} context={map?.context} reach={map?.reach} away={map?.away}
                                 overlay={<>{map?.top}<div className="gk-world-map__overlay">
                                     {map?.pills}

@@ -6,13 +6,10 @@ import { useAuth } from '../../context/AuthContext';
 import { BrandMark } from '../../components/layout/BrandMark';
 import { Button, GkRoot } from '../../design/primitives';
 import { Crest } from '../world/Crest';
-import { roleLayout } from '../world/front/roles';
-import { writeOverviewLayout } from '../world/front/useOverviewLayout';
-import { describeRoute } from '../../components/layout/header/pins/describeRoute';
-import { readPins, writePins } from '../../components/layout/header/pins/pinStore';
 import { useJourneyCopy } from '../squadCommunication/journeyCopy';
 import { clearAuthFlow, getAuthFlow } from '../../utils/authRedirect';
-import { fetchClubsNear, fetchFeedPreferences, followClub, saveFeedPreferences, saveFootballRole, unfollowClub, type Activity, type Interest, type NearbyClub } from './startApi';
+import { applyActivity } from './applyActivity';
+import { fetchClubsNear, fetchFeedPreferences, followClub, saveFeedPreferences, unfollowClub, type Activity, type Interest, type NearbyClub } from './startApi';
 import { ACTIVITIES, DEFAULT_INTERESTS, INTERESTS } from './startChoices';
 import { DEFAULT_TOWN, TOWNS, locateTown, townByName, type Town } from './towns';
 import './start.css';
@@ -102,19 +99,8 @@ function StartRun() {
         if (found) { setTown(found); setLocating('idle'); } else setLocating('failed');
     };
 
-    const finish = (choice: Activity | null) => saveAndGo(async () => {
-        const chosen = choice ? ACTIVITIES.find(item => item.id === choice) : null;
-        if (chosen && user) {
-            writeOverviewLayout(user.id, roleLayout(chosen.worldRole));
-            const pins = readPins(user.id);
-            if (!pins.some(pin => pin.path === chosen.pin)) {
-                const [path, search = ''] = chosen.pin.split('?');
-                const described = describeRoute(path, search && `?${search}`, { myClubPath: null, copy });
-                writePins(user.id, [...pins, { path: chosen.pin, label: described.label ?? chosen.pin, icon: described.icon }]);
-            }
-        }
-        await Promise.all([saveFeedPreferences({ activity: choice }), ...(chosen ? [saveFootballRole(chosen.role)] : [])]);
-    }, null);
+    // Skipped: the activity stays empty, and the links someone confirms later set it (useAutomaticActivity).
+    const finish = (choice: Activity | null) => saveAndGo(() => (choice && user ? applyActivity(user.id, choice, copy) : saveFeedPreferences({ activity: null })), null);
 
     const stepIndex = STEPS.indexOf(step);
     const titles: Record<Step, string> = { town: t('start.town.title'), see: t('start.see.title'), clubs: t('start.clubs.title'), do: t('start.do.title') };

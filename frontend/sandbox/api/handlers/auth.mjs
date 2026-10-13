@@ -65,7 +65,13 @@ export const meProjection = ({ headers } = {}) => ({
     ...(familyRequest(headers) ? [{ id: 'parent.hub', context: { type: 'user', id: me.id, label: me.fullName } }] : []),
   ] },
 });
-get('/users/me', ({ headers }) => { const account = V.account(V.viewerId(headers)); return account ? V.accountProjection(account) : meProjection({ headers }); });
+// A registered account with the family cookie has a child linked, so Parent Hub and the automatic "parent" can be judged.
+get('/users/me', ({ headers }) => {
+  const account = V.account(V.viewerId(headers));
+  if (!account) return meProjection({ headers });
+  const projection = V.accountProjection(account);
+  return familyRequest(headers) ? { ...projection, navigationCapabilities: { version: 1, workspaces: [{ id: 'parent.hub', context: { type: 'user', id: account.id, label: account.fullName } }] } } : projection;
+});
 
 // Accounts missing a name or a date of birth (Google sign-ins) complete them here; the session is reissued.
 put('/users/me/onboarding', ({ headers, body }) => {

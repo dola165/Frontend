@@ -18,6 +18,7 @@ import { AppSettingsPage } from './android/AppSettingsPage';
 import { ExtensionRoute } from './features/capabilities/ExtensionBoundary';
 import { ROLE_DETAIL_ROUTE_PATHS, ROLE_DIRECTORY_ROUTE_PATHS } from './features/roles/routes';
 import { LegacyMatchesRedirect, TournamentSetupRedirect, WorldRedirect } from './features/world/WorldRedirect';
+import { useAutomaticActivity } from './features/start/useAutomaticActivity';
 
 import { RouteViewport } from './components/layout/RouteViewport';
 import { RouteMetadata } from './components/layout/RouteMetadata';
@@ -182,6 +183,8 @@ export function MainLayout() {
     useEffect(() => {
         if (status === 'authenticated') void refreshNavigationCapabilities?.();
     }, [location.key, status, refreshNavigationCapabilities]);
+    // Someone who skipped "What do you do in football?" gets it from their links once a club, squad or child is confirmed.
+    useAutomaticActivity(status === 'authenticated' ? user : null);
     useEffect(() => {
         // Installing a session remounts this layout. Keep its continuation available
         // until the router arrives, so GuestOnlyRoute and the login callback agree.

@@ -78,18 +78,18 @@ describe('club profile', () => {
     });
 
     it('lets the club’s own staff arrange a match or post an open challenge from the page', () => {
-        page(<ClubActions club={club} can={{ ...visitor, own: true, canManage: true, canOpenWorkspace: true, canJoin: false, canMessage: false, canChallenge: false }} onFollow={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} onSettings={vi.fn()} />);
+        page(<ClubActions club={club} can={{ ...visitor, own: true, canManage: true, canOpenWorkspace: true, canJoin: false, canMessage: false, canChallenge: false }} onFollow={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} />);
         expect(screen.getByRole('link', { name: 'Arrange a match' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-direct');
         expect(screen.getByRole('link', { name: 'Open challenge' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-open');
         expect(screen.getByRole('link', { name: 'Open workspace' })).toHaveClass('gk-btn--primary');
     });
 
     it('gives another club’s staff a way to propose a match, and everyone else one primary way in', () => {
-        const view = page(<ClubActions club={club} can={{ ...visitor, canChallenge: true, myClubId: 1 }} onFollow={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} onSettings={vi.fn()} />);
+        const view = page(<ClubActions club={club} can={{ ...visitor, canChallenge: true, myClubId: 1 }} onFollow={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} />);
         expect(screen.getByRole('link', { name: 'Propose a match' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-direct.c10');
         expect(screen.queryByRole('button', { name: 'Join' })).not.toBeInTheDocument();
         view.unmount();
-        page(<ClubActions club={club} can={visitor} onFollow={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} onSettings={vi.fn()} />);
+        page(<ClubActions club={club} can={visitor} onFollow={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} />);
         expect(screen.getByRole('button', { name: 'Join' })).toHaveClass('gk-btn--primary');
         expect(screen.getByRole('button', { name: 'Follow' })).not.toHaveClass('gk-btn--primary');
         expect(screen.queryByRole('link', { name: 'Propose a match' })).not.toBeInTheDocument();

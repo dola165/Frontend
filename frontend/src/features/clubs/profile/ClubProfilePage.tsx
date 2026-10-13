@@ -121,7 +121,7 @@ function ClubProfileView({ id }: { id: number }) {
             {tab === 'posts' && <ClubPostsTab club={club} can={can} />}
             {tab === 'media' && <ProfileMediaTab endpoint={`/posts/club/${club.id}`} clubId={club.id} />}
             {tab === 'about' && <ClubAboutTab club={club} can={can} />}
-            {tab === 'teams' && <ClubTeamsTab club={club} refreshKey={squadsRevision} onContact={setEnquiry} isAuthenticated={status === 'authenticated'} />}
+            {tab === 'teams' && <ClubTeamsTab club={club} refreshKey={squadsRevision} onContact={setEnquiry} isAuthenticated={status === 'authenticated'} canManage={can.canManage} />}
             {tab === 'people' && <ClubPeopleTab clubId={club.id} canManageStaff={can.canManageStaff} />}
             {tab === 'facilities' && <ClubFacilitiesTab club={club} canEdit={can.canEditFacilities} />}
             {tab === 'involved' && <ClubInvolvedTab club={club} />}

@@ -22,7 +22,7 @@ export function myClub(capabilities: NavigationCapabilities | undefined, members
     const club = clubs.find(item => item.canOpenWorkspace) ?? clubs.find(item => item.id === membershipClubId) ?? clubs[0];
     // A membership the capability list does not describe still makes it the person's club.
     if (!club) return { ids, path: membershipClubId ? `/clubs/${membershipClubId}` : null };
-    return { ids, path: club.canOpenWorkspace ? `/clubs/${club.id}/workspace` : `/clubs/${club.id}` };
+    return { ids, path: `/clubs/${club.id}` };
 }
 
 const discoveryRoute = /^\/(?:world|map|people|stadiums|matches|match-history|match-exchange|tournaments|tryouts|events|jobs|roles|store|campaigns|admissions\/opportunities)(?:\/|$)/;

@@ -14,7 +14,7 @@ const english = (en: string) => en;
 
 describe('primary tabs', () => {
     it('sends staff to their club workspace and members to the club page', () => {
-        expect(myClub(coach, 1)).toEqual({ ids: [1], path: '/clubs/1/workspace' });
+        expect(myClub(coach, 1)).toEqual({ ids: [1], path: '/clubs/1' });
         const player = normalizeNavigationCapabilities({ version: 1, workspaces: [{ id: 'club.player', context: { type: 'club', id: 7, label: 'Riverside' } }] }, 2);
         expect(myClub(player, null)).toEqual({ ids: [7], path: '/clubs/7' });
     });
@@ -24,8 +24,8 @@ describe('primary tabs', () => {
             { id: 'club.workspace', context: { type: 'club', id: 1, label: 'Dinamo' } },
             { id: 'club.player', context: { type: 'club', id: 7, label: 'Riverside' } },
         ] }, 2);
-        expect(myClub(staffAndMember, null).path).toBe('/clubs/1/workspace');
-        expect(myClub(staffAndMember, 7).path).toBe('/clubs/1/workspace');
+        expect(myClub(staffAndMember, null).path).toBe('/clubs/1');
+        expect(myClub(staffAndMember, 7).path).toBe('/clubs/1');
     });
 
     it('keeps My Club for a membership the capability list does not describe, and hides it without a club', () => {

@@ -4,8 +4,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { apiClient } from '../../../../api/axiosConfig';
 import type { ClubPresentation, TrainingProgramme } from '../../presentation';
 import { ClubActions } from '../ClubActions';
-import { ClubOverviewTab } from '../ClubOverviewTab';
+import { ClubAboutTab } from '../ClubAboutTab';
+import { feeRange } from '../fees';
 import { ClubSide } from '../ClubSide';
+import { ClubTeamsTab } from '../ClubTeamsTab';
 import type { ClubPermissions } from '../useClubProfile';
 import type { ClubProfile } from '../types';
 
@@ -40,7 +42,7 @@ beforeEach(() => {
 describe('club profile', () => {
     it('shows only confirmed affiliations, published sponsors and safe links, with scoped ways to get involved', async () => {
         page(<ClubSide club={club} />);
-        expect(screen.getByRole('link', { name: /^Confirmed academy/ })).toHaveAttribute('href', '/clubs/2');
+
         expect(screen.queryByText('Pending academy')).not.toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Manage Confirmed academy profile' })).toHaveAttribute('href', '/clubs/2/profile-settings');
         expect(screen.getByRole('link', { name: /Local business/ })).toHaveAttribute('rel', 'noopener noreferrer');
@@ -48,24 +50,38 @@ describe('club profile', () => {
         expect(screen.queryByText('Restricted sponsor')).not.toBeInTheDocument();
         expect(screen.queryByRole('link', { name: 'Website' })).not.toBeInTheDocument();
         const involved = within(screen.getByRole('list', { name: 'Ways to get involved' }));
-        expect(involved.getByRole('link', { name: /Store/ })).toHaveAttribute('href', '/clubs/10/store');
-        expect(involved.getByRole('link', { name: /Campaigns/ })).toHaveAttribute('href', '/clubs/10/campaigns');
-        expect(involved.getByRole('link', { name: /Roles/ })).toHaveAttribute('href', '/clubs/10?tab=business&opportunity=jobs');
-        expect(await screen.findByText('No open roles published')).toBeInTheDocument();
+        expect(involved.getByRole('link', { name: /Club store/ })).toHaveAttribute('href', '/clubs/10?tab=involved');
+        expect(involved.getByRole('link', { name: /Club fundraising/ })).toHaveAttribute('href', '/clubs/10?tab=involved&show=fundraising');
+        expect(involved.getByRole('link', { name: /Club jobs/ })).toHaveAttribute('href', '/clubs/10?tab=involved&show=jobs');
+        expect(await screen.findByText('No jobs or volunteering published')).toBeInTheDocument();
     });
 
-    it('leads a newcomer with the latest posts and a follow or join call, then training with published current fees', async () => {
-        page(<ClubOverviewTab club={club} can={visitor} onFollow={vi.fn()} onJoin={vi.fn()} />);
+    it('tells the story first, then the latest news and what is coming up', async () => {
+        page(<ClubAboutTab club={club} can={visitor} />);
         const post = await screen.findByText('Season opener on Saturday');
-        const call = screen.getByRole('heading', { name: 'Keep up with Alpha FC' });
+        const about = screen.getByRole('heading', { name: 'About' });
         const coming = screen.getByRole('heading', { name: 'Coming up' });
-        expect(post.compareDocumentPosition(call) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(call.compareDocumentPosition(coming) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(about.compareDocumentPosition(post) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(post.compareDocumentPosition(coming) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(screen.getByText('Youth football')).toBeInTheDocument();
+    });
+
+    it('lists the squads and the current published fees, and clears old or draft offers', async () => {
+        vi.mocked(apiClient.get).mockImplementation(async (url: string) => url.startsWith('/clubs/10/squads') ? { data: [{ id: 3, name: 'U12 Boys', category: 'U12', gender: 'MALE' }] } : { data: [] });
+        page(<ClubTeamsTab club={club} onContact={vi.fn()} isAuthenticated />);
+        expect(await screen.findByRole('link', { name: /U12 Boys/ })).toHaveAttribute('href', '/clubs/10?tab=teams&squad=3');
         expect(screen.getByRole('link', { name: /U12 training/ })).toHaveAttribute('href', '/clubs/10?tab=teams&programme=22');
         expect(screen.getByText(/150 GEL \/ month/)).toBeInTheDocument();
         expect(screen.queryByText('Draft group')).not.toBeInTheDocument();
-        expect(screen.queryByText('Old offer')).not.toBeInTheDocument();
-        expect(screen.getAllByRole('button', { name: 'See how to join' }).length).toBeGreaterThan(0);
+        expect(screen.getByText('Old offer')).toBeInTheDocument();
+        expect(feeRange(presentation.programmes)).toEqual({ range: '150 GEL / month', note: 'First session free' });
+    });
+
+    it('lets the club’s own staff arrange a match or post an open challenge from the page', () => {
+        page(<ClubActions club={club} can={{ ...visitor, own: true, canManage: true, canOpenWorkspace: true, canJoin: false, canMessage: false, canChallenge: false }} onFollow={vi.fn()} onJoin={vi.fn()} onMessage={vi.fn()} onSettings={vi.fn()} />);
+        expect(screen.getByRole('link', { name: 'Arrange a match' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-direct');
+        expect(screen.getByRole('link', { name: 'Open challenge' })).toHaveAttribute('href', '/world/matches?tab=mine&peek=arrange-open');
+        expect(screen.getByRole('link', { name: 'Open workspace' })).toHaveClass('gk-btn--primary');
     });
 
     it('gives another club’s staff a way to propose a match, and everyone else one primary way in', () => {

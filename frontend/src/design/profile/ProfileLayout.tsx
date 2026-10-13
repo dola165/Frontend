@@ -17,6 +17,8 @@ export interface ProfileIdentity {
     line?: ReactNode;
     /** Short facts on one line: place, followers. Each item is separated. */
     facts?: ReactNode[];
+    /** A short description under the facts, kept to two lines. */
+    summary?: ReactNode;
 }
 
 interface ProfileLayoutProps<T extends string> {
@@ -36,9 +38,14 @@ interface ProfileLayoutProps<T extends string> {
     onTab: (tab: T) => void;
     /** Accessible name of the tab list, for example "Club sections". */
     tabsLabel: string;
-    /** Side facts. Omit for a full-width tab such as a schedule. */
+    /** Side facts on the right. Omit for a full-width tab such as a schedule. */
     side?: ReactNode;
     sideLabel?: string;
+    /** A second, narrower column on the left (a club's information), shown beside every tab. */
+    sideLeft?: ReactNode;
+    sideLeftLabel?: string;
+    /** A class on the page root, for one profile kind's own rules. */
+    className?: string;
     children: ReactNode;
 }
 
@@ -48,12 +55,13 @@ const initials = (name: string) => name.trim().split(/\s+/).filter(part => /^[\p
  * One layout for club, person and organization profiles: a compact identity header,
  * tabs kept in the URL by the page, and a main column with side facts that stacks on phones.
  */
-export function ProfileLayout<T extends string>({ identity, banner, bannerAction, imageAction, actions, notice, tabs, tab, onTab, tabsLabel, side, sideLabel = 'About', children }: ProfileLayoutProps<T>) {
+export function ProfileLayout<T extends string>({ identity, banner, bannerAction, imageAction, actions, notice, tabs, tab, onTab, tabsLabel, side, sideLabel = 'About', sideLeft, sideLeftLabel = 'Information', className, children }: ProfileLayoutProps<T>) {
     const cover = banner ? resolveMediaUrl(banner) : undefined;
     const image = identity.image ? resolveMediaUrl(identity.image) : undefined;
     const facts = (identity.facts ?? []).filter(Boolean);
+    const columns = sideLeft && side ? ' gk-profile__body--three' : side || sideLeft ? ' gk-profile__body--split' : '';
     return (
-        <GkRoot className="gk-page gk-profile">
+        <GkRoot className={`gk-page gk-profile${className ? ` ${className}` : ''}`}>
             <PageFrame width="profile">
                 <header className={`gk-profile__head${cover ? ' gk-profile__head--cover' : ''}`}>
                     {cover && <div className="gk-profile__cover">
@@ -69,13 +77,15 @@ export function ProfileLayout<T extends string>({ identity, banner, bannerAction
                             <h1 className="gk-profile__name"><span>{identity.name}</span>{identity.badge}</h1>
                             {identity.line && <p className="gk-profile__line">{identity.line}</p>}
                             {facts.length > 0 && <ul className="gk-profile__facts" aria-label="Key facts">{facts.map((fact, index) => <li key={index}>{fact}</li>)}</ul>}
+                            {identity.summary && <p className="gk-profile__summary">{identity.summary}</p>}
                         </div>
                         {(actions || (!cover && bannerAction)) && <div className="gk-profile__actions">{actions}{!cover && bannerAction}</div>}
                     </div>
                 </header>
                 {notice}
                 <Tabs items={tabs} value={tab} onChange={onTab} label={tabsLabel} idBase="gk-profile-tab" className="gk-profile__tabs" />
-                <div className={`gk-profile__body${side ? ' gk-profile__body--split' : ''}`}>
+                <div className={`gk-profile__body${columns}`}>
+                    {sideLeft && <aside className="gk-profile__side gk-profile__side--left" aria-label={sideLeftLabel}>{sideLeft}</aside>}
                     <div className="gk-profile__main" role="tabpanel" id={`gk-profile-tab-${tab}-panel`} aria-labelledby={`gk-profile-tab-${tab}`}>{children}</div>
                     {side && <aside className="gk-profile__side" aria-label={sideLabel}>{side}</aside>}
                 </div>

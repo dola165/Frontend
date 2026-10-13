@@ -17,3 +17,9 @@ export function enquiryPriority(p: PublicStaff, squads: number[]) {
   const relevant = p.responsibilities.some(r => (r.clubWide===true || (r.squadIds??(r.squadId==null?[]:[r.squadId])).some(id=>squads.includes(id)) || r.clubWide==null&&r.squadId==null&&!r.squadIds?.length) && r.specialisations.some(s => ['HEAD_COACH','ASSISTANT_COACH','GOALKEEPER_COACH','TEAM_MANAGER','CLUB_SECRETARY'].includes(s)));
   return relevant ? 0 : ['OWNER','CLUB_ADMIN','COACH'].includes(p.role) ? 1 : 2;
 }
+/** "U14 · Boys": the squad's age group and who plays in it, in football words. */
+export function squadLine(squad: PublicSquad) {
+    const senior = squad.category === 'SENIOR';
+    const who = squad.gender === 'MALE' ? (senior ? 'Men' : 'Boys') : squad.gender === 'FEMALE' ? (senior ? 'Women' : 'Girls') : squad.gender === 'MIXED' ? 'Mixed' : null;
+    return [senior ? 'Senior' : squad.category, who].filter(Boolean).join(' · ');
+}

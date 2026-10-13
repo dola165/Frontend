@@ -16,7 +16,7 @@ export function OpportunityLink({ kind, to, description, preview = false, compac
     preview = preview && !isAndroidApp;
     if (compact) {
         const compactCategories = {
-            store: { label: 'Club Store', icon: Shirt },
+            store: { label: 'Store', icon: Shirt },
             stadiums: { label: 'Venues & pitches', icon: MapPin },
             campaigns: { label: 'Fundraising', icon: Coins },
             jobs: { label: 'Jobs & volunteering', icon: BriefcaseBusiness },

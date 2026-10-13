@@ -38,7 +38,8 @@ export const WORLD_KA: Record<string, string> = {
     // The Map tab: the column beside the map follows what is on screen; its filters are long lines
     '{count} on screen': 'ეკრანზე: {count}', '{count} more outside the map': 'კიდევ {count} რუკის მიღმა', 'Show all': 'ყველას ჩვენება',
     'Nothing on this part of the map': 'რუკის ამ ნაწილზე არაფერია', 'Fewer filters': 'ნაკლები ფილტრი',
-    'Training fee': 'წვრთნის საფასური', 'To': 'მდე', 'from {value}': '{value}-დან', 'up to {value}': '{value}-მდე',
+    'Training fee': 'წვრთნის საფასური', 'To': 'მდე', 'from {value}': '{value}-დან', 'up to {value}': '{value}-მდე', 'Gender': 'სქესი',
+    'Filters beside the map': 'ფილტრები რუკის გვერდით', 'Filters above the map': 'ფილტრები რუკის ზემოთ',
     'Taking new players': 'იღებს ახალ მოთამაშეებს', 'Community clubs': 'სათემო კლუბები', 'Pro clubs': 'პროფესიული კლუბები', 'Several kinds': 'სხვადასხვა',
     'Map unavailable': 'რუკა მიუწვდომელია',
     'Placed at its club': 'კლუბის მდებარეობით', 'placed at its club': 'კლუბის მდებარეობით',

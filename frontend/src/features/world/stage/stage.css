@@ -89,7 +89,11 @@
   .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) .gk-world-map--hero .gk-world-map__legend,
   .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) .gk-world-map__overlay,
   .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) .gk-world-map__search,
-  .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) .gk-world-map__card { left: calc(var(--gk-side-w) + 2 * var(--gk-4)); }
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) .gk-world-map__card,
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) > .gk-world-stage__top,
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) > .gk-world-stage__dock { left: calc(var(--gk-side-w) + 2 * var(--gk-4)); }
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) > .gk-world-stage__top { max-width: calc(100% - var(--gk-side-w) - var(--gk-panel-w) - 6 * var(--gk-4) - 40px); }
+  .gk .gk-world-stage__lead:has(> .gk-world-stage__side:not(:empty)) > .gk-world-stage__dock { width: min(560px, calc(100% - var(--gk-side-w) - var(--gk-panel-w) - 6 * var(--gk-4))); }
 }
 @media (max-width: 1099px) { .gk .gk-world-stage__side { margin-top: var(--gk-4); } }
 .gk .gk-world-stage__lead[data-folded] > .gk-world-stage__side { margin-top: var(--gk-4); }

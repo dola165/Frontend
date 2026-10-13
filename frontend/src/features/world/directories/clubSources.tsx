@@ -54,17 +54,18 @@ export function clubsSource({ child, centre, locations }: { child?: Participant;
         version: String(child?.id ?? ''),
         forWhom: childLabel(child),
         filters: [
-            { kind: 'choice', key: 'type', label: 'Kind of club', primary: true, multi: true, options: [
+            { kind: 'choice', key: 'type', label: 'Club type', primary: true, multi: true, options: [
                 { value: 'ACADEMY', label: 'Academies' }, { value: 'SCHOOL', label: 'Football schools' }, { value: 'COMMUNITY', label: 'Community clubs' }, { value: 'PRO', label: 'Pro clubs' },
             ] },
             // Where, who for and what it costs, in the order a parent asks; the backend takes them as named here.
             { kind: 'choice', key: 'country', label: 'Country', primary: true, allLabel: 'Any country', options: places.countries },
             { kind: 'choice', key: 'city', label: 'City', primary: true, allLabel: 'Any city', options: places.cities },
             { kind: 'choice', key: 'ageGroup', label: 'Age group', primary: true, allLabel: 'Any age group', options: AGE_OPTIONS },
-            { kind: 'choice', key: 'gender', label: 'Who plays', primary: true, allLabel: 'Everyone', options: [{ value: 'MALE', label: 'Boys and men' }, { value: 'FEMALE', label: 'Girls and women' }, { value: 'MIXED', label: 'Mixed' }] },
+            { kind: 'choice', key: 'gender', label: 'Gender', primary: true, allLabel: 'Everyone', options: [{ value: 'MALE', label: 'Boys and men' }, { value: 'FEMALE', label: 'Girls and women' }, { value: 'MIXED', label: 'Mixed' }] },
             { kind: 'range', key: 'fee', label: 'Training fee', primary: true, unit: 'GEL / month' },
             { kind: 'toggle', key: 'open', label: 'Taking new players', primary: true },
-            { ...JOIN_POLICY_FILTER, primary: false },
+            // Every club filter is on its own line: nothing behind More filters.
+            JOIN_POLICY_FILTER,
         ],
         sorts: [{ value: 'MEMBER_COUNT', label: 'Most members' }, { value: 'NAME', label: 'Name A–Z' }, { value: 'NEWEST', label: 'Newest' }],
         defaults: ({ role }): Record<string, string[]> => role === 'player' ? { open: ['true'] }

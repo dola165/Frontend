@@ -68,7 +68,7 @@ const fixed: Array<[RegExp, Words, PinIcon]> = [
 const worldSections: Record<string, [Words, PinIcon]> = {
     clubs: [['Clubs', 'კლუბები'], 'club'], people: [['People', 'ხალხი'], 'people'], venues: [['Venues', 'მოედნები'], 'venue'],
     matches: [['Matches', 'მატჩები'], 'goal'], tournaments: [['Tournaments', 'ტურნირები'], 'trophy'], competitions: [['Tournaments', 'ტურნირები'], 'trophy'],
-    opportunities: [['Jobs & volunteering', 'სამუშაო და მოხალისეობა'], 'briefcase'], map: [['Journeys', 'მოგზაურობები'], 'map'],
+    opportunities: [['Jobs & volunteering', 'სამუშაო და მოხალისეობა'], 'briefcase'],
 };
 const worldTabs: Record<string, Words> = {
     'matches:exchange': ['Open matches', 'ღია მატჩები'], 'matches:mine': ['My arrangements', 'ჩემი შეთანხმებები'], 'matches:events': ['Events', 'ღონისძიებები'],

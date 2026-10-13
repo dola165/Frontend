@@ -17,9 +17,8 @@ const trials: AnySource = { ...allTrials, tone: 'trial' };
 const tournaments: AnySource = { ...allTournaments, id: 'tournaments', tabLabel: 'Tournaments', tone: 'tournament' };
 
 /**
- * World › Map, the first thing World shows: the area's map filling the screen, with a column on its left that holds
- * the search, the kinds (clubs, events, trials, tournaments, one at a time), the kind's filters as long lines and
- * what is on screen. The other tabs are the same map specialised to one kind of thing.
+ * World › Map, the first thing World shows: the area's map with every kind of thing on it (clubs, events, trials,
+ * tournaments, one at a time), each with its own filters. The other tabs are the same map specialised to one kind.
  */
 export default function MapDirectory() {
     const t = useWorldCopy();
@@ -32,7 +31,6 @@ export default function MapDirectory() {
     if (pending) return <WorldLoading />;
     return (
         <DirectoryPage
-            layout="side"
             title={t('Map')}
             subtitle={area.anywhere ? t('Everywhere') : t('Near {city}', { city: area.city })}
             sources={[clubs, events, trials, tournaments]}

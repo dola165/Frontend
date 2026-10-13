@@ -22,19 +22,29 @@ function ArrangeRedirect() {
     return <Navigate replace to={arrangePath({ mode, opponentId: positive(params.get('opponent')), squadId: positive(params.get('squad')) })} />;
 }
 
-/** `/world` is the Map; links that point at a place or a plan on the old full map still open Journeys. */
+/** `/world` is the Map; a link to a plan on the old full map still opens journey planning. */
 function WorldIndex() {
     const location = useLocation();
-    const params = new URLSearchParams(location.search);
-    if (['opportunity', 'venue', 'plans'].some(key => params.has(key))) return <Navigate replace to={{ pathname: '/world/map', search: location.search, hash: location.hash }} />;
+    if (new URLSearchParams(location.search).has('plans')) return <Navigate replace to={{ pathname: '/world/map', search: location.search, hash: location.hash }} />;
     return <MapDirectory />;
 }
 
-/** GrassKickZ World: the map, its directories and Journeys (the old full map). Venues are out for now. */
+/**
+ * The old full map is no longer a World place. Journey planning (Parent Hub, the club's records, "Plan a journey"
+ * from a fixture) still links to `/world/map?plans=…` and keeps answering there until journeys get their own home;
+ * any other old link (a venue, a place) opens the Map.
+ */
+function JourneysOrMap() {
+    const location = useLocation();
+    if (new URLSearchParams(location.search).has('plans')) return <Suspense fallback={null}><WorldMapPage /></Suspense>;
+    return <Navigate replace to="/world" />;
+}
+
+/** GrassKickZ World: the map and its directories. Venues and Journeys are out for now. */
 export default function WorldRoutes() {
     return (
         <WorldSessionProvider><Routes>
-            <Route path="map" element={<Suspense fallback={null}><WorldMapPage /></Suspense>} />
+            <Route path="map" element={<JourneysOrMap />} />
             <Route element={<WorldLayout />}>
                 <Route index element={<Suspense fallback={<PageLoading />}><WorldIndex /></Suspense>} />
                 <Route path="clubs" element={<Suspense fallback={<PageLoading />}><ClubsDirectory /></Suspense>} />

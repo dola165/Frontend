@@ -36,3 +36,5 @@ node sandbox/vt/run.mjs src/components/layout/header/__tests__/inbox.test.tsx   
 - Response shapes come from the frontend's own TypeScript types and API clients, not guesses.
 - Mutations work in memory, so forms can be exercised; a server restart resets the world.
 - Parent view: a browser with the cookie `gk-sandbox-family=1` sees coach Luka as the parent of two children (`api/world-family.mjs`, `api/handlers/family.mjs`); without it nothing changes.
+- New accounts: registering on `/signup` creates an account of its own in memory (`api/viewer.mjs`); its bearer token or the `gk-sandbox-user` cookie makes every request theirs. Nobody has confirmed a link with them, so their lists are empty (`api/handlers/newcomer.mjs`) and Home is ranked for their town and topics (`api/feed-rank.mjs`). Sign in with any other email to be Luka again. Restarting the server forgets the accounts.
+- Two sessions side by side: `node sandbox/server.mjs 4302` and `node sandbox/web.mjs 4302 5175` run a second API and Vite on their own ports (`.claude/launch.json`: `sandbox-api-start`, `web-start`).

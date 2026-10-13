@@ -7,8 +7,12 @@ import * as W from '../world.mjs';
 import * as S from '../world-social.mjs';
 import * as P from '../world-profile.mjs';
 import * as F from '../world-football.mjs';
+import * as V from '../viewer.mjs';
+import { demotionKey, factsOf, rankFeed } from '../feed-rank.mjs';
 
 const ME = W.ME_ID;
+/** Posts, reactions and follows belong to whoever asks: Luka, or an account registered in the sandbox. */
+const viewerOf = headers => V.viewerId(headers);
 /** The club domain's live store (applications, tryouts, invitations, role requests, club inbox).
  * Loaded lazily so module load order is unaffected; decisions made in the club workspace then
  * show up in the requests centre and notifications. Absent store => this domain's own seeds. */
@@ -37,11 +41,13 @@ const footballRole = p => (['STAFF', 'SPECIALIST'].includes(p.role) ? 'CLUB_STAF
 const uploads = new Map(); // mediaId -> url
 let nextUploadId = 88001;
 
-function postDto(p) {
+/** A post as the feed sends it, for one reader: their reaction, whether they may edit, and its topic, place and reach. */
+function postDto(p, viewer = ME) {
   const club = p.clubId ? W.clubById(p.clubId) : null;
   const counts = {};
   for (const type of p.reactions.values()) counts[type] = (counts[type] ?? 0) + 1;
-  const mine = p.reactions.get(ME) ?? null;
+  const mine = p.reactions.get(viewer) ?? null;
+  const { topic, tags, place, reach } = factsOf(p);
   return {
     id: p.id, content: p.content, createdAt: iso(p.createdAt), authorId: p.authorId,
     authorName: p.authorId ? displayName(p.authorId) : club?.name ?? 'GrassKickZ',
@@ -49,83 +55,133 @@ function postDto(p) {
     clubId: p.clubId, clubName: club?.name ?? null,
     myReaction: mine, reactionCount: p.reactions.size, reactionCounts: counts, likeCount: p.reactions.size, isLikedByMe: mine !== null,
     commentCount: p.comments.length, image: p.mediaUrls[0], mediaUrls: p.mediaUrls, isPublic: p.isPublic,
-    canEdit: p.authorId === ME, editedAt: p.editedAt ? iso(p.editedAt) : null,
+    canEdit: p.authorId === viewer, editedAt: p.editedAt ? iso(p.editedAt) : null,
     sharedPostId: p.sharedPostId, isReshare: p.sharedPostId != null, shareCount: p.shares,
+    topic, tags, place, reach,
   };
 }
-const visible = p => !p.hiddenBy.has(ME) && (p.isPublic || p.authorId === ME);
-const followsPost = p => (p.authorId && S.isFollowing(ME, p.authorId)) || (p.clubId && S.clubFollows.get(ME)?.has(p.clubId));
+const visible = (p, viewer) => !p.hiddenBy.has(viewer) && (p.isPublic || p.authorId === viewer);
+const followsPost = (p, viewer) => (p.authorId && S.isFollowing(viewer, p.authorId)) || (p.clubId && V.clubFollowsOf(viewer).has(p.clubId));
 const newestFirst = (a, b) => b.createdAt - a.createdAt || b.id - a.id;
-
-/** Cursor feed: { posts, nextCursor } where nextCursor is the id of the last post returned. */
-function feedPage(filter, query) {
+const pageLimits = query => {
   const limit = num(query, 'limit', 20);
-  if (!Number.isInteger(limit) || limit < 1 || limit > 50) return badRequest('Invalid feed limit.');
+  if (!Number.isInteger(limit) || limit < 1 || limit > 50) return { error: badRequest('Invalid feed limit.') };
   const cursor = query.has('cursor') ? num(query, 'cursor', NaN) : null;
-  if (cursor !== null && !Number.isSafeInteger(cursor)) return badRequest('Invalid feed cursor.');
+  if (cursor !== null && !Number.isSafeInteger(cursor)) return { error: badRequest('Invalid feed cursor.') };
+  return { limit, cursor };
+};
+
+/** Cursor feed, newest first: { posts, nextCursor } where nextCursor is the id of the last post returned. */
+function feedPage(filter, query, viewer) {
+  const { error, limit, cursor } = pageLimits(query);
+  if (error) return error;
   const boundary = query.get('cursorTime') ? new Date(query.get('cursorTime')) : cursor !== null ? S.postById(cursor)?.createdAt : null;
   if (cursor !== null && !boundary) return badRequest('Feed cursor expired. Refresh the feed.');
-  const sorted = S.posts.filter(p => visible(p) && filter(p)).sort(newestFirst);
+  const sorted = S.posts.filter(p => visible(p, viewer) && filter(p)).sort(newestFirst);
   const remaining = cursor === null ? sorted : sorted.filter(p => p.createdAt < boundary || (+p.createdAt === +boundary && p.id < cursor));
   const page = remaining.slice(0, limit);
-  return { posts: page.map(postDto), nextCursor: remaining.length > limit ? page.at(-1).id : null };
+  return { posts: page.map(p => postDto(p, viewer)), nextCursor: remaining.length > limit ? page.at(-1).id : null };
 }
-const personalByMe = p => p.authorId === ME && !p.clubId;
-for (const path of ['/posts/feed', '/posts/feed/for-you']) get(path, ({ query }) => feedPage(p => !personalByMe(p) && !followsPost(p), query));
-get('/posts/feed/following', ({ query }) => feedPage(p => p.authorId !== ME && followsPost(p), query));
-get('/posts/user/:id', ({ params, query }) => person(params.id) ? feedPage(p => p.authorId === Number(params.id), query) : notFound('Profile not found.'));
-get('/posts/club/:id', ({ params, query }) => W.clubById(params.id) ? feedPage(p => p.clubId === Number(params.id), query) : notFound('Club not found.'));
 
-const findPost = id => { const p = S.postById(id); return p && visible(p) ? p : null; };
-get('/posts/:id', ({ params }) => { const p = findPost(params.id); return p ? postDto(p) : notFound('This post is no longer available.'); });
+/** What the ranking knows about a reader: links nobody else can give them, follows, where they are, what they chose to see. */
+function readerProfile(viewer) {
+  const prefs = V.preferencesOf(viewer), town = prefs?.town;
+  const linkedClubs = new Set(), linkedPeople = new Set();
+  if (viewer === ME) {
+    // Luka's confirmed links: his club's staff, players and their families.
+    linkedClubs.add(1);
+    for (const p of W.people) if (p.clubId === 1) linkedPeople.add(p.id);
+    for (const link of W.parents) if (W.personById(link.childId)?.clubId === 1) linkedPeople.add(link.parentId);
+  }
+  return {
+    id: viewer, linkedClubs, linkedPeople, followedPeople: new Set(S.followingOf(viewer)), followedClubs: V.clubFollowsOf(viewer),
+    home: town?.latitude != null ? { lat: town.latitude, lng: town.longitude } : { lat: W.cities.Tbilisi.lat, lng: W.cities.Tbilisi.lng },
+    topics: prefs?.topics ?? [], demoted: V.demotedOf(viewer),
+  };
+}
+/** Discover: the ranked feed, paged by position; the cursor is the last post shown. */
+function rankedPage(query, viewer) {
+  const { error, limit, cursor } = pageLimits(query);
+  if (error) return error;
+  const ranked = rankFeed(S.posts.filter(p => visible(p, viewer)), readerProfile(viewer));
+  const start = cursor === null ? 0 : ranked.findIndex(item => item.post.id === cursor) + 1;
+  if (cursor !== null && start === 0) return badRequest('Feed cursor expired. Refresh the feed.');
+  const page = ranked.slice(start, start + limit);
+  return { posts: page.map(item => ({ ...postDto(item.post, viewer), why: item.why })), nextCursor: ranked.length > start + limit ? page.at(-1).post.id : null };
+}
+for (const path of ['/posts/feed', '/posts/feed/for-you']) get(path, ({ query, headers }) => rankedPage(query, viewerOf(headers)));
+get('/posts/feed/following', ({ query, headers }) => { const viewer = viewerOf(headers); return feedPage(p => p.authorId !== viewer && followsPost(p, viewer), query, viewer); });
+get('/posts/user/:id', ({ params, query, headers }) => person(params.id) || V.account(params.id) ? feedPage(p => p.authorId === Number(params.id), query, viewerOf(headers)) : notFound('Profile not found.'));
+get('/posts/club/:id', ({ params, query, headers }) => W.clubById(params.id) ? feedPage(p => p.clubId === Number(params.id), query, viewerOf(headers)) : notFound('Club not found.'));
 
-post('/posts', ({ body }) => {
+// What people see, open, hide and ask less of, kept for the learning algorithm that comes later.
+post('/feed/events', ({ body, headers }) => {
+  const viewer = viewerOf(headers);
+  const events = Array.isArray(body?.events) ? body.events : null;
+  if (!events || events.length > 100) return badRequest('Send up to 100 events.');
+  let accepted = 0;
+  for (const event of events) {
+    const postRecord = S.postById(event?.postId);
+    if (!postRecord || !V.EVENT_TYPES.includes(event?.type)) continue;
+    if (event.type === 'LESS') V.demotedOf(viewer).add(demotionKey(postRecord));
+    if (event.type === 'UNDO_LESS') V.demotedOf(viewer).delete(demotionKey(postRecord));
+    V.recordEvent(viewer, { type: event.type, postId: postRecord.id, topic: factsOf(postRecord).topic, ...(typeof event.at === 'string' ? { at: event.at } : {}) });
+    accepted++;
+  }
+  return reply(202, { accepted });
+});
+
+const findPost = (id, viewer) => { const p = S.postById(id); return p && visible(p, viewer) ? p : null; };
+get('/posts/:id', ({ params, headers }) => { const viewer = viewerOf(headers), p = findPost(params.id, viewer); return p ? postDto(p, viewer) : notFound('This post is no longer available.'); });
+
+post('/posts', ({ body, headers }) => {
+  const viewer = viewerOf(headers);
   const content = String(body?.content ?? '').trim();
   if (!content) return badRequest('Write something before publishing.');
-  if (body?.clubId && !W.staff.some(s => s.personId === ME && s.clubId === Number(body.clubId))) return forbidden('You cannot post for this club.');
+  if (body?.clubId && !W.staff.some(s => s.personId === viewer && s.clubId === Number(body.clubId))) return forbidden('You cannot post for this club.');
   const media = (body?.mediaIds ?? []).map(id => uploads.get(Number(id))).filter(Boolean);
-  const p = { id: S.newPostId(), authorId: ME, clubId: body?.clubId ? Number(body.clubId) : null, content, createdAt: new Date(), mediaUrls: media, isPublic: body?.isPublic !== false, editedAt: null, sharedPostId: null, shares: 0, reactions: new Map(), comments: [], hiddenBy: new Set() };
+  const p = { id: S.newPostId(), authorId: viewer, clubId: body?.clubId ? Number(body.clubId) : null, content, createdAt: new Date(), mediaUrls: media, isPublic: body?.isPublic !== false, editedAt: null, sharedPostId: null, shares: 0, reactions: new Map(), comments: [], hiddenBy: new Set() };
   S.posts.push(p);
   return created({ message: 'Post created', postId: p.id });
 });
-put('/posts/:id', ({ params, body }) => {
-  const p = findPost(params.id);
+put('/posts/:id', ({ params, body, headers }) => {
+  const viewer = viewerOf(headers), p = findPost(params.id, viewer);
   if (!p) return notFound('This post is no longer available.');
-  if (p.authorId !== ME) return forbidden('Only the author can edit this post.');
+  if (p.authorId !== viewer) return forbidden('Only the author can edit this post.');
   if (body?.expectedContent != null && body.expectedContent !== p.content) return reply(409, { status: 409, message: 'This post changed since you opened it. Reload and try again.' });
   p.content = String(body?.content ?? p.content).trim(); p.isPublic = body?.isPublic !== false; p.editedAt = new Date();
-  return postDto(p);
+  return postDto(p, viewer);
 });
-del('/posts/:id', ({ params }) => {
-  const p = findPost(params.id);
+del('/posts/:id', ({ params, headers }) => {
+  const viewer = viewerOf(headers), p = findPost(params.id, viewer);
   if (!p) return notFound('This post is no longer available.');
-  if (p.authorId !== ME) return forbidden('Only the author can delete this post.');
+  if (p.authorId !== viewer) return forbidden('Only the author can delete this post.');
   S.posts.splice(S.posts.indexOf(p), 1);
   return { message: 'Post deleted successfully' };
 });
-post('/posts/:id/hide', ({ params }) => {
-  const p = S.postById(params.id);
+post('/posts/:id/hide', ({ params, headers }) => {
+  const viewer = viewerOf(headers), p = S.postById(params.id);
   if (!p) return notFound();
-  if (p.hiddenBy.has(ME)) p.hiddenBy.delete(ME); else p.hiddenBy.add(ME);
-  return { hidden: p.hiddenBy.has(ME) };
+  if (p.hiddenBy.has(viewer)) p.hiddenBy.delete(viewer); else p.hiddenBy.add(viewer);
+  return { hidden: p.hiddenBy.has(viewer) };
 });
-put('/posts/:id/like', ({ params, body }) => {
-  const p = findPost(params.id);
+put('/posts/:id/like', ({ params, body, headers }) => {
+  const viewer = viewerOf(headers), p = findPost(params.id, viewer);
   if (!p) return notFound();
-  if (body?.liked === false) p.reactions.delete(ME); else p.reactions.set(ME, p.reactions.get(ME) ?? 'LIKE');
-  return { isLiked: p.reactions.has(ME) };
+  if (body?.liked === false) p.reactions.delete(viewer); else p.reactions.set(viewer, p.reactions.get(viewer) ?? 'LIKE');
+  return { isLiked: p.reactions.has(viewer) };
 });
 const REACTIONS = new Set(['LIKE', 'LOVE', 'HAHA', 'WOW', 'ANGRY', 'SAD', 'CARE']);
-put('/posts/:id/reaction', ({ params, body }) => {
-  const p = findPost(params.id);
+put('/posts/:id/reaction', ({ params, body, headers }) => {
+  const viewer = viewerOf(headers), p = findPost(params.id, viewer);
   if (!p) return notFound();
   if (!REACTIONS.has(body?.reaction)) return badRequest('Choose a reaction.');
-  p.reactions.set(ME, body.reaction);
-  return postDto(p);
+  p.reactions.set(viewer, body.reaction);
+  return postDto(p, viewer);
 });
-del('/posts/:id/reaction', ({ params }) => { const p = findPost(params.id); if (!p) return notFound(); p.reactions.delete(ME); return postDto(p); });
-get('/posts/:id/reactions', ({ params, query }) => {
-  const p = findPost(params.id);
+del('/posts/:id/reaction', ({ params, headers }) => { const viewer = viewerOf(headers), p = findPost(params.id, viewer); if (!p) return notFound(); p.reactions.delete(viewer); return postDto(p, viewer); });
+get('/posts/:id/reactions', ({ params, query, headers }) => {
+  const p = findPost(params.id, viewerOf(headers));
   if (!p) return notFound();
   const filter = query.get('reaction');
   const all = [...p.reactions.entries()].reverse().map(([userId, reaction]) => ({ userId, name: displayName(userId), avatarUrl: avatarOf(userId), reaction }));
@@ -138,21 +194,21 @@ get('/posts/:id/reactions', ({ params, query }) => {
 });
 
 const commentDto = c => ({ id: c.id, authorId: c.authorId, authorName: displayName(c.authorId), authorAvatarUrl: avatarOf(c.authorId), content: c.content, createdAt: iso(c.createdAt) });
-get('/posts/:id/comments', ({ params }) => { const p = findPost(params.id); return p ? p.comments.map(commentDto) : notFound(); });
-post('/posts/:id/comments', ({ params, body }) => {
-  const p = findPost(params.id);
+get('/posts/:id/comments', ({ params, headers }) => { const p = findPost(params.id, viewerOf(headers)); return p ? p.comments.map(commentDto) : notFound(); });
+post('/posts/:id/comments', ({ params, body, headers }) => {
+  const viewer = viewerOf(headers), p = findPost(params.id, viewer);
   if (!p) return notFound();
   const content = String(body?.content ?? '').trim();
   if (!content) return badRequest('Write a comment first.');
-  const c = { id: S.newCommentId(), authorId: ME, content, createdAt: new Date() };
+  const c = { id: S.newCommentId(), authorId: viewer, content, createdAt: new Date() };
   p.comments.push(c);
   return created(commentDto(c));
 });
-post('/posts/:id/shares', ({ params, body }) => {
-  const original = findPost(params.id);
+post('/posts/:id/shares', ({ params, body, headers }) => {
+  const viewer = viewerOf(headers), original = findPost(params.id, viewer);
   if (!original) return notFound();
   const sourceId = original.sharedPostId ?? original.id;
-  const p = { id: S.newPostId(), authorId: ME, clubId: null, content: String(body?.content ?? '').trim(), createdAt: new Date(), mediaUrls: [], isPublic: body?.isPublic !== false, editedAt: null, sharedPostId: sourceId, shares: 0, reactions: new Map(), comments: [], hiddenBy: new Set() };
+  const p = { id: S.newPostId(), authorId: viewer, clubId: null, content: String(body?.content ?? '').trim(), createdAt: new Date(), mediaUrls: [], isPublic: body?.isPublic !== false, editedAt: null, sharedPostId: sourceId, shares: 0, reactions: new Map(), comments: [], hiddenBy: new Set() };
   S.posts.push(p); S.postById(sourceId).shares++;
   return created({ postId: p.id });
 });
@@ -259,14 +315,20 @@ get('/users/:id', async ({ params }) => { if (!/^\d+$/.test(params.id)) return u
 const connection = id => { const p = person(id); return { id, username: p.username, fullName: p.fullName, avatarUrl: p.avatarUrl, isFollowedByMe: S.isFollowing(ME, id) }; };
 get('/users/:id/followers', ({ params, query }) => { const p = userParam(params); return p ? pageOf(S.followersOf(p.id).map(connection), query) : notFound(); });
 get('/users/:id/following', ({ params, query }) => { const p = userParam(params); return p ? pageOf(S.followingOf(p.id).map(connection), query) : notFound(); });
-post('/users/:id/follow', ({ params }) => {
-  const p = userParam(params);
+post('/users/:id/follow', ({ params, headers }) => {
+  const viewer = viewerOf(headers), p = userParam(params);
   if (!p) return notFound();
-  if (p.id === ME) return badRequest('You cannot follow yourself.');
-  const following = S.toggleFollow(ME, p.id);
+  if (p.id === viewer) return badRequest('You cannot follow yourself.');
+  const following = S.toggleFollow(viewer, p.id);
+  V.recordEvent(viewer, { type: following ? 'FOLLOWED' : 'UNFOLLOWED', userId: p.id });
   return { following, isFollowing: following, followerCount: S.followersOf(p.id).length };
 });
-del('/users/:id/follow', ({ params }) => { const p = userParam(params); if (!p) return notFound(); if (S.isFollowing(ME, p.id)) S.toggleFollow(ME, p.id); return { following: false, followerCount: S.followersOf(p.id).length }; });
+del('/users/:id/follow', ({ params, headers }) => {
+  const viewer = viewerOf(headers), p = userParam(params);
+  if (!p) return notFound();
+  if (S.isFollowing(viewer, p.id)) { S.toggleFollow(viewer, p.id); V.recordEvent(viewer, { type: 'UNFOLLOWED', userId: p.id }); }
+  return { following: false, followerCount: S.followersOf(p.id).length };
+});
 const blocked = new Set();
 get('/users/:id/personal-block', ({ params }) => ({ blocked: blocked.has(Number(params.id)) }));
 put('/users/:id/personal-block', ({ params, body }) => { const id = Number(params.id); if (body?.blocked) blocked.add(id); else blocked.delete(id); return { blocked: blocked.has(id) }; });
@@ -735,8 +797,4 @@ queueMicrotask(() => {
   get('/organizations/team-invitations/mine', () => []);
   get('/recruitment/applications', () => []);
   get('/tryouts/my-applications', () => []);
-  get('/clubs/followed', () => [...(S.clubFollows.get(ME) ?? [])].map(id => W.clubById(id)).map(c => ({
-    id: c.id, name: c.name, description: c.description, logoUrl: c.logoUrl, cityName: c.city, countryName: 'Georgia',
-    followerCount: W.people.filter(p => p.clubId === c.id).length * 3 + 40, memberCount: W.people.filter(p => p.clubId === c.id).length, isOfficial: c.verified,
-  })));
 });

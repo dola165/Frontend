@@ -97,8 +97,7 @@ const resultLine = m => { const [ours, theirs] = m.score; return ours > theirs ?
 export const nextTraining = squadId => W.events.filter(e => e.type === 'TRAINING' && e.squadId === squadId && e.start > NOW).sort((a, b) => a.start - b.start)[0];
 
 // ---------------------------------------------------------------- follow graph
-export const follows = new Map(); // followerId -> Set(followeeId)
-export const clubFollows = new Map(); // userId -> Set(clubId)
+export const follows = new Map(); // followerId -> Set(followeeId); club follows live in the club domain (world-club `followed`)
 const followSet = id => { if (!follows.has(id)) follows.set(id, new Set()); return follows.get(id); };
 const follow = (a, b) => { if (a !== b && personById(b)) followSet(a).add(b); };
 for (const p of W.people) {
@@ -111,7 +110,6 @@ const myFollows = [STAFF.assistant, STAFF.gk, STAFF.director, STAFF.welfare, STA
 followSet(ME_ID).clear();
 for (const id of myFollows) if (id) follow(ME_ID, id);
 for (const id of [30, 31, 32, 33, 34, 37, ...W.referees.slice(0, 4).map(r => r.id), ...W.agents.map(a => a.id)]) follow(id, ME_ID);
-clubFollows.set(ME_ID, new Set([2, 11, 12]));
 export const followersOf = id => W.people.filter(p => follows.get(p.id)?.has(id)).map(p => p.id);
 export const followingOf = id => [...(follows.get(id) ?? [])];
 export const isFollowing = (a, b) => follows.get(a)?.has(b) === true;

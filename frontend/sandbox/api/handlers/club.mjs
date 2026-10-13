@@ -6,6 +6,7 @@
 import { get, post, put, patch, del, reply } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as C from '../world-club.mjs';
+import * as V from '../viewer.mjs';
 
 const { personById, clubById, squadById } = W;
 const CLUB = C.CLUB_ID;
@@ -30,13 +31,21 @@ get('/clubs/search', ({ query }) => {
   return W.clubs.filter(c => !q || c.name.toLowerCase().includes(q) || c.city.toLowerCase().includes(q)).slice(0, size)
     .map(c => ({ id: c.id, name: c.name, logoUrl: c.logoUrl, memberCount: C.memberCount(c.id), city: c.city, cityName: c.city }));
 });
-get('/clubs', ({ query }) => {
+/** A club as one reader sees it: following is theirs; a registered newcomer is nobody's staff or member. */
+function forViewer(item, headers) {
+  const viewer = V.viewerId(headers), newcomer = viewer !== W.ME_ID;
+  const seen = { ...item, isFollowedByMe: V.clubFollowsOf(viewer).has(item.id) };
+  if (!newcomer) return seen;
+  return { ...seen, isStaffMember: false, isMember: false, myRole: null, relationshipState: item.relationshipState == null ? null : 'NONE', trustedByClubs: item.trustedByClubs ? [] : undefined,
+    presentation: item.presentation ? { ...item.presentation, canEdit: false, canManageAffiliations: false } : item.presentation };
+}
+get('/clubs', ({ query, headers }) => {
   const search = (query.get('search') ?? query.get('q') ?? '').trim().toLowerCase();
   const types = query.getAll('type'), policies = query.getAll('joinPolicy'), city = (query.get('city') ?? '').toLowerCase(), country = (query.get('country') ?? '').toLowerCase();
   // BACKEND NEEDED (World › Clubs for a child): `age` keeps clubs with a published programme for that age.
   const age = query.has('age') ? Number(query.get('age')) : null;
   const fits = c => age == null || (c.presentation?.programmes ?? []).some(p => p.published && (p.ageMin != null || p.ageMax != null) && (p.ageMin == null || age >= p.ageMin) && (p.ageMax == null || age <= p.ageMax));
-  let items = W.clubs.map(c => C.directoryItem(c.id)).filter(fits).filter(c => (!search || `${c.name} ${c.cityName} ${c.description}`.toLowerCase().includes(search))
+  let items = W.clubs.map(c => forViewer(C.directoryItem(c.id), headers)).filter(fits).filter(c => (!search || `${c.name} ${c.cityName} ${c.description}`.toLowerCase().includes(search))
     && (!types.length || types.includes(c.type)) && (!policies.length || policies.includes(c.playerJoinPolicy))
     && (!city || c.cityName.toLowerCase().includes(city)) && (!country || 'georgia ge'.includes(country)));
   const sort = query.get('sort') ?? 'NEWEST';
@@ -44,16 +53,24 @@ get('/clubs', ({ query }) => {
   if (!query.has('page') && !query.has('size')) return items;
   return page(items, query, 12);
 });
-get('/clubs/:id', ({ params }) => C.clubProfile(Number(params.id)) ?? notFound('Club not found.'));
+get('/clubs/:id', ({ params, headers }) => { const profile = C.clubProfile(Number(params.id)); return profile ? forViewer(profile, headers) : notFound('Club not found.'); });
 put('/clubs/:id', ({ params, body }) => {
   const id = Number(params.id); if (!clubById(id)) return notFound();
   const edits = C.clubEdits.get(id) ?? {}; for (const k of ['logoUrl', 'bannerUrl', 'description']) if (body?.[k] !== undefined) edits[k] = body[k];
   C.clubEdits.set(id, edits); return ok();
 });
 patch('/clubs/:id', ({ params, body }) => { if (body?.playerJoinPolicy) C.clubPolicy.set(Number(params.id), body.playerJoinPolicy); return ok(); });
-const toggleFollow = (id, on) => { if (on ?? !C.followed.has(id)) { C.followed.add(id); C.followerCounts[id]++; } else { C.followed.delete(id); C.followerCounts[id]--; } return { following: C.followed.has(id) }; };
-post('/clubs/:id/follow', ({ params }) => toggleFollow(Number(params.id)));
-del('/clubs/:id/follow', ({ params }) => toggleFollow(Number(params.id), false));
+// Following is the reader's own; it is recorded for the feed's learning algorithm later.
+const toggleFollow = (id, on, headers) => {
+  if (!clubById(id)) return notFound('Club not found.');
+  const viewer = V.viewerId(headers), follows = V.clubFollowsOf(viewer);
+  const next = on ?? !follows.has(id);
+  if (next && !follows.has(id)) { follows.add(id); C.followerCounts[id]++; V.recordEvent(viewer, { type: 'FOLLOWED', clubId: id }); }
+  else if (!next && follows.has(id)) { follows.delete(id); C.followerCounts[id]--; V.recordEvent(viewer, { type: 'UNFOLLOWED', clubId: id }); }
+  return { following: follows.has(id) };
+};
+post('/clubs/:id/follow', ({ params, headers }) => toggleFollow(Number(params.id), undefined, headers));
+del('/clubs/:id/follow', ({ params, headers }) => toggleFollow(Number(params.id), false, headers));
 post('/clubs/:id/mute', () => ({ muted: true }));
 post('/clubs/:id/challenge', () => ({ message: 'Challenge sent. The other club will reply in their match exchange.' }));
 get('/clubs/:id/workspace-entry', ({ params }) => isOwnClub(params.id)

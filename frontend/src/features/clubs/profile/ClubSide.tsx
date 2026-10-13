@@ -13,7 +13,7 @@ export function ClubSide({ club }: { club: ClubProfile }) {
     const sponsors = club.presentation?.sponsors.filter(s => s.published && !s.promotionBlocked) ?? [];
     const affiliations = club.presentation?.affiliations.filter(a => a.status === 'ACTIVE') ?? [];
     return <>
-        <SideBlock title="Get involved">
+        <SideBlock title="Get involved" hint="Shop, work or give">
             <List label="Ways to get involved">{opportunities.map(item => <ListRow key={item.key} to={item.to}
                 lead={<span className="gk-club-icon"><item.icon aria-hidden="true" /></span>} title={item.title}
                 meta={item.source.loading ? 'Loading…' : item.source.failed ? 'Currently unavailable' : item.count ? `${item.count} ${item.count === 1 ? item.unit.replace(/s$/, '') : item.unit}` : item.empty} />)}</List>
@@ -22,7 +22,7 @@ export function ClubSide({ club }: { club: ClubProfile }) {
         {affiliations.some(a => a.canManageProfile) && <SideBlock title="Academy profile">
             {affiliations.filter(a => a.canManageProfile).map(a => <ButtonLink key={a.id} size="sm" to={`/clubs/${a.clubId}/profile-settings`}>Manage {a.name} profile</ButtonLink>)}
         </SideBlock>}
-        {sponsors.length > 0 && <SideBlock title="Sponsors">
+        {sponsors.length > 0 && <SideBlock title="Sponsors" hint="Backing the club">
             <List label="Sponsors">{sponsors.map(s => {
                 const website = safePublicUrl(s.websiteUrl);
                 const logo = s.logoUrl?.startsWith('/uploads/') ? resolveMediaUrl(s.logoUrl) : safePublicUrl(s.logoUrl);

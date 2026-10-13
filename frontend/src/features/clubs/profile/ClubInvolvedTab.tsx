@@ -29,7 +29,7 @@ export function ClubInvolvedTab({ club }: { club: ClubProfile }) {
     };
     return <div className="gk-club-involved">
         <div className="gk-club-involved__bar">
-            <div className="gk-chips" role="group" aria-label="Get involved">{kinds.map(k => <button key={k.id} type="button" className="gk-chip" aria-pressed={k.id === kind} onClick={() => show(k.id)}>{k.label}</button>)}</div>
+            <div className="gk-chips" role="group" aria-label="Get involved">{kinds.map(k => <button key={k.id} type="button" className="gk-chip gk-club-involved__chip" data-kind={k.id} aria-pressed={k.id === kind} onClick={() => show(k.id)}>{k.label}</button>)}</div>
             <Link className="gk-section__action gk-row" to={current.global}>{current.all}<ArrowUpRight size={14} aria-hidden="true" /></Link>
         </div>
         {kind === 'store' && <StorePage />}

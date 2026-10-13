@@ -8,6 +8,7 @@ import { activityColors, activityIcons } from '../../schedule/activityIcons';
 import { SquadTrainingSchedule } from '../SquadTrainingSchedule';
 import { FacilityDirectionsPanel } from '../FacilityDirectionsPanel';
 import type { PublicFacility } from '../ClubPlaceCard';
+import { placeType } from '../clubPlaceTypes';
 import type { TrainingSession } from '../trainingCalendar';
 import { money, programmeAge, programmePrice, type TrainingProgramme } from '../presentation';
 import { squadLine, trainingPath, type ClubEnquiryContext, type PublicSquad, type PublicStaff } from '../publicJourney';
@@ -35,7 +36,8 @@ export function ClubSquadPage({ club, squad, programmes, onContact, isAuthentica
     const sessions = timetable.data?.canView ? timetable.data.sessions.filter(s => Date.parse(s.endsAt) >= now).sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt)) : [];
     const trains = trainsLine(sessions);
     const staff = coaches(people.data ?? [], squad.id);
-    const venues = (places.data ?? []).filter(f => f.squadId == null || f.squadId === squad.id);
+    // Pitches and grounds only: a gym or a medical room is not where a visitor goes for a first session.
+    const venues = (places.data ?? []).filter(f => placeType(f) !== 'FACILITY' && (f.squadId == null || f.squadId === squad.id));
     const programme = programmes[0];
     const enquiry: ClubEnquiryContext = { name: squad.name, path: trainingPath(club.id, { squad: squad.id }), squadIds: [squad.id] };
     const roster = `/clubs/${club.id}/squads?squad=${squad.id}`;

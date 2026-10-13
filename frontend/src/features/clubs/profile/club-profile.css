@@ -14,6 +14,10 @@
 /* The side columns are boxes with a tinted title line, so they read apart from the tab in the middle:
    green for the club's information on the left, violet for ways to get involved on the right. */
 .gk.gk-club-page .gk-profile__side { gap: var(--gk-4); }
+/* Both columns stay on screen under the tab row while the tab scrolls; a long column scrolls inside itself. */
+@media (min-width: 1100px) {
+    .gk.gk-club-page .gk-profile__side { position: sticky; top: calc(var(--app-active-header-height, 0px) + 56px); align-self: start; max-height: calc(100vh - var(--app-active-header-height, 0px) - 72px); overflow-y: auto; scrollbar-width: thin; }
+}
 .gk.gk-club-page .gk-profile-side { --side-tone: var(--gk-accent); gap: 0; padding: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; }
 .gk.gk-club-page .gk-profile__side:not(.gk-profile__side--left) .gk-profile-side { --side-tone: var(--gk-violet); }
 .gk.gk-club-page .gk-profile-side__head { align-items: center; padding: var(--gk-2) var(--gk-4); min-height: 44px; border-bottom: 1px solid var(--gk-line); background: color-mix(in srgb, var(--side-tone) 9%, var(--gk-surface)); box-shadow: inset 3px 0 0 var(--side-tone); }

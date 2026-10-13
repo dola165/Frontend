@@ -45,7 +45,14 @@ get('/clubs', ({ query, headers }) => {
   // BACKEND NEEDED (World › Clubs for a child): `age` keeps clubs with a published programme for that age.
   const age = query.has('age') ? Number(query.get('age')) : null;
   const fits = c => age == null || (c.presentation?.programmes ?? []).some(p => p.published && (p.ageMin != null || p.ageMax != null) && (p.ageMin == null || age >= p.ageMin) && (p.ageMax == null || age <= p.ageMax));
-  let items = W.clubs.map(c => forViewer(C.directoryItem(c.id), headers)).filter(fits).filter(c => (!search || `${c.name} ${c.cityName} ${c.description}`.toLowerCase().includes(search))
+  // BACKEND NEEDED (World › Clubs filters): `ageGroup` (U12 means a player of 11), `feeMin`/`feeMax` (a published programme's
+  // monthly fee, free counting as 0) and `gender`. The sandbox's clubs state no gender, so every club matches it.
+  const group = query.get('ageGroup') ?? '', groupAge = /^U\d+$/.test(group) ? Number(group.slice(1)) - 1 : group ? 18 : null;
+  const published = c => (c.presentation?.programmes ?? []).filter(p => p.published);
+  const inGroup = c => groupAge == null || published(c).some(p => (p.ageMin == null || groupAge >= p.ageMin) && (p.ageMax == null || groupAge <= p.ageMax));
+  const feeMin = Number(query.get('feeMin')), feeMax = Number(query.get('feeMax')), feeOf = p => p.priceType === 'FREE' ? 0 : p.amount != null ? Number(p.amount) : null;
+  const inFee = c => (!query.get('feeMin') && !query.get('feeMax')) || published(c).some(p => { const fee = feeOf(p); return fee != null && (!query.get('feeMin') || fee >= feeMin) && (!query.get('feeMax') || fee <= feeMax); });
+  let items = W.clubs.map(c => forViewer(C.directoryItem(c.id), headers)).filter(fits).filter(inGroup).filter(inFee).filter(c => (!search || `${c.name} ${c.cityName} ${c.description}`.toLowerCase().includes(search))
     && (!types.length || types.includes(c.type)) && (!policies.length || policies.includes(c.playerJoinPolicy))
     && (!city || c.cityName.toLowerCase().includes(city)) && (!country || 'georgia ge'.includes(country)));
   const sort = query.get('sort') ?? 'NEWEST';

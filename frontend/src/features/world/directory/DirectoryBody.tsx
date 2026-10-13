@@ -12,7 +12,7 @@ import { pairBounds } from '../map/away';
 import { reachBounds } from '../map/reach';
 import { useWorldChild } from '../players';
 import { BelowMapHead } from '../stage/BelowMap';
-import { StagePanel, StageTop } from '../stage/WorldStage';
+import { StagePanel, StageSide, StageTop } from '../stage/WorldStage';
 import { useStage, WIDE } from '../stage/stageContext';
 import { useMediaQuery } from '../useMediaQuery';
 import { ANYWHERE, useWorldArea } from '../useWorldArea';
@@ -71,9 +71,9 @@ function useRoleDefaults(state: DirectoryState, apply: boolean, signedIn: boolea
  * Under the map the results sit in one column the width of the Home feed, with what is pressed beside it
  * (`ListSplit`); the tab's filters are in the header, above the map and the list alike.
  *
- * In the Map tab (`side`) the panel is a column on the map's left holding the page's head (search, kinds), the filters
- * as lines and the results, and nothing is drawn below the map. While the map is open the list follows it: only
- * results whose pin is on screen are listed, and the rest are counted.
+ * In the Map tab (`side`) a column on the map's left holds the page's head (search, kinds) and the filters as lines;
+ * the Browse area keeps its panel on the right, and while the map is open beside it nothing is drawn below and the
+ * list follows the map: only results whose pin is on screen are listed, and the rest are counted.
  */
 export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onClear, side, head, filters }: {
     state: DirectoryState; signedIn: boolean; /** Write this tab's defaults for who is looking. */ applyDefaults: boolean;
@@ -98,9 +98,9 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     useRestoredScroll((gated && authStatus !== 'bootstrapping') || (!data.loading && (data.items.length > 0 || Boolean(data.error || data.notice))));
     const stage = useStage();
     const wide = useMediaQuery(WIDE, true);
-    const browse = stage.inStage && !gated && (side || (stage.mapOpen && wide));
-    // The column's list follows the map only while the map is open beside it.
-    const following = Boolean(side) && stage.inStage && stage.mapOpen && wide && !gated;
+    const browse = stage.inStage && stage.mapOpen && wide && !gated;
+    // In the Map tab the list follows the map while the map is open beside it.
+    const following = Boolean(side) && browse;
     const [view, setView] = useState<MapBounds | null>(null);
     const listRef = useRef<HTMLDivElement>(null);
     const { remember } = useWorldChild();
@@ -183,24 +183,27 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
             {t(source.signInReason!)}
         </EmptyNote>
     );
-    if (gated && side) return <StagePanel><section className="gk-world-side">{head}<div className="gk-world-side__body"><Panel>{signIn}</Panel></div></section></StagePanel>;
-    if (gated) return <ListSplit>
-        <BelowMapHead icon={source.icon} title={title} />
-        <Panel>{signIn}</Panel>
-    </ListSplit>;
+    // The Map tab's column: the page's head and its filters, standing on the map's left.
+    const column = side && <StageSide><section className="gk-world-side">{head}<div className="gk-world-side__body">{filters}</div></section></StageSide>;
+    if (gated) return <>
+        {column}
+        <ListSplit>
+            <BelowMapHead icon={source.icon} title={title} />
+            <Panel>{signIn}</Panel>
+        </ListSplit>
+    </>;
 
-    const panel = browse && (
-        <BrowsePanel source={source} data={shown} groups={panelGroups} places={placed.places} count={panelCount} tools={sort} folded={stage.panelFolded} onToggle={stage.togglePanel}
-            flat={side} picture={side} outside={following && offScreen > 0 ? { count: offScreen, showAll: choice.showAll } : undefined} />
-    );
     return (
         <MapExtrasContext.Provider value={setExtras}>
             <DirectorySelectionContext.Provider value={stage.mapOpen ? { pinOf: mappable ? placed.pinOf : NO_PINS, selectedPin: choice.selectedPin, hoverPin: choice.hoverPin,
                 hover: choice.setHoverKey, chosen: choice.chosen, choose: choice.choose, clear: choice.clear, selectPin: choice.selectPin, mappable, placing: placed.loading, incomplete: placed.incomplete } : null}>
-                {side
-                    ? <StagePanel><section className="gk-world-side">{head}<div className="gk-world-side__body" data-browse-scroll>{filters}{panel}</div></section></StagePanel>
-                    : panel && <StagePanel>{panel}</StagePanel>}
-                {!side && <ListSplit>
+                {column}
+                {browse && <StagePanel>
+                    <BrowsePanel source={source} data={shown} groups={panelGroups} places={placed.places} count={panelCount} tools={sort} folded={stage.panelFolded} onToggle={stage.togglePanel}
+                        picture={side} outside={following && offScreen > 0 ? { count: offScreen, showAll: choice.showAll } : undefined} />
+                </StagePanel>}
+                {/* The Map tab draws nothing under the map while the Browse area shows the results; folded or narrow, they come below as on every tab. */}
+                {!following && <ListSplit>
                     {Top && <StageTop><Top query={query} go={state.go} /></StageTop>}
                     {belowHead}
                     {Tools && <Tools query={query} go={state.go} refresh={data.retry} />}

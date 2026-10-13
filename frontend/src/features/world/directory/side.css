@@ -1,5 +1,5 @@
-/* The Map tab's column, on the map's left: the search and the kinds at the top, then the filters as long lines and
-   the results on screen, in one scroll. On narrower screens the column sits under the map. Scoped under .gk; tokens only. */
+/* The Map tab's column, on the map's left: the search and the kinds at the top, then the filters as long lines, which
+   scroll when there are many. On narrower screens the column sits under the map. Scoped under .gk; tokens only. */
 .gk .gk-world-side { display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; }
 .gk .gk-world-side__head { flex: none; display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-3); border-bottom: 1px solid var(--gk-line); }
 .gk .gk-world-side__search { display: flex; align-items: center; gap: var(--gk-2); }

@@ -4,7 +4,7 @@ import { useWorldCopy } from '../copy';
 import { DirectoryPage } from '../directory/DirectoryPage';
 import type { AnySource } from '../directory/types';
 import { useWorldChild } from '../players';
-import { useWorldArea } from '../useWorldArea';
+import { useClubLocations, useWorldArea } from '../useWorldArea';
 import { WorldLoading } from '../WorldLoading';
 import { clubsSource } from './clubSources';
 import { events as allEvents } from './matches/otherSources';
@@ -26,7 +26,8 @@ export default function MapDirectory() {
     const { child, pending } = useWorldChild();
     const { area } = useWorldArea();
     const lat = area.centre?.lat, lng = area.centre?.lng;
-    const clubs = useMemo<AnySource>(() => ({ ...clubsSource({ child, centre: lat != null && lng != null ? { lat, lng } : null }), tone: 'club' }), [child, lat, lng]);
+    const locations = useClubLocations();
+    const clubs = useMemo<AnySource>(() => ({ ...clubsSource({ child, centre: lat != null && lng != null ? { lat, lng } : null, locations }), tone: 'club' }), [child, lat, lng, locations]);
     // A link for one child waits for the person's children, so the first search already fits that child.
     if (pending) return <WorldLoading />;
     return (

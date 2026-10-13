@@ -29,5 +29,10 @@
 @media (pointer: coarse) { .gk .gk-world-filters > .gk-chip, .gk .gk-world-pill > .gk-chip, .gk .gk-world-filters__clear, .gk .gk-world-pill__option { min-height: 44px; } }
 @media (prefers-reduced-motion: reduce) { .gk .gk-world-pill__pop { animation: none; } }
 
+/* A range: its two ends side by side with a dash between, the unit after. */
+.gk .gk-world-range { display: flex; align-items: center; gap: var(--gk-2); min-width: 0; }
+.gk .gk-world-range > .gk-input { flex: 1 1 0; min-width: 0; width: auto; }
+.gk .gk-world-range > span { flex: none; color: var(--gk-text-3); }
+.gk .gk-world-range__unit { font-size: var(--gk-fs-xs); white-space: nowrap; }
 .gk .gk-world-check { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 40px; font-size: var(--gk-fs-sm); font-weight: 500; cursor: pointer; }
 .gk .gk-world-check input { width: 18px; height: 18px; accent-color: var(--gk-accent); }

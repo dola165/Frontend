@@ -3,7 +3,7 @@ import { Check, ChevronDown, LocateFixed, SlidersHorizontal, X } from 'lucide-re
 import { Chip, Field } from '../../../design/primitives';
 import { useWorldCopy } from '../copy';
 import { useWorldData } from '../useWorldData';
-import { offered, type ChoiceFilter, type DirectoryQuery, type FilterDef, type NearbyFilter, type ScopeFilter } from './types';
+import { offered, rangeOf, rangeValue, type ChoiceFilter, type DirectoryQuery, type FilterDef, type NearbyFilter, type RangeFilter, type ScopeFilter } from './types';
 import type { DirectoryState } from './useDirectoryState';
 import { LookPicker } from './pickers';
 import './filters.css';
@@ -46,11 +46,31 @@ function TextField({ filter, value, onCommit }: { filter: FilterDef & { placehol
     );
 }
 
-/** One filter as a form control: multi-choice chips, a select, a checkbox, a date or a text field. */
+/**
+ * A range's two ends side by side ("From – To GEL / month"), committing on Enter or when a field loses focus; whole
+ * numbers only, as the fees they stand for.
+ */
+export function RangeInputs({ filter, value, onCommit, onDone }: { filter: RangeFilter; value: string; onCommit: (value: string) => void; /** Enter was pressed, the value committed. */ onDone?: () => void }) {
+    const t = useWorldCopy();
+    const [min, max] = rangeOf(value);
+    const [draft, setDraft] = useState<[string, string]>([min, max]);
+    const [seen, setSeen] = useState(value);
+    if (seen !== value) { setSeen(value); setDraft([min, max]); }
+    const commit = () => { const next = rangeValue(draft[0].trim(), draft[1].trim()); if (next !== value) onCommit(next); };
+    const field = (end: 0 | 1) => (
+        <input className="gk-input" inputMode="numeric" value={draft[end]} maxLength={9} placeholder={t(end ? 'To' : 'From')} aria-label={`${t(filter.label)}: ${t(end ? 'To' : 'From')}`}
+            onChange={event => setDraft(current => end ? [current[0], event.target.value] : [event.target.value, current[1]])} onBlur={commit}
+            onKeyDown={event => { if (event.key === 'Enter') { commit(); onDone?.(); } }} />
+    );
+    return <div className="gk-world-range">{field(0)}<span aria-hidden="true">–</span>{field(1)}{filter.unit && <span className="gk-world-range__unit">{filter.unit}</span>}</div>;
+}
+
+/** One filter as a form control: multi-choice chips, a select, a checkbox, a date, a range or a text field. */
 export function FilterField({ filter, state, signedIn }: { filter: FilterDef; state: FilterControls; signedIn: boolean }) {
     const t = useWorldCopy();
     const id = useId();
     const value = state.query.values[filter.key]?.[0] ?? '';
+    if (filter.kind === 'range') return <div className="gk-field"><span className="gk-field__label">{t(filter.label)}</span><RangeInputs filter={filter} value={value} onCommit={next => state.setValues(filter.key, next ? [next] : [])} /></div>;
     if (filter.kind === 'choice' && filter.multi) return <div className="gk-field"><span className="gk-field__label">{t(filter.label)}</span><ChoiceChips filter={filter} state={state} signedIn={signedIn} /></div>;
     if (filter.kind === 'choice') return (
         <Field label={t(filter.label)} htmlFor={id}>

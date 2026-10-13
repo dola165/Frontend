@@ -81,10 +81,9 @@ function GroupHeader({ group, count }: { group: ResultGroup; count: number }) {
  * how many there are and the sort at the top. It folds to its header so the whole map shows. Grouped lists show
  * each group under a header that chooses its pin.
  */
-export function BrowsePanel({ source, data, groups, places, count, tools, folded, onToggle, flat, picture, outside }: {
+export function BrowsePanel({ source, data, groups, places, count, tools, folded, onToggle, picture, outside }: {
     source: AnySource; data: DirectoryData; groups?: ArrangedGroup<unknown>[]; /** Crests for lines that show them. */ places?: Places; /** "10 clubs near Tbilisi". */ count: string; /** The sort, when there is one. */ tools?: ReactNode;
     folded: boolean; onToggle: () => void;
-    /** Part of a column that scrolls as a whole (the Map tab): no frame of its own, and its body does not scroll by itself. */ flat?: boolean;
     /** Lines lead with a bigger crest, their picture. */ picture?: boolean;
     /** The list follows the map: how many results are off screen, and the way to frame every pin again. */ outside?: { count: number; showAll: () => void };
 }) {
@@ -103,7 +102,7 @@ export function BrowsePanel({ source, data, groups, places, count, tools, folded
     };
     const row = (item: unknown) => <DirectoryItemKey.Provider key={source.key(item)} value={source.key(item)}><BrowseRow line={source.line(item, places)} picture={picture} /></DirectoryItemKey.Provider>;
     return (
-        <section className="gk-browse" data-folded={folded || undefined} data-flat={flat || undefined} data-picture={picture || undefined} aria-labelledby={heading}>
+        <section className="gk-browse" data-folded={folded || undefined} data-picture={picture || undefined} aria-labelledby={heading}>
             <header className="gk-browse__head">
                 <span className="gk-browse__icon" aria-hidden="true"><Compass /></span>
                 <span className="gk-browse__titles"><h2 id={heading}>{t('Browse area')}</h2><small role="status">{count}</small></span>
@@ -111,7 +110,7 @@ export function BrowsePanel({ source, data, groups, places, count, tools, folded
                 <button type="button" className="gk-browse__fold" aria-expanded={!folded} aria-controls={bodyId} onClick={onToggle}
                     aria-label={folded ? t('Show {name}', { name: t('Browse area') }) : t('Fold {name} away', { name: t('Browse area') })} />
             </header>
-            {!folded && <div id={bodyId} className="gk-browse__body" data-browse-scroll={flat ? undefined : true}>
+            {!folded && <div id={bodyId} className="gk-browse__body" data-browse-scroll>
                 {tools && <div className="gk-browse__tools">{tools}</div>}
                 {data.notice ? <p className="gk-browse__note">{data.notice}</p>
                     : data.loading ? <div className="gk-browse__loading" aria-hidden="true">{[0, 1, 2, 3].map(i => <Skeleton key={i} height={40} />)}</div>

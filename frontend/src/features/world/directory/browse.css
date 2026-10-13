@@ -72,12 +72,7 @@
 .gk .gk-browse__outside button { min-height: 32px; padding: 0 var(--gk-2); border: 0; border-radius: var(--gk-r-sm); background: none; color: var(--gk-accent); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }
 .gk .gk-browse__outside button:hover { background: var(--gk-hover); }
 
-/* In the Map tab's column the panel is part of one scroll: no frame of its own, its body as tall as its list, its
-   group headers sticking in the column; and every line leads with a 44px crest, its picture. */
-.gk .gk-browse[data-flat] { border: 0; border-radius: 0; background: none; overflow: visible; }
-.gk .gk-browse[data-flat] .gk-browse__head { position: sticky; top: 0; z-index: 2; background: var(--gk-surface); }
-.gk .gk-browse[data-flat] .gk-browse__body { flex: none; overflow: visible; }
-.gk .gk-browse[data-flat] .gk-browse__group { top: 56px; }
+/* In the Map tab every line leads with a 44px crest, its picture. */
 .gk .gk-browse[data-picture] .gk-browse__row { min-height: 64px; padding-block: 8px; }
 .gk .gk-browse[data-picture] .gk-browse__row > .gk-avatar { border-radius: 10px; }
 .gk .gk-browse[data-picture] .gk-sb__main small { font-size: var(--gk-fs-sm); }

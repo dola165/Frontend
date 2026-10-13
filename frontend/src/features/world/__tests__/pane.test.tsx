@@ -32,7 +32,7 @@ function screenWidth(wide: boolean) {
 /** The World stage's pane state, as WorldStage keeps it, around a page and the drawers. */
 function Stage({ children }: { children: ReactNode }) {
     const [paneHost, setPaneHost] = useState<HTMLElement | null>(null);
-    const value = useMemo<StageValue>(() => ({ inStage: true, head: null, panel: null, dock: null, top: null, setMap: () => undefined, mapOpen: false, toggleMap: () => undefined,
+    const value = useMemo<StageValue>(() => ({ inStage: true, head: null, panel: null, dock: null, side: null, top: null, setMap: () => undefined, mapOpen: false, toggleMap: () => undefined,
         panelFolded: false, togglePanel: () => undefined, paneHost, setPaneHost }), [paneHost]);
     return <StageContext.Provider value={value}>{children}<Drawers /></StageContext.Provider>;
 }

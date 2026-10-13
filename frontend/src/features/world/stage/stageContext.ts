@@ -12,8 +12,8 @@ export interface StageMap {
     /** What the folded strip says ("10 clubs"). */ summary?: string;
     /** The page puts a panel over the map's right side: the map keeps clear of it. */ panel?: boolean;
     /**
-     * The Map tab: the panel stands on the map's left as a solid column and the map fills the screen under the World
-     * bar, with no header row and nothing below. The map answers the wheel directly (the page does not scroll).
+     * The Map tab: a solid column stands on the map's left (`StageSide`), the map fills the screen under the World
+     * bar, with no header row and nothing below, and it answers the wheel directly (the page does not scroll).
      */
     side?: boolean;
     /** The map's view after every move, the person's and the map's own (framing, a flight), so a list can follow what is on screen. */
@@ -39,13 +39,14 @@ export interface MapFocus { id: string; token: string; /** Frame this box instea
 export interface StageValue {
     /** False outside World (tests, previews): the page's header and panel then render where they are. */ inStage: boolean;
     head: HTMLElement | null; panel: HTMLElement | null; /** The strip docked at the map's bottom left. */ dock: HTMLElement | null;
+    /** The column standing on the map's left (the Map tab's search, kinds and filters). */ side: HTMLElement | null;
     /** The slot at the map's top left (the day strip). */ top: HTMLElement | null; setMap: (map: StageMap | null) => void;
     /** The map is open (not folded to a strip). */ mapOpen: boolean; toggleMap: () => void;
     /** The panel is folded to its header. */ panelFolded: boolean; togglePanel: () => void;
     /** The list column that can show the pane beside it, while one is on screen. */ paneHost: HTMLElement | null; setPaneHost: (host: HTMLElement | null) => void;
 }
 
-const outside: StageValue = { inStage: false, head: null, panel: null, dock: null, top: null, setMap: () => undefined, mapOpen: false, toggleMap: () => undefined, panelFolded: false, togglePanel: () => undefined,
+const outside: StageValue = { inStage: false, head: null, panel: null, dock: null, side: null, top: null, setMap: () => undefined, mapOpen: false, toggleMap: () => undefined, panelFolded: false, togglePanel: () => undefined,
     paneHost: null, setPaneHost: () => undefined };
 export const StageContext = createContext<StageValue>(outside);
 

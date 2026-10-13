@@ -20,6 +20,8 @@ export interface RememberedChoice { read: () => string | undefined; write: (valu
 interface FilterBase {
     key: string;
     label: string;
+    /** Shown as a pill (or a line) of its own; the rest sit in More filters. */
+    primary?: boolean;
     /** Shown only when this returns true, for filters that apply to one choice of another filter. */
     when?: (query: DirectoryQuery) => boolean;
     /**
@@ -29,9 +31,9 @@ interface FilterBase {
      */
     nav?: true;
 }
-/** A set of options. `primary` choices show as chips above the results; the rest sit in More filters. */
+/** A set of options. */
 export interface ChoiceFilter extends FilterBase {
-    kind: 'choice'; options: FilterOption[]; multi?: boolean; primary?: boolean; allLabel?: string;
+    kind: 'choice'; options: FilterOption[]; multi?: boolean; allLabel?: string;
     /** Used when the URL has no value; omit for an "all" choice. */ fallback?: string;
     /** Used when the URL has no value, and updated when the person chooses. */ remember?: RememberedChoice;
     /**
@@ -41,9 +43,21 @@ export interface ChoiceFilter extends FilterBase {
     look?: 'pitch' | 'ladder' | 'tiles';
 }
 /** An on/off filter sent as `key=true`. */
-export interface ToggleFilter extends FilterBase { kind: 'toggle'; primary?: boolean }
+export interface ToggleFilter extends FilterBase { kind: 'toggle' }
 export interface TextFilter extends FilterBase { kind: 'text'; placeholder?: string; /** The keyboard a phone shows ("numeric" for whole numbers). */ inputMode?: 'numeric' | 'text' }
 export interface DateFilter extends FilterBase { kind: 'date'; /** Dates before this day (YYYY-MM-DD) cannot be chosen. */ min?: () => string }
+/** From–to whole numbers (a training fee), kept as one value `min-max` where either end may be empty ("50-", "-150"). */
+export interface RangeFilter extends FilterBase { kind: 'range'; /** Said after the numbers ("GEL / month"). */ unit?: string }
+/** The two ends of a range filter's value. */
+export const rangeOf = (value: string): [string, string] => { const [min = '', max = ''] = value.split('-'); return [min, max]; };
+/** A range filter's value for its two ends; empty when both are. */
+export const rangeValue = (min: string, max: string) => min || max ? `${min}-${max}` : '';
+/** What a range says on its pill or line: "50–150 GEL / month", "from 50", "up to 150", else "Any". */
+export function rangeLabel(filter: RangeFilter, value: string, t: (en: string, vars?: Record<string, string | number>) => string) {
+    const [min, max] = rangeOf(value);
+    const unit = filter.unit ? ` ${filter.unit}` : '';
+    return min && max ? `${min}–${max}${unit}` : min ? t('from {value}', { value: min + unit }) : max ? t('up to {value}', { value: max + unit }) : t('Any');
+}
 /** A scope that arrives in a link (one club, one competition). It has no control; it shows as a removable chip. */
 export interface ScopeFilter extends FilterBase {
     kind: 'scope';
@@ -52,7 +66,7 @@ export interface ScopeFilter extends FilterBase {
 }
 /** Results within `km` of the person's device location, sent as "lat,lng". Location is asked for only when chosen. */
 export interface NearbyFilter extends FilterBase { kind: 'nearby'; km: number }
-export type FilterDef = ChoiceFilter | ToggleFilter | TextFilter | DateFilter | ScopeFilter | NearbyFilter;
+export type FilterDef = ChoiceFilter | ToggleFilter | TextFilter | DateFilter | RangeFilter | ScopeFilter | NearbyFilter;
 
 /** The choices a person may make: some are offered only once signed in. */
 export const offered = (filter: ChoiceFilter, signedIn: boolean) => filter.options.filter(option => signedIn || !option.signedIn);

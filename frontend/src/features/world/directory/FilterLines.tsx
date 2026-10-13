@@ -2,9 +2,9 @@ import { useId, useState, type ReactNode } from 'react';
 import { Check, ChevronDown, LocateFixed, SlidersHorizontal, X } from 'lucide-react';
 import { useWorldCopy } from '../copy';
 import { useWorldData } from '../useWorldData';
-import type { FilterControls } from './DirectoryFilters';
+import { RangeInputs, type FilterControls } from './DirectoryFilters';
 import { LookPicker } from './pickers';
-import { offered, type ChoiceFilter, type DateFilter, type FilterDef, type NearbyFilter, type ScopeFilter, type TextFilter } from './types';
+import { offered, rangeLabel, type ChoiceFilter, type DateFilter, type FilterDef, type NearbyFilter, type RangeFilter, type ScopeFilter, type TextFilter } from './types';
 import type { DirectoryState } from './useDirectoryState';
 import './lines.css';
 
@@ -78,6 +78,18 @@ function InputLine({ filter, state }: { filter: TextFilter | DateFilter; state: 
     );
 }
 
+/** A from–to range as a line (a training fee): pressed, it opens its two ends under it. */
+function RangeLine({ filter, state }: { filter: RangeFilter; state: FilterControls }) {
+    const t = useWorldCopy();
+    const [open, setOpen] = useState(false);
+    const value = state.query.values[filter.key]?.[0] ?? '';
+    return (
+        <Line label={t(filter.label)} value={rangeLabel(filter, value, t)} open={open} on={Boolean(value)} onToggle={() => setOpen(current => !current)}>
+            <RangeInputs filter={filter} value={value} onCommit={next => state.setValues(filter.key, next ? [next] : [])} onDone={() => setOpen(false)} />
+        </Line>
+    );
+}
+
 /** An on/off filter: the line itself is the switch, a tick at its end when on. */
 function ToggleLine({ filter, state }: { filter: FilterDef; state: FilterControls }) {
     const t = useWorldCopy();
@@ -133,6 +145,7 @@ function FilterLine({ filter, state, signedIn }: { filter: FilterDef; state: Fil
     if (filter.kind === 'toggle') return <ToggleLine filter={filter} state={state} />;
     if (filter.kind === 'nearby') return <NearbyLine filter={filter} state={state} />;
     if (filter.kind === 'text' || filter.kind === 'date') return <InputLine filter={filter} state={state} />;
+    if (filter.kind === 'range') return <RangeLine filter={filter} state={state} />;
     return null;
 }
 
@@ -145,7 +158,8 @@ export function FilterLines({ state, signedIn, onClear }: { state: DirectoryStat
     const t = useWorldCopy();
     const visible = state.source.filters.filter(filter => filter.kind !== 'scope' && !filter.nav && (!filter.when || filter.when(state.query)));
     const scopes = state.activeFilters.filter(filter => filter.kind === 'scope');
-    const isPrimary = (filter: FilterDef) => filter.kind === 'nearby' || ((filter.kind === 'choice' || filter.kind === 'toggle') && filter.primary);
+    // A line can be any kind of filter, so every one marked primary comes first.
+    const isPrimary = (filter: FilterDef) => filter.kind === 'nearby' || Boolean(filter.primary);
     const primary = visible.filter(isPrimary), secondary = visible.filter(filter => !isPrimary(filter));
     const secondaryActive = state.activeFilters.filter(filter => secondary.includes(filter)).length;
     const [more, setMore] = useState(secondaryActive > 0);

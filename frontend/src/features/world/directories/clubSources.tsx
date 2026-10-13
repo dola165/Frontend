@@ -1,13 +1,15 @@
 import type { Participant } from '../../admissions/types';
 import type { ClubProfile } from '../../../components/discovery/clubDirectoryTypes';
+import type { ClubLocationItem } from '../../../components/discovery/clubLocationTypes';
 import { distanceKm } from '../../../components/map/walkingGraph';
 import { fetchClubDirectory } from '../api';
 import { ClubRow } from '../cards/ClubRow';
-import { first, type DirectoryQuery, type DirectorySource } from '../directory/types';
+import { first, rangeOf, type DirectoryQuery, type DirectorySource, type FilterOption } from '../directory/types';
 import { wt } from '../copy';
 import { clubTypeLabel, distanceLabel } from '../format';
 import { ageOn } from '../players';
 import { JOIN_POLICY_FILTER } from './clubFilters';
+import { AGE_OPTIONS } from './matches/listings';
 
 const PAGE = 12;
 /** The kinds of club a person thinks in, each standing for the club types the directory knows. */
@@ -27,13 +29,21 @@ export function childLabel(child?: Participant) {
     return age != null ? `${name} (${age})` : name;
 }
 
+/** The countries and cities clubs are in, each once, in alphabetical order, as choices. */
+export function placeOptions(locations: ClubLocationItem[] = []): { countries: FilterOption[]; cities: FilterOption[] } {
+    const names = (pick: (item: ClubLocationItem) => string | null | undefined) =>
+        [...new Set(locations.map(item => pick(item)?.split(',')[0].trim()).filter((name): name is string => Boolean(name)))].sort((a, b) => a.localeCompare(b)).map(name => ({ value: name, label: name }));
+    return { countries: names(item => item.countryName), cities: names(item => item.cityName) };
+}
+
 /**
  * Clubs near the World area: academies, schools, community and pro clubs. For a parent searching for a child
  * (chosen in the World bar), only clubs with a programme for the child's age are asked for, and each card shows
- * what fits. On the map each club is its own pin.
+ * what fits. On the map each club is its own pin. `locations` (every club's country and city) fill the place choices.
  */
-export function clubsSource({ child, centre }: { child?: Participant; centre?: { lat: number; lng: number } | null } = {}): DirectorySource<ClubProfile> {
+export function clubsSource({ child, centre, locations }: { child?: Participant; centre?: { lat: number; lng: number } | null; locations?: ClubLocationItem[] } = {}): DirectorySource<ClubProfile> {
     const distance = (club: ClubProfile) => centre && club.latitude != null && club.longitude != null ? distanceKm([centre.lng, centre.lat], [club.longitude, club.latitude]) : undefined;
+    const places = placeOptions(locations);
     return {
         id: 'clubs',
         label: 'Clubs',
@@ -49,6 +59,12 @@ export function clubsSource({ child, centre }: { child?: Participant; centre?: {
             { kind: 'choice', key: 'type', label: 'Kind of club', primary: true, multi: true, options: [
                 { value: 'ACADEMY', label: 'Academies' }, { value: 'SCHOOL', label: 'Football schools' }, { value: 'COMMUNITY', label: 'Community clubs' }, { value: 'PRO', label: 'Pro clubs' },
             ] },
+            // Where, who for and what it costs, in the order a parent asks; the backend takes them as named here.
+            { kind: 'choice', key: 'country', label: 'Country', primary: true, allLabel: 'Any country', options: places.countries },
+            { kind: 'choice', key: 'city', label: 'City', primary: true, allLabel: 'Any city', options: places.cities },
+            { kind: 'choice', key: 'ageGroup', label: 'Age group', primary: true, allLabel: 'Any age group', options: AGE_OPTIONS },
+            { kind: 'choice', key: 'gender', label: 'Who plays', primary: true, allLabel: 'Everyone', options: [{ value: 'MALE', label: 'Boys and men' }, { value: 'FEMALE', label: 'Girls and women' }, { value: 'MIXED', label: 'Mixed' }] },
+            { kind: 'range', key: 'fee', label: 'Training fee', primary: true, unit: 'GEL / month' },
             { kind: 'toggle', key: 'open', label: 'Taking new players', primary: true },
             { ...JOIN_POLICY_FILTER, primary: false },
         ],
@@ -60,7 +76,13 @@ export function clubsSource({ child, centre }: { child?: Participant; centre?: {
             clubTypes(query).forEach(value => params.append('type', value));
             joinPolicies(query).forEach(value => params.append('joinPolicy', value));
             if (query.q) params.set('search', query.q);
-            if (area?.city) params.set('city', area.city);
+            // A city chosen in the filters is searched instead of the World area's.
+            const city = first(query, 'city') || area?.city;
+            if (city) params.set('city', city);
+            for (const key of ['country', 'ageGroup', 'gender']) if (first(query, key)) params.set(key, first(query, key));
+            const [feeMin, feeMax] = rangeOf(first(query, 'fee'));
+            if (feeMin) params.set('feeMin', feeMin);
+            if (feeMax) params.set('feeMax', feeMax);
             // Backend needed: `age` keeps clubs with a published programme for that age.
             const age = ageOn(child?.dateOfBirth);
             if (age != null) params.set('age', String(age));

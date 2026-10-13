@@ -60,9 +60,14 @@ export function useWorldArea() {
     return { area, setCity };
 }
 
+/** Every club's country and city, asked for once and shared by the area picker and the club filters. */
+export function useClubLocations() {
+    return useWorldData('world-cities', () => shared('world-cities', () => fetchClubLocationOptions(), 600_000)).data;
+}
+
 /** Cities that have clubs, for the area picker. */
 export function useWorldCities() {
-    const cities = useWorldData('world-cities', () => shared('world-cities', () => fetchClubLocationOptions(), 600_000));
-    const names = [...new Set((cities.data ?? []).map(item => item.cityName?.split(',')[0].trim()).filter((name): name is string => Boolean(name)))];
+    const locations = useClubLocations();
+    const names = [...new Set((locations ?? []).map(item => item.cityName?.split(',')[0].trim()).filter((name): name is string => Boolean(name)))];
     return names.sort((a, b) => a.localeCompare(b));
 }

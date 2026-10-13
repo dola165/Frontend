@@ -5,7 +5,7 @@ import { CreateMenu } from '../compose/CreateMenu';
 import { useWorldCopy } from '../copy';
 import { DirectoryPage } from '../directory/DirectoryPage';
 import { useWorldChild } from '../players';
-import { useWorldArea } from '../useWorldArea';
+import { useClubLocations, useWorldArea } from '../useWorldArea';
 import { WorldLoading } from '../WorldLoading';
 import { childLabel, clubsSource } from './clubSources';
 
@@ -16,7 +16,8 @@ export default function ClubsDirectory() {
     const { child, pending } = useWorldChild();
     const { area } = useWorldArea();
     const lat = area.centre?.lat, lng = area.centre?.lng;
-    const source = useMemo(() => clubsSource({ child, centre: lat != null && lng != null ? { lat, lng } : null }), [child, lat, lng]);
+    const locations = useClubLocations();
+    const source = useMemo(() => clubsSource({ child, centre: lat != null && lng != null ? { lat, lng } : null, locations }), [child, lat, lng, locations]);
     // A link for one child waits for the person's children, so the first search already fits that child.
     if (pending) return <WorldLoading />;
     const who = childLabel(child);

@@ -49,6 +49,7 @@ export function WorldStage({ children }: { children: ReactNode }) {
     const [head, setHead] = useState<HTMLElement | null>(null);
     const [panel, setPanel] = useState<HTMLElement | null>(null);
     const [dock, setDock] = useState<HTMLElement | null>(null);
+    const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null);
     const [top, setTop] = useState<HTMLElement | null>(null);
     const [map, setMap] = useState<StageMap | null>(null);
     const [paneHost, setPaneHost] = useState<HTMLElement | null>(null);
@@ -61,11 +62,11 @@ export function WorldStage({ children }: { children: ReactNode }) {
         return next;
     }, { replace: true, preventScrollReset: true, state: keepPane(state) });
     const wide = useMediaQuery(WIDE, true);
-    // The Map tab: the panel stands on the left and the map fills the screen; the stage draws no header row.
+    // The Map tab: a column stands on the left and the map fills the screen; the stage draws no header row.
     const side = Boolean(map?.side);
     const floating = wide && Boolean(map?.panel) && !panelFolded;
-    const insetRight = floating && !side ? PANEL : 0;
-    const insetLeft = side && wide && map?.panel ? SIDE_PANEL : 0;
+    const insetRight = floating ? PANEL : 0;
+    const insetLeft = side && wide ? SIDE_PANEL : 0;
     const [lead, setLead] = useState<HTMLElement | null>(null);
     useStageTop(lead, side && wide);
     // Folding swaps one button for another; focus follows to the one that undoes it.
@@ -78,8 +79,8 @@ export function WorldStage({ children }: { children: ReactNode }) {
     useEffect(() => { toggles.current = { map: fold.toggle, panel: togglePanel }; });
     const toggleMap = useCallback(() => { toggled.current = true; toggles.current.map(); }, []);
     const togglePanelStable = useCallback(() => toggles.current.panel(), []);
-    const value = useMemo(() => ({ inStage: true, head, panel, dock, top, setMap, mapOpen: fold.open, toggleMap, panelFolded, togglePanel: togglePanelStable, paneHost, setPaneHost }),
-        [head, panel, dock, top, fold.open, toggleMap, panelFolded, togglePanelStable, paneHost]);
+    const value = useMemo(() => ({ inStage: true, head, panel, dock, side: sideSlot, top, setMap, mapOpen: fold.open, toggleMap, panelFolded, togglePanel: togglePanelStable, paneHost, setPaneHost }),
+        [head, panel, dock, sideSlot, top, fold.open, toggleMap, panelFolded, togglePanelStable, paneHost]);
     return (
         <StageContext.Provider value={value}><FollowingProvider>
             <div className="gk-world-stage" data-side={side || undefined}>
@@ -106,6 +107,7 @@ export function WorldStage({ children }: { children: ReactNode }) {
                         </div>}
                     <div className="gk-world-stage__top" ref={setTop} />
                     <div className="gk-world-stage__dock" ref={setDock} />
+                    <div className="gk-world-stage__side" ref={setSideSlot} />
                     <div className="gk-world-stage__panel" ref={setPanel} data-folded={panelFolded || undefined} />
                 </div>
                 {/* The page itself: it fades in when the tab changes, while the frame above stays put. A page that
@@ -132,6 +134,16 @@ export function StagePanel({ children }: { children: ReactNode }) {
     const { inStage, panel } = useStage();
     if (!inStage) return <>{children}</>;
     return panel ? createPortal(<PeekPlaceContext.Provider value="overlay">{children}</PeekPlaceContext.Provider>, panel) : null;
+}
+
+/**
+ * The column on the map's left (the Map tab's search, kinds and filters), solid, as tall as its content; under the
+ * map on narrow screens. Outside World it renders in place.
+ */
+export function StageSide({ children }: { children: ReactNode }) {
+    const { inStage, side } = useStage();
+    if (!inStage) return <>{children}</>;
+    return side ? createPortal(<PeekPlaceContext.Provider value="overlay">{children}</PeekPlaceContext.Provider>, side) : null;
 }
 
 /**

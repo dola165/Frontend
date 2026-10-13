@@ -28,6 +28,7 @@
 .gk .gk-world-line__option[aria-pressed='true'] { color: var(--gk-text); font-weight: 600; }
 .gk .gk-world-line__option svg { width: 15px; height: 15px; margin-left: auto; color: var(--gk-accent); }
 .gk .gk-world-line__choices .gk-input { min-height: 40px; }
+.gk .gk-world-line__choices .gk-world-range__unit { color: var(--gk-text-3); }
 .gk .gk-world-line__note { margin: 0; padding: 0 var(--gk-4) var(--gk-2); font-size: var(--gk-fs-xs); color: var(--gk-text-2); }
 /* The rest of the filters, opened in place under "More filters", set in a little. */
 .gk .gk-world-lines__more { display: flex; flex-direction: column; background: color-mix(in srgb, var(--gk-text) 3%, transparent); }

@@ -5,20 +5,28 @@ import { Button, EmptyNote, List, ListRow, Panel, Section, Skeleton } from '../.
 import { currentProgramme, money, programmeAge, programmePrice, type TrainingProgramme } from '../presentation';
 import { programmeMatchesAge, squadLine, trainingPath, type ClubEnquiryContext, type PublicSquad } from '../publicJourney';
 import { useOverviewSource } from '../useOverviewSource';
+import { ClubSquadPage } from './ClubSquadPage';
 import type { ClubProfile } from './types';
 
 const feeText = (p: TrainingProgramme) => currentProgramme(p) ? programmePrice(p) : p.validFrom && p.validFrom > new Date().toLocaleDateString('en-CA') ? `Fees start ${p.validFrom}` : 'Ask for current fees';
 
 /** The club's squads and its training options with fees, as two lists; opening one shows the squad or programme page. */
-export function ClubTeamsTab({ club, refreshKey = 0, onContact, isAuthenticated }: { club: ClubProfile; refreshKey?: number; onContact: (context: ClubEnquiryContext) => void; isAuthenticated: boolean }) {
+export function ClubTeamsTab({ club, refreshKey = 0, onContact, isAuthenticated, canManage = false }: { club: ClubProfile; refreshKey?: number; onContact: (context: ClubEnquiryContext) => void; isAuthenticated: boolean; canManage?: boolean }) {
     const [params, setParams] = useClubProfileSearchParams();
     const squads = useOverviewSource<PublicSquad[]>(`/clubs/${club.id}/squads${refreshKey ? `?r=${refreshKey}` : ''}`);
-    if (params.get('programme') || params.get('squad')) return <TabTraining club={club} refreshKey={refreshKey} onContact={onContact} isAuthenticated={isAuthenticated} />;
+    const programmes = club.presentation?.programmes.filter(p => p.published) ?? [];
+    const squadId = Number(params.get('squad'));
+    if (squadId > 0 && !params.get('programme')) {
+        const squad = squads.data?.find(s => s.id === squadId);
+        if (squads.loading) return <Panel flush><div className="gk-panel--pad"><Skeleton height={120} /></div></Panel>;
+        if (!squad) return <Panel flush><EmptyNote title="Squad unavailable" action={<Button size="sm" onClick={squads.retry}>Try again</Button>}>This squad may have changed. Browse the club’s current teams.</EmptyNote></Panel>;
+        return <ClubSquadPage club={club} squad={squad} programmes={programmes.filter(p => p.squadIds?.includes(squad.id))} onContact={onContact} isAuthenticated={isAuthenticated} canManage={canManage} />;
+    }
+    if (params.get('programme')) return <TabTraining club={club} refreshKey={refreshKey} onContact={onContact} isAuthenticated={isAuthenticated} />;
 
     const age = /^\d{1,2}$/.test(params.get('age') ?? '') ? params.get('age')! : '', query = (params.get('q') ?? '').trim().toLocaleLowerCase();
     const filter = (key: string, value: string) => { const next = new URLSearchParams(params); if (value) next.set(key, value); else next.delete(key); setParams(next, { replace: true }); };
     const clear = () => { const next = new URLSearchParams(params); next.delete('q'); next.delete('age'); setParams(next, { replace: true }); };
-    const programmes = club.presentation?.programmes.filter(p => p.published) ?? [];
     const groupsOf = (p: TrainingProgramme) => (squads.data ?? []).filter(s => p.squadIds?.includes(s.id));
     const matchedSquads = (squads.data ?? []).filter(s => !query || `${s.name} ${squadLine(s)} ${programmes.filter(p => p.squadIds?.includes(s.id)).map(p => p.name).join(' ')}`.toLocaleLowerCase().includes(query));
     const matched = programmes.filter(p => programmeMatchesAge(p, age) && `${p.name} ${programmeAge(p)} ${groupsOf(p).map(s => s.name).join(' ')}`.toLocaleLowerCase().includes(query));

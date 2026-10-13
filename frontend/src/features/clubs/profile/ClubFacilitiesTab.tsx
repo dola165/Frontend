@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Building2, ChevronDown, MapPin, Navigation, Warehouse } from 'lucide-react';
 import { MediaImage } from '../../../components/ui/MediaImage';
 import { useClubProfileSearchParams } from '../clubProfilePreviewContext';
@@ -36,8 +36,8 @@ export function ClubFacilitiesTab({ club, canEdit }: { club: ClubProfile; canEdi
     const row = (place: PublicFacility, Icon: typeof MapPin) => {
         const photo = photoOf(place), address = addressOf(place), isOpen = open.includes(place.id);
         const amenities = (place.linkedVenue?.amenities ?? []).slice(0, 6).map(a => a.replaceAll('_', ' ').toLowerCase().replace(/^./, c => c.toUpperCase()));
-        return <>
-            <ListRow key={place.id} onClick={() => setOpen(ids => isOpen ? ids.filter(id => id !== place.id) : [...ids, place.id])} current={isOpen}
+        return <Fragment key={place.id}>
+            <ListRow onClick={() => setOpen(ids => isOpen ? ids.filter(id => id !== place.id) : [...ids, place.id])} current={isOpen}
                 lead={photo ? <span className="gk-avatar gk-avatar--square gk-club-place-photo"><MediaImage src={resolveMediaUrl(photo)} alt="" /></span> : <span className="gk-club-icon"><Icon aria-hidden="true" /></span>}
                 title={place.title || 'Location'} meta={[address || 'Address not published', place.squadName || (place.squadId ? 'One squad' : 'Club-wide')].join(' · ')}
                 trail={<ChevronDown aria-hidden="true" className={`gk-faint gk-club-place-chevron${isOpen ? ' is-open' : ''}`} size={16} />} />
@@ -46,7 +46,7 @@ export function ClubFacilitiesTab({ club, canEdit }: { club: ClubProfile; canEdi
                 {amenities.length > 0 && <p className="gk-muted">{amenities.join(' · ')}</p>}
                 <button type="button" className="gk-btn gk-btn--secondary gk-btn--sm" onClick={() => setDirections(place)}><Navigation aria-hidden="true" />Directions</button>
             </li>}
-        </>;
+        </Fragment>;
     };
     return <>
         {(squads.data?.length ?? 0) > 0 && <div className="gk-club-toolbar">

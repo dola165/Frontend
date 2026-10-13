@@ -22,7 +22,11 @@
 .gk.gk-club-page .gk-profile-side > .gk-list { margin: 0; }
 .gk.gk-club-page .gk-profile-side .gk-list-row { padding-inline: var(--gk-4); min-height: 48px; }
 .gk.gk-club-page .gk-profile-side .gk-list > li + li > .gk-list-row { border-top: 1px solid var(--gk-line); }
-.gk.gk-club-page .gk-profile__side:not(.gk-profile__side--left) .gk-club-icon { background: var(--gk-violet-soft); color: var(--gk-violet); }
+/* The established colours: store green, jobs purple, fundraising orange. */
+.gk .gk-club-icon[data-kind='jobs'] { background: var(--gk-violet-soft); color: var(--gk-violet); }
+.gk .gk-club-icon[data-kind='campaigns'], .gk .gk-club-icon[data-kind='fundraising'] { background: color-mix(in srgb, var(--color-orange, #f08a24) 16%, transparent); color: var(--color-orange, #f08a24); }
+.gk .gk-club-involved__chip[aria-pressed='true'][data-kind='jobs'] { background: var(--gk-violet-soft); border-color: color-mix(in srgb, var(--gk-violet) 45%, transparent); }
+.gk .gk-club-involved__chip[aria-pressed='true'][data-kind='fundraising'] { background: color-mix(in srgb, var(--color-orange, #f08a24) 16%, transparent); border-color: color-mix(in srgb, var(--color-orange, #f08a24) 45%, transparent); }
 
 /* Left column: a phone number, an email, one fee line. */
 .gk .gk-club-email { overflow-wrap: anywhere; white-space: normal; }

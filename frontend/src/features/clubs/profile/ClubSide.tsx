@@ -15,7 +15,7 @@ export function ClubSide({ club }: { club: ClubProfile }) {
     return <>
         <SideBlock title="Get involved" hint="Shop, work or give">
             <List label="Ways to get involved">{opportunities.map(item => <ListRow key={item.key} to={item.to}
-                lead={<span className="gk-club-icon"><item.icon aria-hidden="true" /></span>} title={item.title}
+                lead={<span className="gk-club-icon" data-kind={item.key}><item.icon aria-hidden="true" /></span>} title={item.title}
                 meta={item.source.loading ? 'Loading…' : item.source.failed ? 'Currently unavailable' : item.count ? `${item.count} ${item.count === 1 ? item.unit.replace(/s$/, '') : item.unit}` : item.empty} />)}</List>
         </SideBlock>
         {/* The academy link itself sits under the club name; only managing it stays here. */}

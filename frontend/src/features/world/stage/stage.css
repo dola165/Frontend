@@ -72,13 +72,9 @@
 
 /* The Map tab: the map fills the screen under the World bar; a solid column stands on its left (the search, the kinds
    and the filters: no glass, which costs frames over a moving map) and the Browse area keeps its glass panel on the
-   right as on every tab. There is no header row and nothing below, so the page does not scroll and the wheel zooms
-   the map. The map's own things (its key, the pills, a chosen place) keep clear of the column. */
-.gk .gk-world-stage[data-side] { gap: 0; padding-bottom: 0; }
-/* The page is exactly as tall as the map, so nothing scrolls under it. */
-.gk.gk-page:has(> .gk-frame > .gk-world-stage[data-side]) { min-height: 0; }
+   right as on every tab. There is no header row; the rows follow below the map, and the wheel zooms the map. The
+   map's own things (its key, the pills, a chosen place) keep clear of the column. */
 .gk .gk-world-stage[data-side] > .gk-world-stage__head { display: none; }
-.gk .gk-world-stage[data-side] > .gk-world-stage__body { min-height: 0; }
 .gk .gk-world-stage__lead { --gk-side-w: 400px; }
 .gk .gk-world-stage__side:empty { display: none; }
 @media (min-width: 1100px) {

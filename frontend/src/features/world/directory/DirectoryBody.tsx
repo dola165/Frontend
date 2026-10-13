@@ -73,7 +73,7 @@ function useRoleDefaults(state: DirectoryState, apply: boolean, signedIn: boolea
  *
  * With the filters beside the map (`side`, the default) a column on the map's left holds the page's head (search,
  * kinds) and the filters as lines; the Browse area keeps its panel on the right, and while the map is open beside it
- * nothing is drawn below and the list follows the map: only results whose pin is on screen are listed, the rest counted.
+ * the list follows the map: only results whose pin is on screen are listed, the rest counted. The rows come below the map either way.
  */
 export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onClear, side, head, filters }: {
     state: DirectoryState; signedIn: boolean; /** Write this tab's defaults for who is looking. */ applyDefaults: boolean;
@@ -204,16 +204,16 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
                     <BrowsePanel source={source} data={shown} groups={panelGroups} places={placed.places} count={panelCount} tools={sort} folded={stage.panelFolded} onToggle={stage.togglePanel}
                         picture={side} outside={following && offScreen > 0 ? { count: offScreen, showAll: choice.showAll } : undefined} />
                 </StagePanel>}
-                {/* The Map tab draws nothing under the map while the Browse area shows the results; folded or narrow, they come below as on every tab. */}
-                {!following && <ListSplit>
-                    {Top && <StageTop><Top query={query} go={state.go} /></StageTop>}
+                {/* The rows come below the map on every tab, whichever way the filters are placed. */}
+                <ListSplit>
+                    {Top && !following && <StageTop><Top query={query} go={state.go} /></StageTop>}
                     {belowHead}
                     {Tools && !side && <Tools query={query} go={state.go} refresh={data.retry} />}
                     <div ref={listRef}>
                         <DirectoryResults source={source} data={data} groups={groups} filtered={filtered} onClear={clearable ? onClear : undefined} go={state.go} query={query}
                             onWiden={data.area?.city && source.area === true ? () => setCity(ANYWHERE) : undefined} onClearFor={source.forWhom ? clearFor : undefined} />
                     </div>
-                </ListSplit>}
+                </ListSplit>
             </DirectorySelectionContext.Provider>
         </MapExtrasContext.Provider>
     );

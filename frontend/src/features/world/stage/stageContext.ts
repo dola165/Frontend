@@ -13,7 +13,7 @@ export interface StageMap {
     /** The page puts a panel over the map's right side: the map keeps clear of it. */ panel?: boolean;
     /**
      * The Map tab: a solid column stands on the map's left (`StageSide`), the map fills the screen under the World
-     * bar, with no header row and nothing below, and it answers the wheel directly (the page does not scroll).
+     * bar, with no header row, and it answers the wheel directly; the rows follow below it.
      */
     side?: boolean;
     /** The map's view after every move, the person's and the map's own (framing, a flight), so a list can follow what is on screen. */

@@ -1,4 +1,4 @@
-import { Check, LayoutGrid, Megaphone, MessageSquare, Plus, Settings, Swords, UserPlus } from 'lucide-react';
+import { Check, LayoutGrid, Megaphone, MessageSquare, Plus, Swords, UserPlus } from 'lucide-react';
 import { Button, ButtonLink } from '../../../design/primitives';
 import { arrangeOwnMatchPath, openChallengePath, proposeMatchPath } from './clubTabs';
 import type { ClubPermissions } from './useClubProfile';
@@ -6,15 +6,14 @@ import type { ClubProfile } from './types';
 
 /**
  * The header actions, chosen from the viewer's verified relationship: staff open the workspace and start matches
- * from here, another club's staff propose a match, and everyone else can follow or join. One primary action.
+ * from here (club settings live in the workspace), another club's staff propose a match, and everyone else can follow or join. One primary action.
  */
-export function ClubActions({ club, can, onFollow, onJoin, onMessage, onSettings }: {
+export function ClubActions({ club, can, onFollow, onJoin, onMessage }: {
     club: ClubProfile; can: ClubPermissions;
-    onFollow: () => void; onJoin: () => void; onMessage: () => void; onSettings: () => void;
+    onFollow: () => void; onJoin: () => void; onMessage: () => void;
 }) {
     const following = club.isFollowedByMe;
     if (can.canOpenWorkspace) return <>
-        {can.isLeader && <Button id="club-settings-trigger" onClick={onSettings}><Settings aria-hidden="true" />Club settings</Button>}
         {can.canManage && <>
             <ButtonLink to={openChallengePath()}><Megaphone aria-hidden="true" />Open challenge</ButtonLink>
             <ButtonLink to={arrangeOwnMatchPath()}><Swords aria-hidden="true" />Arrange a match</ButtonLink>

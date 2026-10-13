@@ -113,7 +113,7 @@ function ClubProfileView({ id }: { id: number }) {
                 summary: club.description || undefined,
             }}
             banner={club.bannerUrl} bannerAction={images.coverAction} imageAction={images.imageAction}
-            actions={<ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} onSettings={() => setManaging(true)} />}
+            actions={<ClubActions club={club} can={can} onFollow={() => void follow()} onJoin={join} onMessage={message} />}
             notice={<>{notice && <p className="gk-notice gk-notice--danger" role="alert">{notice}</p>}{images.dialogs}</>}
             tabs={clubTabs} tab={tab} onTab={setTab} tabsLabel="Club sections"
             sideLeft={<ClubInfo club={club} />} sideLeftLabel="Club information"
@@ -138,7 +138,7 @@ function ClubProfileView({ id }: { id: number }) {
         <ConfirmDialog open={dissolveOpen} variant="danger" title="Dissolve this club?"
             message="Dissolving is permanent. Club memberships end, pending invitations and applications close, and recruitment stops. Accounts and club history are preserved. Members and followers will be notified. Finish or cancel tournaments the club hosts or organizes, and withdraw its unfinished entries before continuing."
             confirmLabel={dissolving ? 'Dissolving…' : 'Dissolve club'} onConfirm={() => void dissolve()}
-            onCancel={() => { if (dissolving) return; setDissolveOpen(false); requestAnimationFrame(() => document.getElementById('club-settings-trigger')?.focus()); }} />
+            onCancel={() => { if (dissolving) return; setDissolveOpen(false); }} />
     </>;
 }
 

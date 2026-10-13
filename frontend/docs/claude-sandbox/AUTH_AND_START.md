@@ -59,3 +59,7 @@ Registration asks people to choose a role, and much of the app still decides wha
 - A new person registers without choosing a role and lands on a Home with local content within a minute.
 - No screen decides access from the account role; coach, parent and staff areas appear only through confirmed links.
 - The feed follows the ranking above in the sandbox, and "Before release" lists every backend change needed.
+
+## Built (13 October 2026)
+
+Done in one go on branch `claude/auth-and-start-c6307a`. What a new person sees, which role checks remain and the backend list are in the session's report; the decisions taken while building are in `PRODUCT_MODEL.md` ("Taken while building the start") and the remaining work under "Before release" in `ROUND_2.md`. The sandbox now lets anyone register (`sandbox/README.md`, "New accounts").

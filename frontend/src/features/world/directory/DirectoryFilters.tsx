@@ -157,7 +157,7 @@ export function PopoverPill({ label, name, pressed, wide, align, children }: {
     // The row of pills can scroll sideways, so the panel is placed against the strip the pills sit in (under the map, or
     // the header): under its pill (More filters ends at its pill's right edge), and always inside the strip.
     useLayoutEffect(() => {
-        const head = root.current?.closest<HTMLElement>('.gk-world-head__filters, .gk-world-head'), panel = pop.current, pill = button.current;
+        const head = root.current?.closest<HTMLElement>('[data-pop-frame], .gk-world-head'), panel = pop.current, pill = button.current;
         if (!open || !head || !panel || !pill) return;
         const frame = head.getBoundingClientRect(), box = pill.getBoundingClientRect(), width = panel.offsetWidth;
         panel.style.top = `${box.bottom - frame.top + 6}px`;

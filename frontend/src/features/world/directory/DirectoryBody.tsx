@@ -75,10 +75,11 @@ function useRoleDefaults(state: DirectoryState, apply: boolean, signedIn: boolea
  * kinds) and the filters as lines; the Browse area keeps its panel on the right, and while the map is open beside it
  * the list follows the map: only results whose pin is on screen are listed, the rest counted. The rows come below the map either way.
  */
-export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onClear, side, head, filters }: {
+export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onClear, side, head, filters, listFilters }: {
     state: DirectoryState; signedIn: boolean; /** Write this tab's defaults for who is looking. */ applyDefaults: boolean;
     clearable: boolean; onClear: () => void;
     /** The filters beside the map: the column on the map's left, with the page's head and its filters as lines. */ side?: boolean; head?: ReactNode; filters?: ReactNode;
+    /** The same filters as pills on a strip above the rows under the map, so the list has its own. */ listFilters?: ReactNode;
 }) {
     const t = useWorldCopy();
     const { source, query } = state;
@@ -207,6 +208,7 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
                 {/* The rows come below the map on every tab, whichever way the filters are placed. */}
                 <ListSplit>
                     {Top && !following && <StageTop><Top query={query} go={state.go} /></StageTop>}
+                    {listFilters && <div className="gk-world-filterbar" data-pop-frame>{listFilters}</div>}
                     {belowHead}
                     {Tools && !side && <Tools query={query} go={state.go} refresh={data.retry} />}
                     <div ref={listRef}>

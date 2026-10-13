@@ -120,7 +120,7 @@ export function DirectoryPage({ title, subtitle, sources: allSources, extraTabs 
             <div className="gk-world-directory">
                 <DirectoryBody key={`${state.source.id}:${resetKey}`} state={state} signedIn={signedIn} applyDefaults={fresh} clearable={clearable} onClear={clear}
                     side head={head} filters={searchable && <FilterLines state={state} signedIn={signedIn} onClear={clearable ? clear : undefined} />}
-                    listFilters={searchable && <DirectoryFilters state={state} signedIn={signedIn} onClear={clearable ? clear : undefined} />} />
+                    listFilters={searchable && <DirectoryFilters state={state} signedIn={signedIn} onClear={clearable ? clear : undefined} />} actions={actions} />
             </div>
         );
     }
@@ -136,7 +136,7 @@ export function DirectoryPage({ title, subtitle, sources: allSources, extraTabs 
                     <div className="gk-world-head__filters" data-pop-frame>{searchable && <DirectoryFilters state={state} signedIn={signedIn} onClear={clearable ? clear : undefined} />}</div>
                 </header>
             </StageHead>
-            {extra ? <ListSplit><BelowMapHead title={t(extra.label)} />{extra.element}</ListSplit> : <DirectoryBody key={`${state.source.id}:${resetKey}`} state={state} signedIn={signedIn} applyDefaults={fresh} clearable={clearable} onClear={clear} />}
+            {extra ? <ListSplit><BelowMapHead title={t(extra.label)} />{extra.element}</ListSplit> : <DirectoryBody key={`${state.source.id}:${resetKey}`} state={state} signedIn={signedIn} applyDefaults={fresh} clearable={clearable} onClear={clear} actions={actions} />}
         </div>
     );
 }

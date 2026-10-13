@@ -9,6 +9,9 @@
    their panels open against the strip, under their pill. */
 .gk .gk-world-filterbar { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); padding-bottom: var(--gk-3); border-bottom: 1px solid var(--gk-line); }
 .gk .gk-world-filterbar:empty { display: none; }
+.gk .gk-world-filterbar > .gk-world-filters { flex: 1 1 auto; min-width: 0; }
+/* The page's actions ("+ Arrange a match") at the strip's end, so the obvious thing is beside the list too. */
+.gk .gk-world-filterbar__actions { flex: none; display: flex; align-items: center; gap: var(--gk-2); margin-left: auto; }
 .gk .gk-world-filterbar .gk-world-pill { position: static; }
 .gk .gk-world-filterbar .gk-world-pill__pop { top: 0; left: 0; }
 .gk .gk-world-filterbar .gk-world-pill__pop[data-wide] { right: auto; width: min(560px, 100%); }

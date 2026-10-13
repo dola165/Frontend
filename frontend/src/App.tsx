@@ -9,6 +9,7 @@ import './components/layout/home-feed.css';
 import './components/club/club-design-theme.css';
 import { AppPageFrame } from './components/layout/AppPageShell';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { isSystemAdmin } from './context/navigationCapabilities';
 import { AuthSessionBoundary } from './context/AuthSessionBoundary';
 import { buildLoginRedirectPath, clearAuthFlow, completedAuthDestination, getAuthFlow, isAuthFlowRoute, requiredAccountStep, resolvePostAuthRedirect } from './utils/authRedirect';
 import { fetchMyClubMembershipContext } from './features/clubs/api';
@@ -99,8 +100,10 @@ const CoachWorkspacePage = lazy(() => import('./pages/CoachWorkspacePage'));
 const FollowedClubsPage = lazy(() => import('./pages/FollowedClubsPage').then(module => ({default: module.FollowedClubsPage})));
 const PostPage = lazy(() => import('./pages/PostPage').then(module => ({default: module.PostPage})));
 const RouteRecoveryPage = lazy(() => import('./pages/RouteRecoveryPage').then(module => ({default: module.RouteRecoveryPage})));
+const StartPage = lazy(() => import('./features/start/StartPage').then(module => ({ default: module.StartPage })));
 
-const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/consent']);
+// Sign-in and the first run render without the app header.
+const authRoutePaths = new Set(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/consent', '/start']);
 const boundedCanvasPages = new Set(['/messages']);
 
 const PageBootSpinner = ({ label }: { label: string }) => (
@@ -157,7 +160,7 @@ const SystemAdminRoute = ({ children }: { children: JSX.Element }) => {
         return <Navigate to={buildLoginRedirectPath(location.pathname, location.search, location.hash)} replace />;
     }
 
-    if (user?.role !== 'SYSTEM_ADMIN') {
+    if (!isSystemAdmin(user)) {
         return <Navigate to="/feed" replace />;
     }
 
@@ -427,6 +430,7 @@ export function MainLayout() {
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/verify-email" element={<VerifyEmailPage />} />
                         <Route path="/consent" element={<ConsentPage />} />
+                        <Route path="/start" element={<ProtectedRoute><StartPage /></ProtectedRoute>} />
                         <Route path="/oauth2/callback" element={<OAuth2RedirectHandler />} />
                     </Routes></RouteViewport>
                 </main>

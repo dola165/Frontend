@@ -30,6 +30,15 @@ function parse(raw: string | null): OverviewLayout | null {
     return null;
 }
 
+/** Saves one person's World page (null starts again from their role). Customize and the first run both write through here. */
+export function writeOverviewLayout(userId: number | undefined, next: OverviewLayout | null) {
+    unsaved = { userId, layout: next };
+    version += 1;
+    // Storage can be unavailable; then a save holds for this visit only.
+    try { if (next) localStorage.setItem(key(userId), JSON.stringify(next)); else localStorage.removeItem(key(userId)); } catch { /* kept for this visit only */ }
+    listeners.forEach(listener => listener());
+}
+
 /**
  * The person's own World front page: their role, the field beside the map and the fields below. Until they
  * save one, the page follows their relationships (coaching, a chosen child, playing). Kept in this browser for
@@ -40,17 +49,11 @@ export function useOverviewLayout(audience: WorldAudience) {
     const { membership } = useWorldSession();
     const snapshot = useSyncExternalStore(subscribe, () => `${version}:${stored(user?.id) ?? ''}`, () => '0:');
     const raw = snapshot.slice(snapshot.indexOf(':') + 1) || null;
-    // Storage can be unavailable; then a save holds for this visit only.
     const fallback = unsaved && unsaved.userId === user?.id ? unsaved.layout : null;
     const saved = parse(raw) ?? fallback;
     const suggested: WorldRole = defaultRole(audience, membership?.myRole);
     const layout = saved ?? roleLayout(suggested);
-    const save = (next: OverviewLayout | null) => {
-        unsaved = { userId: user?.id, layout: next };
-        version += 1;
-        try { if (next) localStorage.setItem(key(user?.id), JSON.stringify(next)); else localStorage.removeItem(key(user?.id)); } catch { /* kept for this visit only */ }
-        listeners.forEach(listener => listener());
-    };
+    const save = (next: OverviewLayout | null) => writeOverviewLayout(user?.id, next);
     return { layout, save, chosen: saved !== null };
 }
 

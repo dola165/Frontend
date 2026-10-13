@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import { useId, type ComponentProps, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { MediaImage } from '../../../components/ui/MediaImage';
 import { Button, EmptyNote, Section } from '../../../design/primitives';
@@ -48,7 +48,7 @@ export function AreaPicker({ city, onChange }: { city: string; onChange: (city: 
 
 /** Clubs as tiles with the crest large: the storefront's shortcuts into each club's store. */
 export function Sellers({ id, title, hint, sellers, loading, error, retry, empty, action }: {
-    id: string; title: string; hint?: ReactNode; sellers: StoreSeller[]; loading: boolean; error: string; retry: () => void; empty: string; action?: ReactNode;
+    id: string; title: string; hint?: ReactNode; sellers: StoreSeller[]; loading: boolean; error: string; retry: () => void; empty: string; action?: ComponentProps<typeof Section>['action'];
 }) {
     return (
         <Section id={id} title={title} hint={hint} action={action}>

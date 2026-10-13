@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { Building2, ChevronDown, MapPin, Navigation, Warehouse } from 'lucide-react';
 import { MediaImage } from '../../../components/ui/MediaImage';
 import { useClubProfileSearchParams } from '../clubProfilePreviewContext';
 import { Button, EmptyNote, List, ListRow, Panel, Section, Skeleton } from '../../../design/primitives';
 import type { PublicFacility } from '../ClubPlaceCard';
 import { placeType } from '../clubPlaceTypes';
+import { FacilityDirectionsPanel } from '../FacilityDirectionsPanel';
 import type { PublicSquad } from '../publicJourney';
 import { useOverviewSource } from '../useOverviewSource';
 import { resolveMediaUrl } from '../../../utils/resolveMediaUrl';
@@ -14,33 +16,35 @@ const groups = [
     { type: 'FACILITY', title: 'Facilities', hint: 'Gyms, changing rooms, medical rooms and the clubhouse', icon: Building2 },
     { type: 'UNCLASSIFIED', title: 'Other locations', hint: undefined, icon: MapPin },
 ] as const;
-const relationship = (value: string) => ({ OWNED: 'Club-owned', RENTED: 'Rented', SHARED: 'Shared use', REGULAR_USE: 'Regular use' } as Record<string, string>)[value];
 const addressOf = (place: PublicFacility) => place.details.address || (placeType(place) === 'VENUE' ? place.linkedVenue?.address : undefined);
 function photoOf(place: PublicFacility) {
     const own = (place.details.photos ?? '').split(/\r?\n/).map(v => v.trim()).find(v => /^\/uploads\/[A-Za-z0-9_-]+\.jpg$/.test(v) || /^https:\/\//.test(v));
     return own ?? (placeType(place) === 'VENUE' ? place.linkedVenue?.photo : undefined) ?? null;
 }
 
-/** Where the club plays, trains and gathers: one line per place; pressing it shows the details and directions under it. */
+/** Where the club plays, trains and gathers: one line per place; pressing it opens its details under it, and Directions opens the club's own map. */
 export function ClubFacilitiesTab({ club, canEdit }: { club: ClubProfile; canEdit: boolean }) {
     const [params, setParams] = useClubProfileSearchParams();
-    const squad = params.get('squad') ?? '', open = params.get('place') ?? '';
+    const squad = params.get('squad') ?? '';
+    // Several places can be open at once; a link from the left column opens one of them.
+    const [open, setOpen] = useState<number[]>(() => { const id = Number(params.get('place')); return id > 0 ? [id] : []; });
+    const [directions, setDirections] = useState<PublicFacility | null>(null);
     const places = useOverviewSource<PublicFacility[]>(`/clubs/${club.id}/facilities`);
     const squads = useOverviewSource<PublicSquad[]>(`/clubs/${club.id}/squads`);
     const set = (key: string, value: string) => { const next = new URLSearchParams(params); if (value) next.set(key, value); else next.delete(key); setParams(next, { replace: true }); };
     const filtered = (places.data ?? []).filter(f => !squad || f.squadId == null || String(f.squadId) === squad);
     const row = (place: PublicFacility, Icon: typeof MapPin) => {
-        const photo = photoOf(place), address = addressOf(place), isOpen = open === String(place.id);
-        const amenities = (place.linkedVenue?.amenities ?? []).slice(0, 6);
+        const photo = photoOf(place), address = addressOf(place), isOpen = open.includes(place.id);
+        const amenities = (place.linkedVenue?.amenities ?? []).slice(0, 6).map(a => a.replaceAll('_', ' ').toLowerCase().replace(/^./, c => c.toUpperCase()));
         return <>
-            <ListRow key={place.id} onClick={() => set('place', isOpen ? '' : String(place.id))} current={isOpen}
+            <ListRow key={place.id} onClick={() => setOpen(ids => isOpen ? ids.filter(id => id !== place.id) : [...ids, place.id])} current={isOpen}
                 lead={photo ? <span className="gk-avatar gk-avatar--square gk-club-place-photo"><MediaImage src={resolveMediaUrl(photo)} alt="" /></span> : <span className="gk-club-icon"><Icon aria-hidden="true" /></span>}
-                title={place.title || 'Location'} meta={[address || 'Address not published', place.squadName || (place.squadId ? 'One squad' : 'Club-wide'), relationship(place.details.relationship)].filter(Boolean).join(' · ')}
+                title={place.title || 'Location'} meta={[address || 'Address not published', place.squadName || (place.squadId ? 'One squad' : 'Club-wide')].join(' · ')}
                 trail={<ChevronDown aria-hidden="true" className={`gk-faint gk-club-place-chevron${isOpen ? ' is-open' : ''}`} size={16} />} />
             {isOpen && <li key={`${place.id}-details`} className="gk-club-place-detail">
                 {place.details.description && <p>{place.details.description}</p>}
                 {amenities.length > 0 && <p className="gk-muted">{amenities.join(' · ')}</p>}
-                {address && <a className="gk-btn gk-btn--secondary gk-btn--sm" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer"><Navigation aria-hidden="true" />Directions</a>}
+                <button type="button" className="gk-btn gk-btn--secondary gk-btn--sm" onClick={() => setDirections(place)}><Navigation aria-hidden="true" />Directions</button>
             </li>}
         </>;
     };
@@ -59,6 +63,7 @@ export function ClubFacilitiesTab({ club, canEdit }: { club: ClubProfile; canEdi
                     <Panel flush><List label={group.title}>{items.map(p => row(p, group.icon))}</List></Panel>
                 </Section> : null;
             })}
+        {directions && <FacilityDirectionsPanel clubId={club.id} facilityId={directions.id} title={directions.title} address={addressOf(directions)} onClose={() => setDirections(null)} />}
         <p className="gk-muted gk-club-note">Use the location confirmed for your session. A club’s postal address may differ from its training ground.</p>
     </>;
 }

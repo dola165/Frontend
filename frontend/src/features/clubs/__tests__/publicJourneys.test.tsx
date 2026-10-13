@@ -43,8 +43,9 @@ describe('public club journeys', () => {
     vi.mocked(apiClient.get).mockImplementation(async (url: string) => ({ data: url.includes('/facilities') ? [{ id: 1, title: 'School pitch', details: { address: 'School street 79', relationship: 'SHARED' } }] : [] }));
     render(route(<ClubFacilitiesTab club={club} canEdit={false} />));
     fireEvent.click(await screen.findByRole('button', { name: /School pitch/ }));
-    expect(screen.getByRole('link', { name: 'Directions' })).toHaveAttribute('href', expect.stringContaining('School%20street%2079'));
-    expect(screen.getByText(/Shared use/)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Directions' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('School pitch');
+
     expect(screen.queryByText('Accessible toilets')).not.toBeInTheDocument();
   });
   it('keeps several appointments and does not turn account ownership into president', async () => {

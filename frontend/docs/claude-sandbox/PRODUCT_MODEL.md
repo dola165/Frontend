@@ -198,6 +198,8 @@ These replace the older lines above and in sections 3, 7 and 12 where they disag
 - **No role at registration** (decided 13 October). One sign-up for everyone; what a person does is chosen later, easily, and changed any time. Permissions come from links someone else confirms (club staff, squad coach, guardian), never from a chosen or self-described role.
 - **New users get a simple, good start:** they pick what they want to see, and the feed is mostly local. A fan in Tbilisi sees Dinamo Tbilisi hosting a tournament, not registration for an Estonian one. The feed gets a solid rule-based foundation first; a learning algorithm (YouTube-style) comes later on top of it.
 
+- **The store copies Fanatics' football page** (owner, 13 October, with a brief and screenshots): a storefront that helps people find what they want before the full catalogue, then a catalogue with the filters already applied. **GrassKickZ sells its own equipment** as a seller beside the clubs (the team may have its own manufacturer), so no club is handed the front page by default. Fundraising and jobs follow with the same GrassKickZ DNA, with GoFundMe and a jobs site as their references.
+
 ### Taken while building the start (13 October 2026, `AUTH_AND_START.md`; owner to confirm)
 
 - **Sign-up is one screen:** name, email or phone, password (shown or hidden, no second field), date of birth and town. The town is pre-filled with Tbilisi, found from the device when allowed, else picked from a list of 20 Georgian towns. It travels with the sign-up to the first run, which saves it as a preference, so the registration request keeps the backend's shape.

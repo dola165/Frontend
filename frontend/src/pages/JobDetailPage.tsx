@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { JobApplication } from '../features/clubs/jobDetail/JobApplication';
 import { useJobDetail, type JobViewerStatus } from '../features/clubs/jobDetail/useJobDetail';
 import { useJobsOpportunitiesCopy } from '../features/clubs/jobsOpportunitiesCopy';
-import '../features/store/store.css';
+import '../components/discovery/opportunity-pages.css';
 import '../features/clubs/jobs-opportunities.css';
 
 interface JobDetailPageProps {

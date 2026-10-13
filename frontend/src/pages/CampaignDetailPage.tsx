@@ -14,7 +14,7 @@ import { CampaignProgress } from '../features/campaigns/CampaignProgress';
 import { CampaignPaymentPreview } from '../features/paymentPreview/CampaignPaymentPreview';
 import { paymentPreviewEnabled } from '../features/paymentPreview/config';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
-import '../features/store/store.css';
+import '../components/discovery/opportunity-pages.css';
 import '../features/campaigns/campaigns.css';
 export const CampaignDetailPage = () => {
     const { id } = useParams();

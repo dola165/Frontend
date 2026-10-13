@@ -230,6 +230,16 @@ See 3.1 for the card fields, several age groups and gender. Also:
 
 New needs are added here as each phase of `ROUND_3_PLAN.md` is built, with the screen that needs them.
 
+### Store (13 October, the owner's Fanatics brief; sandbox in `sandbox/api/handlers/store.mjs`)
+
+| Need | Why | Status |
+|---|---|---|
+| `sellerKind: 'GRASSKICKZ' | 'CLUB'` and `collection` (`BALLS | CONES | BIBS | SHIN_GUARDS | GLOVES | GOALS | TRAINING_WEAR | ACCESSORIES`) on `StoreProductDto`, and GrassKickZ's own inventory (`clubId` null, managed by GrassKickZ staff) | The storefront's two doors, the equipment collections, and the seller on every card | MISSING (every product belongs to a club today; the frontend treats a product without `sellerKind` as a club's) |
+| `/store/products` takes `seller=grasskickz|clubs`, `collection`, `country`, `near=City` and `sort=RELEVANCE` (in stock first, then clubs the person follows, then clubs in `near`, then GrassKickZ's own; newest breaks ties) | Every door opens the catalogue with that choice; "Picked for you" | MISSING (`category`, `city`, `variant`, `minPrice`/`maxPrice`, `currency`, `NEWEST`, `PRICE_LOW`/`PRICE_HIGH` exist; `country` is sent and ignored today) |
+| `GET /store/front?near=City` → `{ city, collections: [{ id, products, image }], near: Seller[], followed: Seller[], sellers, own }` with `Seller = { clubId, name, logoUrl, city, products, distanceKm, followed }`; `near` falls back to the person's town, then Tbilisi | Clubs near you (nearest first), From clubs you follow, the collection tiles with their counts, one request | MISSING |
+| `/store/cart/quote` for GrassKickZ's own products: `clubId` 0 and `sellerKind` in the answer; one seller per cart | The cart and its summary | MISSING |
+| `/store/locations` answers the real `clubCountryName` | The Club location filter | FRONTEND SENDS `country`; verify the backend reads it |
+
 ### World › People (phase B)
 
 The sandbox's `GET /people` (`sandbox/api/handlers/world-extra.mjs`) is the contract the four views are built on.

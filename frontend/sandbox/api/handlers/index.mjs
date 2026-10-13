@@ -5,6 +5,7 @@ import './family.mjs';
 import './social.mjs';
 import './club.mjs';
 import './football.mjs';
+import './store.mjs';
 import './nav-extra.mjs';
 import './world-extra.mjs';
 import './map-extra.mjs';

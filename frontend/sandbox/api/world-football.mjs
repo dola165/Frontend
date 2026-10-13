@@ -824,6 +824,40 @@ export const jobView = r => {
 export const jobApplications = new Map();
 
 // ---------------------------------------------------------------- store
+// Two kinds of seller: GrassKickZ itself (basic equipment, no club behind it) and the clubs (kit, tickets, membership).
+// `sellerKind` and `collection` (what groups GrassKickZ equipment on the storefront) are fields the backend needs
+// (docs/claude-sandbox/BACKEND_NEEDS.md, "Store"). Pictures are drawn by media.mjs from the slug before the id.
+const pictureFor = (name, category) => {
+  const n = name.toLowerCase();
+  for (const [word, pic] of [['hoodie', 'hoodie'], ['sock', 'socks'], ['bottle', 'bottle'], ['scarf', 'scarf'], ['cap', 'cap'], ['glove', 'glove'], ['shin', 'shin'], ['bib', 'bib'], ['ball', 'ball'], ['cone', 'cone'], ['marker', 'cone'], ['ladder', 'ladder'], ['goal', 'goal'], ['pump', 'pump'], ['armband', 'armband'], ['first aid', 'aid'], ['shoe', 'boot'], ['boot', 'boot'], ['ticket', 'ticket'], ['membership', 'card'], ['entry', 'ticket'], ['pack', 'pack'], ['shorts', 'shorts'], ['jacket', 'top'], ['top', 'top'], ['shirt', 'shirt']]) if (n.includes(word)) return pic;
+  return category === 'SHIRT' ? 'shirt' : category === 'FOOTWEAR' ? 'boot' : category === 'TRAINING' ? 'top' : 'pack';
+};
+const productPictures = (id, name, category) => [`/sandbox-media/product/${pictureFor(name, category)}-${id}.svg`, `/sandbox-media/product/${pictureFor(name, category)}-${id}-b.svg`];
+const ownPlan = [
+  ['Match ball, size 5', 'EQUIPMENT', 'BALLS', 85, ['Size 5'], 'Thermally bonded match ball for grass and artificial turf. FIFA Quality.'],
+  ['Training ball, size 4', 'EQUIPMENT', 'BALLS', 48, ['Size 4'], 'Durable machine-stitched ball for U10–U14 sessions.'],
+  ['Futsal ball, size 4', 'EQUIPMENT', 'BALLS', 62, ['Size 4'], 'Low-bounce ball for indoor halls.'],
+  ['Training ball bag, 10 balls', 'EQUIPMENT', 'BALLS', 390, ['10 × size 4', '10 × size 5'], 'Ten training balls in a mesh carry bag.'],
+  ['Training cones, set of 50', 'EQUIPMENT', 'CONES', 42, ['Set of 50'], 'Mixed colours, 23 cm, with a carry stand.'],
+  ['Flat markers, set of 40', 'EQUIPMENT', 'CONES', 24, ['Set of 40'], 'Four colours, flexible rubber, with a carrier.'],
+  ['Agility ladder, 6 m', 'EQUIPMENT', 'CONES', 38, ['6 m'], 'Flat rungs with adjustable spacing.'],
+  ['Training bibs, set of 10', 'EQUIPMENT', 'BIBS', 68, ['Junior', 'Senior'], 'Breathable mesh bibs. Choose the colour when you order.'],
+  ['Shin guards', 'EQUIPMENT', 'SHIN_GUARDS', 32, ['XS', 'S', 'M', 'L'], 'Lightweight shell with ankle sleeves.'],
+  ['Goalkeeper gloves', 'EQUIPMENT', 'GLOVES', 88, ['6', '7', '8', '9', '10'], 'Latex palm with finger protection.'],
+  ['Pop-up goals, pair', 'EQUIPMENT', 'GOALS', 120, ['1.2 m', '1.8 m'], 'Fold flat, for small-sided games.'],
+  ['Training top', 'TRAINING', 'TRAINING_WEAR', 58, ['XS', 'S', 'M', 'L', 'XL'], 'Quarter-zip training top in GrassKickZ green.'],
+  ['Training shorts', 'TRAINING', 'TRAINING_WEAR', 35, ['XS', 'S', 'M', 'L', 'XL'], 'Lightweight shorts with a zip pocket.'],
+  ['Water bottle carrier, 8 bottles', 'ACCESSORIES', 'ACCESSORIES', 55, ['8 bottles'], 'Eight 750 ml bottles in a carrier.'],
+  ['Ball pump with needles', 'ACCESSORIES', 'ACCESSORIES', 14, ['One size'], 'Dual-action pump with two spare needles.'],
+  ['Captain’s armband', 'ACCESSORIES', 'ACCESSORIES', 9, ['Junior', 'Senior'], 'Elastic armband; club colours on request.'],
+  ['Touchline first aid kit', 'ACCESSORIES', 'ACCESSORIES', 45, ['One size'], 'Ice packs, tape and bandages in a belt bag.'],
+];
+const ownProducts = ownPlan.map(([name, category, collection, price, sizes, description], i) => {
+  const id = 1201 + i;
+  return { id, currency: 'GEL', version: 1, clubId: null, clubName: 'GrassKickZ', clubLogoUrl: '/brand/grasskickz-mark.svg', clubWhatsappNumber: null, clubEmail: 'shop@grasskickz.ge', sellerKind: 'GRASSKICKZ', collection,
+    name, description, price, sizes, images: productPictures(id, name, category), active: true, createdAt: iso(day(-((i * 5) % 23) - 2)), category, clubCityName: null, clubCountryName: null,
+    variants: sizes.map((label, k) => ({ id: id * 10 + k, label, stock: i === 3 ? 0 : (i + k) % 7 === 4 ? 2 : 6 + ((i * 5 + k) % 20) })) };
+});
 const productPlan = [
   [1, 'Home shirt 2026/27', 'SHIRT', 95, ['XS', 'S', 'M', 'L', 'XL'], 'The academy home shirt in Dinamo blue, recycled polyester.'],
   [1, 'Training top with half zip', 'TRAINING', 75, ['S', 'M', 'L', 'XL'], 'Lightweight training top worn by all academy squads.'],
@@ -844,12 +878,15 @@ const productPlan = [
   [7, 'Vake Football School shin pads', 'EQUIPMENT', 28, ['XS', 'S', 'M'], 'Lightweight pads with ankle sleeves.'],
   [15, 'Lisi Lake five-a-side bib set', 'EQUIPMENT', 45, ['Set of 10'], 'Two-colour bibs for weekend games.'],
 ];
-export const products = productPlan.map(([clubId, name, category, price, sizes, description], i) => {
-  const c = clubById(clubId);
-  return { id: 1101 + i, currency: 'GEL', version: 1, clubId, clubName: c.name, clubLogoUrl: c.logoUrl, clubWhatsappNumber: `+995 599 ${String(20 + clubId).padStart(2, '0')} ${String(30 + i).padStart(2, '0')} 11`, clubEmail: `shop@${c.short.toLowerCase()}.ge`,
-    name, description, price, sizes, images: [photo(`product-${1101 + i}`), photo(`product-${1101 + i}-b`)], active: true, createdAt: iso(day(-i * 3 - 1)), category, clubCityName: c.city, clubCountryName: 'Georgia',
-    variants: sizes.map((label, k) => ({ id: (1101 + i) * 10 + k, label, stock: (i + k) % 5 === 0 ? 0 : 3 + ((i * 7 + k) % 12) })) };
+const clubProducts = productPlan.map(([clubId, name, category, price, sizes, description], i) => {
+  const c = clubById(clubId), id = 1101 + i;
+  return { id, currency: 'GEL', version: 1, clubId, clubName: c.name, clubLogoUrl: c.logoUrl, clubWhatsappNumber: `+995 599 ${String(20 + clubId).padStart(2, '0')} ${String(30 + i).padStart(2, '0')} 11`, clubEmail: `shop@${c.short.toLowerCase()}.ge`, sellerKind: 'CLUB', collection: null,
+    name, description, price, sizes, images: productPictures(id, name, category), active: true, createdAt: iso(day(-i * 3 - 1)), category, clubCityName: c.city, clubCountryName: 'Georgia',
+    variants: sizes.map((label, k) => ({ id: id * 10 + k, label, stock: (i + k) % 5 === 0 ? 0 : 3 + ((i * 7 + k) % 12) })) };
 });
+export const products = [...clubProducts, ...ownProducts];
+/** A product's pictures for one a club adds in the sandbox (the backend stores uploads). */
+export const picturesFor = productPictures;
 export const productById = id => products.find(p => p.id === Number(id));
 export const variantById = id => products.flatMap(p => p.variants.map(v => ({ ...v, product: p }))).find(v => v.id === Number(id));
 

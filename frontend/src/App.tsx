@@ -42,6 +42,7 @@ const StadiumWorkspacePage = lazy(() => import('./pages/StadiumWorkspacePage').t
 const ClubStorePage = lazy(() => import('./pages/ClubStorePage').then(module => ({default: module.ClubStorePage})));
 const StoreProductPage = lazy(() => import('./pages/StoreProductPage').then(module => ({default: module.StoreProductPage})));
 const StoreCartPage = lazy(() => import('./pages/StoreCartPage').then(module => ({default: module.StoreCartPage})));
+const StoreCataloguePage = lazy(() => import('./pages/StoreCataloguePage').then(module => ({default: module.StoreCataloguePage})));
 const DesignSystemPage = lazy(() => import('./design/DesignSystemPage'));
 const CommerceDemoPage = lazy(() => import('./pages/CommerceDemoPage').then(module => ({default: module.CommerceDemoPage})));
 const ParentHubPage = lazy(() => import('./pages/ParentHubPage').then(module => ({default: module.ParentHubPage})));
@@ -384,6 +385,7 @@ export function MainLayout() {
             <Route path="/marketplace" element={<RouteRecoveryPage feature="The marketplace" />} />
             <Route path="/needs" element={<RouteRecoveryPage feature="Player needs" />} />
             <Route path="/store" element={<StorePage />} />
+            <Route path="/store/all" element={<StoreCataloguePage />} />
             <Route path="/stadiums" element={<WorldRedirect to="/world/venues" />} />
             <Route path="/stadiums/:organizationId" element={<StadiumProfilePage />} />
             <Route path="/stadiums/:organizationId/manage" element={<ProtectedRoute><StadiumWorkspacePage /></ProtectedRoute>} />

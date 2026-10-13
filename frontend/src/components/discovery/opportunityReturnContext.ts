@@ -30,7 +30,7 @@ const isAllowedReturnTarget = (
     search: unknown,
 ): pathname is string => {
     if (typeof pathname !== 'string' || !isSafeSearch(search)) return false;
-    if (section === 'store' && (pathname === '/store' || /^\/clubs\/([1-9]\d*)\/store$/.test(pathname))) {
+    if (section === 'store' && (pathname === '/store' || pathname === '/store/all' || /^\/clubs\/([1-9]\d*)\/store$/.test(pathname))) {
         return true;
     }
     if (

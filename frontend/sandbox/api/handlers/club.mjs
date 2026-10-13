@@ -7,6 +7,7 @@ import { get, post, put, patch, del, reply } from '../router.mjs';
 import * as W from '../world.mjs';
 import * as C from '../world-club.mjs';
 import * as V from '../viewer.mjs';
+import * as F from '../world-football.mjs';
 
 const { personById, clubById, squadById } = W;
 const CLUB = C.CLUB_ID;
@@ -682,7 +683,7 @@ post('/clubs/:id/store/products', ({ params, body }) => {
   if (!isOwnClub(params.id)) return reply(403, { status: 403, message: 'Only club leadership can manage the store.' });
   if (!body?.name?.trim()) return bad('Name the product.');
   const id = C.nextId(), variants = variantsFrom(body.variants, id);
-  const p = { id, currency: body.currency ?? 'GEL', version: 1, clubId: CLUB, clubName: C.club.name, clubLogoUrl: C.club.logoUrl, clubWhatsappNumber: '+995 32 224 11 25', clubEmail: 'shop@dta.ge', name: body.name.trim(), description: body.description ?? null, price: body.price ?? null, sizes: variants.map(v => v.label), images: body.images ?? [], active: body.active ?? true, createdAt: C.nowIso(), category: body.category ?? 'OTHER', clubCityName: 'Tbilisi', clubCountryName: 'Georgia', variants };
+  const p = { id, currency: body.currency ?? 'GEL', version: 1, clubId: CLUB, clubName: C.club.name, clubLogoUrl: C.club.logoUrl, clubWhatsappNumber: '+995 32 224 11 25', clubEmail: 'shop@dta.ge', sellerKind: 'CLUB', collection: null, name: body.name.trim(), description: body.description ?? null, price: body.price ?? null, sizes: variants.map(v => v.label), images: body.images?.length ? body.images : F.picturesFor(id, body.name, body.category ?? 'OTHER'), active: body.active ?? true, createdAt: C.nowIso(), category: body.category ?? 'OTHER', clubCityName: 'Tbilisi', clubCountryName: 'Georgia', variants };
   C.products.push(p); return created(p);
 });
 patch('/clubs/:id/store/products/:pid', ({ params, body }) => {

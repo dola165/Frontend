@@ -1,81 +1,50 @@
-import { useFilterDisclosure } from '../hooks/useFilterDisclosure';
-import { MediaImage } from '../components/ui/MediaImage';
-import { OpportunityNavigation } from '../components/discovery/OpportunityNavigation';
-import { opportunityReturnState } from '../components/discovery/opportunityReturnContext';
-import {useEffect,useRef,useState} from 'react';
-import {Link,useLocation,useParams,useSearchParams} from 'react-router-dom';
-import {fetchStoreCatalog,formatStorePrice,type StoreProduct} from '../features/store/api';
-import {resolveMediaUrl} from '../utils/resolveMediaUrl';
-import {DiscoverySectionTabs} from '../components/discovery/DiscoverySectionTabs';
-import {apiClient} from '../api/axiosConfig';
-import { ShoppingBag, SlidersHorizontal, X, Search } from 'lucide-react';
-import { StoreFilters } from '../features/store/StoreFilters';
-import { filterLabels, categoryLabel } from '../features/store/filterLabels';
-import { PaymentPreviewNotice } from '../features/paymentPreview/PaymentPreview';
-import { paymentPreviewEnabled } from '../features/paymentPreview/config';
+import { Navigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { GkRoot, PageFrame } from '../design/primitives';
+import { fetchStoreCatalog, fetchStoreFront } from '../features/store/api';
+import { CATALOGUE_KEYS, cataloguePath } from '../features/store/query';
+import { Categories, StoreDoors, StoreHead } from '../features/store/front/StoreFrontTop';
+import { AreaPicker, Collections, Sellers } from '../features/store/front/StoreFrontRows';
+import { ProductRow } from '../features/store/ProductCard';
+import { useWorldArea } from '../features/world/useWorldArea';
+import { useWorldData } from '../features/world/useWorldData';
 import '../features/store/store.css';
+
+/**
+ * The storefront, in the shape of Fanatics' football page: a title and one search, two big doors (GrassKickZ
+ * equipment, club stores), compact categories, the equipment collections, clubs near the person and the ones they
+ * follow, then products picked for them and new arrivals. Every door opens the catalogue with that choice applied.
+ */
 export const StorePage = () => {
-    const location = useLocation();
-    const {id}=useParams(); const clubId=id ? Number(id):undefined;
-    const [params,setParams]=useSearchParams();
-    const [products,setProducts]=useState<StoreProduct[]>([]),[total,setTotal]=useState(0);
-    const [loading,setLoading]=useState(true),[error,setError]=useState(''),[reload,setReload]=useState(0),[clubName,setClubName]=useState('');
-    const [filtersOpen, setFiltersOpen] = useState(false);
-    const trigger = useRef<HTMLButtonElement>(null);
-    useFilterDisclosure(filtersOpen, () => setFiltersOpen(false), trigger);
-    const query=params.toString();
-    const page=Math.min(1000000,Math.max(0,Math.floor(Number(params.get('page'))||0)));
-    const currency=['GEL','EUR','GBP','USD'].includes(params.get('currency')??'') ? params.get('currency')!:'GEL';
-    const change=(name:string,value:string)=>setParams(current=>{const next=new URLSearchParams(current);if(value)next.set(name,value);else next.delete(name);if(name!=='page')next.delete('page');if(name==='country')next.delete('city');return next;});
-    useEffect(()=>{
-        const controller=new AbortController(); let active=true;
-        // Clear the previous route/search while synchronizing with the next API request.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLoading(true);setError('');setProducts([]);setClubName('');
-        const search=new URLSearchParams(query);
-        const requestedPage=Math.min(1000000,Math.max(0,Math.floor(Number(search.get('page'))||0)));
-        const n=(key:string)=>search.get(key) && Number.isFinite(Number(search.get(key))) ? Number(search.get(key)):undefined;
-        if(clubId!==undefined && (!Number.isSafeInteger(clubId)||clubId<1)){setError('This club could not be found.');setLoading(false);return;}
-        const clubRequest=clubId ? apiClient.get<{name:string}>(`/clubs/${clubId}`,{signal:controller.signal}).then(r=>r.data.name):Promise.resolve('');
-        void Promise.all([fetchStoreCatalog({page:requestedPage,size:12,clubId,query:search.get('query')||undefined,
-            category:search.get('category')||undefined,currency,country:search.get('country')||undefined,city:search.get('city')||undefined,
-            variant:search.get('variant')||undefined,minPrice:n('minPrice'),maxPrice:n('maxPrice'),sort:search.get('sort')||'NEWEST'},controller.signal),clubRequest])
-            .then(([data,name])=>{if(active){setProducts(data.content??[]);setTotal(data.totalElements??0);setClubName(name);}})
-            .catch(()=>{if(active)setError('The store could not load. Please try again.');})
-            .finally(()=>{if(active)setLoading(false);});
-        return()=>{active=false;controller.abort();};
-    },[query,clubId,currency,reload]);
-    const selected = Object.entries(filterLabels).filter(([key]) => !!params.get(key) && !(key === 'currency' && currency === 'GEL'));
-    return <main className="store-page">
-        <DiscoverySectionTabs/>
-        <header className="store-heading">
-            <div><p className="store-eyebrow">Support the clubs you love</p><h1>{clubId ? `${clubName || 'Club'} store` : 'Store'}</h1><p className="store-subtitle">{clubId ? 'Products from this club.' : 'Discover kit, gear and more from football clubs.'}</p></div>
-            <Link className="store-cart-link" to="/store/cart"><ShoppingBag size={18}/>Open cart</Link>
-        </header>
-        {clubId && <OpportunityNavigation section="store" clubId={clubId}/>}
-        <PaymentPreviewNotice />{!paymentPreviewEnabled() && <p className="store-notice"><span className="store-notice-dot"/>Browse and prepare your cart. Online checkout is not available yet.</p>}
-        <div className="store-toolbar">
-            <label className="store-search"><Search size={18}/><span className="sr-only">Search</span><input value={params.get('query') ?? ''} maxLength={100} onChange={e => change('query', e.target.value)} placeholder="Search products or clubs"/></label>
-            <label className="store-sort">Sort<select value={params.get('sort') ?? 'NEWEST'} onChange={e => change('sort', e.target.value)}><option value="NEWEST">Newest</option><option value="PRICE_LOW">Price: low to high</option><option value="PRICE_HIGH">Price: high to low</option></select></label>
-            <button ref={trigger} className="store-filter-toggle" aria-expanded={filtersOpen} aria-controls="store-filters" onClick={() => setFiltersOpen(value => !value)}><SlidersHorizontal size={16}/>{filtersOpen ? 'Hide filters' : 'Filters'}{selected.length > 0 && ` (${selected.length})`}</button>
-        </div>
-        {selected.length > 0 && <div className="store-filter-chips" aria-label="Selected filters">{selected.map(([key, label]) => <button key={key} aria-label={`Remove ${label} filter`} onClick={() => change(key, '')}>{label}: {key === 'category' ? categoryLabel(params.get(key)!) : params.get(key)}<X size={13}/></button>)}</div>}
-        <div className="store-catalog-layout">
-            <aside id="store-filters" className={`store-filter-panel ${filtersOpen ? 'is-open' : ''}`} aria-label="Product filters">
-                <StoreFilters clubId={clubId} params={params} currency={currency} change={change} reset={() => setParams({})}/>
-                <button className="store-filter-done" onClick={() => {setFiltersOpen(false); document.querySelector<HTMLButtonElement>('.store-filter-toggle')?.focus();}}>Show products</button>
-            </aside>
-            <section className="store-results" aria-label="Products" aria-busy={loading}>
-                {loading ? <p role="status">Loading products...</p> : error ? <div role="alert" className="store-empty">{error} <button className="app-text-action" onClick={() => setReload(n => n + 1)}>Retry</button></div> : <>
-                    <p role="status" className="store-result-count">{total} products matching this search</p>
-                    {products.length === 0 ? <div className="store-empty"><ShoppingBag size={30}/><h2>No products found</h2><p>Try another search or clear your filters.</p><button onClick={() => setParams({})}>Clear search and filters</button></div> : <div className="store-product-grid">{products.map(product => <article key={product.id} className="store-product-card">
-                        <Link to={`/store/products/${product.id}`} state={opportunityReturnState('store', location)} className="store-card-main"><div className="store-card-photo">{product.images?.[0] ? <MediaImage loading="lazy" src={resolveMediaUrl(product.images[0])} alt={product.name ?? 'Product'}/> : <span><ShoppingBag size={32}/>No product photo</span>}{!product.variants?.some(v => v.stock > 0) && <span className="store-stock-badge">Out of stock</span>}</div>
-                            <div className="store-card-info"><h2>{product.name}</h2><p>{formatStorePrice(product.price ?? 0, product.currency)}</p></div></Link>
-                        <Link className="store-card-club" to={`/clubs/${product.clubId}/store`}>{product.clubName}<span aria-hidden="true"> ↗</span></Link>
-                    </article>)}</div>}
-                    <nav aria-label="Store pages" className="store-pagination"><button disabled={page === 0} onClick={() => change('page', String(Math.max(0, page - 1)))}>Previous</button><span>Page {page + 1} of {Math.max(1, Math.ceil(total / 12))}</span><button disabled={(page + 1) * 12 >= total} onClick={() => change('page', String(page + 1))}>Next</button></nav>
-                </>}
-            </section>
-        </div>
-    </main>;
+    const [params] = useSearchParams();
+    const { status } = useAuth();
+    const { area, setCity } = useWorldArea();
+    const near = area.anywhere ? undefined : area.city;
+    const front = useWorldData(area.ready ? `store-front:${near ?? ''}` : null, signal => fetchStoreFront(near, signal), 'The store could not load.');
+    const picks = useWorldData(area.ready ? `store-picks:${near ?? ''}` : null, signal => fetchStoreCatalog({ sort: 'RELEVANCE', near, size: 10 }, signal), 'These products could not load.');
+    const fresh = useWorldData('store-new', signal => fetchStoreCatalog({ sort: 'NEWEST', size: 10 }, signal), 'These products could not load.');
+    // Old links to a search (`/store?category=…`) open the catalogue with the same search.
+    if (CATALOGUE_KEYS.some(key => key !== 'page' && params.has(key)) || params.has('q')) return <Navigate to={`/store/all?${params}`} replace />;
+    const signedIn = status === 'authenticated';
+    const followed = front.data?.followed ?? [];
+    return (
+        <GkRoot className="gk-store gk-page">
+            <PageFrame>
+                <StoreHead />
+                <div className="gk-store-stack">
+                    <StoreDoors own={front.data?.own} sellers={front.data?.sellers} />
+                    <Categories />
+                    <Collections front={front.data} />
+                    <Sellers id="store-near" title="Clubs near you" sellers={front.data?.near ?? []} loading={front.loading} error={front.error} retry={front.retry}
+                        hint={near ? <AreaPicker city={front.data?.city ?? near} onChange={setCity} /> : 'Clubs with something on sale'}
+                        empty={near ? `No club near ${near} sells anything yet` : 'No club sells anything yet'} action={{ label: 'All club stores', to: cataloguePath({ seller: 'clubs' }) }} />
+                    {signedIn && (front.loading || followed.length > 0) && <Sellers id="store-followed" title="From clubs you follow" hint="Clubs you follow with something on sale" sellers={followed} loading={front.loading} error={front.error} retry={front.retry} empty="None of the clubs you follow sells anything yet" />}
+                    <ProductRow title="Picked for you" hint={near ? `In stock first, then clubs you follow and clubs in ${near}` : 'In stock first, then clubs you follow'} to={cataloguePath({ sort: 'RELEVANCE' })}
+                        products={picks.data?.content ?? []} loading={picks.loading} error={picks.error} retry={picks.retry} empty="Nothing to show yet" />
+                    <ProductRow title="New arrivals" hint="The latest products from GrassKickZ and the clubs" to={cataloguePath({ sort: 'NEWEST' })}
+                        products={fresh.data?.content ?? []} loading={fresh.loading} error={fresh.error} retry={fresh.retry} empty="Nothing new yet" />
+                </div>
+            </PageFrame>
+        </GkRoot>
+    );
 };

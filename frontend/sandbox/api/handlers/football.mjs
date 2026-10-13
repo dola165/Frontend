@@ -765,22 +765,7 @@ get('/jobs/:id/application', ({ params }) => F.jobApplications.get(Number(params
 post('/jobs/:id/apply', ({ params }) => { const r = F.roleList.find(x => x.id === Number(params.id)); if (!r) return notFound(); const a = { id: W.newId(), clubId: r.clubId, status: 'PENDING' }; F.jobApplications.set(r.id, a); return reply(201, a); });
 post('/jobs/:id/applications', ({ params }) => { const r = F.roleList.find(x => x.id === Number(params.id)); if (!r) return notFound(); const a = { id: W.newId(), clubId: r.clubId, status: 'PENDING' }; F.jobApplications.set(r.id, a); return reply(201, a); });
 
-// ============================================================== store
-get('/store/locations', ({ query: q }) => [...new Map(F.products.filter(p => !q.get('clubId') || p.clubId === Number(q.get('clubId'))).map(p => [p.clubCityName, { country: 'Georgia', city: p.clubCityName }])).values()]);
-get('/store/products', ({ query: q }) => {
-  const clubId = num(q, 'clubId', null), text = q.get('query'), category = q.get('category'), city = q.get('city'), variant = q.get('variant'), min = num(q, 'minPrice', null), max = num(q, 'maxPrice', null), sort = q.get('sort') || 'NEWEST';
-  const list = F.products.filter(p => p.active).filter(p => clubId == null || p.clubId === clubId).filter(p => matchesText(text, p.name, p.clubName, p.description)).filter(p => !category || p.category === category)
-    .filter(p => !city || F.lower(p.clubCityName) === F.lower(city)).filter(p => !variant || p.variants.some(v => F.lower(v.label) === F.lower(variant))).filter(p => (min == null || p.price >= min) && (max == null || p.price <= max))
-    .sort((a, b) => sort === 'PRICE_LOW' ? a.price - b.price : sort === 'PRICE_HIGH' ? b.price - a.price : Date.parse(b.createdAt) - Date.parse(a.createdAt));
-  return springPage(list, pageOf(q), sizeOf(q, 12));
-});
-get('/store/products/:id', ({ params }) => F.productById(params.id) || notFound('This product is unavailable.'));
-get('/store/cart/quote', ({ query: q }) => {
-  const lines = q.getAll('item').map(s => s.split(':').map(Number)).map(([variantId, quantity]) => ({ v: F.variantById(variantId), quantity })).filter(l => l.v);
-  const club = lines[0]?.v.product;
-  return { clubId: club?.clubId ?? 0, clubName: club?.clubName ?? '', currency: 'GEL', lines: lines.map(({ v, quantity }) => ({ variantId: v.id, quantity, productId: v.product.id, name: v.product.name, variant: v.label, unitAmount: v.product.price, lineAmount: v.product.price * quantity })),
-    subtotal: lines.reduce((n, { v, quantity }) => n + v.product.price * quantity, 0), checkoutEnabled: false, message: 'Online payment is not available yet. Contact the club to complete your order.' };
-});
+// The store (storefront, catalogue, product, cart quote) lives in store.mjs.
 
 // ============================================================== campaigns
 get('/campaigns/locations', ({ query: q }) => [...new Map(F.campaigns.filter(c => !q.get('clubId') || c.clubId === Number(q.get('clubId'))).map(c => [c.city, { country: 'Georgia', city: c.city }])).values()]);

@@ -27,7 +27,7 @@ import {
 import { useJobsOpportunitiesCopy } from '../features/clubs/jobsOpportunitiesCopy';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { resolveExtensionCapability } from '../features/capabilities/extensions';
-import '../features/store/store.css';
+import '../components/discovery/opportunity-pages.css';
 import '../features/clubs/jobs-opportunities.css';
 
 const filterNames: Record<string, string> = {

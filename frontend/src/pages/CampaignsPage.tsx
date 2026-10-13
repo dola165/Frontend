@@ -21,7 +21,7 @@ import { CampaignProgress } from '../features/campaigns/CampaignProgress';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 import { PaymentPreviewNotice } from '../features/paymentPreview/PaymentPreview';
 import { paymentPreviewEnabled } from '../features/paymentPreview/config';
-import '../features/store/store.css';
+import '../components/discovery/opportunity-pages.css';
 import '../features/campaigns/campaigns.css';
 const filterLabels: Record<string, string> = {
     query: 'Search',

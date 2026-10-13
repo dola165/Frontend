@@ -113,10 +113,9 @@ describe('FeedPage', () => {
                 data: { content: [] },
             });
             renderPage();
-            expect(await screen.findByText('Your Home is ready')).toBeInTheDocument();
-            expect(screen.getByText('Find Clubs')).toBeInTheDocument();
-            expect(screen.getByText('Browse Map')).toBeInTheDocument();
-            expect(screen.getByText('Your schedule')).toBeInTheDocument();
+            expect(await screen.findByText('Nothing near you yet')).toBeInTheDocument();
+            expect(screen.getByText('Find clubs')).toBeInTheDocument();
+            expect(screen.getByText('Open World')).toBeInTheDocument();
         });
 
         it('shows "Following" empty state with correct guides when on following view', async () => {
@@ -128,9 +127,9 @@ describe('FeedPage', () => {
                     <FeedPage />
                 </MemoryRouter>
             );
-            expect(await screen.findByText('No Following Activity Yet')).toBeInTheDocument();
-            expect(screen.getByText('Browse Clubs')).toBeInTheDocument();
-            expect(screen.getByText('Explore Map')).toBeInTheDocument();
+            expect(await screen.findByText('Nothing from your follows yet')).toBeInTheDocument();
+            expect(screen.getByText('Find clubs')).toBeInTheDocument();
+            expect(screen.getByText('Open World')).toBeInTheDocument();
         });
 
         it('renders guide links with correct hrefs', async () => {
@@ -138,10 +137,9 @@ describe('FeedPage', () => {
                 data: { content: [] },
             });
             renderPage();
-            await screen.findByText('Your Home is ready');
-            expect(screen.getByText('Find Clubs').closest('a')).toHaveAttribute('href', '/clubs');
-            expect(screen.getByText('Browse Map').closest('a')).toHaveAttribute('href', '/map');
-            expect(screen.getByText('Your schedule').closest('a')).toHaveAttribute('href', '/calendar');
+            await screen.findByText('Nothing near you yet');
+            expect(screen.getByText('Find clubs').closest('a')).toHaveAttribute('href', '/world/clubs');
+            expect(screen.getByText('Open World').closest('a')).toHaveAttribute('href', '/world');
         });
     });
 
@@ -316,7 +314,7 @@ describe('FeedPage', () => {
         const next = deferred<{ data: { posts: { id: number }[] } }>();
         vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { posts: [] } }).mockReturnValueOnce(next.promise);
         renderPage();
-        await screen.findByText('Your Home is ready');
+        await screen.findByText('Nothing near you yet');
         await user.click(screen.getByRole('link', { name: /Following/i }));
         expect(screen.queryByTestId('skeleton-card')).not.toBeInTheDocument();
         expect(screen.getByRole('status')).toHaveTextContent('Loading Following posts');

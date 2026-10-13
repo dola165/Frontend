@@ -55,11 +55,12 @@ describe('registration destination flow', () => {
         expect(requiredAccountStep({ mustChangePassword: true, onboardingRequired: true })).toBe('/set-password');
         expect(requiredAccountStep({ mustChangePassword: false, onboardingRequired: true })).toBe('/onboarding');
         expect(requiredAccountStep({ profileComplete: true })).toBeNull();
-        expect(completedAuthDestination({ role: 'ORGANIZER' }, null, true)).toBe('/roles?setup=1&role=ORGANIZER');
-        expect(completedAuthDestination({ role: 'PLAYER' }, null, true)).toBe('/roles?setup=1&role=PLAYER');
-        expect(completedAuthDestination({ role: 'PARENT' }, null, true)).toBe('/roles?setup=1&role=PARENT');
-        expect(completedAuthDestination({ role: 'PARENT' }, '/consent?token=synthetic-consent', true))
+        // A new account starts its first run whatever it was registered as; an invitation it arrived with still wins.
+        expect(completedAuthDestination({}, null, true)).toBe('/start');
+        expect(completedAuthDestination({ profileComplete: true }, null, false)).toBe('/home');
+        expect(completedAuthDestination({}, '/consent?token=synthetic-consent', true))
             .toBe('/consent?token=synthetic-consent');
+        expect(sanitizeAuthRedirect('/start')).toBeNull();
     });
 
     it.each(['/home/../login', '/%6cogin/', '/onboarding/', '/%2fevil.example', '/%5cevil.example', '/bad%00path', '/%zz', '/home/..//evil.example'])('rejects ambiguous or normalized auth-loop path %s', (path) => {

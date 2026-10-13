@@ -65,41 +65,50 @@ it.each([LoginPage, RegisterPage])('explains the explicit account-linking requir
 
 it('handles the existing-account challenge after registration auto-login without repeating registration', async () => {
     render(<MemoryRouter><RegisterPage /></MemoryRouter>);
-    change('auth-name', 'Example Player'); change('auth-email', 'person@example.test');
-    change('auth-password', 'SyntheticPassword1'); change('auth-confirm', 'SyntheticPassword1');
+    change('auth-name', 'Example Player'); change('auth-login', 'person@example.test');
+    change('auth-password', 'SyntheticPassword1'); change('auth-dob', '2000-01-01');
     fireEvent.submit(document.querySelector('form')!);
-    change('auth-dob', '2000-01-01'); fireEvent.submit(document.querySelector('form')!);
     await verify();
     expect(vi.mocked(apiClient.post).mock.calls.filter(([url]) => url === '/auth/register')).toHaveLength(1);
     expect(vi.mocked(apiClient.post).mock.calls.filter(([url]) => url === '/auth/login')).toHaveLength(2);
 });
 
-it('registers a parent with their own date of birth and preserves the email verification step', async () => {
+it('registers without a role, keeps the town for the first run and preserves the email verification step', async () => {
     vi.mocked(apiClient.post).mockResolvedValue({ data: { emailVerificationRequired: true } });
     render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /><Location /></MemoryRouter>);
-    change('auth-name', 'Example Parent'); change('auth-email', 'PARENT@example.test');
-    change('auth-password', 'SyntheticPassword1'); change('auth-confirm', 'SyntheticPassword1');
-    fireEvent.submit(document.querySelector('form')!);
-    fireEvent.click(screen.getByRole('radio', { name: 'Parent or guardian' }));
-    expect(screen.getByRole('radio', { name: 'Parent or guardian' })).toBeChecked();
-    expect(screen.getByLabelText('Your date of birth')).toBeInTheDocument();
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    change('auth-name', 'Example Parent'); change('auth-login', 'PARENT@example.test');
+    change('auth-password', 'SyntheticPassword1');
+    fireEvent.change(document.getElementById('auth-town')!, { target: { value: 'Rustavi' } });
     change('auth-dob', '2020-01-01'); fireEvent.submit(document.querySelector('form')!);
     expect(apiClient.post).not.toHaveBeenCalled();
     change('auth-dob', '1990-01-01'); fireEvent.submit(document.querySelector('form')!);
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/verify-email'));
     expect(apiClient.post).toHaveBeenCalledWith('/auth/register', expect.objectContaining({
-        fullName: 'Example Parent', email: 'parent@example.test', role: 'PARENT', dateOfBirth: '1990-01-01',
+        fullName: 'Example Parent', email: 'parent@example.test', role: 'FAN', dateOfBirth: '1990-01-01',
     }), expect.anything());
+    expect(vi.mocked(apiClient.post).mock.calls[0][1]).not.toHaveProperty('town');
     expect(apiClient.post).toHaveBeenCalledTimes(1);
     expect(login).not.toHaveBeenCalled();
-    expect(getAuthFlow()).toMatchObject({ email: 'parent@example.test', newAccount: true, awaitingVerification: true });
+    expect(getAuthFlow()).toMatchObject({ email: 'parent@example.test', newAccount: true, awaitingVerification: true, town: 'Rustavi' });
     expect(getAuthFlow().nextPath).toBeUndefined();
 });
 
+it('registers with a phone number instead of an email', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({ data: { emailVerificationRequired: true } });
+    render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /><Location /></MemoryRouter>);
+    change('auth-name', 'Example Player'); change('auth-login', '+995 555 12 34 56');
+    change('auth-password', 'SyntheticPassword1'); change('auth-dob', '1990-01-01');
+    fireEvent.submit(document.querySelector('form')!);
+    await waitFor(() => expect(apiClient.post).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(apiClient.post).mock.calls[0][1]).toMatchObject({ phone: '+995555123456' });
+    expect(vi.mocked(apiClient.post).mock.calls[0][1]).not.toHaveProperty('email');
+});
+
 it.each([
-    { nextPath: undefined, expected: '/roles?setup=1&role=PARENT', token: 'synthetic-parent-default' },
+    { nextPath: undefined, expected: '/start', token: 'synthetic-parent-default' },
     { nextPath: '/consent?token=synthetic-consent', expected: '/consent?token=synthetic-consent', token: 'synthetic-parent-consent' },
-])('keeps the Parent signup destination through email verification and login: $expected', async ({ nextPath, expected, token }) => {
+])('keeps a new account’s destination through email verification and login: $expected', async ({ nextPath, expected, token }) => {
     rememberAuthFlow({ email: 'parent@example.test', newAccount: true, awaitingVerification: true, nextPath });
     vi.mocked(apiClient.post).mockImplementation(async (url) => url === '/auth/verify-email'
         ? { data: { email: 'parent@example.test' } }
@@ -110,7 +119,7 @@ it.each([
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/parent" element={<p>Parent Hub</p>} />
-            <Route path="/roles" element={<p>Complete your profile</p>} />
+            <Route path="/start" element={<p>Your first run</p>} />
             <Route path="/consent" element={<p>Club consent</p>} />
         </Routes>
         <Location />
@@ -128,13 +137,12 @@ it.each([
     expect(getAuthFlow().nextPath).toBe(nextPath);
 });
 
-it('starts with Parent selected when signup was opened from a club consent link', () => {
+it('asks the same five things whoever opens signup, a club consent link included', () => {
     rememberAuthFlow({ nextPath: '/consent?token=synthetic-consent' });
     render(<MemoryRouter initialEntries={['/signup']}><RegisterPage /></MemoryRouter>);
-    change('auth-name', 'Example Parent'); change('auth-email', 'parent@example.test');
-    change('auth-password', 'SyntheticPassword1'); change('auth-confirm', 'SyntheticPassword1');
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    expect(['auth-name', 'auth-login', 'auth-password', 'auth-dob', 'auth-town'].every(id => document.getElementById(id))).toBe(true);
     fireEvent.submit(document.querySelector('form')!);
-    expect(screen.getByRole('radio', { name: 'Parent or guardian' })).toBeChecked();
     expect(apiClient.post).not.toHaveBeenCalled();
 });
 
@@ -161,10 +169,9 @@ it('aborts registration on unmount and never starts a late auto-login', async ()
     let finish!: (value: { data: { emailVerificationRequired: boolean } }) => void;
     vi.mocked(apiClient.post).mockReturnValue(new Promise(resolve => { finish = resolve; }));
     const view = render(<MemoryRouter><RegisterPage /></MemoryRouter>);
-    change('auth-name', 'Example Player'); change('auth-email', 'person@example.test');
-    change('auth-password', 'SyntheticPassword1'); change('auth-confirm', 'SyntheticPassword1');
+    change('auth-name', 'Example Player'); change('auth-login', 'person@example.test');
+    change('auth-password', 'SyntheticPassword1'); change('auth-dob', '2000-01-01');
     fireEvent.submit(document.querySelector('form')!);
-    change('auth-dob', '2000-01-01'); fireEvent.submit(document.querySelector('form')!);
     const signal = vi.mocked(apiClient.post).mock.calls[0][2]?.signal;
     view.unmount();
     expect(signal?.aborted).toBe(true);

@@ -6,11 +6,10 @@ import { apiClient } from '../api/axiosConfig';
 import { credentialUpdate } from '../api/credentialUpdates';
 import { assertCurrentAuthSession, setRefreshedAccessToken } from '../utils/authStorage';
 import { isAndroidApp } from '../android/bridge';
-import { AccountRoleSelector } from '../components/auth/AccountRoleSelector';
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { ageFromDob, isUnder13, todayIso } from '../utils/age';
-import { isRegistrationRole, type RegistrationRole } from '../utils/registrationRoles';
+import { NEUTRAL_REGISTRATION_ROLE } from '../utils/registration';
 import {
     authFieldErrorClass,
     authInputClass,
@@ -24,6 +23,7 @@ import {
     requiredAccountStep,
 } from '../utils/authRedirect';
 
+/** An account missing its name or date of birth (a Google sign-in, an invited account) completes them here. Nothing else is asked. */
 export const OnboardingPage = () => {
     const { user, sessionId } = useAuth();
     return <OnboardingForm key={`${user?.id}:${sessionId}`} />;
@@ -36,20 +36,16 @@ const OnboardingForm = () => {
     const request = useRef<AbortController | null>(null);
     useEffect(() => () => request.current?.abort(), [sessionId]);
     const [fullName, setFullName] = useState(() => user?.fullName && user.fullName !== 'New User' ? user.fullName : user?.name ?? '');
-    const [role, setRole] = useState<RegistrationRole>(() => isRegistrationRole(user?.role) ? user.role : 'PLAYER');
     const [dateOfBirth, setDateOfBirth] = useState(user?.dob ?? '');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [nameError, setNameError] = useState('');
     const [dobError, setDobError] = useState('');
 
-    const existingRoleIsSelectable = isRegistrationRole(user?.role);
-
     useEffect(() => {
         if (user && !requiredAccountStep(user)) {
             const flow = getAuthFlow();
-            const destination = completedAuthDestination(user, flow.nextPath, flow.newAccount);
-            navigate(destination, { replace: true });
+            navigate(completedAuthDestination(user, flow.nextPath, flow.newAccount), { replace: true });
         }
     }, [navigate, user]);
 
@@ -59,13 +55,12 @@ const OnboardingForm = () => {
         const trimmedName = fullName.trim();
         const nextNameError = trimmedName.length < 2
             ? t('auth.register.errNameTooShort')
-            : trimmedName.length > 100 ? t('authRoles.nameTooLong') : '';
+            : trimmedName.length > 100 ? t('auth.register.nameTooLong') : '';
         const nextDobError = !dateOfBirth
             ? t('auth.register.errDobRequired')
             : !Number.isFinite(ageFromDob(dateOfBirth)) || dateOfBirth > todayIso()
-                ? t('authRoles.dobInvalid')
-                : isUnder13(dateOfBirth) ? t('auth.register.errUnder13')
-                : ['PARENT', 'AGENT', 'ORGANIZER', 'VENUE_MANAGER'].includes(role) && ageFromDob(dateOfBirth) < 18 ? 'This profile requires an adult account.' : '';
+                ? t('auth.register.dobInvalid')
+                : isUnder13(dateOfBirth) ? t('auth.register.errUnder13') : '';
         setNameError(nextNameError);
         setDobError(nextDobError);
         if (nextNameError || nextDobError) return;
@@ -74,9 +69,10 @@ const OnboardingForm = () => {
         setError('');
         const controller = new AbortController(); request.current = controller;
         try {
+            // The backend still wants a role here; an account keeps the one it has, a new one stays neutral.
             await credentialUpdate(config => apiClient.put<{ accessToken?: string }>('/users/me/onboarding', {
                 fullName: trimmedName,
-                role: existingRoleIsSelectable ? role : user?.role,
+                role: user.role ?? NEUTRAL_REGISTRATION_ROLE,
                 dateOfBirth,
             }, config), response => {
                 const token = response.data.accessToken;
@@ -90,14 +86,12 @@ const OnboardingForm = () => {
             const refreshedUser = await bootstrapSession();
             assertCurrentAuthSession(sessionId);
             if (!refreshedUser) throw new Error(t('onboarding.sessionRefreshFailed'));
-            const stillRequired = requiredAccountStep(refreshedUser);
-            if (stillRequired) {
+            if (requiredAccountStep(refreshedUser)) {
                 setError(t('onboarding.incompleteError'));
                 return;
             }
             const flow = getAuthFlow();
-            const destination = completedAuthDestination(refreshedUser, flow.nextPath, flow.newAccount);
-            navigate(destination, { replace: true });
+            navigate(completedAuthDestination(refreshedUser, flow.nextPath, flow.newAccount), { replace: true });
         } catch (requestError) {
             if (!controller.signal.aborted) setError(extractApiErrorMessage(requestError, t('onboarding.saveFailed')));
         } finally {
@@ -108,14 +102,14 @@ const OnboardingForm = () => {
 
     return (
         <div className="min-h-full bg-[var(--color-surface)] px-4 py-10 text-[var(--color-text)] sm:px-6">
-            <div className="mx-auto w-full max-w-2xl">
+            <div className="mx-auto w-full max-w-md">
                 <div className="mb-8 text-center">
                     <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl border border-[var(--color-accent)]/40 bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
                         <ShieldCheck className="h-7 w-7" />
                     </div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">{t('onboarding.essentials')}</p>
                     <h1 className="mt-2 text-3xl font-semibold tracking-tight">{t('onboarding.title')}</h1>
-                    <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[var(--color-secondary)]">{t('onboarding.subtitleSimple')}</p>
+                    <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[var(--color-secondary)]">{t('onboarding.subtitle')}</p>
                 </div>
 
                 <form onSubmit={submit} className="theme-surface theme-border space-y-6 rounded-xl border p-6 shadow-2xl sm:p-8" noValidate>
@@ -140,17 +134,8 @@ const OnboardingForm = () => {
                         {nameError && <p id="onboarding-name-error" className={authFieldErrorClass}>{nameError}</p>}
                     </div>
 
-                    {existingRoleIsSelectable ? (
-                        <AccountRoleSelector value={role} onChange={setRole} disabled={isLoading} />
-                    ) : (
-                        <div className="rounded-lg border border-[color:var(--color-border)]/10 bg-[color:var(--color-ink)]/5 px-4 py-3">
-                            <p className={authLabelClass}>{t('auth.register.labelRole')}</p>
-                            <p className="mt-1 text-sm font-semibold">{user?.role}</p>
-                        </div>
-                    )}
-
                     <div className="space-y-2">
-                        <label htmlFor="onboarding-dob" className={authLabelClass}>{t('authRoles.yourDob')}</label>
+                        <label htmlFor="onboarding-dob" className={authLabelClass}>{t('auth.register.labelDob')}</label>
                         <input
                             id="onboarding-dob"
                             type="date"
@@ -168,9 +153,7 @@ const OnboardingForm = () => {
                         {dobError && <p id="onboarding-dob-error" className={authFieldErrorClass}>{dobError}</p>}
                     </div>
 
-                    <div className="rounded-lg border border-[var(--color-accent)]/20 bg-[var(--color-accent)]/5 px-4 py-3 text-xs leading-5 text-[var(--color-secondary)]">
-                        {t('onboarding.optionalLater')}
-                    </div>
+                    <p className="text-xs leading-5 text-[var(--color-secondary)]">{t('onboarding.optionalLater')}</p>
 
                     <button type="submit" disabled={isLoading} className={authPrimaryButtonClass}>
                         {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : t('onboarding.continue')}

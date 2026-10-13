@@ -39,18 +39,16 @@ it('adopts onboarding credentials before metadata bootstrap while preserving the
     expect(getAuthSessionId()).toBe(session); expect(getStoredAccessToken()).toBe(jwt('updated'));
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/home'));
 });
-it.each(['FAN', 'PARENT'])('completes onboarding as Parent from an existing %s role without replacing the session', async (initialRole) => {
+it.each([['PARENT', 'PARENT'], [undefined, 'FAN']])('asks for no role: an account keeps its %s, a new one is sent as the neutral %s', async (initialRole, sent) => {
     vi.mocked(useAuth).mockReturnValue({
         user: { ...user, role: initialRole }, sessionId: getAuthSessionId(), bootstrapSession: bootstrap, logout,
     } as unknown as ReturnType<typeof useAuth>);
     const session = getAuthSessionId(); renderOnboarding();
-    const parent = screen.getByRole('radio', { name: 'Parent or guardian' });
-    if (initialRole === 'PARENT') expect(parent).toBeChecked();
-    else fireEvent.click(parent);
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
     fireEvent.submit(document.querySelector('form') as HTMLFormElement);
     await waitFor(() => expect(bootstrap).toHaveBeenCalledTimes(1));
     expect(apiClient.put).toHaveBeenCalledWith('/users/me/onboarding', {
-        fullName: 'Initial Person', role: 'PARENT', dateOfBirth: '2000-01-01',
+        fullName: 'Initial Person', role: sent, dateOfBirth: '2000-01-01',
     }, expect.anything());
     expect(getAuthSessionId()).toBe(session);
     expect(getStoredAccessToken()).toBe(jwt('updated'));

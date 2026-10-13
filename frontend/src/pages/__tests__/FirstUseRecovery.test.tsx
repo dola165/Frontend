@@ -21,16 +21,15 @@ beforeEach(() => {
 });
 const onboarding = () => <MemoryRouter initialEntries={['/onboarding']}><OnboardingPage /></MemoryRouter>;
 
-it('preserves edited name, date and responsibility across background account refreshes', async () => {
+it('preserves edited name and date across background account refreshes', async () => {
   const user = userEvent.setup(), view = render(onboarding());
   const name = document.getElementById('onboarding-name') as HTMLInputElement;
   await user.clear(name); await user.type(name, 'An unfinished name');
   fireEvent.change(document.getElementById('onboarding-dob')!, { target: { value: '1992-05-03' } });
-  await user.click(screen.getByRole('radio', { name: 'Parent or guardian' }));
   auth = { ...auth, user: { ...auth.user! } }; view.rerender(onboarding());
   expect(name).toHaveValue('An unfinished name');
   expect(document.getElementById('onboarding-dob')).toHaveValue('1992-05-03');
-  expect(screen.getByRole('radio', { name: 'Parent or guardian' })).toBeChecked();
+  expect(screen.queryByRole('radio')).not.toBeInTheDocument();
 });
 
 it('starts fresh when onboarding belongs to a different account', async () => {

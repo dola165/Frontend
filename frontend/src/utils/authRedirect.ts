@@ -10,6 +10,7 @@ const AUTH_FLOW_ROUTES = new Set([
     '/onboarding',
     '/dob',
     '/set-password',
+    '/start',
 ]);
 
 export const isAuthFlowRoute = (pathname: string) => AUTH_FLOW_ROUTES.has(pathname.toLowerCase());
@@ -19,10 +20,11 @@ export interface AuthFlowState {
     email?: string;
     newAccount?: boolean;
     awaitingVerification?: boolean;
+    /** The town given at registration; the first run starts from it. */
+    town?: string;
 }
 
 export interface AuthDestinationUser {
-    role?: string;
     profileComplete?: boolean;
     onboardingRequired?: boolean;
     mustChangePassword?: boolean;
@@ -73,6 +75,7 @@ export const getAuthFlow = (): AuthFlowState => {
             email: typeof parsed.email === 'string' ? parsed.email : undefined,
             newAccount: parsed.newAccount === true,
             awaitingVerification: parsed.awaitingVerification === true,
+            town: typeof parsed.town === 'string' && parsed.town.trim() ? parsed.town.trim().slice(0, 80) : undefined,
         };
     } catch {
         return memoryFlow;
@@ -129,13 +132,12 @@ export const requiredAccountStep = (user?: AuthDestinationUser | null) => {
     return null;
 };
 
-export const firstUseDestination = (role?: string) => {
-    return `/roles?setup=1${role ? `&role=${encodeURIComponent(role)}` : ''}`;
-};
+/** A new account's first run: where they are, what they want to see, a few clubs to follow (`features/start`). */
+export const firstUseDestination = () => '/start';
 
 export const completedAuthDestination = (
-    user: AuthDestinationUser,
+    _user: AuthDestinationUser,
     requestedDestination?: string | null,
     firstUse = false,
 ) => sanitizeAuthRedirect(requestedDestination)
-    ?? (firstUse ? firstUseDestination(user.role) : '/home');
+    ?? (firstUse ? firstUseDestination() : '/home');

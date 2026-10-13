@@ -2,11 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { isAndroidApp } from '../android/bridge';
-import { AlertCircle, ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { AlertCircle, Check, Eye, EyeOff, Loader2, LocateFixed } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../api/axiosConfig';
 import { AuthSplitShell } from '../components/auth/AuthSplitShell';
-import { AccountRoleSelector } from '../components/auth/AccountRoleSelector';
 import { useSecondFactorLogin } from '../components/auth/useSecondFactorLogin';
 import { SecondFactorPrompt } from '../components/auth/SecondFactorPrompt';
 import { GrasskickzLogo } from '../components/layout/GrasskickzLogo';
@@ -19,13 +18,13 @@ import {
     authInputErrorClass,
     authLabelClass,
     authPrimaryButtonClass,
-    authSecondaryButtonClass,
 } from '../components/auth/authClasses';
 import { useAuth } from '../context/AuthContext';
 import { extractApiErrorMessage } from '../utils/apiError';
 import { ageFromDob, isUnder13, todayIso } from '../utils/age';
-import type { RegistrationRole } from '../utils/registrationRoles';
+import { isEmail, isPhone, NEUTRAL_REGISTRATION_ROLE, normalizePhone } from '../utils/registration';
 import { getAuthSessionId, isCurrentAuthSession, subscribeAuthSession } from '../utils/authStorage';
+import { DEFAULT_TOWN, TOWNS, locateTown } from '../features/start/towns';
 import {
     buildLoginPath,
     completedAuthDestination,
@@ -35,10 +34,12 @@ import {
     resolvePostAuthRedirect,
 } from '../utils/authRedirect';
 
-type RegisterField = 'name' | 'email' | 'password' | 'confirmPassword' | 'dob';
+type RegisterField = 'name' | 'login' | 'password' | 'dob';
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
+/**
+ * One screen: name, email or phone, password, date of birth and town. No role: what a person does in football is
+ * chosen later and never decides access. A new account then goes to its first run (`/start`).
+ */
 export const RegisterPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -53,13 +54,13 @@ export const RegisterPage = () => {
         const unsubscribe = subscribeAuthSession(retire);
         return () => { unsubscribe(); registration.current?.abort(); };
     }, []);
-    const [step, setStep] = useState<1 | 2>(1);
     const [fullName, setFullName] = useState('');
-    const [email, setEmail] = useState('');
+    const [login, setLogin] = useState('');
     const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [role, setRole] = useState<RegistrationRole>(() => nextPath.split('?')[0] === '/consent' ? 'PARENT' : 'PLAYER');
+    const [showPassword, setShowPassword] = useState(false);
     const [dob, setDob] = useState('');
+    const [town, setTown] = useState(DEFAULT_TOWN.name);
+    const [locating, setLocating] = useState<'idle' | 'locating' | 'failed'>('idle');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [fieldErrors, setFieldErrors] = useState<Partial<Record<RegisterField, string>>>({});
@@ -71,7 +72,6 @@ export const RegisterPage = () => {
         { key: 'digit', test: (value: string) => /\d/.test(value), label: t('auth.register.ruleDigit') },
     ];
     const passwordRulesMet = passwordRules.every((rule) => rule.test(password));
-    const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
 
     const clearFieldError = (field: RegisterField) => setFieldErrors((current) => {
         if (!current[field]) return current;
@@ -80,60 +80,53 @@ export const RegisterPage = () => {
         return next;
     });
 
-    const validateAccount = () => {
+    const validate = () => {
         const errors: Partial<Record<RegisterField, string>> = {};
-        if (fullName.trim().length < 2) errors.name = fullName.trim()
-            ? t('auth.register.errNameTooShort')
-            : t('auth.register.errNameRequired');
-        else if (fullName.trim().length > 100) errors.name = t('authRoles.nameTooLong');
-        if (!email.trim()) errors.email = t('auth.register.errEmailRequired');
-        else if (!EMAIL_PATTERN.test(email.trim())) errors.email = t('auth.register.errEmailInvalid');
+        if (fullName.trim().length < 2) errors.name = fullName.trim() ? t('auth.register.errNameTooShort') : t('auth.register.errNameRequired');
+        else if (fullName.trim().length > 100) errors.name = t('auth.register.nameTooLong');
+        if (!login.trim()) errors.login = t('auth.register.errLoginRequired');
+        else if (!isEmail(login) && !isPhone(login)) errors.login = t('auth.register.errLoginInvalid');
         if (!passwordRulesMet) errors.password = t('auth.register.errPasswordWeak');
-        if (confirmPassword !== password) errors.confirmPassword = t('auth.register.errConfirmMismatch');
+        if (!dob) errors.dob = t('auth.register.errDobRequired');
+        else if (!Number.isFinite(ageFromDob(dob)) || dob > todayIso()) errors.dob = t('auth.register.dobInvalid');
+        else if (isUnder13(dob)) errors.dob = t('auth.register.errUnder13');
         setFieldErrors(errors);
         return Object.keys(errors).length === 0;
     };
 
-    const continueToDetails = (event: React.FormEvent) => {
-        event.preventDefault();
-        if (validateAccount()) {
-            setError('');
-            setStep(2);
-        }
+    const findMyTown = async () => {
+        setLocating('locating');
+        const found = await locateTown();
+        if (found) { setTown(found.name); setLocating('idle'); } else setLocating('failed');
     };
 
     const handleRegister = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (registration.current || isLoading) return;
-        const errors: Partial<Record<RegisterField, string>> = {};
-        if (!dob) errors.dob = t('auth.register.errDobRequired');
-        else if (!Number.isFinite(ageFromDob(dob)) || dob > todayIso()) errors.dob = t('authRoles.dobInvalid');
-        else if (isUnder13(dob)) errors.dob = t('auth.register.errUnder13');
-        else if (['PARENT', 'AGENT', 'ORGANIZER', 'VENUE_MANAGER'].includes(role) && ageFromDob(dob) < 18) errors.dob = 'This starting profile requires an adult account. You can choose player, coach, referee or fan.';
-        setFieldErrors((current) => ({ ...current, ...errors }));
-        if (Object.keys(errors).length > 0) return;
+        if (registration.current || isLoading || !validate()) return;
 
         setIsLoading(true);
         setError('');
         const controller = new AbortController();
         registration.current = controller;
-        const normalizedEmail = email.trim().toLowerCase();
+        const normalizedLogin = isEmail(login) ? login.trim().toLowerCase() : normalizePhone(login);
         let installingSession = false;
         try {
+            // The town travels with the sign-up flow to the first run, which saves it; the request keeps the backend's own shape.
             const response = await apiClient.post<{ emailVerificationRequired?: boolean }>('/auth/register', {
                 fullName: fullName.trim(),
-                email: normalizedEmail,
+                ...(isEmail(login) ? { email: normalizedLogin } : { phone: normalizedLogin }),
                 password,
-                role,
+                role: NEUTRAL_REGISTRATION_ROLE,
                 dateOfBirth: dob,
                 continuationPath: publicContinuationPath(nextPath),
             }, { signal: controller.signal });
             if (controller.signal.aborted || !isCurrentAuthSession(registrationOwner.current)) return;
 
             rememberAuthFlow({
-                email: normalizedEmail,
+                email: normalizedLogin,
                 nextPath,
                 newAccount: true,
+                town,
                 awaitingVerification: response.data.emailVerificationRequired === true,
             });
 
@@ -142,27 +135,20 @@ export const RegisterPage = () => {
                 return;
             }
 
-            const result = await secondFactor.authenticate({ kind: 'password', email: normalizedEmail, password });
+            const result = await secondFactor.authenticate({ kind: 'password', email: normalizedLogin, password });
             if (!result) return;
-            setPassword(''); setConfirmPassword('');
+            setPassword('');
             installingSession = true;
             const authenticatedUser = await loginWithAccessToken(result.accessToken);
             const requiredStep = requiredAccountStep({
                 ...authenticatedUser,
                 mustChangePassword: result.mustChangePassword || authenticatedUser.mustChangePassword,
             });
-            if (requiredStep) {
-                navigate(requiredStep, { replace: true });
-                return;
-            }
-            const destination = completedAuthDestination(authenticatedUser, nextPath, true);
-            navigate(destination, { replace: true });
+            navigate(requiredStep ?? completedAuthDestination(authenticatedUser, nextPath, true), { replace: true });
         } catch (requestError) {
             if (!installingSession && (controller.signal.aborted || !isCurrentAuthSession(registrationOwner.current))) return;
             const message = extractApiErrorMessage(requestError, t('auth.register.errSubmitFallback'));
-            setError(message === 'Transactional email sender is not configured.'
-                ? t('authRoles.emailUnavailable')
-                : message);
+            setError(message === 'Transactional email sender is not configured.' ? t('auth.register.emailUnavailable') : message);
         } finally {
             registration.current = null;
             if (!controller.signal.aborted || installingSession) setIsLoading(false);
@@ -173,19 +159,14 @@ export const RegisterPage = () => {
         if (!credentialResponse.credential) return;
         setIsLoading(true);
         setError('');
-        rememberAuthFlow({ nextPath });
+        rememberAuthFlow({ nextPath, town });
         try {
             const result = await secondFactor.authenticate({ kind: 'google', token: credentialResponse.credential });
             if (!result) return;
-            rememberAuthFlow({ nextPath, newAccount: result.newAccount === true });
+            rememberAuthFlow({ nextPath, town, newAccount: result.newAccount === true });
             const authenticatedUser = await loginWithAccessToken(result.accessToken);
             const requiredStep = requiredAccountStep({ ...authenticatedUser, mustChangePassword: result.mustChangePassword === true || authenticatedUser.mustChangePassword });
-            if (requiredStep) {
-                navigate(requiredStep, { replace: true });
-                return;
-            }
-            const destination = completedAuthDestination(authenticatedUser, nextPath, result.newAccount === true);
-            navigate(destination, { replace: true });
+            navigate(requiredStep ?? completedAuthDestination(authenticatedUser, nextPath, result.newAccount === true), { replace: true });
         } catch (requestError) {
             setError(extractApiErrorMessage(requestError, t('auth.common.googleFailed')));
         } finally {
@@ -193,31 +174,9 @@ export const RegisterPage = () => {
         }
     };
 
-    const field = (
-        id: string,
-        label: string,
-        type: string,
-        value: string,
-        onChange: (value: string) => void,
-        errorKey: RegisterField,
-        autoComplete?: string,
-    ) => (
-        <div className="space-y-2">
-            <label htmlFor={id} className={authLabelClass}>{label}</label>
-            <input
-                id={id}
-                type={type}
-                value={value}
-                onChange={(event) => { onChange(event.target.value); clearFieldError(errorKey); }}
-                required
-                autoComplete={autoComplete}
-                className={fieldErrors[errorKey] ? authInputErrorClass : authInputClass}
-                aria-invalid={Boolean(fieldErrors[errorKey])}
-                aria-describedby={fieldErrors[errorKey] ? `${id}-error` : undefined}
-            />
-            {fieldErrors[errorKey] && <p id={`${id}-error`} className={authFieldErrorClass}>{fieldErrors[errorKey]}</p>}
-        </div>
-    );
+    const fieldClass = (key: RegisterField) => (fieldErrors[key] ? authInputErrorClass : authInputClass);
+    const describedBy = (id: string, key: RegisterField, hint?: string) => [hint, fieldErrors[key] ? `${id}-error` : undefined].filter(Boolean).join(' ') || undefined;
+    const fieldError = (id: string, key: RegisterField) => fieldErrors[key] && <p id={`${id}-error`} className={authFieldErrorClass}>{fieldErrors[key]}</p>;
 
     return (
         <AuthSplitShell
@@ -228,14 +187,8 @@ export const RegisterPage = () => {
             cardHeader={(
                 <div className="mb-6">
                     <GrasskickzLogo wordmark className="mb-6 lg:hidden" />
-                    <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-secondary)]">
-                        <span>{t('auth.register.stepOf', { current: step, total: 2 })}</span>
-                        <span>{step === 1 ? t('auth.register.accountStep') : t('auth.register.detailsStep')}</span>
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                        <div className="h-1 bg-[var(--color-accent)]" />
-                        <div className={`h-1 ${step === 2 ? 'bg-[var(--color-accent)]' : 'bg-[color:var(--color-ink)]/10'}`} />
-                    </div>
+                    <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text)]">{t('auth.register.title')}</h1>
+                    <p className="mt-1 text-sm text-[var(--color-secondary)]">{t('auth.register.subtitle')}</p>
                 </div>
             )}
             footer={(
@@ -248,28 +201,65 @@ export const RegisterPage = () => {
                 </div>
             )}
 
-            {secondFactor.challenge ? <SecondFactorPrompt pending={secondFactor.pending} error={secondFactor.error} onSubmit={code => void secondFactor.submit(code)} onCancel={() => { secondFactor.cancel(); setPassword(''); setConfirmPassword(''); setStep(1); }} /> : step === 1 ? (
+            {secondFactor.challenge ? <SecondFactorPrompt pending={secondFactor.pending} error={secondFactor.error} onSubmit={code => void secondFactor.submit(code)} onCancel={() => { secondFactor.cancel(); setPassword(''); }} /> : (
                 <>
-                    <form onSubmit={continueToDetails} className="flex flex-col gap-5" noValidate>
-                        {field('auth-name', t('auth.register.labelName'), 'text', fullName, setFullName, 'name', 'name')}
-                        {field('auth-email', t('auth.register.labelEmail'), 'email', email, setEmail, 'email', 'email')}
-                        {field('auth-password', t('auth.register.labelPassword'), 'password', password, setPassword, 'password', 'new-password')}
-                        {password.length > 0 && (
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                                {passwordRules.map((rule) => (
-                                    <span key={rule.key} className={`flex items-center gap-1.5 text-[10px] font-semibold ${rule.test(password) ? 'text-[var(--color-accent)]' : 'text-[var(--color-secondary)]'}`}>
-                                        <Check className="h-3.5 w-3.5" /> {rule.label}
-                                    </span>
-                                ))}
+                    <form onSubmit={handleRegister} className="flex flex-col gap-5" noValidate>
+                        <div className="space-y-2">
+                            <label htmlFor="auth-name" className={authLabelClass}>{t('auth.register.labelName')}</label>
+                            <input id="auth-name" type="text" value={fullName} onChange={(event) => { setFullName(event.target.value); clearFieldError('name'); }} required autoComplete="name"
+                                className={fieldClass('name')} aria-invalid={Boolean(fieldErrors.name)} aria-describedby={describedBy('auth-name', 'name')} />
+                            {fieldError('auth-name', 'name')}
+                        </div>
+                        <div className="space-y-2">
+                            <label htmlFor="auth-login" className={authLabelClass}>{t('auth.register.labelLogin')}</label>
+                            <input id="auth-login" type="text" inputMode="email" value={login} onChange={(event) => { setLogin(event.target.value); clearFieldError('login'); }} required autoComplete="username"
+                                className={fieldClass('login')} aria-invalid={Boolean(fieldErrors.login)} aria-describedby={describedBy('auth-login', 'login')} />
+                            {fieldError('auth-login', 'login')}
+                        </div>
+                        <div className="space-y-2">
+                            <label htmlFor="auth-password" className={authLabelClass}>{t('auth.register.labelPassword')}</label>
+                            <div className="relative">
+                                <input id="auth-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => { setPassword(event.target.value); clearFieldError('password'); }} required autoComplete="new-password"
+                                    className={`${fieldClass('password')} pr-12`} aria-invalid={Boolean(fieldErrors.password)} aria-describedby={describedBy('auth-password', 'password')} />
+                                <button type="button" onClick={() => setShowPassword(value => !value)} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[var(--color-secondary)] hover:text-[var(--color-text)]"
+                                    aria-label={showPassword ? t('auth.register.hidePassword') : t('auth.register.showPassword')} aria-pressed={showPassword}>
+                                    {showPassword ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+                                </button>
                             </div>
-                        )}
-                        {field('auth-confirm', t('auth.register.labelConfirm'), 'password', confirmPassword, setConfirmPassword, 'confirmPassword', 'new-password')}
-                        {confirmPassword && (
-                            <span className={`flex items-center gap-1.5 text-[10px] font-semibold ${passwordsMatch ? 'text-[var(--color-accent)]' : 'text-[var(--color-secondary)]'}`}>
-                                <Check className="h-3.5 w-3.5" /> {t('auth.register.ruleMatch')}
-                            </span>
-                        )}
-                        <button type="submit" className={authPrimaryButtonClass}>{t('auth.register.continue')}</button>
+                            {password.length > 0 && (
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                                    {passwordRules.map((rule) => (
+                                        <span key={rule.key} className={`flex items-center gap-1.5 text-[10px] font-semibold ${rule.test(password) ? 'text-[var(--color-accent)]' : 'text-[var(--color-secondary)]'}`}>
+                                            <Check className="h-3.5 w-3.5" aria-hidden="true" /> {rule.label}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                            {fieldError('auth-password', 'password')}
+                        </div>
+                        <div className="grid gap-5 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <label htmlFor="auth-dob" className={authLabelClass}>{t('auth.register.labelDob')}</label>
+                                <input id="auth-dob" type="date" value={dob} max={todayIso()} required autoComplete="bday" onChange={(event) => { setDob(event.target.value); clearFieldError('dob'); }}
+                                    className={fieldClass('dob')} aria-invalid={Boolean(fieldErrors.dob)} aria-describedby={describedBy('auth-dob', 'dob', 'auth-dob-hint')} />
+                                <p id="auth-dob-hint" className="text-[10px] leading-4 text-[var(--color-secondary)]">{t('auth.register.dobHint')}</p>
+                                {fieldError('auth-dob', 'dob')}
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="auth-town" className={authLabelClass}>{t('auth.register.labelTown')}</label>
+                                <select id="auth-town" value={town} onChange={(event) => setTown(event.target.value)} className={authInputClass} aria-describedby={locating === 'failed' ? 'auth-town-note' : undefined}>
+                                    {TOWNS.map(option => <option key={option.name} value={option.name}>{option.name}</option>)}
+                                </select>
+                                <button type="button" onClick={() => void findMyTown()} disabled={locating === 'locating'} className="inline-flex min-h-7 items-center gap-1.5 text-[11px] font-semibold text-[var(--color-accent)] disabled:opacity-60">
+                                    {locating === 'locating' ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <LocateFixed className="h-3.5 w-3.5" aria-hidden="true" />}
+                                    {locating === 'locating' ? t('auth.register.locating') : t('auth.register.useLocation')}
+                                </button>
+                                {locating === 'failed' && <p id="auth-town-note" role="status" className="text-[10px] leading-4 text-[var(--color-secondary)]">{t('auth.register.locationUnavailable')}</p>}
+                            </div>
+                        </div>
+                        <button type="submit" disabled={isLoading} className={authPrimaryButtonClass}>
+                            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : t('auth.register.submit')}
+                        </button>
                     </form>
                     {!isAndroidApp && <div className={authDividerClass}>
                         <div className={authDividerLineClass} />
@@ -285,39 +275,6 @@ export const RegisterPage = () => {
                         onError={() => setError(t('auth.common.googleClosed'))}
                     />}
                 </>
-            ) : (
-                <form onSubmit={handleRegister} className="flex flex-col gap-6" noValidate>
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-text)]">{t('auth.register.finishTitle')}</h1>
-                        <p className="mt-2 text-sm leading-6 text-[var(--color-secondary)]">{t('auth.register.finishSubtitle')}</p>
-                    </div>
-                    <AccountRoleSelector value={role} onChange={setRole} disabled={isLoading} />
-                    <div className="space-y-2">
-                        <label htmlFor="auth-dob" className={authLabelClass}>{t('authRoles.yourDob')}</label>
-                        <input
-                            id="auth-dob"
-                            type="date"
-                            value={dob}
-                            max={todayIso()}
-                            required
-                            autoComplete="bday"
-                            onChange={(event) => { setDob(event.target.value); clearFieldError('dob'); }}
-                            className={fieldErrors.dob ? authInputErrorClass : authInputClass}
-                            aria-invalid={Boolean(fieldErrors.dob)}
-                            aria-describedby={`auth-dob-hint${fieldErrors.dob ? ' auth-dob-error' : ''}`}
-                        />
-                        <p id="auth-dob-hint" className="text-[10px] leading-4 text-[var(--color-secondary)]">{t('auth.register.dobHint')}</p>
-                        {fieldErrors.dob && <p id="auth-dob-error" className={authFieldErrorClass}>{fieldErrors.dob}</p>}
-                    </div>
-                    <div className="flex gap-3">
-                        <button type="button" onClick={() => setStep(1)} className={`${authSecondaryButtonClass} mt-2 inline-flex items-center justify-center gap-2`} disabled={isLoading}>
-                            <ArrowLeft className="h-4 w-4 shrink-0" /> {t('onboarding.back')}
-                        </button>
-                        <button type="submit" disabled={isLoading} className={`${authPrimaryButtonClass} flex-1`}>
-                            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : t('auth.register.submit')}
-                        </button>
-                    </div>
-                </form>
             )}
         </AuthSplitShell>
     );

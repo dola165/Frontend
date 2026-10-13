@@ -53,8 +53,8 @@ export const userHandlers: HttpHandler[] = [
     if (uid == null) return HttpResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = (await request.json()) as { fullName?: string; role?: string; dateOfBirth?: string };
-    if (!body.fullName?.trim() || !body.dateOfBirth || !body.role) {
-      return HttpResponse.json({ error: 'Name, role, and date of birth are required.' }, { status: 400 });
+    if (!body.fullName?.trim() || !body.dateOfBirth) {
+      return HttpResponse.json({ error: 'Name and date of birth are required.' }, { status: 400 });
     }
     if (isUnder13(body.dateOfBirth)) {
       return HttpResponse.json({ error: 'You must be at least 13 years old.' }, { status: 400 });
@@ -65,7 +65,7 @@ export const userHandlers: HttpHandler[] = [
       return HttpResponse.json({ error: 'Date of birth is locked after registration.' }, { status: 409 });
     }
     u.fullName = body.fullName.trim();
-    u.role = body.role;
+    if (body.role) u.role = body.role;
     u.dob = body.dateOfBirth;
     u.profileComplete = true;
     u.onboardingRequired = false;

@@ -14,8 +14,6 @@ const PAGE = 12;
 const KINDS: Record<string, string[]> = { ACADEMY: ['ACADEMY'], SCHOOL: ['SCHOOL'], COMMUNITY: ['GRASSROOTS', 'AMATEUR'], PRO: ['PROFESSIONAL', 'SEMI_PROFESSIONAL'], OTHER: ['OTHER'] };
 /** "Taking new players": clubs with open trials or open to applications. */
 const TAKING = ['OPEN_TRIAL', 'APPLICATION_REQUIRED'];
-/** Club types as the World map groups them, for "Open full map". */
-const MAP_CATEGORY: Record<string, string[]> = { ACADEMY: ['PROFESSIONAL_ACADEMY', 'PRIVATE_ACADEMY'], SCHOOL: ['SCHOOL_CLUB'], AMATEUR: ['AMATEUR_CLUB'], OTHER: ['OTHER'] };
 
 /** The club types a query asks for: kinds become their types, and a type from an older link stays as it is. */
 export const clubTypes = (query: DirectoryQuery) => [...new Set((query.values.type ?? []).flatMap(value => KINDS[value] ?? [value]))];
@@ -29,23 +27,12 @@ export function childLabel(child?: Participant) {
     return age != null ? `${name} (${age})` : name;
 }
 
-/** The full map with the same clubs: search text, how to join, kind of club and the area. */
-export function clubsMapLink(query: DirectoryQuery, city?: string | null, player?: number) {
-    const params = new URLSearchParams({ layers: 'clubs' });
-    if (query.q) params.set('q', query.q);
-    joinPolicies(query).forEach(value => params.append('joinPolicy', value));
-    [...new Set(clubTypes(query).flatMap(type => MAP_CATEGORY[type] ?? []))].forEach(value => params.append('category', value));
-    if (city) params.set('region', city);
-    if (player) params.set('player', String(player));
-    return `/world/map?${params}`;
-}
-
 /**
  * Clubs near the World area: academies, schools, community and pro clubs. For a parent searching for a child
  * (chosen in the World bar), only clubs with a programme for the child's age are asked for, and each card shows
  * what fits. On the map each club is its own pin.
  */
-export function clubsSource({ child, centre, city }: { child?: Participant; centre?: { lat: number; lng: number } | null; city?: string | null } = {}): DirectorySource<ClubProfile> {
+export function clubsSource({ child, centre }: { child?: Participant; centre?: { lat: number; lng: number } | null } = {}): DirectorySource<ClubProfile> {
     const distance = (club: ClubProfile) => centre && club.latitude != null && club.longitude != null ? distanceKm([centre.lng, centre.lat], [club.longitude, club.latitude]) : undefined;
     return {
         id: 'clubs',
@@ -99,7 +86,6 @@ export function clubsSource({ child, centre, city }: { child?: Participant; cent
             const known = club.latitude != null && club.longitude != null ? { lat: club.latitude, lng: club.longitude } : places.club(club.id);
             return known ? { lat: known.lat, lng: known.lng, tone: 'club', noun: ['club', 'clubs'], label: club.name, meta: [wt(clubTypeLabel(club.type)), club.cityName].filter(Boolean).join(' · '), to: `/clubs/${club.id}` } : null;
         },
-        mapLink: query => clubsMapLink(query, city, child?.id),
         empty: { title: 'No clubs listed yet', body: 'Clubs appear here when they publish their profile.' },
     };
 }

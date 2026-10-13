@@ -47,6 +47,15 @@ This round covers coach, parent and player. Referees, organisers and other user 
   - No Opportunities tab. Club store, Club jobs and Club fundraising open in full inside the club page as tabs, switched as easily as on the global pages.
   - Contact moves back to the left column and holds only phone, email, fee range (lowest to highest) and the venues nearest the viewer.
 
+## Owner's notes, 13 October, later: World first (the frame, step A, built the same day)
+
+- **Order of work:** World first (its opinions are fresh and it depends on nothing unsettled), then My squads, My Club and the profile together once the coaches' answers on the club model are in.
+- **Map is the first tab** and replaces the overview. It is the wide map with the Browse area open from the start (`directories/MapDirectory.tsx` on the directory engine): one line of pills says what is on it (Clubs · All events · Trials · Tournaments) and the tab's filters follow on one line **above the map and the list alike**, on every tab (`gk-world-head__filters`; the strip under the map is gone). No left column, no numbered steps.
+- **Tabs:** Map · Clubs · Jobs & volunteering · Matches · Tournaments · People · Journeys. Venues are out (`/world/venues` opens the Map; `/stadiums` follows). Opportunities is called Jobs & volunteering (its address stays `/world/opportunities`). The old full map is **Journeys** (`/world/map`, its journey planning kept; the planning workspace it was going to become is pushed back).
+- **Deleted with the overview:** Customize and the 16 role pages, the 21 fields and their coach helpers (next opponent, match load, free pitches, relevance), the front page's own search styling lives on in `front/search.css`. Who is looking (`useWorldRole`) now follows confirmed links only (coach, parent, player, referee, agent, else fan); "What do you do in football?" no longer writes a World page. "Open full map" left the map pills.
+- **Lists are unchanged in step A** (one row design for every list is step C; the Airbnb-style browse that follows the viewport, with pictures, is step B).
+- Decisions taken (owner to confirm): the old Map tab is named Journeys; "For" (a coach's squads) stays in the World bar on the Map; the Map's layers are the existing lists (clubs, published events, trials, tournaments), each with its own filters.
+
 ## 1. Top bar and Home
 
 The owner's verdict: the redesign's top bar "has crazy good potential"; the real app's Home is much better than the redesign's.

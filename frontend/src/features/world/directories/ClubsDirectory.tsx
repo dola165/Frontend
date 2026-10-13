@@ -16,8 +16,7 @@ export default function ClubsDirectory() {
     const { child, pending } = useWorldChild();
     const { area } = useWorldArea();
     const lat = area.centre?.lat, lng = area.centre?.lng;
-    const source = useMemo(() => clubsSource({ child, centre: lat != null && lng != null ? { lat, lng } : null, city: area.anywhere ? null : area.city }),
-        [child, lat, lng, area.anywhere, area.city]);
+    const source = useMemo(() => clubsSource({ child, centre: lat != null && lng != null ? { lat, lng } : null }), [child, lat, lng]);
     // A link for one child waits for the person's children, so the first search already fits that child.
     if (pending) return <WorldLoading />;
     const who = childLabel(child);

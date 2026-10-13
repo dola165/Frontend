@@ -6,7 +6,7 @@ import { notifyWorldChanged, shared, detached } from '../../cache';
 import { useWorldCopy } from '../../copy';
 import type { NavProps } from '../../directory/types';
 import { COACHING_ROLES } from '../../front/coach/mySquads';
-import { useWorldRole } from '../../front/useOverviewLayout';
+import { useWorldRole } from '../../front/useWorldRole';
 import { peekClick, peekOf, usePeek } from '../../peek/usePeek';
 import { useWorldData } from '../../useWorldData';
 import { loadMyArrangements } from './arrangements';

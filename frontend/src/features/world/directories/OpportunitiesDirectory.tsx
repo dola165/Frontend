@@ -30,7 +30,7 @@ export default function OpportunitiesDirectory() {
     if (pending) return <WorldLoading />;
     return (
         <DirectoryPage
-            title={t('Opportunities')}
+            title={t('Jobs & volunteering')}
             subtitle={t('Jobs, trials and places to train')}
             // `type` was this page's tab parameter; older links still open the right tab.
             tabAlias="type"

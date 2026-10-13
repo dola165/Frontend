@@ -2,9 +2,6 @@
    left of centre from the start, the page's background either side. The thing pressed in it shows in a pane beside
    it: the list and the pane together sit in the middle of the page, and nothing reflows inside the list. Scoped under
    .gk; tokens only. */
-.gk .gk-world-filterbar:empty { display: none; }
-.gk .gk-world-filterbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2) var(--gk-3); margin-top: var(--gk-6); padding-bottom: var(--gk-3); border-bottom: 1px solid var(--gk-line); }
-.gk .gk-world-filterbar > .gk-world-filters { flex: 1 1 auto; min-width: 0; }
 .gk .gk-world-split { display: grid; grid-template-columns: minmax(0, 680px); justify-content: center; align-items: start; margin-top: var(--gk-6); }
 .gk .gk-world-list { display: flex; flex-direction: column; gap: var(--gk-3); min-width: 0; }
 .gk .gk-world-list > .gk-world-below { margin: 0; }
@@ -19,7 +16,7 @@
   .gk .gk-world-split > .gk-world-list { grid-column: 2; }
   .gk .gk-world-split > .gk-world-pane { grid-column: 3; margin-left: var(--gk-6); }
 }
-@media (max-width: 640px) { .gk .gk-world-split, .gk .gk-world-filterbar { margin-top: var(--gk-5); } }
+@media (max-width: 640px) { .gk .gk-world-split { margin-top: var(--gk-5); } }
 
 /* The pane stays in view under the app's header while the list scrolls; its own body scrolls inside it. */
 /* Its height leaves room for the page's own end padding, so at the bottom of the page its header never slides under the app's. */

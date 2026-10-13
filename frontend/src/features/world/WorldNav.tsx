@@ -1,18 +1,21 @@
 import { useLocation } from 'react-router-dom';
-import { BriefcaseBusiness, CalendarDays, Compass, LandPlot, Map as MapIcon, Shield, Trophy, UsersRound } from 'lucide-react';
+import { BriefcaseBusiness, CalendarDays, Map as MapIcon, Route, Shield, Trophy, UsersRound } from 'lucide-react';
 import { RouteTabs } from '../../design/Tabs';
 import { useWorldCopy } from './copy';
 import { CARRIED } from './directory/useDirectoryState';
 
+/**
+ * World's places, in the order people want them: the map first, then clubs, jobs and volunteering, matches,
+ * tournaments and people. Journeys (the old full map, a planning workspace later) comes last. Venues are out for now.
+ */
 const DESTINATIONS = [
-    { path: '/world', label: 'Overview', Icon: Compass, end: true },
+    { path: '/world', label: 'Map', Icon: MapIcon, end: true },
     { path: '/world/clubs', label: 'Clubs', Icon: Shield },
-    { path: '/world/people', label: 'People', Icon: UsersRound },
-    { path: '/world/venues', label: 'Venues', Icon: LandPlot },
+    { path: '/world/opportunities', label: 'Jobs & volunteering', Icon: BriefcaseBusiness },
     { path: '/world/matches', label: 'Matches', Icon: CalendarDays },
     { path: '/world/tournaments', label: 'Tournaments', Icon: Trophy },
-    { path: '/world/opportunities', label: 'Opportunities', Icon: BriefcaseBusiness },
-    { path: '/world/map', label: 'Map', Icon: MapIcon },
+    { path: '/world/people', label: 'People', Icon: UsersRound },
+    { path: '/world/map', label: 'Journeys', Icon: Route },
 ];
 
 /** World's own navigation, shared by every World page. Keeps the area and player context. */

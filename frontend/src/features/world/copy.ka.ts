@@ -70,7 +70,7 @@ export const WORLD_KA: Record<string, string> = {
     'Near': 'სად', 'For': 'ვისთვის', 'Anyone': 'ნებისმიერი', 'Start with': 'დაიწყეთ აქედან',
 
     // Front page
-    'Search clubs, people, venues, matches…': 'მოძებნეთ კლუბები, ხალხი, მოედნები, მატჩები…', 'Search GrassKickZ World': 'ძიება GrassKickZ მსოფლიოში',
+    'Search clubs, people, matches, tournaments…': 'მოძებნეთ კლუბები, ხალხი, მატჩები, ტურნირები…', 'Search GrassKickZ World': 'ძიება GrassKickZ მსოფლიოში',
     'Searching…': 'ძიება…', '{count} results. Press Enter to open the first.': '{count} შედეგი. დააჭირეთ Enter-ს პირველის გასახსნელად.', 'Search results': 'ძიების შედეგები',
     'See all': 'ყველას ნახვა', 'Sign in to search people': 'შედით ხალხის მოსაძებნად', 'No {things} match “{q}”.': '„{q}“ — ვერ მოიძებნა: {things}.',
     '{things} could not be searched.': '{things}: ძიება ვერ მოხერხდა.',

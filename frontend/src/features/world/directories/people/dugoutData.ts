@@ -7,7 +7,7 @@ import { forget, shared } from '../../cache';
 import { hasStarted, hoursUntil } from '../../format';
 import { listingDetail } from '../../front/coach/coachMatches';
 import { useSquadFocus } from '../../front/coach/mySquads';
-import { useWorldRole } from '../../front/useOverviewLayout';
+import { useWorldRole } from '../../front/useWorldRole';
 import { useWorldData } from '../../useWorldData';
 
 /** Referee seats still to fill (an invited referee has not answered yet, or one withdrew). */

@@ -4,8 +4,13 @@
 
 /* The header row: title, search, filters and actions on one line, the same height on every tab. */
 /* Above the map, so the filters' panels open over it. */
-.gk .gk-world-stage__head { position: relative; z-index: 10; min-height: 64px; }
-.gk .gk-world-head { position: relative; display: flex; align-items: center; gap: var(--gk-3) var(--gk-5); min-height: 64px; padding-top: var(--gk-3); animation: gk-world-appear .3s var(--gk-ease-out) both; }
+.gk .gk-world-stage__head { position: relative; z-index: 10; min-height: 112px; }
+.gk .gk-world-head { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-3) var(--gk-5); min-height: 64px; padding-top: var(--gk-3); animation: gk-world-appear .3s var(--gk-ease-out) both; }
+/* The filters: one long line under the title row, above the map and the list, kept at one height on every tab. */
+.gk .gk-world-head__filters { position: relative; flex: 1 1 100%; display: flex; align-items: center; min-height: 40px; }
+.gk .gk-world-head__filters .gk-world-pill { position: static; }
+.gk .gk-world-head__filters .gk-world-pill__pop { top: 0; left: 0; }
+.gk .gk-world-head__filters .gk-world-pill__pop[data-wide] { right: auto; width: min(560px, 100%); }
 .gk .gk-world-head__titles { flex: none; display: flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 320px; }
 .gk .gk-world-head__titles h1 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 26px; line-height: 32px; font-weight: 600; letter-spacing: -0.02em;
   background: linear-gradient(180deg, var(--gk-text) 30%, color-mix(in srgb, var(--gk-text) 58%, transparent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -18,7 +23,8 @@
 /* Laptops: two fixed lines on every page (title and lists; search and actions), in reading order, so the
    header is the same height from tab to tab. Full HD keeps one line. */
 @media (min-width: 1100px) and (max-width: 1599px) {
-  .gk .gk-world-head { display: grid; grid-template-columns: minmax(220px, 340px) minmax(0, 1fr) auto; grid-template-areas: 'titles tabs tabs' 'search . actions'; grid-template-rows: 52px 44px; align-items: center; }
+  .gk .gk-world-head { display: grid; grid-template-columns: minmax(220px, 340px) minmax(0, 1fr) auto; grid-template-areas: 'titles tabs tabs' 'search . actions' 'filters filters filters'; grid-template-rows: 52px 44px auto; align-items: center; }
+  .gk .gk-world-head__filters { grid-area: filters; }
   .gk .gk-world-head__titles { grid-area: titles; max-width: none; }
   .gk .gk-world-head__tabs { grid-area: tabs; justify-self: start; }
   .gk .gk-world-head__search, .gk .gk-world-head > .gk-world-search { grid-area: search; min-width: 0; }
@@ -26,7 +32,6 @@
 }
 /* Narrow screens: each part on its own line in reading order; the title keeps its whole line. */
 @media (max-width: 1099px) {
-  .gk .gk-world-head { flex-wrap: wrap; }
   .gk .gk-world-head__titles { flex: 1 1 100%; max-width: none; }
   .gk .gk-world-head__search, .gk .gk-world-head > .gk-world-search { flex: 1 1 100%; }
 }

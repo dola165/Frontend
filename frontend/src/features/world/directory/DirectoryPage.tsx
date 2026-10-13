@@ -79,10 +79,11 @@ export function DirectoryPage({ title, subtitle, sources: allSources, extraTabs 
                         onChange={id => { state.setTab(id); setFresh(true); setResetKey(value => value + 1); }} />}
                     {searchable && <DirectorySearch state={state} />}
                     {actions && <div className="gk-world-head__actions">{actions}</div>}
+                    {/* The filters: one line above the map and the list alike, the same height on every tab. */}
+                    <div className="gk-world-head__filters">{searchable && <DirectoryFilters state={state} signedIn={signedIn} onClear={clearable ? clear : undefined} />}</div>
                 </header>
             </StageHead>
-            {extra ? <ListSplit><BelowMapHead title={t(extra.label)} />{extra.element}</ListSplit> : <DirectoryBody key={`${state.source.id}:${resetKey}`} state={state} signedIn={signedIn} applyDefaults={fresh} clearable={clearable} onClear={clear}
-                filters={searchable && <DirectoryFilters state={state} signedIn={signedIn} onClear={clearable ? clear : undefined} />} />}
+            {extra ? <ListSplit><BelowMapHead title={t(extra.label)} />{extra.element}</ListSplit> : <DirectoryBody key={`${state.source.id}:${resetKey}`} state={state} signedIn={signedIn} applyDefaults={fresh} clearable={clearable} onClear={clear} />}
         </div>
     );
 }

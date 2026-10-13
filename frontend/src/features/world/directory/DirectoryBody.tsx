@@ -1,11 +1,11 @@
-import { useEffect, useEffectEvent, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useEffectEvent, useId, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
 import { ButtonLink, EmptyNote, Panel } from '../../../design/primitives';
 import { useAuth } from '../../../context/AuthContext';
 import { buildLoginRedirectPath } from '../../../utils/authRedirect';
 import { appLocale } from '../../../utils/formatting';
 import { plural, useWorldCopy } from '../copy';
-import { useWorldRole } from '../front/useOverviewLayout';
+import { useWorldRole } from '../front/useWorldRole';
 import { isReturn } from '../history';
 import { pairBounds } from '../map/away';
 import { reachBounds } from '../map/reach';
@@ -65,12 +65,12 @@ function useRoleDefaults(state: DirectoryState, apply: boolean, signedIn: boolea
 /**
  * One source's results under World's map. The map shows them as pins and, on a wide screen, lists them in its
  * "Browse area" panel with the count and the sort; folded or on a phone, the count and the sort sit above the results.
- * Under the map the tab's filters run across the page, and the results sit in one column the width of the Home feed,
- * with what is pressed beside it (`ListSplit`).
+ * Under the map the results sit in one column the width of the Home feed, with what is pressed beside it
+ * (`ListSplit`); the tab's filters are in the header, above the map and the list alike.
  */
-export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onClear, filters }: {
+export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onClear }: {
     state: DirectoryState; signedIn: boolean; /** Write this tab's defaults for who is looking. */ applyDefaults: boolean;
-    clearable: boolean; onClear: () => void; /** The tab's filters, in a strip across the page under the map. */ filters?: ReactNode;
+    clearable: boolean; onClear: () => void;
 }) {
     const t = useWorldCopy();
     const { source, query } = state;
@@ -131,7 +131,7 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
     const away = chosenItem && mappable ? source.away?.(chosenItem, placed.places, { clubId: viewerClub }) ?? undefined : undefined;
     const context = away ? [...(extras.context ?? []), { id: 'away:from', lat: away.from.lat, lng: away.from.lng, label: away.from.name ?? '', tone: 'club' as const }] : extras.context;
     // The map's own card shows a pin unless a Browse row already shows its one chosen result (with its Open link).
-    useDirectoryMap({ source, query, data, gated, mappable, placed, choice, open: stage.mapOpen, panel: browse, summary: count, card: !browse || stage.panelFolded || !choice.chosen,
+    useDirectoryMap({ source, data, gated, mappable, placed, choice, open: stage.mapOpen, panel: browse, summary: count, card: !browse || stage.panelFolded || !choice.chosen,
         context, reach, away, bounds: reach ? reachBounds(reach, extras.context) : away ? pairBounds(away) : undefined, insetTop: source.Top && browse ? 72 : undefined });
     const sortable = source.sorts && source.sorts.length > 1 && (!source.sortable || source.sortable(query));
     const sort = sortable && (
@@ -169,7 +169,6 @@ export function DirectoryBody({ state, signedIn, applyDefaults, clearable, onCle
             <DirectorySelectionContext.Provider value={stage.mapOpen ? { pinOf: mappable ? placed.pinOf : NO_PINS, selectedPin: choice.selectedPin, hoverPin: choice.hoverPin,
                 hover: choice.setHoverKey, chosen: choice.chosen, choose: choice.choose, clear: choice.clear, selectPin: choice.selectPin, mappable, placing: placed.loading, incomplete: placed.incomplete } : null}>
                 {browse && <StagePanel><BrowsePanel source={source} data={data} groups={panelGroups} places={placed.places} count={count + searched} tools={sort} folded={stage.panelFolded} onToggle={stage.togglePanel} /></StagePanel>}
-                {filters && <div className="gk-world-filterbar">{filters}</div>}
                 <ListSplit>
                     {Top && <StageTop><Top query={query} go={state.go} /></StageTop>}
                     {head}

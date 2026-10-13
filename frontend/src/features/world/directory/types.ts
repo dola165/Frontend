@@ -197,8 +197,6 @@ export interface DirectorySource<T> {
     mapped?: (query: DirectoryQuery) => boolean;
     /** Filters pre-chosen for who is looking, written once when the tab opens without filters of its own. */
     defaults?: (context: DefaultsContext) => Record<string, string[]>;
-    /** The full World map showing the same search. Defaults to the map without filters. */
-    mapLink?: (query: DirectoryQuery) => string;
     empty: { title: string; body: string; action?: ReactNode };
 }
 

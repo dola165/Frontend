@@ -7,7 +7,7 @@ import { DirectoryPage } from '../directory/DirectoryPage';
 import { isoDay } from '../format';
 import { COACHING_ROLES } from '../front/coach/mySquads';
 import type { WorldRole } from '../front/roles';
-import { useWorldRole } from '../front/useOverviewLayout';
+import { useWorldRole } from '../front/useWorldRole';
 import { WorldLoading } from '../WorldLoading';
 import { useWorldSession } from '../worldSession';
 import { fixtures } from './matches/fixturesSource';

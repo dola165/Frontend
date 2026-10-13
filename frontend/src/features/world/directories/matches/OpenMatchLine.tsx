@@ -2,7 +2,7 @@ import { formats } from '../../../matchExchange/api';
 import { useWorldCopy } from '../../copy';
 import { useMapCounterpart } from '../../directory/selection';
 import { codeLabel, fixtureTime } from '../../format';
-import { useWorldRole } from '../../front/useOverviewLayout';
+import { useWorldRole } from '../../front/useWorldRole';
 import { peekOf } from '../../peek/usePeek';
 import { MatchLine } from '../../scoreboard/Scoreboard';
 import { useClubCrests } from '../../scoreboard/useClubCrests';

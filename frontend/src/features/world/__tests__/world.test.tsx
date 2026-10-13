@@ -16,9 +16,7 @@ import { arrangements, events } from '../directories/matches/otherSources';
 import { clubsSource } from '../directories/clubSources';
 import { playerSource, specialistSource, staffSource } from '../directories/people/personSources';
 import { refereeSource } from '../directories/people/refereeSource';
-import { FIELDS } from '../front/fields';
-import { ROLES, aRole, defaultRole, offeredFor, roleLayout } from '../front/roles';
-import { FIELD_VIEWS } from '../front/fieldViews';
+import { defaultRole } from '../front/roles';
 import { LegacyMatchesRedirect, TournamentSetupRedirect, TournamentsRedirect, WorldRedirect } from '../WorldRedirect';
 import { CARRIED, readQuery, useDirectoryState } from '../directory/useDirectoryState';
 import type { AnySource, DirectoryQuery, LoadContext } from '../directory/types';
@@ -123,10 +121,9 @@ const DIRECTORIES: Record<string, { sources: AnySource[]; alias?: string }> = {
     '/world/people': { sources: [refereeSource, specialistSource({ searchOnly: false }), staffSource({ searchOnly: false }), playerSource({ searchOnly: false })] },
     '/world/matches': { sources: [fixtures, exchange, arrangements, events] },
     '/world/opportunities': { sources: [jobs, trials, groupsSource([child])], alias: 'type' },
-    '/world/venues': { sources: [] },
     '/world/tournaments': { sources: [season, allTournaments, myTournaments] },
 };
-// The directory links the front page's fields end with ("All …"), each with its tab and filters chosen.
+// Links into the directories with a tab and filters chosen (the first run's pins, Home, the old front page's fields).
 const FIELD_LINKS = ['/world/matches?tab=exchange', '/world/matches?tab=mine', '/world/matches?period=HISTORY', '/world/tournaments?tab=all&registration=OPEN', '/world/tournaments?tab=all&status=ACTIVE',
     '/world/people?tab=specialists', '/world/clubs?type=ACADEMY&near=Tbilisi', '/world/clubs?open=true&near=Tbilisi',
     '/world/opportunities?tab=groups&player=101', '/world/opportunities?tab=trials', '/world/opportunities?tab=jobs&category=COACHING', '/world/opportunities?tab=jobs&engagement=VOLUNTEER',
@@ -144,26 +141,7 @@ it.each(FIELD_LINKS)('the field link %s opens its intended tab and filters', to 
     for (const [key, value] of url.searchParams) if (key !== 'tab' && !CARRIED.includes(key)) expect(applied[key]).toContain(value);
 });
 
-it('gives every role its own page: a list beside the map, a handful below, all of them among its offered fields', () => {
-    const lists = new Set(FIELDS.filter(field => field.shape === 'list').map(field => field.id));
-    for (const role of ROLES) {
-        const layout = roleLayout(role.id);
-        expect(lists.has(layout.side)).toBe(true);
-        expect(layout.fields.length).toBeGreaterThanOrEqual(4);
-        expect(layout.fields.length).toBeLessThanOrEqual(6);
-        expect(layout.fields).not.toContain(layout.side);
-        expect(offeredFor(role.id)).toEqual(expect.arrayContaining([layout.side, ...layout.fields]));
-    }
-});
-
-it('has a view for every field, and ends every coaching page with the labelled club rail', () => {
-    for (const field of FIELDS) expect(FIELD_VIEWS[field.id]).toBeDefined();
-    for (const role of ROLES.filter(item => item.group === 'Coaching staff')) expect(roleLayout(role.id).fields.at(-1)).toBe('fromClubs');
-    expect(aRole('academy-director')).toBe('an academy director');
-    expect(aRole('head-coach')).toBe('a head coach');
-});
-
-it('starts a coach, a parent with a chosen child and a club player on their own pages until they choose', () => {
+it('reads who is looking from their relationships: a coach, a parent with a chosen child, a club player, else a fan', () => {
     expect(defaultRole('coach')).toBe('head-coach');
     expect(defaultRole('parent')).toBe('parent');
     expect(defaultRole('member', 'PLAYER')).toBe('player');

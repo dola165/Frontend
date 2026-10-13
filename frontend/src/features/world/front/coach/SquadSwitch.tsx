@@ -7,7 +7,7 @@ import { useWorldCopy } from '../../copy';
 import { ErrorNote } from '../../directory/DirectoryResults';
 import type { WorldRole } from '../roles';
 import { COACHING_ROLES, useSquadFocus, type SquadFocus } from './mySquads';
-import './coach.css';
+import './squad-switch.css';
 
 /**
  * Which of the coach's squads World is for: all of them, or one (`?for=`, kept in the URL). Chips for a few

@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Expand, Maximize2, RotateCw, Search } from 'lucide-react';
+import { Expand, RotateCw, Search } from 'lucide-react';
 import type { MapBounds } from '../../../components/map/areaSearch';
 import { plural, useWorldCopy } from '../copy';
 import type { WorldMapPoint } from '../map/WorldMap';
 import { useStageMap, type MapLine, type MapReach } from '../stage/stageContext';
 import { useWorldArea } from '../useWorldArea';
-import type { AnySource, DirectoryQuery } from './types';
+import type { AnySource } from './types';
 import type { DirectoryData } from './useDirectoryData';
 import { useCityInView } from './useCityInView';
 import type { useDirectorySelection } from './useDirectorySelection';
@@ -16,12 +15,12 @@ const NONE: WorldMapPoint[] = [];
 
 /**
  * What a directory shows on World's map: the results on screen as pins (one to one with the list), how many are on
- * it and how many have no place, the full map, and, once the person moves the map over another city, an offer to
+ * it and how many have no place, and, once the person moves the map over another city, an offer to
  * search there. A list with nothing to place (referees, or one behind sign-in) keeps the map and says why it is empty.
  * Once the map has flown to a chosen result, a pill offers to show every pin again.
  */
-export function useDirectoryMap({ source, query, data, gated, mappable, placed, choice, open, panel, summary, card, context, reach, away, bounds, insetTop }: {
-    source: AnySource; query: DirectoryQuery; data: DirectoryData; gated: boolean;
+export function useDirectoryMap({ source, data, gated, mappable, placed, choice, open, panel, summary, card, context, reach, away, bounds, insetTop }: {
+    source: AnySource; data: DirectoryData; gated: boolean;
     /** The list puts its results on the map. */ mappable: boolean; placed: ReturnType<typeof usePlacedPoints>;
     choice: ReturnType<typeof useDirectorySelection>;
     /** The map is open (not folded to its strip). */ open: boolean; /** The Browse area panel floats over the map. */ panel: boolean;
@@ -60,7 +59,6 @@ export function useDirectoryMap({ source, query, data, gated, mappable, placed, 
             <span className="gk-world-glass"><span className="gk-world-glass__live" aria-hidden="true" />{count}</span>
             {choice.away && placed.points.length > 1 && <button type="button" className="gk-world-glass" onClick={choice.showAll}><Expand aria-hidden="true" />{t('Show all {count}', { count: onMap })}</button>}
             {placed.incomplete && !loading && <button type="button" className="gk-world-glass" onClick={placed.retry}><RotateCw aria-hidden="true" />{t('Try again')}</button>}
-            <Link className="gk-world-glass" to={source.mapLink ? source.mapLink(query) : '/world/map'}><Maximize2 aria-hidden="true" />{t('Open full map')}</Link>
         </>,
     });
 }

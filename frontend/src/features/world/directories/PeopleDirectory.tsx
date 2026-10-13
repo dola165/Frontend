@@ -8,7 +8,7 @@ import { CreateMenu } from '../compose/CreateMenu';
 import { useWorldCopy } from '../copy';
 import { DirectoryPage } from '../directory/DirectoryPage';
 import type { WorldRole } from '../front/roles';
-import { useWorldRole } from '../front/useOverviewLayout';
+import { useWorldRole } from '../front/useWorldRole';
 import { useWorldChild } from '../players';
 import { WorldLoading } from '../WorldLoading';
 import { useWorldSession } from '../worldSession';

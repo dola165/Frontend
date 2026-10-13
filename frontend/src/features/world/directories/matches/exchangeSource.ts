@@ -53,6 +53,5 @@ export const exchange: DirectorySource<OpenMatch> = {
         if (!from || m.club_id === viewer.clubId || m.location_lat == null || m.location_lng == null) return null;
         return awayLine({ lat: from.lat, lng: from.lng, name: from.name }, { lat: m.location_lat, lng: m.location_lng }, km => wt('≈ {km} km', { km: Math.round(km) }), wt('As the crow flies'));
     },
-    mapLink: query => `/world/map?layers=matches${query.q ? `&q=${encodeURIComponent(query.q)}` : ''}`,
     empty: { title: 'No open matches right now', body: 'Teams post here when they need an opponent for a date.' },
 };

@@ -1,19 +1,16 @@
 import { describeRoute, type Copy } from '../../components/layout/header/pins/describeRoute';
 import { readPins, writePins } from '../../components/layout/header/pins/pinStore';
 import { hasNavigationCapability, type NavigationCapabilities } from '../../context/navigationCapabilities';
-import { roleLayout } from '../world/front/roles';
-import { writeOverviewLayout } from '../world/front/useOverviewLayout';
 import { saveFeedPreferences, saveFootballRole, type Activity } from './startApi';
 import { ACTIVITIES } from './startChoices';
 
 /**
- * What a person does in football, applied as the first run does it: the primary public football role, World's page
- * and one pin, and the activity kept with the feed preferences. Never access: that stays with the links.
+ * What a person does in football, applied as the first run does it: the primary public football role and one pin,
+ * and the activity kept with the feed preferences. Never access: that stays with the links (World follows them too).
  */
 export async function applyActivity(userId: number, activity: Activity, copy: Copy) {
     const chosen = ACTIVITIES.find(item => item.id === activity);
     if (!chosen) return;
-    writeOverviewLayout(userId, roleLayout(chosen.worldRole));
     const pins = readPins(userId);
     if (!pins.some(pin => pin.path === chosen.pin)) {
         const [path, search = ''] = chosen.pin.split('?');

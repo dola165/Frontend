@@ -4,7 +4,7 @@ import { useWorldCopy } from './copy';
 import { useWorldChild } from './players';
 import { ANYWHERE, useWorldArea, useWorldCities, type WorldArea } from './useWorldArea';
 import { SquadSwitch } from './front/coach/SquadSwitch';
-import { useWorldRole } from './front/useOverviewLayout';
+import { useWorldRole } from './front/useWorldRole';
 
 /** The World tab the person is on: '' for the overview, otherwise "clubs", "matches"… */
 const tabOf = (pathname: string) => pathname.replace(/^\/world\/?/, '').split('/')[0];

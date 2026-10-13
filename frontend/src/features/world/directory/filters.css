@@ -1,5 +1,5 @@
-/* Filters: a row of pills in the strip under the map, each showing its value; choices open in small glass panels over
-   the list instead of pushing it down. The form controls are shared with the full map's filter panel.
+/* Filters: one row of pills in the page's header, above the map and the list, each showing its value; choices open in
+   small glass panels over the map instead of pushing it down. The form controls are shared with Journeys' filter panel.
    Scoped under .gk; tokens only. */
 .gk .gk-world-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gk-2); }
 .gk .gk-world-filters > .gk-chip, .gk .gk-world-pill > .gk-chip, .gk .gk-world-filters__clear { min-height: 36px; padding: 0 12px; }
@@ -7,11 +7,6 @@
 .gk .gk-world-pill > .gk-chip[data-on] { background: var(--gk-accent-soft); border-color: color-mix(in srgb, var(--gk-accent) 45%, transparent); color: var(--gk-text); }
 .gk .gk-world-pill > .gk-chip[aria-expanded='true'] { border-color: var(--gk-line-strong); color: var(--gk-text); }
 .gk .gk-world-pill { position: relative; }
-/* In the strip the panels are placed against the strip itself (DirectoryFilters), under their pill and inside the page. */
-.gk .gk-world-filterbar { position: relative; }
-.gk .gk-world-filterbar .gk-world-pill { position: static; }
-.gk .gk-world-filterbar .gk-world-pill__pop { top: 0; left: 0; }
-.gk .gk-world-filterbar .gk-world-pill__pop[data-wide] { right: auto; width: min(560px, 100%); }
 .gk .gk-world-pill__caret { color: var(--gk-text-3); transition: transform .2s var(--gk-ease-out, ease); }
 .gk .gk-world-pill > [aria-expanded='true'] .gk-world-pill__caret { transform: rotate(180deg); }
 .gk .gk-world-filters__clear { border: 0; border-radius: var(--gk-r-pill); background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-sm); font-weight: 600; cursor: pointer; }

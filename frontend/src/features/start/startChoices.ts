@@ -1,6 +1,5 @@
 import { BriefcaseBusiness, Cone, Eye, Heart, Medal, Shield, Shirt, ShoppingBag, Trophy, Users, UsersRound, type LucideIcon } from 'lucide-react';
 import type { FootballRole } from '../roles/domain';
-import type { WorldRole } from '../world/front/roles';
 import type { Activity, Interest } from './startApi';
 
 /** The picture tiles of "What do you want to see?": the app's own football photos with the topic's colour and symbol. */
@@ -18,13 +17,13 @@ export const INTERESTS: InterestTile[] = [
 export const DEFAULT_INTERESTS: Interest[] = ['CLUBS', 'YOUTH', 'MATCHES'];
 
 /**
- * "What do you do in football?" only sets the start: the public football role on the profile, World's page and one pin.
+ * "What do you do in football?" only sets the start: the public football role on the profile and one pin.
  * Access to a club, a squad or a child comes from the club or the family, never from here.
  */
-export interface ActivityChoice { id: Activity; icon: LucideIcon; color: string; role: FootballRole; worldRole: WorldRole; pin: string }
+export interface ActivityChoice { id: Activity; icon: LucideIcon; color: string; role: FootballRole; pin: string }
 export const ACTIVITIES: ActivityChoice[] = [
-    { id: 'PLAY', icon: Shirt, color: 'var(--gk-accent)', role: 'PLAYER', worldRole: 'player', pin: '/world/opportunities?type=trials' },
-    { id: 'COACH', icon: Cone, color: 'var(--gk-info)', role: 'COACH', worldRole: 'head-coach', pin: '/world/opportunities?type=jobs' },
-    { id: 'PARENT', icon: Heart, color: 'var(--color-pink)', role: 'PARENT', worldRole: 'parent', pin: '/world/opportunities?type=groups' },
-    { id: 'WATCH', icon: Eye, color: 'var(--color-cyan)', role: 'FAN', worldRole: 'fan', pin: '/world/matches' },
+    { id: 'PLAY', icon: Shirt, color: 'var(--gk-accent)', role: 'PLAYER', pin: '/world/opportunities?type=trials' },
+    { id: 'COACH', icon: Cone, color: 'var(--gk-info)', role: 'COACH', pin: '/world/opportunities?type=jobs' },
+    { id: 'PARENT', icon: Heart, color: 'var(--color-pink)', role: 'PARENT', pin: '/world/opportunities?type=groups' },
+    { id: 'WATCH', icon: Eye, color: 'var(--color-cyan)', role: 'FAN', pin: '/world/matches' },
 ];

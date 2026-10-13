@@ -65,20 +65,19 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
 
  const feedMeta = isFollowingView
   ? {
-   emptyTitle: 'No Following Activity Yet',
-   emptyText: 'Follow clubs and people to bring their latest posts into Home.',
+   emptyTitle: 'Nothing from your follows yet',
+   emptyText: 'Follow clubs and people to bring their latest posts here.',
    emptyGuides: [
-    { label: 'Browse Clubs', to: '/clubs' },
-    { label: 'Explore Map', to: '/map' }
+    { label: 'Find clubs', to: '/world/clubs' },
+    { label: 'Open World', to: '/world' }
    ]
   }
   : {
-   emptyTitle: 'Your Home is ready',
-   emptyText: "Discover public posts from clubs and people you do not follow yet. Start with a few useful places.",
+   emptyTitle: 'Nothing near you yet',
+   emptyText: 'Follow a few clubs and your Home fills up with football around you.',
    emptyGuides: [
-    { label: 'Find Clubs', to: '/clubs' },
-    { label: 'Browse Map', to: '/map' },
-    { label: 'Your schedule', to: '/calendar' }
+    { label: 'Find clubs', to: '/world/clubs' },
+    { label: 'Open World', to: '/world' }
    ]
   };
 
@@ -258,7 +257,7 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
     <Link
      to="/home"
      aria-current={!isFollowingView ? 'page' : undefined}
-     title="Discover public posts from beyond your follows, newest first"
+     title="Your clubs and people first, then football near you"
      className={`inline-flex min-h-11 items-center justify-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors ${!isFollowingView ? 'border-[var(--feed-accent)] text-[var(--feed-text-primary)]' : 'border-transparent text-[var(--feed-text-muted)] hover:text-[var(--feed-text-primary)]'}`}
     >
      <Compass className="h-4 w-4" /> Discover
@@ -337,7 +336,7 @@ const FeedContent = ({ user = null, managedClubs = [] }: FeedPageProps) => {
          to={guide.to}
          className="inline-flex items-center gap-2 rounded-full bg-[var(--feed-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--feed-accent-contrast)] transition-colors hover:bg-[var(--feed-accent-hover)]"
         >
-         {guide.to === '/map' ? <Compass className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+         {guide.to === '/world' ? <Compass className="h-4 w-4" /> : <Search className="h-4 w-4" />}
          {guide.label}
         </Link>
        ))}

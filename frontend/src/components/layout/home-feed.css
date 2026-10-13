@@ -156,3 +156,6 @@
 @media (min-width: 1000px) {
     .dola-layout-panel .home-feed-layout { padding-inline: 20px; max-width: 1920px; }
 }
+/* The post's place and topic, as quiet facts beside the time. */
+.home-post-fact { display: inline-flex; align-items: center; gap: 3px; }
+.home-post-fact::before { content: '·'; margin-right: 5px; color: var(--feed-text-secondary); }

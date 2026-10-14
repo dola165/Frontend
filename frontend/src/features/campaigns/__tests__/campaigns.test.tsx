@@ -44,7 +44,7 @@ describe('The search in the address', () => {
 describe('Front, catalogue and the fundraiser', () => {
     it('shows the fundraisers near the person and opens the catalogue from every door', async () => {
         render(<MemoryRouter initialEntries={['/campaigns']}><Routes><Route path="/campaigns" element={<FundraisingPage />} /></Routes></MemoryRouter>);
-        await waitFor(() => expect(screen.getAllByRole('link').find(link => link.getAttribute('href') === '/campaigns/1')).toHaveTextContent('Alpha FC · Tbilisi · 3 km'));
+        await waitFor(() => expect(screen.getAllByRole('link').find(link => link.getAttribute('href') === '/campaigns/1')).toHaveTextContent('Club · Tbilisi · 3 km'));
         expect(screen.getAllByRole('link', { name: 'Start a fundraiser' })[0]).toHaveAttribute('href', '/campaigns/new');
         expect(screen.getByRole('link', { name: 'Pitches & facilities' })).toHaveAttribute('href', '/campaigns/all?category=FACILITIES');
         expect(api.fetchFundraisingFront).toHaveBeenCalledWith('Tbilisi', expect.any(AbortSignal));

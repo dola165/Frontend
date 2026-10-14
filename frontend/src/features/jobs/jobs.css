@@ -108,3 +108,33 @@
 .gk .gk-jobs-cta p { color: var(--gk-text-2); }
 .gk .gk-jobs-cta .gk-btn { min-height: 40px; }
 @media (max-width: 1100px) { .gk .gk-jobs-landing__body { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── The jobs page: the map first, then a short, bare landing page ── */
+.gk .gk-jobs-map { --gk-world-map-h: 460px; margin-top: var(--gk-2); }
+.gk .gk-jobs-map__overlay { position: absolute; top: var(--gk-3); right: var(--gk-3); z-index: 3; }
+.gk .gk-jobs-map__overlay .gk-segmented { background: color-mix(in srgb, var(--gk-surface) 92%, transparent); backdrop-filter: blur(8px); }
+.gk .gk-jobs-map__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-4); padding: var(--gk-2) var(--gk-4); font-size: var(--gk-fs-sm); }
+.gk .gk-jobs-map__foot .gk-section__action { display: inline-flex; align-items: center; gap: 6px; }
+.gk .gk-jobs-land { display: flex; flex-direction: column; margin-top: var(--gk-8); }
+.gk .gk-jobs-land__section { display: flex; flex-direction: column; gap: var(--gk-4); padding: var(--gk-8) 0; border-top: 1px solid var(--gk-line); }
+.gk .gk-jobs-land__num { font-size: var(--gk-fs-xs); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gk-accent); }
+.gk .gk-jobs-land h2 { font-size: 30px; line-height: 36px; font-weight: 600; letter-spacing: -.02em; max-width: 24ch; }
+.gk .gk-jobs-land h3 { display: flex; align-items: center; gap: var(--gk-2); font-size: var(--gk-fs-xl); line-height: var(--gk-lh-xl); font-weight: 600; }
+.gk .gk-jobs-land h3 svg { width: 18px; height: 18px; color: var(--gk-accent); }
+.gk .gk-jobs-land__line { max-width: 60ch; font-size: var(--gk-fs-lg); line-height: 22px; color: var(--gk-text-2); }
+.gk .gk-jobs-land__sides { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gk-10); }
+.gk .gk-jobs-land__side { display: flex; flex-direction: column; gap: var(--gk-4); }
+.gk .gk-jobs-land__links { display: flex; flex-direction: column; gap: 2px; margin-top: var(--gk-2); }
+.gk .gk-jobs-land__links a { display: inline-flex; align-items: center; gap: var(--gk-2); min-height: 36px; font-size: var(--gk-fs-lg); font-weight: 600; color: var(--gk-text); transition: gap .3s var(--gk-store-ease), color .3s var(--gk-store-ease); }
+.gk .gk-jobs-land__links a svg { width: 16px; height: 16px; color: var(--gk-accent); }
+.gk .gk-jobs-land__links a:hover { gap: var(--gk-3); color: var(--gk-accent); }
+.gk .gk-jobs-land__section .gk-store-cats-section > .gk-section__head { justify-content: flex-start; }
+.gk .gk-jobs-land__section .gk-store-cats-section > .gk-section__head > .gk-section__heading { justify-content: flex-start; }
+.gk .gk-jobs-land__section .gk-store-cats { justify-content: flex-start; }
+.gk .gk-jobs-land__examples { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gk-6); }
+.gk .gk-jobs-land__examples > div { display: flex; flex-direction: column; gap: var(--gk-3); }
+.gk .gk-jobs-land__examples .gk-jobs-list { margin-top: auto; }
+.gk .gk-jobs-land__rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gk-6); font-size: var(--gk-fs-md); line-height: var(--gk-lh-lg); color: var(--gk-text-2); }
+.gk .gk-jobs-land__rules li { padding-left: var(--gk-4); border-left: 2px solid var(--gk-accent); }
+.gk .gk-jobs-land__foot { padding-bottom: var(--gk-4); }
+@media (max-width: 1100px) { .gk .gk-jobs-land__sides, .gk .gk-jobs-land__examples, .gk .gk-jobs-land__rules { grid-template-columns: minmax(0, 1fr); } .gk .gk-jobs-map { --gk-world-map-h: 340px; } .gk .gk-jobs-land h2 { font-size: 24px; line-height: 30px; } }

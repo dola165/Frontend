@@ -94,3 +94,13 @@
   .gk .gk-fund-start__tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gk .gk-fund-hero .gk-store-door__title { font-size: 26px; line-height: 30px; }
 }
+
+/* Who runs it, first: the crest and the club over the cover. */
+.gk .gk-fund__by { display: flex; align-items: center; gap: var(--gk-3); min-width: 0; }
+.gk .gk-fund__who { display: flex; flex-direction: column; min-width: 0; }
+.gk .gk-fund__who strong { font-size: var(--gk-fs-md); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk .gk-fund__who small { font-size: var(--gk-fs-xs); color: var(--gk-text-3); }
+.gk .gk-fund { padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); transition: transform .6s var(--gk-store-ease), box-shadow .6s var(--gk-store-ease), border-color .6s var(--gk-store-ease); }
+.gk .gk-fund:hover { transform: translateY(-4px); box-shadow: var(--gk-store-lift); border-color: var(--gk-line-strong); }
+.gk .gk-fund:hover .gk-fund__pic { transform: none; box-shadow: none; }
+.gk .gk-fund__pic { aspect-ratio: 16 / 9; border-radius: var(--gk-r); }

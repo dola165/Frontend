@@ -20,7 +20,7 @@ const offering: api.Job = { ...personJob, id: 704, title: 'UEFA B coach availabl
 beforeEach(() => {
     vi.clearAllMocks(); sessionStorage.clear();
     vi.mocked(api.fetchJobs).mockResolvedValue({ content: [clubJob, personJob], totalElements: 2 });
-    vi.mocked(api.fetchJobsFront).mockResolvedValue({ city: 'Tbilisi', role: 'COACH', forYou: [clubJob, personJob], near: [personJob], offering: [offering], followed: [clubJob], fresh: [personJob], applications: [{ ...clubJob, application: { id: 1, status: 'PENDING' } }], postings: [], open: 2, available: 1 });
+    vi.mocked(api.fetchJobsFront).mockResolvedValue({ city: 'Tbilisi', role: 'COACH', pins: [{ kind: 'club', clubId: 10, label: 'Alpha FC', crest: null, lat: 41.7, lng: 44.8, count: 1 }], forYou: [clubJob, personJob], near: [personJob], offering: [offering], followed: [clubJob], fresh: [personJob], applications: [{ ...clubJob, application: { id: 1, status: 'PENDING' } }], postings: [], open: 2, available: 1 });
     vi.mocked(clubsApi.fetchPublicJob).mockImplementation(async id => (id === 701 ? personJob : id === 704 ? offering : clubJob) as never);
     vi.mocked(clubsApi.fetchMyJobApplication).mockResolvedValue(null);
     vi.mocked(clubsApi.fetchMyClubMembershipContext).mockResolvedValue({ hasClubMembership: true, canCreateClub: false, clubId: 10, clubName: 'Alpha FC', myRole: 'COACH' });
@@ -39,20 +39,15 @@ describe('The search in the address', () => {
 });
 
 describe('Front, catalogue and the listing', () => {
-    it('shows the work side with my application and the hire side with people available', async () => {
-        localStorage.clear();
-        const view = render(<MemoryRouter initialEntries={['/jobs']}><Routes><Route path="/jobs" element={<JobsPage />} /></Routes></MemoryRouter>);
+    it('shows the map, my application, both sides and real examples', async () => {
+        render(<MemoryRouter initialEntries={['/jobs']}><Routes><Route path="/jobs" element={<JobsPage />} /></Routes></MemoryRouter>);
         expect(await screen.findByText('Applied · waiting for an answer')).toBeInTheDocument();
-        expect(screen.getAllByRole('link').find(link => link.getAttribute('href') === '/jobs/701')).toHaveTextContent('Personal trainer for a 12-year-old');
-        expect(screen.getAllByRole('link', { name: 'List yourself' })[0]).toHaveAttribute('href', '/jobs/new?as=work');
-        expect(screen.getByText('Coaching first, then the clubs you follow and your city')).toBeInTheDocument();
-        expect(api.fetchJobsFront).toHaveBeenCalledWith('Tbilisi', expect.any(AbortSignal));
-        view.unmount();
-        render(<MemoryRouter initialEntries={['/jobs?mode=hire']}><Routes><Route path="/jobs" element={<JobsPage />} /></Routes></MemoryRouter>);
-        expect(await screen.findByRole('heading', { name: 'Available near you' })).toBeInTheDocument();
+        expect(screen.getByRole('region', { name: 'Jobs on the map' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: '2 open jobs and volunteer roles' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Browse people available' })).toHaveAttribute('href', '/jobs/all?direction=OFFERING');
         expect(screen.getAllByRole('link', { name: 'Post a job' })[0]).toHaveAttribute('href', '/jobs/new?as=hire');
-        expect(screen.getAllByText('GEL 60 / session').length).toBeGreaterThan(0);
-        expect(localStorage.getItem('gk.jobs.mode')).toBe('hire');
+        expect(screen.getAllByRole('link').find(link => link.getAttribute('href') === '/jobs/704')).toHaveTextContent('UEFA B coach available');
+        expect(api.fetchJobsFront).toHaveBeenCalledWith('Tbilisi', expect.any(AbortSignal));
     });
     it('opens the chosen listing beside the list and keeps the search in the request', async () => {
         render(<MemoryRouter initialEntries={['/jobs/all?category=COACHING&poster=people']}><Routes><Route path="/jobs/all" element={<JobsCataloguePage />} /></Routes></MemoryRouter>);

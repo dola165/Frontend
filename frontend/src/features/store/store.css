@@ -40,8 +40,8 @@
 .gk .gk-store-cat:hover .gk-store-cat__icon { border-color: var(--gk-accent); color: var(--gk-accent); transform: translateY(-2px); }
 
 /* ── Rows that scroll sideways: collections, sellers, products ── */
-.gk .gk-store-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, calc((100% - 5 * var(--gk-4)) / 6)); gap: var(--gk-4); overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: var(--gk-2); scrollbar-width: thin; }
-.gk .gk-store-row--wide { grid-auto-columns: minmax(240px, calc((100% - 4 * var(--gk-4)) / 5)); }
+.gk .gk-store-row { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 5 * var(--gk-4)) / 6); gap: var(--gk-4); overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: var(--gk-2); scrollbar-width: thin; }
+.gk .gk-store-row--wide { grid-auto-columns: calc((100% - 4 * var(--gk-4)) / 5); }
 .gk .gk-store-row > * { scroll-snap-align: start; }
 .gk .gk-store-row--empty { display: block; }
 
@@ -178,8 +178,8 @@
 
 /* ── Phones and narrow windows ── */
 @media (max-width: 1100px) {
-  .gk .gk-store-row { grid-auto-columns: minmax(200px, calc((100% - 3 * var(--gk-4)) / 4)); }
-  .gk .gk-store-row--wide { grid-auto-columns: minmax(220px, calc((100% - 2 * var(--gk-4)) / 3)); }
+  .gk .gk-store-row { grid-auto-columns: calc((100% - 3 * var(--gk-4)) / 4); }
+  .gk .gk-store-row--wide { grid-auto-columns: calc((100% - 2 * var(--gk-4)) / 3); }
 }
 @media (max-width: 900px) {
   .gk .gk-store-stack { gap: var(--gk-8); }
@@ -315,3 +315,8 @@
 .gk .gk-band .gk-job, .gk .gk-band .gk-talent, .gk .gk-band .gk-product__pic, .gk .gk-band .gk-store-seller__pic, .gk .gk-band .gk-store-coll__pic, .gk .gk-band .gk-fund__pic { backdrop-filter: blur(6px); }
 .gk .gk-band .gk-empty { padding-left: 0; }
 @media (max-width: 900px) { .gk .gk-band { padding: var(--gk-4) var(--gk-4) var(--gk-3); border-radius: var(--gk-r-lg); } .gk .gk-band .gk-store-rail { margin: 0 calc(-1 * var(--gk-4)); } .gk .gk-band .gk-store-rail .gk-store-row { padding-left: var(--gk-4); padding-right: var(--gk-4); } }
+
+/* Four to a screen: fundraisers, whose covers want room. */
+.gk .gk-store-row--four { grid-auto-columns: calc((100% - 3 * var(--gk-4)) / 4); }
+@media (max-width: 1100px) { .gk .gk-store-row--four { grid-auto-columns: calc((100% - var(--gk-4)) / 2); } }
+@media (max-width: 900px) { .gk .gk-store-row--four { grid-auto-columns: 78%; } }

@@ -20,6 +20,11 @@
 }
 .gk.gk-club-page .gk-profile-side { --side-tone: var(--gk-accent); gap: 0; padding: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); overflow: hidden; }
 .gk.gk-club-page .gk-profile__side:not(.gk-profile__side--left) .gk-profile-side { --side-tone: var(--gk-violet); }
+/* The club's information is one piece: the three blocks share one box, with hairlines between them and one green edge. */
+.gk.gk-club-page .gk-profile__side--left { gap: 0; border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: var(--gk-surface); box-shadow: inset 3px 0 0 var(--gk-accent); overflow: hidden; }
+.gk.gk-club-page .gk-profile__side--left .gk-profile-side { border: 0; border-radius: 0; background: transparent; }
+.gk.gk-club-page .gk-profile__side--left .gk-profile-side + .gk-profile-side { border-top: 1px solid var(--gk-line); }
+.gk.gk-club-page .gk-profile__side--left .gk-profile-side__head { background: color-mix(in srgb, var(--gk-accent) 5%, var(--gk-surface)); box-shadow: none; border-bottom-color: color-mix(in srgb, var(--gk-line) 60%, transparent); }
 .gk.gk-club-page .gk-profile-side__head { align-items: center; padding: var(--gk-2) var(--gk-4); min-height: 44px; border-bottom: 1px solid var(--gk-line); background: color-mix(in srgb, var(--side-tone) 9%, var(--gk-surface)); box-shadow: inset 3px 0 0 var(--side-tone); }
 .gk.gk-club-page .gk-profile-side__head h2 { font-size: var(--gk-fs-sm); line-height: var(--gk-lh-sm); font-weight: 650; }
 .gk.gk-club-page .gk-profile-side > :not(.gk-profile-side__head) { margin: var(--gk-3) var(--gk-4); }

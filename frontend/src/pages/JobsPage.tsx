@@ -1,24 +1,16 @@
-import { useMemo, useState } from 'react';
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Briefcase, Map as MapIcon, Plus, UserCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Briefcase, Plus, UserCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Button, ButtonLink, EmptyNote, GkRoot, PageFrame, SearchInput } from '../design/primitives';
-import { fetchJobsFront, LINES, type Job, type JobsFront } from '../features/jobs/api';
+import { Button, ButtonLink, EmptyNote, GkRoot, PageFrame } from '../design/primitives';
+import { fetchJobs, fetchJobsFront, LINES, type Job } from '../features/jobs/api';
 import { JobRow, Poster } from '../features/jobs/JobCard';
-import { clubJobsPath, JOBS_KEYS, jobsPath } from '../features/jobs/query';
+import { JobsMap } from '../features/jobs/JobsMap';
+import { jobsPath } from '../features/jobs/query';
 import { CircleStrip, MarketTabs } from '../features/store/front/MarketTabs';
-import { WorldMap, type WorldMapPoint } from '../features/world/map/WorldMap';
 import { useWorldArea } from '../features/world/useWorldArea';
 import { useWorldData } from '../features/world/useWorldData';
 import '../features/store/store.css';
 import '../features/jobs/jobs.css';
-
-/** The listings as pins: a club's open roles at its ground, people's listings counted at their town. */
-const pinsOf = (front: JobsFront | undefined, show: 'jobs' | 'people'): WorldMapPoint[] => (front?.pins ?? [])
-    .filter(pin => show === 'jobs' ? pin.kind === 'club' : pin.kind === 'area')
-    .map(pin => pin.kind === 'club'
-        ? { id: `club:${pin.clubId}`, lat: pin.lat, lng: pin.lng, label: pin.label, meta: `${pin.count} open ${pin.count === 1 ? 'role' : 'roles'}`, tone: 'club', crest: pin.crest, count: pin.count, to: clubJobsPath(pin.clubId!), action: 'Open the club’s jobs' }
-        : { id: `area:${pin.label}`, lat: pin.lat, lng: pin.lng, label: pin.label, meta: `${pin.count} ${pin.count === 1 ? 'listing' : 'listings'} by people`, tone: 'person', approximate: 'area', count: pin.count, to: jobsPath({ city: pin.label, poster: 'people' }), action: 'See the listings' });
 
 /** A short list of real listings, one to a line, as the example a landing page should give. */
 function Sample({ jobs, loading, error, retry }: { jobs: Job[]; loading: boolean; error: string; retry: () => void }) {
@@ -29,20 +21,15 @@ function Sample({ jobs, loading, error, retry }: { jobs: Job[]; loading: boolean
 }
 
 /**
- * Jobs & volunteering for everyone: the map first, as in World, with every listing pinned; under it a short landing
- * page that says what this is and where to go. Two sides, the lines of work, how it works, who posts. Nothing more.
+ * Jobs & volunteering for everyone: World's map frame first, every listing pinned, the filters on the left and the
+ * ways in on the right; under it a short, bare landing page that says what this is and where to go.
  */
 export const JobsPage = () => {
-    const [params] = useSearchParams();
-    const navigate = useNavigate();
     const { status } = useAuth();
     const { area } = useWorldArea();
-    const [text, setText] = useState('');
-    const [show, setShow] = useState<'jobs' | 'people'>('jobs');
     const near = area.anywhere ? undefined : area.city;
     const front = useWorldData(area.ready ? `jobs-front:${near ?? ''}` : null, signal => fetchJobsFront(near, signal), 'Jobs could not load.');
-    const points = useMemo(() => pinsOf(front.data, show), [front.data, show]);
-    if (JOBS_KEYS.some(key => key !== 'page' && params.has(key)) || params.has('q')) return <Navigate to={`/jobs/all?${params}`} replace />;
+    const listings = useWorldData(area.ready ? `jobs-map:${near ?? ''}` : null, signal => fetchJobs({ page: 0, size: 200, direction: 'ALL', near, sort: 'NEWEST' }, signal), 'Listings could not load.');
     const signedIn = status === 'authenticated';
     const data = front.data;
     const mine = [...(data?.applications ?? []).map(job => ({ job, kind: 'application' as const })), ...(data?.postings ?? []).map(job => ({ job, kind: 'posting' as const }))];
@@ -56,22 +43,13 @@ export const JobsPage = () => {
                 <MarketTabs current="jobs" />
                 <div className="gk-store-head">
                     <div><h1>Jobs & volunteering</h1><p className="gk-store-head__hint">Work in football, from clubs and from people, near you</p></div>
-                    <form className="gk-store-head__search" role="search" onSubmit={event => { event.preventDefault(); navigate(jobsPath({ query: text.trim() })); }}>
-                        <SearchInput aria-label="Search jobs" placeholder="Search jobs, clubs or people" maxLength={100} value={text} onChange={event => setText(event.target.value)} />
-                    </form>
+                    <span />
                     <div className="gk-store-head__actions">
                         <ButtonLink to={jobsPath()}>Browse all</ButtonLink>
                         <ButtonLink variant="primary" to="/jobs/new"><Plus aria-hidden="true" />Post</ButtonLink>
                     </div>
                 </div>
-                <div className="gk-jobs-map">
-                    <WorldMap points={points} label="Jobs on the map" gestures="cooperative" onSelect={() => undefined} selectedId={undefined}
-                        overlay={<div className="gk-jobs-map__overlay"><div className="gk-segmented" role="group" aria-label="What the map shows">
-                            <button type="button" className="gk-segmented__item" aria-pressed={show === 'jobs'} onClick={() => setShow('jobs')}>Jobs{data ? ` · ${data.open}` : ''}</button>
-                            <button type="button" className="gk-segmented__item" aria-pressed={show === 'people'} onClick={() => setShow('people')}>People available{data ? ` · ${data.available}` : ''}</button>
-                        </div></div>}
-                        footer={<div className="gk-jobs-map__foot"><span className="gk-faint">{near ? `Around ${near}` : 'Everywhere'} · clubs’ roles at their grounds, people’s listings counted at their town</span><Link className="gk-section__action" to="/world/opportunities?tab=jobs"><MapIcon size={14} aria-hidden="true" /> Full map in World</Link></div>} />
-                </div>
+                <JobsMap jobs={listings.data?.content ?? []} loading={listings.loading} counts={data ? { open: data.open, available: data.available } : undefined} near={near} />
 
                 <div className="gk-jobs-land">
                     {signedIn && mine.length > 0 && <section className="gk-jobs-land__section">

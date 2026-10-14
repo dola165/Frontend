@@ -109,12 +109,40 @@
 .gk .gk-jobs-cta .gk-btn { min-height: 40px; }
 @media (max-width: 1100px) { .gk .gk-jobs-landing__body { grid-template-columns: minmax(0, 1fr); } }
 
-/* ── The jobs page: the map first, then a short, bare landing page ── */
-.gk .gk-jobs-map { --gk-world-map-h: 460px; margin-top: var(--gk-2); }
-.gk .gk-jobs-map__overlay { position: absolute; top: var(--gk-3); right: var(--gk-3); z-index: 3; }
-.gk .gk-jobs-map__overlay .gk-segmented { background: color-mix(in srgb, var(--gk-surface) 92%, transparent); backdrop-filter: blur(8px); }
-.gk .gk-jobs-map__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--gk-2) var(--gk-4); padding: var(--gk-2) var(--gk-4); font-size: var(--gk-fs-sm); }
-.gk .gk-jobs-map__foot .gk-section__action { display: inline-flex; align-items: center; gap: 6px; }
+/* ── The jobs page: World's map frame first (the column on the left, the ways in on the right), then the landing page ── */
+.gk .gk-jobs-stage { --gk-world-map-h: 700px; margin-top: var(--gk-2); }
+.gk .gk-jobs-stage .gk-world-map__legend { display: none; }
+.gk .gk-jobs-side, .gk .gk-jobs-ways { position: absolute; top: var(--gk-4); z-index: 3; display: flex; flex-direction: column; gap: var(--gk-3); padding: var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-lg); background: color-mix(in srgb, var(--gk-surface) 92%, transparent); backdrop-filter: blur(10px); box-shadow: 0 10px 30px color-mix(in srgb, var(--gk-shadow) 18%, transparent); }
+.gk .gk-jobs-side { left: var(--gk-4); width: 400px; max-height: calc(100% - 2 * var(--gk-4)); overflow-y: auto; scrollbar-width: thin; }
+.gk .gk-jobs-ways { right: var(--gk-4); width: 380px; }
+.gk .gk-jobs-side__search .gk-input { min-height: 38px; background: var(--gk-surface); }
+.gk .gk-jobs-side__row { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-2); }
+.gk .gk-jobs-lines { display: flex; flex-direction: column; border-top: 1px solid var(--gk-line); }
+.gk .gk-jobs-line { border-bottom: 1px solid var(--gk-line); }
+.gk .gk-jobs-line__head { display: flex; align-items: center; justify-content: space-between; gap: var(--gk-3); width: 100%; min-height: 40px; padding: 0 var(--gk-1); border: 0; background: none; color: var(--gk-text-2); font: inherit; font-size: var(--gk-fs-md); text-align: left; cursor: pointer; }
+.gk .gk-jobs-line__head:hover { color: var(--gk-text); }
+.gk .gk-jobs-line__value { display: inline-flex; align-items: center; gap: var(--gk-1); color: var(--gk-text); font-weight: 600; }
+.gk .gk-jobs-line__value svg { width: 14px; height: 14px; color: var(--gk-text-3); }
+.gk .gk-jobs-line__choices { display: flex; flex-direction: column; padding: 0 0 var(--gk-2); }
+.gk .gk-jobs-ways__title { font-size: var(--gk-fs-lg); font-weight: 600; }
+.gk .gk-jobs-way { display: flex; align-items: center; gap: var(--gk-3); padding: var(--gk-3); border: 1px solid var(--gk-line); border-radius: var(--gk-r); background: var(--gk-surface); color: var(--gk-text); transition: transform .35s var(--gk-store-ease), border-color .35s var(--gk-store-ease), background-color .35s var(--gk-store-ease); }
+.gk .gk-jobs-way > svg:first-child { flex: none; width: 22px; height: 22px; color: var(--gk-accent); }
+.gk .gk-jobs-way > svg:last-child { flex: none; width: 16px; height: 16px; color: var(--gk-text-3); margin-left: auto; transition: transform .35s var(--gk-store-ease); }
+.gk .gk-jobs-way > span { display: flex; flex-direction: column; min-width: 0; }
+.gk .gk-jobs-way strong { font-size: var(--gk-fs-lg); font-weight: 600; }
+.gk .gk-jobs-way small { font-size: var(--gk-fs-sm); color: var(--gk-text-3); }
+.gk .gk-jobs-way:hover { transform: translateY(-1px); border-color: var(--gk-accent); background: var(--gk-accent-soft); }
+.gk .gk-jobs-way:hover > svg:last-child { transform: translateX(3px); color: var(--gk-accent); }
+.gk .gk-jobs-way--quiet > svg:first-child { color: var(--gk-text-2); }
+.gk .gk-jobs-stage__foot { position: absolute; left: 50%; bottom: var(--gk-4); z-index: 3; display: flex; align-items: center; gap: var(--gk-4); padding: var(--gk-2) var(--gk-4); border: 1px solid var(--gk-line); border-radius: var(--gk-r-pill); background: color-mix(in srgb, var(--gk-surface) 92%, transparent); backdrop-filter: blur(10px); font-size: var(--gk-fs-sm); transform: translateX(-50%); white-space: nowrap; }
+.gk .gk-jobs-stage__count { color: var(--gk-text-2); }
+.gk .gk-jobs-stage__list { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--gk-accent); }
+.gk .gk-jobs-stage__list svg { width: 14px; height: 14px; }
+@media (max-width: 1100px) {
+  .gk .gk-jobs-stage { --gk-world-map-h: 420px; }
+  .gk .gk-jobs-side, .gk .gk-jobs-ways { position: static; width: auto; max-height: none; box-shadow: none; backdrop-filter: none; background: var(--gk-surface); margin-top: var(--gk-3); }
+  .gk .gk-jobs-stage__foot { position: static; transform: none; margin-top: var(--gk-3); white-space: normal; flex-wrap: wrap; }
+}
 .gk .gk-jobs-land { display: flex; flex-direction: column; margin-top: var(--gk-8); }
 .gk .gk-jobs-land__section { display: flex; flex-direction: column; gap: var(--gk-4); padding: var(--gk-8) 0; border-top: 1px solid var(--gk-line); }
 .gk .gk-jobs-land__num { font-size: var(--gk-fs-xs); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gk-accent); }

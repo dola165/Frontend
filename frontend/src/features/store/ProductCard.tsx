@@ -41,15 +41,16 @@ export function ProductCard({ product }: { product: StoreProduct }) {
 export const ProductSkeletons = ({ count = 5 }: { count?: number }) => <>{Array.from({ length: count }, (_, i) => <li key={i}><span className="gk-skeleton gk-store-skeleton" style={{ display: 'block' }} aria-hidden="true" /></li>)}</>;
 
 /** A storefront row of products with "View all" opening the same search in the catalogue. */
-export function ProductRow({ title, hint, to, products, loading, error, retry, empty }: {
+export function ProductRow({ title, hint, to, products, loading, error, retry, empty, float, tone }: {
     title: string; hint?: ReactNode; to: string; products: StoreProduct[]; loading: boolean; error: string; retry: () => void; empty: string;
+    /** On the front the row drifts on its own, this way, on a textured band. */ float?: 'left' | 'right'; tone?: 'a' | 'b';
 }) {
     return (
-        <Section title={title} hint={hint} action={products.length ? { label: 'View all', to } : undefined}>
+        <Section title={title} hint={hint} action={products.length ? { label: 'View all', to } : undefined} className={float ? `gk-band gk-band--${tone ?? 'a'}` : undefined}>
             {error ? <EmptyNote title="These products could not load" action={<Button size="sm" onClick={retry}>Retry</Button>}>{error}</EmptyNote>
                 : loading && !products.length ? <ul className="gk-store-row gk-store-row--wide" aria-busy="true" aria-label="Loading products"><ProductSkeletons /></ul>
                 : !products.length ? <EmptyNote title={empty} />
-                : <Row label={title} wide>{products.map(product => <li key={product.id}><ProductCard product={product} /></li>)}</Row>}
+                : <Row label={title} wide drift={float}>{products.map(product => <li key={product.id}><ProductCard product={product} /></li>)}</Row>}
         </Section>
     );
 }

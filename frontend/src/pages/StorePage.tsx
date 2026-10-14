@@ -38,14 +38,14 @@ export const StorePage = () => {
                     <StoreDoors own={front.data?.own} sellers={front.data?.sellers} />
                     <Categories />
                     <StoreSlides />
-                    <Collections front={front.data} />
-                    <Sellers id="store-near" title="Clubs near you" sellers={front.data?.near ?? []} loading={front.loading} error={front.error} retry={front.retry}
+                    <Collections front={front.data} float="right" tone="a" />
+                    <Sellers id="store-near" float="left" tone="b" title="Clubs near you" sellers={front.data?.near ?? []} loading={front.loading} error={front.error} retry={front.retry}
                         hint={near ? <AreaPicker city={front.data?.city ?? near} onChange={setCity} /> : 'Clubs with something on sale'}
                         empty={near ? `No club near ${near} sells anything yet` : 'No club sells anything yet'} action={{ label: 'All club stores', to: cataloguePath({ seller: 'clubs' }) }} />
-                    {signedIn && (front.loading || followed.length > 0) && <Sellers id="store-followed" title="From clubs you follow" hint="Clubs you follow with something on sale" sellers={followed} loading={front.loading} error={front.error} retry={front.retry} empty="None of the clubs you follow sells anything yet" />}
-                    <ProductRow title="Picked for you" hint={near ? `In stock first, then clubs you follow and clubs in ${near}` : 'In stock first, then clubs you follow'} to={cataloguePath({ sort: 'RELEVANCE' })}
+                    {signedIn && (front.loading || followed.length > 0) && <Sellers id="store-followed" float="right" tone="a" title="From clubs you follow" hint="Clubs you follow with something on sale" sellers={followed} loading={front.loading} error={front.error} retry={front.retry} empty="None of the clubs you follow sells anything yet" />}
+                    <ProductRow float="left" tone="b" title="Picked for you" hint={near ? `In stock first, then clubs you follow and clubs in ${near}` : 'In stock first, then clubs you follow'} to={cataloguePath({ sort: 'RELEVANCE' })}
                         products={picks.data?.content ?? []} loading={picks.loading} error={picks.error} retry={picks.retry} empty="Nothing to show yet" />
-                    <ProductRow title="New arrivals" hint="The latest products from GrassKickZ and the clubs" to={cataloguePath({ sort: 'NEWEST' })}
+                    <ProductRow float="right" tone="a" title="New arrivals" hint="The latest products from GrassKickZ and the clubs" to={cataloguePath({ sort: 'NEWEST' })}
                         products={fresh.data?.content ?? []} loading={fresh.loading} error={fresh.error} retry={fresh.retry} empty="Nothing new yet" />
                 </div>
             </PageFrame>
